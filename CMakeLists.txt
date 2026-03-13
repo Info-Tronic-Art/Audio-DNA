@@ -10,6 +10,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(cmake/CompilerWarnings.cmake)
 
+# --- Aubio (audio analysis: onset, tempo, pitch) ---
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+find_package(Aubio REQUIRED)
+
 # --- JUCE via FetchContent ---
 include(FetchContent)
 
@@ -50,6 +54,8 @@ target_sources(AudioDNA PRIVATE
     src/analysis/FFTProcessor.cpp
     src/analysis/SpectralFeatures.h
     src/analysis/SpectralFeatures.cpp
+    src/analysis/OnsetDetector.h
+    src/analysis/OnsetDetector.cpp
 
     # Features
     src/features/FeatureBus.h
@@ -85,6 +91,7 @@ target_link_libraries(AudioDNA PRIVATE
     juce::juce_gui_basics
     juce::juce_gui_extra
     juce::juce_opengl
+    Aubio::Aubio
 )
 
 set_project_warnings(AudioDNA)

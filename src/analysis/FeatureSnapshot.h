@@ -23,6 +23,10 @@ struct alignas(64) FeatureSnapshot
     // HighMid(2k-4k), Presence(4k-6k), Brilliance(6k-20k)
     float bandEnergies[7] = {};
 
+    // Onset detection
+    bool  onsetDetected  = false;  // true if onset this frame
+    float onsetStrength  = 0.0f;   // raw onset detection function value
+
     void clear()
     {
         std::memset(this, 0, sizeof(FeatureSnapshot));
