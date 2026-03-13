@@ -7,6 +7,7 @@ AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
     formatManager_.registerBasicFormats();
     transportSource_.addChangeListener(this);
     sourcePlayer_.setSource(&transportSource_);
+    readAheadThread_.startThread(juce::Thread::Priority::normal);
 
     auto result = deviceManager_.initialiseWithDefaultDevices(0, 2);
     if (result.isNotEmpty())
@@ -20,6 +21,7 @@ AudioEngine::~AudioEngine()
     deviceManager_.removeAudioCallback(&combinedCallback_);
     transportSource_.setSource(nullptr);
     sourcePlayer_.setSource(nullptr);
+    readAheadThread_.stopThread(1000);
 }
 
 bool AudioEngine::loadFile(const juce::File& file)
@@ -32,7 +34,7 @@ bool AudioEngine::loadFile(const juce::File& file)
 
     readerSource_ = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
     transportSource_.setSource(readerSource_.get(), 32768,
-                               nullptr, reader->sampleRate);
+                               &readAheadThread_, reader->sampleRate);
     return true;
 }
 

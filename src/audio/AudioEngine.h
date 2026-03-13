@@ -34,6 +34,7 @@ private:
     juce::AudioTransportSource transportSource_;
 
     std::unique_ptr<juce::AudioFormatReaderSource> readerSource_;
+    juce::TimeSliceThread readAheadThread_{"AudioReadAhead"};
     AudioCallback audioCallback_;
 
     // Custom callback that mixes transport output and feeds the ring buffer

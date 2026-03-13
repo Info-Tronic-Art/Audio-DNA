@@ -401,36 +401,22 @@ Each frame, the render thread:
 
 | # | Milestone | Tasks | Status |
 |---|-----------|-------|--------|
-| **M1** | Window + Audio + Waveform | 10 tasks | **CURRENT** |
-| M2 | Full Audio Analysis Engine | 19 tasks | Not started |
+| **M1** | Window + Audio + Waveform | 10 tasks | **COMPLETE** |
+| M2 | Full Audio Analysis Engine | 19 tasks | **CURRENT** |
 | M3 | OpenGL Image Rendering + First Effects | 10 tasks | Not started |
 | M4 | Mapping Engine + Full Effects Library | 9 tasks | Not started |
 | M5 | VJ-Style UI Polish + Presets | 11 tasks | Not started |
 | M6 | Quality, Performance, Cross-Platform | 8 tasks | Not started |
 
-### Current Milestone: M1 — Window + Audio + Waveform
+### Milestone 1: COMPLETE
 
-**Goal**: JUCE app opens a window, loads and plays an audio file, shows a live waveform and RMS meter.
+All 10 tasks done. App builds, loads/plays audio, waveform + RMS/Peak meters work, transport controls functional.
 
-**All source files exist on disk**:
-- `CMakeLists.txt` with JUCE 7.0.12 via FetchContent, C++20 ✅
-- `cmake/CompilerWarnings.cmake` ✅
-- `src/Main.cpp` — JUCE app entry point ✅
-- `src/MainComponent.h/cpp` — top-level component ✅
-- `src/audio/AudioEngine.h/cpp` — AudioDeviceManager + file transport ✅
-- `src/audio/AudioCallback.h/cpp` — RT callback → ring buffer ✅
-- `src/audio/RingBuffer.h` — SPSC lock-free ring buffer ✅
-- `src/analysis/AnalysisThread.h/cpp` — dedicated thread, RMS computation ✅
-- `src/analysis/FeatureSnapshot.h` — minimal (rms + peak only) ✅
-- `src/ui/LookAndFeel.h/cpp` — dark theme ✅
-- `src/ui/WaveformDisplay.h/cpp` — scrolling waveform ✅
-- `src/ui/AudioReadoutPanel.h/cpp` — RMS level meter ✅
+### Current Milestone: M2 — Full Audio Analysis Engine
 
-**Remaining tasks**:
+**Goal**: Extract all audio features in real-time. Display all values as live readouts.
 
-- [ ] 1.10: Build and test on macOS — verify no audio dropouts, smooth waveform, responsive RMS meter
-
-**Definition of Done**: App window opens with dark background, user loads WAV/AIFF/MP3, audio plays, scrolling waveform displays, RMS meter updates, transport controls work, no glitches.
+**Next task**: 2.1 — Implement `FeatureBus` with triple-buffer atomic swap.
 
 ### What M2 Unlocks
 
@@ -536,6 +522,35 @@ Aubio will be added via system install or FetchContent. On macOS: `brew install 
 ---
 
 ## Claude Working Instructions
+
+### "Kick off the next task [X.Y]" Protocol
+
+When the user says **"kick off the next task [X.Y]"**, follow this exact sequence:
+
+1. **Read** CLAUDE.md (this file) and TASKPLAN.md to find task [X.Y]
+2. **Read** all source files relevant to the task before changing anything
+3. **Execute** the task — write code, fix bugs, configure builds, whatever the task requires
+4. **Self-validate with two independent methods** before asking the human:
+   - **Build tasks**: (A) `cmake --build` exits 0 with zero errors, (B) built binary exists and `file` confirms valid executable
+   - **Implementation tasks**: (A) full project compiles after changes, (B) grep source for rule violations (no `new`/`malloc` in audio callback, no `std::mutex` on hot path, POD snapshot, `u_` uniform names)
+   - **Shader tasks**: (A) project builds and shader loads, (B) uniforms match EffectLibrary registration with `u_` prefix
+   - **UI tasks**: (A) project compiles with component integrated, (B) class follows JUCE patterns (inherits Component, implements paint()/resized(), timer/async updates)
+   - **Test tasks**: (A) all tests pass, (B) every public method of class under test has at least one test case
+5. **Report** results to human using this format:
+   ```
+   ## Task [X.Y] Validation Report
+   **Task**: <description>
+   **Files**: <list>
+   ### Validation A: <result PASS/FAIL + evidence>
+   ### Validation B: <result PASS/FAIL + evidence>
+   ### For you to check: <what human should look for>
+   ```
+6. **Wait** for human to say it passes
+7. **On human PASS**: commit to git, update CLAUDE.md milestone status, append to BUILDLOG.md, then output:
+   ```
+   Ready for next task. Say: kick off the next task [X.Y+1]
+   ```
+8. **On human FAIL**: fix the issue, re-run both validations, report again
 
 ### Before Any Work
 
