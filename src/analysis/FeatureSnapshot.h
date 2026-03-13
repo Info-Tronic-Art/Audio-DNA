@@ -27,6 +27,10 @@ struct alignas(64) FeatureSnapshot
     bool  onsetDetected  = false;  // true if onset this frame
     float onsetStrength  = 0.0f;   // raw onset detection function value
 
+    // Rhythm / tempo
+    float bpm       = 0.0f;   // current tempo estimate (BPM), 0 if unknown
+    float beatPhase  = 0.0f;   // [0, 1) sawtooth ramp between beats
+
     void clear()
     {
         std::memset(this, 0, sizeof(FeatureSnapshot));

@@ -56,6 +56,8 @@ target_sources(AudioDNA PRIVATE
     src/analysis/SpectralFeatures.cpp
     src/analysis/OnsetDetector.h
     src/analysis/OnsetDetector.cpp
+    src/analysis/BPMTracker.h
+    src/analysis/BPMTracker.cpp
 
     # Features
     src/features/FeatureBus.h
