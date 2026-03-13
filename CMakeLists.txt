@@ -47,6 +47,10 @@ target_sources(AudioDNA PRIVATE
     src/analysis/AnalysisThread.cpp
     src/analysis/FeatureSnapshot.h
 
+    # Features
+    src/features/FeatureBus.h
+    src/features/FeatureBus.cpp
+
     # UI
     src/ui/LookAndFeel.h
     src/ui/LookAndFeel.cpp
