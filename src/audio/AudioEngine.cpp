@@ -1,0 +1,64 @@
+#include "AudioEngine.h"
+
+AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
+    : audioCallback_(ringBuffer),
+      combinedCallback_(sourcePlayer_, audioCallback_)
+{
+    formatManager_.registerBasicFormats();
+    transportSource_.addChangeListener(this);
+    sourcePlayer_.setSource(&transportSource_);
+
+    auto result = deviceManager_.initialiseWithDefaultDevices(0, 2);
+    if (result.isNotEmpty())
+        DBG("Audio device init error: " + result);
+
+    deviceManager_.addAudioCallback(&combinedCallback_);
+}
+
+AudioEngine::~AudioEngine()
+{
+    deviceManager_.removeAudioCallback(&combinedCallback_);
+    transportSource_.setSource(nullptr);
+    sourcePlayer_.setSource(nullptr);
+}
+
+bool AudioEngine::loadFile(const juce::File& file)
+{
+    stop();
+
+    auto* reader = formatManager_.createReaderFor(file);
+    if (reader == nullptr)
+        return false;
+
+    readerSource_ = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
+    transportSource_.setSource(readerSource_.get(), 32768,
+                               nullptr, reader->sampleRate);
+    return true;
+}
+
+void AudioEngine::play()
+{
+    transportSource_.start();
+}
+
+void AudioEngine::pause()
+{
+    transportSource_.stop();
+}
+
+void AudioEngine::stop()
+{
+    transportSource_.stop();
+    transportSource_.setPosition(0.0);
+}
+
+bool AudioEngine::isPlaying() const
+{
+    return transportSource_.isPlaying();
+}
+
+void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster*)
+{
+    if (onTransportStateChanged)
+        onTransportStateChanged(transportSource_.isPlaying());
+}

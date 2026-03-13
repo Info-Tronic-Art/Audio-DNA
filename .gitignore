@@ -1,0 +1,55 @@
+# === Build directories ===
+/build/
+/out/
+/cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# === C++ build artifacts ===
+*.o
+*.obj
+*.a
+*.lib
+*.dylib
+*.so
+*.so.*
+*.dll
+*.exe
+*.out
+*.app
+*.dSYM/
+
+# === JUCE generated files ===
+JuceLibraryCode/
+*.jucer
+
+# === Aubio / FFTW local build artifacts ===
+aubio-*/
+fftw-*/
+/third_party/aubio/build/
+/third_party/fftw/build/
+
+# === IDE folders ===
+.vscode/
+.idea/
+.vs/
+*.xcodeproj/
+*.xcworkspace/
+*.sln
+*.vcxproj
+*.vcxproj.*
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+desktop.ini
+._*
+
+# === Misc ===
+*.swp
+*.swo
+*~
+*.log
