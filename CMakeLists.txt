@@ -46,6 +46,8 @@ target_sources(AudioDNA PRIVATE
     src/analysis/AnalysisThread.h
     src/analysis/AnalysisThread.cpp
     src/analysis/FeatureSnapshot.h
+    src/analysis/FFTProcessor.h
+    src/analysis/FFTProcessor.cpp
 
     # Features
     src/features/FeatureBus.h
