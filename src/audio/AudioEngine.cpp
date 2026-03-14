@@ -11,7 +11,10 @@ AudioEngine::AudioEngine(RingBuffer<float>& ringBuffer)
 
     auto result = deviceManager_.initialiseWithDefaultDevices(0, 2);
     if (result.isNotEmpty())
-        DBG("Audio device init error: " + result);
+    {
+        std::cerr << "[AudioEngine] Device init error: " << result << std::endl;
+        // Will report via onError callback once set up
+    }
 
     deviceManager_.addAudioCallback(&combinedCallback_);
 }
@@ -34,7 +37,11 @@ bool AudioEngine::loadFile(const juce::File& file)
 
     auto* reader = formatManager_.createReaderFor(file);
     if (reader == nullptr)
+    {
+        if (onError)
+            onError("Failed to load: " + file.getFileName());
         return false;
+    }
 
     readerSource_ = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
     transportSource_.setSource(readerSource_.get(), 32768,
@@ -74,6 +81,19 @@ bool AudioEngine::isLooping() const
     if (readerSource_)
         return readerSource_->isLooping();
     return false;
+}
+
+bool AudioEngine::hasAudioDevice() const
+{
+    return deviceManager_.getCurrentAudioDevice() != nullptr;
+}
+
+juce::String AudioEngine::getDeviceStatus() const
+{
+    auto* device = deviceManager_.getCurrentAudioDevice();
+    if (device == nullptr)
+        return "No audio device";
+    return device->getName() + " @ " + juce::String(static_cast<int>(device->getCurrentSampleRate())) + "Hz";
 }
 
 void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster*)

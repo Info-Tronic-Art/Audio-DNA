@@ -133,6 +133,16 @@ MainComponent::MainComponent()
         });
     };
 
+    audioEngine_.onError = [this](const juce::String& msg) {
+        juce::MessageManager::callAsync([this, msg] {
+            fileLabel_.setText(msg, juce::dontSendNotification);
+        });
+    };
+
+    // Show audio device status
+    if (!audioEngine_.hasAudioDevice())
+        fileLabel_.setText("No audio device found", juce::dontSendNotification);
+
     updateTransportButtons(false);
 
     // Initialize effect library
@@ -471,7 +481,9 @@ void MainComponent::timerCallback()
     float fps = previewPanel_.getRenderer().getFps();
     float cpu = analysisThread_.getCpuLoad();
 
-    fpsLabel_.setText(juce::String(static_cast<int>(fps + 0.5f)) + " fps",
+    float frameMs = previewPanel_.getRenderer().getFrameTimeMs();
+    fpsLabel_.setText(juce::String(static_cast<int>(fps + 0.5f)) + "fps "
+                      + juce::String(frameMs, 1) + "ms",
                       juce::dontSendNotification);
     cpuLabel_.setText("DSP " + juce::String(cpu, 1) + "%",
                       juce::dontSendNotification);

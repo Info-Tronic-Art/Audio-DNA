@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "render/EmbeddedShaders.h"
 #include <iostream>
+#include <chrono>
 
 using namespace juce::gl;
 Renderer::Renderer(FeatureBus& featureBus)
@@ -135,11 +136,39 @@ void Renderer::renderOpenGL()
     float vpY = (compH - vpH) * 0.5f;
 
     // Render the effect chain with letterbox viewport for final output
+    auto renderStart = std::chrono::high_resolution_clock::now();
+
     effectChain_.render(texMgr_.getImageTexture(),
                         shaderMgr_, texMgr_, quad_,
                         time, renderW, renderH,
                         static_cast<GLuint>(defaultFBO),
                         vpX, vpY, vpW, vpH);
+
+    glFinish(); // Ensure GPU work is done before measuring
+    auto renderEnd = std::chrono::high_resolution_clock::now();
+    double frameMs = std::chrono::duration<double, std::milli>(renderEnd - renderStart).count();
+
+    // EMA smoothing for UI display
+    float prevMs = frameTimeMs_.load(std::memory_order_relaxed);
+    frameTimeMs_.store(prevMs + 0.1f * (static_cast<float>(frameMs) - prevMs), std::memory_order_relaxed);
+
+    // Periodic log
+    renderProfileAccum_ += frameMs;
+    if (++renderProfileCount_ >= kRenderProfileInterval)
+    {
+        double avgMs = renderProfileAccum_ / kRenderProfileInterval;
+        int numEnabled = 0;
+        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+        {
+            if (auto* fx = effectChain_.getEffect(i))
+                if (fx->isEnabled()) ++numEnabled;
+        }
+        std::cerr << "[Render Profile] Avg frame: " << static_cast<int>(avgMs * 100) / 100.0
+                  << " ms, " << numEnabled << " effects active, "
+                  << static_cast<int>(renderW) << "x" << static_cast<int>(renderH) << std::endl;
+        renderProfileAccum_ = 0.0;
+        renderProfileCount_ = 0;
+    }
 }
 
 void Renderer::openGLContextClosing()

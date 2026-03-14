@@ -29,6 +29,10 @@ public:
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 
     std::function<void(bool isPlaying)> onTransportStateChanged;
+    std::function<void(const juce::String& message)> onError;
+
+    bool hasAudioDevice() const;
+    juce::String getDeviceStatus() const;
 
 private:
     juce::AudioDeviceManager deviceManager_;

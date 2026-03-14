@@ -86,7 +86,14 @@ public:
     int getLockedWidth() const { return lockedWidth_.load(std::memory_order_relaxed); }
     int getLockedHeight() const { return lockedHeight_.load(std::memory_order_relaxed); }
 
+    // Render frame time tracking
+    float getFrameTimeMs() const { return frameTimeMs_.load(std::memory_order_relaxed); }
+
 private:
+    std::atomic<float> frameTimeMs_{0.0f};
+    double renderProfileAccum_ = 0.0;
+    int renderProfileCount_ = 0;
+    static constexpr int kRenderProfileInterval = 300; // Log every N frames (~5s at 60fps)
 
     // Pending image load — protected by mutex (not on hot audio path)
     std::mutex pendingImageMutex_;
