@@ -37,13 +37,19 @@ public:
     //   - time: current time in seconds
     //   - resolution: viewport width/height
     //   - defaultFBO: the framebuffer to render the final result to
+    // Render the effect chain.
+    // width/height: the internal render resolution (used for FBOs and uniforms).
+    // vpX/vpY/vpW/vpH: the final output viewport on the default framebuffer
+    //                   (for letterboxing). If vpW <= 0, uses (0, 0, width, height).
     void render(GLuint inputTexture,
                 ShaderManager& shaderMgr,
                 TextureManager& texMgr,
                 FullscreenQuad& quad,
                 float time,
                 float width, float height,
-                GLuint defaultFBO);
+                GLuint defaultFBO,
+                float vpX = 0.0f, float vpY = 0.0f,
+                float vpW = 0.0f, float vpH = 0.0f);
 
 private:
     // Upload an effect's parameters as uniforms

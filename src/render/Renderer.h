@@ -70,8 +70,21 @@ private:
     int frameCount_ = 0;
     double fpsTimer_ = 0.0;
 
+    // Locked render resolution (0,0 = follow component size)
+    std::atomic<int> lockedWidth_{0};
+    std::atomic<int> lockedHeight_{0};
+
 public:
     float getFps() const { return currentFps_.load(std::memory_order_relaxed); }
+
+    // Set a fixed render resolution. Pass (0,0) to follow component size.
+    void setLockedResolution(int w, int h)
+    {
+        lockedWidth_.store(w, std::memory_order_relaxed);
+        lockedHeight_.store(h, std::memory_order_relaxed);
+    }
+    int getLockedWidth() const { return lockedWidth_.load(std::memory_order_relaxed); }
+    int getLockedHeight() const { return lockedHeight_.load(std::memory_order_relaxed); }
 
 private:
 

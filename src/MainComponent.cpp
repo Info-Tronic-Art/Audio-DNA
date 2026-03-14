@@ -42,6 +42,85 @@ MainComponent::MainComponent()
     cpuLabel_.setJustificationType(juce::Justification::centredRight);
     startTimerHz(4); // Update stats 4x per second
 
+    // Resolution selector for preview panel
+    addAndMakeVisible(resolutionSelector_);
+    resolutionSelector_.setTextWhenNothingSelected("Res: Auto");
+    {
+        int id = 1;
+        resolutionSelector_.addItem("Auto", id++);
+
+        // Standard resolutions
+        resolutionSelector_.addItem("640x480", id++);
+        resolutionSelector_.addItem("800x600", id++);
+        resolutionSelector_.addItem("1280x720", id++);
+        resolutionSelector_.addItem("1920x1080", id++);
+        resolutionSelector_.addItem("2560x1440", id++);
+        resolutionSelector_.addItem("3840x2160", id++);
+
+        // Add connected display resolutions
+        const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
+        for (int i = 0; i < static_cast<int>(displays.size()); ++i)
+        {
+            const auto& d = displays[static_cast<size_t>(i)];
+            juce::String label = juce::String(d.totalArea.getWidth())
+                              + "x" + juce::String(d.totalArea.getHeight());
+            if (d.isMain)
+                label += " (main)";
+            else
+                label += " (display " + juce::String(i + 1) + ")";
+
+            // Only add if not already a standard resolution
+            bool isDuplicate = false;
+            for (int j = 0; j < resolutionSelector_.getNumItems(); ++j)
+            {
+                if (resolutionSelector_.getItemText(j).startsWith(
+                    juce::String(d.totalArea.getWidth()) + "x" + juce::String(d.totalArea.getHeight())))
+                {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+            if (!isDuplicate)
+                resolutionSelector_.addItem(label, id++);
+        }
+
+        resolutionSelector_.setSelectedId(1, juce::dontSendNotification);
+    }
+    resolutionSelector_.onChange = [this] {
+        juce::String text = resolutionSelector_.getText();
+        if (text == "Auto" || text.isEmpty())
+        {
+            previewPanel_.getRenderer().setLockedResolution(0, 0);
+        }
+        else
+        {
+            // Parse "WxH" or "WxH (label)"
+            auto xPos = text.indexOfChar('x');
+            if (xPos > 0)
+            {
+                int w = text.substring(0, xPos).getIntValue();
+                auto rest = text.substring(xPos + 1);
+                auto spacePos = rest.indexOfChar(' ');
+                int h = (spacePos > 0) ? rest.substring(0, spacePos).getIntValue()
+                                        : rest.getIntValue();
+                if (w > 0 && h > 0)
+                    previewPanel_.getRenderer().setLockedResolution(w, h);
+            }
+        }
+    };
+
+    // Display selector for output window
+    addAndMakeVisible(displaySelector_);
+    displaySelector_.setTextWhenNothingSelected("Output: Off");
+    refreshDisplayList();
+    displaySelector_.onChange = [this] {
+        int selected = displaySelector_.getSelectedId();
+        if (selected == 1) // "Off"
+            closeOutput();
+        else if (selected > 1)
+            openOutputOnDisplay(selected - 2); // display index
+    };
+
     openButton_.onClick = [this] { openFile(); };
     openImageButton_.onClick = [this] { openImage(); };
     playButton_.onClick = [this] { audioEngine_.play(); };
@@ -75,6 +154,7 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+    outputWindow_.reset(); // Destroy output window before renderer
     analysisThread_.stopThread(1000);
     setLookAndFeel(nullptr);
 }
@@ -107,9 +187,13 @@ void MainComponent::resized()
     loadPresetButton_.setBounds(topBar.removeFromLeft(50));
     topBar.removeFromLeft(12);
 
-    // Right-aligned stats
+    // Right-aligned stats, display selector, and resolution selector
     cpuLabel_.setBounds(topBar.removeFromRight(80));
     fpsLabel_.setBounds(topBar.removeFromRight(70));
+    topBar.removeFromRight(4);
+    displaySelector_.setBounds(topBar.removeFromRight(140));
+    topBar.removeFromRight(4);
+    resolutionSelector_.setBounds(topBar.removeFromRight(130));
     topBar.removeFromRight(8);
 
     fileLabel_.setBounds(topBar);
@@ -195,6 +279,9 @@ void MainComponent::openImage()
             return;
 
         previewPanel_.loadImage(file);
+        currentImageFile_ = file;
+        if (outputWindow_)
+            outputWindow_->loadImage(file);
         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
     });
 }
@@ -269,10 +356,18 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
-    // Escape = stop
+    // Escape = close output window, or stop audio
     if (key.isKeyCode(juce::KeyPress::escapeKey))
     {
-        audioEngine_.stop();
+        if (outputWindow_ && outputWindow_->isVisible())
+        {
+            closeOutput();
+            displaySelector_.setSelectedId(1, juce::dontSendNotification);
+        }
+        else
+        {
+            audioEngine_.stop();
+        }
         return true;
     }
 
@@ -280,6 +375,22 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     if (key.isKeyCode('S') && mod.isCommandDown())
     {
         savePreset();
+        return true;
+    }
+
+    // Cmd/Ctrl+F = fullscreen output on primary display
+    if (key.isKeyCode('F') && mod.isCommandDown())
+    {
+        if (outputWindow_ && outputWindow_->isVisible())
+        {
+            closeOutput();
+            displaySelector_.setSelectedId(1, juce::dontSendNotification);
+        }
+        else
+        {
+            openOutputOnDisplay(0);
+            displaySelector_.setSelectedId(2, juce::dontSendNotification);
+        }
         return true;
     }
 
@@ -347,6 +458,9 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
                  ext == ".gif" || ext == ".bmp" || ext == ".tiff")
         {
             previewPanel_.loadImage(file);
+            currentImageFile_ = file;
+            if (outputWindow_)
+                outputWindow_->loadImage(file);
             fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
         }
     }
@@ -361,6 +475,56 @@ void MainComponent::timerCallback()
                       juce::dontSendNotification);
     cpuLabel_.setText("DSP " + juce::String(cpu, 1) + "%",
                       juce::dontSendNotification);
+}
+
+void MainComponent::refreshDisplayList()
+{
+    displaySelector_.clear(juce::dontSendNotification);
+    displaySelector_.addItem("Off", 1);
+
+    const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
+    for (int i = 0; i < static_cast<int>(displays.size()); ++i)
+    {
+        const auto& d = displays[static_cast<size_t>(i)];
+        juce::String label = "Display " + juce::String(i + 1);
+        label += " (" + juce::String(d.totalArea.getWidth())
+              + "x" + juce::String(d.totalArea.getHeight()) + ")";
+        if (d.isMain)
+            label += " main";
+        displaySelector_.addItem(label, i + 2);
+    }
+
+    displaySelector_.setSelectedId(1, juce::dontSendNotification);
+}
+
+void MainComponent::openOutputOnDisplay(int displayIndex)
+{
+    const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
+    if (displayIndex < 0 || displayIndex >= static_cast<int>(displays.size()))
+        return;
+
+    if (!outputWindow_)
+    {
+        outputWindow_ = std::make_unique<OutputWindow>(
+            analysisThread_.getFeatureBus(),
+            previewPanel_.getMappingEngine(),
+            previewPanel_.getEffectChain());
+
+        // Load the same image if one is loaded
+        if (currentImageFile_.existsAsFile())
+            outputWindow_->loadImage(currentImageFile_);
+    }
+
+    outputWindow_->goFullscreenOnDisplay(displays[static_cast<size_t>(displayIndex)]);
+}
+
+void MainComponent::closeOutput()
+{
+    if (outputWindow_)
+    {
+        outputWindow_->setVisible(false);
+        outputWindow_.reset();
+    }
 }
 
 void MainComponent::updateTransportButtons(bool isPlaying)

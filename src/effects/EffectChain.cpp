@@ -21,8 +21,18 @@ void EffectChain::render(GLuint inputTexture,
                           FullscreenQuad& quad,
                           float time,
                           float width, float height,
-                          GLuint defaultFBO)
+                          GLuint defaultFBO,
+                          float vpX, float vpY,
+                          float vpW, float vpH)
 {
+    // If no explicit viewport, use full render area
+    if (vpW <= 0.0f || vpH <= 0.0f)
+    {
+        vpX = 0.0f;
+        vpY = 0.0f;
+        vpW = width;
+        vpH = height;
+    }
     // Collect enabled effects
     std::vector<Effect*> activeEffects;
     for (auto& e : effects_)
@@ -40,7 +50,8 @@ void EffectChain::render(GLuint inputTexture,
             return;
 
         glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
-        glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
+        glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
+                   static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
 
         passthrough->use();
 
@@ -72,16 +83,17 @@ void EffectChain::render(GLuint inputTexture,
 
         if (isLast)
         {
-            // Render final effect directly to screen
+            // Render final effect directly to screen with letterbox viewport
             glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+            glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
+                       static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
         }
         else
         {
-            // Render to FBO for next effect to read
+            // Render to FBO for next effect to read (full FBO size)
             glBindFramebuffer(GL_FRAMEBUFFER, texMgr.getFBO(writeFBO));
+            glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
         }
-
-        glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
         glClear(GL_COLOR_BUFFER_BIT);
 
         program->use();

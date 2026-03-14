@@ -121,6 +121,9 @@ target_sources(AudioDNA PRIVATE
     src/ui/Knob.cpp
     src/ui/PresetManager.h
     src/ui/PresetManager.cpp
+    src/ui/OutputWindow.h
+    src/ui/OutputWindow.cpp
+    src/render/EmbeddedShaders.h
 )
 
 target_include_directories(AudioDNA PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

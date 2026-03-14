@@ -1,133 +1,8 @@
 #include "Renderer.h"
+#include "render/EmbeddedShaders.h"
 #include <iostream>
 
 using namespace juce::gl;
-
-// Passthrough fragment shader: just samples the texture with no effect.
-// Used when no effects are enabled, or as a base "no-op" shader.
-static const char* passthroughFragSource = R"(
-    #version 410 core
-
-    in vec2 v_texCoord;
-    out vec4 fragColor;
-
-    uniform sampler2D u_texture;
-
-    void main()
-    {
-        fragColor = texture(u_texture, v_texCoord);
-    }
-)";
-
-// Embedded vertex shader (also saved as passthrough.vert for file-based loading)
-static const char* vertexShaderSource = R"(
-    #version 410 core
-
-    layout(location = 0) in vec2 a_position;
-    layout(location = 1) in vec2 a_texCoord;
-
-    out vec2 v_texCoord;
-
-    void main()
-    {
-        v_texCoord = a_texCoord;
-        gl_Position = vec4(a_position, 0.0, 1.0);
-    }
-)";
-
-// Embedded copies of the 4 fragment shaders for reliability.
-// If shader files exist on disk, ShaderManager loads those instead.
-
-static const char* rippleFragSource = R"(
-    #version 410 core
-    in vec2 v_texCoord;
-    out vec4 fragColor;
-    uniform sampler2D u_texture;
-    uniform float u_time;
-    uniform vec2  u_resolution;
-    uniform float u_ripple_intensity;
-    uniform float u_ripple_freq;
-    uniform float u_ripple_speed;
-    void main() {
-        vec2 uv = v_texCoord;
-        vec2 center = vec2(0.5);
-        float dist = distance(uv, center);
-        float intensity = u_ripple_intensity * 0.05;
-        float freq = 5.0 + u_ripple_freq * 25.0;
-        float speed = 1.0 + u_ripple_speed * 5.0;
-        float wave = sin(dist * freq - u_time * speed) * intensity;
-        vec2 dir = normalize(uv - center + vec2(0.0001));
-        uv += dir * wave;
-        fragColor = texture(u_texture, uv);
-    }
-)";
-
-static const char* hueShiftFragSource = R"(
-    #version 410 core
-    in vec2 v_texCoord;
-    out vec4 fragColor;
-    uniform sampler2D u_texture;
-    uniform float u_hue_shift;
-    vec3 rgb2hsv(vec3 c) {
-        vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
-        vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-        vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-        float d = q.x - min(q.w, q.y);
-        float e = 1.0e-10;
-        return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-    }
-    vec3 hsv2rgb(vec3 c) {
-        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
-        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-    }
-    void main() {
-        vec4 color = texture(u_texture, v_texCoord);
-        vec3 hsv = rgb2hsv(color.rgb);
-        hsv.x = fract(hsv.x + u_hue_shift);
-        color.rgb = hsv2rgb(hsv);
-        fragColor = color;
-    }
-)";
-
-static const char* rgbSplitFragSource = R"(
-    #version 410 core
-    in vec2 v_texCoord;
-    out vec4 fragColor;
-    uniform sampler2D u_texture;
-    uniform float u_rgb_split;
-    uniform float u_rgb_angle;
-    void main() {
-        float amount = u_rgb_split * 0.03;
-        float angle = u_rgb_angle * 6.28318;
-        vec2 dir = vec2(cos(angle), sin(angle)) * amount;
-        float r = texture(u_texture, v_texCoord + dir).r;
-        float g = texture(u_texture, v_texCoord).g;
-        float b = texture(u_texture, v_texCoord - dir).b;
-        float a = texture(u_texture, v_texCoord).a;
-        fragColor = vec4(r, g, b, a);
-    }
-)";
-
-static const char* vignetteFragSource = R"(
-    #version 410 core
-    in vec2 v_texCoord;
-    out vec4 fragColor;
-    uniform sampler2D u_texture;
-    uniform float u_vignette_int;
-    uniform float u_vignette_soft;
-    void main() {
-        vec4 color = texture(u_texture, v_texCoord);
-        vec2 uv = v_texCoord * 2.0 - 1.0;
-        float dist = length(uv) * 0.707;
-        float softness = 0.2 + u_vignette_soft * 0.8;
-        float vignette = smoothstep(1.0, 1.0 - softness, dist);
-        float strength = u_vignette_int;
-        color.rgb *= mix(1.0, vignette, strength);
-        fragColor = color;
-    }
-)";
-
 Renderer::Renderer(FeatureBus& featureBus)
     : featureBus_(featureBus)
 {
@@ -220,21 +95,51 @@ void Renderer::renderOpenGL()
     float time = static_cast<float>(
         juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
 
-    // Get viewport dimensions in physical pixels (Retina-aware)
+    // Get physical pixel dimensions
     auto* component = glContext_.getTargetComponent();
     float scale = static_cast<float>(glContext_.getRenderingScale());
-    float width  = component != nullptr ? static_cast<float>(component->getWidth())  * scale : 1.0f;
-    float height = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
+    float compW = component != nullptr ? static_cast<float>(component->getWidth())  * scale : 1.0f;
+    float compH = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
+
+    // Check for locked resolution
+    int lockW = lockedWidth_.load(std::memory_order_relaxed);
+    int lockH = lockedHeight_.load(std::memory_order_relaxed);
+    float renderW = (lockW > 0 && lockH > 0) ? static_cast<float>(lockW) : compW;
+    float renderH = (lockW > 0 && lockH > 0) ? static_cast<float>(lockH) : compH;
 
     // Get the default framebuffer that JUCE's context uses
     GLint defaultFBO = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &defaultFBO);
 
-    // Render the effect chain
+    // Compute letterboxed viewport to maintain correct aspect ratio
+    float aspectW = renderW;
+    float aspectH = renderH;
+    if (lockW <= 0 || lockH <= 0)
+    {
+        // In auto mode, use the loaded image's aspect ratio
+        int imgW = texMgr_.getImageWidth();
+        int imgH = texMgr_.getImageHeight();
+        if (imgW > 0 && imgH > 0)
+        {
+            aspectW = static_cast<float>(imgW);
+            aspectH = static_cast<float>(imgH);
+        }
+    }
+
+    float scaleX = compW / aspectW;
+    float scaleY = compH / aspectH;
+    float fitScale = std::min(scaleX, scaleY);
+    float vpW = aspectW * fitScale;
+    float vpH = aspectH * fitScale;
+    float vpX = (compW - vpW) * 0.5f;
+    float vpY = (compH - vpH) * 0.5f;
+
+    // Render the effect chain with letterbox viewport for final output
     effectChain_.render(texMgr_.getImageTexture(),
                         shaderMgr_, texMgr_, quad_,
-                        time, width, height,
-                        static_cast<GLuint>(defaultFBO));
+                        time, renderW, renderH,
+                        static_cast<GLuint>(defaultFBO),
+                        vpX, vpY, vpW, vpH);
 }
 
 void Renderer::openGLContextClosing()
@@ -249,17 +154,17 @@ void Renderer::initShaders()
     DBG("Renderer: compiling shaders...");
 
     auto compile = [&](const juce::String& name, const char* frag) {
-        if (shaderMgr_.compileProgram(name, vertexShaderSource, frag))
+        if (shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, frag))
             std::cerr << "[Renderer]   " << name << ": OK" << std::endl;
         else
             std::cerr << "[Renderer]   " << name << ": FAILED" << std::endl;
     };
 
-    compile("passthrough", passthroughFragSource);
-    compile("ripple",      rippleFragSource);
-    compile("hue_shift",   hueShiftFragSource);
-    compile("rgb_split",   rgbSplitFragSource);
-    compile("vignette",    vignetteFragSource);
+    compile("passthrough", EmbeddedShaders::passthrough);
+    compile("ripple",      EmbeddedShaders::ripple);
+    compile("hue_shift",   EmbeddedShaders::hueShift);
+    compile("rgb_split",   EmbeddedShaders::rgbSplit);
+    compile("vignette",    EmbeddedShaders::vignette);
 
     DBG("Renderer: shader compilation complete");
 }

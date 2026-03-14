@@ -12,6 +12,7 @@
 #include "ui/EffectsRackPanel.h"
 #include "effects/EffectLibrary.h"
 #include "ui/PresetManager.h"
+#include "ui/OutputWindow.h"
 
 class MainComponent : public juce::Component,
                       public juce::FileDragAndDropTarget,
@@ -38,6 +39,9 @@ private:
     void loadPreset();
     void updateTransportButtons(bool isPlaying);
     void timerCallback() override;
+    void refreshDisplayList();
+    void openOutputOnDisplay(int displayIndex);
+    void closeOutput();
 
     AudioDNALookAndFeel lookAndFeel_;
 
@@ -68,6 +72,14 @@ private:
     // Effects rack (right panel) — initialized after previewPanel_
     EffectLibrary effectLibrary_;
     std::unique_ptr<EffectsRackPanel> effectsRackPanel_;
+
+    // Resolution lock
+    juce::ComboBox resolutionSelector_;
+
+    // Output window
+    juce::ComboBox displaySelector_;
+    std::unique_ptr<OutputWindow> outputWindow_;
+    juce::File currentImageFile_;  // Track loaded image for output window
 
     std::unique_ptr<juce::FileChooser> fileChooser_;
 
