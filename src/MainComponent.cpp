@@ -58,6 +58,7 @@ MainComponent::MainComponent()
     // Start analysis
     analysisThread_.startThread(juce::Thread::Priority::high);
 
+    setWantsKeyboardFocus(true);
     setSize(1280, 720);
 }
 
@@ -221,6 +222,62 @@ void MainComponent::loadPreset()
                 effectsRackPanel_->refreshFromChain();
         }
     });
+}
+
+bool MainComponent::keyPressed(const juce::KeyPress& key)
+{
+    auto mod = key.getModifiers();
+
+    // Space = play/pause toggle
+    if (key.isKeyCode(juce::KeyPress::spaceKey))
+    {
+        if (audioEngine_.isPlaying())
+            audioEngine_.pause();
+        else
+            audioEngine_.play();
+        return true;
+    }
+
+    // Escape = stop
+    if (key.isKeyCode(juce::KeyPress::escapeKey))
+    {
+        audioEngine_.stop();
+        return true;
+    }
+
+    // Cmd/Ctrl+S = save preset
+    if (key.isKeyCode('S') && mod.isCommandDown())
+    {
+        savePreset();
+        return true;
+    }
+
+    // Cmd/Ctrl+O = load preset
+    if (key.isKeyCode('O') && mod.isCommandDown())
+    {
+        loadPreset();
+        return true;
+    }
+
+    // 1-9 = toggle effects
+    int keyChar = key.getKeyCode();
+    if (keyChar >= '1' && keyChar <= '9' && !mod.isCommandDown())
+    {
+        int effectIdx = keyChar - '1';
+        if (effectIdx < previewPanel_.getEffectChain().getNumEffects())
+        {
+            auto* fx = previewPanel_.getEffectChain().getEffect(effectIdx);
+            if (fx != nullptr)
+            {
+                fx->setEnabled(!fx->isEnabled());
+                if (effectsRackPanel_)
+                    effectsRackPanel_->refreshFromChain();
+            }
+        }
+        return true;
+    }
+
+    return false;
 }
 
 bool MainComponent::isInterestedInFileDrag(const juce::StringArray& files)

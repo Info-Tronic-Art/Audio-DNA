@@ -27,6 +27,9 @@ public:
     bool isInterestedInFileDrag(const juce::StringArray& files) override;
     void filesDropped(const juce::StringArray& files, int x, int y) override;
 
+    // Keyboard shortcuts
+    bool keyPressed(const juce::KeyPress& key) override;
+
 private:
     void openFile();
     void openImage();
