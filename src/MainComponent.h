@@ -11,6 +11,7 @@
 #include "ui/PreviewPanel.h"
 #include "ui/EffectsRackPanel.h"
 #include "effects/EffectLibrary.h"
+#include "ui/PresetManager.h"
 
 class MainComponent : public juce::Component
 {
@@ -24,6 +25,8 @@ public:
 private:
     void openFile();
     void openImage();
+    void savePreset();
+    void loadPreset();
     void updateTransportButtons(bool isPlaying);
 
     AudioDNALookAndFeel lookAndFeel_;
@@ -40,6 +43,8 @@ private:
     juce::TextButton pauseButton_{"Pause"};
     juce::TextButton stopButton_{"Stop"};
     juce::ToggleButton loopToggle_{"Loop"};
+    juce::TextButton savePresetButton_{"Save"};
+    juce::TextButton loadPresetButton_{"Load"};
     juce::Label fileLabel_;
 
     // Display components

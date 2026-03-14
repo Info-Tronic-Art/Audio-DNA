@@ -31,6 +31,9 @@ public:
     void resized() override;
     void timerCallback() override;
 
+    // Rebuild the UI from the current effect chain state (e.g. after preset load)
+    void refreshFromChain();
+
     // MappingEditor::Listener
     void mappingEditorChanged(MappingEditor* editor) override;
     void mappingEditorDeleteRequested(MappingEditor* editor) override;

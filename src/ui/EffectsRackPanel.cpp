@@ -176,6 +176,12 @@ void EffectsRackPanel::mappingEditorCloseRequested(MappingEditor* /*editor*/)
     closeMappingEditor();
 }
 
+void EffectsRackPanel::refreshFromChain()
+{
+    lastKnownEffectCount_ = effectChain_.getNumEffects();
+    rebuildUI();
+}
+
 void EffectsRackPanel::rebuildUI()
 {
     // Clear existing sections

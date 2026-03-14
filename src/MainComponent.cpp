@@ -26,6 +26,11 @@ MainComponent::MainComponent()
         audioEngine_.setLooping(loopToggle_.getToggleState());
     };
 
+    addAndMakeVisible(savePresetButton_);
+    addAndMakeVisible(loadPresetButton_);
+    savePresetButton_.onClick = [this] { savePreset(); };
+    loadPresetButton_.onClick = [this] { loadPreset(); };
+
     openButton_.onClick = [this] { openFile(); };
     openImageButton_.onClick = [this] { openImage(); };
     playButton_.onClick = [this] { audioEngine_.play(); };
@@ -84,6 +89,10 @@ void MainComponent::resized()
     stopButton_.setBounds(topBar.removeFromLeft(60));
     topBar.removeFromLeft(8);
     loopToggle_.setBounds(topBar.removeFromLeft(60));
+    topBar.removeFromLeft(12);
+    savePresetButton_.setBounds(topBar.removeFromLeft(50));
+    topBar.removeFromLeft(4);
+    loadPresetButton_.setBounds(topBar.removeFromLeft(50));
     topBar.removeFromLeft(12);
     fileLabel_.setBounds(topBar);
 
@@ -155,6 +164,62 @@ void MainComponent::openImage()
 
         previewPanel_.loadImage(file);
         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+    });
+}
+
+void MainComponent::savePreset()
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Save preset...",
+        PresetManager::getPresetsDirectory(),
+        "*.json");
+
+    auto flags = juce::FileBrowserComponent::saveMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+
+        auto saveFile = file.hasFileExtension(".json") ? file
+                            : file.withFileExtension("json");
+
+        if (PresetManager::savePreset(saveFile,
+                                       saveFile.getFileNameWithoutExtension(),
+                                       previewPanel_.getEffectChain(),
+                                       previewPanel_.getMappingEngine()))
+        {
+            fileLabel_.setText("Saved: " + saveFile.getFileName(),
+                              juce::dontSendNotification);
+        }
+    });
+}
+
+void MainComponent::loadPreset()
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Load preset...",
+        PresetManager::getPresetsDirectory(),
+        "*.json");
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+
+        if (PresetManager::loadPreset(file,
+                                       previewPanel_.getEffectChain(),
+                                       previewPanel_.getMappingEngine()))
+        {
+            fileLabel_.setText("Loaded: " + file.getFileNameWithoutExtension(),
+                              juce::dontSendNotification);
+            if (effectsRackPanel_)
+                effectsRackPanel_->refreshFromChain();
+        }
     });
 }
 
