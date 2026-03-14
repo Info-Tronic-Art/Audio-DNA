@@ -550,3 +550,213 @@ TEST_CASE("Mapping to nonexistent param is safely ignored", "[mapping]")
     // Should not crash
     engine.processFrame(snap, chain);
 }
+
+// ============================================================
+// Integration test: RMS → Ripple intensity with exponential curve
+// Simulates playing audio with varying RMS over time and verifies
+// the mapping output follows x^2 behavior.
+// ============================================================
+
+TEST_CASE("Integration: RMS → Ripple intensity with exponential curve", "[integration][mapping]")
+{
+    // Create a chain mimicking the real Ripple effect (3 params: intensity, freq, speed)
+    EffectChain chain;
+    auto ripple = std::make_unique<Effect>("Ripple", "warp", "ripple");
+    ripple->addParam("intensity", "u_ripple_intensity", 0.0f);
+    ripple->addParam("freq",      "u_ripple_freq",      0.5f);
+    ripple->addParam("speed",     "u_ripple_speed",     0.5f);
+    chain.addEffect(std::move(ripple));
+
+    MappingEngine engine;
+
+    // RMS → Ripple intensity, exponential curve, no smoothing
+    Mapping m;
+    m.source = MappingSource::RMS;
+    m.targetEffectId = 0;
+    m.targetParamIndex = 0;  // intensity
+    m.curve = MappingCurve::Exponential;
+    m.inputMin = 0.0f;
+    m.inputMax = 1.0f;
+    m.outputMin = 0.0f;
+    m.outputMax = 1.0f;
+    m.smoothing = 1.0f;  // No smoothing for deterministic verification
+    engine.addMapping(m);
+
+    SECTION("Exponential output matches x^2 for a sweep of RMS values")
+    {
+        // Simulate 11 frames with RMS linearly ramping from 0.0 to 1.0
+        for (int i = 0; i <= 10; ++i)
+        {
+            float rmsInput = static_cast<float>(i) / 10.0f;
+            float expectedOutput = rmsInput * rmsInput;  // x^2
+
+            auto snap = makeSnapshot();
+            snap.rms = rmsInput;
+            engine.processFrame(snap, chain);
+
+            INFO("RMS = " << rmsInput << " → expected " << expectedOutput);
+            REQUIRE(chain.getEffect(0)->getParam(0).value ==
+                    Approx(expectedOutput).margin(0.001f));
+        }
+    }
+
+    SECTION("Exponential curve suppresses low RMS, amplifies high RMS")
+    {
+        // Low RMS → very low intensity (quieter parts are suppressed)
+        auto snap = makeSnapshot();
+        snap.rms = 0.2f;
+        engine.processFrame(snap, chain);
+        float lowOutput = chain.getEffect(0)->getParam(0).value;
+        REQUIRE(lowOutput == Approx(0.04f).margin(0.001f));  // 0.2^2
+        REQUIRE(lowOutput < 0.2f);  // Less than linear
+
+        // High RMS → close to full intensity (loud parts dominate)
+        snap.rms = 0.9f;
+        engine.processFrame(snap, chain);
+        float highOutput = chain.getEffect(0)->getParam(0).value;
+        REQUIRE(highOutput == Approx(0.81f).margin(0.001f));  // 0.9^2
+        REQUIRE(highOutput > 0.9f * 0.9f - 0.01f);
+    }
+
+    SECTION("Unmapped params retain their defaults")
+    {
+        auto snap = makeSnapshot();
+        snap.rms = 0.7f;
+        engine.processFrame(snap, chain);
+
+        // intensity is driven by mapping
+        REQUIRE(chain.getEffect(0)->getParam(0).value == Approx(0.49f).margin(0.001f));
+
+        // freq and speed are NOT mapped — they should keep their defaults
+        // Note: processFrame only resets targeted params, so untargeted params
+        // retain whatever value they had (initially set by addParam defaults)
+        REQUIRE(chain.getEffect(0)->getParam(1).value == Approx(0.5f).margin(0.001f));
+        REQUIRE(chain.getEffect(0)->getParam(2).value == Approx(0.5f).margin(0.001f));
+    }
+}
+
+TEST_CASE("Integration: RMS → Ripple with exponential + smoothing", "[integration][mapping]")
+{
+    EffectChain chain;
+    auto ripple = std::make_unique<Effect>("Ripple", "warp", "ripple");
+    ripple->addParam("intensity", "u_ripple_intensity", 0.0f);
+    chain.addEffect(std::move(ripple));
+
+    MappingEngine engine;
+
+    Mapping m;
+    m.source = MappingSource::RMS;
+    m.targetEffectId = 0;
+    m.targetParamIndex = 0;
+    m.curve = MappingCurve::Exponential;
+    m.inputMin = 0.0f;
+    m.inputMax = 1.0f;
+    m.outputMin = 0.0f;
+    m.outputMax = 1.0f;
+    m.smoothing = 0.2f;  // Moderate smoothing
+    engine.addMapping(m);
+
+    SECTION("Smoothed output converges to exponential target")
+    {
+        auto snap = makeSnapshot();
+        snap.rms = 0.8f;
+        float target = 0.64f;  // 0.8^2
+
+        // Run many frames — smoothed value should converge
+        for (int i = 0; i < 200; ++i)
+            engine.processFrame(snap, chain);
+
+        REQUIRE(chain.getEffect(0)->getParam(0).value == Approx(target).margin(0.01f));
+    }
+
+    SECTION("Smoothed output lags behind instantaneous changes")
+    {
+        auto snap = makeSnapshot();
+
+        // Initialize at 0
+        snap.rms = 0.0f;
+        engine.processFrame(snap, chain);
+
+        // Jump to 1.0 — exponential output = 1.0, but smoothed should lag
+        snap.rms = 1.0f;
+        engine.processFrame(snap, chain);
+        float afterOneFrame = chain.getEffect(0)->getParam(0).value;
+        REQUIRE(afterOneFrame < 0.5f);  // Should lag significantly
+
+        // After several frames, should be closer
+        for (int i = 0; i < 20; ++i)
+            engine.processFrame(snap, chain);
+        float afterTwentyFrames = chain.getEffect(0)->getParam(0).value;
+        REQUIRE(afterTwentyFrames > afterOneFrame);
+        REQUIRE(afterTwentyFrames < 1.0f);
+    }
+}
+
+TEST_CASE("Integration: simulated audio playback with varying features", "[integration][mapping]")
+{
+    // Set up a chain with Ripple + Hue Shift, mimicking real renderer setup
+    EffectChain chain;
+    {
+        auto ripple = std::make_unique<Effect>("Ripple", "warp", "ripple");
+        ripple->addParam("intensity", "u_ripple_intensity", 0.0f);
+        ripple->addParam("freq",      "u_ripple_freq",      0.5f);
+        chain.addEffect(std::move(ripple));
+
+        auto hueShift = std::make_unique<Effect>("Hue Shift", "color", "hue_shift");
+        hueShift->addParam("amount", "u_hue_shift", 0.0f);
+        chain.addEffect(std::move(hueShift));
+    }
+
+    MappingEngine engine;
+
+    // RMS → Ripple intensity (exponential)
+    {
+        Mapping m;
+        m.source = MappingSource::RMS;
+        m.targetEffectId = 0;
+        m.targetParamIndex = 0;
+        m.curve = MappingCurve::Exponential;
+        m.smoothing = 1.0f;
+        engine.addMapping(m);
+    }
+
+    // SpectralCentroid → Hue Shift (linear, normalized from Hz range)
+    {
+        Mapping m;
+        m.source = MappingSource::SpectralCentroid;
+        m.targetEffectId = 1;
+        m.targetParamIndex = 0;
+        m.curve = MappingCurve::Linear;
+        m.inputMin = 200.0f;
+        m.inputMax = 8000.0f;
+        m.smoothing = 1.0f;
+        engine.addMapping(m);
+    }
+
+    // Simulate 60 frames (1 second at 60fps) of "audio" with sinusoidal RMS
+    // and linearly rising spectral centroid
+    for (int frame = 0; frame < 60; ++frame)
+    {
+        auto snap = makeSnapshot();
+
+        // Simulate RMS with a sine envelope (simulates a rhythmic pulse)
+        float t = static_cast<float>(frame) / 60.0f;
+        snap.rms = 0.5f + 0.5f * std::sin(2.0f * 3.14159f * t);  // [0, 1]
+
+        // Simulate spectral centroid rising from 200Hz to 8000Hz
+        snap.spectralCentroid = 200.0f + (8000.0f - 200.0f) * t;
+
+        engine.processFrame(snap, chain);
+
+        // Verify ripple intensity = RMS^2
+        float expectedRipple = snap.rms * snap.rms;
+        INFO("Frame " << frame << ": RMS=" << snap.rms);
+        REQUIRE(chain.getEffect(0)->getParam(0).value ==
+                Approx(expectedRipple).margin(0.001f));
+
+        // Verify hue shift = normalized centroid
+        float expectedHue = (snap.spectralCentroid - 200.0f) / (8000.0f - 200.0f);
+        REQUIRE(chain.getEffect(1)->getParam(0).value ==
+                Approx(expectedHue).margin(0.001f));
+    }
+}
