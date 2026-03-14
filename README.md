@@ -2,7 +2,7 @@
 
 Real-time audio-reactive image effects engine. A VJ-style desktop application that analyzes audio and drives 75+ GLSL shader effects on images and live camera feeds.
 
-Load a song and an image, wire audio features to visual effects, and watch the image react to the music in real-time at 60fps.
+Feed it audio from a microphone or audio file, give it an image or a folder of images, and watch the visuals react to the music in real-time at 60fps.
 
 ![Audio-DNA Screenshot](https://img.shields.io/badge/platform-macOS%20|%20Windows%20|%20Linux-blue) ![C++20](https://img.shields.io/badge/C%2B%2B-20-brightgreen) ![License](https://img.shields.io/badge/license-GPLv3-orange)
 
@@ -11,11 +11,85 @@ Load a song and an image, wire audio features to visual effects, and watch the i
 ## What It Does
 
 - Analyzes audio in real-time: RMS, spectral centroid, BPM, beat phase, onset detection, 7-band frequency analysis, MFCC, chroma, key detection, and more
-- Applies any combination of 75+ visual effects to a loaded image or live camera feed
+- Applies any combination of 75+ visual effects to a loaded image, image slideshow, or live camera feed
 - Maps any audio feature to any effect parameter with configurable curves and smoothing
 - Fullscreen VJ output on any connected display
 - Beat-synced random effect switching for live performance
-- Preset save/load, fast save slots, and full deck save/restore
+- Instant preset save/recall without interrupting the show
+
+---
+
+## How to Use It
+
+### 1. Set Up Your Output
+
+Select where your visuals will be displayed. Use the **Output** dropdown in the top-right to send fullscreen video to a secondary monitor or projector. Use the **Viewport** dropdown to lock the render resolution. The **Video Level** slider lets you fade the output to black for smooth transitions.
+
+### 2. Set Up Your Audio Input
+
+Choose your audio source from the **Audio Source** dropdown:
+
+- **Mic Input** — analyzes whatever your microphone picks up (live music, room audio, a speaker near your laptop)
+- **Audio File** — load a WAV, MP3, FLAC, OGG, or AIFF file for analysis (audio is analyzed silently — nothing plays out of your speakers)
+
+Use the **Gain** slider to boost or reduce input sensitivity. The level meter next to it shows your live input level.
+
+> **Tip:** To analyze audio playing on your computer (Spotify, YouTube, etc.), install a virtual audio loopback driver like [BlackHole](https://github.com/ExistentialAudio/BlackHole) (macOS) or [VB-Cable](https://vb-audio.com/Cable/) (Windows). It will appear as a mic input option.
+
+### 3. Load Your Visuals
+
+You have three options for visual input:
+
+- **Open Image** — load a single image (PNG, JPG, GIF, BMP, TIFF)
+- **Image Folder** — load an entire folder of images that cycle automatically on the beat. Use the **Beats per Image** dropdown to set how many beats each image plays for (2 to 128)
+- **Camera** — select a connected webcam or capture device for a live video feed
+
+You can also drag and drop image files directly onto the window.
+
+### 4. Let It Rip
+
+Once audio is flowing and an image is loaded, the effects react to the music automatically. The left panel shows all audio analysis data in real-time — levels, spectrum, BPM, key, and more.
+
+### 5. Shape Your Effects
+
+Browse the **Effects Rack** on the right panel. Effects are organized by category (3D, Warp, Color, Glitch, Pattern, Animation, Blend, Blur). For each effect:
+
+- **Toggle** the checkbox to enable/disable it
+- **Turn the knobs** to adjust parameters manually
+- **Click M / +** below a knob to open the **Mapping Editor** — wire any audio feature to that parameter with a curve, range, and smoothing
+- **Click R** to randomize that single effect's parameters and mappings
+- **Click L** to lock an effect — locked effects are protected from all randomization
+
+### 6. Go Random
+
+Click **Random** at the top of the Effects Rack for instant inspiration — it randomly enables effects, sets parameters, and creates audio mappings, all at once. Locked effects stay untouched.
+
+For beat-synced chaos, enable the **Beats** toggle in row 2 and select how many beats between randomizations (1, 2, 4, 8, 16, or 32). Hit **Sync** to align the beat counter to the current downbeat. The visuals will transform on every Nth beat while your locked effects stay solid.
+
+### 7. Save What You Like
+
+When you land on a look you love, you don't have to stop anything:
+
+- **FX Save** — instantly saves the current effect setup as a numbered preset (FX_Save_1, FX_Save_2, ...). No dialog, no interruption
+- **Save / Load** — traditional preset save/load with a file chooser
+- **Deck Save / Deck Load** — saves everything: your image, audio file, all effects, all mappings, and all slot assignments as a single `.deck.json` file
+
+### 8. Build Your Performance
+
+The **bottom bar** has 10 numbered preset slots. Use the dropdown next to each slot to assign a saved FX preset. During a performance, click any slot button to instantly recall that look. Build a palette of 10 looks and switch between them live.
+
+### 9. Use the Mapping Editor
+
+Click any **M** or **+** button under a knob to open the Mapping Editor. Here you can:
+
+- Choose which **audio feature** drives the parameter (RMS, bass, beat phase, spectral centroid, onset strength, etc.)
+- Select a **curve** shape (Linear, Exponential, Logarithmic, S-Curve, Stepped)
+- Set **input range** (what audio values to respond to) and **output range** (how far the parameter moves)
+- Adjust **smoothing** for how quickly the parameter responds
+- Click **Randomize** to try a random mapping configuration
+- Click **Delete** to remove the mapping
+
+---
 
 ## Features
 
@@ -44,21 +118,37 @@ Load a song and an image, wire audio features to visual effects, and watch the i
 - Curve transforms: Linear, Exponential, Logarithmic, S-Curve, Stepped
 - Per-mapping smoothing (EMA / One-Euro filter)
 - Adjustable input/output ranges
+- Randomize button for instant mapping experiments
 
-### Live Performance
-- **Beat-synced randomization**: automatically switch effects on the beat (1, 2, 4, 8, 16, or 32 beats)
-- **Per-effect lock**: protect effects from randomization
-- **10 preset slots**: assign and recall effect setups instantly
-- **Fast save**: one-click save without interrupting playback
-- **Deck save/load**: save entire session (audio, image, effects, mappings, slot assignments)
-- **Fullscreen output**: send to any connected display
-- **Camera input**: live camera feed as texture source
-- **Resolution lock**: set render resolution independent of window size with letterboxing
+### Live Performance Tools
+- **Beat-synced randomization** — automatically switch effects every 1, 2, 4, 8, 16, or 32 beats
+- **Sync button** — align the beat counter to the current downbeat
+- **Per-effect lock** — protect individual effects from randomization (green L indicator)
+- **Per-effect randomize** — randomize a single effect's params and mappings (R button)
+- **10 preset slots** — assign and recall saved effect setups instantly from the bottom bar
+- **FX Save** — one-click save without interrupting the show
+- **Deck save/load** — save and restore entire sessions (image, audio, effects, mappings, slots)
+- **Fullscreen output** — send to any connected display or projector
+- **Video level** — master brightness control for fade-to-black transitions
+- **Image slideshow** — cycle through a folder of images on the beat (2 to 128 beats per image)
+- **Camera input** — use a live camera feed as the visual source
+- **Resolution lock** — set render resolution independent of window size with aspect-correct letterboxing
 
 ### Audio Sources
-- Audio file playback (WAV, AIFF, MP3, FLAC, OGG) with loop
-- Microphone / line input
+- Microphone or line input (with gain control and level metering)
+- Audio file analysis (WAV, AIFF, MP3, FLAC, OGG) — silent, no audio output
+- System audio via virtual loopback (BlackHole, VB-Cable)
 - Drag-and-drop for audio and image files
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| Escape | Close fullscreen output window |
+| 1-9 | Toggle effects 1-9 |
+| Cmd+S | Save preset |
+| Cmd+O | Load preset |
+| Cmd+F | Toggle fullscreen output |
 
 ---
 
@@ -126,46 +216,22 @@ cmake --build build --config Release -j$(nproc)
 
 ---
 
-## Quick Start
-
-1. **Open an image** — click "Open Image" or drag-drop a PNG/JPG
-2. **Open audio** — select "File" as audio source, click "Open Audio", pick a song
-3. **Play** — hit Play or press Space
-4. **Enable effects** — check effects in the right panel, tweak knobs
-5. **Map audio to effects** — click "M" or "+" under a knob to open the mapping editor
-6. **Randomize** — click "Random" in the Effects Rack to try random combinations
-7. **Go fullscreen** — select a display from the Output dropdown, or press Cmd+F
-8. **Save your setup** — "FX Save" for quick saves, "Deck Save" for full session
-
-### Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| Space | Play / Pause |
-| Escape | Close output window / Stop |
-| 1-9 | Toggle effects 1-9 |
-| Cmd+S | Save preset |
-| Cmd+O | Load preset |
-| Cmd+F | Toggle fullscreen output |
-
----
-
 ## Architecture
 
 Four-thread lock-free architecture designed for real-time audio-visual performance:
 
 ```
-Audio Callback ──SPSC Ring Buffer──▸ Analysis Thread
-Analysis Thread ──Triple Buffer────▸ Render Thread (OpenGL)
-UI Thread ──────std::atomic─────────▸ Analysis / Render
+Audio Callback ──SPSC Ring Buffer──> Analysis Thread
+Analysis Thread ──Triple Buffer────> Render Thread (OpenGL)
+UI Thread ──────std::atomic─────────> Analysis / Render
 ```
 
-- **Audio Callback** (RT priority): mono downmix, ring buffer push. <100μs budget.
+- **Audio Callback** (RT priority): mono downmix, ring buffer push. <100us budget.
 - **Analysis Thread**: 2048-pt FFT, 12-stage feature pipeline. <2ms per hop.
 - **Render Thread**: 60fps OpenGL 4.1, ping-pong FBO effect chain. <8ms budget.
 - **UI Thread**: JUCE message loop, no blocking.
 
-**Total audio-to-visual latency: ~15-25ms** (within the ±80ms perceptual sync window).
+**Total audio-to-visual latency: ~15-25ms** (within the +/-80ms perceptual sync window).
 
 ---
 
@@ -182,6 +248,6 @@ UI Thread ──────std::atomic─────────▸ Analysis /
 
 ## License
 
-GPLv3 — see [LICENSE](LICENSE) for details.
+GPLv3 -- see [LICENSE](LICENSE) for details.
 
 JUCE and Aubio are both GPLv3 licensed.

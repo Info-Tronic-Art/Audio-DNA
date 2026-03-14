@@ -38,11 +38,9 @@ public:
     void imageReceived(const juce::Image& image) override;
 
 private:
-    void openFile();
     void openImage();
     void savePreset();
     void loadPreset();
-    void updateTransportButtons(bool isPlaying);
     void timerCallback() override;
     void refreshDisplayList();
     void openOutputOnDisplay(int displayIndex);
@@ -58,6 +56,8 @@ private:
     void openCamera(int deviceIndex);
     void closeCamera();
     void refreshCameraList();
+    void openImageFolder();
+    void advanceSlideshow();
 
     AudioDNALookAndFeel lookAndFeel_;
 
@@ -66,13 +66,20 @@ private:
     AudioEngine audioEngine_{ringBuffer_};
     AnalysisThread analysisThread_{ringBuffer_};
 
-    // Transport controls
-    juce::TextButton openButton_{"Open Audio"};
+    // Controls
     juce::TextButton openImageButton_{"Open Image"};
-    juce::TextButton playButton_{"Play"};
-    juce::TextButton pauseButton_{"Pause"};
-    juce::TextButton stopButton_{"Stop"};
-    juce::ToggleButton loopToggle_{"Loop"};
+    juce::TextButton openFolderButton_{"Image Folder"};
+    juce::ComboBox imageBeatSelector_;
+    juce::Label imageBeatLabel_;
+
+    // Image slideshow
+    juce::Array<juce::File> slideshowImages_;
+    int slideshowIndex_ = 0;
+    int slideshowBeats_ = 8;         // Beats per image
+    int slideshowBeatCounter_ = 0;
+    float lastSlideshowBeatPhase_ = 0.0f;
+    juce::Label masterLevelLabel_;
+    juce::Slider masterLevelSlider_;
     juce::Label audioSourceLabel_;
     juce::TextButton savePresetButton_{"Save"};
     juce::TextButton loadPresetButton_{"Load"};
@@ -131,6 +138,9 @@ private:
 
     // Audio source selector
     juce::ComboBox audioSourceSelector_;
+    juce::Slider inputGainSlider_;
+    juce::Label inputGainLabel_;
+    juce::Rectangle<int> inputLevelMeterBounds_;  // Drawn in paint()
 
     // Camera input
     juce::Label cameraLabel_{"", "Camera"};

@@ -4,12 +4,8 @@ MainComponent::MainComponent()
 {
     setLookAndFeel(&lookAndFeel_);
 
-    // Transport buttons
-    addAndMakeVisible(openButton_);
+    // UI components
     addAndMakeVisible(openImageButton_);
-    addAndMakeVisible(playButton_);
-    addAndMakeVisible(pauseButton_);
-    addAndMakeVisible(stopButton_);
     addAndMakeVisible(fileLabel_);
     addAndMakeVisible(waveformDisplay_);
     addAndMakeVisible(audioReadoutPanel_);
@@ -19,12 +15,6 @@ MainComponent::MainComponent()
     fileLabel_.setColour(juce::Label::textColourId,
                          juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     fileLabel_.setText("No file loaded", juce::dontSendNotification);
-
-    addAndMakeVisible(loopToggle_);
-    loopToggle_.setToggleState(false, juce::dontSendNotification);
-    loopToggle_.onClick = [this] {
-        audioEngine_.setLooping(loopToggle_.getToggleState());
-    };
 
     addAndMakeVisible(savePresetButton_);
     addAndMakeVisible(loadPresetButton_);
@@ -94,27 +84,58 @@ MainComponent::MainComponent()
     // Audio source selector
     addAndMakeVisible(audioSourceSelector_);
     audioSourceSelector_.setTextWhenNothingSelected("File");
-    audioSourceSelector_.addItem("File", 1);
-    audioSourceSelector_.addItem("Mic Input", 2);
+    audioSourceSelector_.addItem("Mic Input", 1);
+    audioSourceSelector_.addItem("Audio File", 2);
     audioSourceSelector_.setSelectedId(1, juce::dontSendNotification);
+    audioEngine_.setSourceMode(AudioEngine::SourceMode::MicInput); // Default to mic
     audioSourceSelector_.onChange = [this] {
-        // For now, both modes use the same device manager — "File" plays the loaded file,
-        // "Mic Input" just means we analyze whatever the input device picks up
-        // The analysis thread always reads from the ring buffer which gets fed by the audio callback
         int sel = audioSourceSelector_.getSelectedId();
-        if (sel == 1) // File mode
+        if (sel == 1)
         {
-            fileLabel_.setText(currentAudioFile_.existsAsFile()
-                ? currentAudioFile_.getFileName() : "No file loaded",
-                juce::dontSendNotification);
-        }
-        else if (sel == 2) // Mic mode
-        {
-            audioEngine_.stop();
+            audioEngine_.setSourceMode(AudioEngine::SourceMode::MicInput);
             fileLabel_.setText("Mic: " + audioEngine_.getDeviceStatus(),
                               juce::dontSendNotification);
         }
+        else if (sel == 2)
+        {
+            audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
+            // Prompt to load a file if none loaded
+            if (!currentAudioFile_.existsAsFile())
+            {
+                fileChooser_ = std::make_unique<juce::FileChooser>(
+                    "Select an audio file...", juce::File{},
+                    "*.wav;*.aiff;*.aif;*.mp3;*.flac;*.ogg");
+                auto flags = juce::FileBrowserComponent::openMode
+                           | juce::FileBrowserComponent::canSelectFiles;
+                fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+                    auto file = fc.getResult();
+                    if (file == juce::File{}) return;
+                    if (audioEngine_.loadFile(file))
+                    {
+                        currentAudioFile_ = file;
+                        fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+                        audioEngine_.play();
+                    }
+                });
+            }
+            else
+            {
+                fileLabel_.setText(currentAudioFile_.getFileName(), juce::dontSendNotification);
+                audioEngine_.play();
+            }
+        }
     };
+
+    // Input gain slider
+    addAndMakeVisible(inputGainSlider_);
+    inputGainSlider_.setRange(0.0, 4.0, 0.01);
+    inputGainSlider_.setValue(1.0, juce::dontSendNotification);
+    inputGainSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    inputGainSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 20);
+    inputGainSlider_.onValueChange = [this] {
+        audioEngine_.setInputGain(static_cast<float>(inputGainSlider_.getValue()));
+    };
+    addAndMakeVisible(inputGainLabel_);
 
     // Dropdown labels
     auto setupLabel = [this](juce::Label& label, const juce::String& text) {
@@ -129,6 +150,9 @@ MainComponent::MainComponent()
     setupLabel(outputLabel_,     "Output");
     setupLabel(cameraLabel_,     "Camera");
     setupLabel(audioSourceLabel_, "Audio Source");
+    setupLabel(inputGainLabel_,   "Gain");
+    setupLabel(masterLevelLabel_, "Video Level");
+    setupLabel(imageBeatLabel_,   "Beats per Image");
 
     // Camera input selector
     addAndMakeVisible(cameraSelector_);
@@ -291,17 +315,37 @@ MainComponent::MainComponent()
             openOutputOnDisplay(selected - 2); // display index
     };
 
-    openButton_.onClick = [this] { openFile(); };
     openImageButton_.onClick = [this] { openImage(); };
-    playButton_.onClick = [this] { audioEngine_.play(); };
-    pauseButton_.onClick = [this] { audioEngine_.pause(); };
-    stopButton_.onClick = [this] { audioEngine_.stop(); };
 
-    audioEngine_.onTransportStateChanged = [this](bool isPlaying) {
-        juce::MessageManager::callAsync([this, isPlaying] {
-            updateTransportButtons(isPlaying);
-        });
+    // Image folder + beat selector
+    addAndMakeVisible(openFolderButton_);
+    openFolderButton_.onClick = [this] { openImageFolder(); };
+
+    addAndMakeVisible(imageBeatSelector_);
+    {
+        int id = 1;
+        for (int b = 2; b <= 128; b *= 2)
+            imageBeatSelector_.addItem(juce::String(b), id++);
+    }
+    imageBeatSelector_.setSelectedId(4, juce::dontSendNotification); // default 8
+    imageBeatSelector_.onChange = [this] {
+        static const int beats[] = {2, 4, 8, 16, 32, 64, 128};
+        int idx = imageBeatSelector_.getSelectedId() - 1;
+        if (idx >= 0 && idx < 7)
+            slideshowBeats_ = beats[idx];
     };
+    addAndMakeVisible(imageBeatLabel_);
+
+    // Master video level slider
+    addAndMakeVisible(masterLevelSlider_);
+    masterLevelSlider_.setRange(0.0, 1.0, 0.01);
+    masterLevelSlider_.setValue(1.0, juce::dontSendNotification);
+    masterLevelSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    masterLevelSlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+    masterLevelSlider_.onValueChange = [this] {
+        previewPanel_.getRenderer().setMasterLevel(static_cast<float>(masterLevelSlider_.getValue()));
+    };
+    addAndMakeVisible(masterLevelLabel_);
 
     audioEngine_.onError = [this](const juce::String& msg) {
         juce::MessageManager::callAsync([this, msg] {
@@ -309,11 +353,8 @@ MainComponent::MainComponent()
         });
     };
 
-    // Show audio device status
     if (!audioEngine_.hasAudioDevice())
         fileLabel_.setText("No audio device found", juce::dontSendNotification);
-
-    updateTransportButtons(false);
 
     // Initialize effect library
     effectLibrary_.registerDefaults();
@@ -343,28 +384,52 @@ MainComponent::~MainComponent()
 void MainComponent::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(AudioDNALookAndFeel::kBackground));
+
+    // Draw input level meter
+    if (!inputLevelMeterBounds_.isEmpty())
+    {
+        auto b = inputLevelMeterBounds_.toFloat();
+        // Background
+        g.setColour(juce::Colour(0xff1a1a2e));
+        g.fillRoundedRectangle(b, 2.0f);
+
+        // Level bar
+        float level = std::min(1.0f, audioEngine_.getInputLevel());
+        if (level > 0.001f)
+        {
+            auto bar = b.withWidth(b.getWidth() * level);
+            // Green → yellow → red
+            juce::Colour col = level < 0.6f ? juce::Colour(0xff00cc66)
+                             : level < 0.85f ? juce::Colour(0xffcccc00)
+                             : juce::Colour(0xffcc3333);
+            g.setColour(col);
+            g.fillRoundedRectangle(bar, 2.0f);
+        }
+
+        // Border
+        g.setColour(juce::Colour(0xff333355));
+        g.drawRoundedRectangle(b, 2.0f, 1.0f);
+    }
 }
 
 void MainComponent::resized()
 {
     auto area = getLocalBounds().reduced(8);
 
-    // === Row 1: Transport + File/Media ===
+    // === Row 1: Image + Camera + Audio Source + Presets ===
     auto row1 = area.removeFromTop(30);
     openImageButton_.setBounds(row1.removeFromLeft(75));
-    row1.removeFromLeft(6);
-    playButton_.setBounds(row1.removeFromLeft(50));
-    row1.removeFromLeft(2);
-    pauseButton_.setBounds(row1.removeFromLeft(50));
-    row1.removeFromLeft(2);
-    stopButton_.setBounds(row1.removeFromLeft(50));
-    row1.removeFromLeft(6);
-    audioSourceLabel_.setBounds(row1.removeFromLeft(65));
-    audioSourceSelector_.setBounds(row1.removeFromLeft(80));
     row1.removeFromLeft(3);
-    openButton_.setBounds(row1.removeFromLeft(75));
-    row1.removeFromLeft(3);
-    loopToggle_.setBounds(row1.removeFromLeft(55));
+    openFolderButton_.setBounds(row1.removeFromLeft(80));
+    row1.removeFromLeft(2);
+    imageBeatLabel_.setBounds(row1.removeFromLeft(85));
+    imageBeatSelector_.setBounds(row1.removeFromLeft(45));
+    row1.removeFromLeft(6);
+    cameraLabel_.setBounds(row1.removeFromLeft(42));
+    cameraSelector_.setBounds(row1.removeFromLeft(100));
+    row1.removeFromLeft(8);
+    audioSourceLabel_.setBounds(row1.removeFromLeft(70));
+    audioSourceSelector_.setBounds(row1.removeFromLeft(90));
     row1.removeFromLeft(6);
     savePresetButton_.setBounds(row1.removeFromLeft(45));
     row1.removeFromLeft(2);
@@ -394,14 +459,19 @@ void MainComponent::resized()
     beatCountSelector_.setBounds(row2.removeFromLeft(40));
     row2.removeFromLeft(2);
     syncButton_.setBounds(row2.removeFromLeft(38));
-    row2.removeFromLeft(12);
+    row2.removeFromLeft(10);
 
-    // Camera (aligned under audio source area)
-    cameraLabel_.setBounds(row2.removeFromLeft(65));
-    cameraSelector_.setBounds(row2.removeFromLeft(80));
+    // Input gain + level meter
+    inputGainLabel_.setBounds(row2.removeFromLeft(30));
+    inputGainSlider_.setBounds(row2.removeFromLeft(100));
+    row2.removeFromLeft(4);
+    inputLevelMeterBounds_ = row2.removeFromLeft(60).reduced(0, 4);
     row2.removeFromLeft(8);
 
-    // Labeled dropdowns from the right: [Label] [Dropdown]
+    // Right-aligned: Video Level, Output, Viewport
+    masterLevelSlider_.setBounds(row2.removeFromRight(80));
+    masterLevelLabel_.setBounds(row2.removeFromRight(60));
+    row2.removeFromRight(6);
     displaySelector_.setBounds(row2.removeFromRight(120));
     outputLabel_.setBounds(row2.removeFromRight(40));
     row2.removeFromRight(6);
@@ -462,34 +532,6 @@ void MainComponent::resized()
     waveformDisplay_.setBounds(waveformArea);  // waveform at the bottom
 }
 
-void MainComponent::openFile()
-{
-    fileChooser_ = std::make_unique<juce::FileChooser>(
-        "Select an audio file...",
-        juce::File{},
-        "*.wav;*.aiff;*.aif;*.mp3;*.flac;*.ogg");
-
-    auto flags = juce::FileBrowserComponent::openMode
-               | juce::FileBrowserComponent::canSelectFiles;
-
-    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
-        auto file = fc.getResult();
-        if (file == juce::File{})
-            return;
-
-        if (audioEngine_.loadFile(file))
-        {
-            currentAudioFile_ = file;
-            fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
-            audioEngine_.setLooping(loopToggle_.getToggleState());
-            audioEngine_.play();
-        }
-        else
-        {
-            fileLabel_.setText("Failed to load file", juce::dontSendNotification);
-        }
-    });
-}
 
 void MainComponent::openImage()
 {
@@ -574,27 +616,13 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
 {
     auto mod = key.getModifiers();
 
-    // Space = play/pause toggle
-    if (key.isKeyCode(juce::KeyPress::spaceKey))
-    {
-        if (audioEngine_.isPlaying())
-            audioEngine_.pause();
-        else
-            audioEngine_.play();
-        return true;
-    }
-
-    // Escape = close output window, or stop audio
+    // Escape = close output window
     if (key.isKeyCode(juce::KeyPress::escapeKey))
     {
         if (outputWindow_ && outputWindow_->isVisible())
         {
             closeOutput();
             displaySelector_.setSelectedId(1, juce::dontSendNotification);
-        }
-        else
-        {
-            audioEngine_.stop();
         }
         return true;
     }
@@ -678,8 +706,9 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
             if (audioEngine_.loadFile(file))
             {
                 currentAudioFile_ = file;
+                audioSourceSelector_.setSelectedId(2, juce::dontSendNotification);
+                audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
                 fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
-                audioEngine_.setLooping(loopToggle_.getToggleState());
                 audioEngine_.play();
             }
         }
@@ -711,9 +740,17 @@ void MainComponent::timerCallback()
                           juce::dontSendNotification);
     }
 
+    // Repaint input level meter
+    if (!inputLevelMeterBounds_.isEmpty())
+        repaint(inputLevelMeterBounds_);
+
     // Beat-synced randomization (runs at 30Hz for accurate beat detection)
     if (beatRandomToggle_.getToggleState())
         beatSyncRandomize();
+
+    // Image slideshow advance
+    if (!slideshowImages_.isEmpty())
+        advanceSlideshow();
 }
 
 void MainComponent::refreshDisplayList()
@@ -915,7 +952,8 @@ void MainComponent::loadDeck()
             if (audioEngine_.loadFile(deck.audioFile))
             {
                 currentAudioFile_ = deck.audioFile;
-                audioEngine_.setLooping(loopToggle_.getToggleState());
+                audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
+                audioSourceSelector_.setSelectedId(2, juce::dontSendNotification);
                 audioEngine_.play();
             }
         }
@@ -967,6 +1005,83 @@ void MainComponent::imageReceived(const juce::Image& image)
     // Also send to output window if active
     if (outputWindow_)
         outputWindow_->getRenderer().queueCameraFrame(image);
+}
+
+void MainComponent::openImageFolder()
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Select image folder...", juce::File{});
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectDirectories;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto dir = fc.getResult();
+        if (!dir.isDirectory())
+            return;
+
+        slideshowImages_.clear();
+        for (const auto& f : dir.findChildFiles(juce::File::findFiles, false,
+                "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tiff"))
+        {
+            slideshowImages_.add(f);
+        }
+        slideshowImages_.sort();
+
+        if (slideshowImages_.isEmpty())
+        {
+            fileLabel_.setText("No images found in folder", juce::dontSendNotification);
+            return;
+        }
+
+        slideshowIndex_ = 0;
+        slideshowBeatCounter_ = 0;
+        lastSlideshowBeatPhase_ = 0.0f;
+
+        // Load first image
+        auto first = slideshowImages_[0];
+        previewPanel_.loadImage(first);
+        currentImageFile_ = first;
+        if (outputWindow_)
+            outputWindow_->loadImage(first);
+
+        fileLabel_.setText("Folder: " + dir.getFileName() + " ("
+                          + juce::String(slideshowImages_.size()) + " images)",
+                          juce::dontSendNotification);
+    });
+}
+
+void MainComponent::advanceSlideshow()
+{
+    if (slideshowImages_.isEmpty())
+        return;
+
+    // Read beat phase
+    const auto* snap = analysisThread_.getFeatureBus().acquireRead();
+    if (!snap)
+        snap = analysisThread_.getFeatureBus().getLatestRead();
+    if (!snap)
+        return;
+
+    float phase = snap->beatPhase;
+
+    // Detect beat wrap
+    if (phase < lastSlideshowBeatPhase_ - 0.5f)
+    {
+        ++slideshowBeatCounter_;
+        if (slideshowBeatCounter_ >= slideshowBeats_)
+        {
+            slideshowBeatCounter_ = 0;
+            slideshowIndex_ = (slideshowIndex_ + 1) % slideshowImages_.size();
+
+            auto img = slideshowImages_[slideshowIndex_];
+            previewPanel_.loadImage(img);
+            currentImageFile_ = img;
+            if (outputWindow_)
+                outputWindow_->loadImage(img);
+        }
+    }
+    lastSlideshowBeatPhase_ = phase;
 }
 
 void MainComponent::refreshCameraList()
@@ -1130,8 +1245,3 @@ void MainComponent::beatSyncRandomize()
     lastBeatPhase_ = phase;
 }
 
-void MainComponent::updateTransportButtons(bool isPlaying)
-{
-    playButton_.setEnabled(!isPlaying);
-    pauseButton_.setEnabled(isPlaying);
-}

@@ -91,10 +91,15 @@ public:
     int getLockedWidth() const { return lockedWidth_.load(std::memory_order_relaxed); }
     int getLockedHeight() const { return lockedHeight_.load(std::memory_order_relaxed); }
 
+    // Master output level (0 = black, 1 = full brightness)
+    void setMasterLevel(float level) { masterLevel_.store(level, std::memory_order_relaxed); }
+    float getMasterLevel() const { return masterLevel_.load(std::memory_order_relaxed); }
+
     // Render frame time tracking
     float getFrameTimeMs() const { return frameTimeMs_.load(std::memory_order_relaxed); }
 
 private:
+    std::atomic<float> masterLevel_{1.0f};
     std::atomic<float> frameTimeMs_{0.0f};
     double renderProfileAccum_ = 0.0;
     int renderProfileCount_ = 0;

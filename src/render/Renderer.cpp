@@ -161,6 +161,38 @@ void Renderer::renderOpenGL()
                         static_cast<GLuint>(defaultFBO),
                         vpX, vpY, vpW, vpH);
 
+    // Apply master level (dim/blackout) using DST_COLOR blend to multiply
+    float level = masterLevel_.load(std::memory_order_relaxed);
+    if (level < 0.99f)
+    {
+        glEnable(GL_BLEND);
+        // DST = DST * SRC — drawing a constant-color quad multiplies the framebuffer
+        glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+        glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
+                   static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
+
+        // Use the brightness shader with the existing image texture as dummy
+        auto* prog = shaderMgr_.getProgram("passthrough");
+        if (prog)
+        {
+            prog->use();
+            // Bind any texture (required by passthrough shader)
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texMgr_.getImageTexture());
+        }
+
+        // Set the constant blend color via glBlendColor
+        glBlendFunc(GL_ZERO, GL_CONSTANT_COLOR);
+        glBlendColor(level, level, level, 1.0f);
+
+        quad_.draw();
+
+        glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glDisable(GL_BLEND);
+    }
+
     glFinish(); // Ensure GPU work is done before measuring
     auto renderEnd = std::chrono::high_resolution_clock::now();
     double frameMs = std::chrono::duration<double, std::milli>(renderEnd - renderStart).count();
