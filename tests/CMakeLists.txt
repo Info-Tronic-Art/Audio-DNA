@@ -82,3 +82,31 @@ target_compile_options(test_integration_pipeline PRIVATE
     -Wno-sign-conversion
 )
 catch_discover_tests(test_integration_pipeline)
+
+# --- test_mapping_engine ---
+add_executable(test_mapping_engine
+    test_mapping_engine.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+)
+target_include_directories(test_mapping_engine PRIVATE ${SRC_DIR})
+target_link_libraries(test_mapping_engine PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+)
+target_compile_definitions(test_mapping_engine PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+target_compile_options(test_mapping_engine PRIVATE
+    -Wno-old-style-cast
+    -Wno-conversion
+    -Wno-sign-conversion
+)
+catch_discover_tests(test_mapping_engine)
