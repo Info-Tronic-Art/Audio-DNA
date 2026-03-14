@@ -186,6 +186,17 @@ void Renderer::renderOpenGL()
         }
     }
 
+    // FPS tracking
+    double now = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+    ++frameCount_;
+    if (now - fpsTimer_ >= 1.0)
+    {
+        currentFps_.store(static_cast<float>(frameCount_) / static_cast<float>(now - fpsTimer_),
+                          std::memory_order_relaxed);
+        frameCount_ = 0;
+        fpsTimer_ = now;
+    }
+
     // Clear to near-black
     juce::OpenGLHelpers::clear(juce::Colour(0xff0a0a14));
 

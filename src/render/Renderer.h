@@ -65,6 +65,16 @@ private:
 
     double startTime_ = 0.0;
 
+    // FPS tracking
+    std::atomic<float> currentFps_{0.0f};
+    int frameCount_ = 0;
+    double fpsTimer_ = 0.0;
+
+public:
+    float getFps() const { return currentFps_.load(std::memory_order_relaxed); }
+
+private:
+
     // Pending image load — protected by mutex (not on hot audio path)
     std::mutex pendingImageMutex_;
     juce::File pendingImageFile_;

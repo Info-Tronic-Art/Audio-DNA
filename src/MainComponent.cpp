@@ -31,6 +31,17 @@ MainComponent::MainComponent()
     savePresetButton_.onClick = [this] { savePreset(); };
     loadPresetButton_.onClick = [this] { loadPreset(); };
 
+    // FPS / CPU labels (right-aligned in top bar)
+    addAndMakeVisible(fpsLabel_);
+    addAndMakeVisible(cpuLabel_);
+    fpsLabel_.setColour(juce::Label::textColourId,
+                        juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    cpuLabel_.setColour(juce::Label::textColourId,
+                        juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    fpsLabel_.setJustificationType(juce::Justification::centredRight);
+    cpuLabel_.setJustificationType(juce::Justification::centredRight);
+    startTimerHz(4); // Update stats 4x per second
+
     openButton_.onClick = [this] { openFile(); };
     openImageButton_.onClick = [this] { openImage(); };
     playButton_.onClick = [this] { audioEngine_.play(); };
@@ -95,6 +106,12 @@ void MainComponent::resized()
     topBar.removeFromLeft(4);
     loadPresetButton_.setBounds(topBar.removeFromLeft(50));
     topBar.removeFromLeft(12);
+
+    // Right-aligned stats
+    cpuLabel_.setBounds(topBar.removeFromRight(80));
+    fpsLabel_.setBounds(topBar.removeFromRight(70));
+    topBar.removeFromRight(8);
+
     fileLabel_.setBounds(topBar);
 
     area.removeFromTop(8);
@@ -319,6 +336,17 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
             fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
         }
     }
+}
+
+void MainComponent::timerCallback()
+{
+    float fps = previewPanel_.getRenderer().getFps();
+    float cpu = analysisThread_.getCpuLoad();
+
+    fpsLabel_.setText(juce::String(static_cast<int>(fps + 0.5f)) + " fps",
+                      juce::dontSendNotification);
+    cpuLabel_.setText("DSP " + juce::String(cpu, 1) + "%",
+                      juce::dontSendNotification);
 }
 
 void MainComponent::updateTransportButtons(bool isPlaying)

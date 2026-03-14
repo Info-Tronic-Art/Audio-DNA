@@ -99,4 +99,10 @@ private:
 
     // Sample counter for timestamps
     uint64_t totalSamplesProcessed_ = 0;
+
+    // CPU load tracking (percentage of hop period used for analysis)
+    std::atomic<float> cpuLoad_{0.0f};
+
+public:
+    float getCpuLoad() const { return cpuLoad_.load(std::memory_order_relaxed); }
 };

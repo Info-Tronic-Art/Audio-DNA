@@ -24,6 +24,7 @@ public:
     // Accessors for renderer internals (used by EffectsRackPanel)
     MappingEngine& getMappingEngine() { return renderer_.getMappingEngine(); }
     EffectChain& getEffectChain() { return renderer_.getEffectChain(); }
+    Renderer& getRenderer() { return renderer_; }
 
 private:
     Renderer renderer_;

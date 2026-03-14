@@ -1,4 +1,5 @@
 #include "AnalysisThread.h"
+#include <chrono>
 #include "FFTProcessor.h"
 #include "SpectralFeatures.h"
 #include "OnsetDetector.h"
@@ -81,6 +82,8 @@ void AnalysisThread::run()
             continue;
 
         // === PIPELINE START ===
+        auto pipelineStart = std::chrono::high_resolution_clock::now();
+
         // Acquire write buffer from FeatureBus
         FeatureSnapshot* snap = featureBus_.acquireWrite();
 
@@ -180,6 +183,15 @@ void AnalysisThread::run()
 
         // === PUBLISH ===
         featureBus_.publishWrite();
+
+        // CPU load: time spent as fraction of hop period
+        auto pipelineEnd = std::chrono::high_resolution_clock::now();
+        double elapsedUs = std::chrono::duration<double, std::micro>(pipelineEnd - pipelineStart).count();
+        double hopPeriodUs = 1e6 * static_cast<double>(kHopSize) / static_cast<double>(kSampleRate);
+        float load = static_cast<float>(elapsedUs / hopPeriodUs) * 100.0f;
+        // EMA smoothing
+        float prev = cpuLoad_.load(std::memory_order_relaxed);
+        cpuLoad_.store(prev + 0.1f * (load - prev), std::memory_order_relaxed);
 
         // Copy recent samples for waveform display
         int wfCount = std::min(kBlockSize, kWaveformBufferSize);

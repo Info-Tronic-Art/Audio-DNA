@@ -14,7 +14,8 @@
 #include "ui/PresetManager.h"
 
 class MainComponent : public juce::Component,
-                      public juce::FileDragAndDropTarget
+                      public juce::FileDragAndDropTarget,
+                      private juce::Timer
 {
 public:
     MainComponent();
@@ -36,6 +37,7 @@ private:
     void savePreset();
     void loadPreset();
     void updateTransportButtons(bool isPlaying);
+    void timerCallback() override;
 
     AudioDNALookAndFeel lookAndFeel_;
 
@@ -54,6 +56,8 @@ private:
     juce::TextButton savePresetButton_{"Save"};
     juce::TextButton loadPresetButton_{"Load"};
     juce::Label fileLabel_;
+    juce::Label fpsLabel_;
+    juce::Label cpuLabel_;
 
     // Display components
     WaveformDisplay waveformDisplay_{analysisThread_};
