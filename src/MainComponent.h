@@ -8,6 +8,7 @@
 #include "ui/WaveformDisplay.h"
 #include "ui/AudioReadoutPanel.h"
 #include "ui/SpectrumDisplay.h"
+#include "ui/PreviewPanel.h"
 
 class MainComponent : public juce::Component
 {
@@ -20,6 +21,7 @@ public:
 
 private:
     void openFile();
+    void openImage();
     void updateTransportButtons(bool isPlaying);
 
     AudioDNALookAndFeel lookAndFeel_;
@@ -30,7 +32,8 @@ private:
     AnalysisThread analysisThread_{ringBuffer_};
 
     // Transport controls
-    juce::TextButton openButton_{"Open"};
+    juce::TextButton openButton_{"Open Audio"};
+    juce::TextButton openImageButton_{"Open Image"};
     juce::TextButton playButton_{"Play"};
     juce::TextButton pauseButton_{"Pause"};
     juce::TextButton stopButton_{"Stop"};
@@ -40,6 +43,7 @@ private:
     WaveformDisplay waveformDisplay_{analysisThread_};
     AudioReadoutPanel audioReadoutPanel_{analysisThread_, analysisThread_.getFeatureBus()};
     SpectrumDisplay spectrumDisplay_{analysisThread_.getFeatureBus()};
+    PreviewPanel previewPanel_{analysisThread_.getFeatureBus()};
 
     std::unique_ptr<juce::FileChooser> fileChooser_;
 

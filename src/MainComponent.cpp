@@ -6,6 +6,7 @@ MainComponent::MainComponent()
 
     // Transport buttons
     addAndMakeVisible(openButton_);
+    addAndMakeVisible(openImageButton_);
     addAndMakeVisible(playButton_);
     addAndMakeVisible(pauseButton_);
     addAndMakeVisible(stopButton_);
@@ -13,12 +14,14 @@ MainComponent::MainComponent()
     addAndMakeVisible(waveformDisplay_);
     addAndMakeVisible(audioReadoutPanel_);
     addAndMakeVisible(spectrumDisplay_);
+    addAndMakeVisible(previewPanel_);
 
     fileLabel_.setColour(juce::Label::textColourId,
                          juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     fileLabel_.setText("No file loaded", juce::dontSendNotification);
 
     openButton_.onClick = [this] { openFile(); };
+    openImageButton_.onClick = [this] { openImage(); };
     playButton_.onClick = [this] { audioEngine_.play(); };
     pauseButton_.onClick = [this] { audioEngine_.pause(); };
     stopButton_.onClick = [this] { audioEngine_.stop(); };
@@ -54,7 +57,9 @@ void MainComponent::resized()
 
     // Top bar: transport controls
     auto topBar = area.removeFromTop(36);
-    openButton_.setBounds(topBar.removeFromLeft(70));
+    openButton_.setBounds(topBar.removeFromLeft(90));
+    topBar.removeFromLeft(4);
+    openImageButton_.setBounds(topBar.removeFromLeft(90));
     topBar.removeFromLeft(8);
     playButton_.setBounds(topBar.removeFromLeft(60));
     topBar.removeFromLeft(4);
@@ -70,10 +75,14 @@ void MainComponent::resized()
     auto leftPanel = area.removeFromLeft(220);
     audioReadoutPanel_.setBounds(leftPanel.removeFromTop(520));
     leftPanel.removeFromTop(8);
-    spectrumDisplay_.setBounds(leftPanel);  // takes remaining space
+    spectrumDisplay_.setBounds(leftPanel); // takes remaining space
 
-    // Center: waveform (takes remaining space)
-    waveformDisplay_.setBounds(area);
+    area.removeFromLeft(8);
+
+    // Center: split between preview (top) and waveform (bottom)
+    auto waveformArea = area.removeFromBottom(100);
+    previewPanel_.setBounds(area);             // GL preview takes the bulk
+    waveformDisplay_.setBounds(waveformArea);  // waveform at the bottom
 }
 
 void MainComponent::openFile()
@@ -100,6 +109,26 @@ void MainComponent::openFile()
         {
             fileLabel_.setText("Failed to load file", juce::dontSendNotification);
         }
+    });
+}
+
+void MainComponent::openImage()
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Select an image file...",
+        juce::File{},
+        "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tiff");
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+
+        previewPanel_.loadImage(file);
+        fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
     });
 }
 

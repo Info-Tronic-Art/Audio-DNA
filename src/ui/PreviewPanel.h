@@ -1,0 +1,29 @@
+#pragma once
+#include <juce_gui_basics/juce_gui_basics.h>
+#include "render/Renderer.h"
+#include "features/FeatureBus.h"
+
+// PreviewPanel: JUCE Component that hosts the OpenGL Renderer.
+// Lives in the center of the MainComponent layout.
+// The user loads an image via file chooser, and the image is displayed
+// with audio-reactive effects applied in real-time.
+class PreviewPanel : public juce::Component
+{
+public:
+    explicit PreviewPanel(FeatureBus& featureBus);
+    ~PreviewPanel() override;
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+
+    // Load an image file to display with effects
+    void loadImage(const juce::File& imageFile);
+
+    bool hasImage() const { return imageLoaded_; }
+
+private:
+    Renderer renderer_;
+    bool imageLoaded_ = false;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PreviewPanel)
+};

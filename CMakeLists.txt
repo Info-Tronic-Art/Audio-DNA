@@ -76,6 +76,24 @@ target_sources(AudioDNA PRIVATE
     src/features/FeatureBus.cpp
     src/features/Smoother.h
 
+    # Render
+    src/render/Renderer.h
+    src/render/Renderer.cpp
+    src/render/FullscreenQuad.h
+    src/render/FullscreenQuad.cpp
+    src/render/ShaderManager.h
+    src/render/ShaderManager.cpp
+    src/render/TextureManager.h
+    src/render/TextureManager.cpp
+
+    # Effects
+    src/effects/Effect.h
+    src/effects/Effect.cpp
+    src/effects/EffectChain.h
+    src/effects/EffectChain.cpp
+    src/effects/UniformBridge.h
+    src/effects/UniformBridge.cpp
+
     # UI
     src/ui/LookAndFeel.h
     src/ui/LookAndFeel.cpp
@@ -85,6 +103,8 @@ target_sources(AudioDNA PRIVATE
     src/ui/AudioReadoutPanel.cpp
     src/ui/SpectrumDisplay.h
     src/ui/SpectrumDisplay.cpp
+    src/ui/PreviewPanel.h
+    src/ui/PreviewPanel.cpp
 )
 
 target_include_directories(AudioDNA PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
