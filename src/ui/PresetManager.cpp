@@ -235,3 +235,79 @@ juce::Array<juce::File> PresetManager::getAvailablePresets()
     auto dir = getPresetsDirectory();
     return dir.findChildFiles(juce::File::findFiles, false, "*.json");
 }
+
+// ── Deck save/load ────────────────────────────────────────────────
+
+bool PresetManager::saveDeck(const juce::File& file,
+                              const DeckState& deck,
+                              const EffectChain& chain,
+                              const MappingEngine& engine)
+{
+    // Save FX preset to a temp string first
+    auto fxFile = file.getSiblingFile("_temp_fx_.json");
+    savePreset(fxFile, "deck_fx", chain, engine);
+    auto fxJson = fxFile.loadFileAsString();
+    fxFile.deleteFile();
+
+    // Parse the FX JSON and embed it in the deck
+    auto fxVar = juce::JSON::parse(fxJson);
+
+    auto deckObj = std::make_unique<juce::DynamicObject>();
+    deckObj->setProperty("type", "deck");
+    deckObj->setProperty("audioFile", deck.audioFile.getFullPathName());
+    deckObj->setProperty("imageFile", deck.imageFile.getFullPathName());
+
+    // Slot assignments
+    juce::Array<juce::var> slotsArray;
+    for (const auto& s : deck.slotFiles)
+        slotsArray.add(s);
+    deckObj->setProperty("slots", slotsArray);
+
+    // Embed the full FX preset
+    deckObj->setProperty("fx", fxVar);
+
+    auto json = juce::JSON::toString(juce::var(deckObj.release()));
+    return file.replaceWithText(json);
+}
+
+bool PresetManager::loadDeck(const juce::File& file,
+                              DeckState& deck,
+                              EffectChain& chain,
+                              MappingEngine& engine)
+{
+    auto json = file.loadFileAsString();
+    auto parsed = juce::JSON::parse(json);
+
+    auto* obj = parsed.getDynamicObject();
+    if (obj == nullptr)
+        return false;
+
+    // Check it's a deck file
+    if (obj->getProperty("type").toString() != "deck")
+        return false;
+
+    deck.audioFile = juce::File(obj->getProperty("audioFile").toString());
+    deck.imageFile = juce::File(obj->getProperty("imageFile").toString());
+
+    // Slot assignments
+    deck.slotFiles.clear();
+    auto* slotsArray = obj->getProperty("slots").getArray();
+    if (slotsArray)
+    {
+        for (const auto& s : *slotsArray)
+            deck.slotFiles.add(s.toString());
+    }
+
+    // Load embedded FX
+    auto fxVar = obj->getProperty("fx");
+    if (fxVar.isObject())
+    {
+        // Write to temp file and load via existing loadPreset
+        auto tempFile = file.getSiblingFile("_temp_load_fx_.json");
+        tempFile.replaceWithText(juce::JSON::toString(fxVar));
+        loadPreset(tempFile, chain, engine);
+        tempFile.deleteFile();
+    }
+
+    return true;
+}

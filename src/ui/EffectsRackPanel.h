@@ -55,6 +55,7 @@ private:
         int effectIndex = 0;
         std::unique_ptr<juce::Label> nameLabel;
         std::unique_ptr<juce::ToggleButton> enableToggle;
+        std::unique_ptr<juce::TextButton> randButton;
         std::vector<std::unique_ptr<ParamKnob>> paramKnobs;
     };
 
@@ -66,6 +67,7 @@ private:
     };
 
     std::vector<std::unique_ptr<CategoryHeader>> categoryHeaders_;
+    juce::TextButton randomizeButton_{"Rand"};
 
     void rebuildUI();
     void openMappingEditor(int effectIndex, int paramIndex);

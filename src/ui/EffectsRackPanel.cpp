@@ -12,6 +12,64 @@ EffectsRackPanel::EffectsRackPanel(MappingEngine& mappingEngine,
     viewport_.setScrollBarsShown(true, false);
     addAndMakeVisible(viewport_);
 
+    addAndMakeVisible(randomizeButton_);
+    randomizeButton_.onClick = [this]
+    {
+        juce::Random rng;
+        int numEffects = effectChain_.getNumEffects();
+        int numToEnable = rng.nextInt({3, 8});
+
+        // Disable all, clear mappings
+        for (int i = 0; i < numEffects; ++i)
+        {
+            auto* fx = effectChain_.getEffect(i);
+            if (fx) fx->setEnabled(false);
+        }
+        mappingEngine_.clearAll();
+
+        static const MappingSource sources[] = {
+            MappingSource::RMS, MappingSource::Peak, MappingSource::SpectralCentroid,
+            MappingSource::SpectralFlux, MappingSource::BandSub, MappingSource::BandBass,
+            MappingSource::BandMid, MappingSource::OnsetStrength, MappingSource::BeatPhase,
+            MappingSource::TransientDensity, MappingSource::HarmonicChange
+        };
+        static const MappingCurve curves[] = {
+            MappingCurve::Linear, MappingCurve::Exponential,
+            MappingCurve::Logarithmic, MappingCurve::SCurve
+        };
+
+        for (int enabled = 0; enabled < numToEnable && enabled < numEffects; )
+        {
+            int idx = rng.nextInt(numEffects);
+            auto* fx = effectChain_.getEffect(idx);
+            if (fx && !fx->isEnabled())
+            {
+                fx->setEnabled(true);
+                for (int p = 0; p < fx->getNumParams(); ++p)
+                    fx->setParamValue(p, rng.nextFloat());
+
+                // Random mappings
+                int paramsToMap = rng.nextInt({1, std::min(3, fx->getNumParams() + 1)});
+                for (int p = 0; p < paramsToMap; ++p)
+                {
+                    Mapping m;
+                    m.source = sources[rng.nextInt(11)];
+                    m.targetEffectId = static_cast<uint32_t>(idx);
+                    m.targetParamIndex = static_cast<uint32_t>(p);
+                    m.curve = curves[rng.nextInt(4)];
+                    m.outputMin = rng.nextFloat() * 0.3f;
+                    m.outputMax = 0.5f + rng.nextFloat() * 0.5f;
+                    m.smoothing = rng.nextFloat() * 0.4f;
+                    m.enabled = true;
+                    mappingEngine_.addMapping(m);
+                }
+                ++enabled;
+            }
+        }
+
+        refreshFromChain();
+    };
+
     rebuildUI();
     startTimerHz(10); // Update parameter displays at 10 fps
 }
@@ -36,7 +94,8 @@ void EffectsRackPanel::paint(juce::Graphics& g)
 void EffectsRackPanel::resized()
 {
     auto area = getLocalBounds();
-    area.removeFromTop(26); // Title area
+    auto titleArea = area.removeFromTop(26);
+    randomizeButton_.setBounds(titleArea.removeFromRight(42).reduced(2));
     viewport_.setBounds(area);
 
     int contentWidth = area.getWidth() - 12;
@@ -86,9 +145,10 @@ void EffectsRackPanel::resized()
             }
         }
 
-        // Header row: toggle + name
+        // Header row: toggle + name + rand button
         auto headerRow = contentArea.removeFromTop(22);
         section->enableToggle->setBounds(headerRow.removeFromLeft(22));
+        section->randButton->setBounds(headerRow.removeFromRight(22));
         section->nameLabel->setBounds(headerRow);
 
         // Parameter knobs in grid (only if enabled)
@@ -280,6 +340,60 @@ void EffectsRackPanel::rebuildUI()
                 eff->setEnabled(sections_[static_cast<size_t>(capturedEi)]
                                     ->enableToggle->getToggleState());
                 resized(); // Relayout to show/hide params
+            }
+        };
+
+        // Per-effect randomize button
+        section->randButton = std::make_unique<juce::TextButton>("R");
+        section->randButton->setColour(juce::TextButton::buttonColourId,
+                                        juce::Colour(AudioDNALookAndFeel::kSurfaceLight));
+        contentComponent_.addAndMakeVisible(section->randButton.get());
+
+        section->randButton->onClick = [this, capturedEi]
+        {
+            auto* eff = effectChain_.getEffect(capturedEi);
+            if (!eff) return;
+
+            juce::Random rng;
+
+            // Randomize all params
+            for (int p = 0; p < eff->getNumParams(); ++p)
+                eff->setParamValue(p, rng.nextFloat());
+
+            // Randomize mappings for this effect
+            static const MappingSource sources[] = {
+                MappingSource::RMS, MappingSource::Peak, MappingSource::SpectralCentroid,
+                MappingSource::SpectralFlux, MappingSource::BandSub, MappingSource::BandBass,
+                MappingSource::BandMid, MappingSource::BandHighMid, MappingSource::OnsetStrength,
+                MappingSource::BeatPhase, MappingSource::TransientDensity, MappingSource::HarmonicChange
+            };
+            static const MappingCurve curves[] = {
+                MappingCurve::Linear, MappingCurve::Exponential,
+                MappingCurve::Logarithmic, MappingCurve::SCurve
+            };
+
+            // Remove existing mappings for this effect
+            for (int i = mappingEngine_.getNumMappings() - 1; i >= 0; --i)
+            {
+                auto* m = mappingEngine_.getMapping(i);
+                if (m && static_cast<int>(m->targetEffectId) == capturedEi)
+                    mappingEngine_.removeMapping(i);
+            }
+
+            // Create random mappings for 1-2 params
+            int paramsToMap = rng.nextInt({1, std::min(3, eff->getNumParams() + 1)});
+            for (int p = 0; p < paramsToMap; ++p)
+            {
+                Mapping m;
+                m.source = sources[rng.nextInt(12)];
+                m.targetEffectId = static_cast<uint32_t>(capturedEi);
+                m.targetParamIndex = static_cast<uint32_t>(p);
+                m.curve = curves[rng.nextInt(4)];
+                m.outputMin = rng.nextFloat() * 0.3f;
+                m.outputMax = 0.5f + rng.nextFloat() * 0.5f;
+                m.smoothing = rng.nextFloat() * 0.4f;
+                m.enabled = true;
+                mappingEngine_.addMapping(m);
             }
         };
 

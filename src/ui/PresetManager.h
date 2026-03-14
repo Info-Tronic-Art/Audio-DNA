@@ -42,6 +42,25 @@ public:
     // Enumerate available preset files.
     static juce::Array<juce::File> getAvailablePresets();
 
+    // Deck save/load — saves everything: audio path, image path, FX, mappings, slot assignments
+    struct DeckState
+    {
+        juce::File audioFile;
+        juce::File imageFile;
+        // Slot assignments: file paths for each of the 10 preset slots
+        juce::StringArray slotFiles;
+    };
+
+    static bool saveDeck(const juce::File& file,
+                         const DeckState& deck,
+                         const EffectChain& chain,
+                         const MappingEngine& engine);
+
+    static bool loadDeck(const juce::File& file,
+                         DeckState& deck,
+                         EffectChain& chain,
+                         MappingEngine& engine);
+
     // String conversion helpers for enums
     static juce::String sourceToString(MappingSource source);
     static MappingSource stringToSource(const juce::String& str);

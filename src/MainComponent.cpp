@@ -31,6 +31,122 @@ MainComponent::MainComponent()
     savePresetButton_.onClick = [this] { savePreset(); };
     loadPresetButton_.onClick = [this] { loadPreset(); };
 
+    // Randomize button
+    addAndMakeVisible(randomButton_);
+    randomButton_.onClick = [this] { randomizeAllEffects(); };
+
+    // Beat-synced random toggle + beat count selector
+    addAndMakeVisible(beatRandomToggle_);
+    beatRandomToggle_.setToggleState(false, juce::dontSendNotification);
+
+    addAndMakeVisible(beatCountSelector_);
+    beatCountSelector_.addItem("1", 1);
+    beatCountSelector_.addItem("2", 2);
+    beatCountSelector_.addItem("4", 3);
+    beatCountSelector_.addItem("8", 4);
+    beatCountSelector_.addItem("16", 5);
+    beatCountSelector_.addItem("32", 6);
+    beatCountSelector_.setSelectedId(3, juce::dontSendNotification); // default 4 beats
+    beatCountSelector_.onChange = [this] {
+        static const int counts[] = {1, 2, 4, 8, 16, 32};
+        int idx = beatCountSelector_.getSelectedId() - 1;
+        if (idx >= 0 && idx < 6)
+            beatRandomCount_ = counts[idx];
+    };
+
+    // Sync button — resets beat counter to align with current beat
+    addAndMakeVisible(syncButton_);
+    syncButton_.onClick = [this] {
+        beatCounter_ = 0;
+        lastBeatPhase_ = 0.0f;
+        // Flash the button briefly
+        syncButton_.setColour(juce::TextButton::buttonColourId,
+                              juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+        juce::Timer::callAfterDelay(200, [this] {
+            syncButton_.removeColour(juce::TextButton::buttonColourId);
+        });
+    };
+
+    // Fast save button
+    addAndMakeVisible(fastSaveButton_);
+    fastSaveButton_.onClick = [this] { fastSave(); };
+
+    // Determine starting fast save counter from existing files
+    {
+        auto dir = getFastSaveDir();
+        if (dir.isDirectory())
+        {
+            int maxNum = 0;
+            for (auto& f : dir.findChildFiles(juce::File::findFiles, false, "FX_Save_*.json"))
+            {
+                auto name = f.getFileNameWithoutExtension();
+                auto numStr = name.fromLastOccurrenceOf("_", false, false);
+                int num = numStr.getIntValue();
+                if (num > maxNum) maxNum = num;
+            }
+            fastSaveCounter_ = maxNum + 1;
+        }
+    }
+
+    // Deck save/load
+    addAndMakeVisible(deckSaveButton_);
+    addAndMakeVisible(deckLoadButton_);
+    deckSaveButton_.onClick = [this] { saveDeck(); };
+    deckLoadButton_.onClick = [this] { loadDeck(); };
+
+    // Bottom preset slots (10 buttons + dropdowns)
+    for (int i = 0; i < kNumSlots; ++i)
+    {
+        auto& slot = presetSlots_[static_cast<size_t>(i)];
+        slot.button = std::make_unique<juce::TextButton>(juce::String(i + 1));
+        slot.button->setColour(juce::TextButton::buttonColourId,
+                               juce::Colour(AudioDNALookAndFeel::kSurface));
+        addAndMakeVisible(slot.button.get());
+
+        int capturedSlot = i;
+        slot.button->onClick = [this, capturedSlot] {
+            auto& s = presetSlots_[static_cast<size_t>(capturedSlot)];
+            if (s.loadedFile.existsAsFile())
+            {
+                if (PresetManager::loadPreset(s.loadedFile,
+                                               previewPanel_.getEffectChain(),
+                                               previewPanel_.getMappingEngine()))
+                {
+                    fileLabel_.setText("Slot " + juce::String(capturedSlot + 1) + ": "
+                                      + s.loadedFile.getFileNameWithoutExtension(),
+                                      juce::dontSendNotification);
+                    if (effectsRackPanel_)
+                        effectsRackPanel_->refreshFromChain();
+                }
+            }
+        };
+
+        slot.dropdown = std::make_unique<juce::ComboBox>();
+        slot.dropdown->setTextWhenNothingSelected("--");
+        addAndMakeVisible(slot.dropdown.get());
+        populateSlotMenu(i);
+
+        slot.dropdown->onChange = [this, capturedSlot] {
+            auto& s = presetSlots_[static_cast<size_t>(capturedSlot)];
+            int selected = s.dropdown->getSelectedId();
+            if (selected > 0)
+            {
+                auto dir = getFastSaveDir();
+                auto files = dir.findChildFiles(juce::File::findFiles, false, "*.json");
+                files.sort();
+                int idx = selected - 1;
+                if (idx < static_cast<int>(files.size()))
+                {
+                    s.loadedFile = files[idx];
+                    s.button->setButtonText(files[idx].getFileNameWithoutExtension()
+                                            .replace("FX_Save_", "FX"));
+                    s.button->setColour(juce::TextButton::buttonColourId,
+                                        juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.4f));
+                }
+            }
+        };
+    }
+
     // FPS / CPU labels (right-aligned in top bar)
     addAndMakeVisible(fpsLabel_);
     addAndMakeVisible(cpuLabel_);
@@ -40,7 +156,7 @@ MainComponent::MainComponent()
                         juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     fpsLabel_.setJustificationType(juce::Justification::centredRight);
     cpuLabel_.setJustificationType(juce::Justification::centredRight);
-    startTimerHz(4); // Update stats 4x per second
+    startTimerHz(30); // 30Hz for beat-synced randomization + UI updates
 
     // Resolution selector for preview panel
     addAndMakeVisible(resolutionSelector_);
@@ -195,7 +311,20 @@ void MainComponent::resized()
     savePresetButton_.setBounds(topBar.removeFromLeft(50));
     topBar.removeFromLeft(4);
     loadPresetButton_.setBounds(topBar.removeFromLeft(50));
-    topBar.removeFromLeft(12);
+    topBar.removeFromLeft(8);
+    randomButton_.setBounds(topBar.removeFromLeft(42));
+    topBar.removeFromLeft(4);
+    syncButton_.setBounds(topBar.removeFromLeft(40));
+    topBar.removeFromLeft(4);
+    beatRandomToggle_.setBounds(topBar.removeFromLeft(80));
+    beatCountSelector_.setBounds(topBar.removeFromLeft(44));
+    topBar.removeFromLeft(4);
+    fastSaveButton_.setBounds(topBar.removeFromLeft(55));
+    topBar.removeFromLeft(4);
+    deckSaveButton_.setBounds(topBar.removeFromLeft(65));
+    topBar.removeFromLeft(4);
+    deckLoadButton_.setBounds(topBar.removeFromLeft(65));
+    topBar.removeFromLeft(8);
 
     // Right-aligned stats, display selector, and resolution selector
     cpuLabel_.setBounds(topBar.removeFromRight(80));
@@ -238,8 +367,24 @@ void MainComponent::resized()
 
     area.removeFromRight(8);
 
+    // Bottom slot bar (below waveform)
+    auto slotBar = area.removeFromBottom(28);
+    {
+        int slotWidth = slotBar.getWidth() / kNumSlots;
+        for (int i = 0; i < kNumSlots; ++i)
+        {
+            auto& slot = presetSlots_[static_cast<size_t>(i)];
+            auto slotArea = slotBar.removeFromLeft(slotWidth);
+            int btnWidth = slotArea.getWidth() / 3;
+            slot.button->setBounds(slotArea.removeFromLeft(btnWidth));
+            slotArea.removeFromLeft(2);
+            slot.dropdown->setBounds(slotArea);
+        }
+    }
+    area.removeFromBottom(4);
+
     // Center: split between preview (top) and waveform (bottom)
-    int waveformHeight = std::max(60, static_cast<int>(area.getHeight() * 0.15f));
+    int waveformHeight = std::max(60, static_cast<int>(area.getHeight() * 0.12f));
     auto waveformArea = area.removeFromBottom(waveformHeight);
     previewPanel_.setBounds(area);             // GL preview takes the bulk
     waveformDisplay_.setBounds(waveformArea);  // waveform at the bottom
@@ -262,6 +407,7 @@ void MainComponent::openFile()
 
         if (audioEngine_.loadFile(file))
         {
+            currentAudioFile_ = file;
             fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
             audioEngine_.setLooping(loopToggle_.getToggleState());
             audioEngine_.play();
@@ -459,6 +605,7 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
         {
             if (audioEngine_.loadFile(file))
             {
+                currentAudioFile_ = file;
                 fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
                 audioEngine_.setLooping(loopToggle_.getToggleState());
                 audioEngine_.play();
@@ -478,15 +625,23 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
 
 void MainComponent::timerCallback()
 {
-    float fps = previewPanel_.getRenderer().getFps();
-    float cpu = analysisThread_.getCpuLoad();
+    // Update FPS/CPU labels at ~4Hz (every 8th call at 30Hz)
+    if (++uiUpdateCounter_ >= 8)
+    {
+        uiUpdateCounter_ = 0;
+        float fps = previewPanel_.getRenderer().getFps();
+        float cpu = analysisThread_.getCpuLoad();
+        float frameMs = previewPanel_.getRenderer().getFrameTimeMs();
+        fpsLabel_.setText(juce::String(static_cast<int>(fps + 0.5f)) + "fps "
+                          + juce::String(frameMs, 1) + "ms",
+                          juce::dontSendNotification);
+        cpuLabel_.setText("DSP " + juce::String(cpu, 1) + "%",
+                          juce::dontSendNotification);
+    }
 
-    float frameMs = previewPanel_.getRenderer().getFrameTimeMs();
-    fpsLabel_.setText(juce::String(static_cast<int>(fps + 0.5f)) + "fps "
-                      + juce::String(frameMs, 1) + "ms",
-                      juce::dontSendNotification);
-    cpuLabel_.setText("DSP " + juce::String(cpu, 1) + "%",
-                      juce::dontSendNotification);
+    // Beat-synced randomization (runs at 30Hz for accurate beat detection)
+    if (beatRandomToggle_.getToggleState())
+        beatSyncRandomize();
 }
 
 void MainComponent::refreshDisplayList()
@@ -537,6 +692,300 @@ void MainComponent::closeOutput()
         outputWindow_->setVisible(false);
         outputWindow_.reset();
     }
+}
+
+juce::File MainComponent::getFastSaveDir() const
+{
+    return PresetManager::getPresetsDirectory().getChildFile("fast_saves");
+}
+
+void MainComponent::fastSave()
+{
+    auto dir = getFastSaveDir();
+    dir.createDirectory();
+
+    auto fileName = "FX_Save_" + juce::String(fastSaveCounter_) + ".json";
+    auto file = dir.getChildFile(fileName);
+
+    if (PresetManager::savePreset(file,
+                                   file.getFileNameWithoutExtension(),
+                                   previewPanel_.getEffectChain(),
+                                   previewPanel_.getMappingEngine()))
+    {
+        fileLabel_.setText("Saved: " + fileName, juce::dontSendNotification);
+        ++fastSaveCounter_;
+
+        // Refresh all slot dropdown menus
+        for (int i = 0; i < kNumSlots; ++i)
+            populateSlotMenu(i);
+
+        // Flash the button
+        fastSaveButton_.setColour(juce::TextButton::buttonColourId,
+                                  juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+        juce::Timer::callAfterDelay(300, [this] {
+            fastSaveButton_.removeColour(juce::TextButton::buttonColourId);
+        });
+    }
+}
+
+void MainComponent::loadSlotPreset(int slot, const juce::File& file)
+{
+    if (!file.existsAsFile())
+        return;
+
+    if (PresetManager::loadPreset(file,
+                                   previewPanel_.getEffectChain(),
+                                   previewPanel_.getMappingEngine()))
+    {
+        fileLabel_.setText("Slot " + juce::String(slot + 1) + ": "
+                          + file.getFileNameWithoutExtension(),
+                          juce::dontSendNotification);
+        if (effectsRackPanel_)
+            effectsRackPanel_->refreshFromChain();
+    }
+}
+
+void MainComponent::populateSlotMenu(int slot)
+{
+    auto& s = presetSlots_[static_cast<size_t>(slot)];
+
+    // Remember what file was selected before repopulating
+    auto previousFile = s.loadedFile;
+
+    s.dropdown->clear(juce::dontSendNotification);
+
+    auto dir = getFastSaveDir();
+    if (!dir.isDirectory())
+        return;
+
+    auto files = dir.findChildFiles(juce::File::findFiles, false, "*.json");
+    files.sort();
+
+    int restoreId = 0;
+    for (int i = 0; i < static_cast<int>(files.size()); ++i)
+    {
+        s.dropdown->addItem(files[i].getFileNameWithoutExtension(), i + 1);
+        if (previousFile == files[i])
+            restoreId = i + 1;
+    }
+
+    // Restore previous selection
+    if (restoreId > 0)
+        s.dropdown->setSelectedId(restoreId, juce::dontSendNotification);
+}
+
+void MainComponent::saveDeck()
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Save deck...",
+        PresetManager::getPresetsDirectory(),
+        "*.deck.json");
+
+    auto flags = juce::FileBrowserComponent::saveMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+
+        auto saveFile = file.hasFileExtension(".deck.json") ? file
+                            : juce::File(file.getFullPathName() + ".deck.json");
+
+        PresetManager::DeckState deck;
+        deck.audioFile = currentAudioFile_;
+        deck.imageFile = currentImageFile_;
+
+        // Collect slot assignments
+        for (int i = 0; i < kNumSlots; ++i)
+        {
+            auto& s = presetSlots_[static_cast<size_t>(i)];
+            deck.slotFiles.add(s.loadedFile.getFullPathName());
+        }
+
+        if (PresetManager::saveDeck(saveFile, deck,
+                                     previewPanel_.getEffectChain(),
+                                     previewPanel_.getMappingEngine()))
+        {
+            fileLabel_.setText("Deck saved: " + saveFile.getFileNameWithoutExtension(),
+                              juce::dontSendNotification);
+        }
+    });
+}
+
+void MainComponent::loadDeck()
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Load deck...",
+        PresetManager::getPresetsDirectory(),
+        "*.deck.json");
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+
+        PresetManager::DeckState deck;
+        if (!PresetManager::loadDeck(file, deck,
+                                      previewPanel_.getEffectChain(),
+                                      previewPanel_.getMappingEngine()))
+        {
+            fileLabel_.setText("Failed to load deck", juce::dontSendNotification);
+            return;
+        }
+
+        // Load audio
+        if (deck.audioFile.existsAsFile())
+        {
+            if (audioEngine_.loadFile(deck.audioFile))
+            {
+                currentAudioFile_ = deck.audioFile;
+                audioEngine_.setLooping(loopToggle_.getToggleState());
+                audioEngine_.play();
+            }
+        }
+
+        // Load image
+        if (deck.imageFile.existsAsFile())
+        {
+            previewPanel_.loadImage(deck.imageFile);
+            currentImageFile_ = deck.imageFile;
+            if (outputWindow_)
+                outputWindow_->loadImage(deck.imageFile);
+        }
+
+        // Restore slot assignments
+        for (int i = 0; i < kNumSlots && i < deck.slotFiles.size(); ++i)
+        {
+            auto& s = presetSlots_[static_cast<size_t>(i)];
+            auto slotFile = juce::File(deck.slotFiles[i]);
+            if (slotFile.existsAsFile())
+            {
+                s.loadedFile = slotFile;
+                s.button->setButtonText(slotFile.getFileNameWithoutExtension()
+                                        .replace("FX_Save_", "FX"));
+                s.button->setColour(juce::TextButton::buttonColourId,
+                                    juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.4f));
+            }
+            else
+            {
+                s.loadedFile = juce::File();
+                s.button->setButtonText(juce::String(i + 1));
+                s.button->removeColour(juce::TextButton::buttonColourId);
+            }
+            populateSlotMenu(i);
+        }
+
+        if (effectsRackPanel_)
+            effectsRackPanel_->refreshFromChain();
+
+        fileLabel_.setText("Deck: " + file.getFileNameWithoutExtension(),
+                          juce::dontSendNotification);
+    });
+}
+
+void MainComponent::randomizeAllEffects()
+{
+    auto& chain = previewPanel_.getEffectChain();
+    auto& mapping = previewPanel_.getMappingEngine();
+    juce::Random rng;
+
+    int numEffects = chain.getNumEffects();
+
+    // Randomly enable 3-7 effects
+    int numToEnable = rng.nextInt({3, 8});
+
+    // Disable all first
+    for (int i = 0; i < numEffects; ++i)
+    {
+        auto* fx = chain.getEffect(i);
+        if (fx) fx->setEnabled(false);
+    }
+
+    // Clear all mappings
+    mapping.clearAll();
+
+    // Randomly enable some effects with random params and mappings
+    // Useful audio sources for random mapping (skip MFCCs/Chromas)
+    static const MappingSource usefulSources[] = {
+        MappingSource::RMS, MappingSource::Peak, MappingSource::SpectralCentroid,
+        MappingSource::SpectralFlux, MappingSource::SpectralFlatness,
+        MappingSource::BandSub, MappingSource::BandBass, MappingSource::BandLowMid,
+        MappingSource::BandMid, MappingSource::BandHighMid, MappingSource::BandPresence,
+        MappingSource::OnsetStrength, MappingSource::BeatPhase,
+        MappingSource::TransientDensity, MappingSource::HarmonicChange,
+        MappingSource::DynamicRange
+    };
+    int numSources = static_cast<int>(sizeof(usefulSources) / sizeof(usefulSources[0]));
+
+    static const MappingCurve curves[] = {
+        MappingCurve::Linear, MappingCurve::Exponential,
+        MappingCurve::Logarithmic, MappingCurve::SCurve
+    };
+
+    for (int enabled = 0; enabled < numToEnable && enabled < numEffects; )
+    {
+        int idx = rng.nextInt(numEffects);
+        auto* fx = chain.getEffect(idx);
+        if (fx && !fx->isEnabled())
+        {
+            fx->setEnabled(true);
+
+            // Randomize parameters
+            for (int p = 0; p < fx->getNumParams(); ++p)
+                fx->setParamValue(p, rng.nextFloat());
+
+            // Create a random mapping for the first 1-2 params
+            int paramsToMap = rng.nextInt({1, std::min(3, fx->getNumParams() + 1)});
+            for (int p = 0; p < paramsToMap; ++p)
+            {
+                Mapping m;
+                m.source = usefulSources[rng.nextInt(numSources)];
+                m.targetEffectId = static_cast<uint32_t>(idx);
+                m.targetParamIndex = static_cast<uint32_t>(p);
+                m.curve = curves[rng.nextInt(4)];
+                m.inputMin = 0.0f;
+                m.inputMax = 1.0f;
+                m.outputMin = rng.nextFloat() * 0.3f;
+                m.outputMax = 0.5f + rng.nextFloat() * 0.5f;
+                m.smoothing = rng.nextFloat() * 0.4f;
+                m.enabled = true;
+                mapping.addMapping(m);
+            }
+
+            ++enabled;
+        }
+    }
+
+    if (effectsRackPanel_)
+        effectsRackPanel_->refreshFromChain();
+}
+
+void MainComponent::beatSyncRandomize()
+{
+    // Read current beat phase from the feature bus
+    const auto* snap = analysisThread_.getFeatureBus().acquireRead();
+    if (!snap)
+        snap = analysisThread_.getFeatureBus().getLatestRead();
+    if (!snap)
+        return;
+
+    float phase = snap->beatPhase;
+
+    // Detect beat: phase wrapped around (went from high to low)
+    if (phase < lastBeatPhase_ - 0.5f)
+    {
+        ++beatCounter_;
+        if (beatCounter_ >= beatRandomCount_)
+        {
+            beatCounter_ = 0;
+            juce::MessageManager::callAsync([this] { randomizeAllEffects(); });
+        }
+    }
+    lastBeatPhase_ = phase;
 }
 
 void MainComponent::updateTransportButtons(bool isPlaying)

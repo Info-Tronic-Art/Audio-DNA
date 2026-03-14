@@ -150,6 +150,36 @@ MappingEditor::MappingEditor()
     {
         listeners_.call([this](Listener& l) { l.mappingEditorCloseRequested(this); });
     };
+
+    // Randomize button
+    addAndMakeVisible(randomButton_);
+    randomButton_.onClick = [this]
+    {
+        juce::Random rng;
+
+        // Random source (skip MFCCs and Chromas for more useful results)
+        int numUsefulSources = 21; // RMS through HarmonicChange
+        sourceCombo_.setSelectedId(rng.nextInt(numUsefulSources) + 1);
+
+        // Random curve
+        curveCombo_.setSelectedId(rng.nextInt(static_cast<int>(MappingCurve::Count)) + 1);
+
+        // Random ranges
+        float inMin = rng.nextFloat();
+        float inMax = inMin + rng.nextFloat() * (1.0f - inMin);
+        inputMinSlider_.setValue(static_cast<double>(inMin));
+        inputMaxSlider_.setValue(static_cast<double>(inMax));
+
+        float outMin = rng.nextFloat();
+        float outMax = outMin + rng.nextFloat() * (1.0f - outMin);
+        outputMinSlider_.setValue(static_cast<double>(outMin));
+        outputMaxSlider_.setValue(static_cast<double>(outMax));
+
+        // Random smoothing (bias toward lower values for responsiveness)
+        smoothingSlider_.setValue(static_cast<double>(rng.nextFloat() * 0.5f));
+
+        notifyChanged();
+    };
 }
 
 void MappingEditor::paint(juce::Graphics& g)
@@ -203,6 +233,8 @@ void MappingEditor::resized()
     // Enable toggle + delete button
     row = area.removeFromTop(rowHeight + 4);
     enableToggle_.setBounds(row.removeFromLeft(90));
+    row.removeFromLeft(8);
+    randomButton_.setBounds(row.removeFromLeft(80));
     row.removeFromLeft(8);
     deleteButton_.setBounds(row);
 }

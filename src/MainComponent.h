@@ -42,6 +42,14 @@ private:
     void refreshDisplayList();
     void openOutputOnDisplay(int displayIndex);
     void closeOutput();
+    void randomizeAllEffects();
+    void beatSyncRandomize();
+    void fastSave();
+    void loadSlotPreset(int slot, const juce::File& file);
+    void populateSlotMenu(int slot);
+    juce::File getFastSaveDir() const;
+    void saveDeck();
+    void loadDeck();
 
     AudioDNALookAndFeel lookAndFeel_;
 
@@ -72,6 +80,35 @@ private:
     // Effects rack (right panel) — initialized after previewPanel_
     EffectLibrary effectLibrary_;
     std::unique_ptr<EffectsRackPanel> effectsRackPanel_;
+
+    // Randomize controls
+    juce::TextButton randomButton_{"Rand"};
+    juce::TextButton syncButton_{"Sync"};
+    juce::ToggleButton beatRandomToggle_{"Beat Rand"};
+    juce::ComboBox beatCountSelector_;
+    int beatRandomCount_ = 4;       // Randomize every N beats
+    int beatCounter_ = 0;           // Counts beats since last randomize
+    float lastBeatPhase_ = 0.0f;    // Track beat phase for edge detection
+    int uiUpdateCounter_ = 0;       // Throttle UI label updates
+
+    // Fast save
+    juce::TextButton fastSaveButton_{"FX Save"};
+    int fastSaveCounter_ = 1;
+
+    // Deck save/load
+    juce::TextButton deckSaveButton_{"Deck Save"};
+    juce::TextButton deckLoadButton_{"Deck Load"};
+    juce::File currentAudioFile_;  // Track loaded audio for deck save
+
+    // Bottom preset slots (10 slots)
+    static constexpr int kNumSlots = 10;
+    struct PresetSlot
+    {
+        std::unique_ptr<juce::TextButton> button;
+        std::unique_ptr<juce::ComboBox> dropdown;
+        juce::File loadedFile;
+    };
+    std::array<PresetSlot, kNumSlots> presetSlots_;
 
     // Resolution lock
     juce::ComboBox resolutionSelector_;

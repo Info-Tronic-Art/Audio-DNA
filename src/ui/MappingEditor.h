@@ -70,6 +70,7 @@ private:
     juce::ToggleButton enableToggle_{"Enabled"};
     juce::TextButton deleteButton_{"Delete Mapping"};
     juce::TextButton closeButton_{"X"};
+    juce::TextButton randomButton_{"Randomize"};
 
     juce::ListenerList<Listener> listeners_;
 
