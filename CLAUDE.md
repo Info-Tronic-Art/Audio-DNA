@@ -152,20 +152,20 @@ AudioDNA/
 │   │   └── RingBuffer.h              ✅ # Lock-free SPSC, power-of-two, cache-line padded
 │   ├── analysis/
 │   │   ├── AnalysisThread.h/cpp      ✅ # Dedicated thread, reads ring buffer, runs feature pipeline
-│   │   ├── FeatureSnapshot.h         ✅ # POD struct (currently minimal: rms + peak only)
-│   │   ├── FFTProcessor.h/cpp           # [M2] juce::dsp::FFT wrapper, 2048-pt, Hann window
-│   │   ├── SpectralFeatures.h/cpp       # [M2] Centroid, flux, flatness, rolloff, 7-band energies
-│   │   ├── OnsetDetector.h/cpp          # [M2] Aubio onset wrapper
-│   │   ├── BPMTracker.h/cpp             # [M2] Aubio tempo wrapper
-│   │   ├── MFCCExtractor.h/cpp          # [M2] Mel filterbank (40 bands, 20-8kHz) + DCT → 13 coefficients
-│   │   ├── ChromaExtractor.h/cpp        # [M2] FFT bins → 12 pitch classes, HCDF
-│   │   ├── KeyDetector.h/cpp            # [M2] Krumhansl-Schmuckler: chroma × 24 key templates
-│   │   ├── LoudnessAnalyzer.h/cpp       # [M2] K-weighting biquads + 400ms window → LUFS
-│   │   ├── StructuralDetector.h/cpp     # [M2] Multi-scale EMA envelopes → state machine
-│   │   └── PitchTracker.h/cpp           # [M2] YIN or aubio_pitch wrapper
+│   │   ├── FeatureSnapshot.h         ✅ # POD struct, all analysis fields, alignas(64)
+│   │   ├── FFTProcessor.h/cpp        ✅ # juce::dsp::FFT wrapper, 2048-pt, Hann window
+│   │   ├── SpectralFeatures.h/cpp    ✅ # Centroid, flux, flatness, rolloff, 7-band energies
+│   │   ├── OnsetDetector.h/cpp       ✅ # Aubio onset wrapper
+│   │   ├── BPMTracker.h/cpp          ✅ # Aubio tempo wrapper
+│   │   ├── MFCCExtractor.h/cpp       ✅ # Mel filterbank (40 bands, 20-8kHz) + DCT → 13 coefficients
+│   │   ├── ChromaExtractor.h/cpp     ✅ # FFT bins → 12 pitch classes, HCDF
+│   │   ├── KeyDetector.h/cpp         ✅ # Krumhansl-Schmuckler: chroma × 24 key templates
+│   │   ├── LoudnessAnalyzer.h/cpp    ✅ # K-weighting biquads + 400ms window → LUFS
+│   │   ├── StructuralDetector.h/cpp  ✅ # Multi-scale EMA envelopes → state machine
+│   │   └── PitchTracker.h/cpp        ✅ # Aubio yinfft pitch detection
 │   ├── features/
-│   │   ├── FeatureBus.h/cpp             # [M2] Triple-buffer atomic swap (3× FeatureSnapshot)
-│   │   └── Smoother.h/cpp               # [M2] EMA + One-Euro filter
+│   │   ├── FeatureBus.h/cpp          ✅ # Triple-buffer atomic swap (3× FeatureSnapshot)
+│   │   └── Smoother.h               ✅ # EMA + One-Euro filter (header-only)
 │   ├── mapping/
 │   │   ├── MappingEngine.h/cpp          # [M4] Source→curve→scale→target routing
 │   │   ├── MappingTypes.h               # [M4] Mapping, Source, Curve enums
@@ -181,9 +181,10 @@ AudioDNA/
 │   │   ├── TextureManager.h/cpp         # [M3] Image → GL_TEXTURE_2D, FBO textures
 │   │   └── FullscreenQuad.h/cpp         # [M3] VAO/VBO for fullscreen triangle strip
 │   └── ui/
-│       ├── LookAndFeel.h/cpp            # Dark VJ-style theme (exists, to be polished M5)
-│       ├── WaveformDisplay.h/cpp        # Scrolling time-domain waveform (stub exists)
-│       ├── AudioReadoutPanel.h/cpp      # Left panel: feature values + meters (stub exists)
+│       ├── LookAndFeel.h/cpp         ✅ # Dark VJ-style theme
+│       ├── WaveformDisplay.h/cpp     ✅ # Scrolling time-domain waveform
+│       ├── AudioReadoutPanel.h/cpp   ✅ # Left panel: all feature values + meters
+│       ├── SpectrumDisplay.h/cpp     ✅ # 7-band color-coded spectrum bars
 │       ├── PreviewPanel.h/cpp           # [M3] Center: hosts OpenGL context
 │       ├── EffectsRackPanel.h/cpp       # [M4] Right: effect list + knobs + mapping indicators
 │       ├── MappingEditor.h/cpp          # [M4] Source/curve/range/smoothing configuration
@@ -416,9 +417,9 @@ All 10 tasks done. App builds, loads/plays audio, waveform + RMS/Peak meters wor
 
 **Goal**: Extract all audio features in real-time. Display all values as live readouts.
 
-**Completed**: 2.1 — `FeatureBus` triple-buffer implemented (lock-free atomic swap). 2.2 — `FFTProcessor` implemented (2048-pt Hann-windowed FFT, 1025-bin magnitude spectrum). 2.3 — `SpectralFeatures` implemented (centroid, flux, flatness, rolloff, 7-band energies). 2.4 — `OnsetDetector` implemented (Aubio specflux onset detection, adaptive threshold). 2.5 — `BPMTracker` implemented (Aubio tempo wrapper, beat phase sawtooth).
+**Completed**: 2.1–2.17 — All analysis + UI tasks complete. Full 12-stage pipeline: FFT, spectral features, onset detection, BPM/beat tracking, MFCC, chroma, key detection, pitch tracking, LUFS, structural detection, transient density, HCDF. Expanded AudioReadoutPanel + SpectrumDisplay show all features live. Smoother class (EMA + One-Euro) implemented.
 
-**Next task**: 2.6 — Implement `MFCCExtractor` (Mel filterbank + DCT → 13 coefficients).
+**Next task**: 2.18 — Write unit tests.
 
 ### What M2 Unlocks
 
