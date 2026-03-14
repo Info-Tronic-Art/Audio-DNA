@@ -85,6 +85,15 @@ void EffectsRackPanel::resized()
 
 void EffectsRackPanel::timerCallback()
 {
+    // Detect when effects become available (GL thread creates them async)
+    int currentCount = effectChain_.getNumEffects();
+    if (currentCount != lastKnownEffectCount_)
+    {
+        lastKnownEffectCount_ = currentCount;
+        rebuildUI();
+        return;
+    }
+
     // Update slider values to reflect current effect parameter values
     // (which may have been changed by the MappingEngine)
     for (const auto& section : sections_)

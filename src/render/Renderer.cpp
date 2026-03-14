@@ -209,10 +209,11 @@ void Renderer::renderOpenGL()
     float time = static_cast<float>(
         juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
 
-    // Get viewport dimensions
+    // Get viewport dimensions in physical pixels (Retina-aware)
     auto* component = glContext_.getTargetComponent();
-    float width  = component != nullptr ? static_cast<float>(component->getWidth())  : 1.0f;
-    float height = component != nullptr ? static_cast<float>(component->getHeight()) : 1.0f;
+    float scale = static_cast<float>(glContext_.getRenderingScale());
+    float width  = component != nullptr ? static_cast<float>(component->getWidth())  * scale : 1.0f;
+    float height = component != nullptr ? static_cast<float>(component->getHeight()) * scale : 1.0f;
 
     // Get the default framebuffer that JUCE's context uses
     GLint defaultFBO = 0;

@@ -64,6 +64,8 @@ private:
     EffectChain& effectChain_;
     EffectLibrary& effectLibrary_;
 
+    int lastKnownEffectCount_ = 0;  // Detect when effects become available
+
     std::vector<std::unique_ptr<EffectSection>> sections_;
 
     // Scrollable viewport
