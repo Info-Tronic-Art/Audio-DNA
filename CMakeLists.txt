@@ -113,6 +113,10 @@ target_link_libraries(AudioDNA PRIVATE
 
 set_project_warnings(AudioDNA)
 
+# --- Tests ---
+enable_testing()
+add_subdirectory(tests)
+
 # Suppress warnings in JUCE headers
 target_compile_options(AudioDNA PRIVATE
     -Wno-old-style-cast
