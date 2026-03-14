@@ -116,23 +116,37 @@ void MainComponent::resized()
 
     area.removeFromTop(8);
 
+    // Proportional panel layout: left 20%, center 50%, right 30%
+    int totalWidth = area.getWidth();
+    int leftWidth = std::max(200, static_cast<int>(totalWidth * 0.20f));
+    int rightWidth = std::max(200, static_cast<int>(totalWidth * 0.30f));
+
     // Left panel: audio readouts + spectrum
-    auto leftPanel = area.removeFromLeft(220);
-    audioReadoutPanel_.setBounds(leftPanel.removeFromTop(520));
-    leftPanel.removeFromTop(8);
-    spectrumDisplay_.setBounds(leftPanel); // takes remaining space
+    auto leftPanel = area.removeFromLeft(leftWidth);
+    int spectrumHeight = std::max(120, static_cast<int>(leftPanel.getHeight() * 0.25f));
+    audioReadoutPanel_.setBounds(leftPanel.removeFromBottom(spectrumHeight).removeFromBottom(spectrumHeight - 8));
+    // Actually: readout on top, spectrum on bottom
+    // Re-do: readout gets most of the height, spectrum at bottom
+    leftPanel = getLocalBounds().reduced(8);
+    leftPanel.removeFromTop(44); // top bar + gap
+    leftPanel = leftPanel.removeFromLeft(leftWidth);
+    spectrumHeight = std::max(120, static_cast<int>(leftPanel.getHeight() * 0.25f));
+    spectrumDisplay_.setBounds(leftPanel.removeFromBottom(spectrumHeight));
+    leftPanel.removeFromBottom(8);
+    audioReadoutPanel_.setBounds(leftPanel);
 
     area.removeFromLeft(8);
 
     // Right panel: effects rack
-    auto rightPanel = area.removeFromRight(220);
+    auto rightPanel = area.removeFromRight(rightWidth);
     if (effectsRackPanel_)
         effectsRackPanel_->setBounds(rightPanel);
 
     area.removeFromRight(8);
 
     // Center: split between preview (top) and waveform (bottom)
-    auto waveformArea = area.removeFromBottom(100);
+    int waveformHeight = std::max(60, static_cast<int>(area.getHeight() * 0.15f));
+    auto waveformArea = area.removeFromBottom(waveformHeight);
     previewPanel_.setBounds(area);             // GL preview takes the bulk
     waveformDisplay_.setBounds(waveformArea);  // waveform at the bottom
 }
