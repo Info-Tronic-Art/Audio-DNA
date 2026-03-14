@@ -184,6 +184,243 @@ void EffectLibrary::registerDefaults()
     registerEffect({"Edge Detect", "blur", "edge_detect", {
         {"amount", "u_edge_amount", 0.0f}
     }});
+
+    // ============================================================
+    // 3D / Depth Effects
+    // ============================================================
+
+    registerEffect({"Perspective Tilt", "3d", "perspective_tilt", {
+        {"tilt_x", "u_tilt_x", 0.5f},
+        {"tilt_y", "u_tilt_y", 0.5f}
+    }});
+
+    registerEffect({"Cylinder Wrap", "3d", "cylinder_wrap", {
+        {"amount", "u_cylinder_amount", 0.0f},
+        {"axis",   "u_cylinder_axis",   0.0f}
+    }});
+
+    registerEffect({"Sphere Wrap", "3d", "sphere_wrap", {
+        {"amount", "u_sphere_amount", 0.0f}
+    }});
+
+    registerEffect({"Tunnel", "3d", "tunnel", {
+        {"speed",  "u_tunnel_speed",  0.5f},
+        {"radius", "u_tunnel_radius", 0.3f}
+    }});
+
+    registerEffect({"Page Curl", "3d", "page_curl", {
+        {"amount", "u_curl_amount", 0.0f},
+        {"radius", "u_curl_radius", 0.5f}
+    }});
+
+    registerEffect({"Parallax Layers", "3d", "parallax_layers", {
+        {"amount",    "u_parallax_amount",    0.0f},
+        {"direction", "u_parallax_direction", 0.0f}
+    }});
+
+    // ============================================================
+    // Additional Warp Effects
+    // ============================================================
+
+    registerEffect({"Polar Coords", "warp", "polar_coords", {
+        {"amount", "u_polar_amount", 0.0f}
+    }});
+
+    registerEffect({"Twirl", "warp", "twirl", {
+        {"amount", "u_twirl_amount", 0.0f},
+        {"radius", "u_twirl_radius", 0.5f}
+    }});
+
+    registerEffect({"Shear", "warp", "shear", {
+        {"x", "u_shear_x", 0.5f},
+        {"y", "u_shear_y", 0.5f}
+    }});
+
+    registerEffect({"Elastic Bounce", "warp", "elastic_bounce", {
+        {"amount", "u_elastic_amount", 0.0f},
+        {"freq",   "u_elastic_freq",   0.5f}
+    }});
+
+    registerEffect({"Ripple Pond", "warp", "ripple_pond", {
+        {"intensity", "u_pond_intensity", 0.0f},
+        {"freq",      "u_pond_freq",      0.5f}
+    }});
+
+    registerEffect({"Diamond Distort", "warp", "diamond_distort", {
+        {"size",   "u_diamond_size",   0.5f},
+        {"amount", "u_diamond_amount", 0.0f}
+    }});
+
+    registerEffect({"Barrel Distort", "warp", "barrel_distort", {
+        {"amount", "u_barrel_amount", 0.5f}
+    }});
+
+    registerEffect({"Sine Grid", "warp", "sine_grid", {
+        {"freq",   "u_sinegrid_freq",   0.5f},
+        {"amount", "u_sinegrid_amount", 0.0f}
+    }});
+
+    registerEffect({"Glitch Displace", "warp", "glitch_displace", {
+        {"amount", "u_glitchdisp_amount", 0.0f},
+        {"speed",  "u_glitchdisp_speed",  0.5f}
+    }});
+
+    // ============================================================
+    // Additional Color Effects
+    // ============================================================
+
+    registerEffect({"Sepia", "color", "sepia", {
+        {"amount", "u_sepia_amount", 0.0f}
+    }});
+
+    registerEffect({"Cross Process", "color", "cross_process", {
+        {"amount", "u_crossprocess_amount", 0.0f}
+    }});
+
+    registerEffect({"Split Tone", "color", "split_tone", {
+        {"shadow_hue",    "u_splittone_shadow_hue",    0.6f},
+        {"highlight_hue", "u_splittone_highlight_hue", 0.1f},
+        {"amount",        "u_splittone_amount",        0.0f}
+    }});
+
+    registerEffect({"Color Halftone", "color", "color_halftone", {
+        {"scale",  "u_halftone_scale",  0.5f},
+        {"amount", "u_halftone_amount", 0.0f}
+    }});
+
+    registerEffect({"Dither", "color", "ordered_dither", {
+        {"levels", "u_dither_levels", 0.5f},
+        {"amount", "u_dither_amount", 0.0f}
+    }});
+
+    registerEffect({"Heat Map", "color", "heat_map", {
+        {"amount", "u_heatmap_amount", 0.0f}
+    }});
+
+    registerEffect({"Selective Color", "color", "selective_color", {
+        {"hue",   "u_selectcolor_hue",   0.0f},
+        {"range", "u_selectcolor_range", 0.2f}
+    }});
+
+    registerEffect({"Film Grain", "color", "film_grain", {
+        {"amount", "u_grain_amount", 0.0f},
+        {"size",   "u_grain_size",   0.5f}
+    }});
+
+    registerEffect({"Gamma Levels", "color", "gamma_levels", {
+        {"black", "u_levels_black", 0.0f},
+        {"white", "u_levels_white", 1.0f},
+        {"gamma", "u_levels_gamma", 0.5f}
+    }});
+
+    registerEffect({"Solarize", "color", "solarize", {
+        {"threshold", "u_solarize_threshold", 0.5f},
+        {"amount",    "u_solarize_amount",    0.0f}
+    }});
+
+    // ============================================================
+    // Pattern / Stylization Effects
+    // ============================================================
+
+    registerEffect({"CRT", "pattern", "crt_simulation", {
+        {"curvature", "u_crt_curvature", 0.3f},
+        {"scanline",  "u_crt_scanline",  0.5f}
+    }});
+
+    registerEffect({"VHS", "pattern", "vhs_effect", {
+        {"amount",   "u_vhs_amount",   0.0f},
+        {"tracking", "u_vhs_tracking", 0.3f}
+    }});
+
+    registerEffect({"ASCII Art", "pattern", "ascii_art", {
+        {"scale", "u_ascii_scale", 0.5f},
+        {"color", "u_ascii_color", 0.5f}
+    }});
+
+    registerEffect({"Dot Matrix", "pattern", "dot_matrix", {
+        {"scale",  "u_dotmatrix_scale",  0.5f},
+        {"amount", "u_dotmatrix_amount", 0.0f}
+    }});
+
+    registerEffect({"Crosshatch", "pattern", "crosshatch", {
+        {"density", "u_crosshatch_density", 0.5f},
+        {"amount",  "u_crosshatch_amount",  0.0f}
+    }});
+
+    registerEffect({"Emboss", "pattern", "emboss", {
+        {"amount", "u_emboss_amount", 0.0f},
+        {"angle",  "u_emboss_angle",  0.0f}
+    }});
+
+    registerEffect({"Oil Paint", "pattern", "oil_paint", {
+        {"radius", "u_oilpaint_radius", 0.3f}
+    }});
+
+    registerEffect({"Pencil Sketch", "pattern", "pencil_sketch", {
+        {"amount",  "u_sketch_amount",  0.0f},
+        {"density", "u_sketch_density", 0.5f}
+    }});
+
+    registerEffect({"Voronoi Glass", "pattern", "voronoi_glass", {
+        {"scale", "u_voronoi_scale", 0.5f},
+        {"edge",  "u_voronoi_edge",  0.3f}
+    }});
+
+    registerEffect({"Cross Stitch", "pattern", "cross_stitch", {
+        {"scale",  "u_stitch_scale",  0.5f},
+        {"amount", "u_stitch_amount", 0.0f}
+    }});
+
+    registerEffect({"Night Vision", "pattern", "night_vision", {
+        {"amount", "u_nightvision_amount", 0.0f}
+    }});
+
+    // ============================================================
+    // Animation Effects
+    // ============================================================
+
+    registerEffect({"Strobe", "animation", "strobe", {
+        {"rate",      "u_strobe_rate",      0.5f},
+        {"intensity", "u_strobe_intensity", 0.0f}
+    }});
+
+    registerEffect({"Pulse", "animation", "pulse", {
+        {"amount", "u_pulse_amount", 0.0f},
+        {"speed",  "u_pulse_speed",  0.5f}
+    }});
+
+    registerEffect({"Slit Scan", "animation", "slit_scan", {
+        {"amount",    "u_slitscan_amount",    0.0f},
+        {"direction", "u_slitscan_direction", 0.0f}
+    }});
+
+    // ============================================================
+    // Blend / Composite Effects
+    // ============================================================
+
+    registerEffect({"Double Exposure", "blend", "double_exposure", {
+        {"offset", "u_double_offset", 0.3f},
+        {"blend",  "u_double_blend",  0.0f}
+    }});
+
+    registerEffect({"Frosted Glass", "blend", "frosted_glass", {
+        {"amount", "u_frost_amount", 0.0f},
+        {"scale",  "u_frost_scale",  0.5f}
+    }});
+
+    registerEffect({"Prism", "blend", "prism_refract", {
+        {"amount", "u_prism_amount", 0.0f},
+        {"angle",  "u_prism_angle",  0.0f}
+    }});
+
+    registerEffect({"Rain on Glass", "blend", "rain_on_glass", {
+        {"amount", "u_raindrop_amount", 0.0f},
+        {"speed",  "u_raindrop_speed",  0.5f}
+    }});
+
+    registerEffect({"Hexagonalize", "blend", "hexagonalize", {
+        {"scale", "u_hex_scale", 0.0f}
+    }});
 }
 
 std::unique_ptr<Effect> EffectLibrary::createEffect(const juce::String& name) const

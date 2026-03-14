@@ -273,17 +273,25 @@ void EffectsRackPanel::rebuildUI()
 
     // Category colors
     static const std::map<juce::String, juce::uint32> categoryColors = {
-        {"warp",  0xffff6b9d},  // Pink
-        {"color", 0xff4ecdc4},  // Teal
-        {"glitch", 0xffffe66d}, // Yellow
-        {"blur",  0xff95e1d3},  // Mint
+        {"3d",        0xffb088f9},  // Purple
+        {"warp",      0xffff6b9d},  // Pink
+        {"color",     0xff4ecdc4},  // Teal
+        {"glitch",    0xffffe66d},  // Yellow
+        {"pattern",   0xffff9f43},  // Orange
+        {"animation", 0xff78e08f},  // Green
+        {"blend",     0xff82ccdd},  // Sky blue
+        {"blur",      0xff95e1d3},  // Mint
     };
 
     static const std::map<juce::String, juce::String> categoryLabels = {
-        {"warp",  "WARP"},
-        {"color", "COLOR"},
-        {"glitch", "GLITCH"},
-        {"blur",  "BLUR / POST"},
+        {"3d",        "3D / DEPTH"},
+        {"warp",      "WARP"},
+        {"color",     "COLOR"},
+        {"glitch",    "GLITCH"},
+        {"pattern",   "PATTERN / STYLE"},
+        {"animation", "ANIMATION"},
+        {"blend",     "BLEND / COMPOSITE"},
+        {"blur",      "BLUR / POST"},
     };
 
     juce::String lastCategory;

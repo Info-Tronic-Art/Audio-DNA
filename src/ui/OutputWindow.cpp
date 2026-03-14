@@ -177,6 +177,62 @@ void OutputRenderer::initShaders()
     compile("glow",                 EmbeddedShaders::glow);
     compile("edge_detect",          EmbeddedShaders::edgeDetect);
 
+    // 3D/Depth
+    compile("perspective_tilt",     EmbeddedShaders::perspectiveTilt);
+    compile("cylinder_wrap",        EmbeddedShaders::cylinderWrap);
+    compile("sphere_wrap",          EmbeddedShaders::sphereWrap);
+    compile("tunnel",               EmbeddedShaders::tunnel);
+    compile("page_curl",            EmbeddedShaders::pageCurl);
+    compile("parallax_layers",      EmbeddedShaders::parallaxLayers);
+
+    // Additional Warp
+    compile("polar_coords",         EmbeddedShaders::polarCoords);
+    compile("twirl",                EmbeddedShaders::twirl);
+    compile("shear",                EmbeddedShaders::shear);
+    compile("elastic_bounce",       EmbeddedShaders::elasticBounce);
+    compile("ripple_pond",          EmbeddedShaders::ripplePond);
+    compile("diamond_distort",      EmbeddedShaders::diamondDistort);
+    compile("barrel_distort",       EmbeddedShaders::barrelDistort);
+    compile("sine_grid",            EmbeddedShaders::sineGrid);
+    compile("glitch_displace",      EmbeddedShaders::glitchDisplace);
+
+    // Additional Color
+    compile("sepia",                EmbeddedShaders::sepia);
+    compile("cross_process",        EmbeddedShaders::crossProcess);
+    compile("split_tone",           EmbeddedShaders::splitTone);
+    compile("color_halftone",       EmbeddedShaders::colorHalftone);
+    compile("ordered_dither",       EmbeddedShaders::orderedDither);
+    compile("heat_map",             EmbeddedShaders::heatMap);
+    compile("selective_color",      EmbeddedShaders::selectiveColor);
+    compile("film_grain",           EmbeddedShaders::filmGrain);
+    compile("gamma_levels",         EmbeddedShaders::gammaLevels);
+    compile("solarize",             EmbeddedShaders::solarize);
+
+    // Pattern/Stylization
+    compile("crt_simulation",       EmbeddedShaders::crtSimulation);
+    compile("vhs_effect",           EmbeddedShaders::vhsEffect);
+    compile("ascii_art",            EmbeddedShaders::asciiArt);
+    compile("dot_matrix",           EmbeddedShaders::dotMatrix);
+    compile("crosshatch",           EmbeddedShaders::crosshatch);
+    compile("emboss",               EmbeddedShaders::emboss);
+    compile("oil_paint",            EmbeddedShaders::oilPaint);
+    compile("pencil_sketch",        EmbeddedShaders::pencilSketch);
+    compile("voronoi_glass",        EmbeddedShaders::voronoiGlass);
+    compile("cross_stitch",         EmbeddedShaders::crossStitch);
+    compile("night_vision",         EmbeddedShaders::nightVision);
+
+    // Animation
+    compile("strobe",               EmbeddedShaders::strobe);
+    compile("pulse",                EmbeddedShaders::pulse);
+    compile("slit_scan",            EmbeddedShaders::slitScan);
+
+    // Blend/Composite
+    compile("double_exposure",      EmbeddedShaders::doubleExposure);
+    compile("frosted_glass",        EmbeddedShaders::frostedGlass);
+    compile("prism_refract",        EmbeddedShaders::prismRefract);
+    compile("rain_on_glass",        EmbeddedShaders::rainOnGlass);
+    compile("hexagonalize",         EmbeddedShaders::hexagonalize);
+
     std::cerr << "[OutputRenderer] All shaders compiled." << std::endl;
 }
 
