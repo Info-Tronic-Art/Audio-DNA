@@ -23,6 +23,7 @@ public:
         virtual ~Listener() = default;
         virtual void mappingEditorChanged(MappingEditor* editor) = 0;
         virtual void mappingEditorDeleteRequested(MappingEditor* editor) = 0;
+        virtual void mappingEditorCloseRequested(MappingEditor* editor) = 0;
     };
 
     MappingEditor();
@@ -68,6 +69,7 @@ private:
 
     juce::ToggleButton enableToggle_{"Enabled"};
     juce::TextButton deleteButton_{"Delete Mapping"};
+    juce::TextButton closeButton_{"X"};
 
     juce::ListenerList<Listener> listeners_;
 

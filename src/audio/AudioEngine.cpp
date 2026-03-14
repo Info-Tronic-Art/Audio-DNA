@@ -63,6 +63,19 @@ bool AudioEngine::isPlaying() const
     return transportSource_.isPlaying();
 }
 
+void AudioEngine::setLooping(bool shouldLoop)
+{
+    if (readerSource_)
+        readerSource_->setLooping(shouldLoop);
+}
+
+bool AudioEngine::isLooping() const
+{
+    if (readerSource_)
+        return readerSource_->isLooping();
+    return false;
+}
+
 void AudioEngine::changeListenerCallback(juce::ChangeBroadcaster*)
 {
     if (onTransportStateChanged)

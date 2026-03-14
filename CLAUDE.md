@@ -218,7 +218,7 @@ AudioDNA/
 │   ├── test_smoother.cpp             ✅
 │   ├── test_integration_pipeline.cpp ✅
 │   ├── test_onset_detector.cpp
-│   └── test_mapping_engine.cpp
+│   └── test_mapping_engine.cpp  ✅
 ├── resources/
 │   ├── default_image.png                # Fallback test image
 │   └── presets/
@@ -406,8 +406,8 @@ Each frame, the render thread:
 | **M1** | Window + Audio + Waveform | 10 tasks | **COMPLETE** |
 | **M2** | Full Audio Analysis Engine | 19 tasks | **COMPLETE** |
 | **M3** | OpenGL Image Rendering + First Effects | 10 tasks | **COMPLETE** |
-| M4 | Mapping Engine + Full Effects Library | 9 tasks | **CURRENT** |
-| M5 | VJ-Style UI Polish + Presets | 11 tasks | Not started |
+| **M4** | Mapping Engine + Full Effects Library | 9 tasks | **COMPLETE** |
+| M5 | VJ-Style UI Polish + Presets | 11 tasks | **CURRENT** |
 | M6 | Quality, Performance, Cross-Platform | 8 tasks | Not started |
 
 ### Milestone 1: COMPLETE
@@ -426,7 +426,7 @@ All 10 tasks done. Full OpenGL rendering pipeline: Renderer (GL 4.1 core profile
 
 **Goal**: Implement the complete mapping system (any feature → any effect parameter with curves and smoothing) and all 17 shader effects.
 
-**Next task**: 4.1 — Implement MappingEngine (source→curve→scale→target routing).
+All 9 tasks (4.1–4.9) **COMPLETE**. MappingEngine, CurveTransforms, all 17 shaders, EffectLibrary, MappingEditor, EffectsRackPanel, Renderer integration, unit tests (22 cases, 74 assertions), and integration tests (3 cases, 142 assertions verifying exponential mapping pipeline, smoothing convergence, and multi-effect simulated playback) all done.
 
 ---
 

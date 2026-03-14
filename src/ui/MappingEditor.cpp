@@ -141,6 +141,15 @@ MappingEditor::MappingEditor()
     {
         listeners_.call([this](Listener& l) { l.mappingEditorDeleteRequested(this); });
     };
+
+    // Close button
+    closeButton_.setColour(juce::TextButton::buttonColourId,
+                           juce::Colour(AudioDNALookAndFeel::kSurface));
+    addAndMakeVisible(closeButton_);
+    closeButton_.onClick = [this]
+    {
+        listeners_.call([this](Listener& l) { l.mappingEditorCloseRequested(this); });
+    };
 }
 
 void MappingEditor::paint(juce::Graphics& g)
@@ -159,7 +168,9 @@ void MappingEditor::resized()
     int spacing = 3;
     int labelWidth = 55;
 
-    titleLabel_.setBounds(area.removeFromTop(rowHeight));
+    auto titleRow = area.removeFromTop(rowHeight);
+    closeButton_.setBounds(titleRow.removeFromRight(24));
+    titleLabel_.setBounds(titleRow);
     area.removeFromTop(spacing);
 
     // Source row

@@ -148,6 +148,11 @@ void EffectsRackPanel::mappingEditorDeleteRequested(MappingEditor* editor)
     closeMappingEditor();
 }
 
+void EffectsRackPanel::mappingEditorCloseRequested(MappingEditor* /*editor*/)
+{
+    closeMappingEditor();
+}
+
 void EffectsRackPanel::rebuildUI()
 {
     // Clear existing sections

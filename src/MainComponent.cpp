@@ -20,6 +20,12 @@ MainComponent::MainComponent()
                          juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     fileLabel_.setText("No file loaded", juce::dontSendNotification);
 
+    addAndMakeVisible(loopToggle_);
+    loopToggle_.setToggleState(false, juce::dontSendNotification);
+    loopToggle_.onClick = [this] {
+        audioEngine_.setLooping(loopToggle_.getToggleState());
+    };
+
     openButton_.onClick = [this] { openFile(); };
     openImageButton_.onClick = [this] { openImage(); };
     playButton_.onClick = [this] { audioEngine_.play(); };
@@ -76,6 +82,8 @@ void MainComponent::resized()
     pauseButton_.setBounds(topBar.removeFromLeft(60));
     topBar.removeFromLeft(4);
     stopButton_.setBounds(topBar.removeFromLeft(60));
+    topBar.removeFromLeft(8);
+    loopToggle_.setBounds(topBar.removeFromLeft(60));
     topBar.removeFromLeft(12);
     fileLabel_.setBounds(topBar);
 
@@ -120,6 +128,7 @@ void MainComponent::openFile()
         if (audioEngine_.loadFile(file))
         {
             fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+            audioEngine_.setLooping(loopToggle_.getToggleState());
             audioEngine_.play();
         }
         else

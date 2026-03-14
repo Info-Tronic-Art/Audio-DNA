@@ -19,6 +19,9 @@ public:
     void stop();
     bool isPlaying() const;
 
+    void setLooping(bool shouldLoop);
+    bool isLooping() const;
+
     juce::AudioDeviceManager& getDeviceManager() { return deviceManager_; }
     juce::AudioTransportSource& getTransportSource() { return transportSource_; }
 

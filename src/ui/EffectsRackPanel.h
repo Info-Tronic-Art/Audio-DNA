@@ -34,6 +34,7 @@ public:
     // MappingEditor::Listener
     void mappingEditorChanged(MappingEditor* editor) override;
     void mappingEditorDeleteRequested(MappingEditor* editor) override;
+    void mappingEditorCloseRequested(MappingEditor* editor) override;
 
 private:
     // Per-parameter UI row

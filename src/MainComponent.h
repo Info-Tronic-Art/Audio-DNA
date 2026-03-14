@@ -39,6 +39,7 @@ private:
     juce::TextButton playButton_{"Play"};
     juce::TextButton pauseButton_{"Pause"};
     juce::TextButton stopButton_{"Stop"};
+    juce::ToggleButton loopToggle_{"Loop"};
     juce::Label fileLabel_;
 
     // Display components
