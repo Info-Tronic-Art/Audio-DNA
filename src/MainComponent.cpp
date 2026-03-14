@@ -31,9 +31,12 @@ MainComponent::MainComponent()
     savePresetButton_.onClick = [this] { savePreset(); };
     loadPresetButton_.onClick = [this] { loadPreset(); };
 
-    // Randomize button
-    addAndMakeVisible(randomButton_);
-    randomButton_.onClick = [this] { randomizeAllEffects(); };
+    // Random on Beat label
+    addAndMakeVisible(randomLabel_);
+    randomLabel_.setText("Random on Beat", juce::dontSendNotification);
+    randomLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
+    randomLabel_.setColour(juce::Label::textColourId,
+                           juce::Colour(AudioDNALookAndFeel::kTextSecondary));
 
     // Beat-synced random toggle + beat count selector
     addAndMakeVisible(beatRandomToggle_);
@@ -88,9 +91,48 @@ MainComponent::MainComponent()
         }
     }
 
+    // Audio source selector
+    addAndMakeVisible(audioSourceSelector_);
+    audioSourceSelector_.setTextWhenNothingSelected("File");
+    audioSourceSelector_.addItem("File", 1);
+    audioSourceSelector_.addItem("Mic Input", 2);
+    audioSourceSelector_.setSelectedId(1, juce::dontSendNotification);
+    audioSourceSelector_.onChange = [this] {
+        // For now, both modes use the same device manager — "File" plays the loaded file,
+        // "Mic Input" just means we analyze whatever the input device picks up
+        // The analysis thread always reads from the ring buffer which gets fed by the audio callback
+        int sel = audioSourceSelector_.getSelectedId();
+        if (sel == 1) // File mode
+        {
+            fileLabel_.setText(currentAudioFile_.existsAsFile()
+                ? currentAudioFile_.getFileName() : "No file loaded",
+                juce::dontSendNotification);
+        }
+        else if (sel == 2) // Mic mode
+        {
+            audioEngine_.stop();
+            fileLabel_.setText("Mic: " + audioEngine_.getDeviceStatus(),
+                              juce::dontSendNotification);
+        }
+    };
+
+    // Dropdown labels
+    auto setupLabel = [this](juce::Label& label, const juce::String& text) {
+        addAndMakeVisible(label);
+        label.setText(text, juce::dontSendNotification);
+        label.setFont(juce::Font(juce::FontOptions(10.0f)));
+        label.setColour(juce::Label::textColourId,
+                        juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        label.setJustificationType(juce::Justification::centredRight);
+    };
+    setupLabel(viewportLabel_,    "Viewport");
+    setupLabel(outputLabel_,     "Output");
+    setupLabel(cameraLabel_,     "Camera");
+    setupLabel(audioSourceLabel_, "Audio Source");
+
     // Camera input selector
     addAndMakeVisible(cameraSelector_);
-    cameraSelector_.setTextWhenNothingSelected("Camera: Off");
+    cameraSelector_.setTextWhenNothingSelected("Cam: Off");
     refreshCameraList();
     cameraSelector_.onChange = [this] {
         int selected = cameraSelector_.getSelectedId();
@@ -307,52 +349,67 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds().reduced(8);
 
-    // Top bar: transport controls
-    auto topBar = area.removeFromTop(36);
-    openButton_.setBounds(topBar.removeFromLeft(90));
-    topBar.removeFromLeft(4);
-    openImageButton_.setBounds(topBar.removeFromLeft(90));
-    topBar.removeFromLeft(8);
-    playButton_.setBounds(topBar.removeFromLeft(60));
-    topBar.removeFromLeft(4);
-    pauseButton_.setBounds(topBar.removeFromLeft(60));
-    topBar.removeFromLeft(4);
-    stopButton_.setBounds(topBar.removeFromLeft(60));
-    topBar.removeFromLeft(8);
-    loopToggle_.setBounds(topBar.removeFromLeft(60));
-    topBar.removeFromLeft(12);
-    savePresetButton_.setBounds(topBar.removeFromLeft(50));
-    topBar.removeFromLeft(4);
-    loadPresetButton_.setBounds(topBar.removeFromLeft(50));
-    topBar.removeFromLeft(8);
-    randomButton_.setBounds(topBar.removeFromLeft(42));
-    topBar.removeFromLeft(4);
-    syncButton_.setBounds(topBar.removeFromLeft(40));
-    topBar.removeFromLeft(4);
-    beatRandomToggle_.setBounds(topBar.removeFromLeft(80));
-    beatCountSelector_.setBounds(topBar.removeFromLeft(44));
-    topBar.removeFromLeft(4);
-    fastSaveButton_.setBounds(topBar.removeFromLeft(55));
-    topBar.removeFromLeft(4);
-    deckSaveButton_.setBounds(topBar.removeFromLeft(65));
-    topBar.removeFromLeft(4);
-    deckLoadButton_.setBounds(topBar.removeFromLeft(65));
-    topBar.removeFromLeft(8);
+    // === Row 1: Transport + File/Media ===
+    auto row1 = area.removeFromTop(30);
+    openImageButton_.setBounds(row1.removeFromLeft(75));
+    row1.removeFromLeft(6);
+    playButton_.setBounds(row1.removeFromLeft(50));
+    row1.removeFromLeft(2);
+    pauseButton_.setBounds(row1.removeFromLeft(50));
+    row1.removeFromLeft(2);
+    stopButton_.setBounds(row1.removeFromLeft(50));
+    row1.removeFromLeft(6);
+    audioSourceLabel_.setBounds(row1.removeFromLeft(65));
+    audioSourceSelector_.setBounds(row1.removeFromLeft(80));
+    row1.removeFromLeft(3);
+    openButton_.setBounds(row1.removeFromLeft(75));
+    row1.removeFromLeft(3);
+    loopToggle_.setBounds(row1.removeFromLeft(55));
+    row1.removeFromLeft(6);
+    savePresetButton_.setBounds(row1.removeFromLeft(45));
+    row1.removeFromLeft(2);
+    loadPresetButton_.setBounds(row1.removeFromLeft(45));
+    row1.removeFromLeft(4);
+    fastSaveButton_.setBounds(row1.removeFromLeft(55));
+    row1.removeFromLeft(4);
+    deckSaveButton_.setBounds(row1.removeFromLeft(65));
+    row1.removeFromLeft(2);
+    deckLoadButton_.setBounds(row1.removeFromLeft(65));
 
-    // Right-aligned stats, display selector, and resolution selector
-    cpuLabel_.setBounds(topBar.removeFromRight(80));
-    fpsLabel_.setBounds(topBar.removeFromRight(70));
-    topBar.removeFromRight(4);
-    cameraSelector_.setBounds(topBar.removeFromRight(130));
-    topBar.removeFromRight(4);
-    displaySelector_.setBounds(topBar.removeFromRight(140));
-    topBar.removeFromRight(4);
-    resolutionSelector_.setBounds(topBar.removeFromRight(130));
-    topBar.removeFromRight(8);
+    // Right side of row 1: stats
+    cpuLabel_.setBounds(row1.removeFromRight(80));
+    fpsLabel_.setBounds(row1.removeFromRight(80));
 
-    fileLabel_.setBounds(topBar);
+    fileLabel_.setBounds(row1);
 
-    area.removeFromTop(8);
+    area.removeFromTop(3);
+
+    // === Row 2: Camera (aligned under audio source) + Tools + Selectors ===
+    auto row2 = area.removeFromTop(26);
+
+    // Random on Beat controls (left side)
+    randomLabel_.setBounds(row2.removeFromLeft(95));
+    row2.removeFromLeft(2);
+    beatRandomToggle_.setBounds(row2.removeFromLeft(60));
+    beatCountSelector_.setBounds(row2.removeFromLeft(40));
+    row2.removeFromLeft(2);
+    syncButton_.setBounds(row2.removeFromLeft(38));
+    row2.removeFromLeft(12);
+
+    // Camera (aligned under audio source area)
+    cameraLabel_.setBounds(row2.removeFromLeft(65));
+    cameraSelector_.setBounds(row2.removeFromLeft(80));
+    row2.removeFromLeft(8);
+
+    // Labeled dropdowns from the right: [Label] [Dropdown]
+    displaySelector_.setBounds(row2.removeFromRight(120));
+    outputLabel_.setBounds(row2.removeFromRight(40));
+    row2.removeFromRight(6);
+    resolutionSelector_.setBounds(row2.removeFromRight(100));
+    viewportLabel_.setBounds(row2.removeFromRight(48));
+    row2.removeFromRight(8);
+
+    area.removeFromTop(4);
 
     // Proportional panel layout: left 20%, center 50%, right 30%
     int totalWidth = area.getWidth();
@@ -366,7 +423,7 @@ void MainComponent::resized()
     // Actually: readout on top, spectrum on bottom
     // Re-do: readout gets most of the height, spectrum at bottom
     leftPanel = getLocalBounds().reduced(8);
-    leftPanel.removeFromTop(44); // top bar + gap
+    leftPanel.removeFromTop(63); // two rows + gaps
     leftPanel = leftPanel.removeFromLeft(leftWidth);
     spectrumHeight = std::max(120, static_cast<int>(leftPanel.getHeight() * 0.25f));
     spectrumDisplay_.setBounds(leftPanel.removeFromBottom(spectrumHeight));
@@ -974,15 +1031,22 @@ void MainComponent::randomizeAllEffects()
     // Randomly enable 3-7 effects
     int numToEnable = rng.nextInt({3, 8});
 
-    // Disable all first
+    // Disable unlocked effects, remove unlocked mappings
     for (int i = 0; i < numEffects; ++i)
     {
+        if (effectsRackPanel_ && effectsRackPanel_->isEffectLocked(i))
+            continue;
         auto* fx = chain.getEffect(i);
         if (fx) fx->setEnabled(false);
     }
 
-    // Clear all mappings
-    mapping.clearAll();
+    // Remove mappings for unlocked effects only
+    for (int i = mapping.getNumMappings() - 1; i >= 0; --i)
+    {
+        auto* m = mapping.getMapping(i);
+        if (m && effectsRackPanel_ && !effectsRackPanel_->isEffectLocked(static_cast<int>(m->targetEffectId)))
+            mapping.removeMapping(i);
+    }
 
     // Randomly enable some effects with random params and mappings
     // Useful audio sources for random mapping (skip MFCCs/Chromas)
@@ -1002,9 +1066,11 @@ void MainComponent::randomizeAllEffects()
         MappingCurve::Logarithmic, MappingCurve::SCurve
     };
 
-    for (int enabled = 0; enabled < numToEnable && enabled < numEffects; )
+    for (int enabled = 0, attempts = 0; enabled < numToEnable && attempts < numEffects * 3; ++attempts)
     {
         int idx = rng.nextInt(numEffects);
+        if (effectsRackPanel_ && effectsRackPanel_->isEffectLocked(idx))
+            continue;
         auto* fx = chain.getEffect(idx);
         if (fx && !fx->isEnabled())
         {

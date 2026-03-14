@@ -34,6 +34,9 @@ public:
     // Rebuild the UI from the current effect chain state (e.g. after preset load)
     void refreshFromChain();
 
+    // Check if an effect is locked (protected from randomization)
+    bool isEffectLocked(int effectIndex) const;
+
     // MappingEditor::Listener
     void mappingEditorChanged(MappingEditor* editor) override;
     void mappingEditorDeleteRequested(MappingEditor* editor) override;
@@ -53,8 +56,10 @@ private:
     struct EffectSection
     {
         int effectIndex = 0;
+        bool locked = false;  // Locked effects are skipped by randomize
         std::unique_ptr<juce::Label> nameLabel;
         std::unique_ptr<juce::ToggleButton> enableToggle;
+        std::unique_ptr<juce::TextButton> lockButton;
         std::unique_ptr<juce::TextButton> randButton;
         std::vector<std::unique_ptr<ParamKnob>> paramKnobs;
     };
@@ -67,7 +72,7 @@ private:
     };
 
     std::vector<std::unique_ptr<CategoryHeader>> categoryHeaders_;
-    juce::TextButton randomizeButton_{"Rand"};
+    juce::TextButton randomizeButton_{"Random"};
 
     void rebuildUI();
     void openMappingEditor(int effectIndex, int paramIndex);

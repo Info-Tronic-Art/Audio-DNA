@@ -73,6 +73,7 @@ private:
     juce::TextButton pauseButton_{"Pause"};
     juce::TextButton stopButton_{"Stop"};
     juce::ToggleButton loopToggle_{"Loop"};
+    juce::Label audioSourceLabel_;
     juce::TextButton savePresetButton_{"Save"};
     juce::TextButton loadPresetButton_{"Load"};
     juce::Label fileLabel_;
@@ -90,9 +91,9 @@ private:
     std::unique_ptr<EffectsRackPanel> effectsRackPanel_;
 
     // Randomize controls
-    juce::TextButton randomButton_{"Rand"};
+    juce::Label randomLabel_;
     juce::TextButton syncButton_{"Sync"};
-    juce::ToggleButton beatRandomToggle_{"Beat Rand"};
+    juce::ToggleButton beatRandomToggle_{"Beats"};
     juce::ComboBox beatCountSelector_;
     int beatRandomCount_ = 4;       // Randomize every N beats
     int beatCounter_ = 0;           // Counts beats since last randomize
@@ -119,14 +120,20 @@ private:
     std::array<PresetSlot, kNumSlots> presetSlots_;
 
     // Resolution lock
+    juce::Label viewportLabel_;
     juce::ComboBox resolutionSelector_;
 
     // Output window
+    juce::Label outputLabel_;
     juce::ComboBox displaySelector_;
     std::unique_ptr<OutputWindow> outputWindow_;
     juce::File currentImageFile_;  // Track loaded image for output window
 
+    // Audio source selector
+    juce::ComboBox audioSourceSelector_;
+
     // Camera input
+    juce::Label cameraLabel_{"", "Camera"};
     juce::ComboBox cameraSelector_;
     std::unique_ptr<juce::CameraDevice> cameraDevice_;
     bool cameraActive_ = false;

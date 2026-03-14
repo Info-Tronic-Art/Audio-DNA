@@ -19,13 +19,22 @@ EffectsRackPanel::EffectsRackPanel(MappingEngine& mappingEngine,
         int numEffects = effectChain_.getNumEffects();
         int numToEnable = rng.nextInt({3, 8});
 
-        // Disable all, clear mappings
+        // Disable unlocked effects, remove unlocked mappings
         for (int i = 0; i < numEffects; ++i)
         {
-            auto* fx = effectChain_.getEffect(i);
-            if (fx) fx->setEnabled(false);
+            if (!isEffectLocked(i))
+            {
+                auto* fx = effectChain_.getEffect(i);
+                if (fx) fx->setEnabled(false);
+            }
         }
-        mappingEngine_.clearAll();
+        // Remove mappings for unlocked effects only
+        for (int i = mappingEngine_.getNumMappings() - 1; i >= 0; --i)
+        {
+            auto* m = mappingEngine_.getMapping(i);
+            if (m && !isEffectLocked(static_cast<int>(m->targetEffectId)))
+                mappingEngine_.removeMapping(i);
+        }
 
         static const MappingSource sources[] = {
             MappingSource::RMS, MappingSource::Peak, MappingSource::SpectralCentroid,
@@ -38,9 +47,10 @@ EffectsRackPanel::EffectsRackPanel(MappingEngine& mappingEngine,
             MappingCurve::Logarithmic, MappingCurve::SCurve
         };
 
-        for (int enabled = 0; enabled < numToEnable && enabled < numEffects; )
+        for (int enabled = 0, attempts = 0; enabled < numToEnable && attempts < numEffects * 3; ++attempts)
         {
             int idx = rng.nextInt(numEffects);
+            if (isEffectLocked(idx)) continue;
             auto* fx = effectChain_.getEffect(idx);
             if (fx && !fx->isEnabled())
             {
@@ -95,7 +105,7 @@ void EffectsRackPanel::resized()
 {
     auto area = getLocalBounds();
     auto titleArea = area.removeFromTop(26);
-    randomizeButton_.setBounds(titleArea.removeFromRight(42).reduced(2));
+    randomizeButton_.setBounds(titleArea.removeFromRight(58).reduced(2));
     viewport_.setBounds(area);
 
     int contentWidth = area.getWidth() - 12;
@@ -145,10 +155,12 @@ void EffectsRackPanel::resized()
             }
         }
 
-        // Header row: toggle + name + rand button
+        // Header row: toggle + name + lock + rand
         auto headerRow = contentArea.removeFromTop(22);
         section->enableToggle->setBounds(headerRow.removeFromLeft(22));
-        section->randButton->setBounds(headerRow.removeFromRight(22));
+        section->randButton->setBounds(headerRow.removeFromRight(20));
+        headerRow.removeFromRight(4);
+        section->lockButton->setBounds(headerRow.removeFromRight(18));
         section->nameLabel->setBounds(headerRow);
 
         // Parameter knobs in grid (only if enabled)
@@ -351,6 +363,38 @@ void EffectsRackPanel::rebuildUI()
             }
         };
 
+        // Lock button (protects from randomization)
+        section->lockButton = std::make_unique<juce::TextButton>("L");
+        section->lockButton->setColour(juce::TextButton::buttonColourId,
+                                        juce::Colour(0x00000000)); // transparent
+        section->lockButton->setColour(juce::TextButton::textColourOffId,
+                                        juce::Colour(0xff666666)); // light gray
+        contentComponent_.addAndMakeVisible(section->lockButton.get());
+
+        int capturedEiForLock = ei;
+        section->lockButton->onClick = [this, capturedEiForLock]
+        {
+            if (capturedEiForLock < static_cast<int>(sections_.size()))
+            {
+                auto& sec = sections_[static_cast<size_t>(capturedEiForLock)];
+                sec->locked = !sec->locked;
+                if (sec->locked)
+                {
+                    sec->lockButton->setColour(juce::TextButton::buttonColourId,
+                                                juce::Colour(0xff2d8a4e)); // green
+                    sec->lockButton->setColour(juce::TextButton::textColourOffId,
+                                                juce::Colour(0xffffffff)); // white
+                }
+                else
+                {
+                    sec->lockButton->setColour(juce::TextButton::buttonColourId,
+                                                juce::Colour(0x00000000)); // transparent
+                    sec->lockButton->setColour(juce::TextButton::textColourOffId,
+                                                juce::Colour(0xff666666)); // light gray
+                }
+            }
+        };
+
         // Per-effect randomize button
         section->randButton = std::make_unique<juce::TextButton>("R");
         section->randButton->setColour(juce::TextButton::buttonColourId,
@@ -498,6 +542,16 @@ void EffectsRackPanel::closeMappingEditor()
     }
     editingEffectIndex_ = -1;
     editingParamIndex_ = -1;
+}
+
+bool EffectsRackPanel::isEffectLocked(int effectIndex) const
+{
+    for (const auto& section : sections_)
+    {
+        if (section->effectIndex == effectIndex)
+            return section->locked;
+    }
+    return false;
 }
 
 int EffectsRackPanel::findMappingForParam(int effectIndex, int paramIndex) const
