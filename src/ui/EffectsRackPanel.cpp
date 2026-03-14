@@ -39,22 +39,27 @@ void EffectsRackPanel::resized()
     area.removeFromTop(26); // Title area
     viewport_.setBounds(area);
 
+    int contentWidth = area.getWidth() - 12;
+    int knobsPerRow = juce::jmax(1, contentWidth / Knob::kPreferredWidth);
+    int sectionSpacing = 8;
+
     // Calculate content height
     int contentHeight = 0;
-    int sectionSpacing = 6;
-
     for (const auto& section : sections_)
     {
         contentHeight += 24; // Effect header row
         if (section->enableToggle->getToggleState())
         {
-            contentHeight += static_cast<int>(section->paramRows.size()) * 26;
+            int numParams = static_cast<int>(section->paramKnobs.size());
+            int knobRows = (numParams + knobsPerRow - 1) / knobsPerRow;
+            // Each knob row: knob height + map button height
+            contentHeight += knobRows * (Knob::kPreferredHeight + 18);
         }
         contentHeight += sectionSpacing;
     }
 
     contentHeight = std::max(contentHeight, area.getHeight());
-    contentComponent_.setSize(area.getWidth() - 12, contentHeight);
+    contentComponent_.setSize(contentWidth, contentHeight);
 
     // Layout sections
     auto contentArea = contentComponent_.getLocalBounds().reduced(2, 0);
@@ -65,17 +70,27 @@ void EffectsRackPanel::resized()
         section->enableToggle->setBounds(headerRow.removeFromLeft(24));
         section->nameLabel->setBounds(headerRow);
 
-        // Parameter rows (only if enabled)
+        // Parameter knobs in grid (only if enabled)
         if (section->enableToggle->getToggleState())
         {
-            for (const auto& paramRow : section->paramRows)
+            int numParams = static_cast<int>(section->paramKnobs.size());
+            for (int i = 0; i < numParams; i += knobsPerRow)
             {
-                auto row = contentArea.removeFromTop(26);
-                auto labelArea = row.removeFromLeft(60);
-                auto mapBtnArea = row.removeFromRight(30);
-                paramRow->nameLabel->setBounds(labelArea);
-                paramRow->mapButton->setBounds(mapBtnArea.reduced(0, 2));
-                paramRow->slider->setBounds(row);
+                auto knobRow = contentArea.removeFromTop(Knob::kPreferredHeight);
+                auto mapBtnRow = contentArea.removeFromTop(18);
+
+                int knobsThisRow = juce::jmin(knobsPerRow, numParams - i);
+                int knobWidth = contentArea.getWidth() / knobsPerRow;
+
+                for (int j = 0; j < knobsThisRow; ++j)
+                {
+                    auto& pk = section->paramKnobs[static_cast<size_t>(i + j)];
+                    auto knobArea = knobRow.removeFromLeft(knobWidth);
+                    pk->knob->setBounds(knobArea);
+
+                    auto btnArea = mapBtnRow.removeFromLeft(knobWidth);
+                    pk->mapButton->setBounds(btnArea.reduced(knobWidth / 4, 0));
+                }
             }
         }
 
@@ -94,7 +109,7 @@ void EffectsRackPanel::timerCallback()
         return;
     }
 
-    // Update slider values to reflect current effect parameter values
+    // Update knob values to reflect current effect parameter values
     // (which may have been changed by the MappingEngine)
     for (const auto& section : sections_)
     {
@@ -102,21 +117,29 @@ void EffectsRackPanel::timerCallback()
         if (effect == nullptr)
             continue;
 
-        for (const auto& paramRow : section->paramRows)
+        for (const auto& pk : section->paramKnobs)
         {
-            float currentValue = effect->getParam(paramRow->paramIndex).value;
+            float currentValue = effect->getParam(pk->paramIndex).value;
+            auto& slider = pk->knob->getSlider();
             // Only update if not being dragged
-            if (!paramRow->slider->isMouseButtonDown())
+            if (!slider.isMouseButtonDown())
             {
-                paramRow->slider->setValue(currentValue, juce::dontSendNotification);
+                slider.setValue(currentValue, juce::dontSendNotification);
             }
 
-            // Update map button text to show if a mapping exists
-            int mappingIdx = findMappingForParam(paramRow->effectIndex, paramRow->paramIndex);
+            // Update mapping indicator
+            int mappingIdx = findMappingForParam(pk->effectIndex, pk->paramIndex);
             if (mappingIdx >= 0)
-                paramRow->mapButton->setButtonText("M");
+            {
+                const auto* m = mappingEngine_.getMapping(mappingIdx);
+                pk->knob->setMappingIndicator(m ? "mapped" : juce::String());
+                pk->mapButton->setButtonText("M");
+            }
             else
-                paramRow->mapButton->setButtonText("+");
+            {
+                pk->knob->setMappingIndicator({});
+                pk->mapButton->setButtonText("+");
+            }
         }
     }
 }
@@ -195,57 +218,44 @@ void EffectsRackPanel::rebuildUI()
             }
         };
 
-        // Parameter rows
+        // Parameter knobs
         for (int pi = 0; pi < effect->getNumParams(); ++pi)
         {
             const auto& param = effect->getParam(pi);
 
-            auto paramRow = std::make_unique<ParamRow>();
-            paramRow->effectIndex = ei;
-            paramRow->paramIndex = pi;
+            auto pk = std::make_unique<ParamKnob>();
+            pk->effectIndex = ei;
+            pk->paramIndex = pi;
 
-            // Name label
-            paramRow->nameLabel = std::make_unique<juce::Label>();
-            paramRow->nameLabel->setText(param.name, juce::dontSendNotification);
-            paramRow->nameLabel->setFont(juce::Font(11.0f));
-            paramRow->nameLabel->setColour(juce::Label::textColourId,
-                                           juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-            contentComponent_.addAndMakeVisible(paramRow->nameLabel.get());
-
-            // Slider
-            paramRow->slider = std::make_unique<juce::Slider>();
-            paramRow->slider->setRange(0.0, 1.0, 0.001);
-            paramRow->slider->setValue(param.value, juce::dontSendNotification);
-            paramRow->slider->setSliderStyle(juce::Slider::LinearHorizontal);
-            paramRow->slider->setTextBoxStyle(juce::Slider::TextBoxRight, false, 40, 20);
-            paramRow->slider->setColour(juce::Slider::thumbColourId,
-                                        juce::Colour(AudioDNALookAndFeel::kAccentCyan));
-            contentComponent_.addAndMakeVisible(paramRow->slider.get());
+            // Knob
+            pk->knob = std::make_unique<Knob>(param.name);
+            pk->knob->getSlider().setValue(param.value, juce::dontSendNotification);
+            contentComponent_.addAndMakeVisible(pk->knob.get());
 
             int capturedPi = pi;
-            paramRow->slider->onValueChange = [this, capturedEi, capturedPi]
+            pk->knob->getSlider().onValueChange = [this, capturedEi, capturedPi]
             {
                 auto* eff = effectChain_.getEffect(capturedEi);
                 if (eff == nullptr)
                     return;
                 auto& sec = sections_[static_cast<size_t>(capturedEi)];
-                auto& pr = sec->paramRows[static_cast<size_t>(capturedPi)];
+                auto& p = sec->paramKnobs[static_cast<size_t>(capturedPi)];
                 eff->setParamValue(capturedPi,
-                                   static_cast<float>(pr->slider->getValue()));
+                                   static_cast<float>(p->knob->getSlider().getValue()));
             };
 
             // Map button
-            paramRow->mapButton = std::make_unique<juce::TextButton>("+");
-            paramRow->mapButton->setColour(juce::TextButton::buttonColourId,
-                                           juce::Colour(AudioDNALookAndFeel::kSurfaceLight));
-            contentComponent_.addAndMakeVisible(paramRow->mapButton.get());
+            pk->mapButton = std::make_unique<juce::TextButton>("+");
+            pk->mapButton->setColour(juce::TextButton::buttonColourId,
+                                     juce::Colour(AudioDNALookAndFeel::kSurfaceLight));
+            contentComponent_.addAndMakeVisible(pk->mapButton.get());
 
-            paramRow->mapButton->onClick = [this, capturedEi, capturedPi]
+            pk->mapButton->onClick = [this, capturedEi, capturedPi]
             {
                 openMappingEditor(capturedEi, capturedPi);
             };
 
-            section->paramRows.push_back(std::move(paramRow));
+            section->paramKnobs.push_back(std::move(pk));
         }
 
         sections_.push_back(std::move(section));

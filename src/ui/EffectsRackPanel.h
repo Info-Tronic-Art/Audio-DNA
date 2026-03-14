@@ -4,17 +4,17 @@
 #include "effects/EffectChain.h"
 #include "effects/EffectLibrary.h"
 #include "ui/MappingEditor.h"
+#include "ui/Knob.h"
 #include <memory>
 #include <vector>
 
 // EffectsRackPanel: right-side panel showing the effect chain with
-// per-parameter sliders and mapping controls.
+// per-parameter knobs and mapping controls.
 //
 // For each effect in the chain:
 //   - Enable/disable toggle
-//   - Parameter sliders
-//   - "Add Mapping" button per parameter
-//   - Existing mapping indicators
+//   - Rotary knobs for each parameter (with mapping indicator ring)
+//   - Click knob to open mapping editor
 //
 // Owns the MappingEditor popup for configuring individual mappings.
 class EffectsRackPanel : public juce::Component,
@@ -37,13 +37,12 @@ public:
     void mappingEditorCloseRequested(MappingEditor* editor) override;
 
 private:
-    // Per-parameter UI row
-    struct ParamRow
+    // Per-parameter UI element
+    struct ParamKnob
     {
         int effectIndex = 0;
         int paramIndex = 0;
-        std::unique_ptr<juce::Slider> slider;
-        std::unique_ptr<juce::Label> nameLabel;
+        std::unique_ptr<Knob> knob;
         std::unique_ptr<juce::TextButton> mapButton;
     };
 
@@ -53,7 +52,7 @@ private:
         int effectIndex = 0;
         std::unique_ptr<juce::Label> nameLabel;
         std::unique_ptr<juce::ToggleButton> enableToggle;
-        std::vector<std::unique_ptr<ParamRow>> paramRows;
+        std::vector<std::unique_ptr<ParamKnob>> paramKnobs;
     };
 
     void rebuildUI();
