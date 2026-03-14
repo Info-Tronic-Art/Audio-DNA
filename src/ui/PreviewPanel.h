@@ -21,6 +21,10 @@ public:
 
     bool hasImage() const { return imageLoaded_; }
 
+    // Accessors for renderer internals (used by EffectsRackPanel)
+    MappingEngine& getMappingEngine() { return renderer_.getMappingEngine(); }
+    EffectChain& getEffectChain() { return renderer_.getEffectChain(); }
+
 private:
     Renderer renderer_;
     bool imageLoaded_ = false;

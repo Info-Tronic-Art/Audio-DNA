@@ -34,6 +34,16 @@ MainComponent::MainComponent()
 
     updateTransportButtons(false);
 
+    // Initialize effect library
+    effectLibrary_.registerDefaults();
+
+    // Create effects rack panel (needs renderer's MappingEngine and EffectChain)
+    effectsRackPanel_ = std::make_unique<EffectsRackPanel>(
+        previewPanel_.getMappingEngine(),
+        previewPanel_.getEffectChain(),
+        effectLibrary_);
+    addAndMakeVisible(effectsRackPanel_.get());
+
     // Start analysis
     analysisThread_.startThread(juce::Thread::Priority::high);
 
@@ -78,6 +88,13 @@ void MainComponent::resized()
     spectrumDisplay_.setBounds(leftPanel); // takes remaining space
 
     area.removeFromLeft(8);
+
+    // Right panel: effects rack
+    auto rightPanel = area.removeFromRight(220);
+    if (effectsRackPanel_)
+        effectsRackPanel_->setBounds(rightPanel);
+
+    area.removeFromRight(8);
 
     // Center: split between preview (top) and waveform (bottom)
     auto waveformArea = area.removeFromBottom(100);

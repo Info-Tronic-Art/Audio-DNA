@@ -115,6 +115,8 @@ target_sources(AudioDNA PRIVATE
     src/ui/PreviewPanel.cpp
     src/ui/MappingEditor.h
     src/ui/MappingEditor.cpp
+    src/ui/EffectsRackPanel.h
+    src/ui/EffectsRackPanel.cpp
 )
 
 target_include_directories(AudioDNA PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
