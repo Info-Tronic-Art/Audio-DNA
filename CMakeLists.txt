@@ -97,6 +97,8 @@ target_sources(AudioDNA PRIVATE
     src/effects/Effect.cpp
     src/effects/EffectChain.h
     src/effects/EffectChain.cpp
+    src/effects/EffectLibrary.h
+    src/effects/EffectLibrary.cpp
     src/effects/UniformBridge.h
     src/effects/UniformBridge.cpp
 
