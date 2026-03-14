@@ -83,6 +83,8 @@ void AnalysisThread::run()
 
         // === PIPELINE START ===
         auto pipelineStart = std::chrono::high_resolution_clock::now();
+        auto stageStart = pipelineStart;
+        auto stageEnd = pipelineStart;
 
         // Acquire write buffer from FeatureBus
         FeatureSnapshot* snap = featureBus_.acquireWrite();
@@ -107,10 +109,17 @@ void AnalysisThread::run()
         // Backward-compatible atomic accessors
         currentRMS_.store(rms, std::memory_order_relaxed);
         currentPeak_.store(peak, std::memory_order_relaxed);
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[0] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
 
         // --- 2. FFT → magnitude spectrum ---
         fftProcessor_->process(analysisBuffer_.data(), kBlockSize);
         const float* mag = fftProcessor_->magnitudeSpectrum();
+
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[1] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
 
         // --- 3. Spectral features ---
         spectralFeatures_->process(mag);
@@ -121,19 +130,35 @@ void AnalysisThread::run()
         std::memcpy(snap->bandEnergies, spectralFeatures_->bandEnergies(),
                      sizeof(snap->bandEnergies));
 
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[2] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
+
         // --- 4. Onset detection ---
         onsetDetector_->process(hopBuffer.data());
         snap->onsetDetected = onsetDetector_->onsetDetected();
         snap->onsetStrength = onsetDetector_->onsetStrength();
+
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[3] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
 
         // --- 5. BPM tracking + beat phase ---
         bpmTracker_->process(hopBuffer.data());
         snap->bpm       = bpmTracker_->bpm();
         snap->beatPhase = bpmTracker_->beatPhase();
 
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[4] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
+
         // --- 6. MFCC ---
         mfccExtractor_->process(mag);
         std::memcpy(snap->mfccs, mfccExtractor_->mfccs(), sizeof(snap->mfccs));
+
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[5] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
 
         // --- 7. Chroma + HCDF ---
         chromaExtractor_->process(mag);
@@ -141,20 +166,36 @@ void AnalysisThread::run()
                      sizeof(snap->chromagram));
         snap->harmonicChangeDetection = chromaExtractor_->hcdf();
 
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[6] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
+
         // --- 8. Key detection ---
         keyDetector_->process(chromaExtractor_->chromagram());
         snap->detectedKey = keyDetector_->detectedKey();
         snap->keyIsMajor  = keyDetector_->isMajor();
+
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[7] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
 
         // --- 9. Pitch detection ---
         pitchTracker_->process(hopBuffer.data());
         snap->dominantPitch  = pitchTracker_->dominantPitch();
         snap->pitchConfidence = pitchTracker_->confidence();
 
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[8] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
+
         // --- 10. Loudness (LUFS, dynamic range) ---
         loudnessAnalyzer_->process(hopBuffer.data(), static_cast<int>(read));
         snap->lufs         = loudnessAnalyzer_->lufs();
         snap->dynamicRange = loudnessAnalyzer_->dynamicRange();
+
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[9] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
 
         // --- 11. Structural detection ---
         // (needs transient density, compute it first)
@@ -176,6 +217,10 @@ void AnalysisThread::run()
                                       snap->transientDensity);
         snap->structuralState = structuralDetector_->structuralState();
 
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[10] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
+
         // --- Timing ---
         snap->timestamp = totalSamplesProcessed_;
         snap->wallClockSeconds = static_cast<double>(totalSamplesProcessed_)
@@ -192,6 +237,29 @@ void AnalysisThread::run()
         // EMA smoothing
         float prev = cpuLoad_.load(std::memory_order_relaxed);
         cpuLoad_.store(prev + 0.1f * (load - prev), std::memory_order_relaxed);
+
+        // Periodic per-stage profiling output
+        if (++profileFrameCount_ >= kProfileInterval)
+        {
+            static const char* stageNames[] = {
+                "RMS/Peak", "FFT", "Spectral", "Onset", "BPM",
+                "MFCC", "Chroma", "Key", "Pitch", "Loudness",
+                "Structural"
+            };
+            double total = 0.0;
+            std::cerr << "[Analysis Profile] Per-stage avg (us) over " << kProfileInterval << " hops:" << std::endl;
+            for (int s = 0; s < 11; ++s)
+            {
+                double avg = stageTimesUs_[static_cast<size_t>(s)] / kProfileInterval;
+                total += avg;
+                std::cerr << "  " << stageNames[s] << ": " << static_cast<int>(avg + 0.5) << " us" << std::endl;
+            }
+            std::cerr << "  TOTAL: " << static_cast<int>(total + 0.5) << " us ("
+                      << static_cast<int>(total / hopPeriodUs * 100.0 + 0.5) << "% of hop period)" << std::endl;
+
+            stageTimesUs_.fill(0.0);
+            profileFrameCount_ = 0;
+        }
 
         // Copy recent samples for waveform display
         int wfCount = std::min(kBlockSize, kWaveformBufferSize);

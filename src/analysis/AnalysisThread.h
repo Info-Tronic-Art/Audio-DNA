@@ -103,6 +103,12 @@ private:
     // CPU load tracking (percentage of hop period used for analysis)
     std::atomic<float> cpuLoad_{0.0f};
 
+    // Per-stage profiling (logged periodically)
+    static constexpr int kNumStages = 13;
+    std::array<double, kNumStages> stageTimesUs_{};
+    int profileFrameCount_ = 0;
+    static constexpr int kProfileInterval = 500;  // Log every N hops (~5.3s)
+
 public:
     float getCpuLoad() const { return cpuLoad_.load(std::memory_order_relaxed); }
 };
