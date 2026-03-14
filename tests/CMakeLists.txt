@@ -45,3 +45,40 @@ add_executable(test_smoother test_smoother.cpp)
 target_include_directories(test_smoother PRIVATE ${SRC_DIR})
 target_link_libraries(test_smoother PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(test_smoother)
+
+# --- test_integration_pipeline ---
+# Full pipeline integration test: generates known audio signals and verifies
+# feature extraction produces expected values. Requires JUCE (FFT) and Aubio.
+add_executable(test_integration_pipeline
+    test_integration_pipeline.cpp
+    ${SRC_DIR}/analysis/FFTProcessor.cpp
+    ${SRC_DIR}/analysis/SpectralFeatures.cpp
+    ${SRC_DIR}/analysis/OnsetDetector.cpp
+    ${SRC_DIR}/analysis/BPMTracker.cpp
+    ${SRC_DIR}/analysis/MFCCExtractor.cpp
+    ${SRC_DIR}/analysis/ChromaExtractor.cpp
+    ${SRC_DIR}/analysis/KeyDetector.cpp
+    ${SRC_DIR}/analysis/LoudnessAnalyzer.cpp
+    ${SRC_DIR}/analysis/StructuralDetector.cpp
+    ${SRC_DIR}/analysis/PitchTracker.cpp
+    ${SRC_DIR}/features/FeatureBus.cpp
+)
+target_include_directories(test_integration_pipeline PRIVATE ${SRC_DIR})
+target_link_libraries(test_integration_pipeline PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_dsp
+    juce::juce_core
+    juce::juce_audio_basics
+    Aubio::Aubio
+)
+target_compile_definitions(test_integration_pipeline PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+target_compile_options(test_integration_pipeline PRIVATE
+    -Wno-old-style-cast
+    -Wno-conversion
+    -Wno-sign-conversion
+)
+catch_discover_tests(test_integration_pipeline)
