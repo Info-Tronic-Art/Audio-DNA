@@ -13,7 +13,8 @@
 #include "effects/EffectLibrary.h"
 #include "ui/PresetManager.h"
 
-class MainComponent : public juce::Component
+class MainComponent : public juce::Component,
+                      public juce::FileDragAndDropTarget
 {
 public:
     MainComponent();
@@ -21,6 +22,10 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+
+    // FileDragAndDropTarget
+    bool isInterestedInFileDrag(const juce::StringArray& files) override;
+    void filesDropped(const juce::StringArray& files, int x, int y) override;
 
 private:
     void openFile();

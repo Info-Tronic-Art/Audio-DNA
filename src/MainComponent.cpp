@@ -223,6 +223,47 @@ void MainComponent::loadPreset()
     });
 }
 
+bool MainComponent::isInterestedInFileDrag(const juce::StringArray& files)
+{
+    for (const auto& f : files)
+    {
+        auto file = juce::File(f);
+        auto ext = file.getFileExtension().toLowerCase();
+        if (ext == ".wav" || ext == ".aiff" || ext == ".aif" ||
+            ext == ".mp3" || ext == ".flac" || ext == ".ogg" ||
+            ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+            ext == ".gif" || ext == ".bmp" || ext == ".tiff")
+            return true;
+    }
+    return false;
+}
+
+void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int /*y*/)
+{
+    for (const auto& f : files)
+    {
+        auto file = juce::File(f);
+        auto ext = file.getFileExtension().toLowerCase();
+
+        if (ext == ".wav" || ext == ".aiff" || ext == ".aif" ||
+            ext == ".mp3" || ext == ".flac" || ext == ".ogg")
+        {
+            if (audioEngine_.loadFile(file))
+            {
+                fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+                audioEngine_.setLooping(loopToggle_.getToggleState());
+                audioEngine_.play();
+            }
+        }
+        else if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+                 ext == ".gif" || ext == ".bmp" || ext == ".tiff")
+        {
+            previewPanel_.loadImage(file);
+            fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+        }
+    }
+}
+
 void MainComponent::updateTransportButtons(bool isPlaying)
 {
     playButton_.setEnabled(!isPlaying);
