@@ -416,7 +416,9 @@ All 10 tasks done. App builds, loads/plays audio, waveform + RMS/Peak meters wor
 
 **Goal**: Extract all audio features in real-time. Display all values as live readouts.
 
-**Next task**: 2.1 — Implement `FeatureBus` with triple-buffer atomic swap.
+**Completed**: 2.1 — `FeatureBus` triple-buffer implemented (lock-free atomic swap). 2.2 — `FFTProcessor` implemented (2048-pt Hann-windowed FFT, 1025-bin magnitude spectrum). 2.3 — `SpectralFeatures` implemented (centroid, flux, flatness, rolloff, 7-band energies). 2.4 — `OnsetDetector` implemented (Aubio specflux onset detection, adaptive threshold). 2.5 — `BPMTracker` implemented (Aubio tempo wrapper, beat phase sawtooth).
+
+**Next task**: 2.6 — Implement `MFCCExtractor` (Mel filterbank + DCT → 13 coefficients).
 
 ### What M2 Unlocks
 

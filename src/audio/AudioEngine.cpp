@@ -28,6 +28,10 @@ bool AudioEngine::loadFile(const juce::File& file)
 {
     stop();
 
+    // Disconnect the transport from the old source BEFORE destroying it
+    transportSource_.setSource(nullptr);
+    readerSource_.reset();
+
     auto* reader = formatManager_.createReaderFor(file);
     if (reader == nullptr)
         return false;

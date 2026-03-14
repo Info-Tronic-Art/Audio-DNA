@@ -58,10 +58,23 @@ target_sources(AudioDNA PRIVATE
     src/analysis/OnsetDetector.cpp
     src/analysis/BPMTracker.h
     src/analysis/BPMTracker.cpp
+    src/analysis/MFCCExtractor.h
+    src/analysis/MFCCExtractor.cpp
+    src/analysis/ChromaExtractor.h
+    src/analysis/ChromaExtractor.cpp
+    src/analysis/KeyDetector.h
+    src/analysis/KeyDetector.cpp
+    src/analysis/LoudnessAnalyzer.h
+    src/analysis/LoudnessAnalyzer.cpp
+    src/analysis/StructuralDetector.h
+    src/analysis/StructuralDetector.cpp
+    src/analysis/PitchTracker.h
+    src/analysis/PitchTracker.cpp
 
     # Features
     src/features/FeatureBus.h
     src/features/FeatureBus.cpp
+    src/features/Smoother.h
 
     # UI
     src/ui/LookAndFeel.h
@@ -70,6 +83,8 @@ target_sources(AudioDNA PRIVATE
     src/ui/WaveformDisplay.cpp
     src/ui/AudioReadoutPanel.h
     src/ui/AudioReadoutPanel.cpp
+    src/ui/SpectrumDisplay.h
+    src/ui/SpectrumDisplay.cpp
 )
 
 target_include_directories(AudioDNA PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

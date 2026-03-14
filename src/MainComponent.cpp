@@ -12,6 +12,7 @@ MainComponent::MainComponent()
     addAndMakeVisible(fileLabel_);
     addAndMakeVisible(waveformDisplay_);
     addAndMakeVisible(audioReadoutPanel_);
+    addAndMakeVisible(spectrumDisplay_);
 
     fileLabel_.setColour(juce::Label::textColourId,
                          juce::Colour(AudioDNALookAndFeel::kTextSecondary));
@@ -65,10 +66,11 @@ void MainComponent::resized()
 
     area.removeFromTop(8);
 
-    // Left panel: audio readouts
+    // Left panel: audio readouts + spectrum
     auto leftPanel = area.removeFromLeft(220);
-    audioReadoutPanel_.setBounds(leftPanel.removeFromTop(200));
+    audioReadoutPanel_.setBounds(leftPanel.removeFromTop(520));
     leftPanel.removeFromTop(8);
+    spectrumDisplay_.setBounds(leftPanel);  // takes remaining space
 
     // Center: waveform (takes remaining space)
     waveformDisplay_.setBounds(area);

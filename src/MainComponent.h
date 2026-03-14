@@ -7,6 +7,7 @@
 #include "ui/LookAndFeel.h"
 #include "ui/WaveformDisplay.h"
 #include "ui/AudioReadoutPanel.h"
+#include "ui/SpectrumDisplay.h"
 
 class MainComponent : public juce::Component
 {
@@ -37,7 +38,8 @@ private:
 
     // Display components
     WaveformDisplay waveformDisplay_{analysisThread_};
-    AudioReadoutPanel audioReadoutPanel_{analysisThread_};
+    AudioReadoutPanel audioReadoutPanel_{analysisThread_, analysisThread_.getFeatureBus()};
+    SpectrumDisplay spectrumDisplay_{analysisThread_.getFeatureBus()};
 
     std::unique_ptr<juce::FileChooser> fileChooser_;
 

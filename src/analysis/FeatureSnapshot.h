@@ -11,12 +11,20 @@ struct alignas(64) FeatureSnapshot
     // Amplitude
     float rms  = 0.0f;
     float peak = 0.0f;
+    float rmsDB = -100.0f;             // 20*log10(rms), dBFS
+
+    // Loudness
+    float lufs = -100.0f;              // Momentary loudness (ITU-R BS.1770)
+    float dynamicRange = 0.0f;         // Crest factor (peak/RMS)
+
+    // Transient density
+    float transientDensity = 0.0f;     // onsets/sec in sliding window
 
     // Spectral
-    float spectralCentroid  = 0.0f;  // Hz — center of mass of spectrum
-    float spectralFlux      = 0.0f;  // Normalized — frame-to-frame spectral change
-    float spectralFlatness  = 0.0f;  // [0, 1] — tonal vs noisy (Wiener entropy)
-    float spectralRolloff   = 0.0f;  // Hz — frequency below 85% energy
+    float spectralCentroid  = 0.0f;    // Hz — center of mass of spectrum
+    float spectralFlux      = 0.0f;    // Normalized — frame-to-frame spectral change
+    float spectralFlatness  = 0.0f;    // [0, 1] — tonal vs noisy (Wiener entropy)
+    float spectralRolloff   = 0.0f;    // Hz — frequency below 85% energy
 
     // 7-Band Energies (normalized)
     // Sub(20-60), Bass(60-250), LowMid(250-500), Mid(500-2k),
@@ -24,15 +32,35 @@ struct alignas(64) FeatureSnapshot
     float bandEnergies[7] = {};
 
     // Onset detection
-    bool  onsetDetected  = false;  // true if onset this frame
-    float onsetStrength  = 0.0f;   // raw onset detection function value
+    bool  onsetDetected  = false;      // true if onset this frame
+    float onsetStrength  = 0.0f;       // raw onset detection function value
 
     // Rhythm / tempo
-    float bpm       = 0.0f;   // current tempo estimate (BPM), 0 if unknown
-    float beatPhase  = 0.0f;   // [0, 1) sawtooth ramp between beats
+    float bpm       = 0.0f;           // current tempo estimate (BPM), 0 if unknown
+    float beatPhase  = 0.0f;           // [0, 1) sawtooth ramp between beats
+
+    // Structural
+    uint8_t structuralState = 0;       // 0=normal, 1=buildup, 2=drop, 3=breakdown
+
+    // Chroma & harmony
+    float chromagram[12] = {};         // C through B pitch classes, normalized sum=1
+    float dominantPitch  = 0.0f;       // Hz — detected fundamental frequency
+    float pitchConfidence = 0.0f;      // [0, 1] — pitch detection reliability
+    int   detectedKey    = -1;         // 0-11 (C=0), -1=unknown
+    bool  keyIsMajor     = true;       // major vs minor
+
+    // Timbral
+    float mfccs[13] = {};              // Mel-frequency cepstral coefficients
+
+    // Harmonic change
+    float harmonicChangeDetection = 0.0f;  // HCDF — frame-to-frame chroma distance
 
     void clear()
     {
         std::memset(this, 0, sizeof(FeatureSnapshot));
+        rmsDB = -100.0f;
+        lufs = -100.0f;
+        detectedKey = -1;
+        keyIsMajor = true;
     }
 };
