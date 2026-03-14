@@ -172,20 +172,20 @@ AudioDNA/
 │   │   └── CurveTransforms.h            # [M4] lin/exp/log/sigmoid/step pure functions
 │   ├── effects/
 │   │   ├── EffectLibrary.h/cpp          # [M4] Registry: creates Effect instances from shaders
-│   │   ├── Effect.h/cpp                 # [M3] Single effect: shader program + param list
-│   │   ├── EffectChain.h/cpp            # [M3] Ordered chain with ping-pong FBOs
-│   │   └── UniformBridge.h/cpp          # [M3] Maps effect params → glUniform calls
+│   │   ├── Effect.h/cpp              ✅ # Single effect: shader program + param list
+│   │   ├── EffectChain.h/cpp         ✅ # Ordered chain with ping-pong FBOs
+│   │   └── UniformBridge.h/cpp       ✅ # Maps effect params → glUniform calls
 │   ├── render/
-│   │   ├── Renderer.h/cpp               # [M3] OpenGLRenderer impl, frame loop
-│   │   ├── ShaderManager.h/cpp          # [M3] Compile, link, hot-reload from shaders/
-│   │   ├── TextureManager.h/cpp         # [M3] Image → GL_TEXTURE_2D, FBO textures
-│   │   └── FullscreenQuad.h/cpp         # [M3] VAO/VBO for fullscreen triangle strip
+│   │   ├── Renderer.h/cpp            ✅ # OpenGLRenderer impl, GL 4.1 core, frame loop
+│   │   ├── ShaderManager.h/cpp       ✅ # Compile, link, hot-reload from shaders/
+│   │   ├── TextureManager.h/cpp      ✅ # Image → GL_TEXTURE_2D, FBO textures
+│   │   └── FullscreenQuad.h/cpp      ✅ # VAO/VBO for fullscreen triangle strip
 │   └── ui/
 │       ├── LookAndFeel.h/cpp         ✅ # Dark VJ-style theme
 │       ├── WaveformDisplay.h/cpp     ✅ # Scrolling time-domain waveform
 │       ├── AudioReadoutPanel.h/cpp   ✅ # Left panel: all feature values + meters
 │       ├── SpectrumDisplay.h/cpp     ✅ # 7-band color-coded spectrum bars
-│       ├── PreviewPanel.h/cpp           # [M3] Center: hosts OpenGL context
+│       ├── PreviewPanel.h/cpp        ✅ # Center: hosts OpenGL context
 │       ├── EffectsRackPanel.h/cpp       # [M4] Right: effect list + knobs + mapping indicators
 │       ├── MappingEditor.h/cpp          # [M4] Source/curve/range/smoothing configuration
 │       ├── SpectrumDisplay.h/cpp        # [M2] Bar/line spectrum analyzer
@@ -405,8 +405,8 @@ Each frame, the render thread:
 |---|-----------|-------|--------|
 | **M1** | Window + Audio + Waveform | 10 tasks | **COMPLETE** |
 | **M2** | Full Audio Analysis Engine | 19 tasks | **COMPLETE** |
-| M3 | OpenGL Image Rendering + First Effects | 10 tasks | **CURRENT** |
-| M4 | Mapping Engine + Full Effects Library | 9 tasks | Not started |
+| **M3** | OpenGL Image Rendering + First Effects | 10 tasks | **COMPLETE** |
+| M4 | Mapping Engine + Full Effects Library | 9 tasks | **CURRENT** |
 | M5 | VJ-Style UI Polish + Presets | 11 tasks | Not started |
 | M6 | Quality, Performance, Cross-Platform | 8 tasks | Not started |
 
@@ -418,11 +418,15 @@ All 10 tasks done. App builds, loads/plays audio, waveform + RMS/Peak meters wor
 
 All 19 tasks done. Full 12-stage analysis pipeline: FFT, spectral features (centroid/flux/flatness/rolloff/7-band), onset detection, BPM/beat tracking, MFCC, chroma, key detection, pitch tracking, LUFS, structural detection, transient density, HCDF. AudioReadoutPanel + SpectrumDisplay show all features live. Smoother class (EMA + One-Euro). Unit tests (ring buffer, spectral, feature bus, smoother) + integration tests (full pipeline with synthetic signals) all passing — 50 tests total.
 
-### Current Milestone: M3 — OpenGL Image Rendering + First Effects
+### Milestone 3: COMPLETE
 
-**Goal**: Load an image, display it via OpenGL, apply 4 shader effects driven by hardcoded audio mappings.
+All 10 tasks done. Full OpenGL rendering pipeline: Renderer (GL 4.1 core profile, OpenGLRenderer subclass), FullscreenQuad (VAO/VBO triangle strip), ShaderManager (compile/link/cache/hot-reload), TextureManager (image→GL texture with ARGB→RGBA conversion + Y-flip, ping-pong FBOs). EffectChain with 4 effects: Ripple (warp), Hue Shift (color), RGB Split (glitch), Vignette (post). UniformBridge with hardcoded demo mappings (RMS→ripple, centroid→hue shift, onset→RGB split, bass→vignette) using EMA smoothing. PreviewPanel hosts GL context in center of MainComponent. All effects visibly react to audio in real-time at 60fps.
 
-**Next task**: 3.1 — Implement Renderer (OpenGL context, fullscreen quad).
+### Current Milestone: M4 — Mapping Engine + Full Effects Library
+
+**Goal**: Implement the complete mapping system (any feature → any effect parameter with curves and smoothing) and all 17 shader effects.
+
+**Next task**: 4.1 — Implement MappingEngine (source→curve→scale→target routing).
 
 ---
 
