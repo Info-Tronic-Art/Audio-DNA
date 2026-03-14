@@ -407,8 +407,8 @@ Each frame, the render thread:
 | **M2** | Full Audio Analysis Engine | 19 tasks | **COMPLETE** |
 | **M3** | OpenGL Image Rendering + First Effects | 10 tasks | **COMPLETE** |
 | **M4** | Mapping Engine + Full Effects Library | 9 tasks | **COMPLETE** |
-| M5 | VJ-Style UI Polish + Presets | 11 tasks | **CURRENT** |
-| M6 | Quality, Performance, Cross-Platform | 8 tasks | Not started |
+| **M5** | VJ-Style UI Polish + Presets | 11 tasks | **COMPLETE** |
+| **M6** | Quality, Performance, Cross-Platform | 8 tasks | **COMPLETE** (6.5/6.6 pending cross-platform) |
 
 ### Milestone 1: COMPLETE
 
