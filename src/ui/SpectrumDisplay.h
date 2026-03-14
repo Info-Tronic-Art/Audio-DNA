@@ -3,8 +3,8 @@
 #include "features/FeatureBus.h"
 #include <array>
 
-// Displays 7-band energy bars in real-time, painted at 30fps.
-// Reads from the FeatureBus to get the latest band energies.
+// Displays 7-band energy bars with smooth animation, peak hold markers,
+// and gradient fills. Reads from the FeatureBus at 30fps.
 class SpectrumDisplay : public juce::Component, private juce::Timer
 {
 public:
@@ -16,8 +16,18 @@ public:
 private:
     FeatureBus& featureBus_;
 
-    // Smoothed display values
+    // Smoothed display values (fast attack, slow release)
     std::array<float, 7> displayBands_{};
+
+    // Peak hold per band
+    std::array<float, 7> peakHold_{};
+    std::array<int, 7> peakTimer_{};
+    static constexpr int kPeakHoldFrames = 20;   // ~0.67s at 30fps
+    static constexpr float kPeakDecay = 0.95f;
+
+    // Attack/release smoothing
+    static constexpr float kAttackAlpha = 0.6f;   // Fast rise
+    static constexpr float kReleaseAlpha = 0.08f;  // Slow fall
 
     // Band labels
     static constexpr const char* kBandLabels[7] = {
