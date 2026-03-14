@@ -136,6 +136,7 @@ else()
 endif()
 
 target_compile_definitions(AudioDNA PRIVATE
+    _USE_MATH_DEFINES
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_USE_CAMERA=${AUDIODNA_USE_CAMERA}
