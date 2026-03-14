@@ -212,12 +212,13 @@ AudioDNA/
 │   └── vignette.frag                    # Blur: edge darkening
 ├── tests/                               # [M2+]
 │   ├── CMakeLists.txt
-│   ├── test_ring_buffer.cpp
-│   ├── test_spectral_features.cpp
+│   ├── test_ring_buffer.cpp          ✅
+│   ├── test_spectral_features.cpp    ✅
+│   ├── test_feature_bus.cpp          ✅
+│   ├── test_smoother.cpp             ✅
+│   ├── test_integration_pipeline.cpp ✅
 │   ├── test_onset_detector.cpp
-│   ├── test_mapping_engine.cpp
-│   ├── test_smoother.cpp
-│   └── test_feature_bus.cpp
+│   └── test_mapping_engine.cpp
 ├── resources/
 │   ├── default_image.png                # Fallback test image
 │   └── presets/
@@ -403,8 +404,8 @@ Each frame, the render thread:
 | # | Milestone | Tasks | Status |
 |---|-----------|-------|--------|
 | **M1** | Window + Audio + Waveform | 10 tasks | **COMPLETE** |
-| M2 | Full Audio Analysis Engine | 19 tasks | **CURRENT** |
-| M3 | OpenGL Image Rendering + First Effects | 10 tasks | Not started |
+| **M2** | Full Audio Analysis Engine | 19 tasks | **COMPLETE** |
+| M3 | OpenGL Image Rendering + First Effects | 10 tasks | **CURRENT** |
 | M4 | Mapping Engine + Full Effects Library | 9 tasks | Not started |
 | M5 | VJ-Style UI Polish + Presets | 11 tasks | Not started |
 | M6 | Quality, Performance, Cross-Platform | 8 tasks | Not started |
@@ -413,17 +414,15 @@ Each frame, the render thread:
 
 All 10 tasks done. App builds, loads/plays audio, waveform + RMS/Peak meters work, transport controls functional.
 
-### Current Milestone: M2 — Full Audio Analysis Engine
+### Milestone 2: COMPLETE
 
-**Goal**: Extract all audio features in real-time. Display all values as live readouts.
+All 19 tasks done. Full 12-stage analysis pipeline: FFT, spectral features (centroid/flux/flatness/rolloff/7-band), onset detection, BPM/beat tracking, MFCC, chroma, key detection, pitch tracking, LUFS, structural detection, transient density, HCDF. AudioReadoutPanel + SpectrumDisplay show all features live. Smoother class (EMA + One-Euro). Unit tests (ring buffer, spectral, feature bus, smoother) + integration tests (full pipeline with synthetic signals) all passing — 50 tests total.
 
-**Completed**: 2.1–2.17 — All analysis + UI tasks complete. Full 12-stage pipeline: FFT, spectral features, onset detection, BPM/beat tracking, MFCC, chroma, key detection, pitch tracking, LUFS, structural detection, transient density, HCDF. Expanded AudioReadoutPanel + SpectrumDisplay show all features live. Smoother class (EMA + One-Euro) implemented.
+### Current Milestone: M3 — OpenGL Image Rendering + First Effects
 
-**Next task**: 2.18 — Write unit tests.
+**Goal**: Load an image, display it via OpenGL, apply 4 shader effects driven by hardcoded audio mappings.
 
-### What M2 Unlocks
-
-Full audio analysis: FFT, all spectral features, band energies, onset detection, BPM/beat tracking, MFCC, chroma, pitch, key, LUFS, structural detection — all displayed as live readouts.
+**Next task**: 3.1 — Implement Renderer (OpenGL context, fullscreen quad).
 
 ---
 
