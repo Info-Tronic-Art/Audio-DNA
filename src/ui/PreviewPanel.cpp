@@ -35,5 +35,15 @@ void PreviewPanel::loadImage(const juce::File& imageFile)
 {
     renderer_.loadImage(imageFile);
     imageLoaded_ = true;
-    repaint(); // Clear the "load an image" text
+    repaint();
+}
+
+void PreviewPanel::queueCameraFrame(const juce::Image& frame)
+{
+    renderer_.queueCameraFrame(frame);
+    if (!imageLoaded_)
+    {
+        imageLoaded_ = true;
+        repaint();
+    }
 }

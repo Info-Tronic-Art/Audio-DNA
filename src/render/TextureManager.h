@@ -16,6 +16,10 @@ public:
     // Returns true on success. Must be called on the GL thread.
     bool loadImage(const juce::File& imageFile);
 
+    // Upload a JUCE Image directly (for camera frames).
+    // Must be called on the GL thread.
+    bool uploadImage(const juce::Image& image);
+
     // Create (or resize) the two FBO textures for ping-pong rendering.
     void createFBOs(int width, int height);
 

@@ -36,6 +36,9 @@ public:
     // Load an image file to display. Thread-safe (queues for GL thread).
     void loadImage(const juce::File& imageFile);
 
+    // Queue a camera frame for upload on the GL thread. Thread-safe.
+    void queueCameraFrame(const juce::Image& frame);
+
     // --- OpenGLRenderer callbacks (called on GL thread) ---
     void newOpenGLContextCreated() override;
     void renderOpenGL() override;
@@ -106,4 +109,9 @@ private:
     std::mutex pendingImageMutex_;
     juce::File pendingImageFile_;
     bool hasPendingImage_ = false;
+
+    // Camera frame queue
+    std::mutex cameraFrameMutex_;
+    juce::Image pendingCameraFrame_;
+    bool hasPendingCameraFrame_ = false;
 };

@@ -88,6 +88,18 @@ MainComponent::MainComponent()
         }
     }
 
+    // Camera input selector
+    addAndMakeVisible(cameraSelector_);
+    cameraSelector_.setTextWhenNothingSelected("Camera: Off");
+    refreshCameraList();
+    cameraSelector_.onChange = [this] {
+        int selected = cameraSelector_.getSelectedId();
+        if (selected == 1) // "Off"
+            closeCamera();
+        else if (selected > 1)
+            openCamera(selected - 2);
+    };
+
     // Deck save/load
     addAndMakeVisible(deckSaveButton_);
     addAndMakeVisible(deckLoadButton_);
@@ -280,7 +292,8 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
-    outputWindow_.reset(); // Destroy output window before renderer
+    closeCamera();
+    outputWindow_.reset();
     analysisThread_.stopThread(1000);
     setLookAndFeel(nullptr);
 }
@@ -329,6 +342,8 @@ void MainComponent::resized()
     // Right-aligned stats, display selector, and resolution selector
     cpuLabel_.setBounds(topBar.removeFromRight(80));
     fpsLabel_.setBounds(topBar.removeFromRight(70));
+    topBar.removeFromRight(4);
+    cameraSelector_.setBounds(topBar.removeFromRight(130));
     topBar.removeFromRight(4);
     displaySelector_.setBounds(topBar.removeFromRight(140));
     topBar.removeFromRight(4);
@@ -885,6 +900,67 @@ void MainComponent::loadDeck()
         fileLabel_.setText("Deck: " + file.getFileNameWithoutExtension(),
                           juce::dontSendNotification);
     });
+}
+
+void MainComponent::imageReceived(const juce::Image& image)
+{
+    // Called from camera thread — queue frame for GL thread
+    previewPanel_.queueCameraFrame(image);
+
+    // Also send to output window if active
+    if (outputWindow_)
+        outputWindow_->getRenderer().queueCameraFrame(image);
+}
+
+void MainComponent::refreshCameraList()
+{
+    cameraSelector_.clear(juce::dontSendNotification);
+    cameraSelector_.addItem("Off", 1);
+
+    auto devices = juce::CameraDevice::getAvailableDevices();
+    for (int i = 0; i < devices.size(); ++i)
+        cameraSelector_.addItem(devices[i], i + 2);
+
+    cameraSelector_.setSelectedId(1, juce::dontSendNotification);
+}
+
+void MainComponent::openCamera(int deviceIndex)
+{
+    closeCamera();
+
+    auto devices = juce::CameraDevice::getAvailableDevices();
+    if (deviceIndex < 0 || deviceIndex >= devices.size())
+        return;
+
+    std::cerr << "[Camera] Opening: " << devices[deviceIndex] << std::endl;
+
+    cameraDevice_.reset(juce::CameraDevice::openDevice(deviceIndex,
+        0, 0, // min size (0 = default)
+        1920, 1080, // max size
+        false)); // don't use high quality stills
+
+    if (cameraDevice_ == nullptr)
+    {
+        fileLabel_.setText("Camera failed to open", juce::dontSendNotification);
+        return;
+    }
+
+    cameraActive_ = true;
+
+    // Add a listener that receives frames
+    cameraDevice_->addListener(this);
+
+    fileLabel_.setText("Camera: " + devices[deviceIndex], juce::dontSendNotification);
+}
+
+void MainComponent::closeCamera()
+{
+    if (cameraDevice_)
+    {
+        cameraDevice_->removeListener(this);
+        cameraDevice_.reset();
+    }
+    cameraActive_ = false;
 }
 
 void MainComponent::randomizeAllEffects()

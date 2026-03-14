@@ -36,6 +36,13 @@ void Renderer::loadImage(const juce::File& imageFile)
     hasPendingImage_ = true;
 }
 
+void Renderer::queueCameraFrame(const juce::Image& frame)
+{
+    std::lock_guard<std::mutex> lock(cameraFrameMutex_);
+    pendingCameraFrame_ = frame;
+    hasPendingCameraFrame_ = true;
+}
+
 void Renderer::newOpenGLContextCreated()
 {
     std::cerr << "[Renderer] GL context created. Version: "
@@ -59,6 +66,16 @@ void Renderer::renderOpenGL()
             std::cerr << "[Renderer] Image load " << (ok ? "OK" : "FAILED")
                       << ", hasImage=" << texMgr_.hasImage() << std::endl;
             hasPendingImage_ = false;
+        }
+    }
+
+    // Handle pending camera frame
+    {
+        std::lock_guard<std::mutex> lock(cameraFrameMutex_);
+        if (hasPendingCameraFrame_)
+        {
+            texMgr_.uploadImage(pendingCameraFrame_);
+            hasPendingCameraFrame_ = false;
         }
     }
 

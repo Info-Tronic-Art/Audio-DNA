@@ -19,6 +19,9 @@ public:
     // Load an image file to display with effects
     void loadImage(const juce::File& imageFile);
 
+    // Queue a camera frame for display
+    void queueCameraFrame(const juce::Image& frame);
+
     bool hasImage() const { return imageLoaded_; }
 
     // Accessors for renderer internals (used by EffectsRackPanel)

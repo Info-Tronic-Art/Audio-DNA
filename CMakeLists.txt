@@ -131,6 +131,7 @@ target_include_directories(AudioDNA PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_definitions(AudioDNA PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
+    JUCE_USE_CAMERA=1
     JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:AudioDNA,JUCE_PRODUCT_NAME>"
     JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:AudioDNA,JUCE_VERSION>"
     JUCE_DISPLAY_SPLASH_SCREEN=0
@@ -147,6 +148,7 @@ target_link_libraries(AudioDNA PRIVATE
     juce::juce_gui_basics
     juce::juce_gui_extra
     juce::juce_opengl
+    juce::juce_video
     Aubio::Aubio
 )
 

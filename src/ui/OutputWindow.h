@@ -31,6 +31,9 @@ public:
     // Queue an image load (thread-safe)
     void loadImage(const juce::File& imageFile);
 
+    // Queue a camera frame (thread-safe)
+    void queueCameraFrame(const juce::Image& frame);
+
     juce::OpenGLContext& getContext() { return glContext_; }
 
 private:
@@ -51,6 +54,11 @@ private:
     std::mutex pendingImageMutex_;
     juce::File pendingImageFile_;
     bool hasPendingImage_ = false;
+
+    // Camera frame queue
+    std::mutex cameraFrameMutex_;
+    juce::Image pendingCameraFrame_;
+    bool hasPendingCameraFrame_ = false;
 
     // Remember the last loaded image so we can reload on GL context recreation
     juce::File lastImageFile_;
@@ -74,6 +82,9 @@ public:
 
     // Load the same image as the preview
     void loadImage(const juce::File& imageFile);
+
+    // Access the renderer (for camera frames)
+    OutputRenderer& getRenderer() { return renderer_; }
 
     // Keyboard handling — Escape closes
     bool keyPressed(const juce::KeyPress& key) override;

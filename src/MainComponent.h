@@ -13,9 +13,11 @@
 #include "effects/EffectLibrary.h"
 #include "ui/PresetManager.h"
 #include "ui/OutputWindow.h"
+#include <juce_video/juce_video.h>
 
 class MainComponent : public juce::Component,
                       public juce::FileDragAndDropTarget,
+                      public juce::CameraDevice::Listener,
                       private juce::Timer
 {
 public:
@@ -31,6 +33,9 @@ public:
 
     // Keyboard shortcuts
     bool keyPressed(const juce::KeyPress& key) override;
+
+    // CameraDevice::Listener
+    void imageReceived(const juce::Image& image) override;
 
 private:
     void openFile();
@@ -50,6 +55,9 @@ private:
     juce::File getFastSaveDir() const;
     void saveDeck();
     void loadDeck();
+    void openCamera(int deviceIndex);
+    void closeCamera();
+    void refreshCameraList();
 
     AudioDNALookAndFeel lookAndFeel_;
 
@@ -117,6 +125,11 @@ private:
     juce::ComboBox displaySelector_;
     std::unique_ptr<OutputWindow> outputWindow_;
     juce::File currentImageFile_;  // Track loaded image for output window
+
+    // Camera input
+    juce::ComboBox cameraSelector_;
+    std::unique_ptr<juce::CameraDevice> cameraDevice_;
+    bool cameraActive_ = false;
 
     std::unique_ptr<juce::FileChooser> fileChooser_;
 
