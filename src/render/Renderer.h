@@ -7,6 +7,7 @@
 #include "effects/Effect.h"
 #include "effects/EffectChain.h"
 #include "effects/UniformBridge.h"
+#include "mapping/MappingEngine.h"
 #include "features/FeatureBus.h"
 #include <mutex>
 
@@ -41,6 +42,10 @@ public:
 
     juce::OpenGLContext& getContext() { return glContext_; }
 
+    // Accessors for UI integration
+    MappingEngine& getMappingEngine() { return mappingEngine_; }
+    EffectChain& getEffectChain() { return effectChain_; }
+
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
@@ -55,7 +60,8 @@ private:
     ShaderManager shaderMgr_{glContext_};
     TextureManager texMgr_;
     EffectChain effectChain_;
-    UniformBridge uniformBridge_;
+    MappingEngine mappingEngine_;
+    UniformBridge uniformBridge_;  // Kept for reference, no longer used
 
     double startTime_ = 0.0;
 

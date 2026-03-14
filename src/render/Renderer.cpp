@@ -202,8 +202,8 @@ void Renderer::renderOpenGL()
     if (snap == nullptr)
         snap = &defaultSnap;
 
-    // Apply demo audio→effect mappings
-    uniformBridge_.applyDemoMappings(effectChain_, *snap);
+    // Apply audio→effect mappings via MappingEngine
+    mappingEngine_.processFrame(*snap, effectChain_);
 
     // Calculate time
     float time = static_cast<float>(
@@ -274,4 +274,87 @@ void Renderer::initEffectChain()
     vignette->addParam("intensity", "u_vignette_int",  0.0f);
     vignette->addParam("softness",  "u_vignette_soft", 0.6f);
     effectChain_.addEffect(std::move(vignette));
+
+    // Set up demo mappings that replicate the old hardcoded UniformBridge behavior:
+    //   RMS → Ripple intensity
+    //   SpectralCentroid → Hue Shift amount
+    //   OnsetStrength → RGB Split amount
+    //   BandBass → Vignette intensity
+
+    mappingEngine_.clearAll();
+
+    // RMS → Ripple intensity (effect 0, param 0)
+    {
+        Mapping m;
+        m.source = MappingSource::RMS;
+        m.targetEffectId = 0;
+        m.targetParamIndex = 0;
+        m.curve = MappingCurve::Linear;
+        m.inputMin = 0.0f;
+        m.inputMax = 1.0f;
+        m.outputMin = 0.0f;
+        m.outputMax = 1.0f;
+        m.smoothing = 0.15f;
+        mappingEngine_.addMapping(m);
+    }
+
+    // Bass → Ripple freq (effect 0, param 1)
+    {
+        Mapping m;
+        m.source = MappingSource::BandBass;
+        m.targetEffectId = 0;
+        m.targetParamIndex = 1;
+        m.curve = MappingCurve::Linear;
+        m.inputMin = 0.0f;
+        m.inputMax = 1.0f;
+        m.outputMin = 0.0f;
+        m.outputMax = 1.0f;
+        m.smoothing = 0.15f;
+        mappingEngine_.addMapping(m);
+    }
+
+    // SpectralCentroid → Hue Shift amount (effect 1, param 0)
+    {
+        Mapping m;
+        m.source = MappingSource::SpectralCentroid;
+        m.targetEffectId = 1;
+        m.targetParamIndex = 0;
+        m.curve = MappingCurve::Linear;
+        m.inputMin = 200.0f;
+        m.inputMax = 8000.0f;
+        m.outputMin = 0.0f;
+        m.outputMax = 1.0f;
+        m.smoothing = 0.15f;
+        mappingEngine_.addMapping(m);
+    }
+
+    // OnsetStrength → RGB Split amount (effect 2, param 0)
+    {
+        Mapping m;
+        m.source = MappingSource::OnsetStrength;
+        m.targetEffectId = 2;
+        m.targetParamIndex = 0;
+        m.curve = MappingCurve::Linear;
+        m.inputMin = 0.0f;
+        m.inputMax = 1.0f;
+        m.outputMin = 0.0f;
+        m.outputMax = 1.0f;
+        m.smoothing = 0.3f;
+        mappingEngine_.addMapping(m);
+    }
+
+    // BandBass → Vignette intensity (effect 3, param 0)
+    {
+        Mapping m;
+        m.source = MappingSource::BandBass;
+        m.targetEffectId = 3;
+        m.targetParamIndex = 0;
+        m.curve = MappingCurve::Linear;
+        m.inputMin = 0.0f;
+        m.inputMax = 1.0f;
+        m.outputMin = 0.0f;
+        m.outputMax = 1.0f;
+        m.smoothing = 0.15f;
+        mappingEngine_.addMapping(m);
+    }
 }
