@@ -95,6 +95,11 @@ private:
     int renderProfileCount_ = 0;
     static constexpr int kRenderProfileInterval = 300; // Log every N frames (~5s at 60fps)
 
+    // Adaptive quality: track sustained high frame times
+    int highFrameTimeCount_ = 0;
+    static constexpr float kFrameTimeBudgetMs = 12.0f;
+    static constexpr int kHighFrameTimeThreshold = 30; // ~0.5s sustained
+
     // Pending image load — protected by mutex (not on hot audio path)
     std::mutex pendingImageMutex_;
     juce::File pendingImageFile_;

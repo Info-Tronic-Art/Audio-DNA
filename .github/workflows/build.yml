@@ -1,0 +1,70 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            name: macOS ARM64
+            cmake_flags: -DCMAKE_BUILD_TYPE=Release
+          - os: macos-13
+            name: macOS x86_64
+            cmake_flags: -DCMAKE_BUILD_TYPE=Release
+          - os: ubuntu-22.04
+            name: Linux GCC
+            cmake_flags: -DCMAKE_BUILD_TYPE=Release
+          - os: windows-latest
+            name: Windows MSVC
+            cmake_flags: -DCMAKE_BUILD_TYPE=Release
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Aubio (macOS)
+        if: runner.os == 'macOS'
+        run: brew install aubio
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libaubio-dev \
+            libasound2-dev \
+            libcurl4-openssl-dev \
+            libfreetype6-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libwebkit2gtk-4.0-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev
+
+      - name: Install Aubio (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          vcpkg install aubio:x64-windows
+          echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" >> $env:GITHUB_ENV
+
+      - name: Configure CMake
+        run: cmake -B build ${{ matrix.cmake_flags }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run Tests
+        run: ctest --test-dir build --build-config Release --output-on-failure

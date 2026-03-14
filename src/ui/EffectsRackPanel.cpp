@@ -3,10 +3,9 @@
 
 EffectsRackPanel::EffectsRackPanel(MappingEngine& mappingEngine,
                                    EffectChain& effectChain,
-                                   EffectLibrary& effectLibrary)
+                                   EffectLibrary& /*effectLibrary*/)
     : mappingEngine_(mappingEngine),
-      effectChain_(effectChain),
-      effectLibrary_(effectLibrary)
+      effectChain_(effectChain)
 {
     viewport_.setViewedComponent(&contentComponent_, false);
     viewport_.setScrollBarsShown(true, false);
@@ -28,7 +27,7 @@ void EffectsRackPanel::paint(juce::Graphics& g)
 
     // Title
     g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
-    g.setFont(juce::Font(14.0f, juce::Font::bold));
+    g.setFont(juce::Font(juce::FontOptions(14.0f).withStyle("Bold")));
     g.drawText("Effects Rack", getLocalBounds().removeFromTop(24).reduced(6, 0),
                juce::Justification::centredLeft);
 }
@@ -124,7 +123,7 @@ void EffectsRackPanel::timerCallback()
             // Only update if not being dragged
             if (!slider.isMouseButtonDown())
             {
-                slider.setValue(currentValue, juce::dontSendNotification);
+                slider.setValue(static_cast<double>(currentValue), juce::dontSendNotification);
             }
 
             // Update mapping indicator
@@ -202,7 +201,7 @@ void EffectsRackPanel::rebuildUI()
         // Effect name label
         section->nameLabel = std::make_unique<juce::Label>();
         section->nameLabel->setText(effect->getName(), juce::dontSendNotification);
-        section->nameLabel->setFont(juce::Font(13.0f, juce::Font::bold));
+        section->nameLabel->setFont(juce::Font(juce::FontOptions(13.0f).withStyle("Bold")));
         section->nameLabel->setColour(juce::Label::textColourId,
                                       juce::Colour(AudioDNALookAndFeel::kTextPrimary));
         contentComponent_.addAndMakeVisible(section->nameLabel.get());
@@ -235,7 +234,7 @@ void EffectsRackPanel::rebuildUI()
 
             // Knob
             pk->knob = std::make_unique<Knob>(param.name);
-            pk->knob->getSlider().setValue(param.value, juce::dontSendNotification);
+            pk->knob->getSlider().setValue(static_cast<double>(param.value), juce::dontSendNotification);
             contentComponent_.addAndMakeVisible(pk->knob.get());
 
             int capturedPi = pi;

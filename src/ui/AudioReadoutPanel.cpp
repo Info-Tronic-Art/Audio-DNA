@@ -279,7 +279,7 @@ float AudioReadoutPanel::drawBeatPhase(juce::Graphics& g, float y, float width)
     return y + 16.0f;
 }
 
-float AudioReadoutPanel::drawOnsetIndicator(juce::Graphics& g, float y, float width)
+float AudioReadoutPanel::drawOnsetIndicator(juce::Graphics& g, float y, float /*width*/)
 {
     float x = static_cast<float>(getLocalBounds().getX()) + 8.0f;
 

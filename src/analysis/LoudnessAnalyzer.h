@@ -38,7 +38,6 @@ private:
 
     float processBiquad(BiquadState& state, float x);
 
-    int sampleRate_;
     int windowSize_;  // 400ms in samples
 
     // K-weighting biquad stages

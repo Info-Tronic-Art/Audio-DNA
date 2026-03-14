@@ -79,7 +79,7 @@ MappingEditor::MappingEditor()
 {
     // Title
     titleLabel_.setText("Mapping Editor", juce::dontSendNotification);
-    titleLabel_.setFont(juce::Font(14.0f, juce::Font::bold));
+    titleLabel_.setFont(juce::Font(juce::FontOptions(14.0f).withStyle("Bold")));
     titleLabel_.setColour(juce::Label::textColourId,
                           juce::Colour(AudioDNALookAndFeel::kAccentCyan));
     addAndMakeVisible(titleLabel_);
@@ -215,11 +215,11 @@ void MappingEditor::setMapping(const Mapping& mapping, int mappingIndex)
                                juce::dontSendNotification);
     curveCombo_.setSelectedId(static_cast<int>(mapping.curve) + 1,
                               juce::dontSendNotification);
-    inputMinSlider_.setValue(mapping.inputMin, juce::dontSendNotification);
-    inputMaxSlider_.setValue(mapping.inputMax, juce::dontSendNotification);
-    outputMinSlider_.setValue(mapping.outputMin, juce::dontSendNotification);
-    outputMaxSlider_.setValue(mapping.outputMax, juce::dontSendNotification);
-    smoothingSlider_.setValue(mapping.smoothing, juce::dontSendNotification);
+    inputMinSlider_.setValue(static_cast<double>(mapping.inputMin), juce::dontSendNotification);
+    inputMaxSlider_.setValue(static_cast<double>(mapping.inputMax), juce::dontSendNotification);
+    outputMinSlider_.setValue(static_cast<double>(mapping.outputMin), juce::dontSendNotification);
+    outputMaxSlider_.setValue(static_cast<double>(mapping.outputMax), juce::dontSendNotification);
+    smoothingSlider_.setValue(static_cast<double>(mapping.smoothing), juce::dontSendNotification);
     enableToggle_.setToggleState(mapping.enabled, juce::dontSendNotification);
 }
 

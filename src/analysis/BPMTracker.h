@@ -44,7 +44,6 @@ private:
     fvec_t*        output_ = nullptr;   // single-element output (beat position in samples)
 
     int hopSize_;
-    int sampleRate_;
 
     float bpm_          = 0.0f;
     float beatPhase_    = 0.0f;

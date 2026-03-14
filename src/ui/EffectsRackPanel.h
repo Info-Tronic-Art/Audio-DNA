@@ -65,7 +65,6 @@ private:
 
     MappingEngine& mappingEngine_;
     EffectChain& effectChain_;
-    EffectLibrary& effectLibrary_;
 
     int lastKnownEffectCount_ = 0;  // Detect when effects become available
 

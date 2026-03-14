@@ -97,9 +97,6 @@ void AudioDNALookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y,
     auto radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) / 2.0f;
     auto centreX = bounds.getCentreX();
     auto centreY = bounds.getCentreY();
-    auto rx = centreX - radius;
-    auto ry = centreY - radius;
-    auto diameter = radius * 2.0f;
     auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
 
     // Outer track (background arc)
@@ -152,8 +149,8 @@ void AudioDNALookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y,
 
 void AudioDNALookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y,
                                             int width, int height,
-                                            float sliderPos, float minSliderPos,
-                                            float maxSliderPos,
+                                            float sliderPos, float /*minSliderPos*/,
+                                            float /*maxSliderPos*/,
                                             juce::Slider::SliderStyle style,
                                             juce::Slider& slider)
 {
@@ -225,7 +222,7 @@ void AudioDNALookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y,
 
 void AudioDNALookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
                                             bool shouldDrawButtonAsHighlighted,
-                                            bool shouldDrawButtonAsDown)
+                                            bool /*shouldDrawButtonAsDown*/)
 {
     auto bounds = button.getLocalBounds().toFloat();
     auto toggleSize = 16.0f;
@@ -280,9 +277,9 @@ void AudioDNALookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton
 
 void AudioDNALookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
                                         bool isButtonDown,
-                                        int buttonX, int buttonY,
-                                        int buttonW, int buttonH,
-                                        juce::ComboBox& box)
+                                        int /*buttonX*/, int /*buttonY*/,
+                                        int /*buttonW*/, int /*buttonH*/,
+                                        juce::ComboBox& /*box*/)
 {
     auto bounds = juce::Rectangle<float>(0, 0, static_cast<float>(width),
                                           static_cast<float>(height));
@@ -335,8 +332,8 @@ void AudioDNALookAndFeel::drawPopupMenuItem(juce::Graphics& g,
                                              bool hasSubMenu,
                                              const juce::String& text,
                                              const juce::String& shortcutKeyText,
-                                             const juce::Drawable* icon,
-                                             const juce::Colour* textColour)
+                                             const juce::Drawable* /*icon*/,
+                                             const juce::Colour* /*textColour*/)
 {
     if (isSeparator)
     {
@@ -429,7 +426,7 @@ void AudioDNALookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
 // ScrollBar
 //==============================================================================
 
-void AudioDNALookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar& scrollbar,
+void AudioDNALookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar& /*scrollbar*/,
                                          int x, int y, int width, int height,
                                          bool isScrollbarVertical,
                                          int thumbStartPosition, int thumbSize,

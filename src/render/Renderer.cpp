@@ -152,6 +152,32 @@ void Renderer::renderOpenGL()
     float prevMs = frameTimeMs_.load(std::memory_order_relaxed);
     frameTimeMs_.store(prevMs + 0.1f * (static_cast<float>(frameMs) - prevMs), std::memory_order_relaxed);
 
+    // Adaptive quality: if sustained high frame times, disable heaviest effect
+    if (frameMs > static_cast<double>(kFrameTimeBudgetMs))
+    {
+        if (++highFrameTimeCount_ >= kHighFrameTimeThreshold)
+        {
+            // Find the last enabled effect and disable it
+            for (int i = effectChain_.getNumEffects() - 1; i >= 0; --i)
+            {
+                auto* fx = effectChain_.getEffect(i);
+                if (fx != nullptr && fx->isEnabled())
+                {
+                    fx->setEnabled(false);
+                    std::cerr << "[Renderer] Adaptive quality: disabled '"
+                              << fx->getName() << "' (frame time "
+                              << static_cast<int>(frameMs * 10) / 10.0 << "ms)" << std::endl;
+                    break;
+                }
+            }
+            highFrameTimeCount_ = 0;
+        }
+    }
+    else
+    {
+        highFrameTimeCount_ = 0;
+    }
+
     // Periodic log
     renderProfileAccum_ += frameMs;
     if (++renderProfileCount_ >= kRenderProfileInterval)

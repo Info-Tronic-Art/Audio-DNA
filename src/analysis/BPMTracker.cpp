@@ -4,8 +4,7 @@
 #include <cmath>
 
 BPMTracker::BPMTracker(int hopSize, int bufSize, int sampleRate)
-    : hopSize_(hopSize),
-      sampleRate_(sampleRate)
+    : hopSize_(hopSize)
 {
     tempo_ = new_aubio_tempo(
         "default",                              // method (only "default" supported)

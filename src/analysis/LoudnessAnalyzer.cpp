@@ -3,8 +3,7 @@
 #include <algorithm>
 
 LoudnessAnalyzer::LoudnessAnalyzer(int sampleRate)
-    : sampleRate_(sampleRate),
-      windowSize_(static_cast<int>(sampleRate * 0.4))  // 400ms window
+    : windowSize_(static_cast<int>(sampleRate * 0.4))  // 400ms window
 {
     // Pre-allocate circular buffer for sliding window
     windowBuffer_.resize(static_cast<size_t>(windowSize_), 0.0f);
