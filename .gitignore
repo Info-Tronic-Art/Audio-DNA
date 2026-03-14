@@ -53,3 +53,8 @@ desktop.ini
 *.swo
 *~
 *.log
+build-debug/
+/dist/
+*.dmg
+*.ogg
+VALIDATION_PROTOCOL.md

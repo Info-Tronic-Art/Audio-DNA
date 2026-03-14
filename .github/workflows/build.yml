@@ -14,16 +14,20 @@ jobs:
         include:
           - os: macos-14
             name: macOS ARM64
-            cmake_flags: -DCMAKE_BUILD_TYPE=Release
+            artifact_name: Audio-DNA-macOS-ARM64
+            artifact_path: build/AudioDNA_artefacts/Release/Audio-DNA.app
           - os: macos-13
             name: macOS x86_64
-            cmake_flags: -DCMAKE_BUILD_TYPE=Release
+            artifact_name: Audio-DNA-macOS-x86_64
+            artifact_path: build/AudioDNA_artefacts/Release/Audio-DNA.app
           - os: ubuntu-22.04
             name: Linux GCC
-            cmake_flags: -DCMAKE_BUILD_TYPE=Release
+            artifact_name: Audio-DNA-Linux
+            artifact_path: build/AudioDNA_artefacts/Release/Audio-DNA
           - os: windows-latest
             name: Windows MSVC
-            cmake_flags: -DCMAKE_BUILD_TYPE=Release
+            artifact_name: Audio-DNA-Windows
+            artifact_path: build/AudioDNA_artefacts/Release
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
@@ -61,10 +65,27 @@ jobs:
           echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" >> $env:GITHUB_ENV
 
       - name: Configure CMake
-        run: cmake -B build ${{ matrix.cmake_flags }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
       - name: Run Tests
         run: ctest --test-dir build --build-config Release --output-on-failure
+
+      - name: Bundle Aubio (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          APP="${{ matrix.artifact_path }}"
+          mkdir -p "$APP/Contents/Frameworks"
+          AUBIO=$(otool -L "$APP/Contents/MacOS/Audio-DNA" | grep aubio | awk '{print $1}')
+          cp "$AUBIO" "$APP/Contents/Frameworks/"
+          install_name_tool -change "$AUBIO" "@executable_path/../Frameworks/libaubio.5.dylib" "$APP/Contents/MacOS/Audio-DNA"
+          codesign --force --deep --sign - "$APP"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          retention-days: 30
