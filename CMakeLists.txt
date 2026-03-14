@@ -86,6 +86,12 @@ target_sources(AudioDNA PRIVATE
     src/render/TextureManager.h
     src/render/TextureManager.cpp
 
+    # Mapping
+    src/mapping/MappingTypes.h
+    src/mapping/CurveTransforms.h
+    src/mapping/MappingEngine.h
+    src/mapping/MappingEngine.cpp
+
     # Effects
     src/effects/Effect.h
     src/effects/Effect.cpp
