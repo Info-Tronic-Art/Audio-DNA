@@ -76,11 +76,13 @@ target_compile_definitions(test_integration_pipeline PRIVATE
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
-target_compile_options(test_integration_pipeline PRIVATE
-    -Wno-old-style-cast
-    -Wno-conversion
-    -Wno-sign-conversion
-)
+if(NOT MSVC)
+    target_compile_options(test_integration_pipeline PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
 catch_discover_tests(test_integration_pipeline)
 
 # --- test_mapping_engine ---
@@ -104,9 +106,11 @@ target_compile_definitions(test_mapping_engine PRIVATE
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
-target_compile_options(test_mapping_engine PRIVATE
-    -Wno-old-style-cast
-    -Wno-conversion
-    -Wno-sign-conversion
-)
+if(NOT MSVC)
+    target_compile_options(test_mapping_engine PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
 catch_discover_tests(test_mapping_engine)

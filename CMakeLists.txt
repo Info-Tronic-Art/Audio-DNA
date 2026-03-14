@@ -128,16 +128,24 @@ target_sources(AudioDNA PRIVATE
 
 target_include_directories(AudioDNA PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+# Camera support: macOS and Windows only (Linux lacks juce_video camera support)
+if(APPLE OR WIN32)
+    set(AUDIODNA_USE_CAMERA 1)
+else()
+    set(AUDIODNA_USE_CAMERA 0)
+endif()
+
 target_compile_definitions(AudioDNA PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
-    JUCE_USE_CAMERA=1
+    JUCE_USE_CAMERA=${AUDIODNA_USE_CAMERA}
+    AUDIODNA_HAS_CAMERA=${AUDIODNA_USE_CAMERA}
     JUCE_APPLICATION_NAME_STRING="$<TARGET_PROPERTY:AudioDNA,JUCE_PRODUCT_NAME>"
     JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:AudioDNA,JUCE_VERSION>"
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
 
-target_link_libraries(AudioDNA PRIVATE
+set(AUDIODNA_LIBS
     juce::juce_audio_basics
     juce::juce_audio_devices
     juce::juce_audio_formats
@@ -148,9 +156,12 @@ target_link_libraries(AudioDNA PRIVATE
     juce::juce_gui_basics
     juce::juce_gui_extra
     juce::juce_opengl
-    juce::juce_video
     Aubio::Aubio
 )
+if(AUDIODNA_USE_CAMERA)
+    list(APPEND AUDIODNA_LIBS juce::juce_video)
+endif()
+target_link_libraries(AudioDNA PRIVATE ${AUDIODNA_LIBS})
 
 set_project_warnings(AudioDNA)
 
@@ -158,9 +169,11 @@ set_project_warnings(AudioDNA)
 enable_testing()
 add_subdirectory(tests)
 
-# Suppress warnings in JUCE headers
-target_compile_options(AudioDNA PRIVATE
-    -Wno-old-style-cast
-    -Wno-conversion
-    -Wno-sign-conversion
-)
+# Suppress warnings in JUCE headers (GCC/Clang only)
+if(NOT MSVC)
+    target_compile_options(AudioDNA PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()

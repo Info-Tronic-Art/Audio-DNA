@@ -148,12 +148,15 @@ MainComponent::MainComponent()
     };
     setupLabel(viewportLabel_,    "Viewport");
     setupLabel(outputLabel_,     "Output");
+  #if AUDIODNA_HAS_CAMERA
     setupLabel(cameraLabel_,     "Camera");
+  #endif
     setupLabel(audioSourceLabel_, "Audio Source");
     setupLabel(inputGainLabel_,   "Gain");
     setupLabel(masterLevelLabel_, "Video Level");
     setupLabel(imageBeatLabel_,   "Beats per Image");
 
+  #if AUDIODNA_HAS_CAMERA
     // Camera input selector
     addAndMakeVisible(cameraSelector_);
     cameraSelector_.setTextWhenNothingSelected("Cam: Off");
@@ -165,6 +168,7 @@ MainComponent::MainComponent()
         else if (selected > 1)
             openCamera(selected - 2);
     };
+  #endif
 
     // Deck save/load
     addAndMakeVisible(deckSaveButton_);
@@ -375,7 +379,9 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+#if AUDIODNA_HAS_CAMERA
     closeCamera();
+#endif
     outputWindow_.reset();
     analysisThread_.stopThread(1000);
     setLookAndFeel(nullptr);
@@ -425,9 +431,11 @@ void MainComponent::resized()
     imageBeatLabel_.setBounds(row1.removeFromLeft(85));
     imageBeatSelector_.setBounds(row1.removeFromLeft(45));
     row1.removeFromLeft(6);
+  #if AUDIODNA_HAS_CAMERA
     cameraLabel_.setBounds(row1.removeFromLeft(42));
     cameraSelector_.setBounds(row1.removeFromLeft(100));
     row1.removeFromLeft(8);
+  #endif
     audioSourceLabel_.setBounds(row1.removeFromLeft(70));
     audioSourceSelector_.setBounds(row1.removeFromLeft(90));
     row1.removeFromLeft(6);
@@ -997,6 +1005,7 @@ void MainComponent::loadDeck()
     });
 }
 
+#if AUDIODNA_HAS_CAMERA
 void MainComponent::imageReceived(const juce::Image& image)
 {
     // Called from camera thread — queue frame for GL thread
@@ -1006,6 +1015,7 @@ void MainComponent::imageReceived(const juce::Image& image)
     if (outputWindow_)
         outputWindow_->getRenderer().queueCameraFrame(image);
 }
+#endif
 
 void MainComponent::openImageFolder()
 {
@@ -1084,6 +1094,7 @@ void MainComponent::advanceSlideshow()
     lastSlideshowBeatPhase_ = phase;
 }
 
+#if AUDIODNA_HAS_CAMERA
 void MainComponent::refreshCameraList()
 {
     cameraSelector_.clear(juce::dontSendNotification);
@@ -1134,6 +1145,7 @@ void MainComponent::closeCamera()
     }
     cameraActive_ = false;
 }
+#endif
 
 void MainComponent::randomizeAllEffects()
 {

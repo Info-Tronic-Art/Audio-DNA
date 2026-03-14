@@ -13,11 +13,15 @@
 #include "effects/EffectLibrary.h"
 #include "ui/PresetManager.h"
 #include "ui/OutputWindow.h"
-#include <juce_video/juce_video.h>
+#if AUDIODNA_HAS_CAMERA
+ #include <juce_video/juce_video.h>
+#endif
 
 class MainComponent : public juce::Component,
                       public juce::FileDragAndDropTarget,
+#if AUDIODNA_HAS_CAMERA
                       public juce::CameraDevice::Listener,
+#endif
                       private juce::Timer
 {
 public:
@@ -34,8 +38,10 @@ public:
     // Keyboard shortcuts
     bool keyPressed(const juce::KeyPress& key) override;
 
+#if AUDIODNA_HAS_CAMERA
     // CameraDevice::Listener
     void imageReceived(const juce::Image& image) override;
+#endif
 
 private:
     void openImage();
@@ -53,9 +59,11 @@ private:
     juce::File getFastSaveDir() const;
     void saveDeck();
     void loadDeck();
+#if AUDIODNA_HAS_CAMERA
     void openCamera(int deviceIndex);
     void closeCamera();
     void refreshCameraList();
+#endif
     void openImageFolder();
     void advanceSlideshow();
 
@@ -142,11 +150,13 @@ private:
     juce::Label inputGainLabel_;
     juce::Rectangle<int> inputLevelMeterBounds_;  // Drawn in paint()
 
+#if AUDIODNA_HAS_CAMERA
     // Camera input
     juce::Label cameraLabel_{"", "Camera"};
     juce::ComboBox cameraSelector_;
     std::unique_ptr<juce::CameraDevice> cameraDevice_;
     bool cameraActive_ = false;
+#endif
 
     std::unique_ptr<juce::FileChooser> fileChooser_;
 
