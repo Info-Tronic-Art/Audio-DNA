@@ -140,17 +140,44 @@ void OutputRenderer::openGLContextClosing()
 void OutputRenderer::initShaders()
 {
     auto compile = [&](const juce::String& name, const char* frag) {
-        if (shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, frag))
-            std::cerr << "[OutputRenderer]   " << name << ": OK" << std::endl;
-        else
-            std::cerr << "[OutputRenderer]   " << name << ": FAILED" << std::endl;
+        shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, frag);
     };
 
-    compile("passthrough", EmbeddedShaders::passthrough);
-    compile("ripple",      EmbeddedShaders::ripple);
-    compile("hue_shift",   EmbeddedShaders::hueShift);
-    compile("rgb_split",   EmbeddedShaders::rgbSplit);
-    compile("vignette",    EmbeddedShaders::vignette);
+    compile("passthrough",          EmbeddedShaders::passthrough);
+    compile("ripple",               EmbeddedShaders::ripple);
+    compile("bulge",                EmbeddedShaders::bulge);
+    compile("wave",                 EmbeddedShaders::wave);
+    compile("liquid",               EmbeddedShaders::liquid);
+    compile("kaleidoscope",         EmbeddedShaders::kaleidoscope);
+    compile("fisheye",              EmbeddedShaders::fisheye);
+    compile("swirl",                EmbeddedShaders::swirl);
+    compile("hue_shift",            EmbeddedShaders::hueShift);
+    compile("saturation",           EmbeddedShaders::saturation);
+    compile("brightness",           EmbeddedShaders::brightness);
+    compile("duotone",              EmbeddedShaders::duotone);
+    compile("chromatic_aberration", EmbeddedShaders::chromaticAberration);
+    compile("invert",               EmbeddedShaders::invert);
+    compile("posterize",            EmbeddedShaders::posterize);
+    compile("color_shift",          EmbeddedShaders::colorShift);
+    compile("thermal",              EmbeddedShaders::thermal);
+    compile("color_matrix",         EmbeddedShaders::colorMatrix);
+    compile("pixel_scatter",        EmbeddedShaders::pixelScatter);
+    compile("rgb_split",            EmbeddedShaders::rgbSplit);
+    compile("block_glitch",         EmbeddedShaders::blockGlitch);
+    compile("scanlines",            EmbeddedShaders::scanlines);
+    compile("digital_rain",         EmbeddedShaders::digitalRain);
+    compile("noise_overlay",        EmbeddedShaders::noiseOverlay);
+    compile("mirror",               EmbeddedShaders::mirror);
+    compile("pixelate",             EmbeddedShaders::pixelate);
+    compile("gaussian_blur",        EmbeddedShaders::gaussianBlur);
+    compile("zoom_blur",            EmbeddedShaders::zoomBlur);
+    compile("shake",                EmbeddedShaders::shake);
+    compile("vignette",             EmbeddedShaders::vignette);
+    compile("motion_blur",          EmbeddedShaders::motionBlur);
+    compile("glow",                 EmbeddedShaders::glow);
+    compile("edge_detect",          EmbeddedShaders::edgeDetect);
+
+    std::cerr << "[OutputRenderer] All shaders compiled." << std::endl;
 }
 
 // ============================================================

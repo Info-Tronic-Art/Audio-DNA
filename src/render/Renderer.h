@@ -8,6 +8,7 @@
 #include "effects/EffectChain.h"
 #include "effects/UniformBridge.h"
 #include "mapping/MappingEngine.h"
+#include "effects/EffectLibrary.h"
 #include "features/FeatureBus.h"
 #include <mutex>
 
@@ -52,6 +53,7 @@ public:
 private:
     void initShaders();
     void initEffectChain();
+    void compileAllShaders();
 
     juce::OpenGLContext glContext_;
     FeatureBus& featureBus_;

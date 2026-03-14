@@ -58,6 +58,15 @@ private:
         std::vector<std::unique_ptr<ParamKnob>> paramKnobs;
     };
 
+    // Category header label
+    struct CategoryHeader
+    {
+        juce::String category;
+        std::unique_ptr<juce::Label> label;
+    };
+
+    std::vector<std::unique_ptr<CategoryHeader>> categoryHeaders_;
+
     void rebuildUI();
     void openMappingEditor(int effectIndex, int paramIndex);
     void closeMappingEditor();

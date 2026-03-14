@@ -106,6 +106,84 @@ void EffectLibrary::registerDefaults()
         {"intensity", "u_vignette_int",  0.0f},
         {"softness",  "u_vignette_soft", 0.6f}
     }});
+
+    // === Additional Warp Effects ===
+
+    registerEffect({"Kaleidoscope", "warp", "kaleidoscope", {
+        {"segments", "u_kaleidoscope_segments", 0.3f},
+        {"rotation", "u_kaleidoscope_rotation", 0.0f}
+    }});
+
+    registerEffect({"Fisheye", "warp", "fisheye", {
+        {"amount", "u_fisheye_amount", 0.5f}
+    }});
+
+    registerEffect({"Swirl", "warp", "swirl", {
+        {"amount", "u_swirl_amount", 0.0f},
+        {"radius", "u_swirl_radius", 0.5f}
+    }});
+
+    // === Additional Color Effects ===
+
+    registerEffect({"Invert", "color", "invert", {
+        {"amount", "u_invert_amount", 0.0f}
+    }});
+
+    registerEffect({"Posterize", "color", "posterize", {
+        {"levels", "u_posterize_levels", 1.0f}
+    }});
+
+    registerEffect({"Color Shift", "color", "color_shift", {
+        {"red",   "u_color_shift_r", 0.5f},
+        {"green", "u_color_shift_g", 0.5f},
+        {"blue",  "u_color_shift_b", 0.5f}
+    }});
+
+    registerEffect({"Thermal", "color", "thermal", {
+        {"amount", "u_thermal_amount", 0.0f}
+    }});
+
+    registerEffect({"Contrast", "color", "color_matrix", {
+        {"contrast", "u_contrast",      0.5f},
+        {"balance",  "u_color_balance", 0.5f}
+    }});
+
+    // === Additional Glitch Effects ===
+
+    registerEffect({"Digital Rain", "glitch", "digital_rain", {
+        {"intensity", "u_rain_intensity", 0.0f},
+        {"speed",     "u_rain_speed",     0.5f}
+    }});
+
+    registerEffect({"Noise", "glitch", "noise_overlay", {
+        {"amount", "u_noise_amount", 0.0f},
+        {"speed",  "u_noise_speed",  0.5f}
+    }});
+
+    registerEffect({"Mirror", "glitch", "mirror", {
+        {"horizontal", "u_mirror_x", 0.0f},
+        {"vertical",   "u_mirror_y", 0.0f}
+    }});
+
+    registerEffect({"Pixelate", "glitch", "pixelate", {
+        {"size", "u_pixelate_size", 0.0f}
+    }});
+
+    // === Additional Blur/Post Effects ===
+
+    registerEffect({"Motion Blur", "blur", "motion_blur", {
+        {"amount", "u_motion_blur_amount", 0.0f},
+        {"angle",  "u_motion_blur_angle",  0.0f}
+    }});
+
+    registerEffect({"Glow", "blur", "glow", {
+        {"amount",    "u_glow_amount",    0.0f},
+        {"threshold", "u_glow_threshold", 0.5f}
+    }});
+
+    registerEffect({"Edge Detect", "blur", "edge_detect", {
+        {"amount", "u_edge_amount", 0.0f}
+    }});
 }
 
 std::unique_ptr<Effect> EffectLibrary::createEffect(const juce::String& name) const

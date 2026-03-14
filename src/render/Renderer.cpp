@@ -206,8 +206,11 @@ void Renderer::openGLContextClosing()
 
 void Renderer::initShaders()
 {
-    DBG("Renderer: compiling shaders...");
+    compileAllShaders();
+}
 
+void Renderer::compileAllShaders()
+{
     auto compile = [&](const juce::String& name, const char* frag) {
         if (shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, frag))
             std::cerr << "[Renderer]   " << name << ": OK" << std::endl;
@@ -215,117 +218,150 @@ void Renderer::initShaders()
             std::cerr << "[Renderer]   " << name << ": FAILED" << std::endl;
     };
 
-    compile("passthrough", EmbeddedShaders::passthrough);
-    compile("ripple",      EmbeddedShaders::ripple);
-    compile("hue_shift",   EmbeddedShaders::hueShift);
-    compile("rgb_split",   EmbeddedShaders::rgbSplit);
-    compile("vignette",    EmbeddedShaders::vignette);
+    // Core
+    compile("passthrough",          EmbeddedShaders::passthrough);
 
-    DBG("Renderer: shader compilation complete");
+    // Warp
+    compile("ripple",               EmbeddedShaders::ripple);
+    compile("bulge",                EmbeddedShaders::bulge);
+    compile("wave",                 EmbeddedShaders::wave);
+    compile("liquid",               EmbeddedShaders::liquid);
+    compile("kaleidoscope",         EmbeddedShaders::kaleidoscope);
+    compile("fisheye",              EmbeddedShaders::fisheye);
+    compile("swirl",                EmbeddedShaders::swirl);
+
+    // Color
+    compile("hue_shift",            EmbeddedShaders::hueShift);
+    compile("saturation",           EmbeddedShaders::saturation);
+    compile("brightness",           EmbeddedShaders::brightness);
+    compile("duotone",              EmbeddedShaders::duotone);
+    compile("chromatic_aberration", EmbeddedShaders::chromaticAberration);
+    compile("invert",               EmbeddedShaders::invert);
+    compile("posterize",            EmbeddedShaders::posterize);
+    compile("color_shift",          EmbeddedShaders::colorShift);
+    compile("thermal",              EmbeddedShaders::thermal);
+    compile("color_matrix",         EmbeddedShaders::colorMatrix);
+
+    // Glitch
+    compile("pixel_scatter",        EmbeddedShaders::pixelScatter);
+    compile("rgb_split",            EmbeddedShaders::rgbSplit);
+    compile("block_glitch",         EmbeddedShaders::blockGlitch);
+    compile("scanlines",            EmbeddedShaders::scanlines);
+    compile("digital_rain",         EmbeddedShaders::digitalRain);
+    compile("noise_overlay",        EmbeddedShaders::noiseOverlay);
+    compile("mirror",               EmbeddedShaders::mirror);
+    compile("pixelate",             EmbeddedShaders::pixelate);
+
+    // Blur/Post
+    compile("gaussian_blur",        EmbeddedShaders::gaussianBlur);
+    compile("zoom_blur",            EmbeddedShaders::zoomBlur);
+    compile("shake",                EmbeddedShaders::shake);
+    compile("vignette",             EmbeddedShaders::vignette);
+    compile("motion_blur",          EmbeddedShaders::motionBlur);
+    compile("glow",                 EmbeddedShaders::glow);
+    compile("edge_detect",          EmbeddedShaders::edgeDetect);
+
+    std::cerr << "[Renderer] All shaders compiled." << std::endl;
 }
 
 void Renderer::initEffectChain()
 {
-    // Create the 4 demo effects in chain order
-    auto ripple = std::make_unique<Effect>("Ripple", "warp", "ripple");
-    ripple->addParam("intensity", "u_ripple_intensity", 0.0f);
-    ripple->addParam("freq",      "u_ripple_freq",      0.5f);
-    ripple->addParam("speed",     "u_ripple_speed",     0.5f);
-    effectChain_.addEffect(std::move(ripple));
+    // Load ALL effects from the EffectLibrary, organized by category
+    // Effects are added in category order: warp, color, glitch, blur
+    EffectLibrary lib;
+    lib.registerDefaults();
 
-    auto hueShift = std::make_unique<Effect>("Hue Shift", "color", "hue_shift");
-    hueShift->addParam("amount", "u_hue_shift", 0.0f);
-    effectChain_.addEffect(std::move(hueShift));
+    static const juce::String categoryOrder[] = {"warp", "color", "glitch", "blur"};
 
-    auto rgbSplit = std::make_unique<Effect>("RGB Split", "glitch", "rgb_split");
-    rgbSplit->addParam("amount", "u_rgb_split", 0.0f);
-    rgbSplit->addParam("angle",  "u_rgb_angle", 0.0f);
-    effectChain_.addEffect(std::move(rgbSplit));
+    for (const auto& cat : categoryOrder)
+    {
+        auto names = lib.getEffectsByCategory(cat);
+        for (const auto& name : names)
+        {
+            auto effect = lib.createEffect(name);
+            if (effect)
+            {
+                // Start all effects disabled — user enables what they want
+                effect->setEnabled(false);
+                effectChain_.addEffect(std::move(effect));
+            }
+        }
+    }
 
-    auto vignette = std::make_unique<Effect>("Vignette", "blur", "vignette");
-    vignette->addParam("intensity", "u_vignette_int",  0.0f);
-    vignette->addParam("softness",  "u_vignette_soft", 0.6f);
-    effectChain_.addEffect(std::move(vignette));
+    std::cerr << "[Renderer] Loaded " << effectChain_.getNumEffects()
+              << " effects from library." << std::endl;
 
-    // Set up demo mappings that replicate the old hardcoded UniformBridge behavior:
-    //   RMS → Ripple intensity
-    //   SpectralCentroid → Hue Shift amount
-    //   OnsetStrength → RGB Split amount
-    //   BandBass → Vignette intensity
-
+    // Set up a few demo mappings on common effects
     mappingEngine_.clearAll();
 
-    // RMS → Ripple intensity (effect 0, param 0)
+    // Find effect indices by name
+    auto findEffect = [this](const juce::String& name) -> int {
+        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+        {
+            auto* fx = effectChain_.getEffect(i);
+            if (fx && fx->getName() == name)
+                return i;
+        }
+        return -1;
+    };
+
+    int rippleIdx   = findEffect("Ripple");
+    int hueIdx      = findEffect("Hue Shift");
+    int rgbIdx      = findEffect("RGB Split");
+    int vignetteIdx = findEffect("Vignette");
+
+    // Enable the 4 demo effects
+    if (rippleIdx >= 0)   effectChain_.getEffect(rippleIdx)->setEnabled(true);
+    if (hueIdx >= 0)      effectChain_.getEffect(hueIdx)->setEnabled(true);
+    if (rgbIdx >= 0)      effectChain_.getEffect(rgbIdx)->setEnabled(true);
+    if (vignetteIdx >= 0) effectChain_.getEffect(vignetteIdx)->setEnabled(true);
+
+    // RMS → Ripple intensity
+    if (rippleIdx >= 0)
     {
         Mapping m;
         m.source = MappingSource::RMS;
-        m.targetEffectId = 0;
+        m.targetEffectId = static_cast<uint32_t>(rippleIdx);
         m.targetParamIndex = 0;
         m.curve = MappingCurve::Linear;
-        m.inputMin = 0.0f;
-        m.inputMax = 1.0f;
-        m.outputMin = 0.0f;
-        m.outputMax = 1.0f;
         m.smoothing = 0.15f;
         mappingEngine_.addMapping(m);
     }
 
-    // Bass → Ripple freq (effect 0, param 1)
-    {
-        Mapping m;
-        m.source = MappingSource::BandBass;
-        m.targetEffectId = 0;
-        m.targetParamIndex = 1;
-        m.curve = MappingCurve::Linear;
-        m.inputMin = 0.0f;
-        m.inputMax = 1.0f;
-        m.outputMin = 0.0f;
-        m.outputMax = 1.0f;
-        m.smoothing = 0.15f;
-        mappingEngine_.addMapping(m);
-    }
-
-    // SpectralCentroid → Hue Shift amount (effect 1, param 0)
+    // SpectralCentroid → Hue Shift
+    if (hueIdx >= 0)
     {
         Mapping m;
         m.source = MappingSource::SpectralCentroid;
-        m.targetEffectId = 1;
+        m.targetEffectId = static_cast<uint32_t>(hueIdx);
         m.targetParamIndex = 0;
         m.curve = MappingCurve::Linear;
         m.inputMin = 200.0f;
         m.inputMax = 8000.0f;
-        m.outputMin = 0.0f;
-        m.outputMax = 1.0f;
         m.smoothing = 0.15f;
         mappingEngine_.addMapping(m);
     }
 
-    // OnsetStrength → RGB Split amount (effect 2, param 0)
+    // OnsetStrength → RGB Split
+    if (rgbIdx >= 0)
     {
         Mapping m;
         m.source = MappingSource::OnsetStrength;
-        m.targetEffectId = 2;
+        m.targetEffectId = static_cast<uint32_t>(rgbIdx);
         m.targetParamIndex = 0;
         m.curve = MappingCurve::Linear;
-        m.inputMin = 0.0f;
-        m.inputMax = 1.0f;
-        m.outputMin = 0.0f;
-        m.outputMax = 1.0f;
         m.smoothing = 0.3f;
         mappingEngine_.addMapping(m);
     }
 
-    // BandBass → Vignette intensity (effect 3, param 0)
+    // BandBass → Vignette intensity
+    if (vignetteIdx >= 0)
     {
         Mapping m;
         m.source = MappingSource::BandBass;
-        m.targetEffectId = 3;
+        m.targetEffectId = static_cast<uint32_t>(vignetteIdx);
         m.targetParamIndex = 0;
         m.curve = MappingCurve::Linear;
-        m.inputMin = 0.0f;
-        m.inputMax = 1.0f;
-        m.outputMin = 0.0f;
-        m.outputMax = 1.0f;
         m.smoothing = 0.15f;
         mappingEngine_.addMapping(m);
     }

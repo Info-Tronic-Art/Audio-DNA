@@ -1,5 +1,6 @@
 #include "EffectsRackPanel.h"
 #include "ui/LookAndFeel.h"
+#include <map>
 
 EffectsRackPanel::EffectsRackPanel(MappingEngine& mappingEngine,
                                    EffectChain& effectChain,
@@ -44,14 +45,21 @@ void EffectsRackPanel::resized()
 
     // Calculate content height
     int contentHeight = 0;
+    juce::String lastCat;
     for (const auto& section : sections_)
     {
-        contentHeight += 24; // Effect header row
+        auto* effect = effectChain_.getEffect(section->effectIndex);
+        if (effect && effect->getCategory() != lastCat)
+        {
+            lastCat = effect->getCategory();
+            contentHeight += 20; // Category header
+        }
+
+        contentHeight += 22; // Effect header row
         if (section->enableToggle->getToggleState())
         {
             int numParams = static_cast<int>(section->paramKnobs.size());
             int knobRows = (numParams + knobsPerRow - 1) / knobsPerRow;
-            // Each knob row: knob height + map button height
             contentHeight += knobRows * (Knob::kPreferredHeight + 18);
         }
         contentHeight += sectionSpacing;
@@ -60,13 +68,27 @@ void EffectsRackPanel::resized()
     contentHeight = std::max(contentHeight, area.getHeight());
     contentComponent_.setSize(contentWidth, contentHeight);
 
-    // Layout sections
+    // Layout sections with category headers
     auto contentArea = contentComponent_.getLocalBounds().reduced(2, 0);
+    lastCat = {};
+    int headerIdx = 0;
     for (const auto& section : sections_)
     {
+        auto* effect = effectChain_.getEffect(section->effectIndex);
+        if (effect && effect->getCategory() != lastCat)
+        {
+            lastCat = effect->getCategory();
+            if (headerIdx < static_cast<int>(categoryHeaders_.size()))
+            {
+                auto headerRow = contentArea.removeFromTop(20);
+                categoryHeaders_[static_cast<size_t>(headerIdx)]->label->setBounds(headerRow.reduced(4, 0));
+                ++headerIdx;
+            }
+        }
+
         // Header row: toggle + name
-        auto headerRow = contentArea.removeFromTop(24);
-        section->enableToggle->setBounds(headerRow.removeFromLeft(24));
+        auto headerRow = contentArea.removeFromTop(22);
+        section->enableToggle->setBounds(headerRow.removeFromLeft(22));
         section->nameLabel->setBounds(headerRow);
 
         // Parameter knobs in grid (only if enabled)
@@ -186,14 +208,52 @@ void EffectsRackPanel::rebuildUI()
     // Clear existing sections
     closeMappingEditor();
     sections_.clear();
+    categoryHeaders_.clear();
     contentComponent_.removeAllChildren();
 
+    // Category colors
+    static const std::map<juce::String, juce::uint32> categoryColors = {
+        {"warp",  0xffff6b9d},  // Pink
+        {"color", 0xff4ecdc4},  // Teal
+        {"glitch", 0xffffe66d}, // Yellow
+        {"blur",  0xff95e1d3},  // Mint
+    };
+
+    static const std::map<juce::String, juce::String> categoryLabels = {
+        {"warp",  "WARP"},
+        {"color", "COLOR"},
+        {"glitch", "GLITCH"},
+        {"blur",  "BLUR / POST"},
+    };
+
+    juce::String lastCategory;
     int numEffects = effectChain_.getNumEffects();
     for (int ei = 0; ei < numEffects; ++ei)
     {
         auto* effect = effectChain_.getEffect(ei);
         if (effect == nullptr)
             continue;
+
+        // Insert category header when category changes
+        if (effect->getCategory() != lastCategory)
+        {
+            lastCategory = effect->getCategory();
+            auto header = std::make_unique<CategoryHeader>();
+            header->category = lastCategory;
+            header->label = std::make_unique<juce::Label>();
+
+            auto labelIt = categoryLabels.find(lastCategory);
+            header->label->setText(labelIt != categoryLabels.end() ? labelIt->second : lastCategory.toUpperCase(),
+                                   juce::dontSendNotification);
+            header->label->setFont(juce::Font(juce::FontOptions(11.0f).withStyle("Bold")));
+
+            auto colorIt = categoryColors.find(lastCategory);
+            juce::uint32 col = (colorIt != categoryColors.end()) ? colorIt->second : AudioDNALookAndFeel::kAccentCyan;
+            header->label->setColour(juce::Label::textColourId, juce::Colour(col));
+
+            contentComponent_.addAndMakeVisible(header->label.get());
+            categoryHeaders_.push_back(std::move(header));
+        }
 
         auto section = std::make_unique<EffectSection>();
         section->effectIndex = ei;
