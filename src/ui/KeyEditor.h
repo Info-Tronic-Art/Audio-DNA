@@ -4,9 +4,9 @@
 #include "keyboard/KeySlot.h"
 #include "effects/EffectLibrary.h"
 
-// KeyEditor: panel for configuring a single keyboard slot.
-// Shows media selector, transparency controls, effects list,
-// and playback behavior settings. Opens when a key is clicked.
+// KeyEditor: full-height panel for configuring a keyboard slot.
+// Layout: left column (media/keying/playback), center (scrollable effects),
+// right (image preview with background selector).
 class KeyEditor : public juce::Component
 {
 public:
@@ -19,14 +19,12 @@ public:
     void resized() override;
     bool keyPressed(const juce::KeyPress& key) override;
 
-    // Callback to request an image file chooser
     std::function<void(KeySlot& key)> onRequestImage;
-    // Callback when editor is closed
     std::function<void()> onClose;
 
 private:
     void refreshFromKey();
-    void applyToKey();
+    void updatePreviewImage();
 
     EffectLibrary& effectLibrary_;
     KeySlot* currentKey_ = nullptr;
@@ -35,29 +33,11 @@ private:
     juce::Label titleLabel_;
     juce::TextButton closeButton_{"X"};
 
-    // Image preview with background selector
-    class PreviewComponent : public juce::Component
-    {
-    public:
-        enum Background { Black, Grey, White, Checker };
-        Background bg = Checker;
-        juce::Image previewImage;
-
-        void paint(juce::Graphics& g) override;
-    };
-    PreviewComponent preview_;
-    juce::TextButton bgBlackBtn_{"B"};
-    juce::TextButton bgGreyBtn_{"G"};
-    juce::TextButton bgWhiteBtn_{"W"};
-    juce::TextButton bgCheckerBtn_{"C"};
-    void updatePreviewImage();
-
-    // Media section
+    // === Left column: Media + Keying + Playback ===
     juce::TextButton openImageBtn_{"Open Image"};
     juce::TextButton clearMediaBtn_{"Clear"};
     juce::Label mediaInfoLabel_;
 
-    // Keying + Blend section
     juce::Label keyingLabel_{"", "Keying"};
     juce::ComboBox keyingModeSelector_;
     juce::Label blendLabel_{"", "Blend"};
@@ -68,48 +48,16 @@ private:
     juce::Label thresholdLabel_{"", "Threshold"};
     juce::Slider softnessSlider_;
     juce::Label softnessLabel_{"", "Softness"};
-    // Chroma key color swatch — click to open color picker
+
     class ColorSwatch : public juce::Component, public juce::ChangeListener
     {
     public:
         juce::Colour colour{0, 255, 0};
         std::function<void(juce::Colour)> onColourChanged;
-
-        void paint(juce::Graphics& g) override
-        {
-            auto b = getLocalBounds().toFloat().reduced(1.0f);
-            g.setColour(colour);
-            g.fillRoundedRectangle(b, 3.0f);
-            g.setColour(juce::Colours::white.withAlpha(0.5f));
-            g.drawRoundedRectangle(b, 3.0f, 1.0f);
-        }
-
-        void mouseDown(const juce::MouseEvent&) override
-        {
-            auto* cs = new juce::ColourSelector(
-                juce::ColourSelector::showColourAtTop
-                | juce::ColourSelector::showSliders
-                | juce::ColourSelector::showColourspace);
-            cs->setSize(300, 300);
-            cs->setCurrentColour(colour);
-            cs->addChangeListener(this);
-            juce::CallOutBox::launchAsynchronously(
-                std::unique_ptr<juce::Component>(cs),
-                getScreenBounds(), nullptr);
-        }
-
-        void changeListenerCallback(juce::ChangeBroadcaster* source) override
-        {
-            if (auto* cs = dynamic_cast<juce::ColourSelector*>(source))
-            {
-                colour = cs->getCurrentColour();
-                repaint();
-                if (onColourChanged)
-                    onColourChanged(colour);
-            }
-        }
+        void paint(juce::Graphics& g) override;
+        void mouseDown(const juce::MouseEvent&) override;
+        void changeListenerCallback(juce::ChangeBroadcaster* source) override;
     };
-
     ColorSwatch chromaColorSwatch_;
     juce::Label chromaColorLabel_{"", "Key Color"};
     juce::Slider chromaToleranceSlider_;
@@ -117,20 +65,28 @@ private:
     juce::Slider chromaSoftnessSlider_;
     juce::Label chromaSoftnessLabel_{"", "Softness"};
 
-    // Playback section
     juce::Label playbackLabel_{"", "Playback"};
     juce::ToggleButton latchToggle_{"Latch"};
     juce::ToggleButton ignoreRandomToggle_{"Ignore Random"};
+    juce::Label randomBeatLabel1_{"", "Override Global"};
+    juce::Label randomBeatLabel2_{"", "Random Beats"};
     juce::ComboBox randomBeatSelector_;
-    juce::Label randomBeatLabel_{"", "Random Beats"};
 
-    // Effects section
+    // === Center column: Effects (scrollable) ===
     juce::Label effectsLabel_{"", "Effects"};
     juce::ComboBox addEffectSelector_;
-    juce::TextButton addEffectBtn_{"+ Add"};
-    juce::TextButton clearEffectsBtn_{"Clear FX"};
+    juce::TextButton clearEffectsBtn_{"Clear All Effects"};
 
-    // Effects list display with parameter sliders
+    // Scrollable effects content
+    class EffectsContent : public juce::Component
+    {
+    public:
+        int getRequiredHeight() const { return requiredHeight_; }
+        int requiredHeight_ = 0;
+    };
+    EffectsContent effectsContent_;
+    juce::Viewport effectsViewport_;
+
     struct EffectRow
     {
         std::unique_ptr<juce::ToggleButton> enableBtn;
@@ -145,4 +101,20 @@ private:
     };
     std::vector<EffectRow> effectRows_;
     void rebuildEffectRows();
+    void layoutEffectsContent();
+
+    // === Right column: Preview ===
+    class PreviewComponent : public juce::Component
+    {
+    public:
+        enum Background { Black, Grey, White, Checker };
+        Background bg = Checker;
+        juce::Image previewImage;
+        void paint(juce::Graphics& g) override;
+    };
+    PreviewComponent preview_;
+    juce::TextButton bgBlackBtn_{"B"};
+    juce::TextButton bgGreyBtn_{"G"};
+    juce::TextButton bgWhiteBtn_{"W"};
+    juce::TextButton bgCheckerBtn_{"C"};
 };

@@ -49,9 +49,16 @@ public:
     {
         juce::File audioFile;
         juce::File imageFile;
-        // Slot assignments: file paths for each of the 10 preset slots
+        juce::File imageFolderPath;
+        int slideshowBeatsPerImage = 8;
+        int beatRandomCount = 4;
+        bool beatRandomEnabled = false;
+        int audioSourceMode = 0;  // 0=mic, 1=file, 2=system
+        int viewportResolution = 0; // combo box ID
+        int outputDisplay = 0;
+        // Slot assignments
         juce::StringArray slotFiles;
-        // Keyboard layout: serialized key data (40 keys)
+        // Keyboard layout
         juce::Array<juce::var> keyboardKeys;
     };
 

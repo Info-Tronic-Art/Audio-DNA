@@ -274,6 +274,13 @@ bool PresetManager::saveDeck(const juce::File& file,
     deckObj->setProperty("type", "deck");
     deckObj->setProperty("audioFile", deck.audioFile.getFullPathName());
     deckObj->setProperty("imageFile", deck.imageFile.getFullPathName());
+    deckObj->setProperty("imageFolderPath", deck.imageFolderPath.getFullPathName());
+    deckObj->setProperty("slideshowBeatsPerImage", deck.slideshowBeatsPerImage);
+    deckObj->setProperty("beatRandomCount", deck.beatRandomCount);
+    deckObj->setProperty("beatRandomEnabled", deck.beatRandomEnabled);
+    deckObj->setProperty("audioSourceMode", deck.audioSourceMode);
+    deckObj->setProperty("viewportResolution", deck.viewportResolution);
+    deckObj->setProperty("outputDisplay", deck.outputDisplay);
 
     // Slot assignments
     juce::Array<juce::var> slotsArray;
@@ -310,6 +317,13 @@ bool PresetManager::loadDeck(const juce::File& file,
 
     deck.audioFile = juce::File(obj->getProperty("audioFile").toString());
     deck.imageFile = juce::File(obj->getProperty("imageFile").toString());
+    deck.imageFolderPath = juce::File(obj->getProperty("imageFolderPath").toString());
+    deck.slideshowBeatsPerImage = static_cast<int>(obj->getProperty("slideshowBeatsPerImage"));
+    deck.beatRandomCount = static_cast<int>(obj->getProperty("beatRandomCount"));
+    deck.beatRandomEnabled = static_cast<bool>(obj->getProperty("beatRandomEnabled"));
+    deck.audioSourceMode = static_cast<int>(obj->getProperty("audioSourceMode"));
+    deck.viewportResolution = static_cast<int>(obj->getProperty("viewportResolution"));
+    deck.outputDisplay = static_cast<int>(obj->getProperty("outputDisplay"));
 
     // Slot assignments
     deck.slotFiles.clear();

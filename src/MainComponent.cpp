@@ -630,11 +630,11 @@ void MainComponent::resized()
 
     previewPanel_.setBounds(area); // GL preview takes remaining space
 
-    // Key Editor overlay — positioned above keyboard panel or at bottom
+    // Key Editor overlay — 3/4 of screen height, full width
     if (showKeyEditor_ && keyEditor_)
     {
-        int editorHeight = 280;
         auto editorBounds = getLocalBounds().reduced(8);
+        int editorHeight = static_cast<int>(editorBounds.getHeight() * 0.75f);
         editorBounds = editorBounds.removeFromBottom(editorHeight);
         keyEditor_->setBounds(editorBounds);
         keyEditor_->toFront(true);
@@ -1122,6 +1122,14 @@ void MainComponent::saveDeck()
         PresetManager::DeckState deck;
         deck.audioFile = currentAudioFile_;
         deck.imageFile = currentImageFile_;
+        if (!slideshowImages_.isEmpty())
+            deck.imageFolderPath = slideshowImages_[0].getParentDirectory();
+        deck.slideshowBeatsPerImage = slideshowBeats_;
+        deck.beatRandomCount = beatRandomCount_;
+        deck.beatRandomEnabled = beatRandomToggle_.getToggleState();
+        deck.audioSourceMode = audioSourceSelector_.getSelectedId();
+        deck.viewportResolution = resolutionSelector_.getSelectedId();
+        deck.outputDisplay = displaySelector_.getSelectedId();
 
         // Collect slot assignments
         for (int i = 0; i < kNumSlots; ++i)
@@ -1167,6 +1175,27 @@ void MainComponent::loadDeck()
             fileLabel_.setText("Failed to load deck", juce::dontSendNotification);
             return;
         }
+
+        // Restore settings
+        slideshowBeats_ = deck.slideshowBeatsPerImage > 0 ? deck.slideshowBeatsPerImage : 8;
+        beatRandomCount_ = deck.beatRandomCount > 0 ? deck.beatRandomCount : 4;
+        beatRandomToggle_.setToggleState(deck.beatRandomEnabled, juce::dontSendNotification);
+
+        // Restore image folder slideshow
+        if (deck.imageFolderPath.isDirectory())
+        {
+            slideshowImages_.clear();
+            for (const auto& f : deck.imageFolderPath.findChildFiles(
+                juce::File::findFiles, false, "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tiff"))
+                slideshowImages_.add(f);
+            slideshowImages_.sort();
+            slideshowIndex_ = 0;
+            slideshowBeatCounter_ = 0;
+        }
+
+        // Restore UI selectors
+        if (deck.viewportResolution > 0)
+            resolutionSelector_.setSelectedId(deck.viewportResolution, juce::dontSendNotification);
 
         // Load audio
         if (deck.audioFile.existsAsFile())
@@ -1496,9 +1525,11 @@ void MainComponent::beatSyncRandomize()
         {
             key.beatsSinceActivation++;
 
-            int releaseAfter = key.activatedByRandom
-                ? key.randomBeatDuration
-                : key.latchBeatDuration;
+            int releaseAfter;
+            if (key.activatedByRandom)
+                releaseAfter = (key.randomBeatDuration > 0) ? key.randomBeatDuration : beatRandomCount_;
+            else
+                releaseAfter = key.latchBeatDuration;
 
             if (key.beatsSinceActivation >= releaseAfter)
             {
