@@ -96,6 +96,7 @@ struct KeySlot
     int activationOrder = 0;            // For stacking (lower = bottom, higher = top)
     int beatsSinceActivation = 0;       // For auto-release countdown
     bool activatedByRandom = false;     // Was this key activated by random mode?
+    bool shiftLatched = false;          // Activated via shift+click (holds until shift+click again)
 
     // === Helpers ===
     bool hasMedia() const { return mediaType != MediaType::None; }
@@ -132,6 +133,7 @@ struct KeySlot
         activationOrder = 0;
         beatsSinceActivation = 0;
         activatedByRandom = false;
+        shiftLatched = false;
     }
 };
 

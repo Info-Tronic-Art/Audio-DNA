@@ -723,9 +723,14 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
 {
     auto mod = key.getModifiers();
 
-    // Escape = close output window
+    // Escape = close key editor first, then output window
     if (key.isKeyCode(juce::KeyPress::escapeKey))
     {
+        if (showKeyEditor_)
+        {
+            closeKeyEditor();
+            return true;
+        }
         if (outputWindow_ && outputWindow_->isVisible())
         {
             closeOutput();
@@ -776,7 +781,15 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
             auto* slot = keyboardLayout_.findByChar(c);
             if (slot && !slot->isEmpty())
             {
-                keyboardLayout_.toggleKey(*slot);
+                if (slot->active)
+                {
+                    keyboardLayout_.deactivateKey(*slot);
+                }
+                else
+                {
+                    keyboardLayout_.activateKey(*slot);
+                    slot->shiftLatched = true;
+                }
                 if (keyboardPanel_)
                 {
                     if (slot->active)
@@ -804,7 +817,7 @@ bool MainComponent::keyStateChanged(bool /*isKeyDown*/)
     // Check all launcher keys for release
     for (auto& key : keyboardLayout_.keys)
     {
-        if (!key.active || key.latched)
+        if (!key.active || key.latched || key.shiftLatched)
             continue;
 
         // Check if the physical key is still held

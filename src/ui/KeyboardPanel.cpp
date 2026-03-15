@@ -64,32 +64,38 @@ void KeyboardPanel::KeyButton::paint(juce::Graphics& g)
     g.setColour(bgColor);
     g.fillRoundedRectangle(bounds, 4.0f);
 
-    // Draw thumbnail if available
+    // Draw thumbnail — zoom to fill 90% of key area (crop, don't letterbox)
     if (thumbnail_.isValid())
     {
-        auto imgArea = bounds.reduced(2.0f);
+        auto imgArea = bounds.reduced(bounds.getWidth() * 0.05f, bounds.getHeight() * 0.05f);
         float imgAspect = static_cast<float>(thumbnail_.getWidth()) /
                           static_cast<float>(thumbnail_.getHeight());
         float areaAspect = imgArea.getWidth() / imgArea.getHeight();
 
-        float drawW, drawH;
+        // Zoom to fill: use the LARGER scale factor so image covers the area
+        int srcX, srcY, srcW, srcH;
         if (imgAspect > areaAspect)
         {
-            drawW = imgArea.getWidth();
-            drawH = drawW / imgAspect;
+            // Image is wider — crop sides
+            srcH = thumbnail_.getHeight();
+            srcW = static_cast<int>(static_cast<float>(srcH) * areaAspect);
+            srcX = (thumbnail_.getWidth() - srcW) / 2;
+            srcY = 0;
         }
         else
         {
-            drawH = imgArea.getHeight();
-            drawW = drawH * imgAspect;
+            // Image is taller — crop top/bottom
+            srcW = thumbnail_.getWidth();
+            srcH = static_cast<int>(static_cast<float>(srcW) / areaAspect);
+            srcX = 0;
+            srcY = (thumbnail_.getHeight() - srcH) / 2;
         }
-        float drawX = imgArea.getX() + (imgArea.getWidth() - drawW) * 0.5f;
-        float drawY = imgArea.getY() + (imgArea.getHeight() - drawH) * 0.5f;
 
-        g.setOpacity(slot_.active ? 1.0f : 0.6f);
+        g.setOpacity(slot_.active ? 1.0f : 0.5f);
         g.drawImage(thumbnail_,
-                     drawX, drawY, drawW, drawH,
-                     0, 0, thumbnail_.getWidth(), thumbnail_.getHeight());
+                     static_cast<int>(imgArea.getX()), static_cast<int>(imgArea.getY()),
+                     static_cast<int>(imgArea.getWidth()), static_cast<int>(imgArea.getHeight()),
+                     srcX, srcY, srcW, srcH);
         g.setOpacity(1.0f);
     }
 
@@ -159,7 +165,15 @@ void KeyboardPanel::KeyButton::mouseDown(const juce::MouseEvent& e)
     // Shift+click = latch toggle (even if latch checkbox is off)
     if (e.mods.isShiftDown())
     {
-        parent_.layout_.toggleKey(slot_);
+        if (slot_.active)
+        {
+            parent_.layout_.deactivateKey(slot_);
+        }
+        else
+        {
+            parent_.layout_.activateKey(slot_);
+            slot_.shiftLatched = true;
+        }
         repaint();
         return;
     }

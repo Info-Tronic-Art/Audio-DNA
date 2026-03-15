@@ -136,6 +136,7 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         {
             currentKey_->keyingMode =
                 static_cast<KeySlot::KeyingMode>(keyingModeSelector_.getSelectedId() - 1);
+            updatePreviewImage();
             resized();
         }
     };
@@ -196,17 +197,17 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
 
     setupSlider(opacitySlider_, opacityLabel_, "Opacity", 0.0f, 1.0f, 1.0f);
     opacitySlider_.onValueChange = [this] {
-        if (currentKey_) currentKey_->opacity = static_cast<float>(opacitySlider_.getValue());
+        if (currentKey_) { currentKey_->opacity = static_cast<float>(opacitySlider_.getValue()); updatePreviewImage(); }
     };
 
     setupSlider(thresholdSlider_, thresholdLabel_, "Threshold", 0.0f, 1.0f, 0.1f);
     thresholdSlider_.onValueChange = [this] {
-        if (currentKey_) currentKey_->keyThreshold = static_cast<float>(thresholdSlider_.getValue());
+        if (currentKey_) { currentKey_->keyThreshold = static_cast<float>(thresholdSlider_.getValue()); updatePreviewImage(); }
     };
 
     setupSlider(softnessSlider_, softnessLabel_, "Softness", 0.0f, 0.5f, 0.1f);
     softnessSlider_.onValueChange = [this] {
-        if (currentKey_) currentKey_->keySoftness = static_cast<float>(softnessSlider_.getValue());
+        if (currentKey_) { currentKey_->keySoftness = static_cast<float>(softnessSlider_.getValue()); updatePreviewImage(); }
     };
 
     // Chroma key color swatch — click to open color picker popup
@@ -220,16 +221,17 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         currentKey_->chromaKeyR = col.getFloatRed();
         currentKey_->chromaKeyG = col.getFloatGreen();
         currentKey_->chromaKeyB = col.getFloatBlue();
+        updatePreviewImage();
     };
 
     setupSlider(chromaToleranceSlider_, chromaToleranceLabel_, "Tolerance", 0.0f, 1.0f, 0.2f);
     chromaToleranceSlider_.onValueChange = [this] {
-        if (currentKey_) currentKey_->chromaKeyTolerance = static_cast<float>(chromaToleranceSlider_.getValue());
+        if (currentKey_) { currentKey_->chromaKeyTolerance = static_cast<float>(chromaToleranceSlider_.getValue()); updatePreviewImage(); }
     };
 
     setupSlider(chromaSoftnessSlider_, chromaSoftnessLabel_, "Softness", 0.0f, 0.5f, 0.1f);
     chromaSoftnessSlider_.onValueChange = [this] {
-        if (currentKey_) currentKey_->chromaKeySoftness = static_cast<float>(chromaSoftnessSlider_.getValue());
+        if (currentKey_) { currentKey_->chromaKeySoftness = static_cast<float>(chromaSoftnessSlider_.getValue()); updatePreviewImage(); }
     };
 
     // Playback
@@ -349,7 +351,107 @@ void KeyEditor::updatePreviewImage()
         return;
     }
 
-    preview_.previewImage = juce::ImageFileFormat::loadFrom(currentKey_->mediaFile);
+    auto src = juce::ImageFileFormat::loadFrom(currentKey_->mediaFile);
+    if (!src.isValid())
+    {
+        preview_.previewImage = juce::Image();
+        preview_.repaint();
+        return;
+    }
+
+    // Apply keying mode in software to show transparency in preview
+    auto img = src.convertedToFormat(juce::Image::ARGB);
+    juce::Image::BitmapData bmp(img, juce::Image::BitmapData::readWrite);
+
+    for (int y = 0; y < img.getHeight(); ++y)
+    {
+        for (int x = 0; x < img.getWidth(); ++x)
+        {
+            auto pixel = bmp.getPixelColour(x, y);
+            float r = pixel.getFloatRed();
+            float g = pixel.getFloatGreen();
+            float b = pixel.getFloatBlue();
+            float luma = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+            float alpha = 1.0f;
+
+            switch (currentKey_->keyingMode)
+            {
+                case KeySlot::KeyingMode::Alpha:
+                    alpha = pixel.getFloatAlpha();
+                    break;
+                case KeySlot::KeyingMode::LumaKey:
+                {
+                    float t = currentKey_->keyThreshold;
+                    float s = currentKey_->keySoftness;
+                    alpha = std::clamp((luma - (t - s)) / (2.0f * s + 0.001f), 0.0f, 1.0f);
+                    break;
+                }
+                case KeySlot::KeyingMode::InvertedLumaKey:
+                {
+                    float t = currentKey_->keyThreshold;
+                    float s = currentKey_->keySoftness;
+                    alpha = 1.0f - std::clamp((luma - (t - s)) / (2.0f * s + 0.001f), 0.0f, 1.0f);
+                    break;
+                }
+                case KeySlot::KeyingMode::LumaIsAlpha:
+                    alpha = luma;
+                    break;
+                case KeySlot::KeyingMode::InvertedLumaIsAlpha:
+                    alpha = 1.0f - luma;
+                    break;
+                case KeySlot::KeyingMode::ChromaKey:
+                {
+                    float dr = r - currentKey_->chromaKeyR;
+                    float dg = g - currentKey_->chromaKeyG;
+                    float db = b - currentKey_->chromaKeyB;
+                    float dist = std::sqrt(dr * dr + dg * dg + db * db);
+                    float t = currentKey_->chromaKeyTolerance;
+                    float s = currentKey_->chromaKeySoftness;
+                    alpha = std::clamp((dist - (t - s)) / (2.0f * s + 0.001f), 0.0f, 1.0f);
+                    break;
+                }
+                case KeySlot::KeyingMode::MaxRGB:
+                    alpha = std::max(r, std::max(g, b));
+                    break;
+                case KeySlot::KeyingMode::SaturationKey:
+                {
+                    float sat = std::max(r, std::max(g, b)) - std::min(r, std::min(g, b));
+                    float t = currentKey_->keyThreshold;
+                    float s = currentKey_->keySoftness;
+                    alpha = std::clamp((sat - (t - s)) / (2.0f * s + 0.001f), 0.0f, 1.0f);
+                    break;
+                }
+                case KeySlot::KeyingMode::ThresholdMask:
+                    alpha = luma >= 0.5f ? 1.0f : 0.0f;
+                    break;
+                case KeySlot::KeyingMode::ChannelR:
+                    alpha = r;
+                    break;
+                case KeySlot::KeyingMode::ChannelG:
+                    alpha = g;
+                    break;
+                case KeySlot::KeyingMode::ChannelB:
+                    alpha = b;
+                    break;
+                case KeySlot::KeyingMode::VignetteAlpha:
+                {
+                    float cx = static_cast<float>(x) / static_cast<float>(img.getWidth()) - 0.5f;
+                    float cy = static_cast<float>(y) / static_cast<float>(img.getHeight()) - 0.5f;
+                    float dist = std::sqrt(cx * cx + cy * cy);
+                    alpha = 1.0f - std::clamp((dist - currentKey_->vignetteInner) /
+                            (currentKey_->vignetteOuter - currentKey_->vignetteInner + 0.001f), 0.0f, 1.0f);
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            alpha *= currentKey_->opacity;
+            bmp.setPixelColour(x, y, pixel.withAlpha(alpha));
+        }
+    }
+
+    preview_.previewImage = img;
     preview_.repaint();
 }
 
