@@ -75,6 +75,9 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
     addAndMakeVisible(closeButton_);
     closeButton_.onClick = [this] { if (onClose) onClose(); };
 
+    // Don't let editor steal keyboard focus from MainComponent
+    setWantsKeyboardFocus(false);
+
     // Preview with background buttons
     addAndMakeVisible(preview_);
     addAndMakeVisible(bgBlackBtn_);
@@ -551,6 +554,18 @@ void KeyEditor::rebuildEffectRows()
 
         effectRows_.push_back(std::move(row));
     }
+}
+
+bool KeyEditor::keyPressed(const juce::KeyPress& key)
+{
+    // Escape closes editor
+    if (key.isKeyCode(juce::KeyPress::escapeKey))
+    {
+        if (onClose) onClose();
+        return true;
+    }
+    // Let parent handle everything else (shift+key for latch, etc.)
+    return false;
 }
 
 void KeyEditor::paint(juce::Graphics& g)

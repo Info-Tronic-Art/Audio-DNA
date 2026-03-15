@@ -17,6 +17,7 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    bool keyPressed(const juce::KeyPress& key) override;
 
     // Callback to request an image file chooser
     std::function<void(KeySlot& key)> onRequestImage;

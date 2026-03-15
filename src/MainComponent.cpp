@@ -407,6 +407,8 @@ MainComponent::MainComponent()
     analysisThread_.startThread(juce::Thread::Priority::high);
 
     setWantsKeyboardFocus(true);
+    // Register as key listener on top-level component to catch keys globally
+    addKeyListener(this);
     setSize(1280, 800);
 }
 
@@ -772,8 +774,13 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     // === Keyboard Launcher keys (when panel is visible) ===
     if (showKeysPanel_ && !mod.isCommandDown())
     {
-        int keyChar = key.getKeyCode();
-        char c = static_cast<char>(std::toupper(keyChar));
+        int keyCode = key.getKeyCode();
+        // JUCE returns lowercase key codes for letter keys
+        char c = static_cast<char>(std::toupper(keyCode));
+        // Also try the text character in case key code doesn't match
+        auto textChar = key.getTextCharacter();
+        if (textChar != 0)
+            c = static_cast<char>(std::toupper(static_cast<int>(textChar)));
 
         // Shift+key = latch toggle regardless of latch setting
         if (mod.isShiftDown())
@@ -805,6 +812,43 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
+    return false;
+}
+
+bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component* /*originatingComponent*/)
+{
+    // Global key listener — catches shift+key for latch from any focus context
+    auto mod = key.getModifiers();
+    if (showKeysPanel_ && mod.isShiftDown() && !mod.isCommandDown())
+    {
+        int keyCode = key.getKeyCode();
+        char c = static_cast<char>(std::toupper(keyCode));
+        auto textChar = key.getTextCharacter();
+        if (textChar != 0)
+            c = static_cast<char>(std::toupper(static_cast<int>(textChar)));
+
+        auto* slot = keyboardLayout_.findByChar(c);
+        if (slot && !slot->isEmpty())
+        {
+            if (slot->active)
+            {
+                keyboardLayout_.deactivateKey(*slot);
+            }
+            else
+            {
+                keyboardLayout_.activateKey(*slot);
+                slot->shiftLatched = true;
+            }
+            if (keyboardPanel_)
+            {
+                if (slot->active)
+                    keyboardPanel_->keyActivated(*slot);
+                else
+                    keyboardPanel_->keyDeactivated(*slot);
+            }
+            return true;
+        }
+    }
     return false;
 }
 
@@ -1442,6 +1486,8 @@ void MainComponent::openKeyEditor(KeySlot& key)
         showKeyEditor_ = true;
         keyEditor_->setVisible(true);
         resized();
+        // Keep keyboard focus on MainComponent so key shortcuts still work
+        grabKeyboardFocus();
     }
 }
 

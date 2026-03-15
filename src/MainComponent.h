@@ -22,6 +22,7 @@
 
 class MainComponent : public juce::Component,
                       public juce::FileDragAndDropTarget,
+                      public juce::KeyListener,
 #if AUDIODNA_HAS_CAMERA
                       public juce::CameraDevice::Listener,
 #endif
@@ -38,9 +39,12 @@ public:
     bool isInterestedInFileDrag(const juce::StringArray& files) override;
     void filesDropped(const juce::StringArray& files, int x, int y) override;
 
-    // Keyboard shortcuts
+    // Keyboard shortcuts (Component override)
     bool keyPressed(const juce::KeyPress& key) override;
     bool keyStateChanged(bool isKeyDown) override;
+
+    // KeyListener — catches keys globally regardless of focus
+    bool keyPressed(const juce::KeyPress& key, juce::Component* originatingComponent) override;
 
 #if AUDIODNA_HAS_CAMERA
     // CameraDevice::Listener
