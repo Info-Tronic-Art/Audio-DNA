@@ -33,24 +33,73 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         }
     };
 
-    // Transparency mode
-    addAndMakeVisible(transparencyLabel_);
-    transparencyLabel_.setFont(juce::Font(12.0f, juce::Font::bold));
-    transparencyLabel_.setColour(juce::Label::textColourId,
-                                  juce::Colour(AudioDNALookAndFeel::kAccentMagenta));
+    // Keying mode
+    addAndMakeVisible(keyingLabel_);
+    keyingLabel_.setFont(juce::Font(12.0f, juce::Font::bold));
+    keyingLabel_.setColour(juce::Label::textColourId,
+                            juce::Colour(AudioDNALookAndFeel::kAccentMagenta));
 
-    addAndMakeVisible(transparencyModeSelector_);
-    transparencyModeSelector_.addItem("Alpha", 1);
-    transparencyModeSelector_.addItem("Luma Key", 2);
-    transparencyModeSelector_.addItem("Chroma Key", 3);
-    transparencyModeSelector_.addItem("Light", 4);
-    transparencyModeSelector_.onChange = [this] {
+    addAndMakeVisible(keyingModeSelector_);
+    keyingModeSelector_.addItem("Alpha", 1);
+    keyingModeSelector_.addItem("Luma Key", 2);
+    keyingModeSelector_.addItem("Inverted Luma Key", 3);
+    keyingModeSelector_.addItem("Luma is Alpha", 4);
+    keyingModeSelector_.addItem("Inv. Luma is Alpha", 5);
+    keyingModeSelector_.addItem("Chroma Key", 6);
+    keyingModeSelector_.addItem("Max RGB", 7);
+    keyingModeSelector_.addItem("Saturation Key", 8);
+    keyingModeSelector_.addItem("Edge Detection", 9);
+    keyingModeSelector_.addItem("Threshold (50%)", 10);
+    keyingModeSelector_.addItem("Channel: Red", 11);
+    keyingModeSelector_.addItem("Channel: Green", 12);
+    keyingModeSelector_.addItem("Channel: Blue", 13);
+    keyingModeSelector_.addItem("Vignette (Spotlight)", 14);
+    keyingModeSelector_.onChange = [this] {
         if (currentKey_)
         {
-            currentKey_->transparencyMode =
-                static_cast<KeySlot::TransparencyMode>(transparencyModeSelector_.getSelectedId() - 1);
-            resized(); // Show/hide mode-specific controls
+            currentKey_->keyingMode =
+                static_cast<KeySlot::KeyingMode>(keyingModeSelector_.getSelectedId() - 1);
+            resized();
         }
+    };
+
+    // Blend mode
+    addAndMakeVisible(blendLabel_);
+    blendLabel_.setFont(juce::Font(12.0f, juce::Font::bold));
+    blendLabel_.setColour(juce::Label::textColourId,
+                           juce::Colour(AudioDNALookAndFeel::kAccentMagenta));
+
+    addAndMakeVisible(blendModeSelector_);
+    blendModeSelector_.addItem("Normal", 1);
+    blendModeSelector_.addSeparator();
+    blendModeSelector_.addSectionHeading("-- LIGHTEN --");
+    blendModeSelector_.addItem("Additive", 2);
+    blendModeSelector_.addItem("Screen", 3);
+    blendModeSelector_.addItem("Lighten", 9);
+    blendModeSelector_.addItem("Color Dodge", 10);
+    blendModeSelector_.addSeparator();
+    blendModeSelector_.addSectionHeading("-- DARKEN --");
+    blendModeSelector_.addItem("Multiply", 4);
+    blendModeSelector_.addItem("Darken", 8);
+    blendModeSelector_.addItem("Color Burn", 11);
+    blendModeSelector_.addSeparator();
+    blendModeSelector_.addSectionHeading("-- CONTRAST --");
+    blendModeSelector_.addItem("Overlay", 5);
+    blendModeSelector_.addItem("Soft Light", 6);
+    blendModeSelector_.addItem("Hard Light", 7);
+    blendModeSelector_.addItem("Vivid Light", 15);
+    blendModeSelector_.addItem("Linear Light", 16);
+    blendModeSelector_.addItem("Pin Light", 17);
+    blendModeSelector_.addItem("Hard Mix", 18);
+    blendModeSelector_.addSeparator();
+    blendModeSelector_.addSectionHeading("-- INVERSION --");
+    blendModeSelector_.addItem("Difference", 12);
+    blendModeSelector_.addItem("Exclusion", 13);
+    blendModeSelector_.addItem("Subtract", 14);
+    blendModeSelector_.onChange = [this] {
+        if (currentKey_)
+            currentKey_->blendMode =
+                static_cast<KeySlot::BlendMode>(blendModeSelector_.getSelectedId() - 1);
     };
 
     // Opacity slider
@@ -73,14 +122,14 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         if (currentKey_) currentKey_->opacity = static_cast<float>(opacitySlider_.getValue());
     };
 
-    setupSlider(lumaThresholdSlider_, lumaThresholdLabel_, "Threshold", 0.0f, 1.0f, 0.1f);
-    lumaThresholdSlider_.onValueChange = [this] {
-        if (currentKey_) currentKey_->lumaKeyThreshold = static_cast<float>(lumaThresholdSlider_.getValue());
+    setupSlider(thresholdSlider_, thresholdLabel_, "Threshold", 0.0f, 1.0f, 0.1f);
+    thresholdSlider_.onValueChange = [this] {
+        if (currentKey_) currentKey_->keyThreshold = static_cast<float>(thresholdSlider_.getValue());
     };
 
-    setupSlider(lumaSoftnessSlider_, lumaSoftnessLabel_, "Softness", 0.0f, 0.5f, 0.05f);
-    lumaSoftnessSlider_.onValueChange = [this] {
-        if (currentKey_) currentKey_->lumaKeySoftness = static_cast<float>(lumaSoftnessSlider_.getValue());
+    setupSlider(softnessSlider_, softnessLabel_, "Softness", 0.0f, 0.5f, 0.1f);
+    softnessSlider_.onValueChange = [this] {
+        if (currentKey_) currentKey_->keySoftness = static_cast<float>(softnessSlider_.getValue());
     };
 
     setupSlider(chromaToleranceSlider_, chromaToleranceLabel_, "Tolerance", 0.0f, 1.0f, 0.2f);
@@ -225,12 +274,14 @@ void KeyEditor::refreshFromKey()
             mediaInfoLabel_.setText("Camera", juce::dontSendNotification); break;
     }
 
-    // Transparency
-    transparencyModeSelector_.setSelectedId(
-        static_cast<int>(currentKey_->transparencyMode) + 1, juce::dontSendNotification);
+    // Keying + Blend
+    keyingModeSelector_.setSelectedId(
+        static_cast<int>(currentKey_->keyingMode) + 1, juce::dontSendNotification);
+    blendModeSelector_.setSelectedId(
+        static_cast<int>(currentKey_->blendMode) + 1, juce::dontSendNotification);
     opacitySlider_.setValue(currentKey_->opacity, juce::dontSendNotification);
-    lumaThresholdSlider_.setValue(currentKey_->lumaKeyThreshold, juce::dontSendNotification);
-    lumaSoftnessSlider_.setValue(currentKey_->lumaKeySoftness, juce::dontSendNotification);
+    thresholdSlider_.setValue(currentKey_->keyThreshold, juce::dontSendNotification);
+    softnessSlider_.setValue(currentKey_->keySoftness, juce::dontSendNotification);
     chromaToleranceSlider_.setValue(currentKey_->chromaKeyTolerance, juce::dontSendNotification);
     chromaSoftnessSlider_.setValue(currentKey_->chromaKeySoftness, juce::dontSendNotification);
 
@@ -317,39 +368,46 @@ void KeyEditor::resized()
     mediaInfoLabel_.setBounds(mediaRow);
     area.removeFromTop(6);
 
-    // Transparency section
-    transparencyLabel_.setBounds(area.removeFromTop(18));
+    // Keying + Blend section
+    keyingLabel_.setBounds(area.removeFromTop(18));
     area.removeFromTop(2);
-    auto transRow1 = area.removeFromTop(22);
-    transparencyModeSelector_.setBounds(transRow1.removeFromLeft(120));
-    transRow1.removeFromLeft(8);
-    opacityLabel_.setBounds(transRow1.removeFromLeft(40));
-    opacitySlider_.setBounds(transRow1.removeFromLeft(150));
-
+    auto keyRow1 = area.removeFromTop(22);
+    keyingModeSelector_.setBounds(keyRow1.removeFromLeft(150));
+    keyRow1.removeFromLeft(8);
+    opacityLabel_.setBounds(keyRow1.removeFromLeft(40));
+    opacitySlider_.setBounds(keyRow1.removeFromLeft(150));
     area.removeFromTop(2);
 
-    // Mode-specific controls
-    auto mode = currentKey_ ? currentKey_->transparencyMode : KeySlot::TransparencyMode::Alpha;
-    bool showLuma = (mode == KeySlot::TransparencyMode::LumaKey);
-    bool showChroma = (mode == KeySlot::TransparencyMode::ChromaKey);
+    auto blendRow = area.removeFromTop(22);
+    blendLabel_.setBounds(blendRow.removeFromLeft(35));
+    blendModeSelector_.setBounds(blendRow.removeFromLeft(130));
+    area.removeFromTop(2);
 
-    lumaThresholdLabel_.setVisible(showLuma);
-    lumaThresholdSlider_.setVisible(showLuma);
-    lumaSoftnessLabel_.setVisible(showLuma);
-    lumaSoftnessSlider_.setVisible(showLuma);
+    // Mode-specific keying controls
+    auto kMode = currentKey_ ? currentKey_->keyingMode : KeySlot::KeyingMode::Alpha;
+    bool showThreshold = (kMode == KeySlot::KeyingMode::LumaKey ||
+                          kMode == KeySlot::KeyingMode::InvertedLumaKey ||
+                          kMode == KeySlot::KeyingMode::SaturationKey ||
+                          kMode == KeySlot::KeyingMode::EdgeDetection);
+    bool showChroma = (kMode == KeySlot::KeyingMode::ChromaKey);
+
+    thresholdLabel_.setVisible(showThreshold);
+    thresholdSlider_.setVisible(showThreshold);
+    softnessLabel_.setVisible(showThreshold);
+    softnessSlider_.setVisible(showThreshold);
     chromaToleranceLabel_.setVisible(showChroma);
     chromaToleranceSlider_.setVisible(showChroma);
     chromaSoftnessLabel_.setVisible(showChroma);
     chromaSoftnessSlider_.setVisible(showChroma);
 
-    if (showLuma)
+    if (showThreshold)
     {
-        auto lumaRow = area.removeFromTop(22);
-        lumaThresholdLabel_.setBounds(lumaRow.removeFromLeft(55));
-        lumaThresholdSlider_.setBounds(lumaRow.removeFromLeft(150));
-        lumaRow.removeFromLeft(8);
-        lumaSoftnessLabel_.setBounds(lumaRow.removeFromLeft(45));
-        lumaSoftnessSlider_.setBounds(lumaRow.removeFromLeft(150));
+        auto thRow = area.removeFromTop(22);
+        thresholdLabel_.setBounds(thRow.removeFromLeft(55));
+        thresholdSlider_.setBounds(thRow.removeFromLeft(150));
+        thRow.removeFromLeft(8);
+        softnessLabel_.setBounds(thRow.removeFromLeft(45));
+        softnessSlider_.setBounds(thRow.removeFromLeft(150));
         area.removeFromTop(2);
     }
     else if (showChroma)

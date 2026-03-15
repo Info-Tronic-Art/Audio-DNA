@@ -33,17 +33,57 @@ struct KeySlot
     // === Audio Mappings (per key) ===
     // Stored separately — will be wired in Phase 2
 
-    // === Transparency ===
-    enum class TransparencyMode { Alpha, LumaKey, ChromaKey, Light };
-    TransparencyMode transparencyMode = TransparencyMode::Alpha;
+    // === Keying Mode (how alpha is generated from the image) ===
+    enum class KeyingMode {
+        Alpha,              // Use image's alpha channel
+        LumaKey,            // Dark = transparent (threshold + softness)
+        InvertedLumaKey,    // Bright = transparent
+        LumaIsAlpha,        // Luminance maps directly to opacity (continuous)
+        InvertedLumaIsAlpha,// Darkness maps to opacity
+        ChromaKey,          // Specific color = transparent
+        MaxRGB,             // max(R,G,B) as alpha — any light = visible
+        SaturationKey,      // Saturated = opaque, gray = transparent
+        EdgeDetection,      // Edges opaque, flat areas transparent
+        ThresholdMask,      // Hard binary cutoff at 50%
+        ChannelR,           // Red channel as alpha
+        ChannelG,           // Green channel as alpha
+        ChannelB,           // Blue channel as alpha
+        VignetteAlpha       // Distance from center as alpha (spotlight)
+    };
+    KeyingMode keyingMode = KeyingMode::Alpha;
+
+    // === Blend Mode (how this layer composites onto layers below) ===
+    enum class BlendMode {
+        Normal,             // Standard alpha blend (src over dst)
+        Additive,           // Add (black disappears naturally) — VJ default
+        Screen,             // 1-(1-a)*(1-b) — lighter than Additive
+        Multiply,           // a*b — darkens
+        Overlay,            // Multiply+Screen based on base brightness
+        SoftLight,          // Gentle Overlay
+        HardLight,          // Aggressive Overlay
+        Darken,             // min(a,b)
+        Lighten,            // max(a,b)
+        ColorDodge,         // Extreme highlights
+        ColorBurn,          // Extreme darks
+        Difference,         // abs(a-b) — psychedelic
+        Exclusion,          // Softer Difference
+        Subtract,           // a-b — dark inversions
+        VividLight,         // Dodge+Burn combined
+        LinearLight,        // Add/subtract brightness
+        PinLight,           // Extreme darken+lighten
+        HardMix             // Snap to 0 or 1 per channel (posterize)
+    };
+    BlendMode blendMode = BlendMode::Additive; // VJ default
     float opacity = 1.0f;               // Master opacity [0,1]
-    float lumaKeyThreshold = 0.1f;      // Luma key: below this = transparent
-    float lumaKeySoftness = 0.05f;      // Luma key: transition range
+    float keyThreshold = 0.1f;          // Keying threshold (luma/saturation/edge)
+    float keySoftness = 0.1f;           // Keying transition softness
     float chromaKeyR = 0.0f;            // Chroma key target color
     float chromaKeyG = 1.0f;
     float chromaKeyB = 0.0f;
     float chromaKeyTolerance = 0.2f;
     float chromaKeySoftness = 0.1f;
+    float vignetteInner = 0.3f;         // Vignette alpha inner radius
+    float vignetteOuter = 0.8f;         // Vignette alpha outer radius
 
     // === Playback Behavior ===
     bool latched = false;               // true = toggle, false = momentary
@@ -68,7 +108,8 @@ struct KeySlot
         mediaFile = juce::File();
         cameraDeviceIndex = -1;
         effects.clear();
-        transparencyMode = TransparencyMode::Alpha;
+        keyingMode = KeyingMode::Alpha;
+        blendMode = BlendMode::Additive;
         opacity = 1.0f;
         latched = false;
         latchBeatDuration = 0;

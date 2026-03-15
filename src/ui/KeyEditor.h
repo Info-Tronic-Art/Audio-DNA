@@ -38,15 +38,17 @@ private:
     juce::TextButton clearMediaBtn_{"Clear"};
     juce::Label mediaInfoLabel_;
 
-    // Transparency section
-    juce::Label transparencyLabel_{"", "Transparency"};
-    juce::ComboBox transparencyModeSelector_;
+    // Keying + Blend section
+    juce::Label keyingLabel_{"", "Keying"};
+    juce::ComboBox keyingModeSelector_;
+    juce::Label blendLabel_{"", "Blend"};
+    juce::ComboBox blendModeSelector_;
     juce::Slider opacitySlider_;
     juce::Label opacityLabel_{"", "Opacity"};
-    juce::Slider lumaThresholdSlider_;
-    juce::Label lumaThresholdLabel_{"", "Threshold"};
-    juce::Slider lumaSoftnessSlider_;
-    juce::Label lumaSoftnessLabel_{"", "Softness"};
+    juce::Slider thresholdSlider_;
+    juce::Label thresholdLabel_{"", "Threshold"};
+    juce::Slider softnessSlider_;
+    juce::Label softnessLabel_{"", "Softness"};
     juce::Slider chromaToleranceSlider_;
     juce::Label chromaToleranceLabel_{"", "Tolerance"};
     juce::Slider chromaSoftnessSlider_;
