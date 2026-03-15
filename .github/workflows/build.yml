@@ -16,18 +16,22 @@ jobs:
             name: macOS ARM64
             artifact_name: Audio-DNA-macOS-ARM64
             artifact_path: build/AudioDNA_artefacts/Release/Audio-DNA.app
+            cache_key: macos-arm64
           - os: macos-15
             name: macOS x86_64
             artifact_name: Audio-DNA-macOS-x86_64
             artifact_path: build/AudioDNA_artefacts/Release/Audio-DNA.app
+            cache_key: macos-x86
           - os: ubuntu-22.04
             name: Linux GCC
             artifact_name: Audio-DNA-Linux
             artifact_path: build/AudioDNA_artefacts/Release/Audio-DNA
+            cache_key: linux-gcc
           - os: windows-latest
             name: Windows MSVC
             artifact_name: Audio-DNA-Windows
             artifact_path: build/AudioDNA_artefacts/Release
+            cache_key: windows-msvc
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
@@ -35,6 +39,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # === Cache: JUCE build objects + vcpkg (saves ~15-20 min per build) ===
+      - name: Cache build objects
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/_deps
+            build/CMakeFiles
+            build/AudioDNA_artefacts
+            build/tests
+          key: ${{ matrix.cache_key }}-build-${{ hashFiles('CMakeLists.txt', 'tests/CMakeLists.txt', 'src/**') }}
+          restore-keys: |
+            ${{ matrix.cache_key }}-build-
+
+      - name: Cache vcpkg packages (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:/vcpkg/installed
+            C:/vcpkg/packages
+          key: vcpkg-aubio-x64-windows-v1
+          restore-keys: vcpkg-aubio-
+
+      # === Install dependencies ===
       - name: Install Aubio (macOS)
         if: runner.os == 'macOS'
         run: brew install aubio
@@ -63,9 +91,13 @@ jobs:
       - name: Install Aubio (Windows)
         if: runner.os == 'Windows'
         run: |
-          vcpkg install aubio:x64-windows
-          echo "CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" >> $env:GITHUB_ENV
+          if (!(Test-Path "C:/vcpkg/installed/x64-windows/lib/aubio.lib")) {
+            vcpkg install aubio:x64-windows
+          } else {
+            Write-Host "Aubio already cached, skipping install"
+          }
 
+      # === Configure & Build ===
       - name: Configure CMake (Windows)
         if: runner.os == 'Windows'
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
@@ -80,6 +112,7 @@ jobs:
       - name: Run Tests
         run: ctest --test-dir build --build-config Release --output-on-failure
 
+      # === Bundle & Upload ===
       - name: Bundle Aubio (macOS)
         if: runner.os == 'macOS'
         run: |
