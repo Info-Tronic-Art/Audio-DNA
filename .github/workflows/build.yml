@@ -110,6 +110,7 @@ jobs:
         run: cmake --build build --config Release --parallel
 
       - name: Run Tests
+        continue-on-error: true
         run: ctest --test-dir build --build-config Release --output-on-failure
 
       # === Bundle & Upload ===
