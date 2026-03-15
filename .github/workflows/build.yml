@@ -118,6 +118,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           APP="${{ matrix.artifact_path }}"
+          rm -rf "$APP/Contents/Frameworks"
           mkdir -p "$APP/Contents/Frameworks"
           AUBIO=$(otool -L "$APP/Contents/MacOS/Audio-DNA" | grep aubio | awk '{print $1}')
           cp "$AUBIO" "$APP/Contents/Frameworks/"
