@@ -628,23 +628,19 @@ void MainComponent::resized()
         waveformDisplay_.setVisible(false);
     }
 
-    // Key Editor — takes full width, 3/4 height. Preview shrinks above it.
+    // Key Editor — hide GL preview entirely (GL surface always renders on top
+    // of JUCE components), show editor in its place
     if (showKeyEditor_ && keyEditor_)
     {
-        // Use full app width for editor
-        auto fullArea = getLocalBounds().reduced(8);
-        int topBarHeight = fullArea.getY() + area.getY() - fullArea.getY();
-        int availHeight = fullArea.getHeight() - topBarHeight;
-        int editorHeight = static_cast<int>(availHeight * 0.75f);
-
-        auto editorBounds = fullArea.removeFromBottom(editorHeight);
-        previewPanel_.setBounds(area); // Preview gets remaining center area
-        keyEditor_->setBounds(editorBounds);
-        keyEditor_->toFront(false);
+        previewPanel_.setVisible(false);
+        keyEditor_->setBounds(area);
+        keyEditor_->setVisible(true);
     }
     else
     {
-        previewPanel_.setBounds(area); // GL preview takes remaining space
+        previewPanel_.setVisible(true);
+        previewPanel_.setBounds(area);
+        if (keyEditor_) keyEditor_->setVisible(false);
     }
 }
 
