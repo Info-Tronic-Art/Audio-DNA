@@ -31,6 +31,10 @@ juce_add_gui_app(AudioDNA
     COMPANY_NAME "AudioDNA"
     BUNDLE_ID "com.audiodna.app"
     VERSION "${PROJECT_VERSION}"
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "Audio-DNA needs microphone access to analyze audio and drive visual effects."
+    CAMERA_PERMISSION_ENABLED TRUE
+    CAMERA_PERMISSION_TEXT "Audio-DNA needs camera access to use live video as a visual source."
 )
 
 target_sources(AudioDNA PRIVATE
