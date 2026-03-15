@@ -769,6 +769,25 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     {
         int keyChar = key.getKeyCode();
         char c = static_cast<char>(std::toupper(keyChar));
+
+        // Shift+key = latch toggle regardless of latch setting
+        if (mod.isShiftDown())
+        {
+            auto* slot = keyboardLayout_.findByChar(c);
+            if (slot && !slot->isEmpty())
+            {
+                keyboardLayout_.toggleKey(*slot);
+                if (keyboardPanel_)
+                {
+                    if (slot->active)
+                        keyboardPanel_->keyActivated(*slot);
+                    else
+                        keyboardPanel_->keyDeactivated(*slot);
+                }
+                return true;
+            }
+        }
+
         handleKeySlotTrigger(c, true);
         return true;
     }

@@ -10,21 +10,88 @@ KeyboardPanel::KeyButton::KeyButton(KeySlot& slot, KeyboardPanel& parent)
 {
 }
 
+void KeyboardPanel::KeyButton::updateThumbnail()
+{
+    juce::String currentPath;
+    if (slot_.mediaType == KeySlot::MediaType::Image && slot_.mediaFile.existsAsFile())
+        currentPath = slot_.mediaFile.getFullPathName();
+
+    if (currentPath == lastMediaPath_)
+        return; // Already up to date
+
+    lastMediaPath_ = currentPath;
+    if (currentPath.isEmpty())
+    {
+        thumbnail_ = juce::Image();
+        return;
+    }
+
+    auto img = juce::ImageFileFormat::loadFrom(slot_.mediaFile);
+    if (img.isValid())
+    {
+        // Scale to thumbnail size (max 80x60)
+        int thumbW = 80;
+        int thumbH = 60;
+        float aspect = static_cast<float>(img.getWidth()) / static_cast<float>(img.getHeight());
+        if (aspect > static_cast<float>(thumbW) / static_cast<float>(thumbH))
+            thumbH = static_cast<int>(static_cast<float>(thumbW) / aspect);
+        else
+            thumbW = static_cast<int>(static_cast<float>(thumbH) * aspect);
+        thumbnail_ = img.rescaled(thumbW, thumbH, juce::Graphics::mediumResamplingQuality);
+    }
+    else
+    {
+        thumbnail_ = juce::Image();
+    }
+}
+
 void KeyboardPanel::KeyButton::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat().reduced(1.5f);
+
+    // Update thumbnail if needed
+    updateThumbnail();
 
     // Background color based on state
     juce::Colour bgColor;
     if (slot_.active)
         bgColor = juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f);
     else if (slot_.hasMedia() || slot_.hasEffects())
-        bgColor = juce::Colour(0xff2a2a3e); // Assigned but inactive
+        bgColor = juce::Colour(0xff2a2a3e);
     else
         bgColor = juce::Colour(AudioDNALookAndFeel::kSurface);
 
     g.setColour(bgColor);
     g.fillRoundedRectangle(bounds, 4.0f);
+
+    // Draw thumbnail if available
+    if (thumbnail_.isValid())
+    {
+        auto imgArea = bounds.reduced(2.0f);
+        float imgAspect = static_cast<float>(thumbnail_.getWidth()) /
+                          static_cast<float>(thumbnail_.getHeight());
+        float areaAspect = imgArea.getWidth() / imgArea.getHeight();
+
+        float drawW, drawH;
+        if (imgAspect > areaAspect)
+        {
+            drawW = imgArea.getWidth();
+            drawH = drawW / imgAspect;
+        }
+        else
+        {
+            drawH = imgArea.getHeight();
+            drawW = drawH * imgAspect;
+        }
+        float drawX = imgArea.getX() + (imgArea.getWidth() - drawW) * 0.5f;
+        float drawY = imgArea.getY() + (imgArea.getHeight() - drawH) * 0.5f;
+
+        g.setOpacity(slot_.active ? 1.0f : 0.6f);
+        g.drawImage(thumbnail_,
+                     drawX, drawY, drawW, drawH,
+                     0, 0, thumbnail_.getWidth(), thumbnail_.getHeight());
+        g.setOpacity(1.0f);
+    }
 
     // Border — brighter when active
     if (slot_.active)
@@ -36,46 +103,38 @@ void KeyboardPanel::KeyButton::paint(juce::Graphics& g)
 
     g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
 
-    // Key character (small, top-left)
-    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.5f));
-    g.setFont(10.0f);
-    g.drawText(juce::String::charToString(slot_.keyChar),
-               bounds.reduced(3.0f, 2.0f).removeFromTop(12.0f),
-               juce::Justification::topLeft);
-
-    // Media indicator
-    if (slot_.hasMedia())
+    // Key character (small, top-left, with background for readability)
     {
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary).withAlpha(0.6f));
+        auto charBounds = bounds.reduced(3.0f, 2.0f).removeFromTop(12.0f).removeFromLeft(12.0f);
+        g.setColour(juce::Colour(0x88000000)); // semi-transparent black
+        g.fillRoundedRectangle(charBounds, 2.0f);
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.8f));
         g.setFont(9.0f);
-        juce::String mediaLabel;
-        switch (slot_.mediaType)
-        {
-            case KeySlot::MediaType::Image:     mediaLabel = "IMG"; break;
-            case KeySlot::MediaType::VideoFile:  mediaLabel = "VID"; break;
-            case KeySlot::MediaType::Camera:     mediaLabel = "CAM"; break;
-            default: break;
-        }
-        g.drawText(mediaLabel, bounds.reduced(3.0f), juce::Justification::centred);
+        g.drawText(juce::String::charToString(slot_.keyChar), charBounds,
+                   juce::Justification::centred);
     }
 
     // Effects count indicator (bottom-right)
     if (slot_.hasEffects())
     {
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.7f));
+        auto fxBounds = bounds.reduced(3.0f).removeFromBottom(11.0f).removeFromRight(25.0f);
+        g.setColour(juce::Colour(0x88000000));
+        g.fillRoundedRectangle(fxBounds, 2.0f);
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.8f));
         g.setFont(8.0f);
         g.drawText("FX:" + juce::String(static_cast<int>(slot_.effects.size())),
-                   bounds.reduced(3.0f).removeFromBottom(10.0f),
-                   juce::Justification::bottomRight);
+                   fxBounds, juce::Justification::centred);
     }
 
     // Latch indicator (bottom-left)
     if (slot_.latched)
     {
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kMeterYellow).withAlpha(0.6f));
+        auto lBounds = bounds.reduced(3.0f).removeFromBottom(11.0f).removeFromLeft(12.0f);
+        g.setColour(juce::Colour(0x88000000));
+        g.fillRoundedRectangle(lBounds, 2.0f);
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kMeterYellow).withAlpha(0.8f));
         g.setFont(8.0f);
-        g.drawText("L", bounds.reduced(3.0f).removeFromBottom(10.0f),
-                   juce::Justification::bottomLeft);
+        g.drawText("L", lBounds, juce::Justification::centred);
     }
 }
 
@@ -94,6 +153,14 @@ void KeyboardPanel::KeyButton::mouseDown(const juce::MouseEvent& e)
         // Empty key — open editor on click
         if (parent_.onKeyClicked)
             parent_.onKeyClicked(slot_);
+        return;
+    }
+
+    // Shift+click = latch toggle (even if latch checkbox is off)
+    if (e.mods.isShiftDown())
+    {
+        parent_.layout_.toggleKey(slot_);
+        repaint();
         return;
     }
 

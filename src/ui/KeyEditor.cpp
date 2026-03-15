@@ -1,6 +1,68 @@
 #include "KeyEditor.h"
 #include "ui/LookAndFeel.h"
 
+// === PreviewComponent ===
+void KeyEditor::PreviewComponent::paint(juce::Graphics& g)
+{
+    auto bounds = getLocalBounds().toFloat();
+
+    // Draw background
+    switch (bg)
+    {
+        case Black:   g.setColour(juce::Colours::black); g.fillRect(bounds); break;
+        case Grey:    g.setColour(juce::Colour(128, 128, 128)); g.fillRect(bounds); break;
+        case White:   g.setColour(juce::Colours::white); g.fillRect(bounds); break;
+        case Checker:
+        {
+            int checkSize = 8;
+            for (int y = 0; y < getHeight(); y += checkSize)
+                for (int x = 0; x < getWidth(); x += checkSize)
+                {
+                    bool light = ((x / checkSize + y / checkSize) % 2) == 0;
+                    g.setColour(light ? juce::Colour(200, 200, 200) : juce::Colour(150, 150, 150));
+                    g.fillRect(x, y, checkSize, checkSize);
+                }
+            break;
+        }
+    }
+
+    // Draw image scaled to fit
+    if (previewImage.isValid())
+    {
+        float imgAspect = static_cast<float>(previewImage.getWidth()) /
+                          static_cast<float>(previewImage.getHeight());
+        float boundsAspect = bounds.getWidth() / bounds.getHeight();
+
+        float drawW, drawH;
+        if (imgAspect > boundsAspect)
+        {
+            drawW = bounds.getWidth();
+            drawH = drawW / imgAspect;
+        }
+        else
+        {
+            drawH = bounds.getHeight();
+            drawW = drawH * imgAspect;
+        }
+
+        float drawX = bounds.getX() + (bounds.getWidth() - drawW) * 0.5f;
+        float drawY = bounds.getY() + (bounds.getHeight() - drawH) * 0.5f;
+
+        g.drawImage(previewImage,
+                     drawX, drawY, drawW, drawH,
+                     0, 0, previewImage.getWidth(), previewImage.getHeight());
+    }
+    else
+    {
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.3f));
+        g.drawText("No image", bounds, juce::Justification::centred);
+    }
+
+    // Border
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kPanelBorder));
+    g.drawRect(bounds, 1.0f);
+}
+
 KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
     : effectLibrary_(effectLibrary)
 {
@@ -12,6 +74,20 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
 
     addAndMakeVisible(closeButton_);
     closeButton_.onClick = [this] { if (onClose) onClose(); };
+
+    // Preview with background buttons
+    addAndMakeVisible(preview_);
+    addAndMakeVisible(bgBlackBtn_);
+    addAndMakeVisible(bgGreyBtn_);
+    addAndMakeVisible(bgWhiteBtn_);
+    addAndMakeVisible(bgCheckerBtn_);
+    auto setupBgBtn = [this](juce::TextButton& btn, PreviewComponent::Background bg) {
+        btn.onClick = [this, bg] { preview_.bg = bg; preview_.repaint(); };
+    };
+    setupBgBtn(bgBlackBtn_, PreviewComponent::Black);
+    setupBgBtn(bgGreyBtn_, PreviewComponent::Grey);
+    setupBgBtn(bgWhiteBtn_, PreviewComponent::White);
+    setupBgBtn(bgCheckerBtn_, PreviewComponent::Checker);
 
     // Media
     addAndMakeVisible(openImageBtn_);
@@ -30,6 +106,7 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
             currentKey_->mediaType = KeySlot::MediaType::None;
             currentKey_->mediaFile = juce::File();
             refreshFromKey();
+            updatePreviewImage();
         }
     };
 
@@ -257,8 +334,23 @@ void KeyEditor::setKey(KeySlot* key)
 {
     currentKey_ = key;
     refreshFromKey();
+    updatePreviewImage();
     rebuildEffectRows();
     resized();
+}
+
+void KeyEditor::updatePreviewImage()
+{
+    if (!currentKey_ || currentKey_->mediaType != KeySlot::MediaType::Image ||
+        !currentKey_->mediaFile.existsAsFile())
+    {
+        preview_.previewImage = juce::Image();
+        preview_.repaint();
+        return;
+    }
+
+    preview_.previewImage = juce::ImageFileFormat::loadFrom(currentKey_->mediaFile);
+    preview_.repaint();
 }
 
 void KeyEditor::refreshFromKey()
@@ -371,6 +463,17 @@ void KeyEditor::paint(juce::Graphics& g)
 void KeyEditor::resized()
 {
     auto area = getLocalBounds().reduced(8);
+
+    // Preview panel on the right
+    auto previewArea = area.removeFromRight(std::min(220, area.getWidth() / 3));
+    previewArea.removeFromLeft(8);
+    auto bgRow = previewArea.removeFromTop(20);
+    bgBlackBtn_.setBounds(bgRow.removeFromLeft(bgRow.getWidth() / 4));
+    bgGreyBtn_.setBounds(bgRow.removeFromLeft(bgRow.getWidth() / 3));
+    bgWhiteBtn_.setBounds(bgRow.removeFromLeft(bgRow.getWidth() / 2));
+    bgCheckerBtn_.setBounds(bgRow);
+    previewArea.removeFromTop(2);
+    preview_.setBounds(previewArea);
 
     // Header
     auto header = area.removeFromTop(24);

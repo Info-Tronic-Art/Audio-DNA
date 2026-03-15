@@ -35,8 +35,12 @@ private:
         void mouseDown(const juce::MouseEvent& e) override;
         void mouseUp(const juce::MouseEvent& e) override;
 
+        void updateThumbnail();
+
         KeySlot& slot_;
         KeyboardPanel& parent_;
+        juce::Image thumbnail_;
+        juce::String lastMediaPath_;
     };
 
     std::array<std::unique_ptr<KeyButton>, KeyboardLayout::kNumKeys> buttons_;

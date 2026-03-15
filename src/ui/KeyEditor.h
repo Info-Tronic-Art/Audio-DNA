@@ -34,6 +34,23 @@ private:
     juce::Label titleLabel_;
     juce::TextButton closeButton_{"X"};
 
+    // Image preview with background selector
+    class PreviewComponent : public juce::Component
+    {
+    public:
+        enum Background { Black, Grey, White, Checker };
+        Background bg = Checker;
+        juce::Image previewImage;
+
+        void paint(juce::Graphics& g) override;
+    };
+    PreviewComponent preview_;
+    juce::TextButton bgBlackBtn_{"B"};
+    juce::TextButton bgGreyBtn_{"G"};
+    juce::TextButton bgWhiteBtn_{"W"};
+    juce::TextButton bgCheckerBtn_{"C"};
+    void updatePreviewImage();
+
     // Media section
     juce::TextButton openImageBtn_{"Open Image"};
     juce::TextButton clearMediaBtn_{"Clear"};
