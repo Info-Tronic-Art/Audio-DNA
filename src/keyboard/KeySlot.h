@@ -180,6 +180,37 @@ struct KeyboardLayout
         return nullptr;
     }
 
+    // Find key by JUCE key code, handling shift+number → symbol mapping
+    KeySlot* findByKeyCode(int keyCode, bool shiftHeld)
+    {
+        char c = static_cast<char>(std::toupper(keyCode));
+
+        // If shift is held, map shifted symbols back to their base key
+        if (shiftHeld)
+        {
+            // Shift+number row produces symbols: !@#$%^&*()
+            static const char shiftedSymbols[] = { '!', '@', '#', '$', '%', '^', '&', '*', '(', ')' };
+            static const char baseNumbers[]    = { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
+            // Shift+symbol keys on bottom rows
+            static const char shiftedPunct[] = { '<', '>', '?', ':', '+' };
+            static const char basePunct[]    = { ',', '.', '/', ';', '=' };
+
+            for (int i = 0; i < 10; ++i)
+                if (c == shiftedSymbols[i] || keyCode == shiftedSymbols[i])
+                    return findByChar(baseNumbers[i]);
+            for (int i = 0; i < 5; ++i)
+                if (c == shiftedPunct[i] || keyCode == shiftedPunct[i])
+                    return findByChar(basePunct[i]);
+        }
+
+        // Direct match (letters, unshifted numbers/symbols)
+        auto* slot = findByChar(c);
+        if (slot) return slot;
+
+        // Try lowercase
+        return findByChar(static_cast<char>(std::tolower(keyCode)));
+    }
+
     // Get active keys sorted by activation order (bottom to top)
     std::vector<KeySlot*> getActiveKeysSorted()
     {

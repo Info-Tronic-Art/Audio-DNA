@@ -276,3 +276,101 @@ void KeyboardPanel::refresh()
     for (auto& btn : buttons_)
         btn->repaint();
 }
+
+int KeyboardPanel::getKeyIndexAtPosition(int x, int y) const
+{
+    for (int i = 0; i < KeyboardLayout::kNumKeys; ++i)
+    {
+        if (buttons_[static_cast<size_t>(i)]->getBounds().contains(x, y))
+            return i;
+    }
+    return -1;
+}
+
+bool KeyboardPanel::isInterestedInFileDrag(const juce::StringArray& files)
+{
+    for (const auto& f : files)
+    {
+        auto ext = juce::File(f).getFileExtension().toLowerCase();
+        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+            ext == ".gif" || ext == ".bmp" || ext == ".tiff")
+            return true;
+    }
+    return false;
+}
+
+void KeyboardPanel::fileDragEnter(const juce::StringArray&, int x, int y)
+{
+    dragHighlightIndex_ = getKeyIndexAtPosition(x, y);
+    repaint();
+}
+
+void KeyboardPanel::fileDragMove(const juce::StringArray&, int x, int y)
+{
+    int newIdx = getKeyIndexAtPosition(x, y);
+    if (newIdx != dragHighlightIndex_)
+    {
+        dragHighlightIndex_ = newIdx;
+        repaint();
+    }
+}
+
+void KeyboardPanel::fileDragExit(const juce::StringArray&)
+{
+    dragHighlightIndex_ = -1;
+    repaint();
+}
+
+void KeyboardPanel::filesDropped(const juce::StringArray& files, int x, int y)
+{
+    dragHighlightIndex_ = -1;
+
+    // Collect valid image files
+    juce::Array<juce::File> imageFiles;
+    for (const auto& f : files)
+    {
+        juce::File file(f);
+        auto ext = file.getFileExtension().toLowerCase();
+        if (file.existsAsFile() &&
+            (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+             ext == ".gif" || ext == ".bmp" || ext == ".tiff"))
+        {
+            imageFiles.add(file);
+        }
+    }
+
+    // Also check if a folder was dropped — collect images from it
+    for (const auto& f : files)
+    {
+        juce::File file(f);
+        if (file.isDirectory())
+        {
+            for (const auto& child : file.findChildFiles(
+                juce::File::findFiles, false,
+                "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tiff"))
+            {
+                imageFiles.add(child);
+            }
+        }
+    }
+
+    imageFiles.sort();
+
+    if (imageFiles.isEmpty())
+        return;
+
+    // Find which key was dropped on
+    int startIdx = getKeyIndexAtPosition(x, y);
+    if (startIdx < 0)
+        startIdx = 0;
+
+    // Assign images to keys starting at the drop position, wrapping through rows
+    for (int i = 0; i < imageFiles.size() && (startIdx + i) < KeyboardLayout::kNumKeys; ++i)
+    {
+        auto& key = layout_.keys[static_cast<size_t>(startIdx + i)];
+        key.mediaType = KeySlot::MediaType::Image;
+        key.mediaFile = imageFiles[i];
+    }
+
+    refresh();
+}

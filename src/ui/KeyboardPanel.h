@@ -6,7 +6,8 @@
 // Each key button shows its character, thumbnail (if media assigned),
 // and glows when active. Keys can be clicked to toggle or receive
 // drag-and-drop images.
-class KeyboardPanel : public juce::Component
+class KeyboardPanel : public juce::Component,
+                      public juce::FileDragAndDropTarget
 {
 public:
     KeyboardPanel(KeyboardLayout& layout);
@@ -23,6 +24,13 @@ public:
 
     // Force repaint of all key buttons
     void refresh();
+
+    // FileDragAndDropTarget
+    bool isInterestedInFileDrag(const juce::StringArray& files) override;
+    void fileDragEnter(const juce::StringArray& files, int x, int y) override;
+    void fileDragMove(const juce::StringArray& files, int x, int y) override;
+    void fileDragExit(const juce::StringArray& files) override;
+    void filesDropped(const juce::StringArray& files, int x, int y) override;
 
 private:
     KeyboardLayout& layout_;
@@ -44,4 +52,7 @@ private:
     };
 
     std::array<std::unique_ptr<KeyButton>, KeyboardLayout::kNumKeys> buttons_;
+    int dragHighlightIndex_ = -1; // Which key is being dragged over
+
+    int getKeyIndexAtPosition(int x, int y) const;
 };

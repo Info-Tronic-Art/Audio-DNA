@@ -775,17 +775,12 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     if (showKeysPanel_ && !mod.isCommandDown())
     {
         int keyCode = key.getKeyCode();
-        // JUCE returns lowercase key codes for letter keys
         char c = static_cast<char>(std::toupper(keyCode));
-        // Also try the text character in case key code doesn't match
-        auto textChar = key.getTextCharacter();
-        if (textChar != 0)
-            c = static_cast<char>(std::toupper(static_cast<int>(textChar)));
 
         // Shift+key = latch toggle regardless of latch setting
         if (mod.isShiftDown())
         {
-            auto* slot = keyboardLayout_.findByChar(c);
+            auto* slot = keyboardLayout_.findByKeyCode(keyCode, true);
             if (slot && !slot->isEmpty())
             {
                 if (slot->active)
@@ -821,13 +816,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component* /*ori
     auto mod = key.getModifiers();
     if (showKeysPanel_ && mod.isShiftDown() && !mod.isCommandDown())
     {
-        int keyCode = key.getKeyCode();
-        char c = static_cast<char>(std::toupper(keyCode));
-        auto textChar = key.getTextCharacter();
-        if (textChar != 0)
-            c = static_cast<char>(std::toupper(static_cast<int>(textChar)));
-
-        auto* slot = keyboardLayout_.findByChar(c);
+        auto* slot = keyboardLayout_.findByKeyCode(key.getKeyCode(), true);
         if (slot && !slot->isEmpty())
         {
             if (slot->active)
