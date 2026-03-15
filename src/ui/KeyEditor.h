@@ -130,12 +130,18 @@ private:
     juce::TextButton addEffectBtn_{"+ Add"};
     juce::TextButton clearEffectsBtn_{"Clear FX"};
 
-    // Effects list display
+    // Effects list display with parameter sliders
     struct EffectRow
     {
         std::unique_ptr<juce::ToggleButton> enableBtn;
         std::unique_ptr<juce::Label> nameLabel;
         std::unique_ptr<juce::TextButton> removeBtn;
+        struct ParamRow
+        {
+            std::unique_ptr<juce::Label> label;
+            std::unique_ptr<juce::Slider> slider;
+        };
+        std::vector<ParamRow> paramRows;
     };
     std::vector<EffectRow> effectRows_;
     void rebuildEffectRows();

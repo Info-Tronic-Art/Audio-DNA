@@ -114,7 +114,11 @@ struct KeySlot
         obj->setProperty("chromaKeyB", static_cast<double>(chromaKeyB));
         obj->setProperty("chromaKeyTolerance", static_cast<double>(chromaKeyTolerance));
         obj->setProperty("chromaKeySoftness", static_cast<double>(chromaKeySoftness));
+        obj->setProperty("vignetteInner", static_cast<double>(vignetteInner));
+        obj->setProperty("vignetteOuter", static_cast<double>(vignetteOuter));
+        obj->setProperty("cameraDeviceIndex", cameraDeviceIndex);
         obj->setProperty("latched", latched);
+        obj->setProperty("latchBeatDuration", latchBeatDuration);
         obj->setProperty("ignoreRandom", ignoreRandom);
         obj->setProperty("randomBeatDuration", randomBeatDuration);
 
@@ -151,7 +155,11 @@ struct KeySlot
             chromaKeyB = static_cast<float>(static_cast<double>(obj->getProperty("chromaKeyB")));
             chromaKeyTolerance = static_cast<float>(static_cast<double>(obj->getProperty("chromaKeyTolerance")));
             chromaKeySoftness = static_cast<float>(static_cast<double>(obj->getProperty("chromaKeySoftness")));
+            vignetteInner = static_cast<float>(static_cast<double>(obj->getProperty("vignetteInner")));
+            vignetteOuter = static_cast<float>(static_cast<double>(obj->getProperty("vignetteOuter")));
+            cameraDeviceIndex = static_cast<int>(obj->getProperty("cameraDeviceIndex"));
             latched = static_cast<bool>(obj->getProperty("latched"));
+            latchBeatDuration = static_cast<int>(obj->getProperty("latchBeatDuration"));
             ignoreRandom = static_cast<bool>(obj->getProperty("ignoreRandom"));
             randomBeatDuration = static_cast<int>(obj->getProperty("randomBeatDuration"));
 

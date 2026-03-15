@@ -304,12 +304,11 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         }
     }
 
-    addAndMakeVisible(addEffectBtn_);
-    addEffectBtn_.onClick = [this] {
+    // Auto-add effect on selection (no separate button needed)
+    addEffectSelector_.onChange = [this] {
         if (!currentKey_) return;
         int sel = addEffectSelector_.getSelectedId();
         if (sel <= 1) return;
-        // Get the name from the combo box text
         juce::String fxName = addEffectSelector_.getText();
         if (fxName.isEmpty()) return;
 
@@ -323,6 +322,9 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         rebuildEffectRows();
         resized();
     };
+
+    // Keep addEffectBtn_ for "Clear FX" only
+    addEffectBtn_.setVisible(false);
 
     addAndMakeVisible(clearEffectsBtn_);
     clearEffectsBtn_.onClick = [this] {
@@ -519,6 +521,11 @@ void KeyEditor::rebuildEffectRows()
         removeChildComponent(row.enableBtn.get());
         removeChildComponent(row.nameLabel.get());
         removeChildComponent(row.removeBtn.get());
+        for (auto& pr : row.paramRows)
+        {
+            removeChildComponent(pr.label.get());
+            removeChildComponent(pr.slider.get());
+        }
     }
     effectRows_.clear();
 
@@ -537,8 +544,8 @@ void KeyEditor::rebuildEffectRows()
 
         row.nameLabel = std::make_unique<juce::Label>("", juce::String(currentKey_->effects[i].effectName));
         row.nameLabel->setColour(juce::Label::textColourId,
-                                  juce::Colour(AudioDNALookAndFeel::kTextPrimary));
-        row.nameLabel->setFont(11.0f);
+                                  juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+        row.nameLabel->setFont(juce::Font(11.0f, juce::Font::bold));
         addAndMakeVisible(row.nameLabel.get());
 
         row.removeBtn = std::make_unique<juce::TextButton>("X");
@@ -551,6 +558,38 @@ void KeyEditor::rebuildEffectRows()
             }
         };
         addAndMakeVisible(row.removeBtn.get());
+
+        // Add parameter sliders
+        auto* def = effectLibrary_.getEffectDef(juce::String(currentKey_->effects[i].effectName));
+        if (def)
+        {
+            for (size_t p = 0; p < def->params.size() && p < currentKey_->effects[i].params.size(); ++p)
+            {
+                EffectRow::ParamRow pr;
+                pr.label = std::make_unique<juce::Label>("", juce::String(def->params[p].name));
+                pr.label->setColour(juce::Label::textColourId,
+                                     juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+                pr.label->setFont(9.0f);
+                addAndMakeVisible(pr.label.get());
+
+                pr.slider = std::make_unique<juce::Slider>();
+                pr.slider->setRange(0.0, 1.0, 0.01);
+                pr.slider->setValue(currentKey_->effects[i].params[p], juce::dontSendNotification);
+                pr.slider->setSliderStyle(juce::Slider::LinearHorizontal);
+                pr.slider->setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 14);
+                pr.slider->onValueChange = [this, i, p] {
+                    if (currentKey_ && i < currentKey_->effects.size() &&
+                        p < currentKey_->effects[i].params.size())
+                    {
+                        currentKey_->effects[i].params[p] =
+                            static_cast<float>(effectRows_[i].paramRows[p].slider->getValue());
+                    }
+                };
+                addAndMakeVisible(pr.slider.get());
+
+                row.paramRows.push_back(std::move(pr));
+            }
+        }
 
         effectRows_.push_back(std::move(row));
     }
@@ -685,23 +724,32 @@ void KeyEditor::resized()
     effectsLabel_.setBounds(area.removeFromTop(18));
     area.removeFromTop(2);
     auto addRow = area.removeFromTop(22);
-    addEffectSelector_.setBounds(addRow.removeFromLeft(160));
-    addRow.removeFromLeft(4);
-    addEffectBtn_.setBounds(addRow.removeFromLeft(50));
+    addEffectSelector_.setBounds(addRow.removeFromLeft(220));
     addRow.removeFromLeft(4);
     clearEffectsBtn_.setBounds(addRow.removeFromLeft(60));
 
     area.removeFromTop(4);
 
-    // Effect rows
+    // Effect rows with parameter sliders
     for (auto& row : effectRows_)
     {
-        auto fxRow = area.removeFromTop(20);
-        row.enableBtn->setBounds(fxRow.removeFromLeft(22));
+        auto fxRow = area.removeFromTop(18);
+        row.enableBtn->setBounds(fxRow.removeFromLeft(20));
         fxRow.removeFromLeft(2);
-        row.removeBtn->setBounds(fxRow.removeFromRight(22));
+        row.removeBtn->setBounds(fxRow.removeFromRight(20));
         fxRow.removeFromRight(2);
         row.nameLabel->setBounds(fxRow);
+        area.removeFromTop(1);
+
+        // Parameter sliders
+        for (auto& pr : row.paramRows)
+        {
+            auto paramRow = area.removeFromTop(16);
+            paramRow.removeFromLeft(24); // indent
+            pr.label->setBounds(paramRow.removeFromLeft(60));
+            pr.slider->setBounds(paramRow);
+            area.removeFromTop(1);
+        }
         area.removeFromTop(2);
     }
 }

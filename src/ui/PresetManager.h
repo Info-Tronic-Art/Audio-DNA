@@ -36,8 +36,10 @@ public:
                            EffectChain& chain,
                            MappingEngine& engine);
 
-    // Get the default presets directory (next to the executable or in app data).
-    static juce::File getPresetsDirectory();
+    // Get directories for different save types
+    static juce::File getPresetsDirectory();   // FX presets
+    static juce::File getFxSaveDirectory();    // FX quick saves
+    static juce::File getDeckDirectory();      // Deck saves
 
     // Enumerate available preset files.
     static juce::Array<juce::File> getAvailablePresets();

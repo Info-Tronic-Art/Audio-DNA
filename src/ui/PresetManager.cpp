@@ -230,6 +230,24 @@ juce::File PresetManager::getPresetsDirectory()
     return dir;
 }
 
+juce::File PresetManager::getFxSaveDirectory()
+{
+    auto appData = juce::File::getSpecialLocation(
+        juce::File::userApplicationDataDirectory);
+    auto dir = appData.getChildFile("AudioDNA").getChildFile("FX Saves");
+    dir.createDirectory();
+    return dir;
+}
+
+juce::File PresetManager::getDeckDirectory()
+{
+    auto appData = juce::File::getSpecialLocation(
+        juce::File::userApplicationDataDirectory);
+    auto dir = appData.getChildFile("AudioDNA").getChildFile("Decks");
+    dir.createDirectory();
+    return dir;
+}
+
 juce::Array<juce::File> PresetManager::getAvailablePresets()
 {
     auto dir = getPresetsDirectory();

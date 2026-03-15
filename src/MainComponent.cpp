@@ -1023,7 +1023,7 @@ void MainComponent::closeOutput()
 
 juce::File MainComponent::getFastSaveDir() const
 {
-    return PresetManager::getPresetsDirectory().getChildFile("fast_saves");
+    return PresetManager::getFxSaveDirectory();
 }
 
 void MainComponent::fastSave()
@@ -1105,7 +1105,7 @@ void MainComponent::saveDeck()
 {
     fileChooser_ = std::make_unique<juce::FileChooser>(
         "Save deck...",
-        PresetManager::getPresetsDirectory(),
+        PresetManager::getDeckDirectory(),
         "*.deck.json");
 
     auto flags = juce::FileBrowserComponent::saveMode
@@ -1148,7 +1148,7 @@ void MainComponent::loadDeck()
 {
     fileChooser_ = std::make_unique<juce::FileChooser>(
         "Load deck...",
-        PresetManager::getPresetsDirectory(),
+        PresetManager::getDeckDirectory(),
         "*.deck.json");
 
     auto flags = juce::FileBrowserComponent::openMode
