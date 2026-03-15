@@ -628,12 +628,17 @@ void MainComponent::resized()
         waveformDisplay_.setVisible(false);
     }
 
-    // Key Editor overlay — shrink preview to make room
+    // Key Editor — takes full width, 3/4 height. Preview shrinks above it.
     if (showKeyEditor_ && keyEditor_)
     {
-        int editorHeight = static_cast<int>(area.getHeight() * 0.75f);
-        auto editorBounds = area.removeFromBottom(editorHeight);
-        previewPanel_.setBounds(area); // Preview gets the remaining top portion
+        // Use full app width for editor
+        auto fullArea = getLocalBounds().reduced(8);
+        int topBarHeight = fullArea.getY() + area.getY() - fullArea.getY();
+        int availHeight = fullArea.getHeight() - topBarHeight;
+        int editorHeight = static_cast<int>(availHeight * 0.75f);
+
+        auto editorBounds = fullArea.removeFromBottom(editorHeight);
+        previewPanel_.setBounds(area); // Preview gets remaining center area
         keyEditor_->setBounds(editorBounds);
         keyEditor_->toFront(false);
     }
@@ -1132,6 +1137,13 @@ void MainComponent::saveDeck()
         deck.audioSourceMode = audioSourceSelector_.getSelectedId();
         deck.viewportResolution = resolutionSelector_.getSelectedId();
         deck.outputDisplay = displaySelector_.getSelectedId();
+        deck.inputGain = static_cast<float>(inputGainSlider_.getValue());
+        deck.masterVideoLevel = static_cast<float>(masterLevelSlider_.getValue());
+        deck.showAudioPanel = showAudioPanel_;
+        deck.showFxPanel = showFxPanel_;
+        deck.showWavePanel = showWavePanel_;
+        deck.showKeysPanel = showKeysPanel_;
+        deck.showPresetsPanel = showPresetsPanel_;
 
         // Collect slot assignments
         for (int i = 0; i < kNumSlots; ++i)
@@ -1211,13 +1223,34 @@ void MainComponent::loadDeck()
             slideshowBeatCounter_ = 0;
         }
 
-        // Restore UI selectors
+        // Restore UI selectors — use sendNotificationSync so handlers fire
         if (deck.viewportResolution > 0)
-            resolutionSelector_.setSelectedId(deck.viewportResolution, juce::dontSendNotification);
+            resolutionSelector_.setSelectedId(deck.viewportResolution, juce::sendNotificationSync);
 
-        // Restore audio source
+        // Restore audio source — trigger onChange to switch engine mode
         if (deck.audioSourceMode > 0)
-            audioSourceSelector_.setSelectedId(deck.audioSourceMode, juce::dontSendNotification);
+            audioSourceSelector_.setSelectedId(deck.audioSourceMode, juce::sendNotificationSync);
+
+        // Restore output display
+        if (deck.outputDisplay > 1)
+            displaySelector_.setSelectedId(deck.outputDisplay, juce::sendNotificationSync);
+
+        // Restore input gain and master level
+        if (deck.inputGain > 0.0f)
+            inputGainSlider_.setValue(deck.inputGain, juce::sendNotificationSync);
+        masterLevelSlider_.setValue(deck.masterVideoLevel, juce::sendNotificationSync);
+
+        // Restore panel visibility
+        showAudioPanel_ = deck.showAudioPanel;
+        showFxPanel_ = deck.showFxPanel;
+        showWavePanel_ = deck.showWavePanel;
+        showKeysPanel_ = deck.showKeysPanel;
+        showPresetsPanel_ = deck.showPresetsPanel;
+        toggleAudioBtn_.setToggleState(showAudioPanel_, juce::dontSendNotification);
+        toggleFxBtn_.setToggleState(showFxPanel_, juce::dontSendNotification);
+        toggleWaveBtn_.setToggleState(showWavePanel_, juce::dontSendNotification);
+        toggleKeysBtn_.setToggleState(showKeysPanel_, juce::dontSendNotification);
+        togglePresetsBtn_.setToggleState(showPresetsPanel_, juce::dontSendNotification);
 
         // Load audio
         if (deck.audioFile.existsAsFile())

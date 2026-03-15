@@ -281,6 +281,13 @@ bool PresetManager::saveDeck(const juce::File& file,
     deckObj->setProperty("audioSourceMode", deck.audioSourceMode);
     deckObj->setProperty("viewportResolution", deck.viewportResolution);
     deckObj->setProperty("outputDisplay", deck.outputDisplay);
+    deckObj->setProperty("inputGain", static_cast<double>(deck.inputGain));
+    deckObj->setProperty("masterVideoLevel", static_cast<double>(deck.masterVideoLevel));
+    deckObj->setProperty("showAudioPanel", deck.showAudioPanel);
+    deckObj->setProperty("showFxPanel", deck.showFxPanel);
+    deckObj->setProperty("showWavePanel", deck.showWavePanel);
+    deckObj->setProperty("showKeysPanel", deck.showKeysPanel);
+    deckObj->setProperty("showPresetsPanel", deck.showPresetsPanel);
 
     // Slot assignments
     juce::Array<juce::var> slotsArray;
@@ -324,6 +331,13 @@ bool PresetManager::loadDeck(const juce::File& file,
     deck.audioSourceMode = static_cast<int>(obj->getProperty("audioSourceMode"));
     deck.viewportResolution = static_cast<int>(obj->getProperty("viewportResolution"));
     deck.outputDisplay = static_cast<int>(obj->getProperty("outputDisplay"));
+    deck.inputGain = static_cast<float>(static_cast<double>(obj->getProperty("inputGain")));
+    deck.masterVideoLevel = static_cast<float>(static_cast<double>(obj->getProperty("masterVideoLevel")));
+    deck.showAudioPanel = obj->hasProperty("showAudioPanel") ? static_cast<bool>(obj->getProperty("showAudioPanel")) : true;
+    deck.showFxPanel = obj->hasProperty("showFxPanel") ? static_cast<bool>(obj->getProperty("showFxPanel")) : true;
+    deck.showWavePanel = obj->hasProperty("showWavePanel") ? static_cast<bool>(obj->getProperty("showWavePanel")) : true;
+    deck.showKeysPanel = obj->hasProperty("showKeysPanel") ? static_cast<bool>(obj->getProperty("showKeysPanel")) : true;
+    deck.showPresetsPanel = obj->hasProperty("showPresetsPanel") ? static_cast<bool>(obj->getProperty("showPresetsPanel")) : true;
 
     // Slot assignments
     deck.slotFiles.clear();

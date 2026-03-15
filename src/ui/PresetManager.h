@@ -53,9 +53,16 @@ public:
         int slideshowBeatsPerImage = 8;
         int beatRandomCount = 4;
         bool beatRandomEnabled = false;
-        int audioSourceMode = 0;  // 0=mic, 1=file, 2=system
-        int viewportResolution = 0; // combo box ID
-        int outputDisplay = 0;
+        int audioSourceMode = 1;    // Combo box ID: 1=Mic, 2=File
+        int viewportResolution = 0; // Combo box ID
+        int outputDisplay = 1;      // Combo box ID: 1=Off, 2+=display
+        float inputGain = 1.0f;
+        float masterVideoLevel = 1.0f;
+        bool showAudioPanel = true;
+        bool showFxPanel = true;
+        bool showWavePanel = true;
+        bool showKeysPanel = true;
+        bool showPresetsPanel = true;
         // Slot assignments
         juce::StringArray slotFiles;
         // Keyboard layout
