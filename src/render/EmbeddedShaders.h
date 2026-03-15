@@ -2269,4 +2269,88 @@ inline const char* hexagonalize = R"(
     }
 )";
 
+// =============================================================
+// TRANSPARENCY / KEYING SHADERS (used by keyboard launcher)
+// =============================================================
+
+// Alpha transparency — pass through the image's alpha channel
+inline const char* transparencyAlpha = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_opacity;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        fragColor = vec4(col.rgb, col.a * u_opacity);
+    }
+)";
+
+// Luma key — dark pixels become transparent
+inline const char* transparencyLumaKey = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_opacity;
+    uniform float u_luma_threshold;
+    uniform float u_luma_softness;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float luma = dot(col.rgb, vec3(0.299, 0.587, 0.114));
+        float alpha = smoothstep(u_luma_threshold, u_luma_threshold + u_luma_softness, luma);
+        fragColor = vec4(col.rgb, alpha * u_opacity);
+    }
+)";
+
+// Chroma key — specified color becomes transparent
+inline const char* transparencyChromaKey = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_opacity;
+    uniform vec3 u_chroma_key_color;
+    uniform float u_chroma_tolerance;
+    uniform float u_chroma_softness;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float dist = distance(col.rgb, u_chroma_key_color);
+        float alpha = smoothstep(u_chroma_tolerance, u_chroma_tolerance + u_chroma_softness, dist);
+        fragColor = vec4(col.rgb, alpha * u_opacity);
+    }
+)";
+
+// Light transparency — bright pixels are opaque, dark are transparent
+inline const char* transparencyLight = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_opacity;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float alpha = max(col.r, max(col.g, col.b));
+        fragColor = vec4(col.rgb, alpha * u_opacity);
+    }
+)";
+
+// Alpha blend compositing — blends source onto destination using source alpha
+inline const char* compositeBlend = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;      // source (key layer with alpha)
+    uniform sampler2D u_destination;  // what's underneath
+    void main() {
+        vec4 src = texture(u_texture, v_texCoord);
+        vec4 dst = texture(u_destination, v_texCoord);
+        // Standard alpha blending: src over dst
+        float outAlpha = src.a + dst.a * (1.0 - src.a);
+        vec3 outRgb = (src.rgb * src.a + dst.rgb * dst.a * (1.0 - src.a));
+        if (outAlpha > 0.001) outRgb /= outAlpha;
+        fragColor = vec4(outRgb, outAlpha);
+    }
+)";
+
 } // namespace EmbeddedShaders

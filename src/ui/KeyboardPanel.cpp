@@ -79,8 +79,16 @@ void KeyboardPanel::KeyButton::paint(juce::Graphics& g)
     }
 }
 
-void KeyboardPanel::KeyButton::mouseDown(const juce::MouseEvent&)
+void KeyboardPanel::KeyButton::mouseDown(const juce::MouseEvent& e)
 {
+    // Right-click always opens editor
+    if (e.mods.isRightButtonDown())
+    {
+        if (parent_.onKeyClicked)
+            parent_.onKeyClicked(slot_);
+        return;
+    }
+
     if (slot_.isEmpty())
     {
         // Empty key — open editor on click

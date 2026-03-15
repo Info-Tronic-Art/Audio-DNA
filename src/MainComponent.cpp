@@ -373,6 +373,13 @@ MainComponent::MainComponent()
     // === Keyboard Launcher Panel ===
     keyboardPanel_ = std::make_unique<KeyboardPanel>(keyboardLayout_);
     addAndMakeVisible(keyboardPanel_.get());
+    keyboardPanel_->onKeyClicked = [this](KeySlot& key) { openKeyEditor(key); };
+
+    // === Key Editor (hidden by default) ===
+    keyEditor_ = std::make_unique<KeyEditor>(effectLibrary_);
+    addChildComponent(keyEditor_.get()); // hidden initially
+    keyEditor_->onClose = [this] { closeKeyEditor(); };
+    keyEditor_->onRequestImage = [this](KeySlot& key) { assignImageToKey(key); };
 
     // === Collapsible Panel Toggle Buttons ===
     auto setupToggle = [this](juce::TextButton& btn, bool& state, const juce::String& label) {
@@ -617,6 +624,16 @@ void MainComponent::resized()
     }
 
     previewPanel_.setBounds(area); // GL preview takes remaining space
+
+    // Key Editor overlay — positioned above keyboard panel or at bottom
+    if (showKeyEditor_ && keyEditor_)
+    {
+        int editorHeight = 280;
+        auto editorBounds = getLocalBounds().reduced(8);
+        editorBounds = editorBounds.removeFromBottom(editorHeight);
+        keyEditor_->setBounds(editorBounds);
+        keyEditor_->toFront(true);
+    }
 }
 
 
@@ -1382,3 +1399,52 @@ void MainComponent::beatSyncRandomize()
     lastBeatPhase_ = phase;
 }
 
+void MainComponent::openKeyEditor(KeySlot& key)
+{
+    if (keyEditor_)
+    {
+        keyEditor_->setKey(&key);
+        showKeyEditor_ = true;
+        keyEditor_->setVisible(true);
+        resized();
+    }
+}
+
+void MainComponent::closeKeyEditor()
+{
+    showKeyEditor_ = false;
+    if (keyEditor_)
+    {
+        keyEditor_->setVisible(false);
+        keyEditor_->setKey(nullptr);
+    }
+    if (keyboardPanel_)
+        keyboardPanel_->refresh();
+    resized();
+}
+
+void MainComponent::assignImageToKey(KeySlot& key)
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Select image for key " + juce::String::charToString(key.keyChar),
+        juce::File{},
+        "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tiff");
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser_->launchAsync(flags, [this, &key](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (!file.existsAsFile())
+            return;
+
+        key.mediaType = KeySlot::MediaType::Image;
+        key.mediaFile = file;
+
+        if (keyEditor_ && keyEditor_->getKey() == &key)
+            keyEditor_->setKey(&key); // refresh editor
+
+        if (keyboardPanel_)
+            keyboardPanel_->refresh();
+    });
+}

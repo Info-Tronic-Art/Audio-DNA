@@ -14,6 +14,7 @@
 #include "ui/PresetManager.h"
 #include "ui/OutputWindow.h"
 #include "ui/KeyboardPanel.h"
+#include "ui/KeyEditor.h"
 #include "keyboard/KeySlot.h"
 #if AUDIODNA_HAS_CAMERA
  #include <juce_video/juce_video.h>
@@ -166,7 +167,12 @@ private:
     // === Keyboard Launcher (M7) ===
     KeyboardLayout keyboardLayout_;
     std::unique_ptr<KeyboardPanel> keyboardPanel_;
+    std::unique_ptr<KeyEditor> keyEditor_;
+    bool showKeyEditor_ = false;
     void handleKeySlotTrigger(char keyChar, bool isDown);
+    void openKeyEditor(KeySlot& key);
+    void closeKeyEditor();
+    void assignImageToKey(KeySlot& key);
 
     // === Collapsible Panel Toggles ===
     juce::TextButton toggleAudioBtn_{"A"};
