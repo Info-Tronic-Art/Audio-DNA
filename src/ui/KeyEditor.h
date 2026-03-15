@@ -56,8 +56,6 @@ private:
     juce::Label playbackLabel_{"", "Playback"};
     juce::ToggleButton latchToggle_{"Latch"};
     juce::ToggleButton ignoreRandomToggle_{"Ignore Random"};
-    juce::ComboBox latchBeatSelector_;
-    juce::Label latchBeatLabel_{"", "Latch Beats"};
     juce::ComboBox randomBeatSelector_;
     juce::Label randomBeatLabel_{"", "Random Beats"};
 

@@ -109,29 +109,25 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         if (currentKey_) currentKey_->ignoreRandom = ignoreRandomToggle_.getToggleState();
     };
 
-    addAndMakeVisible(latchBeatSelector_);
-    addAndMakeVisible(latchBeatLabel_);
-    latchBeatLabel_.setColour(juce::Label::textColourId,
-                               juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    latchBeatLabel_.setFont(10.0f);
-    latchBeatSelector_.addItem("Infinite", 1);
-    for (int i = 1; i <= 32; ++i)
-        latchBeatSelector_.addItem(juce::String(i), i + 1);
-    latchBeatSelector_.onChange = [this] {
-        if (currentKey_)
-            currentKey_->latchBeatDuration = latchBeatSelector_.getSelectedId() - 1;
-    };
+    // Latch is always infinite — no beat selector needed
 
     addAndMakeVisible(randomBeatSelector_);
     addAndMakeVisible(randomBeatLabel_);
     randomBeatLabel_.setColour(juce::Label::textColourId,
                                 juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     randomBeatLabel_.setFont(10.0f);
-    for (int i = 1; i <= 32; ++i)
-        randomBeatSelector_.addItem(juce::String(i), i);
+    // Specific beat values: 1, 2, 4, 8, 16, 32, 64, 128
+    const int beatValues[] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+    for (int i = 0; i < 8; ++i)
+        randomBeatSelector_.addItem(juce::String(beatValues[i]), i + 1);
     randomBeatSelector_.onChange = [this] {
         if (currentKey_)
-            currentKey_->randomBeatDuration = randomBeatSelector_.getSelectedId();
+        {
+            const int vals[] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+            int sel = randomBeatSelector_.getSelectedId();
+            if (sel >= 1 && sel <= 8)
+                currentKey_->randomBeatDuration = vals[sel - 1];
+        }
     };
 
     // Effects
@@ -142,23 +138,40 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
 
     addAndMakeVisible(addEffectSelector_);
     addEffectSelector_.addItem("Select effect...", 1);
-    auto names = effectLibrary_.getEffectNames();
-    for (int i = 0; i < names.size(); ++i)
-        addEffectSelector_.addItem(names[i], i + 2);
+    {
+        // Build categorized menu
+        const juce::String categories[] = {
+            "3d", "warp", "color", "glitch", "pattern", "animation", "blend", "blur"
+        };
+        const juce::String categoryLabels[] = {
+            "-- 3D/DEPTH --", "-- WARP --", "-- COLOR --", "-- GLITCH --",
+            "-- PATTERN --", "-- ANIMATION --", "-- BLEND --", "-- BLUR --"
+        };
+        int itemId = 2;
+        for (int c = 0; c < 8; ++c)
+        {
+            auto catNames = effectLibrary_.getEffectsByCategory(categories[c]);
+            if (catNames.isEmpty()) continue;
+            // Add category separator (disabled item)
+            addEffectSelector_.addSeparator();
+            addEffectSelector_.addSectionHeading(categoryLabels[c]);
+            for (int i = 0; i < catNames.size(); ++i)
+                addEffectSelector_.addItem(catNames[i], itemId++);
+        }
+    }
 
     addAndMakeVisible(addEffectBtn_);
     addEffectBtn_.onClick = [this] {
         if (!currentKey_) return;
         int sel = addEffectSelector_.getSelectedId();
         if (sel <= 1) return;
-        auto allNames = effectLibrary_.getEffectNames();
-        int idx = sel - 2;
-        if (idx >= allNames.size()) return;
+        // Get the name from the combo box text
+        juce::String fxName = addEffectSelector_.getText();
+        if (fxName.isEmpty()) return;
 
         KeySlot::EffectSlot slot;
-        slot.effectName = allNames[idx].toStdString();
-        // Initialize params from library default count
-        auto* def = effectLibrary_.getEffectDef(allNames[idx]);
+        slot.effectName = fxName.toStdString();
+        auto* def = effectLibrary_.getEffectDef(fxName);
         if (def)
             slot.params.resize(def->params.size(), 0.0f);
         currentKey_->effects.push_back(std::move(slot));
@@ -224,8 +237,12 @@ void KeyEditor::refreshFromKey()
     // Playback
     latchToggle_.setToggleState(currentKey_->latched, juce::dontSendNotification);
     ignoreRandomToggle_.setToggleState(currentKey_->ignoreRandom, juce::dontSendNotification);
-    latchBeatSelector_.setSelectedId(currentKey_->latchBeatDuration + 1, juce::dontSendNotification);
-    randomBeatSelector_.setSelectedId(currentKey_->randomBeatDuration, juce::dontSendNotification);
+    // Map randomBeatDuration to selector index
+    const int vals[] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+    int selIdx = 1; // default to 1 beat
+    for (int i = 0; i < 8; ++i)
+        if (vals[i] == currentKey_->randomBeatDuration) { selIdx = i + 1; break; }
+    randomBeatSelector_.setSelectedId(selIdx, juce::dontSendNotification);
 }
 
 void KeyEditor::rebuildEffectRows()
@@ -353,14 +370,11 @@ void KeyEditor::resized()
     area.removeFromTop(2);
     auto playRow1 = area.removeFromTop(22);
     latchToggle_.setBounds(playRow1.removeFromLeft(70));
-    playRow1.removeFromLeft(4);
-    latchBeatLabel_.setBounds(playRow1.removeFromLeft(60));
-    latchBeatSelector_.setBounds(playRow1.removeFromLeft(70));
     playRow1.removeFromLeft(12);
     ignoreRandomToggle_.setBounds(playRow1.removeFromLeft(100));
-    playRow1.removeFromLeft(4);
+    playRow1.removeFromLeft(12);
     randomBeatLabel_.setBounds(playRow1.removeFromLeft(70));
-    randomBeatSelector_.setBounds(playRow1.removeFromLeft(60));
+    randomBeatSelector_.setBounds(playRow1.removeFromLeft(70));
 
     area.removeFromTop(6);
 
