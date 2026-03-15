@@ -132,42 +132,17 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         if (currentKey_) currentKey_->keySoftness = static_cast<float>(softnessSlider_.getValue());
     };
 
-    // Chroma key color button — shows current color, cycles through presets on click
-    addAndMakeVisible(chromaColorBtn_);
+    // Chroma key color swatch — click to open color picker popup
+    addAndMakeVisible(chromaColorSwatch_);
     addAndMakeVisible(chromaColorLabel_);
     chromaColorLabel_.setColour(juce::Label::textColourId,
                                  juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     chromaColorLabel_.setFont(10.0f);
-    chromaColorBtn_.onClick = [this] {
+    chromaColorSwatch_.onColourChanged = [this](juce::Colour col) {
         if (!currentKey_) return;
-        // Cycle through common key colors: Green → Blue → Black → White → Magenta → Green
-        struct PresetColor { float r, g, b; const char* name; };
-        static const PresetColor presets[] = {
-            { 0.0f, 1.0f, 0.0f, "Green" },
-            { 0.0f, 0.0f, 1.0f, "Blue" },
-            { 0.0f, 0.0f, 0.0f, "Black" },
-            { 1.0f, 1.0f, 1.0f, "White" },
-            { 1.0f, 0.0f, 1.0f, "Magenta" },
-        };
-        // Find current and advance
-        int current = 0;
-        for (int i = 0; i < 5; ++i)
-        {
-            if (std::abs(currentKey_->chromaKeyR - presets[i].r) < 0.1f &&
-                std::abs(currentKey_->chromaKeyG - presets[i].g) < 0.1f &&
-                std::abs(currentKey_->chromaKeyB - presets[i].b) < 0.1f)
-            {
-                current = i;
-                break;
-            }
-        }
-        int next = (current + 1) % 5;
-        currentKey_->chromaKeyR = presets[next].r;
-        currentKey_->chromaKeyG = presets[next].g;
-        currentKey_->chromaKeyB = presets[next].b;
-        chromaColorBtn_.setButtonText(juce::String("Key Color: ") + presets[next].name);
-        auto col = juce::Colour::fromFloatRGBA(presets[next].r, presets[next].g, presets[next].b, 1.0f);
-        chromaColorBtn_.setColour(juce::TextButton::buttonColourId, col.withAlpha(0.4f));
+        currentKey_->chromaKeyR = col.getFloatRed();
+        currentKey_->chromaKeyG = col.getFloatGreen();
+        currentKey_->chromaKeyB = col.getFloatBlue();
     };
 
     setupSlider(chromaToleranceSlider_, chromaToleranceLabel_, "Tolerance", 0.0f, 1.0f, 0.2f);
@@ -323,19 +298,11 @@ void KeyEditor::refreshFromKey()
     chromaToleranceSlider_.setValue(currentKey_->chromaKeyTolerance, juce::dontSendNotification);
     chromaSoftnessSlider_.setValue(currentKey_->chromaKeySoftness, juce::dontSendNotification);
 
-    // Set chroma key color button text
-    {
-        juce::String colorName = "Custom";
-        if (currentKey_->chromaKeyG > 0.9f && currentKey_->chromaKeyR < 0.1f && currentKey_->chromaKeyB < 0.1f) colorName = "Green";
-        else if (currentKey_->chromaKeyB > 0.9f && currentKey_->chromaKeyR < 0.1f && currentKey_->chromaKeyG < 0.1f) colorName = "Blue";
-        else if (currentKey_->chromaKeyR < 0.1f && currentKey_->chromaKeyG < 0.1f && currentKey_->chromaKeyB < 0.1f) colorName = "Black";
-        else if (currentKey_->chromaKeyR > 0.9f && currentKey_->chromaKeyG > 0.9f && currentKey_->chromaKeyB > 0.9f) colorName = "White";
-        else if (currentKey_->chromaKeyR > 0.9f && currentKey_->chromaKeyB > 0.9f && currentKey_->chromaKeyG < 0.1f) colorName = "Magenta";
-        chromaColorBtn_.setButtonText("Key Color: " + colorName);
-        auto col = juce::Colour::fromFloatRGBA(currentKey_->chromaKeyR, currentKey_->chromaKeyG,
-                                                 currentKey_->chromaKeyB, 1.0f);
-        chromaColorBtn_.setColour(juce::TextButton::buttonColourId, col.withAlpha(0.4f));
-    }
+    // Set chroma key color swatch
+    chromaColorSwatch_.colour = juce::Colour::fromFloatRGBA(
+        currentKey_->chromaKeyR, currentKey_->chromaKeyG,
+        currentKey_->chromaKeyB, 1.0f);
+    chromaColorSwatch_.repaint();
 
     // Playback
     latchToggle_.setToggleState(currentKey_->latched, juce::dontSendNotification);
@@ -447,7 +414,7 @@ void KeyEditor::resized()
     thresholdSlider_.setVisible(showThreshold);
     softnessLabel_.setVisible(showThreshold);
     softnessSlider_.setVisible(showThreshold);
-    chromaColorBtn_.setVisible(showChroma);
+    chromaColorSwatch_.setVisible(showChroma);
     chromaColorLabel_.setVisible(showChroma);
     chromaToleranceLabel_.setVisible(showChroma);
     chromaToleranceSlider_.setVisible(showChroma);
@@ -466,9 +433,9 @@ void KeyEditor::resized()
     }
     else if (showChroma)
     {
-        auto chromaRow1 = area.removeFromTop(22);
-        chromaColorLabel_.setBounds(chromaRow1.removeFromLeft(35));
-        chromaColorBtn_.setBounds(chromaRow1.removeFromLeft(130));
+        auto chromaRow1 = area.removeFromTop(24);
+        chromaColorLabel_.setBounds(chromaRow1.removeFromLeft(55));
+        chromaColorSwatch_.setBounds(chromaRow1.removeFromLeft(40).reduced(0, 2));
         area.removeFromTop(2);
         auto chromaRow2 = area.removeFromTop(22);
         chromaToleranceLabel_.setBounds(chromaRow2.removeFromLeft(55));
@@ -487,9 +454,9 @@ void KeyEditor::resized()
     auto playRow1 = area.removeFromTop(22);
     latchToggle_.setBounds(playRow1.removeFromLeft(70));
     playRow1.removeFromLeft(12);
-    ignoreRandomToggle_.setBounds(playRow1.removeFromLeft(100));
+    ignoreRandomToggle_.setBounds(playRow1.removeFromLeft(130));
     playRow1.removeFromLeft(12);
-    randomBeatLabel_.setBounds(playRow1.removeFromLeft(70));
+    randomBeatLabel_.setBounds(playRow1.removeFromLeft(80));
     randomBeatSelector_.setBounds(playRow1.removeFromLeft(70));
 
     area.removeFromTop(6);

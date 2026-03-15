@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
+#include <juce_gui_extra/juce_gui_extra.h>
 #include "keyboard/KeySlot.h"
 #include "effects/EffectLibrary.h"
 
@@ -49,8 +50,50 @@ private:
     juce::Label thresholdLabel_{"", "Threshold"};
     juce::Slider softnessSlider_;
     juce::Label softnessLabel_{"", "Softness"};
-    juce::TextButton chromaColorBtn_{"Key Color"};
-    juce::Label chromaColorLabel_{"", "Color"};
+    // Chroma key color swatch — click to open color picker
+    class ColorSwatch : public juce::Component, public juce::ChangeListener
+    {
+    public:
+        juce::Colour colour{0, 255, 0};
+        std::function<void(juce::Colour)> onColourChanged;
+
+        void paint(juce::Graphics& g) override
+        {
+            auto b = getLocalBounds().toFloat().reduced(1.0f);
+            g.setColour(colour);
+            g.fillRoundedRectangle(b, 3.0f);
+            g.setColour(juce::Colours::white.withAlpha(0.5f));
+            g.drawRoundedRectangle(b, 3.0f, 1.0f);
+        }
+
+        void mouseDown(const juce::MouseEvent&) override
+        {
+            auto* cs = new juce::ColourSelector(
+                juce::ColourSelector::showColourAtTop
+                | juce::ColourSelector::showSliders
+                | juce::ColourSelector::showColourspace);
+            cs->setSize(300, 300);
+            cs->setCurrentColour(colour);
+            cs->addChangeListener(this);
+            juce::CallOutBox::launchAsynchronously(
+                std::unique_ptr<juce::Component>(cs),
+                getScreenBounds(), nullptr);
+        }
+
+        void changeListenerCallback(juce::ChangeBroadcaster* source) override
+        {
+            if (auto* cs = dynamic_cast<juce::ColourSelector*>(source))
+            {
+                colour = cs->getCurrentColour();
+                repaint();
+                if (onColourChanged)
+                    onColourChanged(colour);
+            }
+        }
+    };
+
+    ColorSwatch chromaColorSwatch_;
+    juce::Label chromaColorLabel_{"", "Key Color"};
     juce::Slider chromaToleranceSlider_;
     juce::Label chromaToleranceLabel_{"", "Tolerance"};
     juce::Slider chromaSoftnessSlider_;
