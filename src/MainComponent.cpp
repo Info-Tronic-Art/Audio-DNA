@@ -1130,6 +1130,10 @@ void MainComponent::saveDeck()
             deck.slotFiles.add(s.loadedFile.getFullPathName());
         }
 
+        // Serialize keyboard layout
+        for (const auto& key : keyboardLayout_.keys)
+            deck.keyboardKeys.add(key.toVar());
+
         if (PresetManager::saveDeck(saveFile, deck,
                                      previewPanel_.getEffectChain(),
                                      previewPanel_.getMappingEngine()))
@@ -1205,6 +1209,18 @@ void MainComponent::loadDeck()
                 s.button->removeColour(juce::TextButton::buttonColourId);
             }
             populateSlotMenu(i);
+        }
+
+        // Restore keyboard layout
+        if (!deck.keyboardKeys.isEmpty())
+        {
+            for (int i = 0; i < deck.keyboardKeys.size() && i < KeyboardLayout::kNumKeys; ++i)
+            {
+                keyboardLayout_.keys[static_cast<size_t>(i)].fromVar(deck.keyboardKeys[i]);
+                keyboardLayout_.keys[static_cast<size_t>(i)].deactivate(); // Start inactive
+            }
+            if (keyboardPanel_)
+                keyboardPanel_->refresh();
         }
 
         if (effectsRackPanel_)
@@ -1455,16 +1471,81 @@ void MainComponent::beatSyncRandomize()
     float phase = snap->beatPhase;
 
     // Detect beat: phase wrapped around (went from high to low)
-    if (phase < lastBeatPhase_ - 0.5f)
+    bool beatDetected = (phase < lastBeatPhase_ - 0.5f);
+    lastBeatPhase_ = phase;
+
+    if (!beatDetected)
+        return;
+
+    // === Global effects randomize (existing behavior) ===
+    ++beatCounter_;
+    if (beatRandomToggle_.getToggleState() && beatCounter_ >= beatRandomCount_)
     {
-        ++beatCounter_;
-        if (beatCounter_ >= beatRandomCount_)
+        beatCounter_ = 0;
+        juce::MessageManager::callAsync([this] { randomizeAllEffects(); });
+    }
+
+    // === Keyboard key auto-release countdown ===
+    for (auto& key : keyboardLayout_.keys)
+    {
+        if (!key.active)
+            continue;
+
+        // Count beats for keys with auto-release
+        if (key.activatedByRandom || (key.latched && key.latchBeatDuration > 0))
         {
-            beatCounter_ = 0;
-            juce::MessageManager::callAsync([this] { randomizeAllEffects(); });
+            key.beatsSinceActivation++;
+
+            int releaseAfter = key.activatedByRandom
+                ? key.randomBeatDuration
+                : key.latchBeatDuration;
+
+            if (key.beatsSinceActivation >= releaseAfter)
+            {
+                juce::MessageManager::callAsync([this, idx = static_cast<int>(&key - keyboardLayout_.keys.data())] {
+                    if (idx >= 0 && idx < KeyboardLayout::kNumKeys)
+                    {
+                        auto& k = keyboardLayout_.keys[static_cast<size_t>(idx)];
+                        keyboardLayout_.deactivateKey(k);
+                        if (keyboardPanel_)
+                            keyboardPanel_->keyDeactivated(k);
+                    }
+                });
+            }
         }
     }
-    lastBeatPhase_ = phase;
+
+    // === Keyboard key random triggering ===
+    // Uses the same beat count as global random (beatRandomCount_)
+    if (beatRandomToggle_.getToggleState() && beatCounter_ == 0)
+    {
+        // Collect eligible keys: has content, not active, not ignoreRandom, not latched
+        std::vector<int> eligible;
+        for (int i = 0; i < KeyboardLayout::kNumKeys; ++i)
+        {
+            auto& key = keyboardLayout_.keys[static_cast<size_t>(i)];
+            if (!key.isEmpty() && !key.active && !key.ignoreRandom &&
+                !key.latched && !key.shiftLatched)
+            {
+                eligible.push_back(i);
+            }
+        }
+
+        if (!eligible.empty())
+        {
+            juce::Random rng;
+            int pick = eligible[static_cast<size_t>(rng.nextInt(static_cast<int>(eligible.size())))];
+            auto& key = keyboardLayout_.keys[static_cast<size_t>(pick)];
+            keyboardLayout_.activateKey(key);
+            key.activatedByRandom = true;
+            key.beatsSinceActivation = 0;
+
+            juce::MessageManager::callAsync([this, pick] {
+                if (keyboardPanel_)
+                    keyboardPanel_->keyActivated(keyboardLayout_.keys[static_cast<size_t>(pick)]);
+            });
+        }
+    }
 }
 
 void MainComponent::openKeyEditor(KeySlot& key)

@@ -98,6 +98,83 @@ struct KeySlot
     bool activatedByRandom = false;     // Was this key activated by random mode?
     bool shiftLatched = false;          // Activated via shift+click (holds until shift+click again)
 
+    // === Serialization ===
+    juce::var toVar() const
+    {
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("mediaType", static_cast<int>(mediaType));
+        obj->setProperty("mediaFile", mediaFile.getFullPathName());
+        obj->setProperty("keyingMode", static_cast<int>(keyingMode));
+        obj->setProperty("blendMode", static_cast<int>(blendMode));
+        obj->setProperty("opacity", static_cast<double>(opacity));
+        obj->setProperty("keyThreshold", static_cast<double>(keyThreshold));
+        obj->setProperty("keySoftness", static_cast<double>(keySoftness));
+        obj->setProperty("chromaKeyR", static_cast<double>(chromaKeyR));
+        obj->setProperty("chromaKeyG", static_cast<double>(chromaKeyG));
+        obj->setProperty("chromaKeyB", static_cast<double>(chromaKeyB));
+        obj->setProperty("chromaKeyTolerance", static_cast<double>(chromaKeyTolerance));
+        obj->setProperty("chromaKeySoftness", static_cast<double>(chromaKeySoftness));
+        obj->setProperty("latched", latched);
+        obj->setProperty("ignoreRandom", ignoreRandom);
+        obj->setProperty("randomBeatDuration", randomBeatDuration);
+
+        juce::Array<juce::var> fxArray;
+        for (const auto& fx : effects)
+        {
+            auto* fxObj = new juce::DynamicObject();
+            fxObj->setProperty("name", juce::String(fx.effectName));
+            fxObj->setProperty("enabled", fx.enabled);
+            juce::Array<juce::var> paramArray;
+            for (float p : fx.params)
+                paramArray.add(static_cast<double>(p));
+            fxObj->setProperty("params", paramArray);
+            fxArray.add(juce::var(fxObj));
+        }
+        obj->setProperty("effects", fxArray);
+
+        return juce::var(obj);
+    }
+
+    void fromVar(const juce::var& v)
+    {
+        if (auto* obj = v.getDynamicObject())
+        {
+            mediaType = static_cast<MediaType>(static_cast<int>(obj->getProperty("mediaType")));
+            mediaFile = juce::File(obj->getProperty("mediaFile").toString());
+            keyingMode = static_cast<KeyingMode>(static_cast<int>(obj->getProperty("keyingMode")));
+            blendMode = static_cast<BlendMode>(static_cast<int>(obj->getProperty("blendMode")));
+            opacity = static_cast<float>(static_cast<double>(obj->getProperty("opacity")));
+            keyThreshold = static_cast<float>(static_cast<double>(obj->getProperty("keyThreshold")));
+            keySoftness = static_cast<float>(static_cast<double>(obj->getProperty("keySoftness")));
+            chromaKeyR = static_cast<float>(static_cast<double>(obj->getProperty("chromaKeyR")));
+            chromaKeyG = static_cast<float>(static_cast<double>(obj->getProperty("chromaKeyG")));
+            chromaKeyB = static_cast<float>(static_cast<double>(obj->getProperty("chromaKeyB")));
+            chromaKeyTolerance = static_cast<float>(static_cast<double>(obj->getProperty("chromaKeyTolerance")));
+            chromaKeySoftness = static_cast<float>(static_cast<double>(obj->getProperty("chromaKeySoftness")));
+            latched = static_cast<bool>(obj->getProperty("latched"));
+            ignoreRandom = static_cast<bool>(obj->getProperty("ignoreRandom"));
+            randomBeatDuration = static_cast<int>(obj->getProperty("randomBeatDuration"));
+
+            effects.clear();
+            if (auto* fxArray = obj->getProperty("effects").getArray())
+            {
+                for (const auto& fxVar : *fxArray)
+                {
+                    if (auto* fxObj = fxVar.getDynamicObject())
+                    {
+                        EffectSlot slot;
+                        slot.effectName = fxObj->getProperty("name").toString().toStdString();
+                        slot.enabled = static_cast<bool>(fxObj->getProperty("enabled"));
+                        if (auto* paramArray = fxObj->getProperty("params").getArray())
+                            for (const auto& p : *paramArray)
+                                slot.params.push_back(static_cast<float>(static_cast<double>(p)));
+                        effects.push_back(std::move(slot));
+                    }
+                }
+            }
+        }
+    }
+
     // === Helpers ===
     bool hasMedia() const { return mediaType != MediaType::None; }
     bool hasEffects() const { return !effects.empty(); }

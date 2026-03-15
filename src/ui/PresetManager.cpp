@@ -266,6 +266,10 @@ bool PresetManager::saveDeck(const juce::File& file,
     // Embed the full FX preset
     deckObj->setProperty("fx", fxVar);
 
+    // Keyboard layout
+    if (!deck.keyboardKeys.isEmpty())
+        deckObj->setProperty("keyboard", deck.keyboardKeys);
+
     auto json = juce::JSON::toString(juce::var(deckObj.release()));
     return file.replaceWithText(json);
 }
@@ -307,6 +311,14 @@ bool PresetManager::loadDeck(const juce::File& file,
         tempFile.replaceWithText(juce::JSON::toString(fxVar));
         loadPreset(tempFile, chain, engine);
         tempFile.deleteFile();
+    }
+
+    // Keyboard layout
+    deck.keyboardKeys.clear();
+    if (auto* kbArray = obj->getProperty("keyboard").getArray())
+    {
+        for (const auto& v : *kbArray)
+            deck.keyboardKeys.add(v);
     }
 
     return true;

@@ -49,6 +49,8 @@ public:
         juce::File imageFile;
         // Slot assignments: file paths for each of the 10 preset slots
         juce::StringArray slotFiles;
+        // Keyboard layout: serialized key data (40 keys)
+        juce::Array<juce::var> keyboardKeys;
     };
 
     static bool saveDeck(const juce::File& file,
