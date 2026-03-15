@@ -4,11 +4,13 @@
 
 ## Project Identity
 
-Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) that analyzes audio in real-time and applies a library of GLSL shader effects to a loaded image, driven by extracted audio features. It is a VJ-style performance tool where music controls visual transformations — the louder the bass, the more the image warps; the higher the spectral centroid, the more the hue shifts.
+Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for live audio-reactive visual performance. It analyzes audio in real-time (mic, system audio, or audio file) and applies 76 GLSL shader effects to images, driven by extracted audio features. It is a VJ-style performance tool where music controls visual transformations.
 
-The core concept: two libraries (audio analysis + visual effects) connected by a mapping system, rendered live on a VJ panel. Users load a song and an image, wire audio features to effect parameters via mappings with curves and smoothing, and see the image react to the music in real-time at 60fps.
+The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive image effects.
+**Key capabilities**: 76 effects across 8 categories, 40-key keyboard launcher with per-key effects and transparency modes, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, collapsible VJ panel UI.
+
+**What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
 ---
 
@@ -170,6 +172,10 @@ AudioDNA/
 │   │   ├── MappingEngine.h/cpp          # [M4] Source→curve→scale→target routing
 │   │   ├── MappingTypes.h               # [M4] Mapping, Source, Curve enums
 │   │   └── CurveTransforms.h            # [M4] lin/exp/log/sigmoid/step pure functions
+│   ├── keyboard/
+│   │   └── KeySlot.h                    # [M7] Per-key data model (media, effects, transparency, latch/random)
+│   ├── media/
+│   │   └── VideoPlayer.h/cpp            # [M7-P4] FFmpeg + libhap HAP Alpha video decode
 │   ├── effects/
 │   │   ├── EffectLibrary.h/cpp          # [M4] Registry: creates Effect instances from shaders
 │   │   ├── Effect.h/cpp              ✅ # Single effect: shader program + param list
@@ -179,7 +185,9 @@ AudioDNA/
 │   │   ├── Renderer.h/cpp            ✅ # OpenGLRenderer impl, GL 4.1 core, frame loop
 │   │   ├── ShaderManager.h/cpp       ✅ # Compile, link, hot-reload from shaders/
 │   │   ├── TextureManager.h/cpp      ✅ # Image → GL_TEXTURE_2D, FBO textures
-│   │   └── FullscreenQuad.h/cpp      ✅ # VAO/VBO for fullscreen triangle strip
+│   │   ├── FullscreenQuad.h/cpp      ✅ # VAO/VBO for fullscreen triangle strip
+│   │   ├── EmbeddedShaders.h         ✅ # All 76 GLSL shaders as inline strings
+│   │   └── CompositorEngine.h/cpp       # [M7] Multi-layer key compositing pipeline
 │   └── ui/
 │       ├── LookAndFeel.h/cpp         ✅ # Dark VJ-style theme
 │       ├── WaveformDisplay.h/cpp     ✅ # Scrolling time-domain waveform
@@ -190,7 +198,11 @@ AudioDNA/
 │       ├── MappingEditor.h/cpp          # [M4] Source/curve/range/smoothing configuration
 │       ├── SpectrumDisplay.h/cpp        # [M2] Bar/line spectrum analyzer
 │       ├── Knob.h/cpp                   # [M5] Rotary knob with mapping indicator ring
-│       └── PresetManager.h/cpp          # [M5] JSON save/load of effects + mappings
+│       ├── PresetManager.h/cpp       ✅ # JSON save/load of effects + mappings + deck
+│       ├── OutputWindow.h/cpp        ✅ # Fullscreen output on any display
+│       ├── Knob.h/cpp                ✅ # Rotary knob with mapping indicator ring
+│       ├── KeyboardPanel.h/cpp          # [M7] 40-key visual keyboard grid
+│       └── KeyEditor.h/cpp              # [M7] Per-key media/effects/transparency editor
 ├── shaders/                             # [M3+] All GLSL fragment shaders
 │   ├── passthrough.vert                 # Shared vertex shader (fullscreen quad UVs)
 │   ├── ripple.frag                      # Warp: UV distortion via sin(dist * freq + time)
@@ -316,48 +328,26 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 
 ## Effects Library
 
-17 effects across 4 categories. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges.
+76 effects across 8 categories. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
 
-### Warp Effects
+### Effect Categories (76 total)
 
-| Effect | Shader File | Parameters | Typical Audio Mapping |
-|--------|-------------|-----------|----------------------|
-| Ripple | `ripple.frag` | intensity (`u_ripple_intensity`), frequency (`u_ripple_freq`), speed (`u_ripple_speed`) | RMS → intensity, Bass → frequency |
-| Bulge | `bulge.frag` | amount (`u_bulge_amount`), center_x/y (`u_bulge_center`) | OnsetStrength → amount |
-| Wave | `wave.frag` | amplitude (`u_wave_amp`), frequency (`u_wave_freq`), direction | BeatPhase → amplitude |
-| Liquid | `liquid.frag` | viscosity (`u_liquid_visc`), turbulence (`u_liquid_turb`) | SpectralFlux → turbulence |
-
-### Color Effects
-
-| Effect | Shader File | Parameters | Typical Audio Mapping |
-|--------|-------------|-----------|----------------------|
-| Hue Shift | `hue_shift.frag` | amount (`u_hue_shift`) | SpectralCentroid → amount |
-| Saturation | `saturation.frag` | amount (`u_saturation`) | SpectralFlatness → amount |
-| Brightness | `brightness.frag` | amount (`u_brightness`) | RMS → amount |
-| Duotone | `duotone.frag` | color1 (`u_duotone_a`), color2 (`u_duotone_b`), mix | StructuralState → mix |
-| Chromatic Aberration | `chromatic_aberration.frag` | amount (`u_chroma_amount`), angle (`u_chroma_angle`) | OnsetStrength → amount |
-
-### Glitch Effects
-
-| Effect | Shader File | Parameters | Typical Audio Mapping |
-|--------|-------------|-----------|----------------------|
-| Pixel Scatter | `pixel_scatter.frag` | amount (`u_scatter_amount`), seed | SpectralFlux → amount |
-| RGB Split | `rgb_split.frag` | amount (`u_rgb_split`), angle | OnsetStrength → amount |
-| Block Glitch | `block_glitch.frag` | intensity (`u_block_glitch_int`), block_size | TransientDensity → intensity |
-| Scanlines | `scanlines.frag` | intensity (`u_scanline_int`), frequency (`u_scanline_freq`) | BeatPhase → intensity |
-
-### Blur/Post Effects
-
-| Effect | Shader File | Parameters | Typical Audio Mapping |
-|--------|-------------|-----------|----------------------|
-| Gaussian Blur | `gaussian_blur.frag` | radius (`u_blur_radius`) | inverse RMS → radius |
-| Zoom Blur | `zoom_blur.frag` | amount (`u_zoom_blur`), center_x/y | OnsetStrength → amount |
-| Shake | `shake.frag` | amount_x/y (`u_shake`) | OnsetDetected → trigger |
-| Vignette | `vignette.frag` | intensity (`u_vignette_int`), softness (`u_vignette_soft`) | Bass → intensity |
+| Category | Count | Examples |
+|----------|-------|---------|
+| **3D / Depth** | 6 | Perspective Tilt, Cylinder Wrap, Sphere Wrap, Tunnel, Page Curl, Parallax Layers |
+| **Warp** | 16 | Ripple, Bulge, Wave, Liquid, Kaleidoscope, Fisheye, Swirl, Polar Coords, Twirl, Shear, Elastic Bounce, Ripple Pond, Diamond Distort, Barrel Distort, Sine Grid, Glitch Displace |
+| **Color** | 20 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize |
+| **Glitch** | 9 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Glitch Displace |
+| **Pattern** | 11 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision |
+| **Animation** | 3 | Strobe, Pulse, Slit Scan |
+| **Blend** | 5 | Double Exposure, Frosted Glass, Prism Refract, Rain on Glass, Hexagonalize |
+| **Blur/Post** | 6 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect |
 
 ### Effect Chain Architecture
 
-Input image → FBO A (Effect 1) → FBO B (Effect 2) → FBO A (Effect 3) → ... → Screen. Ping-pong between two FBOs. Each effect reads from the previous FBO's texture and writes to the other.
+**Single-image mode**: Input image → FBO A (Effect 1) → FBO B (Effect 2) → FBO A (Effect 3) → ... → Screen. Ping-pong between two FBOs.
+
+**Keyboard launcher mode** (M7): Per-key effect chains run independently, then composite via the CompositorEngine. Global effects apply on top of the composited result. See ARCHITECTURE.md Section 8 for the full compositing pipeline.
 
 ---
 
@@ -408,25 +398,26 @@ Each frame, the render thread:
 | **M3** | OpenGL Image Rendering + First Effects | 10 tasks | **COMPLETE** |
 | **M4** | Mapping Engine + Full Effects Library | 9 tasks | **COMPLETE** |
 | **M5** | VJ-Style UI Polish + Presets | 11 tasks | **COMPLETE** |
-| **M6** | Quality, Performance, Cross-Platform | 8 tasks | **COMPLETE** (6.5/6.6 pending cross-platform) |
+| **M6** | Quality, Performance, Cross-Platform | 8 tasks | **COMPLETE** |
+| **M7** | Keyboard Launcher | 21 tasks | **IN PROGRESS** |
 
-### Milestone 1: COMPLETE
+### Milestones 1–4: COMPLETE
 
-All 10 tasks done. App builds, loads/plays audio, waveform + RMS/Peak meters work, transport controls functional.
+Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with effect chain, mapping engine with 5 curve types, all unit and integration tests passing.
 
-### Milestone 2: COMPLETE
+### Milestone 5: COMPLETE
 
-All 19 tasks done. Full 12-stage analysis pipeline: FFT, spectral features (centroid/flux/flatness/rolloff/7-band), onset detection, BPM/beat tracking, MFCC, chroma, key detection, pitch tracking, LUFS, structural detection, transient density, HCDF. AudioReadoutPanel + SpectrumDisplay show all features live. Smoother class (EMA + One-Euro). Unit tests (ring buffer, spectral, feature bus, smoother) + integration tests (full pipeline with synthetic signals) all passing — 50 tests total.
+Custom VJ-style dark theme, rotary knobs with mapping indicators, polished waveform/spectrum/readout panels, preset save/load (JSON), FX Save (instant), 10 preset slots, Deck save/load (full session state), drag-and-drop, keyboard shortcuts, FPS/DSP monitoring, fullscreen output window, resolution lock with letterboxing, image folder slideshow, per-effect lock and randomize buttons, beat-synced random mode with sync.
 
-### Milestone 3: COMPLETE
+### Milestone 6: COMPLETE
 
-All 10 tasks done. Full OpenGL rendering pipeline: Renderer (GL 4.1 core profile, OpenGLRenderer subclass), FullscreenQuad (VAO/VBO triangle strip), ShaderManager (compile/link/cache/hot-reload), TextureManager (image→GL texture with ARGB→RGBA conversion + Y-flip, ping-pong FBOs). EffectChain with 4 effects: Ripple (warp), Hue Shift (color), RGB Split (glitch), Vignette (post). UniformBridge with hardcoded demo mappings (RMS→ripple, centroid→hue shift, onset→RGB split, bass→vignette) using EMA smoothing. PreviewPanel hosts GL context in center of MainComponent. All effects visibly react to audio in real-time at 60fps.
+Per-stage analysis profiling, render frame profiling, graceful error handling, 76 GLSL effects across 8 categories (3D/Depth, Warp, Color, Glitch, Pattern, Animation, Blend, Blur/Post), GitHub Actions CI for macOS (ARM64 + x86_64), Windows (MSVC), Linux (GCC) with build caching, camera input (macOS/Windows), audio source selector (mic/file/system), microphone and camera permissions in app bundle.
 
-### Current Milestone: M4 — Mapping Engine + Full Effects Library
+### Current Milestone: M7 — Keyboard Launcher
 
-**Goal**: Implement the complete mapping system (any feature → any effect parameter with curves and smoothing) and all 17 shader effects.
+**Goal**: 40-key VJ clip triggering system with per-key media, effects, transparency, and beat-synced random triggering. Multi-layer compositing engine. Video playback via HAP Alpha. Collapsible UI panels.
 
-All 9 tasks (4.1–4.9) **COMPLETE**. MappingEngine, CurveTransforms, all 17 shaders, EffectLibrary, MappingEditor, EffectsRackPanel, Renderer integration, unit tests (22 cases, 74 assertions), and integration tests (3 cases, 142 assertions verifying exponential mapping pipeline, smoothing convergence, and multi-effect simulated playback) all done.
+See TASKPLAN.md for detailed task breakdown (7.1–7.21, 5 phases).
 
 ---
 

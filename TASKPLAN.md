@@ -301,6 +301,97 @@
 
 ---
 
+## Milestone 7: Keyboard Launcher — VJ Clip Triggering System
+
+**Goal**: Implement a keyboard-mapped performance interface where each of 40 keys (4 rows × 10) can hold a visual scene (image/video + effects + transparency), triggered by physical keyboard presses. Keys stack in play order with per-key transparency modes. Global effects apply on top of the entire key stack. Includes per-key random mode, latch behavior, and beat-synced auto-triggering.
+
+**Definition of Done**:
+- 40-key visual keyboard panel (4 rows × 10) displayed at the bottom of the UI
+- Each key can hold: image, video (HAP Alpha), or camera input
+- Each key has its own ordered effects chain with audio mappings
+- 4 transparency modes per key: Alpha, Luma Key, Chroma Key, Light
+- Multiple keys can be active simultaneously, composited in activation order
+- Effects-only keys process the combined output of all keys below
+- Momentary and latch trigger modes
+- Per-key random mode with configurable beat duration
+- Global Effects Rack applies on top of the entire key stack
+- Collapsible UI panels (Audio, Effects, Waveform, Keyboard, Presets)
+- Keyboard layouts saveable as part of Deck files
+
+### Phase 1: Core Key System (Keyboard + Image + Compositing)
+
+- [ ] **7.1** Define `KeySlot` data model: media type (none/image/video/camera), effects list, transparency mode + params, latch/random settings, activation state.
+  - Files: `src/keyboard/KeySlot.h`
+
+- [ ] **7.2** Implement `KeyboardPanel` UI: 4×10 grid of key buttons matching QWERTY layout (1234567890 / QWERTYUIOP / ASDFGHJKL; / ZXCVBNM,./). Thumbnail previews, active state glow, drag-drop target for images.
+  - Files: `src/ui/KeyboardPanel.h`, `src/ui/KeyboardPanel.cpp`
+
+- [ ] **7.3** Implement `CompositorEngine`: multi-layer FBO pipeline. Maintains activation order stack. For each frame: iterate active keys bottom-to-top, render media, apply per-key effects, composite with transparency onto accumulator FBO. Effects-only keys apply to accumulator directly.
+  - Files: `src/render/CompositorEngine.h`, `src/render/CompositorEngine.cpp`
+
+- [ ] **7.4** Implement collapsible panel system: toggle buttons [A][FX][W][K][P] that show/hide Audio Readouts, Effects Rack, Waveform/Spectrum, Keyboard, Preset Slots. Panels animate open/closed.
+  - Update: `src/MainComponent.h`, `src/MainComponent.cpp`
+
+- [ ] **7.5** Wire keyboard input: physical key presses activate/deactivate keys. Handle key down (activate), key up (deactivate in momentary mode). Multiple simultaneous keys supported.
+  - Update: `src/MainComponent.cpp`, `src/ui/KeyboardPanel.cpp`
+
+- [ ] **7.6** Integrate CompositorEngine into Renderer: replace single-image pipeline with compositor output → global effects → output. Both preview and output window use the same compositor.
+  - Update: `src/render/Renderer.cpp`, `src/ui/OutputWindow.cpp`
+
+### Phase 2: Transparency Modes + Per-Key Effects
+
+- [ ] **7.7** Write 4 transparency mode shaders: Alpha (pass-through), Luma Key (threshold + softness), Chroma Key (color distance + tolerance), Light (max RGB as alpha).
+  - Files: `src/render/EmbeddedShaders.h` (add transparency shaders)
+
+- [ ] **7.8** Implement per-key EffectChain: each key owns an independent ordered list of effects with its own parameter values and audio mappings. Effects execute on the key's FBO before compositing.
+  - Update: `src/keyboard/KeySlot.h`, `src/render/CompositorEngine.cpp`
+
+- [ ] **7.9** Implement `KeyEditor` UI panel: opens when a key is clicked. Shows media selector (Open Image / Open Video / Camera dropdown), transparency mode dropdown + parameter sliders, ordered effects list with add/remove/reorder, per-effect mapping buttons, playback settings (latch, random, beat durations).
+  - Files: `src/ui/KeyEditor.h`, `src/ui/KeyEditor.cpp`
+
+- [ ] **7.10** Implement drag-and-drop onto keys: drag image files onto key buttons to assign media. Drag effects from the effects rack onto keys to add effects.
+  - Update: `src/ui/KeyboardPanel.cpp`
+
+### Phase 3: Random + Latch Behavior
+
+- [ ] **7.11** Implement latch mode per key: toggle latch flag. In latch mode, key press toggles active state. In momentary mode, key down = active, key up = deactivate.
+  - Update: `src/ui/KeyboardPanel.cpp`, `src/keyboard/KeySlot.h`
+
+- [ ] **7.12** Implement per-key random mode: beat-synced random key activation. Each key has randomBeatDuration (how long random keeps it active) and ignoreRandom flag. Latched keys are skipped by random. Random mode activates one unlocked, inactive key per trigger interval.
+  - Update: `src/MainComponent.cpp`, `src/keyboard/KeySlot.h`
+
+- [ ] **7.13** Implement auto-release: keys activated by random (or latched with beat duration) auto-deactivate after N beats. Beat counter per key, incremented on beat phase edge detection.
+  - Update: `src/MainComponent.cpp`
+
+### Phase 4: Video Playback
+
+- [ ] **7.14** Add FFmpeg + libhap dependencies to CMake. Build configuration for macOS, Windows, Linux.
+  - Update: `CMakeLists.txt`, `cmake/FindFFmpeg.cmake`, `cmake/FindHAP.cmake`
+
+- [ ] **7.15** Implement `VideoPlayer`: FFmpeg demuxer → libhap decoder → `glCompressedTexImage2D` for HAP Alpha. Looping playback. Frame-accurate sync to render loop. Decode on background thread, upload on GL thread.
+  - Files: `src/media/VideoPlayer.h`, `src/media/VideoPlayer.cpp`
+
+- [ ] **7.16** Integrate VideoPlayer into KeySlot: keys with video media use VideoPlayer instead of static texture. Video loops seamlessly. Frame advances each render tick.
+  - Update: `src/keyboard/KeySlot.h`, `src/render/CompositorEngine.cpp`
+
+- [ ] **7.17** Support standard video codecs as fallback: FFmpeg software decode for MP4/MOV/WebM (H.264, VP9) without alpha. Alpha-less videos use the key's transparency mode for keying.
+  - Update: `src/media/VideoPlayer.cpp`
+
+### Phase 5: Keyboard Presets + Polish
+
+- [ ] **7.18** Serialize keyboard layout: save/load all 40 key configurations (media paths, effects, mappings, transparency, latch/random settings) as JSON. Include in Deck save/load.
+  - Update: `src/ui/PresetManager.h`, `src/ui/PresetManager.cpp`
+
+- [ ] **7.19** Copy/paste between keys: right-click context menu with Copy, Paste, Clear. Paste duplicates all settings including effects and mappings.
+  - Update: `src/ui/KeyboardPanel.cpp`
+
+- [ ] **7.20** Performance optimization: texture caching for loaded images (don't re-upload each frame), FBO pooling for key effect chains, skip inactive keys entirely.
+  - Update: `src/render/CompositorEngine.cpp`
+
+- [ ] **7.21** Integration test: assign images to 5 keys, effects to 3 keys, trigger various combinations, verify compositing order, transparency, and global effects work correctly.
+
+---
+
 ## Summary Timeline
 
 | Milestone | Focus | Key Deliverable |
@@ -311,3 +402,4 @@
 | **M4** | Mapping + All Effects | Full mapping system + 17 effects |
 | **M5** | VJ UI + Presets | Polished dark UI, knobs, presets, drag-drop |
 | **M6** | Quality + Cross-Platform | Performance, error handling, CI, multi-OS |
+| **M7** | Keyboard Launcher | 40-key VJ clip triggering, multi-layer compositing, video playback |

@@ -513,7 +513,131 @@ AudioDNA/
 
 ---
 
-## 8. Key Constraints & Invariants
+## 8. Keyboard Launcher — Multi-Layer Compositing System
+
+The Keyboard Launcher is a VJ clip triggering system mapped to 40 physical keyboard keys (4 rows × 10). Each key holds a visual scene that is triggered by pressing the corresponding key.
+
+### 8.1 Key Layout
+
+```
+Row 0: [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ][ 8 ][ 9 ][ 0 ]
+Row 1: [ Q ][ W ][ E ][ R ][ T ][ Y ][ U ][ I ][ O ][ P ]
+Row 2: [ A ][ S ][ D ][ F ][ G ][ H ][ J ][ K ][ L ][ ; ]
+Row 3: [ Z ][ X ][ C ][ V ][ B ][ N ][ M ][ , ][ . ][ / ]
+```
+
+### 8.2 KeySlot Data Model
+
+Each key holds:
+- **Media**: None, Image (PNG/JPEG), Video (HAP Alpha / H.264), or Camera input
+- **Effects**: Ordered list of effects with independent parameters and audio mappings
+- **Transparency**: Mode (Alpha / Luma Key / Chroma Key / Light) + parameters
+- **Playback**: Latch toggle, latch beat duration, random ignore flag, random beat duration
+
+### 8.3 Compositing Pipeline
+
+```
+Per Frame:
+  1. Sort active keys by activation order (first pressed = bottom)
+  2. Clear accumulator FBO to transparent black
+  3. For each active key (bottom to top):
+     ┌─────────────────────────────────────────────────┐
+     │ If key has media (image/video/camera):           │
+     │   a. Render media to key's scratch FBO           │
+     │   b. Apply key's effect chain (ping-pong FBOs)   │
+     │   c. Compute alpha via transparency mode shader  │
+     │   d. Blend onto accumulator FBO                  │
+     │                                                   │
+     │ If key is effects-only (no media):               │
+     │   a. Apply effect chain directly to accumulator  │
+     │   (processes combined output of all keys below)  │
+     └─────────────────────────────────────────────────┘
+  4. Apply Global Effects Rack to accumulator
+  5. Apply master video level
+  6. Output to preview + output window
+```
+
+### 8.4 Transparency Modes
+
+| Mode | Algorithm | Use Case |
+|------|-----------|----------|
+| Alpha | Use image/video alpha channel directly | PNG, HAP Alpha with transparency |
+| Luma Key | `alpha = smoothstep(threshold, threshold+softness, luminance)` | Black = transparent |
+| Chroma Key | `alpha = smoothstep(tolerance, tolerance+softness, colorDistance)` | Green/blue screen removal |
+| Light | `alpha = max(R, G, B)` | Bright = opaque, dark = transparent |
+
+### 8.5 Trigger Modes
+
+| Mode | Behavior |
+|------|----------|
+| Momentary | Key down = active, key up = deactivate |
+| Latch | Press once = activate, press again = deactivate |
+| Latch + Duration | Activate on press, auto-deactivate after N beats |
+| Random | Beat-synced auto-trigger of random unlocked keys. Latched keys are skipped. Each key specifies how long random keeps it active. |
+
+### 8.6 Layer Stack Relationship
+
+```
+┌─────────────────────────────────────────┐
+│         Final Output to Display          │
+├─────────────────────────────────────────┤
+│    Global Effects (main Effects Rack)    │
+│    Applies to entire composited result   │
+├─────────────────────────────────────────┤
+│    Key Stack (composited in press order) │
+│                                          │
+│    Most recent key ──── TOP              │
+│    ...                                   │
+│    First key pressed ── BOTTOM           │
+└─────────────────────────────────────────┘
+```
+
+### 8.7 Video Playback Architecture
+
+Primary codec: **HAP Alpha** (GPU-decoded via DXT5 compressed textures).
+
+```
+.mov file (HAP Alpha)
+    │
+    ▼
+FFmpeg libavformat (demux) → raw HAP frame data
+    │
+    ▼
+libhap / Snappy decompress → DXT5 compressed texture
+    │
+    ▼
+glCompressedTexImage2D() → GL texture (GPU decompresses)
+    │
+    ▼
+Per-key effect chain → transparency → compositor
+```
+
+Fallback: FFmpeg software decode for MP4/MOV/WebM (H.264, VP9) without alpha. Alpha-less videos use the key's transparency mode for keying.
+
+### 8.8 Collapsible UI Layout
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ [Top Bar] Image | Camera | Audio | Save/Load | FPS | DSP     │
+│ [Tools Bar] Random | Sync | Beats | Viewport | Output        │
+├────────┬────────────────────────────────┬────────────────────┤
+│ [▼ A]  │                                │  [▼ FX]            │
+│ Audio  │       Preview / Output          │  Effects           │
+│ Readout│                                 │  Rack              │
+├────────┴────────────────────────────────┴────────────────────┤
+│ [▼ W] Waveform + Spectrum                                    │
+├──────────────────────────────────────────────────────────────┤
+│ [▼ K] Keyboard Launcher (40 keys, 4 rows)                    │
+├──────────────────────────────────────────────────────────────┤
+│ [▼ P] Preset Slots [1]▼ [2]▼ [3]▼ ... [10]▼                │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Toggle buttons hide/show each panel. Minimum visible: Top Bar + Preview.
+
+---
+
+## 9. Key Constraints & Invariants
 
 1. **Audio callback is sacred**: Never allocate, lock, or syscall inside `audioDeviceIOCallbackWithContext`. It copies samples to ring buffer and returns.
 
