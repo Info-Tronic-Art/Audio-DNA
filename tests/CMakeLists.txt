@@ -72,6 +72,7 @@ target_link_libraries(test_integration_pipeline PRIVATE
     Aubio::Aubio
 )
 target_compile_definitions(test_integration_pipeline PRIVATE
+    _USE_MATH_DEFINES
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
@@ -102,6 +103,7 @@ target_link_libraries(test_mapping_engine PRIVATE
     juce::juce_opengl
 )
 target_compile_definitions(test_mapping_engine PRIVATE
+    _USE_MATH_DEFINES
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
