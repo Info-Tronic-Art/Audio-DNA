@@ -1653,7 +1653,7 @@ void MainComponent::closeKeyEditor()
     if (keyEditor_)
     {
         keyEditor_->setVisible(false);
-        keyEditor_->setKey(nullptr);
+        keyEditor_->setKey(nullptr); // Also stops preview timer
     }
     if (keyboardPanel_)
         keyboardPanel_->refresh();

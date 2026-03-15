@@ -107,18 +107,30 @@ private:
     void rebuildEffectRows();
     void layoutEffectsContent();
 
-    // === Right column: Preview ===
-    class PreviewComponent : public juce::Component
+    // === Right column: Preview with keying visualization ===
+    class PreviewComponent : public juce::Component, private juce::Timer
     {
     public:
         enum Background { Black, Grey, White, Checker };
         Background bg = Checker;
-        juce::Image previewImage;
+        juce::Image previewImage;      // Base image with keying applied
+        juce::Image effectsPreview;    // Image with effects applied (updated by timer)
+        KeySlot* keySlot = nullptr;
+        EffectLibrary* effectLib = nullptr;
+        bool showEffects = true;
+
         void paint(juce::Graphics& g) override;
+        void startPreviewTimer() { startTimerHz(10); }
+        void stopPreviewTimer() { stopTimer(); }
+
+    private:
+        void timerCallback() override;
+        void applyEffectsToPreview();
     };
     PreviewComponent preview_;
     juce::TextButton bgBlackBtn_{"B"};
     juce::TextButton bgGreyBtn_{"G"};
     juce::TextButton bgWhiteBtn_{"W"};
     juce::TextButton bgCheckerBtn_{"C"};
+    juce::ToggleButton showFxPreviewToggle_{"Show Effects"};
 };

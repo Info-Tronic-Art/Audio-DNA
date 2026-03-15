@@ -45,33 +45,138 @@ void KeyEditor::PreviewComponent::paint(juce::Graphics& g)
         case Grey:  g.setColour(juce::Colour(128, 128, 128)); g.fillRect(bounds); break;
         case White: g.setColour(juce::Colours::white); g.fillRect(bounds); break;
         case Checker:
-            for (int y = 0; y < getHeight(); y += 8)
-                for (int x = 0; x < getWidth(); x += 8)
+            for (int y = 0; y < getHeight(); y += 10)
+                for (int x = 0; x < getWidth(); x += 10)
                 {
-                    g.setColour(((x / 8 + y / 8) % 2 == 0)
+                    g.setColour(((x / 10 + y / 10) % 2 == 0)
                         ? juce::Colour(200, 200, 200) : juce::Colour(150, 150, 150));
-                    g.fillRect(x, y, 8, 8);
+                    g.fillRect(x, y, 10, 10);
                 }
             break;
     }
-    if (previewImage.isValid())
+
+    // Show effects preview if available, otherwise keyed image
+    const auto& img = (showEffects && effectsPreview.isValid()) ? effectsPreview : previewImage;
+
+    if (img.isValid())
     {
-        float imgA = static_cast<float>(previewImage.getWidth()) / static_cast<float>(previewImage.getHeight());
+        float imgA = static_cast<float>(img.getWidth()) / static_cast<float>(img.getHeight());
         float bA = bounds.getWidth() / bounds.getHeight();
         float dW, dH;
         if (imgA > bA) { dW = bounds.getWidth(); dH = dW / imgA; }
         else { dH = bounds.getHeight(); dW = dH * imgA; }
         float dX = bounds.getX() + (bounds.getWidth() - dW) * 0.5f;
         float dY = bounds.getY() + (bounds.getHeight() - dH) * 0.5f;
-        g.drawImage(previewImage, dX, dY, dW, dH, 0, 0, previewImage.getWidth(), previewImage.getHeight());
+        g.drawImage(img, dX, dY, dW, dH, 0, 0, img.getWidth(), img.getHeight());
     }
     else
     {
         g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.3f));
         g.drawText("No image", bounds, juce::Justification::centred);
     }
+
+    // Border
     g.setColour(juce::Colour(AudioDNALookAndFeel::kPanelBorder));
     g.drawRect(bounds, 1.0f);
+
+    // Effects indicator
+    if (keySlot && !keySlot->effects.empty())
+    {
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.7f));
+        g.setFont(9.0f);
+        g.drawText("FX: " + juce::String(static_cast<int>(keySlot->effects.size())),
+                   bounds.reduced(4).removeFromBottom(14), juce::Justification::bottomRight);
+    }
+}
+
+void KeyEditor::PreviewComponent::timerCallback()
+{
+    if (!keySlot || !previewImage.isValid() || keySlot->effects.empty())
+    {
+        effectsPreview = juce::Image();
+        return;
+    }
+    applyEffectsToPreview();
+    repaint();
+}
+
+void KeyEditor::PreviewComponent::applyEffectsToPreview()
+{
+    // Create a working copy at reduced resolution for performance
+    int previewW = std::min(previewImage.getWidth(), 320);
+    int previewH = static_cast<int>(static_cast<float>(previewW) *
+        static_cast<float>(previewImage.getHeight()) / static_cast<float>(previewImage.getWidth()));
+
+    auto work = previewImage.rescaled(previewW, previewH, juce::Graphics::lowResamplingQuality);
+
+    // Apply simple CPU-side effect approximations
+    float time = static_cast<float>(juce::Time::getMillisecondCounterHiRes() / 1000.0);
+
+    for (const auto& fx : keySlot->effects)
+    {
+        if (!fx.enabled || fx.params.empty()) continue;
+
+        juce::Image::BitmapData bmp(work, juce::Image::BitmapData::readWrite);
+
+        if (fx.effectName == "hue_shift" || fx.effectName == "Hue Shift")
+        {
+            float shift = fx.params[0];
+            for (int y = 0; y < previewH; ++y)
+                for (int x = 0; x < previewW; ++x)
+                {
+                    auto c = bmp.getPixelColour(x, y);
+                    float h = c.getHue() + shift;
+                    if (h > 1.0f) h -= 1.0f;
+                    bmp.setPixelColour(x, y, juce::Colour::fromHSV(h, c.getSaturation(), c.getBrightness(), c.getFloatAlpha()));
+                }
+        }
+        else if (fx.effectName == "brightness" || fx.effectName == "Brightness")
+        {
+            float b = (fx.params[0] - 0.5f) * 2.0f; // -1 to 1
+            for (int y = 0; y < previewH; ++y)
+                for (int x = 0; x < previewW; ++x)
+                {
+                    auto c = bmp.getPixelColour(x, y);
+                    bmp.setPixelColour(x, y, juce::Colour::fromFloatRGBA(
+                        std::clamp(c.getFloatRed() + b, 0.0f, 1.0f),
+                        std::clamp(c.getFloatGreen() + b, 0.0f, 1.0f),
+                        std::clamp(c.getFloatBlue() + b, 0.0f, 1.0f),
+                        c.getFloatAlpha()));
+                }
+        }
+        else if (fx.effectName == "invert" || fx.effectName == "Invert")
+        {
+            float mix = fx.params[0];
+            for (int y = 0; y < previewH; ++y)
+                for (int x = 0; x < previewW; ++x)
+                {
+                    auto c = bmp.getPixelColour(x, y);
+                    float r = c.getFloatRed() * (1 - mix) + (1 - c.getFloatRed()) * mix;
+                    float g = c.getFloatGreen() * (1 - mix) + (1 - c.getFloatGreen()) * mix;
+                    float bl = c.getFloatBlue() * (1 - mix) + (1 - c.getFloatBlue()) * mix;
+                    bmp.setPixelColour(x, y, juce::Colour::fromFloatRGBA(r, g, bl, c.getFloatAlpha()));
+                }
+        }
+        else if (fx.effectName == "sepia" || fx.effectName == "Sepia")
+        {
+            float amount = fx.params[0];
+            for (int y = 0; y < previewH; ++y)
+                for (int x = 0; x < previewW; ++x)
+                {
+                    auto c = bmp.getPixelColour(x, y);
+                    float luma = 0.299f * c.getFloatRed() + 0.587f * c.getFloatGreen() + 0.114f * c.getFloatBlue();
+                    float sr = luma * 1.2f, sg = luma * 1.0f, sb = luma * 0.8f;
+                    float r = c.getFloatRed() * (1 - amount) + sr * amount;
+                    float g = c.getFloatGreen() * (1 - amount) + sg * amount;
+                    float bl = c.getFloatBlue() * (1 - amount) + sb * amount;
+                    bmp.setPixelColour(x, y, juce::Colour::fromFloatRGBA(
+                        std::clamp(r, 0.f, 1.f), std::clamp(g, 0.f, 1.f), std::clamp(bl, 0.f, 1.f), c.getFloatAlpha()));
+                }
+        }
+        // Other effects show as-is (no CPU approximation needed for preview)
+    }
+
+    effectsPreview = work;
 }
 
 // === KeyEditor Constructor ===
@@ -95,6 +200,14 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
     bgGreyBtn_.onClick = [this] { preview_.bg = PreviewComponent::Grey; preview_.repaint(); };
     bgWhiteBtn_.onClick = [this] { preview_.bg = PreviewComponent::White; preview_.repaint(); };
     bgCheckerBtn_.onClick = [this] { preview_.bg = PreviewComponent::Checker; preview_.repaint(); };
+
+    addAndMakeVisible(showFxPreviewToggle_);
+    showFxPreviewToggle_.setToggleState(true, juce::dontSendNotification);
+    showFxPreviewToggle_.onClick = [this] {
+        preview_.showEffects = showFxPreviewToggle_.getToggleState();
+        preview_.repaint();
+    };
+    preview_.effectLib = &effectLibrary_;
 
     // Media
     addAndMakeVisible(openImageBtn_); addAndMakeVisible(clearMediaBtn_); addAndMakeVisible(mediaInfoLabel_);
@@ -255,11 +368,17 @@ bool KeyEditor::keyPressed(const juce::KeyPress& key)
 void KeyEditor::setKey(KeySlot* key)
 {
     currentKey_ = key;
+    preview_.keySlot = key;
     refreshFromKey();
     updatePreviewImage();
     rebuildEffectRows();
     layoutEffectsContent();
     resized();
+
+    if (key && key->hasMedia())
+        preview_.startPreviewTimer();
+    else
+        preview_.stopPreviewTimer();
 }
 
 void KeyEditor::refreshFromKey()
@@ -562,14 +681,19 @@ void KeyEditor::resized()
     closeButton_.setBounds(header.removeFromRight(24));
     area.removeFromTop(4);
 
-    // === Right column: Preview ===
-    auto rightCol = area.removeFromRight(std::min(200, area.getWidth() / 4));
+    // === Right column: Preview (wider — takes 40% of available width) ===
+    auto rightCol = area.removeFromRight(std::max(300, static_cast<int>(area.getWidth() * 0.4f)));
     rightCol.removeFromLeft(8);
-    auto bgRow = rightCol.removeFromTop(18);
-    bgBlackBtn_.setBounds(bgRow.removeFromLeft(bgRow.getWidth() / 4));
-    bgGreyBtn_.setBounds(bgRow.removeFromLeft(bgRow.getWidth() / 3));
-    bgWhiteBtn_.setBounds(bgRow.removeFromLeft(bgRow.getWidth() / 2));
-    bgCheckerBtn_.setBounds(bgRow);
+    auto bgRow = rightCol.removeFromTop(20);
+    bgBlackBtn_.setBounds(bgRow.removeFromLeft(25));
+    bgRow.removeFromLeft(2);
+    bgGreyBtn_.setBounds(bgRow.removeFromLeft(25));
+    bgRow.removeFromLeft(2);
+    bgWhiteBtn_.setBounds(bgRow.removeFromLeft(25));
+    bgRow.removeFromLeft(2);
+    bgCheckerBtn_.setBounds(bgRow.removeFromLeft(25));
+    bgRow.removeFromLeft(8);
+    showFxPreviewToggle_.setBounds(bgRow.removeFromLeft(100));
     rightCol.removeFromTop(2);
     preview_.setBounds(rightCol);
 
