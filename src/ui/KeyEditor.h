@@ -49,6 +49,8 @@ private:
     juce::Label thresholdLabel_{"", "Threshold"};
     juce::Slider softnessSlider_;
     juce::Label softnessLabel_{"", "Softness"};
+    juce::TextButton chromaColorBtn_{"Key Color"};
+    juce::Label chromaColorLabel_{"", "Color"};
     juce::Slider chromaToleranceSlider_;
     juce::Label chromaToleranceLabel_{"", "Tolerance"};
     juce::Slider chromaSoftnessSlider_;

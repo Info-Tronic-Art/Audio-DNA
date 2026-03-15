@@ -245,6 +245,11 @@ AudioDNA/
     └── REF_*.md                         # Math reference, latency numbers, genre presets
 ```
 
+### UI Text Rules
+
+- **Always display whole words** in the UI — never use abbreviations. For example, "Inverted Luma is Alpha" not "Inv. Luma is Alpha", "Ignore Random" not "Ign. Rnd".
+- Labels, button text, dropdown items, and tooltips must all use complete words.
+
 ### Naming Conventions
 
 - **Files**: `PascalCase.h/cpp` for classes, `snake_case.frag/vert` for shaders
