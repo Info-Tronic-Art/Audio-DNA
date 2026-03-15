@@ -23,7 +23,7 @@ MainComponent::MainComponent()
 
     // Random on Beat label
     addAndMakeVisible(randomLabel_);
-    randomLabel_.setText("Random on Beat", juce::dontSendNotification);
+    randomLabel_.setText("Random FX on Beat", juce::dontSendNotification);
     randomLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
     randomLabel_.setColour(juce::Label::textColourId,
                            juce::Colour(AudioDNALookAndFeel::kTextSecondary));
@@ -464,7 +464,7 @@ void MainComponent::resized()
     openFolderButton_.setBounds(row1.removeFromLeft(80));
     row1.removeFromLeft(2);
     imageBeatLabel_.setBounds(row1.removeFromLeft(85));
-    imageBeatSelector_.setBounds(row1.removeFromLeft(45));
+    imageBeatSelector_.setBounds(row1.removeFromLeft(55));
     row1.removeFromLeft(6);
   #if AUDIODNA_HAS_CAMERA
     cameraLabel_.setBounds(row1.removeFromLeft(42));
@@ -495,11 +495,11 @@ void MainComponent::resized()
     // === Row 2: Camera (aligned under audio source) + Tools + Selectors ===
     auto row2 = area.removeFromTop(26);
 
-    // Random on Beat controls (left side)
-    randomLabel_.setBounds(row2.removeFromLeft(95));
+    // Random FX on Beat controls (left side)
+    randomLabel_.setBounds(row2.removeFromLeft(110));
     row2.removeFromLeft(2);
     beatRandomToggle_.setBounds(row2.removeFromLeft(60));
-    beatCountSelector_.setBounds(row2.removeFromLeft(40));
+    beatCountSelector_.setBounds(row2.removeFromLeft(55));
     row2.removeFromLeft(2);
     syncButton_.setBounds(row2.removeFromLeft(38));
     row2.removeFromLeft(10);
@@ -628,16 +628,18 @@ void MainComponent::resized()
         waveformDisplay_.setVisible(false);
     }
 
-    previewPanel_.setBounds(area); // GL preview takes remaining space
-
-    // Key Editor overlay — 3/4 of screen height, full width
+    // Key Editor overlay — shrink preview to make room
     if (showKeyEditor_ && keyEditor_)
     {
-        auto editorBounds = getLocalBounds().reduced(8);
-        int editorHeight = static_cast<int>(editorBounds.getHeight() * 0.75f);
-        editorBounds = editorBounds.removeFromBottom(editorHeight);
+        int editorHeight = static_cast<int>(area.getHeight() * 0.75f);
+        auto editorBounds = area.removeFromBottom(editorHeight);
+        previewPanel_.setBounds(area); // Preview gets the remaining top portion
         keyEditor_->setBounds(editorBounds);
-        keyEditor_->toFront(true);
+        keyEditor_->toFront(false);
+    }
+    else
+    {
+        previewPanel_.setBounds(area); // GL preview takes remaining space
     }
 }
 
@@ -1181,6 +1183,22 @@ void MainComponent::loadDeck()
         beatRandomCount_ = deck.beatRandomCount > 0 ? deck.beatRandomCount : 4;
         beatRandomToggle_.setToggleState(deck.beatRandomEnabled, juce::dontSendNotification);
 
+        // Restore beats per image selector
+        {
+            const int beats[] = { 2, 4, 8, 16, 32, 64, 128 };
+            for (int i = 0; i < 7; ++i)
+                if (beats[i] == slideshowBeats_)
+                    { imageBeatSelector_.setSelectedId(i + 1, juce::dontSendNotification); break; }
+        }
+
+        // Restore beat random count selector
+        {
+            const int counts[] = { 1, 2, 4, 8, 16, 32 };
+            for (int i = 0; i < 6; ++i)
+                if (counts[i] == beatRandomCount_)
+                    { beatCountSelector_.setSelectedId(i + 1, juce::dontSendNotification); break; }
+        }
+
         // Restore image folder slideshow
         if (deck.imageFolderPath.isDirectory())
         {
@@ -1196,6 +1214,10 @@ void MainComponent::loadDeck()
         // Restore UI selectors
         if (deck.viewportResolution > 0)
             resolutionSelector_.setSelectedId(deck.viewportResolution, juce::dontSendNotification);
+
+        // Restore audio source
+        if (deck.audioSourceMode > 0)
+            audioSourceSelector_.setSelectedId(deck.audioSourceMode, juce::dontSendNotification);
 
         // Load audio
         if (deck.audioFile.existsAsFile())
