@@ -193,7 +193,7 @@ void KeyboardPanel::KeyButton::mouseDown(const juce::MouseEvent& e)
 
 void KeyboardPanel::KeyButton::mouseUp(const juce::MouseEvent&)
 {
-    if (!slot_.latched && slot_.active && !slot_.isEmpty())
+    if (!slot_.latched && !slot_.shiftLatched && slot_.active && !slot_.isEmpty())
     {
         // Momentary mode — deactivate on release
         parent_.layout_.deactivateKey(slot_);
