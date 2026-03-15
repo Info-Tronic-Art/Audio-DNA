@@ -370,11 +370,34 @@ MainComponent::MainComponent()
         effectLibrary_);
     addAndMakeVisible(effectsRackPanel_.get());
 
+    // === Keyboard Launcher Panel ===
+    keyboardPanel_ = std::make_unique<KeyboardPanel>(keyboardLayout_);
+    addAndMakeVisible(keyboardPanel_.get());
+
+    // === Collapsible Panel Toggle Buttons ===
+    auto setupToggle = [this](juce::TextButton& btn, bool& state, const juce::String& label) {
+        addAndMakeVisible(btn);
+        btn.setClickingTogglesState(true);
+        btn.setToggleState(state, juce::dontSendNotification);
+        btn.setButtonText(label);
+        btn.setColour(juce::TextButton::buttonOnColourId,
+                       juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f));
+        btn.onClick = [this, &state, &btn] {
+            state = btn.getToggleState();
+            resized();
+        };
+    };
+    setupToggle(toggleAudioBtn_, showAudioPanel_, "A");
+    setupToggle(toggleFxBtn_, showFxPanel_, "FX");
+    setupToggle(toggleWaveBtn_, showWavePanel_, "W");
+    setupToggle(toggleKeysBtn_, showKeysPanel_, "K");
+    setupToggle(togglePresetsBtn_, showPresetsPanel_, "P");
+
     // Start analysis
     analysisThread_.startThread(juce::Thread::Priority::high);
 
     setWantsKeyboardFocus(true);
-    setSize(1280, 720);
+    setSize(1280, 800);
 }
 
 MainComponent::~MainComponent()
@@ -489,37 +512,25 @@ void MainComponent::resized()
 
     area.removeFromTop(4);
 
-    // Proportional panel layout: left 20%, center 50%, right 30%
-    int totalWidth = area.getWidth();
-    int leftWidth = std::max(200, static_cast<int>(totalWidth * 0.20f));
-    int rightWidth = std::max(200, static_cast<int>(totalWidth * 0.30f));
+    // === Toggle buttons row ===
+    auto toggleRow = area.removeFromTop(20);
+    toggleAudioBtn_.setBounds(toggleRow.removeFromLeft(24));
+    toggleRow.removeFromLeft(2);
+    toggleFxBtn_.setBounds(toggleRow.removeFromLeft(24));
+    toggleRow.removeFromLeft(2);
+    toggleWaveBtn_.setBounds(toggleRow.removeFromLeft(24));
+    toggleRow.removeFromLeft(2);
+    toggleKeysBtn_.setBounds(toggleRow.removeFromLeft(24));
+    toggleRow.removeFromLeft(2);
+    togglePresetsBtn_.setBounds(toggleRow.removeFromLeft(24));
+    area.removeFromTop(4);
 
-    // Left panel: audio readouts + spectrum
-    auto leftPanel = area.removeFromLeft(leftWidth);
-    int spectrumHeight = std::max(120, static_cast<int>(leftPanel.getHeight() * 0.25f));
-    audioReadoutPanel_.setBounds(leftPanel.removeFromBottom(spectrumHeight).removeFromBottom(spectrumHeight - 8));
-    // Actually: readout on top, spectrum on bottom
-    // Re-do: readout gets most of the height, spectrum at bottom
-    leftPanel = getLocalBounds().reduced(8);
-    leftPanel.removeFromTop(63); // two rows + gaps
-    leftPanel = leftPanel.removeFromLeft(leftWidth);
-    spectrumHeight = std::max(120, static_cast<int>(leftPanel.getHeight() * 0.25f));
-    spectrumDisplay_.setBounds(leftPanel.removeFromBottom(spectrumHeight));
-    leftPanel.removeFromBottom(8);
-    audioReadoutPanel_.setBounds(leftPanel);
+    // === Bottom sections (keyboard + presets) — allocate from bottom up ===
 
-    area.removeFromLeft(8);
-
-    // Right panel: effects rack
-    auto rightPanel = area.removeFromRight(rightWidth);
-    if (effectsRackPanel_)
-        effectsRackPanel_->setBounds(rightPanel);
-
-    area.removeFromRight(8);
-
-    // Bottom slot bar (below waveform)
-    auto slotBar = area.removeFromBottom(28);
+    // Preset slots bar
+    if (showPresetsPanel_)
     {
+        auto slotBar = area.removeFromBottom(28);
         int slotWidth = slotBar.getWidth() / kNumSlots;
         for (int i = 0; i < kNumSlots; ++i)
         {
@@ -529,15 +540,83 @@ void MainComponent::resized()
             slot.button->setBounds(slotArea.removeFromLeft(btnWidth));
             slotArea.removeFromLeft(2);
             slot.dropdown->setBounds(slotArea);
+            slot.button->setVisible(true);
+            slot.dropdown->setVisible(true);
+        }
+        area.removeFromBottom(4);
+    }
+    else
+    {
+        for (int i = 0; i < kNumSlots; ++i)
+        {
+            presetSlots_[static_cast<size_t>(i)].button->setVisible(false);
+            presetSlots_[static_cast<size_t>(i)].dropdown->setVisible(false);
         }
     }
-    area.removeFromBottom(4);
 
-    // Center: split between preview (top) and waveform (bottom)
-    int waveformHeight = std::max(60, static_cast<int>(area.getHeight() * 0.12f));
-    auto waveformArea = area.removeFromBottom(waveformHeight);
-    previewPanel_.setBounds(area);             // GL preview takes the bulk
-    waveformDisplay_.setBounds(waveformArea);  // waveform at the bottom
+    // Keyboard panel
+    if (showKeysPanel_ && keyboardPanel_)
+    {
+        int keysHeight = std::min(200, std::max(120, area.getHeight() / 4));
+        keyboardPanel_->setBounds(area.removeFromBottom(keysHeight));
+        keyboardPanel_->setVisible(true);
+        area.removeFromBottom(4);
+    }
+    else if (keyboardPanel_)
+    {
+        keyboardPanel_->setVisible(false);
+    }
+
+    // === Main content area (left + center + right) ===
+    int totalWidth = area.getWidth();
+    int leftWidth = showAudioPanel_ ? std::max(200, static_cast<int>(totalWidth * 0.20f)) : 0;
+    int rightWidth = showFxPanel_ ? std::max(200, static_cast<int>(totalWidth * 0.30f)) : 0;
+
+    // Left panel: audio readouts + spectrum
+    if (showAudioPanel_)
+    {
+        auto leftPanel = area.removeFromLeft(leftWidth);
+        int spectrumHeight = std::max(120, static_cast<int>(leftPanel.getHeight() * 0.25f));
+        spectrumDisplay_.setBounds(leftPanel.removeFromBottom(spectrumHeight));
+        leftPanel.removeFromBottom(8);
+        audioReadoutPanel_.setBounds(leftPanel);
+        spectrumDisplay_.setVisible(true);
+        audioReadoutPanel_.setVisible(true);
+        area.removeFromLeft(8);
+    }
+    else
+    {
+        spectrumDisplay_.setVisible(false);
+        audioReadoutPanel_.setVisible(false);
+    }
+
+    // Right panel: effects rack
+    if (showFxPanel_ && effectsRackPanel_)
+    {
+        auto rightPanel = area.removeFromRight(rightWidth);
+        effectsRackPanel_->setBounds(rightPanel);
+        effectsRackPanel_->setVisible(true);
+        area.removeFromRight(8);
+    }
+    else if (effectsRackPanel_)
+    {
+        effectsRackPanel_->setVisible(false);
+    }
+
+    // Center: preview + optional waveform
+    if (showWavePanel_)
+    {
+        int waveformHeight = std::max(60, static_cast<int>(area.getHeight() * 0.12f));
+        auto waveformArea = area.removeFromBottom(waveformHeight);
+        waveformDisplay_.setBounds(waveformArea);
+        waveformDisplay_.setVisible(true);
+    }
+    else
+    {
+        waveformDisplay_.setVisible(false);
+    }
+
+    previewPanel_.setBounds(area); // GL preview takes remaining space
 }
 
 
@@ -665,25 +744,71 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
-    // 1-9 = toggle effects
-    int keyChar = key.getKeyCode();
-    if (keyChar >= '1' && keyChar <= '9' && !mod.isCommandDown())
+    // === Keyboard Launcher keys (when panel is visible) ===
+    if (showKeysPanel_ && !mod.isCommandDown())
     {
-        int effectIdx = keyChar - '1';
-        if (effectIdx < previewPanel_.getEffectChain().getNumEffects())
-        {
-            auto* fx = previewPanel_.getEffectChain().getEffect(effectIdx);
-            if (fx != nullptr)
-            {
-                fx->setEnabled(!fx->isEnabled());
-                if (effectsRackPanel_)
-                    effectsRackPanel_->refreshFromChain();
-            }
-        }
+        int keyChar = key.getKeyCode();
+        char c = static_cast<char>(std::toupper(keyChar));
+        handleKeySlotTrigger(c, true);
         return true;
     }
 
     return false;
+}
+
+bool MainComponent::keyStateChanged(bool /*isKeyDown*/)
+{
+    // Handle key releases for momentary mode in keyboard launcher
+    if (!showKeysPanel_)
+        return false;
+
+    // Check all launcher keys for release
+    for (auto& key : keyboardLayout_.keys)
+    {
+        if (!key.active || key.latched)
+            continue;
+
+        // Check if the physical key is still held
+        bool stillHeld = juce::KeyPress::isKeyCurrentlyDown(std::tolower(key.keyChar));
+        // Also check for number row
+        if (key.row == 0)
+            stillHeld = juce::KeyPress::isKeyCurrentlyDown(key.keyChar);
+
+        if (!stillHeld)
+        {
+            keyboardLayout_.deactivateKey(key);
+            if (keyboardPanel_)
+                keyboardPanel_->keyDeactivated(key);
+        }
+    }
+    return false;
+}
+
+void MainComponent::handleKeySlotTrigger(char keyChar, bool isDown)
+{
+    auto* slot = keyboardLayout_.findByChar(keyChar);
+    if (slot == nullptr || slot->isEmpty())
+        return;
+
+    if (isDown)
+    {
+        if (slot->latched)
+        {
+            keyboardLayout_.toggleKey(*slot);
+        }
+        else
+        {
+            if (!slot->active)
+                keyboardLayout_.activateKey(*slot);
+        }
+        if (keyboardPanel_)
+        {
+            if (slot->active)
+                keyboardPanel_->keyActivated(*slot);
+            else
+                keyboardPanel_->keyDeactivated(*slot);
+        }
+    }
 }
 
 bool MainComponent::isInterestedInFileDrag(const juce::StringArray& files)

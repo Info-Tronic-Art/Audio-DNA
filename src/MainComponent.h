@@ -13,6 +13,8 @@
 #include "effects/EffectLibrary.h"
 #include "ui/PresetManager.h"
 #include "ui/OutputWindow.h"
+#include "ui/KeyboardPanel.h"
+#include "keyboard/KeySlot.h"
 #if AUDIODNA_HAS_CAMERA
  #include <juce_video/juce_video.h>
 #endif
@@ -37,6 +39,7 @@ public:
 
     // Keyboard shortcuts
     bool keyPressed(const juce::KeyPress& key) override;
+    bool keyStateChanged(bool isKeyDown) override;
 
 #if AUDIODNA_HAS_CAMERA
     // CameraDevice::Listener
@@ -159,6 +162,23 @@ private:
 #endif
 
     std::unique_ptr<juce::FileChooser> fileChooser_;
+
+    // === Keyboard Launcher (M7) ===
+    KeyboardLayout keyboardLayout_;
+    std::unique_ptr<KeyboardPanel> keyboardPanel_;
+    void handleKeySlotTrigger(char keyChar, bool isDown);
+
+    // === Collapsible Panel Toggles ===
+    juce::TextButton toggleAudioBtn_{"A"};
+    juce::TextButton toggleFxBtn_{"FX"};
+    juce::TextButton toggleWaveBtn_{"W"};
+    juce::TextButton toggleKeysBtn_{"K"};
+    juce::TextButton togglePresetsBtn_{"P"};
+    bool showAudioPanel_ = true;
+    bool showFxPanel_ = true;
+    bool showWavePanel_ = true;
+    bool showKeysPanel_ = true;
+    bool showPresetsPanel_ = true;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

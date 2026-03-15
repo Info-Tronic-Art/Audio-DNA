@@ -520,6 +520,12 @@ Aubio will be added via system install or FetchContent. On macOS: `brew install 
 
 ## Claude Working Instructions
 
+### Development Workflow — Non-Technical User
+
+The user is not technical. **Do not stop for code-level validation.** Keep developing, building, and self-testing (compile checks, grep for rule violations, verify logic) across multiple tasks until there is a **visual UI change the user can verify by launching the app**. Only then present a validation checkpoint with clear instructions on what to look for in the UI.
+
+Batch multiple tasks together when they are all code/infrastructure. Present one combined validation when there's something visible.
+
 ### "Kick off the next task [X.Y]" Protocol
 
 When the user says **"kick off the next task [X.Y]"**, follow this exact sequence:

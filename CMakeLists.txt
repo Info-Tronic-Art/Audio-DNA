@@ -127,6 +127,9 @@ target_sources(AudioDNA PRIVATE
     src/ui/PresetManager.cpp
     src/ui/OutputWindow.h
     src/ui/OutputWindow.cpp
+    src/ui/KeyboardPanel.h
+    src/ui/KeyboardPanel.cpp
+    src/keyboard/KeySlot.h
     src/render/EmbeddedShaders.h
 )
 
