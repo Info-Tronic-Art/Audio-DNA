@@ -628,18 +628,22 @@ void MainComponent::resized()
         waveformDisplay_.setVisible(false);
     }
 
-    // Key Editor — hide GL preview entirely (GL surface always renders on top
-    // of JUCE components), show editor in its place
+    previewPanel_.setBounds(area);
+
+    // Key Editor — full workspace overlay, hides GL preview
     if (showKeyEditor_ && keyEditor_)
     {
         previewPanel_.setVisible(false);
-        keyEditor_->setBounds(area);
+        // Full workspace: from below the toggle buttons row to the bottom
+        auto editorBounds = getLocalBounds().reduced(4);
+        editorBounds.removeFromTop(90); // Skip top bars and toggle row
+        keyEditor_->setBounds(editorBounds);
         keyEditor_->setVisible(true);
+        keyEditor_->toFront(false);
     }
     else
     {
         previewPanel_.setVisible(true);
-        previewPanel_.setBounds(area);
         if (keyEditor_) keyEditor_->setVisible(false);
     }
 }
