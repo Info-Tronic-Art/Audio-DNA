@@ -375,6 +375,9 @@ MainComponent::MainComponent()
     addAndMakeVisible(keyboardPanel_.get());
     keyboardPanel_->onKeyClicked = [this](KeySlot& key) { openKeyEditor(key); };
 
+    // Wire keyboard layout to renderer for compositing
+    previewPanel_.getRenderer().setKeyboardLayout(&keyboardLayout_);
+
     // === Key Editor (hidden by default) ===
     keyEditor_ = std::make_unique<KeyEditor>(effectLibrary_);
     addChildComponent(keyEditor_.get()); // hidden initially

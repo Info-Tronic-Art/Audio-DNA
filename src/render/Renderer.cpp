@@ -51,6 +51,7 @@ void Renderer::newOpenGLContextCreated()
     quad_.init();
     initShaders();
     initEffectChain();
+    compositor_.initGL(1920, 1080); // Will resize as needed
     startTime_ = juce::Time::getMillisecondCounterHiRes() / 1000.0;
 }
 
@@ -93,7 +94,10 @@ void Renderer::renderOpenGL()
     // Clear to near-black
     juce::OpenGLHelpers::clear(juce::Colour(0xff0a0a14));
 
-    if (!texMgr_.hasImage())
+    // Check if we have anything to render
+    bool hasKeyboardContent = (keyboardLayout_ != nullptr &&
+                                !keyboardLayout_->getActiveKeysSorted().empty());
+    if (!texMgr_.hasImage() && !hasKeyboardContent)
         return; // Nothing to render yet
 
     // Read latest audio features (lock-free)
@@ -155,7 +159,18 @@ void Renderer::renderOpenGL()
     // Render the effect chain with letterbox viewport for final output
     auto renderStart = std::chrono::high_resolution_clock::now();
 
-    effectChain_.render(texMgr_.getImageTexture(),
+    // Check if keyboard launcher has active keys
+    GLuint sourceTexture = texMgr_.getImageTexture();
+    if (keyboardLayout_ != nullptr)
+    {
+        GLuint composited = compositor_.composite(
+            *keyboardLayout_, shaderMgr_, quad_, time,
+            static_cast<int>(renderW), static_cast<int>(renderH));
+        if (composited != 0)
+            sourceTexture = composited;
+    }
+
+    effectChain_.render(sourceTexture,
                         shaderMgr_, texMgr_, quad_,
                         time, renderW, renderH,
                         static_cast<GLuint>(defaultFBO),
@@ -248,6 +263,7 @@ void Renderer::renderOpenGL()
 
 void Renderer::openGLContextClosing()
 {
+    compositor_.releaseGL();
     shaderMgr_.releaseAll();
     texMgr_.release();
     quad_.release();
@@ -365,6 +381,25 @@ void Renderer::compileAllShaders()
     compile("prism_refract",        EmbeddedShaders::prismRefract);
     compile("rain_on_glass",        EmbeddedShaders::rainOnGlass);
     compile("hexagonalize",         EmbeddedShaders::hexagonalize);
+
+    // === Keying/transparency shaders (for keyboard launcher compositing) ===
+    compile("key_alpha",            EmbeddedShaders::transparencyAlpha);
+    compile("key_luma",             EmbeddedShaders::transparencyLumaKey);
+    compile("key_chroma",           EmbeddedShaders::transparencyChromaKey);
+    compile("key_max_rgb",          EmbeddedShaders::transparencyLight);  // max(R,G,B)
+
+    // Reuse luma key shader with inverted semantics via uniforms for other modes
+    // (the shader handles threshold direction, so inverted luma = just flip threshold)
+    compile("key_inv_luma",         EmbeddedShaders::transparencyLumaKey);
+    compile("key_luma_alpha",       EmbeddedShaders::transparencyLight);  // luminance → alpha
+    compile("key_inv_luma_alpha",   EmbeddedShaders::transparencyAlpha);  // fallback
+    compile("key_saturation",       EmbeddedShaders::transparencyLumaKey); // reuse with sat
+    compile("key_edge",             EmbeddedShaders::transparencyAlpha);   // fallback
+    compile("key_threshold",        EmbeddedShaders::transparencyAlpha);   // fallback
+    compile("key_channel_r",        EmbeddedShaders::transparencyAlpha);   // fallback
+    compile("key_channel_g",        EmbeddedShaders::transparencyAlpha);   // fallback
+    compile("key_channel_b",        EmbeddedShaders::transparencyAlpha);   // fallback
+    compile("key_vignette",         EmbeddedShaders::transparencyAlpha);   // fallback
 
     std::cerr << "[Renderer] All shaders compiled." << std::endl;
 }

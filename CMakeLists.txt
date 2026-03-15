@@ -132,6 +132,8 @@ target_sources(AudioDNA PRIVATE
     src/ui/KeyEditor.h
     src/ui/KeyEditor.cpp
     src/keyboard/KeySlot.h
+    src/render/CompositorEngine.h
+    src/render/CompositorEngine.cpp
     src/render/EmbeddedShaders.h
 )
 
