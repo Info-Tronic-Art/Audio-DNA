@@ -228,7 +228,10 @@ KeyEditor::KeyEditor(EffectLibrary& effectLibrary)
         KeySlot::EffectSlot slot;
         slot.effectName = fxName.toStdString();
         auto* def = effectLibrary_.getEffectDef(fxName);
-        if (def) slot.params.resize(def->params.size(), 0.0f);
+        if (def) {
+            slot.params.resize(def->params.size(), 0.0f);
+            slot.mappings.resize(def->params.size());
+        }
         currentKey_->effects.push_back(std::move(slot));
         addEffectSelector_.setSelectedId(1, juce::dontSendNotification);
         rebuildEffectRows(); layoutEffectsContent();
@@ -346,6 +349,9 @@ void KeyEditor::rebuildEffectRows()
         for (auto& pr : row.paramRows) {
             effectsContent_.removeChildComponent(pr.label.get());
             effectsContent_.removeChildComponent(pr.slider.get());
+            if (pr.mapBtn) effectsContent_.removeChildComponent(pr.mapBtn.get());
+            if (pr.sourceCombo) effectsContent_.removeChildComponent(pr.sourceCombo.get());
+            if (pr.curveCombo) effectsContent_.removeChildComponent(pr.curveCombo.get());
         }
     }
     effectRows_.clear();
@@ -374,6 +380,10 @@ void KeyEditor::rebuildEffectRows()
         effectsContent_.addAndMakeVisible(row.removeBtn.get());
 
         auto* def = effectLibrary_.getEffectDef(juce::String(currentKey_->effects[i].effectName));
+        // Ensure mappings vector is sized to match params
+        while (currentKey_->effects[i].mappings.size() < currentKey_->effects[i].params.size())
+            currentKey_->effects[i].mappings.push_back(KeySlot::ParamMapping{});
+
         if (def)
         {
             for (size_t p = 0; p < def->params.size() && p < currentKey_->effects[i].params.size(); ++p)
@@ -394,6 +404,96 @@ void KeyEditor::rebuildEffectRows()
                         currentKey_->effects[i].params[p] = static_cast<float>(effectRows_[i].paramRows[p].slider->getValue());
                 };
                 effectsContent_.addAndMakeVisible(pr.slider.get());
+
+                // Mapping button — toggles mapping controls
+                bool hasMapping = (p < currentKey_->effects[i].mappings.size() &&
+                                   currentKey_->effects[i].mappings[p].active);
+                pr.mapBtn = std::make_unique<juce::TextButton>("M");
+                if (hasMapping)
+                    pr.mapBtn->setColour(juce::TextButton::buttonColourId,
+                                          juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.5f));
+                pr.mapBtn->onClick = [this, i, p] {
+                    if (i < effectRows_.size() && p < effectRows_[i].paramRows.size())
+                    {
+                        effectRows_[i].paramRows[p].mappingExpanded = !effectRows_[i].paramRows[p].mappingExpanded;
+                        layoutEffectsContent();
+                    }
+                };
+                effectsContent_.addAndMakeVisible(pr.mapBtn.get());
+
+                // Source combo
+                pr.sourceCombo = std::make_unique<juce::ComboBox>();
+                pr.sourceCombo->addItem("None", 1);
+                pr.sourceCombo->addSectionHeading("-- Amplitude --");
+                pr.sourceCombo->addItem("RMS", 2);
+                pr.sourceCombo->addItem("Peak", 3);
+                pr.sourceCombo->addItem("Spectral Centroid", 9);
+                pr.sourceCombo->addItem("Spectral Flux", 10);
+                pr.sourceCombo->addSectionHeading("-- Bands --");
+                pr.sourceCombo->addItem("Sub", 13);
+                pr.sourceCombo->addItem("Bass", 14);
+                pr.sourceCombo->addItem("Low Mid", 15);
+                pr.sourceCombo->addItem("Mid", 16);
+                pr.sourceCombo->addItem("High Mid", 17);
+                pr.sourceCombo->addItem("Presence", 18);
+                pr.sourceCombo->addItem("Brilliance", 19);
+                pr.sourceCombo->addSectionHeading("-- Rhythm --");
+                pr.sourceCombo->addItem("Onset Strength", 20);
+                pr.sourceCombo->addItem("Beat Phase", 21);
+                pr.sourceCombo->addItem("Transient Density", 8);
+                pr.sourceCombo->addSectionHeading("-- Other --");
+                pr.sourceCombo->addItem("Harmonic Change", 27);
+                pr.sourceCombo->addItem("Dynamic Range", 7);
+
+                // Set current value
+                if (p < currentKey_->effects[i].mappings.size() && currentKey_->effects[i].mappings[p].active)
+                {
+                    int srcId = static_cast<int>(currentKey_->effects[i].mappings[p].source) + 2;
+                    pr.sourceCombo->setSelectedId(srcId, juce::dontSendNotification);
+                }
+                else
+                    pr.sourceCombo->setSelectedId(1, juce::dontSendNotification);
+
+                pr.sourceCombo->onChange = [this, i, p] {
+                    if (!currentKey_ || i >= currentKey_->effects.size() || p >= currentKey_->effects[i].mappings.size())
+                        return;
+                    int sel = effectRows_[i].paramRows[p].sourceCombo->getSelectedId();
+                    if (sel <= 1) {
+                        currentKey_->effects[i].mappings[p].active = false;
+                        effectRows_[i].paramRows[p].mapBtn->removeColour(juce::TextButton::buttonColourId);
+                    } else {
+                        currentKey_->effects[i].mappings[p].active = true;
+                        currentKey_->effects[i].mappings[p].source = static_cast<MappingSource>(sel - 2);
+                        effectRows_[i].paramRows[p].mapBtn->setColour(juce::TextButton::buttonColourId,
+                            juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.5f));
+                    }
+                };
+                effectsContent_.addAndMakeVisible(pr.sourceCombo.get());
+
+                // Curve combo
+                pr.curveCombo = std::make_unique<juce::ComboBox>();
+                pr.curveCombo->addItem("Linear", 1);
+                pr.curveCombo->addItem("Exponential", 2);
+                pr.curveCombo->addItem("Logarithmic", 3);
+                pr.curveCombo->addItem("S-Curve", 4);
+                pr.curveCombo->addItem("Stepped", 5);
+                if (p < currentKey_->effects[i].mappings.size())
+                    pr.curveCombo->setSelectedId(static_cast<int>(currentKey_->effects[i].mappings[p].curve) + 1, juce::dontSendNotification);
+                else
+                    pr.curveCombo->setSelectedId(1, juce::dontSendNotification);
+
+                pr.curveCombo->onChange = [this, i, p] {
+                    if (currentKey_ && i < currentKey_->effects.size() && p < currentKey_->effects[i].mappings.size()) {
+                        int sel = effectRows_[i].paramRows[p].curveCombo->getSelectedId();
+                        currentKey_->effects[i].mappings[p].curve = static_cast<MappingCurve>(sel - 1);
+                    }
+                };
+                effectsContent_.addAndMakeVisible(pr.curveCombo.get());
+
+                // Start hidden unless mapping is active
+                pr.mappingExpanded = hasMapping;
+                pr.sourceCombo->setVisible(pr.mappingExpanded);
+                pr.curveCombo->setVisible(pr.mappingExpanded);
 
                 row.paramRows.push_back(std::move(pr));
             }
@@ -417,9 +517,24 @@ void KeyEditor::layoutEffectsContent()
 
         for (auto& pr : row.paramRows)
         {
-            pr.label->setBounds(24, y, 65, 16);
-            pr.slider->setBounds(90, y, w - 95, 16);
+            pr.label->setBounds(24, y, 60, 16);
+            int sliderRight = w - 30;
+            pr.slider->setBounds(85, y, sliderRight - 85, 16);
+            pr.mapBtn->setBounds(sliderRight + 2, y, 24, 16);
             y += 18;
+
+            // Mapping controls row (shown when M is clicked)
+            if (pr.sourceCombo && pr.curveCombo)
+            {
+                pr.sourceCombo->setVisible(pr.mappingExpanded);
+                pr.curveCombo->setVisible(pr.mappingExpanded);
+                if (pr.mappingExpanded)
+                {
+                    pr.sourceCombo->setBounds(40, y, 140, 18);
+                    pr.curveCombo->setBounds(185, y, 100, 18);
+                    y += 20;
+                }
+            }
         }
         y += 4;
     }

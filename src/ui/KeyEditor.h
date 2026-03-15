@@ -96,6 +96,10 @@ private:
         {
             std::unique_ptr<juce::Label> label;
             std::unique_ptr<juce::Slider> slider;
+            std::unique_ptr<juce::TextButton> mapBtn;     // "M" button
+            std::unique_ptr<juce::ComboBox> sourceCombo;   // Audio source selector
+            std::unique_ptr<juce::ComboBox> curveCombo;    // Curve selector
+            bool mappingExpanded = false;
         };
         std::vector<ParamRow> paramRows;
     };

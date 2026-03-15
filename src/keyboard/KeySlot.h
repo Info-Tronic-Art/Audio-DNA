@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_core/juce_core.h>
+#include "mapping/MappingTypes.h"
 #include <string>
 #include <vector>
 #include <array>
@@ -22,16 +23,26 @@ struct KeySlot
     int cameraDeviceIndex = -1;     // For Camera
 
     // === Per-key Effects ===
+    // Per-parameter audio mapping
+    struct ParamMapping
+    {
+        bool active = false;
+        MappingSource source = MappingSource::RMS;
+        MappingCurve curve = MappingCurve::Linear;
+        float outputMin = 0.0f;
+        float outputMax = 1.0f;
+        float smoothing = 0.15f;
+        float smoothedValue = 0.0f; // runtime state
+    };
+
     struct EffectSlot
     {
         std::string effectName;         // Registry name e.g. "ripple"
         std::vector<float> params;      // Parameter values [0,1]
+        std::vector<ParamMapping> mappings; // One per param (may be inactive)
         bool enabled = true;
     };
     std::vector<EffectSlot> effects;
-
-    // === Audio Mappings (per key) ===
-    // Stored separately — will be wired in Phase 2
 
     // === Keying Mode (how alpha is generated from the image) ===
     enum class KeyingMode {
@@ -132,6 +143,21 @@ struct KeySlot
             for (float p : fx.params)
                 paramArray.add(static_cast<double>(p));
             fxObj->setProperty("params", paramArray);
+
+            // Save per-param mappings
+            juce::Array<juce::var> mapArray;
+            for (const auto& m : fx.mappings)
+            {
+                auto* mObj = new juce::DynamicObject();
+                mObj->setProperty("active", m.active);
+                mObj->setProperty("source", static_cast<int>(m.source));
+                mObj->setProperty("curve", static_cast<int>(m.curve));
+                mObj->setProperty("outputMin", static_cast<double>(m.outputMin));
+                mObj->setProperty("outputMax", static_cast<double>(m.outputMax));
+                mObj->setProperty("smoothing", static_cast<double>(m.smoothing));
+                mapArray.add(juce::var(mObj));
+            }
+            fxObj->setProperty("mappings", mapArray);
             fxArray.add(juce::var(fxObj));
         }
         obj->setProperty("effects", fxArray);
@@ -176,6 +202,29 @@ struct KeySlot
                         if (auto* paramArray = fxObj->getProperty("params").getArray())
                             for (const auto& p : *paramArray)
                                 slot.params.push_back(static_cast<float>(static_cast<double>(p)));
+
+                        // Load per-param mappings
+                        if (auto* mapArray = fxObj->getProperty("mappings").getArray())
+                        {
+                            for (const auto& mv : *mapArray)
+                            {
+                                ParamMapping pm;
+                                if (auto* mObj = mv.getDynamicObject())
+                                {
+                                    pm.active = static_cast<bool>(mObj->getProperty("active"));
+                                    pm.source = static_cast<MappingSource>(static_cast<int>(mObj->getProperty("source")));
+                                    pm.curve = static_cast<MappingCurve>(static_cast<int>(mObj->getProperty("curve")));
+                                    pm.outputMin = static_cast<float>(static_cast<double>(mObj->getProperty("outputMin")));
+                                    pm.outputMax = static_cast<float>(static_cast<double>(mObj->getProperty("outputMax")));
+                                    pm.smoothing = static_cast<float>(static_cast<double>(mObj->getProperty("smoothing")));
+                                }
+                                slot.mappings.push_back(pm);
+                            }
+                        }
+                        // Ensure mappings vector matches params size
+                        while (slot.mappings.size() < slot.params.size())
+                            slot.mappings.push_back(ParamMapping{});
+
                         effects.push_back(std::move(slot));
                     }
                 }
