@@ -18,6 +18,7 @@ struct Clip
     juce::File mediaFile;           // For Image or Video
     int cameraDeviceIndex = -1;     // For Camera
     std::string sourceType;         // For procedural Source (e.g., "perlin_noise")
+    bool hasAlpha = false;          // True if media has an alpha channel
 
     // === Per-clip Effect Chain ===
     struct EffectSlot

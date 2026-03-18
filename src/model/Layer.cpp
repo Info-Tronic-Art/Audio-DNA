@@ -76,7 +76,7 @@ void Layer::fromVar(const juce::var& v)
         muted = static_cast<bool>(obj->getProperty("muted"));
         autopilotEnabled = static_cast<bool>(obj->getProperty("autopilotEnabled"));
         ignoreColumnTrigger = static_cast<bool>(obj->getProperty("ignoreColumnTrigger"));
-        blendMode = static_cast<BlendMode>(static_cast<int>(obj->getProperty("blendMode")));
+        blendMode = static_cast<MixMode>(static_cast<int>(obj->getProperty("blendMode")));
         keyingMode = static_cast<KeyingMode>(static_cast<int>(obj->getProperty("keyingMode")));
         keyThreshold = static_cast<float>(static_cast<double>(obj->getProperty("keyThreshold")));
         keySoftness = static_cast<float>(static_cast<double>(obj->getProperty("keySoftness")));

@@ -384,25 +384,6 @@ MainComponent::MainComponent()
     keyEditor_->onClose = [this] { closeKeyEditor(); };
     keyEditor_->onRequestImage = [this](KeySlot& key) { assignImageToKey(key); };
 
-    // === Collapsible Panel Toggle Buttons ===
-    auto setupToggle = [this](juce::TextButton& btn, bool& state, const juce::String& label) {
-        addAndMakeVisible(btn);
-        btn.setClickingTogglesState(true);
-        btn.setToggleState(state, juce::dontSendNotification);
-        btn.setButtonText(label);
-        btn.setColour(juce::TextButton::buttonOnColourId,
-                       juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f));
-        btn.onClick = [this, &state, &btn] {
-            state = btn.getToggleState();
-            resized();
-        };
-    };
-    setupToggle(toggleAudioBtn_, showAudioPanel_, "A");
-    setupToggle(toggleFxBtn_, showFxPanel_, "FX");
-    setupToggle(toggleWaveBtn_, showWavePanel_, "W");
-    setupToggle(toggleKeysBtn_, showKeysPanel_, "K");
-    setupToggle(togglePresetsBtn_, showPresetsPanel_, "P");
-
     // === v2: Signal Bar + Top Bar ===
     composition_.initDefault();
     signalRegistry_.initDefaults();
@@ -505,15 +486,28 @@ MainComponent::MainComponent()
     programmingMode_ = std::make_unique<ProgrammingMode>(*signalBar_);
     addChildComponent(programmingMode_.get());
 
-    // Signal bar toggle button
-    addAndMakeVisible(toggleSignalBarBtn_);
-    toggleSignalBarBtn_.setClickingTogglesState(true);
-    toggleSignalBarBtn_.setToggleState(showSignalBar_, juce::dontSendNotification);
-    toggleSignalBarBtn_.setColour(juce::TextButton::buttonOnColourId,
-                                   juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f));
-    toggleSignalBarBtn_.onClick = [this] {
-        showSignalBar_ = toggleSignalBarBtn_.getToggleState();
-        resized();
+    // === v2: Deck View ===
+    deckView_ = std::make_unique<DeckView>();
+    addAndMakeVisible(deckView_.get());
+    deckView_->setComposition(&composition_);
+
+    deckView_->onClipTriggered = [this](int layerIdx, int col) {
+        handleClipTrigger(layerIdx, col);
+    };
+    deckView_->onColumnTriggered = [this](int col) {
+        handleColumnTrigger(col);
+    };
+    deckView_->onClipSelected = [](int /*layerIdx*/, int /*col*/) {
+        // TODO P6: switch inspector to clip tab
+    };
+    deckView_->onLayerSelected = [](int /*layerIdx*/) {
+        // TODO P6: switch inspector to layer tab
+    };
+    deckView_->onFileDropped = [this](int layerIdx, int col, const juce::File& file) {
+        handleFileDrop(layerIdx, col, file);
+    };
+    deckView_->onDeckSwitched = [this](int deckIdx) {
+        handleDeckSwitch(deckIdx);
     };
 
     // Start analysis
@@ -568,7 +562,7 @@ void MainComponent::paint(juce::Graphics& g)
 
 void MainComponent::resized()
 {
-    auto area = getLocalBounds().reduced(8);
+    auto area = getLocalBounds().reduced(4);
 
     // === v2: Top Bar (full width) ===
     if (topBar_)
@@ -577,9 +571,9 @@ void MainComponent::resized()
         area.removeFromTop(1);
     }
 
-    // === v2: Signal Bar (full width, optional) ===
+    // === v2: Signal Bar (full width) ===
     bool signalBarExpanded = false;
-    if (signalBar_ && showSignalBar_)
+    if (signalBar_)
     {
         int sbHeight = signalBar_->getPreferredHeight();
         if (sbHeight < 0)
@@ -588,7 +582,7 @@ void MainComponent::resized()
             signalBarExpanded = true;
             signalBar_->setBounds(area);
             signalBar_->setVisible(true);
-            area = juce::Rectangle<int>(); // nothing left
+            area = juce::Rectangle<int>();
         }
         else
         {
@@ -596,10 +590,6 @@ void MainComponent::resized()
             signalBar_->setVisible(true);
             area.removeFromTop(1);
         }
-    }
-    else if (signalBar_)
-    {
-        signalBar_->setVisible(false);
     }
 
     // === v2: Programming Mode overlay ===
@@ -616,93 +606,61 @@ void MainComponent::resized()
         if (effectsRackPanel_) effectsRackPanel_->setVisible(false);
         if (keyboardPanel_) keyboardPanel_->setVisible(false);
         if (keyEditor_) keyEditor_->setVisible(false);
+        if (deckView_) deckView_->setVisible(false);
         return;
     }
 
-    // === Row 1: Image + Camera + Presets (v1 compat) ===
-    auto row1 = area.removeFromTop(26);
-    openImageButton_.setBounds(row1.removeFromLeft(75));
-    row1.removeFromLeft(3);
-    openFolderButton_.setBounds(row1.removeFromLeft(80));
-    row1.removeFromLeft(2);
-    imageBeatLabel_.setBounds(row1.removeFromLeft(85));
-    imageBeatSelector_.setBounds(row1.removeFromLeft(55));
-    row1.removeFromLeft(6);
-  #if AUDIODNA_HAS_CAMERA
-    cameraLabel_.setBounds(row1.removeFromLeft(42));
-    cameraSelector_.setBounds(row1.removeFromLeft(100));
-    row1.removeFromLeft(8);
-  #endif
-    // v1 audio source selector is now hidden (TopBar handles it)
+    // === Hide v1 controls that are now in TopBar or removed ===
     audioSourceLabel_.setVisible(false);
     audioSourceSelector_.setVisible(false);
     inputGainLabel_.setVisible(false);
     inputGainSlider_.setVisible(false);
-
-    savePresetButton_.setBounds(row1.removeFromLeft(45));
-    row1.removeFromLeft(2);
-    loadPresetButton_.setBounds(row1.removeFromLeft(45));
-    row1.removeFromLeft(4);
-    fastSaveButton_.setBounds(row1.removeFromLeft(55));
-    row1.removeFromLeft(4);
-    deckSaveButton_.setBounds(row1.removeFromLeft(65));
-    row1.removeFromLeft(2);
-    deckLoadButton_.setBounds(row1.removeFromLeft(65));
-
-    fileLabel_.setBounds(row1);
-    // v1 stats labels now hidden (TopBar handles them)
-    fpsLabel_.setVisible(false);
-    cpuLabel_.setVisible(false);
-
-    area.removeFromTop(3);
-
-    // === Row 2: Random FX + Selectors (v1 compat) ===
-    auto row2 = area.removeFromTop(22);
-
-    // Random FX on Beat controls (left side)
-    randomLabel_.setBounds(row2.removeFromLeft(110));
-    row2.removeFromLeft(2);
-    beatRandomToggle_.setBounds(row2.removeFromLeft(60));
-    beatCountSelector_.setBounds(row2.removeFromLeft(55));
-    row2.removeFromLeft(2);
-    syncButton_.setBounds(row2.removeFromLeft(38));
-    row2.removeFromLeft(10);
-
-    // Input level meter
-    inputLevelMeterBounds_ = row2.removeFromLeft(60).reduced(0, 4);
-    row2.removeFromLeft(8);
-
-    // Right-aligned: Video Level, Output, Viewport
-    // v1 master level + output now in TopBar, but keep viewport resolution
     masterLevelSlider_.setVisible(false);
     masterLevelLabel_.setVisible(false);
     displaySelector_.setVisible(false);
     outputLabel_.setVisible(false);
-    resolutionSelector_.setBounds(row2.removeFromRight(100));
-    viewportLabel_.setBounds(row2.removeFromRight(48));
-    row2.removeFromRight(8);
+    fpsLabel_.setVisible(false);
+    cpuLabel_.setVisible(false);
+    viewportLabel_.setVisible(false);
+    resolutionSelector_.setVisible(false);
+    randomLabel_.setVisible(false);
+    beatRandomToggle_.setVisible(false);
+    beatCountSelector_.setVisible(false);
+    syncButton_.setVisible(false);
+    inputLevelMeterBounds_ = {};
 
-    area.removeFromTop(4);
+    // === Row 1: Image + Camera + Presets (v1 compat, compact) ===
+    auto row1 = area.removeFromTop(24);
+    openImageButton_.setBounds(row1.removeFromLeft(70));
+    row1.removeFromLeft(2);
+    openFolderButton_.setBounds(row1.removeFromLeft(75));
+    row1.removeFromLeft(2);
+    imageBeatLabel_.setBounds(row1.removeFromLeft(80));
+    imageBeatSelector_.setBounds(row1.removeFromLeft(50));
+    row1.removeFromLeft(4);
+  #if AUDIODNA_HAS_CAMERA
+    cameraLabel_.setBounds(row1.removeFromLeft(42));
+    cameraSelector_.setBounds(row1.removeFromLeft(100));
+    row1.removeFromLeft(4);
+  #endif
+    savePresetButton_.setBounds(row1.removeFromLeft(40));
+    row1.removeFromLeft(2);
+    loadPresetButton_.setBounds(row1.removeFromLeft(40));
+    row1.removeFromLeft(2);
+    fastSaveButton_.setBounds(row1.removeFromLeft(50));
+    row1.removeFromLeft(2);
+    deckSaveButton_.setBounds(row1.removeFromLeft(60));
+    row1.removeFromLeft(2);
+    deckLoadButton_.setBounds(row1.removeFromLeft(60));
+    fileLabel_.setBounds(row1);
 
-    // === Toggle buttons row ===
-    auto toggleRow = area.removeFromTop(20);
-    toggleAudioBtn_.setBounds(toggleRow.removeFromLeft(24));
-    toggleRow.removeFromLeft(2);
-    toggleFxBtn_.setBounds(toggleRow.removeFromLeft(24));
-    toggleRow.removeFromLeft(2);
-    toggleWaveBtn_.setBounds(toggleRow.removeFromLeft(24));
-    toggleRow.removeFromLeft(2);
-    toggleKeysBtn_.setBounds(toggleRow.removeFromLeft(24));
-    toggleRow.removeFromLeft(2);
-    togglePresetsBtn_.setBounds(toggleRow.removeFromLeft(24));
-    toggleRow.removeFromLeft(2);
-    toggleSignalBarBtn_.setBounds(toggleRow.removeFromLeft(24));
-    area.removeFromTop(4);
+    area.removeFromTop(2);
 
-    // === Bottom sections (keyboard + presets) — allocate from bottom up ===
+    // === v2: Deck View (main content area) ===
+    // Deck takes the bulk of remaining space
+    // Bottom: preset slots + keyboard (v1 compat)
 
-    // Preset slots bar
-    if (showPresetsPanel_)
+    // Preset slots bar at bottom
     {
         auto slotBar = area.removeFromBottom(28);
         int slotWidth = slotBar.getWidth() / kNumSlots;
@@ -717,88 +675,63 @@ void MainComponent::resized()
             slot.button->setVisible(true);
             slot.dropdown->setVisible(true);
         }
-        area.removeFromBottom(4);
-    }
-    else
-    {
-        for (int i = 0; i < kNumSlots; ++i)
-        {
-            presetSlots_[static_cast<size_t>(i)].button->setVisible(false);
-            presetSlots_[static_cast<size_t>(i)].dropdown->setVisible(false);
-        }
+        area.removeFromBottom(2);
     }
 
-    // Keyboard panel
-    if (showKeysPanel_ && keyboardPanel_)
-    {
-        int keysHeight = std::min(200, std::max(120, area.getHeight() / 4));
-        keyboardPanel_->setBounds(area.removeFromBottom(keysHeight));
-        keyboardPanel_->setVisible(true);
-        area.removeFromBottom(4);
-    }
-    else if (keyboardPanel_)
-    {
+    // Keyboard panel (v1 compat, hidden by default in v2 — will be removed later)
+    if (keyboardPanel_)
         keyboardPanel_->setVisible(false);
+
+    // Deck view takes ~50% of remaining height
+    if (deckView_)
+    {
+        int deckHeight = std::max(200, static_cast<int>(area.getHeight() * 0.50f));
+        deckView_->setBounds(area.removeFromTop(deckHeight));
+        deckView_->setVisible(true);
+        area.removeFromTop(2);
     }
 
-    // === Main content area (left + center + right) ===
+    // === Bottom panel area: preview + audio readouts + effects rack ===
     int totalWidth = area.getWidth();
-    int leftWidth = showAudioPanel_ ? std::max(200, static_cast<int>(totalWidth * 0.20f)) : 0;
-    int rightWidth = showFxPanel_ ? std::max(200, static_cast<int>(totalWidth * 0.30f)) : 0;
+    int leftWidth = std::max(180, static_cast<int>(totalWidth * 0.18f));
+    int rightWidth = std::max(200, static_cast<int>(totalWidth * 0.28f));
 
     // Left panel: audio readouts + spectrum
-    if (showAudioPanel_)
     {
         auto leftPanel = area.removeFromLeft(leftWidth);
-        int spectrumHeight = std::max(120, static_cast<int>(leftPanel.getHeight() * 0.25f));
+        int spectrumHeight = std::max(80, static_cast<int>(leftPanel.getHeight() * 0.30f));
         spectrumDisplay_.setBounds(leftPanel.removeFromBottom(spectrumHeight));
-        leftPanel.removeFromBottom(8);
+        leftPanel.removeFromBottom(4);
         audioReadoutPanel_.setBounds(leftPanel);
         spectrumDisplay_.setVisible(true);
         audioReadoutPanel_.setVisible(true);
-        area.removeFromLeft(8);
-    }
-    else
-    {
-        spectrumDisplay_.setVisible(false);
-        audioReadoutPanel_.setVisible(false);
+        area.removeFromLeft(4);
     }
 
     // Right panel: effects rack
-    if (showFxPanel_ && effectsRackPanel_)
+    if (effectsRackPanel_)
     {
         auto rightPanel = area.removeFromRight(rightWidth);
         effectsRackPanel_->setBounds(rightPanel);
         effectsRackPanel_->setVisible(true);
-        area.removeFromRight(8);
-    }
-    else if (effectsRackPanel_)
-    {
-        effectsRackPanel_->setVisible(false);
+        area.removeFromRight(4);
     }
 
-    // Center: preview + optional waveform
-    if (showWavePanel_)
+    // Center: preview + waveform
     {
-        int waveformHeight = std::max(60, static_cast<int>(area.getHeight() * 0.12f));
-        auto waveformArea = area.removeFromBottom(waveformHeight);
-        waveformDisplay_.setBounds(waveformArea);
+        int waveformHeight = std::max(40, static_cast<int>(area.getHeight() * 0.12f));
+        waveformDisplay_.setBounds(area.removeFromBottom(waveformHeight));
         waveformDisplay_.setVisible(true);
-    }
-    else
-    {
-        waveformDisplay_.setVisible(false);
     }
 
     previewPanel_.setBounds(area);
 
-    // Key Editor — full workspace overlay, hides GL preview
+    // Key Editor — full workspace overlay
     if (showKeyEditor_ && keyEditor_)
     {
         previewPanel_.setVisible(false);
-        // Full workspace: from below the toggle buttons row to the bottom
         auto editorBounds = getLocalBounds().reduced(4);
-        editorBounds.removeFromTop(90); // Skip top bars and toggle row
+        editorBounds.removeFromTop(70);
         keyEditor_->setBounds(editorBounds);
         keyEditor_->setVisible(true);
         keyEditor_->toFront(false);
@@ -941,7 +874,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     }
 
     // === Keyboard Launcher keys (when panel is visible) ===
-    if (showKeysPanel_ && !mod.isCommandDown())
+    if (true /* keyboard launcher always active */ && !mod.isCommandDown())
     {
         int keyCode = key.getKeyCode();
         char c = static_cast<char>(std::toupper(keyCode));
@@ -983,7 +916,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component* /*ori
 {
     // Global key listener — catches shift+key for latch from any focus context
     auto mod = key.getModifiers();
-    if (showKeysPanel_ && mod.isShiftDown() && !mod.isCommandDown())
+    if (true /* keyboard launcher always active */ && mod.isShiftDown() && !mod.isCommandDown())
     {
         auto* slot = keyboardLayout_.findByKeyCode(key.getKeyCode(), true);
         if (slot && !slot->isEmpty())
@@ -1013,7 +946,7 @@ bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component* /*ori
 bool MainComponent::keyStateChanged(bool /*isKeyDown*/)
 {
     // Handle key releases for momentary mode in keyboard launcher
-    if (!showKeysPanel_)
+    if (!true /* keyboard launcher always active */)
         return false;
 
     // Check all launcher keys for release
@@ -1308,11 +1241,11 @@ void MainComponent::saveDeck()
         deck.outputDisplay = displaySelector_.getSelectedId();
         deck.inputGain = static_cast<float>(inputGainSlider_.getValue());
         deck.masterVideoLevel = static_cast<float>(masterLevelSlider_.getValue());
-        deck.showAudioPanel = showAudioPanel_;
-        deck.showFxPanel = showFxPanel_;
-        deck.showWavePanel = showWavePanel_;
-        deck.showKeysPanel = showKeysPanel_;
-        deck.showPresetsPanel = showPresetsPanel_;
+        deck.showAudioPanel = true;
+        deck.showFxPanel = true;
+        deck.showWavePanel = true;
+        deck.showKeysPanel = true;
+        deck.showPresetsPanel = true;
 
         // Collect slot assignments
         for (int i = 0; i < kNumSlots; ++i)
@@ -1409,17 +1342,8 @@ void MainComponent::loadDeck()
             inputGainSlider_.setValue(deck.inputGain, juce::sendNotificationSync);
         masterLevelSlider_.setValue(deck.masterVideoLevel, juce::sendNotificationSync);
 
-        // Restore panel visibility
-        showAudioPanel_ = deck.showAudioPanel;
-        showFxPanel_ = deck.showFxPanel;
-        showWavePanel_ = deck.showWavePanel;
-        showKeysPanel_ = deck.showKeysPanel;
-        showPresetsPanel_ = deck.showPresetsPanel;
-        toggleAudioBtn_.setToggleState(showAudioPanel_, juce::dontSendNotification);
-        toggleFxBtn_.setToggleState(showFxPanel_, juce::dontSendNotification);
-        toggleWaveBtn_.setToggleState(showWavePanel_, juce::dontSendNotification);
-        toggleKeysBtn_.setToggleState(showKeysPanel_, juce::dontSendNotification);
-        togglePresetsBtn_.setToggleState(showPresetsPanel_, juce::dontSendNotification);
+        // Panel visibility is no longer user-togglable (v2 layout)
+        // Ignore saved panel states — kept for backward compat in deck files
 
         // Load audio
         if (deck.audioFile.existsAsFile())
@@ -1853,4 +1777,104 @@ void MainComponent::assignImageToKey(KeySlot& key)
         if (keyboardPanel_)
             keyboardPanel_->refresh();
     });
+}
+
+// === v2: Deck View Handlers ===
+
+void MainComponent::handleClipTrigger(int layerIndex, int column)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+
+    auto* layer = deck->getLayer(layerIndex);
+    if (!layer) return;
+
+    layer->triggerClip(column);
+
+    // Load the image into preview if the clip has media
+    if (auto* clip = layer->getActiveClip())
+    {
+        if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+        {
+            previewPanel_.loadImage(clip->mediaFile);
+            currentImageFile_ = clip->mediaFile;
+            if (outputWindow_)
+                outputWindow_->loadImage(clip->mediaFile);
+            fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+        }
+    }
+
+    if (deckView_)
+        deckView_->refresh();
+}
+
+void MainComponent::handleColumnTrigger(int column)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+
+    deck->triggerColumn(column);
+
+    if (deckView_)
+    {
+        deckView_->setActiveColumn(column);
+        deckView_->refresh();
+    }
+
+    // Load the bottom-most active clip's image into preview
+    for (int i = 0; i < deck->getNumLayers(); ++i)
+    {
+        auto* layer = deck->getLayer(i);
+        if (!layer) continue;
+        if (auto* clip = layer->getActiveClip())
+        {
+            if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+            {
+                previewPanel_.loadImage(clip->mediaFile);
+                currentImageFile_ = clip->mediaFile;
+                if (outputWindow_)
+                    outputWindow_->loadImage(clip->mediaFile);
+                fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+                break;
+            }
+        }
+    }
+}
+
+void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File& file)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+
+    // Create a new clip with the dropped file
+    Clip clip;
+    clip.name = file.getFileNameWithoutExtension().toStdString();
+    clip.mediaFile = file;
+
+    auto ext = file.getFileExtension().toLowerCase();
+    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+        ext == ".gif" || ext == ".bmp" || ext == ".tiff")
+    {
+        clip.mediaType = Clip::MediaType::Image;
+    }
+    else if (ext == ".mov" || ext == ".avi" || ext == ".mp4")
+    {
+        clip.mediaType = Clip::MediaType::Video;
+    }
+
+    deck->setClip(layerIndex, column, clip);
+
+    if (deckView_)
+        deckView_->rebuildGrid();
+}
+
+void MainComponent::handleDeckSwitch(int deckIndex)
+{
+    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
+        return;
+
+    composition_.activeDeckIndex = deckIndex;
+
+    if (deckView_)
+        deckView_->rebuildGrid();
 }

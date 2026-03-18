@@ -58,7 +58,7 @@ void AudioDNALookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& 
                                                  const juce::Colour&,
                                                  bool isMouseOver, bool isButtonDown)
 {
-    auto bounds = button.getLocalBounds().toFloat().reduced(1.0f);
+    auto bounds = button.getLocalBounds().toFloat();
     auto baseColour = juce::Colour(kSurface);
 
     if (isButtonDown)
@@ -67,10 +67,10 @@ void AudioDNALookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& 
         baseColour = juce::Colour(kSurfaceLight);
 
     g.setColour(baseColour);
-    g.fillRoundedRectangle(bounds, 4.0f);
+    g.fillRect(bounds);
 
-    g.setColour(juce::Colour(kAccentCyan).withAlpha(0.4f));
-    g.drawRoundedRectangle(bounds, 4.0f, 1.0f);
+    g.setColour(juce::Colour(kPanelBorder));
+    g.drawRect(bounds, 1.0f);
 }
 
 void AudioDNALookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button,
@@ -286,12 +286,12 @@ void AudioDNALookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
 
     // Background
     g.setColour(juce::Colour(kSurface));
-    g.fillRoundedRectangle(bounds, 4.0f);
+    g.fillRect(bounds);
 
     // Border
     g.setColour(isButtonDown ? juce::Colour(kAccentCyan)
                              : juce::Colour(kPanelBorder));
-    g.drawRoundedRectangle(bounds.reduced(0.5f), 4.0f, 1.0f);
+    g.drawRect(bounds, 1.0f);
 
     // Arrow
     auto arrowZone = juce::Rectangle<float>(static_cast<float>(width) - 20.0f, 0.0f,
@@ -407,7 +407,7 @@ void AudioDNALookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label)
     if (!bgColour.isTransparent())
     {
         g.setColour(bgColour);
-        g.fillRoundedRectangle(bounds, 2.0f);
+        g.fillRect(bounds);
     }
 
     if (!label.isBeingEdited())

@@ -35,15 +35,46 @@ struct Layer
     bool autopilotEnabled = false;
     bool ignoreColumnTrigger = false;
 
-    // === Blend Mode (Transparent type) ===
-    enum class BlendMode : uint8_t
+    // === Mix Mode — unified list for both layer blending and clip transitions ===
+    // V dropdown picks a MixMode for persistent layer compositing.
+    // F dropdown picks a MixMode for momentary clip-to-clip transitions.
+    // Same list, different contexts: V = "the look", F = "the flash".
+    enum class MixMode : uint8_t
     {
+        // === Standard Compositing (persistent blend modes) ===
+        // Basic
         Normal, Additive, Screen, Multiply, Overlay,
-        SoftLight, HardLight, Darken, Lighten,
-        ColorDodge, ColorBurn, Difference, Exclusion,
-        Subtract, VividLight, LinearLight, PinLight, HardMix
+        // Light
+        SoftLight, HardLight, VividLight, LinearLight, PinLight, HardMix,
+        // Dark/Light compare
+        Darken, Lighten, DarkerColor, LighterColor,
+        // Dodge/Burn
+        ColorDodge, ColorBurn,
+        // Inversion
+        Difference, Exclusion, Subtract,
+        // Component (HSL)
+        Hue, Saturation, Color, Luminosity,
+        // Special blend
+        Dissolve,
+
+        // === Transitions (momentary clip changes, also usable as blend) ===
+        // Instant
+        Cut,
+        // Directional wipes
+        WipeLeft, WipeRight, WipeUp, WipeDown, WipeEllipse, WipeDiagonal,
+        // Push (content slides in/out)
+        PushLeft, PushRight, PushUp, PushDown,
+        // Zoom
+        ZoomIn, ZoomOut,
+        // 3D rotation
+        RotateX, RotateY, Spin, Cube, Flip, Fold,
+        // Fade through color
+        ToBlack, ToWhite,
+        // Creative / VJ
+        Pixelate, Blur, Noise, RGBSplit, GlitchBlocks, Strobe,
+        Slide, Stretch, Displace
     };
-    BlendMode blendMode = BlendMode::Additive;
+    MixMode blendMode = MixMode::Additive;
 
     // === Keying Mode (Transparent type) ===
     enum class KeyingMode : uint8_t
@@ -67,6 +98,7 @@ struct Layer
     float scale3D = 1.0f;
 
     // === Transition ===
+    MixMode transitionMode = MixMode::Dissolve;  // F dropdown — momentary clip change style
     float transitionSpeed = -1.0f; // -1 = use global default
 
     // === Per-layer Effect Chain ===

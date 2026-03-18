@@ -139,7 +139,7 @@ TEST_CASE("Composition JSON roundtrip", "[composition][serialization]")
     // Set layer properties
     auto* layer = comp.decks[0].getLayer(1);
     layer->type = Layer::Type::Transparent;
-    layer->blendMode = Layer::BlendMode::Screen;
+    layer->blendMode = Layer::MixMode::Screen;
     layer->opacity = 0.75f;
 
     // Serialize
@@ -172,7 +172,7 @@ TEST_CASE("Composition JSON roundtrip", "[composition][serialization]")
 
     auto* loadedLayer = loaded.decks[0].getLayer(1);
     REQUIRE(loadedLayer->type == Layer::Type::Transparent);
-    REQUIRE(loadedLayer->blendMode == Layer::BlendMode::Screen);
+    REQUIRE(loadedLayer->blendMode == Layer::MixMode::Screen);
     REQUIRE_THAT(loadedLayer->opacity, WithinAbs(0.75f, 0.001f));
 }
 

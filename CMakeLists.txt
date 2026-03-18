@@ -173,6 +173,12 @@ target_sources(AudioDNA PRIVATE
     src/ui/TopBar.cpp
     src/ui/ProgrammingMode.h
     src/ui/ProgrammingMode.cpp
+    src/ui/ClipCell.h
+    src/ui/ClipCell.cpp
+    src/ui/LayerStrip.h
+    src/ui/LayerStrip.cpp
+    src/ui/DeckView.h
+    src/ui/DeckView.cpp
     src/keyboard/KeySlot.h
     src/render/CompositorEngine.h
     src/render/CompositorEngine.cpp

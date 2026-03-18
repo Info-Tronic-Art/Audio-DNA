@@ -1,0 +1,660 @@
+#include "ui/LayerStrip.h"
+
+// ID scheme for V dropdown: 1-100 = MixMode, 101+ = KeyingMode
+static constexpr int kKeyingIdOffset = 101;
+
+// Helper: populate a ComboBox with all MixMode entries
+static void populateMixModes(juce::ComboBox& cb, int idOffset = 1)
+{
+    using M = Layer::MixMode;
+
+    cb.addSectionHeading("Compositing");
+    cb.addItem("Alpha", idOffset + static_cast<int>(M::Normal));
+    cb.addItem("Add", idOffset + static_cast<int>(M::Additive));
+    cb.addItem("Screen", idOffset + static_cast<int>(M::Screen));
+    cb.addItem("Multiply", idOffset + static_cast<int>(M::Multiply));
+    cb.addItem("Overlay", idOffset + static_cast<int>(M::Overlay));
+
+    cb.addSectionHeading("Light");
+    cb.addItem("Soft Light", idOffset + static_cast<int>(M::SoftLight));
+    cb.addItem("Hard Light", idOffset + static_cast<int>(M::HardLight));
+    cb.addItem("Vivid Light", idOffset + static_cast<int>(M::VividLight));
+    cb.addItem("Linear Light", idOffset + static_cast<int>(M::LinearLight));
+    cb.addItem("Pin Light", idOffset + static_cast<int>(M::PinLight));
+    cb.addItem("Hard Mix", idOffset + static_cast<int>(M::HardMix));
+
+    cb.addSectionHeading("Compare");
+    cb.addItem("Darken", idOffset + static_cast<int>(M::Darken));
+    cb.addItem("Lighten", idOffset + static_cast<int>(M::Lighten));
+    cb.addItem("Darker Color", idOffset + static_cast<int>(M::DarkerColor));
+    cb.addItem("Lighter Color", idOffset + static_cast<int>(M::LighterColor));
+
+    cb.addSectionHeading("Dodge / Burn");
+    cb.addItem("Color Dodge", idOffset + static_cast<int>(M::ColorDodge));
+    cb.addItem("Color Burn", idOffset + static_cast<int>(M::ColorBurn));
+
+    cb.addSectionHeading("Inversion");
+    cb.addItem("Difference", idOffset + static_cast<int>(M::Difference));
+    cb.addItem("Exclusion", idOffset + static_cast<int>(M::Exclusion));
+    cb.addItem("Subtract", idOffset + static_cast<int>(M::Subtract));
+
+    cb.addSectionHeading("Component");
+    cb.addItem("Hue", idOffset + static_cast<int>(M::Hue));
+    cb.addItem("Saturation", idOffset + static_cast<int>(M::Saturation));
+    cb.addItem("Color", idOffset + static_cast<int>(M::Color));
+    cb.addItem("Luminosity", idOffset + static_cast<int>(M::Luminosity));
+
+    cb.addSectionHeading("Special");
+    cb.addItem("Dissolve", idOffset + static_cast<int>(M::Dissolve));
+    cb.addItem("Cut", idOffset + static_cast<int>(M::Cut));
+
+    cb.addSectionHeading("Wipe");
+    cb.addItem("Wipe Left", idOffset + static_cast<int>(M::WipeLeft));
+    cb.addItem("Wipe Right", idOffset + static_cast<int>(M::WipeRight));
+    cb.addItem("Wipe Up", idOffset + static_cast<int>(M::WipeUp));
+    cb.addItem("Wipe Down", idOffset + static_cast<int>(M::WipeDown));
+    cb.addItem("Wipe Ellipse", idOffset + static_cast<int>(M::WipeEllipse));
+    cb.addItem("Wipe Diagonal", idOffset + static_cast<int>(M::WipeDiagonal));
+
+    cb.addSectionHeading("Push");
+    cb.addItem("Push Left", idOffset + static_cast<int>(M::PushLeft));
+    cb.addItem("Push Right", idOffset + static_cast<int>(M::PushRight));
+    cb.addItem("Push Up", idOffset + static_cast<int>(M::PushUp));
+    cb.addItem("Push Down", idOffset + static_cast<int>(M::PushDown));
+
+    cb.addSectionHeading("Zoom");
+    cb.addItem("Zoom In", idOffset + static_cast<int>(M::ZoomIn));
+    cb.addItem("Zoom Out", idOffset + static_cast<int>(M::ZoomOut));
+
+    cb.addSectionHeading("3D");
+    cb.addItem("Rotate X", idOffset + static_cast<int>(M::RotateX));
+    cb.addItem("Rotate Y", idOffset + static_cast<int>(M::RotateY));
+    cb.addItem("Spin", idOffset + static_cast<int>(M::Spin));
+    cb.addItem("Cube", idOffset + static_cast<int>(M::Cube));
+    cb.addItem("Flip", idOffset + static_cast<int>(M::Flip));
+    cb.addItem("Fold", idOffset + static_cast<int>(M::Fold));
+
+    cb.addSectionHeading("Color Fade");
+    cb.addItem("To Black", idOffset + static_cast<int>(M::ToBlack));
+    cb.addItem("To White", idOffset + static_cast<int>(M::ToWhite));
+
+    cb.addSectionHeading("Creative");
+    cb.addItem("Pixelate", idOffset + static_cast<int>(M::Pixelate));
+    cb.addItem("Blur", idOffset + static_cast<int>(M::Blur));
+    cb.addItem("Noise", idOffset + static_cast<int>(M::Noise));
+    cb.addItem("RGB Split", idOffset + static_cast<int>(M::RGBSplit));
+    cb.addItem("Glitch Blocks", idOffset + static_cast<int>(M::GlitchBlocks));
+    cb.addItem("Strobe", idOffset + static_cast<int>(M::Strobe));
+    cb.addItem("Slide", idOffset + static_cast<int>(M::Slide));
+    cb.addItem("Stretch", idOffset + static_cast<int>(M::Stretch));
+    cb.addItem("Displace", idOffset + static_cast<int>(M::Displace));
+}
+
+// Base class that removes all slider padding so track fills entire component
+class FullBoundsSliderLAF : public juce::LookAndFeel_V4
+{
+public:
+    juce::Slider::SliderLayout getSliderLayout(juce::Slider& slider) override
+    {
+        juce::Slider::SliderLayout layout;
+        layout.sliderBounds = slider.getLocalBounds();
+        layout.textBoxBounds = {};
+        return layout;
+    }
+};
+
+// Vertical opacity slider — teal fill from bottom, "V" label at top
+class OpacitySliderLookAndFeel : public FullBoundsSliderLAF
+{
+public:
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+                          float sliderPos, float, float,
+                          juce::Slider::SliderStyle, juce::Slider&) override
+    {
+        auto bounds = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height);
+
+        g.setColour(juce::Colour(0xff2a2a2a));
+        g.fillRect(bounds);
+
+        float fillHeight = bounds.getBottom() - sliderPos;
+        if (fillHeight > 0.0f)
+        {
+            g.setColour(juce::Colour(0xff4a7a6a));
+            g.fillRect(juce::Rectangle<float>(bounds.getX(), sliderPos,
+                                               bounds.getWidth(), fillHeight));
+        }
+
+        g.setColour(juce::Colours::white.withAlpha(0.6f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f)));
+        g.drawText("V", bounds.removeFromTop(14.0f), juce::Justification::centred);
+
+        g.setColour(juce::Colour(0xff1a1a1a));
+        g.drawRect(juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height), 1.0f);
+    }
+};
+
+// Vertical fade speed slider — same style as V and K, with "F" label
+class FadeSpeedSliderLookAndFeel : public FullBoundsSliderLAF
+{
+public:
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+                          float sliderPos, float, float,
+                          juce::Slider::SliderStyle, juce::Slider&) override
+    {
+        auto bounds = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height);
+
+        g.setColour(juce::Colour(0xff2a2a2a));
+        g.fillRect(bounds);
+
+        float fillHeight = bounds.getBottom() - sliderPos;
+        if (fillHeight > 0.0f)
+        {
+            g.setColour(juce::Colour(0xff5a6a7a));
+            g.fillRect(juce::Rectangle<float>(bounds.getX(), sliderPos,
+                                               bounds.getWidth(), fillHeight));
+        }
+
+        g.setColour(juce::Colours::white.withAlpha(0.6f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f)));
+        g.drawText("F", bounds.removeFromTop(14.0f), juce::Justification::centred);
+
+        g.setColour(juce::Colour(0xff1a1a1a));
+        g.drawRect(juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height), 1.0f);
+    }
+};
+
+// Keying threshold slider — amber fill from bottom, "K" label at top
+class KeyingSliderLookAndFeel : public FullBoundsSliderLAF
+{
+public:
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+                          float sliderPos, float, float,
+                          juce::Slider::SliderStyle, juce::Slider&) override
+    {
+        auto bounds = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height);
+
+        g.setColour(juce::Colour(0xff2a2a2a));
+        g.fillRect(bounds);
+
+        float fillHeight = bounds.getBottom() - sliderPos;
+        if (fillHeight > 0.0f)
+        {
+            g.setColour(juce::Colour(0xff7a6a3a));
+            g.fillRect(juce::Rectangle<float>(bounds.getX(), sliderPos,
+                                               bounds.getWidth(), fillHeight));
+        }
+
+        g.setColour(juce::Colours::white.withAlpha(0.6f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f)));
+        g.drawText("K", bounds.removeFromTop(14.0f), juce::Justification::centred);
+
+        g.setColour(juce::Colour(0xff1a1a1a));
+        g.drawRect(juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height), 1.0f);
+    }
+};
+
+// ComboBox that shows only a teal caret triangle, no text
+class CaretOnlyComboBoxLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    void drawComboBox(juce::Graphics& g, int width, int height, bool,
+                      int, int, int, int, juce::ComboBox&) override
+    {
+        auto bounds = juce::Rectangle<float>(0.0f, 0.0f, (float)width, (float)height);
+
+        g.setColour(juce::Colour(0xff333333));
+        g.fillRect(bounds);
+
+        // Teal downward caret centered
+        float cx = (float)width * 0.5f;
+        float cy = (float)height * 0.5f;
+        float triW = juce::jmin((float)width * 0.5f, 10.0f);
+        float triH = triW * 0.6f;
+        juce::Path caret;
+        caret.addTriangle(cx - triW * 0.5f, cy - triH * 0.5f,
+                          cx + triW * 0.5f, cy - triH * 0.5f,
+                          cx, cy + triH * 0.5f);
+        g.setColour(juce::Colour(0xff4a7a6a));
+        g.fillPath(caret);
+
+        g.setColour(juce::Colour(0xff1a1a1a));
+        g.drawRect(bounds, 1.0f);
+    }
+
+    void positionComboBoxText(juce::ComboBox&, juce::Label& label) override
+    {
+        // Hide the text label entirely
+        label.setBounds(0, 0, 0, 0);
+        label.setVisible(false);
+    }
+};
+
+// Flat square button — no rounding, dark border, respects button colours
+class FlatButtonLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                              const juce::Colour& backgroundColour,
+                              bool isMouseOver, bool isButtonDown) override
+    {
+        auto bounds = button.getLocalBounds().toFloat();
+        auto baseColour = backgroundColour;
+
+        if (isButtonDown)
+            baseColour = baseColour.brighter(0.15f);
+        else if (isMouseOver)
+            baseColour = baseColour.brighter(0.08f);
+
+        g.setColour(baseColour);
+        g.fillRect(bounds);
+
+        g.setColour(juce::Colour(0xff1a1a1a));
+        g.drawRect(bounds, 1.0f);
+    }
+};
+
+// Flat square ComboBox — no rounding
+class FlatComboBoxLookAndFeel : public juce::LookAndFeel_V4
+{
+public:
+    void drawComboBox(juce::Graphics& g, int width, int height, bool,
+                      int, int, int, int, juce::ComboBox&) override
+    {
+        auto bounds = juce::Rectangle<float>(0.0f, 0.0f, (float)width, (float)height);
+
+        g.setColour(juce::Colour(0xff333333));
+        g.fillRect(bounds);
+
+        // Teal down arrow on right
+        float arrowX = (float)width - 14.0f;
+        float cy = (float)height * 0.5f;
+        juce::Path arrow;
+        arrow.addTriangle(arrowX - 4.0f, cy - 2.0f,
+                          arrowX + 4.0f, cy - 2.0f,
+                          arrowX, cy + 3.0f);
+        g.setColour(juce::Colour(0xff4a7a6a));
+        g.fillPath(arrow);
+
+        g.setColour(juce::Colour(0xff1a1a1a));
+        g.drawRect(bounds, 1.0f);
+    }
+};
+
+static OpacitySliderLookAndFeel sOpacityLAF;
+static FadeSpeedSliderLookAndFeel sFadeLAF;
+static KeyingSliderLookAndFeel sKeyingLAF;
+static CaretOnlyComboBoxLookAndFeel sCaretComboLAF;
+static FlatButtonLookAndFeel sFlatBtnLAF;
+static FlatComboBoxLookAndFeel sFlatComboLAF;
+
+LayerStrip::LayerStrip()
+{
+    setOpaque(true);
+
+    setupFlatButton(clearBtn_);
+    setupFlatButton(bypassBtn_);
+    setupFlatButton(soloBtn_);
+
+    clearBtn_.onClick = [this] {
+        if (onClearClip && layer_) onClearClip(layerIndex_);
+    };
+    bypassBtn_.onClick = [this] {
+        if (!layer_) return;
+        layer_->bypassed = !layer_->bypassed;
+        updateButtonStates();
+        if (onBypass) onBypass(layerIndex_, layer_->bypassed);
+    };
+    soloBtn_.onClick = [this] {
+        if (!layer_) return;
+        layer_->solo = !layer_->solo;
+        updateButtonStates();
+        if (onSolo) onSolo(layerIndex_, layer_->solo);
+    };
+
+    // K = keying threshold slider (no dropdown)
+    addAndMakeVisible(keyingSlider_);
+    keyingSlider_.setRange(0.0, 1.0, 0.01);
+    keyingSlider_.setValue(0.1, juce::dontSendNotification);
+    keyingSlider_.setSliderStyle(juce::Slider::LinearVertical);
+    keyingSlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+    keyingSlider_.setLookAndFeel(&sKeyingLAF);
+    keyingSlider_.onValueChange = [this] {
+        if (layer_)
+            layer_->keyThreshold = static_cast<float>(keyingSlider_.getValue());
+    };
+
+    // V = opacity slider
+    addAndMakeVisible(opacitySlider_);
+    opacitySlider_.setRange(0.0, 1.0, 0.01);
+    opacitySlider_.setValue(1.0, juce::dontSendNotification);
+    opacitySlider_.setSliderStyle(juce::Slider::LinearVertical);
+    opacitySlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+    opacitySlider_.setLookAndFeel(&sOpacityLAF);
+    opacitySlider_.onValueChange = [this] {
+        if (layer_)
+            layer_->opacity = static_cast<float>(opacitySlider_.getValue());
+    };
+
+    // V dropdown = keying types + mix modes combined
+    populateBlendDropdown();
+    addAndMakeVisible(blendDropdown_);
+    blendDropdown_.setLookAndFeel(&sFlatComboLAF);
+    blendDropdown_.setColour(juce::ComboBox::backgroundColourId, juce::Colour(kBtnBg));
+    blendDropdown_.setColour(juce::ComboBox::outlineColourId, juce::Colour(kBtnBorder));
+    blendDropdown_.setColour(juce::ComboBox::textColourId, juce::Colour(kTextDim));
+    blendDropdown_.onChange = [this] {
+        if (!layer_) return;
+        int sel = blendDropdown_.getSelectedId();
+        if (sel >= kKeyingIdOffset)
+        {
+            // Keying mode selected
+            layer_->keyingMode = static_cast<Layer::KeyingMode>(sel - kKeyingIdOffset);
+        }
+        else if (sel >= 1)
+        {
+            // Mix mode selected
+            layer_->blendMode = static_cast<Layer::MixMode>(sel - 1);
+            if (onBlendModeChanged)
+                onBlendModeChanged(layerIndex_, layer_->blendMode);
+        }
+    };
+
+    // F = fade speed slider
+    addAndMakeVisible(fadeTimeSlider_);
+    fadeTimeSlider_.setRange(0.0, 4.0, 0.1);
+    fadeTimeSlider_.setValue(0.3, juce::dontSendNotification);
+    fadeTimeSlider_.setSliderStyle(juce::Slider::LinearVertical);
+    fadeTimeSlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+    fadeTimeSlider_.setLookAndFeel(&sFadeLAF);
+    fadeTimeSlider_.onValueChange = [this] {
+        if (layer_)
+            layer_->transitionSpeed = static_cast<float>(fadeTimeSlider_.getValue());
+    };
+
+    // F dropdown = transition mix mode (caret only, no text)
+    populateTransitionDropdown();
+    addAndMakeVisible(transitionDropdown_);
+    transitionDropdown_.setLookAndFeel(&sCaretComboLAF);
+    transitionDropdown_.setColour(juce::ComboBox::backgroundColourId, juce::Colour(kBtnBg));
+    transitionDropdown_.setColour(juce::ComboBox::outlineColourId, juce::Colour(kBtnBorder));
+    transitionDropdown_.setColour(juce::ComboBox::textColourId, juce::Colour(kTextDim));
+    transitionDropdown_.onChange = [this] {
+        if (!layer_) return;
+        int sel = transitionDropdown_.getSelectedId();
+        if (sel >= 1)
+            layer_->transitionMode = static_cast<Layer::MixMode>(sel - 1);
+    };
+}
+
+void LayerStrip::paint(juce::Graphics& g)
+{
+    auto bounds = getLocalBounds();
+
+    g.setColour(juce::Colour(kStripBg));
+    g.fillRect(bounds);
+
+    // Thumbnail area
+    if (!thumbnailBounds_.isEmpty())
+    {
+        auto tb = thumbnailBounds_.toFloat();
+        if (thumbnail_.isValid())
+        {
+            g.drawImage(thumbnail_, tb,
+                        juce::RectanglePlacement::centred
+                        | juce::RectanglePlacement::fillDestination);
+        }
+        else
+        {
+            g.setColour(juce::Colour(kThumbBg));
+            g.fillRect(tb);
+        }
+        g.setColour(juce::Colour(kBtnBorder));
+        g.drawRect(tb, 1.0f);
+    }
+
+    // Alpha channel indicator — green "A" badge, bottom-left of thumbnail
+    if (layer_ && !thumbnailBounds_.isEmpty())
+    {
+        auto* clip = layer_->getActiveClip();
+        if (clip && clip->hasAlpha)
+        {
+            int badgeSize = 14;
+            int badgeX = thumbnailBounds_.getX() + 2;
+            int badgeY = thumbnailBounds_.getBottom() - badgeSize - 2;
+            g.setColour(juce::Colour(0xcc2a8a2a));
+            g.fillRect(badgeX, badgeY, badgeSize, badgeSize);
+            g.setColour(juce::Colours::white);
+            g.setFont(juce::Font(juce::FontOptions(10.0f).withStyle("Bold")));
+            g.drawText("A", badgeX, badgeY, badgeSize, badgeSize, juce::Justification::centred);
+        }
+    }
+
+    // Layer name box (painted manually — same as ComboBox rendering)
+    if (!nameBounds_.isEmpty())
+    {
+        auto nb = nameBounds_.toFloat();
+        g.setColour(juce::Colour(kBtnBg));
+        g.fillRect(nb);
+        g.setColour(juce::Colour(kBtnBorder));
+        g.drawRect(nb, 1.0f);
+        g.setColour(juce::Colour(0xffe0e0e0));
+        g.setFont(juce::Font(juce::FontOptions(13.0f)));
+        g.drawText(layerName_, nb.reduced(5.0f, 0.0f), juce::Justification::centredLeft, true);
+    }
+
+    // Clip name box (painted manually — same as ComboBox rendering)
+    if (!clipNameBounds_.isEmpty())
+    {
+        auto cb = clipNameBounds_.toFloat();
+        g.setColour(juce::Colour(kBtnBg));
+        g.fillRect(cb);
+        g.setColour(juce::Colour(kBtnBorder));
+        g.drawRect(cb, 1.0f);
+        g.setColour(juce::Colour(0xffe0e0e0));
+        g.setFont(juce::Font(juce::FontOptions(10.0f)));
+        g.drawText(clipName_, cb.reduced(3.0f, 0.0f), juce::Justification::centred, true);
+    }
+
+    // Bottom edge
+    g.setColour(juce::Colour(kBtnBorder));
+    g.drawHorizontalLine(bounds.getHeight() - 1, 0.0f, (float)bounds.getWidth());
+}
+
+void LayerStrip::resized()
+{
+    auto bounds = getLocalBounds();
+    int h = bounds.getHeight();
+    int w = bounds.getWidth();
+
+    int btnSize = 26;
+    int leftColW = btnSize * 3;
+    int sliderW = 22;           // K, V, and F all same width
+    int dropdownH = 20;
+
+    int mainH = h - dropdownH;
+    if (mainH < 30) mainH = h;
+
+    // Thumbnail: square using mainH
+    int thumbW = mainH;
+
+    // Right section: K + V + thumbnail + F (all sliders same width)
+    int rightSectionW = sliderW + sliderW + thumbW + sliderW;
+    int rightX = w - rightSectionW;
+    if (rightX < leftColW + 4) rightX = leftColW + 4;
+
+    // Recalc thumb if tight
+    int availThumb = w - rightX - sliderW * 3;
+    if (availThumb < 20) availThumb = 20;
+    thumbW = availThumb;
+
+    // === Left: X B S ===
+    clearBtn_.setBounds(0, 0, btnSize, btnSize);
+    bypassBtn_.setBounds(btnSize, 0, btnSize, btnSize);
+    soloBtn_.setBounds(btnSize * 2, 0, btnSize, btnSize);
+
+    // === Right main row: K | V | thumbnail | F ===
+    int kX = rightX;
+    int vX = kX + sliderW;
+    int thumbX = vX + sliderW;
+    int fX = thumbX + thumbW;
+
+    keyingSlider_.setBounds(kX, 0, sliderW, mainH);
+    opacitySlider_.setBounds(vX, 0, sliderW, mainH);
+    thumbnailBounds_ = juce::Rectangle<int>(thumbX, 0, thumbW, mainH);
+    fadeTimeSlider_.setBounds(fX, 0, sliderW, mainH);
+
+    // === Dropdown row: all items share exact same Y and height ===
+    int rowY = mainH;
+    int rowH = dropdownH;
+
+    int nameW = kX;
+    if (nameW < 30) nameW = 30;
+    nameBounds_ = juce::Rectangle<int>(0, rowY, nameW, rowH);
+    blendDropdown_.setBounds(kX, rowY, sliderW * 2, rowH);
+    clipNameBounds_ = juce::Rectangle<int>(thumbX, rowY, thumbW, rowH);
+    transitionDropdown_.setBounds(fX, rowY, sliderW, rowH);
+}
+
+void LayerStrip::setLayer(Layer* layer, int index)
+{
+    layer_ = layer;
+    layerIndex_ = index;
+
+    if (layer_)
+    {
+        layerName_ = juce::String(layer_->name);
+        opacitySlider_.setValue(layer_->opacity, juce::dontSendNotification);
+        keyingSlider_.setValue(layer_->keyThreshold, juce::dontSendNotification);
+        blendDropdown_.setSelectedId(static_cast<int>(layer_->blendMode) + 1,
+                                     juce::dontSendNotification);
+
+        float fade = layer_->transitionSpeed;
+        if (fade < 0.0f) fade = 0.3f;
+        fadeTimeSlider_.setValue(fade, juce::dontSendNotification);
+
+        transitionDropdown_.setSelectedId(static_cast<int>(layer_->transitionMode) + 1,
+                                          juce::dontSendNotification);
+
+        updateButtonStates();
+        updateThumbnail();
+        updateClipName();
+    }
+}
+
+void LayerStrip::refresh()
+{
+    if (!layer_) return;
+    layerName_ = juce::String(layer_->name);
+    updateThumbnail();
+    updateClipName();
+    repaint();
+}
+
+void LayerStrip::mouseDown(const juce::MouseEvent& event)
+{
+    if (!event.mods.isRightButtonDown())
+    {
+        if (onSelect) onSelect(layerIndex_);
+    }
+}
+
+void LayerStrip::setupFlatButton(juce::TextButton& btn)
+{
+    addAndMakeVisible(btn);
+    btn.setLookAndFeel(&sFlatBtnLAF);
+    btn.setColour(juce::TextButton::buttonColourId, juce::Colour(kBtnBg));
+    btn.setColour(juce::TextButton::buttonOnColourId, juce::Colour(kBtnBg));
+    btn.setColour(juce::TextButton::textColourOffId, juce::Colour(kTextDim));
+    btn.setColour(juce::TextButton::textColourOnId, juce::Colour(kTextDim));
+}
+
+void LayerStrip::updateButtonStates()
+{
+    if (!layer_) return;
+
+    auto inactive = juce::Colour(kBtnBg);
+
+    bypassBtn_.setColour(juce::TextButton::buttonColourId,
+                         layer_->bypassed ? juce::Colour(kBypassActive) : inactive);
+    bypassBtn_.setColour(juce::TextButton::textColourOffId,
+                         layer_->bypassed ? juce::Colours::white : juce::Colour(kTextDim));
+
+    soloBtn_.setColour(juce::TextButton::buttonColourId,
+                       layer_->solo ? juce::Colour(kSoloActive) : inactive);
+    soloBtn_.setColour(juce::TextButton::textColourOffId,
+                       layer_->solo ? juce::Colours::white : juce::Colour(kTextDim));
+}
+
+void LayerStrip::updateThumbnail()
+{
+    thumbnail_ = juce::Image();
+    if (!layer_) return;
+
+    auto* clip = layer_->getActiveClip();
+    if (!clip || !clip->hasMedia()) return;
+
+    if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+    {
+        auto img = juce::ImageFileFormat::loadFrom(clip->mediaFile);
+        if (img.isValid())
+        {
+            int sz = thumbnailBounds_.getHeight();
+            if (sz < 1) sz = 64;
+            thumbnail_ = img.rescaled(sz, sz, juce::Graphics::lowResamplingQuality);
+        }
+    }
+
+    repaint(thumbnailBounds_);
+}
+
+void LayerStrip::updateClipName()
+{
+    if (!layer_)
+    {
+        clipName_ = "";
+        return;
+    }
+
+    auto* clip = layer_->getActiveClip();
+    if (clip && clip->hasMedia())
+        clipName_ = clip->mediaFile.getFileNameWithoutExtension();
+    else
+        clipName_ = "";
+    repaint(clipNameBounds_);
+}
+
+void LayerStrip::populateBlendDropdown()
+{
+    using K = Layer::KeyingMode;
+    blendDropdown_.clear(juce::dontSendNotification);
+
+    // Keying types first (these control transparency extraction)
+    blendDropdown_.addSectionHeading("Keying");
+    blendDropdown_.addItem("Alpha", kKeyingIdOffset + static_cast<int>(K::Alpha));
+    blendDropdown_.addItem("Luma Key", kKeyingIdOffset + static_cast<int>(K::LumaKey));
+    blendDropdown_.addItem("Inverted Luma Key", kKeyingIdOffset + static_cast<int>(K::InvertedLumaKey));
+    blendDropdown_.addItem("Luma Is Alpha", kKeyingIdOffset + static_cast<int>(K::LumaIsAlpha));
+    blendDropdown_.addItem("Inverted Luma Is Alpha", kKeyingIdOffset + static_cast<int>(K::InvertedLumaIsAlpha));
+    blendDropdown_.addItem("Chroma Key", kKeyingIdOffset + static_cast<int>(K::ChromaKey));
+    blendDropdown_.addItem("Max RGB", kKeyingIdOffset + static_cast<int>(K::MaxRGB));
+    blendDropdown_.addItem("Saturation Key", kKeyingIdOffset + static_cast<int>(K::SaturationKey));
+    blendDropdown_.addItem("Edge Detection", kKeyingIdOffset + static_cast<int>(K::EdgeDetection));
+    blendDropdown_.addItem("Threshold Mask", kKeyingIdOffset + static_cast<int>(K::ThresholdMask));
+    blendDropdown_.addItem("Channel Red", kKeyingIdOffset + static_cast<int>(K::ChannelR));
+    blendDropdown_.addItem("Channel Green", kKeyingIdOffset + static_cast<int>(K::ChannelG));
+    blendDropdown_.addItem("Channel Blue", kKeyingIdOffset + static_cast<int>(K::ChannelB));
+
+    // Then all mix modes
+    populateMixModes(blendDropdown_, 1);
+
+    blendDropdown_.setSelectedId(1 + static_cast<int>(Layer::MixMode::Additive),
+                                 juce::dontSendNotification);
+}
+
+void LayerStrip::populateTransitionDropdown()
+{
+    transitionDropdown_.clear(juce::dontSendNotification);
+    populateMixModes(transitionDropdown_, 1);
+    transitionDropdown_.setSelectedId(1 + static_cast<int>(Layer::MixMode::Dissolve),
+                                      juce::dontSendNotification);
+}

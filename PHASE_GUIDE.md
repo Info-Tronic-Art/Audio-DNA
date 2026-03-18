@@ -24,7 +24,7 @@
 | **P1** | BPM Stabilization | **COMPLETE** | NO — backend only. Self-validate: build + tests pass. |
 | **P2** | Downbeat Detection | **COMPLETE** | YES — beat bar indicator in audio readout panel |
 | **P3** | Architecture Foundation | **COMPLETE** | NO — backend only. Self-validate: build + tests pass. |
-| **P4** | Signal Bar + Top Bar | NOT STARTED | YES — new top section visible in app |
+| **P4** | Signal Bar + Top Bar | **COMPLETE** | YES — new top section visible in app |
 | **P5** | Deck View | NOT STARTED | YES — new center section visible |
 | **P6** | Inspector | NOT STARTED | YES — new right-center section visible |
 | **P7** | Browser | NOT STARTED | YES — new right section visible |

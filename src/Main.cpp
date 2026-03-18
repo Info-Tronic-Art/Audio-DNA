@@ -36,7 +36,18 @@ private:
             setContentOwned(new MainComponent(), true);
             setResizable(true, true);
             setResizeLimits(1280, 720, 3840, 2160);
-            centreWithSize(getWidth(), getHeight());
+
+            // Open maximized to fill the screen
+            auto display = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay();
+            if (display != nullptr)
+            {
+                auto area = display->userArea;
+                setBounds(area);
+            }
+            else
+            {
+                centreWithSize(getWidth(), getHeight());
+            }
             setVisible(true);
         }
 

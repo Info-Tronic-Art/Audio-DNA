@@ -19,6 +19,7 @@
 #include "ui/SignalBar.h"
 #include "ui/TopBar.h"
 #include "ui/ProgrammingMode.h"
+#include "ui/DeckView.h"
 #include "signal/SignalRegistry.h"
 #include "model/Composition.h"
 #if AUDIODNA_HAS_CAMERA
@@ -183,26 +184,18 @@ private:
     void closeKeyEditor();
     void assignImageToKey(KeySlot& key);
 
-    // === Collapsible Panel Toggles ===
-    juce::TextButton toggleAudioBtn_{"A"};
-    juce::TextButton toggleFxBtn_{"FX"};
-    juce::TextButton toggleWaveBtn_{"W"};
-    juce::TextButton toggleKeysBtn_{"K"};
-    juce::TextButton togglePresetsBtn_{"P"};
-    bool showAudioPanel_ = true;
-    bool showFxPanel_ = true;
-    bool showWavePanel_ = true;
-    bool showKeysPanel_ = true;
-    bool showPresetsPanel_ = true;
-
-    // === v2: Signal Bar + Top Bar ===
+    // === v2: Signal Bar + Top Bar + Deck ===
     Composition composition_;
     SignalRegistry signalRegistry_;
     std::unique_ptr<TopBar> topBar_;
     std::unique_ptr<SignalBar> signalBar_;
     std::unique_ptr<ProgrammingMode> programmingMode_;
-    bool showSignalBar_ = true;
-    juce::TextButton toggleSignalBarBtn_{"S"};
+    std::unique_ptr<DeckView> deckView_;
+
+    void handleClipTrigger(int layerIndex, int column);
+    void handleColumnTrigger(int column);
+    void handleFileDrop(int layerIndex, int column, const juce::File& file);
+    void handleDeckSwitch(int deckIndex);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

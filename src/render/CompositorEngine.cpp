@@ -403,10 +403,10 @@ void CompositorEngine::blendLayerOntoAccumulator(const Layer& layer, GLuint srcT
 
     switch (layer.blendMode)
     {
-        case Layer::BlendMode::Additive:
+        case Layer::MixMode::Additive:
             blendAndDraw(GL_SRC_ALPHA, GL_ONE);
             break;
-        case Layer::BlendMode::Normal:
+        case Layer::MixMode::Normal:
             glEnable(GL_BLEND);
             glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
             {
@@ -421,16 +421,16 @@ void CompositorEngine::blendLayerOntoAccumulator(const Layer& layer, GLuint srcT
             quad.draw();
             glDisable(GL_BLEND);
             break;
-        case Layer::BlendMode::Screen:
+        case Layer::MixMode::Screen:
             blendAndDraw(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
             break;
-        case Layer::BlendMode::Multiply:
+        case Layer::MixMode::Multiply:
             blendAndDraw(GL_DST_COLOR, GL_ZERO);
             break;
-        case Layer::BlendMode::Darken:
-        case Layer::BlendMode::Lighten:
+        case Layer::MixMode::Darken:
+        case Layer::MixMode::Lighten:
             glEnable(GL_BLEND);
-            glBlendEquation(layer.blendMode == Layer::BlendMode::Darken ? GL_MIN : GL_MAX);
+            glBlendEquation(layer.blendMode == Layer::MixMode::Darken ? GL_MIN : GL_MAX);
             glBlendFunc(GL_ONE, GL_ONE);
             {
                 auto* prog = shaderMgr.getProgram("passthrough");

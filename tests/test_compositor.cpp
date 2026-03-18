@@ -149,7 +149,7 @@ TEST_CASE("Layer keying and blend properties", "[layer]")
 
     SECTION("Default blend mode is Additive")
     {
-        REQUIRE(layer.blendMode == Layer::BlendMode::Additive);
+        REQUIRE(layer.blendMode == Layer::MixMode::Additive);
     }
 
     SECTION("Keying properties serialize correctly")

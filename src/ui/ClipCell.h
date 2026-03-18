@@ -1,0 +1,65 @@
+#pragma once
+#include <juce_gui_basics/juce_gui_basics.h>
+#include "model/Clip.h"
+#include "ui/LookAndFeel.h"
+
+// ClipCell: a single cell in the deck grid (layer × column intersection).
+// Two interaction zones:
+//   - Thumbnail area: click = trigger/retrigger clip
+//   - Name bar: click = select for inspection (no trigger), right-click = context menu
+// Supports drag-and-drop (receive images from Finder or browser).
+class ClipCell : public juce::Component,
+                 public juce::FileDragAndDropTarget
+{
+public:
+    ClipCell();
+
+    void paint(juce::Graphics& g) override;
+    void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
+    void mouseUp(const juce::MouseEvent& event) override;
+
+    // FileDragAndDropTarget
+    bool isInterestedInFileDrag(const juce::StringArray& files) override;
+    void fileDragEnter(const juce::StringArray& files, int x, int y) override;
+    void fileDragExit(const juce::StringArray& files) override;
+    void filesDropped(const juce::StringArray& files, int x, int y) override;
+
+    // Set the clip data this cell displays (nullptr for empty)
+    void setClip(Clip* clip);
+    Clip* getClip() const { return clip_; }
+
+    // Set active state (cyan border highlight)
+    void setActive(bool active);
+    bool isActive() const { return active_; }
+
+    // Set position in the grid
+    void setGridPosition(int layerIndex, int column);
+    int getLayerIndex() const { return layerIndex_; }
+    int getColumn() const { return column_; }
+
+    // Callbacks
+    std::function<void(int layerIndex, int column)> onTrigger;      // Thumbnail click
+    std::function<void(int layerIndex, int column)> onSelect;       // Name bar click
+    std::function<void(int layerIndex, int column, const juce::File&)> onFileDrop; // File dropped
+
+    // Load/update thumbnail from clip's media file
+    void updateThumbnail();
+
+private:
+    juce::Rectangle<int> getThumbnailBounds() const;
+    juce::Rectangle<int> getNameBarBounds() const;
+    bool isInThumbnailArea(const juce::Point<int>& pos) const;
+
+    Clip* clip_ = nullptr;
+    int layerIndex_ = 0;
+    int column_ = 0;
+    bool active_ = false;
+    bool dragHover_ = false;
+
+    juce::Image thumbnail_;
+
+    static constexpr int kNameBarHeight = 20;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ClipCell)
+};
