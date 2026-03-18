@@ -154,3 +154,90 @@ if(NOT MSVC)
     )
 endif()
 catch_discover_tests(test_downbeat_detector)
+
+# --- test_composition (P3: data model + undo) ---
+add_executable(test_composition
+    test_composition.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+)
+target_include_directories(test_composition PRIVATE ${SRC_DIR})
+target_link_libraries(test_composition PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_composition PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_composition PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+catch_discover_tests(test_composition)
+
+# --- test_routing_engine (P3: signals + routing) ---
+add_executable(test_routing_engine
+    test_routing_engine.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/routing/RoutingEngine.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+)
+target_include_directories(test_routing_engine PRIVATE ${SRC_DIR})
+target_link_libraries(test_routing_engine PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_opengl
+)
+target_compile_definitions(test_routing_engine PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_routing_engine PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+catch_discover_tests(test_routing_engine)
+
+# --- test_compositor (P3: deck compositing data model + autopilot) ---
+add_executable(test_compositor
+    test_compositor.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/model/Autopilot.cpp
+)
+target_include_directories(test_compositor PRIVATE ${SRC_DIR})
+target_link_libraries(test_compositor PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_compositor PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_compositor PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+catch_discover_tests(test_compositor)

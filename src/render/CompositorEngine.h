@@ -1,20 +1,25 @@
 #pragma once
 #include <juce_opengl/juce_opengl.h>
 #include "keyboard/KeySlot.h"
+#include "model/Deck.h"
 #include "render/ShaderManager.h"
 #include "render/TextureManager.h"
 #include "render/FullscreenQuad.h"
 #include <unordered_map>
 #include <string>
 
-// CompositorEngine: multi-layer compositing for the keyboard launcher.
+// CompositorEngine: multi-layer compositing for both v1 keyboard and v2 deck modes.
 //
-// Each active key is rendered onto an accumulator FBO in activation order.
-// Keys with images get their image rendered, keying mode applied (to generate
-// alpha), then blended onto the accumulator using the key's blend mode.
-// Keys with effects-only apply their effects directly to the accumulator.
+// v1 (keyboard): Each active key composited in activation order.
+// v2 (deck): Each layer composited bottom-to-top with per-layer blend/keying.
 //
-// The final composited result texture is returned for the global effect chain.
+// Rendering pipeline (v2):
+//   For each layer (bottom to top):
+//     Active clip media → Clip Effects → Clip Keying (if Transparent) →
+//     Layer Effects → Layer Blend Mode → Layer Opacity → Accumulator FBO
+//   Mask layers: content becomes alpha mask applied to accumulator.
+//   FX Only layers: effects applied to current accumulator state.
+//   Global Effects → Master Opacity → Screen / Fullscreen Output
 class CompositorEngine
 {
 public:
@@ -29,15 +34,14 @@ public:
     // Resize FBOs if viewport changed.
     void resize(int width, int height);
 
-    // Load an image for a specific key. Call from message thread (queued).
+    // Load an image for a specific key/clip. Call from message thread (queued).
     // Returns the GL texture ID, or 0 on failure.
     GLuint loadKeyImage(const juce::File& imageFile);
 
-    // Get or create a texture for a key's image file (cached).
+    // Get or create a texture for a key/clip's image file (cached).
     GLuint getKeyTexture(const juce::File& imageFile);
 
-    // Composite all active keys and return the result texture.
-    // Returns 0 if no keys are active (caller should render normally).
+    // === v1: Keyboard-based compositing (backward compatible) ===
     GLuint composite(KeyboardLayout& layout,
                      ShaderManager& shaderMgr,
                      FullscreenQuad& quad,
@@ -46,12 +50,23 @@ public:
 
     bool hasActiveKeys() const { return hasActiveKeys_; }
 
+    // === v2: Deck/Layer-based compositing ===
+    // Composite all layers in the deck and return the result texture.
+    // Returns 0 if no layers have active clips.
+    GLuint compositeDeck(Deck& deck,
+                         ShaderManager& shaderMgr,
+                         FullscreenQuad& quad,
+                         float time,
+                         int width, int height);
+
+    bool hasActiveLayers() const { return hasActiveLayers_; }
+
 private:
-    // Accumulator FBO — the composited result of all keys
+    // Accumulator FBO — the composited result
     GLuint accumulatorFBO_ = 0;
     GLuint accumulatorTex_ = 0;
 
-    // Scratch FBO for per-key rendering (keying pass)
+    // Scratch FBO for per-key/per-layer rendering (keying pass)
     GLuint scratchFBO_ = 0;
     GLuint scratchTex_ = 0;
 
@@ -59,6 +74,7 @@ private:
     int fboHeight_ = 0;
     bool glInitialized_ = false;
     bool hasActiveKeys_ = false;
+    bool hasActiveLayers_ = false;
 
     // Texture cache: file path → GL texture ID
     std::unordered_map<std::string, GLuint> textureCache_;
@@ -66,13 +82,23 @@ private:
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);
 
-    // Apply keying mode to generate alpha, rendering from srcTex to dstFBO
+    // v1: Apply keying mode from KeySlot
     void applyKeying(const KeySlot& key, GLuint srcTex, GLuint dstFBO,
                      ShaderManager& shaderMgr, FullscreenQuad& quad,
                      int w, int h);
 
-    // Blend srcTex onto accumulatorFBO using the key's blend mode
+    // v1: Blend using KeySlot blend mode
     void blendOntoAccumulator(const KeySlot& key, GLuint srcTex,
                               ShaderManager& shaderMgr, FullscreenQuad& quad,
                               int w, int h);
+
+    // v2: Apply keying mode from Layer
+    void applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
+                          ShaderManager& shaderMgr, FullscreenQuad& quad,
+                          int w, int h);
+
+    // v2: Blend using Layer blend mode and opacity
+    void blendLayerOntoAccumulator(const Layer& layer, GLuint srcTex,
+                                   ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                   int w, int h);
 };

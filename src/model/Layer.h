@@ -1,0 +1,178 @@
+#pragma once
+#include "model/Clip.h"
+#include <juce_core/juce_core.h>
+#include <string>
+#include <vector>
+#include <memory>
+#include <optional>
+#include <cstdint>
+
+// Layer: a row in the deck. Contains clips across columns.
+// One clip is active per layer at a time.
+struct Layer
+{
+    // === Identity ===
+    std::string name = "Layer";
+    uint32_t id = 0;
+
+    // === Layer Type ===
+    enum class Type : uint8_t
+    {
+        Opaque,         // One clip at a time, replaces everything below
+        Transparent,    // Composited over layers below with blend/keying
+        FXOnly,         // Effects applied to accumulator (no media)
+        ThreeD,         // 3D model/surface rendering
+        Mask            // Content becomes alpha mask for layers below
+    };
+    Type type = Type::Opaque;
+
+    // === Layer Controls ===
+    float opacity = 1.0f;
+    bool visible = true;
+    bool bypassed = false;
+    bool solo = false;
+    bool muted = false;          // Audio mute
+    bool autopilotEnabled = false;
+    bool ignoreColumnTrigger = false;
+
+    // === Blend Mode (Transparent type) ===
+    enum class BlendMode : uint8_t
+    {
+        Normal, Additive, Screen, Multiply, Overlay,
+        SoftLight, HardLight, Darken, Lighten,
+        ColorDodge, ColorBurn, Difference, Exclusion,
+        Subtract, VividLight, LinearLight, PinLight, HardMix
+    };
+    BlendMode blendMode = BlendMode::Additive;
+
+    // === Keying Mode (Transparent type) ===
+    enum class KeyingMode : uint8_t
+    {
+        Alpha, LumaKey, InvertedLumaKey, LumaIsAlpha, InvertedLumaIsAlpha,
+        ChromaKey, MaxRGB, SaturationKey, EdgeDetection, ThresholdMask,
+        ChannelR, ChannelG, ChannelB
+    };
+    KeyingMode keyingMode = KeyingMode::Alpha;
+    float keyThreshold = 0.1f;
+    float keySoftness = 0.1f;
+    float chromaKeyR = 0.0f, chromaKeyG = 1.0f, chromaKeyB = 0.0f;
+    float chromaKeyTolerance = 0.2f;
+
+    // === FX Only ===
+    float dryWetMix = 1.0f;
+
+    // === 3D Controls ===
+    float rotationX = 0.0f, rotationY = 0.0f, rotationZ = 0.0f;
+    float rotationSpeed = 0.0f;
+    float scale3D = 1.0f;
+
+    // === Transition ===
+    float transitionSpeed = -1.0f; // -1 = use global default
+
+    // === Per-layer Effect Chain ===
+    std::vector<Clip::EffectSlot> layerEffects;
+
+    // === Autopilot Defaults ===
+    Clip::AutopilotAction defaultAutopilotAction = Clip::AutopilotAction::PlayNext;
+    Clip::AutopilotDuration defaultAutopilotDuration = Clip::AutopilotDuration::Beat4;
+    int defaultAutopilotCustomBeats = 4;
+
+    // === Clips (one per column) ===
+    // Indexed by column. Use std::optional so empty cells are explicit.
+    std::vector<std::optional<Clip>> clips;
+
+    // === Runtime State ===
+    int activeClipColumn = -1;  // -1 = no active clip
+    int previousClipColumn = -1; // For crossfade
+    float crossfadeProgress = 1.0f; // 1.0 = fully transitioned
+
+    // === Helpers ===
+    Clip* getActiveClip()
+    {
+        if (activeClipColumn >= 0 && activeClipColumn < static_cast<int>(clips.size()))
+        {
+            if (clips[static_cast<size_t>(activeClipColumn)].has_value())
+                return &clips[static_cast<size_t>(activeClipColumn)].value();
+        }
+        return nullptr;
+    }
+
+    const Clip* getActiveClip() const
+    {
+        if (activeClipColumn >= 0 && activeClipColumn < static_cast<int>(clips.size()))
+        {
+            if (clips[static_cast<size_t>(activeClipColumn)].has_value())
+                return &clips[static_cast<size_t>(activeClipColumn)].value();
+        }
+        return nullptr;
+    }
+
+    Clip* getClipAt(int column)
+    {
+        if (column >= 0 && column < static_cast<int>(clips.size()))
+        {
+            if (clips[static_cast<size_t>(column)].has_value())
+                return &clips[static_cast<size_t>(column)].value();
+        }
+        return nullptr;
+    }
+
+    void triggerClip(int column)
+    {
+        if (column < 0 || column >= static_cast<int>(clips.size()))
+            return;
+
+        if (!clips[static_cast<size_t>(column)].has_value())
+        {
+            // Empty cell — clear the layer
+            clearActiveClip();
+            return;
+        }
+
+        if (column == activeClipColumn)
+        {
+            // Retrigger from start
+            if (auto* clip = getActiveClip())
+            {
+                clip->playheadPosition = 0.0;
+                clip->beatsPlayed = 0;
+                clip->playing = true;
+            }
+            return;
+        }
+
+        // Start transition to new clip
+        previousClipColumn = activeClipColumn;
+        activeClipColumn = column;
+        crossfadeProgress = (transitionSpeed <= 0.0f) ? 1.0f : 0.0f;
+
+        if (auto* clip = getActiveClip())
+        {
+            clip->playheadPosition = clip->startOffset;
+            clip->beatsPlayed = 0;
+            clip->playing = true;
+        }
+    }
+
+    void clearActiveClip()
+    {
+        if (activeClipColumn >= 0)
+        {
+            if (auto* clip = getActiveClip())
+                clip->playing = false;
+        }
+        previousClipColumn = activeClipColumn;
+        activeClipColumn = -1;
+        crossfadeProgress = 1.0f;
+    }
+
+    void ensureColumns(int count)
+    {
+        if (static_cast<int>(clips.size()) < count)
+            clips.resize(static_cast<size_t>(count));
+    }
+
+    // === Serialization ===
+    juce::var toVar() const;
+    void fromVar(const juce::var& v);
+};

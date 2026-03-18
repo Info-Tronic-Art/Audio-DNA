@@ -96,6 +96,40 @@ target_sources(AudioDNA PRIVATE
     src/mapping/MappingEngine.h
     src/mapping/MappingEngine.cpp
 
+    # Core (v2)
+    src/core/Command.h
+    src/core/UndoManager.h
+    src/core/UndoManager.cpp
+
+    # Model (v2)
+    src/model/Composition.h
+    src/model/Deck.h
+    src/model/Layer.h
+    src/model/Layer.cpp
+    src/model/Clip.h
+    src/model/Clip.cpp
+    src/model/Autopilot.h
+    src/model/Autopilot.cpp
+
+    # Signal (v2)
+    src/signal/Signal.h
+    src/signal/AudioSignal.h
+    src/signal/OscillatorSignal.h
+    src/signal/EnvelopeSignal.h
+    src/signal/SignalRegistry.h
+    src/signal/SignalRegistry.cpp
+
+    # Routing (v2)
+    src/routing/Route.h
+    src/routing/RoutingEngine.h
+    src/routing/RoutingEngine.cpp
+    src/routing/MacroBank.h
+
+    # Binding (v2)
+    src/binding/Binding.h
+    src/binding/BindingManager.h
+    src/binding/BindingManager.cpp
+
     # Effects
     src/effects/Effect.h
     src/effects/Effect.cpp

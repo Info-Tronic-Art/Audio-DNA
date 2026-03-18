@@ -228,6 +228,244 @@ void CompositorEngine::applyKeying(const KeySlot& key, GLuint srcTex, GLuint dst
     quad.draw();
 }
 
+// === v2: Deck/Layer-based compositing ===
+
+GLuint CompositorEngine::compositeDeck(Deck& deck,
+                                        ShaderManager& shaderMgr,
+                                        FullscreenQuad& quad,
+                                        float time,
+                                        int width, int height)
+{
+    using namespace juce::gl;
+
+    hasActiveLayers_ = false;
+
+    // Check if any layer has an active clip
+    for (const auto& layer : deck.layers)
+    {
+        if (layer.visible && !layer.bypassed && layer.getActiveClip() != nullptr)
+        {
+            hasActiveLayers_ = true;
+            break;
+        }
+    }
+
+    if (!hasActiveLayers_ || !glInitialized_)
+        return 0;
+
+    resize(width, height);
+
+    // Clear accumulator to transparent black
+    glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
+    glViewport(0, 0, width, height);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Composite layers bottom to top (index 0 is bottom)
+    for (auto& layer : deck.layers)
+    {
+        if (!layer.visible || layer.bypassed)
+            continue;
+
+        const Clip* clip = layer.getActiveClip();
+        if (clip == nullptr)
+            continue;
+
+        // Handle layer types
+        switch (layer.type)
+        {
+            case Layer::Type::Opaque:
+            case Layer::Type::Transparent:
+            {
+                if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+                {
+                    GLuint clipTex = getKeyTexture(clip->mediaFile);
+                    if (clipTex == 0) continue;
+
+                    if (layer.type == Layer::Type::Transparent)
+                    {
+                        // Apply keying → scratch FBO
+                        applyLayerKeying(layer, clipTex, scratchFBO_, shaderMgr, quad, width, height);
+                        // Blend scratch onto accumulator
+                        blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
+                    }
+                    else
+                    {
+                        // Opaque: clear accumulator and draw directly
+                        glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
+                        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                        glClear(GL_COLOR_BUFFER_BIT);
+                        glDisable(GL_BLEND);
+                        auto* prog = shaderMgr.getProgram("passthrough");
+                        if (prog)
+                        {
+                            prog->use();
+                            glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+                        }
+                        glActiveTexture(GL_TEXTURE0);
+                        glBindTexture(GL_TEXTURE_2D, clipTex);
+                        quad.draw();
+                    }
+                }
+                break;
+            }
+            case Layer::Type::FXOnly:
+                // FX Only: effects applied to accumulator (not implemented yet in render)
+                break;
+            case Layer::Type::Mask:
+                // Mask: content becomes alpha mask for accumulator (not implemented yet)
+                break;
+            case Layer::Type::ThreeD:
+                // 3D: not implemented yet
+                break;
+        }
+    }
+
+    return accumulatorTex_;
+}
+
+void CompositorEngine::applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
+                                         ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                         int w, int h)
+{
+    using namespace juce::gl;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, dstFBO);
+    glViewport(0, 0, w, h);
+    glDisable(GL_BLEND);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Map Layer::KeyingMode to shader name (same shaders as v1)
+    const char* shaderKey = "key_alpha";
+    switch (layer.keyingMode)
+    {
+        case Layer::KeyingMode::Alpha:              shaderKey = "key_alpha"; break;
+        case Layer::KeyingMode::LumaKey:            shaderKey = "key_luma"; break;
+        case Layer::KeyingMode::InvertedLumaKey:    shaderKey = "key_inv_luma"; break;
+        case Layer::KeyingMode::LumaIsAlpha:        shaderKey = "key_luma_alpha"; break;
+        case Layer::KeyingMode::InvertedLumaIsAlpha:shaderKey = "key_inv_luma_alpha"; break;
+        case Layer::KeyingMode::ChromaKey:          shaderKey = "key_chroma"; break;
+        case Layer::KeyingMode::MaxRGB:             shaderKey = "key_max_rgb"; break;
+        case Layer::KeyingMode::SaturationKey:      shaderKey = "key_saturation"; break;
+        case Layer::KeyingMode::EdgeDetection:      shaderKey = "key_edge"; break;
+        case Layer::KeyingMode::ThresholdMask:      shaderKey = "key_threshold"; break;
+        case Layer::KeyingMode::ChannelR:           shaderKey = "key_channel_r"; break;
+        case Layer::KeyingMode::ChannelG:           shaderKey = "key_channel_g"; break;
+        case Layer::KeyingMode::ChannelB:           shaderKey = "key_channel_b"; break;
+    }
+
+    auto* prog = shaderMgr.getProgram(shaderKey);
+    if (!prog)
+        prog = shaderMgr.getProgram("passthrough");
+    if (!prog)
+        return;
+
+    prog->use();
+
+    auto loc = [&](const char* name) { return glGetUniformLocation(prog->getProgramID(), name); };
+    glUniform1i(loc("u_texture"), 0);
+    glUniform1f(loc("u_opacity"), layer.opacity);
+    glUniform1f(loc("u_threshold"), layer.keyThreshold);
+    glUniform1f(loc("u_softness"), layer.keySoftness);
+    glUniform3f(loc("u_chroma_key_color"), layer.chromaKeyR, layer.chromaKeyG, layer.chromaKeyB);
+    glUniform1f(loc("u_chroma_tolerance"), layer.chromaKeyTolerance);
+    glUniform2f(loc("u_resolution"), static_cast<float>(w), static_cast<float>(h));
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, srcTex);
+    quad.draw();
+}
+
+void CompositorEngine::blendLayerOntoAccumulator(const Layer& layer, GLuint srcTex,
+                                                  ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                                  int w, int h)
+{
+    using namespace juce::gl;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
+    glViewport(0, 0, w, h);
+
+    auto blendAndDraw = [&](GLenum sfactor, GLenum dfactor) {
+        glEnable(GL_BLEND);
+        glBlendFunc(sfactor, dfactor);
+        auto* prog = shaderMgr.getProgram("passthrough");
+        if (prog)
+        {
+            prog->use();
+            glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+        }
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, srcTex);
+        quad.draw();
+        glDisable(GL_BLEND);
+    };
+
+    switch (layer.blendMode)
+    {
+        case Layer::BlendMode::Additive:
+            blendAndDraw(GL_SRC_ALPHA, GL_ONE);
+            break;
+        case Layer::BlendMode::Normal:
+            glEnable(GL_BLEND);
+            glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            {
+                auto* prog = shaderMgr.getProgram("passthrough");
+                if (prog) {
+                    prog->use();
+                    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+                }
+            }
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, srcTex);
+            quad.draw();
+            glDisable(GL_BLEND);
+            break;
+        case Layer::BlendMode::Screen:
+            blendAndDraw(GL_ONE, GL_ONE_MINUS_SRC_COLOR);
+            break;
+        case Layer::BlendMode::Multiply:
+            blendAndDraw(GL_DST_COLOR, GL_ZERO);
+            break;
+        case Layer::BlendMode::Darken:
+        case Layer::BlendMode::Lighten:
+            glEnable(GL_BLEND);
+            glBlendEquation(layer.blendMode == Layer::BlendMode::Darken ? GL_MIN : GL_MAX);
+            glBlendFunc(GL_ONE, GL_ONE);
+            {
+                auto* prog = shaderMgr.getProgram("passthrough");
+                if (prog) {
+                    prog->use();
+                    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+                }
+            }
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, srcTex);
+            quad.draw();
+            glBlendEquation(GL_FUNC_ADD);
+            glDisable(GL_BLEND);
+            break;
+        default:
+            // Fallback: standard alpha blend for unimplemented modes
+            glEnable(GL_BLEND);
+            glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            {
+                auto* prog = shaderMgr.getProgram("passthrough");
+                if (prog) {
+                    prog->use();
+                    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+                }
+            }
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, srcTex);
+            quad.draw();
+            glDisable(GL_BLEND);
+            break;
+    }
+}
+
+// === v1: Keyboard-based blending (unchanged) ===
+
 void CompositorEngine::blendOntoAccumulator(const KeySlot& key, GLuint srcTex,
                                              ShaderManager& shaderMgr, FullscreenQuad& quad,
                                              int w, int h)
