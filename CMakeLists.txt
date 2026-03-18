@@ -197,6 +197,18 @@ target_sources(AudioDNA PRIVATE
     src/ui/InspectorPanel.cpp
     src/ui/TimingWindow.h
     src/ui/TimingWindow.cpp
+    src/ui/FilesBrowser.h
+    src/ui/FilesBrowser.cpp
+    src/ui/FXBrowser.h
+    src/ui/FXBrowser.cpp
+    src/ui/SourcesBrowser.h
+    src/ui/SourcesBrowser.cpp
+    src/ui/CompDecksBrowser.h
+    src/ui/CompDecksBrowser.cpp
+    src/ui/RecordPanel.h
+    src/ui/RecordPanel.cpp
+    src/ui/BrowserPanel.h
+    src/ui/BrowserPanel.cpp
     src/keyboard/KeySlot.h
     src/render/CompositorEngine.h
     src/render/CompositorEngine.cpp

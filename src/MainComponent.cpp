@@ -501,7 +501,8 @@ MainComponent::MainComponent()
     deckView_->onColumnTriggered = [this](int col) {
         handleColumnTrigger(col);
     };
-    deckView_->onClipSelected = [this](int layerIdx, int col) {
+    deckView_->onClipSelected = [this](int layerIdx, int col, bool /*addToSel*/) {
+        // Inspector shows the last-clicked clip regardless of multi-select
         if (!inspectorPanel_) return;
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
@@ -528,6 +529,22 @@ MainComponent::MainComponent()
     inspectorPanel_->setComposition(&composition_);
     inspectorPanel_->setEffectLibrary(&effectLibrary_);
     inspectorPanel_->setSignalRegistry(&signalRegistry_);
+
+    // === v2: Browser Panel ===
+    browserPanel_ = std::make_unique<BrowserPanel>();
+    addAndMakeVisible(browserPanel_.get());
+    browserPanel_->setEffectLibrary(&effectLibrary_);
+    browserPanel_->setComposition(&composition_);
+    browserPanel_->getFXBrowser().onEffectActivated = [this](const juce::String& effectName) {
+        DBG("FX Browser: activated effect " + effectName);
+    };
+    browserPanel_->getFilesBrowser().onFileActivated = [this](const juce::File& file) {
+        previewPanel_.loadImage(file);
+        currentImageFile_ = file;
+        if (outputWindow_)
+            outputWindow_->loadImage(file);
+        fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+    };
 
     // === v2: Timing Window ===
     timingWindow_ = std::make_unique<TimingWindow>();
@@ -582,19 +599,7 @@ void MainComponent::paint(juce::Graphics& g)
         g.drawRoundedRectangle(b, 2.0f, 1.0f);
     }
 
-    // Draw browser placeholder (Phase 7)
-    if (!browserPlaceholderBounds_.isEmpty())
-    {
-        auto bp = browserPlaceholderBounds_.toFloat();
-        g.setColour(juce::Colour(0xff1a1a1a));
-        g.fillRect(bp);
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kPanelBorder));
-        g.drawRect(bp, 1.0f);
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.4f));
-        g.setFont(juce::Font(juce::FontOptions(11.0f)));
-        g.drawText("Browser (Phase 7)", browserPlaceholderBounds_,
-                   juce::Justification::centred, false);
-    }
+    // Browser panel is now a real component (Phase 7) — no placeholder needed
 
     // Draw vertical dividers between bottom panels
     for (int i = 0; i < 3; ++i)
@@ -706,6 +711,7 @@ void MainComponent::resized()
         if (keyEditor_) keyEditor_->setVisible(false);
         if (deckView_) deckView_->setVisible(false);
         if (inspectorPanel_) inspectorPanel_->setVisible(false);
+        if (browserPanel_) browserPanel_->setVisible(false);
         if (timingWindow_) timingWindow_->setVisible(false);
         return;
     }
@@ -872,8 +878,13 @@ void MainComponent::resized()
         inspectorPanel_->setVisible(true);
     }
 
-    // Browser placeholder (right)
-    browserPlaceholderBounds_ = browserArea;
+    // Browser panel (right)
+    if (browserPanel_)
+    {
+        browserPanel_->setBounds(browserArea);
+        browserPanel_->setVisible(true);
+    }
+    browserPlaceholderBounds_ = {}; // No longer a placeholder
 
     // Key Editor — full workspace overlay
     if (showKeyEditor_ && keyEditor_)

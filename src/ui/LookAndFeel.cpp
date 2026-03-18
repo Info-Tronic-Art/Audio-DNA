@@ -59,12 +59,14 @@ void AudioDNALookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& 
                                                  bool isMouseOver, bool isButtonDown)
 {
     auto bounds = button.getLocalBounds().toFloat();
-    auto baseColour = juce::Colour(kSurface);
+
+    // Use the button's own buttonColourId (respects per-button setColour calls)
+    auto baseColour = button.findColour(juce::TextButton::buttonColourId);
 
     if (isButtonDown)
-        baseColour = juce::Colour(kAccentCyan).withAlpha(0.3f);
+        baseColour = baseColour.brighter(0.3f).withAlpha(1.0f);
     else if (isMouseOver)
-        baseColour = juce::Colour(kSurfaceLight);
+        baseColour = baseColour.brighter(0.15f);
 
     g.setColour(baseColour);
     g.fillRect(bounds);
@@ -76,7 +78,8 @@ void AudioDNALookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& 
 void AudioDNALookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button,
                                           bool, bool)
 {
-    g.setColour(juce::Colour(kTextPrimary));
+    // Use the button's own textColourOffId (respects per-button setColour calls)
+    g.setColour(button.findColour(juce::TextButton::textColourOffId));
     g.setFont(juce::Font(juce::FontOptions(14.0f)));
     g.drawText(button.getButtonText(), button.getLocalBounds(),
                juce::Justification::centred, false);

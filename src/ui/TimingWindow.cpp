@@ -41,8 +41,8 @@ void TimingWindow::paint(juce::Graphics& g)
         case Tab::Oscillators: activeTabBounds = oscTabBtn_.getBounds(); break;
     }
     g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
-    g.fillRect(activeTabBounds.getX(), activeTabBounds.getBottom() - 2,
-               activeTabBounds.getWidth(), 2);
+    g.fillRect(activeTabBounds.getX(), activeTabBounds.getBottom() - 3,
+               activeTabBounds.getWidth(), 3);
 
     // Panel border
     g.setColour(juce::Colour(AudioDNALookAndFeel::kPanelBorder));
@@ -85,11 +85,11 @@ void TimingWindow::updateTabButtonColors()
 {
     auto setActive = [](juce::TextButton& btn, bool active) {
         btn.setColour(juce::TextButton::buttonColourId,
-            active ? juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.2f)
-                   : juce::Colour(AudioDNALookAndFeel::kSurface));
+            active ? juce::Colour(0xff3a3a5c)
+                   : juce::Colour(0xff1a1a2e));
         btn.setColour(juce::TextButton::textColourOffId,
-            active ? juce::Colour(AudioDNALookAndFeel::kAccentCyan)
-                   : juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+            active ? juce::Colour(0xffffffff)
+                   : juce::Colour(0xff606070));
     };
 
     setActive(bpmTabBtn_, activeTab_ == Tab::BPM);

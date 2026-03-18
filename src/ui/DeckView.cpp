@@ -130,8 +130,9 @@ void DeckView::rebuildGrid()
             cell->onTrigger = [this](int li, int c) {
                 if (onClipTriggered) onClipTriggered(li, c);
             };
-            cell->onSelect = [this](int li, int c) {
-                if (onClipSelected) onClipSelected(li, c);
+            cell->onSelect = [this](int li, int c, bool addToSel) {
+                selectCell(li, c, addToSel);
+                if (onClipSelected) onClipSelected(li, c, addToSel);
             };
             cell->onFileDrop = [this](int li, int c, const juce::File& file) {
                 if (onFileDropped) onFileDropped(li, c, file);
@@ -274,6 +275,56 @@ void DeckView::setupColumnTriggers()
 
         addAndMakeVisible(btn.get());
         columnTriggers_.push_back(std::move(btn));
+    }
+}
+
+void DeckView::clearSelection()
+{
+    selectedCells_.clear();
+    updateSelectionVisuals();
+}
+
+void DeckView::selectCell(int layerIndex, int column, bool addToSelection)
+{
+    if (!addToSelection)
+        selectedCells_.clear();
+
+    // Toggle if already selected (Cmd+click to deselect)
+    auto it = std::find_if(selectedCells_.begin(), selectedCells_.end(),
+        [&](const CellPos& p) { return p.layer == layerIndex && p.column == column; });
+
+    if (it != selectedCells_.end() && addToSelection)
+        selectedCells_.erase(it);
+    else if (it == selectedCells_.end())
+        selectedCells_.push_back({layerIndex, column});
+
+    updateSelectionVisuals();
+}
+
+void DeckView::updateSelectionVisuals()
+{
+    if (!composition_) return;
+    auto* deck = composition_->getActiveDeck();
+    if (!deck) return;
+
+    int numLayers = deck->getNumLayers();
+
+    for (int displayRow = 0; displayRow < static_cast<int>(clipCells_.size()); ++displayRow)
+    {
+        int layerIdx = numLayers - 1 - displayRow;
+        auto& layerCells = clipCells_[static_cast<size_t>(displayRow)];
+
+        for (size_t col = 0; col < layerCells.size(); ++col)
+        {
+            if (!layerCells[col]) continue;
+
+            bool isSel = std::any_of(selectedCells_.begin(), selectedCells_.end(),
+                [&](const CellPos& p) {
+                    return p.layer == layerIdx && p.column == static_cast<int>(col);
+                });
+
+            layerCells[col]->setSelected(isSel);
+        }
     }
 }
 

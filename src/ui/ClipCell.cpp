@@ -53,10 +53,20 @@ void ClipCell::paint(juce::Graphics& g)
                    juce::Justification::centredLeft, true);
     }
 
-    // Border — 1px dark, sharp rectangle
-    if (active_)
+    // Border — active (playing) = teal, selected (for inspection) = white, default = dark
+    if (active_ && selected_)
+    {
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+        g.drawRect(bounds, 2.0f);
+    }
+    else if (active_)
     {
         g.setColour(juce::Colour(kActiveBorder));
+        g.drawRect(bounds, 2.0f);
+    }
+    else if (selected_)
+    {
+        g.setColour(juce::Colour(0xffbbbbbb));
         g.drawRect(bounds, 2.0f);
     }
     else
@@ -86,7 +96,8 @@ void ClipCell::mouseDown(const juce::MouseEvent& event)
     }
     else
     {
-        if (onSelect) onSelect(layerIndex_, column_);
+        bool addToSel = event.mods.isCommandDown() || event.mods.isShiftDown();
+        if (onSelect) onSelect(layerIndex_, column_, addToSel);
     }
 }
 
@@ -148,6 +159,15 @@ void ClipCell::setActive(bool active)
     if (active_ != active)
     {
         active_ = active;
+        repaint();
+    }
+}
+
+void ClipCell::setSelected(bool selected)
+{
+    if (selected_ != selected)
+    {
+        selected_ = selected;
         repaint();
     }
 }

@@ -29,9 +29,13 @@ public:
     void setClip(Clip* clip);
     Clip* getClip() const { return clip_; }
 
-    // Set active state (cyan border highlight)
+    // Set active state (cyan border highlight — this clip is playing)
     void setActive(bool active);
     bool isActive() const { return active_; }
+
+    // Set selected state (white border highlight — user has selected for inspection)
+    void setSelected(bool selected);
+    bool isSelected() const { return selected_; }
 
     // Set position in the grid
     void setGridPosition(int layerIndex, int column);
@@ -40,7 +44,7 @@ public:
 
     // Callbacks
     std::function<void(int layerIndex, int column)> onTrigger;      // Thumbnail click
-    std::function<void(int layerIndex, int column)> onSelect;       // Name bar click
+    std::function<void(int layerIndex, int column, bool addToSelection)> onSelect; // Name bar click
     std::function<void(int layerIndex, int column, const juce::File&)> onFileDrop; // File dropped
 
     // Load/update thumbnail from clip's media file
@@ -55,6 +59,7 @@ private:
     int layerIndex_ = 0;
     int column_ = 0;
     bool active_ = false;
+    bool selected_ = false;
     bool dragHover_ = false;
 
     juce::Image thumbnail_;

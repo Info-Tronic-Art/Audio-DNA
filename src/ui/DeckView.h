@@ -32,7 +32,7 @@ public:
 
     // Callbacks — forwarded from child components
     std::function<void(int layerIndex, int column)> onClipTriggered;
-    std::function<void(int layerIndex, int column)> onClipSelected;
+    std::function<void(int layerIndex, int column, bool addToSelection)> onClipSelected;
     std::function<void(int layerIndex)> onLayerSelected;
     std::function<void(int column)> onColumnTriggered;
     std::function<void(int layerIndex, int column, const juce::File&)> onFileDropped;
@@ -41,6 +41,12 @@ public:
     // Get active column (-1 if none)
     int getActiveColumn() const { return activeColumn_; }
     void setActiveColumn(int col);
+
+    // Multi-selection of clip cells
+    struct CellPos { int layer; int column; };
+    const std::vector<CellPos>& getSelectedCells() const { return selectedCells_; }
+    void clearSelection();
+    void selectCell(int layerIndex, int column, bool addToSelection);
 
     // Get the natural height that fits all layers + triggers + tabs exactly
     int getNaturalHeight() const;
@@ -59,6 +65,9 @@ private:
     std::unique_ptr<juce::Component> gridContent_;
 
     int activeColumn_ = -1;
+    std::vector<CellPos> selectedCells_;
+
+    void updateSelectionVisuals();
 
     // Layout constants — Resolume-style dense grid
     static constexpr int kLayerStripWidth = 220;

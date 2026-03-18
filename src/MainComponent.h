@@ -22,6 +22,7 @@
 #include "ui/DeckView.h"
 #include "ui/InspectorPanel.h"
 #include "ui/TimingWindow.h"
+#include "ui/BrowserPanel.h"
 #include "signal/SignalRegistry.h"
 #include "model/Composition.h"
 #if AUDIODNA_HAS_CAMERA
@@ -194,6 +195,7 @@ private:
     std::unique_ptr<ProgrammingMode> programmingMode_;
     std::unique_ptr<DeckView> deckView_;
     std::unique_ptr<InspectorPanel> inspectorPanel_;
+    std::unique_ptr<BrowserPanel> browserPanel_;
 
     // Resizable horizontal divider between deck and bottom panels
     int deckDividerY_ = -1; // -1 = auto (snap to bottom of layers)

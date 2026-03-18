@@ -25,9 +25,9 @@
 | **P2** | Downbeat Detection | **COMPLETE** | YES — beat bar indicator in audio readout panel |
 | **P3** | Architecture Foundation | **COMPLETE** | NO — backend only. Self-validate: build + tests pass. |
 | **P4** | Signal Bar + Top Bar | **COMPLETE** | YES — new top section visible in app |
-| **P5** | Deck View | NOT STARTED | YES — new center section visible |
+| **P5** | Deck View | **COMPLETE** | YES — new center section visible |
 | **P6** | Inspector | **COMPLETE** | YES — new right-center section visible |
-| **P7** | Browser | NOT STARTED | YES — new right section visible |
+| **P7** | Browser | **COMPLETE** | YES — new right section visible |
 | **P8** | Preview, Output, Layout, Menus, Prefs | NOT STARTED | YES — complete layout visible |
 | **P9** | Binding System & MIDI | NOT STARTED | YES — bind mode overlay visible |
 | **P10** | Procedural Sources | NOT STARTED | YES — sources in browser, renderable |
