@@ -36,8 +36,14 @@ struct alignas(64) FeatureSnapshot
     float onsetStrength  = 0.0f;       // raw onset detection function value
 
     // Rhythm / tempo
-    float bpm       = 0.0f;           // current tempo estimate (BPM), 0 if unknown
-    float beatPhase  = 0.0f;           // [0, 1) sawtooth ramp between beats
+    float bpm       = 0.0f;           // stabilized/locked tempo estimate (BPM), 0 if unknown
+    float beatPhase  = 0.0f;           // [0, 1) smooth sawtooth ramp between beats (locked BPM driven)
+    uint8_t trackerState = 0;          // 0=searching, 1=locking, 2=locked
+
+    // Metrical hierarchy (downbeat detection)
+    uint8_t beatInBar = 0;             // 0-3 (0 = downbeat) — which beat in the bar
+    float   barPhase = 0.0f;           // [0, 1) over 4 beats — bar-level sawtooth
+    bool    downbeatDetected = false;  // true on the hop where beat 1 lands
 
     // Structural
     uint8_t structuralState = 0;       // 0=normal, 1=buildup, 2=drop, 3=breakdown

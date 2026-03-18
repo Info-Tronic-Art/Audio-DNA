@@ -97,6 +97,10 @@ private:
     int onsetCount_ = 0;
     float hopsPerSecond_ = 0.0f;
 
+    // Cached HCDF from previous hop (for downbeat scoring in stage 5,
+    // since chroma HCDF is computed in stage 7)
+    float prevHCDF_ = 0.0f;
+
     // Sample counter for timestamps
     uint64_t totalSamplesProcessed_ = 0;
 

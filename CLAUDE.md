@@ -404,25 +404,37 @@ Each frame, the render thread:
 | **M4** | Mapping Engine + Full Effects Library | 9 tasks | **COMPLETE** |
 | **M5** | VJ-Style UI Polish + Presets | 11 tasks | **COMPLETE** |
 | **M6** | Quality, Performance, Cross-Platform | 8 tasks | **COMPLETE** |
-| **M7** | Keyboard Launcher | 21 tasks | **IN PROGRESS** |
+| **M7** | ~~Keyboard Launcher~~ | — | **SUPERSEDED by v2** |
 
-### Milestones 1–4: COMPLETE
+### Milestones 1–6: COMPLETE
 
-Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with effect chain, mapping engine with 5 curve types, all unit and integration tests passing.
+Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 76 GLSL effects, mapping engine, VJ dark theme, presets, fullscreen output, camera input, CI/CD.
 
-### Milestone 5: COMPLETE
+### v2 Architecture Redesign (CURRENT)
 
-Custom VJ-style dark theme, rotary knobs with mapping indicators, polished waveform/spectrum/readout panels, preset save/load (JSON), FX Save (instant), 10 preset slots, Deck save/load (full session state), drag-and-drop, keyboard shortcuts, FPS/DSP monitoring, fullscreen output window, resolution lock with letterboxing, image folder slideshow, per-effect lock and randomize buttons, beat-synced random mode with sync.
+**M7 (keyboard launcher) has been superseded** by a comprehensive Resolume-class architecture redesign. The 4×10 keyboard grid is replaced by a flexible deck/layer/column system with universal signal routing, macros, and procedural sources.
 
-### Milestone 6: COMPLETE
+**Design documents**:
 
-Per-stage analysis profiling, render frame profiling, graceful error handling, 76 GLSL effects across 8 categories (3D/Depth, Warp, Color, Glitch, Pattern, Animation, Blend, Blur/Post), GitHub Actions CI for macOS (ARM64 + x86_64), Windows (MSVC), Linux (GCC) with build caching, camera input (macOS/Windows), audio source selector (mic/file/system), microphone and camera permissions in app bundle.
+- **`ARCHITECTURE_V2.md`** — Complete system design specification
+- **`TASKPLAN_V2.md`** — 12-phase implementation plan (P1-P12)
 
-### Current Milestone: M7 — Keyboard Launcher
+**Key changes from v1**:
 
-**Goal**: 40-key VJ clip triggering system with per-key media, effects, transparency, and beat-synced random triggering. Multi-layer compositing engine. Video playback via HAP Alpha. Collapsible UI panels.
+- Deck (layers × columns) replaces keyboard grid
+- Signal Bar (mixer-strip audio features) replaces left audio readout
+- Universal per-parameter signal routing replaces MappingEditor popup
+- Macro system (6 per clip/layer/global) for parameter aggregation
+- Binding system (keyboard + MIDI learn) replaces fixed key mapping
+- Inspector (4 tabs: Clip/Layer/Composition/Signal) replaces Key Editor
+- Browser (5 tabs: Files/FX/Sources/Comp-Decks/Record) replaces effects rack
+- BPM stabilization pipeline (range gate → confidence → octave → median → hysteresis)
+- Automatic downbeat detection (no commercial VJ does this from live audio)
+- Undo/redo from the start (Command pattern)
+- 40 procedural sources (fractal, noise, geometric, etc.)
+- HAP Alpha video support
 
-See TASKPLAN.md for detailed task breakdown (7.1–7.21, 5 phases).
+**See TASKPLAN_V2.md for current phase and task details.**
 
 ---
 
@@ -531,39 +543,61 @@ The user is not technical. **Do not stop for code-level validation.** Keep devel
 
 Batch multiple tasks together when they are all code/infrastructure. Present one combined validation when there's something visible.
 
-### "Kick off the next task [X.Y]" Protocol
+### "Kick off phase N" Protocol (v2)
 
-When the user says **"kick off the next task [X.Y]"**, follow this exact sequence:
+When the user says **"kick off phase N"**, follow this exact sequence:
 
-1. **Read** CLAUDE.md (this file) and TASKPLAN.md to find task [X.Y]
-2. **Read** all source files relevant to the task before changing anything
-3. **Execute** the task — write code, fix bugs, configure builds, whatever the task requires
-4. **Self-validate with two independent methods** before asking the human:
-   - **Build tasks**: (A) `cmake --build` exits 0 with zero errors, (B) built binary exists and `file` confirms valid executable
-   - **Implementation tasks**: (A) full project compiles after changes, (B) grep source for rule violations (no `new`/`malloc` in audio callback, no `std::mutex` on hot path, POD snapshot, `u_` uniform names)
-   - **Shader tasks**: (A) project builds and shader loads, (B) uniforms match EffectLibrary registration with `u_` prefix
-   - **UI tasks**: (A) project compiles with component integrated, (B) class follows JUCE patterns (inherits Component, implements paint()/resized(), timer/async updates)
-   - **Test tasks**: (A) all tests pass, (B) every public method of class under test has at least one test case
-5. **Report** results to human using this format:
-   ```
-   ## Task [X.Y] Validation Report
-   **Task**: <description>
-   **Files**: <list>
-   ### Validation A: <result PASS/FAIL + evidence>
-   ### Validation B: <result PASS/FAIL + evidence>
-   ### For you to check: <what human should look for>
-   ```
-6. **Wait** for human to say it passes
-7. **On human PASS**: commit to git, update CLAUDE.md milestone status, append to BUILDLOG.md, then output:
-   ```
-   Ready for next task. Say: kick off the next task [X.Y+1]
-   ```
-8. **On human FAIL**: fix the issue, re-run both validations, report again
+1. **Read** these files in order:
+   - `CLAUDE.md` (this file) — sacred rules, project context
+   - `PHASE_GUIDE.md` — find Phase N, read its specific instructions (what files to read, what to modify, validation criteria)
+   - `ARCHITECTURE_V2.md` — the sections relevant to Phase N
+   - `TASKPLAN_V2.md` — find the specific tasks for Phase N
+
+2. **Read** all source files listed in PHASE_GUIDE.md for that phase before changing anything
+
+3. **Execute ALL tasks** in the phase without stopping between tasks. Batch everything.
+
+4. **Self-validate** after completing all tasks:
+   - Build: `cmake --build build --config Release` exits 0
+   - Tests: all existing + new tests pass
+   - Grep: no RT violations (no `new`/`malloc` in audio callback or analysis steady-state, no `std::mutex` on hot paths)
+   - Phase-specific checks listed in PHASE_GUIDE.md
+
+5. **Decision point — does this phase have UI changes?**
+   - **NO UI changes** (P1, P3): Commit to git, update PHASE_GUIDE.md status to COMPLETE, report done. User does NOT need to validate.
+   - **YES UI changes** (P2, P4-P12): Report to user with:
+
+     ```text
+     ## Phase N Complete
+     **What changed**: <summary>
+     **What to look for**: <specific UI elements to verify by launching the app>
+     ```
+
+     Wait for user to confirm.
+
+6. **On human PASS**: Commit to git, update PHASE_GUIDE.md status to COMPLETE.
+7. **On human FAIL**: Fix the issue, rebuild, re-validate, report again.
+
+### Phase Dependency Map
+
+```text
+P1 (BPM lock) ──→ P2 (downbeat) ──→ P3 (architecture) ──→ P4 (signal bar)
+                                                          ──→ P5 (deck)
+                                                          ──→ P6 (inspector)
+                                                          ──→ P7 (browser)
+                                          P4+P5+P6+P7 ──→ P8 (layout)
+                                                    P8 ──→ P9 (binding)
+                                                P5+P6 ──→ P10 (sources)
+                                                P5+P6 ──→ P11 (video)
+                                                  All ──→ P12 (polish)
+```
 
 ### Before Any Work
 
 - Always read this CLAUDE.md before touching any file
-- Check TASKPLAN.md to understand which milestone you're in and what tasks remain
+- Check PHASE_GUIDE.md for current phase status and what's next
+- Read `ARCHITECTURE_V2.md` for the v2 design spec
+- Read `TASKPLAN_V2.md` for task details
 - Read existing source files before modifying them
 
 ### Debugging Audio Issues

@@ -116,3 +116,41 @@ if(NOT MSVC)
     )
 endif()
 catch_discover_tests(test_mapping_engine)
+
+# --- test_bpm_stabilization ---
+add_executable(test_bpm_stabilization
+    test_bpm_stabilization.cpp
+    ${SRC_DIR}/analysis/BPMTracker.cpp
+)
+target_include_directories(test_bpm_stabilization PRIVATE ${SRC_DIR})
+target_link_libraries(test_bpm_stabilization PRIVATE
+    Catch2::Catch2WithMain
+    Aubio::Aubio
+)
+if(NOT MSVC)
+    target_compile_options(test_bpm_stabilization PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+catch_discover_tests(test_bpm_stabilization)
+
+# --- test_downbeat_detector ---
+add_executable(test_downbeat_detector
+    test_downbeat_detector.cpp
+    ${SRC_DIR}/analysis/BPMTracker.cpp
+)
+target_include_directories(test_downbeat_detector PRIVATE ${SRC_DIR})
+target_link_libraries(test_downbeat_detector PRIVATE
+    Catch2::Catch2WithMain
+    Aubio::Aubio
+)
+if(NOT MSVC)
+    target_compile_options(test_downbeat_detector PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+catch_discover_tests(test_downbeat_detector)

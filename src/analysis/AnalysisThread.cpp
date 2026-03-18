@@ -143,10 +143,21 @@ void AnalysisThread::run()
         stageTimesUs_[3] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
         stageStart = stageEnd;
 
-        // --- 5. BPM tracking + beat phase ---
+        // --- 5. BPM tracking + beat phase + downbeat detection ---
         bpmTracker_->process(hopBuffer.data());
-        snap->bpm       = bpmTracker_->bpm();
-        snap->beatPhase = bpmTracker_->beatPhase();
+
+        // Feed spectral features for downbeat scoring (uses bass energy, flux, HCDF)
+        // Bass energy = Sub + Bass bands (bandEnergies[0] + bandEnergies[1])
+        // Note: HCDF from chroma is computed in stage 7, so we use the previous hop's value
+        float bassEnergy = snap->bandEnergies[0] + snap->bandEnergies[1];
+        bpmTracker_->feedDownbeatFeatures(bassEnergy, snap->spectralFlux, prevHCDF_);
+
+        snap->bpm              = bpmTracker_->bpm();
+        snap->beatPhase        = bpmTracker_->beatPhase();
+        snap->trackerState     = bpmTracker_->trackerState();
+        snap->beatInBar        = bpmTracker_->beatInBar();
+        snap->barPhase         = bpmTracker_->barPhase();
+        snap->downbeatDetected = bpmTracker_->downbeatDetected();
 
         stageEnd = std::chrono::high_resolution_clock::now();
         stageTimesUs_[4] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
@@ -165,6 +176,7 @@ void AnalysisThread::run()
         std::memcpy(snap->chromagram, chromaExtractor_->chromagram(),
                      sizeof(snap->chromagram));
         snap->harmonicChangeDetection = chromaExtractor_->hcdf();
+        prevHCDF_ = snap->harmonicChangeDetection;  // cache for next hop's downbeat scoring
 
         stageEnd = std::chrono::high_resolution_clock::now();
         stageTimesUs_[6] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();

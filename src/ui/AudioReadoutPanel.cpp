@@ -34,8 +34,15 @@ void AudioReadoutPanel::timerCallback()
     displaySnap_.spectralFlatness  += a * (snap->spectralFlatness  - displaySnap_.spectralFlatness);
     displaySnap_.spectralRolloff   += a * (snap->spectralRolloff   - displaySnap_.spectralRolloff);
 
-    displaySnap_.bpm       += a * (snap->bpm       - displaySnap_.bpm);
+    // BPM: no EMA smoothing — it's already stabilized by the lock pipeline
+    displaySnap_.bpm        = snap->bpm;
     displaySnap_.beatPhase  = snap->beatPhase;  // no smoothing — sawtooth
+    displaySnap_.trackerState = snap->trackerState;
+
+    // Metrical hierarchy — discrete values, no smoothing
+    displaySnap_.beatInBar        = snap->beatInBar;
+    displaySnap_.barPhase         = snap->barPhase;  // no smoothing — sawtooth
+    displaySnap_.downbeatDetected = snap->downbeatDetected;
     displaySnap_.dominantPitch   += a * (snap->dominantPitch   - displaySnap_.dominantPitch);
     displaySnap_.pitchConfidence += a * (snap->pitchConfidence - displaySnap_.pitchConfidence);
     displaySnap_.harmonicChangeDetection += a * (snap->harmonicChangeDetection - displaySnap_.harmonicChangeDetection);
@@ -56,6 +63,12 @@ void AudioReadoutPanel::timerCallback()
         onsetFlash_ = 1.0f;
     else
         onsetFlash_ *= 0.85f;
+
+    // Downbeat flash: spike on downbeat, fast decay
+    if (snap->downbeatDetected)
+        downbeatFlash_ = 1.0f;
+    else
+        downbeatFlash_ *= 0.85f;
 
     repaint();
 }
@@ -94,8 +107,37 @@ void AudioReadoutPanel::paint(juce::Graphics& g)
 
     // === RHYTHM ===
     y = drawSection(g, y, w, "Rhythm");
-    y = drawLabel(g, y, w, "BPM", juce::String(static_cast<int>(displaySnap_.bpm + 0.5f)));
+
+    // BPM with color-coded tracker state
+    {
+        float x = static_cast<float>(getLocalBounds().getX()) + 8.0f;
+        auto stateCol = trackerStateColour(displaySnap_.trackerState);
+        auto stateName = trackerStateName(displaySnap_.trackerState);
+
+        g.setFont(juce::Font(juce::FontOptions(11.0f)));
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        g.drawText("BPM", juce::Rectangle<float>(x, y, 50.0f, 14.0f),
+                   juce::Justification::centredLeft);
+
+        // BPM value in state color
+        juce::String bpmText = (displaySnap_.bpm > 0.0f)
+            ? juce::String(static_cast<int>(displaySnap_.bpm + 0.5f))
+            : juce::String("---");
+        g.setColour(stateCol);
+        g.setFont(juce::Font(juce::FontOptions(11.0f, juce::Font::bold)));
+        g.drawText(bpmText, juce::Rectangle<float>(x + 52.0f, y, 40.0f, 14.0f),
+                   juce::Justification::centredLeft);
+
+        // State label
+        g.setFont(juce::Font(juce::FontOptions(9.0f)));
+        g.drawText(stateName, juce::Rectangle<float>(x + 94.0f, y, w - 94.0f, 14.0f),
+                   juce::Justification::centredLeft);
+
+        y += 16.0f;
+    }
+
     y = drawBeatPhase(g, y, w);
+    y = drawBarIndicator(g, y, w);
     y = drawOnsetIndicator(g, y, w);
     y = drawLabel(g, y, w, "Density",
                   juce::String(displaySnap_.transientDensity, 1) + "/s");
@@ -279,6 +321,73 @@ float AudioReadoutPanel::drawBeatPhase(juce::Graphics& g, float y, float width)
     return y + 16.0f;
 }
 
+float AudioReadoutPanel::drawBarIndicator(juce::Graphics& g, float y, float width)
+{
+    float x = static_cast<float>(getLocalBounds().getX()) + 8.0f;
+
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    g.setFont(juce::Font(juce::FontOptions(11.0f)));
+    g.drawText("Bar", juce::Rectangle<float>(x, y, 40.0f, 14.0f),
+               juce::Justification::centredLeft);
+
+    // Draw 4 beat boxes
+    float boxAreaX = x + 44.0f;
+    float boxAreaW = width - 44.0f;
+    float boxW = (boxAreaW - 9.0f) / 4.0f;  // 3px gap between boxes
+    float boxH = 14.0f;
+
+    uint8_t currentBeat = displaySnap_.beatInBar;
+
+    for (int i = 0; i < 4; ++i)
+    {
+        float bx = boxAreaX + static_cast<float>(i) * (boxW + 3.0f);
+        auto boxRect = juce::Rectangle<float>(bx, y, boxW, boxH);
+
+        // Background
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kBackground));
+        g.fillRoundedRectangle(boxRect, 2.0f);
+
+        bool isDownbeat = (i == 0);
+        bool isCurrentBeat = (i == currentBeat);
+
+        if (isCurrentBeat)
+        {
+            // Current beat — bright fill
+            if (isDownbeat)
+            {
+                // Downbeat (beat 1) — orange/amber with flash
+                float flash = std::max(0.3f, downbeatFlash_);
+                g.setColour(juce::Colour(0xffff6d00).withAlpha(flash));
+            }
+            else
+            {
+                // Regular beat — magenta
+                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.8f));
+            }
+            g.fillRoundedRectangle(boxRect, 2.0f);
+        }
+        else if (isDownbeat)
+        {
+            // Downbeat position but not current — dim orange outline
+            g.setColour(juce::Colour(0xffff6d00).withAlpha(0.25f));
+            g.fillRoundedRectangle(boxRect, 2.0f);
+        }
+
+        // Border
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kPanelBorder));
+        g.drawRoundedRectangle(boxRect, 2.0f, 1.0f);
+
+        // Beat number label
+        g.setColour(isCurrentBeat
+            ? juce::Colour(AudioDNALookAndFeel::kTextPrimary)
+            : juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.5f));
+        g.setFont(juce::Font(juce::FontOptions(10.0f, isDownbeat ? juce::Font::bold : juce::Font::plain)));
+        g.drawText(juce::String(i + 1), boxRect, juce::Justification::centred);
+    }
+
+    return y + 18.0f;
+}
+
 float AudioReadoutPanel::drawOnsetIndicator(juce::Graphics& g, float y, float /*width*/)
 {
     float x = static_cast<float>(getLocalBounds().getX()) + 8.0f;
@@ -374,6 +483,28 @@ juce::Colour AudioReadoutPanel::structStateColour(uint8_t state)
         case 1: return juce::Colour(AudioDNALookAndFeel::kMeterYellow);     // Buildup - yellow
         case 2: return juce::Colour(AudioDNALookAndFeel::kMeterRed);        // Drop - red
         case 3: return juce::Colour(AudioDNALookAndFeel::kAccentCyan);      // Breakdown - cyan
+        default: return juce::Colour(AudioDNALookAndFeel::kTextSecondary);
+    }
+}
+
+juce::String AudioReadoutPanel::trackerStateName(uint8_t state)
+{
+    switch (state)
+    {
+        case 0: return "SEARCHING";
+        case 1: return "LOCKING";
+        case 2: return "LOCKED";
+        default: return "?";
+    }
+}
+
+juce::Colour AudioReadoutPanel::trackerStateColour(uint8_t state)
+{
+    switch (state)
+    {
+        case 0: return juce::Colour(AudioDNALookAndFeel::kMeterRed);      // Searching - red
+        case 1: return juce::Colour(AudioDNALookAndFeel::kMeterYellow);   // Locking - yellow
+        case 2: return juce::Colour(AudioDNALookAndFeel::kMeterGreen);    // Locked - green
         default: return juce::Colour(AudioDNALookAndFeel::kTextSecondary);
     }
 }

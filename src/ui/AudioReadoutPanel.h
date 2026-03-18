@@ -25,6 +25,9 @@ private:
     // Onset flash animation
     float onsetFlash_ = 0.0f;
 
+    // Downbeat flash animation
+    float downbeatFlash_ = 0.0f;
+
     // Helper drawing methods
     float drawSection(juce::Graphics& g, float y, float width, const juce::String& title);
     float drawMeter(juce::Graphics& g, float y, float width,
@@ -35,6 +38,7 @@ private:
                     const juce::String& label, const juce::String& value);
     float drawBandMeters(juce::Graphics& g, float y, float width);
     float drawBeatPhase(juce::Graphics& g, float y, float width);
+    float drawBarIndicator(juce::Graphics& g, float y, float width);
     float drawOnsetIndicator(juce::Graphics& g, float y, float width);
     float drawStructuralState(juce::Graphics& g, float y, float width);
 
@@ -42,6 +46,8 @@ private:
     static juce::String keyName(int key, bool isMajor);
     static juce::String structStateName(uint8_t state);
     static juce::Colour structStateColour(uint8_t state);
+    static juce::String trackerStateName(uint8_t state);
+    static juce::Colour trackerStateColour(uint8_t state);
 
     // Band colors
     static constexpr juce::uint32 kBandColors[7] = {

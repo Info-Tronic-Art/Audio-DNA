@@ -1,19 +1,67 @@
 #pragma once
 #include <aubio/aubio.h>
 #include <cstdint>
+#include <algorithm>
 
-// Wraps aubio_tempo_t for real-time BPM tracking and beat phase.
-// All Aubio objects are pre-allocated at construction — zero allocation
-// in steady state.  Feed one hop of audio per call to process().
+// Wraps aubio_tempo_t for real-time BPM tracking and beat phase, with a
+// multi-stage stabilization pipeline on top of aubio's raw output:
 //
-// Outputs:
-//   - bpm:          current tempo estimate (BPM), 0 if unknown
-//   - beatPhase:    [0, 1) sawtooth that ramps between beats
-//   - beatDetected: true on the hop where a beat lands
-//   - confidence:   how confident the tracker is in its tempo estimate
+//   1. BPM range gate (60-200 BPM, fold via halving/doubling)
+//   2. Confidence gate (hold last good value during low-confidence periods)
+//   3. Octave error correction (snap to locked octave if within 2x/0.5x)
+//   4. Median filter (window of 48 estimates, ~500ms)
+//   5. Hysteresis lock (2-second persistence required to change)
+//
+// Beat phase is driven by the locked BPM as a free-running sawtooth,
+// with hard resets on high-confidence beat detections from aubio.
+//
+// Downbeat detection (Phase 2):
+//   On each beat, a downbeat score is computed from bass energy + spectral flux
+//   + harmonic change. A circular buffer of 16 beat scores is analyzed every 4
+//   beats to find which position (0-3) has the highest average score. After 8+
+//   consistent beats, the downbeat position locks and beatInBar/barPhase are
+//   computed.
+//
+// All buffers are pre-allocated at construction -- zero allocation in steady state.
+//
+// Tracker state:
+//   0 = SEARCHING (no reliable BPM yet)
+//   1 = LOCKING   (candidate being confirmed)
+//   2 = LOCKED    (solid, stable BPM)
 class BPMTracker
 {
 public:
+    static constexpr uint8_t STATE_SEARCHING = 0;
+    static constexpr uint8_t STATE_LOCKING   = 1;
+    static constexpr uint8_t STATE_LOCKED    = 2;
+
+    // BPM range limits
+    static constexpr float kMinBPM = 60.0f;
+    static constexpr float kMaxBPM = 200.0f;
+
+    // Median filter window size (~500ms at 93.75 hops/sec)
+    static constexpr int kMedianWindowSize = 48;
+
+    // Hysteresis: hops required to accept a new BPM (~2.1 seconds)
+    static constexpr int kHysteresisHops = 200;
+
+    // Minimum confidence to accept a BPM estimate
+    static constexpr float kConfidenceThreshold = 0.1f;
+
+    // BPM change threshold for hysteresis (BPM units)
+    static constexpr float kBPMChangeThreshold = 2.0f;
+
+    // Beat phase reset confidence threshold
+    static constexpr float kBeatResetConfidence = 0.5f;
+
+    // Downbeat detection constants
+    static constexpr int kBeatScoreBufferSize = 16;  // circular buffer of beat scores
+    static constexpr int kBeatsPerBar = 4;            // assuming 4/4 time
+    static constexpr int kDownbeatLockThreshold = 8;  // beats of consistency before locking
+    static constexpr float kDownbeatWeightBass = 0.5f;
+    static constexpr float kDownbeatWeightFlux = 0.3f;
+    static constexpr float kDownbeatWeightHCDF = 0.2f;
+
     // hopSize:    samples per call to process() (must match analysis hop, e.g. 512)
     // bufSize:    internal FFT size for the tempo tracker (typically 1024)
     // sampleRate: audio sample rate in Hz
@@ -25,32 +73,121 @@ public:
     BPMTracker& operator=(const BPMTracker&) = delete;
 
     // Feed one hop of audio samples (hopSize floats).
-    // After this call, query bpm(), beatPhase(), beatDetected().
+    // After this call, query bpm(), beatPhase(), beatDetected(), etc.
     void process(const float* samples);
 
+    // Feed spectral features for downbeat scoring.
+    // Call this AFTER process() on each hop, passing current spectral features.
+    // The downbeat detector uses these on beat detections to score each beat position.
+    void feedDownbeatFeatures(float bassEnergy, float spectralFlux, float harmonicChange);
+
     // --- Accessors (valid after process()) ---
-    float bpm()          const { return bpm_; }
-    float beatPhase()    const { return beatPhase_; }
-    bool  beatDetected() const { return beatDetected_; }
-    float confidence()   const { return confidence_; }
+    float    bpm()           const { return lockedBPM_; }
+    float    beatPhase()     const { return phase_; }
+    bool     beatDetected()  const { return beatDetected_; }
+    float    confidence()    const { return confidence_; }
+    uint8_t  trackerState()  const { return trackerState_; }
+
+    // Raw (unstabilized) BPM from aubio, for diagnostics
+    float    rawBPM()        const { return rawBPM_; }
+
+    // --- Downbeat accessors (valid after feedDownbeatFeatures()) ---
+    uint8_t  beatInBar()        const { return beatInBar_; }
+    float    barPhase()         const { return barPhase_; }
+    bool     downbeatDetected() const { return downbeatDetected_; }
+    bool     downbeatLocked()   const { return downbeatLocked_; }
 
     // --- Configuration ---
     void setThreshold(float t);
     void setSilence(float dbThreshold);
+
+    // --- Testing support ---
+    // Process a raw BPM value through the stabilization pipeline without aubio.
+    // Used by unit tests to verify the pipeline in isolation.
+    void processRawBPM(float rawBpm, float conf, bool beat);
 
 private:
     aubio_tempo_t* tempo_  = nullptr;
     fvec_t*        input_  = nullptr;   // hop-sized input buffer
     fvec_t*        output_ = nullptr;   // single-element output (beat position in samples)
 
-    int hopSize_;
+    int   hopSize_;
+    int   sampleRate_;
 
-    float bpm_          = 0.0f;
-    float beatPhase_    = 0.0f;
-    bool  beatDetected_ = false;
+    // Raw aubio outputs
+    float rawBPM_       = 0.0f;
     float confidence_   = 0.0f;
+    bool  beatDetected_ = false;
 
-    // Beat phase tracking: count samples since last beat
-    uint64_t samplesSinceLastBeat_ = 0;
-    float    currentPeriodSamples_ = 0.0f;  // beat period from aubio, in samples
+    // === Stabilization pipeline state ===
+
+    // Median filter: circular buffer of recent BPM estimates
+    float medianBuffer_[kMedianWindowSize] = {};
+    float sortBuffer_[kMedianWindowSize] = {};   // scratch for nth_element
+    int   medianPos_   = 0;
+    int   medianCount_ = 0;
+
+    // Locked BPM and hysteresis
+    float   lockedBPM_          = 0.0f;
+    float   candidateBPM_       = 0.0f;
+    int     consistencyCounter_ = 0;
+    float   lastConfidentBPM_   = 0.0f;
+
+    // Tracker state
+    uint8_t trackerState_ = STATE_SEARCHING;
+
+    // === Beat phase (free-running from locked BPM) ===
+    float phase_ = 0.0f;
+
+    // === Downbeat detection state ===
+    // Circular buffer of per-beat downbeat scores
+    float beatScores_[kBeatScoreBufferSize] = {};
+    int   beatScorePos_ = 0;        // write position in circular buffer
+    int   totalBeatsScored_ = 0;    // total beats scored since start
+
+    // Per-position (0-3) score accumulators for finding the strongest beat
+    float positionScoreSums_[kBeatsPerBar] = {};
+    int   positionScoreCounts_[kBeatsPerBar] = {};
+
+    // Downbeat lock state
+    bool    downbeatLocked_ = false;
+    int     lockedDownbeatPos_ = 0;    // which position (0-3) is the downbeat
+    int     downbeatConsistency_ = 0;  // consecutive analyses agreeing on position
+    int     beatCounter_ = 0;          // counts beats mod 4 from locked downbeat
+
+    // Per-hop output
+    uint8_t beatInBar_ = 0;           // 0-3 (0 = downbeat)
+    float   barPhase_ = 0.0f;         // [0, 1) over 4 beats
+    bool    downbeatDetected_ = false; // true on the hop where beat 1 lands
+
+    // Cached spectral features for scoring (set by feedDownbeatFeatures)
+    float cachedBassEnergy_ = 0.0f;
+    float cachedSpectralFlux_ = 0.0f;
+    float cachedHarmonicChange_ = 0.0f;
+
+    // --- Internal pipeline methods ---
+
+    // Fold a BPM value into the [kMinBPM, kMaxBPM] range via halving/doubling
+    static float foldBPMToRange(float bpm);
+
+    // Correct octave errors relative to the locked BPM
+    float correctOctaveError(float bpm) const;
+
+    // Push a value into the median filter and return the current median
+    float pushAndMedian(float bpm);
+
+    // Run the stabilization pipeline on a raw BPM + confidence
+    void runPipeline(float rawBpm, float conf, bool beat);
+
+    // Update the free-running beat phase
+    void updatePhase(bool beat, float conf);
+
+    // Score a beat and update downbeat detection
+    void scoreBeat();
+
+    // Analyze beat scores to find the downbeat position
+    void analyzeDownbeatPosition();
+
+    // Update barPhase based on current beat position and phase
+    void updateBarPhase();
 };
