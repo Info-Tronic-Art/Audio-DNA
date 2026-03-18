@@ -16,6 +16,11 @@
 #include "ui/KeyboardPanel.h"
 #include "ui/KeyEditor.h"
 #include "keyboard/KeySlot.h"
+#include "ui/SignalBar.h"
+#include "ui/TopBar.h"
+#include "ui/ProgrammingMode.h"
+#include "signal/SignalRegistry.h"
+#include "model/Composition.h"
 #if AUDIODNA_HAS_CAMERA
  #include <juce_video/juce_video.h>
 #endif
@@ -189,6 +194,15 @@ private:
     bool showWavePanel_ = true;
     bool showKeysPanel_ = true;
     bool showPresetsPanel_ = true;
+
+    // === v2: Signal Bar + Top Bar ===
+    Composition composition_;
+    SignalRegistry signalRegistry_;
+    std::unique_ptr<TopBar> topBar_;
+    std::unique_ptr<SignalBar> signalBar_;
+    std::unique_ptr<ProgrammingMode> programmingMode_;
+    bool showSignalBar_ = true;
+    juce::TextButton toggleSignalBarBtn_{"S"};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

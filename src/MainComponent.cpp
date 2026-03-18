@@ -403,6 +403,119 @@ MainComponent::MainComponent()
     setupToggle(toggleKeysBtn_, showKeysPanel_, "K");
     setupToggle(togglePresetsBtn_, showPresetsPanel_, "P");
 
+    // === v2: Signal Bar + Top Bar ===
+    composition_.initDefault();
+    signalRegistry_.initDefaults();
+
+    topBar_ = std::make_unique<TopBar>(analysisThread_.getFeatureBus(), composition_);
+    addAndMakeVisible(topBar_.get());
+
+    // Wire TopBar audio source selector to AudioEngine
+    auto& topAudioSrc = topBar_->getAudioSourceSelector();
+    topAudioSrc.addItem("Mic Input", 1);
+    topAudioSrc.addItem("Audio File", 2);
+    topAudioSrc.setSelectedId(1, juce::dontSendNotification);
+    topAudioSrc.onChange = [this] {
+        int sel = topBar_->getAudioSourceSelector().getSelectedId();
+        if (sel == 1)
+        {
+            audioEngine_.setSourceMode(AudioEngine::SourceMode::MicInput);
+            fileLabel_.setText("Mic: " + audioEngine_.getDeviceStatus(),
+                              juce::dontSendNotification);
+        }
+        else if (sel == 2)
+        {
+            audioEngine_.setSourceMode(AudioEngine::SourceMode::File);
+            if (!currentAudioFile_.existsAsFile())
+            {
+                fileChooser_ = std::make_unique<juce::FileChooser>(
+                    "Select an audio file...", juce::File{},
+                    "*.wav;*.aiff;*.aif;*.mp3;*.flac;*.ogg");
+                auto flags = juce::FileBrowserComponent::openMode
+                           | juce::FileBrowserComponent::canSelectFiles;
+                fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+                    auto file = fc.getResult();
+                    if (file == juce::File{}) return;
+                    if (audioEngine_.loadFile(file))
+                    {
+                        currentAudioFile_ = file;
+                        fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+                        audioEngine_.play();
+                    }
+                });
+            }
+            else
+            {
+                fileLabel_.setText(currentAudioFile_.getFileName(), juce::dontSendNotification);
+                audioEngine_.play();
+            }
+        }
+    };
+
+    // Wire TopBar gain slider
+    topBar_->getInputGainSlider().onValueChange = [this] {
+        audioEngine_.setInputGain(static_cast<float>(topBar_->getInputGainSlider().getValue()));
+    };
+
+    // Wire TopBar master level
+    topBar_->getMasterLevelSlider().onValueChange = [this] {
+        previewPanel_.getRenderer().setMasterLevel(
+            static_cast<float>(topBar_->getMasterLevelSlider().getValue()));
+    };
+
+    // Wire TopBar display selector
+    auto& topDisplay = topBar_->getDisplaySelector();
+    topDisplay.setTextWhenNothingSelected("Output: Off");
+    // Populate from existing display list
+    {
+        topDisplay.clear();
+        topDisplay.addItem("Off", 1);
+        const auto& displays = juce::Desktop::getInstance().getDisplays().displays;
+        for (int i = 0; i < static_cast<int>(displays.size()); ++i)
+        {
+            const auto& d = displays[static_cast<size_t>(i)];
+            juce::String label = juce::String(d.totalArea.getWidth())
+                              + "x" + juce::String(d.totalArea.getHeight());
+            if (d.isMain)
+                label += " (main)";
+            else
+                label += " (display " + juce::String(i + 1) + ")";
+            topDisplay.addItem(label, i + 2);
+        }
+        topDisplay.setSelectedId(1, juce::dontSendNotification);
+    }
+    topDisplay.onChange = [this] {
+        int selected = topBar_->getDisplaySelector().getSelectedId();
+        if (selected == 1)
+            closeOutput();
+        else if (selected > 1)
+            openOutputOnDisplay(selected - 2);
+    };
+
+    topBar_->onResync = [this] {
+        // Reset beat counters
+        beatCounter_ = 0;
+        lastBeatPhase_ = 0.0f;
+    };
+
+    signalBar_ = std::make_unique<SignalBar>(signalRegistry_, analysisThread_.getFeatureBus());
+    addAndMakeVisible(signalBar_.get());
+    signalBar_->onSizeChanged = [this] { resized(); };
+
+    programmingMode_ = std::make_unique<ProgrammingMode>(*signalBar_);
+    addChildComponent(programmingMode_.get());
+
+    // Signal bar toggle button
+    addAndMakeVisible(toggleSignalBarBtn_);
+    toggleSignalBarBtn_.setClickingTogglesState(true);
+    toggleSignalBarBtn_.setToggleState(showSignalBar_, juce::dontSendNotification);
+    toggleSignalBarBtn_.setColour(juce::TextButton::buttonOnColourId,
+                                   juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f));
+    toggleSignalBarBtn_.onClick = [this] {
+        showSignalBar_ = toggleSignalBarBtn_.getToggleState();
+        resized();
+    };
+
     // Start analysis
     analysisThread_.startThread(juce::Thread::Priority::high);
 
@@ -457,8 +570,57 @@ void MainComponent::resized()
 {
     auto area = getLocalBounds().reduced(8);
 
-    // === Row 1: Image + Camera + Audio Source + Presets ===
-    auto row1 = area.removeFromTop(30);
+    // === v2: Top Bar (full width) ===
+    if (topBar_)
+    {
+        topBar_->setBounds(area.removeFromTop(34));
+        area.removeFromTop(1);
+    }
+
+    // === v2: Signal Bar (full width, optional) ===
+    bool signalBarExpanded = false;
+    if (signalBar_ && showSignalBar_)
+    {
+        int sbHeight = signalBar_->getPreferredHeight();
+        if (sbHeight < 0)
+        {
+            // Expanded: take ALL remaining space, hide everything below
+            signalBarExpanded = true;
+            signalBar_->setBounds(area);
+            signalBar_->setVisible(true);
+            area = juce::Rectangle<int>(); // nothing left
+        }
+        else
+        {
+            signalBar_->setBounds(area.removeFromTop(sbHeight));
+            signalBar_->setVisible(true);
+            area.removeFromTop(1);
+        }
+    }
+    else if (signalBar_)
+    {
+        signalBar_->setVisible(false);
+    }
+
+    // === v2: Programming Mode overlay ===
+    if (programmingMode_)
+        programmingMode_->setVisible(false);
+
+    // If signal bar is expanded, hide everything else and return
+    if (signalBarExpanded)
+    {
+        previewPanel_.setVisible(false);
+        waveformDisplay_.setVisible(false);
+        audioReadoutPanel_.setVisible(false);
+        spectrumDisplay_.setVisible(false);
+        if (effectsRackPanel_) effectsRackPanel_->setVisible(false);
+        if (keyboardPanel_) keyboardPanel_->setVisible(false);
+        if (keyEditor_) keyEditor_->setVisible(false);
+        return;
+    }
+
+    // === Row 1: Image + Camera + Presets (v1 compat) ===
+    auto row1 = area.removeFromTop(26);
     openImageButton_.setBounds(row1.removeFromLeft(75));
     row1.removeFromLeft(3);
     openFolderButton_.setBounds(row1.removeFromLeft(80));
@@ -471,9 +633,12 @@ void MainComponent::resized()
     cameraSelector_.setBounds(row1.removeFromLeft(100));
     row1.removeFromLeft(8);
   #endif
-    audioSourceLabel_.setBounds(row1.removeFromLeft(70));
-    audioSourceSelector_.setBounds(row1.removeFromLeft(90));
-    row1.removeFromLeft(6);
+    // v1 audio source selector is now hidden (TopBar handles it)
+    audioSourceLabel_.setVisible(false);
+    audioSourceSelector_.setVisible(false);
+    inputGainLabel_.setVisible(false);
+    inputGainSlider_.setVisible(false);
+
     savePresetButton_.setBounds(row1.removeFromLeft(45));
     row1.removeFromLeft(2);
     loadPresetButton_.setBounds(row1.removeFromLeft(45));
@@ -484,16 +649,15 @@ void MainComponent::resized()
     row1.removeFromLeft(2);
     deckLoadButton_.setBounds(row1.removeFromLeft(65));
 
-    // Right side of row 1: stats
-    cpuLabel_.setBounds(row1.removeFromRight(80));
-    fpsLabel_.setBounds(row1.removeFromRight(80));
-
     fileLabel_.setBounds(row1);
+    // v1 stats labels now hidden (TopBar handles them)
+    fpsLabel_.setVisible(false);
+    cpuLabel_.setVisible(false);
 
     area.removeFromTop(3);
 
-    // === Row 2: Camera (aligned under audio source) + Tools + Selectors ===
-    auto row2 = area.removeFromTop(26);
+    // === Row 2: Random FX + Selectors (v1 compat) ===
+    auto row2 = area.removeFromTop(22);
 
     // Random FX on Beat controls (left side)
     randomLabel_.setBounds(row2.removeFromLeft(110));
@@ -504,20 +668,16 @@ void MainComponent::resized()
     syncButton_.setBounds(row2.removeFromLeft(38));
     row2.removeFromLeft(10);
 
-    // Input gain + level meter
-    inputGainLabel_.setBounds(row2.removeFromLeft(30));
-    inputGainSlider_.setBounds(row2.removeFromLeft(100));
-    row2.removeFromLeft(4);
+    // Input level meter
     inputLevelMeterBounds_ = row2.removeFromLeft(60).reduced(0, 4);
     row2.removeFromLeft(8);
 
     // Right-aligned: Video Level, Output, Viewport
-    masterLevelSlider_.setBounds(row2.removeFromRight(80));
-    masterLevelLabel_.setBounds(row2.removeFromRight(60));
-    row2.removeFromRight(6);
-    displaySelector_.setBounds(row2.removeFromRight(120));
-    outputLabel_.setBounds(row2.removeFromRight(40));
-    row2.removeFromRight(6);
+    // v1 master level + output now in TopBar, but keep viewport resolution
+    masterLevelSlider_.setVisible(false);
+    masterLevelLabel_.setVisible(false);
+    displaySelector_.setVisible(false);
+    outputLabel_.setVisible(false);
     resolutionSelector_.setBounds(row2.removeFromRight(100));
     viewportLabel_.setBounds(row2.removeFromRight(48));
     row2.removeFromRight(8);
@@ -535,6 +695,8 @@ void MainComponent::resized()
     toggleKeysBtn_.setBounds(toggleRow.removeFromLeft(24));
     toggleRow.removeFromLeft(2);
     togglePresetsBtn_.setBounds(toggleRow.removeFromLeft(24));
+    toggleRow.removeFromLeft(2);
+    toggleSignalBarBtn_.setBounds(toggleRow.removeFromLeft(24));
     area.removeFromTop(4);
 
     // === Bottom sections (keyboard + presets) — allocate from bottom up ===
@@ -963,6 +1125,13 @@ void MainComponent::timerCallback()
                           juce::dontSendNotification);
         cpuLabel_.setText("DSP " + juce::String(cpu, 1) + "%",
                           juce::dontSendNotification);
+
+        // v2: Feed stats to TopBar
+        if (topBar_)
+        {
+            topBar_->setFps(fps);
+            topBar_->setDspLoad(cpu);
+        }
     }
 
     // Repaint input level meter

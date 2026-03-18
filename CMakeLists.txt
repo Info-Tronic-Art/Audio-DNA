@@ -165,6 +165,14 @@ target_sources(AudioDNA PRIVATE
     src/ui/KeyboardPanel.cpp
     src/ui/KeyEditor.h
     src/ui/KeyEditor.cpp
+    src/ui/SignalStrip.h
+    src/ui/SignalStrip.cpp
+    src/ui/SignalBar.h
+    src/ui/SignalBar.cpp
+    src/ui/TopBar.h
+    src/ui/TopBar.cpp
+    src/ui/ProgrammingMode.h
+    src/ui/ProgrammingMode.cpp
     src/keyboard/KeySlot.h
     src/render/CompositorEngine.h
     src/render/CompositorEngine.cpp
