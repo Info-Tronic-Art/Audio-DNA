@@ -38,6 +38,9 @@ public:
     // Load an image file to display. Thread-safe (queues for GL thread).
     void loadImage(const juce::File& imageFile);
 
+    // Clear the loaded image so the renderer shows black. Thread-safe.
+    void clearImage();
+
     // Queue a camera frame for upload on the GL thread. Thread-safe.
     void queueCameraFrame(const juce::Image& frame);
 
@@ -124,6 +127,7 @@ private:
     std::mutex pendingImageMutex_;
     juce::File pendingImageFile_;
     bool hasPendingImage_ = false;
+    bool pendingClearImage_ = false;
 
     // Camera frame queue
     std::mutex cameraFrameMutex_;

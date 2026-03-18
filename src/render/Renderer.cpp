@@ -36,6 +36,12 @@ void Renderer::loadImage(const juce::File& imageFile)
     hasPendingImage_ = true;
 }
 
+void Renderer::clearImage()
+{
+    std::lock_guard<std::mutex> lock(pendingImageMutex_);
+    pendingClearImage_ = true;
+}
+
 void Renderer::queueCameraFrame(const juce::Image& frame)
 {
     std::lock_guard<std::mutex> lock(cameraFrameMutex_);
@@ -57,10 +63,16 @@ void Renderer::newOpenGLContextCreated()
 
 void Renderer::renderOpenGL()
 {
-    // Handle pending image load (from message thread)
+    // Handle pending image load or clear (from message thread)
     {
         std::lock_guard<std::mutex> lock(pendingImageMutex_);
-        if (hasPendingImage_)
+        if (pendingClearImage_)
+        {
+            texMgr_.release();
+            pendingClearImage_ = false;
+            hasPendingImage_ = false;
+        }
+        else if (hasPendingImage_)
         {
             std::cerr << "[Renderer] Processing pending image..." << std::endl;
             bool ok = texMgr_.loadImage(pendingImageFile_);

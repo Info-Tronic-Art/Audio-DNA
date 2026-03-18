@@ -1,4 +1,5 @@
 #include "MainComponent.h"
+#include "ui/PreferencesDialog.h"
 
 MainComponent::MainComponent()
 {
@@ -502,12 +503,24 @@ MainComponent::MainComponent()
         handleColumnTrigger(col);
     };
     deckView_->onClipSelected = [this](int layerIdx, int col, bool /*addToSel*/) {
-        // Inspector shows the last-clicked clip regardless of multi-select
-        if (!inspectorPanel_) return;
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
         if (auto* clip = deck->getClip(layerIdx, col))
-            inspectorPanel_->inspectClip(clip);
+        {
+            // Show clip in inspector
+            if (inspectorPanel_)
+                inspectorPanel_->inspectClip(clip);
+
+            // Load clip's image into preview panel
+            if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+            {
+                previewPanel_.loadImage(clip->mediaFile);
+                currentImageFile_ = clip->mediaFile;
+                if (outputWindow_)
+                    outputWindow_->loadImage(clip->mediaFile);
+                fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+            }
+        }
     };
     deckView_->onLayerSelected = [this](int layerIdx) {
         if (!inspectorPanel_) return;
@@ -549,6 +562,10 @@ MainComponent::MainComponent()
     // === v2: Timing Window ===
     timingWindow_ = std::make_unique<TimingWindow>();
     addAndMakeVisible(timingWindow_.get());
+
+    // === v2: Menu Bar ===
+    menuBarModel_ = std::make_unique<AudioDNAMenuBar>();
+    menuBarModel_->onMenuCommand = [this](int cmdId) { handleMenuCommand(cmdId); };
 
     // Start analysis
     analysisThread_.startThread(juce::Thread::Priority::high);
@@ -1951,7 +1968,7 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
 
     layer->triggerClip(column);
 
-    // Load the image into preview if the clip has media
+    // Load the image into preview if the clip has media, otherwise clear
     if (auto* clip = layer->getActiveClip())
     {
         if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
@@ -1962,6 +1979,13 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
                 outputWindow_->loadImage(clip->mediaFile);
             fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
         }
+    }
+    else
+    {
+        // No active clip — clear preview
+        previewPanel_.clearImage();
+        currentImageFile_ = juce::File();
+        fileLabel_.setText("", juce::dontSendNotification);
     }
 
     if (deckView_)
@@ -1982,6 +2006,7 @@ void MainComponent::handleColumnTrigger(int column)
     }
 
     // Load the bottom-most active clip's image into preview
+    bool foundActiveClip = false;
     for (int i = 0; i < deck->getNumLayers(); ++i)
     {
         auto* layer = deck->getLayer(i);
@@ -1995,9 +2020,17 @@ void MainComponent::handleColumnTrigger(int column)
                 if (outputWindow_)
                     outputWindow_->loadImage(clip->mediaFile);
                 fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+                foundActiveClip = true;
                 break;
             }
         }
+    }
+
+    if (!foundActiveClip)
+    {
+        previewPanel_.clearImage();
+        currentImageFile_ = juce::File();
+        fileLabel_.setText("", juce::dontSendNotification);
     }
 }
 
@@ -2037,6 +2070,182 @@ void MainComponent::handleDeckSwitch(int deckIndex)
 
     if (deckView_)
         deckView_->rebuildGrid();
+}
+
+// === Menu Command Handler ===
+
+void MainComponent::handleMenuCommand(int commandId)
+{
+    using C = AudioDNAMenuBar::CommandID;
+
+    // Output fullscreen commands (dynamic range)
+    if (commandId >= C::kOutputFullscreenBase && commandId < C::kOutputWindowed)
+    {
+        int displayIdx = commandId - C::kOutputFullscreenBase;
+        openOutputOnDisplay(displayIdx);
+        return;
+    }
+
+    switch (commandId)
+    {
+        // --- Audio-DNA menu ---
+        case C::kPreferences:
+            PreferencesDialog::show(this);
+            break;
+        case C::kAbout:
+            PreferencesDialog::show(this);
+            // TODO: auto-switch to About tab
+            break;
+        case C::kQuit:
+            juce::JUCEApplication::getInstance()->systemRequestedQuit();
+            break;
+
+        // --- Composition menu ---
+        case C::kCompNew:
+            composition_.initDefault();
+            if (deckView_) deckView_->rebuildGrid();
+            if (inspectorPanel_) inspectorPanel_->refresh();
+            break;
+        case C::kCompOpen:
+            loadPreset();
+            break;
+        case C::kCompSave:
+            savePreset();
+            break;
+        case C::kCompSaveAs:
+            savePreset();
+            break;
+
+        // --- Deck menu ---
+        case C::kDeckNew:
+        {
+            Deck newDeck;
+            newDeck.name = "Deck " + std::to_string(composition_.decks.size() + 1);
+            composition_.decks.push_back(std::move(newDeck));
+            composition_.activeDeckIndex = static_cast<int>(composition_.decks.size()) - 1;
+            if (deckView_) deckView_->rebuildGrid();
+            break;
+        }
+        case C::kDeckRemove:
+            if (composition_.decks.size() > 1)
+            {
+                composition_.decks.erase(
+                    composition_.decks.begin() + composition_.activeDeckIndex);
+                if (composition_.activeDeckIndex >= static_cast<int>(composition_.decks.size()))
+                    composition_.activeDeckIndex = static_cast<int>(composition_.decks.size()) - 1;
+                if (deckView_) deckView_->rebuildGrid();
+            }
+            break;
+        case C::kDeckClearClips:
+            if (auto* deck = composition_.getActiveDeck())
+            {
+                for (int l = 0; l < deck->getNumLayers(); ++l)
+                    if (auto* layer = deck->getLayer(l))
+                    {
+                        layer->clips.clear();
+                        layer->ensureColumns(deck->numColumns);
+                        layer->clearActiveClip();
+                    }
+                if (deckView_) deckView_->rebuildGrid();
+            }
+            break;
+
+        // --- Layer menu ---
+        case C::kLayerNew:
+        case C::kLayerInsertAbove:
+        case C::kLayerInsertBelow:
+            if (auto* deck = composition_.getActiveDeck())
+            {
+                deck->addLayer();
+                if (deckView_) deckView_->rebuildGrid();
+            }
+            break;
+        case C::kLayerRemove:
+            if (auto* deck = composition_.getActiveDeck())
+            {
+                if (deck->getNumLayers() > 1)
+                {
+                    deck->removeLayer(deck->getNumLayers() - 1);
+                    if (deckView_) deckView_->rebuildGrid();
+                }
+            }
+            break;
+        case C::kLayerClearClips:
+            if (auto* deck = composition_.getActiveDeck())
+            {
+                for (int l = 0; l < deck->getNumLayers(); ++l)
+                    if (auto* layer = deck->getLayer(l))
+                    {
+                        layer->clips.clear();
+                        layer->ensureColumns(deck->numColumns);
+                        layer->clearActiveClip();
+                    }
+                if (deckView_) deckView_->rebuildGrid();
+            }
+            break;
+
+        // --- Column menu ---
+        case C::kColumnNew:
+        case C::kColumnInsertBefore:
+        case C::kColumnInsertAfter:
+            if (auto* deck = composition_.getActiveDeck())
+            {
+                deck->addColumn();
+                if (deckView_) deckView_->rebuildGrid();
+            }
+            break;
+        case C::kColumnRemove:
+            if (auto* deck = composition_.getActiveDeck())
+            {
+                if (deck->numColumns > 1)
+                {
+                    deck->removeColumn(deck->numColumns - 1);
+                    if (deckView_) deckView_->rebuildGrid();
+                }
+            }
+            break;
+
+        // --- Clip menu ---
+        case C::kClipClear:
+            // Clear selected clips
+            if (deckView_ && !deckView_->getSelectedCells().empty())
+            {
+                auto* deck = composition_.getActiveDeck();
+                if (deck)
+                {
+                    for (auto& cell : deckView_->getSelectedCells())
+                        deck->setClip(cell.layer, cell.column, Clip{});
+                    deckView_->rebuildGrid();
+                }
+            }
+            break;
+
+        // --- Output menu ---
+        case C::kOutputDisabled:
+            closeOutput();
+            break;
+        case C::kOutputSnapshot:
+            // TODO: implement screenshot
+            break;
+
+        // --- View menu ---
+        case C::kViewProgrammingMode:
+            if (signalBar_)
+            {
+                // Toggle between expanded and normal
+                if (signalBar_->getDisplaySize() == SignalStrip::DisplaySize::Expanded)
+                    signalBar_->setDisplaySize(SignalStrip::DisplaySize::Normal);
+                else
+                    signalBar_->setDisplaySize(SignalStrip::DisplaySize::Expanded);
+                if (signalBar_->onSizeChanged)
+                    signalBar_->onSizeChanged();
+            }
+            break;
+
+        default:
+            DBG("Menu command not yet implemented: " + juce::String(commandId));
+            break;
+    }
 }
 
 // === Resizable divider mouse handling ===

@@ -3,8 +3,21 @@
 PreviewPanel::PreviewPanel(FeatureBus& featureBus)
     : renderer_(featureBus)
 {
-    // Attach the GL context to this component
-    renderer_.attachTo(*this);
+    // Tab buttons
+    addAndMakeVisible(previewTabBtn_);
+    addAndMakeVisible(outputTabBtn_);
+
+    previewTabBtn_.onClick = [this] { setActiveTab(Tab::Preview); };
+    outputTabBtn_.onClick  = [this] { setActiveTab(Tab::Output); };
+
+    // GL host — the renderer attaches to this inner component,
+    // so the tab bar (JUCE 2D) stays above the GL surface.
+    addAndMakeVisible(glHost_);
+
+    updateTabButtonColors();
+
+    // Attach the GL context to the inner host component (not this)
+    renderer_.attachTo(glHost_);
 }
 
 PreviewPanel::~PreviewPanel()
@@ -14,28 +27,45 @@ PreviewPanel::~PreviewPanel()
 
 void PreviewPanel::paint(juce::Graphics& g)
 {
-    // Only paint JUCE 2D content when no image is loaded.
-    // When an image is loaded, the OpenGL renderer handles everything.
-    if (!imageLoaded_)
-    {
-        g.fillAll(juce::Colour(0xff0a0a14));
-        g.setColour(juce::Colour(0xff666666));
-        g.setFont(16.0f);
-        g.drawText("Load an image to see audio-reactive effects",
-                    getLocalBounds(), juce::Justification::centred);
-    }
+    // Tab bar background
+    auto tabArea = getLocalBounds().removeFromTop(kTabBarHeight);
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kSurface));
+    g.fillRect(tabArea);
+
+    // Border below tabs
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kPanelBorder));
+    g.drawHorizontalLine(kTabBarHeight - 1, 0.0f, static_cast<float>(getWidth()));
 }
 
 void PreviewPanel::resized()
 {
-    // The GL context auto-resizes with the component
+    auto area = getLocalBounds();
+    auto tabBar = area.removeFromTop(kTabBarHeight);
+
+    int tabWidth = std::min(80, tabBar.getWidth() / 2);
+    previewTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
+    outputTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
+
+    // GL host fills the content area below tabs — visible on both tabs
+    // Preview = selected clip solo, Output = full composition
+    // (Both render from the same renderer for now)
+    glHost_.setBounds(area);
 }
 
 void PreviewPanel::loadImage(const juce::File& imageFile)
 {
     renderer_.loadImage(imageFile);
     imageLoaded_ = true;
-    repaint();
+    glHost_.imageLoaded_ = true;
+    glHost_.repaint();
+}
+
+void PreviewPanel::clearImage()
+{
+    renderer_.clearImage();
+    imageLoaded_ = false;
+    glHost_.imageLoaded_ = false;
+    glHost_.repaint();
 }
 
 void PreviewPanel::queueCameraFrame(const juce::Image& frame)
@@ -44,6 +74,39 @@ void PreviewPanel::queueCameraFrame(const juce::Image& frame)
     if (!imageLoaded_)
     {
         imageLoaded_ = true;
-        repaint();
+        glHost_.imageLoaded_ = true;
+        glHost_.repaint();
     }
+}
+
+void PreviewPanel::setActiveTab(Tab tab)
+{
+    if (activeTab_ == tab)
+        return;
+    activeTab_ = tab;
+    updateTabButtonColors();
+    repaint();
+}
+
+void PreviewPanel::updateTabButtonColors()
+{
+    auto setTabStyle = [](juce::TextButton& btn, bool active) {
+        if (active)
+        {
+            btn.setColour(juce::TextButton::buttonColourId,
+                          juce::Colour(AudioDNALookAndFeel::kSurfaceLight));
+            btn.setColour(juce::TextButton::textColourOffId,
+                          juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+        }
+        else
+        {
+            btn.setColour(juce::TextButton::buttonColourId,
+                          juce::Colour(AudioDNALookAndFeel::kSurface));
+            btn.setColour(juce::TextButton::textColourOffId,
+                          juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        }
+    };
+
+    setTabStyle(previewTabBtn_, activeTab_ == Tab::Preview);
+    setTabStyle(outputTabBtn_,  activeTab_ == Tab::Output);
 }

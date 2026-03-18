@@ -209,6 +209,10 @@ target_sources(AudioDNA PRIVATE
     src/ui/RecordPanel.cpp
     src/ui/BrowserPanel.h
     src/ui/BrowserPanel.cpp
+    src/ui/MenuBarModel.h
+    src/ui/MenuBarModel.cpp
+    src/ui/PreferencesDialog.h
+    src/ui/PreferencesDialog.cpp
     src/keyboard/KeySlot.h
     src/render/CompositorEngine.h
     src/render/CompositorEngine.cpp

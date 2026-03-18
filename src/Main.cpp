@@ -32,10 +32,21 @@ private:
                              juce::Colour(0xff1a1a2e),
                              DocumentWindow::allButtons)
         {
+            auto* mainComp = new MainComponent();
+
             setUsingNativeTitleBar(true);
-            setContentOwned(new MainComponent(), true);
+            setContentOwned(mainComp, true);
             setResizable(true, true);
             setResizeLimits(1280, 720, 3840, 2160);
+
+            // Set the menu bar from MainComponent's model
+            #if JUCE_MAC
+                // On macOS, use the native menu bar at the top of the screen
+                juce::MenuBarModel::setMacMainMenu(mainComp->getMenuBarModel());
+            #else
+                // On Windows/Linux, set the menu bar on the window
+                setMenuBar(mainComp->getMenuBarModel());
+            #endif
 
             // Open maximized to fill the screen
             auto display = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay();
@@ -49,6 +60,15 @@ private:
                 centreWithSize(getWidth(), getHeight());
             }
             setVisible(true);
+        }
+
+        ~MainWindow() override
+        {
+            #if JUCE_MAC
+                juce::MenuBarModel::setMacMainMenu(nullptr);
+            #else
+                setMenuBar(nullptr);
+            #endif
         }
 
         void closeButtonPressed() override
