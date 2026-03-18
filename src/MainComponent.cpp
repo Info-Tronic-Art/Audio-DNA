@@ -482,6 +482,10 @@ MainComponent::MainComponent()
     signalBar_ = std::make_unique<SignalBar>(signalRegistry_, analysisThread_.getFeatureBus());
     addAndMakeVisible(signalBar_.get());
     signalBar_->onSizeChanged = [this] { resized(); };
+    signalBar_->onSignalSelected = [this](Signal& signal) {
+        if (inspectorPanel_)
+            inspectorPanel_->inspectSignal(&signal);
+    };
 
     programmingMode_ = std::make_unique<ProgrammingMode>(*signalBar_);
     addChildComponent(programmingMode_.get());
@@ -497,11 +501,19 @@ MainComponent::MainComponent()
     deckView_->onColumnTriggered = [this](int col) {
         handleColumnTrigger(col);
     };
-    deckView_->onClipSelected = [](int /*layerIdx*/, int /*col*/) {
-        // TODO P6: switch inspector to clip tab
+    deckView_->onClipSelected = [this](int layerIdx, int col) {
+        if (!inspectorPanel_) return;
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        if (auto* clip = deck->getClip(layerIdx, col))
+            inspectorPanel_->inspectClip(clip);
     };
-    deckView_->onLayerSelected = [](int /*layerIdx*/) {
-        // TODO P6: switch inspector to layer tab
+    deckView_->onLayerSelected = [this](int layerIdx) {
+        if (!inspectorPanel_) return;
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        if (auto* layer = deck->getLayer(layerIdx))
+            inspectorPanel_->inspectLayer(layer);
     };
     deckView_->onFileDropped = [this](int layerIdx, int col, const juce::File& file) {
         handleFileDrop(layerIdx, col, file);
@@ -509,6 +521,17 @@ MainComponent::MainComponent()
     deckView_->onDeckSwitched = [this](int deckIdx) {
         handleDeckSwitch(deckIdx);
     };
+
+    // === v2: Inspector Panel ===
+    inspectorPanel_ = std::make_unique<InspectorPanel>();
+    addAndMakeVisible(inspectorPanel_.get());
+    inspectorPanel_->setComposition(&composition_);
+    inspectorPanel_->setEffectLibrary(&effectLibrary_);
+    inspectorPanel_->setSignalRegistry(&signalRegistry_);
+
+    // === v2: Timing Window ===
+    timingWindow_ = std::make_unique<TimingWindow>();
+    addAndMakeVisible(timingWindow_.get());
 
     // Start analysis
     analysisThread_.startThread(juce::Thread::Priority::high);
@@ -557,6 +580,81 @@ void MainComponent::paint(juce::Graphics& g)
         // Border
         g.setColour(juce::Colour(0xff333355));
         g.drawRoundedRectangle(b, 2.0f, 1.0f);
+    }
+
+    // Draw browser placeholder (Phase 7)
+    if (!browserPlaceholderBounds_.isEmpty())
+    {
+        auto bp = browserPlaceholderBounds_.toFloat();
+        g.setColour(juce::Colour(0xff1a1a1a));
+        g.fillRect(bp);
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kPanelBorder));
+        g.drawRect(bp, 1.0f);
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.4f));
+        g.setFont(juce::Font(juce::FontOptions(11.0f)));
+        g.drawText("Browser (Phase 7)", browserPlaceholderBounds_,
+                   juce::Justification::centred, false);
+    }
+
+    // Draw vertical dividers between bottom panels
+    for (int i = 0; i < 3; ++i)
+    {
+        if (!vDividerBounds_[i].isEmpty())
+        {
+            auto vd = vDividerBounds_[i].toFloat();
+            float midX = vd.getCentreX();
+            g.setColour(juce::Colour(AudioDNALookAndFeel::kPanelBorder));
+            g.drawVerticalLine(static_cast<int>(midX),
+                               vd.getY() + 10.0f, vd.getBottom() - 10.0f);
+        }
+    }
+
+    // Horizontal divider line below deck tabs
+    if (!dividerBounds_.isEmpty())
+    {
+        float lineY = static_cast<float>(dividerBounds_.getCentreY());
+        g.setColour(juce::Colour(0xff555577));
+        g.drawHorizontalLine(static_cast<int>(lineY),
+                             static_cast<float>(dividerBounds_.getX()),
+                             static_cast<float>(dividerBounds_.getRight()));
+    }
+
+    // Horizontal divider — show up arrow on hover (can only drag up)
+    if (hoveringHDivider_ && !dividerBounds_.isEmpty())
+    {
+        float cx = static_cast<float>(dividerBounds_.getCentreX());
+        float cy = static_cast<float>(dividerBounds_.getCentreY());
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.7f));
+
+        // Up arrow
+        juce::Path up;
+        up.addTriangle(cx - 5.0f, cy + 2.0f,
+                       cx + 5.0f, cy + 2.0f,
+                       cx, cy - 4.0f);
+        g.fillPath(up);
+    }
+
+    // Vertical dividers — show left/right arrows on hover
+    if (hoveringVDivider_ >= 0 && !vDividerBounds_[hoveringVDivider_].isEmpty())
+    {
+        auto vd = vDividerBounds_[hoveringVDivider_].toFloat();
+        float cx = vd.getCentreX();
+        float cy = vd.getCentreY();
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.7f));
+
+        // Left arrow
+        juce::Path left;
+        left.addTriangle(cx - 6.0f, cy,
+                         cx - 1.0f, cy - 5.0f,
+                         cx - 1.0f, cy + 5.0f);
+        g.fillPath(left);
+
+        // Right arrow
+        juce::Path right;
+        right.addTriangle(cx + 6.0f, cy,
+                          cx + 1.0f, cy - 5.0f,
+                          cx + 1.0f, cy + 5.0f);
+        g.fillPath(right);
     }
 }
 
@@ -607,6 +705,8 @@ void MainComponent::resized()
         if (keyboardPanel_) keyboardPanel_->setVisible(false);
         if (keyEditor_) keyEditor_->setVisible(false);
         if (deckView_) deckView_->setVisible(false);
+        if (inspectorPanel_) inspectorPanel_->setVisible(false);
+        if (timingWindow_) timingWindow_->setVisible(false);
         return;
     }
 
@@ -682,49 +782,98 @@ void MainComponent::resized()
     if (keyboardPanel_)
         keyboardPanel_->setVisible(false);
 
-    // Deck view takes ~50% of remaining height
+    // Hide v1 panels removed from v2 layout
+    audioReadoutPanel_.setVisible(false);
+    spectrumDisplay_.setVisible(false);
+    if (effectsRackPanel_) effectsRackPanel_->setVisible(false);
+
+    // === Deck + Bottom panels — locked together, drag up only ===
+    int availableHeight = area.getHeight();
+
+    // Natural height = snug fit around layers + triggers + tabs
+    int naturalDeckHeight = deckView_ ? deckView_->getNaturalHeight() : 200;
+    int maxDeckHeight = std::min(naturalDeckHeight, availableHeight - kMinBottomHeight);
+
+    int deckHeight;
+    if (deckDividerY_ > 0)
+    {
+        // User dragged up — cap at natural height (can't drag down past it)
+        deckHeight = juce::jlimit(kMinDeckHeight, maxDeckHeight,
+                                   deckDividerY_ - area.getY());
+    }
+    else
+    {
+        deckHeight = maxDeckHeight;
+    }
+
+    // Deck view
     if (deckView_)
     {
-        int deckHeight = std::max(200, static_cast<int>(area.getHeight() * 0.50f));
         deckView_->setBounds(area.removeFromTop(deckHeight));
         deckView_->setVisible(true);
-        area.removeFromTop(2);
+    }
+    else
+    {
+        area.removeFromTop(deckHeight);
     }
 
-    // === Bottom panel area: preview + audio readouts + effects rack ===
-    int totalWidth = area.getWidth();
-    int leftWidth = std::max(180, static_cast<int>(totalWidth * 0.18f));
-    int rightWidth = std::max(200, static_cast<int>(totalWidth * 0.28f));
+    // Thin visible divider line between deck and bottom panels
+    // Takes a small strip from `area` so it doesn't overlap the deck
+    dividerBounds_ = area.removeFromTop(kDividerHeight);
 
-    // Left panel: audio readouts + spectrum
-    {
-        auto leftPanel = area.removeFromLeft(leftWidth);
-        int spectrumHeight = std::max(80, static_cast<int>(leftPanel.getHeight() * 0.30f));
-        spectrumDisplay_.setBounds(leftPanel.removeFromBottom(spectrumHeight));
-        leftPanel.removeFromBottom(4);
-        audioReadoutPanel_.setBounds(leftPanel);
-        spectrumDisplay_.setVisible(true);
-        audioReadoutPanel_.setVisible(true);
-        area.removeFromLeft(4);
-    }
+    // === Bottom panel area with draggable vertical dividers ===
+    // 4 panels: preview | timing window | inspector | browser
+    // 3 vertical dividers between them, positioned by vDividerFrac_[]
+    bottomAreaX_ = area.getX();
+    bottomAreaWidth_ = area.getWidth();
+    int btmY = area.getY();
+    int btmH = area.getHeight();
 
-    // Right panel: effects rack
-    if (effectsRackPanel_)
-    {
-        auto rightPanel = area.removeFromRight(rightWidth);
-        effectsRackPanel_->setBounds(rightPanel);
-        effectsRackPanel_->setVisible(true);
-        area.removeFromRight(4);
-    }
+    // Compute panel edges from fractions
+    int d0x = bottomAreaX_ + static_cast<int>(vDividerFrac_[0] * static_cast<float>(bottomAreaWidth_));
+    int d1x = bottomAreaX_ + static_cast<int>(vDividerFrac_[1] * static_cast<float>(bottomAreaWidth_));
+    int d2x = bottomAreaX_ + static_cast<int>(vDividerFrac_[2] * static_cast<float>(bottomAreaWidth_));
 
-    // Center: preview + waveform
+    // Store divider bounds for hit testing and painting
+    vDividerBounds_[0] = { d0x, btmY, kVDividerWidth, btmH };
+    vDividerBounds_[1] = { d1x, btmY, kVDividerWidth, btmH };
+    vDividerBounds_[2] = { d2x, btmY, kVDividerWidth, btmH };
+
+    // Panel bounds (between dividers)
+    auto previewArea   = juce::Rectangle<int>(bottomAreaX_, btmY,
+                                               d0x - bottomAreaX_, btmH);
+    auto timingArea    = juce::Rectangle<int>(d0x + kVDividerWidth, btmY,
+                                               d1x - d0x - kVDividerWidth, btmH);
+    auto inspectorArea = juce::Rectangle<int>(d1x + kVDividerWidth, btmY,
+                                               d2x - d1x - kVDividerWidth, btmH);
+    auto browserArea   = juce::Rectangle<int>(d2x + kVDividerWidth, btmY,
+                                               bottomAreaX_ + bottomAreaWidth_ - d2x - kVDividerWidth, btmH);
+
+    // Preview + waveform (left)
     {
-        int waveformHeight = std::max(40, static_cast<int>(area.getHeight() * 0.12f));
-        waveformDisplay_.setBounds(area.removeFromBottom(waveformHeight));
+        int waveformHeight = std::max(30, static_cast<int>(previewArea.getHeight() * 0.12f));
+        waveformDisplay_.setBounds(previewArea.removeFromBottom(waveformHeight));
         waveformDisplay_.setVisible(true);
+        previewPanel_.setBounds(previewArea);
+        previewPanel_.setVisible(true);
     }
 
-    previewPanel_.setBounds(area);
+    // Timing Window (center-left)
+    if (timingWindow_)
+    {
+        timingWindow_->setBounds(timingArea);
+        timingWindow_->setVisible(true);
+    }
+
+    // Inspector (center-right)
+    if (inspectorPanel_)
+    {
+        inspectorPanel_->setBounds(inspectorArea);
+        inspectorPanel_->setVisible(true);
+    }
+
+    // Browser placeholder (right)
+    browserPlaceholderBounds_ = browserArea;
 
     // Key Editor — full workspace overlay
     if (showKeyEditor_ && keyEditor_)
@@ -1877,4 +2026,136 @@ void MainComponent::handleDeckSwitch(int deckIndex)
 
     if (deckView_)
         deckView_->rebuildGrid();
+}
+
+// === Resizable divider mouse handling ===
+
+void MainComponent::mouseDown(const juce::MouseEvent& event)
+{
+    auto pos = event.position.toInt();
+
+    // Horizontal divider
+    if (dividerBounds_.contains(pos))
+    {
+        draggingDivider_ = true;
+        return;
+    }
+
+    // Vertical dividers
+    for (int i = 0; i < 3; ++i)
+    {
+        if (vDividerBounds_[i].contains(pos))
+        {
+            draggingVDivider_ = i;
+            return;
+        }
+    }
+
+    Component::mouseDown(event);
+}
+
+void MainComponent::mouseDrag(const juce::MouseEvent& event)
+{
+    if (draggingDivider_)
+    {
+        auto area = getLocalBounds().reduced(4);
+        int topOffset = area.getY();
+        if (topBar_) topOffset += 34 + 1;
+        if (signalBar_)
+        {
+            int sbh = signalBar_->getPreferredHeight();
+            if (sbh > 0) topOffset += sbh + 1;
+        }
+        topOffset += 24 + 2; // row1
+
+        int naturalDeckHeight = deckView_ ? deckView_->getNaturalHeight() : 200;
+        int minY = topOffset + kMinDeckHeight;
+        // Max = natural position (can drag up but not down past layers)
+        int maxY = topOffset + naturalDeckHeight;
+
+        deckDividerY_ = juce::jlimit(minY, maxY, event.position.roundToInt().y);
+        resized();
+        repaint();
+        return;
+    }
+
+    if (draggingVDivider_ >= 0)
+    {
+        int mouseX = event.position.roundToInt().x;
+        float frac = static_cast<float>(mouseX - bottomAreaX_)
+                   / static_cast<float>(bottomAreaWidth_);
+
+        // Clamp: each divider must stay between its neighbors with kMinPanelWidth gap
+        float minFrac = static_cast<float>(kMinPanelWidth)
+                      / static_cast<float>(bottomAreaWidth_);
+        float maxFrac = 1.0f - minFrac;
+
+        // Left neighbor
+        float leftLimit = (draggingVDivider_ > 0)
+            ? vDividerFrac_[draggingVDivider_ - 1] + minFrac
+            : minFrac;
+
+        // Right neighbor
+        float rightLimit = (draggingVDivider_ < 2)
+            ? vDividerFrac_[draggingVDivider_ + 1] - minFrac
+            : maxFrac;
+
+        vDividerFrac_[draggingVDivider_] = juce::jlimit(leftLimit, rightLimit, frac);
+        resized();
+        repaint();
+        return;
+    }
+
+    Component::mouseDrag(event);
+}
+
+void MainComponent::mouseUp(const juce::MouseEvent& /*event*/)
+{
+    if (draggingDivider_)
+    {
+        draggingDivider_ = false;
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+    }
+    if (draggingVDivider_ >= 0)
+    {
+        draggingVDivider_ = -1;
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+    }
+}
+
+void MainComponent::mouseMove(const juce::MouseEvent& event)
+{
+    auto pos = event.position.toInt();
+
+    bool prevHoverH = hoveringHDivider_;
+    int prevHoverV = hoveringVDivider_;
+
+    hoveringHDivider_ = false;
+    hoveringVDivider_ = -1;
+
+    if (dividerBounds_.contains(pos))
+    {
+        hoveringHDivider_ = true;
+        setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+    }
+    else
+    {
+        for (int i = 0; i < 3; ++i)
+        {
+            if (vDividerBounds_[i].contains(pos))
+            {
+                hoveringVDivider_ = i;
+                setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
+                break;
+            }
+        }
+    }
+
+    if (!hoveringHDivider_ && hoveringVDivider_ < 0
+        && !draggingDivider_ && draggingVDivider_ < 0)
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+
+    // Repaint if hover state changed
+    if (hoveringHDivider_ != prevHoverH || hoveringVDivider_ != prevHoverV)
+        repaint();
 }

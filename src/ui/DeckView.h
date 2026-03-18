@@ -42,6 +42,9 @@ public:
     int getActiveColumn() const { return activeColumn_; }
     void setActiveColumn(int col);
 
+    // Get the natural height that fits all layers + triggers + tabs exactly
+    int getNaturalHeight() const;
+
 private:
     Composition* composition_ = nullptr;
 

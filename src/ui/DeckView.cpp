@@ -20,15 +20,6 @@ void DeckView::resized()
 {
     auto area = getLocalBounds();
 
-    // Deck tabs at bottom
-    auto tabArea = area.removeFromBottom(kDeckTabHeight);
-    int tabX = 0;
-    for (auto& tab : deckTabs_)
-    {
-        tab->setBounds(tabX, tabArea.getY(), 100, kDeckTabHeight);
-        tabX += 102;
-    }
-
     // Column trigger row at top (shifted right by layer strip width)
     auto triggerRow = area.removeFromTop(kColumnTriggerHeight);
 
@@ -41,8 +32,26 @@ void DeckView::resized()
         triggerX += kCellWidth + kCellGap;
     }
 
-    // Grid viewport fills remainder
-    gridViewport_.setBounds(area);
+    // Calculate grid height to know where tabs should go
+    int numLayers = 0;
+    if (composition_)
+        if (auto* deck = composition_->getActiveDeck())
+            numLayers = deck->getNumLayers();
+
+    int gridHeight = (kCellHeight + kCellGap) * numLayers;
+
+    // Grid viewport — only as tall as the layers need
+    int viewportHeight = std::min(gridHeight, area.getHeight() - kDeckTabHeight);
+    gridViewport_.setBounds(area.removeFromTop(viewportHeight));
+
+    // Deck tabs immediately after the grid (attached to bottom of last layer)
+    auto tabArea = area.removeFromTop(kDeckTabHeight);
+    int tabX = 0;
+    for (auto& tab : deckTabs_)
+    {
+        tab->setBounds(tabX, tabArea.getY(), 100, kDeckTabHeight);
+        tabX += 102;
+    }
 
     // Layout grid content inside viewport
     layoutGrid();
@@ -196,6 +205,17 @@ void DeckView::setActiveColumn(int col)
 {
     activeColumn_ = col;
     refresh();
+}
+
+int DeckView::getNaturalHeight() const
+{
+    if (!composition_) return 200;
+    auto* deck = composition_->getActiveDeck();
+    if (!deck) return 200;
+
+    int numLayers = deck->getNumLayers();
+    int rowHeight = kCellHeight + kCellGap;
+    return kColumnTriggerHeight + rowHeight * numLayers + kDeckTabHeight;
 }
 
 void DeckView::layoutGrid()

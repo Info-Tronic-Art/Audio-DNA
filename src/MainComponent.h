@@ -20,6 +20,8 @@
 #include "ui/TopBar.h"
 #include "ui/ProgrammingMode.h"
 #include "ui/DeckView.h"
+#include "ui/InspectorPanel.h"
+#include "ui/TimingWindow.h"
 #include "signal/SignalRegistry.h"
 #include "model/Composition.h"
 #if AUDIODNA_HAS_CAMERA
@@ -191,6 +193,34 @@ private:
     std::unique_ptr<SignalBar> signalBar_;
     std::unique_ptr<ProgrammingMode> programmingMode_;
     std::unique_ptr<DeckView> deckView_;
+    std::unique_ptr<InspectorPanel> inspectorPanel_;
+
+    // Resizable horizontal divider between deck and bottom panels
+    int deckDividerY_ = -1; // -1 = auto (snap to bottom of layers)
+    bool draggingDivider_ = false;
+    static constexpr int kDividerHeight = 5;
+    static constexpr int kMinDeckHeight = 120;
+    static constexpr int kMinBottomHeight = 100;
+    juce::Rectangle<int> dividerBounds_;
+    juce::Rectangle<int> browserPlaceholderBounds_;
+    std::unique_ptr<TimingWindow> timingWindow_;
+
+    // Resizable vertical dividers between bottom panels
+    // 4 panels: preview | timing | inspector | browser
+    // 3 dividers between them, stored as fractional X positions [0,1] within bottom area
+    static constexpr int kVDividerWidth = 5;
+    static constexpr int kMinPanelWidth = 120;
+    float vDividerFrac_[3] = { 0.22f, 0.50f, 0.75f }; // initial fractions
+    juce::Rectangle<int> vDividerBounds_[3];
+    int draggingVDivider_ = -1; // -1 = none, 0/1/2 = which divider
+    bool hoveringHDivider_ = false;
+    int hoveringVDivider_ = -1; // -1 = none
+    int bottomAreaX_ = 0;       // left edge of bottom panel area
+    int bottomAreaWidth_ = 0;   // total width of bottom panel area
+    void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
+    void mouseUp(const juce::MouseEvent& event) override;
+    void mouseMove(const juce::MouseEvent& event) override;
 
     void handleClipTrigger(int layerIndex, int column);
     void handleColumnTrigger(int column);

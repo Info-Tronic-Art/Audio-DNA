@@ -26,7 +26,7 @@
 | **P3** | Architecture Foundation | **COMPLETE** | NO — backend only. Self-validate: build + tests pass. |
 | **P4** | Signal Bar + Top Bar | **COMPLETE** | YES — new top section visible in app |
 | **P5** | Deck View | NOT STARTED | YES — new center section visible |
-| **P6** | Inspector | NOT STARTED | YES — new right-center section visible |
+| **P6** | Inspector | **COMPLETE** | YES — new right-center section visible |
 | **P7** | Browser | NOT STARTED | YES — new right section visible |
 | **P8** | Preview, Output, Layout, Menus, Prefs | NOT STARTED | YES — complete layout visible |
 | **P9** | Binding System & MIDI | NOT STARTED | YES — bind mode overlay visible |

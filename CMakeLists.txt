@@ -179,6 +179,24 @@ target_sources(AudioDNA PRIVATE
     src/ui/LayerStrip.cpp
     src/ui/DeckView.h
     src/ui/DeckView.cpp
+    src/ui/UniversalParamControl.h
+    src/ui/UniversalParamControl.cpp
+    src/ui/EffectStackView.h
+    src/ui/EffectStackView.cpp
+    src/ui/MacroPanel.h
+    src/ui/MacroPanel.cpp
+    src/ui/ClipInspector.h
+    src/ui/ClipInspector.cpp
+    src/ui/LayerInspector.h
+    src/ui/LayerInspector.cpp
+    src/ui/CompositionInspector.h
+    src/ui/CompositionInspector.cpp
+    src/ui/SignalInspector.h
+    src/ui/SignalInspector.cpp
+    src/ui/InspectorPanel.h
+    src/ui/InspectorPanel.cpp
+    src/ui/TimingWindow.h
+    src/ui/TimingWindow.cpp
     src/keyboard/KeySlot.h
     src/render/CompositorEngine.h
     src/render/CompositorEngine.cpp
