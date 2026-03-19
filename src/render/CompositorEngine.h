@@ -4,8 +4,10 @@
 #include "render/ShaderManager.h"
 #include "render/TextureManager.h"
 #include "render/FullscreenQuad.h"
+#include "analysis/FeatureSnapshot.h"
 #include <unordered_map>
 #include <string>
+#include <functional>
 
 // CompositorEngine: multi-layer compositing for v2 deck mode.
 //
@@ -39,6 +41,24 @@ public:
     // Get or create a texture for a key/clip's image file (cached).
     GLuint getKeyTexture(const juce::File& imageFile);
 
+    // Callback to render a procedural source by its type ID.
+    // Returns the GL texture ID of the rendered source, or 0 on failure.
+    // clipSourceParams are per-clip parameter overrides.
+    using SourceRenderFn = std::function<GLuint(const std::string& sourceId, float time, int w, int h,
+                                                 const std::vector<Clip::SourceParam>* clipSourceParams)>;
+
+    // Set the source rendering callback (provided by Renderer)
+    void setSourceRenderer(SourceRenderFn fn) { sourceRenderFn_ = std::move(fn); }
+
+    // Callback to get the current video frame texture for a clip.
+    // The Renderer advances video playback and uploads frames; this just returns the texture.
+    // Parameters: clip pointer, dt (frame delta time)
+    // Returns GL texture ID, or 0 if no frame ready.
+    using VideoFrameFn = std::function<GLuint(const Clip* clip, float dt)>;
+
+    // Set the video frame callback (provided by Renderer)
+    void setVideoFrameProvider(VideoFrameFn fn) { videoFrameFn_ = std::move(fn); }
+
     // === Deck/Layer-based compositing ===
     // Composite all layers in the deck and return the result texture.
     // Returns 0 if no layers have active clips.
@@ -66,6 +86,9 @@ private:
 
     // Texture cache: file path → GL texture ID
     std::unordered_map<std::string, GLuint> textureCache_;
+
+    SourceRenderFn sourceRenderFn_;
+    VideoFrameFn videoFrameFn_;
 
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);

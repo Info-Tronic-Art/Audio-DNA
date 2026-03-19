@@ -32,7 +32,7 @@
 | **P9** | Binding System & MIDI | **COMPLETE** | YES — bind mode overlay visible |
 | **P10** | Procedural Sources | **COMPLETE** | YES — sources in browser, renderable |
 | **P10.5** | Inspector Overhaul (Resolume-style) | **COMPLETE** | YES — full inspector with signal triangles, transform, video, crossfader, 8-link dashboard |
-| **P11** | Video Playback | NOT STARTED | YES — video clips play in deck |
+| **P11** | Video Playback | **COMPLETE** | YES — video clips play in deck |
 | **P12** | Phrase Tracking & Polish | NOT STARTED | YES — phrase indicator, recording |
 
 ---

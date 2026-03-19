@@ -79,6 +79,18 @@ private:
     // --- Beat Snap ---
     juce::ToggleButton beatSnapToggle_{"Beat Snap"};
 
+    // --- Image Sequence FPS ---
+    juce::Slider sequenceFpsSlider_;
+    juce::Label sequenceFpsLabel_;
+
+    // --- Beat Division (BPM Sync mode) ---
+    juce::ComboBox beatDivisionSelector_;
+    juce::Label beatDivisionLabel_;
+
+    // --- Content Beats (BPM Sync mode) ---
+    juce::Slider videoBeatsSlider_;
+    juce::Label videoBeatsLabel_;
+
     // --- Source Parameters ---
     std::vector<std::unique_ptr<UniversalParamControl>> sourceParamControls_;
     void buildSourceParamControls();

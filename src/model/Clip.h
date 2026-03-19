@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_core/juce_core.h>
+#include <juce_graphics/juce_graphics.h>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -13,12 +14,25 @@ struct Clip
     uint32_t id = 0; // Unique ID within composition
 
     // === Media ===
-    enum class MediaType : uint8_t { None, Image, Video, Camera, Source };
+    enum class MediaType : uint8_t { None, Image, Video, Camera, Source, ImageSequence };
     MediaType mediaType = MediaType::None;
     juce::File mediaFile;           // For Image or Video
     int cameraDeviceIndex = -1;     // For Camera
     std::string sourceType;         // For procedural Source (e.g., "perlin_noise")
     bool hasAlpha = false;          // True if media has an alpha channel
+
+    // === Image Sequence (multi-image as video) ===
+    std::vector<juce::File> sequenceFiles;  // Sorted image files
+    float sequenceFps = 2.5f;               // Configurable frames per second
+
+    // BPM Sync: how many beats to play back over
+    // e.g., 4.0 = play content over 4 beats (1 bar), 1.0 = over 1 beat
+    float beatDivision = 4.0f;
+
+    // How many beats the source content contains (for exact timing).
+    // If videoBeats=8 and beatDivision=8: plays at native speed at correct BPM.
+    // If videoBeats=8 and beatDivision=4: plays at 2x (half the content per cycle).
+    float videoBeats = 4.0f;
 
     // === Source Parameters (for procedural sources) ===
     struct SourceParam
@@ -95,9 +109,11 @@ struct Clip
     bool playing = false;
     double playheadPosition = 0.0; // [0,1] normalized
     int beatsPlayed = 0;
+    juce::Image thumbnail;          // Cached thumbnail for UI display
 
     // === Helpers ===
     bool hasMedia() const { return mediaType != MediaType::None; }
+    bool isPlayable() const { return mediaType == MediaType::Video || mediaType == MediaType::ImageSequence; }
     bool hasEffects() const { return !effects.empty(); }
     bool isEmpty() const { return !hasMedia() && !hasEffects(); }
 
@@ -109,6 +125,10 @@ struct Clip
         cameraDeviceIndex = -1;
         sourceType.clear();
         sourceParams.clear();
+        sequenceFiles.clear();
+        sequenceFps = 2.5f;
+        beatDivision = 4.0f;
+        videoBeats = 4.0f;
         effects.clear();
         transportMode = TransportMode::Timeline;
         loopMode = LoopMode::Loop;

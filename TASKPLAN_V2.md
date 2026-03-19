@@ -396,25 +396,41 @@
 
 **Goal**: HAP Alpha video clip support.
 
-- [ ] **P11.1** Implement HAP Alpha video decoder
-  - FFmpeg + libhap integration
-  - GPU-accelerated decoding
-  - Alpha channel support
-  - Files: `src/media/VideoPlayer.h/cpp`
+- [x] **P11.1** Video decoder via FFmpeg
+  - FFmpeg integration (libavformat/libavcodec/libavutil/libswscale)
+  - Supports MP4, MOV, QuickTime, AVI, MKV, WebM, M4V, HAP Alpha
+  - RGBA conversion + GL texture upload per frame
+  - Alpha channel detection (HAP Alpha, YUVA, RGBA pixel formats)
+  - Files: `src/media/VideoPlayer.h/cpp`, `cmake/FindFFmpeg.cmake`
 
-- [ ] **P11.2** Video transport controls
-  - Play/pause/reverse, speed control, scrubber
-  - Loop modes: loop, ping-pong, one-shot
-  - BPM-synced speed (Follow BPM mode)
-  - Files: `src/media/VideoPlayer.h/cpp`
+- [x] **P11.2** Video transport controls + Image Sequence playback
+  - Play/pause/reverse, speed control, loop/ping-pong/one-shot
+  - Image sequences: drag multiple PNGs/JPEGs → treated as video clip
+  - Configurable Images/Sec (0-6 fps) for image sequences
+  - Thumbnails displayed in deck cells and layer strips
+  - Files: `src/media/VideoPlayer.h/cpp`, `src/media/ImageSequence.h/cpp`
 
-- [ ] **P11.3** Beat snap for video clips
-  - On trigger: calculate start position from beat phase
-  - `startPosition = (currentBeatPhase / clipBeatLength) * clipDuration`
-  - Files: `src/model/Clip.cpp`
+- [x] **P11.3** BPM Sync transport mode for video + image sequences
+  - Beat division dropdown: 1/4 beat through 16 beats (4 bars)
+  - Content Beats: how many beats the source contains (snaps to 1/2/4/8/16/32/64)
+  - Video speed auto-calculated: `videoBeats / beatDivision`
+  - Image sequence FPS auto-calculated from BPM + beat division
+  - Signal connect triangle (cyan when BPM Sync active)
+  - Files: `src/render/Renderer.cpp`, `src/ui/ClipInspector.h/cpp`
 
-- [ ] **P11.4** Cuepoints
-  - 8 save slots per clip
+- [x] **P11.4** Beat snap for clip triggering
+  - On trigger with Beat Snap enabled: seek to current beat phase position
+  - Works for both video clips and image sequences
+  - Files: `src/MainComponent.cpp`
+
+- [x] **P11.5** Compositor integration
+  - CompositorEngine now renders Video and ImageSequence media types
+  - Renderer::renderOpenGL() calls compositeDeck() when active deck has content
+  - Video frame callback: advance + upload per render frame
+  - Files: `src/render/CompositorEngine.h/cpp`, `src/render/Renderer.h/cpp`
+
+- [ ] **P11.6** Cuepoints (deferred to P12)
+  - 8 save slots per clip (data model exists, UI buttons exist, logic TBD)
   - Jump to cuepoint via buttons or bindings
   - Files: `src/model/Clip.h/cpp`, `src/ui/ClipInspector.cpp`
 

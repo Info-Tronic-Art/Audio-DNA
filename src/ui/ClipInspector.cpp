@@ -12,6 +12,8 @@ ClipInspector::ClipInspector()
         if (!clip_) return;
         clip_->transportMode = transportModeSelector_.getSelectedId() == 2
             ? Clip::TransportMode::BPMSync : Clip::TransportMode::Timeline;
+        resized();
+        repaint();
     };
     addAndMakeVisible(transportModeSelector_);
 
@@ -143,6 +145,104 @@ ClipInspector::ClipInspector()
     };
     addAndMakeVisible(beatSnapToggle_);
 
+    // Image sequence FPS slider
+    sequenceFpsLabel_.setText("Images/ Sec", juce::dontSendNotification);
+    sequenceFpsLabel_.setColour(juce::Label::textColourId,
+                                juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    sequenceFpsLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
+    addAndMakeVisible(sequenceFpsLabel_);
+
+    sequenceFpsSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    sequenceFpsSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 34, 20);
+    sequenceFpsSlider_.setRange(0.0, 6.0, 0.1);
+    sequenceFpsSlider_.setValue(2.5, juce::dontSendNotification);
+    sequenceFpsSlider_.setScrollWheelEnabled(false);
+    sequenceFpsSlider_.setColour(juce::Slider::thumbColourId,
+                                  juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    sequenceFpsSlider_.setColour(juce::Slider::textBoxTextColourId,
+                                  juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    sequenceFpsSlider_.setColour(juce::Slider::textBoxBackgroundColourId,
+                                  juce::Colour(0x00000000));
+    sequenceFpsSlider_.setColour(juce::Slider::textBoxOutlineColourId,
+                                  juce::Colour(0x00000000));
+    sequenceFpsSlider_.onValueChange = [this] {
+        if (clip_) clip_->sequenceFps = static_cast<float>(sequenceFpsSlider_.getValue());
+    };
+    addAndMakeVisible(sequenceFpsSlider_);
+
+    // Beat division dropdown (shown in BPM Sync mode for image sequences)
+    beatDivisionLabel_.setText("Beats/ Cycle", juce::dontSendNotification);
+    beatDivisionLabel_.setColour(juce::Label::textColourId,
+                                  juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    beatDivisionLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
+    addAndMakeVisible(beatDivisionLabel_);
+
+    //                              ID    display text        beatDivision value
+    beatDivisionSelector_.addItem("1/4 Beat",   1);   // 0.25
+    beatDivisionSelector_.addItem("1/2 Beat",   2);   // 0.5
+    beatDivisionSelector_.addItem("1 Beat",     3);   // 1
+    beatDivisionSelector_.addItem("2 Beats",    4);   // 2
+    beatDivisionSelector_.addItem("4 Beats (1 Bar)", 5); // 4
+    beatDivisionSelector_.addItem("8 Beats (2 Bars)", 6); // 8
+    beatDivisionSelector_.addItem("16 Beats (4 Bars)", 7); // 16
+    beatDivisionSelector_.setSelectedId(5, juce::dontSendNotification); // default: 4 beats
+    beatDivisionSelector_.onChange = [this] {
+        if (!clip_) return;
+        int sel = beatDivisionSelector_.getSelectedId();
+        switch (sel)
+        {
+            case 1: clip_->beatDivision = 0.25f; break;
+            case 2: clip_->beatDivision = 0.5f; break;
+            case 3: clip_->beatDivision = 1.0f; break;
+            case 4: clip_->beatDivision = 2.0f; break;
+            case 5: clip_->beatDivision = 4.0f; break;
+            case 6: clip_->beatDivision = 8.0f; break;
+            case 7: clip_->beatDivision = 16.0f; break;
+            default: break;
+        }
+    };
+    addAndMakeVisible(beatDivisionSelector_);
+
+    // Content Beats slider (how many beats the source media contains)
+    videoBeatsLabel_.setText("Content Beats", juce::dontSendNotification);
+    videoBeatsLabel_.setColour(juce::Label::textColourId,
+                               juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    videoBeatsLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
+    addAndMakeVisible(videoBeatsLabel_);
+
+    videoBeatsSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    videoBeatsSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, true, 34, 20);
+    videoBeatsSlider_.setTextBoxIsEditable(true);
+    videoBeatsSlider_.setRange(1.0, 64.0, 1.0);
+    videoBeatsSlider_.setValue(4.0, juce::dontSendNotification);
+    videoBeatsSlider_.setScrollWheelEnabled(false);
+    // Snap to musical values: 0, 1, 2, 4, 8, 16, 32, 64
+    videoBeatsSlider_.setSkewFactor(0.5);  // bunch low values together
+    videoBeatsSlider_.onValueChange = [this] {
+        // Snap to nearest musical value
+        double raw = videoBeatsSlider_.getValue();
+        static const double snaps[] = {1, 2, 4, 8, 16, 32, 64};
+        double best = 0;
+        double bestDist = 999;
+        for (double s : snaps)
+        {
+            double d = std::abs(raw - s);
+            if (d < bestDist) { bestDist = d; best = s; }
+        }
+        if (std::abs(raw - best) > 0.01)
+            videoBeatsSlider_.setValue(best, juce::dontSendNotification);
+        if (clip_) clip_->videoBeats = static_cast<float>(best);
+    };
+    videoBeatsSlider_.setColour(juce::Slider::thumbColourId,
+                                juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    videoBeatsSlider_.setColour(juce::Slider::textBoxTextColourId,
+                                juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    videoBeatsSlider_.setColour(juce::Slider::textBoxBackgroundColourId,
+                                juce::Colour(0x00000000));
+    videoBeatsSlider_.setColour(juce::Slider::textBoxOutlineColourId,
+                                juce::Colour(0x00000000));
+    addAndMakeVisible(videoBeatsSlider_);
+
     // Cuepoints
     for (int i = 0; i < kNumCuepoints; ++i)
     {
@@ -257,7 +357,34 @@ void ClipInspector::paint(juce::Graphics& g)
     int y = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Transport");
-    y += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap;
+    int transportExtraH = 0;
+    bool showExtraRow = false;
+    if (clip_->isPlayable())
+    {
+        bool bpmSync = (clip_->transportMode == Clip::TransportMode::BPMSync);
+        bool isSeq = (clip_->mediaType == Clip::MediaType::ImageSequence);
+        showExtraRow = bpmSync || isSeq;
+        if (bpmSync)
+            transportExtraH = kRowHeight * 2;  // Beats/Cycle + Content Beats
+        else if (isSeq)
+            transportExtraH = kRowHeight;       // Images/Sec only
+    }
+    if (showExtraRow)
+    {
+
+        // Draw signal-connect triangle
+        int fpsRowY = y + kSectionHeaderHeight + kRowHeight * 4;
+        float triCx = 4.0f + 7.0f;
+        float triCy = static_cast<float>(fpsRowY) + static_cast<float>(kRowHeight) * 0.5f;
+        float hs = 4.0f;
+        juce::Path tri;
+        tri.addTriangle(triCx - hs, triCy - hs, triCx - hs, triCy + hs, triCx + hs, triCy);
+        bool connected = (clip_->transportMode == Clip::TransportMode::BPMSync);
+        g.setColour(connected ? juce::Colour(AudioDNALookAndFeel::kAccentCyan)
+                              : juce::Colour(0xff666666));
+        g.fillPath(tri);
+    }
+    y += kSectionHeaderHeight + kRowHeight * 4 + transportExtraH + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Cuepoints");
     y += kSectionHeaderHeight + kRowHeight + kSectionGap;
@@ -347,7 +474,72 @@ void ClipInspector::resized()
         row.removeFromRight(4);
         durationSlider_.setBounds(row);
     }
-    y += kRowHeight + kSectionGap;
+    y += kRowHeight;
+
+    // Playable clips: show Images/Sec (Timeline, image seq only) or Beats/Cycle (BPM Sync, all playable)
+    if (clip_ && clip_->isPlayable())
+    {
+        bool bpmSync = (clip_->transportMode == Clip::TransportMode::BPMSync);
+        bool isSeq = (clip_->mediaType == Clip::MediaType::ImageSequence);
+        int triW = 14;
+        int labelW = 76;
+
+        if (bpmSync)
+        {
+            // BPM Sync: show beat division dropdown + content beats
+            sequenceFpsLabel_.setVisible(false);
+            sequenceFpsSlider_.setVisible(false);
+            beatDivisionLabel_.setVisible(true);
+            beatDivisionSelector_.setVisible(true);
+            beatDivisionLabel_.setBounds(area.getX() + triW, y, labelW, kRowHeight);
+            beatDivisionSelector_.setBounds(area.getX() + triW + labelW, y,
+                                             area.getWidth() - triW - labelW, kRowHeight);
+            y += kRowHeight;
+
+            // Content Beats row
+            videoBeatsLabel_.setVisible(true);
+            videoBeatsSlider_.setVisible(true);
+            int cbLabelW = 90;
+            videoBeatsLabel_.setBounds(area.getX() + triW, y, cbLabelW, kRowHeight);
+            videoBeatsSlider_.setBounds(area.getX() + triW + cbLabelW, y,
+                                         area.getWidth() - triW - cbLabelW, kRowHeight);
+            y += kRowHeight;
+        }
+        else if (isSeq)
+        {
+            // Timeline + Image Sequence: show Images/Sec slider
+            beatDivisionLabel_.setVisible(false);
+            beatDivisionSelector_.setVisible(false);
+            videoBeatsLabel_.setVisible(false);
+            videoBeatsSlider_.setVisible(false);
+            sequenceFpsLabel_.setVisible(true);
+            sequenceFpsSlider_.setVisible(true);
+            sequenceFpsLabel_.setBounds(area.getX() + triW, y, labelW, kRowHeight);
+            sequenceFpsSlider_.setBounds(area.getX() + triW + labelW, y,
+                                          area.getWidth() - triW - labelW, kRowHeight);
+            y += kRowHeight;
+        }
+        else
+        {
+            // Timeline + Video: no extra row needed
+            sequenceFpsLabel_.setVisible(false);
+            sequenceFpsSlider_.setVisible(false);
+            beatDivisionLabel_.setVisible(false);
+            beatDivisionSelector_.setVisible(false);
+            videoBeatsLabel_.setVisible(false);
+            videoBeatsSlider_.setVisible(false);
+        }
+    }
+    else
+    {
+        sequenceFpsLabel_.setVisible(false);
+        sequenceFpsSlider_.setVisible(false);
+        beatDivisionLabel_.setVisible(false);
+        beatDivisionSelector_.setVisible(false);
+        videoBeatsLabel_.setVisible(false);
+        videoBeatsSlider_.setVisible(false);
+    }
+    y += kSectionGap;
 
     // --- Cuepoints ---
     y += kSectionHeaderHeight;
@@ -556,7 +748,17 @@ int ClipInspector::getPreferredHeight() const
     if (!clip_) return 100;
 
     int h = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
-    h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Transport
+    int transportH = kRowHeight * 4;
+    if (clip_->isPlayable())
+    {
+        bool bpmSync = (clip_->transportMode == Clip::TransportMode::BPMSync);
+        bool isSeq = (clip_->mediaType == Clip::MediaType::ImageSequence);
+        if (bpmSync)
+            transportH += kRowHeight * 2;  // Beats/Cycle + Content Beats
+        else if (isSeq)
+            transportH += kRowHeight;       // Images/Sec
+    }
+    h += kSectionHeaderHeight + transportH + kSectionGap; // Transport
     h += kSectionHeaderHeight + kRowHeight + kSectionGap; // Cuepoints
     h += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap; // Autopilot
 
@@ -623,6 +825,25 @@ void ClipInspector::syncFromClip()
     reverseBtn_.setColour(juce::TextButton::buttonColourId,
         clip_->reverse ? juce::Colour(0xff4a4a2a) : juce::Colour(AudioDNALookAndFeel::kSurface));
     beatSnapToggle_.setToggleState(clip_->beatSnap, juce::dontSendNotification);
+
+    // Image sequence FPS / beat division
+    if (clip_->isPlayable())
+    {
+        if (clip_->mediaType == Clip::MediaType::ImageSequence)
+            sequenceFpsSlider_.setValue(static_cast<double>(clip_->sequenceFps), juce::dontSendNotification);
+
+        // Map beatDivision value to dropdown ID
+        int bdId = 5; // default: 4 beats
+        if (clip_->beatDivision <= 0.25f) bdId = 1;
+        else if (clip_->beatDivision <= 0.5f) bdId = 2;
+        else if (clip_->beatDivision <= 1.0f) bdId = 3;
+        else if (clip_->beatDivision <= 2.0f) bdId = 4;
+        else if (clip_->beatDivision <= 4.0f) bdId = 5;
+        else if (clip_->beatDivision <= 8.0f) bdId = 6;
+        else bdId = 7;
+        beatDivisionSelector_.setSelectedId(bdId, juce::dontSendNotification);
+        videoBeatsSlider_.setValue(static_cast<double>(clip_->videoBeats), juce::dontSendNotification);
+    }
 
     autopilotActionSelector_.setSelectedId(
         static_cast<int>(clip_->autopilotAction) + 1, juce::dontSendNotification);

@@ -593,13 +593,22 @@ void LayerStrip::updateThumbnail()
     auto* clip = layer_->getActiveClip();
     if (!clip || !clip->hasMedia()) return;
 
+    int sz = thumbnailBounds_.getHeight();
+    if (sz < 1) sz = 64;
+
+    // Use cached thumbnail from clip if available (video, image sequence)
+    if (clip->thumbnail.isValid())
+    {
+        thumbnail_ = clip->thumbnail.rescaled(sz, sz, juce::Graphics::lowResamplingQuality);
+        repaint(thumbnailBounds_);
+        return;
+    }
+
     if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
     {
         auto img = juce::ImageFileFormat::loadFrom(clip->mediaFile);
         if (img.isValid())
         {
-            int sz = thumbnailBounds_.getHeight();
-            if (sz < 1) sz = 64;
             thumbnail_ = img.rescaled(sz, sz, juce::Graphics::lowResamplingQuality);
         }
     }

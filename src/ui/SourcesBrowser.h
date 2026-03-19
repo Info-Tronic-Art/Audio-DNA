@@ -22,6 +22,7 @@ private:
     struct SourceEntry
     {
         juce::String name;
+        juce::String sourceId;  // Registry ID (e.g., "perlin_noise")
         juce::String category;
         juce::Colour color;
     };

@@ -24,7 +24,48 @@ void ClipCell::paint(juce::Graphics& g)
 
     // Thumbnail area
     auto thumbBounds = getThumbnailBounds().toFloat();
-    if (clip_ && clip_->hasMedia() && thumbnail_.isValid())
+    if (clip_ && clip_->mediaType == Clip::MediaType::Source && !clip_->sourceType.empty())
+    {
+        // Procedural source — show colored gradient indicator
+        g.setGradientFill(juce::ColourGradient(
+            juce::Colour(0xff2a1a3a), thumbBounds.getX(), thumbBounds.getY(),
+            juce::Colour(0xff1a2a3a), thumbBounds.getRight(), thumbBounds.getBottom(),
+            false));
+        g.fillRect(thumbBounds);
+
+        // Source type icon/label
+        g.setColour(juce::Colour(0xffbb88ff));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText("SRC", thumbBounds.removeFromTop(14.0f).reduced(2.0f, 0.0f),
+                   juce::Justification::centredLeft, false);
+
+        // Show source name
+        g.setColour(juce::Colour(kTextDim));
+        g.setFont(juce::Font(juce::FontOptions(10.0f)));
+        g.drawText(juce::String(clip_->sourceType),
+                   thumbBounds.reduced(4.0f), juce::Justification::centred, true);
+    }
+    else if (clip_ && (clip_->mediaType == Clip::MediaType::Video ||
+                       clip_->mediaType == Clip::MediaType::ImageSequence))
+    {
+        // Video or image sequence — show thumbnail
+        if (thumbnail_.isValid())
+        {
+            g.drawImage(thumbnail_, thumbBounds,
+                        juce::RectanglePlacement::centred
+                        | juce::RectanglePlacement::fillDestination);
+        }
+        else
+        {
+            g.setColour(juce::Colour(0xff1a2a2a));
+            g.fillRect(thumbBounds);
+            g.setColour(juce::Colour(kTextDim));
+            g.setFont(juce::Font(juce::FontOptions(10.0f)));
+            g.drawText(juce::String(clip_->name), thumbBounds.reduced(4.0f),
+                       juce::Justification::centred, true);
+        }
+    }
+    else if (clip_ && clip_->hasMedia() && thumbnail_.isValid())
     {
         g.drawImage(thumbnail_, thumbBounds,
                     juce::RectanglePlacement::centred
@@ -110,7 +151,8 @@ bool ClipCell::isInterestedInFileDrag(const juce::StringArray& files)
         auto ext = juce::File(f).getFileExtension().toLowerCase();
         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
             ext == ".gif" || ext == ".bmp" || ext == ".tiff" ||
-            ext == ".mov" || ext == ".avi" || ext == ".mp4")
+            ext == ".mov" || ext == ".avi" || ext == ".mp4" ||
+            ext == ".mkv" || ext == ".webm" || ext == ".m4v")
             return true;
     }
     return false;
@@ -133,17 +175,46 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
     dragHover_ = false;
     repaint();
 
+    // Separate images from videos
+    std::vector<juce::File> imageFiles;
+    juce::File videoFile;
+
     for (const auto& f : files)
     {
         auto file = juce::File(f);
         auto ext = file.getFileExtension().toLowerCase();
-        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
-            ext == ".gif" || ext == ".bmp" || ext == ".tiff" ||
-            ext == ".mov" || ext == ".avi" || ext == ".mp4")
+
+        if (ext == ".mov" || ext == ".avi" || ext == ".mp4" ||
+            ext == ".mkv" || ext == ".webm" || ext == ".m4v")
         {
-            if (onFileDrop) onFileDrop(layerIndex_, column_, file);
-            break;
+            videoFile = file;
         }
+        else if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+                 ext == ".gif" || ext == ".bmp" || ext == ".tiff")
+        {
+            imageFiles.push_back(file);
+        }
+    }
+
+    // If a video file was dropped, use that (single file drop)
+    if (videoFile.existsAsFile())
+    {
+        if (onFileDrop) onFileDrop(layerIndex_, column_, videoFile);
+        return;
+    }
+
+    // Multiple images = image sequence
+    if (imageFiles.size() > 1)
+    {
+        if (onMultiFileDrop) onMultiFileDrop(layerIndex_, column_, imageFiles);
+        return;
+    }
+
+    // Single image = normal image drop
+    if (imageFiles.size() == 1)
+    {
+        if (onFileDrop) onFileDrop(layerIndex_, column_, imageFiles[0]);
+        return;
     }
 }
 
@@ -182,6 +253,13 @@ void ClipCell::updateThumbnail()
 {
     thumbnail_ = juce::Image();
     if (!clip_ || !clip_->hasMedia()) return;
+
+    // Use cached thumbnail from clip if available (video, image sequence)
+    if (clip_->thumbnail.isValid())
+    {
+        thumbnail_ = clip_->thumbnail;
+        return;
+    }
 
     if (clip_->mediaType == Clip::MediaType::Image && clip_->mediaFile.existsAsFile())
     {

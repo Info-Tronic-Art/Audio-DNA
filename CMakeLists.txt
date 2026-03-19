@@ -14,6 +14,9 @@ include(cmake/CompilerWarnings.cmake)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Aubio REQUIRED)
 
+# --- FFmpeg (video decode: libavformat, libavcodec, libavutil, libswscale) ---
+find_package(FFmpeg REQUIRED)
+
 # --- JUCE via FetchContent ---
 include(FetchContent)
 
@@ -133,6 +136,18 @@ target_sources(AudioDNA PRIVATE
     # MIDI (v2)
     src/midi/MidiHandler.h
     src/midi/MidiHandler.cpp
+
+    # Media (v2 - Phase 11: Video playback)
+    src/media/VideoPlayer.h
+    src/media/VideoPlayer.cpp
+    src/media/ImageSequence.h
+    src/media/ImageSequence.cpp
+
+    # Sources (v2 - Phase 10)
+    src/sources/ProceduralSource.h
+    src/sources/ProceduralSource.cpp
+    src/sources/SourceRegistry.h
+    src/sources/SourceRegistry.cpp
 
     # Effects
     src/effects/Effect.h
@@ -254,6 +269,7 @@ set(AUDIODNA_LIBS
     juce::juce_gui_extra
     juce::juce_opengl
     Aubio::Aubio
+    FFmpeg::FFmpeg
 )
 if(AUDIODNA_USE_CAMERA)
     list(APPEND AUDIODNA_LIBS juce::juce_video)

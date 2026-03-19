@@ -482,6 +482,9 @@ MainComponent::MainComponent()
     addAndMakeVisible(deckView_.get());
     deckView_->setComposition(&composition_);
 
+    // Wire the active deck into the renderer for compositor rendering
+    previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+
     deckView_->onClipTriggered = [this](int layerIdx, int col) {
         handleClipTrigger(layerIdx, col);
     };
@@ -525,6 +528,9 @@ MainComponent::MainComponent()
     };
     deckView_->onFileDropped = [this](int layerIdx, int col, const juce::File& file) {
         handleFileDrop(layerIdx, col, file);
+    };
+    deckView_->onMultiFileDropped = [this](int layerIdx, int col, const std::vector<juce::File>& files) {
+        handleMultiFileDrop(layerIdx, col, files);
     };
     deckView_->onDeckSwitched = [this](int deckIdx) {
         handleDeckSwitch(deckIdx);
@@ -1823,6 +1829,32 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
     // Load the clip content into preview
     if (auto* clip = layer->getActiveClip())
     {
+        // Apply beat snap: sync playhead to current beat phase on trigger
+        if (clip->beatSnap && clip->isPlayable())
+        {
+            auto& featureBus = analysisThread_.getFeatureBus();
+            const auto* snap = featureBus.acquireRead();
+            if (!snap) snap = featureBus.getLatestRead();
+            if (snap && snap->beatPhase >= 0.0f)
+            {
+                double beatPos = static_cast<double>(snap->beatPhase);
+                clip->playheadPosition = beatPos;
+
+                // Seek the video player or image sequence
+                auto& renderer = previewPanel_.getRenderer();
+                if (clip->mediaType == Clip::MediaType::Video)
+                {
+                    auto* player = renderer.getVideoPlayer(clip->id);
+                    if (player) player->seekTo(beatPos);
+                }
+                else if (clip->mediaType == Clip::MediaType::ImageSequence)
+                {
+                    auto* seq = renderer.getImageSequence(clip->id);
+                    if (seq) seq->seekTo(beatPos);
+                }
+            }
+        }
+
         if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
         {
             previewPanel_.getRenderer().clearActiveSource();
@@ -1838,6 +1870,33 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
             previewPanel_.getRenderer().clearImage();
             currentImageFile_ = juce::File();
             fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+        }
+        else if (clip->mediaType == Clip::MediaType::Video && clip->mediaFile.existsAsFile())
+        {
+            // Ensure video player is open for this clip
+            auto& renderer = previewPanel_.getRenderer();
+            if (!renderer.getVideoPlayer(clip->id))
+                renderer.openVideoForClip(clip->id, clip->mediaFile);
+
+            // Video clips rendered via compositor — clear single-image path
+            renderer.clearActiveSource();
+            renderer.clearImage();
+            currentImageFile_ = juce::File();
+            fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+        }
+        else if (clip->mediaType == Clip::MediaType::ImageSequence && !clip->sequenceFiles.empty())
+        {
+            // Ensure image sequence is open for this clip
+            auto& renderer = previewPanel_.getRenderer();
+            if (!renderer.getImageSequence(clip->id))
+                renderer.openImageSequenceForClip(clip->id, clip->sequenceFiles, clip->sequenceFps);
+
+            renderer.clearActiveSource();
+            renderer.clearImage();
+            currentImageFile_ = juce::File();
+            auto frameCount = static_cast<int>(clip->sequenceFiles.size());
+            fileLabel_.setText(juce::String(clip->name) + " (" + juce::String(frameCount) + " frames)",
+                              juce::dontSendNotification);
         }
     }
     else
@@ -1906,15 +1965,17 @@ void MainComponent::handleColumnTrigger(int column)
     }
 }
 
+static uint32_t s_nextClipId = 1000;
+
 void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File& file)
 {
     auto* deck = composition_.getActiveDeck();
     if (!deck) return;
 
-    // Create a new clip with the dropped file
     Clip clip;
     clip.name = file.getFileNameWithoutExtension().toStdString();
     clip.mediaFile = file;
+    clip.id = s_nextClipId++;
 
     auto ext = file.getFileExtension().toLowerCase();
     if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
@@ -1922,10 +1983,65 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
     {
         clip.mediaType = Clip::MediaType::Image;
     }
-    else if (ext == ".mov" || ext == ".avi" || ext == ".mp4")
+    else if (ext == ".mov" || ext == ".avi" || ext == ".mp4" ||
+             ext == ".mkv" || ext == ".webm" || ext == ".m4v")
     {
         clip.mediaType = Clip::MediaType::Video;
+        clip.playing = true;
+
+        // Open the video file in the renderer's VideoPlayer
+        auto& renderer = previewPanel_.getRenderer();
+        if (renderer.openVideoForClip(clip.id, file))
+        {
+            auto* player = renderer.getVideoPlayer(clip.id);
+            if (player)
+            {
+                clip.hasAlpha = player->hasAlpha();
+                clip.clipWidth = player->getWidth();
+                clip.clipHeight = player->getHeight();
+                clip.thumbnail = player->getThumbnail(90, 72);
+            }
+        }
     }
+
+    deck->setClip(layerIndex, column, clip);
+
+    if (deckView_)
+        deckView_->rebuildGrid();
+}
+
+void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
+{
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+
+    Clip clip;
+    clip.id = s_nextClipId++;
+    clip.mediaType = Clip::MediaType::ImageSequence;
+    clip.sequenceFiles = files;
+    clip.sequenceFps = 2.5f;  // Default: 2.5 images per second
+    clip.playing = true;
+
+    // Sort and name from the first file
+    std::sort(clip.sequenceFiles.begin(), clip.sequenceFiles.end(),
+              [](const juce::File& a, const juce::File& b) {
+                  return a.getFileName().compareNatural(b.getFileName()) < 0;
+              });
+
+    if (!clip.sequenceFiles.empty())
+    {
+        clip.name = clip.sequenceFiles[0].getParentDirectory().getFileName().toStdString()
+                  + " (" + std::to_string(clip.sequenceFiles.size()) + " frames)";
+
+        // Thumbnail from first image
+        auto firstImg = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
+        if (firstImg.isValid())
+            clip.thumbnail = firstImg.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
+    }
+
+    // Open the image sequence in the renderer
+    auto& renderer = previewPanel_.getRenderer();
+    renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
 
     deck->setClip(layerIndex, column, clip);
 
@@ -1939,6 +2055,9 @@ void MainComponent::handleDeckSwitch(int deckIndex)
         return;
 
     composition_.activeDeckIndex = deckIndex;
+
+    // Update renderer's active deck pointer
+    previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
 
     if (deckView_)
         deckView_->rebuildGrid();

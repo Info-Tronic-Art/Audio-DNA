@@ -240,6 +240,7 @@ private:
     void handleClipTrigger(int layerIndex, int column);
     void handleColumnTrigger(int column);
     void handleFileDrop(int layerIndex, int column, const juce::File& file);
+    void handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
     void handleDeckSwitch(int deckIndex);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)

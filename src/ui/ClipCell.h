@@ -45,7 +45,8 @@ public:
     // Callbacks
     std::function<void(int layerIndex, int column)> onTrigger;      // Thumbnail click
     std::function<void(int layerIndex, int column, bool addToSelection)> onSelect; // Name bar click
-    std::function<void(int layerIndex, int column, const juce::File&)> onFileDrop; // File dropped
+    std::function<void(int layerIndex, int column, const juce::File&)> onFileDrop; // Single file dropped
+    std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiFileDrop; // Multi-image sequence dropped
 
     // Load/update thumbnail from clip's media file
     void updateThumbnail();

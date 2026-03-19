@@ -139,14 +139,20 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
 
     hasActiveLayers_ = false;
 
-    // Check if any layer has an active clip
+    // Check if any layer has an active clip with content
     for (const auto& layer : deck.layers)
     {
-        if (layer.visible && !layer.bypassed && layer.getActiveClip() != nullptr)
-        {
-            hasActiveLayers_ = true;
-            break;
-        }
+        if (!layer.visible || layer.bypassed) continue;
+        const Clip* clip = layer.getActiveClip();
+        if (clip == nullptr) continue;
+        if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+        { hasActiveLayers_ = true; break; }
+        if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
+        { hasActiveLayers_ = true; break; }
+        if (clip->mediaType == Clip::MediaType::Video && clip->mediaFile.existsAsFile())
+        { hasActiveLayers_ = true; break; }
+        if (clip->mediaType == Clip::MediaType::ImageSequence && !clip->sequenceFiles.empty())
+        { hasActiveLayers_ = true; break; }
     }
 
     if (!hasActiveLayers_ || !glInitialized_)
@@ -176,35 +182,50 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
             case Layer::Type::Opaque:
             case Layer::Type::Transparent:
             {
+                // Get clip texture — image, procedural source, video, or image sequence
+                GLuint clipTex = 0;
                 if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
                 {
-                    GLuint clipTex = getKeyTexture(clip->mediaFile);
-                    if (clipTex == 0) continue;
+                    clipTex = getKeyTexture(clip->mediaFile);
+                }
+                else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
+                {
+                    const auto* params = clip->sourceParams.empty() ? nullptr : &clip->sourceParams;
+                    clipTex = sourceRenderFn_(clip->sourceType, time, width, height, params);
+                }
+                else if ((clip->mediaType == Clip::MediaType::Video ||
+                          clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
+                {
+                    // Delta time: approximate from frame rate (~16.67ms at 60fps)
+                    float dt = 1.0f / 60.0f;
+                    clipTex = videoFrameFn_(clip, dt);
+                }
 
-                    if (layer.type == Layer::Type::Transparent)
+                if (clipTex == 0) continue;
+
+                if (layer.type == Layer::Type::Transparent)
+                {
+                    // Apply keying → scratch FBO
+                    applyLayerKeying(layer, clipTex, scratchFBO_, shaderMgr, quad, width, height);
+                    // Blend scratch onto accumulator
+                    blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
+                }
+                else
+                {
+                    // Opaque: clear accumulator and draw directly
+                    glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
+                    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+                    glClear(GL_COLOR_BUFFER_BIT);
+                    glDisable(GL_BLEND);
+                    auto* prog = shaderMgr.getProgram("passthrough");
+                    if (prog)
                     {
-                        // Apply keying → scratch FBO
-                        applyLayerKeying(layer, clipTex, scratchFBO_, shaderMgr, quad, width, height);
-                        // Blend scratch onto accumulator
-                        blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
+                        prog->use();
+                        glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
                     }
-                    else
-                    {
-                        // Opaque: clear accumulator and draw directly
-                        glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
-                        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-                        glClear(GL_COLOR_BUFFER_BIT);
-                        glDisable(GL_BLEND);
-                        auto* prog = shaderMgr.getProgram("passthrough");
-                        if (prog)
-                        {
-                            prog->use();
-                            glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
-                        }
-                        glActiveTexture(GL_TEXTURE0);
-                        glBindTexture(GL_TEXTURE_2D, clipTex);
-                        quad.draw();
-                    }
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, clipTex);
+                    quad.draw();
                 }
                 break;
             }

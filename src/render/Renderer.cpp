@@ -49,6 +49,29 @@ void Renderer::queueCameraFrame(const juce::Image& frame)
     hasPendingCameraFrame_ = true;
 }
 
+void Renderer::setActiveSource(const std::string& sourceType,
+                                const std::vector<Clip::SourceParam>& params)
+{
+    std::lock_guard<std::mutex> lock(activeSourceMutex_);
+    activeSourceType_ = sourceType;
+    activeSourceParams_ = params;
+    hasActiveSource_ = true;
+}
+
+void Renderer::clearActiveSource()
+{
+    std::lock_guard<std::mutex> lock(activeSourceMutex_);
+    activeSourceType_.clear();
+    activeSourceParams_.clear();
+    hasActiveSource_ = false;
+}
+
+void Renderer::updateActiveSourceParams(const std::vector<Clip::SourceParam>& params)
+{
+    std::lock_guard<std::mutex> lock(activeSourceMutex_);
+    activeSourceParams_ = params;
+}
+
 void Renderer::newOpenGLContextCreated()
 {
     std::cerr << "[Renderer] GL context created. Version: "
@@ -58,6 +81,18 @@ void Renderer::newOpenGLContextCreated()
     initShaders();
     initEffectChain();
     compositor_.initGL(1920, 1080); // Will resize as needed
+
+    // Wire source rendering into compositor
+    compositor_.setSourceRenderer([this](const std::string& sourceId, float time, int w, int h,
+                                         const std::vector<Clip::SourceParam>* params) -> GLuint {
+        return renderSource(sourceId, time, w, h, params);
+    });
+
+    // Wire video frame provider into compositor
+    compositor_.setVideoFrameProvider([this](const Clip* clip, float dt) -> GLuint {
+        return getVideoFrameTexture(clip, dt);
+    });
+
     startTime_ = juce::Time::getMillisecondCounterHiRes() / 1000.0;
 }
 
@@ -106,8 +141,26 @@ void Renderer::renderOpenGL()
     // Clear to near-black
     juce::OpenGLHelpers::clear(juce::Colour(0xff0a0a14));
 
+    // Check for active procedural source
+    std::string currentSourceType;
+    std::vector<Clip::SourceParam> currentSourceParams;
+    bool sourceActive = false;
+    {
+        std::lock_guard<std::mutex> lock(activeSourceMutex_);
+        if (hasActiveSource_ && !activeSourceType_.empty())
+        {
+            currentSourceType = activeSourceType_;
+            currentSourceParams = activeSourceParams_;
+            sourceActive = true;
+        }
+    }
+
+    // Check for active deck compositing
+    Deck* deck = activeDeck_.load(std::memory_order_acquire);
+    bool deckActive = (deck != nullptr);
+
     // Check if we have anything to render
-    if (!texMgr_.hasImage())
+    if (!texMgr_.hasImage() && !sourceActive && !deckActive)
         return; // Nothing to render yet
 
     // Read latest audio features (lock-free)
@@ -148,13 +201,22 @@ void Renderer::renderOpenGL()
     float aspectH = renderH;
     if (lockW <= 0 || lockH <= 0)
     {
-        // In auto mode, use the loaded image's aspect ratio
-        int imgW = texMgr_.getImageWidth();
-        int imgH = texMgr_.getImageHeight();
-        if (imgW > 0 && imgH > 0)
+        if (sourceActive)
         {
-            aspectW = static_cast<float>(imgW);
-            aspectH = static_cast<float>(imgH);
+            // Sources use the render resolution directly (no image to aspect-match)
+            aspectW = renderW;
+            aspectH = renderH;
+        }
+        else
+        {
+            // In auto mode, use the loaded image's aspect ratio
+            int imgW = texMgr_.getImageWidth();
+            int imgH = texMgr_.getImageHeight();
+            if (imgW > 0 && imgH > 0)
+            {
+                aspectW = static_cast<float>(imgW);
+                aspectH = static_cast<float>(imgH);
+            }
         }
     }
 
@@ -169,7 +231,32 @@ void Renderer::renderOpenGL()
     // Render the effect chain with letterbox viewport for final output
     auto renderStart = std::chrono::high_resolution_clock::now();
 
-    GLuint sourceTexture = texMgr_.getImageTexture();
+    GLuint sourceTexture = 0;
+
+    // Priority: deck compositor > active source > loaded image
+    if (deckActive)
+    {
+        sourceTexture = compositor_.compositeDeck(*deck, shaderMgr_, quad_, time,
+                                                   static_cast<int>(renderW),
+                                                   static_cast<int>(renderH));
+    }
+
+    if (sourceTexture == 0 && sourceActive)
+    {
+        // Render the procedural source to get a texture
+        const auto* paramsPtr = currentSourceParams.empty() ? nullptr : &currentSourceParams;
+        sourceTexture = renderSource(currentSourceType, time,
+                                      static_cast<int>(renderW), static_cast<int>(renderH),
+                                      paramsPtr);
+    }
+
+    if (sourceTexture == 0)
+    {
+        sourceTexture = texMgr_.getImageTexture();
+    }
+
+    if (sourceTexture == 0)
+        return;
 
     effectChain_.render(sourceTexture,
                         shaderMgr_, texMgr_, quad_,
@@ -196,7 +283,7 @@ void Renderer::renderOpenGL()
             prog->use();
             // Bind any texture (required by passthrough shader)
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, texMgr_.getImageTexture());
+            glBindTexture(GL_TEXTURE_2D, sourceTexture);
         }
 
         // Set the constant blend color via glBlendColor
@@ -264,10 +351,230 @@ void Renderer::renderOpenGL()
 
 void Renderer::openGLContextClosing()
 {
+    // Release all active procedural sources
+    for (auto& [id, src] : activeSources_)
+        src->releaseGL();
+    activeSources_.clear();
+
+    // Release all video player GL textures
+    {
+        std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+        for (auto& [id, player] : videoPlayers_)
+            player->releaseGL();
+    }
+
+    // Release all image sequence GL textures
+    {
+        std::lock_guard<std::mutex> lock(imageSeqMutex_);
+        for (auto& [id, seq] : imageSequences_)
+            seq->releaseGL();
+    }
+
     compositor_.releaseGL();
     shaderMgr_.releaseAll();
     texMgr_.release();
     quad_.release();
+}
+
+ProceduralSource* Renderer::getOrCreateSource(const std::string& sourceId)
+{
+    auto it = activeSources_.find(sourceId);
+    if (it != activeSources_.end())
+        return it->second.get();
+
+    auto source = sourceRegistry_.createSource(sourceId);
+    if (!source)
+        return nullptr;
+
+    auto* ptr = source.get();
+    activeSources_[sourceId] = std::move(source);
+    return ptr;
+}
+
+GLuint Renderer::renderSource(const std::string& sourceId, float time, int width, int height,
+                               const std::vector<Clip::SourceParam>* clipSourceParams)
+{
+    auto* source = getOrCreateSource(sourceId);
+    if (!source)
+        return 0;
+
+    // Apply clip-level source parameters if provided
+    if (clipSourceParams)
+    {
+        for (const auto& cp : *clipSourceParams)
+        {
+            for (int i = 0; i < source->getNumParams(); ++i)
+            {
+                if (source->getParam(i).uniformName == cp.uniformName)
+                {
+                    source->setParamValue(i, cp.value);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Get latest audio snapshot for audio-reactive sources
+    const FeatureSnapshot* snap = featureBus_.acquireRead();
+    if (!snap) snap = featureBus_.getLatestRead();
+
+    FeatureSnapshot defaultSnap;
+    if (!snap) snap = &defaultSnap;
+
+    return source->render(shaderMgr_, quad_, time, width, height, *snap);
+}
+
+bool Renderer::openVideoForClip(uint32_t clipId, const juce::File& videoFile)
+{
+    auto player = std::make_unique<VideoPlayer>();
+    if (!player->open(videoFile))
+        return false;
+
+    std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+    videoPlayers_[clipId] = std::move(player);
+    return true;
+}
+
+bool Renderer::openImageSequenceForClip(uint32_t clipId, const std::vector<juce::File>& files, float fps)
+{
+    auto seq = std::make_unique<ImageSequence>();
+    seq->setFps(fps);
+    if (!seq->open(files))
+        return false;
+
+    std::lock_guard<std::mutex> lock(imageSeqMutex_);
+    imageSequences_[clipId] = std::move(seq);
+    return true;
+}
+
+void Renderer::closeMediaForClip(uint32_t clipId)
+{
+    {
+        std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+        auto it = videoPlayers_.find(clipId);
+        if (it != videoPlayers_.end())
+        {
+            it->second->close();
+            videoPlayers_.erase(it);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(imageSeqMutex_);
+        auto it = imageSequences_.find(clipId);
+        if (it != imageSequences_.end())
+        {
+            it->second->close();
+            imageSequences_.erase(it);
+        }
+    }
+}
+
+VideoPlayer* Renderer::getVideoPlayer(uint32_t clipId)
+{
+    std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+    auto it = videoPlayers_.find(clipId);
+    return (it != videoPlayers_.end()) ? it->second.get() : nullptr;
+}
+
+ImageSequence* Renderer::getImageSequence(uint32_t clipId)
+{
+    std::lock_guard<std::mutex> lock(imageSeqMutex_);
+    auto it = imageSequences_.find(clipId);
+    return (it != imageSequences_.end()) ? it->second.get() : nullptr;
+}
+
+GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
+{
+    if (!clip)
+        return 0;
+
+    if (clip->mediaType == Clip::MediaType::Video)
+    {
+        std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+        auto it = videoPlayers_.find(clip->id);
+        if (it == videoPlayers_.end())
+            return 0;
+
+        auto* player = it->second.get();
+
+        // Sync transport state from clip
+        player->setReverse(clip->reverse);
+        player->setPlaying(clip->playing);
+        switch (clip->loopMode)
+        {
+            case Clip::LoopMode::Loop:     player->setLoopMode(VideoPlayer::LoopMode::Loop); break;
+            case Clip::LoopMode::PingPong: player->setLoopMode(VideoPlayer::LoopMode::PingPong); break;
+            case Clip::LoopMode::OneShot:  player->setLoopMode(VideoPlayer::LoopMode::OneShot); break;
+        }
+
+        if (clip->transportMode == Clip::TransportMode::BPMSync)
+        {
+            // BPM Sync: adjust speed so video loops in beatDivision beats.
+            const FeatureSnapshot* snap = featureBus_.acquireRead();
+            if (!snap) snap = featureBus_.getLatestRead();
+            if (snap && snap->bpm > 0.0f && clip->beatDivision > 0.0f)
+            {
+                // speed = videoBeats / beatDivision
+                // e.g., 8-beat video over 4 beats = 2x speed
+                player->setSpeed(clip->videoBeats / clip->beatDivision);
+            }
+        }
+        else
+        {
+            player->setSpeed(clip->speed);
+        }
+
+        player->advanceFrame(static_cast<double>(dt));
+        return player->uploadToTexture();
+    }
+    else if (clip->mediaType == Clip::MediaType::ImageSequence)
+    {
+        std::lock_guard<std::mutex> lock(imageSeqMutex_);
+        auto it = imageSequences_.find(clip->id);
+        if (it == imageSequences_.end())
+            return 0;
+
+        auto* seq = it->second.get();
+
+        // Sync transport state from clip
+        seq->setSpeed(clip->speed);
+        seq->setReverse(clip->reverse);
+        seq->setPlaying(clip->playing);
+        seq->setFps(clip->sequenceFps);
+        switch (clip->loopMode)
+        {
+            case Clip::LoopMode::Loop:     seq->setLoopMode(ImageSequence::LoopMode::Loop); break;
+            case Clip::LoopMode::PingPong: seq->setLoopMode(ImageSequence::LoopMode::PingPong); break;
+            case Clip::LoopMode::OneShot:  seq->setLoopMode(ImageSequence::LoopMode::OneShot); break;
+        }
+
+        if (clip->transportMode == Clip::TransportMode::BPMSync)
+        {
+            // BPM Sync: cycle through images over beatDivision beats.
+            const FeatureSnapshot* snap = featureBus_.acquireRead();
+            if (!snap) snap = featureBus_.getLatestRead();
+            if (snap && snap->bpm > 0.0f && clip->beatDivision > 0.0f)
+            {
+                int numFrames = seq->getFrameCount();
+                if (numFrames > 0)
+                {
+                    // Cycle all frames over beatDivision beats,
+                    // scaled by content beats ratio.
+                    // FPS = numFrames * BPM / (beatDivision * 60)
+                    float secondsPerCycle = clip->beatDivision * 60.0f / snap->bpm;
+                    seq->setFps(static_cast<float>(numFrames) / secondsPerCycle);
+                }
+            }
+            seq->advanceFrame(static_cast<double>(dt));
+        }
+        else
+        {
+            seq->advanceFrame(static_cast<double>(dt));
+        }
+        return seq->getCurrentTexture();
+    }
+
+    return 0;
 }
 
 void Renderer::initShaders()
@@ -401,6 +708,18 @@ void Renderer::compileAllShaders()
     compile("key_channel_g",        EmbeddedShaders::transparencyAlpha);   // fallback
     compile("key_channel_b",        EmbeddedShaders::transparencyAlpha);   // fallback
     compile("key_vignette",         EmbeddedShaders::transparencyAlpha);   // fallback
+
+    // === Procedural source shaders (Phase 10) ===
+    compile("source_perlin_noise",          EmbeddedShaders::sourcePerlinNoise);
+    compile("source_plasma",                EmbeddedShaders::sourcePlasma);
+    compile("source_voronoi",               EmbeddedShaders::sourceVoronoi);
+    compile("source_kaleido_fractal",       EmbeddedShaders::sourceKaleidoFractal);
+    compile("source_mandelbrot",            EmbeddedShaders::sourceMandelbrot);
+    compile("source_geometric_tunnel",      EmbeddedShaders::sourceGeometricTunnel);
+    compile("source_color_gradient",        EmbeddedShaders::sourceColorGradient);
+    compile("source_audio_waveform",        EmbeddedShaders::sourceAudioWaveform);
+    compile("source_reaction_diffusion",    EmbeddedShaders::sourceReactionDiffusion);
+    compile("source_cellular_automata",     EmbeddedShaders::sourceCellularAutomata);
 
     std::cerr << "[Renderer] All shaders compiled." << std::endl;
 }

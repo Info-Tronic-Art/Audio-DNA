@@ -166,6 +166,7 @@ target_include_directories(test_composition PRIVATE ${SRC_DIR})
 target_link_libraries(test_composition PRIVATE
     Catch2::Catch2WithMain
     juce::juce_core
+    juce::juce_graphics
 )
 target_compile_definitions(test_composition PRIVATE
     _USE_MATH_DEFINES
@@ -226,6 +227,7 @@ target_include_directories(test_compositor PRIVATE ${SRC_DIR})
 target_link_libraries(test_compositor PRIVATE
     Catch2::Catch2WithMain
     juce::juce_core
+    juce::juce_graphics
 )
 target_compile_definitions(test_compositor PRIVATE
     _USE_MATH_DEFINES

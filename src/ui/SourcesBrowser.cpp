@@ -90,7 +90,7 @@ public:
                     if (event.y >= y && event.y < y + kSourceRowHeight)
                     {
                         if (owner_.onSourceActivated)
-                            owner_.onSourceActivated(s->name);
+                            owner_.onSourceActivated(s->sourceId);
                         return;
                     }
                     y += kSourceRowHeight;
@@ -143,14 +143,6 @@ SourcesBrowser::SourcesBrowser()
 void SourcesBrowser::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff1a1a1a));
-
-    if (sources_.empty())
-    {
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.5f));
-        g.setFont(juce::Font(juce::FontOptions(11.0f)));
-        g.drawText("Sources available in Phase 10",
-                   getLocalBounds(), juce::Justification::centred, false);
-    }
 }
 
 void SourcesBrowser::resized()
@@ -174,19 +166,19 @@ void SourcesBrowser::buildSourceList()
     categories_.push_back({"Nature",        juce::Colour(0xff26c6da)});
 
     // Input sources — live feeds
-    sources_.push_back({"Camera Input",             "Input",        juce::Colour(0xffef5350)});
+    sources_.push_back({"Camera Input",             "camera",              "Input",        juce::Colour(0xffef5350)});
 
-    // 10 Tier 1 procedural sources (actual shaders in Phase 10)
-    sources_.push_back({"Mandelbrot / Julia",       "Fractal",      juce::Colour(0xffab47bc)});
-    sources_.push_back({"Kaleidoscopic Fractal",    "Fractal",      juce::Colour(0xffab47bc)});
-    sources_.push_back({"Perlin Noise",             "Noise",        juce::Colour(0xff66bb6a)});
-    sources_.push_back({"Plasma",                   "Noise",        juce::Colour(0xff66bb6a)});
-    sources_.push_back({"Voronoi",                  "Noise",        juce::Colour(0xff66bb6a)});
-    sources_.push_back({"Geometric Tunnel",         "Geometric",    juce::Colour(0xff4fc3f7)});
-    sources_.push_back({"Color Gradient",           "Geometric",    juce::Colour(0xff4fc3f7)});
-    sources_.push_back({"Audio Waveform",           "Audio-Visual", juce::Colour(0xffff7043)});
-    sources_.push_back({"Reaction-Diffusion",       "Nature",       juce::Colour(0xff26c6da)});
-    sources_.push_back({"Cellular Automata",        "Nature",       juce::Colour(0xff26c6da)});
+    // 10 Tier 1 procedural sources
+    sources_.push_back({"Mandelbrot / Julia",       "mandelbrot",          "Fractal",      juce::Colour(0xffab47bc)});
+    sources_.push_back({"Kaleidoscopic Fractal",    "kaleido_fractal",     "Fractal",      juce::Colour(0xffab47bc)});
+    sources_.push_back({"Perlin Noise",             "perlin_noise",        "Noise",        juce::Colour(0xff66bb6a)});
+    sources_.push_back({"Plasma",                   "plasma",              "Noise",        juce::Colour(0xff66bb6a)});
+    sources_.push_back({"Voronoi",                  "voronoi",             "Noise",        juce::Colour(0xff66bb6a)});
+    sources_.push_back({"Geometric Tunnel",         "geometric_tunnel",    "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Color Gradient",           "color_gradient",      "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Audio Waveform",           "audio_waveform",      "Audio-Visual", juce::Colour(0xffff7043)});
+    sources_.push_back({"Reaction-Diffusion",       "reaction_diffusion",  "Nature",       juce::Colour(0xff26c6da)});
+    sources_.push_back({"Cellular Automata",        "cellular_automata",   "Nature",       juce::Colour(0xff26c6da)});
 }
 
 void SourcesBrowser::toggleCategory(int catIndex)

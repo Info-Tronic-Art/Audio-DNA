@@ -11,7 +11,13 @@
 #include "effects/EffectLibrary.h"
 #include "features/FeatureBus.h"
 #include "render/CompositorEngine.h"
+#include "sources/SourceRegistry.h"
+#include "media/VideoPlayer.h"
+#include "media/ImageSequence.h"
+#include "model/Clip.h"
+#include "model/Deck.h"
 #include <mutex>
+#include <unordered_map>
 
 // Renderer: implements juce::OpenGLRenderer to drive the GL render loop.
 //
@@ -40,6 +46,16 @@ public:
     // Clear the loaded image so the renderer shows black. Thread-safe.
     void clearImage();
 
+    // Set a procedural source to render (instead of an image). Thread-safe.
+    void setActiveSource(const std::string& sourceType,
+                         const std::vector<Clip::SourceParam>& params = {});
+
+    // Clear the active source. Thread-safe.
+    void clearActiveSource();
+
+    // Update the active source's parameters. Thread-safe.
+    void updateActiveSourceParams(const std::vector<Clip::SourceParam>& params);
+
     // Queue a camera frame for upload on the GL thread. Thread-safe.
     void queueCameraFrame(const juce::Image& frame);
 
@@ -56,6 +72,42 @@ public:
 
     // Compositor engine
     CompositorEngine& getCompositor() { return compositor_; }
+
+    // Set the active deck for compositor rendering. Thread-safe.
+    // Pass nullptr to disable deck compositing (reverts to single-image mode).
+    void setActiveDeck(Deck* deck) { activeDeck_.store(deck, std::memory_order_release); }
+    Deck* getActiveDeck() const { return activeDeck_.load(std::memory_order_acquire); }
+
+    // Source registry — for creating procedural source instances
+    SourceRegistry& getSourceRegistry() { return sourceRegistry_; }
+
+    // Get or create an active procedural source instance for a source type ID.
+    // Returns nullptr if the source ID is not registered.
+    ProceduralSource* getOrCreateSource(const std::string& sourceId);
+
+    // === Video Playback ===
+
+    // Open a video file for a clip. Returns true on success.
+    // Call from message thread. The Renderer manages the VideoPlayer lifecycle.
+    bool openVideoForClip(uint32_t clipId, const juce::File& videoFile);
+
+    // Open an image sequence for a clip. Returns true on success.
+    bool openImageSequenceForClip(uint32_t clipId, const std::vector<juce::File>& files, float fps);
+
+    // Close video/sequence for a clip.
+    void closeMediaForClip(uint32_t clipId);
+
+    // Get the VideoPlayer for a clip (nullptr if none). For transport control.
+    VideoPlayer* getVideoPlayer(uint32_t clipId);
+
+    // Get the ImageSequence for a clip (nullptr if none). For transport control.
+    ImageSequence* getImageSequence(uint32_t clipId);
+
+    // Render a procedural source and return the output texture ID.
+    // Must be called on the GL thread.
+    // If clipSourceParams is provided, applies those param values to the source.
+    GLuint renderSource(const std::string& sourceId, float time, int width, int height,
+                        const std::vector<Clip::SourceParam>* clipSourceParams = nullptr);
 
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -119,6 +171,22 @@ private:
 
     // Compositor
     CompositorEngine compositor_;
+    std::atomic<Deck*> activeDeck_{nullptr};
+
+    // Procedural sources
+    SourceRegistry sourceRegistry_;
+    std::unordered_map<std::string, std::unique_ptr<ProceduralSource>> activeSources_;
+
+    // Video players — keyed by clip ID
+    std::mutex videoPlayerMutex_;
+    std::unordered_map<uint32_t, std::unique_ptr<VideoPlayer>> videoPlayers_;
+
+    // Image sequences — keyed by clip ID
+    std::mutex imageSeqMutex_;
+    std::unordered_map<uint32_t, std::unique_ptr<ImageSequence>> imageSequences_;
+
+    // Get video frame texture for a clip (used as compositor callback)
+    GLuint getVideoFrameTexture(const Clip* clip, float dt);
 
     // Pending image load — protected by mutex (not on hot audio path)
     std::mutex pendingImageMutex_;
@@ -130,4 +198,10 @@ private:
     std::mutex cameraFrameMutex_;
     juce::Image pendingCameraFrame_;
     bool hasPendingCameraFrame_ = false;
+
+    // Active procedural source for direct preview
+    std::mutex activeSourceMutex_;
+    std::string activeSourceType_;
+    std::vector<Clip::SourceParam> activeSourceParams_;
+    bool hasActiveSource_ = false;
 };

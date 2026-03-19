@@ -137,6 +137,9 @@ void DeckView::rebuildGrid()
             cell->onFileDrop = [this](int li, int c, const juce::File& file) {
                 if (onFileDropped) onFileDropped(li, c, file);
             };
+            cell->onMultiFileDrop = [this](int li, int c, const std::vector<juce::File>& files) {
+                if (onMultiFileDropped) onMultiFileDropped(li, c, files);
+            };
 
             gridContent_->addAndMakeVisible(cell.get());
             layerCells[static_cast<size_t>(col)] = std::move(cell);

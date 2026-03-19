@@ -130,7 +130,9 @@ All data flows forward. No backward dependencies on the hot path.
 | **stb_image** | latest | Public domain | Fallback image loading for formats JUCE doesn't handle | Single header. JUCE handles PNG/JPEG/GIF natively. | `third_party/` (optional) |
 | **CMake** | 3.24+ | — | Build system | JUCE 7+ has first-class CMake support (`juce_add_gui_app`). Industry standard. Alternative: Projucer (deprecated). | `CMakeLists.txt` |
 
-**Total runtime dependencies: 2 (JUCE, Aubio). Test-only: 1 (Catch2). Aubio's only transitive dependency is the C math library. JUCE bundles its own deps (freetype, zlib).**
+| **FFmpeg** | 8.0 | LGPL/GPL | Video decode: MP4, MOV, QuickTime, AVI, MKV, WebM, M4V, HAP Alpha (libavformat, libavcodec, libavutil, libswscale) | Industry standard video decode. Supports all major codecs including H.264, H.265, ProRes, HAP Alpha. Alternative: GStreamer (heavier, less portable). | `cmake/FindFFmpeg.cmake`, `CMakeLists.txt` |
+
+**Total runtime dependencies: 3 (JUCE, Aubio, FFmpeg). Test-only: 1 (Catch2). Aubio's only transitive dependency is the C math library. JUCE bundles its own deps (freetype, zlib). FFmpeg is located via Homebrew on macOS.**
 
 ---
 
@@ -144,7 +146,8 @@ AudioDNA/
 ├── CMakeLists.txt                       # Root build: JUCE via FetchContent, C++20
 ├── cmake/
 │   ├── CompilerWarnings.cmake           # Per-compiler warning flags (-Wall -Wextra etc.)
-│   └── FindAubio.cmake                  # [M2] Locate libaubio
+│   ├── FindAubio.cmake                  # [M2] Locate libaubio
+│   └── FindFFmpeg.cmake              ✅ # [P11] Locate FFmpeg (libavformat/libavcodec/libavutil/libswscale)
 ├── src/
 │   ├── Main.cpp                         # JUCE app entry point (JUCEApplication subclass)
 │   ├── MainComponent.h/cpp              # Top-level component, owns all systems, layout
@@ -175,7 +178,8 @@ AudioDNA/
 │   ├── keyboard/
 │   │   └── KeySlot.h                    # [M7] Per-key data model (media, effects, transparency, latch/random)
 │   ├── media/
-│   │   └── VideoPlayer.h/cpp            # [M7-P4] FFmpeg + libhap HAP Alpha video decode
+│   │   ├── VideoPlayer.h/cpp         ✅ # [P11] FFmpeg video decode (MP4/MOV/AVI/MKV/HAP Alpha) → GL texture
+│   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
 │   ├── effects/
 │   │   ├── EffectLibrary.h/cpp          # [M4] Registry: creates Effect instances from shaders
 │   │   ├── Effect.h/cpp              ✅ # Single effect: shader program + param list
@@ -437,7 +441,10 @@ Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 76 GLS
 - Automatic downbeat detection (no commercial VJ does this from live audio)
 - Undo/redo from the start (Command pattern)
 - 40 procedural sources (fractal, noise, geometric, etc.)
-- HAP Alpha video support
+- Video playback via FFmpeg (MP4/MOV/AVI/MKV/WebM/HAP Alpha) with transport controls
+- Image sequence playback (multi-image drag-drop as video) with configurable FPS
+- BPM Sync transport mode for video/image sequences with beat division presets
+- Content Beats setting for exact beat-locked timing of authored content
 
 **See TASKPLAN_V2.md for current phase and task details.**
 
@@ -450,6 +457,7 @@ Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 76 GLS
 - CMake 3.24+
 - C++20-capable compiler
 - Git (for FetchContent to download JUCE)
+- FFmpeg development libraries (libavformat, libavcodec, libavutil, libswscale)
 
 ### macOS (primary development platform)
 
@@ -460,7 +468,7 @@ cmake --build build --config Release -j$(sysctl -n hw.ncpu)
 ./build/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA
 ```
 
-Required: Xcode Command Line Tools (`xcode-select --install`). No other dependencies — JUCE is fetched automatically.
+Required: Xcode Command Line Tools (`xcode-select --install`). FFmpeg: `brew install ffmpeg`. JUCE is fetched automatically.
 
 ### Windows
 

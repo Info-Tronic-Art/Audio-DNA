@@ -9,6 +9,33 @@ juce::var Clip::toVar() const
     obj->setProperty("mediaFile", mediaFile.getFullPathName());
     obj->setProperty("cameraDeviceIndex", cameraDeviceIndex);
     obj->setProperty("sourceType", juce::String(sourceType));
+    obj->setProperty("hasAlpha", hasAlpha);
+
+    // Image sequence
+    if (!sequenceFiles.empty())
+    {
+        juce::Array<juce::var> seqArray;
+        for (const auto& f : sequenceFiles)
+            seqArray.add(f.getFullPathName());
+        obj->setProperty("sequenceFiles", seqArray);
+        obj->setProperty("sequenceFps", static_cast<double>(sequenceFps));
+        obj->setProperty("beatDivision", static_cast<double>(beatDivision));
+        obj->setProperty("videoBeats", static_cast<double>(videoBeats));
+    }
+
+    // Source parameters
+    juce::Array<juce::var> spArray;
+    for (const auto& sp : sourceParams)
+    {
+        auto* spObj = new juce::DynamicObject();
+        spObj->setProperty("name", juce::String(sp.name));
+        spObj->setProperty("uniform", juce::String(sp.uniformName));
+        spObj->setProperty("value", static_cast<double>(sp.value));
+        spObj->setProperty("default", static_cast<double>(sp.defaultValue));
+        spArray.add(juce::var(spObj));
+    }
+    obj->setProperty("sourceParams", spArray);
+
     obj->setProperty("transportMode", static_cast<int>(transportMode));
     obj->setProperty("loopMode", static_cast<int>(loopMode));
     obj->setProperty("speed", static_cast<double>(speed));
@@ -55,6 +82,39 @@ void Clip::fromVar(const juce::var& v)
         mediaFile = juce::File(obj->getProperty("mediaFile").toString());
         cameraDeviceIndex = static_cast<int>(obj->getProperty("cameraDeviceIndex"));
         sourceType = obj->getProperty("sourceType").toString().toStdString();
+        hasAlpha = static_cast<bool>(obj->getProperty("hasAlpha"));
+
+        // Image sequence
+        sequenceFiles.clear();
+        if (auto* seqArray = obj->getProperty("sequenceFiles").getArray())
+        {
+            for (const auto& sf : *seqArray)
+                sequenceFiles.push_back(juce::File(sf.toString()));
+        }
+        if (obj->hasProperty("sequenceFps"))
+            sequenceFps = static_cast<float>(static_cast<double>(obj->getProperty("sequenceFps")));
+        if (obj->hasProperty("beatDivision"))
+            beatDivision = static_cast<float>(static_cast<double>(obj->getProperty("beatDivision")));
+        if (obj->hasProperty("videoBeats"))
+            videoBeats = static_cast<float>(static_cast<double>(obj->getProperty("videoBeats")));
+
+        sourceParams.clear();
+        if (auto* spArray = obj->getProperty("sourceParams").getArray())
+        {
+            for (const auto& spVar : *spArray)
+            {
+                if (auto* spObj = spVar.getDynamicObject())
+                {
+                    SourceParam sp;
+                    sp.name = spObj->getProperty("name").toString().toStdString();
+                    sp.uniformName = spObj->getProperty("uniform").toString().toStdString();
+                    sp.value = static_cast<float>(static_cast<double>(spObj->getProperty("value")));
+                    sp.defaultValue = static_cast<float>(static_cast<double>(spObj->getProperty("default")));
+                    sourceParams.push_back(std::move(sp));
+                }
+            }
+        }
+
         transportMode = static_cast<TransportMode>(static_cast<int>(obj->getProperty("transportMode")));
         loopMode = static_cast<LoopMode>(static_cast<int>(obj->getProperty("loopMode")));
         speed = static_cast<float>(static_cast<double>(obj->getProperty("speed")));
