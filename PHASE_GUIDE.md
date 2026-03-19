@@ -28,8 +28,8 @@
 | **P5** | Deck View | **COMPLETE** | YES — new center section visible |
 | **P6** | Inspector | **COMPLETE** | YES — new right-center section visible |
 | **P7** | Browser | **COMPLETE** | YES — new right section visible |
-| **P8** | Preview, Output, Layout, Menus, Prefs | NOT STARTED | YES — complete layout visible |
-| **P9** | Binding System & MIDI | NOT STARTED | YES — bind mode overlay visible |
+| **P8** | Preview, Output, Layout, Menus, Prefs | **COMPLETE** | YES — complete layout visible |
+| **P9** | Binding System & MIDI | **COMPLETE** | YES — bind mode overlay visible |
 | **P10** | Procedural Sources | NOT STARTED | YES — sources in browser, renderable |
 | **P11** | Video Playback | NOT STARTED | YES — video clips play in deck |
 | **P12** | Phrase Tracking & Polish | NOT STARTED | YES — phrase indicator, recording |

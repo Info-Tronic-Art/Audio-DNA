@@ -13,9 +13,6 @@
 #include "effects/EffectLibrary.h"
 #include "ui/PresetManager.h"
 #include "ui/OutputWindow.h"
-#include "ui/KeyboardPanel.h"
-#include "ui/KeyEditor.h"
-#include "keyboard/KeySlot.h"
 #include "ui/SignalBar.h"
 #include "ui/TopBar.h"
 #include "ui/ProgrammingMode.h"
@@ -26,6 +23,9 @@
 #include "ui/MenuBarModel.h"
 #include "signal/SignalRegistry.h"
 #include "model/Composition.h"
+#include "ui/BindingOverlay.h"
+#include "ui/MidiLearnOverlay.h"
+#include "midi/MidiHandler.h"
 #if AUDIODNA_HAS_CAMERA
  #include <juce_video/juce_video.h>
 #endif
@@ -184,16 +184,6 @@ private:
 
     std::unique_ptr<juce::FileChooser> fileChooser_;
 
-    // === Keyboard Launcher (M7) ===
-    KeyboardLayout keyboardLayout_;
-    std::unique_ptr<KeyboardPanel> keyboardPanel_;
-    std::unique_ptr<KeyEditor> keyEditor_;
-    bool showKeyEditor_ = false;
-    void handleKeySlotTrigger(char keyChar, bool isDown);
-    void openKeyEditor(KeySlot& key);
-    void closeKeyEditor();
-    void assignImageToKey(KeySlot& key);
-
     // === v2: Signal Bar + Top Bar + Deck ===
     Composition composition_;
     SignalRegistry signalRegistry_;
@@ -206,6 +196,17 @@ private:
 
     // === v2: Menu Bar ===
     std::unique_ptr<AudioDNAMenuBar> menuBarModel_;
+
+    // === v2: Binding System & MIDI (P9) ===
+    BindingManager bindingManager_;
+    std::unique_ptr<BindingOverlay> bindingOverlay_;
+    std::unique_ptr<MidiLearnOverlay> midiLearnOverlay_;
+    std::unique_ptr<MidiHandler> midiHandler_;
+    void buildBindableTargets(std::vector<BindingOverlay::BindableTarget>& targets);
+    void handleBindingAction(const Binding& binding, float value);
+    void enterKeyboardBindingMode();
+    void enterMidiLearnMode();
+    void exitAllBindingModes();
 
     // Resizable horizontal divider between deck and bottom panels
     int deckDividerY_ = -1; // -1 = auto (snap to bottom of layers)

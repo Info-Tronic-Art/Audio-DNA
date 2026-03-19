@@ -11,7 +11,6 @@
 #include "effects/EffectLibrary.h"
 #include "features/FeatureBus.h"
 #include "render/CompositorEngine.h"
-#include "keyboard/KeySlot.h"
 #include <mutex>
 
 // Renderer: implements juce::OpenGLRenderer to drive the GL render loop.
@@ -55,9 +54,8 @@ public:
     MappingEngine& getMappingEngine() { return mappingEngine_; }
     EffectChain& getEffectChain() { return effectChain_; }
 
-    // Keyboard launcher compositor
+    // Compositor engine
     CompositorEngine& getCompositor() { return compositor_; }
-    void setKeyboardLayout(KeyboardLayout* layout) { keyboardLayout_ = layout; }
 
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -119,9 +117,8 @@ private:
     static constexpr float kFrameTimeBudgetMs = 12.0f;
     static constexpr int kHighFrameTimeThreshold = 30; // ~0.5s sustained
 
-    // Keyboard launcher
+    // Compositor
     CompositorEngine compositor_;
-    KeyboardLayout* keyboardLayout_ = nullptr;
 
     // Pending image load — protected by mutex (not on hot audio path)
     std::mutex pendingImageMutex_;

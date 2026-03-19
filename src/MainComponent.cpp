@@ -371,20 +371,6 @@ MainComponent::MainComponent()
         effectLibrary_);
     addAndMakeVisible(effectsRackPanel_.get());
 
-    // === Keyboard Launcher Panel ===
-    keyboardPanel_ = std::make_unique<KeyboardPanel>(keyboardLayout_);
-    addAndMakeVisible(keyboardPanel_.get());
-    keyboardPanel_->onKeyClicked = [this](KeySlot& key) { openKeyEditor(key); };
-
-    // Wire keyboard layout to renderer for compositing
-    previewPanel_.getRenderer().setKeyboardLayout(&keyboardLayout_);
-
-    // === Key Editor (hidden by default) ===
-    keyEditor_ = std::make_unique<KeyEditor>(effectLibrary_);
-    addChildComponent(keyEditor_.get()); // hidden initially
-    keyEditor_->onClose = [this] { closeKeyEditor(); };
-    keyEditor_->onRequestImage = [this](KeySlot& key) { assignImageToKey(key); };
-
     // === v2: Signal Bar + Top Bar ===
     composition_.initDefault();
     signalRegistry_.initDefaults();
@@ -567,6 +553,23 @@ MainComponent::MainComponent()
     menuBarModel_ = std::make_unique<AudioDNAMenuBar>();
     menuBarModel_->onMenuCommand = [this](int cmdId) { handleMenuCommand(cmdId); };
 
+    // === v2: Binding System & MIDI (P9) ===
+    bindingManager_.setActionCallback([this](const Binding& b, float val)
+    {
+        handleBindingAction(b, val);
+    });
+
+    bindingOverlay_ = std::make_unique<BindingOverlay>(bindingManager_, composition_);
+    addChildComponent(bindingOverlay_.get()); // hidden initially
+    bindingOverlay_->onBindingModeExit = [this]() { repaint(); };
+
+    midiLearnOverlay_ = std::make_unique<MidiLearnOverlay>(bindingManager_, composition_);
+    addChildComponent(midiLearnOverlay_.get()); // hidden initially
+    midiLearnOverlay_->onLearnModeExit = [this]() { repaint(); };
+
+    midiHandler_ = std::make_unique<MidiHandler>(bindingManager_);
+    midiHandler_->start(audioEngine_.getDeviceManager());
+
     // Start analysis
     analysisThread_.startThread(juce::Thread::Priority::high);
 
@@ -724,8 +727,6 @@ void MainComponent::resized()
         audioReadoutPanel_.setVisible(false);
         spectrumDisplay_.setVisible(false);
         if (effectsRackPanel_) effectsRackPanel_->setVisible(false);
-        if (keyboardPanel_) keyboardPanel_->setVisible(false);
-        if (keyEditor_) keyEditor_->setVisible(false);
         if (deckView_) deckView_->setVisible(false);
         if (inspectorPanel_) inspectorPanel_->setVisible(false);
         if (browserPanel_) browserPanel_->setVisible(false);
@@ -800,10 +801,6 @@ void MainComponent::resized()
         }
         area.removeFromBottom(2);
     }
-
-    // Keyboard panel (v1 compat, hidden by default in v2 — will be removed later)
-    if (keyboardPanel_)
-        keyboardPanel_->setVisible(false);
 
     // Hide v1 panels removed from v2 layout
     audioReadoutPanel_.setVisible(false);
@@ -903,20 +900,18 @@ void MainComponent::resized()
     }
     browserPlaceholderBounds_ = {}; // No longer a placeholder
 
-    // Key Editor — full workspace overlay
-    if (showKeyEditor_ && keyEditor_)
+    // Binding overlays — full window coverage (always on top)
+    if (bindingOverlay_)
     {
-        previewPanel_.setVisible(false);
-        auto editorBounds = getLocalBounds().reduced(4);
-        editorBounds.removeFromTop(70);
-        keyEditor_->setBounds(editorBounds);
-        keyEditor_->setVisible(true);
-        keyEditor_->toFront(false);
+        bindingOverlay_->setBounds(getLocalBounds());
+        if (bindingOverlay_->isBindingModeActive())
+            bindingOverlay_->toFront(false);
     }
-    else
+    if (midiLearnOverlay_)
     {
-        previewPanel_.setVisible(true);
-        if (keyEditor_) keyEditor_->setVisible(false);
+        midiLearnOverlay_->setBounds(getLocalBounds());
+        if (midiLearnOverlay_->isLearnModeActive())
+            midiLearnOverlay_->toFront(false);
     }
 }
 
@@ -1004,14 +999,29 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
 {
     auto mod = key.getModifiers();
 
-    // Escape = close key editor first, then output window
+    // If binding overlay is active, let it handle all keys
+    if (bindingOverlay_ && bindingOverlay_->isBindingModeActive())
+        return false; // Let the KeyListener on the overlay handle it
+    if (midiLearnOverlay_ && midiLearnOverlay_->isLearnModeActive())
+        return false;
+
+    // Shift+Cmd+K = toggle keyboard binding mode
+    if (key.isKeyCode('K') && mod.isCommandDown() && mod.isShiftDown())
+    {
+        enterKeyboardBindingMode();
+        return true;
+    }
+
+    // Shift+Cmd+M = toggle MIDI learn mode
+    if (key.isKeyCode('M') && mod.isCommandDown() && mod.isShiftDown())
+    {
+        enterMidiLearnMode();
+        return true;
+    }
+
+    // Escape = close output window
     if (key.isKeyCode(juce::KeyPress::escapeKey))
     {
-        if (showKeyEditor_)
-        {
-            closeKeyEditor();
-            return true;
-        }
         if (outputWindow_ && outputWindow_->isVisible())
         {
             closeOutput();
@@ -1050,129 +1060,29 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
-    // === Keyboard Launcher keys (when panel is visible) ===
-    if (true /* keyboard launcher always active */ && !mod.isCommandDown())
+    // === v2 Binding System: try bound keys first ===
+    if (!mod.isCommandDown())
     {
-        int keyCode = key.getKeyCode();
-        char c = static_cast<char>(std::toupper(keyCode));
-
-        // Shift+key = latch toggle regardless of latch setting
-        if (mod.isShiftDown())
+        if (bindingManager_.processKeyDown(key.getKeyCode(),
+                                            mod.isShiftDown(),
+                                            mod.isCommandDown(),
+                                            mod.isAltDown()))
         {
-            auto* slot = keyboardLayout_.findByKeyCode(keyCode, true);
-            if (slot && !slot->isEmpty())
-            {
-                if (slot->active)
-                {
-                    keyboardLayout_.deactivateKey(*slot);
-                }
-                else
-                {
-                    keyboardLayout_.activateKey(*slot);
-                    slot->shiftLatched = true;
-                }
-                if (keyboardPanel_)
-                {
-                    if (slot->active)
-                        keyboardPanel_->keyActivated(*slot);
-                    else
-                        keyboardPanel_->keyDeactivated(*slot);
-                }
-                return true;
-            }
+            return true; // A binding handled this key
         }
-
-        handleKeySlotTrigger(c, true);
-        return true;
     }
 
     return false;
 }
 
-bool MainComponent::keyPressed(const juce::KeyPress& key, juce::Component* /*originatingComponent*/)
+bool MainComponent::keyPressed(const juce::KeyPress& /*key*/, juce::Component* /*originatingComponent*/)
 {
-    // Global key listener — catches shift+key for latch from any focus context
-    auto mod = key.getModifiers();
-    if (true /* keyboard launcher always active */ && mod.isShiftDown() && !mod.isCommandDown())
-    {
-        auto* slot = keyboardLayout_.findByKeyCode(key.getKeyCode(), true);
-        if (slot && !slot->isEmpty())
-        {
-            if (slot->active)
-            {
-                keyboardLayout_.deactivateKey(*slot);
-            }
-            else
-            {
-                keyboardLayout_.activateKey(*slot);
-                slot->shiftLatched = true;
-            }
-            if (keyboardPanel_)
-            {
-                if (slot->active)
-                    keyboardPanel_->keyActivated(*slot);
-                else
-                    keyboardPanel_->keyDeactivated(*slot);
-            }
-            return true;
-        }
-    }
     return false;
 }
 
 bool MainComponent::keyStateChanged(bool /*isKeyDown*/)
 {
-    // Handle key releases for momentary mode in keyboard launcher
-    if (!true /* keyboard launcher always active */)
-        return false;
-
-    // Check all launcher keys for release
-    for (auto& key : keyboardLayout_.keys)
-    {
-        if (!key.active || key.latched || key.shiftLatched)
-            continue;
-
-        // Check if the physical key is still held
-        bool stillHeld = juce::KeyPress::isKeyCurrentlyDown(std::tolower(key.keyChar));
-        // Also check for number row
-        if (key.row == 0)
-            stillHeld = juce::KeyPress::isKeyCurrentlyDown(key.keyChar);
-
-        if (!stillHeld)
-        {
-            keyboardLayout_.deactivateKey(key);
-            if (keyboardPanel_)
-                keyboardPanel_->keyDeactivated(key);
-        }
-    }
     return false;
-}
-
-void MainComponent::handleKeySlotTrigger(char keyChar, bool isDown)
-{
-    auto* slot = keyboardLayout_.findByChar(keyChar);
-    if (slot == nullptr || slot->isEmpty())
-        return;
-
-    if (isDown)
-    {
-        if (slot->latched)
-        {
-            keyboardLayout_.toggleKey(*slot);
-        }
-        else
-        {
-            if (!slot->active)
-                keyboardLayout_.activateKey(*slot);
-        }
-        if (keyboardPanel_)
-        {
-            if (slot->active)
-                keyboardPanel_->keyActivated(*slot);
-            else
-                keyboardPanel_->keyDeactivated(*slot);
-        }
-    }
 }
 
 bool MainComponent::isInterestedInFileDrag(const juce::StringArray& files)
@@ -1431,10 +1341,6 @@ void MainComponent::saveDeck()
             deck.slotFiles.add(s.loadedFile.getFullPathName());
         }
 
-        // Serialize keyboard layout
-        for (const auto& key : keyboardLayout_.keys)
-            deck.keyboardKeys.add(key.toVar());
-
         if (PresetManager::saveDeck(saveFile, deck,
                                      previewPanel_.getEffectChain(),
                                      previewPanel_.getMappingEngine()))
@@ -1563,18 +1469,6 @@ void MainComponent::loadDeck()
                 s.button->removeColour(juce::TextButton::buttonColourId);
             }
             populateSlotMenu(i);
-        }
-
-        // Restore keyboard layout
-        if (!deck.keyboardKeys.isEmpty())
-        {
-            for (int i = 0; i < deck.keyboardKeys.size() && i < KeyboardLayout::kNumKeys; ++i)
-            {
-                keyboardLayout_.keys[static_cast<size_t>(i)].fromVar(deck.keyboardKeys[i]);
-                keyboardLayout_.keys[static_cast<size_t>(i)].deactivate(); // Start inactive
-            }
-            if (keyboardPanel_)
-                keyboardPanel_->refresh();
         }
 
         if (effectsRackPanel_)
@@ -1839,121 +1733,6 @@ void MainComponent::beatSyncRandomize()
         juce::MessageManager::callAsync([this] { randomizeAllEffects(); });
     }
 
-    // === Keyboard key auto-release countdown ===
-    for (auto& key : keyboardLayout_.keys)
-    {
-        if (!key.active)
-            continue;
-
-        // Count beats for keys with auto-release
-        if (key.activatedByRandom || (key.latched && key.latchBeatDuration > 0))
-        {
-            key.beatsSinceActivation++;
-
-            int releaseAfter;
-            if (key.activatedByRandom)
-                releaseAfter = (key.randomBeatDuration > 0) ? key.randomBeatDuration : beatRandomCount_;
-            else
-                releaseAfter = key.latchBeatDuration;
-
-            if (key.beatsSinceActivation >= releaseAfter)
-            {
-                juce::MessageManager::callAsync([this, idx = static_cast<int>(&key - keyboardLayout_.keys.data())] {
-                    if (idx >= 0 && idx < KeyboardLayout::kNumKeys)
-                    {
-                        auto& k = keyboardLayout_.keys[static_cast<size_t>(idx)];
-                        keyboardLayout_.deactivateKey(k);
-                        if (keyboardPanel_)
-                            keyboardPanel_->keyDeactivated(k);
-                    }
-                });
-            }
-        }
-    }
-
-    // === Keyboard key random triggering ===
-    // Uses the same beat count as global random (beatRandomCount_)
-    if (beatRandomToggle_.getToggleState() && beatCounter_ == 0)
-    {
-        // Collect eligible keys: has content, not active, not ignoreRandom, not latched
-        std::vector<int> eligible;
-        for (int i = 0; i < KeyboardLayout::kNumKeys; ++i)
-        {
-            auto& key = keyboardLayout_.keys[static_cast<size_t>(i)];
-            if (!key.isEmpty() && !key.active && !key.ignoreRandom &&
-                !key.latched && !key.shiftLatched)
-            {
-                eligible.push_back(i);
-            }
-        }
-
-        if (!eligible.empty())
-        {
-            juce::Random rng;
-            int pick = eligible[static_cast<size_t>(rng.nextInt(static_cast<int>(eligible.size())))];
-            auto& key = keyboardLayout_.keys[static_cast<size_t>(pick)];
-            keyboardLayout_.activateKey(key);
-            key.activatedByRandom = true;
-            key.beatsSinceActivation = 0;
-
-            juce::MessageManager::callAsync([this, pick] {
-                if (keyboardPanel_)
-                    keyboardPanel_->keyActivated(keyboardLayout_.keys[static_cast<size_t>(pick)]);
-            });
-        }
-    }
-}
-
-void MainComponent::openKeyEditor(KeySlot& key)
-{
-    if (keyEditor_)
-    {
-        keyEditor_->setKey(&key);
-        showKeyEditor_ = true;
-        keyEditor_->setVisible(true);
-        resized();
-        // Keep keyboard focus on MainComponent so key shortcuts still work
-        grabKeyboardFocus();
-    }
-}
-
-void MainComponent::closeKeyEditor()
-{
-    showKeyEditor_ = false;
-    if (keyEditor_)
-    {
-        keyEditor_->setVisible(false);
-        keyEditor_->setKey(nullptr); // Also stops preview timer
-    }
-    if (keyboardPanel_)
-        keyboardPanel_->refresh();
-    resized();
-}
-
-void MainComponent::assignImageToKey(KeySlot& key)
-{
-    fileChooser_ = std::make_unique<juce::FileChooser>(
-        "Select image for key " + juce::String::charToString(key.keyChar),
-        juce::File{},
-        "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tiff");
-
-    auto flags = juce::FileBrowserComponent::openMode
-               | juce::FileBrowserComponent::canSelectFiles;
-
-    fileChooser_->launchAsync(flags, [this, &key](const juce::FileChooser& fc) {
-        auto file = fc.getResult();
-        if (!file.existsAsFile())
-            return;
-
-        key.mediaType = KeySlot::MediaType::Image;
-        key.mediaFile = file;
-
-        if (keyEditor_ && keyEditor_->getKey() == &key)
-            keyEditor_->setKey(&key); // refresh editor
-
-        if (keyboardPanel_)
-            keyboardPanel_->refresh();
-    });
 }
 
 // === v2: Deck View Handlers ===
@@ -2228,6 +2007,17 @@ void MainComponent::handleMenuCommand(int commandId)
             // TODO: implement screenshot
             break;
 
+        // --- Shortcuts menu ---
+        case C::kShortcutsEditKeyboard:
+            enterKeyboardBindingMode();
+            break;
+        case C::kShortcutsEditMIDI:
+            enterMidiLearnMode();
+            break;
+        case C::kShortcutsStop:
+            exitAllBindingModes();
+            break;
+
         // --- View menu ---
         case C::kViewProgrammingMode:
             if (signalBar_)
@@ -2378,4 +2168,247 @@ void MainComponent::mouseMove(const juce::MouseEvent& event)
     // Repaint if hover state changed
     if (hoveringHDivider_ != prevHoverH || hoveringVDivider_ != prevHoverV)
         repaint();
+}
+
+// === P9: Binding System Implementation ===
+
+void MainComponent::enterKeyboardBindingMode()
+{
+    if (midiLearnOverlay_ && midiLearnOverlay_->isLearnModeActive())
+        midiLearnOverlay_->exitLearnMode();
+
+    if (bindingOverlay_)
+    {
+        if (bindingOverlay_->isBindingModeActive())
+        {
+            bindingOverlay_->exitBindingMode();
+            return;
+        }
+
+        std::vector<BindingOverlay::BindableTarget> targets;
+        buildBindableTargets(targets);
+        bindingOverlay_->setBindableTargets(targets);
+        bindingOverlay_->enterBindingMode();
+    }
+}
+
+void MainComponent::enterMidiLearnMode()
+{
+    if (bindingOverlay_ && bindingOverlay_->isBindingModeActive())
+        bindingOverlay_->exitBindingMode();
+
+    if (midiLearnOverlay_)
+    {
+        if (midiLearnOverlay_->isLearnModeActive())
+        {
+            midiLearnOverlay_->exitLearnMode();
+            return;
+        }
+
+        std::vector<BindingOverlay::BindableTarget> targets;
+        buildBindableTargets(targets);
+        midiLearnOverlay_->setBindableTargets(targets);
+        midiLearnOverlay_->enterLearnMode(&audioEngine_.getDeviceManager());
+    }
+}
+
+void MainComponent::exitAllBindingModes()
+{
+    if (bindingOverlay_ && bindingOverlay_->isBindingModeActive())
+        bindingOverlay_->exitBindingMode();
+    if (midiLearnOverlay_ && midiLearnOverlay_->isLearnModeActive())
+        midiLearnOverlay_->exitLearnMode();
+}
+
+void MainComponent::buildBindableTargets(std::vector<BindingOverlay::BindableTarget>& targets)
+{
+    targets.clear();
+
+    auto* deck = composition_.getActiveDeck();
+    if (!deck) return;
+
+    int numLayers = deck->getNumLayers();
+    int numCols = deck->numColumns;
+
+    // Global actions at the top
+    int topY = 70; // Below the title text
+    int gx = 20;
+    int gw = 100;
+    int gh = 30;
+    int gap = 6;
+
+    targets.push_back({ { gx, topY, gw, gh }, "Tap Tempo",
+                         Binding::Action::TapTempo, 0, 0, 0, 0, 0 });
+    gx += gw + gap;
+    targets.push_back({ { gx, topY, gw, gh }, "Resync",
+                         Binding::Action::Resync, 0, 0, 0, 0, 0 });
+    gx += gw + gap;
+    targets.push_back({ { gx, topY, gw, gh }, "Play / Pause",
+                         Binding::Action::GlobalPlayPause, 0, 0, 0, 0, 0 });
+    gx += gw + gap;
+    targets.push_back({ { gx, topY, gw, gh }, "Stop",
+                         Binding::Action::GlobalStop, 0, 0, 0, 0, 0 });
+    gx += gw + gap;
+    targets.push_back({ { gx, topY, gw, gh }, "Master Opacity",
+                         Binding::Action::MasterOpacity, 0, 0, 0, 0, 0 });
+
+    // Column triggers
+    int colStartX = 240; // Approximate: after layer strip area
+    int colY = topY + gh + 20;
+    int colW = 80;
+    int colH = 24;
+
+    for (int c = 0; c < numCols && c < 20; ++c)
+    {
+        targets.push_back({ { colStartX + c * (colW + 2), colY, colW, colH },
+                             "Column " + juce::String(c + 1),
+                             Binding::Action::TriggerColumn,
+                             0, c, 0, 0, 0 });
+    }
+
+    // Clip cells + layer controls
+    int clipY = colY + colH + 10;
+    int clipH = 50;
+    int layerGap = 6;
+
+    for (int l = numLayers - 1; l >= 0; --l) // Top layer = highest index (Resolume style)
+    {
+        int row = (numLayers - 1 - l);
+        int y = clipY + row * (clipH + layerGap);
+
+        // Layer controls on left
+        int lx = 20;
+        int lw = 32;
+        int lh = clipH;
+
+        targets.push_back({ { lx, y, lw, lh }, "L" + juce::String(l + 1) + " Bypass",
+                             Binding::Action::ToggleLayerBypass, l, 0, 0, 0, 0 });
+        lx += lw + 2;
+        targets.push_back({ { lx, y, lw, lh }, "L" + juce::String(l + 1) + " Solo",
+                             Binding::Action::ToggleLayerSolo, l, 0, 0, 0, 0 });
+        lx += lw + 2;
+        targets.push_back({ { lx, y, lw, lh }, "L" + juce::String(l + 1) + " Mute",
+                             Binding::Action::ToggleLayerMute, l, 0, 0, 0, 0 });
+        lx += lw + 2;
+        targets.push_back({ { lx, y, lw, lh }, "L" + juce::String(l + 1) + " Auto",
+                             Binding::Action::ToggleLayerAutopilot, l, 0, 0, 0, 0 });
+        lx += lw + 2;
+        targets.push_back({ { lx, y, lw, lh }, "L" + juce::String(l + 1) + " Visible",
+                             Binding::Action::ToggleLayerVisible, l, 0, 0, 0, 0 });
+
+        // Clip cells
+        for (int c = 0; c < numCols && c < 20; ++c)
+        {
+            targets.push_back({ { colStartX + c * (colW + 2), y, colW, clipH },
+                                 "L" + juce::String(l + 1) + " C" + juce::String(c + 1),
+                                 Binding::Action::TriggerClip,
+                                 l, c, 0, 0, 0 });
+        }
+    }
+
+    // Deck switch targets at the bottom
+    int deckY = clipY + numLayers * (clipH + layerGap) + 10;
+    for (int d = 0; d < static_cast<int>(composition_.decks.size()) && d < 10; ++d)
+    {
+        targets.push_back({ { 20 + d * (colW + 2), deckY, colW, 28 },
+                             "Deck " + juce::String(d + 1),
+                             Binding::Action::SwitchDeck,
+                             0, 0, d, 0, 0 });
+    }
+}
+
+void MainComponent::handleBindingAction(const Binding& binding, float value)
+{
+    switch (binding.action)
+    {
+        case Binding::Action::TriggerClip:
+            if (value > 0.0f)
+                handleClipTrigger(binding.targetLayerIndex, binding.targetColumn);
+            break;
+
+        case Binding::Action::TriggerColumn:
+            if (value > 0.0f)
+                handleColumnTrigger(binding.targetColumn);
+            break;
+
+        case Binding::Action::ToggleLayerBypass:
+        case Binding::Action::ToggleLayerSolo:
+        case Binding::Action::ToggleLayerMute:
+        case Binding::Action::ToggleLayerAutopilot:
+        case Binding::Action::ToggleLayerVisible:
+        {
+            if (value > 0.0f)
+            {
+                auto* deck = composition_.getActiveDeck();
+                if (deck)
+                {
+                    auto* layer = deck->getLayer(binding.targetLayerIndex);
+                    if (layer)
+                    {
+                        switch (binding.action)
+                        {
+                            case Binding::Action::ToggleLayerBypass:
+                                layer->bypassed = !layer->bypassed;
+                                break;
+                            case Binding::Action::ToggleLayerSolo:
+                                layer->solo = !layer->solo;
+                                break;
+                            case Binding::Action::ToggleLayerMute:
+                                layer->muted = !layer->muted;
+                                break;
+                            case Binding::Action::ToggleLayerAutopilot:
+                                layer->autopilotEnabled = !layer->autopilotEnabled;
+                                break;
+                            case Binding::Action::ToggleLayerVisible:
+                                layer->visible = !layer->visible;
+                                break;
+                            default:
+                                break;
+                        }
+                        if (deckView_) deckView_->refresh();
+                    }
+                }
+            }
+            break;
+        }
+
+        case Binding::Action::SwitchDeck:
+            if (value > 0.0f)
+                handleDeckSwitch(binding.targetDeckIndex);
+            break;
+
+        case Binding::Action::TapTempo:
+            // TODO: wire to BPM tracker tap tempo
+            break;
+
+        case Binding::Action::Resync:
+            // TODO: wire to BPM tracker resync
+            break;
+
+        case Binding::Action::GlobalPlayPause:
+            if (value > 0.0f)
+            {
+                if (audioEngine_.isPlaying())
+                    audioEngine_.stop();
+                else
+                    audioEngine_.play();
+            }
+            break;
+
+        case Binding::Action::GlobalStop:
+            if (value > 0.0f)
+                audioEngine_.stop();
+            break;
+
+        case Binding::Action::MasterOpacity:
+            // CC value: set master opacity
+            composition_.masterOpacity = value;
+            break;
+
+        case Binding::Action::LayerTransport:
+        case Binding::Action::ToggleEffectBypass:
+        case Binding::Action::AdjustMacro:
+            // TODO: implement in future phases
+            break;
+    }
 }

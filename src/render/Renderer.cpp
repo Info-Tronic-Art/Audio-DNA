@@ -107,9 +107,7 @@ void Renderer::renderOpenGL()
     juce::OpenGLHelpers::clear(juce::Colour(0xff0a0a14));
 
     // Check if we have anything to render
-    bool hasKeyboardContent = (keyboardLayout_ != nullptr &&
-                                !keyboardLayout_->getActiveKeysSorted().empty());
-    if (!texMgr_.hasImage() && !hasKeyboardContent)
+    if (!texMgr_.hasImage())
         return; // Nothing to render yet
 
     // Read latest audio features (lock-free)
@@ -171,16 +169,7 @@ void Renderer::renderOpenGL()
     // Render the effect chain with letterbox viewport for final output
     auto renderStart = std::chrono::high_resolution_clock::now();
 
-    // Check if keyboard launcher has active keys
     GLuint sourceTexture = texMgr_.getImageTexture();
-    if (keyboardLayout_ != nullptr)
-    {
-        GLuint composited = compositor_.composite(
-            *keyboardLayout_, shaderMgr_, quad_, time,
-            static_cast<int>(renderW), static_cast<int>(renderH));
-        if (composited != 0)
-            sourceTexture = composited;
-    }
 
     effectChain_.render(sourceTexture,
                         shaderMgr_, texMgr_, quad_,

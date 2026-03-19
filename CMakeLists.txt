@@ -130,6 +130,10 @@ target_sources(AudioDNA PRIVATE
     src/binding/BindingManager.h
     src/binding/BindingManager.cpp
 
+    # MIDI (v2)
+    src/midi/MidiHandler.h
+    src/midi/MidiHandler.cpp
+
     # Effects
     src/effects/Effect.h
     src/effects/Effect.cpp
@@ -161,10 +165,6 @@ target_sources(AudioDNA PRIVATE
     src/ui/PresetManager.cpp
     src/ui/OutputWindow.h
     src/ui/OutputWindow.cpp
-    src/ui/KeyboardPanel.h
-    src/ui/KeyboardPanel.cpp
-    src/ui/KeyEditor.h
-    src/ui/KeyEditor.cpp
     src/ui/SignalStrip.h
     src/ui/SignalStrip.cpp
     src/ui/SignalBar.h
@@ -213,7 +213,10 @@ target_sources(AudioDNA PRIVATE
     src/ui/MenuBarModel.cpp
     src/ui/PreferencesDialog.h
     src/ui/PreferencesDialog.cpp
-    src/keyboard/KeySlot.h
+    src/ui/BindingOverlay.h
+    src/ui/BindingOverlay.cpp
+    src/ui/MidiLearnOverlay.h
+    src/ui/MidiLearnOverlay.cpp
     src/render/CompositorEngine.h
     src/render/CompositorEngine.cpp
     src/render/EmbeddedShaders.h
