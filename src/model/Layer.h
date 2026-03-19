@@ -97,9 +97,24 @@ struct Layer
     float rotationSpeed = 0.0f;
     float scale3D = 1.0f;
 
+    // === Video Properties (per-layer) ===
+    int layerWidth = 1920;
+    int layerHeight = 1080;
+    enum class AutoSizeMode : uint8_t { Off, Fill, Fit, Stretch, Original };
+    AutoSizeMode autoSize = AutoSizeMode::Off;
+
     // === Transition ===
     MixMode transitionMode = MixMode::Dissolve;  // F dropdown — momentary clip change style
+    MixMode transitionBlendMode = MixMode::Normal; // Transition blend method
     float transitionSpeed = -1.0f; // -1 = use global default
+
+    // === Transform (per-layer, applied after clip compositing) ===
+    float positionX = 0.0f;
+    float positionY = 0.0f;
+    float layerScale = 1.0f;        // 1.0 = 100%
+    float layerRotation = 0.0f;     // Degrees
+    float layerAnchorX = 0.0f;
+    float layerAnchorY = 0.0f;
 
     // === Per-layer Effect Chain ===
     std::vector<Clip::EffectSlot> layerEffects;

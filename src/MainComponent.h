@@ -22,6 +22,7 @@
 #include "ui/BrowserPanel.h"
 #include "ui/MenuBarModel.h"
 #include "signal/SignalRegistry.h"
+#include "routing/MacroBank.h"
 #include "model/Composition.h"
 #include "ui/BindingOverlay.h"
 #include "ui/MidiLearnOverlay.h"
@@ -187,6 +188,7 @@ private:
     // === v2: Signal Bar + Top Bar + Deck ===
     Composition composition_;
     SignalRegistry signalRegistry_;
+    MacroBank globalMacroBank_{MacroBank::Scope::Global};
     std::unique_ptr<TopBar> topBar_;
     std::unique_ptr<SignalBar> signalBar_;
     std::unique_ptr<ProgrammingMode> programmingMode_;

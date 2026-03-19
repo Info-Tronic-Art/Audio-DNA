@@ -6,12 +6,24 @@
 #include "signal/SignalRegistry.h"
 #include "ui/MacroPanel.h"
 #include "ui/EffectStackView.h"
+#include "ui/UniversalParamControl.h"
 #include "ui/LookAndFeel.h"
 
-// LayerInspector: shows properties for the selected layer.
-// Sections: Macros, Blend Mode, Keying, Layer Effects,
-// Autopilot Defaults, Transition Speed, 3D Controls.
-// Dynamic sections based on layer type.
+// LayerInspector: Resolume-style layer properties panel.
+//
+// Sections (matching Resolume Layer tab):
+//   [Name]                    "Layer 1"  search + gear icons
+//   [Dashboard]               8 link knobs
+//   [Autopilot]               Direction, Duration, Clip Loops, Loop
+//   [Layer]                   ▶ Master % slider
+//   [Video]                   Blend Mode, ▶ Opacity %, Width, Height, Auto Size
+//   [Transition]              Blend Mode, Duration
+//   [Keying]                  (Transparent only) Mode, Threshold, Softness
+//   [DryWet]                  (FX Only only) Mix slider
+//   [3D Controls]             (ThreeD only) Rotation X/Y/Z, Speed, Scale
+//   [Transform]               Position X/Y, Scale %, Rotation °, Anchor
+//   [Layer Effects]           Effect stack
+//   [Autopilot Defaults]      Default Action, Default Duration
 class LayerInspector : public juce::Component
 {
 public:
@@ -32,37 +44,62 @@ public:
 
 private:
     Layer* layer_ = nullptr;
+    SignalRegistry* signalRegistry_ = nullptr;
 
     MacroPanel macroPanel_;
 
-    // Blend mode (Transparent type)
-    juce::ComboBox blendModeSelector_;
+    // --- Autopilot ---
+    juce::TextButton apRewindBtn_;
+    juce::TextButton apOffBtn_{"OFF"};
+    juce::TextButton apForwardBtn_;
+    juce::TextButton apRandomBtn_;
+    juce::ComboBox apDurationSelector_;
+    juce::Slider apClipLoopsSlider_;
+    juce::ToggleButton apLoopToggle_{"Loop"};
 
-    // Keying controls (Transparent type)
+    // --- Layer (Master) ---
+    UniversalParamControl masterControl_;
+
+    // --- Video ---
+    juce::ComboBox blendModeSelector_;
+    UniversalParamControl opacityControl_;
+    juce::Slider widthSlider_;
+    juce::Slider heightSlider_;
+    juce::ComboBox autoSizeSelector_;
+
+    // --- Transition ---
+    juce::ComboBox transitionBlendSelector_;
+    juce::Slider transitionDurationSlider_;
+
+    // --- Keying (Transparent type) ---
     juce::ComboBox keyingModeSelector_;
     juce::Slider keyThresholdSlider_;
     juce::Slider keySoftnessSlider_;
 
-    // FX Only controls
+    // --- FX Only ---
     juce::Slider dryWetSlider_;
 
-    // 3D controls
+    // --- 3D Controls ---
     juce::Slider rotXSlider_, rotYSlider_, rotZSlider_;
     juce::Slider rotSpeedSlider_;
     juce::Slider scale3DSlider_;
 
-    // Layer effects
+    // --- Transform ---
+    UniversalParamControl posXControl_;
+    UniversalParamControl posYControl_;
+    UniversalParamControl scaleControl_;
+    UniversalParamControl rotationControl_;
+    UniversalParamControl anchorControl_;
+
+    // --- Layer Effects ---
     EffectStackView effectStackView_;
 
-    // Autopilot defaults
+    // --- Autopilot Defaults ---
     juce::ComboBox defaultApActionSelector_;
     juce::ComboBox defaultApDurationSelector_;
 
-    // Transition speed
-    juce::Slider transitionSpeedSlider_;
-
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
-                            const juce::String& title);
+                            const juce::String& title, bool hasPButton = false);
     void syncFromLayer();
     void populateBlendModes();
     void populateKeyingModes();
@@ -70,6 +107,7 @@ private:
     static constexpr int kSectionHeaderHeight = 18;
     static constexpr int kSectionGap = 4;
     static constexpr int kRowHeight = 22;
+    static constexpr int kNameBarHeight = 26;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LayerInspector)
 };

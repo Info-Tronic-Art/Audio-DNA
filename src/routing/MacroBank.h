@@ -6,13 +6,14 @@
 #include <string>
 #include <cstdint>
 
-// MacroBank: 6 macro knobs per scope (clip, layer, global).
-// Each macro can be driven by a Signal or set manually.
-// Each macro distributes its value to linked parameters with per-link range/invert.
+// MacroBank: 8 dashboard link knobs per scope (clip, layer, global).
+// Each link can be driven by a Signal or set manually.
+// Each link distributes its value to linked parameters with per-link range/invert.
+// Resolume calls these "Dashboard Links" — 8 per scope (composition, layer, clip).
 class MacroBank
 {
 public:
-    static constexpr int kNumMacros = 6;
+    static constexpr int kNumMacros = 8;
 
     enum class Scope : uint8_t { Clip, Layer, Global };
 
@@ -47,7 +48,7 @@ public:
     {
         for (int i = 0; i < kNumMacros; ++i)
         {
-            macros_[static_cast<size_t>(i)].name = "Macro " + std::to_string(i + 1);
+            macros_[static_cast<size_t>(i)].name = "Link " + std::to_string(i + 1);
         }
     }
 

@@ -30,7 +30,8 @@
 | **P7** | Browser | **COMPLETE** | YES — new right section visible |
 | **P8** | Preview, Output, Layout, Menus, Prefs | **COMPLETE** | YES — complete layout visible |
 | **P9** | Binding System & MIDI | **COMPLETE** | YES — bind mode overlay visible |
-| **P10** | Procedural Sources | NOT STARTED | YES — sources in browser, renderable |
+| **P10** | Procedural Sources | **COMPLETE** | YES — sources in browser, renderable |
+| **P10.5** | Inspector Overhaul (Resolume-style) | **COMPLETE** | YES — full inspector with signal triangles, transform, video, crossfader, 8-link dashboard |
 | **P11** | Video Playback | NOT STARTED | YES — video clips play in deck |
 | **P12** | Phrase Tracking & Polish | NOT STARTED | YES — phrase indicator, recording |
 

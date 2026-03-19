@@ -32,6 +32,7 @@ public:
     void setComposition(Composition* comp);
     void setEffectLibrary(EffectLibrary* lib);
     void setSignalRegistry(SignalRegistry* reg);
+    void setMacroBank(MacroBank* bank);
 
     // Selection callbacks — auto-switch tab
     void inspectClip(Clip* clip);
@@ -45,6 +46,9 @@ public:
     enum class Tab : int { Clip = 0, Layer = 1, Composition = 2, Signal = 3 };
     void setActiveTab(Tab tab);
     Tab getActiveTab() const { return activeTab_; }
+
+    // Access individual inspectors
+    ClipInspector& getClipInspector() { return clipInspector_; }
 
 private:
     Tab activeTab_ = Tab::Clip;

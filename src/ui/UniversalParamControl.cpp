@@ -7,6 +7,7 @@ UniversalParamControl::UniversalParamControl()
     valueSlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     valueSlider_.setRange(0.0, 1.0, 0.001);
     valueSlider_.setValue(0.5, juce::dontSendNotification);
+    valueSlider_.setScrollWheelEnabled(false); // Scroll should scroll the inspector, not change value
     valueSlider_.setColour(juce::Slider::thumbColourId,
                            juce::Colour(AudioDNALookAndFeel::kAccentCyan));
     valueSlider_.setColour(juce::Slider::trackColourId,
@@ -63,6 +64,7 @@ UniversalParamControl::UniversalParamControl()
         s.setSliderStyle(juce::Slider::LinearHorizontal);
         s.setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 18);
         s.setRange(0.0, 1.0, 0.01);
+        s.setScrollWheelEnabled(false);
         s.setColour(juce::Slider::thumbColourId,
                     juce::Colour(AudioDNALookAndFeel::kAccentCyan));
         s.setColour(juce::Slider::trackColourId,
@@ -91,33 +93,61 @@ UniversalParamControl::UniversalParamControl()
     addChildComponent(rangeLabel_);
 }
 
+void UniversalParamControl::drawSignalTriangle(juce::Graphics& g,
+                                                juce::Rectangle<float> area,
+                                                bool connected)
+{
+    // Draw a small right-pointing triangle (play button shape)
+    // Grey when unconnected, cyan when a signal is routed
+    juce::Path triangle;
+    float cx = area.getCentreX();
+    float cy = area.getCentreY();
+    float halfSize = 4.0f;
+
+    // Right-pointing triangle
+    triangle.addTriangle(cx - halfSize, cy - halfSize,
+                         cx - halfSize, cy + halfSize,
+                         cx + halfSize, cy);
+
+    if (connected)
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    else
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.5f));
+
+    g.fillPath(triangle);
+}
+
 void UniversalParamControl::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
 
-    // Collapsed row: name + value text + source indicator
+    // Collapsed row: triangle + name + value text + source indicator
     auto row = bounds.removeFromTop(static_cast<float>(kCollapsedHeight));
+
+    // Signal connect triangle (left side, always visible)
+    auto triangleArea = row.removeFromLeft(static_cast<float>(kTriangleSize));
+    drawSignalTriangle(g, triangleArea, isConnected());
 
     // Parameter name
     g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
     g.setFont(juce::Font(juce::FontOptions(11.0f)));
-    g.drawText(paramName_, row.removeFromLeft(80.0f).toNearestInt(),
+    g.drawText(paramName_, row.removeFromLeft(72.0f).toNearestInt(),
                juce::Justification::centredLeft, true);
 
     // Value text
     g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
     g.setFont(juce::Font(juce::FontOptions(11.0f)));
     g.drawText(juce::String(currentValue_, 2),
-               juce::Rectangle<int>(80, 0, 36, kCollapsedHeight),
+               juce::Rectangle<int>(kTriangleSize + 72, 0, 36, kCollapsedHeight),
                juce::Justification::centredRight, false);
 
-    // Source-driven mini meter (below collapsed row, if source active)
+    // Source-driven mini meter (below collapsed row, if source active and expanded)
     if (sourceMode_ != SourceMode::Manual && expanded_)
     {
         auto meterRow = bounds.removeFromTop(14.0f);
-        meterRow = meterRow.withTrimmedLeft(4.0f).withTrimmedRight(4.0f);
+        meterRow = meterRow.withTrimmedLeft(static_cast<float>(kTriangleSize) + 4.0f).withTrimmedRight(4.0f);
 
-        // Source name
+        // Source name with arrow
         g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
         g.setFont(juce::Font(juce::FontOptions(10.0f)));
         g.drawText(juce::String(juce::CharPointer_UTF8("\xe2\x86\x90 ")) + sourceName_,
@@ -133,6 +163,19 @@ void UniversalParamControl::paint(juce::Graphics& g)
         g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentMagenta).withAlpha(0.7f));
         g.fillRect(meterBounds.withWidth(fillWidth));
     }
+
+    // When connected but collapsed, show a subtle source name hint
+    if (isConnected() && !expanded_)
+    {
+        // Draw tiny source label above the slider area
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.5f));
+        g.setFont(juce::Font(juce::FontOptions(8.0f)));
+        auto hintBounds = getLocalBounds().toFloat();
+        hintBounds = hintBounds.removeFromTop(10.0f);
+        hintBounds.removeFromLeft(static_cast<float>(kTriangleSize) + 72.0f + 36.0f + 46.0f);
+        g.drawText(sourceName_, hintBounds.toNearestInt(),
+                   juce::Justification::centredLeft, true);
+    }
 }
 
 void UniversalParamControl::resized()
@@ -142,8 +185,11 @@ void UniversalParamControl::resized()
     // Collapsed row
     auto row = area.removeFromTop(kCollapsedHeight);
 
-    // Name (80px) + value text (36px) painted in paint()
-    row.removeFromLeft(80 + 36);
+    // Triangle area (painted in paint(), not a component)
+    row.removeFromLeft(kTriangleSize);
+
+    // Name (72px) + value text (36px) painted in paint()
+    row.removeFromLeft(72 + 36);
 
     // -/+ buttons
     row.removeFromLeft(2);
@@ -165,6 +211,7 @@ void UniversalParamControl::resized()
             area.removeFromTop(14); // space for source meter (painted)
 
         auto sourceRow = area.removeFromTop(22);
+        sourceRow.removeFromLeft(kTriangleSize); // align with content
         sourceBtn_.setBounds(sourceRow.removeFromLeft(120));
         sourceRow.removeFromLeft(8);
         invertToggle_.setBounds(sourceRow.removeFromLeft(70));
@@ -176,6 +223,7 @@ void UniversalParamControl::resized()
 
         // Range row
         auto rangeRow = area.removeFromTop(20);
+        rangeRow.removeFromLeft(kTriangleSize); // align with content
         rangeLabel_.setBounds(rangeRow.removeFromLeft(40));
         rangeLabel_.setVisible(true);
 
@@ -197,8 +245,17 @@ void UniversalParamControl::resized()
 
 void UniversalParamControl::mouseDown(const juce::MouseEvent& event)
 {
+    // Click on the triangle area → show source picker popup
+    if (event.position.x < static_cast<float>(kTriangleSize) &&
+        event.position.y < static_cast<float>(kCollapsedHeight))
+    {
+        showSourcePickerAtTriangle();
+        return;
+    }
+
     // Click on the name/value area toggles expanded
-    if (event.position.x < 116.0f && event.position.y < static_cast<float>(kCollapsedHeight))
+    if (event.position.x < static_cast<float>(kTriangleSize + 72 + 36) &&
+        event.position.y < static_cast<float>(kCollapsedHeight))
     {
         setExpanded(!expanded_);
         return;
@@ -242,34 +299,137 @@ int UniversalParamControl::getPreferredHeight() const
     return h;
 }
 
+void UniversalParamControl::showSourcePickerAtTriangle()
+{
+    // Show the popup anchored to the triangle area
+    juce::PopupMenu menu;
+    buildSourcePickerMenu(menu);
+
+    auto triangleBounds = getLocalBounds().removeFromLeft(kTriangleSize)
+                                          .removeFromTop(kCollapsedHeight);
+    auto screenPos = localAreaToGlobal(triangleBounds);
+
+    menu.showMenuAsync(
+        juce::PopupMenu::Options()
+            .withTargetScreenArea(screenPos),
+        [this](int result) { handleSourcePickerResult(result); });
+}
+
 void UniversalParamControl::showSourcePicker()
 {
     juce::PopupMenu menu;
+    buildSourcePickerMenu(menu);
 
-    // Manual option
+    menu.showMenuAsync(
+        juce::PopupMenu::Options().withTargetComponent(&sourceBtn_),
+        [this](int result) { handleSourcePickerResult(result); });
+}
+
+void UniversalParamControl::buildSourcePickerMenu(juce::PopupMenu& menu)
+{
+    // === Manual (Basic) ===
     menu.addItem(1, "Manual", true, sourceMode_ == SourceMode::Manual);
 
-    // Signals submenu
+    menu.addSeparator();
+
+    // === Audio Signals ===
     if (signalRegistry_)
     {
-        juce::PopupMenu signalMenu;
+        juce::PopupMenu audioMenu;
         int itemId = 100;
         for (int i = 0; i < signalRegistry_->getNumSignals(); ++i)
         {
             auto* sig = signalRegistry_->getSignalAt(i);
-            if (sig)
+            if (sig && sig->getType() == Signal::Type::Audio)
             {
-                signalMenu.addItem(itemId + i,
+                audioMenu.addItem(itemId + i,
                     juce::String(sig->getName()),
                     true,
                     sourceMode_ == SourceMode::Signal &&
                     sourceName_ == juce::String(sig->getName()));
             }
         }
-        menu.addSubMenu("Signals", signalMenu);
+        if (audioMenu.getNumItems() > 0)
+            menu.addSubMenu("Audio", audioMenu);
     }
 
-    // Macros submenu (placeholder — actual macro linking comes from Inspector)
+    // === BPM Sync (per-parameter beat-synced oscillation) ===
+    {
+        juce::PopupMenu bpmMenu;
+
+        // Waveform shapes × beat divisions
+        static const char* const shapes[] = { "Sine", "Saw", "Triangle", "Square" };
+        static const char* const divisions[] = {
+            "1/4 Beat", "1/2 Beat", "1 Beat", "2 Beats", "4 Beats", "8 Beats"
+        };
+
+        int bpmId = 300;
+        for (int s = 0; s < 4; ++s)
+        {
+            juce::PopupMenu shapeMenu;
+            for (int d = 0; d < 6; ++d)
+            {
+                juce::String itemName = juce::String(divisions[d]);
+                juce::String fullName = juce::String(shapes[s]) + " " + itemName;
+                shapeMenu.addItem(bpmId + s * 6 + d, itemName, true,
+                    sourceMode_ == SourceMode::BPMSync && sourceName_ == fullName);
+            }
+            bpmMenu.addSubMenu(shapes[s], shapeMenu);
+        }
+        menu.addSubMenu("BPM Sync", bpmMenu);
+    }
+
+    // === Oscillators (from SignalRegistry) ===
+    if (signalRegistry_)
+    {
+        juce::PopupMenu oscMenu;
+        int oscId = 400;
+        for (int i = 0; i < signalRegistry_->getNumSignals(); ++i)
+        {
+            auto* sig = signalRegistry_->getSignalAt(i);
+            if (sig && sig->getType() == Signal::Type::Oscillator)
+            {
+                oscMenu.addItem(oscId + i,
+                    juce::String(sig->getName()),
+                    true,
+                    sourceMode_ == SourceMode::Oscillator &&
+                    sourceName_ == juce::String(sig->getName()));
+            }
+        }
+        if (oscMenu.getNumItems() > 0)
+            menu.addSubMenu("Oscillator", oscMenu);
+    }
+
+    // === Envelopes (from SignalRegistry) ===
+    if (signalRegistry_)
+    {
+        juce::PopupMenu envMenu;
+        int envId = 500;
+        for (int i = 0; i < signalRegistry_->getNumSignals(); ++i)
+        {
+            auto* sig = signalRegistry_->getSignalAt(i);
+            if (sig && sig->getType() == Signal::Type::Envelope)
+            {
+                envMenu.addItem(envId + i,
+                    juce::String(sig->getName()),
+                    true,
+                    sourceMode_ == SourceMode::Envelope &&
+                    sourceName_ == juce::String(sig->getName()));
+            }
+        }
+        if (envMenu.getNumItems() > 0)
+            menu.addSubMenu("Envelope", envMenu);
+    }
+
+    // === Clip Position ===
+    menu.addItem(2, "Clip Position", true, sourceMode_ == SourceMode::ClipPosition);
+
+    // === Timeline (per-parameter keyframes — placeholder for future) ===
+    menu.addItem(3, "Timeline", true, sourceMode_ == SourceMode::Timeline);
+
+    menu.addSeparator();
+
+    // === Macros ===
     {
         juce::PopupMenu macroMenu;
         for (int i = 0; i < MacroBank::kNumMacros; ++i)
@@ -280,44 +440,98 @@ void UniversalParamControl::showSourcePicker()
                 sourceMode_ == SourceMode::Macro &&
                 sourceName_ == "Macro " + juce::String(i + 1));
         }
-        menu.addSubMenu("Macros", macroMenu);
+        menu.addSubMenu("Macro", macroMenu);
     }
+}
 
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&sourceBtn_),
-        [this](int result) {
-            if (result == 0) return; // dismissed
+void UniversalParamControl::handleSourcePickerResult(int result)
+{
+    if (result == 0) return; // dismissed
 
-            if (result == 1)
+    if (result == 1)
+    {
+        sourceMode_ = SourceMode::Manual;
+        sourceName_ = {};
+        sourceBtn_.setButtonText("Manual");
+    }
+    else if (result == 2)
+    {
+        sourceMode_ = SourceMode::ClipPosition;
+        sourceName_ = "Clip Position";
+        sourceBtn_.setButtonText("Clip Position");
+    }
+    else if (result == 3)
+    {
+        sourceMode_ = SourceMode::Timeline;
+        sourceName_ = "Timeline";
+        sourceBtn_.setButtonText("Timeline");
+    }
+    else if (result >= 100 && result < 200)
+    {
+        int sigIdx = result - 100;
+        if (signalRegistry_)
+        {
+            if (auto* sig = signalRegistry_->getSignalAt(sigIdx))
             {
-                sourceMode_ = SourceMode::Manual;
-                sourceName_ = {};
-                sourceBtn_.setButtonText("Manual");
-            }
-            else if (result >= 100 && result < 200)
-            {
-                int sigIdx = result - 100;
-                if (signalRegistry_)
-                {
-                    if (auto* sig = signalRegistry_->getSignalAt(sigIdx))
-                    {
-                        sourceMode_ = SourceMode::Signal;
-                        sourceName_ = juce::String(sig->getName());
-                        sourceBtn_.setButtonText(sourceName_);
-                    }
-                }
-            }
-            else if (result >= 200 && result < 206)
-            {
-                int macroIdx = result - 200;
-                sourceMode_ = SourceMode::Macro;
-                sourceName_ = "Macro " + juce::String(macroIdx + 1);
+                sourceMode_ = SourceMode::Signal;
+                sourceName_ = juce::String(sig->getName());
                 sourceBtn_.setButtonText(sourceName_);
             }
+        }
+    }
+    else if (result >= 200 && result < 206)
+    {
+        int macroIdx = result - 200;
+        sourceMode_ = SourceMode::Macro;
+        sourceName_ = "Macro " + juce::String(macroIdx + 1);
+        sourceBtn_.setButtonText(sourceName_);
+    }
+    else if (result >= 300 && result < 324)
+    {
+        // BPM Sync: shapes[0-3] × divisions[0-5]
+        int bpmIdx = result - 300;
+        int shapeIdx = bpmIdx / 6;
+        int divIdx = bpmIdx % 6;
 
-            if (onSourceChanged) onSourceChanged(sourceMode_, sourceName_);
-            resized();
-            repaint();
-        });
+        static const char* const shapes[] = { "Sine", "Saw", "Triangle", "Square" };
+        static const char* const divisions[] = {
+            "1/4 Beat", "1/2 Beat", "1 Beat", "2 Beats", "4 Beats", "8 Beats"
+        };
+
+        sourceMode_ = SourceMode::BPMSync;
+        sourceName_ = juce::String(shapes[shapeIdx]) + " " + juce::String(divisions[divIdx]);
+        sourceBtn_.setButtonText(sourceName_);
+    }
+    else if (result >= 400 && result < 500)
+    {
+        int sigIdx = result - 400;
+        if (signalRegistry_)
+        {
+            if (auto* sig = signalRegistry_->getSignalAt(sigIdx))
+            {
+                sourceMode_ = SourceMode::Oscillator;
+                sourceName_ = juce::String(sig->getName());
+                sourceBtn_.setButtonText(sourceName_);
+            }
+        }
+    }
+    else if (result >= 500 && result < 600)
+    {
+        int sigIdx = result - 500;
+        if (signalRegistry_)
+        {
+            if (auto* sig = signalRegistry_->getSignalAt(sigIdx))
+            {
+                sourceMode_ = SourceMode::Envelope;
+                sourceName_ = juce::String(sig->getName());
+                sourceBtn_.setButtonText(sourceName_);
+            }
+        }
+    }
+
+    if (onSourceChanged) onSourceChanged(sourceMode_, sourceName_);
+    resized();
+    repaint();
 }
 
 void UniversalParamControl::updateValueDisplay()

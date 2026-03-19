@@ -6,7 +6,7 @@ MacroPanel::MacroPanel()
     {
         auto& slot = slots_[static_cast<size_t>(i)];
 
-        slot.knob = std::make_unique<Knob>("Macro " + juce::String(i + 1));
+        slot.knob = std::make_unique<Knob>("Link " + juce::String(i + 1));
         slot.knob->getSlider().setValue(0.5, juce::dontSendNotification);
 
         int capturedIdx = i;
@@ -37,7 +37,7 @@ void MacroPanel::paint(juce::Graphics& g)
     // Section header
     g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     g.setFont(juce::Font(juce::FontOptions(10.0f)));
-    g.drawText("MACROS", getLocalBounds().removeFromTop(14),
+    g.drawText("DASHBOARD", getLocalBounds().removeFromTop(14),
                juce::Justification::centredLeft, false);
 }
 
@@ -70,22 +70,29 @@ void MacroPanel::refresh()
 {
     if (!macroBank_) return;
 
+    // Update macro values from signal sources
+    if (signalRegistry_)
+        macroBank_->updateValues(*signalRegistry_);
+
     for (int i = 0; i < MacroBank::kNumMacros; ++i)
     {
         auto& macro = macroBank_->getMacro(i);
         auto& slot = slots_[static_cast<size_t>(i)];
 
         slot.knob->setParamName(juce::String(macro.name));
-        slot.knob->getSlider().setValue(static_cast<double>(macro.manualValue),
-                                         juce::dontSendNotification);
 
         if (macro.isManual())
         {
+            slot.knob->getSlider().setValue(static_cast<double>(macro.manualValue),
+                                             juce::dontSendNotification);
             slot.sourceBtn->setButtonText("Manual");
             slot.knob->setMappingIndicator({});
         }
         else
         {
+            // Show the computed value (driven by signal), not the manual value
+            slot.knob->getSlider().setValue(static_cast<double>(macro.currentValue),
+                                             juce::dontSendNotification);
             juce::String sigName = "Signal";
             if (signalRegistry_)
             {

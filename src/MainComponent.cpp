@@ -497,14 +497,22 @@ MainComponent::MainComponent()
             if (inspectorPanel_)
                 inspectorPanel_->inspectClip(clip);
 
-            // Load clip's image into preview panel
+            // Load clip content into preview panel
             if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
             {
+                previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
                 currentImageFile_ = clip->mediaFile;
                 if (outputWindow_)
                     outputWindow_->loadImage(clip->mediaFile);
                 fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+            }
+            else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
+            {
+                previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
+                previewPanel_.getRenderer().clearImage();
+                currentImageFile_ = juce::File();
+                fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
             }
         }
     };
@@ -528,6 +536,11 @@ MainComponent::MainComponent()
     inspectorPanel_->setComposition(&composition_);
     inspectorPanel_->setEffectLibrary(&effectLibrary_);
     inspectorPanel_->setSignalRegistry(&signalRegistry_);
+    inspectorPanel_->setMacroBank(&globalMacroBank_);
+    inspectorPanel_->getClipInspector().onSourceParamsChanged = [this](Clip* clip) {
+        if (clip && clip->mediaType == Clip::MediaType::Source)
+            previewPanel_.getRenderer().updateActiveSourceParams(clip->sourceParams);
+    };
 
     // === v2: Browser Panel ===
     browserPanel_ = std::make_unique<BrowserPanel>();
@@ -543,6 +556,62 @@ MainComponent::MainComponent()
         if (outputWindow_)
             outputWindow_->loadImage(file);
         fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
+    };
+    browserPanel_->getSourcesBrowser().onSourceActivated = [this](const juce::String& sourceId) {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+
+        // Find the first selected clip cell, or use layer 0 col 0
+        int targetLayer = 0;
+        int targetCol = 0;
+        if (deckView_)
+        {
+            auto& sel = deckView_->getSelectedCells();
+            if (!sel.empty()) { targetLayer = sel[0].layer; targetCol = sel[0].column; }
+        }
+
+        // Create a source clip with parameters from registry
+        Clip clip;
+        clip.name = sourceId.toStdString();
+        clip.mediaType = Clip::MediaType::Source;
+        clip.sourceType = sourceId.toStdString();
+
+        // Populate source parameters from the registry
+        auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
+        auto tempSrc = srcRegistry.createSource(sourceId.toStdString());
+        if (tempSrc)
+        {
+            for (int i = 0; i < tempSrc->getNumParams(); ++i)
+            {
+                const auto& p = tempSrc->getParam(i);
+                Clip::SourceParam sp;
+                sp.name = p.name;
+                sp.uniformName = p.uniformName;
+                sp.value = p.defaultValue;
+                sp.defaultValue = p.defaultValue;
+                clip.sourceParams.push_back(sp);
+            }
+        }
+
+        deck->setClip(targetLayer, targetCol, clip);
+        auto* layer = deck->getLayer(targetLayer);
+        if (layer) layer->triggerClip(targetCol);
+
+        // Load source into preview renderer
+        previewPanel_.getRenderer().setActiveSource(sourceId.toStdString(), clip.sourceParams);
+        previewPanel_.getRenderer().clearImage();
+        currentImageFile_ = juce::File();
+        fileLabel_.setText(juce::String(sourceId), juce::dontSendNotification);
+
+        if (deckView_) deckView_->rebuildGrid();
+
+        // Refresh inspector to show the new source clip
+        if (inspectorPanel_)
+        {
+            auto* newClip = deck->getClip(targetLayer, targetCol);
+            if (newClip)
+                inspectorPanel_->inspectClip(newClip);
+        }
     };
 
     // === v2: Timing Window ===
@@ -1158,6 +1227,10 @@ void MainComponent::timerCallback()
     if (!inputLevelMeterBounds_.isEmpty())
         repaint(inputLevelMeterBounds_);
 
+    // Refresh inspector at ~10Hz to show signal-driven values
+    if (uiUpdateCounter_ % 3 == 0 && inspectorPanel_)
+        inspectorPanel_->refresh();
+
     // Beat-synced randomization (runs at 30Hz for accurate beat detection)
     if (beatRandomToggle_.getToggleState())
         beatSyncRandomize();
@@ -1747,21 +1820,30 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
 
     layer->triggerClip(column);
 
-    // Load the image into preview if the clip has media, otherwise clear
+    // Load the clip content into preview
     if (auto* clip = layer->getActiveClip())
     {
         if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
         {
+            previewPanel_.getRenderer().clearActiveSource();
             previewPanel_.loadImage(clip->mediaFile);
             currentImageFile_ = clip->mediaFile;
             if (outputWindow_)
                 outputWindow_->loadImage(clip->mediaFile);
             fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
         }
+        else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
+        {
+            previewPanel_.getRenderer().setActiveSource(clip->sourceType);
+            previewPanel_.getRenderer().clearImage();
+            currentImageFile_ = juce::File();
+            fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+        }
     }
     else
     {
         // No active clip — clear preview
+        previewPanel_.getRenderer().clearActiveSource();
         previewPanel_.clearImage();
         currentImageFile_ = juce::File();
         fileLabel_.setText("", juce::dontSendNotification);
@@ -1784,7 +1866,7 @@ void MainComponent::handleColumnTrigger(int column)
         deckView_->refresh();
     }
 
-    // Load the bottom-most active clip's image into preview
+    // Load the bottom-most active clip's content into preview
     bool foundActiveClip = false;
     for (int i = 0; i < deck->getNumLayers(); ++i)
     {
@@ -1794,6 +1876,7 @@ void MainComponent::handleColumnTrigger(int column)
         {
             if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
             {
+                previewPanel_.getRenderer().clearActiveSource();
                 previewPanel_.loadImage(clip->mediaFile);
                 currentImageFile_ = clip->mediaFile;
                 if (outputWindow_)
@@ -1802,11 +1885,21 @@ void MainComponent::handleColumnTrigger(int column)
                 foundActiveClip = true;
                 break;
             }
+            else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
+            {
+                previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
+                previewPanel_.getRenderer().clearImage();
+                currentImageFile_ = juce::File();
+                fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+                foundActiveClip = true;
+                break;
+            }
         }
     }
 
     if (!foundActiveClip)
     {
+        previewPanel_.getRenderer().clearActiveSource();
         previewPanel_.clearImage();
         currentImageFile_ = juce::File();
         fileLabel_.setText("", juce::dontSendNotification);

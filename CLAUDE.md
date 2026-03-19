@@ -424,9 +424,14 @@ Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 76 GLS
 - Deck (layers × columns) replaces keyboard grid
 - Signal Bar (mixer-strip audio features) replaces left audio readout
 - Universal per-parameter signal routing replaces MappingEditor popup
-- Macro system (6 per clip/layer/global) for parameter aggregation
+- Dashboard system (8 link knobs per clip/layer/global) for parameter aggregation
 - Binding system (keyboard + MIDI learn) replaces fixed key mapping
-- Inspector (4 tabs: Clip/Layer/Composition/Signal) replaces Key Editor
+- Inspector (4 tabs: Clip/Layer/Composition/Signal) with Resolume-style sections
+- Per-parameter signal connect triangle (click → popup: Manual/Audio/BPM Sync/Oscillator/Envelope/Clip Position/Timeline/Macro)
+- Transform section (Position X/Y, Scale, Rotation, Anchor) at clip/layer/composition level
+- Video section (Opacity, Width, Height, Blend Mode, Alpha Type, RGBA channel toggles)
+- CrossFader section (Blend Mode, Behaviour, Curve)
+- Transition section (Blend Mode, Duration) per layer
 - Browser (5 tabs: Files/FX/Sources/Comp-Decks/Record) replaces effects rack
 - BPM stabilization pipeline (range gate → confidence → octave → median → hysteresis)
 - Automatic downbeat detection (no commercial VJ does this from live audio)

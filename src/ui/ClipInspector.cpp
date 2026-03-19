@@ -4,7 +4,7 @@ ClipInspector::ClipInspector()
 {
     addAndMakeVisible(macroPanel_);
 
-    // Transport mode
+    // --- Transport mode ---
     transportModeSelector_.addItem("Timeline", 1);
     transportModeSelector_.addItem("BPM Sync", 2);
     transportModeSelector_.setSelectedId(1, juce::dontSendNotification);
@@ -15,25 +15,48 @@ ClipInspector::ClipInspector()
     };
     addAndMakeVisible(transportModeSelector_);
 
-    // Loop mode
-    loopModeSelector_.addItem("Loop", 1);
-    loopModeSelector_.addItem("Ping Pong", 2);
-    loopModeSelector_.addItem("One Shot", 3);
-    loopModeSelector_.setSelectedId(1, juce::dontSendNotification);
-    loopModeSelector_.onChange = [this] {
+    // Transport control buttons
+    auto setupSmallBtn = [this](juce::TextButton& btn, const juce::String& text) {
+        btn.setButtonText(text);
+        btn.setColour(juce::TextButton::buttonColourId,
+                      juce::Colour(AudioDNALookAndFeel::kSurface));
+        btn.setColour(juce::TextButton::textColourOffId,
+                      juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+        addAndMakeVisible(btn);
+    };
+
+    setupSmallBtn(playBackBtn_, juce::String(juce::CharPointer_UTF8("\xe2\x97\x80")));
+    setupSmallBtn(pauseBtn_, juce::String(juce::CharPointer_UTF8("\xe2\x8f\xb8")));
+    setupSmallBtn(playBtn_, juce::String(juce::CharPointer_UTF8("\xe2\x96\xb6")));
+    playBtn_.setColour(juce::TextButton::buttonColourId,
+                       juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f));
+
+    // Loop + Trigger dropdowns
+    loopDropdown_.addItem("Loop", 1);
+    loopDropdown_.addItem("Ping Pong", 2);
+    loopDropdown_.addItem("One Shot", 3);
+    loopDropdown_.setSelectedId(1, juce::dontSendNotification);
+    loopDropdown_.onChange = [this] {
         if (!clip_) return;
-        int sel = loopModeSelector_.getSelectedId();
+        int sel = loopDropdown_.getSelectedId();
         if (sel == 1) clip_->loopMode = Clip::LoopMode::Loop;
         else if (sel == 2) clip_->loopMode = Clip::LoopMode::PingPong;
         else if (sel == 3) clip_->loopMode = Clip::LoopMode::OneShot;
     };
-    addAndMakeVisible(loopModeSelector_);
+    addAndMakeVisible(loopDropdown_);
+
+    triggerDropdown_.addItem("Restart", 1);
+    triggerDropdown_.addItem("Continue", 2);
+    triggerDropdown_.addItem("Relative", 3);
+    triggerDropdown_.setSelectedId(1, juce::dontSendNotification);
+    addAndMakeVisible(triggerDropdown_);
 
     // Speed slider
     speedSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
-    speedSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 40, 20);
+    speedSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, 20);
     speedSlider_.setRange(0.0, 4.0, 0.01);
     speedSlider_.setValue(1.0, juce::dontSendNotification);
+    speedSlider_.setScrollWheelEnabled(false);
     speedSlider_.setColour(juce::Slider::thumbColourId,
                            juce::Colour(AudioDNALookAndFeel::kAccentCyan));
     speedSlider_.onValueChange = [this] {
@@ -41,7 +64,33 @@ ClipInspector::ClipInspector()
     };
     addAndMakeVisible(speedSlider_);
 
-    // Reverse button
+    // Duration with ½ and ×2
+    durationSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
+    durationSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 40, 20);
+    durationSlider_.setRange(0.1, 300.0, 0.1);
+    durationSlider_.setValue(8.0, juce::dontSendNotification);
+    durationSlider_.setScrollWheelEnabled(false);
+    durationSlider_.setColour(juce::Slider::thumbColourId,
+                              juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    addAndMakeVisible(durationSlider_);
+
+    setupSmallBtn(halfSpeedBtn_, juce::String(juce::CharPointer_UTF8("\xc3\xb7")) + "2");
+    setupSmallBtn(doubleSpeedBtn_, juce::String(juce::CharPointer_UTF8("\xc3\x97")) + "2");
+    setupSmallBtn(durHalfBtn_, "/2");
+    setupSmallBtn(durDoubleBtn_, juce::String(juce::CharPointer_UTF8("\xc3\x97")) + "2");
+
+    halfSpeedBtn_.onClick = [this] {
+        if (!clip_) return;
+        clip_->speed = std::max(0.01f, clip_->speed * 0.5f);
+        speedSlider_.setValue(static_cast<double>(clip_->speed), juce::dontSendNotification);
+    };
+    doubleSpeedBtn_.onClick = [this] {
+        if (!clip_) return;
+        clip_->speed = std::min(4.0f, clip_->speed * 2.0f);
+        speedSlider_.setValue(static_cast<double>(clip_->speed), juce::dontSendNotification);
+    };
+
+    // Reverse
     reverseBtn_.setColour(juce::TextButton::buttonColourId,
                           juce::Colour(AudioDNALookAndFeel::kSurface));
     reverseBtn_.onClick = [this] {
@@ -51,25 +100,6 @@ ClipInspector::ClipInspector()
             clip_->reverse ? juce::Colour(0xff4a4a2a) : juce::Colour(AudioDNALookAndFeel::kSurface));
     };
     addAndMakeVisible(reverseBtn_);
-
-    // Speed multiplier buttons
-    halfSpeedBtn_.setColour(juce::TextButton::buttonColourId,
-                            juce::Colour(AudioDNALookAndFeel::kSurface));
-    halfSpeedBtn_.onClick = [this] {
-        if (!clip_) return;
-        clip_->speed = std::max(0.01f, clip_->speed * 0.5f);
-        speedSlider_.setValue(static_cast<double>(clip_->speed), juce::dontSendNotification);
-    };
-    addAndMakeVisible(halfSpeedBtn_);
-
-    doubleSpeedBtn_.setColour(juce::TextButton::buttonColourId,
-                              juce::Colour(AudioDNALookAndFeel::kSurface));
-    doubleSpeedBtn_.onClick = [this] {
-        if (!clip_) return;
-        clip_->speed = std::min(4.0f, clip_->speed * 2.0f);
-        speedSlider_.setValue(static_cast<double>(clip_->speed), juce::dontSendNotification);
-    };
-    addAndMakeVisible(doubleSpeedBtn_);
 
     // Autopilot
     autopilotActionSelector_.addItem("Layer Determined", 1);
@@ -113,50 +143,147 @@ ClipInspector::ClipInspector()
     };
     addAndMakeVisible(beatSnapToggle_);
 
-    // Effect stack
-    addAndMakeVisible(effectStackView_);
-
-    // Cuepoint buttons
+    // Cuepoints
     for (int i = 0; i < kNumCuepoints; ++i)
     {
         cuepointBtns_[static_cast<size_t>(i)] =
             std::make_unique<juce::TextButton>(juce::String(i + 1));
         cuepointBtns_[static_cast<size_t>(i)]->setColour(
-            juce::TextButton::buttonColourId,
-            juce::Colour(AudioDNALookAndFeel::kSurface));
+            juce::TextButton::buttonColourId, juce::Colour(AudioDNALookAndFeel::kSurface));
         addAndMakeVisible(cuepointBtns_[static_cast<size_t>(i)].get());
     }
+
+    // --- Video section ---
+    clipOpacityControl_.setParamName("Opacity");
+    clipOpacityControl_.setParamValue(1.0f);
+    clipOpacityControl_.onValueChanged = [this](float val) { if (clip_) clip_->clipOpacity = val; };
+    clipOpacityControl_.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
+    addAndMakeVisible(clipOpacityControl_);
+
+    auto setupIntSlider = [](juce::Slider& s, double min, double max, double val) {
+        s.setSliderStyle(juce::Slider::IncDecButtons);
+        s.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 20);
+        s.setRange(min, max, 1);
+        s.setValue(val, juce::dontSendNotification);
+        s.setScrollWheelEnabled(false);
+    };
+    setupIntSlider(clipWidthSlider_, 1, 7680, 1920);
+    clipWidthSlider_.onValueChange = [this] { if (clip_) clip_->clipWidth = static_cast<int>(clipWidthSlider_.getValue()); };
+    addAndMakeVisible(clipWidthSlider_);
+
+    setupIntSlider(clipHeightSlider_, 1, 4320, 1080);
+    clipHeightSlider_.onValueChange = [this] { if (clip_) clip_->clipHeight = static_cast<int>(clipHeightSlider_.getValue()); };
+    addAndMakeVisible(clipHeightSlider_);
+
+    clipBlendModeSelector_.addItem("Layer Determined", 1);
+    clipBlendModeSelector_.addItem("Normal", 2);
+    clipBlendModeSelector_.addItem("Additive", 3);
+    clipBlendModeSelector_.addItem("Screen", 4);
+    clipBlendModeSelector_.addItem("Multiply", 5);
+    clipBlendModeSelector_.setSelectedId(1, juce::dontSendNotification);
+    addAndMakeVisible(clipBlendModeSelector_);
+
+    clipAlphaTypeSelector_.addItem("Premultiplied", 1);
+    clipAlphaTypeSelector_.addItem("Straight", 2);
+    clipAlphaTypeSelector_.setSelectedId(1, juce::dontSendNotification);
+    clipAlphaTypeSelector_.onChange = [this] {
+        if (clip_) clip_->alphaType = clipAlphaTypeSelector_.getSelectedId() == 2
+            ? Clip::AlphaType::Straight : Clip::AlphaType::Premultiplied;
+    };
+    addAndMakeVisible(clipAlphaTypeSelector_);
+
+    // RGBA toggles
+    auto setupChannelToggle = [this](juce::ToggleButton& btn) {
+        btn.setColour(juce::ToggleButton::textColourId,
+                      juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+        btn.setToggleState(true, juce::dontSendNotification);
+        addAndMakeVisible(btn);
+    };
+    setupChannelToggle(channelRBtn_);
+    setupChannelToggle(channelGBtn_);
+    setupChannelToggle(channelBBtn_);
+    setupChannelToggle(channelABtn_);
+
+    channelRBtn_.onStateChange = [this] { if (clip_) clip_->channelR = channelRBtn_.getToggleState(); };
+    channelGBtn_.onStateChange = [this] { if (clip_) clip_->channelG = channelGBtn_.getToggleState(); };
+    channelBBtn_.onStateChange = [this] { if (clip_) clip_->channelB = channelBBtn_.getToggleState(); };
+    channelABtn_.onStateChange = [this] { if (clip_) clip_->channelA = channelABtn_.getToggleState(); };
+
+    // --- Transform ---
+    auto setupTransformParam = [this](UniversalParamControl& pc, const juce::String& name, float defVal) {
+        pc.setParamName(name);
+        pc.setParamValue(defVal);
+        pc.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
+        addAndMakeVisible(pc);
+    };
+    setupTransformParam(posXControl_, "Position X", 0.5f);
+    setupTransformParam(posYControl_, "Position Y", 0.5f);
+    setupTransformParam(scaleControl_, "Scale", 0.5f);
+    setupTransformParam(rotationControl_, "Rotation", 0.5f);
+    setupTransformParam(anchorControl_, "Anchor", 0.5f);
+
+    posXControl_.onValueChanged = [this](float v) { if (clip_) clip_->positionX = (v - 0.5f) * 3840.0f; };
+    posYControl_.onValueChanged = [this](float v) { if (clip_) clip_->positionY = (v - 0.5f) * 2160.0f; };
+    scaleControl_.onValueChanged = [this](float v) { if (clip_) clip_->scale = v * 2.0f; };
+    rotationControl_.onValueChanged = [this](float v) { if (clip_) clip_->rotation = (v - 0.5f) * 720.0f; };
+    anchorControl_.onValueChanged = [this](float v) { if (clip_) clip_->anchorX = (v - 0.5f) * 3840.0f; };
+
+    // --- Effects ---
+    addAndMakeVisible(effectStackView_);
 }
 
 void ClipInspector::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff1a1a1a));
 
-    auto area = getLocalBounds();
-
     if (!clip_)
     {
         g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
         g.setFont(juce::Font(juce::FontOptions(12.0f)));
-        g.drawText("No clip selected", area, juce::Justification::centred, false);
+        g.drawText("No clip selected", getLocalBounds(), juce::Justification::centred, false);
         return;
     }
 
-    // Section headers are painted at fixed positions
-    int y = MacroPanel::kPreferredHeight + kSectionGap;
-    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "TRANSPORT");
+    // Name bar
+    auto nameBar = getLocalBounds().removeFromTop(kNameBarHeight);
+    g.setColour(juce::Colour(0xff222222));
+    g.fillRect(nameBar);
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    g.setFont(juce::Font(juce::FontOptions(12.0f)).boldened());
+    g.drawText(juce::String(clip_->name), nameBar.withTrimmedLeft(4).withTrimmedRight(40),
+               juce::Justification::centredLeft, true);
 
-    y += kSectionHeaderHeight + kRowHeight * 3 + kSectionGap;
-    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "AUTOPILOT");
+    // Section headers
+    int y = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
 
-    y += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap;
-    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "BEAT SNAP");
+    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Transport");
+    y += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap;
 
+    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Cuepoints");
     y += kSectionHeaderHeight + kRowHeight + kSectionGap;
-    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "EFFECTS");
 
-    y += kSectionHeaderHeight + effectStackView_.getPreferredHeight() + kSectionGap;
-    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "CUEPOINTS");
+    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Autopilot");
+    y += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap;
+
+    // Source params (conditional)
+    if (clip_->mediaType == Clip::MediaType::Source && !sourceParamControls_.empty())
+    {
+        paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Source");
+        int srcH = 0;
+        for (auto& pc : sourceParamControls_) srcH += pc->getPreferredHeight();
+        y += kSectionHeaderHeight + srcH + kSectionGap;
+    }
+
+    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Video");
+    y += kSectionHeaderHeight + clipOpacityControl_.getPreferredHeight() + kRowHeight * 4 + kSectionGap;
+
+    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Transform", true);
+    int transformH = posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
+                   + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
+                   + anchorControl_.getPreferredHeight();
+    y += kSectionHeaderHeight + transformH + kSectionGap;
+
+    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Effects");
 }
 
 void ClipInspector::resized()
@@ -164,68 +291,131 @@ void ClipInspector::resized()
     auto area = getLocalBounds().reduced(4, 0);
     int y = 0;
 
-    // Macros
+    // Name bar
+    y += kNameBarHeight;
+
+    // Dashboard
     macroPanel_.setBounds(area.getX(), y, area.getWidth(), MacroPanel::kPreferredHeight);
     y += MacroPanel::kPreferredHeight + kSectionGap;
 
-    // Transport header
+    if (!clip_) return;
+
+    // --- Transport ---
     y += kSectionHeaderHeight;
 
-    // Transport mode + loop mode row
-    auto transportRow1 = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-    transportModeSelector_.setBounds(transportRow1.removeFromLeft(area.getWidth() / 2 - 2));
-    transportRow1.removeFromLeft(4);
-    loopModeSelector_.setBounds(transportRow1);
+    // Mode dropdown + transport buttons
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        transportModeSelector_.setBounds(row.removeFromRight(100));
+    }
     y += kRowHeight;
 
-    // Speed row
-    auto speedRow = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-    halfSpeedBtn_.setBounds(speedRow.removeFromLeft(30));
-    speedRow.removeFromLeft(2);
-    doubleSpeedBtn_.setBounds(speedRow.removeFromLeft(30));
-    speedRow.removeFromLeft(4);
-    reverseBtn_.setBounds(speedRow.removeFromRight(60));
-    speedRow.removeFromRight(4);
-    speedSlider_.setBounds(speedRow);
+    // Transport buttons: ◀ ⏸ ▶ + loop dropdown + trigger dropdown
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        playBackBtn_.setBounds(row.removeFromLeft(26));
+        row.removeFromLeft(2);
+        pauseBtn_.setBounds(row.removeFromLeft(26));
+        row.removeFromLeft(2);
+        playBtn_.setBounds(row.removeFromLeft(26));
+        row.removeFromLeft(8);
+        loopDropdown_.setBounds(row.removeFromLeft(row.getWidth() / 2 - 2));
+        row.removeFromLeft(4);
+        triggerDropdown_.setBounds(row);
+    }
     y += kRowHeight;
 
-    // Extra transport row (placeholder for scrubber)
+    // Speed row: label + ½ ×2 + slider
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        halfSpeedBtn_.setBounds(row.removeFromLeft(28));
+        row.removeFromLeft(2);
+        doubleSpeedBtn_.setBounds(row.removeFromLeft(28));
+        row.removeFromLeft(4);
+        reverseBtn_.setBounds(row.removeFromRight(55));
+        row.removeFromRight(4);
+        speedSlider_.setBounds(row);
+    }
     y += kRowHeight;
-    y += kSectionGap;
 
-    // Autopilot header
-    y += kSectionHeaderHeight;
+    // Duration row
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        durHalfBtn_.setBounds(row.removeFromRight(24));
+        row.removeFromRight(2);
+        durDoubleBtn_.setBounds(row.removeFromRight(24));
+        row.removeFromRight(4);
+        durationSlider_.setBounds(row);
+    }
+    y += kRowHeight + kSectionGap;
 
-    auto apRow1 = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-    autopilotActionSelector_.setBounds(apRow1);
-    y += kRowHeight;
-
-    auto apRow2 = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-    autopilotDurationSelector_.setBounds(apRow2);
-    y += kRowHeight;
-    y += kSectionGap;
-
-    // Beat Snap header
-    y += kSectionHeaderHeight;
-    beatSnapToggle_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
-    y += kRowHeight;
-    y += kSectionGap;
-
-    // Effects header
-    y += kSectionHeaderHeight;
-    int fxHeight = effectStackView_.getPreferredHeight();
-    effectStackView_.setBounds(area.getX(), y, area.getWidth(), fxHeight);
-    y += fxHeight;
-    y += kSectionGap;
-
-    // Cuepoints header
+    // --- Cuepoints ---
     y += kSectionHeaderHeight;
     int cpBtnWidth = area.getWidth() / kNumCuepoints;
     for (int i = 0; i < kNumCuepoints; ++i)
-    {
         cuepointBtns_[static_cast<size_t>(i)]->setBounds(
             area.getX() + i * cpBtnWidth, y, cpBtnWidth - 2, kRowHeight);
+    y += kRowHeight + kSectionGap;
+
+    // --- Autopilot ---
+    y += kSectionHeaderHeight;
+    autopilotActionSelector_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
+    y += kRowHeight;
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        autopilotDurationSelector_.setBounds(row.removeFromLeft(row.getWidth() / 2 - 2));
+        row.removeFromLeft(4);
+        beatSnapToggle_.setBounds(row);
     }
+    y += kRowHeight + kSectionGap;
+
+    // --- Source params ---
+    if (clip_->mediaType == Clip::MediaType::Source && !sourceParamControls_.empty())
+    {
+        y += kSectionHeaderHeight;
+        for (auto& pc : sourceParamControls_)
+        {
+            int pcH = pc->getPreferredHeight();
+            pc->setBounds(area.getX(), y, area.getWidth(), pcH);
+            y += pcH;
+        }
+        y += kSectionGap;
+    }
+
+    // --- Video ---
+    y += kSectionHeaderHeight;
+    clipOpacityControl_.setBounds(area.getX(), y, area.getWidth(), clipOpacityControl_.getPreferredHeight());
+    y += clipOpacityControl_.getPreferredHeight();
+    clipWidthSlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
+    y += kRowHeight;
+    clipHeightSlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
+    y += kRowHeight;
+    clipBlendModeSelector_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
+    y += kRowHeight;
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        clipAlphaTypeSelector_.setBounds(row.removeFromLeft(row.getWidth() / 2 - 2));
+        row.removeFromLeft(4);
+        int toggleW = row.getWidth() / 4;
+        channelRBtn_.setBounds(row.removeFromLeft(toggleW));
+        channelGBtn_.setBounds(row.removeFromLeft(toggleW));
+        channelBBtn_.setBounds(row.removeFromLeft(toggleW));
+        channelABtn_.setBounds(row);
+    }
+    y += kRowHeight + kSectionGap;
+
+    // --- Transform ---
+    y += kSectionHeaderHeight;
+    posXControl_.setBounds(area.getX(), y, area.getWidth(), posXControl_.getPreferredHeight()); y += posXControl_.getPreferredHeight();
+    posYControl_.setBounds(area.getX(), y, area.getWidth(), posYControl_.getPreferredHeight()); y += posYControl_.getPreferredHeight();
+    scaleControl_.setBounds(area.getX(), y, area.getWidth(), scaleControl_.getPreferredHeight()); y += scaleControl_.getPreferredHeight();
+    rotationControl_.setBounds(area.getX(), y, area.getWidth(), rotationControl_.getPreferredHeight()); y += rotationControl_.getPreferredHeight();
+    anchorControl_.setBounds(area.getX(), y, area.getWidth(), anchorControl_.getPreferredHeight()); y += anchorControl_.getPreferredHeight() + kSectionGap;
+
+    // --- Effects ---
+    y += kSectionHeaderHeight;
+    int fxHeight = effectStackView_.getPreferredHeight();
+    effectStackView_.setBounds(area.getX(), y, area.getWidth(), fxHeight);
 }
 
 void ClipInspector::setClip(Clip* clip)
@@ -234,30 +424,68 @@ void ClipInspector::setClip(Clip* clip)
     if (clip)
     {
         effectStackView_.setEffects(&clip->effects);
+        buildSourceParamControls();
         syncFromClip();
     }
     else
     {
         effectStackView_.setEffects(nullptr);
+        sourceParamControls_.clear();
     }
     resized();
     repaint();
 }
 
-void ClipInspector::setEffectLibrary(EffectLibrary* lib)
+void ClipInspector::buildSourceParamControls()
 {
-    effectStackView_.setEffectLibrary(lib);
+    for (auto& pc : sourceParamControls_) removeChildComponent(pc.get());
+    sourceParamControls_.clear();
+
+    if (!clip_ || clip_->mediaType != Clip::MediaType::Source || clip_->sourceParams.empty())
+        return;
+
+    for (size_t i = 0; i < clip_->sourceParams.size(); ++i)
+    {
+        auto& sp = clip_->sourceParams[i];
+        auto pc = std::make_unique<UniversalParamControl>();
+        pc->setParamName(juce::String(sp.name));
+        pc->setParamValue(sp.value);
+        pc->setSignalRegistry(signalRegistry_);
+
+        auto idx = i;
+        pc->onValueChanged = [this, idx](float val) {
+            if (!clip_ || idx >= clip_->sourceParams.size()) return;
+            clip_->sourceParams[idx].value = val;
+            if (onSourceParamsChanged) onSourceParamsChanged(clip_);
+        };
+        pc->onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
+
+        addAndMakeVisible(pc.get());
+        sourceParamControls_.push_back(std::move(pc));
+    }
 }
+
+void ClipInspector::setEffectLibrary(EffectLibrary* lib) { effectStackView_.setEffectLibrary(lib); }
 
 void ClipInspector::setSignalRegistry(SignalRegistry* reg)
 {
+    signalRegistry_ = reg;
     macroPanel_.setSignalRegistry(reg);
     effectStackView_.setSignalRegistry(reg);
+    clipOpacityControl_.setSignalRegistry(reg);
+    posXControl_.setSignalRegistry(reg);
+    posYControl_.setSignalRegistry(reg);
+    scaleControl_.setSignalRegistry(reg);
+    rotationControl_.setSignalRegistry(reg);
+    anchorControl_.setSignalRegistry(reg);
+    for (auto& pc : sourceParamControls_) pc->setSignalRegistry(reg);
 }
 
 void ClipInspector::setMacroBank(MacroBank* bank)
 {
+    macroBank_ = bank;
     macroPanel_.setMacroBank(bank);
+    effectStackView_.setMacroBank(bank);
 }
 
 void ClipInspector::refresh()
@@ -267,6 +495,58 @@ void ClipInspector::refresh()
         syncFromClip();
         effectStackView_.refresh();
         macroPanel_.refresh();
+
+        // Drive source params from connected signals and macros
+        if (clip_->mediaType == Clip::MediaType::Source)
+        {
+            for (size_t i = 0; i < sourceParamControls_.size() && i < clip_->sourceParams.size(); ++i)
+            {
+                auto& pc = *sourceParamControls_[i];
+                if (!pc.isConnected()) continue;
+
+                auto mode = pc.getSourceMode();
+                auto sourceName = pc.getSourceName();
+                float val = 0.0f;
+                bool found = false;
+
+                if ((mode == UniversalParamControl::SourceMode::Signal
+                    || mode == UniversalParamControl::SourceMode::Oscillator
+                    || mode == UniversalParamControl::SourceMode::Envelope)
+                    && signalRegistry_)
+                {
+                    for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
+                    {
+                        auto* sig = signalRegistry_->getSignalAt(s);
+                        if (sig && juce::String(sig->getName()) == sourceName)
+                        {
+                            val = signalRegistry_->getCachedValue(sig->getId());
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
+                {
+                    int macroIdx = -1;
+                    if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
+                        macroIdx = sourceName.getTrailingIntValue() - 1;
+                    if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
+                    {
+                        val = macroBank_->getMacroValue(macroIdx);
+                        found = true;
+                    }
+                }
+
+                if (found)
+                {
+                    clip_->sourceParams[i].value = val;
+                    pc.setSourceValue(val);
+                    pc.setParamValue(val);
+                    if (onSourceParamsChanged)
+                        onSourceParamsChanged(clip_);
+                }
+            }
+        }
     }
     repaint();
 }
@@ -275,24 +555,54 @@ int ClipInspector::getPreferredHeight() const
 {
     if (!clip_) return 100;
 
-    int h = MacroPanel::kPreferredHeight + kSectionGap;
-    h += kSectionHeaderHeight + kRowHeight * 3 + kSectionGap; // transport
-    h += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap; // autopilot
-    h += kSectionHeaderHeight + kRowHeight + kSectionGap; // beat snap
-    h += kSectionHeaderHeight + effectStackView_.getPreferredHeight() + kSectionGap; // effects
-    h += kSectionHeaderHeight + kRowHeight + 8; // cuepoints
+    int h = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
+    h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Transport
+    h += kSectionHeaderHeight + kRowHeight + kSectionGap; // Cuepoints
+    h += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap; // Autopilot
+
+    if (clip_->mediaType == Clip::MediaType::Source && !sourceParamControls_.empty())
+    {
+        int srcH = 0;
+        for (auto& pc : sourceParamControls_) srcH += pc->getPreferredHeight();
+        h += kSectionHeaderHeight + srcH + kSectionGap;
+    }
+
+    h += kSectionHeaderHeight + clipOpacityControl_.getPreferredHeight() + kRowHeight * 4 + kSectionGap; // Video
+    h += kSectionHeaderHeight + posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
+       + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
+       + anchorControl_.getPreferredHeight() + kSectionGap; // Transform
+    h += kSectionHeaderHeight + effectStackView_.getPreferredHeight() + 8; // Effects
     return h;
 }
 
-void ClipInspector::paintSectionHeader(juce::Graphics& g,
-                                        const juce::Rectangle<int>& bounds,
-                                        const juce::String& title)
+void ClipInspector::paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
+                                        const juce::String& title, bool hasPButton)
 {
-    g.setColour(juce::Colour(0xff222222));
+    if (title == "Transform")
+        g.setColour(juce::Colour(0xff1a3a3a));
+    else
+        g.setColour(juce::Colour(0xff222222));
     g.fillRect(bounds);
+
     g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
     g.setFont(juce::Font(juce::FontOptions(10.0f)).boldened());
-    g.drawText(title, bounds.withTrimmedLeft(4), juce::Justification::centredLeft, false);
+
+    auto textBounds = bounds.withTrimmedLeft(4);
+    juce::Path tri;
+    float tx = textBounds.getX() + 2.0f;
+    float ty = static_cast<float>(textBounds.getCentreY());
+    tri.addTriangle(tx, ty - 3.0f, tx, ty + 3.0f, tx + 4.0f, ty);
+    g.fillPath(tri);
+
+    g.drawText(title, textBounds.withTrimmedLeft(10), juce::Justification::centredLeft, false);
+
+    if (hasPButton)
+    {
+        auto pBounds = juce::Rectangle<int>(bounds.getRight() - 20, bounds.getY(), 20, bounds.getHeight());
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        g.setFont(juce::Font(juce::FontOptions(9.0f)));
+        g.drawText("P.", pBounds, juce::Justification::centred, false);
+    }
 }
 
 void ClipInspector::syncFromClip()
@@ -300,14 +610,13 @@ void ClipInspector::syncFromClip()
     if (!clip_) return;
 
     transportModeSelector_.setSelectedId(
-        clip_->transportMode == Clip::TransportMode::BPMSync ? 2 : 1,
-        juce::dontSendNotification);
+        clip_->transportMode == Clip::TransportMode::BPMSync ? 2 : 1, juce::dontSendNotification);
 
     switch (clip_->loopMode)
     {
-        case Clip::LoopMode::Loop:     loopModeSelector_.setSelectedId(1, juce::dontSendNotification); break;
-        case Clip::LoopMode::PingPong: loopModeSelector_.setSelectedId(2, juce::dontSendNotification); break;
-        case Clip::LoopMode::OneShot:  loopModeSelector_.setSelectedId(3, juce::dontSendNotification); break;
+        case Clip::LoopMode::Loop:     loopDropdown_.setSelectedId(1, juce::dontSendNotification); break;
+        case Clip::LoopMode::PingPong: loopDropdown_.setSelectedId(2, juce::dontSendNotification); break;
+        case Clip::LoopMode::OneShot:  loopDropdown_.setSelectedId(3, juce::dontSendNotification); break;
     }
 
     speedSlider_.setValue(static_cast<double>(clip_->speed), juce::dontSendNotification);
@@ -320,7 +629,7 @@ void ClipInspector::syncFromClip()
     autopilotDurationSelector_.setSelectedId(
         static_cast<int>(clip_->autopilotDuration) + 1, juce::dontSendNotification);
 
-    // Update cuepoint button colors
+    // Cuepoint colors
     for (int i = 0; i < kNumCuepoints; ++i)
     {
         bool hasCue = i < clip_->numCuepoints;
@@ -328,4 +637,20 @@ void ClipInspector::syncFromClip()
             juce::TextButton::buttonColourId,
             hasCue ? juce::Colour(0xff3a4a3a) : juce::Colour(AudioDNALookAndFeel::kSurface));
     }
+
+    // Video
+    clipOpacityControl_.setParamValue(clip_->clipOpacity);
+    clipWidthSlider_.setValue(clip_->clipWidth, juce::dontSendNotification);
+    clipHeightSlider_.setValue(clip_->clipHeight, juce::dontSendNotification);
+    channelRBtn_.setToggleState(clip_->channelR, juce::dontSendNotification);
+    channelGBtn_.setToggleState(clip_->channelG, juce::dontSendNotification);
+    channelBBtn_.setToggleState(clip_->channelB, juce::dontSendNotification);
+    channelABtn_.setToggleState(clip_->channelA, juce::dontSendNotification);
+
+    // Transform
+    posXControl_.setParamValue(clip_->positionX / 3840.0f + 0.5f);
+    posYControl_.setParamValue(clip_->positionY / 2160.0f + 0.5f);
+    scaleControl_.setParamValue(clip_->scale / 2.0f);
+    rotationControl_.setParamValue(clip_->rotation / 720.0f + 0.5f);
+    anchorControl_.setParamValue(clip_->anchorX / 3840.0f + 0.5f);
 }

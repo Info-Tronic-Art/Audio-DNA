@@ -128,9 +128,65 @@ void EffectStackView::refresh()
         row.bypassBtn.setColour(juce::TextButton::buttonColourId,
             fx.bypassed ? juce::Colour(0xff6a3a3a) : juce::Colour(0xff333333));
 
-        // Update param values
+        // Update param values and apply signal-driven modulation
         for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
-            row.paramControls[p]->setParamValue(fx.paramValues[p]);
+        {
+            auto& pc = *row.paramControls[p];
+
+            // If a signal source is connected, drive the param value from it
+            if (pc.isConnected())
+            {
+                auto mode = pc.getSourceMode();
+                auto sourceName = pc.getSourceName();
+                float signalValue = 0.0f;
+                bool found = false;
+
+                if ((mode == UniversalParamControl::SourceMode::Signal
+                    || mode == UniversalParamControl::SourceMode::Oscillator
+                    || mode == UniversalParamControl::SourceMode::Envelope)
+                    && signalRegistry_)
+                {
+                    for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
+                    {
+                        auto* sig = signalRegistry_->getSignalAt(s);
+                        if (sig && juce::String(sig->getName()) == sourceName)
+                        {
+                            signalValue = signalRegistry_->getCachedValue(sig->getId());
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
+                {
+                    // Parse "Macro N" or "Link N" to get the index
+                    int macroIdx = -1;
+                    if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
+                    {
+                        macroIdx = sourceName.getTrailingIntValue() - 1;
+                    }
+                    if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
+                    {
+                        signalValue = macroBank_->getMacroValue(macroIdx);
+                        found = true;
+                    }
+                }
+
+                if (found)
+                {
+                    // Write signal/macro value directly to effect param
+                    fx.paramValues[p] = signalValue;
+                    pc.setSourceValue(signalValue);
+
+                    // Notify renderer
+                    if (onParamChanged)
+                        onParamChanged(row.effectIndex, static_cast<int>(p), signalValue);
+                }
+            }
+
+            // Always update the display from the current param value
+            pc.setParamValue(fx.paramValues[p]);
+        }
     }
 
     repaint();

@@ -8,9 +8,10 @@
 #include <memory>
 #include <functional>
 
-// MacroPanel: 6 macro knobs with source picker buttons.
-// Displayed in Clip/Layer/Composition inspector tabs.
+// MacroPanel: 8 dashboard link knobs with source picker buttons.
+// Displayed in Clip/Layer/Composition inspector tabs as "Dashboard" section.
 // Each knob is renameable and shows linked parameters.
+// Layout: single row of 8 smaller knobs (matching Resolume's Dashboard).
 class MacroPanel : public juce::Component
 {
 public:
@@ -28,8 +29,8 @@ public:
     // Refresh display from current macro state
     void refresh();
 
-    // Preferred height
-    static constexpr int kPreferredHeight = 90;
+    // Preferred height — single row of 8 large knobs + header label
+    static constexpr int kPreferredHeight = 110;
 
     // Callbacks
     std::function<void(int macroIndex, float value)> onMacroValueChanged;

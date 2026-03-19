@@ -6,10 +6,22 @@
 #include "signal/SignalRegistry.h"
 #include "ui/MacroPanel.h"
 #include "ui/EffectStackView.h"
+#include "ui/UniversalParamControl.h"
 #include "ui/LookAndFeel.h"
 
-// ClipInspector: shows properties for the selected clip.
-// Sections: Macros, Transport, Autopilot, Beat Snap, Effect Stack, Cuepoints.
+// ClipInspector: Resolume-style clip properties panel.
+//
+// Sections (matching Resolume Clip tab):
+//   [Name + Thumbnail]        "Metalive"  search + gear icons
+//   [Dashboard]               8 link knobs
+//   [Transport]               Mode dropdown, playhead, ◀ ⏸ ▶, loop/trigger, Speed, Duration ½/×2
+//   [Cuepoints]               6-8 cue buttons
+//   [Autopilot]               Direction, Duration, Action
+//   [Source Parameters]       (Source clips only) UniversalParamControls with triangles
+//   [Video]                   Opacity, Width, Height, Blend Mode, Alpha Type
+//   [RGBA Toggles]            R G B A channel toggle buttons
+//   [Transform]               Position X/Y, Scale %, Rotation °, Anchor
+//   [Effects]                 Effect stack
 class ClipInspector : public juce::Component
 {
 public:
@@ -18,58 +30,90 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    // Set the clip to inspect (nullptr clears)
     void setClip(Clip* clip);
     Clip* getClip() const { return clip_; }
 
-    // Dependencies
     void setEffectLibrary(EffectLibrary* lib);
     void setSignalRegistry(SignalRegistry* reg);
     void setMacroBank(MacroBank* bank);
 
-    // Refresh from current clip state
     void refresh();
-
-    // Get preferred content height for scrollable container
     int getPreferredHeight() const;
+
+    std::function<void(Clip* clip)> onSourceParamsChanged;
 
 private:
     Clip* clip_ = nullptr;
+    SignalRegistry* signalRegistry_ = nullptr;
+    MacroBank* macroBank_ = nullptr;
 
-    // --- Macros section ---
+    // --- Dashboard ---
     MacroPanel macroPanel_;
 
-    // --- Transport section ---
+    // --- Transport ---
     juce::ComboBox transportModeSelector_;
-    juce::ComboBox loopModeSelector_;
     juce::Slider speedSlider_;
     juce::TextButton reverseBtn_{"Reverse"};
-    juce::TextButton halfSpeedBtn_{juce::String(juce::CharPointer_UTF8("\xc3\xb7")) + "2"};
-    juce::TextButton doubleSpeedBtn_{juce::String(juce::CharPointer_UTF8("\xc3\x97")) + "2"};
+    juce::TextButton halfSpeedBtn_;
+    juce::TextButton doubleSpeedBtn_;
+    juce::ComboBox loopModeSelector_;
+    // Transport control buttons
+    juce::TextButton playBackBtn_;
+    juce::TextButton pauseBtn_;
+    juce::TextButton playBtn_;
+    juce::ComboBox loopDropdown_;
+    juce::ComboBox triggerDropdown_;
+    // Duration
+    juce::Slider durationSlider_;
+    juce::TextButton durHalfBtn_;
+    juce::TextButton durDoubleBtn_;
 
-    // --- Autopilot section ---
+    // --- Cuepoints ---
+    static constexpr int kNumCuepoints = 8;
+    std::array<std::unique_ptr<juce::TextButton>, kNumCuepoints> cuepointBtns_;
+
+    // --- Autopilot ---
     juce::ComboBox autopilotActionSelector_;
     juce::ComboBox autopilotDurationSelector_;
 
     // --- Beat Snap ---
     juce::ToggleButton beatSnapToggle_{"Beat Snap"};
 
-    // --- Effect Stack ---
+    // --- Source Parameters ---
+    std::vector<std::unique_ptr<UniversalParamControl>> sourceParamControls_;
+    void buildSourceParamControls();
+
+    // --- Video ---
+    UniversalParamControl clipOpacityControl_;
+    juce::Slider clipWidthSlider_;
+    juce::Slider clipHeightSlider_;
+    juce::ComboBox clipBlendModeSelector_;
+    juce::ComboBox clipAlphaTypeSelector_;
+    // RGBA toggles
+    juce::ToggleButton channelRBtn_{"R"};
+    juce::ToggleButton channelGBtn_{"G"};
+    juce::ToggleButton channelBBtn_{"B"};
+    juce::ToggleButton channelABtn_{"A"};
+
+    // --- Transform ---
+    UniversalParamControl posXControl_;
+    UniversalParamControl posYControl_;
+    UniversalParamControl scaleControl_;
+    UniversalParamControl rotationControl_;
+    UniversalParamControl anchorControl_;
+
+    // --- Effects ---
     EffectStackView effectStackView_;
 
-    // --- Cuepoints ---
-    static constexpr int kNumCuepoints = 8;
-    std::array<std::unique_ptr<juce::TextButton>, kNumCuepoints> cuepointBtns_;
-
-    // Section helpers
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
-                            const juce::String& title);
+                            const juce::String& title, bool hasPButton = false);
     void populateDropdowns();
     void syncFromClip();
 
     static constexpr int kSectionHeaderHeight = 18;
     static constexpr int kSectionGap = 4;
     static constexpr int kRowHeight = 22;
+    static constexpr int kNameBarHeight = 26;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ClipInspector)
 };

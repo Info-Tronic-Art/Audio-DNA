@@ -114,6 +114,13 @@ void InspectorPanel::setSignalRegistry(SignalRegistry* reg)
     compInspector_.setSignalRegistry(reg);
 }
 
+void InspectorPanel::setMacroBank(MacroBank* bank)
+{
+    clipInspector_.setMacroBank(bank);
+    layerInspector_.setMacroBank(bank);
+    compInspector_.setMacroBank(bank);
+}
+
 void InspectorPanel::inspectClip(Clip* clip)
 {
     clipInspector_.setClip(clip);

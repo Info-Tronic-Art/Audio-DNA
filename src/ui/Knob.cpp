@@ -7,6 +7,7 @@ Knob::Knob(const juce::String& name)
     slider_.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     slider_.setRange(0.0, 1.0, 0.001);
+    slider_.setScrollWheelEnabled(false);
     slider_.setColour(juce::Slider::rotarySliderFillColourId,
                       juce::Colour(AudioDNALookAndFeel::kAccentCyan));
     slider_.setColour(juce::Slider::rotarySliderOutlineColourId,

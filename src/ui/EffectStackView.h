@@ -3,6 +3,7 @@
 #include "model/Clip.h"
 #include "effects/EffectLibrary.h"
 #include "ui/UniversalParamControl.h"
+#include "routing/MacroBank.h"
 #include "ui/LookAndFeel.h"
 #include <vector>
 #include <memory>
@@ -38,6 +39,9 @@ public:
     // Set signal registry for source pickers
     void setSignalRegistry(SignalRegistry* reg) { signalRegistry_ = reg; }
 
+    // Set macro bank for macro-driven parameters
+    void setMacroBank(MacroBank* bank) { macroBank_ = bank; }
+
     // Refresh display from current effect data
     void refresh();
 
@@ -65,6 +69,7 @@ private:
     std::vector<Clip::EffectSlot>* effects_ = nullptr;
     EffectLibrary* effectLibrary_ = nullptr;
     SignalRegistry* signalRegistry_ = nullptr;
+    MacroBank* macroBank_ = nullptr;
 
     static constexpr int kHeaderHeight = 26;
     static constexpr int kParamIndent = 12;

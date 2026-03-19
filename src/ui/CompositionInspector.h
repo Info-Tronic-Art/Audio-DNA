@@ -6,11 +6,21 @@
 #include "signal/SignalRegistry.h"
 #include "ui/MacroPanel.h"
 #include "ui/EffectStackView.h"
+#include "ui/UniversalParamControl.h"
 #include "ui/LookAndFeel.h"
 
-// CompositionInspector: shows global composition properties.
-// Sections: Global Macros, Global Effects, Master Opacity,
-// Transition Speed, Output Settings.
+// CompositionInspector: Resolume-style composition properties panel.
+//
+// Sections (top to bottom, matching Resolume Composition tab):
+//   [Name + Resolution]       "Example (1280 x 720)"  search + gear icons
+//   [Dashboard]               8 link knobs
+//   [Autopilot]               Direction (◀◀ OFF ▶▶ ⤮), Duration, Clip Loops, Loop, Master Layer
+//   [Composition]             ▶ Master slider (with signal triangle), Speed slider
+//   [Video]                   ▶ Opacity slider
+//   [CrossFader]              Blend Mode, Behaviour, Curve
+//   [Transform]               Position X/Y, Scale %, Rotation °, Anchor
+//   [Global Effects]          Effect stack
+//   [Output Settings]         Resolution dropdown
 class CompositionInspector : public juce::Component
 {
 public:
@@ -31,23 +41,54 @@ public:
 
 private:
     Composition* composition_ = nullptr;
+    SignalRegistry* signalRegistry_ = nullptr;
 
+    // --- Dashboard ---
     MacroPanel macroPanel_;
+
+    // --- Autopilot ---
+    juce::TextButton apRewindBtn_;
+    juce::TextButton apOffBtn_{"OFF"};
+    juce::TextButton apForwardBtn_;
+    juce::TextButton apRandomBtn_;
+    juce::ComboBox apDurationSelector_;
+    juce::Slider apClipLoopsSlider_;
+    juce::ToggleButton apLoopToggle_{"Loop"};
+    juce::ComboBox apMasterLayerSelector_;
+
+    // --- Composition (Master + Speed) ---
+    UniversalParamControl masterControl_;
+    UniversalParamControl speedControl_;
+
+    // --- Video ---
+    UniversalParamControl opacityControl_;
+
+    // --- CrossFader ---
+    juce::ComboBox crossfaderBlendSelector_;
+    juce::ComboBox crossfaderBehaviourSelector_;
+    juce::ComboBox crossfaderCurveSelector_;
+
+    // --- Transform ---
+    UniversalParamControl posXControl_;
+    UniversalParamControl posYControl_;
+    UniversalParamControl scaleControl_;
+    UniversalParamControl rotationControl_;
+    UniversalParamControl anchorControl_;
+
+    // --- Global Effects ---
     EffectStackView effectStackView_;
 
-    juce::Slider masterOpacitySlider_;
-    juce::Slider transitionSpeedSlider_;
-
-    // Output settings
+    // --- Output Settings ---
     juce::ComboBox resolutionSelector_;
 
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
-                            const juce::String& title);
+                            const juce::String& title, bool hasPButton = false);
     void syncFromComposition();
 
     static constexpr int kSectionHeaderHeight = 18;
     static constexpr int kSectionGap = 4;
     static constexpr int kRowHeight = 22;
+    static constexpr int kNameBarHeight = 26;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CompositionInspector)
 };

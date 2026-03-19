@@ -8,13 +8,14 @@
 // UniversalParamControl: the standard parameter widget used everywhere in the Inspector.
 //
 // Collapsed (default):
-//   [Label]  [0.50]  [-] [+]  [════════╪════════]
+//   [▶] [Label]  [0.50]  [-] [+]  [════════╪════════]
+//    ^-- signal connect triangle: grey=manual, cyan=connected
+//        click opens source picker popup
 //
-// Expanded (click to expand):
-//   Source picker button → dropdown: Manual / Signals / Macros
+// Expanded (click label/value to expand):
+//   Source picker button → dropdown: Manual / Audio / BPM Sync / Oscillator / Envelope / Macro
 //   [Invert] checkbox
 //   [Range] min/max sliders
-//   [Dial Range] min/max sliders
 //   If source drives value: mini meter visualization
 class UniversalParamControl : public juce::Component
 {
@@ -30,11 +31,21 @@ public:
     void setParamValue(float value);
     float getParamValue() const { return currentValue_; }
 
-    // Source configuration
-    enum class SourceMode : uint8_t { Manual, Signal, Macro };
+    // Source configuration — expanded to cover all Resolume-style source types
+    enum class SourceMode : uint8_t {
+        Manual,       // Direct slider control
+        Signal,       // Audio feature signal (Volume, Bass, Beat Phase, etc.)
+        BPMSync,      // Per-parameter BPM-synced oscillation (waveform + beat division)
+        Oscillator,   // Free-running LFO from SignalRegistry
+        Envelope,     // Custom envelope curve
+        ClipPosition, // Driven by clip playhead position (0-1)
+        Timeline,     // Per-parameter keyframed automation
+        Macro         // Linked to a Macro knob
+    };
     void setSourceMode(SourceMode mode) { sourceMode_ = mode; repaint(); }
     SourceMode getSourceMode() const { return sourceMode_; }
     void setSourceName(const juce::String& name) { sourceName_ = name; repaint(); }
+    const juce::String& getSourceName() const { return sourceName_; }
 
     // Signal-driven visualization (0-1 value from source)
     void setSourceValue(float v) { sourceValue_ = v; repaint(); }
@@ -47,6 +58,7 @@ public:
     int getPreferredHeight() const;
     static constexpr int kCollapsedHeight = 24;
     static constexpr int kExpandedHeight = 100;
+    static constexpr int kTriangleSize = 14;  // Signal connect triangle clickable area
 
     // Callbacks
     std::function<void(float)> onValueChanged;
@@ -58,9 +70,16 @@ public:
     // Set the signal registry for source picker dropdown
     void setSignalRegistry(SignalRegistry* reg) { signalRegistry_ = reg; }
 
+    // Check if this parameter has any source connected (not Manual)
+    bool isConnected() const { return sourceMode_ != SourceMode::Manual; }
+
 private:
     void showSourcePicker();
+    void showSourcePickerAtTriangle();
+    void buildSourcePickerMenu(juce::PopupMenu& menu);
+    void handleSourcePickerResult(int result);
     void updateValueDisplay();
+    void drawSignalTriangle(juce::Graphics& g, juce::Rectangle<float> area, bool connected);
 
     juce::String paramName_ = "Parameter";
     float currentValue_ = 0.5f;

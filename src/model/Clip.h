@@ -20,6 +20,16 @@ struct Clip
     std::string sourceType;         // For procedural Source (e.g., "perlin_noise")
     bool hasAlpha = false;          // True if media has an alpha channel
 
+    // === Source Parameters (for procedural sources) ===
+    struct SourceParam
+    {
+        std::string name;           // Display name
+        std::string uniformName;    // GLSL uniform name
+        float value = 0.5f;
+        float defaultValue = 0.5f;
+    };
+    std::vector<SourceParam> sourceParams;  // Populated when sourceType is set
+
     // === Per-clip Effect Chain ===
     struct EffectSlot
     {
@@ -63,6 +73,24 @@ struct Clip
     AutopilotDuration autopilotDuration = AutopilotDuration::LayerDetermined;
     int autopilotCustomBeats = 4;
 
+    // === Video Properties ===
+    float clipOpacity = 1.0f;       // Per-clip opacity [0,1]
+    int clipWidth = 1920;           // Video width (pixels)
+    int clipHeight = 1080;          // Video height (pixels)
+    enum class BlendOverride : uint8_t { LayerDetermined, Override };
+    BlendOverride blendOverride = BlendOverride::LayerDetermined;
+    enum class AlphaType : uint8_t { Premultiplied, Straight };
+    AlphaType alphaType = AlphaType::Premultiplied;
+    bool channelR = true, channelG = true, channelB = true, channelA = true;
+
+    // === Transform (per-clip, applied before layer compositing) ===
+    float positionX = 0.0f;         // Pixels offset from center
+    float positionY = 0.0f;
+    float scale = 1.0f;             // 1.0 = 100%
+    float rotation = 0.0f;          // Degrees
+    float anchorX = 0.0f;           // Anchor point offset from center
+    float anchorY = 0.0f;
+
     // === Runtime State (not serialized) ===
     bool playing = false;
     double playheadPosition = 0.0; // [0,1] normalized
@@ -80,6 +108,7 @@ struct Clip
         mediaFile = juce::File();
         cameraDeviceIndex = -1;
         sourceType.clear();
+        sourceParams.clear();
         effects.clear();
         transportMode = TransportMode::Timeline;
         loopMode = LoopMode::Loop;

@@ -20,13 +20,45 @@ struct Composition
     // === Global Effects (post-composite chain) ===
     std::vector<Clip::EffectSlot> globalEffects;
 
-    // === Global Settings ===
+    // === Composition Master ===
     float masterOpacity = 1.0f;
+    float masterSpeed = 1.0f;       // Global speed multiplier
+
+    // === Video (Composition-level) ===
+    float compOpacity = 1.0f;       // Composition video opacity
+
+    // === CrossFader ===
+    float crossfaderPhase = 0.5f;   // [0,1] A↔B
+    enum class CrossfaderBlendMode : uint8_t { Alpha, Add, Multiply };
+    CrossfaderBlendMode crossfaderBlendMode = CrossfaderBlendMode::Alpha;
+    enum class CrossfaderBehaviour : uint8_t { Cut, Smooth };
+    CrossfaderBehaviour crossfaderBehaviour = CrossfaderBehaviour::Cut;
+    enum class CrossfaderCurve : uint8_t { Linear, EaseInOut, SCurve };
+    CrossfaderCurve crossfaderCurve = CrossfaderCurve::Linear;
+
+    // === Transform (composition-level, applied to final output) ===
+    float compPositionX = 0.0f;
+    float compPositionY = 0.0f;
+    float compScale = 1.0f;         // 1.0 = 100%
+    float compRotation = 0.0f;      // Degrees
+    float compAnchorX = 0.0f;
+    float compAnchorY = 0.0f;
+
+    // === Global Settings ===
     float globalTransitionSpeed = 0.3f; // seconds
     int bpmMultiplier = 1; // -4 = ÷4, -2 = ÷2, 1 = ×1, 2 = ×2, 4 = ×4
 
     enum class QuantizeMode : uint8_t { Off, NextBeat, NextDownbeat };
     QuantizeMode quantizeMode = QuantizeMode::Off;
+
+    // === Autopilot (composition-level) ===
+    enum class AutopilotDirection : uint8_t { Rewind, Off, Forward, Random };
+    AutopilotDirection autopilotDirection = AutopilotDirection::Off;
+    enum class AutopilotDurationMode : uint8_t { LongestClip, ClipTransport, Custom };
+    AutopilotDurationMode autopilotDurationMode = AutopilotDurationMode::LongestClip;
+    int autopilotClipLoops = 1;
+    bool autopilotLoop = false;
+    int autopilotMasterLayer = -1;  // -1 = Off
 
     // === Output Settings ===
     int outputWidth = 1920;
