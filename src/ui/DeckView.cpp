@@ -99,6 +99,7 @@ void DeckView::rebuildGrid()
 
         // Wire callbacks
         strip->onSelect = [this](int idx) {
+            selectLayer(idx);
             if (onLayerSelected) onLayerSelected(idx);
         };
         strip->onClearClip = [this](int idx) {
@@ -302,6 +303,13 @@ void DeckView::selectCell(int layerIndex, int column, bool addToSelection)
         selectedCells_.push_back({layerIndex, column});
 
     updateSelectionVisuals();
+}
+
+void DeckView::selectLayer(int layerIndex)
+{
+    selectedLayerIndex_ = layerIndex;
+    for (auto& strip : layerStrips_)
+        strip->setSelected(strip->getLayerIndex() == layerIndex);
 }
 
 void DeckView::updateSelectionVisuals()

@@ -27,6 +27,7 @@
 #include "ui/BindingOverlay.h"
 #include "ui/MidiLearnOverlay.h"
 #include "midi/MidiHandler.h"
+#include "recording/SessionRecorder.h"
 #if AUDIODNA_HAS_CAMERA
  #include <juce_video/juce_video.h>
 #endif
@@ -189,6 +190,7 @@ private:
     Composition composition_;
     SignalRegistry signalRegistry_;
     MacroBank globalMacroBank_{MacroBank::Scope::Global};
+    SessionRecorder sessionRecorder_;
     std::unique_ptr<TopBar> topBar_;
     std::unique_ptr<SignalBar> signalBar_;
     std::unique_ptr<ProgrammingMode> programmingMode_;

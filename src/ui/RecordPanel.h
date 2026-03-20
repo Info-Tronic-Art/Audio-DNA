@@ -2,9 +2,10 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "ui/LookAndFeel.h"
 
+class SessionRecorder;
+
 // RecordPanel: settings recording controls (start/stop, playback).
 // Records parameter changes and clip triggers as timestamped events.
-// Full implementation in Phase 12 — this is the UI shell.
 class RecordPanel : public juce::Component
 {
 public:
@@ -13,22 +14,35 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    // Callbacks
+    // Set the session recorder to control
+    void setSessionRecorder(SessionRecorder* recorder) { recorder_ = recorder; }
+
+    // Callbacks for actions that MainComponent handles
     std::function<void()> onStartRecording;
     std::function<void()> onStopRecording;
     std::function<void()> onPlayRecording;
 
     bool isRecording() const { return recording_; }
 
+    // Update status display (call periodically)
+    void refresh();
+
+    // Get the output directory
+    juce::File getOutputDir() const { return outputDir_; }
+
 private:
+    SessionRecorder* recorder_ = nullptr;
     bool recording_ = false;
 
     juce::TextButton recordBtn_{"Record"};
     juce::TextButton stopBtn_{"Stop"};
     juce::TextButton playBtn_{"Play"};
+    juce::TextButton saveBtn_{"Save"};
+    juce::TextButton loadBtn_{"Load"};
     juce::TextButton browseOutputBtn_{"Output Folder..."};
 
     juce::Label statusLabel_;
+    juce::Label eventCountLabel_;
     juce::Label outputDirLabel_;
     juce::File outputDir_;
 

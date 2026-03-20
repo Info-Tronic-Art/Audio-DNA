@@ -143,6 +143,10 @@ target_sources(AudioDNA PRIVATE
     src/media/ImageSequence.h
     src/media/ImageSequence.cpp
 
+    # Recording (v2 - Phase 12)
+    src/recording/SessionRecorder.h
+    src/recording/SessionRecorder.cpp
+
     # Sources (v2 - Phase 10)
     src/sources/ProceduralSource.h
     src/sources/ProceduralSource.cpp

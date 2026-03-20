@@ -178,10 +178,10 @@ struct Layer
 
         if (column == activeClipColumn)
         {
-            // Retrigger from start
+            // Retrigger from in-point
             if (auto* clip = getActiveClip())
             {
-                clip->playheadPosition = 0.0;
+                clip->playheadPosition = static_cast<double>(clip->inPoint);
                 clip->beatsPlayed = 0;
                 clip->playing = true;
             }
@@ -195,7 +195,7 @@ struct Layer
 
         if (auto* clip = getActiveClip())
         {
-            clip->playheadPosition = clip->startOffset;
+            clip->playheadPosition = static_cast<double>(clip->inPoint);
             clip->beatsPlayed = 0;
             clip->playing = true;
         }

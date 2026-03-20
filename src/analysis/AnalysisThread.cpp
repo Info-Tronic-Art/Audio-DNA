@@ -149,8 +149,10 @@ void AnalysisThread::run()
         // Feed spectral features for downbeat scoring (uses bass energy, flux, HCDF)
         // Bass energy = Sub + Bass bands (bandEnergies[0] + bandEnergies[1])
         // Note: HCDF from chroma is computed in stage 7, so we use the previous hop's value
+        // Note: Structural state is computed in stage 11, so we use the previous hop's value
         float bassEnergy = snap->bandEnergies[0] + snap->bandEnergies[1];
-        bpmTracker_->feedDownbeatFeatures(bassEnergy, snap->spectralFlux, prevHCDF_);
+        bpmTracker_->feedDownbeatFeatures(bassEnergy, snap->spectralFlux, prevHCDF_,
+                                          prevStructuralState_);
 
         snap->bpm              = bpmTracker_->bpm();
         snap->beatPhase        = bpmTracker_->beatPhase();
@@ -158,6 +160,8 @@ void AnalysisThread::run()
         snap->beatInBar        = bpmTracker_->beatInBar();
         snap->barPhase         = bpmTracker_->barPhase();
         snap->downbeatDetected = bpmTracker_->downbeatDetected();
+        snap->barCount         = bpmTracker_->barCount();
+        snap->phrasePhase      = bpmTracker_->phrasePhase();
 
         stageEnd = std::chrono::high_resolution_clock::now();
         stageTimesUs_[4] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
@@ -228,6 +232,7 @@ void AnalysisThread::run()
         structuralDetector_->process(rms, spectralFeatures_->flux(),
                                       snap->transientDensity);
         snap->structuralState = structuralDetector_->structuralState();
+        prevStructuralState_ = snap->structuralState;  // cache for next hop's phrase tracking
 
         stageEnd = std::chrono::high_resolution_clock::now();
         stageTimesUs_[10] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();

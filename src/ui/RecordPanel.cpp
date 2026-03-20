@@ -1,4 +1,5 @@
 #include "ui/RecordPanel.h"
+#include "recording/SessionRecorder.h"
 
 RecordPanel::RecordPanel()
 {
@@ -11,6 +12,7 @@ RecordPanel::RecordPanel()
         stopBtn_.setEnabled(true);
         statusLabel_.setText("Recording...", juce::dontSendNotification);
         statusLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kMeterRed));
+        if (recorder_) recorder_->startRecording();
         if (onStartRecording) onStartRecording();
     };
 
@@ -21,7 +23,9 @@ RecordPanel::RecordPanel()
         recording_ = false;
         recordBtn_.setEnabled(true);
         stopBtn_.setEnabled(false);
-        statusLabel_.setText("Stopped", juce::dontSendNotification);
+        if (recorder_) recorder_->stopRecording();
+        statusLabel_.setText("Stopped (" + juce::String(recorder_ ? recorder_->getNumEvents() : 0) + " events)",
+                            juce::dontSendNotification);
         statusLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
         if (onStopRecording) onStopRecording();
     };
@@ -29,7 +33,56 @@ RecordPanel::RecordPanel()
     // Play button
     addAndMakeVisible(playBtn_);
     playBtn_.onClick = [this] {
+        if (recorder_ && recorder_->getNumEvents() > 0)
+        {
+            recorder_->startPlayback();
+            statusLabel_.setText("Playing...", juce::dontSendNotification);
+            statusLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kMeterGreen));
+        }
         if (onPlayRecording) onPlayRecording();
+    };
+
+    // Save button
+    addAndMakeVisible(saveBtn_);
+    saveBtn_.onClick = [this] {
+        if (!recorder_ || recorder_->getNumEvents() == 0) return;
+
+        juce::File saveDir = outputDir_.exists() ? outputDir_
+            : juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
+        auto chooser = std::make_shared<juce::FileChooser>(
+            "Save recording...", saveDir.getChildFile("session.json"), "*.json");
+        auto flags = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
+        chooser->launchAsync(flags, [this, chooser](const juce::FileChooser& fc) {
+            auto file = fc.getResult();
+            if (file != juce::File())
+            {
+                if (recorder_->saveToFile(file))
+                    statusLabel_.setText("Saved: " + file.getFileName(), juce::dontSendNotification);
+                else
+                    statusLabel_.setText("Save failed!", juce::dontSendNotification);
+            }
+        });
+    };
+
+    // Load button
+    addAndMakeVisible(loadBtn_);
+    loadBtn_.onClick = [this] {
+        if (!recorder_) return;
+        auto chooser = std::make_shared<juce::FileChooser>(
+            "Load recording...", juce::File(), "*.json");
+        auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+        chooser->launchAsync(flags, [this, chooser](const juce::FileChooser& fc) {
+            auto file = fc.getResult();
+            if (file.existsAsFile())
+            {
+                if (recorder_->loadFromFile(file))
+                    statusLabel_.setText("Loaded: " + file.getFileName()
+                        + " (" + juce::String(recorder_->getNumEvents()) + " events)",
+                        juce::dontSendNotification);
+                else
+                    statusLabel_.setText("Load failed!", juce::dontSendNotification);
+            }
+        });
     };
 
     // Format selector
@@ -44,6 +97,11 @@ RecordPanel::RecordPanel()
     statusLabel_.setText("Ready", juce::dontSendNotification);
     statusLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
     statusLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+
+    // Event count
+    addAndMakeVisible(eventCountLabel_);
+    eventCountLabel_.setFont(juce::Font(juce::FontOptions(10.0f)));
+    eventCountLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
 
     // Output directory
     addAndMakeVisible(browseOutputBtn_);
@@ -66,15 +124,30 @@ RecordPanel::RecordPanel()
     outputDirLabel_.setColour(juce::Label::textColourId, juce::Colour(AudioDNALookAndFeel::kTextSecondary));
 }
 
+void RecordPanel::refresh()
+{
+    if (!recorder_) return;
+
+    if (recorder_->isRecording())
+    {
+        eventCountLabel_.setText(juce::String(recorder_->getNumEvents()) + " events",
+                                juce::dontSendNotification);
+    }
+    else if (recorder_->isPlaying())
+    {
+        // Update playback status
+    }
+    else if (!recording_ && recorder_->getNumEvents() > 0)
+    {
+        eventCountLabel_.setText(juce::String(recorder_->getNumEvents()) + " events, "
+            + juce::String(recorder_->getDuration(), 1) + "s",
+            juce::dontSendNotification);
+    }
+}
+
 void RecordPanel::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff1a1a1a));
-
-    // Note about Phase 12
-    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary).withAlpha(0.4f));
-    g.setFont(juce::Font(juce::FontOptions(10.0f)));
-    g.drawText("Full recording implementation in Phase 12",
-               getLocalBounds().removeFromBottom(20), juce::Justification::centred, false);
 }
 
 void RecordPanel::resized()
@@ -83,15 +156,23 @@ void RecordPanel::resized()
 
     // Section 1: Controls label + buttons
     auto lbl1 = area.removeFromTop(kLabelHeight);
-    statusLabel_.setBounds(lbl1.removeFromRight(lbl1.getWidth() / 2));
-    // paint "Controls" label manually is gone — use the status label area
+    statusLabel_.setBounds(lbl1);
 
     auto ctrl = area.removeFromTop(kControlHeight);
-    recordBtn_.setBounds(ctrl.removeFromLeft(64).reduced(1, 0));
+    recordBtn_.setBounds(ctrl.removeFromLeft(56).reduced(1, 0));
     ctrl.removeFromLeft(2);
-    stopBtn_.setBounds(ctrl.removeFromLeft(52).reduced(1, 0));
+    stopBtn_.setBounds(ctrl.removeFromLeft(44).reduced(1, 0));
     ctrl.removeFromLeft(2);
-    playBtn_.setBounds(ctrl.removeFromLeft(52).reduced(1, 0));
+    playBtn_.setBounds(ctrl.removeFromLeft(44).reduced(1, 0));
+    ctrl.removeFromLeft(2);
+    saveBtn_.setBounds(ctrl.removeFromLeft(44).reduced(1, 0));
+    ctrl.removeFromLeft(2);
+    loadBtn_.setBounds(ctrl.removeFromLeft(44).reduced(1, 0));
+
+    area.removeFromTop(kRowSpacing);
+
+    // Event count
+    eventCountLabel_.setBounds(area.removeFromTop(kLabelHeight));
 
     area.removeFromTop(kRowSpacing);
 

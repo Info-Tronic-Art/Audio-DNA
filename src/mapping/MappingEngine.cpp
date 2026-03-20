@@ -73,6 +73,9 @@ float MappingEngine::extractSource(MappingSource source, const FeatureSnapshot& 
         case MappingSource::OnsetStrength:    return snap.onsetStrength;
         case MappingSource::BeatPhase:        return snap.beatPhase;
         case MappingSource::BPM:              return snap.bpm;
+        case MappingSource::BarPhase:         return snap.barPhase;
+        case MappingSource::PhrasePhase:      return snap.phrasePhase;
+        case MappingSource::BarCount:         return static_cast<float>(snap.barCount);
 
         // Structural
         case MappingSource::StructuralState:  return static_cast<float>(snap.structuralState);
@@ -133,6 +136,9 @@ float MappingEngine::applyCurve(MappingCurve curve, float x, int steppedN)
 
 void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& chain)
 {
+    // Early exit if no active mappings
+    if (mappings_.empty()) return;
+
     // First pass: reset all targeted parameters to their defaults,
     // so that summing works correctly when multiple mappings target
     // the same parameter.

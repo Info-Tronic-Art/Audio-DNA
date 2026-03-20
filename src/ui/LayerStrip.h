@@ -33,6 +33,9 @@ public:
 
     void refresh();
 
+    void setSelected(bool sel) { if (selected_ != sel) { selected_ = sel; repaint(); } }
+    bool isSelected() const { return selected_; }
+
     // Callbacks
     std::function<void(int layerIndex)> onSelect;
     std::function<void(int layerIndex)> onClearClip;
@@ -45,6 +48,7 @@ private:
 
     Layer* layer_ = nullptr;
     int layerIndex_ = 0;
+    bool selected_ = false;
 
     // Left: X B S buttons (square)
     juce::TextButton clearBtn_{"X"};

@@ -61,7 +61,11 @@ struct Clip
     LoopMode loopMode = LoopMode::Loop;
     float speed = 1.0f;             // Playback speed multiplier
     bool reverse = false;
-    float startOffset = 0.0f;       // [0,1] normalized start position
+    float startOffset = 0.0f;       // [0,1] normalized start position (legacy, use inPoint)
+
+    // === In/Out Points ===
+    float inPoint = 0.0f;           // [0,1] playback start position (draggable on timeline)
+    float outPoint = 1.0f;          // [0,1] playback end position (draggable on timeline)
 
     // === Beat Snap ===
     bool beatSnap = false;          // Snap playhead to beat on trigger
@@ -107,7 +111,7 @@ struct Clip
 
     // === Runtime State (not serialized) ===
     bool playing = false;
-    double playheadPosition = 0.0; // [0,1] normalized
+    mutable double playheadPosition = 0.0; // [0,1] normalized — mutable for render-thread updates via const Clip*
     int beatsPlayed = 0;
     juce::Image thumbnail;          // Cached thumbnail for UI display
 
@@ -135,6 +139,8 @@ struct Clip
         speed = 1.0f;
         reverse = false;
         startOffset = 0.0f;
+        inPoint = 0.0f;
+        outPoint = 1.0f;
         beatSnap = false;
         numCuepoints = 0;
         autopilotAction = AutopilotAction::LayerDetermined;

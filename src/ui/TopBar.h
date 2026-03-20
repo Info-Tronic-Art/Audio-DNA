@@ -42,8 +42,14 @@ private:
     FeatureBus& featureBus_;
     Composition& composition_;
 
-    // Latest snapshot for tempo display
+    // Latest snapshot for tempo display + beat wheel
     FeatureSnapshot displaySnap_{};
+
+    // Beat wheel state
+    juce::Rectangle<int> beatWheelBounds_;
+    juce::Rectangle<int> barPhraseBounds_; // area for bar/phrase text display
+    void paintBeatWheel(juce::Graphics& g) const;
+    void paintBarPhraseDisplay(juce::Graphics& g) const;
 
     // === Audio Source Section ===
     juce::Label audioSourceLabel_{"", "Audio:"};

@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 #include "ui/PreferencesDialog.h"
+#include "analysis/BPMTracker.h"
 
 MainComponent::MainComponent()
 {
@@ -464,6 +465,9 @@ MainComponent::MainComponent()
         // Reset beat counters
         beatCounter_ = 0;
         lastBeatPhase_ = 0.0f;
+        // Reset phrase/bar counters in the BPM tracker
+        if (auto* tracker = analysisThread_.getBpmTracker())
+            tracker->resetPhrase();
     };
 
     signalBar_ = std::make_unique<SignalBar>(signalRegistry_, analysisThread_.getFeatureBus());
@@ -548,11 +552,28 @@ MainComponent::MainComponent()
             previewPanel_.getRenderer().updateActiveSourceParams(clip->sourceParams);
     };
 
+    // Cuepoint jump: seek video/image sequence to the cuepoint position
+    inspectorPanel_->getClipInspector().onCuepointJump = [this](Clip* clip, double pos) {
+        if (!clip || !clip->isPlayable()) return;
+        auto& renderer = previewPanel_.getRenderer();
+        if (clip->mediaType == Clip::MediaType::Video)
+        {
+            auto* player = renderer.getVideoPlayer(clip->id);
+            if (player) player->seekTo(pos);
+        }
+        else if (clip->mediaType == Clip::MediaType::ImageSequence)
+        {
+            auto* seq = renderer.getImageSequence(clip->id);
+            if (seq) seq->seekTo(pos);
+        }
+    };
+
     // === v2: Browser Panel ===
     browserPanel_ = std::make_unique<BrowserPanel>();
     addAndMakeVisible(browserPanel_.get());
     browserPanel_->setEffectLibrary(&effectLibrary_);
     browserPanel_->setComposition(&composition_);
+    browserPanel_->getRecordPanel().setSessionRecorder(&sessionRecorder_);
     browserPanel_->getFXBrowser().onEffectActivated = [this](const juce::String& effectName) {
         DBG("FX Browser: activated effect " + effectName);
     };
@@ -1825,6 +1846,9 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
     if (!layer) return;
 
     layer->triggerClip(column);
+
+    // Record clip trigger for session recording
+    sessionRecorder_.recordClipTrigger(layerIndex, column);
 
     // Load the clip content into preview
     if (auto* clip = layer->getActiveClip())

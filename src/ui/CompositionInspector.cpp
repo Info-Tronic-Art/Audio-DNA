@@ -105,39 +105,6 @@ CompositionInspector::CompositionInspector()
     opacityControl_.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
     addAndMakeVisible(opacityControl_);
 
-    // --- CrossFader ---
-    crossfaderBlendSelector_.addItem("Alpha", 1);
-    crossfaderBlendSelector_.addItem("Add", 2);
-    crossfaderBlendSelector_.addItem("Multiply", 3);
-    crossfaderBlendSelector_.setSelectedId(1, juce::dontSendNotification);
-    crossfaderBlendSelector_.onChange = [this] {
-        if (composition_)
-            composition_->crossfaderBlendMode =
-                static_cast<Composition::CrossfaderBlendMode>(crossfaderBlendSelector_.getSelectedId() - 1);
-    };
-    addAndMakeVisible(crossfaderBlendSelector_);
-
-    crossfaderBehaviourSelector_.addItem("Cut", 1);
-    crossfaderBehaviourSelector_.addItem("Smooth", 2);
-    crossfaderBehaviourSelector_.setSelectedId(1, juce::dontSendNotification);
-    crossfaderBehaviourSelector_.onChange = [this] {
-        if (composition_)
-            composition_->crossfaderBehaviour =
-                static_cast<Composition::CrossfaderBehaviour>(crossfaderBehaviourSelector_.getSelectedId() - 1);
-    };
-    addAndMakeVisible(crossfaderBehaviourSelector_);
-
-    crossfaderCurveSelector_.addItem("Linear", 1);
-    crossfaderCurveSelector_.addItem("Ease In Out", 2);
-    crossfaderCurveSelector_.addItem("S-Curve", 3);
-    crossfaderCurveSelector_.setSelectedId(1, juce::dontSendNotification);
-    crossfaderCurveSelector_.onChange = [this] {
-        if (composition_)
-            composition_->crossfaderCurve =
-                static_cast<Composition::CrossfaderCurve>(crossfaderCurveSelector_.getSelectedId() - 1);
-    };
-    addAndMakeVisible(crossfaderCurveSelector_);
-
     // --- Transform ---
     auto setupTransformParam = [this](UniversalParamControl& pc, const juce::String& name, float defVal) {
         pc.setParamName(name);
@@ -210,9 +177,6 @@ void CompositionInspector::paint(juce::Graphics& g)
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Video");
     y += kSectionHeaderHeight + opacityControl_.getPreferredHeight() + kSectionGap;
-
-    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "CrossFader");
-    y += kSectionHeaderHeight + kRowHeight * 3 + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Transform", true);
     int transformH = posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
@@ -288,23 +252,6 @@ void CompositionInspector::resized()
     y += kSectionHeaderHeight;
     opacityControl_.setBounds(area.getX(), y, area.getWidth(), opacityControl_.getPreferredHeight());
     y += opacityControl_.getPreferredHeight() + kSectionGap;
-
-    // CrossFader section
-    y += kSectionHeaderHeight;
-    {
-        // Row labels are painted; just layout dropdowns
-        auto row1 = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        crossfaderBlendSelector_.setBounds(row1);
-        y += kRowHeight;
-
-        auto row2 = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        crossfaderBehaviourSelector_.setBounds(row2);
-        y += kRowHeight;
-
-        auto row3 = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        crossfaderCurveSelector_.setBounds(row3);
-        y += kRowHeight + kSectionGap;
-    }
 
     // Transform section
     y += kSectionHeaderHeight;
@@ -387,7 +334,6 @@ int CompositionInspector::getPreferredHeight() const
     h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Autopilot
     h += kSectionHeaderHeight + masterControl_.getPreferredHeight() + speedControl_.getPreferredHeight() + kSectionGap; // Composition
     h += kSectionHeaderHeight + opacityControl_.getPreferredHeight() + kSectionGap; // Video
-    h += kSectionHeaderHeight + kRowHeight * 3 + kSectionGap; // CrossFader
     h += kSectionHeaderHeight; // Transform header
     h += posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
        + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
@@ -458,14 +404,6 @@ void CompositionInspector::syncFromComposition()
     apClipLoopsSlider_.setValue(composition_->autopilotClipLoops, juce::dontSendNotification);
     apLoopToggle_.setToggleState(composition_->autopilotLoop, juce::dontSendNotification);
     apMasterLayerSelector_.setSelectedId(composition_->autopilotMasterLayer + 2, juce::dontSendNotification);
-
-    // CrossFader
-    crossfaderBlendSelector_.setSelectedId(
-        static_cast<int>(composition_->crossfaderBlendMode) + 1, juce::dontSendNotification);
-    crossfaderBehaviourSelector_.setSelectedId(
-        static_cast<int>(composition_->crossfaderBehaviour) + 1, juce::dontSendNotification);
-    crossfaderCurveSelector_.setSelectedId(
-        static_cast<int>(composition_->crossfaderCurve) + 1, juce::dontSendNotification);
 
     // Transform
     posXControl_.setParamValue(composition_->compPositionX / 3840.0f + 0.5f);

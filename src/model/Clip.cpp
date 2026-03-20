@@ -41,6 +41,8 @@ juce::var Clip::toVar() const
     obj->setProperty("speed", static_cast<double>(speed));
     obj->setProperty("reverse", reverse);
     obj->setProperty("startOffset", static_cast<double>(startOffset));
+    obj->setProperty("inPoint", static_cast<double>(inPoint));
+    obj->setProperty("outPoint", static_cast<double>(outPoint));
     obj->setProperty("beatSnap", beatSnap);
     obj->setProperty("autopilotAction", static_cast<int>(autopilotAction));
     obj->setProperty("autopilotDuration", static_cast<int>(autopilotDuration));
@@ -120,6 +122,14 @@ void Clip::fromVar(const juce::var& v)
         speed = static_cast<float>(static_cast<double>(obj->getProperty("speed")));
         reverse = static_cast<bool>(obj->getProperty("reverse"));
         startOffset = static_cast<float>(static_cast<double>(obj->getProperty("startOffset")));
+        if (obj->hasProperty("inPoint"))
+            inPoint = static_cast<float>(static_cast<double>(obj->getProperty("inPoint")));
+        else
+            inPoint = startOffset; // backwards compatibility
+        if (obj->hasProperty("outPoint"))
+            outPoint = static_cast<float>(static_cast<double>(obj->getProperty("outPoint")));
+        else
+            outPoint = 1.0f;
         beatSnap = static_cast<bool>(obj->getProperty("beatSnap"));
         autopilotAction = static_cast<AutopilotAction>(static_cast<int>(obj->getProperty("autopilotAction")));
         autopilotDuration = static_cast<AutopilotDuration>(static_cast<int>(obj->getProperty("autopilotDuration")));

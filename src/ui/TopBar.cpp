@@ -160,9 +160,18 @@ void TopBar::timerCallback()
     {
         displaySnap_.bpm = snap->bpm;
         displaySnap_.trackerState = snap->trackerState;
+        displaySnap_.beatInBar = snap->beatInBar;
+        displaySnap_.barPhase = snap->barPhase;
+        displaySnap_.beatPhase = snap->beatPhase;
+        displaySnap_.downbeatDetected = snap->downbeatDetected;
+        displaySnap_.phrasePhase = snap->phrasePhase;
+        displaySnap_.barCount = snap->barCount;
     }
 
     updateBpmDisplay();
+    // Repaint the beat wheel and bar/phrase area
+    if (!beatWheelBounds_.isEmpty())
+        repaint(beatWheelBounds_.getUnion(barPhraseBounds_).expanded(2));
 }
 
 void TopBar::updateBpmDisplay()
@@ -259,6 +268,96 @@ void TopBar::paint(juce::Graphics& g)
                juce::Rectangle<float>(tempoLabelRect.getX(), tempoLabelRect.getY() - 10.0f,
                                       60.0f, 10.0f),
                juce::Justification::centredLeft);
+
+    // Beat wheel
+    paintBeatWheel(g);
+
+    // Bar / Phrase display
+    paintBarPhraseDisplay(g);
+}
+
+void TopBar::paintBeatWheel(juce::Graphics& g) const
+{
+    if (beatWheelBounds_.isEmpty()) return;
+
+    auto bounds = beatWheelBounds_.toFloat();
+    float cx = bounds.getCentreX();
+    float cy = bounds.getCentreY();
+    float radius = std::min(bounds.getWidth(), bounds.getHeight()) * 0.45f;
+    float innerRadius = radius * 0.5f;
+    float gapAngle = 0.12f; // radians gap between segments
+
+    // 4 arc segments: top, right, bottom, left (beat 0 at top)
+    // Each segment spans ~90 degrees minus gap
+    auto accentCyan = juce::Colour(AudioDNALookAndFeel::kAccentCyan);
+    auto dimColor = juce::Colour(0xff333333);
+    int currentBeat = static_cast<int>(displaySnap_.beatInBar);
+    bool hasBpm = displaySnap_.bpm > 0.0f && displaySnap_.trackerState >= 1;
+
+    for (int i = 0; i < 4; ++i)
+    {
+        // Start angle: 12 o'clock = -pi/2, going clockwise
+        float startAngle = -juce::MathConstants<float>::halfPi
+                         + static_cast<float>(i) * juce::MathConstants<float>::halfPi
+                         + gapAngle * 0.5f;
+        float endAngle = startAngle + juce::MathConstants<float>::halfPi - gapAngle;
+
+        // Color: bright for current beat, medium for previous, dim for others
+        juce::Colour segColor;
+        if (!hasBpm)
+        {
+            segColor = dimColor;
+        }
+        else if (i == currentBeat)
+        {
+            // Fade within the beat based on beatPhase (bright at start, dims toward end)
+            float brightness = 1.0f - displaySnap_.beatPhase * 0.5f;
+            segColor = accentCyan.withAlpha(brightness);
+        }
+        else
+        {
+            segColor = dimColor;
+        }
+
+        // Draw arc segment as filled path
+        juce::Path arc;
+        arc.addCentredArc(cx, cy, radius, radius,
+                          0.0f, startAngle, endAngle, true);
+        arc.addCentredArc(cx, cy, innerRadius, innerRadius,
+                          0.0f, endAngle, startAngle, false);
+        arc.closeSubPath();
+
+        g.setColour(segColor);
+        g.fillPath(arc);
+    }
+}
+
+void TopBar::paintBarPhraseDisplay(juce::Graphics& g) const
+{
+    if (barPhraseBounds_.isEmpty()) return;
+    bool hasBpm = displaySnap_.bpm > 0.0f && displaySnap_.trackerState >= 1;
+
+    auto bounds = barPhraseBounds_.toFloat();
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+
+    // Top line: "Bar N" (bar count since reset)
+    auto topHalf = bounds.removeFromTop(bounds.getHeight() * 0.5f);
+    g.setColour(hasBpm ? juce::Colour(AudioDNALookAndFeel::kTextPrimary)
+                       : juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    if (hasBpm)
+        g.drawText("Bar " + juce::String(displaySnap_.barCount + 1),
+                   topHalf.toNearestInt(), juce::Justification::centredLeft, false);
+    else
+        g.drawText("Bar -", topHalf.toNearestInt(), juce::Justification::centredLeft, false);
+
+    // Bottom line: "Phr 0.XX" (phrase phase)
+    g.setColour(hasBpm ? juce::Colour(AudioDNALookAndFeel::kTextSecondary)
+                       : juce::Colour(0xff444444));
+    if (hasBpm)
+        g.drawText("Phr " + juce::String(displaySnap_.phrasePhase, 2),
+                   bounds.toNearestInt(), juce::Justification::centredLeft, false);
+    else
+        g.drawText("Phr -", bounds.toNearestInt(), juce::Justification::centredLeft, false);
 }
 
 void TopBar::resized()
@@ -286,6 +385,14 @@ void TopBar::resized()
     area.removeFromLeft(6);
 
     // Separator
+    area.removeFromLeft(2);
+
+    // Beat wheel (4-segment circle showing current beat)
+    beatWheelBounds_ = area.removeFromLeft(26).reduced(1);
+    area.removeFromLeft(2);
+
+    // Bar/Phrase readout (small text: "Bar N" / "Phr 0.XX")
+    barPhraseBounds_ = area.removeFromLeft(44);
     area.removeFromLeft(2);
 
     // Tempo display (BPM number + state)

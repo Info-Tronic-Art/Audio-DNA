@@ -49,6 +49,10 @@ public:
     void clearSelection();
     void selectCell(int layerIndex, int column, bool addToSelection);
 
+    // Layer selection
+    void selectLayer(int layerIndex);
+    int getSelectedLayerIndex() const { return selectedLayerIndex_; }
+
     // Get the natural height that fits all layers + triggers + tabs exactly
     int getNaturalHeight() const;
 
@@ -66,6 +70,7 @@ private:
     std::unique_ptr<juce::Component> gridContent_;
 
     int activeColumn_ = -1;
+    int selectedLayerIndex_ = -1;
     std::vector<CellPos> selectedCells_;
 
     void updateSelectionVisuals();

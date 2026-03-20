@@ -58,6 +58,9 @@ public:
     // Get raw waveform samples for display (lock-free snapshot)
     void getWaveformSamples(float* dest, int& count) const;
 
+    // Access BPM tracker for resync/phrase configuration
+    BPMTracker* getBpmTracker() { return bpmTracker_.get(); }
+
     static constexpr int kWaveformBufferSize = 2048;
 
 private:
@@ -100,6 +103,10 @@ private:
     // Cached HCDF from previous hop (for downbeat scoring in stage 5,
     // since chroma HCDF is computed in stage 7)
     float prevHCDF_ = 0.0f;
+
+    // Cached structural state from previous hop (for phrase reset in BPMTracker,
+    // since structural detection is computed in stage 11)
+    uint8_t prevStructuralState_ = 0;
 
     // Sample counter for timestamps
     uint64_t totalSamplesProcessed_ = 0;

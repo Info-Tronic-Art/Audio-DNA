@@ -45,6 +45,10 @@ struct alignas(64) FeatureSnapshot
     float   barPhase = 0.0f;           // [0, 1) over 4 beats — bar-level sawtooth
     bool    downbeatDetected = false;  // true on the hop where beat 1 lands
 
+    // Phrase tracking
+    uint16_t barCount = 0;             // bars since last phrase reset
+    float    phrasePhase = 0.0f;       // [0, 1) sawtooth over N bars (configurable)
+
     // Structural
     uint8_t structuralState = 0;       // 0=normal, 1=buildup, 2=drop, 3=breakdown
 

@@ -243,14 +243,60 @@ ClipInspector::ClipInspector()
                                 juce::Colour(0x00000000));
     addAndMakeVisible(videoBeatsSlider_);
 
-    // Cuepoints
+    // Cuepoints — two rows: trigger buttons (top) + set buttons (bottom)
     for (int i = 0; i < kNumCuepoints; ++i)
     {
+        // Trigger button: numbered, jumps to cuepoint. Ctrl+click clears.
         cuepointBtns_[static_cast<size_t>(i)] =
             std::make_unique<juce::TextButton>(juce::String(i + 1));
-        cuepointBtns_[static_cast<size_t>(i)]->setColour(
-            juce::TextButton::buttonColourId, juce::Colour(AudioDNALookAndFeel::kSurface));
-        addAndMakeVisible(cuepointBtns_[static_cast<size_t>(i)].get());
+        auto& trigBtn = *cuepointBtns_[static_cast<size_t>(i)];
+        trigBtn.setColour(juce::TextButton::buttonColourId,
+                          juce::Colour(AudioDNALookAndFeel::kSurface));
+        trigBtn.onClick = [this, i] {
+            if (!clip_ || i >= clip_->numCuepoints) return;
+
+            bool ctrlHeld = juce::ModifierKeys::currentModifiers.isCtrlDown()
+                         || juce::ModifierKeys::currentModifiers.isCommandDown();
+            if (ctrlHeld)
+            {
+                // Clear this cuepoint
+                for (int j = i; j < clip_->numCuepoints - 1; ++j)
+                    clip_->cuepoints[j] = clip_->cuepoints[j + 1];
+                clip_->cuepoints[clip_->numCuepoints - 1] = 0.0f;
+                --clip_->numCuepoints;
+                syncFromClip();
+                repaint();
+                return;
+            }
+
+            // Jump to cuepoint
+            double pos = static_cast<double>(clip_->cuepoints[i]);
+            clip_->playheadPosition = pos;
+            if (onCuepointJump)
+                onCuepointJump(clip_, pos);
+        };
+        addAndMakeVisible(&trigBtn);
+
+        // Set button: small "Set" button, saves current playhead position
+        cuepointSetBtns_[static_cast<size_t>(i)] =
+            std::make_unique<juce::TextButton>("Set");
+        auto& setBtn = *cuepointSetBtns_[static_cast<size_t>(i)];
+        setBtn.setColour(juce::TextButton::buttonColourId,
+                         juce::Colour(0xff2a2a2a));
+        setBtn.setColour(juce::TextButton::textColourOffId,
+                         juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        setBtn.onClick = [this, i] {
+            if (!clip_) return;
+            // Set or overwrite this cuepoint at current playhead
+            clip_->cuepoints[i] = static_cast<float>(clip_->playheadPosition);
+            if (i >= clip_->numCuepoints)
+                clip_->numCuepoints = i + 1;
+            if (onCuepointSet)
+                onCuepointSet(clip_, i);
+            syncFromClip();
+            repaint();
+        };
+        addAndMakeVisible(&setBtn);
     }
 
     // --- Video section ---
@@ -356,6 +402,7 @@ void ClipInspector::paint(juce::Graphics& g)
     // Section headers
     int y = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
 
+    // Transport header — mode selector is placed inside the header row by resized()
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Transport");
     int transportExtraH = 0;
     bool showExtraRow = false;
@@ -365,29 +412,63 @@ void ClipInspector::paint(juce::Graphics& g)
         bool isSeq = (clip_->mediaType == Clip::MediaType::ImageSequence);
         showExtraRow = bpmSync || isSeq;
         if (bpmSync)
-            transportExtraH = kRowHeight * 2;  // Beats/Cycle + Content Beats
+            transportExtraH = kRowHeight * 2;
         else if (isSeq)
-            transportExtraH = kRowHeight;       // Images/Sec only
+            transportExtraH = kRowHeight;
     }
-    if (showExtraRow)
-    {
 
-        // Draw signal-connect triangle
-        int fpsRowY = y + kSectionHeaderHeight + kRowHeight * 4;
-        float triCx = 4.0f + 7.0f;
-        float triCy = static_cast<float>(fpsRowY) + static_cast<float>(kRowHeight) * 0.5f;
-        float hs = 4.0f;
-        juce::Path tri;
-        tri.addTriangle(triCx - hs, triCy - hs, triCx - hs, triCy + hs, triCx + hs, triCy);
-        bool connected = (clip_->transportMode == Clip::TransportMode::BPMSync);
-        g.setColour(connected ? juce::Colour(AudioDNALookAndFeel::kAccentCyan)
-                              : juce::Colour(0xff666666));
-        g.fillPath(tri);
+    // Track Y incrementally to stay in sync with resized()
+    {
+        auto area = getLocalBounds().reduced(kInset, 0);
+        int ty = y; // local transport Y tracker
+
+        // Position readout in header
+        float pos = static_cast<float>(clip_->playheadPosition);
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        g.setFont(juce::Font(juce::FontOptions(9.0f)));
+        int readoutX = getWidth() - kInset - 100 - 42;
+        g.drawText(juce::String(pos, 2),
+                   juce::Rectangle<int>(readoutX, ty, 38, kSectionHeaderHeight),
+                   juce::Justification::centredRight, false);
+        ty += kSectionHeaderHeight;
+
+        // Timeline
+        paintTimeline(g, juce::Rectangle<int>(area.getX(), ty, area.getWidth(), kTimelineHeight));
+        ty += kTimelineHeight + 2;
+
+        // Transport buttons row
+        ty += kRowHeight + 2;
+
+        // Speed row — paint label
+        bool bpmSyncMode = (clip_->transportMode == Clip::TransportMode::BPMSync);
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+        g.setFont(juce::Font(juce::FontOptions(10.0f)));
+        g.drawText("Speed", area.getX(), ty, 52, kRowHeight, juce::Justification::centredLeft, false);
+        ty += kRowHeight;
+
+        // Duration/Beats row — paint label
+        g.drawText(bpmSyncMode ? "Beats" : "Duration",
+                   area.getX(), ty, 52, kRowHeight, juce::Justification::centredLeft, false);
+        ty += kRowHeight;
+
+        // Extra rows (signal-connect triangle)
+        if (showExtraRow)
+        {
+            float triCx = static_cast<float>(area.getX()) + 7.0f;
+            float triCy = static_cast<float>(ty) + static_cast<float>(kRowHeight) * 0.5f;
+            float hs = 4.0f;
+            juce::Path tri;
+            tri.addTriangle(triCx - hs, triCy - hs, triCx - hs, triCy + hs, triCx + hs, triCy);
+            g.setColour(bpmSyncMode ? juce::Colour(AudioDNALookAndFeel::kAccentCyan)
+                                    : juce::Colour(0xff666666));
+            g.fillPath(tri);
+        }
     }
-    y += kSectionHeaderHeight + kRowHeight * 4 + transportExtraH + kSectionGap;
+    // Advance y past entire transport section
+    y += kSectionHeaderHeight + kTimelineHeight + 2 + kRowHeight + 2 + kRowHeight + kRowHeight + transportExtraH + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Cuepoints");
-    y += kSectionHeaderHeight + kRowHeight + kSectionGap;
+    y += kSectionHeaderHeight + kRowHeight + 14 + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Autopilot");
     y += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap;
@@ -415,7 +496,7 @@ void ClipInspector::paint(juce::Graphics& g)
 
 void ClipInspector::resized()
 {
-    auto area = getLocalBounds().reduced(4, 0);
+    auto area = getLocalBounds().reduced(kInset, 0);
     int y = 0;
 
     // Name bar
@@ -428,49 +509,53 @@ void ClipInspector::resized()
     if (!clip_) return;
 
     // --- Transport ---
+    // Mode selector sits inside the section header
+    transportModeSelector_.setBounds(area.getRight() - 100, y, 100, kSectionHeaderHeight);
     y += kSectionHeaderHeight;
 
-    // Mode dropdown + transport buttons
-    {
-        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        transportModeSelector_.setBounds(row.removeFromRight(100));
-    }
-    y += kRowHeight;
+    // Timeline bar (painted in paint(), interactive via mouse handlers)
+    timelineBounds_ = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kTimelineHeight);
+    y += kTimelineHeight + 2;  // 2px breathing room
 
-    // Transport buttons: ◀ ⏸ ▶ + loop dropdown + trigger dropdown
+    // Transport buttons: ◀ ⏸ ▶ + loop/trigger dropdowns
     {
         auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        playBackBtn_.setBounds(row.removeFromLeft(26));
+        int btnW = 28;
+        playBackBtn_.setBounds(row.removeFromLeft(btnW));
         row.removeFromLeft(2);
-        pauseBtn_.setBounds(row.removeFromLeft(26));
+        pauseBtn_.setBounds(row.removeFromLeft(btnW));
         row.removeFromLeft(2);
-        playBtn_.setBounds(row.removeFromLeft(26));
-        row.removeFromLeft(8);
-        loopDropdown_.setBounds(row.removeFromLeft(row.getWidth() / 2 - 2));
+        playBtn_.setBounds(row.removeFromLeft(btnW));
+        row.removeFromLeft(10);
+        // Loop and Trigger dropdowns share remaining space
+        int remaining = row.getWidth();
+        loopDropdown_.setBounds(row.removeFromLeft(remaining / 2 - 2));
         row.removeFromLeft(4);
         triggerDropdown_.setBounds(row);
     }
-    y += kRowHeight;
+    y += kRowHeight + 2;
 
-    // Speed row: label + ½ ×2 + slider
+    // Speed row: "Speed" label (painted) + slider (has text box) + ÷2 ×2 + Reverse
     {
-        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        halfSpeedBtn_.setBounds(row.removeFromLeft(28));
-        row.removeFromLeft(2);
-        doubleSpeedBtn_.setBounds(row.removeFromLeft(28));
-        row.removeFromLeft(4);
-        reverseBtn_.setBounds(row.removeFromRight(55));
+        int labelW = 42;
+        auto row = juce::Rectangle<int>(area.getX() + labelW, y, area.getWidth() - labelW, kRowHeight);
+        reverseBtn_.setBounds(row.removeFromRight(50));
+        row.removeFromRight(2);
+        doubleSpeedBtn_.setBounds(row.removeFromRight(22));
+        row.removeFromRight(1);
+        halfSpeedBtn_.setBounds(row.removeFromRight(22));
         row.removeFromRight(4);
         speedSlider_.setBounds(row);
     }
     y += kRowHeight;
 
-    // Duration row
+    // Duration/Beats row: label (painted) + slider (has text box) + /2 ×2
     {
-        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        durHalfBtn_.setBounds(row.removeFromRight(24));
-        row.removeFromRight(2);
-        durDoubleBtn_.setBounds(row.removeFromRight(24));
+        int labelW = 52;
+        auto row = juce::Rectangle<int>(area.getX() + labelW, y, area.getWidth() - labelW, kRowHeight);
+        durDoubleBtn_.setBounds(row.removeFromRight(22));
+        row.removeFromRight(1);
+        durHalfBtn_.setBounds(row.removeFromRight(22));
         row.removeFromRight(4);
         durationSlider_.setBounds(row);
     }
@@ -541,13 +626,19 @@ void ClipInspector::resized()
     }
     y += kSectionGap;
 
-    // --- Cuepoints ---
+    // --- Cuepoints (2 rows: trigger + set) ---
     y += kSectionHeaderHeight;
     int cpBtnWidth = area.getWidth() / kNumCuepoints;
+    // Row 1: Trigger buttons (numbered)
     for (int i = 0; i < kNumCuepoints; ++i)
         cuepointBtns_[static_cast<size_t>(i)]->setBounds(
             area.getX() + i * cpBtnWidth, y, cpBtnWidth - 2, kRowHeight);
-    y += kRowHeight + kSectionGap;
+    y += kRowHeight;
+    // Row 2: Set buttons (compact, secondary)
+    for (int i = 0; i < kNumCuepoints; ++i)
+        cuepointSetBtns_[static_cast<size_t>(i)]->setBounds(
+            area.getX() + i * cpBtnWidth, y, cpBtnWidth - 2, 14);
+    y += 14 + kSectionGap;
 
     // --- Autopilot ---
     y += kSectionHeaderHeight;
@@ -748,7 +839,7 @@ int ClipInspector::getPreferredHeight() const
     if (!clip_) return 100;
 
     int h = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
-    int transportH = kRowHeight * 4;
+    int transportH = kTimelineHeight + 2 + kRowHeight + 2 + kRowHeight + kRowHeight; // timeline+2 + buttons+2 + speed + duration (mode in header)
     if (clip_->isPlayable())
     {
         bool bpmSync = (clip_->transportMode == Clip::TransportMode::BPMSync);
@@ -759,7 +850,7 @@ int ClipInspector::getPreferredHeight() const
             transportH += kRowHeight;       // Images/Sec
     }
     h += kSectionHeaderHeight + transportH + kSectionGap; // Transport
-    h += kSectionHeaderHeight + kRowHeight + kSectionGap; // Cuepoints
+    h += kSectionHeaderHeight + kRowHeight + 14 + kSectionGap; // Cuepoints (trigger + set rows)
     h += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap; // Autopilot
 
     if (clip_->mediaType == Clip::MediaType::Source && !sourceParamControls_.empty())
@@ -783,20 +874,25 @@ void ClipInspector::paintSectionHeader(juce::Graphics& g, const juce::Rectangle<
     if (title == "Transform")
         g.setColour(juce::Colour(0xff1a3a3a));
     else
-        g.setColour(juce::Colour(0xff222222));
+        g.setColour(juce::Colour(0xff282838));
     g.fillRect(bounds);
 
-    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
-    g.setFont(juce::Font(juce::FontOptions(10.0f)).boldened());
+    // Subtle top border for separation
+    g.setColour(juce::Colour(0xff3a3a4a));
+    g.fillRect(bounds.getX(), bounds.getY(), bounds.getWidth(), 1);
 
-    auto textBounds = bounds.withTrimmedLeft(4);
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    g.setFont(juce::Font(juce::FontOptions(10.5f)).boldened());
+
+    auto textBounds = bounds.withTrimmedLeft(6);
+    // Downward-pointing triangle (expanded state indicator)
     juce::Path tri;
-    float tx = textBounds.getX() + 2.0f;
+    float tx = textBounds.getX() + 3.0f;
     float ty = static_cast<float>(textBounds.getCentreY());
-    tri.addTriangle(tx, ty - 3.0f, tx, ty + 3.0f, tx + 4.0f, ty);
+    tri.addTriangle(tx - 3.0f, ty - 2.0f, tx + 3.0f, ty - 2.0f, tx, ty + 2.5f);
     g.fillPath(tri);
 
-    g.drawText(title, textBounds.withTrimmedLeft(10), juce::Justification::centredLeft, false);
+    g.drawText(title, textBounds.withTrimmedLeft(12), juce::Justification::centredLeft, false);
 
     if (hasPButton)
     {
@@ -805,6 +901,183 @@ void ClipInspector::paintSectionHeader(juce::Graphics& g, const juce::Rectangle<
         g.setFont(juce::Font(juce::FontOptions(9.0f)));
         g.drawText("P.", pBounds, juce::Justification::centred, false);
     }
+}
+
+// === Timeline bar painting ===
+
+void ClipInspector::paintTimeline(juce::Graphics& g, const juce::Rectangle<int>& bounds) const
+{
+    if (!clip_) return;
+
+    float inP = clip_->inPoint;
+    float outP = clip_->outPoint;
+    int x = bounds.getX();
+    int w = bounds.getWidth();
+    int playheadZone = 14;  // top area for playhead triangle
+    int handleZone = 8;     // bottom area for in/out handle tabs
+    int trackY = bounds.getY() + playheadZone;
+    int trackH = bounds.getHeight() - playheadZone - handleZone;
+    int handleY = trackY + trackH; // bottom edge
+
+    int inX = x + static_cast<int>(inP * static_cast<float>(w));
+    int outX = x + static_cast<int>(outP * static_cast<float>(w));
+
+    // --- Dark regions outside in/out range ---
+    g.setColour(juce::Colour(0xff0e0e0e));
+    if (inX > x)
+        g.fillRect(x, trackY, inX - x, trackH);
+    if (outX < x + w)
+        g.fillRect(outX, trackY, x + w - outX, trackH);
+
+    // --- Active region (lighter) ---
+    g.setColour(juce::Colour(0xff333340));
+    g.fillRect(inX, trackY, std::max(1, outX - inX), trackH);
+
+    // --- Beat division lines (BPM Sync mode) ---
+    if (clip_->transportMode == Clip::TransportMode::BPMSync && clip_->beatDivision > 0.0f)
+    {
+        int numBeats = static_cast<int>(clip_->beatDivision);
+        if (numBeats >= 2)
+        {
+            g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f));
+            for (int b = 1; b < numBeats; ++b)
+            {
+                float beatNorm = inP + (outP - inP) * static_cast<float>(b) / static_cast<float>(numBeats);
+                int bx = x + static_cast<int>(beatNorm * static_cast<float>(w));
+                g.fillRect(bx, trackY + 1, 1, trackH - 2);
+            }
+        }
+    }
+
+    // --- In/Out point handle tabs (bottom edge, bracket-style) ---
+    auto handleColor = juce::Colour(AudioDNALookAndFeel::kAccentCyan);
+
+    // In-point: vertical bar + right-pointing bracket tab below track
+    g.setColour(handleColor);
+    g.fillRect(inX, trackY, 2, trackH);  // vertical bar
+    {
+        // Small bracket tab: [ shape pointing right
+        juce::Path inTab;
+        float ix = static_cast<float>(inX);
+        float hy = static_cast<float>(handleY);
+        inTab.startNewSubPath(ix, hy);
+        inTab.lineTo(ix, hy + static_cast<float>(handleZone));
+        inTab.lineTo(ix + 8.0f, hy + static_cast<float>(handleZone));
+        inTab.lineTo(ix + 8.0f, hy + static_cast<float>(handleZone) - 2.0f);
+        inTab.lineTo(ix + 2.0f, hy + static_cast<float>(handleZone) - 2.0f);
+        inTab.lineTo(ix + 2.0f, hy);
+        inTab.closeSubPath();
+        g.fillPath(inTab);
+    }
+
+    // Out-point: vertical bar + left-pointing bracket tab below track
+    g.fillRect(outX - 2, trackY, 2, trackH);  // vertical bar
+    {
+        juce::Path outTab;
+        float ox = static_cast<float>(outX);
+        float hy = static_cast<float>(handleY);
+        outTab.startNewSubPath(ox, hy);
+        outTab.lineTo(ox, hy + static_cast<float>(handleZone));
+        outTab.lineTo(ox - 8.0f, hy + static_cast<float>(handleZone));
+        outTab.lineTo(ox - 8.0f, hy + static_cast<float>(handleZone) - 2.0f);
+        outTab.lineTo(ox - 2.0f, hy + static_cast<float>(handleZone) - 2.0f);
+        outTab.lineTo(ox - 2.0f, hy);
+        outTab.closeSubPath();
+        g.fillPath(outTab);
+    }
+
+    // --- Playhead: downward triangle + vertical line ---
+    float pos = static_cast<float>(clip_->playheadPosition);
+    int phX = x + static_cast<int>(pos * static_cast<float>(w));
+
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    juce::Path tri;
+    float triW = 6.0f;
+    float triTop = static_cast<float>(bounds.getY() + 2);
+    float triBot = static_cast<float>(trackY);
+    tri.addTriangle(static_cast<float>(phX) - triW, triTop,
+                    static_cast<float>(phX) + triW, triTop,
+                    static_cast<float>(phX), triBot);
+    g.fillPath(tri);
+
+    // Playhead line through the track
+    g.fillRect(phX, trackY, 1, trackH);
+}
+
+float ClipInspector::timelineXToNormalized(int mouseX) const
+{
+    if (timelineBounds_.isEmpty()) return 0.0f;
+    float norm = static_cast<float>(mouseX - timelineBounds_.getX())
+               / static_cast<float>(timelineBounds_.getWidth());
+    return std::clamp(norm, 0.0f, 1.0f);
+}
+
+int ClipInspector::normalizedToTimelineX(float norm) const
+{
+    return timelineBounds_.getX() + static_cast<int>(norm * static_cast<float>(timelineBounds_.getWidth()));
+}
+
+void ClipInspector::mouseDown(const juce::MouseEvent& event)
+{
+    if (!clip_ || timelineBounds_.isEmpty()) return;
+
+    auto pos = event.getPosition();
+    if (!timelineBounds_.contains(pos))
+        return;
+
+    int mx = pos.getX();
+    int inX = normalizedToTimelineX(clip_->inPoint);
+    int outX = normalizedToTimelineX(clip_->outPoint);
+
+    // Check proximity to in/out markers (8px hit zone)
+    if (std::abs(mx - inX) < 8)
+        currentDrag_ = DragTarget::InPoint;
+    else if (std::abs(mx - outX) < 8)
+        currentDrag_ = DragTarget::OutPoint;
+    else
+        currentDrag_ = DragTarget::Playhead;
+
+    if (currentDrag_ == DragTarget::Playhead)
+    {
+        // Click on timeline = scrub playhead
+        float norm = timelineXToNormalized(mx);
+        clip_->playheadPosition = static_cast<double>(norm);
+        if (onCuepointJump)
+            onCuepointJump(clip_, static_cast<double>(norm));
+        repaint();
+    }
+}
+
+void ClipInspector::mouseDrag(const juce::MouseEvent& event)
+{
+    if (!clip_ || currentDrag_ == DragTarget::None) return;
+
+    float norm = timelineXToNormalized(event.getPosition().getX());
+
+    switch (currentDrag_)
+    {
+        case DragTarget::InPoint:
+            clip_->inPoint = std::min(norm, clip_->outPoint - 0.01f);
+            repaint();
+            break;
+        case DragTarget::OutPoint:
+            clip_->outPoint = std::max(norm, clip_->inPoint + 0.01f);
+            repaint();
+            break;
+        case DragTarget::Playhead:
+            clip_->playheadPosition = static_cast<double>(norm);
+            if (onCuepointJump)
+                onCuepointJump(clip_, static_cast<double>(norm));
+            repaint();
+            break;
+        default:
+            break;
+    }
+}
+
+void ClipInspector::mouseUp(const juce::MouseEvent&)
+{
+    currentDrag_ = DragTarget::None;
 }
 
 void ClipInspector::syncFromClip()
@@ -850,13 +1123,20 @@ void ClipInspector::syncFromClip()
     autopilotDurationSelector_.setSelectedId(
         static_cast<int>(clip_->autopilotDuration) + 1, juce::dontSendNotification);
 
-    // Cuepoint colors
+    // Cuepoint colors and tooltips
     for (int i = 0; i < kNumCuepoints; ++i)
     {
         bool hasCue = i < clip_->numCuepoints;
-        cuepointBtns_[static_cast<size_t>(i)]->setColour(
-            juce::TextButton::buttonColourId,
+        auto& btn = *cuepointBtns_[static_cast<size_t>(i)];
+        btn.setColour(juce::TextButton::buttonColourId,
             hasCue ? juce::Colour(0xff3a4a3a) : juce::Colour(AudioDNALookAndFeel::kSurface));
+        if (hasCue)
+            btn.setTooltip("Position: " + juce::String(clip_->cuepoints[i], 3)
+                         + " (Ctrl+click to clear)");
+        else if (i == clip_->numCuepoints)
+            btn.setTooltip("Click to set cuepoint at current position");
+        else
+            btn.setTooltip("");
     }
 
     // Video

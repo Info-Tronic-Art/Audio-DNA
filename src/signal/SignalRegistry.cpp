@@ -41,6 +41,9 @@ void SignalRegistry::initDefaults()
     addHiddenAudio("High Mid",       MappingSource::BandHighMid,      Signal::Category::Bands);
     addHiddenAudio("Presence",       MappingSource::BandPresence,     Signal::Category::Bands);
     addHiddenAudio("Hit Strength",   MappingSource::OnsetStrength,    Signal::Category::Rhythm);
+    addHiddenAudio("Bar Position",   MappingSource::BarPhase,         Signal::Category::Rhythm);
+    addHiddenAudio("Phrase Position", MappingSource::PhrasePhase,     Signal::Category::Rhythm);
+    addHiddenAudio("Bar Count",      MappingSource::BarCount,         Signal::Category::Rhythm);
     addHiddenAudio("Brightness",     MappingSource::SpectralCentroid, Signal::Category::Amplitude);
     addHiddenAudio("Change",         MappingSource::SpectralFlux,     Signal::Category::Amplitude);
     addHiddenAudio("Noisiness",      MappingSource::SpectralFlatness, Signal::Category::Amplitude);

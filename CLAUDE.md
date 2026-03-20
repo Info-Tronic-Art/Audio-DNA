@@ -61,6 +61,8 @@ Runs on user events. Handles all UI interaction — sliders, buttons, file choos
 | `keyIsMajor` | `bool` | flag | Major vs minor |
 | `mfccs[13]` | `float[13]` | coefficients | Timbral fingerprint |
 | `harmonicChangeDetection` | `float` | HCDF value | Harmonic change rate |
+| `barCount` | `uint16_t` | bars since reset | Bars since last phrase reset |
+| `phrasePhase` | `float` | [0, 1) | Sawtooth over N bars (configurable, default 8) |
 
 **Mapping** — Routes any audio feature to any effect parameter:
 
@@ -180,6 +182,8 @@ AudioDNA/
 │   ├── media/
 │   │   ├── VideoPlayer.h/cpp         ✅ # [P11] FFmpeg video decode (MP4/MOV/AVI/MKV/HAP Alpha) → GL texture
 │   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
+│   ├── recording/
+│   │   └── SessionRecorder.h/cpp     ✅ # [P12] Timestamped event recording/playback for performance capture
 │   ├── effects/
 │   │   ├── EffectLibrary.h/cpp          # [M4] Registry: creates Effect instances from shaders
 │   │   ├── Effect.h/cpp              ✅ # Single effect: shader program + param list
@@ -331,6 +335,7 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 11. Structural: multi-scale EMA → buildup/drop/breakdown state machine
 12. HCDF: chroma difference function
 13. Transient density: onset count in sliding window
+14. Phrase tracking: bar count + phrase phase sawtooth over N bars (resets on structural transitions)
 ```
 
 ---

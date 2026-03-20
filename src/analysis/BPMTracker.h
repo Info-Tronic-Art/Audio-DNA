@@ -62,6 +62,11 @@ public:
     static constexpr float kDownbeatWeightFlux = 0.3f;
     static constexpr float kDownbeatWeightHCDF = 0.2f;
 
+    // Phrase tracking constants
+    static constexpr int kDefaultPhraseBars = 8;      // default: 8-bar phrases
+    static constexpr int kMinPhraseBars = 1;
+    static constexpr int kMaxPhraseBars = 32;
+
     // hopSize:    samples per call to process() (must match analysis hop, e.g. 512)
     // bufSize:    internal FFT size for the tempo tracker (typically 1024)
     // sampleRate: audio sample rate in Hz
@@ -79,7 +84,10 @@ public:
     // Feed spectral features for downbeat scoring.
     // Call this AFTER process() on each hop, passing current spectral features.
     // The downbeat detector uses these on beat detections to score each beat position.
-    void feedDownbeatFeatures(float bassEnergy, float spectralFlux, float harmonicChange);
+    // structuralState: current structural detector output (0=normal, 1=buildup, 2=drop, 3=breakdown)
+    //   used for phrase reset on structural transitions.
+    void feedDownbeatFeatures(float bassEnergy, float spectralFlux, float harmonicChange,
+                              uint8_t structuralState = 0);
 
     // --- Accessors (valid after process()) ---
     float    bpm()           const { return lockedBPM_; }
@@ -97,9 +105,18 @@ public:
     bool     downbeatDetected() const { return downbeatDetected_; }
     bool     downbeatLocked()   const { return downbeatLocked_; }
 
+    // --- Phrase tracking accessors ---
+    uint16_t barCount()         const { return barCount_; }
+    float    phrasePhase()      const { return phrasePhase_; }
+    int      phraseBars()       const { return phraseBars_; }
+
     // --- Configuration ---
     void setThreshold(float t);
     void setSilence(float dbThreshold);
+    void setPhraseBars(int bars);
+
+    // Reset phrase/bar counters (called on Resync)
+    void resetPhrase();
 
     // --- Testing support ---
     // Process a raw BPM value through the stabilization pipeline without aubio.
@@ -165,6 +182,13 @@ private:
     float cachedSpectralFlux_ = 0.0f;
     float cachedHarmonicChange_ = 0.0f;
 
+    // === Phrase tracking state ===
+    uint16_t barCount_ = 0;            // bars since last phrase reset
+    float    phrasePhase_ = 0.0f;      // [0, 1) sawtooth over N bars
+    int      phraseBars_ = kDefaultPhraseBars; // configurable phrase length
+    bool     prevDownbeatDetected_ = false;    // edge detection for bar counting
+    uint8_t  prevStructuralState_ = 0;         // for detecting structural transitions
+
     // --- Internal pipeline methods ---
 
     // Fold a BPM value into the [kMinBPM, kMaxBPM] range via halving/doubling
@@ -190,4 +214,7 @@ private:
 
     // Update barPhase based on current beat position and phase
     void updateBarPhase();
+
+    // Update phrase tracking (bar count and phrase phase)
+    void updatePhrase(uint8_t structuralState);
 };

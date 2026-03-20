@@ -455,6 +455,13 @@ void LayerStrip::paint(juce::Graphics& g)
         g.drawText(clipName_, cb.reduced(3.0f, 0.0f), juce::Justification::centred, true);
     }
 
+    // Selection outline — cyan border around the name box only
+    if (selected_ && !nameBounds_.isEmpty())
+    {
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+        g.drawRect(nameBounds_.toFloat(), 2.0f);
+    }
+
     // Bottom edge
     g.setColour(juce::Colour(kBtnBorder));
     g.drawHorizontalLine(bounds.getHeight() - 1, 0.0f, (float)bounds.getWidth());

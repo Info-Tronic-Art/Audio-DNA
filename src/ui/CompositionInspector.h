@@ -17,7 +17,6 @@
 //   [Autopilot]               Direction (◀◀ OFF ▶▶ ⤮), Duration, Clip Loops, Loop, Master Layer
 //   [Composition]             ▶ Master slider (with signal triangle), Speed slider
 //   [Video]                   ▶ Opacity slider
-//   [CrossFader]              Blend Mode, Behaviour, Curve
 //   [Transform]               Position X/Y, Scale %, Rotation °, Anchor
 //   [Global Effects]          Effect stack
 //   [Output Settings]         Resolution dropdown
@@ -62,11 +61,6 @@ private:
 
     // --- Video ---
     UniversalParamControl opacityControl_;
-
-    // --- CrossFader ---
-    juce::ComboBox crossfaderBlendSelector_;
-    juce::ComboBox crossfaderBehaviourSelector_;
-    juce::ComboBox crossfaderCurveSelector_;
 
     // --- Transform ---
     UniversalParamControl posXControl_;

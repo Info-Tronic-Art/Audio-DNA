@@ -429,9 +429,10 @@
   - Video frame callback: advance + upload per render frame
   - Files: `src/render/CompositorEngine.h/cpp`, `src/render/Renderer.h/cpp`
 
-- [ ] **P11.6** Cuepoints (deferred to P12)
-  - 8 save slots per clip (data model exists, UI buttons exist, logic TBD)
-  - Jump to cuepoint via buttons or bindings
+- [x] **P11.6** Cuepoints (completed in P12)
+  - 8 save slots per clip with Set + Trigger buttons
+  - Jump to cuepoint via buttons, Ctrl+click to clear
+  - In/Out point markers on timeline, draggable, with loop enforcement
   - Files: `src/model/Clip.h/cpp`, `src/ui/ClipInspector.cpp`
 
 ---
@@ -440,31 +441,34 @@
 
 **Goal**: Phrase-level metrical tracking, settings recording, final polish.
 
-- [ ] **P12.1** Implement phrase tracking
-  - Count bars from downbeat
-  - Reset phrase counter on structural transitions
-  - Manual resync shortcut
-  - `phrasePhase` as [0,1) over configurable bar count (4/8/16)
-  - Files: `src/analysis/BPMTracker.h/cpp`
+- [x] **P12.1** Implement phrase tracking
+  - Bar count from downbeat, phrasePhase [0,1) over configurable N bars (default 8)
+  - Reset on structural transitions (drop enter, breakdown leave) + Resync button
+  - Beat wheel indicator in TopBar (4-segment circle), bar/phrase readout
+  - BarPhase, PhrasePhase, BarCount added to MappingSource + SignalRegistry
+  - Files: `src/analysis/BPMTracker.h/cpp`, `src/analysis/FeatureSnapshot.h`, `src/ui/TopBar.h/cpp`
 
-- [ ] **P12.2** Implement settings recording
-  - Timestamped event logging for all parameter changes and clip triggers
-  - Playback reproduces performance
-  - Save/load recorded sessions
-  - Files: `src/recording/SessionRecorder.h/cpp`
+- [x] **P12.2** Implement settings recording
+  - SessionRecorder: timestamped event logging (params, clips, columns, macros, transport, effects, cuepoints)
+  - JSON save/load, playback with advancePlayback(dt)
+  - RecordPanel wired with Record/Stop/Play/Save/Load buttons
+  - Files: `src/recording/SessionRecorder.h/cpp`, `src/ui/RecordPanel.h/cpp`
 
-- [ ] **P12.3** Implement Syphon/NDI texture sharing (Output menu)
+- [ ] **P12.3** Implement Syphon/NDI texture sharing (Output menu) — DEFERRED
   - Syphon for macOS, NDI for cross-platform
   - Send composition output as shared texture
   - Files: `src/output/SyphonOutput.h/cpp`, `src/output/NDIOutput.h/cpp`
 
-- [ ] **P12.4** Performance optimization
-  - Profile render thread with multi-layer compositing
-  - Optimize signal routing (batch uniform uploads)
-  - GPU texture caching for clip thumbnails
-  - Files: various
+- [x] **P12.4** Performance optimization + UI polish
+  - Early exit in MappingEngine when no mappings
+  - ClipInspector redesign: timeline with in/out handles, playhead triangle, beat markers
+  - Transport cleanup: mode selector in header, Speed/Duration labels, playhead sync
+  - Cuepoint split buttons (Trigger + Set), draggable in/out points
+  - Layer selection outline on name box
+  - Removed CrossFader from CompositionInspector (unused)
+  - Section headers with downward triangles, better spacing (8px gaps, 24px rows)
 
-- [ ] **P12.5** Cross-platform testing
+- [ ] **P12.5** Cross-platform testing — DEFERRED
   - macOS (ARM64 + x86_64)
   - Windows (MSVC)
   - Linux (GCC)

@@ -34,6 +34,9 @@ enum class MappingSource : uint8_t
     OnsetStrength,
     BeatPhase,
     BPM,
+    BarPhase,
+    PhrasePhase,
+    BarCount,
 
     // Structural
     StructuralState,

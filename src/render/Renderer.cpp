@@ -525,6 +525,15 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
         }
 
         player->advanceFrame(static_cast<double>(dt));
+        clip->playheadPosition = player->getPlayheadPosition();
+
+        // Enforce in/out points
+        if (clip->outPoint < 1.0f && clip->playheadPosition >= static_cast<double>(clip->outPoint))
+        {
+            player->seekTo(static_cast<double>(clip->inPoint));
+            clip->playheadPosition = static_cast<double>(clip->inPoint);
+        }
+
         return player->uploadToTexture();
     }
     else if (clip->mediaType == Clip::MediaType::ImageSequence)
@@ -571,6 +580,15 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
         {
             seq->advanceFrame(static_cast<double>(dt));
         }
+        clip->playheadPosition = seq->getPlayheadPosition();
+
+        // Enforce in/out points
+        if (clip->outPoint < 1.0f && clip->playheadPosition >= static_cast<double>(clip->outPoint))
+        {
+            seq->seekTo(static_cast<double>(clip->inPoint));
+            clip->playheadPosition = static_cast<double>(clip->inPoint);
+        }
+
         return seq->getCurrentTexture();
     }
 

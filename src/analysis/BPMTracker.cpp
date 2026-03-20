@@ -236,7 +236,8 @@ void BPMTracker::setSilence(float dbThreshold)
 
 // === Downbeat Detection ===
 
-void BPMTracker::feedDownbeatFeatures(float bassEnergy, float spectralFlux, float harmonicChange)
+void BPMTracker::feedDownbeatFeatures(float bassEnergy, float spectralFlux, float harmonicChange,
+                                      uint8_t structuralState)
 {
     cachedBassEnergy_ = bassEnergy;
     cachedSpectralFlux_ = spectralFlux;
@@ -250,6 +251,9 @@ void BPMTracker::feedDownbeatFeatures(float bassEnergy, float spectralFlux, floa
 
     // Always update bar phase (even between beats, for smooth sawtooth)
     updateBarPhase();
+
+    // Update phrase tracking
+    updatePhrase(structuralState);
 }
 
 void BPMTracker::scoreBeat()
@@ -389,4 +393,60 @@ void BPMTracker::updateBarPhase()
         barPhase_ -= std::floor(barPhase_);
     if (barPhase_ < 0.0f)
         barPhase_ = 0.0f;
+}
+
+void BPMTracker::updatePhrase(uint8_t structuralState)
+{
+    if (lockedBPM_ <= 0.0f)
+    {
+        phrasePhase_ = 0.0f;
+        barCount_ = 0;
+        prevDownbeatDetected_ = false;
+        prevStructuralState_ = structuralState;
+        return;
+    }
+
+    // Detect rising edge of downbeat (new bar)
+    bool newBar = downbeatDetected_ && !prevDownbeatDetected_;
+    prevDownbeatDetected_ = downbeatDetected_;
+
+    if (newBar)
+    {
+        ++barCount_;
+    }
+
+    // Reset phrase on structural transitions (e.g., drop hits → reset phrase counter)
+    // Only reset on transition TO drop (state 2) or FROM breakdown (state 3)
+    if (structuralState != prevStructuralState_)
+    {
+        bool resetTransition = (structuralState == 2)                         // entering drop
+                            || (prevStructuralState_ == 3 && structuralState != 3); // leaving breakdown
+        if (resetTransition)
+        {
+            barCount_ = 0;
+        }
+    }
+    prevStructuralState_ = structuralState;
+
+    // phrasePhase = (barCount % phraseBars + barPhase) / phraseBars
+    int barInPhrase = static_cast<int>(barCount_) % phraseBars_;
+    phrasePhase_ = (static_cast<float>(barInPhrase) + barPhase_) / static_cast<float>(phraseBars_);
+
+    // Clamp to [0, 1)
+    if (phrasePhase_ >= 1.0f)
+        phrasePhase_ -= std::floor(phrasePhase_);
+    if (phrasePhase_ < 0.0f)
+        phrasePhase_ = 0.0f;
+}
+
+void BPMTracker::setPhraseBars(int bars)
+{
+    phraseBars_ = std::clamp(bars, kMinPhraseBars, kMaxPhraseBars);
+}
+
+void BPMTracker::resetPhrase()
+{
+    barCount_ = 0;
+    phrasePhase_ = 0.0f;
+    prevDownbeatDetected_ = false;
 }
