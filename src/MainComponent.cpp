@@ -372,6 +372,9 @@ MainComponent::MainComponent()
         effectLibrary_);
     addAndMakeVisible(effectsRackPanel_.get());
 
+    // === Tooltip window ===
+    tooltipWindow_ = std::make_unique<juce::TooltipWindow>(this, 600);
+
     // === v2: Signal Bar + Top Bar ===
     composition_.initDefault();
     signalRegistry_.initDefaults();
@@ -461,13 +464,30 @@ MainComponent::MainComponent()
             openOutputOnDisplay(selected - 2);
     };
 
+    topBar_->onTapTempo = [this](float tappedBPM) {
+        if (auto* tracker = analysisThread_.getBpmTracker())
+            tracker->setManualBPM(tappedBPM);
+    };
+
+    topBar_->onManualBpmChanged = [this](bool manual, float bpm) {
+        if (auto* tracker = analysisThread_.getBpmTracker())
+        {
+            tracker->setManualMode(manual);
+            if (manual && bpm > 0.0f)
+                tracker->setManualBPM(bpm);
+        }
+    };
+
     topBar_->onResync = [this] {
         // Reset beat counters
         beatCounter_ = 0;
         lastBeatPhase_ = 0.0f;
-        // Reset phrase/bar counters in the BPM tracker
+        // Reset beat phase and phrase/bar counters in the BPM tracker
         if (auto* tracker = analysisThread_.getBpmTracker())
+        {
+            tracker->resetBeatPhase();
             tracker->resetPhrase();
+        }
     };
 
     signalBar_ = std::make_unique<SignalBar>(signalRegistry_, analysisThread_.getFeatureBus());
@@ -488,6 +508,11 @@ MainComponent::MainComponent()
 
     // Wire the active deck into the renderer for compositor rendering
     previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+
+    // Refresh deck view when autopilot advances a clip
+    previewPanel_.getRenderer().setOnAutopilotAdvanced([this]() {
+        if (deckView_) deckView_->refresh();
+    });
 
     deckView_->onClipTriggered = [this](int layerIdx, int col) {
         handleClipTrigger(layerIdx, col);
@@ -532,9 +557,68 @@ MainComponent::MainComponent()
     };
     deckView_->onFileDropped = [this](int layerIdx, int col, const juce::File& file) {
         handleFileDrop(layerIdx, col, file);
+        if (deckView_) deckView_->clearSelection();
     };
     deckView_->onMultiFileDropped = [this](int layerIdx, int col, const std::vector<juce::File>& files) {
         handleMultiFileDrop(layerIdx, col, files);
+        if (deckView_) deckView_->clearSelection();
+    };
+    deckView_->onMultiVideoDropped = [this](int layerIdx, int col, const std::vector<juce::File>& files) {
+        // Place each video in sequential cells on the same layer
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        // Ensure enough columns exist
+        int needed = col + static_cast<int>(files.size());
+        while (deck->numColumns < needed)
+        {
+            deck->numColumns++;
+            for (auto& layer : deck->layers)
+                layer.clips.resize(static_cast<size_t>(deck->numColumns));
+        }
+        for (int i = 0; i < static_cast<int>(files.size()); ++i)
+            handleFileDrop(layerIdx, col + i, files[static_cast<size_t>(i)]);
+        if (deckView_)
+        {
+            deckView_->clearSelection();
+            deckView_->rebuildGrid();
+        }
+    };
+    deckView_->onEffectDropped = [this](int layerIdx, int col, const juce::String& effectName) {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        auto* layer = deck->getLayer(layerIdx);
+        if (!layer) return;
+        // Ensure the clip exists (create empty if needed)
+        auto* clip = layer->getClipAt(col);
+        if (!clip)
+        {
+            Clip newClip;
+            static uint32_t fxClipId = 5000;
+            newClip.id = fxClipId++;
+            newClip.name = "FX";
+            newClip.mediaType = Clip::MediaType::None;
+            deck->setClip(layerIdx, col, newClip);
+            clip = layer->getClipAt(col);
+        }
+        if (!clip) return;
+        // Add effect slot with default params
+        Clip::EffectSlot slot;
+        slot.effectName = effectName.toStdString();
+        const auto* def = effectLibrary_.getEffectDef(effectName);
+        if (def)
+        {
+            for (const auto& p : def->params)
+                slot.paramValues.push_back(p.defaultValue);
+        }
+        clip->effects.push_back(slot);
+        if (deckView_) deckView_->rebuildGrid();
+        // Update inspector if this clip is selected
+        if (inspectorPanel_)
+        {
+            auto& ci = inspectorPanel_->getClipInspector();
+            if (ci.getClip() == clip)
+                ci.refresh();
+        }
     };
     deckView_->onDeckSwitched = [this](int deckIdx) {
         handleDeckSwitch(deckIdx);
@@ -547,6 +631,9 @@ MainComponent::MainComponent()
     inspectorPanel_->setEffectLibrary(&effectLibrary_);
     inspectorPanel_->setSignalRegistry(&signalRegistry_);
     inspectorPanel_->setMacroBank(&globalMacroBank_);
+    inspectorPanel_->getLayerInspector().onLayerNameChanged = [this]() {
+        if (deckView_) deckView_->refresh();
+    };
     inspectorPanel_->getClipInspector().onSourceParamsChanged = [this](Clip* clip) {
         if (clip && clip->mediaType == Clip::MediaType::Source)
             previewPanel_.getRenderer().updateActiveSourceParams(clip->sourceParams);
@@ -2006,6 +2093,7 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
         ext == ".gif" || ext == ".bmp" || ext == ".tiff")
     {
         clip.mediaType = Clip::MediaType::Image;
+        clip.playing = true;  // Images are always "playing" (static display)
     }
     else if (ext == ".mov" || ext == ".avi" || ext == ".mp4" ||
              ext == ".mkv" || ext == ".webm" || ext == ".m4v")
@@ -2614,11 +2702,44 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             break;
 
         case Binding::Action::TapTempo:
-            // TODO: wire to BPM tracker tap tempo
+            if (value > 0.0f)
+            {
+                // Record a tap and compute BPM (same logic as TopBar)
+                double now = juce::Time::getMillisecondCounterHiRes() / 1000.0;
+                static std::array<double, 8> bindingTapTimes{};
+                static int bindingTapCount = 0;
+                static double bindingLastTapTime = 0.0;
+                if (now - bindingLastTapTime > 2.0)
+                    bindingTapCount = 0;
+                if (bindingTapCount < static_cast<int>(bindingTapTimes.size()))
+                    bindingTapTimes[static_cast<size_t>(bindingTapCount)] = now;
+                ++bindingTapCount;
+                bindingLastTapTime = now;
+                if (bindingTapCount >= 2)
+                {
+                    int n = std::min(bindingTapCount, static_cast<int>(bindingTapTimes.size()));
+                    double total = bindingTapTimes[static_cast<size_t>(n - 1)] - bindingTapTimes[0];
+                    if (total > 0.0)
+                    {
+                        float tappedBPM = static_cast<float>(60.0 / (total / (n - 1)));
+                        if (auto* tracker = analysisThread_.getBpmTracker())
+                            tracker->setManualBPM(tappedBPM);
+                    }
+                }
+            }
             break;
 
         case Binding::Action::Resync:
-            // TODO: wire to BPM tracker resync
+            if (value > 0.0f)
+            {
+                beatCounter_ = 0;
+                lastBeatPhase_ = 0.0f;
+                if (auto* tracker = analysisThread_.getBpmTracker())
+                {
+                    tracker->resetBeatPhase();
+                    tracker->resetPhrase();
+                }
+            }
             break;
 
         case Binding::Action::GlobalPlayPause:

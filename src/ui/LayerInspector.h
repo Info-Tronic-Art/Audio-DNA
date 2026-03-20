@@ -31,6 +31,7 @@ public:
 
     void paint(juce::Graphics& g) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
 
     void setLayer(Layer* layer);
     Layer* getLayer() const { return layer_; }
@@ -42,9 +43,15 @@ public:
     void refresh();
     int getPreferredHeight() const;
 
+    // Callback when layer name is changed by the user
+    std::function<void()> onLayerNameChanged;
+
 private:
     Layer* layer_ = nullptr;
     SignalRegistry* signalRegistry_ = nullptr;
+
+    // Name bar — editable label
+    juce::Label nameLabel_;
 
     MacroPanel macroPanel_;
 
@@ -53,9 +60,10 @@ private:
     juce::TextButton apOffBtn_{"OFF"};
     juce::TextButton apForwardBtn_;
     juce::TextButton apRandomBtn_;
-    juce::ComboBox apDurationSelector_;
-    juce::Slider apClipLoopsSlider_;
-    juce::ToggleButton apLoopToggle_{"Loop"};
+    juce::ComboBox apTriggerModeSelector_;   // "End of Video" or "On Beat"
+    juce::ComboBox apBeatCountSelector_;     // 1/2/4/8/16/32 beats (visible in On Beat mode)
+    juce::Label apLoopsLabel_{"", "Loops:"};
+    juce::Slider apLoopsSlider_;             // Number of loops before advancing
 
     // --- Layer (Master) ---
     UniversalParamControl masterControl_;
@@ -101,6 +109,7 @@ private:
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
                             const juce::String& title, bool hasPButton = false);
     void syncFromLayer();
+    void updateAutopilotButtons();
     void populateBlendModes();
     void populateKeyingModes();
 

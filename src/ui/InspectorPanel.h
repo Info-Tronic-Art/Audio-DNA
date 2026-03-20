@@ -49,6 +49,7 @@ public:
 
     // Access individual inspectors
     ClipInspector& getClipInspector() { return clipInspector_; }
+    LayerInspector& getLayerInspector() { return layerInspector_; }
 
 private:
     Tab activeTab_ = Tab::Clip;

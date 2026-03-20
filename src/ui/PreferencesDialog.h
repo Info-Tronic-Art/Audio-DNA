@@ -49,6 +49,12 @@ private:
         // General tab
         juce::Label quitConfirmLabel_{"", "Confirm on quit:"};
         juce::ToggleButton quitConfirmToggle_;
+        juce::Label tooltipLabel_{"", "Show Tooltips:"};
+        juce::ToggleButton tooltipToggle_;
+
+    public:
+        std::function<void(bool enabled)> onTooltipToggled;
+    private:
 
         // Audio tab
         juce::Label sampleRateLabel_{"", "Sample Rate:"};

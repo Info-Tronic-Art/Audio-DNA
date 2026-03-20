@@ -7,6 +7,15 @@ EffectStackView::EffectStackView()
 
 void EffectStackView::paint(juce::Graphics& g)
 {
+    // FX drop highlight
+    if (fxDropHighlight_)
+    {
+        g.setColour(juce::Colour(0xff8866cc).withAlpha(0.15f));
+        g.fillRect(getLocalBounds());
+        g.setColour(juce::Colour(0xff8866cc));
+        g.drawRect(getLocalBounds(), 2);
+    }
+
     if (!effects_) return;
 
     for (size_t i = 0; i < rows_.size(); ++i)
@@ -91,6 +100,14 @@ void EffectStackView::resized()
         // Param controls (if expanded)
         if (row.expanded)
         {
+            // Dry/wet control first
+            if (row.dryWetControl)
+            {
+                int pcHeight = row.dryWetControl->getPreferredHeight();
+                row.dryWetControl->setBounds(kParamIndent, y, area.getWidth() - kParamIndent - 4, pcHeight);
+                row.dryWetControl->setVisible(true);
+                y += pcHeight;
+            }
             for (auto& pc : row.paramControls)
             {
                 int pcHeight = pc->getPreferredHeight();
@@ -101,6 +118,8 @@ void EffectStackView::resized()
         }
         else
         {
+            if (row.dryWetControl)
+                row.dryWetControl->setVisible(false);
             for (auto& pc : row.paramControls)
                 pc->setVisible(false);
         }
@@ -127,6 +146,10 @@ void EffectStackView::refresh()
         // Update bypass button color
         row.bypassBtn.setColour(juce::TextButton::buttonColourId,
             fx.bypassed ? juce::Colour(0xff6a3a3a) : juce::Colour(0xff333333));
+
+        // Update dry/wet control
+        if (row.dryWetControl)
+            row.dryWetControl->setParamValue(fx.dryWet);
 
         // Update param values and apply signal-driven modulation
         for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
@@ -200,6 +223,8 @@ int EffectStackView::getPreferredHeight() const
         h += kHeaderHeight;
         if (row->expanded)
         {
+            if (row->dryWetControl)
+                h += row->dryWetControl->getPreferredHeight();
             for (auto& pc : row->paramControls)
                 h += pc->getPreferredHeight();
         }
@@ -213,6 +238,8 @@ void EffectStackView::rebuildRows()
     for (auto& row : rows_)
     {
         removeChildComponent(&row->bypassBtn);
+        if (row->dryWetControl)
+            removeChildComponent(row->dryWetControl.get());
         for (auto& pc : row->paramControls)
             removeChildComponent(pc.get());
     }
@@ -242,6 +269,29 @@ void EffectStackView::rebuildRows()
             refresh();
         };
         addAndMakeVisible(row->bypassBtn);
+
+        // Create dry/wet control (first param when expanded)
+        {
+            auto dwc = std::make_unique<UniversalParamControl>();
+            dwc->setParamName("Dry/Wet");
+            dwc->setParamValue(fx.dryWet);
+            dwc->setSignalRegistry(signalRegistry_);
+
+            int capturedFxIdx = i;
+            dwc->onValueChanged = [this, capturedFxIdx](float val) {
+                if (!effects_ || capturedFxIdx >= static_cast<int>(effects_->size())) return;
+                (*effects_)[static_cast<size_t>(capturedFxIdx)].dryWet = val;
+                if (onDryWetChanged) onDryWetChanged(capturedFxIdx, val);
+            };
+            dwc->onExpandToggled = [this] {
+                resized();
+                if (auto* parent = getParentComponent())
+                    parent->resized();
+            };
+
+            addChildComponent(dwc.get());
+            row->dryWetControl = std::move(dwc);
+        }
 
         // Create param controls from effect library definition
         const EffectLibrary::EffectDef* def = nullptr;
@@ -315,4 +365,55 @@ void EffectStackView::mouseDown(const juce::MouseEvent& event)
     }
 
     Component::mouseDown(event);
+}
+
+// === DragAndDropTarget (FX drops from browser) ===
+
+bool EffectStackView::isInterestedInDragSource(const SourceDetails& details)
+{
+    return details.description.toString().startsWith("fx:");
+}
+
+void EffectStackView::itemDragEnter(const SourceDetails&)
+{
+    fxDropHighlight_ = true;
+    repaint();
+}
+
+void EffectStackView::itemDragExit(const SourceDetails&)
+{
+    fxDropHighlight_ = false;
+    repaint();
+}
+
+void EffectStackView::itemDropped(const SourceDetails& details)
+{
+    fxDropHighlight_ = false;
+    repaint();
+
+    auto desc = details.description.toString();
+    if (!desc.startsWith("fx:") || effects_ == nullptr || effectLibrary_ == nullptr)
+        return;
+
+    auto effectName = desc.substring(3);
+    const auto* def = effectLibrary_->getEffectDef(effectName);
+    if (def == nullptr)
+        return;
+
+    // Create a new EffectSlot with default params
+    Clip::EffectSlot slot;
+    slot.effectName = effectName.toStdString();
+    for (const auto& p : def->params)
+        slot.paramValues.push_back(p.defaultValue);
+
+    effects_->push_back(slot);
+    rebuildRows();
+    resized();
+
+    if (onEffectAdded)
+        onEffectAdded(effectName);
+
+    // Notify parent to resize
+    if (auto* parent = getParentComponent())
+        parent->resized();
 }

@@ -378,9 +378,51 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 
 ### Effect Chain Architecture
 
+Effects can be applied at three independent levels — no layer type change is required:
+
+| Level | Data Location | How to Add |
+|-------|---------------|-----------|
+| **Per-clip** | `Clip::effects` (vector of `EffectSlot`) | Drag FX from browser onto a cell, or onto the clip inspector effect stack |
+| **Per-layer** | `Layer::layerEffects` | Drag FX onto the layer inspector effect stack |
+| **Global** | `effectChain_` in Renderer | Via the effects rack or composition inspector |
+
+Cells hold clips (images, image sequences, videos) AND procedural sources. FX are independent of media type and layer type.
+
 **Single-image mode**: Input image → FBO A (Effect 1) → FBO B (Effect 2) → FBO A (Effect 3) → ... → Screen. Ping-pong between two FBOs.
 
-**Keyboard launcher mode** (M7): Per-key effect chains run independently, then composite via the CompositorEngine. Global effects apply on top of the composited result. See ARCHITECTURE.md Section 8 for the full compositing pipeline.
+**Deck compositing mode** (v2): Per-clip effects are applied to the clip texture before compositing. Layer effects are applied after. FX Only layers apply their clip's effects to the composited accumulator. Mask layers use their content as a luminance alpha mask.
+
+### FX Drag-and-Drop
+
+Effects are dragged from the FX Browser and dropped onto:
+- **Deck cells** — adds the effect to the clip's per-clip effect chain (`Clip::effects`)
+- **Inspector effect stack** (EffectStackView) — adds to whichever effect list is displayed (clip, layer, or composition)
+
+The drag shows a small pill with the effect name. Cells show a purple highlight when an FX drag hovers. EffectStackView shows a purple border.
+
+MainComponent inherits `juce::DragAndDropContainer`. FXBrowser's FXListContent initiates drags via `startDragging("fx:effectName", ...)`. ClipCell and EffectStackView implement `juce::DragAndDropTarget`.
+
+### Autopilot System
+
+Autopilot auto-advances clips in a layer. Two trigger modes:
+- **On Beat** — advances after N beats (1/2/4/8/16/32), multiplied by the loops count
+- **End of Video** — advances when `clip->playheadPosition >= outPoint` (checked every frame, not just on beat crossings)
+
+The `Autopilot` class runs in `Renderer::renderOpenGL()` via `autopilot_.processFrame()`. When clips advance, `onAutopilotAdvanced_` fires async on the message thread to refresh the DeckView.
+
+Layer autopilot fields: `autopilotEnabled`, `autopilotEndOfVideo`, `autopilotLoops`, `defaultAutopilotAction`, `defaultAutopilotDuration`.
+
+### Manual BPM Mode
+
+TopBar has a "Manual" toggle. When enabled:
+- An editable BPM text field appears (type value, press Enter)
+- `BPMTracker::setManualMode(true)` freezes the stabilization pipeline
+- Beat phase still runs from the manually-set BPM
+- All beat-driven features (beatPhase, barPhase, phrasePhase, autopilot) work without audio
+
+### Tooltip System
+
+`juce::TooltipWindow` in MainComponent (600ms delay). Any component with `setTooltip()` shows tooltips on hover. Preferences → General has a "Show Tooltips" toggle. Comprehensive tooltip coverage is scheduled for P26 (final build phase).
 
 ---
 
@@ -589,11 +631,11 @@ When the user says **"kick off phase N"**, follow this exact sequence:
 
 1. **Read** these files in order:
    - `CLAUDE.md` (this file) — sacred rules, project context
-   - `PHASE_GUIDE.md` — find Phase N, read its specific instructions (what files to read, what to modify, validation criteria)
-   - `ARCHITECTURE_V2.md` — the sections relevant to Phase N
-   - `TASKPLAN_V2.md` — find the specific tasks for Phase N
+   - `PHASE_GUIDE.md` — find Phase N, read its specific instructions
+   - **For phases 1-12**: `ARCHITECTURE_V2.md` + `TASKPLAN_V2.md`
+   - **For phases 13-25**: `research/UNIFIED_BUILD_PLAN.md` — this is the ONLY file needed. It contains all tasks, all files to read, the 3-step shader process, validation criteria, and references to detailed GLSL specs in `research/resolumeEffectSourceIntegration.md` and `research/archaosEffectSourceIntegration.md`.
 
-2. **Read** all source files listed in PHASE_GUIDE.md for that phase before changing anything
+2. **Read** all source files listed in the phase guide for that phase before changing anything
 
 3. **Execute ALL tasks** in the phase without stopping between tasks. Batch everything.
 
@@ -605,7 +647,7 @@ When the user says **"kick off phase N"**, follow this exact sequence:
 
 5. **Decision point — does this phase have UI changes?**
    - **NO UI changes** (P1, P3): Commit to git, update PHASE_GUIDE.md status to COMPLETE, report done. User does NOT need to validate.
-   - **YES UI changes** (P2, P4-P12): Report to user with:
+   - **YES UI changes** (P2, P4-P20): Report to user with:
 
      ```text
      ## Phase N Complete

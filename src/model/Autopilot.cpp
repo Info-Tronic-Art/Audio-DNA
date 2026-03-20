@@ -3,19 +3,61 @@
 
 bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
 {
-    // Detect beat crossing (beatPhase wraps from ~1.0 to ~0.0)
+    bool anyAdvanced = false;
+
+    // === End of Video mode: check every frame (not just on beat crossings) ===
+    for (auto& layer : deck.layers)
+    {
+        if (!layer.autopilotEnabled || !layer.autopilotEndOfVideo)
+            continue;
+
+        Clip* clip = layer.getActiveClip();
+        if (clip == nullptr || !clip->playing)
+            continue;
+
+        // Check if playhead reached the out point (or end)
+        double outPos = (clip->outPoint > 0.01f) ? static_cast<double>(clip->outPoint) : 1.0;
+        double threshold = outPos - 0.01; // Small margin to avoid floating-point edge cases
+
+        if (clip->playheadPosition >= threshold)
+        {
+            // Check loops: count how many times we've looped
+            clip->beatsPlayed++; // Reuse beatsPlayed as loop counter for end-of-video mode
+            int loopsTarget = std::max(1, layer.autopilotLoops);
+
+            if (clip->beatsPlayed >= loopsTarget)
+            {
+                Clip::AutopilotAction action = getActionForClip(*clip, layer);
+                if (action != Clip::AutopilotAction::DoNothing)
+                {
+                    advanceClip(layer, layer.activeClipColumn, action, deck.numColumns);
+                    anyAdvanced = true;
+                }
+            }
+        }
+    }
+
+    // === Beat-based mode: only process on beat crossings ===
     bool beatCrossed = (snapshot.beatPhase < lastBeatPhase_ - 0.5f);
     lastBeatPhase_ = snapshot.beatPhase;
 
     if (!beatCrossed)
-        return false;
+        return anyAdvanced;
 
-    bool anyAdvanced = false;
+    // Process any beat-snapped pending triggers on beat crossing
+    for (auto& layer : deck.layers)
+    {
+        if (layer.pendingTriggerColumn >= 0)
+        {
+            layer.processPendingTrigger();
+            anyAdvanced = true;
+        }
+    }
 
     for (auto& layer : deck.layers)
     {
-        if (!layer.autopilotEnabled)
-            continue;
+        if (!layer.autopilotEnabled || layer.autopilotEndOfVideo)
+            continue; // Skip end-of-video layers (handled above)
 
         Clip* clip = layer.getActiveClip();
         if (clip == nullptr || !clip->playing)
@@ -27,7 +69,7 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
         // Check if it's time to advance
         int targetBeats = getBeatsForClip(*clip, layer);
         if (targetBeats <= 0)
-            continue; // No auto-advance (infinite duration)
+            continue;
 
         if (clip->beatsPlayed >= targetBeats)
         {
@@ -54,15 +96,18 @@ int Autopilot::getBeatsForClip(const Clip& clip, const Layer& layer) const
         customBeats = layer.defaultAutopilotCustomBeats;
     }
 
+    // Multiply by the layer's loop count
+    int loops = std::max(1, layer.autopilotLoops);
+
     switch (dur)
     {
-        case Clip::AutopilotDuration::Beat1:  return 1;
-        case Clip::AutopilotDuration::Beat2:  return 2;
-        case Clip::AutopilotDuration::Beat4:  return 4;
-        case Clip::AutopilotDuration::Beat8:  return 8;
-        case Clip::AutopilotDuration::Beat16: return 16;
-        case Clip::AutopilotDuration::Beat32: return 32;
-        case Clip::AutopilotDuration::Custom: return customBeats;
+        case Clip::AutopilotDuration::Beat1:  return 1 * loops;
+        case Clip::AutopilotDuration::Beat2:  return 2 * loops;
+        case Clip::AutopilotDuration::Beat4:  return 4 * loops;
+        case Clip::AutopilotDuration::Beat8:  return 8 * loops;
+        case Clip::AutopilotDuration::Beat16: return 16 * loops;
+        case Clip::AutopilotDuration::Beat32: return 32 * loops;
+        case Clip::AutopilotDuration::Custom: return customBeats * loops;
         default: return 0; // LayerDetermined shouldn't get here
     }
 }

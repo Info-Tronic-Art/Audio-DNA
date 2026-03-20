@@ -2,6 +2,7 @@
 #include <aubio/aubio.h>
 #include <cstdint>
 #include <algorithm>
+#include <atomic>
 
 // Wraps aubio_tempo_t for real-time BPM tracking and beat phase, with a
 // multi-stage stabilization pipeline on top of aubio's raw output:
@@ -118,6 +119,18 @@ public:
     // Reset phrase/bar counters (called on Resync)
     void resetPhrase();
 
+    // Override BPM from external tap tempo (bypasses stabilization pipeline).
+    // Sets the locked BPM immediately and resets beat phase.
+    void setManualBPM(float bpm);
+
+    // Manual mode: freeze the stabilization pipeline, use manually-set BPM.
+    // Beat phase still runs from the locked BPM value.
+    void setManualMode(bool enabled);
+    bool isManualMode() const { return manualMode_; }
+
+    // Reset beat phase to 0 (called on Resync)
+    void resetBeatPhase();
+
     // --- Testing support ---
     // Process a raw BPM value through the stabilization pipeline without aubio.
     // Used by unit tests to verify the pipeline in isolation.
@@ -152,6 +165,9 @@ private:
 
     // Tracker state
     uint8_t trackerState_ = STATE_SEARCHING;
+
+    // Manual mode flag (set from UI thread, read from analysis thread)
+    std::atomic<bool> manualMode_{false};
 
     // === Beat phase (free-running from locked BPM) ===
     float phase_ = 0.0f;

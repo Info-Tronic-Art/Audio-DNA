@@ -412,22 +412,7 @@ void LayerStrip::paint(juce::Graphics& g)
         g.drawRect(tb, 1.0f);
     }
 
-    // Alpha channel indicator — green "A" badge, bottom-left of thumbnail
-    if (layer_ && !thumbnailBounds_.isEmpty())
-    {
-        auto* clip = layer_->getActiveClip();
-        if (clip && clip->hasAlpha)
-        {
-            int badgeSize = 14;
-            int badgeX = thumbnailBounds_.getX() + 2;
-            int badgeY = thumbnailBounds_.getBottom() - badgeSize - 2;
-            g.setColour(juce::Colour(0xcc2a8a2a));
-            g.fillRect(badgeX, badgeY, badgeSize, badgeSize);
-            g.setColour(juce::Colours::white);
-            g.setFont(juce::Font(juce::FontOptions(10.0f).withStyle("Bold")));
-            g.drawText("A", badgeX, badgeY, badgeSize, badgeSize, juce::Justification::centred);
-        }
-    }
+    // Alpha badge removed — audio tracks are muted/ignored silently
 
     // Layer name box (painted manually — same as ComboBox rendering)
     if (!nameBounds_.isEmpty())

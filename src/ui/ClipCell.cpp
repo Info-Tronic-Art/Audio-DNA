@@ -94,13 +94,8 @@ void ClipCell::paint(juce::Graphics& g)
                    juce::Justification::centredLeft, true);
     }
 
-    // Border — active (playing) = teal, selected (for inspection) = white, default = dark
-    if (active_ && selected_)
-    {
-        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
-        g.drawRect(bounds, 2.0f);
-    }
-    else if (active_)
+    // Border — active (playing) = teal, selected (for inspection) = white outline, default = dark
+    if (active_)
     {
         g.setColour(juce::Colour(kActiveBorder));
         g.drawRect(bounds, 2.0f);
@@ -116,11 +111,20 @@ void ClipCell::paint(juce::Graphics& g)
         g.drawRect(bounds, 1.0f);
     }
 
-    // Drag hover
+    // Drag hover (file drop)
     if (dragHover_)
     {
         g.setColour(juce::Colour(kActiveBorder).withAlpha(0.15f));
         g.fillRect(bounds);
+    }
+
+    // FX drag hover (internal effect drop)
+    if (fxDragHover_)
+    {
+        g.setColour(juce::Colour(0xff8866cc).withAlpha(0.2f));
+        g.fillRect(bounds);
+        g.setColour(juce::Colour(0xff8866cc));
+        g.drawRect(bounds, 2.0f);
     }
 }
 
@@ -177,7 +181,7 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
 
     // Separate images from videos
     std::vector<juce::File> imageFiles;
-    juce::File videoFile;
+    std::vector<juce::File> videoFiles;
 
     for (const auto& f : files)
     {
@@ -187,7 +191,7 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
         if (ext == ".mov" || ext == ".avi" || ext == ".mp4" ||
             ext == ".mkv" || ext == ".webm" || ext == ".m4v")
         {
-            videoFile = file;
+            videoFiles.push_back(file);
         }
         else if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
                  ext == ".gif" || ext == ".bmp" || ext == ".tiff")
@@ -196,10 +200,21 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
         }
     }
 
-    // If a video file was dropped, use that (single file drop)
-    if (videoFile.existsAsFile())
+    // Single video = normal file drop
+    if (videoFiles.size() == 1)
     {
-        if (onFileDrop) onFileDrop(layerIndex_, column_, videoFile);
+        if (onFileDrop) onFileDrop(layerIndex_, column_, videoFiles[0]);
+        return;
+    }
+
+    // Multiple videos = place in sequential cells
+    if (videoFiles.size() > 1)
+    {
+        std::sort(videoFiles.begin(), videoFiles.end(),
+                  [](const juce::File& a, const juce::File& b) {
+                      return a.getFileName().compareNatural(b.getFileName()) < 0;
+                  });
+        if (onMultiVideoDrop) onMultiVideoDrop(layerIndex_, column_, videoFiles);
         return;
     }
 
@@ -284,4 +299,37 @@ juce::Rectangle<int> ClipCell::getNameBarBounds() const
 bool ClipCell::isInThumbnailArea(const juce::Point<int>& pos) const
 {
     return getThumbnailBounds().contains(pos);
+}
+
+// === DragAndDropTarget (internal FX drags) ===
+
+bool ClipCell::isInterestedInDragSource(const SourceDetails& details)
+{
+    return details.description.toString().startsWith("fx:");
+}
+
+void ClipCell::itemDragEnter(const SourceDetails&)
+{
+    fxDragHover_ = true;
+    repaint();
+}
+
+void ClipCell::itemDragExit(const SourceDetails&)
+{
+    fxDragHover_ = false;
+    repaint();
+}
+
+void ClipCell::itemDropped(const SourceDetails& details)
+{
+    fxDragHover_ = false;
+    repaint();
+
+    auto desc = details.description.toString();
+    if (desc.startsWith("fx:"))
+    {
+        auto effectName = desc.substring(3);
+        if (onEffectDrop)
+            onEffectDrop(layerIndex_, column_, effectName);
+    }
 }

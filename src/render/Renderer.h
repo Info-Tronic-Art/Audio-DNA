@@ -16,6 +16,7 @@
 #include "media/ImageSequence.h"
 #include "model/Clip.h"
 #include "model/Deck.h"
+#include "model/Autopilot.h"
 #include <mutex>
 #include <unordered_map>
 
@@ -78,6 +79,9 @@ public:
     void setActiveDeck(Deck* deck) { activeDeck_.store(deck, std::memory_order_release); }
     Deck* getActiveDeck() const { return activeDeck_.load(std::memory_order_acquire); }
 
+    // Callback when autopilot advances a clip (called async on message thread)
+    void setOnAutopilotAdvanced(std::function<void()> fn) { onAutopilotAdvanced_ = std::move(fn); }
+
     // Source registry — for creating procedural source instances
     SourceRegistry& getSourceRegistry() { return sourceRegistry_; }
 
@@ -117,6 +121,12 @@ private:
     void initEffectChain();
     void compileAllShaders();
 
+    // Compile a shader with optional shared GLSL utility prepends.
+    // Prepends the requested utility blocks before the fragment shader source.
+    void compileShaderWithUtils(const juce::String& name, const char* frag,
+                                 bool needsNoise = false, bool needsSDF = false,
+                                 bool needsUtil = false);
+
     juce::OpenGLContext glContext_;
     FeatureBus& featureBus_;
 
@@ -124,6 +134,7 @@ private:
     ShaderManager shaderMgr_{glContext_};
     TextureManager texMgr_;
     EffectChain effectChain_;
+    EffectLibrary effectLibrary_;  // Persistent library for compositor per-clip effects
     MappingEngine mappingEngine_;
     UniformBridge uniformBridge_;  // Kept for reference, no longer used
 
@@ -172,6 +183,8 @@ private:
     // Compositor
     CompositorEngine compositor_;
     std::atomic<Deck*> activeDeck_{nullptr};
+    Autopilot autopilot_;  // Processes beat-synced clip advancement
+    std::function<void()> onAutopilotAdvanced_;  // UI refresh callback
 
     // Procedural sources
     SourceRegistry sourceRegistry_;

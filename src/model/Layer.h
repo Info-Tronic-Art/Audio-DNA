@@ -123,6 +123,8 @@ struct Layer
     Clip::AutopilotAction defaultAutopilotAction = Clip::AutopilotAction::PlayNext;
     Clip::AutopilotDuration defaultAutopilotDuration = Clip::AutopilotDuration::Beat4;
     int defaultAutopilotCustomBeats = 4;
+    int autopilotLoops = 1;  // Number of clip loops before advancing (1 = advance after first play)
+    bool autopilotEndOfVideo = false;  // true = advance when video playhead reaches outPoint
 
     // === Clips (one per column) ===
     // Indexed by column. Use std::optional so empty cells are explicit.
@@ -132,6 +134,7 @@ struct Layer
     int activeClipColumn = -1;  // -1 = no active clip
     int previousClipColumn = -1; // For crossfade
     float crossfadeProgress = 1.0f; // 1.0 = fully transitioned
+    int pendingTriggerColumn = -1;  // Beat snap: queued trigger awaiting next beat
 
     // === Helpers ===
     Clip* getActiveClip()
@@ -172,9 +175,30 @@ struct Layer
         if (!clips[static_cast<size_t>(column)].has_value())
         {
             // Empty cell — clear the layer
+            pendingTriggerColumn = -1;
             clearActiveClip();
             return;
         }
+
+        // Check beat snap: if the target clip has beatSnap, queue for next beat
+        auto& clipOpt = clips[static_cast<size_t>(column)];
+        if (clipOpt.has_value() && clipOpt->beatSnap && column != activeClipColumn)
+        {
+            pendingTriggerColumn = column;
+            return;
+        }
+
+        triggerClipImmediate(column);
+    }
+
+    // Execute a clip trigger immediately (bypasses beat snap check).
+    // Called directly or from beat snap queue processing.
+    void triggerClipImmediate(int column)
+    {
+        if (column < 0 || column >= static_cast<int>(clips.size()))
+            return;
+
+        pendingTriggerColumn = -1;
 
         if (column == activeClipColumn)
         {
@@ -199,6 +223,13 @@ struct Layer
             clip->beatsPlayed = 0;
             clip->playing = true;
         }
+    }
+
+    // Process pending beat-snapped triggers. Call on each beat detection.
+    void processPendingTrigger()
+    {
+        if (pendingTriggerColumn >= 0)
+            triggerClipImmediate(pendingTriggerColumn);
     }
 
     void clearActiveClip()

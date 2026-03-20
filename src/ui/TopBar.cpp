@@ -42,6 +42,7 @@ TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
 
     // Tap & Resync
     addAndMakeVisible(tapButton_);
+    tapButton_.setTooltip("Tap rhythmically to set BPM manually");
     tapButton_.onClick = [this]
     {
         double now = juce::Time::getMillisecondCounterHiRes() / 1000.0;
@@ -53,11 +54,22 @@ TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
         ++tapCount_;
         lastTapTime_ = now;
 
-        if (onTapTempo)
-            onTapTempo();
+        // Compute BPM from tap intervals (need at least 2 taps)
+        if (onTapTempo && tapCount_ >= 2)
+        {
+            int n = std::min(tapCount_, static_cast<int>(tapTimes_.size()));
+            double totalInterval = tapTimes_[static_cast<size_t>(n - 1)] - tapTimes_[0];
+            if (totalInterval > 0.0)
+            {
+                double avgInterval = totalInterval / (n - 1);
+                float tappedBPM = static_cast<float>(60.0 / avgInterval);
+                onTapTempo(tappedBPM);
+            }
+        }
     };
 
     addAndMakeVisible(resyncButton_);
+    resyncButton_.setTooltip("Reset beat phase to sync with the music");
     resyncButton_.onClick = [this]
     {
         if (onResync)
@@ -70,6 +82,47 @@ TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
             resyncButton_.removeColour(juce::TextButton::buttonColourId);
         });
     };
+
+    // Manual BPM mode
+    addAndMakeVisible(manualModeBtn_);
+    manualModeBtn_.setTooltip("Switch between auto-detect and manual BPM");
+    manualModeBtn_.setColour(juce::ToggleButton::textColourId,
+                             juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    manualModeBtn_.onStateChange = [this] {
+        manualMode_ = manualModeBtn_.getToggleState();
+        bpmEditField_.setVisible(manualMode_);
+        trackerStateLabel_.setVisible(!manualMode_);
+        if (onManualBpmChanged)
+        {
+            float bpm = bpmEditField_.getText().getFloatValue();
+            onManualBpmChanged(manualMode_, bpm > 0 ? bpm : 120.0f);
+        }
+        // Must call resized() FIRST to set bounds, THEN grab focus
+        resized();
+        if (manualMode_)
+        {
+            int currentBpm = displaySnap_.bpm > 0.0f ? static_cast<int>(displaySnap_.bpm) : 120;
+            bpmEditField_.setText(juce::String(currentBpm), false);
+            bpmEditField_.grabKeyboardFocus();
+            bpmEditField_.selectAll();
+        }
+    };
+
+    bpmEditField_.setJustification(juce::Justification::centred);
+    bpmEditField_.setFont(juce::Font(juce::FontOptions(14.0f)).boldened());
+    bpmEditField_.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xff2a2a2a));
+    bpmEditField_.setColour(juce::TextEditor::textColourId,
+                            juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    bpmEditField_.setInputRestrictions(6, "0123456789.");
+    bpmEditField_.setTooltip("Type BPM value and press Enter");
+    bpmEditField_.setWantsKeyboardFocus(true);
+    bpmEditField_.setSelectAllWhenFocused(true);
+    bpmEditField_.onReturnKey = [this] {
+        float bpm = bpmEditField_.getText().getFloatValue();
+        if (bpm > 0.0f && onManualBpmChanged)
+            onManualBpmChanged(true, bpm);
+    };
+    addChildComponent(bpmEditField_);
 
     // BPM Multiplier buttons
     auto setupMultBtn = [this](juce::TextButton& btn, int mult)
@@ -176,6 +229,16 @@ void TopBar::timerCallback()
 
 void TopBar::updateBpmDisplay()
 {
+    // In manual mode, show the manual BPM and skip auto-display
+    if (manualMode_)
+    {
+        tempoLabel_.setText(bpmEditField_.getText().isNotEmpty()
+                            ? bpmEditField_.getText()
+                            : "120",
+                            juce::dontSendNotification);
+        return;
+    }
+
     // BPM value
     if (displaySnap_.bpm > 0.0f)
         tempoLabel_.setText(juce::String(static_cast<int>(displaySnap_.bpm + 0.5f)),
@@ -402,11 +465,20 @@ void TopBar::resized()
         60, 14));
     area.removeFromLeft(64);
 
-    // Tap + Resync
+    // Tap + Resync + Manual
     tapButton_.setBounds(area.removeFromLeft(32));
     area.removeFromLeft(2);
     resyncButton_.setBounds(area.removeFromLeft(50));
-    area.removeFromLeft(6);
+    area.removeFromLeft(2);
+    manualModeBtn_.setBounds(area.removeFromLeft(80));
+    area.removeFromLeft(2);
+
+    // BPM edit field: own space next to manual button when active
+    if (manualMode_)
+    {
+        bpmEditField_.setBounds(area.removeFromLeft(60).withTrimmedTop(4).withTrimmedBottom(4));
+        area.removeFromLeft(4);
+    }
 
     // BPM Multiplier buttons
     int multBtnW = 26;

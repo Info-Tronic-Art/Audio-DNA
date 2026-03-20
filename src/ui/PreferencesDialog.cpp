@@ -60,6 +60,14 @@ PreferencesDialog::Content::Content()
     addChildComponent(quitConfirmToggle_);
     quitConfirmToggle_.setToggleState(true, juce::dontSendNotification);
 
+    addChildComponent(tooltipLabel_);
+    addChildComponent(tooltipToggle_);
+    tooltipToggle_.setToggleState(true, juce::dontSendNotification);
+    tooltipToggle_.onStateChange = [this] {
+        if (onTooltipToggled)
+            onTooltipToggled(tooltipToggle_.getToggleState());
+    };
+
     // Audio tab controls
     addChildComponent(sampleRateLabel_);
     addChildComponent(sampleRateSelector_);
@@ -233,12 +241,16 @@ void PreferencesDialog::Content::showActiveTab()
     renderResSelector_.setVisible(false);
     versionLabel_.setVisible(false);
     creditsLabel_.setVisible(false);
+    tooltipLabel_.setVisible(false);
+    tooltipToggle_.setVisible(false);
 
     switch (activeTab_)
     {
         case Tab::General:
             quitConfirmLabel_.setVisible(true);
             quitConfirmToggle_.setVisible(true);
+            tooltipLabel_.setVisible(true);
+            tooltipToggle_.setVisible(true);
             break;
         case Tab::Audio:
             sampleRateLabel_.setVisible(true);
@@ -269,6 +281,12 @@ void PreferencesDialog::Content::layoutGeneralTab(juce::Rectangle<int> area)
     quitConfirmLabel_.setBounds(row.removeFromLeft(150));
     row.removeFromLeft(8);
     quitConfirmToggle_.setBounds(row.removeFromLeft(28));
+
+    area.removeFromTop(4);
+    auto row2 = area.removeFromTop(28);
+    tooltipLabel_.setBounds(row2.removeFromLeft(150));
+    row2.removeFromLeft(8);
+    tooltipToggle_.setBounds(row2.removeFromLeft(28));
 }
 
 void PreferencesDialog::Content::layoutAudioTab(juce::Rectangle<int> area)

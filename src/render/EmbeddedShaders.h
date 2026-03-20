@@ -35,6 +35,98 @@ inline const char* passthrough = R"(
     }
 )";
 
+// Dry/wet compositing shader: blends effected (u_texture) with pre-effect (u_original)
+inline const char* effectDryWet = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;    // effected result
+    uniform sampler2D u_original;   // pre-effect original
+    uniform float u_drywet;
+    void main() {
+        vec4 eff = texture(u_texture, v_texCoord);
+        vec4 orig = texture(u_original, v_texCoord);
+        fragColor = mix(orig, eff, u_drywet);
+    }
+)";
+
+// === Shared GLSL Utility Functions ===
+// These are prepended to shaders that need them during compilation.
+
+inline const char* glslNoiseFunctions = R"(
+float hash11(float p) { return fract(sin(p) * 43758.5453); }
+float hash21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+vec2 hash22(vec2 p) { return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453); }
+vec3 hash23(vec2 p) { vec3 q=vec3(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)),dot(p,vec2(419.2,371.9))); return fract(sin(q)*43758.5453); }
+
+float snoise2D(vec2 v) {
+    const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+    vec2 i = floor(v + dot(v, C.yy));
+    vec2 x0 = v - i + dot(i, C.xx);
+    vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod(i, 289.0);
+    vec3 p = mod(((i.y + vec3(0.0, i1.y, 1.0)) * 34.0 + 1.0) * (i.y + vec3(0.0, i1.y, 1.0)), 289.0);
+    p = mod(((p + i.x + vec3(0.0, i1.x, 1.0)) * 34.0 + 1.0) * (p + i.x + vec3(0.0, i1.x, 1.0)), 289.0);
+    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+    m = m*m; m = m*m;
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+    m *= 1.79284291400159 - 0.85373472095314 * (a0*a0 + h*h);
+    vec3 g;
+    g.x = a0.x * x0.x + h.x * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130.0 * dot(m, g);
+}
+
+float fbm2D(vec2 p) {
+    float f = 0.0; float w = 0.5;
+    for (int i = 0; i < 5; i++) { f += w * snoise2D(p); p *= 2.0; w *= 0.5; }
+    return f;
+}
+)";
+
+inline const char* glslUtilFunctions = R"(
+vec2 rotateUV(vec2 uv, float angle) {
+    float c = cos(angle), s = sin(angle);
+    return mat2(c, -s, s, c) * uv;
+}
+
+vec3 hueRotate(vec3 col, float angle) {
+    float c = cos(angle * 6.28318), s = sin(angle * 6.28318);
+    mat3 m = mat3(0.299+0.701*c+0.168*s, 0.587-0.587*c+0.330*s, 0.114-0.114*c-0.497*s,
+                  0.299-0.299*c-0.328*s, 0.587+0.413*c+0.035*s, 0.114-0.114*c+0.292*s,
+                  0.299-0.299*c+1.250*s, 0.587-0.587*c-1.050*s, 0.114+0.886*c-0.203*s);
+    return m * col;
+}
+
+float remap(float val, float inMin, float inMax, float outMin, float outMax) {
+    return outMin + (outMax - outMin) * clamp((val - inMin) / (inMax - inMin), 0.0, 1.0);
+}
+)";
+
+inline const char* glslSDFFunctions = R"(
+float sdCircle(vec2 p, float r) { return length(p) - r; }
+float sdBox(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
+float sdHexagon(vec2 p, float r) { vec2 q = abs(p); return max(q.x * 0.866025 + q.y * 0.5, q.y) - r; }
+float sdRoundedBox(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + r; return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r; }
+float sdSegment(vec2 p, vec2 a, vec2 b) { vec2 pa = p-a, ba = b-a; float h = clamp(dot(pa,ba)/dot(ba,ba), 0.0, 1.0); return length(pa - ba*h); }
+float sdStar(vec2 p, float r, int n, float m) {
+    float an = 3.141593 / float(n);
+    float en = 3.141593 / m;
+    vec2 acs = vec2(cos(an), sin(an));
+    vec2 ecs = vec2(cos(en), sin(en));
+    float bn = mod(atan(p.x, p.y), 2.0*an) - an;
+    p = length(p) * vec2(cos(bn), abs(sin(bn)));
+    p -= r * acs;
+    p += ecs * clamp(-dot(p, ecs), 0.0, r * acs.y / ecs.y);
+    return length(p) * sign(p.x);
+}
+)";
+
 inline const char* ripple = R"(
     #version 410 core
     in vec2 v_texCoord;
@@ -3006,6 +3098,67 @@ inline const char* sourceCellularAutomata = R"(
         col.b = trail * 0.5 + newState * 0.3;
 
         fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Layer transform shader: translate, scale, rotate around anchor point
+inline const char* layer_transform = R"(
+    #version 410 core
+
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+
+    uniform sampler2D u_texture;
+    uniform vec2 u_translate;   // Normalized translation (-1 to 1)
+    uniform vec2 u_anchor;      // Anchor point (0-1, default 0.5,0.5)
+    uniform float u_scale;      // Scale factor (1.0 = no change)
+    uniform float u_rotation;   // Rotation in radians
+
+    void main()
+    {
+        vec2 uv = v_texCoord;
+
+        // Translate to anchor-relative space
+        uv -= u_anchor;
+
+        // Apply rotation
+        float c = cos(-u_rotation);
+        float s = sin(-u_rotation);
+        uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c);
+
+        // Apply scale (inverse for UV mapping)
+        uv /= max(u_scale, 0.001);
+
+        // Apply translation (inverse)
+        uv -= u_translate;
+
+        // Translate back from anchor space
+        uv += u_anchor;
+
+        // Clamp to edges — out-of-bounds is transparent
+        if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+            fragColor = vec4(0.0);
+        else
+            fragColor = texture(u_texture, uv);
+    }
+)";
+
+// Mask layer shader: converts to greyscale luminance for alpha masking
+inline const char* mask_luminance = R"(
+    #version 410 core
+
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+
+    uniform sampler2D u_texture;      // Mask source
+    uniform sampler2D u_accumulator;  // Current composited result
+
+    void main()
+    {
+        vec4 maskColor = texture(u_texture, v_texCoord);
+        float luma = dot(maskColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+        vec4 accum = texture(u_accumulator, v_texCoord);
+        fragColor = vec4(accum.rgb, accum.a * luma);
     }
 )";
 

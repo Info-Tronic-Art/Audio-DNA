@@ -22,7 +22,8 @@
 //       ← Beat Position ▓▓▓▓▓▓▓░░░ (viz)
 //     Speed      0.30  [-][+] [══╪═══════]
 //       ← Manual
-class EffectStackView : public juce::Component
+class EffectStackView : public juce::Component,
+                        public juce::DragAndDropTarget
 {
 public:
     EffectStackView();
@@ -48,9 +49,17 @@ public:
     // Get preferred height for layout
     int getPreferredHeight() const;
 
+    // DragAndDropTarget (for FX drops from browser)
+    bool isInterestedInDragSource(const SourceDetails& details) override;
+    void itemDragEnter(const SourceDetails& details) override;
+    void itemDragExit(const SourceDetails& details) override;
+    void itemDropped(const SourceDetails& details) override;
+
     // Callbacks
     std::function<void(int effectIndex, int paramIndex, float value)> onParamChanged;
     std::function<void(int effectIndex, bool bypassed)> onBypassChanged;
+    std::function<void(int effectIndex, float dryWet)> onDryWetChanged;
+    std::function<void(const juce::String& effectName)> onEffectAdded;
 
 private:
     // One row per effect in the stack
@@ -62,6 +71,10 @@ private:
         juce::TextButton bypassBtn{"B"};
         juce::Rectangle<int> headerBounds;
 
+        // Dry/wet control (always first when expanded)
+        std::unique_ptr<UniversalParamControl> dryWetControl;
+
+        // Effect-specific parameter controls
         std::vector<std::unique_ptr<UniversalParamControl>> paramControls;
     };
 
@@ -73,6 +86,8 @@ private:
 
     static constexpr int kHeaderHeight = 26;
     static constexpr int kParamIndent = 12;
+
+    bool fxDropHighlight_ = false;
 
     void rebuildRows();
     void toggleExpand(int rowIndex);

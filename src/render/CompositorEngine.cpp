@@ -1,6 +1,7 @@
 #include "CompositorEngine.h"
 #include "render/EmbeddedShaders.h"
 #include <iostream>
+#include <cmath>
 
 using namespace juce::gl;
 
@@ -10,6 +11,8 @@ void CompositorEngine::initGL(int width, int height)
     fboHeight_ = height;
     createFBO(accumulatorFBO_, accumulatorTex_, width, height);
     createFBO(scratchFBO_, scratchTex_, width, height);
+    createFBO(effectFBO_A_, effectTex_A_, width, height);
+    createFBO(effectFBO_B_, effectTex_B_, width, height);
     glInitialized_ = true;
 }
 
@@ -17,6 +20,8 @@ void CompositorEngine::releaseGL()
 {
     deleteFBO(accumulatorFBO_, accumulatorTex_);
     deleteFBO(scratchFBO_, scratchTex_);
+    deleteFBO(effectFBO_A_, effectTex_A_);
+    deleteFBO(effectFBO_B_, effectTex_B_);
 
     for (auto& [path, tex] : textureCache_)
     {
@@ -36,8 +41,12 @@ void CompositorEngine::resize(int width, int height)
     fboHeight_ = height;
     deleteFBO(accumulatorFBO_, accumulatorTex_);
     deleteFBO(scratchFBO_, scratchTex_);
+    deleteFBO(effectFBO_A_, effectTex_A_);
+    deleteFBO(effectFBO_B_, effectTex_B_);
     createFBO(accumulatorFBO_, accumulatorTex_, width, height);
     createFBO(scratchFBO_, scratchTex_, width, height);
+    createFBO(effectFBO_A_, effectTex_A_, width, height);
+    createFBO(effectFBO_B_, effectTex_B_, width, height);
 }
 
 void CompositorEngine::createFBO(GLuint& fbo, GLuint& tex, int w, int h)
@@ -127,6 +136,197 @@ GLuint CompositorEngine::getKeyTexture(const juce::File& imageFile)
     return loadKeyImage(imageFile);
 }
 
+// === Per-clip effect chain rendering (P13.5.1) ===
+
+GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
+                                            ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                            float time, int w, int h)
+{
+    if (clip.effects.empty() || effectLibrary_ == nullptr)
+        return inputTex;
+
+    GLuint currentInput = inputTex;
+    int writeFBO = 0; // 0 = effectFBO_A_, 1 = effectFBO_B_
+
+    for (const auto& slot : clip.effects)
+    {
+        if (!slot.enabled || slot.bypassed)
+            continue;
+
+        auto* program = shaderMgr.getProgram(juce::String(slot.effectName));
+        if (program == nullptr)
+            continue;
+
+        // Get the effect definition to know uniform names
+        const auto* def = effectLibrary_->getEffectDef(juce::String(slot.effectName));
+        if (def == nullptr)
+            continue;
+
+        GLuint targetFBO = (writeFBO == 0) ? effectFBO_A_ : effectFBO_B_;
+
+        glBindFramebuffer(GL_FRAMEBUFFER, targetFBO);
+        glViewport(0, 0, w, h);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDisable(GL_BLEND);
+
+        program->use();
+
+        // Bind input texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, currentInput);
+        auto texLoc = program->getUniformIDFromName("u_texture");
+        if (texLoc >= 0)
+            glUniform1i(texLoc, 0);
+
+        // Global uniforms
+        auto timeLoc = program->getUniformIDFromName("u_time");
+        if (timeLoc >= 0)
+            glUniform1f(timeLoc, time);
+        auto resLoc = program->getUniformIDFromName("u_resolution");
+        if (resLoc >= 0)
+            glUniform2f(resLoc, static_cast<float>(w), static_cast<float>(h));
+
+        // Effect parameter uniforms from slot values
+        for (size_t p = 0; p < def->params.size() && p < slot.paramValues.size(); ++p)
+        {
+            auto loc = program->getUniformIDFromName(def->params[p].uniformName.c_str());
+            if (loc >= 0)
+                glUniform1f(loc, slot.paramValues[p]);
+        }
+
+        quad.draw();
+
+        currentInput = (writeFBO == 0) ? effectTex_A_ : effectTex_B_;
+        writeFBO = 1 - writeFBO; // ping-pong
+    }
+
+    return currentInput;
+}
+
+// === Layer transform (P13.5.5) ===
+
+GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
+                                               ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                               int w, int h)
+{
+    // Skip transform if all values are at defaults
+    constexpr float eps = 0.001f;
+    bool needsTransform = (std::abs(layer.positionX) > eps ||
+                           std::abs(layer.positionY) > eps ||
+                           std::abs(layer.layerScale - 1.0f) > eps ||
+                           std::abs(layer.layerRotation) > eps);
+    if (!needsTransform)
+        return srcTex;
+
+    auto* prog = shaderMgr.getProgram("layer_transform");
+    if (prog == nullptr)
+        return srcTex;
+
+    // Render transformed result into scratch FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, scratchFBO_);
+    glViewport(0, 0, w, h);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_BLEND);
+
+    prog->use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, srcTex);
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+    glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_translate"),
+                layer.positionX, layer.positionY);
+    glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_anchor"),
+                layer.layerAnchorX, layer.layerAnchorY);
+    glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_scale"),
+                layer.layerScale);
+    glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
+                layer.layerRotation);
+
+    quad.draw();
+
+    return scratchTex_;
+}
+
+// === FX Only layer (P13.5.2) ===
+
+void CompositorEngine::applyFXOnlyLayer(const Clip& clip, ShaderManager& shaderMgr,
+                                          FullscreenQuad& quad, float time, int w, int h)
+{
+    if (clip.effects.empty() || effectLibrary_ == nullptr)
+        return;
+
+    // Apply the clip's effects to the accumulator texture
+    GLuint result = applyClipEffects(clip, accumulatorTex_, shaderMgr, quad, time, w, h);
+
+    if (result != accumulatorTex_)
+    {
+        // Copy result back to accumulator
+        glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
+        glViewport(0, 0, w, h);
+        glDisable(GL_BLEND);
+
+        auto* prog = shaderMgr.getProgram("passthrough");
+        if (prog)
+        {
+            prog->use();
+            glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+        }
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, result);
+        quad.draw();
+    }
+}
+
+// === Mask layer (P13.5.3) ===
+
+void CompositorEngine::applyMaskLayer(const Clip& /*clip*/, GLuint clipTex,
+                                        ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                        int w, int h)
+{
+    auto* prog = shaderMgr.getProgram("mask_luminance");
+    if (prog == nullptr)
+        return;
+
+    // Copy current accumulator to scratch first
+    glBindFramebuffer(GL_FRAMEBUFFER, scratchFBO_);
+    glViewport(0, 0, w, h);
+    glDisable(GL_BLEND);
+    {
+        auto* pt = shaderMgr.getProgram("passthrough");
+        if (pt)
+        {
+            pt->use();
+            glUniform1i(glGetUniformLocation(pt->getProgramID(), "u_texture"), 0);
+        }
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, accumulatorTex_);
+        quad.draw();
+    }
+
+    // Now render mask result back to accumulator
+    glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
+    glViewport(0, 0, w, h);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_BLEND);
+
+    prog->use();
+
+    // Bind mask texture (clip content) to unit 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, clipTex);
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+
+    // Bind accumulator copy (scratch) to unit 1
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, scratchTex_);
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_accumulator"), 1);
+
+    glActiveTexture(GL_TEXTURE0);
+    quad.draw();
+}
+
 // === Deck/Layer-based compositing ===
 
 GLuint CompositorEngine::compositeDeck(Deck& deck,
@@ -152,6 +352,9 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         if (clip->mediaType == Clip::MediaType::Video && clip->mediaFile.existsAsFile())
         { hasActiveLayers_ = true; break; }
         if (clip->mediaType == Clip::MediaType::ImageSequence && !clip->sequenceFiles.empty())
+        { hasActiveLayers_ = true; break; }
+        // FXOnly layers are active if they have effects (even without media)
+        if (layer.type == Layer::Type::FXOnly && !clip->effects.empty())
         { hasActiveLayers_ = true; break; }
     }
 
@@ -196,12 +399,17 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 else if ((clip->mediaType == Clip::MediaType::Video ||
                           clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
                 {
-                    // Delta time: approximate from frame rate (~16.67ms at 60fps)
                     float dt = 1.0f / 60.0f;
                     clipTex = videoFrameFn_(clip, dt);
                 }
 
                 if (clipTex == 0) continue;
+
+                // P13.5.1: Apply per-clip effects
+                clipTex = applyClipEffects(*clip, clipTex, shaderMgr, quad, time, width, height);
+
+                // P13.5.5: Apply layer transform
+                clipTex = applyLayerTransform(layer, clipTex, shaderMgr, quad, width, height);
 
                 if (layer.type == Layer::Type::Transparent)
                 {
@@ -230,11 +438,33 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 break;
             }
             case Layer::Type::FXOnly:
-                // FX Only: effects applied to accumulator (not implemented yet in render)
+            {
+                // P13.5.2: Apply clip's effects to the accumulator
+                applyFXOnlyLayer(*clip, shaderMgr, quad, time, width, height);
                 break;
+            }
             case Layer::Type::Mask:
-                // Mask: content becomes alpha mask for accumulator (not implemented yet)
+            {
+                // P13.5.3: Use clip content as luminance mask on accumulator
+                GLuint clipTex = 0;
+                if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+                    clipTex = getKeyTexture(clip->mediaFile);
+                else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
+                {
+                    const auto* params = clip->sourceParams.empty() ? nullptr : &clip->sourceParams;
+                    clipTex = sourceRenderFn_(clip->sourceType, time, width, height, params);
+                }
+                else if ((clip->mediaType == Clip::MediaType::Video ||
+                          clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
+                {
+                    float dt = 1.0f / 60.0f;
+                    clipTex = videoFrameFn_(clip, dt);
+                }
+
+                if (clipTex != 0)
+                    applyMaskLayer(*clip, clipTex, shaderMgr, quad, width, height);
                 break;
+            }
             case Layer::Type::ThreeD:
                 // 3D: not implemented yet
                 break;
@@ -383,4 +613,3 @@ void CompositorEngine::blendLayerOntoAccumulator(const Layer& layer, GLuint srcT
             break;
     }
 }
-

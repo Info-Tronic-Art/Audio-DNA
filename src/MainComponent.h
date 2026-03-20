@@ -33,6 +33,7 @@
 #endif
 
 class MainComponent : public juce::Component,
+                      public juce::DragAndDropContainer,
                       public juce::FileDragAndDropTarget,
                       public juce::KeyListener,
 #if AUDIODNA_HAS_CAMERA
@@ -191,6 +192,8 @@ private:
     SignalRegistry signalRegistry_;
     MacroBank globalMacroBank_{MacroBank::Scope::Global};
     SessionRecorder sessionRecorder_;
+    std::unique_ptr<juce::TooltipWindow> tooltipWindow_;
+    bool tooltipsEnabled_ = true;
     std::unique_ptr<TopBar> topBar_;
     std::unique_ptr<SignalBar> signalBar_;
     std::unique_ptr<ProgrammingMode> programmingMode_;

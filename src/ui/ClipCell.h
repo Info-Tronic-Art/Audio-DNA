@@ -9,7 +9,8 @@
 //   - Name bar: click = select for inspection (no trigger), right-click = context menu
 // Supports drag-and-drop (receive images from Finder or browser).
 class ClipCell : public juce::Component,
-                 public juce::FileDragAndDropTarget
+                 public juce::FileDragAndDropTarget,
+                 public juce::DragAndDropTarget
 {
 public:
     ClipCell();
@@ -24,6 +25,12 @@ public:
     void fileDragEnter(const juce::StringArray& files, int x, int y) override;
     void fileDragExit(const juce::StringArray& files) override;
     void filesDropped(const juce::StringArray& files, int x, int y) override;
+
+    // DragAndDropTarget (for internal FX drags)
+    bool isInterestedInDragSource(const SourceDetails& details) override;
+    void itemDragEnter(const SourceDetails& details) override;
+    void itemDragExit(const SourceDetails& details) override;
+    void itemDropped(const SourceDetails& details) override;
 
     // Set the clip data this cell displays (nullptr for empty)
     void setClip(Clip* clip);
@@ -47,6 +54,8 @@ public:
     std::function<void(int layerIndex, int column, bool addToSelection)> onSelect; // Name bar click
     std::function<void(int layerIndex, int column, const juce::File&)> onFileDrop; // Single file dropped
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiFileDrop; // Multi-image sequence dropped
+    std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiVideoDrop; // Multi-video dropped → sequential cells
+    std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDrop; // FX dropped from browser
 
     // Load/update thumbnail from clip's media file
     void updateThumbnail();
@@ -62,6 +71,7 @@ private:
     bool active_ = false;
     bool selected_ = false;
     bool dragHover_ = false;
+    bool fxDragHover_ = false;
 
     juce::Image thumbnail_;
 

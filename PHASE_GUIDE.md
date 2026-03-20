@@ -178,6 +178,35 @@ Each has specific UI validation requirements listed in the phase description.
 
 ---
 
+### Phases 13-25: Effects, Sources & Features Build
+
+**For phases 13 through 25, read `research/UNIFIED_BUILD_PLAN.md` instead of TASKPLAN_V2.md.**
+
+That document is self-contained — it has every task, every file to read, every shader to write, the 3-step process for adding effects/sources, validation criteria, and references to the detailed GLSL implementation specs in:
+- `research/resolumeEffectSourceIntegration.md` (Resolume effects/sources)
+- `research/archaosEffectSourceIntegration.md` (ArKaos effects/sources/systems)
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **P13** | Effect Infrastructure (dry/wet, temporal, LUT, shared GLSL, categories) | **COMPLETE** |
+| **P13.5** | Core Bug Fixes & Render Optimization (10 items) | **COMPLETE** |
+| **P13.5b** | UX Fixes: FX drag-drop, autopilot, multi-video, manual BPM, tooltips | **COMPLETE** |
+| **P14** | Quick-Win Effects (20 shaders) + Transition Shaders (15) | NOT STARTED |
+| **P15** | Medium Effects + Resolume Sources (24 items) | NOT STARTED |
+| **P16** | Time Effects + Feedback System (10 items) | NOT STARTED |
+| **P17** | Creative Sources: Math, 3D, Geometric, Nature, Lighting (19 sources) | NOT STARTED |
+| **P18** | Audio-Native Effects & Sources (20 items) | NOT STARTED |
+| **P19** | Complex Effects + Remaining Sources (20 items) | NOT STARTED |
+| **P20** | Systems: Layer Router, Per-Type Automation, FFGL, Text, Simulations (19 items) | NOT STARTED |
+| **P21** | Live Performance Controls (piano mode, MIDI velocity, persistent clips, Ableton Link) | NOT STARTED |
+| **P22** | Output & Integration (Syphon/Spout, NDI, video recording, REST API, OSC) | NOT STARTED |
+| **P23** | Smart Audio Features (genre detect, AI mapping, smart autopilot, ISF import) | NOT STARTED |
+| **P24** | Workflow Polish (21 easing functions, signal chaining, layout presets, file relocate) | NOT STARTED |
+| **P25** | Advanced Audio Analysis (sidechain, swing, formant, stem separation) | NOT STARTED |
+| **P26** | Comprehensive Tooltips (every button, slider, dropdown, feature gets a tooltip) | NOT STARTED |
+
+---
+
 ## General Rules for All Phases
 
 1. **Read CLAUDE.md first** — it has the sacred rules (no allocation in audio callback, etc.)

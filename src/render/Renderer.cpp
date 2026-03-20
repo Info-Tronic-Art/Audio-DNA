@@ -2,6 +2,7 @@
 #include "render/EmbeddedShaders.h"
 #include <iostream>
 #include <chrono>
+#include <string>
 
 using namespace juce::gl;
 Renderer::Renderer(FeatureBus& featureBus)
@@ -81,6 +82,7 @@ void Renderer::newOpenGLContextCreated()
     initShaders();
     initEffectChain();
     compositor_.initGL(1920, 1080); // Will resize as needed
+    compositor_.setEffectLibrary(&effectLibrary_);
 
     // Wire source rendering into compositor
     compositor_.setSourceRenderer([this](const std::string& sourceId, float time, int w, int h,
@@ -175,6 +177,18 @@ void Renderer::renderOpenGL()
 
     // Apply audio→effect mappings via MappingEngine
     mappingEngine_.processFrame(*snap, effectChain_);
+
+    // P13.5.9: Process autopilot (beat-synced clip advancement + beat snap)
+    if (deckActive)
+    {
+        bool clipAdvanced = autopilot_.processFrame(*deck, *snap);
+        if (clipAdvanced && onAutopilotAdvanced_)
+        {
+            // Notify UI thread to refresh deck view
+            auto callback = onAutopilotAdvanced_;
+            juce::MessageManager::callAsync([callback]() { callback(); });
+        }
+    }
 
     // Calculate time
     float time = static_cast<float>(
@@ -296,7 +310,9 @@ void Renderer::renderOpenGL()
         glDisable(GL_BLEND);
     }
 
-    glFinish(); // Ensure GPU work is done before measuring
+    // P13.5.10: Use CPU-side timing instead of glFinish() which stalls the GPU pipeline.
+    // This measures CPU-side render submission time, not GPU execution time.
+    // For GPU timing, use GL_TIME_ELAPSED queries (async, no stall).
     auto renderEnd = std::chrono::high_resolution_clock::now();
     double frameMs = std::chrono::duration<double, std::milli>(renderEnd - renderStart).count();
 
@@ -611,6 +627,7 @@ void Renderer::compileAllShaders()
 
     // Core
     compile("passthrough",          EmbeddedShaders::passthrough);
+    compile("effect_drywet",        EmbeddedShaders::effectDryWet);
 
     // Warp
     compile("ripple",               EmbeddedShaders::ripple);
@@ -739,26 +756,68 @@ void Renderer::compileAllShaders()
     compile("source_reaction_diffusion",    EmbeddedShaders::sourceReactionDiffusion);
     compile("source_cellular_automata",     EmbeddedShaders::sourceCellularAutomata);
 
+    // Compositor utility shaders (P13.5)
+    compile("layer_transform",              EmbeddedShaders::layer_transform);
+    compile("mask_luminance",               EmbeddedShaders::mask_luminance);
+
     std::cerr << "[Renderer] All shaders compiled." << std::endl;
+}
+
+void Renderer::compileShaderWithUtils(const juce::String& name, const char* frag,
+                                       bool needsNoise, bool needsSDF, bool needsUtil)
+{
+    // Build the fragment shader by prepending utility blocks before the main shader.
+    // The #version directive must come first, so we extract it from the shader,
+    // insert utilities after it, then append the rest.
+    std::string fragStr(frag);
+    std::string prefix;
+
+    // Find and extract the #version line
+    auto versionPos = fragStr.find("#version");
+    std::string versionLine;
+    std::string afterVersion;
+    if (versionPos != std::string::npos)
+    {
+        auto lineEnd = fragStr.find('\n', versionPos);
+        if (lineEnd == std::string::npos) lineEnd = fragStr.size();
+        versionLine = fragStr.substr(versionPos, lineEnd - versionPos + 1);
+        afterVersion = fragStr.substr(lineEnd + 1);
+    }
+    else
+    {
+        versionLine = "#version 410 core\n";
+        afterVersion = fragStr;
+    }
+
+    std::string combined = versionLine;
+    if (needsNoise) combined += std::string(EmbeddedShaders::glslNoiseFunctions);
+    if (needsUtil)  combined += std::string(EmbeddedShaders::glslUtilFunctions);
+    if (needsSDF)   combined += std::string(EmbeddedShaders::glslSDFFunctions);
+    combined += afterVersion;
+
+    if (shaderMgr_.compileProgram(name, EmbeddedShaders::vertex, combined.c_str()))
+        std::cerr << "[Renderer]   " << name << ": OK (with utils)" << std::endl;
+    else
+        std::cerr << "[Renderer]   " << name << ": FAILED" << std::endl;
 }
 
 void Renderer::initEffectChain()
 {
     // Load ALL effects from the EffectLibrary, organized by category
     // Effects are added in category order: warp, color, glitch, blur
-    EffectLibrary lib;
-    lib.registerDefaults();
+    effectLibrary_.registerDefaults();
 
     static const juce::String categoryOrder[] = {
-        "3d", "warp", "color", "glitch", "pattern", "animation", "blend", "blur"
+        "3d", "warp", "color", "glitch", "pattern", "animation", "blend", "blur",
+        "time", "composite", "audio"
     };
 
     for (const auto& cat : categoryOrder)
     {
-        auto names = lib.getEffectsByCategory(cat);
+        auto names = effectLibrary_.getEffectsByCategory(cat);
         for (const auto& name : names)
         {
-            auto effect = lib.createEffect(name);
+            auto effect = effectLibrary_.createEffect(name);
             if (effect)
             {
                 // Start all effects disabled — user enables what they want

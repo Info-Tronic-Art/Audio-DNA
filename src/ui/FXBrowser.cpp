@@ -4,7 +4,7 @@
 class FXBrowser::FXListContent : public juce::Component
 {
 public:
-    FXListContent(FXBrowser& owner) : owner_(owner) {}
+    FXListContent(FXBrowser& owner) : owner_(owner) { setMouseCursor(juce::MouseCursor::PointingHandCursor); }
 
     void paint(juce::Graphics& g) override
     {
@@ -89,6 +89,7 @@ public:
 
     void mouseDown(const juce::MouseEvent& event) override
     {
+        draggedEffectName_ = {};
         auto pos = event.getPosition();
         auto searchQuery = owner_.searchField_.getText().toLowerCase();
         int y = 0;
@@ -123,13 +124,61 @@ public:
                 {
                     if (pos.y >= y && pos.y < y + kEffectRowHeight)
                     {
-                        if (owner_.onEffectActivated)
-                            owner_.onEffectActivated(e->name);
+                        // Store for potential drag; activate on mouse up if no drag occurred
+                        draggedEffectName_ = e->name;
                         return;
                     }
                     y += kEffectRowHeight;
                 }
             }
+        }
+    }
+
+    void mouseUp(const juce::MouseEvent&) override
+    {
+        // If a click (no drag) on an effect, activate it
+        if (draggedEffectName_.isNotEmpty() && !dragStarted_)
+        {
+            if (owner_.onEffectActivated)
+                owner_.onEffectActivated(draggedEffectName_);
+        }
+        draggedEffectName_ = {};
+        dragStarted_ = false;
+    }
+
+    void mouseDrag(const juce::MouseEvent& event) override
+    {
+        if (draggedEffectName_.isEmpty() || dragStarted_)
+            return;
+
+        // Start drag after 5px movement threshold
+        if (event.getDistanceFromDragStart() < 5)
+            return;
+
+        dragStarted_ = true;
+
+        if (auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this))
+        {
+            juce::var desc("fx:" + draggedEffectName_);
+
+            // Create a small drag image showing just the effect name
+            int imgW = 120, imgH = 24;
+            juce::Image dragImg(juce::Image::ARGB, imgW, imgH, true);
+            {
+                juce::Graphics g(dragImg);
+                g.setColour(juce::Colour(0xdd2a2a3e));
+                g.fillRoundedRectangle(0.0f, 0.0f, static_cast<float>(imgW),
+                                       static_cast<float>(imgH), 4.0f);
+                g.setColour(juce::Colour(0xff8866cc));
+                g.drawRoundedRectangle(0.5f, 0.5f, static_cast<float>(imgW - 1),
+                                       static_cast<float>(imgH - 1), 4.0f, 1.0f);
+                g.setColour(juce::Colours::white);
+                g.setFont(juce::Font(juce::FontOptions(11.0f)));
+                g.drawText(draggedEffectName_, 8, 0, imgW - 16, imgH,
+                           juce::Justification::centredLeft, true);
+            }
+
+            container->startDragging(desc, this, juce::ScaledImage(dragImg), true);
         }
     }
 
@@ -172,6 +221,8 @@ private:
     static constexpr int kEffectRowHeight = 24;
 
     FXBrowser& owner_;
+    juce::String draggedEffectName_;
+    bool dragStarted_ = false;
 };
 
 // ── FXBrowser implementation ──
@@ -263,7 +314,7 @@ void FXBrowser::refresh()
 void FXBrowser::buildCategoryList()
 {
     categories_.clear();
-    // 8 categories matching CLAUDE.md + EffectLibrary
+    // 11 categories: 8 original + 3 new (P13.5)
     categories_.push_back({"warp",      "Warp",         juce::Colour(0xff4fc3f7)});
     categories_.push_back({"color",     "Color",        juce::Colour(0xffff7043)});
     categories_.push_back({"glitch",    "Glitch",       juce::Colour(0xffab47bc)});
@@ -272,6 +323,10 @@ void FXBrowser::buildCategoryList()
     categories_.push_back({"pattern",   "Pattern",      juce::Colour(0xff26c6da)});
     categories_.push_back({"animation", "Animation",    juce::Colour(0xffef5350)});
     categories_.push_back({"blend",     "Blend",        juce::Colour(0xff8d6e63)});
+    // P13.5: New categories for future phases
+    categories_.push_back({"time",      "Time",         juce::Colour(0xff00897b)});  // Teal
+    categories_.push_back({"composite", "Composite",    juce::Colour(0xffec407a)});  // Pink
+    categories_.push_back({"audio",     "Audio",        juce::Colour(0xffffd54f)});  // Gold
 }
 
 void FXBrowser::toggleCategory(int catIndex)

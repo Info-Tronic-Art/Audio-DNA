@@ -4,10 +4,13 @@
 #include "render/ShaderManager.h"
 #include "render/TextureManager.h"
 #include "render/FullscreenQuad.h"
+#include "effects/EffectLibrary.h"
+#include "effects/Effect.h"
 #include "analysis/FeatureSnapshot.h"
 #include <unordered_map>
 #include <string>
 #include <functional>
+#include <memory>
 
 // CompositorEngine: multi-layer compositing for v2 deck mode.
 //
@@ -33,6 +36,9 @@ public:
 
     // Resize FBOs if viewport changed.
     void resize(int width, int height);
+
+    // Set the effect library for creating per-clip effect instances.
+    void setEffectLibrary(EffectLibrary* lib) { effectLibrary_ = lib; }
 
     // Load an image for a specific key/clip. Call from message thread (queued).
     // Returns the GL texture ID, or 0 on failure.
@@ -79,6 +85,12 @@ private:
     GLuint scratchFBO_ = 0;
     GLuint scratchTex_ = 0;
 
+    // Effect ping-pong FBOs for per-clip effect chains
+    GLuint effectFBO_A_ = 0;
+    GLuint effectTex_A_ = 0;
+    GLuint effectFBO_B_ = 0;
+    GLuint effectTex_B_ = 0;
+
     int fboWidth_ = 0;
     int fboHeight_ = 0;
     bool glInitialized_ = false;
@@ -89,9 +101,21 @@ private:
 
     SourceRenderFn sourceRenderFn_;
     VideoFrameFn videoFrameFn_;
+    EffectLibrary* effectLibrary_ = nullptr;
 
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);
+
+    // Apply per-clip effect chain to a texture, returns result texture ID.
+    // Uses effectFBO_A_/B_ for ping-pong rendering.
+    GLuint applyClipEffects(const Clip& clip, GLuint inputTex,
+                            ShaderManager& shaderMgr, FullscreenQuad& quad,
+                            float time, int w, int h);
+
+    // Apply layer transform (translate/scale/rotate) to a texture
+    GLuint applyLayerTransform(const Layer& layer, GLuint srcTex,
+                               ShaderManager& shaderMgr, FullscreenQuad& quad,
+                               int w, int h);
 
     // Apply keying mode from Layer
     void applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
@@ -102,4 +126,13 @@ private:
     void blendLayerOntoAccumulator(const Layer& layer, GLuint srcTex,
                                    ShaderManager& shaderMgr, FullscreenQuad& quad,
                                    int w, int h);
+
+    // Apply FX Only layer: run clip effects on the accumulator
+    void applyFXOnlyLayer(const Clip& clip, ShaderManager& shaderMgr,
+                          FullscreenQuad& quad, float time, int w, int h);
+
+    // Apply Mask layer: use clip content as luminance mask on accumulator
+    void applyMaskLayer(const Clip& clip, GLuint clipTex,
+                        ShaderManager& shaderMgr, FullscreenQuad& quad,
+                        int w, int h);
 };

@@ -6,6 +6,8 @@
 #include "render/FullscreenQuad.h"
 #include <vector>
 #include <memory>
+#include <unordered_map>
+#include <string>
 
 // EffectChain: manages an ordered list of Effects and renders them
 // using ping-pong FBOs.
@@ -51,6 +53,10 @@ public:
                 float vpX = 0.0f, float vpY = 0.0f,
                 float vpW = 0.0f, float vpH = 0.0f);
 
+    // Get the previous frame's texture (for temporal effects like Ghost Trails).
+    // Returns the texture from the last completed render, or 0 if none.
+    GLuint getPreviousFrameTexture() const { return prevFrameTexture_; }
+
 private:
     // Upload an effect's parameters as uniforms
     void uploadEffectUniforms(juce::OpenGLShaderProgram* program,
@@ -58,5 +64,29 @@ private:
                               const Effect& effect,
                               float time, float width, float height);
 
+    // Run the dry/wet composite pass: blend effected result with pre-effect input
+    void applyDryWet(GLuint effectedTexture, GLuint originalTexture,
+                     float dryWet,
+                     ShaderManager& shaderMgr, FullscreenQuad& quad,
+                     GLuint targetFBO, float width, float height);
+
     std::vector<std::unique_ptr<Effect>> effects_;
+
+    // Previous frame texture for temporal effects (P13.2)
+    // Stores the output of the last completed render for use by temporal effects.
+    GLuint prevFrameTexture_ = 0;
+    GLuint prevFrameFBO_ = 0;
+    int prevFrameWidth_ = 0;
+    int prevFrameHeight_ = 0;
+
+    void ensurePrevFrameFBO(int width, int height);
+    void savePreviousFrame(GLuint sourceTexture, int width, int height,
+                           FullscreenQuad& quad, ShaderManager& shaderMgr);
+
+    // P13.5.11: Cached uniform locations (program ID + uniform name → location)
+    // Key: (programID << 32) | hash(uniformName)  — simplified to string key
+    std::unordered_map<std::string, GLint> uniformLocationCache_;
+
+    GLint getCachedUniformLocation(juce::OpenGLShaderProgram* program,
+                                   const char* uniformName);
 };

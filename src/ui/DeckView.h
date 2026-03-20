@@ -37,6 +37,8 @@ public:
     std::function<void(int column)> onColumnTriggered;
     std::function<void(int layerIndex, int column, const juce::File&)> onFileDropped;
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiFileDropped;
+    std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiVideoDropped;
+    std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDropped;
     std::function<void(int deckIndex)> onDeckSwitched;
 
     // Get active column (-1 if none)

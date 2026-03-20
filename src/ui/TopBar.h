@@ -17,10 +17,11 @@ public:
     void resized() override;
 
     // Callbacks for actions that MainComponent handles
-    std::function<void()> onTapTempo;
+    std::function<void(float bpm)> onTapTempo;  // Called with computed BPM from taps
     std::function<void()> onResync;
     std::function<void(int)> onBpmMultiplierChanged;
     std::function<void(Composition::QuantizeMode)> onQuantizeChanged;
+    std::function<void(bool manualMode, float bpm)> onManualBpmChanged;
 
     // Update stats
     void setFps(float fps);
@@ -96,6 +97,11 @@ private:
     juce::Label dspLabel_;
     float currentFps_ = 0.0f;
     float currentDspLoad_ = 0.0f;
+
+    // Manual BPM mode
+    juce::ToggleButton manualModeBtn_{"Manual"};
+    juce::TextEditor bpmEditField_;
+    bool manualMode_ = false;
 
     // Tap tempo state
     std::array<double, 8> tapTimes_{};

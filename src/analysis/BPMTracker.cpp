@@ -66,6 +66,13 @@ void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
     confidence_   = conf;
     beatDetected_ = beat;
 
+    // Manual mode: skip stabilization pipeline, just run phase from locked BPM
+    if (manualMode_.load(std::memory_order_relaxed))
+    {
+        updatePhase(beat, conf);
+        return;
+    }
+
     // === Stage 1: BPM Range Gate ===
     // Reject zero/invalid, fold into [60, 200] range
     if (rawBpm <= 0.0f)
@@ -449,4 +456,29 @@ void BPMTracker::resetPhrase()
     barCount_ = 0;
     phrasePhase_ = 0.0f;
     prevDownbeatDetected_ = false;
+}
+
+void BPMTracker::setManualBPM(float bpm)
+{
+    if (bpm <= 0.0f) return;
+    float folded = foldBPMToRange(bpm);
+    lockedBPM_ = folded;
+    candidateBPM_ = folded;
+    lastConfidentBPM_ = folded;
+    trackerState_ = STATE_LOCKED;
+    consistencyCounter_ = kHysteresisHops; // Already locked
+    phase_ = 0.0f;
+}
+
+void BPMTracker::resetBeatPhase()
+{
+    phase_ = 0.0f;
+    beatInBar_ = 0;
+    barPhase_ = 0.0f;
+    beatCounter_ = 0;
+}
+
+void BPMTracker::setManualMode(bool enabled)
+{
+    manualMode_.store(enabled, std::memory_order_relaxed);
 }

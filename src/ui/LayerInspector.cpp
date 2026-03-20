@@ -2,6 +2,29 @@
 
 LayerInspector::LayerInspector()
 {
+    // --- Name label (editable on click) ---
+    nameLabel_.setFont(juce::Font(juce::FontOptions(12.0f)).boldened());
+    nameLabel_.setColour(juce::Label::textColourId,
+                         juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    nameLabel_.setColour(juce::Label::backgroundColourId, juce::Colour(0xff222222));
+    nameLabel_.setColour(juce::Label::textWhenEditingColourId,
+                         juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    nameLabel_.setColour(juce::Label::backgroundWhenEditingColourId,
+                         juce::Colour(0xff2a2a2a));
+    nameLabel_.setColour(juce::Label::outlineWhenEditingColourId,
+                         juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    nameLabel_.setEditable(false, true, false); // editing triggered programmatically via mouseDown
+    nameLabel_.setTooltip("Click to rename layer");
+    nameLabel_.onTextChange = [this] {
+        if (layer_)
+        {
+            layer_->name = nameLabel_.getText().toStdString();
+            if (onLayerNameChanged)
+                onLayerNameChanged();
+        }
+    };
+    addAndMakeVisible(nameLabel_);
+
     addAndMakeVisible(macroPanel_);
 
     // --- Autopilot direction buttons ---
@@ -18,24 +41,104 @@ LayerInspector::LayerInspector()
     setupApBtn(apForwardBtn_, juce::String(juce::CharPointer_UTF8("\xe2\x96\xb6\xe2\x96\xb6")));
     setupApBtn(apRandomBtn_, juce::String(juce::CharPointer_UTF8("\xf0\x9f\x94\x80")));
 
-    apOffBtn_.setColour(juce::TextButton::buttonColourId,
-                        juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f));
+    apRewindBtn_.setTooltip("Autopilot: play previous clip on beat");
+    apOffBtn_.setTooltip("Autopilot: disabled");
+    apForwardBtn_.setTooltip("Autopilot: play next clip on beat");
+    apRandomBtn_.setTooltip("Autopilot: play random clip on beat");
 
-    apDurationSelector_.addItem("Clip Transport", 1);
-    apDurationSelector_.addItem("Longest Clip", 2);
-    apDurationSelector_.addItem("Custom", 3);
-    apDurationSelector_.setSelectedId(1, juce::dontSendNotification);
-    addAndMakeVisible(apDurationSelector_);
+    apOffBtn_.onClick = [this] {
+        if (!layer_) return;
+        layer_->autopilotEnabled = false;
+        updateAutopilotButtons();
+    };
+    apForwardBtn_.onClick = [this] {
+        if (!layer_) return;
+        layer_->autopilotEnabled = true;
+        layer_->defaultAutopilotAction = Clip::AutopilotAction::PlayNext;
+        updateAutopilotButtons();
+    };
+    apRewindBtn_.onClick = [this] {
+        if (!layer_) return;
+        layer_->autopilotEnabled = true;
+        layer_->defaultAutopilotAction = Clip::AutopilotAction::PlayPrevious;
+        updateAutopilotButtons();
+    };
+    apRandomBtn_.onClick = [this] {
+        if (!layer_) return;
+        layer_->autopilotEnabled = true;
+        layer_->defaultAutopilotAction = Clip::AutopilotAction::PlayRandom;
+        updateAutopilotButtons();
+    };
 
-    apClipLoopsSlider_.setSliderStyle(juce::Slider::IncDecButtons);
-    apClipLoopsSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, 20);
-    apClipLoopsSlider_.setRange(1, 99, 1);
-    apClipLoopsSlider_.setValue(1, juce::dontSendNotification);
-    addAndMakeVisible(apClipLoopsSlider_);
+    // Trigger mode: when to advance to the next clip
+    apTriggerModeSelector_.addItem("End of Video", 1);
+    apTriggerModeSelector_.addItem("On Beat", 2);
+    apTriggerModeSelector_.setSelectedId(2, juce::dontSendNotification);
+    apTriggerModeSelector_.setTooltip("When to advance to the next clip");
+    apTriggerModeSelector_.onChange = [this] {
+        if (!layer_) return;
+        int sel = apTriggerModeSelector_.getSelectedId();
+        if (sel == 1)
+        {
+            // End of Video mode: advance when playhead reaches outPoint
+            layer_->autopilotEndOfVideo = true;
+        }
+        else
+        {
+            layer_->autopilotEndOfVideo = false;
+            // On Beat mode: use the selected beat count
+            int beatSel = apBeatCountSelector_.getSelectedId();
+            static const Clip::AutopilotDuration durations[] = {
+                Clip::AutopilotDuration::Beat1, Clip::AutopilotDuration::Beat2,
+                Clip::AutopilotDuration::Beat4, Clip::AutopilotDuration::Beat8,
+                Clip::AutopilotDuration::Beat16, Clip::AutopilotDuration::Beat32
+            };
+            if (beatSel >= 1 && beatSel <= 6)
+                layer_->defaultAutopilotDuration = durations[beatSel - 1];
+        }
+        apBeatCountSelector_.setVisible(apTriggerModeSelector_.getSelectedId() == 2);
+        resized();
+    };
+    addAndMakeVisible(apTriggerModeSelector_);
 
-    apLoopToggle_.setColour(juce::ToggleButton::textColourId,
-                            juce::Colour(AudioDNALookAndFeel::kTextPrimary));
-    addAndMakeVisible(apLoopToggle_);
+    // Beat count (visible when trigger mode is "On Beat")
+    apBeatCountSelector_.addItem("1 Beat", 1);
+    apBeatCountSelector_.addItem("2 Beats", 2);
+    apBeatCountSelector_.addItem("4 Beats", 3);
+    apBeatCountSelector_.addItem("8 Beats", 4);
+    apBeatCountSelector_.addItem("16 Beats", 5);
+    apBeatCountSelector_.addItem("32 Beats", 6);
+    apBeatCountSelector_.setSelectedId(3, juce::dontSendNotification); // Default: 4 beats
+    apBeatCountSelector_.setTooltip("Number of beats before advancing");
+    apBeatCountSelector_.onChange = [this] {
+        if (!layer_) return;
+        static const Clip::AutopilotDuration durations[] = {
+            Clip::AutopilotDuration::Beat1, Clip::AutopilotDuration::Beat2,
+            Clip::AutopilotDuration::Beat4, Clip::AutopilotDuration::Beat8,
+            Clip::AutopilotDuration::Beat16, Clip::AutopilotDuration::Beat32
+        };
+        int sel = apBeatCountSelector_.getSelectedId() - 1;
+        if (sel >= 0 && sel < 6) layer_->defaultAutopilotDuration = durations[sel];
+    };
+    addAndMakeVisible(apBeatCountSelector_);
+
+    // Loops: how many times to loop a clip before advancing
+    apLoopsLabel_.setFont(juce::Font(juce::FontOptions(10.0f)));
+    apLoopsLabel_.setColour(juce::Label::textColourId,
+                            juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    addAndMakeVisible(apLoopsLabel_);
+
+    apLoopsSlider_.setSliderStyle(juce::Slider::IncDecButtons);
+    apLoopsSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, 20);
+    apLoopsSlider_.setRange(1, 99, 1);
+    apLoopsSlider_.setValue(1, juce::dontSendNotification);
+    apLoopsSlider_.setTooltip("Number of loops before advancing to next clip");
+    apLoopsSlider_.setScrollWheelEnabled(false);
+    apLoopsSlider_.onValueChange = [this] {
+        if (layer_)
+            layer_->autopilotLoops = static_cast<int>(apLoopsSlider_.getValue());
+    };
+    addAndMakeVisible(apLoopsSlider_);
 
     // --- Layer Master ---
     masterControl_.setParamName("Master");
@@ -242,20 +345,21 @@ void LayerInspector::paint(juce::Graphics& g)
         return;
     }
 
-    // Name bar
+    // Name bar background (label is a child component drawn on top)
     auto nameBar = getLocalBounds().removeFromTop(kNameBarHeight);
     g.setColour(juce::Colour(0xff222222));
     g.fillRect(nameBar);
-    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
-    g.setFont(juce::Font(juce::FontOptions(12.0f)).boldened());
-    g.drawText(juce::String(layer_->name), nameBar.withTrimmedLeft(4).withTrimmedRight(40),
-               juce::Justification::centredLeft, true);
 
     // Calculate section header positions
     int y = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Autopilot");
-    y += kSectionHeaderHeight + kRowHeight * 3 + kSectionGap;
+    {
+        int apRows = 3; // direction + trigger mode + loops
+        if (apTriggerModeSelector_.getSelectedId() == 2)
+            apRows += 1; // beat count row
+        y += kSectionHeaderHeight + kRowHeight * apRows + kSectionGap;
+    }
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Layer");
     y += kSectionHeaderHeight + masterControl_.getPreferredHeight() + kSectionGap;
@@ -304,7 +408,8 @@ void LayerInspector::resized()
     auto area = getLocalBounds().reduced(4, 0);
     int y = 0;
 
-    // Name bar
+    // Name label
+    nameLabel_.setBounds(area.getX(), y, area.getWidth(), kNameBarHeight);
     y += kNameBarHeight;
 
     // Dashboard
@@ -337,13 +442,22 @@ void LayerInspector::resized()
     }
     y += kRowHeight;
 
-    apDurationSelector_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
+    apTriggerModeSelector_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
     y += kRowHeight;
+
+    // Show beat count only in "On Beat" mode
+    bool onBeatMode = (apTriggerModeSelector_.getSelectedId() == 2);
+    apBeatCountSelector_.setVisible(onBeatMode);
+    if (onBeatMode)
+    {
+        apBeatCountSelector_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
+        y += kRowHeight;
+    }
 
     {
         auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
-        apClipLoopsSlider_.setBounds(row.removeFromLeft(row.getWidth() / 2));
-        apLoopToggle_.setBounds(row);
+        apLoopsLabel_.setBounds(row.removeFromLeft(40));
+        apLoopsSlider_.setBounds(row);
     }
     y += kRowHeight + kSectionGap;
 
@@ -428,6 +542,17 @@ void LayerInspector::resized()
     defaultApDurationSelector_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
 }
 
+void LayerInspector::mouseDown(const juce::MouseEvent& event)
+{
+    // Programmatically trigger name label editing when clicking in the name bar area
+    if (layer_ && nameLabel_.getBounds().contains(event.getPosition()))
+    {
+        nameLabel_.showEditor();
+        return;
+    }
+    Component::mouseDown(event);
+}
+
 void LayerInspector::setLayer(Layer* layer)
 {
     layer_ = layer;
@@ -475,7 +600,11 @@ int LayerInspector::getPreferredHeight() const
     if (!layer_) return 100;
 
     int h = kNameBarHeight + MacroPanel::kPreferredHeight + kSectionGap;
-    h += kSectionHeaderHeight + kRowHeight * 3 + kSectionGap; // Autopilot
+    {
+        int apRows = 3;
+        if (apTriggerModeSelector_.getSelectedId() == 2) apRows += 1;
+        h += kSectionHeaderHeight + kRowHeight * apRows + kSectionGap; // Autopilot
+    }
     h += kSectionHeaderHeight + masterControl_.getPreferredHeight() + kSectionGap; // Layer
     h += kSectionHeaderHeight + kRowHeight + opacityControl_.getPreferredHeight() + kRowHeight * 3 + kSectionGap; // Video
     h += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap; // Transition
@@ -525,9 +654,54 @@ void LayerInspector::paintSectionHeader(juce::Graphics& g, const juce::Rectangle
     }
 }
 
+void LayerInspector::updateAutopilotButtons()
+{
+    auto defaultCol = juce::Colour(AudioDNALookAndFeel::kSurface);
+    auto activeCol = juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f);
+
+    bool enabled = layer_ && layer_->autopilotEnabled;
+    auto action = layer_ ? layer_->defaultAutopilotAction : Clip::AutopilotAction::PlayNext;
+
+    apOffBtn_.setColour(juce::TextButton::buttonColourId,
+        !enabled ? activeCol : defaultCol);
+    apForwardBtn_.setColour(juce::TextButton::buttonColourId,
+        (enabled && action == Clip::AutopilotAction::PlayNext) ? activeCol : defaultCol);
+    apRewindBtn_.setColour(juce::TextButton::buttonColourId,
+        (enabled && action == Clip::AutopilotAction::PlayPrevious) ? activeCol : defaultCol);
+    apRandomBtn_.setColour(juce::TextButton::buttonColourId,
+        (enabled && action == Clip::AutopilotAction::PlayRandom) ? activeCol : defaultCol);
+
+    repaint();
+}
+
 void LayerInspector::syncFromLayer()
 {
     if (!layer_) return;
+
+    // Sync name label — skip if user is actively editing to avoid closing the editor
+    if (!nameLabel_.isBeingEdited())
+        nameLabel_.setText(juce::String(layer_->name), juce::dontSendNotification);
+
+    updateAutopilotButtons();
+
+    // Sync loops slider
+    apLoopsSlider_.setValue(static_cast<double>(layer_->autopilotLoops), juce::dontSendNotification);
+
+    // Sync autopilot trigger mode
+    if (layer_->autopilotEndOfVideo)
+    {
+        apTriggerModeSelector_.setSelectedId(1, juce::dontSendNotification); // End of Video
+    }
+    else
+    {
+        apTriggerModeSelector_.setSelectedId(2, juce::dontSendNotification); // On Beat
+        // Map duration enum to selector ID
+        auto dur = layer_->defaultAutopilotDuration;
+        static const int durToSel[] = { 3, 1, 2, 3, 4, 5, 6, 3 }; // LayerDet=4beats, Beat1-32=1-6, Custom=4beats
+        int idx = static_cast<int>(dur);
+        if (idx >= 0 && idx < 8)
+            apBeatCountSelector_.setSelectedId(durToSel[idx], juce::dontSendNotification);
+    }
 
     masterControl_.setParamValue(layer_->opacity);
     opacityControl_.setParamValue(layer_->opacity);
