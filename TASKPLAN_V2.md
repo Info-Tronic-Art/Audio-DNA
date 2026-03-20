@@ -429,10 +429,9 @@
   - Video frame callback: advance + upload per render frame
   - Files: `src/render/CompositorEngine.h/cpp`, `src/render/Renderer.h/cpp`
 
-- [x] **P11.6** Cuepoints (completed in P12)
-  - 8 save slots per clip with Set + Trigger buttons
-  - Jump to cuepoint via buttons, Ctrl+click to clear
-  - In/Out point markers on timeline, draggable, with loop enforcement
+- [x] **P11.6** Cuepoints — deferred from P11, implemented in P12
+  - 8 cuepoint save slots per clip with separate Set + Trigger button rows
+  - Jump to cuepoint via trigger buttons, Ctrl+click to clear
   - Files: `src/model/Clip.h/cpp`, `src/ui/ClipInspector.cpp`
 
 ---

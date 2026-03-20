@@ -68,7 +68,7 @@ Runs on user events. Handles all UI interaction — sliders, buttons, file choos
 
 | Field | Type | Purpose |
 |-------|------|---------|
-| `source` | `Source` enum | Which audio feature (RMS, BeatPhase, Bass, MFCC0, etc.) |
+| `source` | `Source` enum | Which audio feature (RMS, BeatPhase, BarPhase, PhrasePhase, BarCount, Bass, MFCC0, etc.) |
 | `targetEffectId` | `uint32_t` | Which effect in the chain |
 | `targetParamIndex` | `uint32_t` | Which parameter on that effect |
 | `curve` | `Curve` enum | Linear, Exponential, Logarithmic, SCurve, Stepped |
@@ -87,6 +87,22 @@ Runs on user events. Handles all UI interaction — sliders, buttons, file choos
 | `params` | `vector<EffectParam>` | Parameters with name, value, default (all [0, 1]) |
 | `enabled` | `bool` | Active in chain |
 | `order` | `int` | Position in effect chain |
+
+**Clip** — Media content + per-clip effects + transport, placed in a deck cell:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `mediaType` | `MediaType` enum | None, Image, Video, Camera, Source, ImageSequence |
+| `inPoint` | `float` | [0,1] playback start position (draggable on timeline) |
+| `outPoint` | `float` | [0,1] playback end position (draggable on timeline) |
+| `speed` | `float` | Playback speed multiplier |
+| `transportMode` | `TransportMode` enum | Timeline or BPMSync |
+| `loopMode` | `LoopMode` enum | Loop, PingPong, OneShot |
+| `beatDivision` | `float` | BPM Sync: beats per playback cycle |
+| `videoBeats` | `float` | Content beats (for BPM speed calc) |
+| `beatSnap` | `bool` | Snap playhead to beat on trigger |
+| `cuepoints[8]` | `float[8]` | Normalized positions [0,1], up to 8 |
+| `playheadPosition` | `mutable double` | [0,1] runtime position (synced from player each frame) |
 
 ### Lock-Free Communication Chain
 
@@ -301,6 +317,9 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 | Onset Detection | Aubio `aubio_onset` (spectral flux method, adaptive threshold) | bool flag + strength | `onsetDetected`, `onsetStrength` |
 | BPM | Aubio `aubio_tempo` (autocorrelation of onset accumulator) | BPM float | `bpm` |
 | Beat Phase | Derived from BPM tracker | [0, 1) sawtooth | `beatPhase` |
+| Bar Phase | (beatInBar + beatPhase) / 4 | [0, 1) over 4 beats | `barPhase` |
+| Phrase Phase | Bar count mod N bars (default 8), resets on structural transitions | [0, 1) over N bars | `phrasePhase` |
+| Bar Count | Bars since last phrase reset | uint16 | `barCount` |
 
 ### Pitch & Harmony
 
@@ -439,11 +458,14 @@ Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 76 GLS
 - Per-parameter signal connect triangle (click → popup: Manual/Audio/BPM Sync/Oscillator/Envelope/Clip Position/Timeline/Macro)
 - Transform section (Position X/Y, Scale, Rotation, Anchor) at clip/layer/composition level
 - Video section (Opacity, Width, Height, Blend Mode, Alpha Type, RGBA channel toggles)
-- CrossFader section (Blend Mode, Behaviour, Curve)
 - Transition section (Blend Mode, Duration) per layer
 - Browser (5 tabs: Files/FX/Sources/Comp-Decks/Record) replaces effects rack
 - BPM stabilization pipeline (range gate → confidence → octave → median → hysteresis)
 - Automatic downbeat detection (no commercial VJ does this from live audio)
+- Phrase tracking (bar count + phrasePhase over configurable N bars, resets on structural transitions)
+- Beat wheel indicator in TopBar (4-segment circle, bar/phrase readout next to BPM)
+- Clip timeline with draggable in/out points, beat division markers, playhead triangle
+- Session recording (timestamped event capture + JSON save/load + playback)
 - Undo/redo from the start (Command pattern)
 - 40 procedural sources (fractal, noise, geometric, etc.)
 - Video playback via FFmpeg (MP4/MOV/AVI/MKV/WebM/HAP Alpha) with transport controls
