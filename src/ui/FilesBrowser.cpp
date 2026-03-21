@@ -116,8 +116,36 @@ public:
             }
         }
 
-        if (!files.isEmpty())
-            juce::DragAndDropContainer::performExternalDragDropOfFiles(files, false);
+        if (files.isEmpty()) return;
+
+        // Use internal JUCE drag with "files:" prefix
+        if (auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this))
+        {
+            juce::String desc = "files:" + files.joinIntoString("|");
+
+            int count = files.size();
+            juce::String label = count > 1
+                ? juce::String(count) + " files"
+                : juce::File(files[0]).getFileName();
+
+            int imgW = 140, imgH = 24;
+            juce::Image dragImg(juce::Image::ARGB, imgW, imgH, true);
+            {
+                juce::Graphics g(dragImg);
+                g.setColour(juce::Colour(0xdd2a3040));
+                g.fillRoundedRectangle(0.0f, 0.0f, static_cast<float>(imgW),
+                                       static_cast<float>(imgH), 4.0f);
+                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+                g.drawRoundedRectangle(0.5f, 0.5f, static_cast<float>(imgW - 1),
+                                       static_cast<float>(imgH - 1), 4.0f, 1.0f);
+                g.setColour(juce::Colours::white);
+                g.setFont(juce::Font(juce::FontOptions(11.0f)));
+                g.drawText(label, 8, 0, imgW - 16, imgH,
+                           juce::Justification::centredLeft, true);
+            }
+
+            container->startDragging(juce::var(desc), this, juce::ScaledImage(dragImg), true);
+        }
     }
 
     int getRequiredHeight() const
@@ -162,15 +190,10 @@ private:
             auto& e = entries[i];
             auto thumbRect = juce::Rectangle<int>(x, y, kThumbSize, kThumbSize);
 
-            // Background (highlight if selected)
+            // Background
             bool selected = owner_.selectedIndices_.count(static_cast<int>(i)) > 0;
-            g.setColour(selected ? juce::Colour(0xff3a4a6e) : juce::Colour(AudioDNALookAndFeel::kSurface));
+            g.setColour(juce::Colour(AudioDNALookAndFeel::kSurface));
             g.fillRect(thumbRect);
-            if (selected)
-            {
-                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
-                g.drawRect(thumbRect, 2);
-            }
 
             // Thumbnail or folder icon
             if (e.isDirectory)
@@ -201,11 +224,21 @@ private:
             }
 
             // Name label
-            g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+            g.setColour(selected ? juce::Colours::white : juce::Colour(AudioDNALookAndFeel::kTextPrimary));
             g.setFont(juce::Font(juce::FontOptions(9.0f)));
             g.drawText(e.file.getFileName(),
                        x, y + kThumbSize, kThumbSize, kLabelHeight,
                        juce::Justification::centredTop, true);
+
+            // Selection border (drawn OVER thumbnail)
+            if (selected)
+            {
+                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+                g.drawRect(thumbRect, 2);
+                // Tint overlay
+                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.15f));
+                g.fillRect(thumbRect);
+            }
 
             x += kThumbSize + kPadding;
             if ((static_cast<int>(i) + 1) % cols == 0)

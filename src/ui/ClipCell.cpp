@@ -343,7 +343,7 @@ bool ClipCell::isInThumbnailArea(const juce::Point<int>& pos) const
 bool ClipCell::isInterestedInDragSource(const SourceDetails& details)
 {
     auto desc = details.description.toString();
-    return desc.startsWith("fx:") || desc.startsWith("source:") || desc.startsWith("clip:");
+    return desc.startsWith("fx:") || desc.startsWith("source:") || desc.startsWith("clip:") || desc.startsWith("files:");
 }
 
 void ClipCell::itemDragEnter(const SourceDetails& details)
@@ -351,8 +351,8 @@ void ClipCell::itemDragEnter(const SourceDetails& details)
     auto desc = details.description.toString();
     if (desc.startsWith("source:"))
         sourceDragHover_ = true;
-    else if (desc.startsWith("clip:"))
-        dragHover_ = true;  // reuse file drop highlight for clip moves
+    else if (desc.startsWith("clip:") || desc.startsWith("files:"))
+        dragHover_ = true;
     else
         fxDragHover_ = true;
     repaint();
@@ -396,6 +396,25 @@ void ClipCell::itemDropped(const SourceDetails& details)
             int srcCol = parts[2].getIntValue();
             if (onClipMove)
                 onClipMove(srcLayer, srcCol, layerIndex_, column_);
+        }
+    }
+    else if (desc.startsWith("files:"))
+    {
+        // Internal file drag: "files:path1|path2|path3"
+        auto pathStr = desc.substring(6);
+        auto paths = juce::StringArray::fromTokens(pathStr, "|", "");
+        if (paths.size() == 1)
+        {
+            if (onFileDrop)
+                onFileDrop(layerIndex_, column_, juce::File(paths[0]));
+        }
+        else if (paths.size() > 1)
+        {
+            std::vector<juce::File> files;
+            for (const auto& p : paths)
+                files.push_back(juce::File(p));
+            if (onMultiFileDrop)
+                onMultiFileDrop(layerIndex_, column_, files);
         }
     }
 }
