@@ -403,6 +403,7 @@ void ClipCell::itemDropped(const SourceDetails& details)
         // Internal file drag: "files:path1|path2|path3"
         auto pathStr = desc.substring(6);
         auto paths = juce::StringArray::fromTokens(pathStr, "|", "");
+
         if (paths.size() == 1)
         {
             if (onFileDrop)
@@ -410,11 +411,45 @@ void ClipCell::itemDropped(const SourceDetails& details)
         }
         else if (paths.size() > 1)
         {
-            std::vector<juce::File> files;
+            // Separate images from videos
+            std::vector<juce::File> images, videos;
             for (const auto& p : paths)
-                files.push_back(juce::File(p));
-            if (onMultiFileDrop)
-                onMultiFileDrop(layerIndex_, column_, files);
+            {
+                juce::File f(p);
+                auto ext = f.getFileExtension().toLowerCase();
+                if (ext == ".mov" || ext == ".mp4" || ext == ".avi" ||
+                    ext == ".mkv" || ext == ".webm" || ext == ".m4v")
+                    videos.push_back(f);
+                else
+                    images.push_back(f);
+            }
+
+            // Images: multiple PNGs → one cell as image sequence
+            if (!images.empty())
+            {
+                if (images.size() == 1)
+                {
+                    if (onFileDrop) onFileDrop(layerIndex_, column_, images[0]);
+                }
+                else
+                {
+                    if (onMultiFileDrop) onMultiFileDrop(layerIndex_, column_, images);
+                }
+            }
+
+            // Videos: each gets its own sequential cell
+            if (!videos.empty())
+            {
+                int videoStartCol = images.empty() ? column_ : column_ + 1;
+                if (videos.size() == 1)
+                {
+                    if (onFileDrop) onFileDrop(layerIndex_, videoStartCol, videos[0]);
+                }
+                else
+                {
+                    if (onMultiVideoDrop) onMultiVideoDrop(layerIndex_, videoStartCol, videos);
+                }
+            }
         }
     }
 }
