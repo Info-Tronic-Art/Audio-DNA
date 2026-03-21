@@ -171,6 +171,18 @@ void ClipCell::mouseDown(const juce::MouseEvent& event)
     }
 }
 
+void ClipCell::mouseDrag(const juce::MouseEvent& event)
+{
+    // Initiate drag from name bar to move clip to another cell
+    if (clip_ && !isInThumbnailArea(event.getMouseDownPosition())
+        && event.getDistanceFromDragStart() > 5)
+    {
+        auto desc = juce::String("clip:") + juce::String(layerIndex_) + ":" + juce::String(column_);
+        if (auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this))
+            container->startDragging(desc, this);
+    }
+}
+
 void ClipCell::mouseUp(const juce::MouseEvent&) {}
 
 bool ClipCell::isInterestedInFileDrag(const juce::StringArray& files)
@@ -331,7 +343,7 @@ bool ClipCell::isInThumbnailArea(const juce::Point<int>& pos) const
 bool ClipCell::isInterestedInDragSource(const SourceDetails& details)
 {
     auto desc = details.description.toString();
-    return desc.startsWith("fx:") || desc.startsWith("source:");
+    return desc.startsWith("fx:") || desc.startsWith("source:") || desc.startsWith("clip:");
 }
 
 void ClipCell::itemDragEnter(const SourceDetails& details)
@@ -339,6 +351,8 @@ void ClipCell::itemDragEnter(const SourceDetails& details)
     auto desc = details.description.toString();
     if (desc.startsWith("source:"))
         sourceDragHover_ = true;
+    else if (desc.startsWith("clip:"))
+        dragHover_ = true;  // reuse file drop highlight for clip moves
     else
         fxDragHover_ = true;
     repaint();
@@ -348,6 +362,7 @@ void ClipCell::itemDragExit(const SourceDetails&)
 {
     fxDragHover_ = false;
     sourceDragHover_ = false;
+    dragHover_ = false;
     repaint();
 }
 
@@ -355,6 +370,7 @@ void ClipCell::itemDropped(const SourceDetails& details)
 {
     fxDragHover_ = false;
     sourceDragHover_ = false;
+    dragHover_ = false;
     repaint();
 
     auto desc = details.description.toString();
@@ -369,5 +385,17 @@ void ClipCell::itemDropped(const SourceDetails& details)
         auto sourceId = desc.substring(7);
         if (onSourceDrop)
             onSourceDrop(layerIndex_, column_, sourceId);
+    }
+    else if (desc.startsWith("clip:"))
+    {
+        // Parse source cell position: "clip:layerIdx:col"
+        auto parts = juce::StringArray::fromTokens(desc, ":", "");
+        if (parts.size() >= 3)
+        {
+            int srcLayer = parts[1].getIntValue();
+            int srcCol = parts[2].getIntValue();
+            if (onClipMove)
+                onClipMove(srcLayer, srcCol, layerIndex_, column_);
+        }
     }
 }

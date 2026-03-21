@@ -37,12 +37,16 @@ private:
     std::vector<CategoryInfo> categories_;
     std::vector<SourceEntry> sources_;
 
+    juce::TextEditor searchBox_;
+    juce::String searchFilter_;
+
     juce::Viewport viewport_;
     class SourceListContent;
     std::unique_ptr<SourceListContent> listContent_;
 
     void buildSourceList();
     void toggleCategory(int catIndex);
+    bool matchesSearch(const juce::String& name) const;
 
     static constexpr int kCategoryHeaderHeight = 22;
     static constexpr int kSourceRowHeight = 28;

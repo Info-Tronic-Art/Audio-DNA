@@ -622,8 +622,7 @@ MainComponent::MainComponent()
             }
             clip->name = fxNames;
         }
-        // Auto-trigger the FX clip so it becomes active
-        layer->triggerClip(col);
+        // Don't auto-trigger — user clicks cell to activate
         if (deckView_) deckView_->rebuildGrid();
         // Update inspector if this clip is selected
         if (inspectorPanel_)
@@ -660,9 +659,7 @@ MainComponent::MainComponent()
         }
 
         deck->setClip(layerIdx, col, clip);
-        auto* layer = deck->getLayer(layerIdx);
-        if (layer) layer->triggerClip(col);
-
+        // Don't auto-trigger — user clicks cell to activate
         if (deckView_) deckView_->rebuildGrid();
 
         // Refresh inspector
@@ -672,6 +669,43 @@ MainComponent::MainComponent()
             if (newClip)
                 inspectorPanel_->inspectClip(newClip);
         }
+    };
+    deckView_->onClipMoved = [this](int srcLayer, int srcCol, int dstLayer, int dstCol) {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        if (srcLayer == dstLayer && srcCol == dstCol) return;
+
+        auto* srcL = deck->getLayer(srcLayer);
+        auto* dstL = deck->getLayer(dstLayer);
+        if (!srcL || !dstL) return;
+
+        // Ensure destination has enough columns
+        dstL->ensureColumns(dstCol + 1);
+        if (deck->numColumns < dstCol + 1)
+            deck->numColumns = dstCol + 1;
+
+        // Swap clips between source and destination
+        auto srcClip = srcL->getClipAt(srcCol)
+            ? std::optional<Clip>(*srcL->getClipAt(srcCol))
+            : std::nullopt;
+        auto dstClip = dstL->getClipAt(dstCol)
+            ? std::optional<Clip>(*dstL->getClipAt(dstCol))
+            : std::nullopt;
+
+        // Place source clip at destination
+        if (srcClip.has_value())
+            dstL->clips[static_cast<size_t>(dstCol)] = srcClip;
+        else
+            dstL->clips[static_cast<size_t>(dstCol)] = std::nullopt;
+
+        // Place destination clip at source (swap)
+        srcL->ensureColumns(srcCol + 1);
+        if (dstClip.has_value())
+            srcL->clips[static_cast<size_t>(srcCol)] = dstClip;
+        else
+            srcL->clips[static_cast<size_t>(srcCol)] = std::nullopt;
+
+        if (deckView_) deckView_->rebuildGrid();
     };
     deckView_->onDeckSwitched = [this](int deckIdx) {
         handleDeckSwitch(deckIdx);
@@ -761,8 +795,7 @@ MainComponent::MainComponent()
         }
 
         deck->setClip(targetLayer, targetCol, clip);
-        auto* layer = deck->getLayer(targetLayer);
-        if (layer) layer->triggerClip(targetCol);
+        // Don't auto-trigger — user clicks cell to activate
 
         // Load source into preview renderer
         previewPanel_.getRenderer().setActiveSource(sourceId.toStdString(), clip.sourceParams);

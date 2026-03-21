@@ -253,6 +253,10 @@ void Renderer::renderOpenGL()
         sourceTexture = compositor_.compositeDeck(*deck, shaderMgr_, quad_, time,
                                                    static_cast<int>(renderW),
                                                    static_cast<int>(renderH));
+        // Update persistent feedback buffer for feedback effects
+        compositor_.updateFeedbackBuffer(shaderMgr_, quad_,
+                                          static_cast<int>(renderW),
+                                          static_cast<int>(renderH));
     }
 
     if (sourceTexture == 0 && sourceActive)
@@ -436,6 +440,9 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
             }
         }
     }
+
+    // Provide compositor feedback texture for sources that use it
+    source->setFeedbackTexture(compositor_.getFeedbackTexture());
 
     // Get latest audio snapshot for audio-reactive sources
     const FeatureSnapshot* snap = featureBus_.acquireRead();
@@ -666,6 +673,8 @@ void Renderer::compileAllShaders()
 
     // Core
     compile("passthrough",          EmbeddedShaders::passthrough);
+    compile("opacity_blend",        EmbeddedShaders::opacityBlend);
+    compile("effect_dry_wet",       EmbeddedShaders::effectDryWet);
     compile("effect_drywet",        EmbeddedShaders::effectDryWet);
 
     // Warp
@@ -836,6 +845,8 @@ void Renderer::compileAllShaders()
     compile("cube_scatter",         EmbeddedShaders::cubeScatter);
     compile("infinite_zoom",        EmbeddedShaders::infiniteZoom);
     compile("bump_light",           EmbeddedShaders::bumpLight);
+    compile("feedback",             EmbeddedShaders::feedback);
+    compile("directional_feedback", EmbeddedShaders::directionalFeedback);
 
     // === Phase 15: Sources (12 new procedural sources) ===
     compile("source_solid_color",       EmbeddedShaders::sourceSolidColor);
@@ -850,6 +861,31 @@ void Renderer::compileAllShaders()
     compile("source_shape_generator",   EmbeddedShaders::sourceShapeGenerator);
     compile("source_bump_light",        EmbeddedShaders::sourceBumpLight);
     compile("source_infinite_zoom",     EmbeddedShaders::sourceInfiniteZoom);
+    compile("source_spiral_tunnel",    EmbeddedShaders::sourceSpiralTunnel);
+    compile("source_wireframe_3d",     EmbeddedShaders::sourceWireframe3D);
+    compile("source_line_generator",   EmbeddedShaders::sourceLineGenerator);
+    compile("source_zigzag_lines",     EmbeddedShaders::sourceZigzagLines);
+    compile("source_star_burst",       EmbeddedShaders::sourceStarBurst);
+    compile("source_polygon_lines",    EmbeddedShaders::sourcePolygonLines);
+    compile("source_waveform_lines",   EmbeddedShaders::sourceWaveformLines);
+    compile("source_lissajous",        EmbeddedShaders::sourceLissajous);
+    compile("source_spirograph",       EmbeddedShaders::sourceSpirograph);
+    compile("source_angular_grid",     EmbeddedShaders::sourceAngularGrid);
+    compile("source_fractal_tree",     EmbeddedShaders::sourceFractalTree);
+    compile("source_laser_scan",       EmbeddedShaders::sourceLaserScan);
+    compile("source_moire_lines",      EmbeddedShaders::sourceMoireLines);
+
+    // Fractal sources
+    compile("source_julia_set",       EmbeddedShaders::sourceJuliaSet);
+    compile("source_burning_ship",    EmbeddedShaders::sourceBurningShip);
+    compile("source_newton_fractal",  EmbeddedShaders::sourceNewtonFractal);
+    compile("source_sierpinski",      EmbeddedShaders::sourceSierpinski);
+    compile("source_apollonian",      EmbeddedShaders::sourceApollonian);
+
+    // 3D Fractal sources (ray marched)
+    compile("source_mandelbulb",      EmbeddedShaders::sourceMandelbulb);
+    compile("source_menger_sponge",   EmbeddedShaders::sourceMengerSponge);
+    compile("source_kifs",            EmbeddedShaders::sourceKIFS);
 
     // === Phase 14: Transition Shaders (15 clip-to-clip transitions) ===
     compile("transition_dissolve",      EmbeddedShaders::transitionDissolve);

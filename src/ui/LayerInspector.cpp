@@ -380,7 +380,7 @@ LayerInspector::LayerInspector()
 
     posXControl_.onValueChanged = [this](float v) { if (layer_) layer_->positionX = (v - 0.5f) * 3840.0f; };
     posYControl_.onValueChanged = [this](float v) { if (layer_) layer_->positionY = (v - 0.5f) * 2160.0f; };
-    scaleControl_.onValueChanged = [this](float v) { if (layer_) layer_->layerScale = v * 2.0f; };
+    scaleControl_.onValueChanged = [this](float v) { if (layer_) layer_->layerScale = std::pow(2.0f, (v - 0.5f) * 2.0f); };
     rotationControl_.onValueChanged = [this](float v) { if (layer_) layer_->layerRotation = (v - 0.5f) * 720.0f; };
     anchorControl_.onValueChanged = [this](float v) { if (layer_) layer_->layerAnchorX = (v - 0.5f) * 3840.0f; };
 
@@ -781,7 +781,7 @@ void LayerInspector::syncFromLayer()
 
     posXControl_.setParamValue(layer_->positionX / 3840.0f + 0.5f);
     posYControl_.setParamValue(layer_->positionY / 2160.0f + 0.5f);
-    scaleControl_.setParamValue(layer_->layerScale / 2.0f);
+    scaleControl_.setParamValue(std::log2(std::max(0.01f, layer_->layerScale)) / 2.0f + 0.5f);
     rotationControl_.setParamValue(layer_->layerRotation / 720.0f + 0.5f);
     anchorControl_.setParamValue(layer_->layerAnchorX / 3840.0f + 0.5f);
 }

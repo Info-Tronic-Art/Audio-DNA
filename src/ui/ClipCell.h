@@ -18,6 +18,7 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
     void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
     void mouseUp(const juce::MouseEvent& event) override;
 
     // FileDragAndDropTarget
@@ -57,6 +58,7 @@ public:
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiVideoDrop; // Multi-video dropped → sequential cells
     std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDrop; // FX dropped from browser
     std::function<void(int layerIndex, int column, const juce::String& sourceId)> onSourceDrop; // Source dropped from browser
+    std::function<void(int srcLayer, int srcCol, int dstLayer, int dstCol)> onClipMove; // Clip dragged from one cell to another
 
     // Load/update thumbnail from clip's media file
     void updateThumbnail();

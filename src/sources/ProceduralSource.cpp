@@ -173,6 +173,16 @@ void ProceduralSource::uploadUniforms(juce::OpenGLShaderProgram* program,
     auto onsetLoc = loc("u_onsetStrength");
     if (onsetLoc >= 0) glUniform1f(onsetLoc, snapshot.onsetStrength);
 
+    // Feedback texture (unit 1) — previous frame's composited output
+    auto feedbackLoc = loc("u_feedbackTex");
+    if (feedbackLoc >= 0 && feedbackTex_ != 0)
+    {
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, feedbackTex_);
+        glUniform1i(feedbackLoc, 1);
+        glActiveTexture(GL_TEXTURE0);
+    }
+
     // Source-specific parameter uniforms
     for (int i = 0; i < getNumParams(); ++i)
     {

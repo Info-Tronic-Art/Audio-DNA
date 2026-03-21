@@ -35,6 +35,20 @@ inline const char* passthrough = R"(
     }
 )";
 
+// Opacity blend: output with adjustable alpha for layer opacity
+inline const char* opacityBlend = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_opacity;
+    void main()
+    {
+        vec4 col = texture(u_texture, v_texCoord);
+        fragColor = vec4(col.rgb, col.a * u_opacity);
+    }
+)";
+
 // Dry/wet compositing shader: blends effected (u_texture) with pre-effect (u_original)
 inline const char* effectDryWet = R"(
     #version 410 core
@@ -2717,24 +2731,25 @@ inline const char* sourceMandelbrot = R"(
     uniform float u_src_center_y;
     uniform float u_src_julia_mix;
     uniform float u_src_max_iter;
-
-    vec3 palette(float t) {
-        return 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
-    }
+    uniform float u_src_power;
+    uniform float u_src_color_speed;
+    uniform float u_src_color_shift;
 
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
 
-        // Zoom: exponential for smooth zooming
-        float zoom = exp(-u_src_zoom * 6.0);
-        vec2 center = vec2(-0.5 + u_src_center_x * 1.0, u_src_center_y * 1.0);
+        // Exponential zoom for smooth infinite-feel zoom
+        float zoom = exp(-u_src_zoom * 10.0);
+        vec2 center = vec2(-0.5 + u_src_center_x * 2.0 - 0.5,
+                           u_src_center_y * 2.0 - 1.0);
         uv = uv * zoom + center;
 
         int maxIter = 32 + int(u_src_max_iter * 224.0);
+        float power = 2.0 + u_src_power * 6.0; // 2-8 (Multibrot)
 
-        // Julia / Mandelbrot blend
+        // Julia / Mandelbrot mode
         vec2 c, z;
         float juliaMix = u_src_julia_mix;
         vec2 juliaC = vec2(-0.7 + 0.3 * sin(u_time * 0.1), 0.27 + 0.15 * cos(u_time * 0.13));
@@ -2751,19 +2766,31 @@ inline const char* sourceMandelbrot = R"(
         for (int i = 0; i < 256; i++) {
             if (i >= maxIter) break;
             if (dot(z, z) > 4.0) break;
-            z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+
+            if (power < 2.5) {
+                // Standard z^2 (fastest path)
+                z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+            } else {
+                // Multibrot z^n via polar
+                float r = length(z);
+                float theta = atan(z.y, z.x);
+                float rn = pow(r, power);
+                z = rn * vec2(cos(power * theta), sin(power * theta)) + c;
+            }
             iter = i;
         }
 
-        float t = float(iter) / float(maxIter);
-        // Smooth iteration count
+        // Smooth iteration count for anti-banding
+        float si = float(iter);
         if (iter < maxIter - 1) {
-            float sl = float(iter) - log2(log2(dot(z,z))) + 4.0;
-            t = sl / float(maxIter);
+            si = float(iter) - log2(log2(dot(z,z))) + 4.0;
         }
 
-        vec3 col = palette(t + u_time * 0.02);
-        if (iter >= maxIter - 1) col = vec3(0.0); // Inside set = black
+        vec3 col = vec3(0.0);
+        if (iter < maxIter - 1) {
+            float t = si * (0.01 + u_src_color_speed * 0.08) + u_src_color_shift * 6.28 + u_time * 0.02;
+            col = 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
+        }
 
         col *= (0.7 + u_rms * 0.5);
         fragColor = vec4(col, 1.0);
@@ -3014,11 +3041,13 @@ inline const char* sourceReactionDiffusion = R"(
             if (d < 0.1) { newA = 0.5; newB = 0.25; }
         }
 
-        // Visual output: color from chemicals
-        vec3 col;
-        col.r = newA - newB;
-        col.g = newA * 0.5;
-        col.b = newB * 2.0;
+        // Visual output: rich cosine palette based on chemical concentrations
+        float v = newB * 3.0; // B chemical drives the visual
+        float t = v + u_time * 0.01;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (t * 0.5 + vec3(0.0, 0.33, 0.67)));
+        col *= v + 0.1;
+        // Add glow to active regions
+        col += vec3(0.2, 0.05, 0.1) * smoothstep(0.1, 0.3, newB);
 
         fragColor = vec4(col, 1.0);
     }
@@ -3035,47 +3064,74 @@ inline const char* sourceCellularAutomata = R"(
     uniform float u_bass;
     uniform float u_beatPhase;
     uniform float u_onsetStrength;
-    uniform float u_src_rule_threshold;
+    uniform float u_src_mode;          // 0=Life, 0.33=Brian's Brain, 0.67=HighLife
     uniform float u_src_birth_low;
     uniform float u_src_birth_high;
     uniform float u_src_survival_low;
+    uniform float u_src_color_shift;
 
     void main() {
         vec2 pixel = 1.0 / u_resolution;
         vec2 uv = v_texCoord;
 
         vec4 state = texture(u_texture, uv);
-        float alive = step(0.5, state.r);
+        // R = cell state (0=dead, 0.5=dying[Brain's Brain], 1=alive)
+        // G = trail/age
+        float cellState = state.r;
+        int mode = int(u_src_mode * 2.99); // 0=Life, 1=Brain's Brain, 2=HighLife
 
-        // Count neighbors (Moore neighborhood)
-        float neighbors = 0.0;
+        // Count alive neighbors (Moore neighborhood)
+        float aliveNeighbors = 0.0;
         for (int dy = -1; dy <= 1; dy++) {
             for (int dx = -1; dx <= 1; dx++) {
                 if (dx == 0 && dy == 0) continue;
                 vec2 neighbor = uv + vec2(float(dx), float(dy)) * pixel;
-                neighbors += step(0.5, texture(u_texture, neighbor).r);
+                float ns = texture(u_texture, neighbor).r;
+                aliveNeighbors += step(0.75, ns); // only fully alive cells count
             }
         }
 
-        // Configurable birth/survival rules (default: Conway's Game of Life)
-        float birthLow = 2.5 + u_src_birth_low * 2.0;   // default ~3
-        float birthHigh = 3.5 + u_src_birth_high * 2.0;  // default ~3
-        float survLow = 1.5 + u_src_survival_low * 2.0;  // default ~2
+        float newState = 0.0;
 
-        float newState;
-        if (alive > 0.5) {
-            // Survival: 2 or 3 neighbors (configurable)
-            newState = step(survLow, neighbors) * step(neighbors, birthHigh);
+        if (mode == 1) {
+            // Brian's Brain: 3 states (off→on→dying→off)
+            if (cellState > 0.75) {
+                newState = 0.5; // alive → dying
+            } else if (cellState > 0.25) {
+                newState = 0.0; // dying → dead
+            } else {
+                // Dead → alive if exactly 2 alive neighbors
+                newState = (aliveNeighbors > 1.5 && aliveNeighbors < 2.5) ? 1.0 : 0.0;
+            }
         } else {
-            // Birth: exactly 3 neighbors (configurable)
-            newState = step(birthLow, neighbors) * step(neighbors, birthHigh);
+            // Game of Life or HighLife
+            float alive = step(0.75, cellState);
+            float birthLow = 2.5 + u_src_birth_low * 2.0;
+            float birthHigh = 3.5 + u_src_birth_high * 2.0;
+            float survLow = 1.5 + u_src_survival_low * 2.0;
+
+            if (mode == 2) {
+                // HighLife: B36/S23 (Life + birth at 6)
+                if (alive > 0.5) {
+                    newState = (aliveNeighbors > 1.5 && aliveNeighbors < 3.5) ? 1.0 : 0.0;
+                } else {
+                    newState = ((aliveNeighbors > 2.5 && aliveNeighbors < 3.5) ||
+                                (aliveNeighbors > 5.5 && aliveNeighbors < 6.5)) ? 1.0 : 0.0;
+                }
+            } else {
+                // Standard Life with configurable rules
+                if (alive > 0.5) {
+                    newState = step(survLow, aliveNeighbors) * step(aliveNeighbors, birthHigh);
+                } else {
+                    newState = step(birthLow, aliveNeighbors) * step(aliveNeighbors, birthHigh);
+                }
+            }
         }
 
         // Seed on strong onsets
         if (u_onsetStrength > 0.6) {
             float seedDist = length(uv - vec2(0.5 + 0.4 * sin(u_time * 1.3), 0.5 + 0.4 * cos(u_time)));
             if (seedDist < 0.08) {
-                // Random pattern from time-based hash
                 float h = fract(sin(dot(uv * u_resolution + u_time * 100.0, vec2(12.9898, 78.233))) * 43758.5453);
                 newState = step(0.4, h);
             }
@@ -3084,20 +3140,22 @@ inline const char* sourceCellularAutomata = R"(
         // Initialize if nearly empty
         if (state.a < 0.1) {
             float h = fract(sin(dot(uv * u_resolution, vec2(12.9898, 78.233))) * 43758.5453);
-            newState = step(0.6, h); // ~40% alive initially
+            newState = step(0.6, h);
         }
 
-        // Trail effect: slowly fade old cells
-        float trail = state.g * 0.95;
-        if (newState > 0.5) trail = 1.0;
+        // Trail effect with color palette
+        float trail = state.g * 0.96;
+        if (newState > 0.75) trail = 1.0;
+        else if (newState > 0.25) trail = max(trail, 0.5); // dying cells glow
 
-        // Color: alive = bright, trail = dim colored
-        vec3 col;
-        col.r = newState;
-        col.g = trail;
-        col.b = trail * 0.5 + newState * 0.3;
+        // Color: cosine palette with trail
+        float hue = u_src_color_shift + trail * 0.3;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= trail;
+        // Alive cells are bright white/colored, dying cells are dimmer
+        if (newState > 0.75) col = mix(col, vec3(1.0), 0.5);
 
-        fragColor = vec4(col, 1.0);
+        fragColor = vec4(newState, trail, col.b, 1.0);
     }
 )";
 
@@ -4794,6 +4852,1672 @@ inline const char* sourceInfiniteZoom = R"(
         float hue = u_src_color_shift + u_time * 0.05;
         vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
         fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
+// ============================================================
+// FEEDBACK EFFECT — persistent frame-to-frame feedback with transform
+// ============================================================
+inline const char* feedback = R"(
+    #version 410 core
+
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+
+    uniform sampler2D u_texture;      // Current frame
+    uniform sampler2D u_feedbackTex;  // Previous frame (persistent)
+    uniform float u_time;
+    uniform vec2 u_resolution;
+
+    uniform float u_feedback_amount;   // 0=none, 1=full feedback
+    uniform float u_feedback_zoom;     // 0.5=zoom in, 0.5=center (no zoom)
+    uniform float u_feedback_rotation; // 0.5=no rotation
+    uniform float u_feedback_x_offset; // 0.5=no offset
+    uniform float u_feedback_y_offset; // 0.5=no offset
+    uniform float u_feedback_decay;    // 0=fast decay, 1=slow decay (long trails)
+    uniform float u_feedback_hue_shift;// 0=none, hue rotation per frame
+    uniform float u_feedback_saturation;// 0.5=unchanged
+
+    vec3 rgb2hsv(vec3 c) {
+        vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+        vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+        vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+        float d = q.x - min(q.w, q.y);
+        float e = 1.0e-10;
+        return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+    }
+
+    vec3 hsv2rgb(vec3 c) {
+        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    void main()
+    {
+        float amount = u_feedback_amount;
+        float zoom = 1.0 + (u_feedback_zoom - 0.5) * 0.1;  // 0.95 to 1.05
+        float rot = (u_feedback_rotation - 0.5) * 0.1;       // ±0.05 radians/frame
+        float ox = (u_feedback_x_offset - 0.5) * 0.02;       // ±0.01 per frame
+        float oy = (u_feedback_y_offset - 0.5) * 0.02;
+        float decay = 0.8 + u_feedback_decay * 0.19;          // 0.8 to 0.99
+
+        // Transform UV for feedback read
+        vec2 uv = v_texCoord - 0.5;
+        float c = cos(rot), s = sin(rot);
+        uv = mat2(c, -s, s, c) * uv;  // rotate
+        uv /= zoom;                    // zoom
+        uv += 0.5 + vec2(ox, oy);      // offset
+
+        vec4 current = texture(u_texture, v_texCoord);
+        vec4 prev = texture(u_feedbackTex, uv);
+
+        // Apply decay to previous frame
+        prev.rgb *= decay;
+
+        // Hue shift on feedback
+        float hueShift = u_feedback_hue_shift * 0.02;
+        if (hueShift > 0.001) {
+            vec3 hsv = rgb2hsv(prev.rgb);
+            hsv.x = fract(hsv.x + hueShift);
+            // Saturation adjust
+            hsv.y *= 0.5 + u_feedback_saturation;
+            prev.rgb = hsv2rgb(hsv);
+        }
+
+        // Blend: current over feedback
+        fragColor = mix(prev, current, 1.0 - amount);
+        fragColor.a = 1.0;
+    }
+)";
+
+// ============================================================
+// DIRECTIONAL FEEDBACK — feeds back along edge/motion direction
+// ============================================================
+inline const char* directionalFeedback = R"(
+    #version 410 core
+
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+
+    uniform sampler2D u_texture;
+    uniform sampler2D u_feedbackTex;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+
+    uniform float u_dfb_amount;    // feedback strength
+    uniform float u_dfb_speed;     // displacement speed
+    uniform float u_dfb_direction; // 0=outward, 0.5=along edges, 1=inward
+    uniform float u_dfb_spread;    // displacement distance
+    uniform float u_dfb_decay;     // trail persistence
+    uniform float u_dfb_hue_shift; // color shift per frame
+
+    vec3 rgb2hsv(vec3 c) {
+        vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+        vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+        vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+        float d = q.x - min(q.w, q.y);
+        float e = 1.0e-10;
+        return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+    }
+
+    vec3 hsv2rgb(vec3 c) {
+        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    void main()
+    {
+        vec2 px = 1.0 / u_resolution;
+        float amount = u_dfb_amount;
+        float speed = u_dfb_speed * 0.02;
+        float spread = u_dfb_spread * 0.03;
+        float decay = 0.8 + u_dfb_decay * 0.19;
+        float dirMode = u_dfb_direction;
+
+        // Compute gradient (edge direction) from current frame
+        vec4 left  = texture(u_texture, v_texCoord + vec2(-px.x, 0.0));
+        vec4 right = texture(u_texture, v_texCoord + vec2( px.x, 0.0));
+        vec4 up    = texture(u_texture, v_texCoord + vec2(0.0,  px.y));
+        vec4 down  = texture(u_texture, v_texCoord + vec2(0.0, -px.y));
+
+        // Sobel-like gradient
+        float gx = dot(right.rgb - left.rgb, vec3(0.333));
+        float gy = dot(up.rgb - down.rgb, vec3(0.333));
+        vec2 grad = vec2(gx, gy);
+        float gradLen = length(grad);
+
+        // Direction modes:
+        // 0.0 = outward from center (point zoom style but following brightness)
+        // 0.5 = along edges (perpendicular to gradient = tangent)
+        // 1.0 = inward toward center
+        vec2 outward = normalize(v_texCoord - 0.5 + 0.001);
+        vec2 tangent = vec2(-grad.y, grad.x); // perpendicular to gradient
+        vec2 inward = -outward;
+
+        vec2 dir;
+        if (dirMode < 0.33)
+            dir = mix(outward, tangent, dirMode * 3.0);
+        else if (dirMode < 0.67)
+            dir = mix(tangent, inward, (dirMode - 0.33) * 3.0);
+        else
+            dir = inward;
+
+        // Scale displacement by edge strength
+        float edgeScale = mix(1.0, gradLen * 5.0, 0.5);
+        vec2 offset = dir * spread * edgeScale;
+
+        // Read feedback with directional displacement
+        vec2 fbUV = v_texCoord - offset;
+        vec4 prev = texture(u_feedbackTex, fbUV) * decay;
+
+        // Hue shift
+        float hueShift = u_dfb_hue_shift * 0.02;
+        if (hueShift > 0.001) {
+            vec3 hsv = rgb2hsv(prev.rgb);
+            hsv.x = fract(hsv.x + hueShift);
+            prev.rgb = hsv2rgb(hsv);
+        }
+
+        vec4 current = texture(u_texture, v_texCoord);
+        fragColor = mix(prev, current, 1.0 - amount);
+        fragColor.a = 1.0;
+    }
+)";
+
+// ============================================================
+// SPIRAL TUNNEL SOURCE — hypnotic 3D spiral/tunnel
+// ============================================================
+inline const char* sourceSpiralTunnel = R"(
+    #version 410 core
+
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+
+    uniform float u_time;
+    uniform vec2 u_resolution;
+
+    uniform float u_src_speed;       // rotation/travel speed
+    uniform float u_src_arms;        // number of spiral arms
+    uniform float u_src_depth;       // tunnel depth (perspective)
+    uniform float u_src_twist;       // spiral twist amount
+    uniform float u_src_color_shift; // tint color
+
+    uniform float u_rms;
+    uniform float u_beatPhase;
+
+    void main()
+    {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+
+        float speed = 0.3 + u_src_speed * 2.0;
+        int arms = int(u_src_arms * 12.0) + 2;
+        float tubeR = 0.3 + u_src_depth * 0.7; // tube radius
+        float twist = 1.0 + u_src_twist * 10.0;
+
+        // Camera travels along the inside of a torus tube
+        // We transform the view ray into torus-local coordinates
+        float camAngle = u_time * speed * 0.3;
+        float roll = u_time * speed * 0.2;
+
+        // For each pixel, cast ray from camera center
+        float cr = cos(roll), sr = sin(roll);
+        vec2 ruv = vec2(uv.x * cr - uv.y * sr, uv.x * sr + uv.y * cr);
+
+        // Map screen position to angle around tube cross-section
+        // and distance along the tube
+        float r = length(ruv);
+        float screenAngle = atan(ruv.y, ruv.x);
+
+        // Create the tunnel effect: 1/r maps radial distance to depth
+        float depth = tubeR / (r + 0.001);
+
+        // Torus surface coordinates
+        // majorAngle = how far along the ring we're looking
+        float majorAngle = camAngle + depth * 0.5;
+        // minorAngle = where on the tube cross-section
+        float minorAngle = screenAngle;
+
+        // Spiral stripe pattern wrapping around the torus
+        float stripe = sin((majorAngle * float(arms) + minorAngle * twist));
+        float pattern = smoothstep(-0.05, 0.05, stripe);
+
+        // Depth shading (darker further away)
+        float shade = 1.0 / (1.0 + depth * 0.08);
+
+        // Tube edge darkening (center is brighter = looking deeper)
+        float edgeFade = smoothstep(0.0, 0.15, r) * (1.0 - smoothstep(1.2, 2.0, r));
+
+        // Color
+        vec3 col1 = vec3(1.0);
+        vec3 col2 = vec3(0.0);
+
+        float hue = u_src_color_shift;
+        if (hue > 0.01) {
+            col1 = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        }
+
+        vec3 col = mix(col2, col1, pattern) * shade * edgeFade;
+        col *= 0.8 + u_rms * 0.4;
+
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// ============================================================
+// WIREFRAME 3D SOURCE — parametric 3D wireframe meshes
+// ============================================================
+inline const char* sourceWireframe3D = R"(
+    #version 410 core
+
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+
+    uniform float u_time;
+    uniform vec2 u_resolution;
+
+    uniform float u_src_shape;       // 0=sphere, ~0.14=torus, ~0.29=cube, ~0.43=cylinder, ~0.57=cone, ~0.71=icosahedron, ~0.86=wolf
+    uniform float u_src_density;     // mesh density (grid lines)
+    uniform float u_src_rotation_x;  // rotation speed X
+    uniform float u_src_rotation_y;  // rotation speed Y
+    uniform float u_src_rotation_z;  // rotation speed Z
+    uniform float u_src_thickness;   // line thickness
+    uniform float u_src_perspective; // camera distance/FOV
+    uniform float u_src_glow;        // line glow amount
+    uniform float u_src_color_shift; // color
+
+    // Audio
+    uniform float u_rms;
+    uniform float u_beatPhase;
+
+    mat3 rotateX(float a) {
+        float c = cos(a), s = sin(a);
+        return mat3(1,0,0, 0,c,-s, 0,s,c);
+    }
+    mat3 rotateY(float a) {
+        float c = cos(a), s = sin(a);
+        return mat3(c,0,s, 0,1,0, -s,0,c);
+    }
+    mat3 rotateZ(float a) {
+        float c = cos(a), s = sin(a);
+        return mat3(c,-s,0, s,c,0, 0,0,1);
+    }
+
+    // Project 3D point to 2D screen
+    vec2 project(vec3 p, float camDist) {
+        float perspective = camDist / (camDist + p.z);
+        return p.xy * perspective;
+    }
+
+    // Distance from point to line segment in 2D
+    float lineDist(vec2 p, vec2 a, vec2 b) {
+        vec2 pa = p - a, ba = b - a;
+        float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+        return length(pa - ba * h);
+    }
+
+    // Helper: draw triangle edges and return min distance
+    float triEdges(vec2 uv, vec3 a, vec3 b, vec3 c, float camDist, float prev) {
+        prev = min(prev, lineDist(uv, project(a, camDist), project(b, camDist)));
+        prev = min(prev, lineDist(uv, project(b, camDist), project(c, camDist)));
+        prev = min(prev, lineDist(uv, project(c, camDist), project(a, camDist)));
+        return prev;
+    }
+
+    void main()
+    {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+
+        float t = u_time;
+        float rxSpeed = (u_src_rotation_x - 0.5) * 4.0;
+        float rySpeed = (u_src_rotation_y - 0.5) * 4.0;
+        float rzSpeed = (u_src_rotation_z - 0.5) * 4.0;
+        mat3 rot = rotateX(t * rxSpeed) * rotateY(t * rySpeed) * rotateZ(t * rzSpeed);
+
+        float camDist = 2.0 + u_src_perspective * 6.0;
+        int gridN = int(u_src_density * 20.0) + 4;
+        float thick = 0.002 + u_src_thickness * 0.015;
+        float glowSize = thick * (1.0 + u_src_glow * 8.0);
+
+        int shape = int(u_src_shape * 6.99);
+
+        float minDist = 100.0;
+
+        // === SPHERE (shape 0) ===
+        if (shape == 0) {
+            float r = 0.6;
+            // Latitude lines
+            for (int i = 0; i <= gridN; i++) {
+                float phi = 3.14159 * float(i) / float(gridN);
+                for (int j = 0; j < gridN * 2; j++) {
+                    float t1 = 6.28318 * float(j) / float(gridN * 2);
+                    float t2 = 6.28318 * float(j + 1) / float(gridN * 2);
+                    vec3 a = rot * vec3(r*sin(phi)*cos(t1), r*cos(phi), r*sin(phi)*sin(t1));
+                    vec3 b = rot * vec3(r*sin(phi)*cos(t2), r*cos(phi), r*sin(phi)*sin(t2));
+                    float d = lineDist(uv, project(a, camDist), project(b, camDist));
+                    minDist = min(minDist, d);
+                }
+            }
+            // Longitude lines
+            for (int j = 0; j < gridN; j++) {
+                float theta = 6.28318 * float(j) / float(gridN);
+                for (int i = 0; i < gridN; i++) {
+                    float p1 = 3.14159 * float(i) / float(gridN);
+                    float p2 = 3.14159 * float(i + 1) / float(gridN);
+                    vec3 a = rot * vec3(r*sin(p1)*cos(theta), r*cos(p1), r*sin(p1)*sin(theta));
+                    vec3 b = rot * vec3(r*sin(p2)*cos(theta), r*cos(p2), r*sin(p2)*sin(theta));
+                    float d = lineDist(uv, project(a, camDist), project(b, camDist));
+                    minDist = min(minDist, d);
+                }
+            }
+        }
+        // === TORUS (shape 1) ===
+        else if (shape == 1) {
+            float R = 0.5, rr = 0.2;
+            for (int i = 0; i < gridN; i++) {
+                float u1 = 6.28318 * float(i) / float(gridN);
+                float u2 = 6.28318 * float(i + 1) / float(gridN);
+                for (int j = 0; j < gridN; j++) {
+                    float v1 = 6.28318 * float(j) / float(gridN);
+                    float v2 = 6.28318 * float(j + 1) / float(gridN);
+                    // Ring segments
+                    vec3 a = rot * vec3((R+rr*cos(v1))*cos(u1), rr*sin(v1), (R+rr*cos(v1))*sin(u1));
+                    vec3 b = rot * vec3((R+rr*cos(v1))*cos(u2), rr*sin(v1), (R+rr*cos(v1))*sin(u2));
+                    minDist = min(minDist, lineDist(uv, project(a, camDist), project(b, camDist)));
+                    // Tube segments
+                    vec3 c = rot * vec3((R+rr*cos(v2))*cos(u1), rr*sin(v2), (R+rr*cos(v2))*sin(u1));
+                    minDist = min(minDist, lineDist(uv, project(a, camDist), project(c, camDist)));
+                }
+            }
+        }
+        // === CUBE (shape 2) ===
+        else if (shape == 2) {
+            float s = 0.5;
+            // 8 corners, 12 edges drawn explicitly
+            vec3 c0=vec3(-s,-s,-s), c1=vec3(s,-s,-s), c2=vec3(s,s,-s), c3=vec3(-s,s,-s);
+            vec3 c4=vec3(-s,-s,s),  c5=vec3(s,-s,s),  c6=vec3(s,s,s),  c7=vec3(-s,s,s);
+            // Bottom face
+            minDist = min(minDist, lineDist(uv, project(rot*c0,camDist), project(rot*c1,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c1,camDist), project(rot*c2,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c2,camDist), project(rot*c3,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c3,camDist), project(rot*c0,camDist)));
+            // Top face
+            minDist = min(minDist, lineDist(uv, project(rot*c4,camDist), project(rot*c5,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c5,camDist), project(rot*c6,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c6,camDist), project(rot*c7,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c7,camDist), project(rot*c4,camDist)));
+            // Verticals
+            minDist = min(minDist, lineDist(uv, project(rot*c0,camDist), project(rot*c4,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c1,camDist), project(rot*c5,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c2,camDist), project(rot*c6,camDist)));
+            minDist = min(minDist, lineDist(uv, project(rot*c3,camDist), project(rot*c7,camDist)));
+            // Grid lines on faces
+            int gN = max(2, gridN / 3);
+            for (int i = 1; i < gN; i++) {
+                float f = -s + 2.0*s*float(i)/float(gN);
+                vec3 a1 = rot*vec3(-s,f,-s), b1 = rot*vec3(s,f,-s);
+                vec3 a2 = rot*vec3(-s,f,s),  b2 = rot*vec3(s,f,s);
+                minDist = min(minDist, lineDist(uv, project(a1,camDist), project(b1,camDist)));
+                minDist = min(minDist, lineDist(uv, project(a2,camDist), project(b2,camDist)));
+                vec3 a3 = rot*vec3(f,-s,-s), b3 = rot*vec3(f,s,-s);
+                vec3 a4 = rot*vec3(f,-s,s),  b4 = rot*vec3(f,s,s);
+                minDist = min(minDist, lineDist(uv, project(a3,camDist), project(b3,camDist)));
+                minDist = min(minDist, lineDist(uv, project(a4,camDist), project(b4,camDist)));
+            }
+        }
+        // === CYLINDER (shape 3) ===
+        else if (shape == 3) {
+            float r = 0.4, h = 0.7;
+            for (int i = 0; i < gridN; i++) {
+                float t1 = 6.28318 * float(i) / float(gridN);
+                float t2 = 6.28318 * float(i + 1) / float(gridN);
+                // Top circle
+                vec3 a = rot * vec3(r*cos(t1), h, r*sin(t1));
+                vec3 b = rot * vec3(r*cos(t2), h, r*sin(t2));
+                minDist = min(minDist, lineDist(uv, project(a,camDist), project(b,camDist)));
+                // Bottom circle
+                vec3 c = rot * vec3(r*cos(t1), -h, r*sin(t1));
+                vec3 dd = rot * vec3(r*cos(t2), -h, r*sin(t2));
+                minDist = min(minDist, lineDist(uv, project(c,camDist), project(dd,camDist)));
+                // Vertical line
+                minDist = min(minDist, lineDist(uv, project(a,camDist), project(c,camDist)));
+            }
+            // Horizontal rings
+            for (int ring = 1; ring < gridN/2; ring++) {
+                float y = -h + 2.0*h*float(ring)/float(gridN/2);
+                for (int i = 0; i < gridN; i++) {
+                    float t1 = 6.28318 * float(i) / float(gridN);
+                    float t2 = 6.28318 * float(i + 1) / float(gridN);
+                    vec3 a = rot * vec3(r*cos(t1), y, r*sin(t1));
+                    vec3 b = rot * vec3(r*cos(t2), y, r*sin(t2));
+                    minDist = min(minDist, lineDist(uv, project(a,camDist), project(b,camDist)));
+                }
+            }
+        }
+        // === CONE (shape 4) ===
+        else if (shape == 4) {
+            float r = 0.5, h = 0.8;
+            vec3 tip = rot * vec3(0.0, h, 0.0);
+            for (int i = 0; i < gridN; i++) {
+                float t1 = 6.28318 * float(i) / float(gridN);
+                float t2 = 6.28318 * float(i + 1) / float(gridN);
+                // Base circle
+                vec3 a = rot * vec3(r*cos(t1), -h*0.5, r*sin(t1));
+                vec3 b = rot * vec3(r*cos(t2), -h*0.5, r*sin(t2));
+                minDist = min(minDist, lineDist(uv, project(a,camDist), project(b,camDist)));
+                // Slant line to tip
+                minDist = min(minDist, lineDist(uv, project(a,camDist), project(tip,camDist)));
+            }
+        }
+        // === ICOSAHEDRON (shape 5) ===
+        else if (shape == 5) {
+            float p = (1.0 + sqrt(5.0)) / 2.0;
+            float sc = 0.35;
+            // 12 vertices
+            vec3 v0=sc*vec3(-1,p,0),  v1=sc*vec3(1,p,0),  v2=sc*vec3(-1,-p,0), v3=sc*vec3(1,-p,0);
+            vec3 v4=sc*vec3(0,-1,p),  v5=sc*vec3(0,1,p),  v6=sc*vec3(0,-1,-p), v7=sc*vec3(0,1,-p);
+            vec3 v8=sc*vec3(p,0,-1),  v9=sc*vec3(p,0,1),  v10=sc*vec3(-p,0,-1),v11=sc*vec3(-p,0,1);
+            minDist=triEdges(uv,rot*v0,rot*v11,rot*v5,camDist,minDist);
+            minDist=triEdges(uv,rot*v0,rot*v5,rot*v1,camDist,minDist);
+            minDist=triEdges(uv,rot*v0,rot*v1,rot*v7,camDist,minDist);
+            minDist=triEdges(uv,rot*v0,rot*v7,rot*v10,camDist,minDist);
+            minDist=triEdges(uv,rot*v0,rot*v10,rot*v11,camDist,minDist);
+            minDist=triEdges(uv,rot*v1,rot*v5,rot*v9,camDist,minDist);
+            minDist=triEdges(uv,rot*v5,rot*v11,rot*v4,camDist,minDist);
+            minDist=triEdges(uv,rot*v11,rot*v10,rot*v2,camDist,minDist);
+            minDist=triEdges(uv,rot*v10,rot*v7,rot*v6,camDist,minDist);
+            minDist=triEdges(uv,rot*v7,rot*v1,rot*v8,camDist,minDist);
+            minDist=triEdges(uv,rot*v3,rot*v9,rot*v4,camDist,minDist);
+            minDist=triEdges(uv,rot*v3,rot*v4,rot*v2,camDist,minDist);
+            minDist=triEdges(uv,rot*v3,rot*v2,rot*v6,camDist,minDist);
+            minDist=triEdges(uv,rot*v3,rot*v6,rot*v8,camDist,minDist);
+            minDist=triEdges(uv,rot*v3,rot*v8,rot*v9,camDist,minDist);
+            minDist=triEdges(uv,rot*v4,rot*v9,rot*v5,camDist,minDist);
+            minDist=triEdges(uv,rot*v2,rot*v4,rot*v11,camDist,minDist);
+            minDist=triEdges(uv,rot*v6,rot*v2,rot*v10,camDist,minDist);
+            minDist=triEdges(uv,rot*v8,rot*v6,rot*v7,camDist,minDist);
+            minDist=triEdges(uv,rot*v9,rot*v8,rot*v1,camDist,minDist);
+        }
+        // === WOLF (shape 6) — low-poly wolf head ===
+        else {
+            // Simplified low-poly wolf head: 24 vertices, 38 triangles
+            float ws = 0.55;
+            vec3 w[24];
+            // Muzzle tip
+            w[0] = ws*vec3(0.0, -0.1, 0.9);
+            // Nose bridge
+            w[1] = ws*vec3(-0.12, 0.05, 0.7);
+            w[2] = ws*vec3(0.12, 0.05, 0.7);
+            // Upper muzzle
+            w[3] = ws*vec3(-0.15, 0.12, 0.5);
+            w[4] = ws*vec3(0.15, 0.12, 0.5);
+            // Lower jaw
+            w[5] = ws*vec3(-0.1, -0.2, 0.6);
+            w[6] = ws*vec3(0.1, -0.2, 0.6);
+            // Cheeks
+            w[7] = ws*vec3(-0.35, 0.0, 0.3);
+            w[8] = ws*vec3(0.35, 0.0, 0.3);
+            // Eyes
+            w[9] = ws*vec3(-0.2, 0.2, 0.45);
+            w[10] = ws*vec3(0.2, 0.2, 0.45);
+            // Brow
+            w[11] = ws*vec3(-0.25, 0.35, 0.35);
+            w[12] = ws*vec3(0.25, 0.35, 0.35);
+            // Forehead
+            w[13] = ws*vec3(0.0, 0.45, 0.3);
+            // Ear tips
+            w[14] = ws*vec3(-0.35, 0.7, 0.1);
+            w[15] = ws*vec3(0.35, 0.7, 0.1);
+            // Ear bases
+            w[16] = ws*vec3(-0.3, 0.4, 0.2);
+            w[17] = ws*vec3(0.3, 0.4, 0.2);
+            // Ear inner
+            w[18] = ws*vec3(-0.2, 0.5, 0.25);
+            w[19] = ws*vec3(0.2, 0.5, 0.25);
+            // Skull back
+            w[20] = ws*vec3(-0.3, 0.2, -0.1);
+            w[21] = ws*vec3(0.3, 0.2, -0.1);
+            // Neck
+            w[22] = ws*vec3(-0.2, -0.15, 0.0);
+            w[23] = ws*vec3(0.2, -0.15, 0.0);
+
+            // Muzzle
+            minDist=triEdges(uv,rot*w[0],rot*w[1],rot*w[2],camDist,minDist);
+            minDist=triEdges(uv,rot*w[0],rot*w[5],rot*w[1],camDist,minDist);
+            minDist=triEdges(uv,rot*w[0],rot*w[6],rot*w[2],camDist,minDist);
+            minDist=triEdges(uv,rot*w[0],rot*w[5],rot*w[6],camDist,minDist);
+            minDist=triEdges(uv,rot*w[1],rot*w[3],rot*w[9],camDist,minDist);
+            minDist=triEdges(uv,rot*w[2],rot*w[4],rot*w[10],camDist,minDist);
+            minDist=triEdges(uv,rot*w[1],rot*w[5],rot*w[7],camDist,minDist);
+            minDist=triEdges(uv,rot*w[2],rot*w[6],rot*w[8],camDist,minDist);
+            // Face
+            minDist=triEdges(uv,rot*w[3],rot*w[9],rot*w[11],camDist,minDist);
+            minDist=triEdges(uv,rot*w[4],rot*w[10],rot*w[12],camDist,minDist);
+            minDist=triEdges(uv,rot*w[9],rot*w[11],rot*w[13],camDist,minDist);
+            minDist=triEdges(uv,rot*w[10],rot*w[12],rot*w[13],camDist,minDist);
+            minDist=triEdges(uv,rot*w[11],rot*w[12],rot*w[13],camDist,minDist);
+            minDist=triEdges(uv,rot*w[3],rot*w[7],rot*w[9],camDist,minDist);
+            minDist=triEdges(uv,rot*w[4],rot*w[8],rot*w[10],camDist,minDist);
+            minDist=triEdges(uv,rot*w[7],rot*w[9],rot*w[11],camDist,minDist);
+            minDist=triEdges(uv,rot*w[8],rot*w[10],rot*w[12],camDist,minDist);
+            // Ears
+            minDist=triEdges(uv,rot*w[11],rot*w[16],rot*w[14],camDist,minDist);
+            minDist=triEdges(uv,rot*w[16],rot*w[14],rot*w[18],camDist,minDist);
+            minDist=triEdges(uv,rot*w[11],rot*w[18],rot*w[13],camDist,minDist);
+            minDist=triEdges(uv,rot*w[12],rot*w[17],rot*w[15],camDist,minDist);
+            minDist=triEdges(uv,rot*w[17],rot*w[15],rot*w[19],camDist,minDist);
+            minDist=triEdges(uv,rot*w[12],rot*w[19],rot*w[13],camDist,minDist);
+            // Skull
+            minDist=triEdges(uv,rot*w[11],rot*w[16],rot*w[20],camDist,minDist);
+            minDist=triEdges(uv,rot*w[12],rot*w[17],rot*w[21],camDist,minDist);
+            minDist=triEdges(uv,rot*w[16],rot*w[20],rot*w[22],camDist,minDist);
+            minDist=triEdges(uv,rot*w[17],rot*w[21],rot*w[23],camDist,minDist);
+            minDist=triEdges(uv,rot*w[7],rot*w[20],rot*w[22],camDist,minDist);
+            minDist=triEdges(uv,rot*w[8],rot*w[21],rot*w[23],camDist,minDist);
+            minDist=triEdges(uv,rot*w[5],rot*w[7],rot*w[22],camDist,minDist);
+            minDist=triEdges(uv,rot*w[6],rot*w[8],rot*w[23],camDist,minDist);
+            minDist=triEdges(uv,rot*w[5],rot*w[22],rot*w[23],camDist,minDist);
+            minDist=triEdges(uv,rot*w[5],rot*w[6],rot*w[23],camDist,minDist);
+            // Jaw bottom
+            minDist=triEdges(uv,rot*w[7],rot*w[8],rot*w[20],camDist,minDist);
+            minDist=triEdges(uv,rot*w[20],rot*w[21],rot*w[8],camDist,minDist);
+        }
+
+        // Anti-aliased line rendering with glow
+        float line = smoothstep(thick, 0.0, minDist);
+        float glow = smoothstep(glowSize, 0.0, minDist) * 0.4;
+        float mask = line + glow;
+
+        // Color
+        float hue = u_src_color_shift;
+        vec3 col;
+        if (hue < 0.01)
+            col = vec3(1.0); // white wireframe
+        else
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+
+        // Audio reactivity
+        col *= 0.8 + u_rms * 0.4;
+
+        fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
+// ============================================================
+// LINE GENERATOR SOURCE — pattern generator with built-in feedback
+// ============================================================
+inline const char* sourceLineGenerator = R"(
+    #version 410 core
+
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+
+    uniform sampler2D u_feedbackTex;  // Previous frame for feedback
+    uniform float u_time;
+    uniform vec2 u_resolution;
+
+    uniform float u_src_pattern;     // 0=horiz, 0.17=vert, 0.33=diag, 0.5=grid, 0.67=radial, 0.83=random
+    uniform float u_src_count;       // number of lines
+    uniform float u_src_thickness;   // line width
+    uniform float u_src_speed;       // animation speed
+    uniform float u_src_feedback;    // feedback amount (0=none, 1=full)
+    uniform float u_src_fb_zoom;     // feedback zoom (0.5=none)
+    uniform float u_src_fb_rotation; // feedback rotation (0.5=none)
+    uniform float u_src_fb_decay;    // feedback decay speed
+    uniform float u_src_color_shift; // color
+
+    // Audio
+    uniform float u_rms;
+    uniform float u_beatPhase;
+
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    void main()
+    {
+        vec2 uv = v_texCoord;
+        int pattern = int(u_src_pattern * 5.99);
+        int count = int(u_src_count * 30.0) + 2;
+        float thick = 0.002 + u_src_thickness * 0.04;
+        float speed = u_src_speed * 3.0;
+        float t = u_time * speed;
+
+        float mask = 0.0;
+
+        if (pattern == 0) {
+            // Horizontal lines
+            for (int i = 0; i < count; i++) {
+                float y = float(i + 1) / float(count + 1);
+                y += sin(t + float(i) * 1.7) * 0.05;
+                float d = abs(uv.y - y);
+                mask += smoothstep(thick, 0.0, d);
+            }
+        }
+        else if (pattern == 1) {
+            // Vertical lines
+            for (int i = 0; i < count; i++) {
+                float x = float(i + 1) / float(count + 1);
+                x += sin(t + float(i) * 2.3) * 0.05;
+                float d = abs(uv.x - x);
+                mask += smoothstep(thick, 0.0, d);
+            }
+        }
+        else if (pattern == 2) {
+            // Diagonal lines
+            for (int i = 0; i < count; i++) {
+                float offset = float(i) / float(count) + t * 0.1;
+                float d = abs(fract(uv.x + uv.y + offset) - 0.5);
+                mask += smoothstep(thick * 1.5, 0.0, d);
+            }
+        }
+        else if (pattern == 3) {
+            // Grid
+            int halfCount = max(2, count / 2);
+            for (int i = 0; i < halfCount; i++) {
+                float y = float(i + 1) / float(halfCount + 1);
+                float x = float(i + 1) / float(halfCount + 1);
+                y += sin(t * 0.5 + float(i)) * 0.02;
+                x += cos(t * 0.5 + float(i)) * 0.02;
+                mask += smoothstep(thick, 0.0, abs(uv.y - y));
+                mask += smoothstep(thick, 0.0, abs(uv.x - x));
+            }
+        }
+        else if (pattern == 4) {
+            // Radial lines from center
+            vec2 p = uv - 0.5;
+            float angle = atan(p.y, p.x);
+            for (int i = 0; i < count; i++) {
+                float targetAngle = 6.28318 * float(i) / float(count) + t * 0.2;
+                float d = abs(sin((angle - targetAngle) * 0.5));
+                mask += smoothstep(thick * 2.0, 0.0, d) * smoothstep(0.0, 0.1, length(p));
+            }
+        }
+        else {
+            // Random / scattered
+            for (int i = 0; i < min(count, 20); i++) {
+                float fi = float(i);
+                float x1 = hash(vec2(fi, 0.0));
+                float y1 = hash(vec2(fi, 1.0));
+                float x2 = hash(vec2(fi, 2.0));
+                float y2 = hash(vec2(fi, 3.0));
+                // Animate endpoints
+                x1 += sin(t * 0.5 + fi * 1.3) * 0.15;
+                y1 += cos(t * 0.7 + fi * 0.9) * 0.15;
+                x2 += sin(t * 0.6 + fi * 2.1) * 0.15;
+                y2 += cos(t * 0.4 + fi * 1.7) * 0.15;
+                // Line distance
+                vec2 a = vec2(x1, y1), b = vec2(x2, y2);
+                vec2 pa = uv - a, ba = b - a;
+                float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+                float d = length(pa - ba * h);
+                mask += smoothstep(thick, 0.0, d);
+            }
+        }
+
+        mask = clamp(mask, 0.0, 1.0);
+
+        // Color
+        float hue = u_src_color_shift;
+        vec3 col;
+        if (hue < 0.01)
+            col = vec3(1.0);
+        else
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+
+        vec3 lineColor = col * mask;
+
+        // === Built-in feedback ===
+        float fbAmount = u_src_feedback;
+        if (fbAmount > 0.01) {
+            float fbZoom = 1.0 + (u_src_fb_zoom - 0.5) * 0.08;
+            float fbRot = (u_src_fb_rotation - 0.5) * 0.08;
+            float fbDecay = 0.8 + u_src_fb_decay * 0.19;
+
+            vec2 fbUV = uv - 0.5;
+            float c = cos(fbRot), s = sin(fbRot);
+            fbUV = mat2(c, -s, s, c) * fbUV;
+            fbUV /= fbZoom;
+            fbUV += 0.5;
+
+            vec3 prev = texture(u_feedbackTex, fbUV).rgb * fbDecay;
+            lineColor = max(lineColor, prev * fbAmount);
+        }
+
+        // Audio reactivity
+        lineColor *= 0.8 + u_rms * 0.4;
+
+        fragColor = vec4(lineColor, 1.0);
+    }
+)";
+
+// ============================================================
+// LINE SOURCES — 10 algorithmic line generators
+// ============================================================
+
+// 1. Zigzag Lines — angular zigzag patterns
+inline const char* sourceZigzagLines = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_count;
+    uniform float u_src_amplitude;
+    uniform float u_src_speed;
+    uniform float u_src_thickness;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        int n = int(u_src_count * 14.0) + 2;
+        float thick = 0.002 + u_src_thickness * 0.03;
+        float amp = u_src_amplitude * 0.3;
+        float t = u_time * (0.5 + u_src_speed * 2.0);
+        float mask = 0.0;
+        for (int i = 0; i < n; i++) {
+            float y = float(i + 1) / float(n + 1);
+            float seg = floor(v_texCoord.x * 8.0 + t);
+            float frac = fract(v_texCoord.x * 8.0 + t);
+            float dir = mod(seg, 2.0) * 2.0 - 1.0;
+            float zigY = y + dir * frac * amp - dir * 0.5 * amp;
+            mask += smoothstep(thick, 0.0, abs(v_texCoord.y - zigY));
+        }
+        mask = clamp(mask, 0.0, 1.0);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 2. Star Burst — lines radiating from center with rotation
+inline const char* sourceStarBurst = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_rays;
+    uniform float u_src_thickness;
+    uniform float u_src_speed;
+    uniform float u_src_taper;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 p = v_texCoord - 0.5;
+        float aspect = u_resolution.x / u_resolution.y;
+        p.x *= aspect;
+        int nRays = int(u_src_rays * 20.0) + 3;
+        float thick = 0.005 + u_src_thickness * 0.04;
+        float angle = atan(p.y, p.x) + u_time * (u_src_speed - 0.5) * 2.0;
+        float r = length(p);
+        float segAngle = 6.28318 / float(nRays);
+        float a = mod(angle + 3.14159, segAngle) - segAngle * 0.5;
+        float d = abs(sin(a)) * r;
+        float taper = 1.0 - r * u_src_taper * 2.0;
+        float mask = smoothstep(thick * taper, 0.0, d) * step(0.0, taper);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 3. Polygon Lines — rotating polygon outlines
+inline const char* sourcePolygonLines = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_sides;
+    uniform float u_src_size;
+    uniform float u_src_thickness;
+    uniform float u_src_layers;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    float sdPolygon(vec2 p, int n, float r) {
+        float an = 6.28318 / float(n);
+        float a = atan(p.y, p.x) + an * 0.5;
+        a = mod(a, an) - an * 0.5;
+        return length(p) * cos(a) - r * cos(an * 0.5);
+    }
+    void main() {
+        vec2 p = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        p.x *= aspect;
+        int sides = int(u_src_sides * 7.0) + 3;
+        float thick = 0.005 + u_src_thickness * 0.03;
+        int nLayers = int(u_src_layers * 6.0) + 1;
+        float rot = u_time * (u_src_speed - 0.5) * 3.0;
+        float mask = 0.0;
+        for (int i = 0; i < nLayers; i++) {
+            float sz = (0.2 + u_src_size * 0.5) * (1.0 - float(i) * 0.15);
+            float r = rot + float(i) * 0.3;
+            float c = cos(r), s = sin(r);
+            vec2 rp = vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+            float d = abs(sdPolygon(rp, sides, sz));
+            mask += smoothstep(thick, 0.0, d);
+        }
+        mask = clamp(mask, 0.0, 1.0);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 4. Waveform Lines — multiple sine/saw/square wave patterns
+inline const char* sourceWaveformLines = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_waveform;
+    uniform float u_src_freq;
+    uniform float u_src_amplitude;
+    uniform float u_src_count;
+    uniform float u_src_thickness;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        int n = int(u_src_count * 8.0) + 1;
+        float thick = 0.002 + u_src_thickness * 0.03;
+        float freq = 1.0 + u_src_freq * 10.0;
+        float amp = 0.05 + u_src_amplitude * 0.3;
+        float t = u_time * (0.5 + u_src_speed * 3.0);
+        int waveType = int(u_src_waveform * 3.99);
+        float mask = 0.0;
+        for (int i = 0; i < n; i++) {
+            float y = float(i + 1) / float(n + 1);
+            float phase = v_texCoord.x * freq + t + float(i) * 1.5;
+            float wave = 0.0;
+            if (waveType == 0) wave = sin(phase);
+            else if (waveType == 1) wave = fract(phase / 6.28318) * 2.0 - 1.0;
+            else if (waveType == 2) wave = step(0.0, sin(phase)) * 2.0 - 1.0;
+            else wave = sin(phase) + sin(phase * 2.0) * 0.5 + sin(phase * 3.0) * 0.33;
+            float wy = y + wave * amp;
+            mask += smoothstep(thick, 0.0, abs(v_texCoord.y - wy));
+        }
+        mask = clamp(mask, 0.0, 1.0);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 5. Lissajous Lines — parametric curves
+inline const char* sourceLissajous = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_ratio_x;
+    uniform float u_src_ratio_y;
+    uniform float u_src_phase;
+    uniform float u_src_thickness;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float rx = float(int(u_src_ratio_x * 7.0) + 1);
+        float ry = float(int(u_src_ratio_y * 7.0) + 1);
+        float ph = u_src_phase * 6.28318 + u_time * u_src_speed * 0.5;
+        float thick = 0.005 + u_src_thickness * 0.03;
+        float minDist = 100.0;
+        for (int i = 0; i < 200; i++) {
+            float t = float(i) / 200.0 * 6.28318;
+            vec2 p = vec2(sin(rx * t + ph), sin(ry * t)) * 0.7;
+            minDist = min(minDist, length(uv - p));
+        }
+        float mask = smoothstep(thick, 0.0, minDist);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 6. Spirograph Lines — epitrochoid/hypotrochoid curves
+inline const char* sourceSpirograph = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_inner;
+    uniform float u_src_offset;
+    uniform float u_src_thickness;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float R = 0.6;
+        float r = 0.1 + u_src_inner * 0.4;
+        float d = 0.1 + u_src_offset * 0.5;
+        float thick = 0.004 + u_src_thickness * 0.02;
+        float phase = u_time * u_src_speed * 0.3;
+        float minDist = 100.0;
+        for (int i = 0; i < 300; i++) {
+            float t = float(i) / 300.0 * 6.28318 * 10.0 + phase;
+            float x = (R - r) * cos(t) + d * cos((R - r) / r * t);
+            float y = (R - r) * sin(t) - d * sin((R - r) / r * t);
+            minDist = min(minDist, length(uv - vec2(x, y)));
+        }
+        float mask = smoothstep(thick, 0.0, minDist);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 7. Angular Grid — angled intersecting lines forming geometric patterns
+inline const char* sourceAngularGrid = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_angle;
+    uniform float u_src_count;
+    uniform float u_src_thickness;
+    uniform float u_src_symmetry;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = v_texCoord;
+        int n = int(u_src_count * 14.0) + 3;
+        float thick = 0.002 + u_src_thickness * 0.02;
+        float baseAngle = u_src_angle * 3.14159;
+        int nDirs = int(u_src_symmetry * 5.0) + 2;
+        float t = u_time * u_src_speed * 0.3;
+        float mask = 0.0;
+        for (int d = 0; d < nDirs; d++) {
+            float angle = baseAngle + float(d) * 3.14159 / float(nDirs) + t;
+            float c = cos(angle), s = sin(angle);
+            float proj = uv.x * c + uv.y * s;
+            float lineVal = abs(fract(proj * float(n)) - 0.5);
+            mask += smoothstep(thick * float(n), 0.0, lineVal);
+        }
+        mask = clamp(mask, 0.0, 1.0);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 8. Fractal Lines — recursive branching tree pattern
+inline const char* sourceFractalTree = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_branches;
+    uniform float u_src_angle;
+    uniform float u_src_depth;
+    uniform float u_src_thickness;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    float lineSeg(vec2 p, vec2 a, vec2 b) {
+        vec2 pa = p - a, ba = b - a;
+        float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+        return length(pa - ba * h);
+    }
+    void main() {
+        vec2 uv = v_texCoord;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x = (uv.x - 0.5) * aspect + 0.5;
+        float thick = 0.003 + u_src_thickness * 0.02;
+        float brAngle = 0.2 + u_src_angle * 1.2;
+        int nBranch = int(u_src_branches * 2.0) + 2;
+        int maxDepth = int(u_src_depth * 5.0) + 2;
+        float t = u_time * u_src_speed * 0.5;
+        float sway = sin(t) * 0.15;
+        float minDist = 100.0;
+        // Trunk
+        vec2 base = vec2(0.5, 0.05);
+        vec2 top = vec2(0.5, 0.35);
+        minDist = min(minDist, lineSeg(uv, base, top));
+        // Level 1 branches
+        float len = 0.2;
+        for (int b = 0; b < nBranch; b++) {
+            float angle = brAngle * (float(b) - float(nBranch-1)*0.5) + sway;
+            vec2 end1 = top + vec2(sin(angle), cos(angle)) * len;
+            minDist = min(minDist, lineSeg(uv, top, end1));
+            // Level 2
+            if (maxDepth >= 2) {
+                float len2 = len * 0.65;
+                for (int b2 = 0; b2 < nBranch; b2++) {
+                    float a2 = angle + brAngle * 0.7 * (float(b2) - float(nBranch-1)*0.5) + sway * 0.5;
+                    vec2 end2 = end1 + vec2(sin(a2), cos(a2)) * len2;
+                    minDist = min(minDist, lineSeg(uv, end1, end2));
+                    // Level 3
+                    if (maxDepth >= 3) {
+                        float len3 = len2 * 0.55;
+                        for (int b3 = 0; b3 < min(nBranch, 3); b3++) {
+                            float a3 = a2 + brAngle * 0.5 * (float(b3) - 1.0) + sway * 0.3;
+                            vec2 end3 = end2 + vec2(sin(a3), cos(a3)) * len3;
+                            minDist = min(minDist, lineSeg(uv, end2, end3));
+                        }
+                    }
+                }
+            }
+        }
+        float mask = smoothstep(thick, 0.0, minDist);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 9. Laser Scan — sweeping beam lines
+inline const char* sourceLaserScan = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_beams;
+    uniform float u_src_speed;
+    uniform float u_src_thickness;
+    uniform float u_src_spread;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 p = v_texCoord - 0.5;
+        float aspect = u_resolution.x / u_resolution.y;
+        p.x *= aspect;
+        int n = int(u_src_beams * 8.0) + 1;
+        float thick = 0.003 + u_src_thickness * 0.025;
+        float t = u_time * (0.5 + u_src_speed * 3.0);
+        float spread = u_src_spread * 0.5;
+        float mask = 0.0;
+        for (int i = 0; i < n; i++) {
+            float fi = float(i);
+            float angle = t + fi * 6.28318 / float(n);
+            vec2 dir = vec2(cos(angle), sin(angle));
+            float scanY = sin(t * 2.0 + fi * 1.7) * spread;
+            // Fan beam from bottom center
+            vec2 origin = vec2(0.0, -0.4 + scanY);
+            vec2 toP = p - origin;
+            float proj = dot(toP, dir);
+            float perp = abs(toP.x * dir.y - toP.y * dir.x);
+            if (proj > 0.0) {
+                float fade = 1.0 / (1.0 + proj * 2.0);
+                mask += smoothstep(thick, 0.0, perp) * fade;
+            }
+        }
+        mask = clamp(mask, 0.0, 1.0);
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// 10. Moiré Lines — overlapping line grids creating interference patterns
+inline const char* sourceMoireLines = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_density;
+    uniform float u_src_angle_offset;
+    uniform float u_src_speed;
+    uniform float u_src_layers;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = v_texCoord;
+        int nLayers = int(u_src_layers * 4.0) + 2;
+        float freq = 10.0 + u_src_density * 60.0;
+        float t = u_time * u_src_speed * 0.5;
+        float angleOff = u_src_angle_offset * 1.0;
+        float val = 1.0;
+        for (int i = 0; i < nLayers; i++) {
+            float angle = float(i) * 3.14159 / float(nLayers) + t * (0.1 + float(i) * 0.05) + angleOff;
+            float c = cos(angle), s = sin(angle);
+            float proj = uv.x * c + uv.y * s;
+            float stripe = sin(proj * freq * 6.28318) * 0.5 + 0.5;
+            val *= stripe;
+        }
+        float mask = val;
+        float hue = u_src_color_shift;
+        vec3 col = hue < 0.01 ? vec3(1.0) : 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask * (0.8 + u_rms * 0.4), 1.0);
+    }
+)";
+
+// ============================================================
+// FRACTAL SOURCES — Tier 1 (fragment shader native)
+// ============================================================
+
+// Julia Set — animate c for morphing fractals
+inline const char* sourceJuliaSet = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_cx;
+    uniform float u_src_cy;
+    uniform float u_src_zoom;
+    uniform float u_src_iterations;
+    uniform float u_src_color_speed;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float zoom = exp(u_src_zoom * 8.0 - 2.0);
+        uv /= zoom;
+        // Julia c-value: animate with time and audio
+        float cx = (u_src_cx - 0.5) * 2.0 + sin(u_time * 0.2) * 0.05 * u_rms;
+        float cy = (u_src_cy - 0.5) * 2.0 + cos(u_time * 0.15) * 0.05 * u_rms;
+        vec2 z = uv;
+        vec2 c = vec2(cx, cy);
+        int maxIter = int(u_src_iterations * 200.0) + 20;
+        int i;
+        for (i = 0; i < maxIter; i++) {
+            z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+            if (dot(z,z) > 4.0) break;
+        }
+        if (i == maxIter) { fragColor = vec4(0,0,0,1); return; }
+        float si = float(i) - log2(log2(dot(z,z))) + 4.0;
+        float t = si * (0.02 + u_src_color_speed * 0.1) + u_src_color_shift * 6.28;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Burning Ship — aggressive flame-like fractal
+inline const char* sourceBurningShip = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_center_x;
+    uniform float u_src_center_y;
+    uniform float u_src_zoom;
+    uniform float u_src_iterations;
+    uniform float u_src_color_speed;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float zoom = exp(u_src_zoom * 8.0 - 1.0);
+        vec2 center = vec2((u_src_center_x - 0.5) * 4.0 - 0.5,
+                           (u_src_center_y - 0.5) * 4.0 - 0.5);
+        uv = uv / zoom + center;
+        vec2 z = vec2(0.0);
+        vec2 c = uv;
+        int maxIter = int(u_src_iterations * 200.0) + 20;
+        int i;
+        for (i = 0; i < maxIter; i++) {
+            z = abs(z); // The burning ship twist
+            z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+            if (dot(z,z) > 4.0) break;
+        }
+        if (i == maxIter) { fragColor = vec4(0,0,0,1); return; }
+        float si = float(i) - log2(log2(dot(z,z))) + 4.0;
+        float t = si * (0.02 + u_src_color_speed * 0.1) + u_src_color_shift * 6.28;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (t * 0.7 + vec3(0.0, 0.1, 0.2)));
+        col *= 0.85 + u_rms * 0.3;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Newton Fractal — psychedelic basins of attraction
+inline const char* sourceNewtonFractal = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_power;
+    uniform float u_src_zoom;
+    uniform float u_src_damping;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    // Complex multiply
+    vec2 cmul(vec2 a, vec2 b) { return vec2(a.x*b.x-a.y*b.y, a.x*b.y+a.y*b.x); }
+    // Complex divide
+    vec2 cdiv(vec2 a, vec2 b) { return cmul(a, vec2(b.x,-b.y)) / dot(b,b); }
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float zoom = exp(u_src_zoom * 6.0 - 1.0);
+        uv /= zoom;
+        int n = int(u_src_power * 5.0) + 3; // power 3-8
+        float damp = 0.5 + u_src_damping * 1.0; // relaxation
+        vec2 z = uv;
+        int maxIter = 50;
+        int i;
+        float minDist = 1e10;
+        int closestRoot = 0;
+        for (i = 0; i < maxIter; i++) {
+            // Compute z^n and z^(n-1) using polar form
+            float r = length(z);
+            if (r < 0.0001) break;
+            float theta = atan(z.y, z.x);
+            vec2 zn = pow(r, float(n)) * vec2(cos(float(n)*theta), sin(float(n)*theta));
+            vec2 zn1 = pow(r, float(n-1)) * vec2(cos(float(n-1)*theta), sin(float(n-1)*theta));
+            // Newton step: z - damp * (z^n - 1) / (n * z^(n-1))
+            vec2 fz = zn - vec2(1.0, 0.0);
+            vec2 fpz = float(n) * zn1;
+            z -= damp * cdiv(fz, fpz);
+            // Check convergence to roots (nth roots of unity)
+            for (int k = 0; k < n; k++) {
+                float ra = 6.28318 * float(k) / float(n);
+                vec2 root = vec2(cos(ra), sin(ra));
+                float d = length(z - root);
+                if (d < minDist) { minDist = d; closestRoot = k; }
+            }
+            if (minDist < 0.001) break;
+        }
+        float hue = float(closestRoot) / float(n) + u_src_color_shift;
+        float brightness = 1.0 - float(i) / float(maxIter);
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= brightness * (0.8 + u_rms * 0.4);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Sierpinski — triangle and carpet modes via folding
+inline const char* sourceSierpinski = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_mode;       // 0=triangle, 1=carpet
+    uniform float u_src_zoom;
+    uniform float u_src_iterations;
+    uniform float u_src_rotation;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float zoom = exp(u_src_zoom * 6.0);
+        float rot = u_time * (u_src_rotation - 0.5) * 1.0;
+        float c = cos(rot), s = sin(rot);
+        uv = vec2(uv.x*c - uv.y*s, uv.x*s + uv.y*c);
+        uv *= zoom;
+        int maxIter = int(u_src_iterations * 12.0) + 3;
+        bool isCarpet = u_src_mode > 0.5;
+        float val = 1.0;
+        if (isCarpet) {
+            // Sierpinski Carpet
+            vec2 p = fract(uv * 0.5 + 0.5);
+            for (int i = 0; i < maxIter; i++) {
+                p *= 3.0;
+                vec2 cell = floor(p);
+                if (cell.x == 1.0 && cell.y == 1.0) { val = 0.0; break; }
+                p = fract(p);
+            }
+        } else {
+            // Sierpinski Triangle (folding)
+            vec2 p = uv * 0.5 + vec2(0.5, 0.25);
+            for (int i = 0; i < maxIter; i++) {
+                p *= 2.0;
+                if (p.x + p.y > 1.5) p = 2.0 - p;
+                if (p.x > 1.0) p.x -= 1.0;
+                if (p.y > 1.0) p.y -= 1.0;
+            }
+            float d = length(p - vec2(0.5, 0.35));
+            val = smoothstep(0.5, 0.3, d);
+        }
+        float hue = u_src_color_shift;
+        vec3 col;
+        if (hue < 0.01) col = vec3(val);
+        else col = val * (0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))));
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Apollonian Gasket — circle packing fractal
+inline const char* sourceApollonian = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_zoom;
+    uniform float u_src_iterations;
+    uniform float u_src_rotation;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float zoom = exp(u_src_zoom * 4.0);
+        float rot = u_time * (u_src_rotation - 0.5) * 0.5;
+        float c = cos(rot), s = sin(rot);
+        uv = vec2(uv.x*c - uv.y*s, uv.x*s + uv.y*c);
+        uv *= zoom;
+        vec2 p = uv;
+        float scale = 1.0;
+        int maxIter = int(u_src_iterations * 15.0) + 5;
+        float minDist = 1e10;
+        for (int i = 0; i < maxIter; i++) {
+            p = abs(p);
+            // Circle inversion
+            float r2 = dot(p, p);
+            if (r2 < 0.25) { p /= (r2 * 4.0); scale *= 4.0 * r2; }
+            else if (r2 < 1.0) { p /= r2; scale *= r2; }
+            p -= vec2(0.5, 0.5);
+            float d = length(p);
+            minDist = min(minDist, d / scale);
+        }
+        float edge = smoothstep(0.01, 0.0, minDist);
+        float fill = smoothstep(0.05, 0.0, minDist);
+        float hue = u_src_color_shift + minDist * 5.0;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= fill * (0.8 + u_rms * 0.4);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// ============================================================
+// 3D FRACTAL SOURCES — Ray Marched
+// ============================================================
+
+// Mandelbulb — 3D Mandelbrot analog
+inline const char* sourceMandelbulb = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_power;
+    uniform float u_src_iterations;
+    uniform float u_src_rotation_x;
+    uniform float u_src_rotation_y;
+    uniform float u_src_detail;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+
+    mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+    mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+
+    float mandelbulbDE(vec3 pos, float power) {
+        vec3 z = pos;
+        float dr = 1.0, r = 0.0;
+        for (int i = 0; i < 12; i++) {
+            r = length(z);
+            if (r > 2.0) break;
+            float theta = acos(z.z / r);
+            float phi = atan(z.y, z.x);
+            dr = pow(r, power - 1.0) * power * dr + 1.0;
+            float zr = pow(r, power);
+            theta *= power; phi *= power;
+            z = zr * vec3(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
+            z += pos;
+        }
+        return 0.5 * log(r) * r / dr;
+    }
+
+    vec3 calcNormal(vec3 p, float pw) {
+        vec2 e = vec2(0.001, 0.0);
+        return normalize(vec3(
+            mandelbulbDE(p+e.xyy,pw) - mandelbulbDE(p-e.xyy,pw),
+            mandelbulbDE(p+e.yxy,pw) - mandelbulbDE(p-e.yxy,pw),
+            mandelbulbDE(p+e.yyx,pw) - mandelbulbDE(p-e.yyx,pw)));
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float power = 2.0 + u_src_power * 12.0;
+        float rx = u_time * (u_src_rotation_x - 0.5) * 1.0;
+        float ry = u_time * (u_src_rotation_y - 0.5) * 1.0;
+        mat3 rot = rotY(ry) * rotX(rx);
+        vec3 ro = rot * vec3(0, 0, 2.5);
+        vec3 target = vec3(0);
+        vec3 fwd = normalize(target - ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+        float t = 0.0;
+        float glow = 0.0;
+        bool hit = false;
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * t;
+            float d = mandelbulbDE(p, power);
+            glow += 1.0 / (1.0 + d * d * 500.0);
+            if (d < 0.001) { hit = true; break; }
+            t += d;
+            if (t > 10.0) break;
+        }
+        vec3 col = vec3(0.0);
+        if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p, power);
+            vec3 light = normalize(vec3(1, 2, 3));
+            float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
+            float hue = u_src_color_shift + length(p) * 0.5;
+            col = diff * (0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))));
+        }
+        col += vec3(0.1, 0.15, 0.3) * glow * 0.015;
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Menger Sponge — 3D Sierpinski cube
+inline const char* sourceMengerSponge = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_iterations;
+    uniform float u_src_rotation_x;
+    uniform float u_src_rotation_y;
+    uniform float u_src_twist;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+
+    mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+    mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+
+    float sdBox(vec3 p, vec3 b) {
+        vec3 q = abs(p) - b;
+        return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+    }
+
+    float mengerDE(vec3 p, int iters, float twistAmt) {
+        float d = sdBox(p, vec3(1.0));
+        float s = 1.0;
+        for (int i = 0; i < iters; i++) {
+            // Optional twist per iteration
+            if (twistAmt > 0.01) {
+                float ta = twistAmt * float(i) * 0.3;
+                float tc = cos(ta), ts = sin(ta);
+                p.xz = vec2(p.x*tc - p.z*ts, p.x*ts + p.z*tc);
+            }
+            vec3 a = mod(p * s, 2.0) - 1.0;
+            s *= 3.0;
+            vec3 r = abs(1.0 - 3.0 * abs(a));
+            float da = max(r.x, r.y);
+            float db = max(r.y, r.z);
+            float dc = max(r.z, r.x);
+            float c = (min(da, min(db, dc)) - 1.0) / s;
+            d = max(d, c);
+        }
+        return d;
+    }
+
+    vec3 calcNormal(vec3 p, int it, float tw) {
+        vec2 e = vec2(0.001, 0.0);
+        return normalize(vec3(
+            mengerDE(p+e.xyy,it,tw) - mengerDE(p-e.xyy,it,tw),
+            mengerDE(p+e.yxy,it,tw) - mengerDE(p-e.yxy,it,tw),
+            mengerDE(p+e.yyx,it,tw) - mengerDE(p-e.yyx,it,tw)));
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        int iters = int(u_src_iterations * 5.0) + 2;
+        float twistAmt = u_src_twist * 2.0;
+        float rx = u_time * (u_src_rotation_x - 0.5) * 1.0;
+        float ry = u_time * (u_src_rotation_y - 0.5) * 1.0;
+        mat3 rot = rotY(ry) * rotX(rx);
+        vec3 ro = rot * vec3(0, 0, 3.0);
+        vec3 fwd = normalize(-ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+        float t = 0.0;
+        float glow = 0.0;
+        bool hit = false;
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * t;
+            float d = mengerDE(p, iters, twistAmt);
+            glow += 1.0 / (1.0 + d * d * 200.0);
+            if (d < 0.001) { hit = true; break; }
+            t += d;
+            if (t > 10.0) break;
+        }
+        vec3 col = vec3(0.0);
+        if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p, iters, twistAmt);
+            vec3 light = normalize(vec3(1, 2, 3));
+            float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
+            float hue = u_src_color_shift + abs(n.x) * 0.2 + abs(n.y) * 0.3;
+            col = diff * (0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))));
+        }
+        col += vec3(0.15, 0.1, 0.25) * glow * 0.01;
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// KIFS — Kaleidoscopic IFS, most versatile 3D fractal
+inline const char* sourceKIFS = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_scale;
+    uniform float u_src_iterations;
+    uniform float u_src_fold_type;
+    uniform float u_src_rotation_x;
+    uniform float u_src_rotation_y;
+    uniform float u_src_offset;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+
+    mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+    mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+    mat3 rotZ(float a) { float c=cos(a),s=sin(a); return mat3(c,-s,0, s,c,0, 0,0,1); }
+
+    float kifsDE(vec3 p, float sc, int iters, float foldType, float off) {
+        vec3 offset = vec3(1.0, 1.0, 1.0) * off * 2.0;
+        float iterRot = u_time * 0.1;
+        for (int i = 0; i < iters; i++) {
+            p = abs(p);
+            // Fold types
+            if (foldType < 0.33) {
+                // Tetrahedral fold
+                if (p.x - p.y < 0.0) p.xy = p.yx;
+                if (p.x - p.z < 0.0) p.xz = p.zx;
+                if (p.y - p.z < 0.0) p.yz = p.zy;
+            } else if (foldType < 0.67) {
+                // Menger-style fold
+                if (p.x - p.y < 0.0) p.xy = p.yx;
+                if (p.x - p.z < 0.0) p.xz = p.zx;
+                // Rotation fold
+                float a = iterRot + float(i) * 0.5;
+                float rc = cos(a), rs = sin(a);
+                p.yz = vec2(p.y*rc - p.z*rs, p.y*rs + p.z*rc);
+            } else {
+                // Octahedral fold
+                if (p.x + p.y < 0.0) { float t = -p.y; p.y = -p.x; p.x = t; }
+                if (p.x + p.z < 0.0) { float t = -p.z; p.z = -p.x; p.x = t; }
+                if (p.y + p.z < 0.0) { float t = -p.z; p.z = -p.y; p.y = t; }
+            }
+            p = sc * p - offset * (sc - 1.0);
+        }
+        return length(p) * pow(sc, -float(iters));
+    }
+
+    vec3 calcNormal(vec3 p, float sc, int it, float ft, float off) {
+        vec2 e = vec2(0.001, 0.0);
+        return normalize(vec3(
+            kifsDE(p+e.xyy,sc,it,ft,off) - kifsDE(p-e.xyy,sc,it,ft,off),
+            kifsDE(p+e.yxy,sc,it,ft,off) - kifsDE(p-e.yxy,sc,it,ft,off),
+            kifsDE(p+e.yyx,sc,it,ft,off) - kifsDE(p-e.yyx,sc,it,ft,off)));
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float sc = 1.5 + u_src_scale * 2.0;
+        int iters = int(u_src_iterations * 10.0) + 3;
+        float foldType = u_src_fold_type;
+        float off = u_src_offset;
+        float rx = u_time * (u_src_rotation_x - 0.5) * 1.0;
+        float ry = u_time * (u_src_rotation_y - 0.5) * 1.0;
+        mat3 rot = rotY(ry) * rotX(rx);
+        vec3 ro = rot * vec3(0, 0, 3.5);
+        vec3 fwd = normalize(-ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+        float t = 0.0;
+        float glow = 0.0;
+        bool hit = false;
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * t;
+            float d = kifsDE(p, sc, iters, foldType, off);
+            glow += 1.0 / (1.0 + d * d * 300.0);
+            if (d < 0.001) { hit = true; break; }
+            t += d;
+            if (t > 10.0) break;
+        }
+        vec3 col = vec3(0.0);
+        if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p, sc, iters, foldType, off);
+            vec3 light = normalize(vec3(1, 2, 3));
+            float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
+            float hue = u_src_color_shift + dot(abs(n), vec3(0.3, 0.5, 0.2));
+            col = diff * (0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))));
+        }
+        col += vec3(0.1, 0.2, 0.3) * glow * 0.012;
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
     }
 )";
 

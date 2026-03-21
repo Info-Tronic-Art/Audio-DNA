@@ -51,7 +51,10 @@ public:
 
 private:
     void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
     void timerCallback() override;
+
+    void scrubPlayhead(juce::Point<int> pos);
 
     Layer* layer_ = nullptr;
     int layerIndex_ = 0;

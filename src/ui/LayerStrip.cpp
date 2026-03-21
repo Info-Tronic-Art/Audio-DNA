@@ -550,20 +550,6 @@ void LayerStrip::paint(juce::Graphics& g)
         auto cb = clipNameBounds_.toFloat();
         g.setColour(juce::Colour(kBtnBg));
         g.fillRect(cb);
-
-        // Draw playhead line (cyan vertical line at playhead position)
-        if (layer_)
-        {
-            auto* clip = layer_->getActiveClip();
-            if (clip && clip->isPlayable())
-            {
-                float pos = static_cast<float>(clip->playheadPosition);
-                float xPos = cb.getX() + pos * cb.getWidth();
-                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
-                g.drawVerticalLine(static_cast<int>(xPos), cb.getY(), cb.getBottom());
-            }
-        }
-
         g.setColour(juce::Colour(kBtnBorder));
         g.drawRect(cb, 1.0f);
         g.setColour(juce::Colour(0xffe0e0e0));
@@ -719,10 +705,37 @@ void LayerStrip::timerCallback()
 
 void LayerStrip::mouseDown(const juce::MouseEvent& event)
 {
+    // Scrub playhead if clicking in the transport bar area
+    if (!transportBounds_.isEmpty() && transportBounds_.contains(event.getPosition()))
+    {
+        scrubPlayhead(event.getPosition());
+        return;
+    }
+
     if (!event.mods.isRightButtonDown())
     {
         if (onSelect) onSelect(layerIndex_);
     }
+}
+
+void LayerStrip::mouseDrag(const juce::MouseEvent& event)
+{
+    if (!transportBounds_.isEmpty() && transportBounds_.contains(event.getMouseDownPosition()))
+    {
+        scrubPlayhead(event.getPosition());
+    }
+}
+
+void LayerStrip::scrubPlayhead(juce::Point<int> pos)
+{
+    if (!layer_ || transportBounds_.isEmpty()) return;
+    auto* clip = layer_->getActiveClip();
+    if (!clip || !clip->isPlayable()) return;
+
+    float normalized = static_cast<float>(pos.x - transportBounds_.getX())
+                     / static_cast<float>(transportBounds_.getWidth());
+    normalized = juce::jlimit(0.0f, 1.0f, normalized);
+    clip->playheadPosition = static_cast<double>(normalized);
 }
 
 void LayerStrip::setupFlatButton(juce::TextButton& btn)

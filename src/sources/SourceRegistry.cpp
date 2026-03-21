@@ -66,6 +66,9 @@ void SourceRegistry::registerDefaults()
         s->addParam("Center Y", "u_src_center_y", 0.5f);
         s->addParam("Julia Mix", "u_src_julia_mix", 0.0f);
         s->addParam("Max Iterations", "u_src_max_iter", 0.3f);
+        s->addParam("Power", "u_src_power", 0.0f);
+        s->addParam("Color Speed", "u_src_color_speed", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
         return s;
     });
 
@@ -102,8 +105,8 @@ void SourceRegistry::registerDefaults()
     // Reaction-Diffusion (stateful — needs ping-pong FBOs)
     registerSource("reaction_diffusion", [] {
         auto s = std::make_unique<ProceduralSource>("reaction_diffusion", "Reaction-Diffusion", "Nature", "source_reaction_diffusion", true);
-        s->addParam("Feed Rate", "u_src_feed", 0.4f);
-        s->addParam("Kill Rate", "u_src_kill", 0.4f);
+        s->addParam("Feed Rate", "u_src_feed", 0.28f);     // ~0.037 mapped
+        s->addParam("Kill Rate", "u_src_kill", 0.32f);     // ~0.064 mapped → spots
         s->addParam("Diffusion A", "u_src_diffusion_a", 0.5f);
         s->addParam("Diffusion B", "u_src_diffusion_b", 0.5f);
         return s;
@@ -112,10 +115,11 @@ void SourceRegistry::registerDefaults()
     // Cellular Automata (stateful — needs ping-pong FBOs)
     registerSource("cellular_automata", [] {
         auto s = std::make_unique<ProceduralSource>("cellular_automata", "Cellular Automata", "Nature", "source_cellular_automata", true);
-        s->addParam("Rule Threshold", "u_src_rule_threshold", 0.5f);
+        s->addParam("Mode", "u_src_mode", 0.0f);
         s->addParam("Birth Low", "u_src_birth_low", 0.25f);
         s->addParam("Birth High", "u_src_birth_high", 0.25f);
         s->addParam("Survival Low", "u_src_survival_low", 0.25f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
         return s;
     });
 
@@ -252,6 +256,251 @@ void SourceRegistry::registerDefaults()
         s->addParam("Speed", "u_src_speed", 0.3f);
         s->addParam("Layers", "u_src_layers", 0.5f);
         s->addParam("Rotation", "u_src_rotation", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // === New sources: Spiral Tunnel, Wireframe 3D, Line Generator ===
+
+    registerSource("spiral_tunnel", [] {
+        auto s = std::make_unique<ProceduralSource>("spiral_tunnel", "Spiral Tunnel", "3D", "source_spiral_tunnel");
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Arms", "u_src_arms", 0.3f);
+        s->addParam("Depth", "u_src_depth", 0.5f);
+        s->addParam("Twist", "u_src_twist", 0.4f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // Wireframe 3D shapes — each shape is its own source preset
+    auto registerWireframe = [this](const std::string& id, const std::string& name, float shapeVal) {
+        registerSource(id, [name, shapeVal, id] {
+            auto s = std::make_unique<ProceduralSource>(id, name, "Wireframe", "source_wireframe_3d");
+            s->addParam("Shape", "u_src_shape", shapeVal);
+            s->addParam("Density", "u_src_density", 0.3f);
+            s->addParam("Rotation X", "u_src_rotation_x", 0.6f);
+            s->addParam("Rotation Y", "u_src_rotation_y", 0.6f);
+            s->addParam("Rotation Z", "u_src_rotation_z", 0.5f);
+            s->addParam("Thickness", "u_src_thickness", 0.3f);
+            s->addParam("Perspective", "u_src_perspective", 0.4f);
+            s->addParam("Glow", "u_src_glow", 0.3f);
+            s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+            return s;
+        });
+    };
+    registerWireframe("wire_sphere",      "Wireframe Sphere",      0.072f);
+    registerWireframe("wire_torus",       "Wireframe Torus",       0.215f);
+    registerWireframe("wire_cube",        "Wireframe Cube",        0.358f);
+    registerWireframe("wire_cylinder",    "Wireframe Cylinder",    0.501f);
+    registerWireframe("wire_cone",        "Wireframe Cone",        0.644f);
+    registerWireframe("wire_icosahedron", "Wireframe Icosahedron", 0.787f);
+    registerWireframe("wire_wolf",        "Wireframe Wolf",        0.930f);
+
+    // === Lines category: 10 algorithmic line generators ===
+
+    registerSource("zigzag_lines", [] {
+        auto s = std::make_unique<ProceduralSource>("zigzag_lines", "Zigzag Lines", "Lines", "source_zigzag_lines");
+        s->addParam("Count", "u_src_count", 0.3f);
+        s->addParam("Amplitude", "u_src_amplitude", 0.5f);
+        s->addParam("Speed", "u_src_speed", 0.4f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("star_burst", [] {
+        auto s = std::make_unique<ProceduralSource>("star_burst", "Star Burst", "Lines", "source_star_burst");
+        s->addParam("Rays", "u_src_rays", 0.4f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.6f);
+        s->addParam("Taper", "u_src_taper", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("polygon_lines", [] {
+        auto s = std::make_unique<ProceduralSource>("polygon_lines", "Polygon Lines", "Lines", "source_polygon_lines");
+        s->addParam("Sides", "u_src_sides", 0.3f);
+        s->addParam("Size", "u_src_size", 0.5f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Layers", "u_src_layers", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.6f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("waveform_lines", [] {
+        auto s = std::make_unique<ProceduralSource>("waveform_lines", "Waveform Lines", "Lines", "source_waveform_lines");
+        s->addParam("Waveform", "u_src_waveform", 0.0f);
+        s->addParam("Frequency", "u_src_freq", 0.3f);
+        s->addParam("Amplitude", "u_src_amplitude", 0.5f);
+        s->addParam("Count", "u_src_count", 0.3f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.4f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("lissajous", [] {
+        auto s = std::make_unique<ProceduralSource>("lissajous", "Lissajous", "Lines", "source_lissajous");
+        s->addParam("Ratio X", "u_src_ratio_x", 0.28f);
+        s->addParam("Ratio Y", "u_src_ratio_y", 0.42f);
+        s->addParam("Phase", "u_src_phase", 0.25f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("spirograph", [] {
+        auto s = std::make_unique<ProceduralSource>("spirograph", "Spirograph", "Lines", "source_spirograph");
+        s->addParam("Inner Radius", "u_src_inner", 0.4f);
+        s->addParam("Offset", "u_src_offset", 0.5f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("angular_grid", [] {
+        auto s = std::make_unique<ProceduralSource>("angular_grid", "Angular Grid", "Lines", "source_angular_grid");
+        s->addParam("Angle", "u_src_angle", 0.25f);
+        s->addParam("Count", "u_src_count", 0.3f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Symmetry", "u_src_symmetry", 0.2f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("fractal_tree", [] {
+        auto s = std::make_unique<ProceduralSource>("fractal_tree", "Fractal Tree", "Lines", "source_fractal_tree");
+        s->addParam("Branches", "u_src_branches", 0.5f);
+        s->addParam("Angle", "u_src_angle", 0.4f);
+        s->addParam("Depth", "u_src_depth", 0.4f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("laser_scan", [] {
+        auto s = std::make_unique<ProceduralSource>("laser_scan", "Laser Scan", "Lines", "source_laser_scan");
+        s->addParam("Beams", "u_src_beams", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.5f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Spread", "u_src_spread", 0.4f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("moire_lines", [] {
+        auto s = std::make_unique<ProceduralSource>("moire_lines", "Moire Lines", "Lines", "source_moire_lines");
+        s->addParam("Density", "u_src_density", 0.3f);
+        s->addParam("Angle Offset", "u_src_angle_offset", 0.1f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Layers", "u_src_layers", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // === Fractal sources ===
+
+    registerSource("julia_set", [] {
+        auto s = std::make_unique<ProceduralSource>("julia_set", "Julia Set", "Fractal", "source_julia_set");
+        s->addParam("C Real", "u_src_cx", 0.35f);
+        s->addParam("C Imaginary", "u_src_cy", 0.38f);
+        s->addParam("Zoom", "u_src_zoom", 0.25f);
+        s->addParam("Iterations", "u_src_iterations", 0.3f);
+        s->addParam("Color Speed", "u_src_color_speed", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("burning_ship", [] {
+        auto s = std::make_unique<ProceduralSource>("burning_ship", "Burning Ship", "Fractal", "source_burning_ship");
+        s->addParam("Center X", "u_src_center_x", 0.55f);
+        s->addParam("Center Y", "u_src_center_y", 0.6f);
+        s->addParam("Zoom", "u_src_zoom", 0.2f);
+        s->addParam("Iterations", "u_src_iterations", 0.3f);
+        s->addParam("Color Speed", "u_src_color_speed", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("newton_fractal", [] {
+        auto s = std::make_unique<ProceduralSource>("newton_fractal", "Newton Fractal", "Fractal", "source_newton_fractal");
+        s->addParam("Power", "u_src_power", 0.2f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Damping", "u_src_damping", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("sierpinski", [] {
+        auto s = std::make_unique<ProceduralSource>("sierpinski", "Sierpinski", "Fractal", "source_sierpinski");
+        s->addParam("Mode", "u_src_mode", 0.0f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Iterations", "u_src_iterations", 0.5f);
+        s->addParam("Rotation", "u_src_rotation", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("apollonian", [] {
+        auto s = std::make_unique<ProceduralSource>("apollonian", "Apollonian Gasket", "Fractal", "source_apollonian");
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Iterations", "u_src_iterations", 0.4f);
+        s->addParam("Rotation", "u_src_rotation", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // === 3D Fractal sources (ray marched) ===
+
+    registerSource("mandelbulb", [] {
+        auto s = std::make_unique<ProceduralSource>("mandelbulb", "Mandelbulb", "3D", "source_mandelbulb");
+        s->addParam("Power", "u_src_power", 0.5f);
+        s->addParam("Iterations", "u_src_iterations", 0.4f);
+        s->addParam("Rotation X", "u_src_rotation_x", 0.55f);
+        s->addParam("Rotation Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Detail", "u_src_detail", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("menger_sponge", [] {
+        auto s = std::make_unique<ProceduralSource>("menger_sponge", "Menger Sponge", "3D", "source_menger_sponge");
+        s->addParam("Iterations", "u_src_iterations", 0.5f);
+        s->addParam("Rotation X", "u_src_rotation_x", 0.55f);
+        s->addParam("Rotation Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Twist", "u_src_twist", 0.0f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("kifs", [] {
+        auto s = std::make_unique<ProceduralSource>("kifs", "Kaleidoscopic IFS", "3D", "source_kifs");
+        s->addParam("Scale", "u_src_scale", 0.4f);
+        s->addParam("Iterations", "u_src_iterations", 0.4f);
+        s->addParam("Fold Type", "u_src_fold_type", 0.0f);
+        s->addParam("Rotation X", "u_src_rotation_x", 0.55f);
+        s->addParam("Rotation Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Offset", "u_src_offset", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("line_generator", [] {
+        auto s = std::make_unique<ProceduralSource>("line_generator", "Line Generator", "Lines", "source_line_generator");
+        s->addParam("Pattern", "u_src_pattern", 0.0f);
+        s->addParam("Count", "u_src_count", 0.3f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.5f);
+        s->addParam("Feedback Zoom", "u_src_fb_zoom", 0.52f);
+        s->addParam("Feedback Rotation", "u_src_fb_rotation", 0.52f);
+        s->addParam("Feedback Decay", "u_src_fb_decay", 0.7f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
         return s;
     });

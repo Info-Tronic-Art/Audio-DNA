@@ -14,11 +14,11 @@ public:
         {
             auto& cat = owner_.categories_[static_cast<size_t>(ci)];
 
-            // Collect sources in category
+            // Collect sources in category (filtered by search)
             std::vector<const SourceEntry*> catSources;
             for (auto& s : owner_.sources_)
             {
-                if (s.category == cat.name)
+                if (s.category == cat.name && owner_.matchesSearch(s.name))
                     catSources.push_back(&s);
             }
             if (catSources.empty()) continue;
@@ -77,7 +77,7 @@ public:
 
             std::vector<const SourceEntry*> catSources;
             for (auto& s : owner_.sources_)
-                if (s.category == cat.name) catSources.push_back(&s);
+                if (s.category == cat.name && owner_.matchesSearch(s.name)) catSources.push_back(&s);
             if (catSources.empty()) continue;
 
             if (event.y >= y && event.y < y + kCategoryHeaderHeight)
@@ -105,12 +105,7 @@ public:
 
     void mouseUp(const juce::MouseEvent&) override
     {
-        // Click (no drag) activates the source directly
-        if (draggedSourceId_.isNotEmpty() && !dragStarted_)
-        {
-            if (owner_.onSourceActivated)
-                owner_.onSourceActivated(draggedSourceId_);
-        }
+        // Sources are placed via drag-drop only, not click
         draggedSourceId_ = {};
         draggedSourceName_ = {};
         dragStarted_ = false;
@@ -159,7 +154,7 @@ public:
             auto& cat = owner_.categories_[static_cast<size_t>(ci)];
             int count = 0;
             for (auto& s : owner_.sources_)
-                if (s.category == cat.name) ++count;
+                if (s.category == cat.name && owner_.matchesSearch(s.name)) ++count;
             if (count == 0) continue;
             h += kCategoryHeaderHeight;
             if (cat.expanded) h += count * kSourceRowHeight;
@@ -187,12 +182,34 @@ SourcesBrowser::~SourcesBrowser() = default;
 
 SourcesBrowser::SourcesBrowser()
 {
+    // Search box
+    searchBox_.setTextToShowWhenEmpty("Search sources...", juce::Colour(0xff666666));
+    searchBox_.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xff2a2a2a));
+    searchBox_.setColour(juce::TextEditor::outlineColourId, juce::Colour(0xff444444));
+    searchBox_.setColour(juce::TextEditor::textColourId, juce::Colour(0xffe0e0e0));
+    searchBox_.setFont(juce::Font(juce::FontOptions(12.0f)));
+    searchBox_.onTextChange = [this] {
+        searchFilter_ = searchBox_.getText().trim().toLowerCase();
+        if (listContent_) {
+            listContent_->updateSize();
+            listContent_->repaint();
+        }
+    };
+    addAndMakeVisible(searchBox_);
+
     listContent_ = std::make_unique<SourceListContent>(*this);
     viewport_.setViewedComponent(listContent_.get(), false);
     viewport_.setScrollBarsShown(true, false);
     addAndMakeVisible(viewport_);
 
     buildSourceList();
+}
+
+bool SourcesBrowser::matchesSearch(const juce::String& name) const
+{
+    if (searchFilter_.isEmpty())
+        return true;
+    return name.toLowerCase().contains(searchFilter_);
 }
 
 void SourcesBrowser::paint(juce::Graphics& g)
@@ -202,7 +219,10 @@ void SourcesBrowser::paint(juce::Graphics& g)
 
 void SourcesBrowser::resized()
 {
-    viewport_.setBounds(getLocalBounds());
+    auto bounds = getLocalBounds();
+    int searchH = 24;
+    searchBox_.setBounds(bounds.removeFromTop(searchH).reduced(2, 2));
+    viewport_.setBounds(bounds);
     if (listContent_)
         listContent_->updateSize();
 }
@@ -219,17 +239,12 @@ void SourcesBrowser::buildSourceList()
     categories_.push_back({"Geometric",     juce::Colour(0xff4fc3f7)});
     categories_.push_back({"Audio-Visual",  juce::Colour(0xffff7043)});
     categories_.push_back({"Nature",        juce::Colour(0xff26c6da)});
-    // P13.5: New categories for future phases
-    categories_.push_back({"Math",          juce::Colour(0xffab47bc)});
     categories_.push_back({"3D",            juce::Colour(0xffffca28)});
     categories_.push_back({"Organic",       juce::Colour(0xff66bb6a)});
     categories_.push_back({"Pattern",       juce::Colour(0xff4fc3f7)});
-    categories_.push_back({"Particle",      juce::Colour(0xffff7043)});
     categories_.push_back({"Utility",       juce::Colour(0xff78909c)});
-    categories_.push_back({"Lighting",      juce::Colour(0xffffd54f)});
-    categories_.push_back({"Simulation",    juce::Colour(0xffef5350)});
-    categories_.push_back({"Text",          juce::Colour(0xff8d6e63)});
-    categories_.push_back({"Routing",       juce::Colour(0xff00897b)});
+    categories_.push_back({"Wireframe",    juce::Colour(0xff90caf9)});
+    categories_.push_back({"Lines",        juce::Colour(0xffce93d8)});
 
     // Input sources — live feeds
     sources_.push_back({"Camera Input",             "camera",              "Input",        juce::Colour(0xffef5350)});
@@ -259,6 +274,37 @@ void SourcesBrowser::buildSourceList()
     sources_.push_back({"Metaballs",                "metaballs",           "Organic",      juce::Colour(0xff66bb6a)});
     sources_.push_back({"Bump Light",               "bump_light",          "Pattern",      juce::Colour(0xff4fc3f7)});
     sources_.push_back({"Infinite Zoom",            "infinite_zoom",       "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Spiral Tunnel",            "spiral_tunnel",       "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Wireframe Sphere",          "wire_sphere",         "Wireframe",    juce::Colour(0xff90caf9)});
+    sources_.push_back({"Wireframe Torus",           "wire_torus",          "Wireframe",    juce::Colour(0xff90caf9)});
+    sources_.push_back({"Wireframe Cube",            "wire_cube",           "Wireframe",    juce::Colour(0xff90caf9)});
+    sources_.push_back({"Wireframe Cylinder",        "wire_cylinder",       "Wireframe",    juce::Colour(0xff90caf9)});
+    sources_.push_back({"Wireframe Cone",            "wire_cone",           "Wireframe",    juce::Colour(0xff90caf9)});
+    sources_.push_back({"Wireframe Icosahedron",     "wire_icosahedron",    "Wireframe",    juce::Colour(0xff90caf9)});
+    sources_.push_back({"Wireframe Wolf",            "wire_wolf",           "Wireframe",    juce::Colour(0xff90caf9)});
+    sources_.push_back({"Line Generator",           "line_generator",      "Lines",        juce::Colour(0xffce93d8)});
+
+    // Fractal sources
+    sources_.push_back({"Julia Set",                "julia_set",           "Fractal",      juce::Colour(0xffab47bc)});
+    sources_.push_back({"Burning Ship",             "burning_ship",        "Fractal",      juce::Colour(0xffab47bc)});
+    sources_.push_back({"Newton Fractal",           "newton_fractal",      "Fractal",      juce::Colour(0xffab47bc)});
+    sources_.push_back({"Sierpinski",               "sierpinski",          "Fractal",      juce::Colour(0xffab47bc)});
+    sources_.push_back({"Apollonian Gasket",        "apollonian",          "Fractal",      juce::Colour(0xffab47bc)});
+
+    // 3D Fractal sources
+    sources_.push_back({"Mandelbulb",               "mandelbulb",          "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Menger Sponge",            "menger_sponge",       "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Kaleidoscopic IFS",        "kifs",                "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Zigzag Lines",             "zigzag_lines",        "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Star Burst",               "star_burst",          "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Polygon Lines",            "polygon_lines",       "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Waveform Lines",           "waveform_lines",      "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Lissajous",                "lissajous",           "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Spirograph",               "spirograph",          "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Angular Grid",             "angular_grid",        "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Fractal Tree",             "fractal_tree",        "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Laser Scan",               "laser_scan",          "Lines",        juce::Colour(0xffce93d8)});
+    sources_.push_back({"Moire Lines",              "moire_lines",         "Lines",        juce::Colour(0xffce93d8)});
 }
 
 void SourcesBrowser::toggleCategory(int catIndex)

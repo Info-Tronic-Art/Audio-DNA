@@ -150,6 +150,9 @@ void DeckView::rebuildGrid()
             cell->onSourceDrop = [this](int li, int c, const juce::String& sourceId) {
                 if (onSourceDropped) onSourceDropped(li, c, sourceId);
             };
+            cell->onClipMove = [this](int srcL, int srcC, int dstL, int dstC) {
+                if (onClipMoved) onClipMoved(srcL, srcC, dstL, dstC);
+            };
 
             gridContent_->addAndMakeVisible(cell.get());
             layerCells[static_cast<size_t>(col)] = std::move(cell);

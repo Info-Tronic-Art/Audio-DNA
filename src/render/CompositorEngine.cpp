@@ -14,6 +14,8 @@ void CompositorEngine::initGL(int width, int height)
     createFBO(effectFBO_A_, effectTex_A_, width, height);
     createFBO(effectFBO_B_, effectTex_B_, width, height);
     createFBO(transitionFBO_, transitionTex_, width, height);
+    createFBO(feedbackFBO_, feedbackTex_, width, height);
+    feedbackReady_ = false;
     glInitialized_ = true;
 }
 
@@ -24,6 +26,7 @@ void CompositorEngine::releaseGL()
     deleteFBO(effectFBO_A_, effectTex_A_);
     deleteFBO(effectFBO_B_, effectTex_B_);
     deleteFBO(transitionFBO_, transitionTex_);
+    deleteFBO(feedbackFBO_, feedbackTex_);
 
     for (auto& [path, tex] : textureCache_)
     {
@@ -46,11 +49,13 @@ void CompositorEngine::resize(int width, int height)
     deleteFBO(effectFBO_A_, effectTex_A_);
     deleteFBO(effectFBO_B_, effectTex_B_);
     deleteFBO(transitionFBO_, transitionTex_);
+    deleteFBO(feedbackFBO_, feedbackTex_);
     createFBO(accumulatorFBO_, accumulatorTex_, width, height);
     createFBO(scratchFBO_, scratchTex_, width, height);
     createFBO(effectFBO_A_, effectTex_A_, width, height);
     createFBO(effectFBO_B_, effectTex_B_, width, height);
     createFBO(transitionFBO_, transitionTex_, width, height);
+    createFBO(feedbackFBO_, feedbackTex_, width, height);
 }
 
 void CompositorEngine::createFBO(GLuint& fbo, GLuint& tex, int w, int h)
@@ -175,12 +180,22 @@ GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
 
         program->use();
 
-        // Bind input texture
+        // Bind input texture (unit 0)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, currentInput);
         auto texLoc = program->getUniformIDFromName("u_texture");
         if (texLoc >= 0)
             glUniform1i(texLoc, 0);
+
+        // Bind feedback texture (unit 1) — previous frame's composited output
+        auto feedbackLoc = program->getUniformIDFromName("u_feedbackTex");
+        if (feedbackLoc >= 0)
+        {
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, feedbackTex_);
+            glUniform1i(feedbackLoc, 1);
+            glActiveTexture(GL_TEXTURE0);
+        }
 
         // Global uniforms
         auto timeLoc = program->getUniformIDFromName("u_time");
@@ -200,11 +215,97 @@ GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
 
         quad.draw();
 
-        currentInput = (writeFBO == 0) ? effectTex_A_ : effectTex_B_;
-        writeFBO = 1 - writeFBO; // ping-pong
+        GLuint effectedTex = (writeFBO == 0) ? effectTex_A_ : effectTex_B_;
+
+        // Apply dry/wet blend if < 1.0
+        if (slot.dryWet < 0.999f)
+        {
+            // Blend effected result with pre-effect input
+            int blendFBO = 1 - writeFBO;
+            GLuint blendTargetFBO = (blendFBO == 0) ? effectFBO_A_ : effectFBO_B_;
+
+            glBindFramebuffer(GL_FRAMEBUFFER, blendTargetFBO);
+            glViewport(0, 0, w, h);
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDisable(GL_BLEND);
+
+            auto* dwProg = shaderMgr.getProgram("effect_dry_wet");
+            if (dwProg)
+            {
+                dwProg->use();
+                // Unit 0 = effected result
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, effectedTex);
+                glUniform1i(dwProg->getUniformIDFromName("u_texture"), 0);
+                // Unit 1 = original (pre-effect)
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, currentInput);
+                glUniform1i(dwProg->getUniformIDFromName("u_original"), 1);
+                // Dry/wet amount
+                auto dwLoc = dwProg->getUniformIDFromName("u_drywet");
+                if (dwLoc >= 0) glUniform1f(dwLoc, slot.dryWet);
+                glActiveTexture(GL_TEXTURE0);
+
+                quad.draw();
+            }
+
+            currentInput = (blendFBO == 0) ? effectTex_A_ : effectTex_B_;
+            writeFBO = 1 - blendFBO;
+        }
+        else
+        {
+            currentInput = effectedTex;
+            writeFBO = 1 - writeFBO;
+        }
     }
 
     return currentInput;
+}
+
+// === Clip transform ===
+
+GLuint CompositorEngine::applyClipTransform(const Clip& clip, GLuint srcTex,
+                                              ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                              int w, int h)
+{
+    constexpr float eps = 0.001f;
+    bool needsTransform = (std::abs(clip.positionX) > eps ||
+                           std::abs(clip.positionY) > eps ||
+                           std::abs(clip.scale - 1.0f) > eps ||
+                           std::abs(clip.rotation) > eps);
+    if (!needsTransform)
+        return srcTex;
+
+    auto* prog = shaderMgr.getProgram("layer_transform");
+    if (prog == nullptr)
+        return srcTex;
+
+    // Use effectFBO_A_ as scratch (it's not in use yet at this point)
+    glBindFramebuffer(GL_FRAMEBUFFER, effectFBO_A_);
+    glViewport(0, 0, w, h);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_BLEND);
+
+    prog->use();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, srcTex);
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+    // Normalize position: pixels → normalized UV offset
+    glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_translate"),
+                clip.positionX / static_cast<float>(w),
+                clip.positionY / static_cast<float>(h));
+    glUniform2f(glGetUniformLocation(prog->getProgramID(), "u_anchor"),
+                0.5f + clip.anchorX, 0.5f + clip.anchorY);
+    glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_scale"),
+                clip.scale);
+    glUniform1f(glGetUniformLocation(prog->getProgramID(), "u_rotation"),
+                clip.rotation * 3.14159265f / 180.0f);
+
+    quad.draw();
+
+    return effectTex_A_;
 }
 
 // === Layer transform (P13.5.5) ===
@@ -254,7 +355,8 @@ GLuint CompositorEngine::applyLayerTransform(const Layer& layer, GLuint srcTex,
 
 // === FX Only layer (P13.5.2) ===
 
-void CompositorEngine::applyFXOnlyLayer(const Clip& clip, ShaderManager& shaderMgr,
+void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer,
+                                          ShaderManager& shaderMgr,
                                           FullscreenQuad& quad, float time, int w, int h)
 {
     if (clip.effects.empty() || effectLibrary_ == nullptr)
@@ -265,7 +367,24 @@ void CompositorEngine::applyFXOnlyLayer(const Clip& clip, ShaderManager& shaderM
 
     if (result != accumulatorTex_)
     {
-        // Copy result back to accumulator
+        // If opacity < 1, blend between original accumulator and FX'd result
+        // First, save the original accumulator to scratch
+        if (layer.opacity < 0.999f)
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, scratchFBO_);
+            glViewport(0, 0, w, h);
+            glDisable(GL_BLEND);
+            auto* pt = shaderMgr.getProgram("passthrough");
+            if (pt) {
+                pt->use();
+                glUniform1i(glGetUniformLocation(pt->getProgramID(), "u_texture"), 0);
+            }
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, accumulatorTex_);
+            quad.draw();
+        }
+
+        // Copy FX'd result to accumulator
         glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
         glViewport(0, 0, w, h);
         glDisable(GL_BLEND);
@@ -279,6 +398,18 @@ void CompositorEngine::applyFXOnlyLayer(const Clip& clip, ShaderManager& shaderM
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, result);
         quad.draw();
+
+        // Blend original back if opacity < 1
+        if (layer.opacity < 0.999f)
+        {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_CONSTANT_ALPHA, GL_ONE_MINUS_CONSTANT_ALPHA);
+            glBlendColor(0.0f, 0.0f, 0.0f, 1.0f - layer.opacity);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, scratchTex_);
+            quad.draw();
+            glDisable(GL_BLEND);
+        }
     }
 }
 
@@ -422,9 +553,12 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 if (clipTex == 0)
                 {
                     if (clip->hasEffects())
-                        applyFXOnlyLayer(*clip, shaderMgr, quad, time, width, height);
+                        applyFXOnlyLayer(*clip, layer, shaderMgr, quad, time, width, height);
                     continue;
                 }
+
+                // Apply per-clip transform (position, scale, rotation)
+                clipTex = applyClipTransform(*clip, clipTex, shaderMgr, quad, width, height);
 
                 // P13.5.1: Apply per-clip effects
                 clipTex = applyClipEffects(*clip, clipTex, shaderMgr, quad, time, width, height);
@@ -454,27 +588,43 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 }
                 else
                 {
-                    // Opaque: clear accumulator and draw directly
+                    // Opaque: clear accumulator and draw with opacity
                     glBindFramebuffer(GL_FRAMEBUFFER, accumulatorFBO_);
                     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
                     glClear(GL_COLOR_BUFFER_BIT);
-                    glDisable(GL_BLEND);
-                    auto* prog = shaderMgr.getProgram("passthrough");
+
+                    if (layer.opacity < 0.999f)
+                    {
+                        // Use alpha blending to apply opacity over black
+                        glEnable(GL_BLEND);
+                        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    }
+                    else
+                    {
+                        glDisable(GL_BLEND);
+                    }
+
+                    auto* prog = shaderMgr.getProgram("opacity_blend");
+                    if (!prog) prog = shaderMgr.getProgram("passthrough");
                     if (prog)
                     {
                         prog->use();
                         glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+                        auto opLoc = glGetUniformLocation(prog->getProgramID(), "u_opacity");
+                        if (opLoc >= 0)
+                            glUniform1f(opLoc, layer.opacity);
                     }
                     glActiveTexture(GL_TEXTURE0);
                     glBindTexture(GL_TEXTURE_2D, clipTex);
                     quad.draw();
+                    glDisable(GL_BLEND);
                 }
                 break;
             }
             case Layer::Type::FXOnly:
             {
-                // P13.5.2: Apply clip's effects to the accumulator
-                applyFXOnlyLayer(*clip, shaderMgr, quad, time, width, height);
+                // P13.5.2: Apply clip's effects to the accumulator (with opacity)
+                applyFXOnlyLayer(*clip, layer, shaderMgr, quad, time, width, height);
                 break;
             }
             case Layer::Type::Mask:
@@ -754,4 +904,29 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float 
     glActiveTexture(GL_TEXTURE0);
 
     return transitionTex_;
+}
+
+// === Feedback Buffer ===
+
+void CompositorEngine::updateFeedbackBuffer(ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                              int w, int h)
+{
+    if (!glInitialized_ || feedbackFBO_ == 0)
+        return;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, feedbackFBO_);
+    glViewport(0, 0, w, h);
+    glDisable(GL_BLEND);
+
+    auto* prog = shaderMgr.getProgram("passthrough");
+    if (prog)
+    {
+        prog->use();
+        glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+    }
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, accumulatorTex_);
+    quad.draw();
+
+    feedbackReady_ = true;
 }

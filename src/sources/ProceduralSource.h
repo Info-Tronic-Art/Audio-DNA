@@ -72,6 +72,9 @@ public:
     // Whether GL has been initialized
     bool isGLInitialized() const { return glInitialized_; }
 
+    // Set the compositor feedback texture (previous frame) for sources that use it
+    void setFeedbackTexture(GLuint tex) { feedbackTex_ = tex; }
+
     ProceduralSource(const ProceduralSource&) = delete;
     ProceduralSource& operator=(const ProceduralSource&) = delete;
 
@@ -106,6 +109,9 @@ protected:
     int fboWidth_ = 0;
     int fboHeight_ = 0;
     bool glInitialized_ = false;
+
+    // External feedback texture (compositor's previous frame)
+    GLuint feedbackTex_ = 0;
 
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);

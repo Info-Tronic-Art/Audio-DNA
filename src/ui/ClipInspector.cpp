@@ -395,7 +395,7 @@ ClipInspector::ClipInspector()
 
     posXControl_.onValueChanged = [this](float v) { if (clip_) clip_->positionX = (v - 0.5f) * 3840.0f; };
     posYControl_.onValueChanged = [this](float v) { if (clip_) clip_->positionY = (v - 0.5f) * 2160.0f; };
-    scaleControl_.onValueChanged = [this](float v) { if (clip_) clip_->scale = v * 2.0f; };
+    scaleControl_.onValueChanged = [this](float v) { if (clip_) clip_->scale = std::pow(2.0f, (v - 0.5f) * 2.0f); };
     rotationControl_.onValueChanged = [this](float v) { if (clip_) clip_->rotation = (v - 0.5f) * 720.0f; };
     anchorControl_.onValueChanged = [this](float v) { if (clip_) clip_->anchorX = (v - 0.5f) * 3840.0f; };
 
@@ -1185,7 +1185,7 @@ void ClipInspector::syncFromClip()
     // Transform
     posXControl_.setParamValue(clip_->positionX / 3840.0f + 0.5f);
     posYControl_.setParamValue(clip_->positionY / 2160.0f + 0.5f);
-    scaleControl_.setParamValue(clip_->scale / 2.0f);
+    scaleControl_.setParamValue(std::log2(std::max(0.01f, clip_->scale)) / 2.0f + 0.5f);
     rotationControl_.setParamValue(clip_->rotation / 720.0f + 0.5f);
     anchorControl_.setParamValue(clip_->anchorX / 3840.0f + 0.5f);
 

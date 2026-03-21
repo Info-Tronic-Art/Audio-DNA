@@ -76,6 +76,14 @@ public:
 
     bool hasActiveLayers() const { return hasActiveLayers_; }
 
+    // Copy the current composited frame into the persistent feedback buffer.
+    // Call AFTER compositeDeck() each frame.
+    void updateFeedbackBuffer(ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
+
+    // Get the feedback texture (previous frame's output)
+    GLuint getFeedbackTexture() const { return feedbackTex_; }
+    bool isFeedbackReady() const { return feedbackReady_; }
+
 private:
     // Accumulator FBO — the composited result
     GLuint accumulatorFBO_ = 0;
@@ -95,6 +103,11 @@ private:
     GLuint transitionFBO_ = 0;
     GLuint transitionTex_ = 0;
 
+    // Persistent feedback buffer — survives across frames for feedback effects
+    GLuint feedbackFBO_ = 0;
+    GLuint feedbackTex_ = 0;
+    bool feedbackReady_ = false;
+
     int fboWidth_ = 0;
     int fboHeight_ = 0;
     bool glInitialized_ = false;
@@ -109,6 +122,11 @@ private:
 
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);
+
+    // Apply per-clip transform (position/scale/rotation) to a texture
+    GLuint applyClipTransform(const Clip& clip, GLuint srcTex,
+                               ShaderManager& shaderMgr, FullscreenQuad& quad,
+                               int w, int h);
 
     // Apply per-clip effect chain to a texture, returns result texture ID.
     // Uses effectFBO_A_/B_ for ping-pong rendering.
@@ -132,7 +150,8 @@ private:
                                    int w, int h);
 
     // Apply FX Only layer: run clip effects on the accumulator
-    void applyFXOnlyLayer(const Clip& clip, ShaderManager& shaderMgr,
+    void applyFXOnlyLayer(const Clip& clip, const Layer& layer,
+                          ShaderManager& shaderMgr,
                           FullscreenQuad& quad, float time, int w, int h);
 
     // Apply Mask layer: use clip content as luminance mask on accumulator

@@ -625,7 +625,7 @@ void EffectLibrary::registerDefaults()
         {"rotation", "u_cubescat_rotation", 0.0f}
     }});
 
-    registerEffect({"Infinite Zoom", "warp", "infinite_zoom", {
+    registerEffect({"Zoom Warp", "warp", "infinite_zoom", {
         {"speed", "u_infzoom_speed", 0.3f},
         {"rotation", "u_infzoom_rotation", 0.5f},
         {"center x", "u_infzoom_cx", 0.5f},
@@ -637,6 +637,28 @@ void EffectLibrary::registerDefaults()
         {"light y", "u_bumplight_ly", 0.3f},
         {"intensity", "u_bumplight_intensity", 0.6f},
         {"height", "u_bumplight_height", 0.5f}
+    }});
+
+    // === Feedback Effect ===
+
+    registerEffect({"Point Zoom", "animation", "feedback", {
+        {"amount",     "u_feedback_amount",     0.7f},
+        {"zoom",       "u_feedback_zoom",       0.52f},
+        {"rotation",   "u_feedback_rotation",   0.52f},
+        {"x offset",   "u_feedback_x_offset",   0.5f},
+        {"y offset",   "u_feedback_y_offset",   0.5f},
+        {"decay",      "u_feedback_decay",       0.7f},
+        {"hue shift",  "u_feedback_hue_shift",   0.0f},
+        {"saturation", "u_feedback_saturation",  0.5f}
+    }});
+
+    registerEffect({"Directional Feedback", "animation", "directional_feedback", {
+        {"amount",     "u_dfb_amount",     0.7f},
+        {"speed",      "u_dfb_speed",      0.5f},
+        {"direction",  "u_dfb_direction",  0.5f},
+        {"spread",     "u_dfb_spread",     0.3f},
+        {"decay",      "u_dfb_decay",      0.7f},
+        {"hue shift",  "u_dfb_hue_shift",  0.0f}
     }});
 }
 
