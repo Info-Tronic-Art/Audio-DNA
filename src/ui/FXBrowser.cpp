@@ -163,22 +163,27 @@ public:
         // Multi-select with cmd/shift
         if (event.mods.isCommandDown())
         {
-            // Toggle selection
+            // Toggle individual selection
             if (owner_.selectedIndices_.count(idx))
                 owner_.selectedIndices_.erase(idx);
             else
                 owner_.selectedIndices_.insert(idx);
+            lastAnchorIdx_ = idx;
         }
-        else if (!event.mods.isShiftDown())
+        else if (event.mods.isShiftDown() && lastAnchorIdx_ >= 0)
+        {
+            // Shift-click: select range from anchor to clicked item
+            int lo = std::min(lastAnchorIdx_, idx);
+            int hi = std::max(lastAnchorIdx_, idx);
+            for (int i = lo; i <= hi; ++i)
+                owner_.selectedIndices_.insert(i);
+        }
+        else
         {
             // Single click without modifier — select only this
             owner_.selectedIndices_.clear();
             owner_.selectedIndices_.insert(idx);
-        }
-        else
-        {
-            // Shift-click: add to selection
-            owner_.selectedIndices_.insert(idx);
+            lastAnchorIdx_ = idx;
         }
 
         draggedEffectName_ = owner_.effects_[static_cast<size_t>(idx)].name;
@@ -278,6 +283,7 @@ private:
     FXBrowser& owner_;
     juce::String draggedEffectName_;
     bool dragStarted_ = false;
+    int lastAnchorIdx_ = -1;
 };
 
 // ── FXBrowser implementation ──
