@@ -27,47 +27,97 @@ public:
 
     void mouseDown(const juce::MouseEvent& event) override
     {
+        dragStarted_ = false;
         int idx = hitTest(event.getPosition());
-        if (idx < 0 || idx >= static_cast<int>(owner_.entries_.size()))
-            return;
-
-        auto& entry = owner_.entries_[static_cast<size_t>(idx)];
 
         if (event.mods.isRightButtonDown())
         {
-            // Right-click: toggle favorite
-            owner_.toggleFavorite(entry.file);
+            if (idx >= 0 && idx < static_cast<int>(owner_.entries_.size()))
+            {
+                owner_.toggleFavorite(owner_.entries_[static_cast<size_t>(idx)].file);
+                repaint();
+            }
+            return;
+        }
+
+        if (idx < 0 || idx >= static_cast<int>(owner_.entries_.size()))
+        {
+            if (!event.mods.isCommandDown() && !event.mods.isShiftDown())
+                owner_.selectedIndices_.clear();
             repaint();
             return;
         }
 
+        auto& entry = owner_.entries_[static_cast<size_t>(idx)];
+
         if (entry.isDirectory)
         {
-            // Navigate into directory
             owner_.navigateTo(entry.file);
+            return;
+        }
+
+        // Multi-select
+        if (event.mods.isCommandDown())
+        {
+            if (owner_.selectedIndices_.count(idx))
+                owner_.selectedIndices_.erase(idx);
+            else
+                owner_.selectedIndices_.insert(idx);
+            lastAnchorIdx_ = idx;
+        }
+        else if (event.mods.isShiftDown() && lastAnchorIdx_ >= 0)
+        {
+            int lo = std::min(lastAnchorIdx_, idx);
+            int hi = std::max(lastAnchorIdx_, idx);
+            for (int i = lo; i <= hi; ++i)
+            {
+                if (i < static_cast<int>(owner_.entries_.size()) && !owner_.entries_[static_cast<size_t>(i)].isDirectory)
+                    owner_.selectedIndices_.insert(i);
+            }
         }
         else
         {
-            // Double-click or single-click activates file
-            if (owner_.onFileActivated)
-                owner_.onFileActivated(entry.file);
+            owner_.selectedIndices_.clear();
+            owner_.selectedIndices_.insert(idx);
+            lastAnchorIdx_ = idx;
         }
+        repaint();
+    }
+
+    void mouseDoubleClick(const juce::MouseEvent& event) override
+    {
+        int idx = hitTest(event.getPosition());
+        if (idx < 0 || idx >= static_cast<int>(owner_.entries_.size()))
+            return;
+        auto& entry = owner_.entries_[static_cast<size_t>(idx)];
+        if (!entry.isDirectory && owner_.onFileActivated)
+            owner_.onFileActivated(entry.file);
     }
 
     void mouseDrag(const juce::MouseEvent& event) override
     {
-        int idx = hitTest(event.getMouseDownPosition());
-        if (idx < 0 || idx >= static_cast<int>(owner_.entries_.size()))
+        if (dragStarted_ || owner_.selectedIndices_.empty())
             return;
 
-        auto& entry = owner_.entries_[static_cast<size_t>(idx)];
-        if (entry.isDirectory)
+        if (event.getDistanceFromDragStart() < 5)
             return;
 
-        // Start external drag
+        dragStarted_ = true;
+
+        // Collect all selected files
         juce::StringArray files;
-        files.add(entry.file.getFullPathName());
-        juce::DragAndDropContainer::performExternalDragDropOfFiles(files, false);
+        for (int idx : owner_.selectedIndices_)
+        {
+            if (idx < static_cast<int>(owner_.entries_.size()))
+            {
+                auto& entry = owner_.entries_[static_cast<size_t>(idx)];
+                if (!entry.isDirectory)
+                    files.add(entry.file.getFullPathName());
+            }
+        }
+
+        if (!files.isEmpty())
+            juce::DragAndDropContainer::performExternalDragDropOfFiles(files, false);
     }
 
     int getRequiredHeight() const
@@ -99,6 +149,8 @@ private:
     static constexpr int kListRowHeight = 20;
 
     FilesBrowser& owner_;
+    bool dragStarted_ = false;
+    int lastAnchorIdx_ = -1;
 
     void paintGrid(juce::Graphics& g, const std::vector<FileEntry>& entries)
     {
@@ -110,9 +162,15 @@ private:
             auto& e = entries[i];
             auto thumbRect = juce::Rectangle<int>(x, y, kThumbSize, kThumbSize);
 
-            // Background
-            g.setColour(juce::Colour(AudioDNALookAndFeel::kSurface));
+            // Background (highlight if selected)
+            bool selected = owner_.selectedIndices_.count(static_cast<int>(i)) > 0;
+            g.setColour(selected ? juce::Colour(0xff3a4a6e) : juce::Colour(AudioDNALookAndFeel::kSurface));
             g.fillRect(thumbRect);
+            if (selected)
+            {
+                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+                g.drawRect(thumbRect, 2);
+            }
 
             // Thumbnail or folder icon
             if (e.isDirectory)
@@ -166,8 +224,11 @@ private:
             auto& e = entries[i];
             auto rowRect = juce::Rectangle<int>(0, y, getWidth(), kListRowHeight);
 
-            // Alternating row background
-            if (i % 2 == 0)
+            // Row background (highlight if selected)
+            bool selected = owner_.selectedIndices_.count(static_cast<int>(i)) > 0;
+            if (selected)
+                g.setColour(juce::Colour(0xff3a4a6e));
+            else if (i % 2 == 0)
                 g.setColour(juce::Colour(0xff1e1e1e));
             else
                 g.setColour(juce::Colour(0xff1a1a1a));

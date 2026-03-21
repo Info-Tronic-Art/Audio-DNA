@@ -2,6 +2,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "ui/LookAndFeel.h"
 #include <vector>
+#include <set>
 
 // FilesBrowser: folder navigation with thumbnails, search, favorites.
 // Users can browse images/videos/audio and drag them onto deck cells.
@@ -49,6 +50,7 @@ private:
         bool isFavorite = false;
     };
     std::vector<FileEntry> entries_;
+    std::set<int> selectedIndices_;  // multi-select tracking
 
     // Scrollable content
     juce::Viewport viewport_;

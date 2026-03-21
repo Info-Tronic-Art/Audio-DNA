@@ -142,10 +142,30 @@ public:
         }
         else if (event.mods.isShiftDown() && lastAnchorIdx_ >= 0)
         {
-            int lo = std::min(lastAnchorIdx_, idx);
-            int hi = std::max(lastAnchorIdx_, idx);
-            for (int i = lo; i <= hi; ++i)
-                owner_.selectedIndices_.insert(i);
+            // Select visible range from anchor to clicked
+            std::vector<int> vis;
+            for (int ci = 0; ci < static_cast<int>(owner_.categories_.size()); ++ci)
+            {
+                auto& cat = owner_.categories_[static_cast<size_t>(ci)];
+                for (int si = 0; si < static_cast<int>(owner_.sources_.size()); ++si)
+                {
+                    auto& s = owner_.sources_[static_cast<size_t>(si)];
+                    if (s.category != cat.name || !owner_.matchesSearch(s.name)) continue;
+                    if (cat.expanded) vis.push_back(si);
+                }
+            }
+            int ap = -1, cp = -1;
+            for (int vi = 0; vi < static_cast<int>(vis.size()); ++vi)
+            {
+                if (vis[static_cast<size_t>(vi)] == lastAnchorIdx_) ap = vi;
+                if (vis[static_cast<size_t>(vi)] == idx) cp = vi;
+            }
+            if (ap >= 0 && cp >= 0)
+            {
+                int lo = std::min(ap, cp), hi = std::max(ap, cp);
+                for (int vi = lo; vi <= hi; ++vi)
+                    owner_.selectedIndices_.insert(vis[static_cast<size_t>(vi)]);
+            }
         }
         else
         {

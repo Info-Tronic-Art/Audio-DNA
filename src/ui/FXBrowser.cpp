@@ -172,11 +172,32 @@ public:
         }
         else if (event.mods.isShiftDown() && lastAnchorIdx_ >= 0)
         {
-            // Shift-click: select range from anchor to clicked item
-            int lo = std::min(lastAnchorIdx_, idx);
-            int hi = std::max(lastAnchorIdx_, idx);
-            for (int i = lo; i <= hi; ++i)
-                owner_.selectedIndices_.insert(i);
+            // Shift-click: select visible range from anchor to clicked item
+            auto sq = owner_.searchField_.getText().toLowerCase();
+            std::vector<int> vis;
+            for (int ci = 0; ci < static_cast<int>(owner_.categories_.size()); ++ci)
+            {
+                auto& cat = owner_.categories_[static_cast<size_t>(ci)];
+                for (int ei = 0; ei < static_cast<int>(owner_.effects_.size()); ++ei)
+                {
+                    auto& e = owner_.effects_[static_cast<size_t>(ei)];
+                    if (e.categoryIndex != ci) continue;
+                    if (!sq.isEmpty() && !e.name.toLowerCase().contains(sq)) continue;
+                    if (cat.expanded || !sq.isEmpty()) vis.push_back(ei);
+                }
+            }
+            int ap = -1, cp = -1;
+            for (int vi = 0; vi < static_cast<int>(vis.size()); ++vi)
+            {
+                if (vis[static_cast<size_t>(vi)] == lastAnchorIdx_) ap = vi;
+                if (vis[static_cast<size_t>(vi)] == idx) cp = vi;
+            }
+            if (ap >= 0 && cp >= 0)
+            {
+                int lo = std::min(ap, cp), hi = std::max(ap, cp);
+                for (int vi = lo; vi <= hi; ++vi)
+                    owner_.selectedIndices_.insert(vis[static_cast<size_t>(vi)]);
+            }
         }
         else
         {
