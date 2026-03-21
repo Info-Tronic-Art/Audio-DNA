@@ -3,6 +3,7 @@
 #include "effects/EffectLibrary.h"
 #include "ui/LookAndFeel.h"
 #include <vector>
+#include <set>
 
 // FXBrowser: displays all 76+ effects organized by category (8 categories).
 // Each category is collapsible. Effects can be dragged onto clip cells or
@@ -46,6 +47,7 @@ private:
 
     std::vector<CategoryInfo> categories_;
     std::vector<EffectEntry> effects_;
+    std::set<int> selectedIndices_; // multi-select tracking
 
     // Scrollable content
     juce::Viewport viewport_;

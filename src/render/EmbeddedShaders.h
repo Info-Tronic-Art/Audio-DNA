@@ -2734,20 +2734,43 @@ inline const char* sourceMandelbrot = R"(
     uniform float u_src_power;
     uniform float u_src_color_speed;
     uniform float u_src_color_shift;
+    uniform float u_src_dive_speed;
 
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
 
-        // Exponential zoom for smooth infinite-feel zoom
-        float zoom = exp(-u_src_zoom * 10.0);
-        vec2 center = vec2(-0.5 + u_src_center_x * 2.0 - 0.5,
+        // Auto-dive: continuously zoom into an interesting point
+        float diveSpeed = u_src_dive_speed * 2.0;
+        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
+
+        // Exponential zoom (manual + auto-dive)
+        float zoom = exp(-(u_src_zoom * 10.0 + autoZoom));
+
+        // Interesting dive targets (cycle between them)
+        vec2 diveTargets[4];
+        diveTargets[0] = vec2(-0.7436439, 0.1318259);  // Seahorse valley
+        diveTargets[1] = vec2(-0.1011, 0.9563);         // Spiral arm
+        diveTargets[2] = vec2(-1.7497, 0.0);            // Mini-brot antenna
+        diveTargets[3] = vec2(0.2501, 0.0);              // Elephant valley
+
+        vec2 center;
+        if (diveSpeed > 0.01) {
+            // Pick dive target based on time cycle (switch every ~25s of zoom)
+            int targetIdx = int(mod(u_time * 0.04, 4.0));
+            center = diveTargets[targetIdx];
+        } else {
+            center = vec2(-0.5 + u_src_center_x * 2.0 - 0.5,
                            u_src_center_y * 2.0 - 1.0);
+        }
         uv = uv * zoom + center;
 
-        int maxIter = 32 + int(u_src_max_iter * 224.0);
-        float power = 2.0 + u_src_power * 6.0; // 2-8 (Multibrot)
+        // Auto-increase iterations with zoom depth for detail
+        int baseIter = 32 + int(u_src_max_iter * 224.0);
+        int autoIter = int(autoZoom * 15.0);
+        int maxIter = min(baseIter + autoIter, 400);
+        float power = 2.0 + u_src_power * 6.0;
 
         // Julia / Mandelbrot mode
         vec2 c, z;
@@ -6019,20 +6042,33 @@ inline const char* sourceJuliaSet = R"(
     uniform float u_src_iterations;
     uniform float u_src_color_speed;
     uniform float u_src_color_shift;
+    uniform float u_src_dive_speed;
     uniform float u_rms;
     uniform float u_beatPhase;
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float zoom = exp(u_src_zoom * 8.0 - 2.0);
+        // Auto-dive zoom
+        float diveSpeed = u_src_dive_speed * 2.0;
+        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
+        float zoom = exp(u_src_zoom * 8.0 - 2.0 + autoZoom);
         uv /= zoom;
-        // Julia c-value: animate with time and audio
-        float cx = (u_src_cx - 0.5) * 2.0 + sin(u_time * 0.2) * 0.05 * u_rms;
-        float cy = (u_src_cy - 0.5) * 2.0 + cos(u_time * 0.15) * 0.05 * u_rms;
+        // Julia c-value: animate with time and audio, morph between presets during dive
+        float cx, cy;
+        if (diveSpeed > 0.01) {
+            // Slowly morph c through beautiful regions
+            float phase = u_time * 0.08;
+            cx = -0.7 + 0.3 * sin(phase) + 0.1 * sin(phase * 2.7);
+            cy = 0.27 + 0.2 * cos(phase * 0.9) + 0.05 * cos(phase * 3.1);
+        } else {
+            cx = (u_src_cx - 0.5) * 2.0 + sin(u_time * 0.2) * 0.05 * u_rms;
+            cy = (u_src_cy - 0.5) * 2.0 + cos(u_time * 0.15) * 0.05 * u_rms;
+        }
         vec2 z = uv;
         vec2 c = vec2(cx, cy);
-        int maxIter = int(u_src_iterations * 200.0) + 20;
+        int baseIter = int(u_src_iterations * 200.0) + 20;
+        int maxIter = min(baseIter + int(autoZoom * 10.0), 400);
         int i;
         for (i = 0; i < maxIter; i++) {
             z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
@@ -6059,18 +6095,28 @@ inline const char* sourceBurningShip = R"(
     uniform float u_src_iterations;
     uniform float u_src_color_speed;
     uniform float u_src_color_shift;
+    uniform float u_src_dive_speed;
     uniform float u_rms;
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float zoom = exp(u_src_zoom * 8.0 - 1.0);
-        vec2 center = vec2((u_src_center_x - 0.5) * 4.0 - 0.5,
+        float diveSpeed = u_src_dive_speed * 2.0;
+        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
+        float zoom = exp(u_src_zoom * 8.0 - 1.0 + autoZoom);
+        vec2 center;
+        if (diveSpeed > 0.01) {
+            // Dive into the ship's smokestack
+            center = vec2(-1.762, -0.028);
+        } else {
+            center = vec2((u_src_center_x - 0.5) * 4.0 - 0.5,
                            (u_src_center_y - 0.5) * 4.0 - 0.5);
+        }
         uv = uv / zoom + center;
         vec2 z = vec2(0.0);
         vec2 c = uv;
-        int maxIter = int(u_src_iterations * 200.0) + 20;
+        int baseIter = int(u_src_iterations * 200.0) + 20;
+        int maxIter = min(baseIter + int(autoZoom * 15.0), 400);
         int i;
         for (i = 0; i < maxIter; i++) {
             z = abs(z); // The burning ship twist
@@ -6097,17 +6143,23 @@ inline const char* sourceNewtonFractal = R"(
     uniform float u_src_zoom;
     uniform float u_src_damping;
     uniform float u_src_color_shift;
+    uniform float u_src_dive_speed;
     uniform float u_rms;
-    // Complex multiply
     vec2 cmul(vec2 a, vec2 b) { return vec2(a.x*b.x-a.y*b.y, a.x*b.y+a.y*b.x); }
-    // Complex divide
     vec2 cdiv(vec2 a, vec2 b) { return cmul(a, vec2(b.x,-b.y)) / dot(b,b); }
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float zoom = exp(u_src_zoom * 6.0 - 1.0);
-        uv /= zoom;
+        float diveSpeed = u_src_dive_speed * 2.0;
+        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
+        float zoom = exp(u_src_zoom * 6.0 - 1.0 + autoZoom);
+        // Dive into root boundary
+        if (diveSpeed > 0.01) {
+            uv = uv / zoom + vec2(0.5, 0.866); // boundary between roots
+        } else {
+            uv /= zoom;
+        }
         int n = int(u_src_power * 5.0) + 3; // power 3-8
         float damp = 0.5 + u_src_damping * 1.0; // relaxation
         vec2 z = uv;

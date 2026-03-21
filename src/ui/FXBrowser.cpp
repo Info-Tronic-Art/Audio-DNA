@@ -25,14 +25,15 @@ public:
         {
             auto& cat = owner_.categories_[static_cast<size_t>(ci)];
 
-            // Collect effects in this category
-            std::vector<const EffectEntry*> catEffects;
-            for (auto& e : owner_.effects_)
+            // Collect effects in this category with their indices
+            std::vector<std::pair<int, const EffectEntry*>> catEffects;
+            for (int ei = 0; ei < static_cast<int>(owner_.effects_.size()); ++ei)
             {
+                auto& e = owner_.effects_[static_cast<size_t>(ei)];
                 if (e.categoryIndex != ci) continue;
                 if (!searchQuery.isEmpty() && !e.name.toLowerCase().contains(searchQuery))
                     continue;
-                catEffects.push_back(&e);
+                catEffects.push_back({ei, &e});
             }
 
             // Skip empty categories when searching
@@ -63,12 +64,13 @@ public:
             // Effects (if expanded)
             if (cat.expanded || !searchQuery.isEmpty())
             {
-                for (auto* e : catEffects)
+                for (auto& [idx, e] : catEffects)
                 {
                     auto rowRect = juce::Rectangle<int>(0, y, getWidth(), kEffectRowHeight);
 
-                    // Subtle hover-like alternating bg
-                    g.setColour(juce::Colour(0xff1e1e2e));
+                    // Selected highlight
+                    bool selected = owner_.selectedIndices_.count(idx) > 0;
+                    g.setColour(selected ? juce::Colour(0xff3a3a5e) : juce::Colour(0xff1e1e2e));
                     g.fillRect(rowRect);
 
                     // Color dot
@@ -76,7 +78,7 @@ public:
                     g.fillEllipse(10.0f, static_cast<float>(y) + 7.0f, 8.0f, 8.0f);
 
                     // Effect name
-                    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+                    g.setColour(selected ? juce::Colours::white : juce::Colour(AudioDNALookAndFeel::kTextPrimary));
                     g.setFont(juce::Font(juce::FontOptions(11.0f)));
                     g.drawText(e->name, 24, y, getWidth() - 28, kEffectRowHeight,
                                juce::Justification::centredLeft, false);
@@ -87,71 +89,113 @@ public:
         }
     }
 
-    void mouseDown(const juce::MouseEvent& event) override
+    // Find which effect index is at a given y position
+    int effectIndexAtY(int posY)
     {
-        draggedEffectName_ = {};
-        auto pos = event.getPosition();
         auto searchQuery = owner_.searchField_.getText().toLowerCase();
         int y = 0;
-
+        int effectIdx = 0;
         for (int ci = 0; ci < static_cast<int>(owner_.categories_.size()); ++ci)
         {
             auto& cat = owner_.categories_[static_cast<size_t>(ci)];
-
-            std::vector<const EffectEntry*> catEffects;
-            for (auto& e : owner_.effects_)
+            std::vector<int> catIndices;
+            for (int ei = 0; ei < static_cast<int>(owner_.effects_.size()); ++ei)
             {
+                auto& e = owner_.effects_[static_cast<size_t>(ei)];
                 if (e.categoryIndex != ci) continue;
-                if (!searchQuery.isEmpty() && !e.name.toLowerCase().contains(searchQuery))
-                    continue;
-                catEffects.push_back(&e);
+                if (!searchQuery.isEmpty() && !e.name.toLowerCase().contains(searchQuery)) continue;
+                catIndices.push_back(ei);
             }
-
-            if (!searchQuery.isEmpty() && catEffects.empty())
-                continue;
-
-            // Category header hit
-            if (pos.y >= y && pos.y < y + kCategoryHeaderHeight)
-            {
-                owner_.toggleCategory(ci);
-                return;
-            }
+            if (!searchQuery.isEmpty() && catIndices.empty()) continue;
+            if (posY >= y && posY < y + kCategoryHeaderHeight) return -1; // category header
             y += kCategoryHeaderHeight;
-
             if (cat.expanded || !searchQuery.isEmpty())
             {
-                for (auto* e : catEffects)
+                for (int idx : catIndices)
                 {
-                    if (pos.y >= y && pos.y < y + kEffectRowHeight)
-                    {
-                        // Store for potential drag; activate on mouse up if no drag occurred
-                        draggedEffectName_ = e->name;
-                        return;
-                    }
+                    if (posY >= y && posY < y + kEffectRowHeight) return idx;
                     y += kEffectRowHeight;
                 }
             }
         }
+        return -1;
+    }
+
+    void mouseDown(const juce::MouseEvent& event) override
+    {
+        draggedEffectName_ = {};
+        auto pos = event.getPosition();
+        int idx = effectIndexAtY(pos.y);
+
+        if (idx < 0)
+        {
+            // Check if category header was clicked
+            auto searchQuery = owner_.searchField_.getText().toLowerCase();
+            int y = 0;
+            for (int ci = 0; ci < static_cast<int>(owner_.categories_.size()); ++ci)
+            {
+                auto& cat = owner_.categories_[static_cast<size_t>(ci)];
+                int count = 0;
+                for (auto& e : owner_.effects_)
+                {
+                    if (e.categoryIndex != ci) continue;
+                    if (!searchQuery.isEmpty() && !e.name.toLowerCase().contains(searchQuery)) continue;
+                    count++;
+                }
+                if (!searchQuery.isEmpty() && count == 0) continue;
+                if (pos.y >= y && pos.y < y + kCategoryHeaderHeight)
+                {
+                    owner_.toggleCategory(ci);
+                    if (!event.mods.isCommandDown() && !event.mods.isShiftDown())
+                        owner_.selectedIndices_.clear();
+                    repaint();
+                    return;
+                }
+                y += kCategoryHeaderHeight;
+                if (cat.expanded || !searchQuery.isEmpty()) y += count * kEffectRowHeight;
+            }
+            if (!event.mods.isCommandDown() && !event.mods.isShiftDown())
+                owner_.selectedIndices_.clear();
+            repaint();
+            return;
+        }
+
+        // Multi-select with cmd/shift
+        if (event.mods.isCommandDown())
+        {
+            // Toggle selection
+            if (owner_.selectedIndices_.count(idx))
+                owner_.selectedIndices_.erase(idx);
+            else
+                owner_.selectedIndices_.insert(idx);
+        }
+        else if (!event.mods.isShiftDown())
+        {
+            // Single click without modifier — select only this
+            owner_.selectedIndices_.clear();
+            owner_.selectedIndices_.insert(idx);
+        }
+        else
+        {
+            // Shift-click: add to selection
+            owner_.selectedIndices_.insert(idx);
+        }
+
+        draggedEffectName_ = owner_.effects_[static_cast<size_t>(idx)].name;
+        repaint();
     }
 
     void mouseUp(const juce::MouseEvent&) override
     {
-        // If a click (no drag) on an effect, activate it
-        if (draggedEffectName_.isNotEmpty() && !dragStarted_)
-        {
-            if (owner_.onEffectActivated)
-                owner_.onEffectActivated(draggedEffectName_);
-        }
         draggedEffectName_ = {};
         dragStarted_ = false;
     }
 
     void mouseDrag(const juce::MouseEvent& event) override
     {
-        if (draggedEffectName_.isEmpty() || dragStarted_)
+        if (owner_.selectedIndices_.empty() || dragStarted_)
             return;
 
-        // Start drag after 5px movement threshold
         if (event.getDistanceFromDragStart() < 5)
             return;
 
@@ -159,10 +203,21 @@ public:
 
         if (auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this))
         {
-            juce::var desc("fx:" + draggedEffectName_);
+            // Build comma-separated list of selected effect names
+            juce::String names;
+            for (int idx : owner_.selectedIndices_)
+            {
+                if (names.isNotEmpty()) names += ",";
+                names += owner_.effects_[static_cast<size_t>(idx)].name;
+            }
+            juce::var desc("fx:" + names);
 
-            // Create a small drag image showing just the effect name
-            int imgW = 120, imgH = 24;
+            int count = static_cast<int>(owner_.selectedIndices_.size());
+            juce::String label = count > 1
+                ? juce::String(count) + " effects"
+                : owner_.effects_[static_cast<size_t>(*owner_.selectedIndices_.begin())].name;
+
+            int imgW = 140, imgH = 24;
             juce::Image dragImg(juce::Image::ARGB, imgW, imgH, true);
             {
                 juce::Graphics g(dragImg);
@@ -174,7 +229,7 @@ public:
                                        static_cast<float>(imgH - 1), 4.0f, 1.0f);
                 g.setColour(juce::Colours::white);
                 g.setFont(juce::Font(juce::FontOptions(11.0f)));
-                g.drawText(draggedEffectName_, 8, 0, imgW - 16, imgH,
+                g.drawText(label, 8, 0, imgW - 16, imgH,
                            juce::Justification::centredLeft, true);
             }
 

@@ -61,6 +61,7 @@ void SourceRegistry::registerDefaults()
     // Mandelbrot / Julia
     registerSource("mandelbrot", [] {
         auto s = std::make_unique<ProceduralSource>("mandelbrot", "Mandelbrot / Julia", "Fractal", "source_mandelbrot");
+        s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
         s->addParam("Zoom", "u_src_zoom", 0.3f);
         s->addParam("Center X", "u_src_center_x", 0.5f);
         s->addParam("Center Y", "u_src_center_y", 0.5f);
@@ -408,6 +409,7 @@ void SourceRegistry::registerDefaults()
 
     registerSource("julia_set", [] {
         auto s = std::make_unique<ProceduralSource>("julia_set", "Julia Set", "Fractal", "source_julia_set");
+        s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
         s->addParam("C Real", "u_src_cx", 0.35f);
         s->addParam("C Imaginary", "u_src_cy", 0.38f);
         s->addParam("Zoom", "u_src_zoom", 0.25f);
@@ -419,6 +421,7 @@ void SourceRegistry::registerDefaults()
 
     registerSource("burning_ship", [] {
         auto s = std::make_unique<ProceduralSource>("burning_ship", "Burning Ship", "Fractal", "source_burning_ship");
+        s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
         s->addParam("Center X", "u_src_center_x", 0.55f);
         s->addParam("Center Y", "u_src_center_y", 0.6f);
         s->addParam("Zoom", "u_src_zoom", 0.2f);
@@ -430,6 +433,7 @@ void SourceRegistry::registerDefaults()
 
     registerSource("newton_fractal", [] {
         auto s = std::make_unique<ProceduralSource>("newton_fractal", "Newton Fractal", "Fractal", "source_newton_fractal");
+        s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
         s->addParam("Power", "u_src_power", 0.2f);
         s->addParam("Zoom", "u_src_zoom", 0.3f);
         s->addParam("Damping", "u_src_damping", 0.5f);

@@ -588,48 +588,75 @@ MainComponent::MainComponent()
         if (!deck) return;
         auto* layer = deck->getLayer(layerIdx);
         if (!layer) return;
-        // Ensure the clip exists (create empty if needed)
-        auto* clip = layer->getClipAt(col);
-        if (!clip)
+
+        // Support multi-FX drop: comma-separated names
+        auto fxNames = juce::StringArray::fromTokens(effectName, ",", "");
+
+        // If target cell has content, add ALL FX to its chain
+        auto* existingClip = layer->getClipAt(col);
+        bool hasContent = existingClip && (existingClip->hasMedia() || !existingClip->effects.empty());
+
+        if (hasContent)
         {
-            Clip newClip;
-            static uint32_t fxClipId = 5000;
-            newClip.id = fxClipId++;
-            newClip.name = effectName.toStdString();
-            newClip.mediaType = Clip::MediaType::None;
-            deck->setClip(layerIdx, col, newClip);
-            clip = layer->getClipAt(col);
-        }
-        if (!clip) return;
-        // Add effect slot with default params
-        Clip::EffectSlot slot;
-        slot.effectName = effectName.toStdString();
-        const auto* def = effectLibrary_.getEffectDef(effectName);
-        if (def)
-        {
-            for (const auto& p : def->params)
-                slot.paramValues.push_back(p.defaultValue);
-        }
-        clip->effects.push_back(slot);
-        // Update clip name to show all effects
-        if (!clip->hasMedia())
-        {
-            std::string fxNames;
-            for (size_t i = 0; i < clip->effects.size(); ++i)
+            // Add all FX to the existing clip's chain
+            for (const auto& fxName : fxNames)
             {
-                if (i > 0) fxNames += " + ";
-                fxNames += clip->effects[i].effectName;
+                Clip::EffectSlot slot;
+                slot.effectName = fxName.toStdString();
+                const auto* def = effectLibrary_.getEffectDef(fxName);
+                if (def)
+                    for (const auto& p : def->params)
+                        slot.paramValues.push_back(p.defaultValue);
+                existingClip->effects.push_back(slot);
             }
-            clip->name = fxNames;
+            if (!existingClip->hasMedia())
+            {
+                std::string nameStr;
+                for (size_t i = 0; i < existingClip->effects.size(); ++i)
+                {
+                    if (i > 0) nameStr += " + ";
+                    nameStr += existingClip->effects[i].effectName;
+                }
+                existingClip->name = nameStr;
+            }
         }
-        // Don't auto-trigger — user clicks cell to activate
+        else
+        {
+            // Empty cell(s): each FX gets its own cell in consecutive columns
+            static uint32_t fxClipId = 5000;
+            for (int fi = 0; fi < fxNames.size(); ++fi)
+            {
+                int targetCol = col + fi;
+                layer->ensureColumns(targetCol + 1);
+                if (deck->numColumns < targetCol + 1)
+                    deck->numColumns = targetCol + 1;
+
+                Clip newClip;
+                newClip.id = fxClipId++;
+                newClip.name = fxNames[fi].toStdString();
+                newClip.mediaType = Clip::MediaType::None;
+
+                Clip::EffectSlot slot;
+                slot.effectName = fxNames[fi].toStdString();
+                const auto* def = effectLibrary_.getEffectDef(fxNames[fi]);
+                if (def)
+                    for (const auto& p : def->params)
+                        slot.paramValues.push_back(p.defaultValue);
+                newClip.effects.push_back(slot);
+
+                deck->setClip(layerIdx, targetCol, newClip);
+            }
+        }
+
         if (deckView_) deckView_->rebuildGrid();
-        // Update inspector if this clip is selected
         if (inspectorPanel_)
         {
-            auto& ci = inspectorPanel_->getClipInspector();
-            if (ci.getClip() == clip)
-                ci.refresh();
+            auto* clip = layer->getClipAt(col);
+            if (clip)
+            {
+                auto& ci = inspectorPanel_->getClipInspector();
+                if (ci.getClip() == clip) ci.refresh();
+            }
         }
     };
     deckView_->onSourceDropped = [this](int layerIdx, int col, const juce::String& sourceId) {
