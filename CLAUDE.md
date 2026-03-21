@@ -689,8 +689,20 @@ When the user says **"kick off phase N"**, follow this exact sequence:
 
      Wait for user to confirm.
 
-6. **On human PASS**: Commit to git, update PHASE_GUIDE.md status to COMPLETE.
-7. **On human FAIL**: Fix the issue, rebuild, re-validate, report again.
+6. **On human PASS**: Commit to git, update PHASE_GUIDE.md status to COMPLETE, then run Step 8.
+7. **On human FAIL**: Fix the issue, rebuild, re-validate, report again. After final PASS, run Step 8.
+
+8. **Post-phase documentation (MANDATORY after every phase)**:
+   - Update `CLAUDE.md`:
+     - Effect/source counts if changed
+     - Any new architectural patterns, rendering pipeline changes, or data model changes
+     - Add new entries to "Common Pitfalls" if bugs were discovered and fixed
+     - Add new entries to "UI Patterns" if new interaction conventions were established
+   - Update `research/UNIFIED_BUILD_PLAN.md`: mark phase COMPLETE with summary of what shipped
+   - Update `PHASE_GUIDE.md`: mark phase COMPLETE
+   - Write a project memory file summarizing what was built and any non-obvious lessons
+   - Write feedback memory files for any user preferences discovered during testing
+   - **Ask**: "Did we learn anything this phase that should change how future phases work?" If yes, update the relevant docs. If Claude identified patterns (common bug classes, UI conventions the user validated, architectural shortcuts), capture them proactively.
 
 ### Phase Dependency Map
 

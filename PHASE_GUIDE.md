@@ -219,3 +219,4 @@ That document is self-contained — it has every task, every file to read, every
 8. **Update this file** to mark the phase status
 9. **Follow naming conventions** from ARCHITECTURE_V2.md Section 2
 10. **UI text rule**: Always display whole words, never abbreviations
+11. **Post-phase docs update (MANDATORY)**: After every phase, update CLAUDE.md (counts, pitfalls, patterns), UNIFIED_BUILD_PLAN.md (status), this file (status), and write memory files capturing lessons learned. See CLAUDE.md Step 8 for the full checklist.
