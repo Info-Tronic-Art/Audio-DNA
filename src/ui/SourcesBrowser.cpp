@@ -14,12 +14,13 @@ public:
         {
             auto& cat = owner_.categories_[static_cast<size_t>(ci)];
 
-            // Collect sources in category (filtered by search)
-            std::vector<const SourceEntry*> catSources;
-            for (auto& s : owner_.sources_)
+            // Collect sources in category with indices (filtered by search)
+            std::vector<std::pair<int, const SourceEntry*>> catSources;
+            for (int si = 0; si < static_cast<int>(owner_.sources_.size()); ++si)
             {
+                auto& s = owner_.sources_[static_cast<size_t>(si)];
                 if (s.category == cat.name && owner_.matchesSearch(s.name))
-                    catSources.push_back(&s);
+                    catSources.push_back({si, &s});
             }
             if (catSources.empty()) continue;
 
@@ -41,10 +42,12 @@ public:
 
             if (cat.expanded)
             {
-                for (auto* s : catSources)
+                for (auto& [idx, s] : catSources)
                 {
-                    // Row background
-                    g.setColour(juce::Colour(0xff1e1e2e));
+                    bool selected = owner_.selectedIndices_.count(idx) > 0;
+
+                    // Row background (highlight if selected)
+                    g.setColour(selected ? juce::Colour(0xff3a3a5e) : juce::Colour(0xff1e1e2e));
                     g.fillRect(0, y, getWidth(), kSourceRowHeight);
 
                     // Color indicator
@@ -53,7 +56,7 @@ public:
                                            16.0f, 16.0f, 3.0f);
 
                     // Source name
-                    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+                    g.setColour(selected ? juce::Colours::white : juce::Colour(AudioDNALookAndFeel::kTextPrimary));
                     g.setFont(juce::Font(juce::FontOptions(11.0f)));
                     g.drawText(s->name, 32, y, getWidth() - 36, kSourceRowHeight,
                                juce::Justification::centredLeft, false);
@@ -64,48 +67,100 @@ public:
         }
     }
 
+    // Find which source index is at a given y position
+    int sourceIndexAtY(int posY)
+    {
+        int y = 0;
+        for (int ci = 0; ci < static_cast<int>(owner_.categories_.size()); ++ci)
+        {
+            auto& cat = owner_.categories_[static_cast<size_t>(ci)];
+            std::vector<int> catIndices;
+            for (int si = 0; si < static_cast<int>(owner_.sources_.size()); ++si)
+            {
+                auto& s = owner_.sources_[static_cast<size_t>(si)];
+                if (s.category != cat.name || !owner_.matchesSearch(s.name)) continue;
+                catIndices.push_back(si);
+            }
+            if (catIndices.empty()) continue;
+            if (posY >= y && posY < y + kCategoryHeaderHeight) return -1;
+            y += kCategoryHeaderHeight;
+            if (cat.expanded)
+            {
+                for (int idx : catIndices)
+                {
+                    if (posY >= y && posY < y + kSourceRowHeight) return idx;
+                    y += kSourceRowHeight;
+                }
+            }
+        }
+        return -1;
+    }
+
     void mouseDown(const juce::MouseEvent& event) override
     {
         draggedSourceId_ = {};
         draggedSourceName_ = {};
         dragStarted_ = false;
 
-        int y = 0;
-        for (int ci = 0; ci < static_cast<int>(owner_.categories_.size()); ++ci)
+        int idx = sourceIndexAtY(event.y);
+
+        if (idx < 0)
         {
-            auto& cat = owner_.categories_[static_cast<size_t>(ci)];
-
-            std::vector<const SourceEntry*> catSources;
-            for (auto& s : owner_.sources_)
-                if (s.category == cat.name && owner_.matchesSearch(s.name)) catSources.push_back(&s);
-            if (catSources.empty()) continue;
-
-            if (event.y >= y && event.y < y + kCategoryHeaderHeight)
+            // Check for category header click
+            int y = 0;
+            for (int ci = 0; ci < static_cast<int>(owner_.categories_.size()); ++ci)
             {
-                owner_.toggleCategory(ci);
-                return;
-            }
-            y += kCategoryHeaderHeight;
-
-            if (cat.expanded)
-            {
-                for (auto* s : catSources)
+                auto& cat = owner_.categories_[static_cast<size_t>(ci)];
+                int count = 0;
+                for (auto& s : owner_.sources_)
+                    if (s.category == cat.name && owner_.matchesSearch(s.name)) count++;
+                if (count == 0) continue;
+                if (event.y >= y && event.y < y + kCategoryHeaderHeight)
                 {
-                    if (event.y >= y && event.y < y + kSourceRowHeight)
-                    {
-                        draggedSourceId_ = s->sourceId;
-                        draggedSourceName_ = s->name;
-                        return;
-                    }
-                    y += kSourceRowHeight;
+                    owner_.toggleCategory(ci);
+                    if (!event.mods.isCommandDown() && !event.mods.isShiftDown())
+                        owner_.selectedIndices_.clear();
+                    repaint();
+                    return;
                 }
+                y += kCategoryHeaderHeight;
+                if (cat.expanded) y += count * kSourceRowHeight;
             }
+            if (!event.mods.isCommandDown() && !event.mods.isShiftDown())
+                owner_.selectedIndices_.clear();
+            repaint();
+            return;
         }
+
+        if (event.mods.isCommandDown())
+        {
+            if (owner_.selectedIndices_.count(idx))
+                owner_.selectedIndices_.erase(idx);
+            else
+                owner_.selectedIndices_.insert(idx);
+            lastAnchorIdx_ = idx;
+        }
+        else if (event.mods.isShiftDown() && lastAnchorIdx_ >= 0)
+        {
+            int lo = std::min(lastAnchorIdx_, idx);
+            int hi = std::max(lastAnchorIdx_, idx);
+            for (int i = lo; i <= hi; ++i)
+                owner_.selectedIndices_.insert(i);
+        }
+        else
+        {
+            owner_.selectedIndices_.clear();
+            owner_.selectedIndices_.insert(idx);
+            lastAnchorIdx_ = idx;
+        }
+
+        draggedSourceId_ = owner_.sources_[static_cast<size_t>(idx)].sourceId;
+        draggedSourceName_ = owner_.sources_[static_cast<size_t>(idx)].name;
+        repaint();
     }
 
     void mouseUp(const juce::MouseEvent&) override
     {
-        // Sources are placed via drag-drop only, not click
         draggedSourceId_ = {};
         draggedSourceName_ = {};
         dragStarted_ = false;
@@ -113,7 +168,7 @@ public:
 
     void mouseDrag(const juce::MouseEvent& event) override
     {
-        if (draggedSourceId_.isEmpty() || dragStarted_)
+        if (owner_.selectedIndices_.empty() || dragStarted_)
             return;
 
         if (event.getDistanceFromDragStart() < 5)
@@ -123,10 +178,21 @@ public:
 
         if (auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this))
         {
-            juce::var desc("source:" + draggedSourceId_);
+            // Build comma-separated list of selected source IDs
+            juce::String ids;
+            for (int idx : owner_.selectedIndices_)
+            {
+                if (ids.isNotEmpty()) ids += ",";
+                ids += owner_.sources_[static_cast<size_t>(idx)].sourceId;
+            }
+            juce::var desc("source:" + ids);
 
-            // Create drag image
-            int imgW = 120, imgH = 24;
+            int count = static_cast<int>(owner_.selectedIndices_.size());
+            juce::String label = count > 1
+                ? juce::String(count) + " sources"
+                : owner_.sources_[static_cast<size_t>(*owner_.selectedIndices_.begin())].name;
+
+            int imgW = 140, imgH = 24;
             juce::Image dragImg(juce::Image::ARGB, imgW, imgH, true);
             {
                 juce::Graphics g(dragImg);
@@ -138,7 +204,7 @@ public:
                                        static_cast<float>(imgH - 1), 4.0f, 1.0f);
                 g.setColour(juce::Colours::white);
                 g.setFont(juce::Font(juce::FontOptions(11.0f)));
-                g.drawText(draggedSourceName_, 8, 0, imgW - 16, imgH,
+                g.drawText(label, 8, 0, imgW - 16, imgH,
                            juce::Justification::centredLeft, true);
             }
 
@@ -174,6 +240,7 @@ private:
     juce::String draggedSourceId_;
     juce::String draggedSourceName_;
     bool dragStarted_ = false;
+    int lastAnchorIdx_ = -1;
 };
 
 // ── SourcesBrowser implementation ──

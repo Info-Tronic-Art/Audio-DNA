@@ -662,31 +662,43 @@ MainComponent::MainComponent()
     deckView_->onSourceDropped = [this](int layerIdx, int col, const juce::String& sourceId) {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
+        auto* layer = deck->getLayer(layerIdx);
+        if (!layer) return;
 
-        // Create a source clip with parameters from registry
-        Clip clip;
-        clip.name = sourceId.toStdString();
-        clip.mediaType = Clip::MediaType::Source;
-        clip.sourceType = sourceId.toStdString();
-
+        // Support multi-source drop: comma-separated IDs
+        auto sourceIds = juce::StringArray::fromTokens(sourceId, ",", "");
         auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
-        auto tempSrc = srcRegistry.createSource(sourceId.toStdString());
-        if (tempSrc)
+
+        for (int si = 0; si < sourceIds.size(); ++si)
         {
-            for (int i = 0; i < tempSrc->getNumParams(); ++i)
+            int targetCol = col + si;
+            layer->ensureColumns(targetCol + 1);
+            if (deck->numColumns < targetCol + 1)
+                deck->numColumns = targetCol + 1;
+
+            Clip clip;
+            clip.name = sourceIds[si].toStdString();
+            clip.mediaType = Clip::MediaType::Source;
+            clip.sourceType = sourceIds[si].toStdString();
+
+            auto tempSrc = srcRegistry.createSource(sourceIds[si].toStdString());
+            if (tempSrc)
             {
-                const auto& p = tempSrc->getParam(i);
-                Clip::SourceParam sp;
-                sp.name = p.name;
-                sp.uniformName = p.uniformName;
-                sp.value = p.defaultValue;
-                sp.defaultValue = p.defaultValue;
-                clip.sourceParams.push_back(sp);
+                for (int i = 0; i < tempSrc->getNumParams(); ++i)
+                {
+                    const auto& p = tempSrc->getParam(i);
+                    Clip::SourceParam sp;
+                    sp.name = p.name;
+                    sp.uniformName = p.uniformName;
+                    sp.value = p.defaultValue;
+                    sp.defaultValue = p.defaultValue;
+                    clip.sourceParams.push_back(sp);
+                }
             }
+
+            deck->setClip(layerIdx, targetCol, clip);
         }
 
-        deck->setClip(layerIdx, col, clip);
-        // Don't auto-trigger — user clicks cell to activate
         if (deckView_) deckView_->rebuildGrid();
 
         // Refresh inspector

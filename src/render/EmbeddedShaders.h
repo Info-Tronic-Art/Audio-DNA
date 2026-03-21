@@ -2742,7 +2742,7 @@ inline const char* sourceMandelbrot = R"(
         uv.x *= aspect;
 
         // Auto-dive: continuously zoom into an interesting point
-        float diveSpeed = u_src_dive_speed * 2.0;
+        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
         float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
 
         // Exponential zoom (manual + auto-dive)
@@ -6050,7 +6050,7 @@ inline const char* sourceJuliaSet = R"(
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
         // Auto-dive zoom
-        float diveSpeed = u_src_dive_speed * 2.0;
+        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
         float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
         float zoom = exp(u_src_zoom * 8.0 - 2.0 + autoZoom);
         uv /= zoom;
@@ -6101,7 +6101,7 @@ inline const char* sourceBurningShip = R"(
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float diveSpeed = u_src_dive_speed * 2.0;
+        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
         float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
         float zoom = exp(u_src_zoom * 8.0 - 1.0 + autoZoom);
         vec2 center;
@@ -6151,7 +6151,7 @@ inline const char* sourceNewtonFractal = R"(
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float diveSpeed = u_src_dive_speed * 2.0;
+        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
         float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
         float zoom = exp(u_src_zoom * 6.0 - 1.0 + autoZoom);
         // Dive into root boundary

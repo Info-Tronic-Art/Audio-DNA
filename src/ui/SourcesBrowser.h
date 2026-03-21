@@ -2,6 +2,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "ui/LookAndFeel.h"
 #include <vector>
+#include <set>
 
 // SourcesBrowser: procedural generator icons by category.
 // 10 Tier 1 generators for launch, organized by type.
@@ -39,6 +40,7 @@ private:
 
     juce::TextEditor searchBox_;
     juce::String searchFilter_;
+    std::set<int> selectedIndices_;  // multi-select tracking (indices into sources_)
 
     juce::Viewport viewport_;
     class SourceListContent;
