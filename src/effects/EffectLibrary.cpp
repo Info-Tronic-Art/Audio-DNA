@@ -545,6 +545,99 @@ void EffectLibrary::registerDefaults()
         {"pattern size", "u_popraster_size", 0.3f},
         {"mix", "u_popraster_mix", 0.7f}
     }});
+
+    // ============================================================
+    // Phase 15: Medium Effects (14 new effects)
+    // ============================================================
+
+    registerEffect({"Palette Remap", "color", "palette_remap", {
+        {"palette", "u_palette_index", 0.0f},
+        {"cycle", "u_palette_cycle", 0.0f},
+        {"amount", "u_palette_amount", 0.0f}
+    }});
+
+    registerEffect({"Color Grade", "color", "lut_grade", {
+        {"amount", "u_lut_amount", 0.0f}
+    }});
+
+    registerEffect({"Bendoscope", "warp", "bendoscope", {
+        {"divisions", "u_bendo_divisions", 0.3f},
+        {"bend", "u_bendo_bend", 0.5f},
+        {"rotation", "u_bendo_rotation", 0.0f}
+    }});
+
+    registerEffect({"UV Remap", "warp", "uv_remap", {
+        {"amount", "u_uvremap_amount", 0.0f},
+        {"scale", "u_uvremap_scale", 0.5f},
+        {"speed", "u_uvremap_speed", 0.3f}
+    }});
+
+    registerEffect({"Liquid Morph", "warp", "liquid_morph", {
+        {"viscosity", "u_goo_viscosity", 0.5f},
+        {"amount", "u_goo_amount", 0.0f},
+        {"scale", "u_goo_scale", 0.5f}
+    }});
+
+    registerEffect({"Edge Blur", "blur", "edge_blur", {
+        {"threshold", "u_edgeblur_threshold", 0.5f},
+        {"amount", "u_edgeblur_amount", 0.0f}
+    }});
+
+    registerEffect({"Brush Strokes", "pattern", "brush_strokes", {
+        {"size", "u_brush_size", 0.4f},
+        {"angle", "u_brush_angle", 0.0f},
+        {"flow", "u_brush_flow", 0.5f},
+        {"amount", "u_brush_amount", 0.0f}
+    }});
+
+    registerEffect({"Fragment Burst", "glitch", "fragment_burst", {
+        {"copies", "u_frag_copies", 0.3f},
+        {"spread", "u_frag_spread", 0.3f},
+        {"rotation", "u_frag_rotation", 0.2f},
+        {"scale", "u_frag_scale", 0.5f}
+    }});
+
+    registerEffect({"Signal Destroy", "glitch", "signal_destroy", {
+        {"amount", "u_destroy_amount", 0.0f},
+        {"speed", "u_destroy_speed", 0.5f},
+        {"mode", "u_destroy_mode", 0.0f}
+    }});
+
+    registerEffect({"Line Cloner", "composite", "line_cloner", {
+        {"copies", "u_lineclone_copies", 0.3f},
+        {"offset x", "u_lineclone_ox", 0.8f},
+        {"offset y", "u_lineclone_oy", 0.5f},
+        {"scale", "u_lineclone_scale", 0.4f},
+        {"rotation", "u_lineclone_rotation", 0.5f}
+    }});
+
+    registerEffect({"Radial Cloner", "composite", "radial_cloner", {
+        {"copies", "u_radclone_copies", 0.3f},
+        {"radius", "u_radclone_radius", 0.3f},
+        {"rotation", "u_radclone_rotation", 0.0f},
+        {"scale", "u_radclone_scale", 0.5f}
+    }});
+
+    registerEffect({"Cube Scatter", "composite", "cube_scatter", {
+        {"grid x", "u_cubescat_gx", 0.3f},
+        {"grid y", "u_cubescat_gy", 0.3f},
+        {"explode", "u_cubescat_explode", 0.0f},
+        {"rotation", "u_cubescat_rotation", 0.0f}
+    }});
+
+    registerEffect({"Infinite Zoom", "warp", "infinite_zoom", {
+        {"speed", "u_infzoom_speed", 0.3f},
+        {"rotation", "u_infzoom_rotation", 0.5f},
+        {"center x", "u_infzoom_cx", 0.5f},
+        {"center y", "u_infzoom_cy", 0.5f}
+    }});
+
+    registerEffect({"Bump Light", "pattern", "bump_light", {
+        {"light x", "u_bumplight_lx", 0.5f},
+        {"light y", "u_bumplight_ly", 0.3f},
+        {"intensity", "u_bumplight_intensity", 0.6f},
+        {"height", "u_bumplight_height", 0.5f}
+    }});
 }
 
 std::unique_ptr<Effect> EffectLibrary::createEffect(const juce::String& name) const

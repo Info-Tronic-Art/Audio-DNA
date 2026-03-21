@@ -163,6 +163,36 @@ public:
     }
 };
 
+// Speed slider — cyan fill from bottom, "S" label at top (centered at 0.5 = 1x)
+class SpeedSliderLookAndFeel : public FullBoundsSliderLAF
+{
+public:
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+                          float sliderPos, float, float,
+                          juce::Slider::SliderStyle, juce::Slider&) override
+    {
+        auto bounds = juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height);
+
+        g.setColour(juce::Colour(0xff2a2a2a));
+        g.fillRect(bounds);
+
+        float fillHeight = bounds.getBottom() - sliderPos;
+        if (fillHeight > 0.0f)
+        {
+            g.setColour(juce::Colour(0xff3a6a7a));
+            g.fillRect(juce::Rectangle<float>(bounds.getX(), sliderPos,
+                                               bounds.getWidth(), fillHeight));
+        }
+
+        g.setColour(juce::Colours::white.withAlpha(0.6f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f)));
+        g.drawText("S", bounds.removeFromTop(14.0f), juce::Justification::centred);
+
+        g.setColour(juce::Colour(0xff1a1a1a));
+        g.drawRect(juce::Rectangle<float>((float)x, (float)y, (float)width, (float)height), 1.0f);
+    }
+};
+
 // Keying threshold slider — amber fill from bottom, "K" label at top
 class KeyingSliderLookAndFeel : public FullBoundsSliderLAF
 {
@@ -280,6 +310,7 @@ public:
     }
 };
 
+static SpeedSliderLookAndFeel sSpeedLAF;
 static OpacitySliderLookAndFeel sOpacityLAF;
 static FadeSpeedSliderLookAndFeel sFadeLAF;
 static KeyingSliderLookAndFeel sKeyingLAF;
@@ -290,6 +321,7 @@ static FlatComboBoxLookAndFeel sFlatComboLAF;
 LayerStrip::LayerStrip()
 {
     setOpaque(true);
+    startTimerHz(30); // 30fps playhead update
 
     setupFlatButton(clearBtn_);
     setupFlatButton(bypassBtn_);
@@ -344,6 +376,25 @@ LayerStrip::LayerStrip()
         auto* clip = layer_->getActiveClip();
         if (clip) { clip->reverse = false; clip->playing = true; clip->speed = std::min(clip->speed * 2.0f, 4.0f); }
         if (onTransportForward) onTransportForward(layerIndex_);
+    };
+
+    // S = speed slider (0 = 0x, 0.25 = 1x default, 1.0 = 4x)
+    addAndMakeVisible(speedSlider_);
+    speedSlider_.setRange(0.0, 1.0, 0.01);
+    speedSlider_.setValue(0.25, juce::dontSendNotification);
+    speedSlider_.setDefaultValue(0.25);
+    speedSlider_.setSliderStyle(juce::Slider::LinearVertical);
+    speedSlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+    speedSlider_.setLookAndFeel(&sSpeedLAF);
+    speedSlider_.onValueChange = [this] {
+        if (!layer_) return;
+        auto* clip = layer_->getActiveClip();
+        if (clip)
+        {
+            // Map 0-1 slider to 0x-4x speed (0.25 = 1x)
+            float v = static_cast<float>(speedSlider_.getValue());
+            clip->speed = v * 4.0f;
+        }
     };
 
     // K = keying threshold slider (no dropdown)
@@ -450,7 +501,35 @@ void LayerStrip::paint(juce::Graphics& g)
         g.drawRect(tb, 1.0f);
     }
 
-    // Alpha badge removed — audio tracks are muted/ignored silently
+    // Transport/playhead display (between left buttons and right sliders)
+    if (!transportBounds_.isEmpty())
+    {
+        auto tb = transportBounds_.toFloat();
+        g.setColour(juce::Colour(0xff111111));
+        g.fillRect(tb);
+
+        if (layer_)
+        {
+            auto* clip = layer_->getActiveClip();
+            if (clip && clip->isPlayable())
+            {
+                // Draw in/out region
+                float inX = tb.getX() + clip->inPoint * tb.getWidth();
+                float outX = tb.getX() + clip->outPoint * tb.getWidth();
+                g.setColour(juce::Colour(0xff1a2a2a));
+                g.fillRect(juce::Rectangle<float>(inX, tb.getY(), outX - inX, tb.getHeight()));
+
+                // Playhead line
+                float pos = static_cast<float>(clip->playheadPosition);
+                float xPos = tb.getX() + pos * tb.getWidth();
+                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+                g.drawVerticalLine(static_cast<int>(xPos), tb.getY(), tb.getBottom());
+            }
+        }
+
+        g.setColour(juce::Colour(kBtnBorder));
+        g.drawRect(tb, 1.0f);
+    }
 
     // Layer name box (painted manually — same as ComboBox rendering)
     if (!nameBounds_.isEmpty())
@@ -465,12 +544,26 @@ void LayerStrip::paint(juce::Graphics& g)
         g.drawText(layerName_, nb.reduced(5.0f, 0.0f), juce::Justification::centredLeft, true);
     }
 
-    // Clip name box (painted manually — same as ComboBox rendering)
+    // Clip name box with transport playhead overlay
     if (!clipNameBounds_.isEmpty())
     {
         auto cb = clipNameBounds_.toFloat();
         g.setColour(juce::Colour(kBtnBg));
         g.fillRect(cb);
+
+        // Draw playhead line (cyan vertical line at playhead position)
+        if (layer_)
+        {
+            auto* clip = layer_->getActiveClip();
+            if (clip && clip->isPlayable())
+            {
+                float pos = static_cast<float>(clip->playheadPosition);
+                float xPos = cb.getX() + pos * cb.getWidth();
+                g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+                g.drawVerticalLine(static_cast<int>(xPos), cb.getY(), cb.getBottom());
+            }
+        }
+
         g.setColour(juce::Colour(kBtnBorder));
         g.drawRect(cb, 1.0f);
         g.setColour(juce::Colour(0xffe0e0e0));
@@ -504,35 +597,24 @@ void LayerStrip::resized()
     int mainH = h - dropdownH;
     if (mainH < 30) mainH = h;
 
-    // Thumbnail: square using mainH
+    // Thumbnail: always square using mainH
     int thumbW = mainH;
 
-    // Right section: K + V + thumbnail + F (all sliders same width)
-    int rightSectionW = sliderW + sliderW + thumbW + sliderW;
-    int rightX = w - rightSectionW;
-    if (rightX < leftColW + 4) rightX = leftColW + 4;
-
-    // Recalc thumb if tight
-    int availThumb = w - rightX - sliderW * 3;
-    if (availThumb < 20) availThumb = 20;
-    thumbW = availThumb;
-
-    // === Left: X B S ===
+    // === Left column: X B S on top, < || > below, transport bar fills rest ===
     clearBtn_.setBounds(0, 0, btnSize, btnSize);
     bypassBtn_.setBounds(btnSize, 0, btnSize, btnSize);
     soloBtn_.setBounds(btnSize * 2, 0, btnSize, btnSize);
 
-    // === Transport controls below X/B/S buttons, above the name ===
+    // Transport buttons (< || >) below X/B/S
+    int tBtnH = btnSize;
+    int tY = btnSize;
     {
-        int tBtnW = btnSize; // same width as X/B/S (26px)
-        int tBtnH = std::min(mainH - btnSize, 22); // remaining height below X/B/S
-        if (tBtnH >= 14)
+        int tBtnW = btnSize;
+        if (mainH - btnSize > 20)
         {
-            int tY = btnSize; // directly below X/B/S row
             transportBackBtn_.setBounds(0, tY, tBtnW, tBtnH);
             transportPauseBtn_.setBounds(tBtnW, tY, tBtnW, tBtnH);
             transportPlayBtn_.setBounds(tBtnW * 2, tY, tBtnW, tBtnH);
-            // Forward button uses remaining space or hide if too tight
             if (leftColW > tBtnW * 3)
             {
                 transportForwardBtn_.setBounds(tBtnW * 3, tY, leftColW - tBtnW * 3, tBtnH);
@@ -540,7 +622,6 @@ void LayerStrip::resized()
             }
             else
                 transportForwardBtn_.setVisible(false);
-
             transportBackBtn_.setVisible(true);
             transportPauseBtn_.setVisible(true);
             transportPlayBtn_.setVisible(true);
@@ -554,25 +635,33 @@ void LayerStrip::resized()
         }
     }
 
-    // === Right main row: K | V | thumbnail | F ===
-    int kX = rightX;
+    // Transport playhead bar: fills remaining space below < || > buttons, above name row
+    int transportBarY = tY + tBtnH;
+    int transportBarH = mainH - transportBarY;
+    if (transportBarH < 4) transportBarH = 4;
+    transportBounds_ = juce::Rectangle<int>(0, transportBarY, leftColW, transportBarH);
+
+    // === Right section: S | K | V | thumbnail(square) | F — flush against left column ===
+    int sX = leftColW;
+    int kX = sX + sliderW;
     int vX = kX + sliderW;
     int thumbX = vX + sliderW;
     int fX = thumbX + thumbW;
 
+    speedSlider_.setBounds(sX, 0, sliderW, mainH);
     keyingSlider_.setBounds(kX, 0, sliderW, mainH);
     opacitySlider_.setBounds(vX, 0, sliderW, mainH);
     thumbnailBounds_ = juce::Rectangle<int>(thumbX, 0, thumbW, mainH);
     fadeTimeSlider_.setBounds(fX, 0, sliderW, mainH);
 
-    // === Dropdown row: all items share exact same Y and height ===
+    // === Dropdown row ===
     int rowY = mainH;
     int rowH = dropdownH;
 
-    int nameW = kX;
+    int nameW = leftColW;
     if (nameW < 30) nameW = 30;
     nameBounds_ = juce::Rectangle<int>(0, rowY, nameW, rowH);
-    blendDropdown_.setBounds(kX, rowY, sliderW * 2, rowH);
+    blendDropdown_.setBounds(sX, rowY, sliderW * 3, rowH);
     clipNameBounds_ = juce::Rectangle<int>(thumbX, rowY, thumbW, rowH);
     transitionDropdown_.setBounds(fX, rowY, sliderW, rowH);
 }
@@ -597,6 +686,13 @@ void LayerStrip::setLayer(Layer* layer, int index)
         transitionDropdown_.setSelectedId(static_cast<int>(layer_->transitionMode) + 1,
                                           juce::dontSendNotification);
 
+        // Speed slider: read from active clip (0.25 = 1x)
+        auto* clip = layer_->getActiveClip();
+        if (clip)
+            speedSlider_.setValue(static_cast<double>(clip->speed / 4.0f), juce::dontSendNotification);
+        else
+            speedSlider_.setValue(0.25, juce::dontSendNotification);
+
         updateButtonStates();
         updateThumbnail();
         updateClipName();
@@ -610,6 +706,15 @@ void LayerStrip::refresh()
     updateThumbnail();
     updateClipName();
     repaint();
+}
+
+void LayerStrip::timerCallback()
+{
+    // Repaint transport and clip name areas to animate the playhead
+    if (!transportBounds_.isEmpty())
+        repaint(transportBounds_);
+    if (!clipNameBounds_.isEmpty())
+        repaint(clipNameBounds_);
 }
 
 void LayerStrip::mouseDown(const juce::MouseEvent& event)
@@ -653,7 +758,7 @@ void LayerStrip::updateThumbnail()
     if (!layer_) return;
 
     auto* clip = layer_->getActiveClip();
-    if (!clip || !clip->hasMedia()) return;
+    if (!clip) return;
 
     int sz = thumbnailBounds_.getHeight();
     if (sz < 1) sz = 64;
@@ -672,6 +777,30 @@ void LayerStrip::updateThumbnail()
         if (img.isValid())
         {
             thumbnail_ = img.rescaled(sz, sz, juce::Graphics::lowResamplingQuality);
+            repaint(thumbnailBounds_);
+            return;
+        }
+    }
+
+    // Generate placeholder thumbnails for Source and FX-only clips
+    if (clip->mediaType == Clip::MediaType::Source || (clip->hasEffects() && !clip->hasMedia()))
+    {
+        thumbnail_ = juce::Image(juce::Image::ARGB, sz, sz, true);
+        juce::Graphics g(thumbnail_);
+
+        if (clip->mediaType == Clip::MediaType::Source)
+        {
+            g.fillAll(juce::Colour(0xff2a2040));
+            g.setColour(juce::Colour(0xffbb88ff));
+            g.setFont(juce::Font(juce::FontOptions(static_cast<float>(sz) * 0.25f).withStyle("Bold")));
+            g.drawText("SRC", thumbnail_.getBounds(), juce::Justification::centred);
+        }
+        else
+        {
+            g.fillAll(juce::Colour(0xff3a2a3a));
+            g.setColour(juce::Colour(0xffe0e0e0));
+            g.setFont(juce::Font(juce::FontOptions(static_cast<float>(sz) * 0.3f).withStyle("Bold")));
+            g.drawText("FX", thumbnail_.getBounds(), juce::Justification::centred);
         }
     }
 
@@ -687,10 +816,26 @@ void LayerStrip::updateClipName()
     }
 
     auto* clip = layer_->getActiveClip();
-    if (clip && clip->hasMedia())
-        clipName_ = clip->mediaFile.getFileNameWithoutExtension();
-    else
+    if (!clip)
+    {
         clipName_ = "";
+    }
+    else if (clip->mediaType == Clip::MediaType::Source)
+    {
+        clipName_ = juce::String(clip->name);
+    }
+    else if (clip->hasEffects() && !clip->hasMedia())
+    {
+        clipName_ = juce::String(clip->name);
+    }
+    else if (clip->hasMedia())
+    {
+        clipName_ = clip->mediaFile.getFileNameWithoutExtension();
+    }
+    else
+    {
+        clipName_ = "";
+    }
     repaint(clipNameBounds_);
 }
 

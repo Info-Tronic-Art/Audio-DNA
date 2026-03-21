@@ -357,8 +357,8 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         { hasActiveLayers_ = true; break; }
         if (clip->mediaType == Clip::MediaType::ImageSequence && !clip->sequenceFiles.empty())
         { hasActiveLayers_ = true; break; }
-        // FXOnly layers are active if they have effects (even without media)
-        if (layer.type == Layer::Type::FXOnly && !clip->effects.empty())
+        // Layers with effects (even without media) are active — FX applies to accumulator
+        if (!clip->effects.empty())
         { hasActiveLayers_ = true; break; }
     }
 
@@ -418,7 +418,13 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     clipTex = videoFrameFn_(clip, dt);
                 }
 
-                if (clipTex == 0) continue;
+                // If no media but clip has effects, apply as FX-only (affects layers below)
+                if (clipTex == 0)
+                {
+                    if (clip->hasEffects())
+                        applyFXOnlyLayer(*clip, shaderMgr, quad, time, width, height);
+                    continue;
+                }
 
                 // P13.5.1: Apply per-clip effects
                 clipTex = applyClipEffects(*clip, clipTex, shaderMgr, quad, time, width, height);

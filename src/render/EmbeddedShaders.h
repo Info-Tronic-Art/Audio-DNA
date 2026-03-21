@@ -3932,4 +3932,869 @@ inline const char* transitionFadeBlack = R"(
     }
 )";
 
+// ============================================================
+// Phase 15: Medium Effects (12 new effects)
+// ============================================================
+
+inline const char* paletteRemap = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_palette_index;
+    uniform float u_palette_cycle;
+    uniform float u_palette_amount;
+
+    vec3 iqPalette(float t, vec3 a, vec3 b, vec3 c, vec3 d) {
+        return a + b * cos(6.28318 * (c * t + d));
+    }
+
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float t = fract(luma + u_palette_cycle);
+
+        // 8 palettes selected by u_palette_index
+        int idx = int(u_palette_index * 7.99);
+        vec3 a, b, c, d;
+        if (idx == 0)      { a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(1.0,1.0,1.0); d=vec3(0.00,0.33,0.67); } // neon
+        else if (idx == 1) { a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(1.0,0.7,0.4); d=vec3(0.00,0.15,0.20); } // sunset
+        else if (idx == 2) { a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(1.0,1.0,1.0); d=vec3(0.30,0.20,0.20); } // ocean
+        else if (idx == 3) { a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(2.0,1.0,0.0); d=vec3(0.50,0.20,0.25); } // fire
+        else if (idx == 4) { a=vec3(0.8,0.8,0.8); b=vec3(0.2,0.2,0.2); c=vec3(1.0,1.0,1.0); d=vec3(0.00,0.10,0.20); } // pastel
+        else if (idx == 5) { a=vec3(0.0,0.3,0.0); b=vec3(0.0,0.5,0.0); c=vec3(0.0,1.0,0.0); d=vec3(0.00,0.00,0.00); } // matrix
+        else if (idx == 6) { a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(1.0,1.0,0.5); d=vec3(0.80,0.90,0.30); } // thermal
+        else               { a=vec3(0.5,0.5,0.8); b=vec3(0.5,0.5,0.3); c=vec3(1.0,1.0,1.0); d=vec3(0.20,0.30,0.50); } // ice
+
+        vec3 mapped = iqPalette(t, a, b, c, d);
+        fragColor = vec4(mix(col.rgb, mapped, u_palette_amount), col.a);
+    }
+)";
+
+inline const char* lutGrade = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_lut_amount;
+
+    // Built-in cinematic color grade (no external LUT file needed)
+    // Applies a warm/cool cross-process style grade
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        // Lift shadows warm, push highlights cool
+        vec3 shadows = vec3(0.1, 0.05, 0.0);
+        vec3 highlights = vec3(-0.05, 0.0, 0.1);
+        float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+        vec3 graded = col.rgb + shadows * (1.0 - luma) + highlights * luma;
+        // Add slight S-curve contrast
+        graded = graded * graded * (3.0 - 2.0 * graded);
+        fragColor = vec4(mix(col.rgb, graded, u_lut_amount), col.a);
+    }
+)";
+
+inline const char* bendoscope = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_bendo_divisions;
+    uniform float u_bendo_bend;
+    uniform float u_bendo_rotation;
+    void main() {
+        vec2 p = v_texCoord - 0.5;
+        float angle = atan(p.y, p.x);
+        float radius = length(p);
+        float segs = floor(u_bendo_divisions * 10.0) + 2.0;
+        float segAngle = 6.28318 / segs;
+        angle = angle + u_bendo_rotation * 6.28318;
+        angle = mod(angle + 3.14159, segAngle) - segAngle * 0.5;
+        if (angle < 0.0) angle = -angle; // reflect
+        // Apply bend curvature
+        radius += sin(angle * 3.0) * u_bendo_bend * 0.2;
+        vec2 uv = vec2(cos(angle), sin(angle)) * radius + 0.5;
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+inline const char* uvRemap = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_uvremap_amount;
+    uniform float u_uvremap_scale;
+    uniform float u_uvremap_speed;
+
+    // Inline simplex-style noise for UV displacement
+    float uvHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float uvNoise(vec2 p) {
+        vec2 i = floor(p); vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(uvHash(i), uvHash(i + vec2(1.0, 0.0)), f.x),
+                   mix(uvHash(i + vec2(0.0, 1.0)), uvHash(i + vec2(1.0, 1.0)), f.x), f.y);
+    }
+    float uvFbm(vec2 p) {
+        float v = 0.0; float a = 0.5;
+        for (int i = 0; i < 4; i++) { v += a * uvNoise(p); p *= 2.0; a *= 0.5; }
+        return v;
+    }
+    void main() {
+        float scale = 1.0 + u_uvremap_scale * 8.0;
+        float speed = u_uvremap_speed * 0.5;
+        vec2 n = vec2(
+            uvFbm(v_texCoord * scale + vec2(u_time * speed, 0.0)),
+            uvFbm(v_texCoord * scale + vec2(0.0, u_time * speed) + 100.0)
+        );
+        vec2 uv = v_texCoord + (n - 0.5) * u_uvremap_amount * 0.3;
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+inline const char* liquidMorph = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_goo_viscosity;
+    uniform float u_goo_amount;
+    uniform float u_goo_scale;
+
+    float gooHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float gooNoise(vec2 p) {
+        vec2 i = floor(p); vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(gooHash(i), gooHash(i + vec2(1.0, 0.0)), f.x),
+                   mix(gooHash(i + vec2(0.0, 1.0)), gooHash(i + vec2(1.0, 1.0)), f.x), f.y);
+    }
+    float gooFbm(vec2 p) {
+        float v = 0.0; float a = 0.5;
+        for (int i = 0; i < 5; i++) { v += a * gooNoise(p); p *= 2.0; a *= 0.5; }
+        return v;
+    }
+    void main() {
+        float scale = 1.0 + u_goo_scale * 5.0;
+        float t = u_time * (0.1 + u_goo_viscosity * 0.6);
+        vec2 flow = vec2(
+            gooFbm(v_texCoord * scale + vec2(t * 0.7, t * 0.3)),
+            gooFbm(v_texCoord * scale + vec2(t * 0.3 + 50.0, t * 0.7 + 20.0))
+        );
+        vec2 uv = v_texCoord + (flow - 0.5) * u_goo_amount * 0.2;
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+inline const char* edgeBlur = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_edgeblur_threshold;
+    uniform float u_edgeblur_amount;
+    void main() {
+        vec2 px = 1.0 / u_resolution;
+        vec4 col = texture(u_texture, v_texCoord);
+        // Sobel edge detection
+        float tl = dot(texture(u_texture, v_texCoord + vec2(-px.x, -px.y)).rgb, vec3(0.333));
+        float t  = dot(texture(u_texture, v_texCoord + vec2(0.0,   -px.y)).rgb, vec3(0.333));
+        float tr = dot(texture(u_texture, v_texCoord + vec2( px.x, -px.y)).rgb, vec3(0.333));
+        float l  = dot(texture(u_texture, v_texCoord + vec2(-px.x,  0.0)).rgb,  vec3(0.333));
+        float r  = dot(texture(u_texture, v_texCoord + vec2( px.x,  0.0)).rgb,  vec3(0.333));
+        float bl = dot(texture(u_texture, v_texCoord + vec2(-px.x,  px.y)).rgb, vec3(0.333));
+        float b  = dot(texture(u_texture, v_texCoord + vec2(0.0,    px.y)).rgb, vec3(0.333));
+        float br = dot(texture(u_texture, v_texCoord + vec2( px.x,  px.y)).rgb, vec3(0.333));
+        float gx = -tl - 2.0*l - bl + tr + 2.0*r + br;
+        float gy = -tl - 2.0*t - tr + bl + 2.0*b + br;
+        float edge = sqrt(gx*gx + gy*gy);
+        float blurStrength = smoothstep(u_edgeblur_threshold * 0.5, 1.0, edge) * u_edgeblur_amount;
+        // 5-tap box blur at edges
+        vec4 blurred = vec4(0.0);
+        float blurRadius = blurStrength * 5.0;
+        for (int x = -2; x <= 2; x++) {
+            for (int y = -2; y <= 2; y++) {
+                blurred += texture(u_texture, v_texCoord + vec2(float(x), float(y)) * px * blurRadius);
+            }
+        }
+        blurred /= 25.0;
+        fragColor = mix(col, blurred, blurStrength);
+    }
+)";
+
+inline const char* brushStrokes = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_brush_size;
+    uniform float u_brush_angle;
+    uniform float u_brush_flow;
+    uniform float u_brush_amount;
+    void main() {
+        vec2 px = 1.0 / u_resolution;
+        vec4 col = texture(u_texture, v_texCoord);
+        // Compute local gradient direction
+        float lx = dot(texture(u_texture, v_texCoord + vec2(-px.x, 0.0)).rgb, vec3(0.333));
+        float rx = dot(texture(u_texture, v_texCoord + vec2( px.x, 0.0)).rgb, vec3(0.333));
+        float ty = dot(texture(u_texture, v_texCoord + vec2(0.0, -px.y)).rgb, vec3(0.333));
+        float by = dot(texture(u_texture, v_texCoord + vec2(0.0,  px.y)).rgb, vec3(0.333));
+        float angle = atan(by - ty, rx - lx) + u_brush_angle * 6.28318;
+        angle += (u_brush_flow - 0.5) * 3.14159;
+        vec2 dir = vec2(cos(angle), sin(angle));
+        // Sample along stroke direction
+        vec4 stroke = vec4(0.0);
+        float size = 1.0 + u_brush_size * 6.0;
+        for (int i = -3; i <= 3; i++) {
+            vec2 offset = dir * float(i) * px * size;
+            stroke += texture(u_texture, v_texCoord + offset);
+        }
+        stroke /= 7.0;
+        fragColor = mix(col, stroke, u_brush_amount);
+    }
+)";
+
+inline const char* fragmentBurst = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_frag_copies;
+    uniform float u_frag_spread;
+    uniform float u_frag_rotation;
+    uniform float u_frag_scale;
+    void main() {
+        int n = int(u_frag_copies * 6.0) + 2;
+        vec4 result = vec4(0.0);
+        for (int i = 0; i < 8; i++) {
+            if (i >= n) break;
+            float fi = float(i);
+            float a = fi / float(n) * 6.28318;
+            vec2 offset = vec2(cos(a), sin(a)) * u_frag_spread * 0.3;
+            float rot = u_frag_rotation * fi * 0.5;
+            float s = 1.0 / (1.0 + fi * (1.0 - u_frag_scale) * 0.3);
+            vec2 uv = v_texCoord - 0.5 - offset;
+            float c = cos(rot), sn = sin(rot);
+            uv = mat2(c, -sn, sn, c) * uv;
+            uv = uv / s + 0.5;
+            result += texture(u_texture, uv) / float(n);
+        }
+        fragColor = result;
+    }
+)";
+
+inline const char* signalDestroy = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_destroy_amount;
+    uniform float u_destroy_speed;
+    uniform float u_destroy_mode;
+
+    float dHash(float p) { return fract(sin(p) * 43758.5453); }
+    float dHash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float amt = u_destroy_amount;
+        if (amt < 0.001) { fragColor = col; return; }
+
+        float t = floor(u_time * (1.0 + u_destroy_speed * 30.0));
+        vec2 uv = v_texCoord;
+
+        // Block-based corruption
+        vec2 block = floor(uv * (10.0 + amt * 20.0));
+        float n = dHash2(block + t);
+
+        // UV scatter
+        uv += (vec2(dHash(n * 17.0), dHash(n * 31.0)) - 0.5) * amt * 0.2;
+
+        // Channel separation
+        float r = texture(u_texture, uv + vec2(amt * 0.04 * n, 0.0)).r;
+        float g = texture(u_texture, uv).g;
+        float b = texture(u_texture, uv - vec2(amt * 0.04 * n, 0.0)).b;
+
+        // Block corruption based on mode
+        if (u_destroy_mode > 0.33 && n > 1.0 - amt * 0.4) {
+            r = dHash(n + 1.0); g = dHash(n + 2.0); b = dHash(n + 3.0);
+        }
+        // Scanline glitch
+        if (u_destroy_mode > 0.66) {
+            float scanline = dHash(floor(v_texCoord.y * 200.0) + t);
+            if (scanline > 1.0 - amt * 0.3) {
+                uv.x += (scanline - 0.5) * amt * 0.15;
+                r = texture(u_texture, uv).r;
+                g = texture(u_texture, uv + vec2(0.01, 0.0)).g;
+                b = texture(u_texture, uv - vec2(0.01, 0.0)).b;
+            }
+        }
+        fragColor = vec4(r, g, b, col.a);
+    }
+)";
+
+inline const char* lineCloner = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_lineclone_copies;
+    uniform float u_lineclone_ox;
+    uniform float u_lineclone_oy;
+    uniform float u_lineclone_scale;
+    uniform float u_lineclone_rotation;
+    void main() {
+        int n = int(u_lineclone_copies * 8.0) + 2;
+        vec4 result = vec4(0.0);
+        float fn = float(n);
+        for (int i = 0; i < 10; i++) {
+            if (i >= n) break;
+            float fi = float(i) - (fn - 1.0) * 0.5;
+            // ox/oy: 0 = spread left/up, 0.5 = no spread, 1 = spread right/down
+            // Spacing scales with copy count so copies don't overlap
+            float spacingX = (u_lineclone_ox - 0.5) * 2.0;
+            float spacingY = (u_lineclone_oy - 0.5) * 2.0;
+            vec2 offset = vec2(spacingX * fi * 0.12, spacingY * fi * 0.12);
+            float rot = (u_lineclone_rotation - 0.5) * fi * 0.5;
+            float s = 0.3 + u_lineclone_scale * 1.4;
+            vec2 uv = v_texCoord - 0.5 - offset;
+            float c = cos(rot), sn = sin(rot);
+            uv = mat2(c, -sn, sn, c) * uv;
+            uv = uv / s + 0.5;
+            vec4 samp = texture(u_texture, uv);
+            // Lighten blend: take max per channel (works with opaque textures)
+            result = max(result, samp);
+        }
+        fragColor = result;
+    }
+)";
+
+inline const char* radialCloner = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_radclone_copies;
+    uniform float u_radclone_radius;
+    uniform float u_radclone_rotation;
+    uniform float u_radclone_scale;
+    void main() {
+        int n = int(u_radclone_copies * 10.0) + 2;
+        vec4 result = vec4(0.0);
+        for (int i = 0; i < 12; i++) {
+            if (i >= n) break;
+            float angle = float(i) / float(n) * 6.28318 + u_radclone_rotation * 6.28318;
+            vec2 center = vec2(0.5) + vec2(cos(angle), sin(angle)) * u_radclone_radius * 0.4;
+            float s = max(0.1, u_radclone_scale * 2.0);
+            vec2 uv = (v_texCoord - center) / s + 0.5;
+            vec4 samp = texture(u_texture, uv);
+            // Lighten blend: take max per channel
+            result = max(result, samp);
+        }
+        fragColor = result;
+    }
+)";
+
+inline const char* cubeScatter = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_cubescat_gx;
+    uniform float u_cubescat_gy;
+    uniform float u_cubescat_explode;
+    uniform float u_cubescat_rotation;
+
+    float csHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+    void main() {
+        float gx = floor(u_cubescat_gx * 6.0) + 2.0;
+        float gy = floor(u_cubescat_gy * 6.0) + 2.0;
+        vec2 gridSize = vec2(gx, gy);
+        vec2 cell = floor(v_texCoord * gridSize);
+        vec2 cellUV = fract(v_texCoord * gridSize);
+
+        float rnd = csHash(cell);
+        float rnd2 = csHash(cell + 0.5);
+
+        // Per-tile offset for explosion
+        vec2 offset = (vec2(csHash(cell + 0.1), csHash(cell + 0.2)) - 0.5) * u_cubescat_explode * 0.5;
+
+        // Per-tile rotation
+        float rot = (rnd - 0.5) * u_cubescat_rotation * 3.14159;
+        vec2 uv = cellUV - 0.5;
+        float c = cos(rot), s = sin(rot);
+        uv = mat2(c, -s, s, c) * uv;
+        uv += 0.5;
+
+        // Map back to full image UV
+        vec2 originalUV = (cell + uv + offset) / gridSize;
+        fragColor = texture(u_texture, originalUV);
+    }
+)";
+
+inline const char* infiniteZoom = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_infzoom_speed;
+    uniform float u_infzoom_rotation;
+    uniform float u_infzoom_cx;
+    uniform float u_infzoom_cy;
+    void main() {
+        vec2 center = vec2(u_infzoom_cx, u_infzoom_cy);
+        vec2 uv = v_texCoord - center;
+        // Progressive zoom per frame
+        float zoomAmt = u_infzoom_speed * 2.0;
+        float scale = 1.0 - zoomAmt * 0.01;
+        uv *= scale;
+        // Rotation per frame
+        float rotAmt = (u_infzoom_rotation - 0.5) * 4.0;
+        float angle = rotAmt * 0.01;
+        float c = cos(angle), s = sin(angle);
+        uv = mat2(c, -s, s, c) * uv;
+        uv += center;
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+inline const char* bumpLight = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_bumplight_lx;
+    uniform float u_bumplight_ly;
+    uniform float u_bumplight_intensity;
+    uniform float u_bumplight_height;
+    void main() {
+        vec2 px = 1.0 / u_resolution;
+        vec4 base = texture(u_texture, v_texCoord);
+        // Sobel for normal map from luminance
+        float tl = dot(texture(u_texture, v_texCoord + vec2(-px.x, -px.y)).rgb, vec3(0.333));
+        float tr = dot(texture(u_texture, v_texCoord + vec2( px.x, -px.y)).rgb, vec3(0.333));
+        float bl = dot(texture(u_texture, v_texCoord + vec2(-px.x,  px.y)).rgb, vec3(0.333));
+        float br = dot(texture(u_texture, v_texCoord + vec2( px.x,  px.y)).rgb, vec3(0.333));
+        float dX = (tr + br) - (tl + bl);
+        float dY = (bl + br) - (tl + tr);
+        float height = u_bumplight_height * 2.0;
+        vec3 normal = normalize(vec3(dX * height, dY * height, 1.0));
+        // Light direction from light position
+        vec3 lightDir = normalize(vec3(u_bumplight_lx - v_texCoord.x, u_bumplight_ly - v_texCoord.y, 0.3));
+        float intensity = u_bumplight_intensity * 2.0;
+        float diffuse = max(dot(normal, lightDir), 0.0) * intensity;
+        fragColor = vec4(base.rgb * (0.3 + diffuse), base.a);
+    }
+)";
+
+// ============================================================
+// Phase 15: Resolume Sources (12 new sources)
+// ============================================================
+
+inline const char* sourceSolidColor = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_src_red;
+    uniform float u_src_green;
+    uniform float u_src_blue;
+    void main() {
+        fragColor = vec4(u_src_red, u_src_green, u_src_blue, 1.0);
+    }
+)";
+
+inline const char* sourceStrobeLight = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_beatPhase;
+    uniform float u_src_frequency;
+    uniform float u_src_fade;
+    uniform float u_src_c1r;
+    uniform float u_src_c1g;
+    uniform float u_src_c1b;
+    uniform float u_src_c2r;
+    uniform float u_src_c2g;
+    uniform float u_src_c2b;
+    void main() {
+        float freq = 1.0 + u_src_frequency * 29.0;
+        float phase = fract(u_time * freq);
+        float flash = 1.0 - smoothstep(0.0, max(0.01, u_src_fade), phase);
+        vec3 c1 = vec3(u_src_c1r, u_src_c1g, u_src_c1b);
+        vec3 c2 = vec3(u_src_c2r, u_src_c2g, u_src_c2b);
+        fragColor = vec4(mix(c2, c1, flash), 1.0);
+    }
+)";
+
+inline const char* sourceCheckerboard = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_src_columns;
+    uniform float u_src_rows;
+    uniform float u_src_c1_hue;
+    uniform float u_src_c2_hue;
+
+    vec3 hsv2rgb(float h, float s, float v) {
+        vec3 c = clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+        return v * mix(vec3(1.0), c, s);
+    }
+    void main() {
+        float cols = floor(u_src_columns * 14.0) + 2.0;
+        float rows = floor(u_src_rows * 14.0) + 2.0;
+        float check = mod(floor(v_texCoord.x * cols) + floor(v_texCoord.y * rows), 2.0);
+        vec3 c1 = hsv2rgb(u_src_c1_hue, 0.8, 1.0);
+        vec3 c2 = (u_src_c2_hue > 0.01) ? hsv2rgb(u_src_c2_hue, 0.8, 1.0) : vec3(0.0);
+        fragColor = vec4(mix(c2, c1, check), 1.0);
+    }
+)";
+
+inline const char* sourceLinePattern = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_src_count;
+    uniform float u_src_width;
+    uniform float u_src_rotation;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+
+    vec3 hsv2rgb_lp(float h) {
+        return 0.5 + 0.5 * cos(6.28318 * (h + vec3(0.0, 0.33, 0.67)));
+    }
+    void main() {
+        // Rotate UV
+        vec2 uv = v_texCoord - 0.5;
+        float angle = u_src_rotation * 3.14159;
+        float c = cos(angle), s = sin(angle);
+        uv = mat2(c, -s, s, c) * uv;
+        uv += 0.5;
+        uv.y += u_time * u_src_speed * 0.5;
+        float lines = floor(u_src_count * 36.0) + 4.0;
+        float lineVal = abs(fract(uv.y * lines) - 0.5);
+        float width = u_src_width * 0.5;
+        float mask = smoothstep(width, width - 0.02, lineVal);
+        vec3 col = hsv2rgb_lp(u_src_color_shift);
+        fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
+inline const char* sourceConcentricRings = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_src_count;
+    uniform float u_src_spacing;
+    uniform float u_src_width;
+    uniform float u_src_rotation;
+    uniform float u_src_color_shift;
+    void main() {
+        float dist = distance(v_texCoord, vec2(0.5));
+        float rings = floor(u_src_count * 17.0) + 3.0;
+        float spacing = 0.5 + u_src_spacing * 2.0;
+        float ring = abs(fract(dist * rings * spacing + u_time * u_src_rotation * 0.5) - 0.5);
+        float width = u_src_width * 0.5;
+        float mask = smoothstep(width, width - 0.02, ring);
+        // Audio reactive: RMS pulses brightness
+        mask *= 0.8 + u_rms * 0.4;
+        float hue = u_src_color_shift + dist * 0.3;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
+inline const char* sourceSineOscillator = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_src_waves;
+    uniform float u_src_frequency;
+    uniform float u_src_amplitude;
+    uniform float u_src_modulation;
+    uniform float u_src_thickness;
+    uniform float u_src_color_shift;
+    void main() {
+        float n = floor(u_src_waves * 9.0) + 1.0;
+        float mask = 0.0;
+        for (float i = 0.0; i < 10.0; i++) {
+            if (i >= n) break;
+            float phase = v_texCoord.x * (u_src_frequency * 10.0 + 1.0) + u_time * 2.0 + i * 0.5;
+            float modSig = sin(phase * u_src_modulation * 5.0) * 0.3;
+            float wave = sin(phase + modSig) * u_src_amplitude * 0.3;
+            float y = 0.5 + wave + (i - n * 0.5) * 0.12;
+            float dist = abs(v_texCoord.y - y);
+            float thick = max(0.002, u_src_thickness * 0.04);
+            mask += smoothstep(thick, 0.0, dist);
+        }
+        mask = clamp(mask, 0.0, 1.0);
+        mask *= 0.8 + u_rms * 0.4;
+        float hue = u_src_color_shift + v_texCoord.x * 0.2;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
+inline const char* sourceSpiralPattern = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_src_arms;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_distortion;
+    uniform float u_src_color_shift;
+    void main() {
+        vec2 p = v_texCoord - 0.5;
+        float angle = atan(p.y, p.x);
+        float radius = length(p);
+        float n = floor(u_src_arms * 7.0) + 1.0;
+        float spiral = fract(angle / 6.28318 * n + log(radius + 0.001) * u_src_zoom * 5.0 + u_time * u_src_speed);
+        spiral += sin(radius * 20.0) * u_src_distortion * 0.2;
+        float mask = smoothstep(0.3, 0.5, spiral) * smoothstep(0.7, 0.5, spiral);
+        mask *= 0.8 + u_rms * 0.4;
+        float hue = u_src_color_shift + radius * 0.5 + u_time * 0.1;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
+inline const char* sourceMetaballs = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_src_count;
+    uniform float u_src_size;
+    uniform float u_src_speed;
+    uniform float u_src_blend;
+    uniform float u_src_color_shift;
+    void main() {
+        int n = int(u_src_count * 7.0) + 3;
+        float field = 0.0;
+        float colorMix = 0.0;
+        for (int i = 0; i < 10; i++) {
+            if (i >= n) break;
+            float fi = float(i);
+            vec2 pos = vec2(
+                0.5 + 0.3 * sin(u_time * u_src_speed + fi * 1.7),
+                0.5 + 0.3 * cos(u_time * u_src_speed * 0.8 + fi * 2.3)
+            );
+            float dist = distance(v_texCoord, pos);
+            float blobSize = u_src_size * 0.1;
+            field += blobSize / (dist * dist + 0.001);
+            colorMix += fi / float(n) * blobSize / (dist * dist + 0.001);
+        }
+        float threshold = u_src_blend * 5.0 + 1.0;
+        float mask = smoothstep(threshold, threshold + 0.5, field);
+        colorMix = colorMix / max(field, 0.001);
+        float hue = u_src_color_shift + colorMix * 0.3;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= mask;
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+inline const char* sourceTerrainLines = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_src_height;
+    uniform float u_src_lines;
+    uniform float u_src_jagginess;
+    uniform float u_src_speed;
+    uniform float u_src_tilt;
+    uniform float u_src_color_shift;
+
+    float terrainHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float terrainNoise(vec2 p) {
+        vec2 i = floor(p); vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(terrainHash(i), terrainHash(i + vec2(1.0, 0.0)), f.x),
+                   mix(terrainHash(i + vec2(0.0, 1.0)), terrainHash(i + vec2(1.0, 1.0)), f.x), f.y);
+    }
+    void main() {
+        float numLines = floor(u_src_lines * 35.0) + 5.0;
+        float mask = 0.0;
+        for (float i = 0.0; i < 40.0; i++) {
+            if (i >= numLines) break;
+            float baseY = i / numLines;
+            float perspective = 1.0 + (baseY - 0.5) * u_src_tilt;
+            float noiseVal = terrainNoise(vec2(v_texCoord.x * (u_src_jagginess * 10.0 + 1.0), i * 0.3 + u_time * u_src_speed));
+            float lineY = baseY + (noiseVal - 0.5) * u_src_height * 0.15 * perspective;
+            float dist = abs(v_texCoord.y - lineY);
+            mask += smoothstep(0.003, 0.0, dist);
+        }
+        mask = clamp(mask, 0.0, 1.0);
+        mask *= 0.8 + u_rms * 0.4;
+        float hue = u_src_color_shift + v_texCoord.y * 0.3;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
+inline const char* sourceShapeGenerator = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_src_shape;
+    uniform float u_src_size;
+    uniform float u_src_rotation;
+    uniform float u_src_outline;
+    uniform float u_src_color_shift;
+
+    float sdCircle_sg(vec2 p, float r) { return length(p) - r; }
+    float sdBox_sg(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
+    float sdTriangle_sg(vec2 p, float r) {
+        p.x = abs(p.x);
+        float d = max(dot(p, vec2(0.866, 0.5)) - r * 0.5, -p.y - r * 0.5);
+        return d;
+    }
+    float sdHexagon_sg(vec2 p, float r) { vec2 q = abs(p); return max(q.x * 0.866025 + q.y * 0.5, q.y) - r; }
+    float sdStar_sg(vec2 p, float r) {
+        float a = atan(p.y, p.x) + 1.5708;
+        float n = 5.0;
+        float seg = 6.28318 / n;
+        a = abs(mod(a, seg) - seg * 0.5);
+        return length(p) * cos(a) - r * 0.5;
+    }
+    float sdRing_sg(vec2 p, float r) { return abs(length(p) - r) - r * 0.15; }
+    float sdCross_sg(vec2 p, float r) {
+        vec2 d = abs(p);
+        return min(max(d.x - r * 0.15, d.y - r), max(d.x - r, d.y - r * 0.15));
+    }
+
+    void main() {
+        vec2 p = v_texCoord - 0.5;
+        float rot = u_src_rotation * 6.28318 + u_time * 0.3;
+        float c = cos(rot), s = sin(rot);
+        p = mat2(c, -s, s, c) * p;
+        float size = 0.1 + u_src_size * 0.4;
+
+        float d;
+        float shape = u_src_shape;
+        if      (shape < 0.143) d = sdCircle_sg(p, size);
+        else if (shape < 0.286) d = sdBox_sg(p, vec2(size));
+        else if (shape < 0.429) d = sdTriangle_sg(p, size);
+        else if (shape < 0.572) d = sdHexagon_sg(p, size);
+        else if (shape < 0.715) d = sdStar_sg(p, size);
+        else if (shape < 0.858) d = sdRing_sg(p, size);
+        else                    d = sdCross_sg(p, size);
+
+        float fill = (u_src_outline > 0.5) ? abs(d) - 0.015 : d;
+        float mask = smoothstep(0.01, -0.01, fill);
+        mask *= 0.8 + u_rms * 0.4;
+        float hue = u_src_color_shift + u_time * 0.05;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
+inline const char* sourceBumpLight = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_src_lx;
+    uniform float u_src_ly;
+    uniform float u_src_intensity;
+    uniform float u_src_bumps;
+    uniform float u_src_color_shift;
+
+    float bumpHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float bumpNoise(vec2 p) {
+        vec2 i = floor(p); vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(bumpHash(i), bumpHash(i + vec2(1.0, 0.0)), f.x),
+                   mix(bumpHash(i + vec2(0.0, 1.0)), bumpHash(i + vec2(1.0, 1.0)), f.x), f.y);
+    }
+    float bumpFbm(vec2 p) {
+        float v = 0.0; float a = 0.5;
+        for (int i = 0; i < 4; i++) { v += a * bumpNoise(p); p *= 2.0; a *= 0.5; }
+        return v;
+    }
+    void main() {
+        float scale = 3.0 + u_src_bumps * 12.0;
+        float heightMap = bumpFbm(v_texCoord * scale + u_time * 0.2);
+        // Normal from height field
+        float eps = 0.005;
+        float hL = bumpFbm((v_texCoord + vec2(-eps, 0.0)) * scale + u_time * 0.2);
+        float hR = bumpFbm((v_texCoord + vec2( eps, 0.0)) * scale + u_time * 0.2);
+        float hD = bumpFbm((v_texCoord + vec2(0.0, -eps)) * scale + u_time * 0.2);
+        float hU = bumpFbm((v_texCoord + vec2(0.0,  eps)) * scale + u_time * 0.2);
+        vec3 normal = normalize(vec3(hL - hR, hD - hU, 0.3));
+        vec3 lightDir = normalize(vec3(u_src_lx - v_texCoord.x, u_src_ly - v_texCoord.y, 0.4));
+        float diffuse = max(dot(normal, lightDir), 0.0) * u_src_intensity * 2.0;
+        diffuse *= 0.8 + u_rms * 0.4;
+        float hue = u_src_color_shift + heightMap * 0.3;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * (0.2 + diffuse), 1.0);
+    }
+)";
+
+inline const char* sourceInfiniteZoom = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_src_speed;
+    uniform float u_src_layers;
+    uniform float u_src_rotation;
+    uniform float u_src_color_shift;
+
+    float izHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+    void main() {
+        vec2 p = v_texCoord - 0.5;
+        float speed = 0.2 + u_src_speed * 1.0;
+        float numLayers = floor(u_src_layers * 7.0) + 3.0;
+        float rotSpeed = (u_src_rotation - 0.5) * 2.0;
+        float mask = 0.0;
+        for (float i = 0.0; i < 10.0; i++) {
+            if (i >= numLayers) break;
+            float t = fract(u_time * speed * 0.1 + i / numLayers);
+            float scale = mix(0.1, 3.0, t);
+            vec2 uv = p / scale;
+            float angle = rotSpeed * t * 3.14159;
+            float c = cos(angle), s = sin(angle);
+            uv = mat2(c, -s, s, c) * uv;
+            uv += 0.5;
+            // Generate a pattern per layer
+            float pattern = izHash(floor(uv * (4.0 + i * 2.0)));
+            float alpha = smoothstep(1.0, 0.5, t) * smoothstep(0.0, 0.2, t);
+            mask += pattern * alpha * 0.5;
+        }
+        mask = clamp(mask, 0.0, 1.0);
+        mask *= 0.8 + u_rms * 0.4;
+        float hue = u_src_color_shift + u_time * 0.05;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * mask, 1.0);
+    }
+)";
+
 } // namespace EmbeddedShaders

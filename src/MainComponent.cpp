@@ -595,7 +595,7 @@ MainComponent::MainComponent()
             Clip newClip;
             static uint32_t fxClipId = 5000;
             newClip.id = fxClipId++;
-            newClip.name = "FX";
+            newClip.name = effectName.toStdString();
             newClip.mediaType = Clip::MediaType::None;
             deck->setClip(layerIdx, col, newClip);
             clip = layer->getClipAt(col);
@@ -611,6 +611,19 @@ MainComponent::MainComponent()
                 slot.paramValues.push_back(p.defaultValue);
         }
         clip->effects.push_back(slot);
+        // Update clip name to show all effects
+        if (!clip->hasMedia())
+        {
+            std::string fxNames;
+            for (size_t i = 0; i < clip->effects.size(); ++i)
+            {
+                if (i > 0) fxNames += " + ";
+                fxNames += clip->effects[i].effectName;
+            }
+            clip->name = fxNames;
+        }
+        // Auto-trigger the FX clip so it becomes active
+        layer->triggerClip(col);
         if (deckView_) deckView_->rebuildGrid();
         // Update inspector if this clip is selected
         if (inspectorPanel_)
@@ -618,6 +631,46 @@ MainComponent::MainComponent()
             auto& ci = inspectorPanel_->getClipInspector();
             if (ci.getClip() == clip)
                 ci.refresh();
+        }
+    };
+    deckView_->onSourceDropped = [this](int layerIdx, int col, const juce::String& sourceId) {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+
+        // Create a source clip with parameters from registry
+        Clip clip;
+        clip.name = sourceId.toStdString();
+        clip.mediaType = Clip::MediaType::Source;
+        clip.sourceType = sourceId.toStdString();
+
+        auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
+        auto tempSrc = srcRegistry.createSource(sourceId.toStdString());
+        if (tempSrc)
+        {
+            for (int i = 0; i < tempSrc->getNumParams(); ++i)
+            {
+                const auto& p = tempSrc->getParam(i);
+                Clip::SourceParam sp;
+                sp.name = p.name;
+                sp.uniformName = p.uniformName;
+                sp.value = p.defaultValue;
+                sp.defaultValue = p.defaultValue;
+                clip.sourceParams.push_back(sp);
+            }
+        }
+
+        deck->setClip(layerIdx, col, clip);
+        auto* layer = deck->getLayer(layerIdx);
+        if (layer) layer->triggerClip(col);
+
+        if (deckView_) deckView_->rebuildGrid();
+
+        // Refresh inspector
+        if (inspectorPanel_)
+        {
+            auto* newClip = deck->getClip(layerIdx, col);
+            if (newClip)
+                inspectorPanel_->inspectClip(newClip);
         }
     };
     deckView_->onDeckSwitched = [this](int deckIdx) {

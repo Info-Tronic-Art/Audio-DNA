@@ -4,11 +4,11 @@
 
 ## Project Identity
 
-Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for live audio-reactive visual performance. It analyzes audio in real-time (mic, system audio, or audio file) and applies 96 GLSL shader effects to images, driven by extracted audio features. It is a VJ-style performance tool where music controls visual transformations.
+Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for live audio-reactive visual performance. It analyzes audio in real-time (mic, system audio, or audio file) and applies 110 GLSL shader effects to images, driven by extracted audio features. It is a VJ-style performance tool where music controls visual transformations.
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 96 effects across 8 categories, 15 clip-to-clip transitions, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, procedural sources, VJ panel UI.
+**Key capabilities**: 110 effects across 9 categories, 15 clip-to-clip transitions, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 22 procedural sources, VJ panel UI.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -361,20 +361,21 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 
 ## Effects Library
 
-96 effects across 8 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
+110 effects across 9 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
 
-### Effect Categories (96 total)
+### Effect Categories (110 total)
 
 | Category | Count | Examples |
 |----------|-------|---------|
 | **3D / Depth** | 7 | Perspective Tilt, Cylinder Wrap, Sphere Wrap, Tunnel, Page Curl, Parallax Layers, Dot Field |
-| **Warp** | 22 | Ripple, Bulge, Wave, Liquid, Kaleidoscope, Fisheye, Swirl, Polar Coords, Twirl, Shear, Elastic Bounce, Ripple Pond, Diamond Distort, Barrel Distort, Sine Grid, Glitch Displace, Quad Mirror, Flip, Warp Field, Slide Wrap, Tile Grid, Spot Zoom |
-| **Color** | 26 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize, Greyscale, Threshold, Exposure, Vibrance, Auto Mask, Chroma Key |
-| **Glitch** | 11 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Glitch Displace, Pixel Explosion, Color Flash |
-| **Pattern** | 15 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision, Triangulate, Neon Edge, Cartoon Ink, Pop Raster |
+| **Warp** | 26 | Ripple, Bulge, Wave, Liquid, Kaleidoscope, Fisheye, Swirl, Polar Coords, Twirl, Shear, Elastic Bounce, Ripple Pond, Diamond Distort, Barrel Distort, Sine Grid, Glitch Displace, Quad Mirror, Flip, Warp Field, Slide Wrap, Tile Grid, Spot Zoom, Bendoscope, UV Remap, Liquid Morph, Infinite Zoom |
+| **Color** | 28 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize, Greyscale, Threshold, Exposure, Vibrance, Auto Mask, Chroma Key, Palette Remap, Color Grade |
+| **Glitch** | 13 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Glitch Displace, Pixel Explosion, Color Flash, Fragment Burst, Signal Destroy |
+| **Pattern** | 17 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision, Triangulate, Neon Edge, Cartoon Ink, Pop Raster, Brush Strokes, Bump Light |
 | **Animation** | 3 | Strobe, Pulse, Slit Scan |
 | **Blend** | 5 | Double Exposure, Frosted Glass, Prism Refract, Rain on Glass, Hexagonalize |
-| **Blur/Post** | 7 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect, Sharpen |
+| **Composite** | 3 | Line Cloner, Radial Cloner, Cube Scatter |
+| **Blur/Post** | 8 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect, Sharpen, Edge Blur |
 
 ### Transition Shaders (15 total)
 

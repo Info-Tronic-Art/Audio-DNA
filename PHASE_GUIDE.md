@@ -192,7 +192,7 @@ That document is self-contained — it has every task, every file to read, every
 | **P13.5** | Core Bug Fixes & Render Optimization (10 items) | **COMPLETE** |
 | **P13.5b** | UX Fixes: FX drag-drop, autopilot, multi-video, manual BPM, tooltips | **COMPLETE** |
 | **P14** | Quick-Win Effects (20 shaders) + Transition Shaders (15) | **COMPLETE** |
-| **P15** | Medium Effects + Resolume Sources (24 items) | NOT STARTED |
+| **P15** | Medium Effects + Resolume Sources (24 items) | **COMPLETE** |
 | **P16** | Time Effects + Feedback System (10 items) | NOT STARTED |
 | **P17** | Creative Sources: Math, 3D, Geometric, Nature, Lighting (19 sources) | NOT STARTED |
 | **P18** | Audio-Native Effects & Sources (20 items) | NOT STARTED |

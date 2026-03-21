@@ -87,22 +87,38 @@ void ClipCell::paint(juce::Graphics& g)
 
     if (clip_ && !clip_->name.empty())
     {
-        g.setColour(juce::Colour(kTextDim));
         g.setFont(juce::Font(juce::FontOptions(10.0f)));
-        g.drawText(juce::String(clip_->name),
-                   nameBounds.reduced(3.0f, 0.0f),
-                   juce::Justification::centredLeft, true);
+        juce::String displayName(clip_->name);
+        // FX-only clips: prefix with "FX -" and use effect accent color
+        if (clip_->hasEffects() && !clip_->hasMedia())
+        {
+            auto nb = nameBounds.reduced(3.0f, 0.0f);
+            g.setColour(juce::Colour(0xff8866cc));
+            g.drawText("FX -", nb.removeFromLeft(30.0f),
+                       juce::Justification::centredLeft, false);
+            g.setColour(juce::Colour(kTextDim));
+            g.drawText(displayName, nb,
+                       juce::Justification::centredLeft, true);
+        }
+        else
+        {
+            g.setColour(juce::Colour(kTextDim));
+            g.drawText(displayName,
+                       nameBounds.reduced(3.0f, 0.0f),
+                       juce::Justification::centredLeft, true);
+        }
     }
 
-    // Border — active (playing) = teal, selected (for inspection) = white outline, default = dark
-    if (active_)
+    // Border — selected (for inspection) = white, active (playing) = cyan, default = dark
+    // Selected takes priority so user can distinguish "inspecting" from "playing"
+    if (selected_)
     {
-        g.setColour(juce::Colour(kActiveBorder));
+        g.setColour(juce::Colours::white);
         g.drawRect(bounds, 2.0f);
     }
-    else if (selected_)
+    else if (active_)
     {
-        g.setColour(juce::Colour(0xffbbbbbb));
+        g.setColour(juce::Colour(kActiveBorder));
         g.drawRect(bounds, 2.0f);
     }
     else
@@ -124,6 +140,15 @@ void ClipCell::paint(juce::Graphics& g)
         g.setColour(juce::Colour(0xff8866cc).withAlpha(0.2f));
         g.fillRect(bounds);
         g.setColour(juce::Colour(0xff8866cc));
+        g.drawRect(bounds, 2.0f);
+    }
+
+    // Source drag hover (source drop from Sources browser)
+    if (sourceDragHover_)
+    {
+        g.setColour(juce::Colour(0xffbb88ff).withAlpha(0.2f));
+        g.fillRect(bounds);
+        g.setColour(juce::Colour(0xffbb88ff));
         g.drawRect(bounds, 2.0f);
     }
 }
@@ -305,24 +330,31 @@ bool ClipCell::isInThumbnailArea(const juce::Point<int>& pos) const
 
 bool ClipCell::isInterestedInDragSource(const SourceDetails& details)
 {
-    return details.description.toString().startsWith("fx:");
+    auto desc = details.description.toString();
+    return desc.startsWith("fx:") || desc.startsWith("source:");
 }
 
-void ClipCell::itemDragEnter(const SourceDetails&)
+void ClipCell::itemDragEnter(const SourceDetails& details)
 {
-    fxDragHover_ = true;
+    auto desc = details.description.toString();
+    if (desc.startsWith("source:"))
+        sourceDragHover_ = true;
+    else
+        fxDragHover_ = true;
     repaint();
 }
 
 void ClipCell::itemDragExit(const SourceDetails&)
 {
     fxDragHover_ = false;
+    sourceDragHover_ = false;
     repaint();
 }
 
 void ClipCell::itemDropped(const SourceDetails& details)
 {
     fxDragHover_ = false;
+    sourceDragHover_ = false;
     repaint();
 
     auto desc = details.description.toString();
@@ -331,5 +363,11 @@ void ClipCell::itemDropped(const SourceDetails& details)
         auto effectName = desc.substring(3);
         if (onEffectDrop)
             onEffectDrop(layerIndex_, column_, effectName);
+    }
+    else if (desc.startsWith("source:"))
+    {
+        auto sourceId = desc.substring(7);
+        if (onSourceDrop)
+            onSourceDrop(layerIndex_, column_, sourceId);
     }
 }

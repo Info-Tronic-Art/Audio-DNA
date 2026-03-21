@@ -7,20 +7,21 @@
 // LayerStrip: Resolume-style layer header — flat, dense, machine-like.
 //
 // Layout:
-//   ┌───┬───┬───┬──────┬───┬───┬───────────┬──┐
-//   │ X │ B │ S │      │ K │ V │           │ F│
-//   ├───┴───┴───┤      │ ▓ │ ▓ │ thumbnail │ ▓│
-//   │ Layer 1 ●A│      │ ▓ │ ▓ │           │ ▓│
-//   └───────────┘──────┴───┼───┼───────────┼──┤
-//                          │Add│           │Dis│
-//                          │ ▼ │           │ ▼ │
-//                          └───┘           └──┘
+//   ┌───┬───┬───┬──────┬───┬───┬───┬───────────┬──┐
+//   │ X │ B │ S │      │ S │ K │ V │           │ F│
+//   ├───┴───┴───┤      │ ▓ │ ▓ │ ▓ │ thumbnail │ ▓│
+//   │ < || > >| │      │ ▓ │ ▓ │ ▓ │           │ ▓│
+//   └───────────┘──────┴───┴───┼───┼─playhead──┼──┤
+//   │  Layer Name  │  Blend▼   │ClipName + ▏  │T▼│
+//   └──────────────┴───────────┴──────────────┴──┘
 //
+// S = speed slider (0-4x, default 1x)
 // K = keying threshold slider only (no dropdown)
 // V = opacity slider + dropdown with keying types + mix modes (unified)
 // F = fade speed slider + transition mix mode dropdown
-// ●A = green badge when clip has alpha channel
-class LayerStrip : public juce::Component
+// playhead = cyan vertical line over clip name area
+class LayerStrip : public juce::Component,
+                   private juce::Timer
 {
 public:
     LayerStrip();
@@ -50,6 +51,7 @@ public:
 
 private:
     void mouseDown(const juce::MouseEvent& event) override;
+    void timerCallback() override;
 
     Layer* layer_ = nullptr;
     int layerIndex_ = 0;
@@ -66,6 +68,9 @@ private:
     juce::TextButton transportPlayBtn_;
     juce::TextButton transportForwardBtn_;
 
+    // S = speed slider
+    ResettableSlider speedSlider_;
+
     // K = keying threshold slider (no dropdown)
     ResettableSlider keyingSlider_;
 
@@ -77,9 +82,10 @@ private:
     juce::Image thumbnail_;
     juce::Rectangle<int> thumbnailBounds_;
 
-    // Name + clip name (painted manually for pixel-perfect alignment)
+    // Name + clip name + transport display (painted manually)
     juce::Rectangle<int> nameBounds_;
     juce::Rectangle<int> clipNameBounds_;
+    juce::Rectangle<int> transportBounds_; // playhead display above the name
     juce::String layerName_;
     juce::String clipName_;
 

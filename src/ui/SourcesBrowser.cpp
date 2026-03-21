@@ -66,6 +66,10 @@ public:
 
     void mouseDown(const juce::MouseEvent& event) override
     {
+        draggedSourceId_ = {};
+        draggedSourceName_ = {};
+        dragStarted_ = false;
+
         int y = 0;
         for (int ci = 0; ci < static_cast<int>(owner_.categories_.size()); ++ci)
         {
@@ -89,13 +93,61 @@ public:
                 {
                     if (event.y >= y && event.y < y + kSourceRowHeight)
                     {
-                        if (owner_.onSourceActivated)
-                            owner_.onSourceActivated(s->sourceId);
+                        draggedSourceId_ = s->sourceId;
+                        draggedSourceName_ = s->name;
                         return;
                     }
                     y += kSourceRowHeight;
                 }
             }
+        }
+    }
+
+    void mouseUp(const juce::MouseEvent&) override
+    {
+        // Click (no drag) activates the source directly
+        if (draggedSourceId_.isNotEmpty() && !dragStarted_)
+        {
+            if (owner_.onSourceActivated)
+                owner_.onSourceActivated(draggedSourceId_);
+        }
+        draggedSourceId_ = {};
+        draggedSourceName_ = {};
+        dragStarted_ = false;
+    }
+
+    void mouseDrag(const juce::MouseEvent& event) override
+    {
+        if (draggedSourceId_.isEmpty() || dragStarted_)
+            return;
+
+        if (event.getDistanceFromDragStart() < 5)
+            return;
+
+        dragStarted_ = true;
+
+        if (auto* container = juce::DragAndDropContainer::findParentDragContainerFor(this))
+        {
+            juce::var desc("source:" + draggedSourceId_);
+
+            // Create drag image
+            int imgW = 120, imgH = 24;
+            juce::Image dragImg(juce::Image::ARGB, imgW, imgH, true);
+            {
+                juce::Graphics g(dragImg);
+                g.setColour(juce::Colour(0xdd2a2040));
+                g.fillRoundedRectangle(0.0f, 0.0f, static_cast<float>(imgW),
+                                       static_cast<float>(imgH), 4.0f);
+                g.setColour(juce::Colour(0xffbb88ff));
+                g.drawRoundedRectangle(0.5f, 0.5f, static_cast<float>(imgW - 1),
+                                       static_cast<float>(imgH - 1), 4.0f, 1.0f);
+                g.setColour(juce::Colours::white);
+                g.setFont(juce::Font(juce::FontOptions(11.0f)));
+                g.drawText(draggedSourceName_, 8, 0, imgW - 16, imgH,
+                           juce::Justification::centredLeft, true);
+            }
+
+            container->startDragging(desc, this, juce::ScaledImage(dragImg), true);
         }
     }
 
@@ -124,6 +176,9 @@ private:
     static constexpr int kCategoryHeaderHeight = 22;
     static constexpr int kSourceRowHeight = 28;
     SourcesBrowser& owner_;
+    juce::String draggedSourceId_;
+    juce::String draggedSourceName_;
+    bool dragStarted_ = false;
 };
 
 // ── SourcesBrowser implementation ──
@@ -190,6 +245,20 @@ void SourcesBrowser::buildSourceList()
     sources_.push_back({"Audio Waveform",           "audio_waveform",      "Audio-Visual", juce::Colour(0xffff7043)});
     sources_.push_back({"Reaction-Diffusion",       "reaction_diffusion",  "Nature",       juce::Colour(0xff26c6da)});
     sources_.push_back({"Cellular Automata",        "cellular_automata",   "Nature",       juce::Colour(0xff26c6da)});
+
+    // P15: 12 new Resolume-class sources
+    sources_.push_back({"Solid Color",              "solid_color",         "Utility",      juce::Colour(0xff78909c)});
+    sources_.push_back({"Strobe Light",             "strobe_light",        "Utility",      juce::Colour(0xff78909c)});
+    sources_.push_back({"Checkerboard",             "checkerboard",        "Pattern",      juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Line Pattern",             "line_pattern",        "Pattern",      juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Concentric Rings",         "concentric_rings",    "Pattern",      juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Sine Oscillator",          "sine_oscillator",     "Pattern",      juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Spiral Pattern",           "spiral_pattern",      "Pattern",      juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Terrain Lines",            "terrain_lines",       "Pattern",      juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Shape Generator",          "shape_generator",     "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Metaballs",                "metaballs",           "Organic",      juce::Colour(0xff66bb6a)});
+    sources_.push_back({"Bump Light",               "bump_light",          "Pattern",      juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Infinite Zoom",            "infinite_zoom",       "Geometric",    juce::Colour(0xff4fc3f7)});
 }
 
 void SourcesBrowser::toggleCategory(int catIndex)

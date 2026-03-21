@@ -147,6 +147,9 @@ void DeckView::rebuildGrid()
             cell->onEffectDrop = [this](int li, int c, const juce::String& effectName) {
                 if (onEffectDropped) onEffectDropped(li, c, effectName);
             };
+            cell->onSourceDrop = [this](int li, int c, const juce::String& sourceId) {
+                if (onSourceDropped) onSourceDropped(li, c, sourceId);
+            };
 
             gridContent_->addAndMakeVisible(cell.get());
             layerCells[static_cast<size_t>(col)] = std::move(cell);

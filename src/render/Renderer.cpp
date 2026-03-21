@@ -270,7 +270,14 @@ void Renderer::renderOpenGL()
     }
 
     if (sourceTexture == 0)
+    {
+        // No content — clear to black to avoid ghosting from previous frames
+        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+        glViewport(0, 0, static_cast<int>(compW), static_cast<int>(compH));
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
         return;
+    }
 
     effectChain_.render(sourceTexture,
                         shaderMgr_, texMgr_, quad_,
@@ -813,6 +820,36 @@ void Renderer::compileAllShaders()
     compile("neon_edge",            EmbeddedShaders::neonEdge);
     compile("cartoon_ink",          EmbeddedShaders::cartoonInk);
     compile("pop_raster",           EmbeddedShaders::popRaster);
+
+    // === Phase 15: Medium Effects (14 new effects) ===
+    compile("palette_remap",        EmbeddedShaders::paletteRemap);
+    compile("lut_grade",            EmbeddedShaders::lutGrade);
+    compile("bendoscope",           EmbeddedShaders::bendoscope);
+    compile("uv_remap",             EmbeddedShaders::uvRemap);
+    compile("liquid_morph",         EmbeddedShaders::liquidMorph);
+    compile("edge_blur",            EmbeddedShaders::edgeBlur);
+    compile("brush_strokes",        EmbeddedShaders::brushStrokes);
+    compile("fragment_burst",       EmbeddedShaders::fragmentBurst);
+    compile("signal_destroy",       EmbeddedShaders::signalDestroy);
+    compile("line_cloner",          EmbeddedShaders::lineCloner);
+    compile("radial_cloner",        EmbeddedShaders::radialCloner);
+    compile("cube_scatter",         EmbeddedShaders::cubeScatter);
+    compile("infinite_zoom",        EmbeddedShaders::infiniteZoom);
+    compile("bump_light",           EmbeddedShaders::bumpLight);
+
+    // === Phase 15: Sources (12 new procedural sources) ===
+    compile("source_solid_color",       EmbeddedShaders::sourceSolidColor);
+    compile("source_strobe_light",      EmbeddedShaders::sourceStrobeLight);
+    compile("source_checkerboard",      EmbeddedShaders::sourceCheckerboard);
+    compile("source_line_pattern",      EmbeddedShaders::sourceLinePattern);
+    compile("source_concentric_rings",  EmbeddedShaders::sourceConcentricRings);
+    compile("source_sine_oscillator",   EmbeddedShaders::sourceSineOscillator);
+    compile("source_spiral_pattern",    EmbeddedShaders::sourceSpiralPattern);
+    compile("source_metaballs",         EmbeddedShaders::sourceMetaballs);
+    compile("source_terrain_lines",     EmbeddedShaders::sourceTerrainLines);
+    compile("source_shape_generator",   EmbeddedShaders::sourceShapeGenerator);
+    compile("source_bump_light",        EmbeddedShaders::sourceBumpLight);
+    compile("source_infinite_zoom",     EmbeddedShaders::sourceInfiniteZoom);
 
     // === Phase 14: Transition Shaders (15 clip-to-clip transitions) ===
     compile("transition_dissolve",      EmbeddedShaders::transitionDissolve);

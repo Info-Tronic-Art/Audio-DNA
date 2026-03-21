@@ -56,6 +56,7 @@ public:
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiFileDrop; // Multi-image sequence dropped
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiVideoDrop; // Multi-video dropped → sequential cells
     std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDrop; // FX dropped from browser
+    std::function<void(int layerIndex, int column, const juce::String& sourceId)> onSourceDrop; // Source dropped from browser
 
     // Load/update thumbnail from clip's media file
     void updateThumbnail();
@@ -72,6 +73,7 @@ private:
     bool selected_ = false;
     bool dragHover_ = false;
     bool fxDragHover_ = false;
+    bool sourceDragHover_ = false;
 
     juce::Image thumbnail_;
 

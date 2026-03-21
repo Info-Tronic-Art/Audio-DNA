@@ -39,6 +39,7 @@ public:
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiFileDropped;
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiVideoDropped;
     std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDropped;
+    std::function<void(int layerIndex, int column, const juce::String& sourceId)> onSourceDropped;
     std::function<void(int deckIndex)> onDeckSwitched;
 
     // Get active column (-1 if none)
@@ -78,7 +79,7 @@ private:
     void updateSelectionVisuals();
 
     // Layout constants — Resolume-style dense grid
-    static constexpr int kLayerStripWidth = 220;
+    static constexpr int kLayerStripWidth = 250;
     static constexpr int kColumnTriggerHeight = 22;
     static constexpr int kCellWidth = 90;
     static constexpr int kCellHeight = 96; // 3-row layer strip height

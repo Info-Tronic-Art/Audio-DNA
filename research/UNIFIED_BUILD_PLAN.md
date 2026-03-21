@@ -31,7 +31,7 @@
 | **P13** | Effect Infrastructure (dry/wet, temporal, LUT, shared GLSL, new categories) | **COMPLETE** | YES — dry/wet slider visible on every effect, new categories in browsers |
 | **P13.5** | Core Bug Fixes & Render Optimization (10 items, transitions moved to P14) | **COMPLETE** | YES — per-clip effects render, layer types work, tap tempo works |
 | **P14** | Quick-Win Effects (20 shaders) + Transition Shaders (15) + UX fixes | **COMPLETE** | YES — 20 effects + 15 transitions in FX browser, FX delete, drag-drop inspectors, right-click reset, transport controls |
-| **P15** | Medium Effects + Resolume Sources (24 items) | NOT STARTED | YES — 12 effects + 12 sources visible |
+| **P15** | Medium Effects + Resolume Sources (24 items) | **COMPLETE** | YES — 14 effects + 12 sources visible |
 | **P16** | Time Effects + Feedback System (10 items) | NOT STARTED | YES — time effects + feedback section in layer inspector |
 | **P17** | Creative Sources: Math, 3D, Geometric, Nature, Lighting (19 sources) | NOT STARTED | YES — 19 new sources in browser |
 | **P18** | Audio-Native Effects & Sources (20 items) | NOT STARTED | YES — audio-driven effects respond to music |
