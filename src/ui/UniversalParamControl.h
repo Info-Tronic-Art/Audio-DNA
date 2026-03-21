@@ -17,6 +17,30 @@
 //   [Invert] checkbox
 //   [Range] min/max sliders
 //   If source drives value: mini meter visualization
+// Slider that resets to default on right-click
+class ResettableSlider : public juce::Slider
+{
+public:
+    using juce::Slider::Slider;
+
+    void setDefaultValue(double val) { defaultVal_ = val; hasDefault_ = true; }
+
+    void mouseDown(const juce::MouseEvent& e) override
+    {
+        if (e.mods.isRightButtonDown())
+        {
+            if (hasDefault_)
+                setValue(defaultVal_, juce::sendNotificationSync);
+            return;
+        }
+        juce::Slider::mouseDown(e);
+    }
+
+private:
+    double defaultVal_ = 0.0;
+    bool hasDefault_ = false;
+};
+
 class UniversalParamControl : public juce::Component
 {
 public:
@@ -30,6 +54,8 @@ public:
     void setParamName(const juce::String& name);
     void setParamValue(float value);
     float getParamValue() const { return currentValue_; }
+    void setDefaultValue(float value) { defaultValue_ = value; valueSlider_.setDefaultValue(static_cast<double>(value)); }
+    float getDefaultValue() const { return defaultValue_; }
 
     // Source configuration — expanded to cover all Resolume-style source types
     enum class SourceMode : uint8_t {
@@ -83,6 +109,7 @@ private:
 
     juce::String paramName_ = "Parameter";
     float currentValue_ = 0.5f;
+    float defaultValue_ = 0.5f;
     bool expanded_ = false;
 
     // Source state
@@ -98,15 +125,15 @@ private:
     bool inverted_ = false;
 
     // Collapsed row widgets
-    juce::Slider valueSlider_;
+    ResettableSlider valueSlider_;
     juce::TextButton decrementBtn_{"-"};
     juce::TextButton incrementBtn_{"+"};
 
     // Expanded widgets
     juce::TextButton sourceBtn_{"Manual"};
     juce::ToggleButton invertToggle_{"Invert"};
-    juce::Slider rangeMinSlider_;
-    juce::Slider rangeMaxSlider_;
+    ResettableSlider rangeMinSlider_;
+    ResettableSlider rangeMaxSlider_;
     juce::Label rangeLabel_;
 
     SignalRegistry* signalRegistry_ = nullptr;

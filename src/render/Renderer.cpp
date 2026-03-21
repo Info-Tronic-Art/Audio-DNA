@@ -513,9 +513,17 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
 
         auto* player = it->second.get();
 
-        // Sync transport state from clip
-        player->setReverse(clip->reverse);
-        player->setPlaying(clip->playing);
+        // Sync transport state from clip (only set playing if clip wants to play,
+        // don't override if player stopped due to OneShot boundary)
+        if (clip->playing && !player->isPlaying())
+            player->setPlaying(true);
+        else if (!clip->playing)
+            player->setPlaying(false);
+
+        // Only sync reverse for non-PingPong modes (PingPong manages direction internally)
+        if (clip->loopMode != Clip::LoopMode::PingPong)
+            player->setReverse(clip->reverse);
+
         switch (clip->loopMode)
         {
             case Clip::LoopMode::Loop:     player->setLoopMode(VideoPlayer::LoopMode::Loop); break;
@@ -543,11 +551,22 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
         player->advanceFrame(static_cast<double>(dt));
         clip->playheadPosition = player->getPlayheadPosition();
 
+        // Propagate player state back to clip model (OneShot stops, PingPong reverses)
+        clip->playing = player->isPlaying();
+
         // Enforce in/out points
         if (clip->outPoint < 1.0f && clip->playheadPosition >= static_cast<double>(clip->outPoint))
         {
-            player->seekTo(static_cast<double>(clip->inPoint));
-            clip->playheadPosition = static_cast<double>(clip->inPoint);
+            if (clip->loopMode == Clip::LoopMode::OneShot)
+            {
+                clip->playing = false;
+                player->setPlaying(false);
+            }
+            else
+            {
+                player->seekTo(static_cast<double>(clip->inPoint));
+                clip->playheadPosition = static_cast<double>(clip->inPoint);
+            }
         }
 
         return player->uploadToTexture();
@@ -563,8 +582,12 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
 
         // Sync transport state from clip
         seq->setSpeed(clip->speed);
-        seq->setReverse(clip->reverse);
-        seq->setPlaying(clip->playing);
+        if (clip->loopMode != Clip::LoopMode::PingPong)
+            seq->setReverse(clip->reverse);
+        if (clip->playing && !seq->isPlaying())
+            seq->setPlaying(true);
+        else if (!clip->playing)
+            seq->setPlaying(false);
         seq->setFps(clip->sequenceFps);
         switch (clip->loopMode)
         {
@@ -597,12 +620,21 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
             seq->advanceFrame(static_cast<double>(dt));
         }
         clip->playheadPosition = seq->getPlayheadPosition();
+        clip->playing = seq->isPlaying();
 
         // Enforce in/out points
         if (clip->outPoint < 1.0f && clip->playheadPosition >= static_cast<double>(clip->outPoint))
         {
-            seq->seekTo(static_cast<double>(clip->inPoint));
-            clip->playheadPosition = static_cast<double>(clip->inPoint);
+            if (clip->loopMode == Clip::LoopMode::OneShot)
+            {
+                clip->playing = false;
+                seq->setPlaying(false);
+            }
+            else
+            {
+                seq->seekTo(static_cast<double>(clip->inPoint));
+                clip->playheadPosition = static_cast<double>(clip->inPoint);
+            }
         }
 
         return seq->getCurrentTexture();
@@ -760,6 +792,45 @@ void Renderer::compileAllShaders()
     compile("layer_transform",              EmbeddedShaders::layer_transform);
     compile("mask_luminance",               EmbeddedShaders::mask_luminance);
 
+    // === Phase 14: Quick-Win Effects (20 new effects) ===
+    compile("greyscale",            EmbeddedShaders::greyscale);
+    compile("threshold",            EmbeddedShaders::threshold);
+    compile("exposure",             EmbeddedShaders::exposure);
+    compile("vibrance",             EmbeddedShaders::vibrance);
+    compile("quad_mirror",          EmbeddedShaders::quadMirror);
+    compile("flip",                 EmbeddedShaders::flip);
+    compile("warp_field",           EmbeddedShaders::warpField);
+    compile("sharpen",              EmbeddedShaders::sharpen);
+    compile("pixel_explosion",      EmbeddedShaders::pixelExplosion);
+    compile("color_flash",          EmbeddedShaders::colorFlash);
+    compile("slide_wrap",           EmbeddedShaders::slideWrap);
+    compile("dot_field",            EmbeddedShaders::dotField);
+    compile("triangulate",          EmbeddedShaders::triangulate);
+    compile("auto_mask",            EmbeddedShaders::autoMask);
+    compile("chromakey_effect",     EmbeddedShaders::chromakeyEffect);
+    compile("tile_grid",            EmbeddedShaders::tileGrid);
+    compile("spot_zoom",            EmbeddedShaders::spotZoom);
+    compile("neon_edge",            EmbeddedShaders::neonEdge);
+    compile("cartoon_ink",          EmbeddedShaders::cartoonInk);
+    compile("pop_raster",           EmbeddedShaders::popRaster);
+
+    // === Phase 14: Transition Shaders (15 clip-to-clip transitions) ===
+    compile("transition_dissolve",      EmbeddedShaders::transitionDissolve);
+    compile("transition_wipe_left",     EmbeddedShaders::transitionWipeLeft);
+    compile("transition_wipe_right",    EmbeddedShaders::transitionWipeRight);
+    compile("transition_wipe_up",       EmbeddedShaders::transitionWipeUp);
+    compile("transition_wipe_down",     EmbeddedShaders::transitionWipeDown);
+    compile("transition_push_left",     EmbeddedShaders::transitionPushLeft);
+    compile("transition_push_right",    EmbeddedShaders::transitionPushRight);
+    compile("transition_push_up",       EmbeddedShaders::transitionPushUp);
+    compile("transition_push_down",     EmbeddedShaders::transitionPushDown);
+    compile("transition_zoom_in",       EmbeddedShaders::transitionZoomIn);
+    compile("transition_zoom_out",      EmbeddedShaders::transitionZoomOut);
+    compile("transition_iris",          EmbeddedShaders::transitionIris);
+    compile("transition_flip_h",        EmbeddedShaders::transitionFlipH);
+    compile("transition_cut",           EmbeddedShaders::transitionCut);
+    compile("transition_fade_black",    EmbeddedShaders::transitionFadeBlack);
+
     std::cerr << "[Renderer] All shaders compiled." << std::endl;
 }
 
@@ -830,78 +901,6 @@ void Renderer::initEffectChain()
     std::cerr << "[Renderer] Loaded " << effectChain_.getNumEffects()
               << " effects from library." << std::endl;
 
-    // Set up a few demo mappings on common effects
+    // No demo effects or mappings — user enables what they want via the FX browser
     mappingEngine_.clearAll();
-
-    // Find effect indices by name
-    auto findEffect = [this](const juce::String& name) -> int {
-        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
-        {
-            auto* fx = effectChain_.getEffect(i);
-            if (fx && fx->getName() == name)
-                return i;
-        }
-        return -1;
-    };
-
-    int rippleIdx   = findEffect("Ripple");
-    int hueIdx      = findEffect("Hue Shift");
-    int rgbIdx      = findEffect("RGB Split");
-    int vignetteIdx = findEffect("Vignette");
-
-    // Enable the 4 demo effects
-    if (rippleIdx >= 0)   effectChain_.getEffect(rippleIdx)->setEnabled(true);
-    if (hueIdx >= 0)      effectChain_.getEffect(hueIdx)->setEnabled(true);
-    if (rgbIdx >= 0)      effectChain_.getEffect(rgbIdx)->setEnabled(true);
-    if (vignetteIdx >= 0) effectChain_.getEffect(vignetteIdx)->setEnabled(true);
-
-    // RMS → Ripple intensity
-    if (rippleIdx >= 0)
-    {
-        Mapping m;
-        m.source = MappingSource::RMS;
-        m.targetEffectId = static_cast<uint32_t>(rippleIdx);
-        m.targetParamIndex = 0;
-        m.curve = MappingCurve::Linear;
-        m.smoothing = 0.15f;
-        mappingEngine_.addMapping(m);
-    }
-
-    // SpectralCentroid → Hue Shift
-    if (hueIdx >= 0)
-    {
-        Mapping m;
-        m.source = MappingSource::SpectralCentroid;
-        m.targetEffectId = static_cast<uint32_t>(hueIdx);
-        m.targetParamIndex = 0;
-        m.curve = MappingCurve::Linear;
-        m.inputMin = 200.0f;
-        m.inputMax = 8000.0f;
-        m.smoothing = 0.15f;
-        mappingEngine_.addMapping(m);
-    }
-
-    // OnsetStrength → RGB Split
-    if (rgbIdx >= 0)
-    {
-        Mapping m;
-        m.source = MappingSource::OnsetStrength;
-        m.targetEffectId = static_cast<uint32_t>(rgbIdx);
-        m.targetParamIndex = 0;
-        m.curve = MappingCurve::Linear;
-        m.smoothing = 0.3f;
-        mappingEngine_.addMapping(m);
-    }
-
-    // BandBass → Vignette intensity
-    if (vignetteIdx >= 0)
-    {
-        Mapping m;
-        m.source = MappingSource::BandBass;
-        m.targetEffectId = static_cast<uint32_t>(vignetteIdx);
-        m.targetParamIndex = 0;
-        m.curve = MappingCurve::Linear;
-        m.smoothing = 0.15f;
-        mappingEngine_.addMapping(m);
-    }
 }

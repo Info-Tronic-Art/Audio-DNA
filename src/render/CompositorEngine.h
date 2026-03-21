@@ -91,6 +91,10 @@ private:
     GLuint effectFBO_B_ = 0;
     GLuint effectTex_B_ = 0;
 
+    // Transition FBO (P14) — separate from scratch to avoid keying conflicts
+    GLuint transitionFBO_ = 0;
+    GLuint transitionTex_ = 0;
+
     int fboWidth_ = 0;
     int fboHeight_ = 0;
     bool glInitialized_ = false;
@@ -135,4 +139,16 @@ private:
     void applyMaskLayer(const Clip& clip, GLuint clipTex,
                         ShaderManager& shaderMgr, FullscreenQuad& quad,
                         int w, int h);
+
+    // Get texture for any clip (image, source, video, or image sequence)
+    GLuint getClipTexture(const Clip& clip, float time, int w, int h, float dt);
+
+    // Apply transition shader: blend previous clip texture with new clip texture
+    // Returns the blended texture. Uses scratchFBO_ as intermediate.
+    GLuint applyTransition(Layer& layer, GLuint newClipTex, float time,
+                           ShaderManager& shaderMgr, FullscreenQuad& quad,
+                           int w, int h, float dt);
+
+    // Map Layer::MixMode transition enum to shader name
+    static juce::String getTransitionShaderName(Layer::MixMode mode);
 };

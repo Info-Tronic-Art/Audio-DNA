@@ -13,6 +13,7 @@ void CompositorEngine::initGL(int width, int height)
     createFBO(scratchFBO_, scratchTex_, width, height);
     createFBO(effectFBO_A_, effectTex_A_, width, height);
     createFBO(effectFBO_B_, effectTex_B_, width, height);
+    createFBO(transitionFBO_, transitionTex_, width, height);
     glInitialized_ = true;
 }
 
@@ -22,6 +23,7 @@ void CompositorEngine::releaseGL()
     deleteFBO(scratchFBO_, scratchTex_);
     deleteFBO(effectFBO_A_, effectTex_A_);
     deleteFBO(effectFBO_B_, effectTex_B_);
+    deleteFBO(transitionFBO_, transitionTex_);
 
     for (auto& [path, tex] : textureCache_)
     {
@@ -43,10 +45,12 @@ void CompositorEngine::resize(int width, int height)
     deleteFBO(scratchFBO_, scratchTex_);
     deleteFBO(effectFBO_A_, effectTex_A_);
     deleteFBO(effectFBO_B_, effectTex_B_);
+    deleteFBO(transitionFBO_, transitionTex_);
     createFBO(accumulatorFBO_, accumulatorTex_, width, height);
     createFBO(scratchFBO_, scratchTex_, width, height);
     createFBO(effectFBO_A_, effectTex_A_, width, height);
     createFBO(effectFBO_B_, effectTex_B_, width, height);
+    createFBO(transitionFBO_, transitionTex_, width, height);
 }
 
 void CompositorEngine::createFBO(GLuint& fbo, GLuint& tex, int w, int h)
@@ -153,13 +157,13 @@ GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
         if (!slot.enabled || slot.bypassed)
             continue;
 
-        auto* program = shaderMgr.getProgram(juce::String(slot.effectName));
-        if (program == nullptr)
-            continue;
-
-        // Get the effect definition to know uniform names
+        // Get the effect definition first to resolve shader name from display name
         const auto* def = effectLibrary_->getEffectDef(juce::String(slot.effectName));
         if (def == nullptr)
+            continue;
+
+        auto* program = shaderMgr.getProgram(def->shaderName);
+        if (program == nullptr)
             continue;
 
         GLuint targetFBO = (writeFBO == 0) ? effectFBO_A_ : effectFBO_B_;
@@ -375,6 +379,17 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
         if (!layer.visible || layer.bypassed)
             continue;
 
+        // P14: Advance crossfade progress each frame
+        if (layer.crossfadeProgress < 1.0f && layer.previousClipColumn >= 0)
+        {
+            float speed = layer.transitionSpeed;
+            if (speed <= 0.0f) speed = 0.5f; // default transition duration in seconds
+            float step = (1.0f / 60.0f) / speed;
+            layer.crossfadeProgress = std::min(layer.crossfadeProgress + step, 1.0f);
+            if (layer.crossfadeProgress >= 1.0f)
+                layer.previousClipColumn = -1; // transition complete
+        }
+
         const Clip* clip = layer.getActiveClip();
         if (clip == nullptr)
             continue;
@@ -407,6 +422,19 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
 
                 // P13.5.1: Apply per-clip effects
                 clipTex = applyClipEffects(*clip, clipTex, shaderMgr, quad, time, width, height);
+
+                // P14: Apply clip-to-clip transition if crossfading
+                float dt = 1.0f / 60.0f;
+                clipTex = applyTransition(layer, clipTex, time, shaderMgr, quad, width, height, dt);
+
+                // Apply per-layer effects (same mechanism as per-clip effects)
+                if (!layer.layerEffects.empty())
+                {
+                    // Create a temporary "clip" view to reuse applyClipEffects
+                    Clip layerFxClip;
+                    layerFxClip.effects = layer.layerEffects;
+                    clipTex = applyClipEffects(layerFxClip, clipTex, shaderMgr, quad, time, width, height);
+                }
 
                 // P13.5.5: Apply layer transform
                 clipTex = applyLayerTransform(layer, clipTex, shaderMgr, quad, width, height);
@@ -612,4 +640,112 @@ void CompositorEngine::blendLayerOntoAccumulator(const Layer& layer, GLuint srcT
             glDisable(GL_BLEND);
             break;
     }
+}
+
+// === Phase 14: Clip texture helper ===
+
+GLuint CompositorEngine::getClipTexture(const Clip& clip, float time, int w, int h, float dt)
+{
+    if (clip.mediaType == Clip::MediaType::Image && clip.mediaFile.existsAsFile())
+        return getKeyTexture(clip.mediaFile);
+
+    if (clip.mediaType == Clip::MediaType::Source && !clip.sourceType.empty() && sourceRenderFn_)
+    {
+        const auto* params = clip.sourceParams.empty() ? nullptr : &clip.sourceParams;
+        return sourceRenderFn_(clip.sourceType, time, w, h, params);
+    }
+
+    if ((clip.mediaType == Clip::MediaType::Video ||
+         clip.mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
+        return videoFrameFn_(&clip, dt);
+
+    return 0;
+}
+
+// === Phase 14: Transition shader name mapping ===
+
+juce::String CompositorEngine::getTransitionShaderName(Layer::MixMode mode)
+{
+    switch (mode)
+    {
+        case Layer::MixMode::WipeLeft:    return "transition_wipe_left";
+        case Layer::MixMode::WipeRight:   return "transition_wipe_right";
+        case Layer::MixMode::WipeUp:      return "transition_wipe_up";
+        case Layer::MixMode::WipeDown:    return "transition_wipe_down";
+        case Layer::MixMode::PushLeft:    return "transition_push_left";
+        case Layer::MixMode::PushRight:   return "transition_push_right";
+        case Layer::MixMode::PushUp:      return "transition_push_up";
+        case Layer::MixMode::PushDown:    return "transition_push_down";
+        case Layer::MixMode::ZoomIn:      return "transition_zoom_in";
+        case Layer::MixMode::ZoomOut:     return "transition_zoom_out";
+        case Layer::MixMode::WipeEllipse: return "transition_iris";
+        case Layer::MixMode::Flip:        return "transition_flip_h";
+        case Layer::MixMode::Cut:         return "transition_cut";
+        case Layer::MixMode::ToBlack:     return "transition_fade_black";
+        case Layer::MixMode::Dissolve:
+        default:                          return "transition_dissolve";
+    }
+}
+
+// === Phase 14: Transition rendering ===
+
+GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float time,
+                                          ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                          int w, int h, float dt)
+{
+    using namespace juce::gl;
+
+    // If crossfade is complete or no previous clip, just return the new texture
+    if (layer.crossfadeProgress >= 1.0f || layer.previousClipColumn < 0)
+        return newClipTex;
+
+    // Get previous clip texture
+    Clip* prevClip = layer.getClipAt(layer.previousClipColumn);
+    if (prevClip == nullptr)
+        return newClipTex;
+
+    GLuint prevTex = getClipTexture(*prevClip, time, w, h, dt);
+    if (prevTex == 0)
+        return newClipTex;
+
+    // Apply previous clip's effects too
+    prevTex = applyClipEffects(*prevClip, prevTex, shaderMgr, quad, time, w, h);
+
+    // Render transition into dedicated transitionFBO (avoids conflicting with scratch/keying)
+    juce::String shaderName = getTransitionShaderName(layer.transitionMode);
+    auto* prog = shaderMgr.getProgram(shaderName);
+    if (prog == nullptr)
+        prog = shaderMgr.getProgram("transition_dissolve"); // fallback
+
+    if (prog == nullptr)
+        return newClipTex;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, transitionFBO_);
+    glViewport(0, 0, w, h);
+    glDisable(GL_BLEND);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    prog->use();
+    GLuint pid = prog->getProgramID();
+
+    // Bind new clip to texture unit 0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, newClipTex);
+    glUniform1i(glGetUniformLocation(pid, "u_texture"), 0);
+
+    // Bind previous clip to texture unit 1
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, prevTex);
+    glUniform1i(glGetUniformLocation(pid, "u_prevTexture"), 1);
+
+    // Set crossfade progress
+    glUniform1f(glGetUniformLocation(pid, "u_crossfadeProgress"), layer.crossfadeProgress);
+
+    quad.draw();
+
+    // Reset active texture
+    glActiveTexture(GL_TEXTURE0);
+
+    return transitionTex_;
 }

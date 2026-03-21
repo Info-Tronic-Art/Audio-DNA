@@ -421,6 +421,130 @@ void EffectLibrary::registerDefaults()
     registerEffect({"Hexagonalize", "blend", "hexagonalize", {
         {"scale", "u_hex_scale", 0.0f}
     }});
+
+    // ============================================================
+    // Phase 14: Quick-Win Effects (20 new effects)
+    // ============================================================
+
+    registerEffect({"Greyscale", "color", "greyscale", {
+        {"method", "u_grey_method", 0.0f},
+        {"amount", "u_grey_amount", 0.0f}
+    }});
+
+    registerEffect({"Threshold", "color", "threshold", {
+        {"level", "u_threshold_level", 0.5f},
+        {"amount", "u_threshold_amount", 0.0f}
+    }});
+
+    registerEffect({"Exposure", "color", "exposure", {
+        {"amount", "u_exposure_amount", 0.5f}
+    }});
+
+    registerEffect({"Vibrance", "color", "vibrance", {
+        {"amount", "u_vibrance_amount", 0.5f}
+    }});
+
+    registerEffect({"Quad Mirror", "warp", "quad_mirror", {
+        {"center x", "u_quadmir_cx", 0.5f},
+        {"center y", "u_quadmir_cy", 0.5f}
+    }});
+
+    registerEffect({"Flip", "warp", "flip", {
+        {"horizontal", "u_flip_h", 0.0f},
+        {"vertical", "u_flip_v", 0.0f}
+    }});
+
+    registerEffect({"Warp Field", "warp", "warp_field", {
+        {"amount", "u_warpfield_amount", 0.0f},
+        {"frequency", "u_warpfield_freq", 0.5f},
+        {"speed", "u_warpfield_speed", 0.3f}
+    }});
+
+    registerEffect({"Sharpen", "blur", "sharpen", {
+        {"amount", "u_sharpen_amount", 0.0f},
+        {"radius", "u_sharpen_radius", 0.3f}
+    }});
+
+    registerEffect({"Pixel Explosion", "glitch", "pixel_explosion", {
+        {"force", "u_explode_force", 0.0f},
+        {"decay", "u_explode_decay", 0.5f},
+        {"center x", "u_explode_cx", 0.5f},
+        {"center y", "u_explode_cy", 0.5f}
+    }});
+
+    registerEffect({"Color Flash", "glitch", "color_flash", {
+        {"intensity", "u_flash_intensity", 0.0f},
+        {"red", "u_flash_r", 1.0f},
+        {"green", "u_flash_g", 1.0f},
+        {"blue", "u_flash_b", 1.0f},
+        {"decay", "u_flash_decay", 0.5f}
+    }});
+
+    registerEffect({"Slide Wrap", "warp", "slide_wrap", {
+        {"x", "u_slide_x", 0.5f},
+        {"y", "u_slide_y", 0.5f}
+    }});
+
+    registerEffect({"Dot Field", "3d", "dot_field", {
+        {"size", "u_dotfield_size", 0.3f},
+        {"spacing", "u_dotfield_spacing", 0.5f},
+        {"depth", "u_dotfield_depth", 0.0f}
+    }});
+
+    registerEffect({"Triangulate", "pattern", "triangulate", {
+        {"size", "u_tri_size", 0.3f},
+        {"amount", "u_tri_amount", 0.0f}
+    }});
+
+    registerEffect({"Auto Mask", "color", "auto_mask", {
+        {"threshold", "u_automask_threshold", 0.5f},
+        {"softness", "u_automask_softness", 0.3f},
+        {"invert", "u_automask_invert", 0.0f}
+    }});
+
+    registerEffect({"Chroma Key", "color", "chromakey_effect", {
+        {"hue", "u_chromakey_hue", 0.33f},
+        {"tolerance", "u_chromakey_tolerance", 0.3f},
+        {"softness", "u_chromakey_softness", 0.3f},
+        {"amount", "u_chromakey_amount", 0.0f}
+    }});
+
+    registerEffect({"Tile Grid", "warp", "tile_grid", {
+        {"columns", "u_tilegrid_cols", 0.25f},
+        {"rows", "u_tilegrid_rows", 0.25f},
+        {"offset", "u_tilegrid_offset", 0.0f},
+        {"zoom", "u_tilegrid_zoom", 0.5f}
+    }});
+
+    registerEffect({"Spot Zoom", "warp", "spot_zoom", {
+        {"center x", "u_spotzoom_cx", 0.5f},
+        {"center y", "u_spotzoom_cy", 0.5f},
+        {"size", "u_spotzoom_size", 0.3f},
+        {"zoom", "u_spotzoom_zoom", 0.7f},
+        {"shape", "u_spotzoom_shape", 0.0f},
+        {"background", "u_spotzoom_bg", 0.3f}
+    }});
+
+    registerEffect({"Neon Edge", "pattern", "neon_edge", {
+        {"edge", "u_neonedge_edge", 0.6f},
+        {"glow", "u_neonedge_glow", 0.5f},
+        {"hue", "u_neonedge_hue", 0.5f},
+        {"original", "u_neonedge_original", 0.3f}
+    }});
+
+    registerEffect({"Cartoon Ink", "pattern", "cartoon_ink", {
+        {"edge width", "u_cartoonink_edge", 0.4f},
+        {"color steps", "u_cartoonink_steps", 0.4f},
+        {"ink strength", "u_cartoonink_ink", 0.7f},
+        {"saturation", "u_cartoonink_sat", 0.6f}
+    }});
+
+    registerEffect({"Pop Raster", "pattern", "pop_raster", {
+        {"palette", "u_popraster_palette", 0.0f},
+        {"bands", "u_popraster_bands", 0.4f},
+        {"pattern size", "u_popraster_size", 0.3f},
+        {"mix", "u_popraster_mix", 0.7f}
+    }});
 }
 
 std::unique_ptr<Effect> EffectLibrary::createEffect(const juce::String& name) const
@@ -430,6 +554,7 @@ std::unique_ptr<Effect> EffectLibrary::createEffect(const juce::String& name) co
         return nullptr;
 
     auto effect = std::make_unique<Effect>(def->name, def->category, def->shaderName);
+    effect->setTemporal(def->temporal);
     for (const auto& p : def->params)
         effect->addParam(p.name, p.uniformName, p.defaultValue);
 

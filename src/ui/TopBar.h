@@ -4,6 +4,7 @@
 #include "analysis/FeatureSnapshot.h"
 #include "model/Composition.h"
 #include "ui/LookAndFeel.h"
+#include "ui/UniversalParamControl.h" // for ResettableSlider
 
 // TopBar: the main application toolbar below the menu bar.
 // Contains: audio source, gain, transport, tempo display,
@@ -56,7 +57,7 @@ private:
     juce::Label audioSourceLabel_{"", "Audio:"};
     juce::ComboBox audioSourceSelector_;
     juce::Label inputGainLabel_{"", "Gain:"};
-    juce::Slider inputGainSlider_;
+    ResettableSlider inputGainSlider_;
 
     // === Transport Section ===
     juce::TextButton playButton_{">"};
@@ -82,11 +83,11 @@ private:
 
     // === Fade Section ===
     juce::Label fadeLabel_{"", "Fade:"};
-    juce::Slider fadeSlider_;
+    ResettableSlider fadeSlider_;
 
     // === Master Level ===
     juce::Label masterLabel_{"", "Master:"};
-    juce::Slider masterLevelSlider_;
+    ResettableSlider masterLevelSlider_;
 
     // === Output ===
     juce::Label outputLabel_{"", "Output:"};

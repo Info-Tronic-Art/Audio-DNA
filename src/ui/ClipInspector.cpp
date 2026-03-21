@@ -33,6 +33,24 @@ ClipInspector::ClipInspector()
     playBtn_.setColour(juce::TextButton::buttonColourId,
                        juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f));
 
+    playBackBtn_.onClick = [this] {
+        if (!clip_) return;
+        clip_->reverse = true;
+        clip_->playing = true;
+        updateTransportHighlights();
+    };
+    pauseBtn_.onClick = [this] {
+        if (!clip_) return;
+        clip_->playing = false;
+        updateTransportHighlights();
+    };
+    playBtn_.onClick = [this] {
+        if (!clip_) return;
+        clip_->reverse = false;
+        clip_->playing = true;
+        updateTransportHighlights();
+    };
+
     // Loop + Trigger dropdowns
     loopDropdown_.addItem("Loop", 1);
     loopDropdown_.addItem("Ping Pong", 2);
@@ -58,6 +76,7 @@ ClipInspector::ClipInspector()
     speedSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, 20);
     speedSlider_.setRange(0.0, 4.0, 0.01);
     speedSlider_.setValue(1.0, juce::dontSendNotification);
+    speedSlider_.setDefaultValue(1.0);
     speedSlider_.setScrollWheelEnabled(false);
     speedSlider_.setColour(juce::Slider::thumbColourId,
                            juce::Colour(AudioDNALookAndFeel::kAccentCyan));
@@ -71,6 +90,7 @@ ClipInspector::ClipInspector()
     durationSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 40, 20);
     durationSlider_.setRange(0.1, 300.0, 0.1);
     durationSlider_.setValue(8.0, juce::dontSendNotification);
+    durationSlider_.setDefaultValue(8.0);
     durationSlider_.setScrollWheelEnabled(false);
     durationSlider_.setColour(juce::Slider::thumbColourId,
                               juce::Colour(AudioDNALookAndFeel::kAccentCyan));
@@ -156,6 +176,7 @@ ClipInspector::ClipInspector()
     sequenceFpsSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 34, 20);
     sequenceFpsSlider_.setRange(0.0, 6.0, 0.1);
     sequenceFpsSlider_.setValue(2.5, juce::dontSendNotification);
+    sequenceFpsSlider_.setDefaultValue(2.5);
     sequenceFpsSlider_.setScrollWheelEnabled(false);
     sequenceFpsSlider_.setColour(juce::Slider::thumbColourId,
                                   juce::Colour(AudioDNALookAndFeel::kAccentCyan));
@@ -215,6 +236,7 @@ ClipInspector::ClipInspector()
     videoBeatsSlider_.setTextBoxIsEditable(true);
     videoBeatsSlider_.setRange(1.0, 64.0, 1.0);
     videoBeatsSlider_.setValue(4.0, juce::dontSendNotification);
+    videoBeatsSlider_.setDefaultValue(4.0);
     videoBeatsSlider_.setScrollWheelEnabled(false);
     // Snap to musical values: 0, 1, 2, 4, 8, 16, 32, 64
     videoBeatsSlider_.setSkewFactor(0.5);  // bunch low values together
@@ -302,15 +324,17 @@ ClipInspector::ClipInspector()
     // --- Video section ---
     clipOpacityControl_.setParamName("Opacity");
     clipOpacityControl_.setParamValue(1.0f);
+    clipOpacityControl_.setDefaultValue(1.0f);
     clipOpacityControl_.onValueChanged = [this](float val) { if (clip_) clip_->clipOpacity = val; };
     clipOpacityControl_.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
     addAndMakeVisible(clipOpacityControl_);
 
-    auto setupIntSlider = [](juce::Slider& s, double min, double max, double val) {
+    auto setupIntSlider = [](ResettableSlider& s, double min, double max, double val) {
         s.setSliderStyle(juce::Slider::IncDecButtons);
         s.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 20);
         s.setRange(min, max, 1);
         s.setValue(val, juce::dontSendNotification);
+        s.setDefaultValue(val);
         s.setScrollWheelEnabled(false);
     };
     setupIntSlider(clipWidthSlider_, 1, 7680, 1920);
@@ -359,6 +383,7 @@ ClipInspector::ClipInspector()
     auto setupTransformParam = [this](UniversalParamControl& pc, const juce::String& name, float defVal) {
         pc.setParamName(name);
         pc.setParamValue(defVal);
+        pc.setDefaultValue(defVal);
         pc.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
         addAndMakeVisible(pc);
     };
@@ -381,6 +406,15 @@ ClipInspector::ClipInspector()
 void ClipInspector::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff1a1a1a));
+
+    // FX drop highlight
+    if (fxDropHighlight_)
+    {
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.15f));
+        g.fillRect(getLocalBounds());
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.6f));
+        g.drawRect(getLocalBounds(), 2);
+    }
 
     if (!clip_)
     {
@@ -1154,4 +1188,47 @@ void ClipInspector::syncFromClip()
     scaleControl_.setParamValue(clip_->scale / 2.0f);
     rotationControl_.setParamValue(clip_->rotation / 720.0f + 0.5f);
     anchorControl_.setParamValue(clip_->anchorX / 3840.0f + 0.5f);
+
+    updateTransportHighlights();
+}
+
+void ClipInspector::updateTransportHighlights()
+{
+    auto defaultCol = juce::Colour(AudioDNALookAndFeel::kSurface);
+    auto activeCol = juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.3f);
+
+    bool playing = clip_ && clip_->playing;
+    bool reverse = clip_ && clip_->reverse;
+
+    playBtn_.setColour(juce::TextButton::buttonColourId,
+                       (playing && !reverse) ? activeCol : defaultCol);
+    pauseBtn_.setColour(juce::TextButton::buttonColourId,
+                        (!playing && clip_) ? activeCol : defaultCol);
+    playBackBtn_.setColour(juce::TextButton::buttonColourId,
+                           (playing && reverse) ? activeCol : defaultCol);
+}
+
+bool ClipInspector::isInterestedInDragSource(const SourceDetails& details)
+{
+    return clip_ != nullptr && details.description.toString().startsWith("fx:");
+}
+
+void ClipInspector::itemDragEnter(const SourceDetails&)
+{
+    fxDropHighlight_ = true;
+    repaint();
+}
+
+void ClipInspector::itemDragExit(const SourceDetails&)
+{
+    fxDropHighlight_ = false;
+    repaint();
+}
+
+void ClipInspector::itemDropped(const SourceDetails& details)
+{
+    fxDropHighlight_ = false;
+    if (!clip_) return;
+    effectStackView_.itemDropped(details);
+    repaint();
 }

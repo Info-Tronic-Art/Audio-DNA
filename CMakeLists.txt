@@ -92,6 +92,8 @@ target_sources(AudioDNA PRIVATE
     src/render/ShaderManager.cpp
     src/render/TextureManager.h
     src/render/TextureManager.cpp
+    src/render/LUTLoader.h
+    src/render/LUTLoader.cpp
 
     # Mapping
     src/mapping/MappingTypes.h

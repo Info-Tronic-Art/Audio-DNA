@@ -51,7 +51,7 @@ private:
     juce::TextButton apForwardBtn_;
     juce::TextButton apRandomBtn_;
     juce::ComboBox apDurationSelector_;
-    juce::Slider apClipLoopsSlider_;
+    ResettableSlider apClipLoopsSlider_;
     juce::ToggleButton apLoopToggle_{"Loop"};
     juce::ComboBox apMasterLayerSelector_;
 

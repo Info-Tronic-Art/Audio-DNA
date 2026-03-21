@@ -245,6 +245,15 @@ void UniversalParamControl::resized()
 
 void UniversalParamControl::mouseDown(const juce::MouseEvent& event)
 {
+    // Right-click anywhere → reset to default value
+    if (event.mods.isRightButtonDown())
+    {
+        setParamValue(defaultValue_);
+        valueSlider_.setValue(static_cast<double>(defaultValue_), juce::sendNotificationSync);
+        if (onValueChanged) onValueChanged(defaultValue_);
+        return;
+    }
+
     // Click on the triangle area → show source picker popup
     if (event.position.x < static_cast<float>(kTriangleSize) &&
         event.position.y < static_cast<float>(kCollapsedHeight))
@@ -309,9 +318,11 @@ void UniversalParamControl::showSourcePickerAtTriangle()
                                           .removeFromTop(kCollapsedHeight);
     auto screenPos = localAreaToGlobal(triangleBounds);
 
-    menu.showMenuAsync(
-        juce::PopupMenu::Options()
-            .withTargetScreenArea(screenPos),
+    auto options = juce::PopupMenu::Options()
+                       .withTargetScreenArea(screenPos);
+    if (auto* topLevel = getTopLevelComponent())
+        options = options.withParentComponent(topLevel);
+    menu.showMenuAsync(options,
         [this](int result) { handleSourcePickerResult(result); });
 }
 
@@ -320,8 +331,10 @@ void UniversalParamControl::showSourcePicker()
     juce::PopupMenu menu;
     buildSourcePickerMenu(menu);
 
-    menu.showMenuAsync(
-        juce::PopupMenu::Options().withTargetComponent(&sourceBtn_),
+    auto options = juce::PopupMenu::Options().withTargetComponent(&sourceBtn_);
+    if (auto* topLevel = getTopLevelComponent())
+        options = options.withParentComponent(topLevel);
+    menu.showMenuAsync(options,
         [this](int result) { handleSourcePickerResult(result); });
 }
 

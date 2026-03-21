@@ -2,12 +2,13 @@
 
 SignalInspector::SignalInspector()
 {
-    auto setupSlider = [](juce::Slider& s, double min, double max, double val,
+    auto setupSlider = [](ResettableSlider& s, double min, double max, double val,
                           const juce::String& suffix = {}) {
         s.setSliderStyle(juce::Slider::LinearHorizontal);
         s.setTextBoxStyle(juce::Slider::TextBoxRight, false, 45, 20);
         s.setRange(min, max, 0.01);
         s.setValue(val, juce::dontSendNotification);
+        s.setDefaultValue(val);
         s.setColour(juce::Slider::thumbColourId,
                     juce::Colour(AudioDNALookAndFeel::kAccentCyan));
         if (suffix.isNotEmpty())

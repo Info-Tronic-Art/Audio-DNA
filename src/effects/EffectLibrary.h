@@ -24,9 +24,10 @@ public:
     struct EffectDef
     {
         juce::String name;
-        juce::String category;     // "warp", "color", "glitch", "blur"
+        juce::String category;     // "warp", "color", "glitch", "blur", "time", "composite", "audio"
         juce::String shaderName;   // Key into ShaderManager
         std::vector<ParamDef> params;
+        bool temporal = false;     // Needs previous frame access (time effects)
     };
 
     EffectLibrary() = default;

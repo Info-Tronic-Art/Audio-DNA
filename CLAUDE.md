@@ -4,11 +4,11 @@
 
 ## Project Identity
 
-Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for live audio-reactive visual performance. It analyzes audio in real-time (mic, system audio, or audio file) and applies 76 GLSL shader effects to images, driven by extracted audio features. It is a VJ-style performance tool where music controls visual transformations.
+Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for live audio-reactive visual performance. It analyzes audio in real-time (mic, system audio, or audio file) and applies 96 GLSL shader effects to images, driven by extracted audio features. It is a VJ-style performance tool where music controls visual transformations.
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 76 effects across 8 categories, 40-key keyboard launcher with per-key effects and transparency modes, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, collapsible VJ panel UI.
+**Key capabilities**: 96 effects across 8 categories, 15 clip-to-clip transitions, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, procedural sources, VJ panel UI.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -210,7 +210,7 @@ AudioDNA/
 │   │   ├── ShaderManager.h/cpp       ✅ # Compile, link, hot-reload from shaders/
 │   │   ├── TextureManager.h/cpp      ✅ # Image → GL_TEXTURE_2D, FBO textures
 │   │   ├── FullscreenQuad.h/cpp      ✅ # VAO/VBO for fullscreen triangle strip
-│   │   ├── EmbeddedShaders.h         ✅ # All 76 GLSL shaders as inline strings
+│   │   ├── EmbeddedShaders.h         ✅ # All 96 effect + 15 transition GLSL shaders as inline strings
 │   │   └── CompositorEngine.h/cpp       # [M7] Multi-layer key compositing pipeline
 │   └── ui/
 │       ├── LookAndFeel.h/cpp         ✅ # Dark VJ-style theme
@@ -361,20 +361,32 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 
 ## Effects Library
 
-76 effects across 8 categories. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
+96 effects across 8 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
 
-### Effect Categories (76 total)
+### Effect Categories (96 total)
 
 | Category | Count | Examples |
 |----------|-------|---------|
-| **3D / Depth** | 6 | Perspective Tilt, Cylinder Wrap, Sphere Wrap, Tunnel, Page Curl, Parallax Layers |
-| **Warp** | 16 | Ripple, Bulge, Wave, Liquid, Kaleidoscope, Fisheye, Swirl, Polar Coords, Twirl, Shear, Elastic Bounce, Ripple Pond, Diamond Distort, Barrel Distort, Sine Grid, Glitch Displace |
-| **Color** | 20 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize |
-| **Glitch** | 9 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Glitch Displace |
-| **Pattern** | 11 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision |
+| **3D / Depth** | 7 | Perspective Tilt, Cylinder Wrap, Sphere Wrap, Tunnel, Page Curl, Parallax Layers, Dot Field |
+| **Warp** | 22 | Ripple, Bulge, Wave, Liquid, Kaleidoscope, Fisheye, Swirl, Polar Coords, Twirl, Shear, Elastic Bounce, Ripple Pond, Diamond Distort, Barrel Distort, Sine Grid, Glitch Displace, Quad Mirror, Flip, Warp Field, Slide Wrap, Tile Grid, Spot Zoom |
+| **Color** | 26 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize, Greyscale, Threshold, Exposure, Vibrance, Auto Mask, Chroma Key |
+| **Glitch** | 11 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Glitch Displace, Pixel Explosion, Color Flash |
+| **Pattern** | 15 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision, Triangulate, Neon Edge, Cartoon Ink, Pop Raster |
 | **Animation** | 3 | Strobe, Pulse, Slit Scan |
 | **Blend** | 5 | Double Exposure, Frosted Glass, Prism Refract, Rain on Glass, Hexagonalize |
-| **Blur/Post** | 6 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect |
+| **Blur/Post** | 7 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect, Sharpen |
+
+### Transition Shaders (15 total)
+
+Clip-to-clip transitions driven by `layer.crossfadeProgress` (0→1). Selected via `layer.transitionMode`. Rendered by `CompositorEngine::applyTransition()` using a dedicated `transitionFBO_`.
+
+| Type | Transitions |
+|------|-------------|
+| **Standard** | Dissolve, Cut |
+| **Wipe** | Wipe Left/Right/Up/Down |
+| **Push** | Push Left/Right/Up/Down |
+| **Zoom** | Zoom In, Zoom Out |
+| **Other** | Iris Circle, Flip Horizontal, Fade to Black |
 
 ### Effect Chain Architecture
 
@@ -390,17 +402,25 @@ Cells hold clips (images, image sequences, videos) AND procedural sources. FX ar
 
 **Single-image mode**: Input image → FBO A (Effect 1) → FBO B (Effect 2) → FBO A (Effect 3) → ... → Screen. Ping-pong between two FBOs.
 
-**Deck compositing mode** (v2): Per-clip effects are applied to the clip texture before compositing. Layer effects are applied after. FX Only layers apply their clip's effects to the composited accumulator. Mask layers use their content as a luminance alpha mask.
+**Deck compositing mode** (v2 rendering pipeline per layer):
+```
+Clip texture → Per-clip effects → Transition blend (if crossfading) → Per-layer effects → Layer transform → Keying (if Transparent) → Blend onto accumulator
+```
+FX Only layers apply their clip's effects to the composited accumulator. Mask layers use their content as a luminance alpha mask. Global effects (via `effectChain_` in Renderer) run on the final composited output after all layers.
+
+**Important**: `CompositorEngine::applyClipEffects()` resolves shader names via `EffectLibrary::getEffectDef(displayName)->shaderName`, NOT directly from `slot.effectName`. The `slot.effectName` stores the display name (e.g., "Ripple"), while shaders are compiled under snake_case keys (e.g., "ripple").
 
 ### FX Drag-and-Drop
 
 Effects are dragged from the FX Browser and dropped onto:
 - **Deck cells** — adds the effect to the clip's per-clip effect chain (`Clip::effects`)
-- **Inspector effect stack** (EffectStackView) — adds to whichever effect list is displayed (clip, layer, or composition)
+- **ClipInspector** — drops anywhere on the inspector add to clip effects (cyan highlight on hover)
+- **LayerInspector** — drops anywhere on the inspector add to layer effects (cyan highlight on hover)
+- **EffectStackView** — drops directly onto the effect stack area
 
-The drag shows a small pill with the effect name. Cells show a purple highlight when an FX drag hovers. EffectStackView shows a purple border.
+Each effect row in EffectStackView has: [B] bypass button, effect name, [X] delete button. Effects can be expanded to show parameter sliders. Each slider supports right-click to reset to default value.
 
-MainComponent inherits `juce::DragAndDropContainer`. FXBrowser's FXListContent initiates drags via `startDragging("fx:effectName", ...)`. ClipCell and EffectStackView implement `juce::DragAndDropTarget`.
+MainComponent inherits `juce::DragAndDropContainer`. FXBrowser's FXListContent initiates drags via `startDragging("fx:effectName", ...)`. ClipCell, ClipInspector, LayerInspector, and EffectStackView all implement `juce::DragAndDropTarget`.
 
 ### Autopilot System
 
@@ -423,6 +443,18 @@ TopBar has a "Manual" toggle. When enabled:
 ### Tooltip System
 
 `juce::TooltipWindow` in MainComponent (600ms delay). Any component with `setTooltip()` shows tooltips on hover. Preferences → General has a "Show Tooltips" toggle. Comprehensive tooltip coverage is scheduled for P26 (final build phase).
+
+### UI Patterns (Mandatory for all new UI)
+
+**ResettableSlider**: ALL sliders in the app MUST use `ResettableSlider` (defined in `UniversalParamControl.h`), not `juce::Slider`. This class overrides `mouseDown` to reset to default value on right-click. Every `ResettableSlider` MUST call `setDefaultValue(val)` at setup time. This applies to sliders in inspectors, top bar, layer strip, mapping editor, signal inspector, macro knobs — everywhere.
+
+**Drag-drop targets**: Any inspector that displays an effect stack MUST implement `juce::DragAndDropTarget` with `isInterestedInDragSource`, `itemDragEnter` (set highlight + repaint), `itemDragExit` (clear highlight + repaint), `itemDropped` (forward to EffectStackView). The highlight is a cyan border + 15% alpha fill.
+
+**Effect display name vs shader key**: `Clip::EffectSlot::effectName` stores the human-readable display name (e.g., "Ripple"). Shaders are compiled under snake_case keys (e.g., "ripple"). Always resolve via `EffectLibrary::getEffectDef(displayName)->shaderName` before calling `ShaderManager::getProgram()`. Never assume display name == shader key.
+
+**Transport state**: `Clip::playing` is `mutable` (render thread writes it for OneShot stop). Retriggering the same clip preserves its play/pause state. Switching to a different clip starts playing only on first activation (`hasBeenTriggered` flag). PingPong and OneShot loop modes require propagating player state back to clip model after `advanceFrame()`.
+
+**PopupMenu**: Always use `showMenuAsync()` with `.withParentComponent(getTopLevelComponent())` to ensure menus dismiss on app switch.
 
 ---
 
@@ -478,7 +510,7 @@ Each frame, the render thread:
 
 ### Milestones 1–6: COMPLETE
 
-Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 76 GLSL effects, mapping engine, VJ dark theme, presets, fullscreen output, camera input, CI/CD.
+Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 96 GLSL effects + 15 transitions, mapping engine, VJ dark theme, presets, fullscreen output, camera input, CI/CD.
 
 ### v2 Architecture Redesign (CURRENT)
 
@@ -706,6 +738,24 @@ Before refactoring any threading code, read these research documents first:
 - Check `CMakeLists.txt` before adding any dependency
 - Prefer JUCE built-in functionality over new libraries
 - Any new runtime dependency must be justified against the "Why not X" column in the tech stack table above
+
+### Common Pitfalls (from P14 development)
+
+These bugs were discovered and fixed during P14. Future phases MUST avoid reintroducing them:
+
+1. **Shader lookup mismatch**: `Clip::EffectSlot::effectName` stores the display name ("Ripple"), but shaders are compiled under snake_case keys ("ripple"). Always resolve via `EffectLibrary::getEffectDef(displayName)->shaderName`. Never use `slot.effectName` directly as a shader key.
+
+2. **Loop mode race condition**: The render thread syncs `clip->playing` to the player every frame. If the player stops itself (OneShot boundary), the render thread immediately restarts it from `clip->playing == true`. Fix: after `advanceFrame()`, read the player's state BACK to the clip model (`clip->playing = player->isPlaying()`). For PingPong, don't override `setReverse()` every frame — PingPong manages direction internally.
+
+3. **FBO conflicts**: `scratchFBO_` is used by keying. `effectFBO_A_/B_` are used by per-clip and per-layer effects (ping-pong). Transitions need their own `transitionFBO_` to avoid overwriting scratch before keying runs.
+
+4. **Demo effects left enabled**: `initEffectChain()` must NOT enable any effects by default. Users build their own effect chains via the FX browser.
+
+5. **JUCE slider right-click**: `juce::Slider` eats right-click events before the parent component's `mouseDown` fires. Use `ResettableSlider` (custom subclass) which overrides `mouseDown` to handle right-click reset directly. Always call `setDefaultValue()` on creation.
+
+6. **Unicode button text**: JUCE's default button font at small sizes (26px buttons) may not render multi-byte Unicode glyphs. Use ASCII characters ("<", ">", "||") instead of Unicode arrows/symbols for small buttons.
+
+7. **Transport state on clip switch**: `triggerClipImmediate()` must NOT force `playing = true` when re-activating a previously-played clip. Use a `hasBeenTriggered` flag to distinguish first activation from returning to a prior clip.
 
 ### Updating This Document
 

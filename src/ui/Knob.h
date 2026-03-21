@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "ui/UniversalParamControl.h" // for ResettableSlider
 
 // Knob: a rotary parameter control for the effects rack.
 //
@@ -21,7 +22,7 @@ public:
     void resized() override;
 
     // Access the underlying slider
-    juce::Slider& getSlider() { return slider_; }
+    ResettableSlider& getSlider() { return slider_; }
 
     // Set the parameter name displayed below the knob
     void setParamName(const juce::String& name);
@@ -36,7 +37,7 @@ public:
     static constexpr int kPreferredHeight = 80;
 
 private:
-    juce::Slider slider_;
+    ResettableSlider slider_;
     juce::Label nameLabel_;
     juce::Label valueLabel_;
 

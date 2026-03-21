@@ -32,6 +32,10 @@ public:
     int getImageHeight() const { return imageHeight_; }
     bool hasImage() const { return imageTexID_ != 0; }
 
+    // LUT loading (.cube files → GL_TEXTURE_3D)
+    GLuint loadLUT(const juce::File& file);
+    void releaseLUT(GLuint texId);
+
     // FBO access for ping-pong rendering
     GLuint getFBO(int index) const { return fbos_[index]; }
     GLuint getFBOTexture(int index) const { return fboTextures_[index]; }

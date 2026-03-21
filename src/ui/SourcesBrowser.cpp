@@ -157,13 +157,24 @@ void SourcesBrowser::buildSourceList()
     categories_.clear();
     sources_.clear();
 
-    // Categories from ARCHITECTURE_V2.md + Input
+    // 16 categories: 6 original + 10 new (P13.5)
     categories_.push_back({"Input",         juce::Colour(0xffef5350)});
     categories_.push_back({"Fractal",       juce::Colour(0xffab47bc)});
     categories_.push_back({"Noise",         juce::Colour(0xff66bb6a)});
     categories_.push_back({"Geometric",     juce::Colour(0xff4fc3f7)});
     categories_.push_back({"Audio-Visual",  juce::Colour(0xffff7043)});
     categories_.push_back({"Nature",        juce::Colour(0xff26c6da)});
+    // P13.5: New categories for future phases
+    categories_.push_back({"Math",          juce::Colour(0xffab47bc)});
+    categories_.push_back({"3D",            juce::Colour(0xffffca28)});
+    categories_.push_back({"Organic",       juce::Colour(0xff66bb6a)});
+    categories_.push_back({"Pattern",       juce::Colour(0xff4fc3f7)});
+    categories_.push_back({"Particle",      juce::Colour(0xffff7043)});
+    categories_.push_back({"Utility",       juce::Colour(0xff78909c)});
+    categories_.push_back({"Lighting",      juce::Colour(0xffffd54f)});
+    categories_.push_back({"Simulation",    juce::Colour(0xffef5350)});
+    categories_.push_back({"Text",          juce::Colour(0xff8d6e63)});
+    categories_.push_back({"Routing",       juce::Colour(0xff00897b)});
 
     // Input sources — live feeds
     sources_.push_back({"Camera Input",             "camera",              "Input",        juce::Colour(0xffef5350)});

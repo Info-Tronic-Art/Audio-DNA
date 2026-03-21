@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "mapping/MappingTypes.h"
+#include "ui/UniversalParamControl.h" // for ResettableSlider
 
 // MappingEditor: a JUCE Component for configuring a single Mapping.
 //
@@ -61,11 +62,11 @@ private:
     juce::ComboBox sourceCombo_;
     juce::ComboBox curveCombo_;
 
-    juce::Slider inputMinSlider_;
-    juce::Slider inputMaxSlider_;
-    juce::Slider outputMinSlider_;
-    juce::Slider outputMaxSlider_;
-    juce::Slider smoothingSlider_;
+    ResettableSlider inputMinSlider_;
+    ResettableSlider inputMaxSlider_;
+    ResettableSlider outputMinSlider_;
+    ResettableSlider outputMaxSlider_;
+    ResettableSlider smoothingSlider_;
 
     juce::ToggleButton enableToggle_{"Enabled"};
     juce::TextButton deleteButton_{"Delete Mapping"};

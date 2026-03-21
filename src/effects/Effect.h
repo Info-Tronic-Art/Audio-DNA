@@ -36,6 +36,14 @@ public:
     // Reset all parameters to defaults
     void resetParams();
 
+    // Dry/wet mix (0 = fully dry/original, 1 = fully wet/effected)
+    float getDryWet() const { return dryWet_; }
+    void setDryWet(float value) { dryWet_ = std::max(0.0f, std::min(1.0f, value)); }
+
+    // Whether this effect needs access to the previous frame texture
+    bool isTemporal() const { return temporal_; }
+    void setTemporal(bool temporal) { temporal_ = temporal; }
+
     // Enable/disable
     bool isEnabled() const { return enabled_; }
     void setEnabled(bool enabled) { enabled_ = enabled; }
@@ -53,6 +61,8 @@ private:
     juce::String category_;
     juce::String shaderName_;  // Key into ShaderManager
     std::vector<EffectParam> params_;
+    float dryWet_ = 1.0f;
     bool enabled_ = true;
+    bool temporal_ = false;
     int order_ = 0;
 };

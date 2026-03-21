@@ -1,4 +1,5 @@
 #include "TextureManager.h"
+#include "render/LUTLoader.h"
 #include <vector>
 #include <iostream>
 
@@ -142,6 +143,16 @@ void TextureManager::releaseFBOs()
         fboTextures_[0] = fboTextures_[1] = 0;
     }
     fboWidth_ = fboHeight_ = 0;
+}
+
+GLuint TextureManager::loadLUT(const juce::File& file)
+{
+    return LUTLoader::loadCubeFile(file);
+}
+
+void TextureManager::releaseLUT(GLuint texId)
+{
+    LUTLoader::releaseLUT(texId);
 }
 
 void TextureManager::release()

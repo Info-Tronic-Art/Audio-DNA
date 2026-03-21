@@ -2,6 +2,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "model/Layer.h"
 #include "ui/LookAndFeel.h"
+#include "ui/UniversalParamControl.h" // for ResettableSlider
 
 // LayerStrip: Resolume-style layer header — flat, dense, machine-like.
 //
@@ -42,6 +43,10 @@ public:
     std::function<void(int layerIndex, bool)> onBypass;
     std::function<void(int layerIndex, bool)> onSolo;
     std::function<void(int layerIndex, Layer::MixMode)> onBlendModeChanged;
+    std::function<void(int layerIndex)> onTransportPlay;
+    std::function<void(int layerIndex)> onTransportPause;
+    std::function<void(int layerIndex)> onTransportBack;
+    std::function<void(int layerIndex)> onTransportForward;
 
 private:
     void mouseDown(const juce::MouseEvent& event) override;
@@ -55,11 +60,17 @@ private:
     juce::TextButton bypassBtn_{"B"};
     juce::TextButton soloBtn_{"S"};
 
+    // Transport controls (play/pause/forward/back)
+    juce::TextButton transportBackBtn_;
+    juce::TextButton transportPauseBtn_;
+    juce::TextButton transportPlayBtn_;
+    juce::TextButton transportForwardBtn_;
+
     // K = keying threshold slider (no dropdown)
-    juce::Slider keyingSlider_;
+    ResettableSlider keyingSlider_;
 
     // V = opacity slider + blend/keying mode dropdown
-    juce::Slider opacitySlider_;
+    ResettableSlider opacitySlider_;
     juce::ComboBox blendDropdown_;
 
     // Thumbnail (painted manually)
@@ -73,7 +84,7 @@ private:
     juce::String clipName_;
 
     // F = fade speed slider + transition mode dropdown
-    juce::Slider fadeTimeSlider_;
+    ResettableSlider fadeTimeSlider_;
     juce::ComboBox transitionDropdown_;
 
     void setupFlatButton(juce::TextButton& btn);

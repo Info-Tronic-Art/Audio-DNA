@@ -94,6 +94,7 @@ add_executable(test_mapping_engine
     ${SRC_DIR}/effects/EffectChain.cpp
     ${SRC_DIR}/render/ShaderManager.cpp
     ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
     ${SRC_DIR}/render/FullscreenQuad.cpp
 )
 target_include_directories(test_mapping_engine PRIVATE ${SRC_DIR})
@@ -193,6 +194,7 @@ add_executable(test_routing_engine
     ${SRC_DIR}/effects/EffectChain.cpp
     ${SRC_DIR}/render/ShaderManager.cpp
     ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
     ${SRC_DIR}/render/FullscreenQuad.cpp
 )
 target_include_directories(test_routing_engine PRIVATE ${SRC_DIR})

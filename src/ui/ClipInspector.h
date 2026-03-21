@@ -22,7 +22,8 @@
 //   [RGBA Toggles]            R G B A channel toggle buttons
 //   [Transform]               Position X/Y, Scale %, Rotation °, Anchor
 //   [Effects]                 Effect stack
-class ClipInspector : public juce::Component
+class ClipInspector : public juce::Component,
+                      public juce::DragAndDropTarget
 {
 public:
     ClipInspector();
@@ -58,7 +59,7 @@ private:
 
     // --- Transport ---
     juce::ComboBox transportModeSelector_;
-    juce::Slider speedSlider_;
+    ResettableSlider speedSlider_;
     juce::TextButton reverseBtn_{"Reverse"};
     juce::TextButton halfSpeedBtn_;
     juce::TextButton doubleSpeedBtn_;
@@ -70,7 +71,7 @@ private:
     juce::ComboBox loopDropdown_;
     juce::ComboBox triggerDropdown_;
     // Duration
-    juce::Slider durationSlider_;
+    ResettableSlider durationSlider_;
     juce::TextButton durHalfBtn_;
     juce::TextButton durDoubleBtn_;
 
@@ -87,7 +88,7 @@ private:
     juce::ToggleButton beatSnapToggle_{"Beat Snap"};
 
     // --- Image Sequence FPS ---
-    juce::Slider sequenceFpsSlider_;
+    ResettableSlider sequenceFpsSlider_;
     juce::Label sequenceFpsLabel_;
 
     // --- Beat Division (BPM Sync mode) ---
@@ -95,7 +96,7 @@ private:
     juce::Label beatDivisionLabel_;
 
     // --- Content Beats (BPM Sync mode) ---
-    juce::Slider videoBeatsSlider_;
+    ResettableSlider videoBeatsSlider_;
     juce::Label videoBeatsLabel_;
 
     // --- Source Parameters ---
@@ -104,8 +105,8 @@ private:
 
     // --- Video ---
     UniversalParamControl clipOpacityControl_;
-    juce::Slider clipWidthSlider_;
-    juce::Slider clipHeightSlider_;
+    ResettableSlider clipWidthSlider_;
+    ResettableSlider clipHeightSlider_;
     juce::ComboBox clipBlendModeSelector_;
     juce::ComboBox clipAlphaTypeSelector_;
     // RGBA toggles
@@ -136,10 +137,18 @@ private:
     int normalizedToTimelineX(float norm) const;
     void paintTimeline(juce::Graphics& g, const juce::Rectangle<int>& bounds) const;
 
+    // DragAndDropTarget for FX drops
+    bool isInterestedInDragSource(const SourceDetails& details) override;
+    void itemDragEnter(const SourceDetails& details) override;
+    void itemDragExit(const SourceDetails& details) override;
+    void itemDropped(const SourceDetails& details) override;
+    bool fxDropHighlight_ = false;
+
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
                             const juce::String& title, bool hasPButton = false);
     void populateDropdowns();
     void syncFromClip();
+    void updateTransportHighlights();
 
     static constexpr int kSectionHeaderHeight = 20;
     static constexpr int kSectionGap = 8;

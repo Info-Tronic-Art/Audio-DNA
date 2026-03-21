@@ -95,6 +95,7 @@ void EffectStackView::resized()
         // Header
         row.headerBounds = juce::Rectangle<int>(0, y, area.getWidth(), kHeaderHeight);
         row.bypassBtn.setBounds(2, y + 3, 24, kHeaderHeight - 6);
+        row.deleteBtn.setBounds(area.getWidth() - 26, y + 3, 24, kHeaderHeight - 6);
         y += kHeaderHeight;
 
         // Param controls (if expanded)
@@ -238,6 +239,7 @@ void EffectStackView::rebuildRows()
     for (auto& row : rows_)
     {
         removeChildComponent(&row->bypassBtn);
+        removeChildComponent(&row->deleteBtn);
         if (row->dryWetControl)
             removeChildComponent(row->dryWetControl.get());
         for (auto& pc : row->paramControls)
@@ -270,11 +272,26 @@ void EffectStackView::rebuildRows()
         };
         addAndMakeVisible(row->bypassBtn);
 
+        // Delete button
+        row->deleteBtn.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff333333));
+        row->deleteBtn.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffcc5555));
+        row->deleteBtn.onClick = [this, capturedIndex] {
+            if (!effects_ || capturedIndex >= static_cast<int>(effects_->size())) return;
+            effects_->erase(effects_->begin() + capturedIndex);
+            if (onEffectRemoved) onEffectRemoved(capturedIndex);
+            rebuildRows();
+            resized();
+            if (auto* parent = getParentComponent()) parent->resized();
+            repaint();
+        };
+        addAndMakeVisible(row->deleteBtn);
+
         // Create dry/wet control (first param when expanded)
         {
             auto dwc = std::make_unique<UniversalParamControl>();
             dwc->setParamName("Dry/Wet");
             dwc->setParamValue(fx.dryWet);
+            dwc->setDefaultValue(1.0f);
             dwc->setSignalRegistry(signalRegistry_);
 
             int capturedFxIdx = i;
@@ -303,9 +320,12 @@ void EffectStackView::rebuildRows()
         {
             auto pc = std::make_unique<UniversalParamControl>();
 
-            // Set param name from effect definition if available
+            // Set param name and default value from effect definition if available
             if (def && p < static_cast<int>(def->params.size()))
+            {
                 pc->setParamName(juce::String(def->params[static_cast<size_t>(p)].name));
+                pc->setDefaultValue(def->params[static_cast<size_t>(p)].defaultValue);
+            }
             else
                 pc->setParamName("Param " + juce::String(p + 1));
 

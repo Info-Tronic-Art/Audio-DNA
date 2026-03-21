@@ -24,7 +24,8 @@
 //   [Transform]               Position X/Y, Scale %, Rotation °, Anchor
 //   [Layer Effects]           Effect stack
 //   [Autopilot Defaults]      Default Action, Default Duration
-class LayerInspector : public juce::Component
+class LayerInspector : public juce::Component,
+                       public juce::DragAndDropTarget
 {
 public:
     LayerInspector();
@@ -63,7 +64,7 @@ private:
     juce::ComboBox apTriggerModeSelector_;   // "End of Video" or "On Beat"
     juce::ComboBox apBeatCountSelector_;     // 1/2/4/8/16/32 beats (visible in On Beat mode)
     juce::Label apLoopsLabel_{"", "Loops:"};
-    juce::Slider apLoopsSlider_;             // Number of loops before advancing
+    ResettableSlider apLoopsSlider_;             // Number of loops before advancing
 
     // --- Layer (Master) ---
     UniversalParamControl masterControl_;
@@ -71,26 +72,26 @@ private:
     // --- Video ---
     juce::ComboBox blendModeSelector_;
     UniversalParamControl opacityControl_;
-    juce::Slider widthSlider_;
-    juce::Slider heightSlider_;
+    ResettableSlider widthSlider_;
+    ResettableSlider heightSlider_;
     juce::ComboBox autoSizeSelector_;
 
     // --- Transition ---
     juce::ComboBox transitionBlendSelector_;
-    juce::Slider transitionDurationSlider_;
+    ResettableSlider transitionDurationSlider_;
 
     // --- Keying (Transparent type) ---
     juce::ComboBox keyingModeSelector_;
-    juce::Slider keyThresholdSlider_;
-    juce::Slider keySoftnessSlider_;
+    ResettableSlider keyThresholdSlider_;
+    ResettableSlider keySoftnessSlider_;
 
     // --- FX Only ---
-    juce::Slider dryWetSlider_;
+    ResettableSlider dryWetSlider_;
 
     // --- 3D Controls ---
-    juce::Slider rotXSlider_, rotYSlider_, rotZSlider_;
-    juce::Slider rotSpeedSlider_;
-    juce::Slider scale3DSlider_;
+    ResettableSlider rotXSlider_, rotYSlider_, rotZSlider_;
+    ResettableSlider rotSpeedSlider_;
+    ResettableSlider scale3DSlider_;
 
     // --- Transform ---
     UniversalParamControl posXControl_;
@@ -102,9 +103,12 @@ private:
     // --- Layer Effects ---
     EffectStackView effectStackView_;
 
-    // --- Autopilot Defaults ---
-    juce::ComboBox defaultApActionSelector_;
-    juce::ComboBox defaultApDurationSelector_;
+    // DragAndDropTarget for FX drops
+    bool isInterestedInDragSource(const SourceDetails& details) override;
+    void itemDragEnter(const SourceDetails& details) override;
+    void itemDragExit(const SourceDetails& details) override;
+    void itemDropped(const SourceDetails& details) override;
+    bool fxDropHighlight_ = false;
 
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
                             const juce::String& title, bool hasPButton = false);

@@ -103,7 +103,7 @@ MappingEditor::MappingEditor()
     curveCombo_.onChange = [this] { notifyChanged(); };
 
     // Slider setup helper
-    auto setupSlider = [this](juce::Slider& slider, juce::Label& label,
+    auto setupSlider = [this](ResettableSlider& slider, juce::Label& label,
                               const juce::String& text, double min, double max,
                               double defaultVal)
     {
@@ -114,6 +114,7 @@ MappingEditor::MappingEditor()
 
         slider.setRange(min, max, 0.001);
         slider.setValue(defaultVal, juce::dontSendNotification);
+        slider.setDefaultValue(defaultVal);
         slider.setSliderStyle(juce::Slider::LinearHorizontal);
         slider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 50, 20);
         slider.setColour(juce::Slider::thumbColourId,

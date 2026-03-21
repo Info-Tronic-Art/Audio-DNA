@@ -132,6 +132,7 @@ LayerInspector::LayerInspector()
     apLoopsSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, 20);
     apLoopsSlider_.setRange(1, 99, 1);
     apLoopsSlider_.setValue(1, juce::dontSendNotification);
+    apLoopsSlider_.setDefaultValue(1.0);
     apLoopsSlider_.setTooltip("Number of loops before advancing to next clip");
     apLoopsSlider_.setScrollWheelEnabled(false);
     apLoopsSlider_.onValueChange = [this] {
@@ -143,6 +144,7 @@ LayerInspector::LayerInspector()
     // --- Layer Master ---
     masterControl_.setParamName("Master");
     masterControl_.setParamValue(1.0f);
+    masterControl_.setDefaultValue(1.0f);
     masterControl_.onValueChanged = [this](float val) {
         if (layer_) layer_->opacity = val;
     };
@@ -161,6 +163,7 @@ LayerInspector::LayerInspector()
     // Video: Opacity
     opacityControl_.setParamName("Opacity");
     opacityControl_.setParamValue(1.0f);
+    opacityControl_.setDefaultValue(1.0f);
     opacityControl_.onValueChanged = [this](float val) {
         if (layer_) layer_->opacity = val;
     };
@@ -168,11 +171,12 @@ LayerInspector::LayerInspector()
     addAndMakeVisible(opacityControl_);
 
     // Video: Width/Height
-    auto setupIntSlider = [](juce::Slider& s, double min, double max, double val) {
+    auto setupIntSlider = [](ResettableSlider& s, double min, double max, double val) {
         s.setSliderStyle(juce::Slider::IncDecButtons);
         s.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 50, 20);
         s.setRange(min, max, 1);
         s.setValue(val, juce::dontSendNotification);
+        s.setDefaultValue(val);
         s.setScrollWheelEnabled(false);
     };
     setupIntSlider(widthSlider_, 1, 7680, 1920);
@@ -199,18 +203,107 @@ LayerInspector::LayerInspector()
     };
     addAndMakeVisible(autoSizeSelector_);
 
-    // --- Transition ---
-    transitionBlendSelector_.addItem("Alpha", 1);
-    transitionBlendSelector_.addItem("Add", 2);
-    transitionBlendSelector_.addItem("Dissolve", 3);
-    transitionBlendSelector_.setSelectedId(1, juce::dontSendNotification);
+    // --- Transition --- (same full list as LayerStrip's F dropdown)
+    {
+        using M = Layer::MixMode;
+
+        transitionBlendSelector_.addSectionHeading("Compositing");
+        transitionBlendSelector_.addItem("Alpha", 1 + static_cast<int>(M::Normal));
+        transitionBlendSelector_.addItem("Add", 1 + static_cast<int>(M::Additive));
+        transitionBlendSelector_.addItem("Screen", 1 + static_cast<int>(M::Screen));
+        transitionBlendSelector_.addItem("Multiply", 1 + static_cast<int>(M::Multiply));
+        transitionBlendSelector_.addItem("Overlay", 1 + static_cast<int>(M::Overlay));
+
+        transitionBlendSelector_.addSectionHeading("Light");
+        transitionBlendSelector_.addItem("Soft Light", 1 + static_cast<int>(M::SoftLight));
+        transitionBlendSelector_.addItem("Hard Light", 1 + static_cast<int>(M::HardLight));
+        transitionBlendSelector_.addItem("Vivid Light", 1 + static_cast<int>(M::VividLight));
+        transitionBlendSelector_.addItem("Linear Light", 1 + static_cast<int>(M::LinearLight));
+        transitionBlendSelector_.addItem("Pin Light", 1 + static_cast<int>(M::PinLight));
+        transitionBlendSelector_.addItem("Hard Mix", 1 + static_cast<int>(M::HardMix));
+
+        transitionBlendSelector_.addSectionHeading("Compare");
+        transitionBlendSelector_.addItem("Darken", 1 + static_cast<int>(M::Darken));
+        transitionBlendSelector_.addItem("Lighten", 1 + static_cast<int>(M::Lighten));
+        transitionBlendSelector_.addItem("Darker Color", 1 + static_cast<int>(M::DarkerColor));
+        transitionBlendSelector_.addItem("Lighter Color", 1 + static_cast<int>(M::LighterColor));
+
+        transitionBlendSelector_.addSectionHeading("Dodge / Burn");
+        transitionBlendSelector_.addItem("Color Dodge", 1 + static_cast<int>(M::ColorDodge));
+        transitionBlendSelector_.addItem("Color Burn", 1 + static_cast<int>(M::ColorBurn));
+
+        transitionBlendSelector_.addSectionHeading("Inversion");
+        transitionBlendSelector_.addItem("Difference", 1 + static_cast<int>(M::Difference));
+        transitionBlendSelector_.addItem("Exclusion", 1 + static_cast<int>(M::Exclusion));
+        transitionBlendSelector_.addItem("Subtract", 1 + static_cast<int>(M::Subtract));
+
+        transitionBlendSelector_.addSectionHeading("Component");
+        transitionBlendSelector_.addItem("Hue", 1 + static_cast<int>(M::Hue));
+        transitionBlendSelector_.addItem("Saturation", 1 + static_cast<int>(M::Saturation));
+        transitionBlendSelector_.addItem("Color", 1 + static_cast<int>(M::Color));
+        transitionBlendSelector_.addItem("Luminosity", 1 + static_cast<int>(M::Luminosity));
+
+        transitionBlendSelector_.addSectionHeading("Special");
+        transitionBlendSelector_.addItem("Dissolve", 1 + static_cast<int>(M::Dissolve));
+        transitionBlendSelector_.addItem("Cut", 1 + static_cast<int>(M::Cut));
+
+        transitionBlendSelector_.addSectionHeading("Wipe");
+        transitionBlendSelector_.addItem("Wipe Left", 1 + static_cast<int>(M::WipeLeft));
+        transitionBlendSelector_.addItem("Wipe Right", 1 + static_cast<int>(M::WipeRight));
+        transitionBlendSelector_.addItem("Wipe Up", 1 + static_cast<int>(M::WipeUp));
+        transitionBlendSelector_.addItem("Wipe Down", 1 + static_cast<int>(M::WipeDown));
+        transitionBlendSelector_.addItem("Wipe Ellipse", 1 + static_cast<int>(M::WipeEllipse));
+        transitionBlendSelector_.addItem("Wipe Diagonal", 1 + static_cast<int>(M::WipeDiagonal));
+
+        transitionBlendSelector_.addSectionHeading("Push");
+        transitionBlendSelector_.addItem("Push Left", 1 + static_cast<int>(M::PushLeft));
+        transitionBlendSelector_.addItem("Push Right", 1 + static_cast<int>(M::PushRight));
+        transitionBlendSelector_.addItem("Push Up", 1 + static_cast<int>(M::PushUp));
+        transitionBlendSelector_.addItem("Push Down", 1 + static_cast<int>(M::PushDown));
+
+        transitionBlendSelector_.addSectionHeading("Zoom");
+        transitionBlendSelector_.addItem("Zoom In", 1 + static_cast<int>(M::ZoomIn));
+        transitionBlendSelector_.addItem("Zoom Out", 1 + static_cast<int>(M::ZoomOut));
+
+        transitionBlendSelector_.addSectionHeading("3D");
+        transitionBlendSelector_.addItem("Rotate X", 1 + static_cast<int>(M::RotateX));
+        transitionBlendSelector_.addItem("Rotate Y", 1 + static_cast<int>(M::RotateY));
+        transitionBlendSelector_.addItem("Spin", 1 + static_cast<int>(M::Spin));
+        transitionBlendSelector_.addItem("Cube", 1 + static_cast<int>(M::Cube));
+        transitionBlendSelector_.addItem("Flip", 1 + static_cast<int>(M::Flip));
+        transitionBlendSelector_.addItem("Fold", 1 + static_cast<int>(M::Fold));
+
+        transitionBlendSelector_.addSectionHeading("Color Fade");
+        transitionBlendSelector_.addItem("To Black", 1 + static_cast<int>(M::ToBlack));
+        transitionBlendSelector_.addItem("To White", 1 + static_cast<int>(M::ToWhite));
+
+        transitionBlendSelector_.addSectionHeading("Creative");
+        transitionBlendSelector_.addItem("Pixelate", 1 + static_cast<int>(M::Pixelate));
+        transitionBlendSelector_.addItem("Blur", 1 + static_cast<int>(M::Blur));
+        transitionBlendSelector_.addItem("Noise", 1 + static_cast<int>(M::Noise));
+        transitionBlendSelector_.addItem("RGB Split", 1 + static_cast<int>(M::RGBSplit));
+        transitionBlendSelector_.addItem("Glitch Blocks", 1 + static_cast<int>(M::GlitchBlocks));
+        transitionBlendSelector_.addItem("Strobe", 1 + static_cast<int>(M::Strobe));
+        transitionBlendSelector_.addItem("Slide", 1 + static_cast<int>(M::Slide));
+        transitionBlendSelector_.addItem("Stretch", 1 + static_cast<int>(M::Stretch));
+        transitionBlendSelector_.addItem("Displace", 1 + static_cast<int>(M::Displace));
+
+        transitionBlendSelector_.setSelectedId(1 + static_cast<int>(M::Dissolve), juce::dontSendNotification);
+    }
+    transitionBlendSelector_.onChange = [this] {
+        if (!layer_) return;
+        int sel = transitionBlendSelector_.getSelectedId();
+        if (sel >= 1)
+            layer_->transitionMode = static_cast<Layer::MixMode>(sel - 1);
+    };
     addAndMakeVisible(transitionBlendSelector_);
 
-    auto setupSlider = [](juce::Slider& s, double min, double max, double val) {
+    auto setupSlider = [](ResettableSlider& s, double min, double max, double val) {
         s.setSliderStyle(juce::Slider::LinearHorizontal);
         s.setTextBoxStyle(juce::Slider::TextBoxRight, false, 40, 20);
         s.setRange(min, max, 0.01);
         s.setValue(val, juce::dontSendNotification);
+        s.setDefaultValue(val);
         s.setScrollWheelEnabled(false);
         s.setColour(juce::Slider::thumbColourId,
                     juce::Colour(AudioDNALookAndFeel::kAccentCyan));
@@ -275,6 +368,7 @@ LayerInspector::LayerInspector()
     auto setupTransformParam = [this](UniversalParamControl& pc, const juce::String& name, float defVal) {
         pc.setParamName(name);
         pc.setParamValue(defVal);
+        pc.setDefaultValue(defVal);
         pc.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
         addAndMakeVisible(pc);
     };
@@ -293,49 +387,20 @@ LayerInspector::LayerInspector()
     // --- Layer Effects ---
     addAndMakeVisible(effectStackView_);
 
-    // --- Autopilot Defaults ---
-    defaultApActionSelector_.addItem("Play Next", 1);
-    defaultApActionSelector_.addItem("Play Previous", 2);
-    defaultApActionSelector_.addItem("Play Random", 3);
-    defaultApActionSelector_.addItem("Play First", 4);
-    defaultApActionSelector_.addItem("Play Last", 5);
-    defaultApActionSelector_.addItem("Do Nothing", 6);
-    defaultApActionSelector_.setSelectedId(1, juce::dontSendNotification);
-    defaultApActionSelector_.onChange = [this] {
-        if (!layer_) return;
-        static const Clip::AutopilotAction actions[] = {
-            Clip::AutopilotAction::PlayNext, Clip::AutopilotAction::PlayPrevious,
-            Clip::AutopilotAction::PlayRandom, Clip::AutopilotAction::PlayFirst,
-            Clip::AutopilotAction::PlayLast, Clip::AutopilotAction::DoNothing
-        };
-        int sel = defaultApActionSelector_.getSelectedId() - 1;
-        if (sel >= 0 && sel < 6) layer_->defaultAutopilotAction = actions[sel];
-    };
-    addAndMakeVisible(defaultApActionSelector_);
-
-    defaultApDurationSelector_.addItem("1 Beat", 1);
-    defaultApDurationSelector_.addItem("2 Beats", 2);
-    defaultApDurationSelector_.addItem("4 Beats", 3);
-    defaultApDurationSelector_.addItem("8 Beats", 4);
-    defaultApDurationSelector_.addItem("16 Beats", 5);
-    defaultApDurationSelector_.addItem("32 Beats", 6);
-    defaultApDurationSelector_.setSelectedId(3, juce::dontSendNotification);
-    defaultApDurationSelector_.onChange = [this] {
-        if (!layer_) return;
-        static const Clip::AutopilotDuration durations[] = {
-            Clip::AutopilotDuration::Beat1, Clip::AutopilotDuration::Beat2,
-            Clip::AutopilotDuration::Beat4, Clip::AutopilotDuration::Beat8,
-            Clip::AutopilotDuration::Beat16, Clip::AutopilotDuration::Beat32
-        };
-        int sel = defaultApDurationSelector_.getSelectedId() - 1;
-        if (sel >= 0 && sel < 6) layer_->defaultAutopilotDuration = durations[sel];
-    };
-    addAndMakeVisible(defaultApDurationSelector_);
 }
 
 void LayerInspector::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff1a1a1a));
+
+    // FX drop highlight
+    if (fxDropHighlight_)
+    {
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.15f));
+        g.fillRect(getLocalBounds());
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.6f));
+        g.drawRect(getLocalBounds(), 2);
+    }
 
     if (!layer_)
     {
@@ -398,9 +463,6 @@ void LayerInspector::paint(juce::Graphics& g)
     y += kSectionHeaderHeight + transformH + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Layer Effects");
-    y += kSectionHeaderHeight + effectStackView_.getPreferredHeight() + kSectionGap;
-
-    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Autopilot Defaults");
 }
 
 void LayerInspector::resized()
@@ -533,13 +595,6 @@ void LayerInspector::resized()
     y += kSectionHeaderHeight;
     int fxHeight = effectStackView_.getPreferredHeight();
     effectStackView_.setBounds(area.getX(), y, area.getWidth(), fxHeight);
-    y += fxHeight + kSectionGap;
-
-    // --- Autopilot Defaults ---
-    y += kSectionHeaderHeight;
-    defaultApActionSelector_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
-    y += kRowHeight;
-    defaultApDurationSelector_.setBounds(area.getX(), y, area.getWidth(), kRowHeight);
 }
 
 void LayerInspector::mouseDown(const juce::MouseEvent& event)
@@ -620,7 +675,6 @@ int LayerInspector::getPreferredHeight() const
        + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
        + anchorControl_.getPreferredHeight() + kSectionGap; // Transform
     h += kSectionHeaderHeight + effectStackView_.getPreferredHeight() + kSectionGap;
-    h += kSectionHeaderHeight + kRowHeight * 2 + 8; // Autopilot Defaults
     return h;
 }
 
@@ -710,6 +764,7 @@ void LayerInspector::syncFromLayer()
     heightSlider_.setValue(layer_->layerHeight, juce::dontSendNotification);
     autoSizeSelector_.setSelectedId(static_cast<int>(layer_->autoSize) + 1, juce::dontSendNotification);
 
+    transitionBlendSelector_.setSelectedId(1 + static_cast<int>(layer_->transitionMode), juce::dontSendNotification);
     float transSpeed = layer_->transitionSpeed < 0.0f ? 0.0f : layer_->transitionSpeed;
     transitionDurationSlider_.setValue(static_cast<double>(transSpeed), juce::dontSendNotification);
 
@@ -760,4 +815,29 @@ void LayerInspector::populateKeyingModes()
     for (int i = 0; i < 13; ++i)
         keyingModeSelector_.addItem(names[i], i + 1);
     keyingModeSelector_.setSelectedId(1, juce::dontSendNotification);
+}
+
+bool LayerInspector::isInterestedInDragSource(const SourceDetails& details)
+{
+    return layer_ != nullptr && details.description.toString().startsWith("fx:");
+}
+
+void LayerInspector::itemDragEnter(const SourceDetails&)
+{
+    fxDropHighlight_ = true;
+    repaint();
+}
+
+void LayerInspector::itemDragExit(const SourceDetails&)
+{
+    fxDropHighlight_ = false;
+    repaint();
+}
+
+void LayerInspector::itemDropped(const SourceDetails& details)
+{
+    fxDropHighlight_ = false;
+    if (!layer_) return;
+    effectStackView_.itemDropped(details);
+    repaint();
 }

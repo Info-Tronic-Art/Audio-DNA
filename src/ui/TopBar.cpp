@@ -20,6 +20,7 @@ TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
     addAndMakeVisible(inputGainSlider_);
     inputGainSlider_.setRange(0.0, 4.0, 0.01);
     inputGainSlider_.setValue(1.0, juce::dontSendNotification);
+    inputGainSlider_.setDefaultValue(1.0);
     inputGainSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     inputGainSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 
@@ -167,6 +168,7 @@ TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
     fadeSlider_.setRange(0.0, 5.0, 0.01);
     fadeSlider_.setValue(static_cast<double>(composition_.globalTransitionSpeed),
                         juce::dontSendNotification);
+    fadeSlider_.setDefaultValue(0.5);
     fadeSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     fadeSlider_.setTextBoxStyle(juce::Slider::TextBoxRight, false, 35, 20);
     fadeSlider_.onValueChange = [this]
@@ -182,6 +184,7 @@ TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
     addAndMakeVisible(masterLevelSlider_);
     masterLevelSlider_.setRange(0.0, 1.0, 0.01);
     masterLevelSlider_.setValue(1.0, juce::dontSendNotification);
+    masterLevelSlider_.setDefaultValue(1.0);
     masterLevelSlider_.setSliderStyle(juce::Slider::LinearHorizontal);
     masterLevelSlider_.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 

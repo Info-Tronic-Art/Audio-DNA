@@ -311,10 +311,46 @@ LayerStrip::LayerStrip()
         if (onSolo) onSolo(layerIndex_, layer_->solo);
     };
 
+    // Transport controls
+    setupFlatButton(transportBackBtn_);
+    setupFlatButton(transportPauseBtn_);
+    setupFlatButton(transportPlayBtn_);
+    setupFlatButton(transportForwardBtn_);
+    transportBackBtn_.setButtonText("<");
+    transportPauseBtn_.setButtonText("||");
+    transportPlayBtn_.setButtonText(">");
+    transportForwardBtn_.setButtonText(">|");
+
+    transportBackBtn_.onClick = [this] {
+        if (!layer_) return;
+        auto* clip = layer_->getActiveClip();
+        if (clip) { clip->reverse = true; clip->playing = true; }
+        if (onTransportBack) onTransportBack(layerIndex_);
+    };
+    transportPauseBtn_.onClick = [this] {
+        if (!layer_) return;
+        auto* clip = layer_->getActiveClip();
+        if (clip) clip->playing = false;
+        if (onTransportPause) onTransportPause(layerIndex_);
+    };
+    transportPlayBtn_.onClick = [this] {
+        if (!layer_) return;
+        auto* clip = layer_->getActiveClip();
+        if (clip) { clip->reverse = false; clip->playing = true; }
+        if (onTransportPlay) onTransportPlay(layerIndex_);
+    };
+    transportForwardBtn_.onClick = [this] {
+        if (!layer_) return;
+        auto* clip = layer_->getActiveClip();
+        if (clip) { clip->reverse = false; clip->playing = true; clip->speed = std::min(clip->speed * 2.0f, 4.0f); }
+        if (onTransportForward) onTransportForward(layerIndex_);
+    };
+
     // K = keying threshold slider (no dropdown)
     addAndMakeVisible(keyingSlider_);
     keyingSlider_.setRange(0.0, 1.0, 0.01);
     keyingSlider_.setValue(0.1, juce::dontSendNotification);
+    keyingSlider_.setDefaultValue(0.1);
     keyingSlider_.setSliderStyle(juce::Slider::LinearVertical);
     keyingSlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     keyingSlider_.setLookAndFeel(&sKeyingLAF);
@@ -327,6 +363,7 @@ LayerStrip::LayerStrip()
     addAndMakeVisible(opacitySlider_);
     opacitySlider_.setRange(0.0, 1.0, 0.01);
     opacitySlider_.setValue(1.0, juce::dontSendNotification);
+    opacitySlider_.setDefaultValue(1.0);
     opacitySlider_.setSliderStyle(juce::Slider::LinearVertical);
     opacitySlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     opacitySlider_.setLookAndFeel(&sOpacityLAF);
@@ -363,6 +400,7 @@ LayerStrip::LayerStrip()
     addAndMakeVisible(fadeTimeSlider_);
     fadeTimeSlider_.setRange(0.0, 4.0, 0.1);
     fadeTimeSlider_.setValue(0.3, juce::dontSendNotification);
+    fadeTimeSlider_.setDefaultValue(0.3);
     fadeTimeSlider_.setSliderStyle(juce::Slider::LinearVertical);
     fadeTimeSlider_.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     fadeTimeSlider_.setLookAndFeel(&sFadeLAF);
@@ -483,6 +521,38 @@ void LayerStrip::resized()
     clearBtn_.setBounds(0, 0, btnSize, btnSize);
     bypassBtn_.setBounds(btnSize, 0, btnSize, btnSize);
     soloBtn_.setBounds(btnSize * 2, 0, btnSize, btnSize);
+
+    // === Transport controls below X/B/S buttons, above the name ===
+    {
+        int tBtnW = btnSize; // same width as X/B/S (26px)
+        int tBtnH = std::min(mainH - btnSize, 22); // remaining height below X/B/S
+        if (tBtnH >= 14)
+        {
+            int tY = btnSize; // directly below X/B/S row
+            transportBackBtn_.setBounds(0, tY, tBtnW, tBtnH);
+            transportPauseBtn_.setBounds(tBtnW, tY, tBtnW, tBtnH);
+            transportPlayBtn_.setBounds(tBtnW * 2, tY, tBtnW, tBtnH);
+            // Forward button uses remaining space or hide if too tight
+            if (leftColW > tBtnW * 3)
+            {
+                transportForwardBtn_.setBounds(tBtnW * 3, tY, leftColW - tBtnW * 3, tBtnH);
+                transportForwardBtn_.setVisible(true);
+            }
+            else
+                transportForwardBtn_.setVisible(false);
+
+            transportBackBtn_.setVisible(true);
+            transportPauseBtn_.setVisible(true);
+            transportPlayBtn_.setVisible(true);
+        }
+        else
+        {
+            transportBackBtn_.setVisible(false);
+            transportPauseBtn_.setVisible(false);
+            transportPlayBtn_.setVisible(false);
+            transportForwardBtn_.setVisible(false);
+        }
+    }
 
     // === Right main row: K | V | thumbnail | F ===
     int kX = rightX;

@@ -202,12 +202,12 @@ struct Layer
 
         if (column == activeClipColumn)
         {
-            // Retrigger from in-point
+            // Retrigger from in-point — preserve current playing state
             if (auto* clip = getActiveClip())
             {
                 clip->playheadPosition = static_cast<double>(clip->inPoint);
                 clip->beatsPlayed = 0;
-                clip->playing = true;
+                // Don't change clip->playing — keep paused if paused, playing if playing
             }
             return;
         }
@@ -221,7 +221,9 @@ struct Layer
         {
             clip->playheadPosition = static_cast<double>(clip->inPoint);
             clip->beatsPlayed = 0;
-            clip->playing = true;
+            // Only auto-play on first activation; returning clips keep their state
+            if (!clip->hasBeenTriggered)
+                clip->playing = true;
         }
     }
 

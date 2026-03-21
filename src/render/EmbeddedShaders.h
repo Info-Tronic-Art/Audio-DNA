@@ -3162,4 +3162,774 @@ inline const char* mask_luminance = R"(
     }
 )";
 
+// ============================================================
+// Phase 14: Quick-Win Effects (20 new effects)
+// ============================================================
+
+// P14.1: Greyscale
+inline const char* greyscale = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_grey_method;
+    uniform float u_grey_amount;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float avg = (col.r + col.g + col.b) / 3.0;
+        float desat = (max(max(col.r, col.g), col.b) + min(min(col.r, col.g), col.b)) / 2.0;
+        float grey = mix(mix(luma, avg, clamp((u_grey_method - 0.33) * 3.0, 0.0, 1.0)),
+                         desat, clamp((u_grey_method - 0.66) * 3.0, 0.0, 1.0));
+        fragColor = vec4(mix(col.rgb, vec3(grey), u_grey_amount), col.a);
+    }
+)";
+
+// P14.2: Threshold
+inline const char* threshold = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_threshold_level;
+    uniform float u_threshold_amount;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float bw = step(u_threshold_level, luma);
+        fragColor = vec4(mix(col.rgb, vec3(bw), u_threshold_amount), col.a);
+    }
+)";
+
+// P14.3: Exposure
+inline const char* exposure = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_exposure_amount;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float ev = (u_exposure_amount - 0.5) * 6.0;
+        fragColor = vec4(col.rgb * pow(2.0, ev), col.a);
+    }
+)";
+
+// P14.4: Vibrance
+inline const char* vibrance = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_vibrance_amount;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float maxC = max(max(col.r, col.g), col.b);
+        float minC = min(min(col.r, col.g), col.b);
+        float sat = maxC - minC;
+        float strength = (u_vibrance_amount - 0.5) * 2.0;
+        float adjust = strength * (1.0 - sat) * 0.5;
+        float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+        fragColor = vec4(mix(vec3(luma), col.rgb, 1.0 + adjust), col.a);
+    }
+)";
+
+// P14.5: Quad Mirror
+inline const char* quadMirror = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_quadmir_cx;
+    uniform float u_quadmir_cy;
+    void main() {
+        vec2 uv = v_texCoord;
+        uv.x = (uv.x < u_quadmir_cx) ? uv.x : 2.0 * u_quadmir_cx - uv.x;
+        uv.y = (uv.y < u_quadmir_cy) ? uv.y : 2.0 * u_quadmir_cy - uv.y;
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+// P14.6: Flip
+inline const char* flip = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_flip_h;
+    uniform float u_flip_v;
+    void main() {
+        vec2 uv = v_texCoord;
+        if (u_flip_h > 0.5) uv.x = 1.0 - uv.x;
+        if (u_flip_v > 0.5) uv.y = 1.0 - uv.y;
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+// P14.7: Warp Field
+inline const char* warpField = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_warpfield_amount;
+    uniform float u_warpfield_freq;
+    uniform float u_warpfield_speed;
+    void main() {
+        vec2 uv = v_texCoord;
+        float amt = u_warpfield_amount;
+        float freq = u_warpfield_freq;
+        float spd = u_warpfield_speed;
+        for (int i = 0; i < 4; i++) {
+            vec2 attractor = vec2(
+                0.5 + 0.3 * sin(u_time * spd + float(i) * 1.5),
+                0.5 + 0.3 * cos(u_time * spd * 0.7 + float(i) * 2.1)
+            );
+            vec2 diff = uv - attractor;
+            float dist = length(diff);
+            uv += diff / (dist * dist + 0.1) * amt * 0.01 * freq;
+        }
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+// P14.8: Sharpen (unsharp mask)
+inline const char* sharpen = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_sharpen_amount;
+    uniform float u_sharpen_radius;
+    void main() {
+        vec2 px = u_sharpen_radius * 3.0 / u_resolution;
+        vec4 col = texture(u_texture, v_texCoord);
+        // 3x3 box blur for unsharp mask
+        vec4 blurred = vec4(0.0);
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                blurred += texture(u_texture, v_texCoord + vec2(float(x), float(y)) * px);
+            }
+        }
+        blurred /= 9.0;
+        vec4 sharpened = col + (col - blurred) * u_sharpen_amount * 3.0;
+        fragColor = clamp(sharpened, 0.0, 1.0);
+    }
+)";
+
+// P14.9: Pixel Explosion
+inline const char* pixelExplosion = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_explode_force;
+    uniform float u_explode_decay;
+    uniform float u_explode_cx;
+    uniform float u_explode_cy;
+    void main() {
+        vec2 center = vec2(u_explode_cx, u_explode_cy);
+        vec2 dir = v_texCoord - center;
+        float dist = length(dir);
+        float luma = dot(texture(u_texture, v_texCoord).rgb, vec3(0.299, 0.587, 0.114));
+        vec2 offset = normalize(dir + 0.0001) * u_explode_force * luma * 0.2 * exp(-dist * u_explode_decay * 5.0);
+        vec2 uv = v_texCoord - offset;
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+// P14.10: Color Flash
+inline const char* colorFlash = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_flash_intensity;
+    uniform float u_flash_r;
+    uniform float u_flash_g;
+    uniform float u_flash_b;
+    uniform float u_flash_decay;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        vec3 flashColor = vec3(u_flash_r, u_flash_g, u_flash_b);
+        float flash = u_flash_intensity * pow(1.0 - fract(u_time * (1.0 + u_flash_decay * 10.0)), 3.0);
+        fragColor = vec4(mix(col.rgb, flashColor, flash), col.a);
+    }
+)";
+
+// P14.11: Slide Wrap
+inline const char* slideWrap = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_slide_x;
+    uniform float u_slide_y;
+    void main() {
+        vec2 uv = fract(v_texCoord + vec2(u_slide_x - 0.5, u_slide_y - 0.5));
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+// P14.12: Dot Field
+inline const char* dotField = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_dotfield_size;
+    uniform float u_dotfield_spacing;
+    uniform float u_dotfield_depth;
+    void main() {
+        float gridSize = (u_dotfield_spacing * 0.04) + 0.01;
+        vec2 gridPos = floor(v_texCoord / gridSize) * gridSize + gridSize * 0.5;
+        vec4 gridColor = texture(u_texture, gridPos);
+        float luma = dot(gridColor.rgb, vec3(0.299, 0.587, 0.114));
+        float dist = distance(v_texCoord, gridPos);
+        float dotRadius = luma * u_dotfield_size * gridSize * 0.6;
+        float d = smoothstep(dotRadius, dotRadius - 0.001, dist);
+        fragColor = vec4(gridColor.rgb * d, d);
+    }
+)";
+
+// P14.13: Triangulate
+inline const char* triangulate = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_tri_size;
+    uniform float u_tri_amount;
+    void main() {
+        float s = (u_tri_size * 0.08) + 0.01;
+        vec2 pos = v_texCoord / s;
+        float row = floor(pos.y);
+        float col = floor(pos.x - mod(row, 2.0) * 0.5);
+        vec2 center = vec2(col + mod(row, 2.0) * 0.5 + 0.5, row + 0.5) * s;
+        vec4 triColor = texture(u_texture, center);
+        fragColor = mix(texture(u_texture, v_texCoord), triColor, u_tri_amount);
+    }
+)";
+
+// P14.14: Auto Mask
+inline const char* autoMask = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_automask_threshold;
+    uniform float u_automask_softness;
+    uniform float u_automask_invert;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float mask = smoothstep(u_automask_threshold - u_automask_softness * 0.5,
+                                u_automask_threshold + u_automask_softness * 0.5, luma);
+        if (u_automask_invert > 0.5) mask = 1.0 - mask;
+        fragColor = vec4(col.rgb, col.a * mask);
+    }
+)";
+
+// P14.15: Chroma Key (effect version)
+inline const char* chromakeyEffect = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_chromakey_hue;
+    uniform float u_chromakey_tolerance;
+    uniform float u_chromakey_softness;
+    uniform float u_chromakey_amount;
+    vec3 rgb2hsv(vec3 c) {
+        vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+        vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+        vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+        float d = q.x - min(q.w, q.y);
+        float e = 1.0e-10;
+        return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+    }
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        vec3 hsv = rgb2hsv(col.rgb);
+        float hueDist = min(abs(hsv.x - u_chromakey_hue), 1.0 - abs(hsv.x - u_chromakey_hue));
+        float mask = smoothstep(u_chromakey_tolerance - u_chromakey_softness * 0.5,
+                                u_chromakey_tolerance + u_chromakey_softness * 0.5, hueDist);
+        float alpha = mix(1.0, mask, u_chromakey_amount);
+        fragColor = vec4(col.rgb, col.a * alpha);
+    }
+)";
+
+// P14.16: Tile Grid
+inline const char* tileGrid = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_tilegrid_cols;
+    uniform float u_tilegrid_rows;
+    uniform float u_tilegrid_offset;
+    uniform float u_tilegrid_zoom;
+    void main() {
+        float cols = mix(1.0, 16.0, u_tilegrid_cols);
+        float rows = mix(1.0, 16.0, u_tilegrid_rows);
+        float rowIdx = floor(v_texCoord.y * rows);
+        float xOffset = mod(rowIdx, 2.0) * u_tilegrid_offset * 0.5;
+        vec2 tileUV = fract(vec2(v_texCoord.x * cols + xOffset, v_texCoord.y * rows));
+        tileUV = (tileUV - 0.5) / max(mix(0.1, 2.0, u_tilegrid_zoom), 0.001) + 0.5;
+        fragColor = texture(u_texture, clamp(tileUV, 0.0, 1.0));
+    }
+)";
+
+// P14.17: Spot Zoom
+inline const char* spotZoom = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_spotzoom_cx;
+    uniform float u_spotzoom_cy;
+    uniform float u_spotzoom_size;
+    uniform float u_spotzoom_zoom;
+    uniform float u_spotzoom_shape;
+    uniform float u_spotzoom_bg;
+    void main() {
+        vec2 center = vec2(u_spotzoom_cx, u_spotzoom_cy);
+        float size = mix(0.05, 0.8, u_spotzoom_size);
+        float zoom = mix(1.0, 10.0, u_spotzoom_zoom);
+        vec2 diff = v_texCoord - center;
+        float dist;
+        if (u_spotzoom_shape < 0.5) {
+            dist = length(diff);
+        } else {
+            dist = max(abs(diff.x), abs(diff.y));
+        }
+        float inRegion = smoothstep(size, size - 0.01, dist);
+        vec2 zoomedUV = center + (v_texCoord - center) / zoom;
+        vec4 zoomedColor = texture(u_texture, zoomedUV);
+        vec4 bgColor = texture(u_texture, v_texCoord) * u_spotzoom_bg;
+        fragColor = mix(bgColor, zoomedColor, inRegion);
+    }
+)";
+
+// P14.18: Neon Edge
+inline const char* neonEdge = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_neonedge_edge;
+    uniform float u_neonedge_glow;
+    uniform float u_neonedge_hue;
+    uniform float u_neonedge_original;
+
+    vec3 hsv2rgb(vec3 c) {
+        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+
+    float getLuma(vec2 uv) {
+        return dot(texture(u_texture, uv).rgb, vec3(0.2126, 0.7152, 0.0722));
+    }
+
+    float sobelMag(vec2 uv, vec2 px) {
+        float tl = getLuma(uv + vec2(-px.x, px.y));
+        float t  = getLuma(uv + vec2(0.0, px.y));
+        float tr = getLuma(uv + vec2(px.x, px.y));
+        float l  = getLuma(uv + vec2(-px.x, 0.0));
+        float r  = getLuma(uv + vec2(px.x, 0.0));
+        float bl = getLuma(uv + vec2(-px.x, -px.y));
+        float b  = getLuma(uv + vec2(0.0, -px.y));
+        float br = getLuma(uv + vec2(px.x, -px.y));
+        float gx = -tl - 2.0*l - bl + tr + 2.0*r + br;
+        float gy = -tl - 2.0*t - tr + bl + 2.0*b + br;
+        return sqrt(gx*gx + gy*gy);
+    }
+
+    void main() {
+        vec2 px = 1.0 / u_resolution;
+        float edge = sobelMag(v_texCoord, px) * u_neonedge_edge * 2.0;
+        vec3 neonColor = hsv2rgb(vec3(u_neonedge_hue, 1.0, 1.0));
+        // Glow: sample multiple offsets
+        float glow = 0.0;
+        float glowR = u_neonedge_glow * 3.0;
+        for (int i = -2; i <= 2; i++) {
+            for (int j = -2; j <= 2; j++) {
+                glow += sobelMag(v_texCoord + vec2(float(i), float(j)) * px * glowR, px);
+            }
+        }
+        glow /= 25.0;
+        vec3 neonGlow = neonColor * (edge + glow * 0.5);
+        vec3 original = texture(u_texture, v_texCoord).rgb;
+        fragColor = vec4(mix(neonGlow, original + neonGlow, u_neonedge_original), 1.0);
+    }
+)";
+
+// P14.19: Cartoon Ink
+inline const char* cartoonInk = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_cartoonink_edge;
+    uniform float u_cartoonink_steps;
+    uniform float u_cartoonink_ink;
+    uniform float u_cartoonink_sat;
+
+    float getLuma(vec2 uv) {
+        return dot(texture(u_texture, uv).rgb, vec3(0.2126, 0.7152, 0.0722));
+    }
+
+    void main() {
+        vec2 px = 1.0 / u_resolution;
+        vec4 base = texture(u_texture, v_texCoord);
+        // Color quantization
+        float steps = mix(2.0, 12.0, u_cartoonink_steps);
+        vec3 quantized = floor(base.rgb * steps + 0.5) / steps;
+        // Saturation boost
+        float luma = dot(quantized, vec3(0.2126, 0.7152, 0.0722));
+        float satMul = mix(0.0, 2.0, u_cartoonink_sat);
+        quantized = mix(vec3(luma), quantized, satMul);
+        // Sobel edge detection
+        float edgeWidth = u_cartoonink_edge + 0.1;
+        vec2 ep = px * edgeWidth;
+        float tl = getLuma(v_texCoord + vec2(-ep.x, ep.y));
+        float t  = getLuma(v_texCoord + vec2(0.0, ep.y));
+        float tr = getLuma(v_texCoord + vec2(ep.x, ep.y));
+        float l  = getLuma(v_texCoord + vec2(-ep.x, 0.0));
+        float r  = getLuma(v_texCoord + vec2(ep.x, 0.0));
+        float bl = getLuma(v_texCoord + vec2(-ep.x, -ep.y));
+        float b  = getLuma(v_texCoord + vec2(0.0, -ep.y));
+        float br = getLuma(v_texCoord + vec2(ep.x, -ep.y));
+        float gx = -tl - 2.0*l - bl + tr + 2.0*r + br;
+        float gy = -tl - 2.0*t - tr + bl + 2.0*b + br;
+        float edge = sqrt(gx*gx + gy*gy);
+        float ink = smoothstep(0.1, 0.3, edge) * u_cartoonink_ink;
+        fragColor = vec4(quantized * (1.0 - ink), base.a);
+    }
+)";
+
+// P14.20: Pop Raster
+inline const char* popRaster = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform float u_popraster_palette;
+    uniform float u_popraster_bands;
+    uniform float u_popraster_size;
+    uniform float u_popraster_mix;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float lum = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float numBands = mix(2.0, 8.0, u_popraster_bands);
+        int band = int(lum * numBands);
+        float bandNorm = float(band) / numBands;
+        // Palette selection (4 palettes)
+        int paletteIdx = int(u_popraster_palette * 3.99);
+        vec3 bandColor;
+        if (paletteIdx == 0) { // Warhol
+            bandColor = mix(vec3(0.8, 0.0, 0.4), vec3(1.0, 0.9, 0.0), bandNorm);
+        } else if (paletteIdx == 1) { // Lichtenstein
+            bandColor = mix(vec3(0.0, 0.2, 0.8), vec3(1.0, 0.0, 0.0), bandNorm);
+        } else if (paletteIdx == 2) { // CMYK
+            bandColor = mix(vec3(0.0, 0.8, 0.8), vec3(0.9, 0.0, 0.6), bandNorm);
+        } else { // Neon
+            bandColor = mix(vec3(0.0, 1.0, 0.5), vec3(1.0, 0.0, 1.0), bandNorm);
+        }
+        // Halftone dot pattern overlay
+        float patternSize = mix(4.0, 64.0, u_popraster_size);
+        float dotPattern = smoothstep(0.4, 0.6,
+            length(fract(v_texCoord * patternSize) - 0.5) * 2.0 - (1.0 - lum));
+        vec3 result = mix(bandColor, bandColor * dotPattern, 0.3);
+        fragColor = vec4(mix(col.rgb, result, u_popraster_mix), col.a);
+    }
+)";
+
+// ============================================================
+// Phase 14: Transition Shaders (15 clip-to-clip transitions)
+// ============================================================
+
+// P14.21: Dissolve (simple crossfade)
+inline const char* transitionDissolve = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;      // new clip
+    uniform sampler2D u_prevTexture;  // previous clip
+    uniform float u_crossfadeProgress;
+    void main() {
+        vec4 prev = texture(u_prevTexture, v_texCoord);
+        vec4 next = texture(u_texture, v_texCoord);
+        fragColor = mix(prev, next, u_crossfadeProgress);
+    }
+)";
+
+// P14.22: Wipe Left
+inline const char* transitionWipeLeft = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        vec4 prev = texture(u_prevTexture, v_texCoord);
+        vec4 next = texture(u_texture, v_texCoord);
+        float edge = smoothstep(u_crossfadeProgress - 0.02, u_crossfadeProgress + 0.02, v_texCoord.x);
+        fragColor = mix(next, prev, edge);
+    }
+)";
+
+// P14.23: Wipe Right
+inline const char* transitionWipeRight = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        vec4 prev = texture(u_prevTexture, v_texCoord);
+        vec4 next = texture(u_texture, v_texCoord);
+        float edge = smoothstep(u_crossfadeProgress - 0.02, u_crossfadeProgress + 0.02, 1.0 - v_texCoord.x);
+        fragColor = mix(next, prev, edge);
+    }
+)";
+
+// P14.24: Wipe Up
+inline const char* transitionWipeUp = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        vec4 prev = texture(u_prevTexture, v_texCoord);
+        vec4 next = texture(u_texture, v_texCoord);
+        float edge = smoothstep(u_crossfadeProgress - 0.02, u_crossfadeProgress + 0.02, 1.0 - v_texCoord.y);
+        fragColor = mix(next, prev, edge);
+    }
+)";
+
+// P14.25: Wipe Down
+inline const char* transitionWipeDown = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        vec4 prev = texture(u_prevTexture, v_texCoord);
+        vec4 next = texture(u_texture, v_texCoord);
+        float edge = smoothstep(u_crossfadeProgress - 0.02, u_crossfadeProgress + 0.02, v_texCoord.y);
+        fragColor = mix(next, prev, edge);
+    }
+)";
+
+// P14.26: Push Left
+inline const char* transitionPushLeft = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        vec2 prevUV = v_texCoord + vec2(p, 0.0);
+        vec2 nextUV = v_texCoord + vec2(p - 1.0, 0.0);
+        vec4 prev = texture(u_prevTexture, prevUV);
+        vec4 next = texture(u_texture, nextUV);
+        if (prevUV.x > 1.0) prev = vec4(0.0);
+        if (nextUV.x < 0.0) next = vec4(0.0);
+        fragColor = (v_texCoord.x < 1.0 - p) ? prev : next;
+    }
+)";
+
+// P14.27: Push Right
+inline const char* transitionPushRight = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        vec2 prevUV = v_texCoord + vec2(-p, 0.0);
+        vec2 nextUV = v_texCoord + vec2(1.0 - p, 0.0);
+        vec4 prev = texture(u_prevTexture, prevUV);
+        vec4 next = texture(u_texture, nextUV);
+        if (prevUV.x < 0.0) prev = vec4(0.0);
+        if (nextUV.x > 1.0) next = vec4(0.0);
+        fragColor = (v_texCoord.x > p) ? prev : next;
+    }
+)";
+
+// P14.28: Push Up
+inline const char* transitionPushUp = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        vec2 prevUV = v_texCoord + vec2(0.0, -p);
+        vec2 nextUV = v_texCoord + vec2(0.0, 1.0 - p);
+        vec4 prev = texture(u_prevTexture, prevUV);
+        vec4 next = texture(u_texture, nextUV);
+        if (prevUV.y < 0.0) prev = vec4(0.0);
+        if (nextUV.y > 1.0) next = vec4(0.0);
+        fragColor = (v_texCoord.y > p) ? prev : next;
+    }
+)";
+
+// P14.29: Push Down
+inline const char* transitionPushDown = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        vec2 prevUV = v_texCoord + vec2(0.0, p);
+        vec2 nextUV = v_texCoord + vec2(0.0, p - 1.0);
+        vec4 prev = texture(u_prevTexture, prevUV);
+        vec4 next = texture(u_texture, nextUV);
+        if (prevUV.y > 1.0) prev = vec4(0.0);
+        if (nextUV.y < 0.0) next = vec4(0.0);
+        fragColor = (v_texCoord.y < 1.0 - p) ? prev : next;
+    }
+)";
+
+// P14.30: Zoom In
+inline const char* transitionZoomIn = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        vec4 prev = texture(u_prevTexture, v_texCoord);
+        // Next zooms in from center
+        float scale = max(p, 0.001);
+        vec2 nextUV = (v_texCoord - 0.5) / scale + 0.5;
+        vec4 next = texture(u_texture, nextUV);
+        float nextAlpha = (nextUV.x >= 0.0 && nextUV.x <= 1.0 && nextUV.y >= 0.0 && nextUV.y <= 1.0) ? p : 0.0;
+        fragColor = mix(prev, next, nextAlpha);
+    }
+)";
+
+// P14.31: Zoom Out
+inline const char* transitionZoomOut = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        vec4 next = texture(u_texture, v_texCoord);
+        // Prev zooms out from center
+        float scale = max(1.0 - p, 0.001);
+        vec2 prevUV = (v_texCoord - 0.5) / scale + 0.5;
+        vec4 prev = texture(u_prevTexture, prevUV);
+        float prevAlpha = (prevUV.x >= 0.0 && prevUV.x <= 1.0 && prevUV.y >= 0.0 && prevUV.y <= 1.0) ? (1.0 - p) : 0.0;
+        fragColor = mix(next, prev, prevAlpha);
+    }
+)";
+
+// P14.32: Iris Circle
+inline const char* transitionIris = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        vec4 prev = texture(u_prevTexture, v_texCoord);
+        vec4 next = texture(u_texture, v_texCoord);
+        float dist = length(v_texCoord - 0.5);
+        float radius = p * 0.75;
+        float mask = smoothstep(radius, radius - 0.02, dist);
+        fragColor = mix(prev, next, mask);
+    }
+)";
+
+// P14.33: Flip Horizontal
+inline const char* transitionFlipH = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        if (p < 0.5) {
+            // First half: prev squishes horizontally
+            float scale = 1.0 - p * 2.0;
+            vec2 uv = vec2((v_texCoord.x - 0.5) / max(scale, 0.01) + 0.5, v_texCoord.y);
+            fragColor = (uv.x >= 0.0 && uv.x <= 1.0) ? texture(u_prevTexture, uv) : vec4(0.0);
+        } else {
+            // Second half: next expands
+            float scale = (p - 0.5) * 2.0;
+            vec2 uv = vec2((v_texCoord.x - 0.5) / max(scale, 0.01) + 0.5, v_texCoord.y);
+            fragColor = (uv.x >= 0.0 && uv.x <= 1.0) ? texture(u_texture, uv) : vec4(0.0);
+        }
+    }
+)";
+
+// P14.34: Cut (instant)
+inline const char* transitionCut = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        fragColor = (u_crossfadeProgress < 0.5) ?
+            texture(u_prevTexture, v_texCoord) :
+            texture(u_texture, v_texCoord);
+    }
+)";
+
+// P14.35: Fade to Black
+inline const char* transitionFadeBlack = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prevTexture;
+    uniform float u_crossfadeProgress;
+    void main() {
+        float p = u_crossfadeProgress;
+        if (p < 0.5) {
+            vec4 prev = texture(u_prevTexture, v_texCoord);
+            fragColor = prev * (1.0 - p * 2.0);
+        } else {
+            vec4 next = texture(u_texture, v_texCoord);
+            fragColor = next * ((p - 0.5) * 2.0);
+        }
+    }
+)";
+
 } // namespace EmbeddedShaders

@@ -49,6 +49,7 @@ struct Clip
     {
         std::string effectName;                // Registry name (e.g., "ripple")
         std::vector<float> paramValues;        // Parameter values [0,1]
+        float dryWet = 1.0f;                   // 0 = fully dry, 1 = fully wet
         bool enabled = true;
         bool bypassed = false;
     };
@@ -110,9 +111,10 @@ struct Clip
     float anchorY = 0.0f;
 
     // === Runtime State (not serialized) ===
-    bool playing = false;
+    mutable bool playing = false; // mutable: render thread updates for OneShot/PingPong stop
     mutable double playheadPosition = 0.0; // [0,1] normalized — mutable for render-thread updates via const Clip*
     int beatsPlayed = 0;
+    bool hasBeenTriggered = false; // true after first user trigger (used to auto-play on first click)
     juce::Image thumbnail;          // Cached thumbnail for UI display
 
     // === Helpers ===

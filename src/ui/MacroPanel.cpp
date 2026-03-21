@@ -8,6 +8,7 @@ MacroPanel::MacroPanel()
 
         slot.knob = std::make_unique<Knob>("Link " + juce::String(i + 1));
         slot.knob->getSlider().setValue(0.5, juce::dontSendNotification);
+        slot.knob->getSlider().setDefaultValue(0.5);
 
         int capturedIdx = i;
         slot.knob->getSlider().onValueChange = [this, capturedIdx] {

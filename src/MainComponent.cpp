@@ -1940,6 +1940,8 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
     // Load the clip content into preview
     if (auto* clip = layer->getActiveClip())
     {
+        // Mark as triggered (for future use)
+        clip->hasBeenTriggered = true;
         // Apply beat snap: sync playhead to current beat phase on trigger
         if (clip->beatSnap && clip->isPlayable())
         {

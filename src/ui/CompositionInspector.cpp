@@ -51,6 +51,7 @@ CompositionInspector::CompositionInspector()
     apClipLoopsSlider_.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, 20);
     apClipLoopsSlider_.setRange(1, 99, 1);
     apClipLoopsSlider_.setValue(1, juce::dontSendNotification);
+    apClipLoopsSlider_.setDefaultValue(1.0);
     apClipLoopsSlider_.setScrollWheelEnabled(false);
     apClipLoopsSlider_.setColour(juce::Slider::textBoxTextColourId,
                                   juce::Colour(AudioDNALookAndFeel::kTextPrimary));

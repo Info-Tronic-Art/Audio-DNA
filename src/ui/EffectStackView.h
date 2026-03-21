@@ -60,6 +60,7 @@ public:
     std::function<void(int effectIndex, bool bypassed)> onBypassChanged;
     std::function<void(int effectIndex, float dryWet)> onDryWetChanged;
     std::function<void(const juce::String& effectName)> onEffectAdded;
+    std::function<void(int effectIndex)> onEffectRemoved;
 
 private:
     // One row per effect in the stack
@@ -69,6 +70,7 @@ private:
         bool expanded = false;
 
         juce::TextButton bypassBtn{"B"};
+        juce::TextButton deleteBtn{"X"};
         juce::Rectangle<int> headerBounds;
 
         // Dry/wet control (always first when expanded)

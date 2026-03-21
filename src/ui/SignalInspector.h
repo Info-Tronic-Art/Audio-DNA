@@ -5,6 +5,7 @@
 #include "signal/EnvelopeSignal.h"
 #include "signal/SignalRegistry.h"
 #include "ui/LookAndFeel.h"
+#include "ui/UniversalParamControl.h" // for ResettableSlider
 
 // SignalInspector: shows full settings for the selected signal.
 // - Audio signals: threshold, gain, falloff
@@ -29,21 +30,21 @@ private:
     Signal* signal_ = nullptr;
 
     // --- Audio signal controls ---
-    juce::Slider thresholdSlider_;
-    juce::Slider gainSlider_;
-    juce::Slider falloffSlider_;
+    ResettableSlider thresholdSlider_;
+    ResettableSlider gainSlider_;
+    ResettableSlider falloffSlider_;
 
     // --- Oscillator controls ---
     juce::ComboBox waveShapeSelector_;
     juce::ComboBox beatDurationSelector_;
-    juce::Slider amplitudeSlider_;
-    juce::Slider phaseOffsetSlider_;
+    ResettableSlider amplitudeSlider_;
+    ResettableSlider phaseOffsetSlider_;
 
     // --- Envelope controls ---
     juce::ComboBox curveTypeSelector_;
     juce::ComboBox envBeatDurationSelector_;
-    juce::Slider envAmplitudeSlider_;
-    juce::Slider envPhaseSlider_;
+    ResettableSlider envAmplitudeSlider_;
+    ResettableSlider envPhaseSlider_;
     juce::ToggleButton loopingToggle_{"Looping"};
     juce::ToggleButton oneShotToggle_{"One Shot"};
 
