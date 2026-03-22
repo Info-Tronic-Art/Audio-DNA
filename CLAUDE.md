@@ -749,7 +749,13 @@ When the user says **"kick off phase N"**, follow this exact sequence:
    - Build: `cmake --build build --config Release` exits 0
    - Tests: all existing + new tests pass
    - Grep: no RT violations (no `new`/`malloc` in audio callback or analysis steady-state, no `std::mutex` on hot paths)
-   - **Eyes visual verification**: If the task changed effects, sources, shaders, or the render pipeline, launch the app in `--test-mode`, run `pytest tests/visual/test_render_pipeline.py`, and test changed items programmatically (see "Using Eyes for Task Verification" in Build Instructions)
+   - **Shader verification (MANDATORY if sources/shaders changed)**: Follow the 4-tier system in `tests/visual/SHADER_VERIFICATION.md`:
+     - **Tier 1**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_fractals.py -v` — every param non-black, every control has visible effect, no discontinuities
+     - **Tier 2**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_range_quality.py -v` — 70%+ useful range per param, no dead zones, generates CSV reports
+     - **Tier 3**: Open `tests/visual/shader_preview.html` in browser, move every slider end-to-end, verify smooth transitions
+     - **Tier 4**: Build app, load source, test each slider manually (user does this)
+     - Fix ALL Tier 1/2 failures before reporting to user. Tier 3 is Claude's visual check. Tier 4 is the user's.
+   - **Eyes render tests**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_render_pipeline.py -v` for effects/pipeline changes
    - Phase-specific checks listed in PHASE_GUIDE.md
 
 5. **Decision point — does this phase have UI changes?**
@@ -913,6 +919,8 @@ All fractal sources, their parameters, design rules, and test infrastructure in 
 3. Power: Mandelbrot max 4, clamp smooth iteration count `max(si, 0.0)`
 4. All palettes use the `fracPalette(t, idx)` function (copy-pasted per shader)
 5. 3D normals via central differences (6 DE calls), trail via near-surface DE sampling
+
+**Verification system:** `tests/visual/SHADER_VERIFICATION.md` — 4-tier verification protocol (param sweep → range quality → browser preview → in-app). Run Tiers 1-2 before every commit. See also `tests/visual/test_range_quality.py` for tuning slider ranges.
 
 **Memory files:** `memory/project_v2_p15_5_fractal_overhaul.md`, `memory/feedback_fractal_zoom_design.md`, `memory/feedback_fractal_controls_separation.md`
 
