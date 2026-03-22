@@ -891,6 +891,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             analysisThread_.getFeatureBus(),
             composition_,
             previewPanel_.getRenderer().getEffectChain(),
+            previewPanel_.getRenderer().getSourceRegistry(),
             testPort_);
         testServer_->start();
         std::cerr << "[Eyes] Test server started on port " << testPort_ << std::endl;

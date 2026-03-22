@@ -6,6 +6,8 @@
 #include "effects/EffectChain.h"
 #include "effects/Effect.h"
 #include "model/Composition.h"
+#include "sources/SourceRegistry.h"
+#include "model/Clip.h"
 #include <juce_core/juce_core.h>
 #include <iostream>
 
@@ -13,11 +15,13 @@ TestServer::TestServer(Renderer& renderer,
                        FeatureBus& featureBus,
                        Composition& composition,
                        EffectChain& effectChain,
+                       SourceRegistry& sourceRegistry,
                        int port)
     : renderer_(renderer)
     , featureBus_(featureBus)
     , composition_(composition)
     , effectChain_(effectChain)
+    , sourceRegistry_(sourceRegistry)
     , port_(port)
 {
     setupRoutes();
@@ -106,6 +110,18 @@ void TestServer::setupRoutes()
 
     server_.Post("/api/reset", [this](const httplib::Request& req, httplib::Response& res) {
         handleReset(req, res);
+    });
+
+    server_.Post("/api/load_source", [this](const httplib::Request& req, httplib::Response& res) {
+        handleLoadSource(req, res);
+    });
+
+    server_.Post("/api/update_source_params", [this](const httplib::Request& req, httplib::Response& res) {
+        handleUpdateSourceParams(req, res);
+    });
+
+    server_.Get("/api/sources", [this](const httplib::Request& req, httplib::Response& res) {
+        handleListSources(req, res);
     });
 }
 
@@ -527,6 +543,132 @@ void TestServer::handleReset(const httplib::Request&, httplib::Response& res)
     juce::Thread::sleep(50);
 
     res.set_content(jsonOk(), "application/json");
+}
+
+void TestServer::handleLoadSource(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    if (!obj || !obj->hasProperty("source_type"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'source_type' field"), "application/json");
+        return;
+    }
+
+    std::string sourceType = obj->getProperty("source_type").toString().toStdString();
+
+    if (!sourceRegistry_.isRegistered(sourceType))
+    {
+        res.status = 404;
+        res.set_content(jsonError("Source not found: " + sourceType), "application/json");
+        return;
+    }
+
+    // Build params list from JSON if provided
+    std::vector<Clip::SourceParam> params;
+    if (obj->hasProperty("params"))
+    {
+        if (auto* paramsObj = obj->getProperty("params").getDynamicObject())
+        {
+            for (auto& prop : paramsObj->getProperties())
+            {
+                Clip::SourceParam sp;
+                sp.uniformName = prop.name.toString().toStdString();
+                sp.value = static_cast<float>(static_cast<double>(prop.value));
+                params.push_back(sp);
+            }
+        }
+    }
+
+    renderer_.setActiveSource(sourceType, params);
+
+    // Give GL thread a frame to initialize the source
+    juce::Thread::sleep(100);
+
+    res.set_content(jsonOk(), "application/json");
+}
+
+void TestServer::handleUpdateSourceParams(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    if (!obj || !obj->hasProperty("params"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'params' field"), "application/json");
+        return;
+    }
+
+    std::vector<Clip::SourceParam> params;
+    if (auto* paramsObj = obj->getProperty("params").getDynamicObject())
+    {
+        for (auto& prop : paramsObj->getProperties())
+        {
+            Clip::SourceParam sp;
+            sp.uniformName = prop.name.toString().toStdString();
+            sp.value = static_cast<float>(static_cast<double>(prop.value));
+            params.push_back(sp);
+        }
+    }
+
+    renderer_.updateActiveSourceParams(params);
+    res.set_content(jsonOk(), "application/json");
+}
+
+void TestServer::handleListSources(const httplib::Request&, httplib::Response& res)
+{
+    auto ids = sourceRegistry_.getRegisteredIds();
+
+    auto* obj = new juce::DynamicObject();
+    juce::Array<juce::var> sourcesArr;
+
+    for (const auto& id : ids)
+    {
+        auto* srcObj = new juce::DynamicObject();
+        srcObj->setProperty("id", juce::String(id));
+        srcObj->setProperty("name", juce::String(sourceRegistry_.getDisplayName(id)));
+        srcObj->setProperty("category", juce::String(sourceRegistry_.getCategory(id)));
+
+        // Create a temporary instance to get param info
+        auto src = sourceRegistry_.createSource(id);
+        if (src)
+        {
+            juce::Array<juce::var> paramsArr;
+            for (int p = 0; p < src->getNumParams(); ++p)
+            {
+                auto& param = src->getParam(p);
+                auto* paramObj = new juce::DynamicObject();
+                paramObj->setProperty("name", juce::String(param.name));
+                paramObj->setProperty("uniform", juce::String(param.uniformName));
+                paramObj->setProperty("default", static_cast<double>(param.defaultValue));
+                paramObj->setProperty("min", static_cast<double>(param.min));
+                paramObj->setProperty("max", static_cast<double>(param.max));
+                paramsArr.add(juce::var(paramObj));
+            }
+            srcObj->setProperty("params", paramsArr);
+        }
+
+        sourcesArr.add(juce::var(srcObj));
+    }
+
+    obj->setProperty("sources", sourcesArr);
+    obj->setProperty("count", static_cast<int>(ids.size()));
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 
 #endif // AUDIODNA_TEST_SERVER

@@ -11,6 +11,7 @@
 class Renderer;
 class FeatureBus;
 class EffectChain;
+class SourceRegistry;
 struct Composition;
 
 // TestServer: Embedded HTTP API for the Eyes visual testing harness.
@@ -34,6 +35,7 @@ public:
                FeatureBus& featureBus,
                Composition& composition,
                EffectChain& effectChain,
+               SourceRegistry& sourceRegistry,
                int port = 8080);
 
     ~TestServer();
@@ -61,6 +63,9 @@ private:
     void handleRenderFrame(const httplib::Request& req, httplib::Response& res);
     void handleState(const httplib::Request& req, httplib::Response& res);
     void handleReset(const httplib::Request& req, httplib::Response& res);
+    void handleLoadSource(const httplib::Request& req, httplib::Response& res);
+    void handleUpdateSourceParams(const httplib::Request& req, httplib::Response& res);
+    void handleListSources(const httplib::Request& req, httplib::Response& res);
 
     // JSON helpers
     std::string jsonOk();
@@ -70,6 +75,7 @@ private:
     FeatureBus& featureBus_;
     Composition& composition_;
     EffectChain& effectChain_;
+    SourceRegistry& sourceRegistry_;
 
     int port_;
     httplib::Server server_;

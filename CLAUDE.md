@@ -624,6 +624,63 @@ pip install -r tests/visual/requirements-test.txt
 cd tests/visual && pytest test_render_pipeline.py -v
 ```
 
+#### Using Eyes for Task Verification
+
+**After any task that changes effects, sources, shaders, or the render pipeline**, use Eyes to verify everything still works before presenting to the user:
+
+1. **Launch the app in test mode** (if not already running):
+   ```bash
+   ./build/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA --test-mode --test-port=8080 &
+   sleep 5
+   ```
+
+2. **Run the standard test suite**:
+   ```bash
+   source .venv/bin/activate
+   AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_render_pipeline.py -v
+   ```
+
+3. **Test specific things you changed** using the Python API:
+   ```python
+   import requests
+   BASE = "http://localhost:8080"
+   IMG = "/Users/boriskarpman/Documents/RealTimeAudio/tests/fixtures/test_card.png"
+
+   # Load image, enable effect, capture frame
+   requests.post(f"{BASE}/api/load_image", json={"filepath": IMG})
+   requests.post(f"{BASE}/api/set_effect", json={"name": "Ripple", "enabled": True, "params": {"intensity": 0.5}})
+   requests.post(f"{BASE}/api/render_frame", json={"output_path": "/tmp/test.png", "time": 1.0})
+   ```
+
+4. **Test all effects or sources in bulk** (sweep params 0.0→1.0, verify PSNR changes from baseline).
+
+5. **Kill the test app** when done: `pkill -f "Audio-DNA.*--test-mode"`
+
+#### Key Endpoints Quick Reference
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/health` | Check app is ready |
+| `POST /api/load_image` | `{"filepath": "..."}` |
+| `POST /api/set_effect` | `{"name": "...", "enabled": true, "params": {...}}` |
+| `POST /api/set_effect_chain` | `{"effects": [{"name": "...", "params": {...}}, ...]}` |
+| `POST /api/inject_features` | `{"rms": 0.8, "beatPhase": 0.5, ...}` |
+| `POST /api/render_frame` | `{"output_path": "...", "time": 1.0}` — deterministic capture |
+| `GET /api/state` | Full engine state (all effects, params, FPS) |
+| `POST /api/reset` | Clear everything for next test |
+
+#### Source Testing via Eyes
+
+To test procedural sources, use the deck/clip API to load a source into a cell, then capture a frame. Sources are set via `Renderer::setActiveSource()` which the test server exposes through clip loading. For direct source testing, use `POST /api/load_source`:
+
+```python
+# Test a procedural source
+requests.post(f"{BASE}/api/reset", json={})
+# Set active source directly on the renderer
+requests.post(f"{BASE}/api/load_source", json={"source_type": "perlin_noise"})
+requests.post(f"{BASE}/api/render_frame", json={"output_path": "/tmp/source_test.png", "time": 1.0})
+```
+
 ---
 
 ## Development Rules
@@ -692,6 +749,7 @@ When the user says **"kick off phase N"**, follow this exact sequence:
    - Build: `cmake --build build --config Release` exits 0
    - Tests: all existing + new tests pass
    - Grep: no RT violations (no `new`/`malloc` in audio callback or analysis steady-state, no `std::mutex` on hot paths)
+   - **Eyes visual verification**: If the task changed effects, sources, shaders, or the render pipeline, launch the app in `--test-mode`, run `pytest tests/visual/test_render_pipeline.py`, and test changed items programmatically (see "Using Eyes for Task Verification" in Build Instructions)
    - Phase-specific checks listed in PHASE_GUIDE.md
 
 5. **Decision point — does this phase have UI changes?**
