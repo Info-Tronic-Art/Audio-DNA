@@ -332,6 +332,8 @@ void SourcesBrowser::buildSourceList()
     categories_.push_back({"Utility",       juce::Colour(0xff78909c)});
     categories_.push_back({"Wireframe",    juce::Colour(0xff90caf9)});
     categories_.push_back({"Lines",        juce::Colour(0xffce93d8)});
+    categories_.push_back({"Math",         juce::Colour(0xffba68c8)});
+    categories_.push_back({"Lighting",     juce::Colour(0xfffff176)});
 
     // Input sources — live feeds
     sources_.push_back({"Camera Input",             "camera",              "Input",        juce::Colour(0xffef5350)});
@@ -407,6 +409,35 @@ void SourcesBrowser::buildSourceList()
     sources_.push_back({"Fractal Tree",             "fractal_tree",        "Lines",        juce::Colour(0xffce93d8)});
     sources_.push_back({"Laser Scan",               "laser_scan",          "Lines",        juce::Colour(0xffce93d8)});
     sources_.push_back({"Moire Lines",              "moire_lines",         "Lines",        juce::Colour(0xffce93d8)});
+
+    // Phase 17: Math sources
+    sources_.push_back({"Lissajous Weaver",         "lissajous_weaver",    "Math",         juce::Colour(0xffba68c8)});
+    sources_.push_back({"Fermat Spiral Garden",     "fermat_spiral",       "Math",         juce::Colour(0xffba68c8)});
+    sources_.push_back({"Hyperbolic Tiling",        "hyperbolic_tiling",   "Math",         juce::Colour(0xffba68c8)});
+    sources_.push_back({"Penrose Pulse",            "penrose_pulse",       "Math",         juce::Colour(0xffba68c8)});
+
+    // Phase 17: Geometric sources (new)
+    sources_.push_back({"Moire Interference",       "moire_interference",  "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Astral Grid",              "astral_grid",         "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Radial Burst",             "radial_burst",        "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Hex Grid",                 "hex_grid",            "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Sacred Geometry",          "sacred_geometry",     "Geometric",    juce::Colour(0xff4fc3f7)});
+
+    // Phase 17: 3D sources (new ray-marched + ArKaos)
+    sources_.push_back({"Crystal Cavern",           "crystal_cavern",      "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Infinite Corridor",        "infinite_corridor",   "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Orbit Chamber",            "orbit_chamber",       "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Scroll Plane",             "scroll_plane",        "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Rotating Cube Map",        "rotating_cube_map",   "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Dual Plane Drift",         "dual_plane_drift",    "3D",           juce::Colour(0xffffca28)});
+
+    // Phase 17: Nature sources
+    sources_.push_back({"Fire Wall",                "fire_wall",           "Nature",       juce::Colour(0xff26c6da)});
+    sources_.push_back({"Water Caustics",           "water_caustics",      "Nature",       juce::Colour(0xff26c6da)});
+    sources_.push_back({"Electric Arc",             "electric_arc",        "Nature",       juce::Colour(0xff26c6da)});
+
+    // Phase 17: Lighting sources
+    sources_.push_back({"Laser Scanner",            "laser_scanner",       "Lighting",     juce::Colour(0xfffff176)});
 }
 
 void SourcesBrowser::toggleCategory(int catIndex)

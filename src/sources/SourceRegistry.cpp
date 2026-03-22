@@ -758,6 +758,237 @@ void SourceRegistry::registerDefaults()
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
         return s;
     });
+
+    // === Phase 17: Creative Sources (19 new sources) ===
+
+    // P17.1 — Lissajous Weaver (Math)
+    registerSource("lissajous_weaver", [] {
+        auto s = std::make_unique<ProceduralSource>("lissajous_weaver", "Lissajous Weaver", "Math", "source_lissajous_weaver");
+        s->addParam("Frequency X", "u_src_freq_x", 0.3f);
+        s->addParam("Frequency Y", "u_src_freq_y", 0.4f);
+        s->addParam("Phase", "u_src_phase", 0.25f);
+        s->addParam("Decay", "u_src_decay", 0.5f);
+        s->addParam("Harmonics", "u_src_harmonics", 0.3f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // P17.2 — Fermat Spiral Garden (Math)
+    registerSource("fermat_spiral", [] {
+        auto s = std::make_unique<ProceduralSource>("fermat_spiral", "Fermat Spiral Garden", "Math", "source_fermat_spiral");
+        s->addParam("Count", "u_src_count", 0.5f);
+        s->addParam("Divergence Angle", "u_src_divergence", 0.5f);
+        s->addParam("Shape", "u_src_shape", 0.0f);
+        s->addParam("Growth", "u_src_growth", 0.3f);
+        s->addParam("Pulse", "u_src_pulse", 0.5f);
+        s->addParam("Color Spread", "u_src_color_spread", 0.5f);
+        return s;
+    });
+
+    // P17.3 — Hyperbolic Tiling (Math)
+    registerSource("hyperbolic_tiling", [] {
+        auto s = std::make_unique<ProceduralSource>("hyperbolic_tiling", "Hyperbolic Tiling", "Math", "source_hyperbolic_tiling");
+        s->addParam("Polygon Sides", "u_src_p_sides", 0.4f);
+        s->addParam("Vertex Order", "u_src_q_order", 0.2f);
+        s->addParam("Rotation", "u_src_rotation", 0.5f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Color Scheme", "u_src_color_scheme", 0.5f);
+        s->addParam("Line Width", "u_src_line_width", 0.3f);
+        return s;
+    });
+
+    // P17.4 — Penrose Pulse (Math)
+    registerSource("penrose_pulse", [] {
+        auto s = std::make_unique<ProceduralSource>("penrose_pulse", "Penrose Pulse", "Math", "source_penrose_pulse");
+        s->addParam("Generation", "u_src_generation", 0.5f);
+        s->addParam("Ripple Speed", "u_src_ripple_speed", 0.5f);
+        s->addParam("Color Mode", "u_src_color_mode", 0.5f);
+        s->addParam("Edge Glow", "u_src_edge_glow", 0.5f);
+        s->addParam("Morph", "u_src_morph", 0.0f);
+        return s;
+    });
+
+    // P17.5 — Moire Interference (Geometric)
+    registerSource("moire_interference", [] {
+        auto s = std::make_unique<ProceduralSource>("moire_interference", "Moire Interference", "Geometric", "source_moire_interference");
+        s->addParam("Pattern", "u_src_pattern", 0.0f);
+        s->addParam("Frequency", "u_src_frequency", 0.3f);
+        s->addParam("Offset X", "u_src_offset_x", 0.5f);
+        s->addParam("Offset Y", "u_src_offset_y", 0.5f);
+        s->addParam("Rotation", "u_src_rotation", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // P17.6 — Crystal Cavern (3D, ray-marched)
+    registerSource("crystal_cavern", [] {
+        auto s = std::make_unique<ProceduralSource>("crystal_cavern", "Crystal Cavern", "3D", "source_crystal_cavern");
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Crystal Size", "u_src_crystal_size", 0.5f);
+        s->addParam("Reflectivity", "u_src_reflectivity", 0.5f);
+        s->addParam("Light Color", "u_src_light_color", 0.0f);
+        s->addParam("Fog Density", "u_src_fog", 0.3f);
+        s->addParam("Complexity", "u_src_complexity", 0.5f);
+        return s;
+    });
+
+    // P17.7 — Infinite Corridor (3D, ray-marched)
+    registerSource("infinite_corridor", [] {
+        auto s = std::make_unique<ProceduralSource>("infinite_corridor", "Infinite Corridor", "3D", "source_infinite_corridor");
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Width", "u_src_width", 0.5f);
+        s->addParam("Wall Pattern", "u_src_wall_pattern", 0.0f);
+        s->addParam("Light Spacing", "u_src_light_spacing", 0.3f);
+        s->addParam("Light Intensity", "u_src_light_intensity", 0.5f);
+        s->addParam("Color", "u_src_color", 0.0f);
+        return s;
+    });
+
+    // P17.8 — Orbit Chamber (3D, ray-marched)
+    registerSource("orbit_chamber", [] {
+        auto s = std::make_unique<ProceduralSource>("orbit_chamber", "Orbit Chamber", "3D", "source_orbit_chamber");
+        s->addParam("Object Count", "u_src_obj_count", 0.4f);
+        s->addParam("Object Type", "u_src_obj_type", 0.0f);
+        s->addParam("Orbit Speed", "u_src_orbit_speed", 0.4f);
+        s->addParam("Orbit Radius", "u_src_orbit_radius", 0.5f);
+        s->addParam("Material", "u_src_material", 0.5f);
+        s->addParam("Light Orbit", "u_src_light_orbit", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // P17.9 — Astral Grid (Geometric)
+    registerSource("astral_grid", [] {
+        auto s = std::make_unique<ProceduralSource>("astral_grid", "Astral Grid", "Geometric", "source_astral_grid");
+        s->addParam("Grid Size", "u_src_grid_size", 0.3f);
+        s->addParam("Scroll Speed", "u_src_scroll_speed", 0.4f);
+        s->addParam("Tilt", "u_src_tilt", 0.5f);
+        s->addParam("Warp", "u_src_warp", 0.0f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Horizon Color", "u_src_horizon_color", 0.6f);
+        return s;
+    });
+
+    // P17.10 — Radial Burst (Geometric)
+    registerSource("radial_burst", [] {
+        auto s = std::make_unique<ProceduralSource>("radial_burst", "Radial Burst", "Geometric", "source_radial_burst");
+        s->addParam("Ray Count", "u_src_ray_count", 0.3f);
+        s->addParam("Length", "u_src_length", 0.5f);
+        s->addParam("Rotation", "u_src_rotation", 0.55f);
+        s->addParam("Width", "u_src_width", 0.3f);
+        s->addParam("Taper", "u_src_taper", 0.5f);
+        s->addParam("Glow", "u_src_glow", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // P17.11 — Hex Grid (Geometric)
+    registerSource("hex_grid", [] {
+        auto s = std::make_unique<ProceduralSource>("hex_grid", "Hex Grid", "Geometric", "source_hex_grid");
+        s->addParam("Cell Size", "u_src_cell_size", 0.3f);
+        s->addParam("Pattern", "u_src_pattern", 0.0f);
+        s->addParam("Fill", "u_src_fill", 0.5f);
+        s->addParam("Edge Width", "u_src_edge_width", 0.3f);
+        s->addParam("Rotation", "u_src_rotation", 0.0f);
+        s->addParam("Color Mode", "u_src_color_mode", 0.5f);
+        return s;
+    });
+
+    // P17.12 — Sacred Geometry (Geometric)
+    registerSource("sacred_geometry", [] {
+        auto s = std::make_unique<ProceduralSource>("sacred_geometry", "Sacred Geometry", "Geometric", "source_sacred_geometry");
+        s->addParam("Pattern", "u_src_pattern", 0.0f);
+        s->addParam("Rotation", "u_src_rotation", 0.5f);
+        s->addParam("Breathe", "u_src_breathe", 0.3f);
+        s->addParam("Line Width", "u_src_line_width", 0.3f);
+        s->addParam("Glow", "u_src_glow", 0.3f);
+        s->addParam("Reveal", "u_src_reveal", 1.0f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // P17.13 — Fire Wall (Nature)
+    registerSource("fire_wall", [] {
+        auto s = std::make_unique<ProceduralSource>("fire_wall", "Fire Wall", "Nature", "source_fire_wall");
+        s->addParam("Height", "u_src_height", 0.6f);
+        s->addParam("Turbulence", "u_src_turbulence", 0.5f);
+        s->addParam("Speed", "u_src_speed", 0.4f);
+        s->addParam("Temperature", "u_src_temperature", 0.7f);
+        s->addParam("Density", "u_src_density", 0.6f);
+        s->addParam("Wind", "u_src_wind", 0.0f);
+        return s;
+    });
+
+    // P17.14 — Water Caustics (Nature)
+    registerSource("water_caustics", [] {
+        auto s = std::make_unique<ProceduralSource>("water_caustics", "Water Caustics", "Nature", "source_water_caustics");
+        s->addParam("Complexity", "u_src_complexity", 0.5f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Brightness", "u_src_brightness", 0.5f);
+        s->addParam("Color", "u_src_color", 0.0f);
+        s->addParam("Distortion", "u_src_distortion", 0.3f);
+        s->addParam("Scale", "u_src_scale", 0.3f);
+        return s;
+    });
+
+    // P17.15 — Electric Arc (Nature)
+    registerSource("electric_arc", [] {
+        auto s = std::make_unique<ProceduralSource>("electric_arc", "Electric Arc", "Nature", "source_electric_arc");
+        s->addParam("Arc Count", "u_src_arc_count", 0.2f);
+        s->addParam("Chaos", "u_src_chaos", 0.5f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Branches", "u_src_branches", 0.3f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Color", "u_src_color", 0.5f);
+        return s;
+    });
+
+    // P17.16 — Laser Scanner (Lighting)
+    registerSource("laser_scanner", [] {
+        auto s = std::make_unique<ProceduralSource>("laser_scanner", "Laser Scanner", "Lighting", "source_laser_scanner");
+        s->addParam("Pattern", "u_src_pattern", 0.0f);
+        s->addParam("Beam Count", "u_src_beam_count", 0.3f);
+        s->addParam("Color", "u_src_color", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.5f);
+        s->addParam("Spread", "u_src_spread", 0.5f);
+        s->addParam("Flicker", "u_src_flicker", 0.2f);
+        return s;
+    });
+
+    // P17.17 — Scroll Plane (3D)
+    registerSource("scroll_plane", [] {
+        auto s = std::make_unique<ProceduralSource>("scroll_plane", "Scroll Plane", "3D", "source_scroll_plane");
+        s->addParam("Speed X", "u_src_speedx", 0.6f);
+        s->addParam("Speed Y", "u_src_speedy", 0.5f);
+        s->addParam("Scale", "u_src_scale", 0.3f);
+        s->addParam("Warp", "u_src_warp", 0.0f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // P17.18 — Rotating Cube Map (3D)
+    registerSource("rotating_cube_map", [] {
+        auto s = std::make_unique<ProceduralSource>("rotating_cube_map", "Rotating Cube Map", "3D", "source_rotating_cube_map");
+        s->addParam("Rotation X", "u_src_rotx", 0.6f);
+        s->addParam("Rotation Y", "u_src_roty", 0.55f);
+        s->addParam("Scale", "u_src_scale", 0.3f);
+        s->addParam("Light", "u_src_light", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    // P17.19 — Dual Plane Drift (3D)
+    registerSource("dual_plane_drift", [] {
+        auto s = std::make_unique<ProceduralSource>("dual_plane_drift", "Dual Plane Drift", "3D", "source_dual_plane_drift");
+        s->addParam("Speed", "u_src_speed", 0.4f);
+        s->addParam("Rotation", "u_src_rotation", 0.0f);
+        s->addParam("Distance", "u_src_distance", 0.5f);
+        s->addParam("Scale", "u_src_scale", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
 }
 
 std::unique_ptr<ProceduralSource> SourceRegistry::createSource(const std::string& id) const

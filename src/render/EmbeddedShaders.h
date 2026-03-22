@@ -8568,4 +8568,1433 @@ void main() {
 }
 )";
 
+// ============================================================================
+// Phase 17: Creative Sources (19 new procedural sources)
+// ============================================================================
+
+// P17.1 — Lissajous Weaver (Math)
+// Uses closest-point-on-curve via dense sampling for smooth glowing lines
+inline const char* sourceLissajousWeaver = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_freq_x;
+    uniform float u_src_freq_y;
+    uniform float u_src_phase;
+    uniform float u_src_decay;
+    uniform float u_src_harmonics;
+    uniform float u_src_thickness;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float fx = 1.0 + u_src_freq_x * 7.0;
+        float fy = 1.0 + u_src_freq_y * 7.0;
+        float ph = u_src_phase * 6.28318 + u_beatPhase * 6.28318;
+        int nh = int(u_src_harmonics * 7.0) + 1;
+        float thick = 0.03 + u_src_thickness * 0.12;
+        float t = u_time * 0.5;
+        float acc = 0.0;
+        for (int h = 0; h < 8; h++) {
+            if (h >= nh) break;
+            float hf = float(h + 1);
+            float minDist = 1e9;
+            float closestT = 0.0;
+            // Dense sampling along the curve
+            for (int i = 0; i < 400; i++) {
+                float s = float(i) / 400.0;
+                float theta = s * 6.28318 * 3.0 + t * hf;
+                vec2 lp = vec2(sin(fx * theta + ph * hf) * 0.85,
+                               sin(fy * theta) * 0.85);
+                float d = length(uv - lp);
+                if (d < minDist) { minDist = d; closestT = s; }
+            }
+            // Glow with trail decay
+            float trailFade = 1.0 - closestT * u_src_decay;
+            float glow = exp(-minDist / (thick * 0.5)) * max(trailFade, 0.3);
+            acc += glow / hf;
+        }
+        acc = clamp(acc, 0.0, 1.0);
+        float hue = u_src_color_shift + acc * 0.3;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= acc * (0.8 + u_rms * 0.4);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.2 — Fermat Spiral Garden (Math)
+inline const char* sourceFermatSpiral = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_count;
+    uniform float u_src_divergence;
+    uniform float u_src_growth;
+    uniform float u_src_pulse;
+    uniform float u_src_color_spread;
+    uniform float u_src_shape;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        int N = int(50.0 + u_src_count * 450.0);
+        float goldenAngle = mix(2.0, 3.0, u_src_divergence);  // ~2.399 = golden angle
+        float t = u_time * (0.2 + u_src_growth * 2.0);
+        float pulseAmt = u_src_pulse * 0.5;
+        float acc = 0.0;
+        float hueAcc = 0.0;
+        for (int i = 0; i < 500; i++) {
+            if (i >= N) break;
+            float fi = float(i);
+            float angle = fi * goldenAngle + t * 0.2;
+            float r = sqrt(fi / float(N)) * 0.9;
+            vec2 pos = vec2(cos(angle), sin(angle)) * r;
+            float d = length(uv - pos);
+            float baseSize = 0.02 + 0.03 * (1.0 - r);
+            float pulse = 1.0 + pulseAmt * sin(u_beatPhase * 6.28318 + fi * 0.1);
+            float size = baseSize * pulse * (0.8 + u_rms * 0.4);
+            int shape = int(u_src_shape * 3.0);
+            float mask;
+            if (shape == 0) { // Circle
+                mask = smoothstep(size, size * 0.5, d);
+            } else if (shape == 1) { // Square
+                vec2 dd = abs(uv - pos);
+                mask = smoothstep(size, size * 0.5, max(dd.x, dd.y));
+            } else { // Petal
+                vec2 lp = uv - pos;
+                float a = atan(lp.y, lp.x) - angle;
+                float petalR = size * (0.5 + 0.5 * cos(a * 2.0));
+                mask = smoothstep(petalR, petalR * 0.5, d);
+            }
+            acc += mask;
+            hueAcc += mask * fi / float(N) * u_src_color_spread;
+        }
+        acc = clamp(acc, 0.0, 1.0);
+        float hue = hueAcc + u_time * 0.05;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        fragColor = vec4(col * acc, 1.0);
+    }
+)";
+
+// P17.3 — Hyperbolic Tiling (Math) — uses noise for SDF
+inline const char* sourceHyperbolicTiling = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_p_sides;
+    uniform float u_src_q_order;
+    uniform float u_src_rotation;
+    uniform float u_src_zoom;
+    uniform float u_src_color_scheme;
+    uniform float u_src_line_width;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+
+    // Complex multiply
+    vec2 cmul(vec2 a, vec2 b) { return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
+    // Möbius transform: (z - a) / (1 - conj(a)*z)
+    vec2 mobius(vec2 z, vec2 a) {
+        vec2 num = z - a;
+        vec2 den = vec2(1.0, 0.0) - cmul(vec2(a.x, -a.y), z);
+        float d2 = dot(den, den);
+        return cmul(num, vec2(den.x, -den.y)) / max(d2, 1e-8);
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+
+        float zoom = 0.5 + u_src_zoom * 1.5;
+        uv /= zoom;
+
+        // Apply rotation via Möbius transform in the disk
+        float rotAngle = u_time * (u_src_rotation - 0.5) * 0.5;
+        float rotR = 0.3 + u_beatPhase * 0.1;
+        vec2 rotCenter = vec2(cos(rotAngle), sin(rotAngle)) * rotR;
+        uv = mobius(uv, rotCenter);
+
+        float r = length(uv);
+        if (r >= 0.98) {
+            fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            return;
+        }
+
+        int P = int(u_src_p_sides * 5.0) + 3;  // 3-8
+        int Q = int(u_src_q_order * 5.0) + 3;   // 3-8
+
+        // Reflect into fundamental domain
+        float angle = atan(uv.y, uv.x);
+        float sector = 6.28318 / float(P);
+        int cellIdx = 0;
+        for (int i = 0; i < 30; i++) {
+            angle = atan(uv.y, uv.x);
+            if (angle < 0.0) angle += 6.28318;
+            float sectorId = floor(angle / sector);
+            float localAngle = angle - sectorId * sector;
+            cellIdx += int(sectorId);
+
+            if (localAngle > sector * 0.5) {
+                localAngle = sector - localAngle;
+                cellIdx++;
+            }
+            float cr = length(uv);
+            uv = vec2(cos(localAngle), sin(localAngle)) * cr;
+
+            // Circle inversion for hyperbolic reflection
+            float invR = cos(3.14159 / float(P)) / cos(3.14159 / float(Q));
+            vec2 center = vec2(invR, 0.0);
+            vec2 diff = uv - center;
+            float d2 = dot(diff, diff);
+            float circR = sqrt(abs(invR * invR - 1.0));
+            if (d2 < circR * circR) {
+                uv = center + diff * (circR * circR / d2);
+                cellIdx++;
+            } else {
+                break;
+            }
+        }
+
+        float edgeDist = min(abs(uv.y), abs(length(uv) - cos(3.14159/float(P))/cos(3.14159/float(Q))));
+        float lineW = 0.005 + u_src_line_width * 0.04;
+        float edge = smoothstep(lineW, 0.0, edgeDist);
+
+        float fill = float(cellIdx % 2);
+        float colScheme = u_src_color_scheme;
+        vec3 col;
+        if (colScheme < 0.33) {
+            col = mix(vec3(0.1, 0.15, 0.3), vec3(0.8, 0.6, 0.2), fill);
+        } else if (colScheme < 0.67) {
+            float hue = float(cellIdx) * 0.1 + u_time * 0.05;
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        } else {
+            float hue = float(cellIdx) * 0.08;
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + u_rms * 0.5 + vec3(0.0, 0.33, 0.67)));
+        }
+        col = mix(col, vec3(1.0), edge);
+
+        // Fade at disk boundary
+        float diskFade = smoothstep(0.98, 0.9, r);
+        fragColor = vec4(col * diskFade, 1.0);
+    }
+)";
+
+// P17.4 — Penrose Pulse (Math)
+inline const char* sourcePenrosePulse = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_generation;
+    uniform float u_src_ripple_speed;
+    uniform float u_src_color_mode;
+    uniform float u_src_edge_glow;
+    uniform float u_src_morph;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+
+    // Penrose tiling via de Bruijn's method (dual grid)
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+
+        float scale = 3.0 + u_src_generation * 8.0;
+        uv *= scale;
+
+        // 5 directional grid lines for Penrose P3 tiling
+        float minEdge = 1e9;
+        float tileIdx = 0.0;
+        for (int k = 0; k < 5; k++) {
+            float angle = float(k) * 3.14159 / 5.0 + u_src_morph * 0.3;
+            vec2 dir = vec2(cos(angle), sin(angle));
+            float proj = dot(uv, dir);
+            float grid = fract(proj);
+            float edge = min(grid, 1.0 - grid);
+            minEdge = min(minEdge, edge);
+            tileIdx += floor(proj);
+        }
+
+        float edgeW = 0.02 + u_src_edge_glow * 0.08;
+        float edge = smoothstep(edgeW, 0.0, minEdge);
+
+        // Ripple from center
+        float dist = length(uv) / scale;
+        float ripple = sin(dist * 20.0 - u_time * (1.0 + u_src_ripple_speed * 5.0) + u_onsetStrength * 3.0);
+        ripple = ripple * 0.5 + 0.5;
+
+        float colMode = u_src_color_mode;
+        vec3 col;
+        float tileHash = fract(sin(tileIdx * 127.1) * 43758.5453);
+        if (colMode < 0.33) {
+            // Two-color
+            col = mix(vec3(0.15, 0.1, 0.3), vec3(0.9, 0.7, 0.2), step(0.5, tileHash));
+        } else if (colMode < 0.67) {
+            // Rainbow
+            col = 0.5 + 0.5 * cos(6.28318 * (tileHash + vec3(0.0, 0.33, 0.67)));
+        } else {
+            // Audio-mapped
+            col = 0.5 + 0.5 * cos(6.28318 * (tileHash + u_rms + vec3(0.0, 0.33, 0.67)));
+        }
+
+        col *= 0.3 + ripple * 0.7;
+        col = mix(col, vec3(1.0), edge * u_src_edge_glow);
+        col *= 0.7 + u_rms * 0.5;
+
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.5 — Moire Interference (Geometric)
+inline const char* sourceMoireInterference = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_pattern;
+    uniform float u_src_frequency;
+    uniform float u_src_offset_x;
+    uniform float u_src_offset_y;
+    uniform float u_src_rotation;
+    uniform float u_src_zoom;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_spectralCentroid;
+
+    float moirePattern(vec2 p, float freq, int mode) {
+        if (mode == 0) { // Lines
+            return sin(p.x * freq) * 0.5 + 0.5;
+        } else if (mode == 1) { // Dots
+            vec2 g = sin(p * freq);
+            return (g.x * g.y) * 0.5 + 0.5;
+        } else { // Rings
+            return sin(length(p) * freq) * 0.5 + 0.5;
+        }
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float z = 0.5 + u_src_zoom * 2.0;
+        uv *= z;
+        float freq = 10.0 + u_src_frequency * 60.0;
+        int mode = int(u_src_pattern * 2.0);
+        float t = u_time * 0.3;
+
+        // Layer 1
+        float p1 = moirePattern(uv, freq, mode);
+
+        // Layer 2 with offset and rotation
+        float rot = (u_src_rotation - 0.5) * 0.5 + t * 0.1;
+        float c = cos(rot), s = sin(rot);
+        vec2 uv2 = mat2(c, -s, s, c) * uv;
+        uv2 += vec2((u_src_offset_x - 0.5) * 2.0 + u_spectralCentroid * 0.0001,
+                     (u_src_offset_y - 0.5) * 2.0);
+        float p2 = moirePattern(uv2, freq, mode);
+
+        float moire = abs(p1 - p2);
+        float hue = u_src_color_shift + moire * 0.3 + u_time * 0.02;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= moire * (0.8 + u_rms * 0.5);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.6 — Crystal Cavern (3D ray-marched)
+inline const char* sourceCrystalCavern = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_speed;
+    uniform float u_src_crystal_size;
+    uniform float u_src_reflectivity;
+    uniform float u_src_light_color;
+    uniform float u_src_fog;
+    uniform float u_src_complexity;
+    uniform float u_rms;
+    uniform float u_bass;
+
+    float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+
+    float caveDE(vec3 p, float crystalSize) {
+        // Menger-like folded cave
+        float scale = mix(1.5, 3.0, crystalSize);
+        int iters = int(u_src_complexity * 4.0) + 2;
+        float d = length(max(abs(p) - vec3(1.0), 0.0));
+        float s = 1.0;
+        for (int i = 0; i < 6; i++) {
+            if (i >= iters) break;
+            p = abs(p);
+            if (p.x < p.y) p.xy = p.yx;
+            if (p.x < p.z) p.xz = p.zx;
+            if (p.y < p.z) p.yz = p.zy;
+            p = p * scale - vec3(scale - 1.0);
+            if (p.z < -0.5 * (scale - 1.0)) p.z += scale - 1.0;
+            s *= scale;
+        }
+        return length(p) / s - 0.01;
+    }
+
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float t = u_time * (0.2 + u_src_speed * 0.8);
+        vec3 ro = vec3(sin(t * 0.3) * 0.5, cos(t * 0.2) * 0.3, t);
+        vec3 rd = normalize(vec3(uv, 0.8));
+        // Rotate camera
+        float ca = t * 0.1;
+        float cc = cos(ca), ss = sin(ca);
+        rd.xz = mat2(cc, -ss, ss, cc) * rd.xz;
+
+        float totalDist = 0.0;
+        vec3 col = vec3(0.0);
+        float crystalSize = u_src_crystal_size;
+
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * totalDist;
+            float d = caveDE(p, crystalSize);
+            if (d < 0.002) {
+                // Normal via gradient
+                vec2 e = vec2(0.001, 0.0);
+                vec3 n = normalize(vec3(
+                    caveDE(p+e.xyy, crystalSize) - caveDE(p-e.xyy, crystalSize),
+                    caveDE(p+e.yxy, crystalSize) - caveDE(p-e.yxy, crystalSize),
+                    caveDE(p+e.yyx, crystalSize) - caveDE(p-e.yyx, crystalSize)
+                ));
+                // Light
+                vec3 lightDir = normalize(vec3(sin(t), 0.5, cos(t)));
+                float diff = max(dot(n, lightDir), 0.0);
+                float spec = pow(max(dot(reflect(rd, n), lightDir), 0.0), 16.0 + u_src_reflectivity * 48.0);
+                float hue = u_src_light_color;
+                vec3 lightCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+                col = lightCol * (diff * 0.6 + spec * u_src_reflectivity + 0.1);
+                // Fog
+                float fog = exp(-totalDist * (0.1 + u_src_fog * 0.5));
+                col *= fog;
+                col *= 0.8 + u_bass * 0.4;
+                break;
+            }
+            totalDist += d;
+            if (totalDist > 20.0) break;
+        }
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.7 — Infinite Corridor (3D ray-marched)
+inline const char* sourceInfiniteCorridor = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_speed;
+    uniform float u_src_width;
+    uniform float u_src_wall_pattern;
+    uniform float u_src_light_spacing;
+    uniform float u_src_light_intensity;
+    uniform float u_src_color;
+    uniform float u_rms;
+    uniform float u_onsetStrength;
+    uniform float u_beatPhase;
+
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float t = u_time * (0.5 + u_src_speed * 2.0);
+        float w = 0.3 + u_src_width * 0.7;
+        float h = 0.3 + u_src_width * 0.5;
+
+        // Ray from camera
+        vec3 rd = normalize(vec3(uv, 1.0));
+        vec3 ro = vec3(0.0, 0.0, t);
+
+        // Intersect with 4 planes (walls, floor, ceiling)
+        float tMin = 1e9;
+        vec3 hitNormal = vec3(0.0);
+        vec3 hitPos = vec3(0.0);
+        // Floor y = -h
+        float tf = (-h - ro.y) / rd.y;
+        if (tf > 0.0 && tf < tMin) { tMin = tf; hitNormal = vec3(0,1,0); }
+        // Ceiling y = h
+        float tc = (h - ro.y) / rd.y;
+        if (tc > 0.0 && tc < tMin) { tMin = tc; hitNormal = vec3(0,-1,0); }
+        // Left wall x = -w
+        float tl = (-w - ro.x) / rd.x;
+        if (tl > 0.0 && tl < tMin) { tMin = tl; hitNormal = vec3(1,0,0); }
+        // Right wall x = w
+        float tr = (w - ro.x) / rd.x;
+        if (tr > 0.0 && tr < tMin) { tMin = tr; hitNormal = vec3(-1,0,0); }
+
+        if (tMin > 100.0) {
+            fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            return;
+        }
+
+        hitPos = ro + rd * tMin;
+
+        // Wall pattern
+        int pattern = int(u_src_wall_pattern * 3.0);
+        float patVal = 0.0;
+        vec2 wallUV;
+        if (abs(hitNormal.y) > 0.5) wallUV = hitPos.xz;
+        else wallUV = hitPos.yz;
+
+        if (pattern == 0) { // Grid
+            vec2 g = abs(fract(wallUV * 2.0) - 0.5);
+            patVal = smoothstep(0.02, 0.05, min(g.x, g.y));
+        } else if (pattern == 1) { // Brick
+            vec2 brickUV = wallUV * vec2(2.0, 4.0);
+            brickUV.x += step(1.0, mod(floor(brickUV.y), 2.0)) * 0.5;
+            vec2 g = abs(fract(brickUV) - 0.5);
+            patVal = smoothstep(0.02, 0.06, min(g.x, g.y));
+        } else if (pattern == 2) { // Ribbed
+            patVal = sin(wallUV.x * 20.0) * 0.3 + 0.7;
+        } else { // Smooth
+            patVal = 0.7;
+        }
+
+        // Ceiling lights
+        float lightDist = 1.0 + u_src_light_spacing * 4.0;
+        float lightZ = mod(hitPos.z, lightDist) - lightDist * 0.5;
+        float lightOn = step(abs(hitNormal.y), 0.5) * 0.0 + step(0.5, hitNormal.y) * 0.0 +
+                         step(0.5, -hitNormal.y) * 1.0;  // ceiling only
+        float lightMask = 0.0;
+        if (hitNormal.y < -0.5) { // Ceiling
+            lightMask = smoothstep(0.3, 0.0, abs(lightZ)) * smoothstep(w*0.5, 0.0, abs(hitPos.x));
+            // Flash on beat
+            float beatFlash = 1.0 + u_onsetStrength * 2.0;
+            lightMask *= u_src_light_intensity * beatFlash;
+        }
+
+        // Lighting
+        float ambient = 0.05;
+        float depth = tMin;
+        float fog = exp(-depth * 0.15);
+
+        float hue = u_src_color;
+        vec3 wallCol = vec3(0.15, 0.15, 0.2) * patVal;
+        vec3 lightCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+
+        // Point lighting from ceiling fixtures
+        float nearestLight = floor(hitPos.z / lightDist + 0.5) * lightDist;
+        vec3 lPos = vec3(0.0, h - 0.01, nearestLight);
+        vec3 lDir = normalize(lPos - hitPos);
+        float lDist = length(lPos - hitPos);
+        float atten = 1.0 / (1.0 + lDist * lDist * 0.3);
+        float diff = max(dot(hitNormal, lDir), 0.0);
+
+        vec3 col = wallCol * (ambient + diff * atten * u_src_light_intensity) +
+                   lightCol * lightMask;
+        col *= fog;
+        col *= 0.8 + u_rms * 0.4;
+
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.8 — Orbit Chamber (3D ray-marched)
+inline const char* sourceOrbitChamber = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_obj_count;
+    uniform float u_src_obj_type;
+    uniform float u_src_orbit_speed;
+    uniform float u_src_orbit_radius;
+    uniform float u_src_material;
+    uniform float u_src_light_orbit;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+
+    float sdSphere(vec3 p, float r) { return length(p) - r; }
+    float sdBox3(vec3 p, vec3 b) { vec3 q = abs(p) - b; return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0); }
+    float sdTorus3(vec3 p, vec2 t) { vec2 q = vec2(length(p.xz)-t.x, p.y); return length(q)-t.y; }
+
+    float sceneSDF(vec3 p, float t, int nObj, int objType, float orbitR) {
+        float d = 1e9;
+        for (int i = 0; i < 8; i++) {
+            if (i >= nObj) break;
+            float angle = float(i) * 6.28318 / float(nObj) + t;
+            float yOff = sin(angle * 2.0 + t * 0.5) * 0.3;
+            vec3 objPos = vec3(cos(angle) * orbitR, yOff, sin(angle) * orbitR);
+            vec3 q = p - objPos;
+            float objD;
+            if (objType == 0) objD = sdSphere(q, 0.25);
+            else if (objType == 1) objD = sdBox3(q, vec3(0.2));
+            else if (objType == 2) objD = sdTorus3(q, vec2(0.2, 0.07));
+            else { // Mixed
+                if (i % 3 == 0) objD = sdSphere(q, 0.25);
+                else if (i % 3 == 1) objD = sdBox3(q, vec3(0.2));
+                else objD = sdTorus3(q, vec2(0.2, 0.07));
+            }
+            d = min(d, objD);
+        }
+        return d;
+    }
+
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float t = u_time * (0.3 + u_src_orbit_speed * 1.5);
+        int nObj = int(u_src_obj_count * 7.0) + 1;
+        int objType = int(u_src_obj_type * 3.0);
+        float orbitR = 0.3 + u_src_orbit_radius * 0.7;
+
+        // Camera
+        float camAngle = t * 0.2;
+        vec3 ro = vec3(cos(camAngle) * 1.5, 0.5, sin(camAngle) * 1.5);
+        vec3 target = vec3(0.0);
+        vec3 fwd = normalize(target - ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(uv.x * right + uv.y * up + 1.2 * fwd);
+
+        // Light
+        float lt = u_time * (0.5 + u_src_light_orbit * 2.0);
+        vec3 lightPos = vec3(cos(lt) * 2.0, 1.0, sin(lt) * 2.0);
+
+        float totalDist = 0.0;
+        vec3 col = vec3(0.0);
+        for (int i = 0; i < 96; i++) {
+            vec3 p = ro + rd * totalDist;
+            float d = sceneSDF(p, t, nObj, objType, orbitR);
+            if (d < 0.001) {
+                vec2 e = vec2(0.001, 0.0);
+                vec3 n = normalize(vec3(
+                    sceneSDF(p+e.xyy, t, nObj, objType, orbitR) - sceneSDF(p-e.xyy, t, nObj, objType, orbitR),
+                    sceneSDF(p+e.yxy, t, nObj, objType, orbitR) - sceneSDF(p-e.yxy, t, nObj, objType, orbitR),
+                    sceneSDF(p+e.yyx, t, nObj, objType, orbitR) - sceneSDF(p-e.yyx, t, nObj, objType, orbitR)
+                ));
+                vec3 lDir = normalize(lightPos - p);
+                float diff = max(dot(n, lDir), 0.0);
+                float spec = pow(max(dot(reflect(rd, n), lDir), 0.0), mix(8.0, 64.0, u_src_material));
+                float hue = u_src_color_shift + length(p.xz) * 0.3;
+                vec3 baseCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+                float chrome = u_src_material;
+                col = baseCol * diff * (1.0 - chrome * 0.5) + vec3(1.0) * spec * chrome + baseCol * 0.05;
+                col *= 0.8 + u_rms * 0.4;
+                break;
+            }
+            totalDist += d;
+            if (totalDist > 10.0) break;
+        }
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.9 — Astral Grid (Geometric)
+inline const char* sourceAstralGrid = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_grid_size;
+    uniform float u_src_scroll_speed;
+    uniform float u_src_tilt;
+    uniform float u_src_warp;
+    uniform float u_src_glow;
+    uniform float u_src_horizon_color;
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_beatPhase;
+    void main() {
+        vec2 uv = v_texCoord;
+        float tiltAmt = 0.1 + u_src_tilt * 0.8;
+        // Perspective transform: y maps to depth
+        float y = uv.y - (1.0 - tiltAmt);
+        if (y < 0.001) {
+            // Sky / horizon gradient
+            float hue = u_src_horizon_color;
+            vec3 skyCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+            skyCol *= 0.1 + smoothstep(0.0, -0.3, y - 0.001) * 0.2;
+            fragColor = vec4(skyCol, 1.0);
+            return;
+        }
+        float depth = tiltAmt / max(y, 0.001);
+        float x = (uv.x - 0.5) * depth;
+        float z = depth;
+        float t = u_time * (0.5 + u_src_scroll_speed * 3.0);
+        z += t;
+        // Sine warp
+        float warpAmt = u_src_warp * 0.5;
+        float yWarp = sin(z * 0.5 + u_time) * warpAmt * (0.5 + u_bass * 1.0);
+        // Grid lines
+        float gridS = 0.5 + u_src_grid_size * 2.0;
+        vec2 gp = vec2(x, z) / gridS;
+        vec2 gridDist = abs(fract(gp) - 0.5);
+        float lineW = 0.03 * depth;
+        float gridLine = smoothstep(lineW, 0.0, min(gridDist.x, gridDist.y));
+        // Glow
+        float glow = gridLine * (u_src_glow * 2.0 + 0.5);
+        // Depth fog
+        float fog = exp(-depth * 0.15);
+        // Beat pulse
+        float pulse = 1.0 + u_beatPhase * 0.3 * u_rms;
+        float hue = u_src_horizon_color + depth * 0.02;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= glow * fog * pulse;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.10 — Radial Burst (Geometric)
+inline const char* sourceRadialBurst = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_ray_count;
+    uniform float u_src_length;
+    uniform float u_src_rotation;
+    uniform float u_src_width;
+    uniform float u_src_taper;
+    uniform float u_src_glow;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_onsetStrength;
+    uniform float u_beatPhase;
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        int nRays = int(u_src_ray_count * 60.0) + 4;
+        float rayLen = 0.2 + u_src_length * 0.8 + u_onsetStrength * 0.3;
+        float rot = u_time * (u_src_rotation - 0.5) * 2.0;
+        float rayW = 0.01 + u_src_width * 0.06;
+        float taper = u_src_taper;
+        float r = length(uv);
+        float angle = atan(uv.y, uv.x) - rot;
+        float sector = 6.28318 / float(nRays);
+        float nearestAngle = floor(angle / sector + 0.5) * sector;
+        float angleDist = abs(angle - nearestAngle);
+        // Taper: width narrows with distance
+        float taperW = rayW * mix(1.0, max(1.0 - r / rayLen, 0.0), taper);
+        float mask = smoothstep(taperW, taperW * 0.3, angleDist * r);
+        mask *= smoothstep(rayLen, rayLen * 0.5, r);
+        mask *= smoothstep(0.0, 0.05, r); // hole in center
+        // Glow
+        float glowMask = mask + exp(-angleDist * r * 20.0) * exp(-r * 3.0) * u_src_glow;
+        float hue = u_src_color_shift + angle * 0.05;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= glowMask * (0.7 + u_rms * 0.6);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.11 — Hex Grid (Geometric)
+inline const char* sourceHexGrid = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_cell_size;
+    uniform float u_src_pattern;
+    uniform float u_src_fill;
+    uniform float u_src_edge_width;
+    uniform float u_src_rotation;
+    uniform float u_src_color_mode;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_bass;
+    uniform float u_mid;
+    uniform float u_high;
+
+    vec4 hexCoords(vec2 uv) {
+        // Returns (hex center, local coords within hex)
+        vec2 s = vec2(1.0, 1.7320508);  // 1, sqrt(3)
+        vec2 a = mod(uv, s) - s * 0.5;
+        vec2 b = mod(uv - s * 0.5, s) - s * 0.5;
+        vec2 gv = (dot(a,a) < dot(b,b)) ? a : b;
+        vec2 id = uv - gv;
+        return vec4(gv, id);
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float rot = u_src_rotation * 3.14159;
+        float c = cos(rot), s = sin(rot);
+        uv = mat2(c, -s, s, c) * uv;
+        float sz = 0.15 + u_src_cell_size * 0.5;
+        uv /= sz;
+        vec4 hc = hexCoords(uv);
+        vec2 gv = hc.xy;
+        vec2 id = hc.zw;
+        float cellHash = fract(sin(dot(id, vec2(127.1, 311.7))) * 43758.5453);
+        float dist = length(gv);
+        float hexR = 0.5;
+        // Hex SDF (approximate)
+        vec2 q = abs(gv);
+        float hexDist = max(q.x * 0.866025 + q.y * 0.5, q.y) - hexR;
+        float edgeW = 0.02 + u_src_edge_width * 0.1;
+        float edge = smoothstep(edgeW, 0.0, abs(hexDist));
+        // Fill pattern
+        int pattern = int(u_src_pattern * 3.0);
+        float fillVal = 0.0;
+        float distFromCenter = length(id * sz);
+        if (pattern == 0) { // Random
+            fillVal = step(1.0 - u_src_fill, cellHash);
+        } else if (pattern == 1) { // Wave
+            fillVal = sin(distFromCenter * 3.0 - u_time * 2.0) * 0.5 + 0.5;
+            fillVal = step(1.0 - u_src_fill, fillVal);
+        } else if (pattern == 2) { // Spiral
+            float a = atan(id.y, id.x);
+            fillVal = sin(a * 3.0 + distFromCenter * 5.0 - u_time * 2.0) * 0.5 + 0.5;
+            fillVal = step(1.0 - u_src_fill, fillVal);
+        } else { // Audio
+            float ringIdx = floor(distFromCenter / 0.5);
+            float bands[3] = float[3](u_bass, u_mid, u_high);
+            int bandIdx = int(mod(ringIdx, 3.0));
+            fillVal = step(0.3, bands[bandIdx]);
+        }
+        float mask = fillVal * step(hexDist, 0.0);
+        // Color
+        float colMode = u_src_color_mode;
+        vec3 col;
+        if (colMode < 0.33) { // Monochrome
+            col = vec3(0.8, 0.9, 1.0);
+        } else if (colMode < 0.67) { // Rainbow
+            float hue = cellHash + u_time * 0.05;
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        } else { // Audio frequency
+            float hue = distFromCenter * 0.2;
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        }
+        col *= mask + edge * u_src_edge_width;
+        col *= 0.7 + u_rms * 0.6;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.12 — Sacred Geometry (Geometric)
+inline const char* sourceSacredGeometry = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_pattern;
+    uniform float u_src_rotation;
+    uniform float u_src_breathe;
+    uniform float u_src_line_width;
+    uniform float u_src_glow;
+    uniform float u_src_reveal;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_phrasePhase;
+
+    float circleSDF(vec2 p, vec2 center, float r) { return abs(length(p - center) - r); }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float rot = u_time * (u_src_rotation - 0.5) * 0.5;
+        float c = cos(rot), s = sin(rot);
+        uv = mat2(c, -s, s, c) * uv;
+        // Breathe
+        float breathe = 1.0 + sin(u_beatPhase * 6.28318) * u_src_breathe * 0.15;
+        uv /= breathe;
+        float lineW = 0.005 + u_src_line_width * 0.02;
+        float reveal = u_src_reveal * 0.99 + 0.01 + u_phrasePhase * (1.0 - u_src_reveal);
+        int pattern = int(u_src_pattern * 4.0);
+        float minDist = 1e9;
+        float totalCircles = 0.0;
+        if (pattern == 0) { // Flower of Life
+            float r = 0.3;
+            totalCircles = 19.0;
+            float drawn = totalCircles * reveal;
+            int idx = 0;
+            // Center circle
+            if (float(idx) < drawn) minDist = min(minDist, circleSDF(uv, vec2(0.0), r));
+            idx++;
+            // 6 surrounding
+            for (int i = 0; i < 6; i++) {
+                if (float(idx) >= drawn) break;
+                float a = float(i) * 6.28318 / 6.0;
+                minDist = min(minDist, circleSDF(uv, vec2(cos(a), sin(a)) * r, r));
+                idx++;
+            }
+            // 12 outer ring
+            for (int i = 0; i < 12; i++) {
+                if (float(idx) >= drawn) break;
+                float a = float(i) * 6.28318 / 12.0 + 3.14159/12.0;
+                minDist = min(minDist, circleSDF(uv, vec2(cos(a), sin(a)) * r * 1.732, r));
+                idx++;
+            }
+        } else if (pattern == 1) { // Seed of Life
+            float r = 0.35;
+            totalCircles = 7.0;
+            float drawn = totalCircles * reveal;
+            if (0.0 < drawn) minDist = min(minDist, circleSDF(uv, vec2(0.0), r));
+            for (int i = 0; i < 6; i++) {
+                if (float(i+1) >= drawn) break;
+                float a = float(i) * 6.28318 / 6.0;
+                minDist = min(minDist, circleSDF(uv, vec2(cos(a), sin(a)) * r, r));
+            }
+        } else if (pattern == 2) { // Metatron's Cube
+            float r = 0.5;
+            totalCircles = 13.0;
+            float drawn = totalCircles * reveal;
+            if (0.0 < drawn) minDist = min(minDist, circleSDF(uv, vec2(0.0), 0.01)); // center dot
+            // Inner hex
+            for (int i = 0; i < 6; i++) {
+                if (float(i+1) >= drawn) break;
+                float a = float(i) * 6.28318 / 6.0;
+                vec2 p1 = vec2(cos(a), sin(a)) * r * 0.5;
+                minDist = min(minDist, circleSDF(uv, p1, 0.01));
+                // Lines connecting
+                for (int j = i+1; j < 6; j++) {
+                    float a2 = float(j) * 6.28318 / 6.0;
+                    vec2 p2 = vec2(cos(a2), sin(a2)) * r * 0.5;
+                    vec2 pa = uv - p1, ba = p2 - p1;
+                    float h2 = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+                    minDist = min(minDist, length(pa - ba * h2));
+                }
+            }
+            // Outer hex
+            for (int i = 0; i < 6; i++) {
+                if (float(i+7) >= drawn) break;
+                float a = float(i) * 6.28318 / 6.0 + 3.14159/6.0;
+                minDist = min(minDist, circleSDF(uv, vec2(cos(a), sin(a)) * r, 0.01));
+            }
+        } else if (pattern == 3) { // Sri Yantra (simplified triangles)
+            float sz = 0.6;
+            totalCircles = 9.0;
+            float drawn = totalCircles * reveal;
+            for (int i = 0; i < 9; i++) {
+                if (float(i) >= drawn) break;
+                float t2 = float(i) / 9.0;
+                float triSize = sz * (1.0 - t2 * 0.7);
+                float yOff = (t2 - 0.5) * 0.3;
+                float flip = (i % 2 == 0) ? 1.0 : -1.0;
+                // Triangle as 3 line segments
+                vec2 p0 = vec2(0.0, triSize * flip) + vec2(0.0, yOff);
+                vec2 p1t = vec2(-triSize * 0.866, -triSize * 0.5 * flip) + vec2(0.0, yOff);
+                vec2 p2t = vec2( triSize * 0.866, -triSize * 0.5 * flip) + vec2(0.0, yOff);
+                // Segments
+                for (int seg = 0; seg < 3; seg++) {
+                    vec2 sa = (seg==0) ? p0 : (seg==1) ? p1t : p2t;
+                    vec2 sb = (seg==0) ? p1t : (seg==1) ? p2t : p0;
+                    vec2 pa2 = uv - sa, ba2 = sb - sa;
+                    float h2 = clamp(dot(pa2, ba2) / dot(ba2, ba2), 0.0, 1.0);
+                    minDist = min(minDist, length(pa2 - ba2 * h2));
+                }
+            }
+        } else { // Fibonacci spiral
+            float r2 = 0.0;
+            float golden = 1.6180339887;
+            totalCircles = 30.0;
+            float drawn = totalCircles * reveal;
+            for (int i = 0; i < 30; i++) {
+                if (float(i) >= drawn) break;
+                float fi = float(i);
+                r2 = 0.02 * pow(golden, fi * 0.15);
+                float a = fi * 2.399963; // golden angle
+                vec2 center = vec2(cos(a), sin(a)) * r2;
+                minDist = min(minDist, circleSDF(uv, center, r2 * 0.3));
+            }
+        }
+
+        float mask = smoothstep(lineW + u_src_glow * 0.05, 0.0, minDist);
+        float hue = u_src_color_shift + minDist * 3.0 + u_time * 0.02;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= mask * (0.7 + u_rms * 0.6);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.13 — Fire Wall (Nature) — needs noise
+inline const char* sourceFireWall = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_height;
+    uniform float u_src_turbulence;
+    uniform float u_src_speed;
+    uniform float u_src_temperature;
+    uniform float u_src_density;
+    uniform float u_src_wind;
+    uniform float u_rms;
+    uniform float u_spectralFlux;
+
+    void main() {
+        vec2 uv = v_texCoord;
+        float t = u_time * (0.5 + u_src_speed * 3.0);
+        // Scroll upward
+        vec2 noiseUV = uv;
+        noiseUV.y -= t;
+        noiseUV.x += sin(uv.y * 3.0 + t) * u_src_wind * 0.3;
+
+        // Multi-octave noise for fire shape
+        float turb = u_src_turbulence;
+        float n = 0.0;
+        float amp = 1.0;
+        float freq = 3.0 + turb * 5.0;
+        for (int i = 0; i < 5; i++) {
+            float nx = sin(noiseUV.x * freq + noiseUV.y * freq * 0.7 + t * float(i) * 0.5) *
+                       cos(noiseUV.y * freq * 1.3 - t * float(i) * 0.3);
+            n += nx * amp;
+            amp *= 0.5;
+            freq *= 2.0;
+        }
+        n = n * 0.5 + 0.5;
+
+        // Height mask — fire rises from bottom
+        float fireH = u_src_height * 0.9 + 0.1 + u_rms * 0.2;
+        float heightMask = smoothstep(fireH, 0.0, uv.y);
+        heightMask *= u_src_density * 1.5;
+        float fire = n * heightMask;
+        fire = clamp(fire, 0.0, 1.0);
+
+        // Fire color palette (temperature controlled)
+        vec3 col;
+        float temp = u_src_temperature;
+        if (temp < 0.5) {
+            // Cool fire (blue → purple → white)
+            col = mix(vec3(0.0, 0.0, 0.3), vec3(0.5, 0.2, 0.8), fire);
+            col = mix(col, vec3(1.0), fire * fire);
+        } else {
+            // Hot fire (black → red → orange → yellow → white)
+            col = mix(vec3(0.0), vec3(0.8, 0.1, 0.0), clamp(fire * 3.0, 0.0, 1.0));
+            col = mix(col, vec3(1.0, 0.5, 0.0), clamp(fire * 3.0 - 1.0, 0.0, 1.0));
+            col = mix(col, vec3(1.0, 1.0, 0.6), clamp(fire * 3.0 - 2.0, 0.0, 1.0));
+        }
+        col *= 0.8 + u_spectralFlux * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.14 — Water Caustics (Nature)
+inline const char* sourceWaterCaustics = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_complexity;
+    uniform float u_src_speed;
+    uniform float u_src_brightness;
+    uniform float u_src_color;
+    uniform float u_src_distortion;
+    uniform float u_src_scale;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+
+    void main() {
+        vec2 uv = v_texCoord * 2.0 - 1.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float sc = 1.0 + u_src_scale * 4.0;
+        uv *= sc;
+        float t = u_time * (0.3 + u_src_speed * 1.5);
+        int layers = int(u_src_complexity * 4.0) + 2;
+        float distort = u_src_distortion * 0.5;
+
+        // Caustic pattern from overlapping sine waves
+        float caustic = 0.0;
+        for (int i = 0; i < 6; i++) {
+            if (i >= layers) break;
+            float fi = float(i);
+            float angle = fi * 2.399 + t * 0.1;
+            vec2 dir = vec2(cos(angle), sin(angle));
+            float freq = 3.0 + fi * 1.5;
+            float phase = t * (0.5 + fi * 0.2);
+            vec2 distortedUV = uv + dir * sin(dot(uv, dir.yx) * distort) * distort;
+            caustic += sin(dot(distortedUV, dir) * freq + phase);
+        }
+        caustic = caustic / float(layers);
+        caustic = caustic * caustic; // sharpen
+        caustic *= u_src_brightness * 2.0;
+        caustic = clamp(caustic, 0.0, 1.0);
+
+        // Water color
+        float hue = u_src_color;
+        vec3 waterCol;
+        if (hue < 0.33) { // Blue
+            waterCol = mix(vec3(0.0, 0.05, 0.15), vec3(0.2, 0.5, 0.8), caustic);
+        } else if (hue < 0.67) { // Green
+            waterCol = mix(vec3(0.0, 0.08, 0.05), vec3(0.2, 0.7, 0.5), caustic);
+        } else { // Warm
+            waterCol = mix(vec3(0.1, 0.05, 0.0), vec3(0.8, 0.6, 0.3), caustic);
+        }
+        waterCol += caustic * 0.5; // bright caustic highlights
+        waterCol *= 0.8 + u_rms * 0.4;
+
+        fragColor = vec4(waterCol, 1.0);
+    }
+)";
+
+// P17.15 — Electric Arc (Nature)
+inline const char* sourceElectricArc = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_arc_count;
+    uniform float u_src_chaos;
+    uniform float u_src_thickness;
+    uniform float u_src_branches;
+    uniform float u_src_glow;
+    uniform float u_src_color;
+    uniform float u_rms;
+    uniform float u_onsetStrength;
+
+    float hash(float n) { return fract(sin(n) * 43758.5453); }
+    float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+    float lightning(vec2 uv, vec2 a, vec2 b, float chaos, float thick, float seed) {
+        // Midpoint displacement lightning
+        float minDist = 1e9;
+        int steps = 16;
+        vec2 prev = a;
+        for (int i = 1; i <= 16; i++) {
+            float t = float(i) / float(steps);
+            vec2 mid = mix(a, b, t);
+            // Displace perpendicular
+            vec2 dir = normalize(b - a);
+            vec2 perp = vec2(-dir.y, dir.x);
+            float disp = (hash(seed + float(i) * 17.3 + floor(u_time * 10.0)) - 0.5) * 2.0;
+            disp *= chaos * 0.3 * (1.0 - abs(t * 2.0 - 1.0)); // less at endpoints
+            mid += perp * disp;
+            // Distance to segment prev→mid
+            vec2 pa = uv - prev, ba = mid - prev;
+            float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+            float d = length(pa - ba * h);
+            minDist = min(minDist, d);
+            prev = mid;
+        }
+        return smoothstep(thick, 0.0, minDist);
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+
+        int nArcs = int(u_src_arc_count * 5.0) + 1;
+        float chaos = u_src_chaos;
+        float thick = 0.005 + u_src_thickness * 0.02;
+        float glowR = 0.02 + u_src_glow * 0.1;
+        int nBranch = int(u_src_branches * 4.0);
+        float intensity = u_onsetStrength * 2.0 + 1.0;
+
+        float acc = 0.0;
+        for (int a = 0; a < 6; a++) {
+            if (a >= nArcs) break;
+            float seed = float(a) * 37.7 + floor(u_time * 5.0 + 1.0);
+            float angle = float(a) * 6.28318 / float(nArcs) + hash(float(a) * 13.1 + floor(u_time * 3.0 + 1.0)) * 1.0;
+            vec2 start = vec2(cos(angle), sin(angle)) * 0.7;
+            vec2 end2 = vec2(cos(angle + 2.5 + float(a) * 0.3), sin(angle + 2.5 + float(a) * 0.3)) * 0.7;
+
+            float bolt = lightning(uv, start, end2, chaos, thick, seed);
+            acc += bolt * intensity;
+
+            // Branches
+            for (int br = 0; br < 4; br++) {
+                if (br >= nBranch) break;
+                float bt = hash(seed + float(br) * 7.1) * 0.6 + 0.2;
+                vec2 branchStart = mix(start, end2, bt);
+                float brAngle = angle + (hash(seed + float(br) * 3.3) - 0.5) * 1.5;
+                vec2 branchEnd = branchStart + vec2(cos(brAngle), sin(brAngle)) * 0.3;
+                float branch = lightning(uv, branchStart, branchEnd, chaos * 0.7, thick * 0.5, seed + float(br) * 100.0);
+                acc += branch * intensity * 0.5;
+            }
+
+            // Glow
+            float boltDist = length(uv - mix(start, end2, clamp(dot(uv-start, end2-start)/dot(end2-start,end2-start), 0.0, 1.0)));
+            acc += exp(-boltDist / glowR) * 0.3;
+        }
+
+        acc = clamp(acc, 0.0, 1.0);
+        float hue = u_src_color;
+        vec3 col;
+        if (hue < 0.33) col = vec3(0.9, 0.95, 1.0); // White
+        else if (hue < 0.67) col = vec3(0.4, 0.6, 1.0); // Blue
+        else col = vec3(0.7, 0.4, 1.0); // Purple
+        col *= acc;
+        col *= 0.6 + u_rms * 0.8;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.16 — Laser Scanner (Lighting)
+inline const char* sourceLaserScanner = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_pattern;
+    uniform float u_src_beam_count;
+    uniform float u_src_color;
+    uniform float u_src_speed;
+    uniform float u_src_spread;
+    uniform float u_src_flicker;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_bass;
+
+    float hash(float n) { return fract(sin(n) * 43758.5453); }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+
+        int patt = int(u_src_pattern * 5.0);
+        int nBeams = int(u_src_beam_count * 15.0) + 2;
+        float t = u_time * (0.5 + u_src_speed * 3.0);
+        float spreadAngle = u_src_spread * 3.14159;
+        float beamW = 0.006;
+        float acc = 0.0;
+
+        for (int i = 0; i < 16; i++) {
+            if (i >= nBeams) break;
+            float fi = float(i);
+            float angle;
+            float beamLen = 2.0;
+
+            if (patt == 0) { // Fan
+                angle = -spreadAngle * 0.5 + spreadAngle * fi / max(float(nBeams-1), 1.0) + sin(t) * 0.3;
+            } else if (patt == 1) { // Tunnel (concentric)
+                angle = fi * 6.28318 / float(nBeams) + t * 0.5;
+            } else if (patt == 2) { // Cone
+                angle = fi * 6.28318 / float(nBeams);
+                beamLen = 0.5 + 0.5 * sin(t + fi);
+            } else if (patt == 3) { // Wave (audio waveform)
+                angle = -1.5 + 3.0 * fi / float(nBeams);
+                beamLen = 0.3 + u_rms * 1.0;
+            } else if (patt == 4) { // Spiral
+                float spiralT = t + fi * 0.5;
+                angle = spiralT;
+                beamLen = 0.2 + fi * 0.1;
+            } else { // Abstract
+                angle = sin(t + fi * 1.7) * 3.14159;
+                beamLen = 0.5 + sin(t * 2.0 + fi) * 0.5;
+            }
+
+            vec2 dir = vec2(cos(angle), sin(angle));
+            // Distance from point to ray from origin in direction dir
+            float proj = dot(uv, dir);
+            vec2 closest = dir * max(proj, 0.0);
+            float d = length(uv - closest);
+            // Only show if within beam length
+            float len = clamp(proj / beamLen, 0.0, 1.0);
+            float fade = 1.0 - len * 0.5;
+            // Flicker
+            float flick = 1.0 - u_src_flicker * 0.3 * hash(fi + floor(t * 10.0));
+            float beam = smoothstep(beamW * 3.0, 0.0, d) * fade * flick * step(0.0, proj) * step(proj, beamLen);
+            acc += beam;
+        }
+
+        acc = clamp(acc, 0.0, 1.0);
+        float hue = u_src_color;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= acc * (0.7 + u_bass * 0.6);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.17 — Scroll Plane (3D)
+inline const char* sourceScrollPlane = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_speedx;
+    uniform float u_src_speedy;
+    uniform float u_src_scale;
+    uniform float u_src_warp;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    void main() {
+        vec2 uv = v_texCoord;
+        float speedX = (u_src_speedx - 0.5) * 2.0;
+        float speedY = (u_src_speedy - 0.5) * 2.0;
+        float sc = mix(0.5, 4.0, u_src_scale);
+        uv = fract(uv * sc + vec2(speedX, speedY) * u_time);
+        // Perspective warp
+        if (u_src_warp > 0.01) {
+            float perspective = mix(1.0, 0.3, uv.y * u_src_warp);
+            uv.x = 0.5 + (uv.x - 0.5) / perspective;
+        }
+        // Procedural grid pattern
+        vec2 grid = abs(fract(uv * 8.0) - 0.5);
+        float line = smoothstep(0.02, 0.0, min(grid.x, grid.y));
+        float checker = step(0.5, mod(floor(uv.x * 8.0) + floor(uv.y * 8.0), 2.0));
+        float pattern = mix(checker * 0.3 + 0.1, 1.0, line);
+        float hue = u_src_color_shift + uv.y * 0.2 + u_time * 0.02;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= pattern * (0.7 + u_rms * 0.5);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.18 — Rotating Cube Map (3D)
+inline const char* sourceRotatingCubeMap = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_rotx;
+    uniform float u_src_roty;
+    uniform float u_src_scale;
+    uniform float u_src_light;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+
+    vec2 boxIntersect(vec3 ro, vec3 rd) {
+        vec3 invRd = 1.0 / rd;
+        vec3 t1 = (-vec3(1.0) - ro) * invRd;
+        vec3 t2 = ( vec3(1.0) - ro) * invRd;
+        vec3 tmin = min(t1, t2);
+        vec3 tmax = max(t1, t2);
+        float tNear = max(max(tmin.x, tmin.y), tmin.z);
+        float tFar  = min(min(tmax.x, tmax.y), tmax.z);
+        return vec2(tNear, tFar);
+    }
+
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float t = u_time;
+        float rx = t * (u_src_rotx - 0.5) * 2.0;
+        float ry = t * (u_src_roty - 0.5) * 2.0;
+        // Camera inside cube at origin
+        vec3 ro = vec3(0.0);
+        vec3 rd = normalize(vec3(uv, 1.0));
+        // Rotate ray direction (rotates the cube around camera)
+        float cx = cos(rx), sx = sin(rx);
+        rd.yz = mat2(cx, -sx, sx, cx) * rd.yz;
+        float cy = cos(ry), sy = sin(ry);
+        rd.xz = mat2(cy, -sy, sy, cy) * rd.xz;
+
+        vec2 hits = boxIntersect(ro, rd);
+        float tHit = hits.y; // far intersection (we're inside)
+        vec3 hitPos = ro + rd * tHit;
+
+        // Determine which face was hit
+        vec3 absHit = abs(hitPos);
+        vec2 faceUV;
+        vec3 normal;
+        if (absHit.x >= absHit.y && absHit.x >= absHit.z) {
+            faceUV = hitPos.yz; normal = vec3(sign(hitPos.x), 0, 0);
+        } else if (absHit.y >= absHit.z) {
+            faceUV = hitPos.xz; normal = vec3(0, sign(hitPos.y), 0);
+        } else {
+            faceUV = hitPos.xy; normal = vec3(0, 0, sign(hitPos.z));
+        }
+        faceUV = faceUV * 0.5 + 0.5;
+
+        // Pattern on face
+        float sc = mix(1.0, 8.0, u_src_scale);
+        vec2 grid = abs(fract(faceUV * sc) - 0.5);
+        float line = smoothstep(0.03, 0.0, min(grid.x, grid.y));
+        float checker = step(0.5, mod(floor(faceUV.x * sc) + floor(faceUV.y * sc), 2.0));
+
+        // Lighting
+        float lt = u_time * u_src_light;
+        vec3 lightDir = normalize(vec3(sin(lt), cos(lt * 0.7), sin(lt * 0.5)));
+        float diff = max(dot(normal, lightDir), 0.0) * 0.5 + 0.5;
+
+        float hue = u_src_color_shift + dot(normal, vec3(0.1, 0.2, 0.3));
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= (checker * 0.3 + 0.2 + line * 0.5) * diff;
+        col *= 0.7 + u_rms * 0.5;
+
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P17.19 — Dual Plane Drift (3D)
+inline const char* sourceDualPlaneDrift = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_speed;
+    uniform float u_src_rotation;
+    uniform float u_src_distance;
+    uniform float u_src_scale;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float t = u_time * (0.3 + u_src_speed * 2.0);
+        float dist = 0.3 + u_src_distance * 1.0;
+
+        // Simple two-plane corridor: camera at origin, looking down Z
+        vec3 rd = normalize(vec3(uv, 1.0));
+        // Apply rotation
+        float rot = u_src_rotation * 3.14159;
+        float cr = cos(rot), sr = sin(rot);
+        rd.xy = mat2(cr, -sr, sr, cr) * rd.xy;
+
+        vec3 col = vec3(0.0);
+
+        // Top plane at y = dist
+        if (rd.y > 0.001) {
+            float tHit = dist / rd.y;
+            vec3 hitPos = rd * tHit;
+            hitPos.z += t;
+            vec2 planeUV = hitPos.xz * mix(0.5, 4.0, u_src_scale);
+            vec2 grid = abs(fract(planeUV) - 0.5);
+            float line = smoothstep(0.03, 0.0, min(grid.x, grid.y));
+            float fog = exp(-tHit * 0.2);
+            float hue = u_src_color_shift;
+            vec3 planeCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+            col += planeCol * (line * 0.8 + 0.1) * fog;
+        }
+
+        // Bottom plane at y = -dist
+        if (rd.y < -0.001) {
+            float tHit = -dist / rd.y;
+            vec3 hitPos = rd * tHit;
+            hitPos.z += t;
+            vec2 planeUV = hitPos.xz * mix(0.5, 4.0, u_src_scale);
+            vec2 grid = abs(fract(planeUV) - 0.5);
+            float line = smoothstep(0.03, 0.0, min(grid.x, grid.y));
+            float fog = exp(-tHit * 0.2);
+            float hue = u_src_color_shift + 0.5;
+            vec3 planeCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+            col += planeCol * (line * 0.8 + 0.1) * fog;
+        }
+
+        col *= 0.7 + u_rms * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
 } // namespace EmbeddedShaders

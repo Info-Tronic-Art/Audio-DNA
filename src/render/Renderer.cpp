@@ -936,6 +936,33 @@ void Renderer::compileAllShaders()
     compile("source_wormhole",         EmbeddedShaders::sourceWormhole);
     compile("source_torus_hole",       EmbeddedShaders::sourceTorusHole);
 
+    // === Phase 17: Creative Sources (19 new sources) ===
+    // Math sources
+    compile("source_lissajous_weaver",   EmbeddedShaders::sourceLissajousWeaver);
+    compile("source_fermat_spiral",      EmbeddedShaders::sourceFermatSpiral);
+    compile("source_hyperbolic_tiling",  EmbeddedShaders::sourceHyperbolicTiling);
+    compile("source_penrose_pulse",      EmbeddedShaders::sourcePenrosePulse);
+    // Geometric sources
+    compile("source_moire_interference", EmbeddedShaders::sourceMoireInterference);
+    compile("source_astral_grid",        EmbeddedShaders::sourceAstralGrid);
+    compile("source_radial_burst",       EmbeddedShaders::sourceRadialBurst);
+    compile("source_hex_grid",           EmbeddedShaders::sourceHexGrid);
+    compile("source_sacred_geometry",    EmbeddedShaders::sourceSacredGeometry);
+    // 3D ray-marched sources
+    compile("source_crystal_cavern",     EmbeddedShaders::sourceCrystalCavern);
+    compile("source_infinite_corridor",  EmbeddedShaders::sourceInfiniteCorridor);
+    compile("source_orbit_chamber",      EmbeddedShaders::sourceOrbitChamber);
+    // Nature sources
+    compile("source_fire_wall",          EmbeddedShaders::sourceFireWall);
+    compile("source_water_caustics",     EmbeddedShaders::sourceWaterCaustics);
+    compile("source_electric_arc",       EmbeddedShaders::sourceElectricArc);
+    // Lighting sources
+    compile("source_laser_scanner",      EmbeddedShaders::sourceLaserScanner);
+    // ArKaos 3D sources
+    compile("source_scroll_plane",       EmbeddedShaders::sourceScrollPlane);
+    compile("source_rotating_cube_map",  EmbeddedShaders::sourceRotatingCubeMap);
+    compile("source_dual_plane_drift",   EmbeddedShaders::sourceDualPlaneDrift);
+
     // === Phase 16: Time Effects (temporal) ===
     compile("ghost_trails",         EmbeddedShaders::ghostTrails);
     compile("frame_hold",           EmbeddedShaders::frameHold);
