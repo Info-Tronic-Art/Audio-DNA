@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 110 effects across 9 categories, 15 clip-to-clip transitions, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 55 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 32+ pattern/noise/geometric sources), VJ panel UI.
+**Key capabilities**: 115 effects across 10 categories (including 5 temporal time effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 55 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 32+ pattern/noise/geometric sources), signal routing engine wired into render loop, VJ panel UI.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -361,9 +361,9 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 
 ## Effects Library
 
-110 effects across 9 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
+115 effects across 10 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
 
-### Effect Categories (110 total)
+### Effect Categories (115 total)
 
 | Category | Count | Examples |
 |----------|-------|---------|
@@ -372,7 +372,8 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 | **Color** | 28 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize, Greyscale, Threshold, Exposure, Vibrance, Auto Mask, Chroma Key, Palette Remap, Color Grade |
 | **Glitch** | 13 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Glitch Displace, Pixel Explosion, Color Flash, Fragment Burst, Signal Destroy |
 | **Pattern** | 17 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision, Triangulate, Neon Edge, Cartoon Ink, Pop Raster, Brush Strokes, Bump Light |
-| **Animation** | 3 | Strobe, Pulse, Slit Scan |
+| **Animation** | 5 | Strobe, Pulse, Slit Scan, Point Zoom, Directional Feedback |
+| **Time** | 5 | Echo (temporal trails with Add/Screen/Max/Blend operators), Posterize Time (frame rate reduction), Freeze (full-frame freeze), Screen Split (CCTV grid with per-cell delay via ring buffer), Frame Stutter (time-jump rewind via ring buffer) |
 | **Blend** | 5 | Double Exposure, Frosted Glass, Prism Refract, Rain on Glass, Hexagonalize |
 | **Composite** | 3 | Line Cloner, Radial Cloner, Cube Scatter |
 | **Blur/Post** | 8 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect, Sharpen, Edge Blur |
@@ -928,9 +929,23 @@ All fractal sources, their parameters, design rules, and test infrastructure in 
 
 **Memory files:** `memory/project_v2_p15_5_fractal_overhaul.md`, `memory/feedback_fractal_zoom_design.md`, `memory/feedback_fractal_controls_separation.md`
 
-### Common Pitfalls (from P14 development)
+### Time Effects & Temporal Architecture (P16)
 
-These bugs were discovered and fixed during P14. Future phases MUST avoid reintroducing them:
+**Temporal effects** (Echo, Posterize Time, Freeze, Frame Delay) use `u_prev_frame` — the previous frame's output stored in a per-layer temporal buffer. The `EffectDef::temporal = true` flag tells the system to bind and save previous frames.
+
+**Two render paths both support temporal**:
+- `EffectChain::render()` (global effects, single-image mode): has `prevFrameTexture_`/`prevFrameFBO_`. When temporal effects are active, the last effect always renders to FBO (never to screen), the frame is saved, then blitted to screen.
+- `CompositorEngine::applyClipEffects()` (per-clip/layer deck mode): uses `layerTemporalBuffers_` map keyed by layer ID. Binds `u_prev_frame` from the layer's buffer, saves output after chain completes.
+
+**Frame Ring Buffer** (`FrameRingBuffer` in CompositorEngine): stores 480 previous frames at 1/4 resolution for Screen Split and Frame Stutter effects. These effects are intercepted in `applyClipEffects()` before normal shader processing and rendered by the compositor directly — they don't use GLSL shaders at all. The ring buffer uses ~240MB VRAM at 1080p.
+
+**Feedback System** (`FeedbackProcessor`): per-layer Larsen feedback loop. Each layer with `feedback.enabled` gets its own FBO pair. Applied after clip effects, before layer effects in `compositeDeck()`. 6 presets: Zoom In, Spiral, Drift, Kaleidoscope, Echo, Stretch. UI in LayerInspector "Feedback" section.
+
+**Signal Routing**: `SignalRegistry::evaluateAll()` and `RoutingEngine::processFrame()` run every frame in `Renderer::renderOpenGL()`. Renderer holds a `SignalRegistry*` (owned by MainComponent) and a `RoutingEngine`. TestServer exposes 5 signal/routing REST endpoints.
+
+### Common Pitfalls (from P14-P16 development)
+
+These bugs were discovered and fixed. Future phases MUST avoid reintroducing them:
 
 1. **Shader lookup mismatch**: `Clip::EffectSlot::effectName` stores the display name ("Ripple"), but shaders are compiled under snake_case keys ("ripple"). Always resolve via `EffectLibrary::getEffectDef(displayName)->shaderName`. Never use `slot.effectName` directly as a shader key.
 
@@ -955,6 +970,22 @@ These bugs were discovered and fixed during P14. Future phases MUST avoid reintr
 11. **2D fractal power range**: Mandelbrot power > 4 makes the set too small — most of the screen is solid color at the same center. Limit power range to 2-4 for VJ use. Clamp smooth iteration count with `max(si, 0.0)` to prevent negative values at high power.
 
 12. **3D fractal zoom range**: Camera distance `mix(5.0, 0.3, zoom)` lets users go from far outside to inside the fractal. At zoom=1 the camera is at distance 0.3 — inside most fractals.
+
+13. **Temporal effects need TWO render paths**: Both `EffectChain::render()` (single-image mode) AND `CompositorEngine::applyClipEffects()` (deck mode) must bind `u_prev_frame` and save the frame after rendering. If you only fix one path, temporal effects silently fail in the other. Always test temporal effects in BOTH modes.
+
+14. **EffectChain temporal save requires FBO rendering**: When the last effect in the chain is temporal and renders directly to the screen framebuffer (defaultFBO), `currentInput` is never updated, so `savePreviousFrame()` is never called. Fix: when `anyTemporal` is true, always render the last effect to FBO first, save, then blit to screen.
+
+15. **Layer ID 0 is valid**: `Deck::initDefault()` assigns `layer.id = 0` to the first layer. Never use `layerId > 0` as a guard for temporal/ring buffer features — it silently disables them on the most commonly used layer.
+
+16. **Multi-select FX drag-drop**: `EffectStackView::itemDropped()` receives comma-separated names like `"fx:Echo,Ripple,Freeze"`. Must split on commas and add each effect individually, not look up the entire string as one effect name.
+
+17. **Effect parameter defaults must be noticeable**: When a user drags an effect onto a clip, the default parameter values should produce a clearly visible result. Defaults at 0.0 for the primary parameter (like trail length, freeze amount) make the effect invisible on first use — users think it's broken. Set defaults to mid-range or remap the slider so 0 still produces visible output.
+
+18. **Parameter range remapping for nonlinear perception**: Many temporal parameters (decay, frame rate) have a narrow useful range near one end. Echo decay 0-0.8 looks identical, only 0.85-0.99 is interesting. Fix: remap in the shader (`mix(0.82, 0.995, slider)`) so the full slider travel produces visible change. Same for Posterize Time fps (exponential: `60*pow(1/60, slider)`).
+
+19. **Effects that need frame history (Screen Split, Frame Stutter) can't use the normal shader pipeline**: They need access to a ring buffer of N past frames, not just one `u_prev_frame`. These effects are intercepted in `applyClipEffects()` before normal shader rendering and handled by the compositor directly using `applyScreenSplit()` or ring buffer lookups. They still register in EffectLibrary for FX browser visibility but set `temporal = false`.
+
+20. **Ring buffer VRAM budget**: Storing frames at full resolution is prohibitive (1080p × 4 bytes × 480 frames = 4GB). Store ring buffer frames at 1/4 resolution via `kRingDownscale = 4`. Each cell in Screen Split is already small, so the downscale is invisible.
 
 ### Updating This Document
 

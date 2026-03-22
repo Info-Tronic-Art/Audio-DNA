@@ -186,6 +186,45 @@ class VJAppController:
         r.raise_for_status()
         return r.json()
 
+    # === P16: Signal/Routing Methods ===
+
+    def list_signals(self) -> dict:
+        """Get all signals with cached values."""
+        r = requests.get(f"{self.base_url}/api/signals", timeout=10)
+        r.raise_for_status()
+        return r.json()
+
+    def add_route(self, route: dict) -> dict:
+        """Create a signal→parameter route.
+
+        Args:
+            route: Dict with keys: source_signal_id, target_effect, target_param,
+                   output_min, output_max, threshold, gain, inverted.
+        """
+        return self._post("/api/add_route", route)
+
+    def remove_route(self, route_id: int) -> dict:
+        """Remove a signal route by ID."""
+        return self._post("/api/remove_route", {"id": route_id})
+
+    def list_routes(self) -> dict:
+        """Get all active routes with current output values."""
+        r = requests.get(f"{self.base_url}/api/routes", timeout=10)
+        r.raise_for_status()
+        return r.json()
+
+    def set_macro(self, scope: str, index: int, **kwargs) -> dict:
+        """Set a macro knob value or source.
+
+        Args:
+            scope: "global", "layer", or "clip"
+            index: Macro index (0-7)
+            **kwargs: Either source_signal_id=int or manual_value=float
+        """
+        body = {"scope": scope, "index": index}
+        body.update(kwargs)
+        return self._post("/api/set_macro", body)
+
     def _post(self, path: str, data: dict) -> dict:
         """Send a POST request with JSON body."""
         r = requests.post(f"{self.base_url}{path}", json=data, timeout=15)

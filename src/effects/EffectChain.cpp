@@ -61,18 +61,18 @@ void EffectChain::render(GLuint inputTexture,
             glUniform1i(texLoc, 0);
 
         quad.draw();
-
-        // Save current frame as previous frame for temporal effects
-        // (even with no effects, temporal effects next frame need the input)
         return;
     }
 
     // Ensure FBOs exist at the right size
     texMgr.createFBOs(static_cast<int>(width), static_cast<int>(height));
 
-    // Check if any active effect needs dry/wet compositing (dryWet < 1.0)
-    // We need a third FBO for the pre-effect snapshot when dry/wet < 1.0
-    // We reuse the existing 2 FBOs for ping-pong, plus the default FBO for final output
+    // Check if any active effect is temporal (needs previous frame save)
+    bool anyTemporal = false;
+    for (auto* e : activeEffects)
+    {
+        if (e->isTemporal()) { anyTemporal = true; break; }
+    }
 
     GLuint currentInput = inputTexture;
     int writeFBO = 0; // ping-pong index: alternates 0, 1
@@ -90,18 +90,22 @@ void EffectChain::render(GLuint inputTexture,
         // For dry/wet: remember pre-effect input texture
         GLuint preEffectTexture = currentInput;
 
-        if (isLast && !needsDryWet)
+        // When temporal effects are in the chain, NEVER render the last effect
+        // directly to screen — we need an FBO copy for savePreviousFrame().
+        bool renderToFBO = !isLast || needsDryWet || anyTemporal;
+
+        if (renderToFBO)
+        {
+            // Render to FBO for next effect to read (or for temporal save)
+            glBindFramebuffer(GL_FRAMEBUFFER, texMgr.getFBO(writeFBO));
+            glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
+        }
+        else
         {
             // Render final effect directly to screen with letterbox viewport
             glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
             glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
                        static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
-        }
-        else
-        {
-            // Render to FBO for next effect to read (full FBO size)
-            glBindFramebuffer(GL_FRAMEBUFFER, texMgr.getFBO(writeFBO));
-            glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
         }
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -130,13 +134,13 @@ void EffectChain::render(GLuint inputTexture,
 
         quad.draw();
 
-        if (isLast && !needsDryWet)
+        if (!renderToFBO)
         {
-            // Done — rendered to screen
+            // Done — rendered directly to screen (no temporal, no dry/wet)
         }
-        else if (isLast && needsDryWet)
+        else if (isLast && needsDryWet && !anyTemporal)
         {
-            // Effect rendered to FBO; now dry/wet composite to screen
+            // Last effect with dry/wet, no temporal — composite to screen
             GLuint effectedTex = texMgr.getFBOTexture(writeFBO);
 
             glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
@@ -149,9 +153,9 @@ void EffectChain::render(GLuint inputTexture,
         }
         else if (needsDryWet)
         {
-            // Mid-chain dry/wet: effect wrote to writeFBO, now composite in place
+            // Mid-chain or temporal dry/wet: composite in FBO
             GLuint effectedTex = texMgr.getFBOTexture(writeFBO);
-            int compositeFBO = 1 - writeFBO; // use the other FBO as composite target
+            int compositeFBO = 1 - writeFBO;
 
             glBindFramebuffer(GL_FRAMEBUFFER, texMgr.getFBO(compositeFBO));
             glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height));
@@ -161,40 +165,37 @@ void EffectChain::render(GLuint inputTexture,
                         shaderMgr, quad, texMgr.getFBO(compositeFBO), width, height);
 
             currentInput = texMgr.getFBOTexture(compositeFBO);
-            writeFBO = writeFBO; // next effect will write to the FBO we didn't just use for composite
-            // Actually we need to swap: next write goes to the FBO that held the effected result
             writeFBO = 1 - compositeFBO;
         }
         else
         {
-            // Normal case: no dry/wet needed
+            // Normal case: rendered to FBO (either mid-chain or last-with-temporal)
             currentInput = texMgr.getFBOTexture(writeFBO);
             writeFBO = 1 - writeFBO; // ping-pong
         }
     }
 
-    // After rendering: check if any effect is temporal and save the frame
-    // for next render's u_prev_frame binding
-    bool anyTemporal = false;
-    for (auto& e : effects_)
+    // Save previous frame for temporal effects, then blit to screen if needed
+    if (anyTemporal && currentInput != inputTexture && currentInput != 0)
     {
-        if (e->isEnabled() && e->isTemporal())
+        savePreviousFrame(currentInput, static_cast<int>(width), static_cast<int>(height),
+                          quad, shaderMgr);
+
+        // The last effect rendered to FBO (not screen) — blit result to screen now
+        auto* passthrough = shaderMgr.getProgram("passthrough");
+        if (passthrough)
         {
-            anyTemporal = true;
-            break;
-        }
-    }
-    if (anyTemporal)
-    {
-        // Save the final output. For the last effect, it went to screen (defaultFBO).
-        // We need to capture what's in the last FBO that was written to.
-        // The easiest approach: copy from the last FBO texture we have.
-        // If the last effect wrote directly to defaultFBO, we use the input that was rendered.
-        // For simplicity, save the currentInput (which is the last intermediate result).
-        if (currentInput != inputTexture && currentInput != 0)
-        {
-            savePreviousFrame(currentInput, static_cast<int>(width), static_cast<int>(height),
-                              quad, shaderMgr);
+            glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+            glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
+                       static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            passthrough->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, currentInput);
+            auto loc = passthrough->getUniformIDFromName("u_texture");
+            if (loc >= 0) glUniform1i(loc, 0);
+            quad.draw();
         }
     }
 }

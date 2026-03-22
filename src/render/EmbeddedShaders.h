@@ -8320,4 +8320,252 @@ inline const char* sourceTorusHole = R"(
     }
 )";
 
+// ============================================================
+// Phase 16: Time Effects (temporal — use u_prev_frame)
+// ============================================================
+
+// P16.1: Echo (AE-style) — stacks multiple ghosted copies of moving content.
+// The previous frame accumulates: each frame blends current with the accumulated
+// buffer, creating stroboscopic trails that fade over time.
+// Operator: 0=Add (bright streaks), 0.33=Screen, 0.66=Maximum, 1.0=Blend
+static const char* ghostTrails = R"(
+#version 410 core
+in vec2 v_texCoord;
+out vec4 fragColor;
+uniform sampler2D u_texture;
+uniform sampler2D u_prev_frame;
+uniform float u_trail_length;
+uniform float u_trail_fade;
+void main() {
+    vec4 current = texture(u_texture, v_texCoord);
+    vec4 prev = texture(u_prev_frame, v_texCoord);
+
+    // Remap slider [0,1] to useful decay range [0.82, 0.995].
+    // At slider=0 (decay=0.82) trails are very short. At slider=1 (0.995) near-infinite.
+    // The whole slider range produces visible change.
+    float decay = mix(0.82, 0.995, u_trail_length);
+
+    // The accumulated buffer = previous output * decay
+    // We blend this with the current frame using the selected operator.
+
+    // trail_fade selects the operator:
+    // 0.0 = Add (stroboscopic, bright, can blow out)
+    // 0.33 = Screen (additive but won't exceed white)
+    // 0.66 = Maximum (keeps brightest pixel)
+    // 1.0 = Blend (average, subtle ghosting)
+    float op = u_trail_fade;
+
+    vec4 trail = prev * decay;
+
+    // Compute each blend mode
+    vec4 added = current + trail;                                    // Add
+    vec4 screened = 1.0 - (1.0 - current) * (1.0 - trail);         // Screen
+    vec4 maxed = max(current, trail);                                // Maximum
+    vec4 blended = current * (1.0 - decay) + trail;                 // Blend/Average
+
+    // Interpolate between operators based on u_trail_fade
+    vec4 result;
+    if (op < 0.33) {
+        result = mix(added, screened, op / 0.33);
+    } else if (op < 0.66) {
+        result = mix(screened, maxed, (op - 0.33) / 0.33);
+    } else {
+        result = mix(maxed, blended, (op - 0.66) / 0.34);
+    }
+
+    fragColor = clamp(result, 0.0, 1.0);
+}
+)";
+
+// P16.2: Posterize Time — hard frame rate reduction for choppy stop-motion.
+// Locks the output to a low frame rate. Between updates, shows the HELD frame
+// with zero blending — a hard freeze-then-snap look.
+// rate: target fps mapped from slider (0=60fps smooth, 1=2fps very choppy)
+// amount: mix between live and posterized (0=live, 1=full stop-motion)
+static const char* frameHold = R"(
+#version 410 core
+in vec2 v_texCoord;
+out vec4 fragColor;
+uniform sampler2D u_texture;
+uniform sampler2D u_prev_frame;
+uniform float u_hold_rate;
+uniform float u_hold_amount;
+uniform float u_time;
+void main() {
+    vec4 current = texture(u_texture, v_texCoord);
+    vec4 held = texture(u_prev_frame, v_texCoord);
+
+    // Map rate slider to target FPS.
+    // Slider 0 = 60fps (smooth, no visible effect).
+    // Slider 0.5 = ~6fps (clearly choppy).
+    // Slider 1 = 1fps (extreme stop-motion).
+    // Use exponential curve so the slider feels responsive across the whole range.
+    float targetFps = 60.0 * pow(1.0/60.0, u_hold_rate); // 60 → 1 exponentially
+    float holdInterval = 1.0 / targetFps;
+
+    // Quantize time to the target frame rate
+    float quantizedTime = floor(u_time / holdInterval) * holdInterval;
+    float timeSinceUpdate = u_time - quantizedTime;
+
+    // If we're NOT on an update frame, show the held (previous) frame
+    // The threshold is half a frame duration — if past that, we're in hold territory
+    float isHolding = step(holdInterval * 0.4, timeSinceUpdate);
+
+    // amount controls how much of the posterize effect is applied
+    // 0 = fully live, 1 = full stop-motion
+    vec4 posterized = mix(current, held, isHolding);
+    fragColor = mix(current, posterized, u_hold_amount);
+}
+)";
+
+// P16.3: Freeze — captures and holds the entire frame.
+// amount=1 freezes completely (shows held frame only).
+// amount=0 = fully live (bypass).
+static const char* timeFreeze = R"(
+#version 410 core
+in vec2 v_texCoord;
+out vec4 fragColor;
+uniform sampler2D u_texture;
+uniform sampler2D u_prev_frame;
+uniform float u_freeze_amount;
+void main() {
+    vec4 current = texture(u_texture, v_texCoord);
+    vec4 frozen = texture(u_prev_frame, v_texCoord);
+    fragColor = mix(current, frozen, u_freeze_amount);
+}
+)";
+
+// P16.4: Screen Split — surveillance wall with per-cell time delay.
+// Each cell shows the full image, but cells further from top-left show
+// progressively older frames (mixed between current and previous).
+// delay: how much time offset between cells (0=all same, 1=max offset)
+// mode: 0=sequential L-to-R delay, 0.5=diagonal delay, 1.0=random delay
+static const char* screenSplit = R"(
+#version 410 core
+in vec2 v_texCoord;
+out vec4 fragColor;
+uniform sampler2D u_texture;
+uniform sampler2D u_prev_frame;
+uniform float u_screensplit_cols;
+uniform float u_screensplit_rows;
+uniform float u_screensplit_delay;
+uniform float u_screensplit_mode;
+uniform float u_time;
+float hash21(vec2 p) {
+    p = fract(p * vec2(233.34, 851.73));
+    p += dot(p, p + 23.45);
+    return fract(p.x * p.y);
+}
+void main() {
+    float cols = floor(mix(2.0, 8.0, u_screensplit_cols));
+    float rows = floor(mix(2.0, 8.0, u_screensplit_rows));
+
+    vec2 cellIdx = floor(v_texCoord * vec2(cols, rows));
+    vec2 cellUV = fract(v_texCoord * vec2(cols, rows));
+
+    // Border
+    float borderW = 0.035;
+    float inCell = step(borderW, cellUV.x) * step(cellUV.x, 1.0 - borderW)
+                 * step(borderW, cellUV.y) * step(cellUV.y, 1.0 - borderW);
+    if (inCell < 0.5) {
+        fragColor = vec4(0.06, 0.06, 0.06, 1.0);
+        return;
+    }
+
+    // Each cell shows the full image
+    vec2 innerUV = (cellUV - borderW) / (1.0 - 2.0 * borderW);
+    innerUV = clamp(innerUV, 0.0, 1.0);
+
+    // Calculate per-cell delay factor [0, 1]
+    float totalCells = cols * rows;
+    float cellNum = cellIdx.y * cols + cellIdx.x;
+    float mode = u_screensplit_mode;
+
+    float cellDelay;
+    if (mode < 0.33) {
+        // Sequential: left-to-right, top-to-bottom
+        cellDelay = cellNum / max(totalCells - 1.0, 1.0);
+    } else if (mode < 0.66) {
+        // Diagonal: distance from top-left corner
+        cellDelay = (cellIdx.x + cellIdx.y) / max(cols + rows - 2.0, 1.0);
+    } else {
+        // Random per cell
+        cellDelay = hash21(cellIdx);
+    }
+
+    // delay param controls how strongly cells are time-offset
+    // cellDelay * delay = how much of the previous frame this cell shows
+    float delayMix = cellDelay * u_screensplit_delay;
+
+    vec4 current = texture(u_texture, innerUV);
+    vec4 prev = texture(u_prev_frame, innerUV);
+
+    // Mix between current and delayed frame based on cell's delay
+    fragColor = mix(current, prev, delayMix);
+}
+)";
+
+// P16.5: Frame Stutter — jumps back in time rhythmically.
+// Shows a frame from N frames ago, creating a rewind/scratch/stutter effect.
+// Handled specially by compositor using the ring buffer (same as Screen Split).
+// depth: how many frames back to jump (0=1 frame, 1=max ring frames)
+// stutter: rate of jumping (0=smooth delay, 1=rapid stutter)
+static const char* frameDelay = R"(
+#version 410 core
+in vec2 v_texCoord;
+out vec4 fragColor;
+uniform sampler2D u_texture;
+void main() {
+    // This shader is a passthrough — the actual Frame Stutter logic
+    // is handled by the compositor using the ring buffer.
+    fragColor = texture(u_texture, v_texCoord);
+}
+)";
+
+// ============================================================
+// Phase 16: Feedback Shader (layer-level feedback processor)
+// ============================================================
+
+static const char* feedbackBlend = R"(
+#version 410 core
+in vec2 v_texCoord;
+out vec4 fragColor;
+uniform sampler2D u_currentFrame;
+uniform sampler2D u_previousFrame;
+uniform float u_feedback_amount;
+uniform float u_feedback_scaleX;
+uniform float u_feedback_scaleY;
+uniform float u_feedback_rotation;
+uniform float u_feedback_offsetX;
+uniform float u_feedback_offsetY;
+uniform float u_feedback_lumaKey;
+void main() {
+    // Transform UV for previous frame sampling
+    vec2 uv = v_texCoord - 0.5;
+
+    // Scale (< 1 = zoom in, > 1 = zoom out)
+    uv /= vec2(u_feedback_scaleX, u_feedback_scaleY);
+
+    // Rotate
+    float angle = u_feedback_rotation * 3.14159265 / 180.0;
+    float c = cos(angle), s = sin(angle);
+    uv = mat2(c, -s, s, c) * uv;
+
+    // Offset
+    uv += vec2(u_feedback_offsetX, u_feedback_offsetY);
+    uv += 0.5;
+
+    vec4 prev = texture(u_previousFrame, uv);
+    vec4 curr = texture(u_currentFrame, v_texCoord);
+
+    // Luma key: fade out dark areas of feedback to prevent muddiness
+    float luma = dot(prev.rgb, vec3(0.299, 0.587, 0.114));
+    float lumaFade = smoothstep(u_feedback_lumaKey * 0.5, u_feedback_lumaKey * 0.5 + 0.1, luma);
+    prev *= lumaFade;
+
+    // Blend: current frame on top of transformed previous frame
+    fragColor = mix(curr, prev, u_feedback_amount);
+}
+)";
+
 } // namespace EmbeddedShaders

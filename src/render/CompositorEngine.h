@@ -4,6 +4,7 @@
 #include "render/ShaderManager.h"
 #include "render/TextureManager.h"
 #include "render/FullscreenQuad.h"
+#include "render/FeedbackProcessor.h"
 #include "effects/EffectLibrary.h"
 #include "effects/Effect.h"
 #include "analysis/FeatureSnapshot.h"
@@ -120,6 +121,55 @@ private:
     VideoFrameFn videoFrameFn_;
     EffectLibrary* effectLibrary_ = nullptr;
 
+    // Per-layer feedback processors (keyed by layer ID)
+    std::unordered_map<uint32_t, std::unique_ptr<FeedbackProcessor>> feedbackProcessors_;
+
+    // Get or create a feedback processor for a layer
+    FeedbackProcessor& getOrCreateFeedbackProcessor(uint32_t layerId);
+
+    // Per-layer temporal FBOs for time effects (u_prev_frame)
+    // Each layer that uses temporal effects gets its own persistent prev-frame buffer.
+    struct TemporalBuffer {
+        GLuint fbo = 0;
+        GLuint tex = 0;
+        int width = 0;
+        int height = 0;
+    };
+    std::unordered_map<uint32_t, TemporalBuffer> layerTemporalBuffers_;
+
+    // Get or create a temporal buffer for a layer, resized if needed
+    TemporalBuffer& getOrCreateTemporalBuffer(uint32_t layerId, int w, int h);
+
+    // Save a texture into a temporal buffer (passthrough copy)
+    void saveToTemporalBuffer(TemporalBuffer& buf, GLuint srcTex,
+                              ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
+
+    // Frame ring buffer for Screen Split / Frame Stutter.
+    // Stores up to 480 previous frames at reduced resolution (~120MB at 480x270).
+    static constexpr int kMaxRingFrames = 480;
+    static constexpr int kRingDownscale = 4; // store at 1/4 resolution
+    struct FrameRingBuffer {
+        std::vector<GLuint> fbos;
+        std::vector<GLuint> textures;
+        int writeIndex = 0;
+        int ringWidth = 0;  // stored resolution (downscaled)
+        int ringHeight = 0;
+        int frameCount = 0;
+        bool initialized = false;
+    };
+    std::unordered_map<uint32_t, FrameRingBuffer> layerRingBuffers_;
+
+    FrameRingBuffer& getOrCreateRingBuffer(uint32_t layerId, int w, int h);
+    void pushFrameToRing(FrameRingBuffer& ring, GLuint srcTex,
+                         ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
+    GLuint getFrameFromRing(const FrameRingBuffer& ring, int framesAgo) const;
+
+    // Screen Split: render a grid of delayed copies of the clip texture
+    // Returns the composited grid texture, or 0 if not a screen split effect.
+    GLuint applyScreenSplit(GLuint clipTex, const Clip::EffectSlot& slot,
+                            ShaderManager& shaderMgr, FullscreenQuad& quad,
+                            uint32_t layerId, int w, int h);
+
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);
 
@@ -130,9 +180,11 @@ private:
 
     // Apply per-clip effect chain to a texture, returns result texture ID.
     // Uses effectFBO_A_/B_ for ping-pong rendering.
+    // layerId: used to key per-layer temporal buffers for time effects (u_prev_frame).
     GLuint applyClipEffects(const Clip& clip, GLuint inputTex,
                             ShaderManager& shaderMgr, FullscreenQuad& quad,
-                            float time, int w, int h);
+                            float time, int w, int h,
+                            uint32_t layerId = 0);
 
     // Apply layer transform (translate/scale/rotate) to a texture
     GLuint applyLayerTransform(const Layer& layer, GLuint srcTex,

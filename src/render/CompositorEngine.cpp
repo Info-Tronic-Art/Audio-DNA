@@ -34,6 +34,31 @@ void CompositorEngine::releaseGL()
             glDeleteTextures(1, &tex);
     }
     textureCache_.clear();
+
+    // Release per-layer feedback processors
+    for (auto& [id, proc] : feedbackProcessors_)
+        proc->releaseGL();
+    feedbackProcessors_.clear();
+
+    // Release per-layer temporal buffers
+    for (auto& [id, buf] : layerTemporalBuffers_)
+    {
+        if (buf.fbo != 0) glDeleteFramebuffers(1, &buf.fbo);
+        if (buf.tex != 0) glDeleteTextures(1, &buf.tex);
+    }
+    layerTemporalBuffers_.clear();
+
+    // Release per-layer ring buffers
+    for (auto& [id, ring] : layerRingBuffers_)
+    {
+        for (size_t i = 0; i < ring.fbos.size(); ++i)
+        {
+            if (ring.fbos[i] != 0) glDeleteFramebuffers(1, &ring.fbos[i]);
+            if (ring.textures[i] != 0) glDeleteTextures(1, &ring.textures[i]);
+        }
+    }
+    layerRingBuffers_.clear();
+
     glInitialized_ = false;
 }
 
@@ -149,10 +174,20 @@ GLuint CompositorEngine::getKeyTexture(const juce::File& imageFile)
 
 GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
                                             ShaderManager& shaderMgr, FullscreenQuad& quad,
-                                            float time, int w, int h)
+                                            float time, int w, int h,
+                                            uint32_t layerId)
 {
     if (clip.effects.empty() || effectLibrary_ == nullptr)
         return inputTex;
+
+    // Check if any effect in this chain is temporal (needs u_prev_frame)
+    bool anyTemporal = false;
+    for (const auto& slot : clip.effects)
+    {
+        if (!slot.enabled || slot.bypassed) continue;
+        const auto* def = effectLibrary_->getEffectDef(juce::String(slot.effectName));
+        if (def && def->temporal) { anyTemporal = true; break; }
+    }
 
     GLuint currentInput = inputTex;
     int writeFBO = 0; // 0 = effectFBO_A_, 1 = effectFBO_B_
@@ -166,6 +201,56 @@ GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
         const auto* def = effectLibrary_->getEffectDef(juce::String(slot.effectName));
         if (def == nullptr)
             continue;
+
+        // Screen Split is handled specially — uses frame ring buffer, not normal shader
+        if (def->shaderName == "screen_split")
+        {
+            GLuint splitResult = applyScreenSplit(currentInput, slot, shaderMgr, quad, layerId, w, h);
+            if (splitResult != 0 && splitResult != currentInput)
+            {
+                currentInput = splitResult;
+                // effectFBO_A_ was used by applyScreenSplit, next write goes to B
+                writeFBO = 1;
+            }
+            continue;
+        }
+
+        // Frame Stutter is handled specially — uses frame ring buffer
+        if (def->shaderName == "frame_delay")
+        {
+            float depthParam = (slot.paramValues.size() > 0) ? slot.paramValues[0] : 0.3f;
+            float stutterParam = (slot.paramValues.size() > 1) ? slot.paramValues[1] : 0.0f;
+
+            auto& ring = getOrCreateRingBuffer(layerId, w, h);
+            pushFrameToRing(ring, currentInput, shaderMgr, quad, w, h);
+
+            // depth: how far back to look. Map [0,1] to [1, 30] frames
+            int maxDepth = static_cast<int>(1.0f + depthParam * 29.0f);
+
+            // stutter: 0 = smooth constant delay, 1 = rapid random jumping
+            int framesAgo;
+            if (stutterParam < 0.01f)
+            {
+                // Pure delay — show frame from N frames ago
+                framesAgo = maxDepth;
+            }
+            else
+            {
+                // Stutter: jump between different past frames based on time
+                // Higher stutter = more erratic jumping
+                float stutterRate = 1.0f + stutterParam * 15.0f; // 1-16 Hz
+                float stutterPhase = std::fmod(time * stutterRate, 1.0f);
+                // Quantize to create discrete jumps
+                int numSteps = static_cast<int>(2.0f + stutterParam * 6.0f); // 2-8 steps
+                int step = static_cast<int>(stutterPhase * static_cast<float>(numSteps));
+                framesAgo = (step * maxDepth) / numSteps;
+            }
+
+            GLuint delayedTex = getFrameFromRing(ring, framesAgo);
+            if (delayedTex != 0)
+                currentInput = delayedTex;
+            continue;
+        }
 
         auto* program = shaderMgr.getProgram(def->shaderName);
         if (program == nullptr)
@@ -187,14 +272,32 @@ GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
         if (texLoc >= 0)
             glUniform1i(texLoc, 0);
 
-        // Bind feedback texture (unit 1) — previous frame's composited output
-        auto feedbackLoc = program->getUniformIDFromName("u_feedbackTex");
-        if (feedbackLoc >= 0)
+        // Bind temporal previous frame (unit 1) for time effects (u_prev_frame)
+        if (def->temporal)
         {
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, feedbackTex_);
-            glUniform1i(feedbackLoc, 1);
-            glActiveTexture(GL_TEXTURE0);
+            auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
+            auto prevLoc = program->getUniformIDFromName("u_prev_frame");
+            if (prevLoc >= 0)
+            {
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, tempBuf.tex);
+                glUniform1i(prevLoc, 1);
+                glActiveTexture(GL_TEXTURE0);
+            }
+        }
+
+        // Bind feedback texture (unit 1) — previous frame's composited output
+        // Only for non-temporal effects that use u_feedbackTex
+        if (!def->temporal)
+        {
+            auto feedbackLoc = program->getUniformIDFromName("u_feedbackTex");
+            if (feedbackLoc >= 0)
+            {
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, feedbackTex_);
+                glUniform1i(feedbackLoc, 1);
+                glActiveTexture(GL_TEXTURE0);
+            }
         }
 
         // Global uniforms
@@ -257,6 +360,13 @@ GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
             currentInput = effectedTex;
             writeFBO = 1 - writeFBO;
         }
+    }
+
+    // Save current output as previous frame for temporal effects next frame
+    if (anyTemporal && currentInput != inputTex)
+    {
+        auto& tempBuf = getOrCreateTemporalBuffer(layerId, w, h);
+        saveToTemporalBuffer(tempBuf, currentInput, shaderMgr, quad, w, h);
     }
 
     return currentInput;
@@ -363,7 +473,7 @@ void CompositorEngine::applyFXOnlyLayer(const Clip& clip, const Layer& layer,
         return;
 
     // Apply the clip's effects to the accumulator texture
-    GLuint result = applyClipEffects(clip, accumulatorTex_, shaderMgr, quad, time, w, h);
+    GLuint result = applyClipEffects(clip, accumulatorTex_, shaderMgr, quad, time, w, h, layer.id);
 
     if (result != accumulatorTex_)
     {
@@ -561,11 +671,18 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 clipTex = applyClipTransform(*clip, clipTex, shaderMgr, quad, width, height);
 
                 // P13.5.1: Apply per-clip effects
-                clipTex = applyClipEffects(*clip, clipTex, shaderMgr, quad, time, width, height);
+                clipTex = applyClipEffects(*clip, clipTex, shaderMgr, quad, time, width, height, layer.id);
 
                 // P14: Apply clip-to-clip transition if crossfading
                 float dt = 1.0f / 60.0f;
                 clipTex = applyTransition(layer, clipTex, time, shaderMgr, quad, width, height, dt);
+
+                // P16: Apply feedback (Larsen loop) if enabled
+                if (layer.feedback.enabled && layer.feedback.amount > 0.001f)
+                {
+                    auto& fbProc = getOrCreateFeedbackProcessor(layer.id);
+                    clipTex = fbProc.process(clipTex, layer.feedback, shaderMgr, quad, width, height);
+                }
 
                 // Apply per-layer effects (same mechanism as per-clip effects)
                 if (!layer.layerEffects.empty())
@@ -573,7 +690,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                     // Create a temporary "clip" view to reuse applyClipEffects
                     Clip layerFxClip;
                     layerFxClip.effects = layer.layerEffects;
-                    clipTex = applyClipEffects(layerFxClip, clipTex, shaderMgr, quad, time, width, height);
+                    clipTex = applyClipEffects(layerFxClip, clipTex, shaderMgr, quad, time, width, height, layer.id);
                 }
 
                 // P13.5.5: Apply layer transform
@@ -865,7 +982,7 @@ GLuint CompositorEngine::applyTransition(Layer& layer, GLuint newClipTex, float 
         return newClipTex;
 
     // Apply previous clip's effects too
-    prevTex = applyClipEffects(*prevClip, prevTex, shaderMgr, quad, time, w, h);
+    prevTex = applyClipEffects(*prevClip, prevTex, shaderMgr, quad, time, w, h, layer.id);
 
     // Render transition into dedicated transitionFBO (avoids conflicting with scratch/keying)
     juce::String shaderName = getTransitionShaderName(layer.transitionMode);
@@ -929,4 +1046,226 @@ void CompositorEngine::updateFeedbackBuffer(ShaderManager& shaderMgr, Fullscreen
     quad.draw();
 
     feedbackReady_ = true;
+}
+
+FeedbackProcessor& CompositorEngine::getOrCreateFeedbackProcessor(uint32_t layerId)
+{
+    auto it = feedbackProcessors_.find(layerId);
+    if (it != feedbackProcessors_.end())
+        return *it->second;
+
+    auto proc = std::make_unique<FeedbackProcessor>();
+    auto& ref = *proc;
+    feedbackProcessors_[layerId] = std::move(proc);
+    return ref;
+}
+
+CompositorEngine::TemporalBuffer& CompositorEngine::getOrCreateTemporalBuffer(uint32_t layerId, int w, int h)
+{
+    auto& buf = layerTemporalBuffers_[layerId];
+    if (buf.tex != 0 && buf.width == w && buf.height == h)
+        return buf;
+
+    // Release old if size changed
+    if (buf.fbo != 0) { glDeleteFramebuffers(1, &buf.fbo); buf.fbo = 0; }
+    if (buf.tex != 0) { glDeleteTextures(1, &buf.tex); buf.tex = 0; }
+
+    buf.width = w;
+    buf.height = h;
+    createFBO(buf.fbo, buf.tex, w, h);
+
+    // Clear to black so first frame's u_prev_frame is black
+    glBindFramebuffer(GL_FRAMEBUFFER, buf.fbo);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return buf;
+}
+
+void CompositorEngine::saveToTemporalBuffer(TemporalBuffer& buf, GLuint srcTex,
+                                             ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h)
+{
+    auto* prog = shaderMgr.getProgram("passthrough");
+    if (!prog || buf.fbo == 0) return;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, buf.fbo);
+    glViewport(0, 0, w, h);
+    glDisable(GL_BLEND);
+    prog->use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, srcTex);
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+    quad.draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+// === Frame Ring Buffer for Screen Split ===
+
+CompositorEngine::FrameRingBuffer& CompositorEngine::getOrCreateRingBuffer(uint32_t layerId, int w, int h)
+{
+    int rw = std::max(1, w / kRingDownscale);
+    int rh = std::max(1, h / kRingDownscale);
+
+    auto& ring = layerRingBuffers_[layerId];
+    if (ring.initialized && ring.ringWidth == rw && ring.ringHeight == rh)
+        return ring;
+
+    // Release old
+    if (ring.initialized)
+    {
+        for (size_t i = 0; i < ring.fbos.size(); ++i)
+        {
+            if (ring.fbos[i] != 0) glDeleteFramebuffers(1, &ring.fbos[i]);
+            if (ring.textures[i] != 0) glDeleteTextures(1, &ring.textures[i]);
+        }
+    }
+
+    ring.ringWidth = rw;
+    ring.ringHeight = rh;
+    ring.writeIndex = 0;
+    ring.frameCount = 0;
+    ring.fbos.resize(static_cast<size_t>(kMaxRingFrames), 0);
+    ring.textures.resize(static_cast<size_t>(kMaxRingFrames), 0);
+
+    for (int i = 0; i < kMaxRingFrames; ++i)
+    {
+        createFBO(ring.fbos[static_cast<size_t>(i)],
+                  ring.textures[static_cast<size_t>(i)], rw, rh);
+        glBindFramebuffer(GL_FRAMEBUFFER, ring.fbos[static_cast<size_t>(i)]);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    ring.initialized = true;
+    return ring;
+}
+
+void CompositorEngine::pushFrameToRing(FrameRingBuffer& ring, GLuint srcTex,
+                                        ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h)
+{
+    (void)w; (void)h; // full-res dimensions not used — we render at ring resolution
+    auto* prog = shaderMgr.getProgram("passthrough");
+    if (!prog) return;
+
+    auto idx = static_cast<size_t>(ring.writeIndex);
+    glBindFramebuffer(GL_FRAMEBUFFER, ring.fbos[idx]);
+    glViewport(0, 0, ring.ringWidth, ring.ringHeight);
+    glDisable(GL_BLEND);
+    prog->use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, srcTex);
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+    quad.draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    ring.writeIndex = (ring.writeIndex + 1) % kMaxRingFrames;
+    if (ring.frameCount < kMaxRingFrames)
+        ring.frameCount++;
+}
+
+GLuint CompositorEngine::getFrameFromRing(const FrameRingBuffer& ring, int framesAgo) const
+{
+    if (!ring.initialized || ring.frameCount == 0)
+        return 0;
+
+    int maxDelay = ring.frameCount - 1;
+    if (framesAgo > maxDelay) framesAgo = maxDelay;
+    if (framesAgo < 0) framesAgo = 0;
+
+    int idx = (ring.writeIndex - 1 - framesAgo + kMaxRingFrames * 2) % kMaxRingFrames;
+    return ring.textures[static_cast<size_t>(idx)];
+}
+
+// === Screen Split: render grid with per-cell delay ===
+
+GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot& slot,
+                                           ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                           uint32_t layerId, int w, int h)
+{
+    if (effectLibrary_ == nullptr) return clipTex;
+
+    const auto* def = effectLibrary_->getEffectDef("Screen Split");
+    if (def == nullptr) return clipTex;
+
+    // Read params: columns, rows, delay, mode
+    float colsParam = (slot.paramValues.size() > 0) ? slot.paramValues[0] : 0.15f;
+    float rowsParam = (slot.paramValues.size() > 1) ? slot.paramValues[1] : 0.15f;
+    float delayParam = (slot.paramValues.size() > 2) ? slot.paramValues[2] : 0.5f;
+    float modeParam = (slot.paramValues.size() > 3) ? slot.paramValues[3] : 0.0f;
+
+    int cols = static_cast<int>(2.0f + colsParam * 6.0f); // 2-8
+    int rows = static_cast<int>(2.0f + rowsParam * 6.0f); // 2-8
+    // delay: frames between cells. Slider [0,1] → [0, 60] frames per cell.
+    // At 1.0 with a 2x2 grid (4 cells), total span = 180 frames = 3 seconds at 60fps.
+    int framesPerCell = static_cast<int>(std::round(60.0f * delayParam));
+
+    // Get or create ring buffer, push current frame
+    auto& ring = getOrCreateRingBuffer(layerId, w, h);
+    pushFrameToRing(ring, clipTex, shaderMgr, quad, w, h);
+
+    // Render the grid into effectFBO_A_
+    glBindFramebuffer(GL_FRAMEBUFFER, effectFBO_A_);
+    glViewport(0, 0, w, h);
+    glClearColor(0.05f, 0.05f, 0.05f, 1.0f); // dark gray background (grid lines)
+    glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_BLEND);
+
+    auto* prog = shaderMgr.getProgram("passthrough");
+    if (!prog) return clipTex;
+
+    float cellW = static_cast<float>(w) / static_cast<float>(cols);
+    float cellH = static_cast<float>(h) / static_cast<float>(rows);
+    float border = 2.0f; // pixel border
+
+    int totalCells = cols * rows;
+
+    for (int r = 0; r < rows; ++r)
+    {
+        for (int c = 0; c < cols; ++c)
+        {
+            // Calculate cell index based on mode
+            int cellIndex;
+            if (modeParam < 0.33f)
+            {
+                // Sequential: left-to-right, top-to-bottom
+                cellIndex = r * cols + c;
+            }
+            else if (modeParam < 0.66f)
+            {
+                // Reverse: bottom-right to top-left
+                cellIndex = (rows - 1 - r) * cols + (cols - 1 - c);
+            }
+            else
+            {
+                // Diagonal
+                cellIndex = r + c;
+            }
+
+            int framesAgo = cellIndex * framesPerCell;
+
+            // Get the texture for this cell's delay
+            GLuint cellTex = getFrameFromRing(ring, framesAgo);
+            if (cellTex == 0) cellTex = clipTex; // fallback to current
+
+            // Calculate viewport for this cell (with border inset)
+            float x = static_cast<float>(c) * cellW + border;
+            float y = static_cast<float>(rows - 1 - r) * cellH + border; // GL coords: bottom-up
+            float cw = cellW - border * 2.0f;
+            float ch = cellH - border * 2.0f;
+
+            glViewport(static_cast<GLint>(x), static_cast<GLint>(y),
+                       static_cast<GLsizei>(cw), static_cast<GLsizei>(ch));
+
+            prog->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, cellTex);
+            glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+            quad.draw();
+        }
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return effectTex_A_;
 }

@@ -415,25 +415,36 @@ void EffectStackView::itemDropped(const SourceDetails& details)
     if (!desc.startsWith("fx:") || effects_ == nullptr || effectLibrary_ == nullptr)
         return;
 
-    auto effectName = desc.substring(3);
-    const auto* def = effectLibrary_->getEffectDef(effectName);
-    if (def == nullptr)
-        return;
+    // Support comma-separated multi-select drops: "fx:Echo,Ripple,Freeze"
+    auto namesList = desc.substring(3);
+    auto names = juce::StringArray::fromTokens(namesList, ",", "");
 
-    // Create a new EffectSlot with default params
-    Clip::EffectSlot slot;
-    slot.effectName = effectName.toStdString();
-    for (const auto& p : def->params)
-        slot.paramValues.push_back(p.defaultValue);
+    bool anyAdded = false;
+    for (const auto& effectName : names)
+    {
+        auto trimmed = effectName.trim();
+        const auto* def = effectLibrary_->getEffectDef(trimmed);
+        if (def == nullptr)
+            continue;
 
-    effects_->push_back(slot);
-    rebuildRows();
-    resized();
+        Clip::EffectSlot slot;
+        slot.effectName = trimmed.toStdString();
+        for (const auto& p : def->params)
+            slot.paramValues.push_back(p.defaultValue);
 
-    if (onEffectAdded)
-        onEffectAdded(effectName);
+        effects_->push_back(slot);
+        anyAdded = true;
 
-    // Notify parent to resize
-    if (auto* parent = getParentComponent())
-        parent->resized();
+        if (onEffectAdded)
+            onEffectAdded(trimmed);
+    }
+
+    if (anyAdded)
+    {
+        rebuildRows();
+        resized();
+
+        if (auto* parent = getParentComponent())
+            parent->resized();
+    }
 }

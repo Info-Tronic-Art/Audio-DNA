@@ -384,6 +384,91 @@ LayerInspector::LayerInspector()
     rotationControl_.onValueChanged = [this](float v) { if (layer_) layer_->layerRotation = (v - 0.5f) * 720.0f; };
     anchorControl_.onValueChanged = [this](float v) { if (layer_) layer_->layerAnchorX = (v - 0.5f) * 3840.0f; };
 
+    // --- Feedback ---
+    feedbackEnableBtn_.setColour(juce::ToggleButton::textColourId,
+                                  juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    feedbackEnableBtn_.setColour(juce::ToggleButton::tickColourId,
+                                  juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+    feedbackEnableBtn_.setTooltip("Enable feedback loop (Larsen effect)");
+    feedbackEnableBtn_.onClick = [this] {
+        if (layer_) layer_->feedback.enabled = feedbackEnableBtn_.getToggleState();
+    };
+    addAndMakeVisible(feedbackEnableBtn_);
+
+    feedbackPresetSelector_.addItem("Custom", 1);
+    {
+        int idx = 2;
+        for (const auto& p : FeedbackProcessor::getPresets())
+            feedbackPresetSelector_.addItem(juce::String(p.name), idx++);
+    }
+    feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification);
+    feedbackPresetSelector_.setTooltip("Feedback preset");
+    feedbackPresetSelector_.onChange = [this] {
+        if (!layer_) return;
+        int sel = feedbackPresetSelector_.getSelectedId();
+        if (sel > 1)
+        {
+            auto& presets = FeedbackProcessor::getPresets();
+            int idx = sel - 2;
+            if (idx >= 0 && idx < static_cast<int>(presets.size()))
+            {
+                layer_->feedback = presets[static_cast<size_t>(idx)].config;
+                feedbackEnableBtn_.setToggleState(true, juce::dontSendNotification);
+                syncFromLayer();
+            }
+        }
+    };
+    addAndMakeVisible(feedbackPresetSelector_);
+
+    auto setupFbSlider = [this](ResettableSlider& s, double min, double max, double val,
+                                 const juce::String& tooltip) {
+        s.setSliderStyle(juce::Slider::LinearHorizontal);
+        s.setTextBoxStyle(juce::Slider::TextBoxRight, false, 40, 20);
+        s.setRange(min, max, 0.01);
+        s.setValue(val, juce::dontSendNotification);
+        s.setDefaultValue(val);
+        s.setScrollWheelEnabled(false);
+        s.setTooltip(tooltip);
+        s.setColour(juce::Slider::thumbColourId,
+                    juce::Colour(AudioDNALookAndFeel::kAccentCyan));
+        addAndMakeVisible(s);
+    };
+
+    setupFbSlider(feedbackAmountSlider_, 0.0, 1.0, 0.5, "Feedback amount (0 = none, 1 = full)");
+    feedbackAmountSlider_.onValueChange = [this] {
+        if (layer_) { layer_->feedback.amount = static_cast<float>(feedbackAmountSlider_.getValue()); layer_->feedback.presetName.clear(); feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification); }
+    };
+
+    setupFbSlider(feedbackScaleXSlider_, 0.5, 1.5, 0.98, "Feedback horizontal scale");
+    feedbackScaleXSlider_.onValueChange = [this] {
+        if (layer_) { layer_->feedback.scaleX = static_cast<float>(feedbackScaleXSlider_.getValue()); layer_->feedback.presetName.clear(); feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification); }
+    };
+
+    setupFbSlider(feedbackScaleYSlider_, 0.5, 1.5, 0.98, "Feedback vertical scale");
+    feedbackScaleYSlider_.onValueChange = [this] {
+        if (layer_) { layer_->feedback.scaleY = static_cast<float>(feedbackScaleYSlider_.getValue()); layer_->feedback.presetName.clear(); feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification); }
+    };
+
+    setupFbSlider(feedbackRotationSlider_, -15.0, 15.0, 0.0, "Feedback rotation per frame (degrees)");
+    feedbackRotationSlider_.onValueChange = [this] {
+        if (layer_) { layer_->feedback.rotation = static_cast<float>(feedbackRotationSlider_.getValue()); layer_->feedback.presetName.clear(); feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification); }
+    };
+
+    setupFbSlider(feedbackOffsetXSlider_, -0.1, 0.1, 0.0, "Feedback horizontal offset per frame");
+    feedbackOffsetXSlider_.onValueChange = [this] {
+        if (layer_) { layer_->feedback.offsetX = static_cast<float>(feedbackOffsetXSlider_.getValue()); layer_->feedback.presetName.clear(); feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification); }
+    };
+
+    setupFbSlider(feedbackOffsetYSlider_, -0.1, 0.1, 0.0, "Feedback vertical offset per frame");
+    feedbackOffsetYSlider_.onValueChange = [this] {
+        if (layer_) { layer_->feedback.offsetY = static_cast<float>(feedbackOffsetYSlider_.getValue()); layer_->feedback.presetName.clear(); feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification); }
+    };
+
+    setupFbSlider(feedbackLumaKeySlider_, 0.0, 1.0, 0.0, "Luma key: fade dark areas from feedback");
+    feedbackLumaKeySlider_.onValueChange = [this] {
+        if (layer_) { layer_->feedback.lumaKey = static_cast<float>(feedbackLumaKeySlider_.getValue()); layer_->feedback.presetName.clear(); feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification); }
+    };
+
     // --- Layer Effects ---
     addAndMakeVisible(effectStackView_);
 
@@ -461,6 +546,10 @@ void LayerInspector::paint(juce::Graphics& g)
                    + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
                    + anchorControl_.getPreferredHeight();
     y += kSectionHeaderHeight + transformH + kSectionGap;
+
+    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Feedback");
+    // Enable + Preset row + 7 slider rows
+    y += kSectionHeaderHeight + kRowHeight * 9 + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Layer Effects");
 }
@@ -591,6 +680,22 @@ void LayerInspector::resized()
     rotationControl_.setBounds(area.getX(), y, area.getWidth(), rotationControl_.getPreferredHeight()); y += rotationControl_.getPreferredHeight();
     anchorControl_.setBounds(area.getX(), y, area.getWidth(), anchorControl_.getPreferredHeight()); y += anchorControl_.getPreferredHeight() + kSectionGap;
 
+    // --- Feedback ---
+    y += kSectionHeaderHeight;
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        feedbackEnableBtn_.setBounds(row.removeFromLeft(area.getWidth() / 3));
+        feedbackPresetSelector_.setBounds(row);
+    }
+    y += kRowHeight;
+    feedbackAmountSlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight); y += kRowHeight;
+    feedbackScaleXSlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight); y += kRowHeight;
+    feedbackScaleYSlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight); y += kRowHeight;
+    feedbackRotationSlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight); y += kRowHeight;
+    feedbackOffsetXSlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight); y += kRowHeight;
+    feedbackOffsetYSlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight); y += kRowHeight;
+    feedbackLumaKeySlider_.setBounds(area.getX(), y, area.getWidth(), kRowHeight); y += kRowHeight + kSectionGap;
+
     // --- Layer Effects ---
     y += kSectionHeaderHeight;
     int fxHeight = effectStackView_.getPreferredHeight();
@@ -674,6 +779,7 @@ int LayerInspector::getPreferredHeight() const
     h += kSectionHeaderHeight + posXControl_.getPreferredHeight() + posYControl_.getPreferredHeight()
        + scaleControl_.getPreferredHeight() + rotationControl_.getPreferredHeight()
        + anchorControl_.getPreferredHeight() + kSectionGap; // Transform
+    h += kSectionHeaderHeight + kRowHeight * 9 + kSectionGap; // Feedback: enable+preset + 7 sliders
     h += kSectionHeaderHeight + effectStackView_.getPreferredHeight() + kSectionGap;
     return h;
 }
@@ -784,6 +890,34 @@ void LayerInspector::syncFromLayer()
     scaleControl_.setParamValue(std::log2(std::max(0.01f, layer_->layerScale)) / 2.0f + 0.5f);
     rotationControl_.setParamValue(layer_->layerRotation / 720.0f + 0.5f);
     anchorControl_.setParamValue(layer_->layerAnchorX / 3840.0f + 0.5f);
+
+    // --- Feedback ---
+    feedbackEnableBtn_.setToggleState(layer_->feedback.enabled, juce::dontSendNotification);
+    feedbackAmountSlider_.setValue(static_cast<double>(layer_->feedback.amount), juce::dontSendNotification);
+    feedbackScaleXSlider_.setValue(static_cast<double>(layer_->feedback.scaleX), juce::dontSendNotification);
+    feedbackScaleYSlider_.setValue(static_cast<double>(layer_->feedback.scaleY), juce::dontSendNotification);
+    feedbackRotationSlider_.setValue(static_cast<double>(layer_->feedback.rotation), juce::dontSendNotification);
+    feedbackOffsetXSlider_.setValue(static_cast<double>(layer_->feedback.offsetX), juce::dontSendNotification);
+    feedbackOffsetYSlider_.setValue(static_cast<double>(layer_->feedback.offsetY), juce::dontSendNotification);
+    feedbackLumaKeySlider_.setValue(static_cast<double>(layer_->feedback.lumaKey), juce::dontSendNotification);
+
+    // Match preset selector
+    if (!layer_->feedback.presetName.empty())
+    {
+        const auto& presets = FeedbackProcessor::getPresets();
+        for (int i = 0; i < static_cast<int>(presets.size()); ++i)
+        {
+            if (presets[static_cast<size_t>(i)].name == layer_->feedback.presetName)
+            {
+                feedbackPresetSelector_.setSelectedId(i + 2, juce::dontSendNotification);
+                break;
+            }
+        }
+    }
+    else
+    {
+        feedbackPresetSelector_.setSelectedId(1, juce::dontSendNotification);
+    }
 }
 
 void LayerInspector::populateBlendModes()

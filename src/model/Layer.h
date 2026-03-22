@@ -7,6 +7,21 @@
 #include <optional>
 #include <cstdint>
 
+// FeedbackConfig: per-layer feedback parameters.
+// Feedback routes a layer's output back to its input with transformation.
+struct FeedbackConfig
+{
+    bool enabled = false;
+    float amount = 0.5f;      // [0,1] — how much of prev frame bleeds through
+    float scaleX = 0.98f;     // Per-frame scale X (< 1 = zoom in, > 1 = zoom out)
+    float scaleY = 0.98f;     // Per-frame scale Y
+    float rotation = 0.0f;    // Per-frame rotation in degrees
+    float offsetX = 0.0f;     // Per-frame horizontal drift [-0.5, 0.5]
+    float offsetY = 0.0f;     // Per-frame vertical drift [-0.5, 0.5]
+    float lumaKey = 0.0f;     // Fade out dark areas to prevent muddiness [0,1]
+    std::string presetName;   // Preset name (empty = custom)
+};
+
 // Layer: a row in the deck. Contains clips across columns.
 // One clip is active per layer at a time.
 struct Layer
@@ -115,6 +130,9 @@ struct Layer
     float layerRotation = 0.0f;     // Degrees
     float layerAnchorX = 0.0f;
     float layerAnchorY = 0.0f;
+
+    // === Feedback (Larsen loop) ===
+    FeedbackConfig feedback;
 
     // === Per-layer Effect Chain ===
     std::vector<Clip::EffectSlot> layerEffects;

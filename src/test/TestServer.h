@@ -12,6 +12,8 @@ class Renderer;
 class FeatureBus;
 class EffectChain;
 class SourceRegistry;
+class SignalRegistry;
+class RoutingEngine;
 struct Composition;
 
 // TestServer: Embedded HTTP API for the Eyes visual testing harness.
@@ -36,6 +38,8 @@ public:
                Composition& composition,
                EffectChain& effectChain,
                SourceRegistry& sourceRegistry,
+               SignalRegistry& signalRegistry,
+               RoutingEngine& routingEngine,
                int port = 8080);
 
     ~TestServer();
@@ -67,6 +71,13 @@ private:
     void handleUpdateSourceParams(const httplib::Request& req, httplib::Response& res);
     void handleListSources(const httplib::Request& req, httplib::Response& res);
 
+    // Signal/routing endpoints (P16)
+    void handleListSignals(const httplib::Request& req, httplib::Response& res);
+    void handleAddRoute(const httplib::Request& req, httplib::Response& res);
+    void handleRemoveRoute(const httplib::Request& req, httplib::Response& res);
+    void handleListRoutes(const httplib::Request& req, httplib::Response& res);
+    void handleSetMacro(const httplib::Request& req, httplib::Response& res);
+
     // JSON helpers
     std::string jsonOk();
     std::string jsonError(const std::string& message);
@@ -76,6 +87,8 @@ private:
     Composition& composition_;
     EffectChain& effectChain_;
     SourceRegistry& sourceRegistry_;
+    SignalRegistry& signalRegistry_;
+    RoutingEngine& routingEngine_;
 
     int port_;
     httplib::Server server_;

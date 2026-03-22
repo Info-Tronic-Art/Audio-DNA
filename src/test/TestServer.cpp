@@ -7,6 +7,8 @@
 #include "effects/Effect.h"
 #include "model/Composition.h"
 #include "sources/SourceRegistry.h"
+#include "signal/SignalRegistry.h"
+#include "routing/RoutingEngine.h"
 #include "model/Clip.h"
 #include <juce_core/juce_core.h>
 #include <iostream>
@@ -16,12 +18,16 @@ TestServer::TestServer(Renderer& renderer,
                        Composition& composition,
                        EffectChain& effectChain,
                        SourceRegistry& sourceRegistry,
+                       SignalRegistry& signalRegistry,
+                       RoutingEngine& routingEngine,
                        int port)
     : renderer_(renderer)
     , featureBus_(featureBus)
     , composition_(composition)
     , effectChain_(effectChain)
     , sourceRegistry_(sourceRegistry)
+    , signalRegistry_(signalRegistry)
+    , routingEngine_(routingEngine)
     , port_(port)
 {
     setupRoutes();
@@ -122,6 +128,27 @@ void TestServer::setupRoutes()
 
     server_.Get("/api/sources", [this](const httplib::Request& req, httplib::Response& res) {
         handleListSources(req, res);
+    });
+
+    // P16: Signal/routing endpoints
+    server_.Get("/api/signals", [this](const httplib::Request& req, httplib::Response& res) {
+        handleListSignals(req, res);
+    });
+
+    server_.Post("/api/add_route", [this](const httplib::Request& req, httplib::Response& res) {
+        handleAddRoute(req, res);
+    });
+
+    server_.Post("/api/remove_route", [this](const httplib::Request& req, httplib::Response& res) {
+        handleRemoveRoute(req, res);
+    });
+
+    server_.Get("/api/routes", [this](const httplib::Request& req, httplib::Response& res) {
+        handleListRoutes(req, res);
+    });
+
+    server_.Post("/api/set_macro", [this](const httplib::Request& req, httplib::Response& res) {
+        handleSetMacro(req, res);
     });
 }
 
@@ -668,6 +695,161 @@ void TestServer::handleListSources(const httplib::Request&, httplib::Response& r
 
     obj->setProperty("sources", sourcesArr);
     obj->setProperty("count", static_cast<int>(ids.size()));
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+// === P16: Signal/Routing Endpoints ===
+
+void TestServer::handleListSignals(const httplib::Request&, httplib::Response& res)
+{
+    auto* obj = new juce::DynamicObject();
+    juce::Array<juce::var> signalsArr;
+
+    for (int i = 0; i < signalRegistry_.getNumSignals(); ++i)
+    {
+        auto* sig = signalRegistry_.getSignalAt(i);
+        if (!sig) continue;
+
+        auto* sigObj = new juce::DynamicObject();
+        sigObj->setProperty("id", static_cast<int>(sig->getId()));
+        sigObj->setProperty("name", juce::String(sig->getName()));
+
+        static const char* catNames[] = {"Amplitude", "Bands", "Rhythm", "Pitch", "Chroma", "Timbre", "Structure", "Modulation"};
+        int catIdx = static_cast<int>(sig->getCategory());
+        sigObj->setProperty("category", juce::String(catIdx < 8 ? catNames[catIdx] : "Unknown"));
+
+        static const char* typeNames[] = {"audio", "oscillator", "envelope"};
+        int typeIdx = static_cast<int>(sig->getType());
+        sigObj->setProperty("type", juce::String(typeIdx < 3 ? typeNames[typeIdx] : "unknown"));
+
+        sigObj->setProperty("value", static_cast<double>(signalRegistry_.getCachedValue(sig->getId())));
+
+        signalsArr.add(juce::var(sigObj));
+    }
+
+    obj->setProperty("signals", signalsArr);
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleAddRoute(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.isObject())
+    {
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    Route route;
+    route.sourceId = static_cast<uint32_t>(static_cast<int>(json.getProperty("source_signal_id", 0)));
+    route.sourceType = Route::SourceType::Signal;
+
+    // Target: resolve effect name to index in the global chain
+    auto effectName = json.getProperty("target_effect", "").toString();
+    auto paramName = json.getProperty("target_param", "").toString();
+
+    bool found = false;
+    for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+    {
+        auto* effect = effectChain_.getEffect(i);
+        if (effect && effect->getName() == effectName)
+        {
+            route.targetEffectIndex = i;
+            route.targetScope = Route::TargetScope::Global;
+
+            for (int p = 0; p < effect->getNumParams(); ++p)
+            {
+                if (effect->getParam(p).name == paramName.toStdString())
+                {
+                    route.targetParamIndex = p;
+                    found = true;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        res.set_content(jsonError("Effect or param not found: " + effectName.toStdString() + "." + paramName.toStdString()), "application/json");
+        return;
+    }
+
+    route.outputMin = static_cast<float>(static_cast<double>(json.getProperty("output_min", 0.0)));
+    route.outputMax = static_cast<float>(static_cast<double>(json.getProperty("output_max", 1.0)));
+    route.threshold = static_cast<float>(static_cast<double>(json.getProperty("threshold", 0.0)));
+    route.gain = static_cast<float>(static_cast<double>(json.getProperty("gain", 1.0)));
+    route.inverted = static_cast<bool>(json.getProperty("inverted", false));
+
+    uint32_t routeId = routingEngine_.addRoute(route);
+
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("route_id", static_cast<int>(routeId));
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleRemoveRoute(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    int routeId = json.getProperty("id", 0);
+
+    bool removed = routingEngine_.removeRoute(static_cast<uint32_t>(routeId));
+
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", removed);
+    if (!removed)
+        obj->setProperty("error", "Route not found");
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleListRoutes(const httplib::Request&, httplib::Response& res)
+{
+    auto* obj = new juce::DynamicObject();
+    juce::Array<juce::var> routesArr;
+
+    for (int i = 0; i < routingEngine_.getNumRoutes(); ++i)
+    {
+        auto* route = routingEngine_.getRouteAt(i);
+        if (!route) continue;
+
+        auto* rObj = new juce::DynamicObject();
+        rObj->setProperty("id", static_cast<int>(route->id));
+        rObj->setProperty("source_signal_id", static_cast<int>(route->sourceId));
+
+        auto* sig = signalRegistry_.getSignal(route->sourceId);
+        rObj->setProperty("source_name", sig ? juce::String(sig->getName()) : juce::String("unknown"));
+
+        // Resolve target effect/param names
+        auto* effect = effectChain_.getEffect(route->targetEffectIndex);
+        rObj->setProperty("target_effect", effect ? effect->getName() : juce::String("unknown"));
+        if (effect && route->targetParamIndex < effect->getNumParams())
+            rObj->setProperty("target_param", juce::String(effect->getParam(route->targetParamIndex).name));
+
+        rObj->setProperty("output_min", static_cast<double>(route->outputMin));
+        rObj->setProperty("output_max", static_cast<double>(route->outputMax));
+        rObj->setProperty("threshold", static_cast<double>(route->threshold));
+        rObj->setProperty("gain", static_cast<double>(route->gain));
+        rObj->setProperty("inverted", route->inverted);
+        rObj->setProperty("enabled", route->enabled);
+
+        routesArr.add(juce::var(rObj));
+    }
+
+    obj->setProperty("routes", routesArr);
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleSetMacro(const httplib::Request& req, httplib::Response& res)
+{
+    // Stub: macro setting will be fully implemented when MacroBank integration is done
+    auto json = juce::JSON::parse(juce::String(req.body));
+    (void)json;
+
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("note", "Macro endpoint stub — full MacroBank integration pending");
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 

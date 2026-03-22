@@ -10,6 +10,8 @@
 #include "mapping/MappingEngine.h"
 #include "effects/EffectLibrary.h"
 #include "features/FeatureBus.h"
+#include "signal/SignalRegistry.h"
+#include "routing/RoutingEngine.h"
 #include "render/CompositorEngine.h"
 #include "sources/SourceRegistry.h"
 #include "media/VideoPlayer.h"
@@ -82,6 +84,11 @@ public:
 
     // Callback when autopilot advances a clip (called async on message thread)
     void setOnAutopilotAdvanced(std::function<void()> fn) { onAutopilotAdvanced_ = std::move(fn); }
+
+    // Signal routing — P16: wire signals into render loop
+    void setSignalRegistry(SignalRegistry* reg) { signalRegistry_ = reg; }
+    SignalRegistry* getSignalRegistry() { return signalRegistry_; }
+    RoutingEngine& getRoutingEngine() { return routingEngine_; }
 
     // Source registry — for creating procedural source instances
     SourceRegistry& getSourceRegistry() { return sourceRegistry_; }
@@ -194,6 +201,10 @@ private:
     int highFrameTimeCount_ = 0;
     static constexpr float kFrameTimeBudgetMs = 12.0f;
     static constexpr int kHighFrameTimeThreshold = 30; // ~0.5s sustained
+
+    // Signal routing (P16)
+    SignalRegistry* signalRegistry_ = nullptr;  // Owned by MainComponent
+    RoutingEngine routingEngine_;
 
     // Compositor
     CompositorEngine compositor_;

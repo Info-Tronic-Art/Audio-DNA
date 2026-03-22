@@ -252,6 +252,8 @@ target_sources(AudioDNA PRIVATE
     src/ui/MidiLearnOverlay.cpp
     src/render/CompositorEngine.h
     src/render/CompositorEngine.cpp
+    src/render/FeedbackProcessor.h
+    src/render/FeedbackProcessor.cpp
     src/render/EmbeddedShaders.h
 )
 

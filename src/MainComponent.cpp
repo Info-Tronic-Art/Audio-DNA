@@ -379,6 +379,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // === v2: Signal Bar + Top Bar ===
     composition_.initDefault();
     signalRegistry_.initDefaults();
+    previewPanel_.getRenderer().setSignalRegistry(&signalRegistry_);
 
     topBar_ = std::make_unique<TopBar>(analysisThread_.getFeatureBus(), composition_);
     addAndMakeVisible(topBar_.get());
@@ -892,6 +893,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
             composition_,
             previewPanel_.getRenderer().getEffectChain(),
             previewPanel_.getRenderer().getSourceRegistry(),
+            signalRegistry_,
+            previewPanel_.getRenderer().getRoutingEngine(),
             testPort_);
         testServer_->start();
         std::cerr << "[Eyes] Test server started on port " << testPort_ << std::endl;

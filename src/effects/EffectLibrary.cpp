@@ -639,6 +639,36 @@ void EffectLibrary::registerDefaults()
         {"height", "u_bumplight_height", 0.5f}
     }});
 
+    // ============================================================
+    // Time Effects (temporal = true — use u_prev_frame)
+    // ============================================================
+
+    registerEffect({"Echo", "time", "ghost_trails", {
+        {"decay",    "u_trail_length", 0.0f},
+        {"operator", "u_trail_fade",   0.0f}
+    }, true});
+
+    registerEffect({"Posterize Time", "time", "frame_hold", {
+        {"frame rate", "u_hold_rate",   0.0f},
+        {"amount",     "u_hold_amount", 1.0f}
+    }, true});
+
+    registerEffect({"Freeze", "time", "time_freeze", {
+        {"amount", "u_freeze_amount", 1.0f}
+    }, true});
+
+    registerEffect({"Screen Split", "time", "screen_split", {
+        {"columns",         "u_screensplit_cols",  0.0f},
+        {"rows",            "u_screensplit_rows",  0.0f},
+        {"frames per cell", "u_screensplit_delay", 0.25f},
+        {"direction",       "u_screensplit_mode",  0.0f}
+    }, false});
+
+    registerEffect({"Frame Stutter", "time", "frame_delay", {
+        {"depth",   "u_delay_depth",   0.3f},
+        {"stutter", "u_delay_stutter", 0.0f}
+    }, false});
+
     // === Feedback Effect ===
 
     registerEffect({"Point Zoom", "animation", "feedback", {

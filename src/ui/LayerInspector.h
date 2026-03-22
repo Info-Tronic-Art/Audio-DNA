@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "model/Layer.h"
+#include "render/FeedbackProcessor.h"
 #include "routing/MacroBank.h"
 #include "effects/EffectLibrary.h"
 #include "signal/SignalRegistry.h"
@@ -99,6 +100,17 @@ private:
     UniversalParamControl scaleControl_;
     UniversalParamControl rotationControl_;
     UniversalParamControl anchorControl_;
+
+    // --- Feedback ---
+    juce::ToggleButton feedbackEnableBtn_{"Enable"};
+    juce::ComboBox feedbackPresetSelector_;
+    ResettableSlider feedbackAmountSlider_;
+    ResettableSlider feedbackScaleXSlider_;
+    ResettableSlider feedbackScaleYSlider_;
+    ResettableSlider feedbackRotationSlider_;
+    ResettableSlider feedbackOffsetXSlider_;
+    ResettableSlider feedbackOffsetYSlider_;
+    ResettableSlider feedbackLumaKeySlider_;
 
     // --- Layer Effects ---
     EffectStackView effectStackView_;

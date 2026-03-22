@@ -183,6 +183,24 @@ void Renderer::renderOpenGL()
     if (snap == nullptr)
         snap = &defaultSnap;
 
+    // P16: Evaluate all signals from audio features
+    if (signalRegistry_ != nullptr)
+        signalRegistry_->evaluateAll(*snap);
+
+    // P16: Process signal routes → write to effect parameters
+    if (signalRegistry_ != nullptr)
+    {
+        routingEngine_.processFrame(*signalRegistry_, [this](const Route& route, float value) {
+            // Write routed value to the target effect parameter (global scope)
+            if (route.targetScope == Route::TargetScope::Global)
+            {
+                if (auto* effect = effectChain_.getEffect(route.targetEffectIndex))
+                    effect->setParamValue(route.targetParamIndex, value);
+            }
+            // TODO: Clip/Layer scope routing needs compositor integration
+        });
+    }
+
     // Apply audio→effect mappings via MappingEngine
     mappingEngine_.processFrame(*snap, effectChain_);
 
@@ -917,6 +935,16 @@ void Renderer::compileAllShaders()
     compile("source_twisted_torus",    EmbeddedShaders::sourceTwistedTorus);
     compile("source_wormhole",         EmbeddedShaders::sourceWormhole);
     compile("source_torus_hole",       EmbeddedShaders::sourceTorusHole);
+
+    // === Phase 16: Time Effects (temporal) ===
+    compile("ghost_trails",         EmbeddedShaders::ghostTrails);
+    compile("frame_hold",           EmbeddedShaders::frameHold);
+    compile("time_freeze",          EmbeddedShaders::timeFreeze);
+    compile("screen_split",         EmbeddedShaders::screenSplit);
+    compile("frame_delay",          EmbeddedShaders::frameDelay);
+
+    // === Phase 16: Feedback blend shader (layer-level) ===
+    compile("feedback_blend",       EmbeddedShaders::feedbackBlend);
 
     // === Phase 14: Transition Shaders (15 clip-to-clip transitions) ===
     compile("transition_dissolve",      EmbeddedShaders::transitionDissolve);
