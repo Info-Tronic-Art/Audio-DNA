@@ -1,128 +1,229 @@
-# Shader Verification System
+# Shader & Visual Verification System
 
-Mandatory verification protocol for all procedural source shaders. Every shader MUST pass all 4 verification tiers before shipping.
+Mandatory verification for ALL visual elements: effects, sources, feedback, transitions, compositor. Every shader MUST pass verification before shipping.
 
-## The Problem This Solves
+## The Problem
 
-Shaders compile but produce broken visuals: black screens, jump-cuts, dead controls, wrong zoom direction, unusable parameter ranges. These bugs are invisible to the C++ compiler and unit tests — they only appear when a human sees the rendered output. This system catches them automatically.
+Shaders compile but produce broken visuals. C++ tests can't catch: black screens, dead controls, wrong ranges, jump-cuts, ugly defaults, performance drops. This system catches them automatically across 4 tiers.
 
-## 4-Tier Verification
+## What Gets Tested
 
-### Tier 1: Parameter Sweep (automated, ~2 min per source)
+| Component | Count | Test File | What's Verified |
+|-----------|-------|-----------|-----------------|
+| **Procedural Sources** | 55 | `test_sources.py` | Every param at 5+ positions, non-black, has-effect, no-discontinuity |
+| **Effects (FX)** | 112 | `test_effects.py` | Every param at 5+ positions on a test image, non-black, has-effect |
+| **Audio Reactivity** | ~20 features | `test_audio_reactivity.py` | Injected features change effect/source output |
+| **Transitions** | 15 | `test_transitions.py` | Progress 0→1 produces smooth crossfade |
+| **Time Dependence** | all animated | `test_time_sweep.py` | Rendering at t=0, 1, 5, 10 produces different non-black frames |
+| **Performance** | all | `test_performance.py` | Render time per frame < 16ms (60fps target) |
+| **Range Quality** | all params | `test_range_quality.py` | 11-position sweep, CSV reports, 70%+ useful range |
 
-For every source, sweep each parameter across its full range in 5 steps (0.0, 0.25, 0.5, 0.75, 1.0) and verify:
+## 4-Tier Verification Protocol
 
-1. **Not black**: `mean(pixels) > 5` at every parameter position
-2. **Not frozen**: Changing a parameter changes the output (PSNR < 55 vs the default)
-3. **No discontinuities**: Adjacent steps shouldn't differ too much (PSNR > 8 — prevents jump-cuts)
+### Tier 1: Automated Param Sweep (gate — must pass before commit)
 
-```bash
-# Run against the live app:
-AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_fractals.py -v
+For **every source** and **every effect**, sweep each parameter at 5 positions (0.0, 0.25, 0.5, 0.75, 1.0):
 
-# Or with the app spawned automatically:
-pytest tests/visual/test_fractals.py -v
-```
-
-**When to run**: After ANY shader edit, before committing. This is the gate.
-
-### Tier 2: Range Quality (automated, generates report)
-
-For each parameter, render at 11 positions (0.0, 0.1, ..., 1.0) and compute:
-
-- **Brightness curve**: `mean(pixels)` at each position → should be smooth, never drop below 5
-- **Variety score**: Average PSNR between adjacent steps → should be 20-45 (too low = discontinuity, too high = no effect)
-- **Useful range**: What fraction of the 0-1 range produces distinct, non-black output → should be > 70%
-
-This generates a CSV report: `tests/visual/reports/{source_id}_range_quality.csv`
+1. **Not black**: `mean(pixels) > 5` at every position
+2. **Has effect**: Changing the param changes the output (PSNR < 55 vs default)
+3. **No discontinuity**: Adjacent steps have PSNR > 8 (no jump-cuts)
 
 ```bash
-pytest tests/visual/test_range_quality.py -v --report
+# Sources:
+AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_sources.py -v
+
+# Effects:
+AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_effects.py -v
+
+# Or run everything:
+AUDIODNA_NO_SPAWN=1 pytest tests/visual/ -v
 ```
 
-**When to run**: After tuning slider ranges or default values. Identifies dead zones.
+### Tier 2: Range Quality Analysis (tuning — run when adjusting ranges)
 
-### Tier 3: Browser Preview (manual, ~30 sec per source)
+11-position sweep per param. Generates CSV reports with:
+- Brightness curve at each position
+- Variety score between adjacent steps
+- Useful range percentage (non-black AND distinct)
+- Discontinuity detection
 
-Open `tests/visual/shader_preview.html` in Chrome. For each source:
-
-1. Load the shader
-2. Move EVERY slider end-to-end
-3. Verify: smooth transitions, no black, no jumps, interesting visuals at all positions
-4. Check that default values show something beautiful
-
-This catches things automated tests miss: "technically not black but boring", "zoom goes the wrong direction", "the pattern is ugly".
-
-**When to run**: Before the first commit of any new or rewritten shader.
-
-### Tier 4: In-App Validation (user, ~1 min per source)
-
-Build the app, load the source, test each slider. This is the final gate.
-
-**When to run**: After Tiers 1-3 pass, before marking the task complete.
-
-## Test File Structure
-
-```
-tests/visual/
-├── TESTING.md                    # Eyes harness docs
-├── SHADER_VERIFICATION.md        # This file
-├── conftest.py                   # Pytest fixtures (app spawn/reset)
-├── vj_controller.py              # Python HTTP client for Eyes API
-├── vision_check.py               # PSNR/SSIM image comparison
-├── shader_preview.html           # Browser WebGL shader tester
-├── test_render_pipeline.py       # Core render tests (effects, features)
-├── test_fractals.py              # Tier 1: param sweep for all fractals
-├── test_range_quality.py         # Tier 2: range quality reports
-├── golden_frames/                # Reference images for regression
-├── diffs/                        # Amplified diff images on failure
-└── reports/                      # Range quality CSV reports
+```bash
+AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_range_quality.py -v -k "source_name"
+# Reports: tests/visual/reports/{source}_{uniform}.csv
 ```
 
-## Adding a New Source: Verification Checklist
+**Tuning workflow:**
+1. Run Tier 2 for the source/effect you're tuning
+2. Open the CSV — find dead zones (brightness < 5) and jump-cuts (PSNR < 8)
+3. Fix the shader mapping: adjust `param * range + offset`
+4. Re-run Tier 2, verify improvement
+5. Repeat until useful_range > 70% and no discontinuities
 
-When adding a new procedural source shader:
+### Tier 3: Visual Preview (Claude does this before reporting to user)
 
-1. **Write the shader** in `EmbeddedShaders.h`
-2. **Register** in `SourceRegistry.cpp` with sensible defaults
-3. **Add to browser** in `SourcesBrowser.cpp`
-4. **Add to Renderer** compile list in `Renderer.cpp`
-5. **Add test definitions** to `test_fractals.py` — one entry per parameter
-6. **Build**: `cmake --build build --config Release`
-7. **Run Tier 1**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_fractals.py -k "new_source_id" -v`
-8. **Fix** any failures (black frames, dead controls, discontinuities)
-9. **Run Tier 2**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_range_quality.py -k "new_source_id" -v`
-10. **Review** the range quality report — tune defaults and ranges
-11. **Browser preview** (Tier 3): Open `shader_preview.html`, load shader, test every slider
-12. **In-app validation** (Tier 4): Build, launch, test in the actual app
-13. **Commit** only after all 4 tiers pass
+- **Sources**: Open `tests/visual/shader_preview.html`, move every slider end-to-end
+- **Effects**: Load test_card.png, enable effect, move every slider
+- Verify: smooth transitions, interesting visuals, good defaults
 
-## Tuning Slider Ranges: The Range Quality Protocol
+### Tier 4: In-App Validation (user does this)
 
-When a slider "doesn't do anything" or "goes black", the problem is the mapping from [0,1] to the shader's internal range. Use this process:
+Build app, load source/effect, test each slider. Final gate.
 
-1. **Run Tier 2** to get the brightness curve and variety score
-2. **Identify dead zones**: positions where brightness < 5 or variety < 10
-3. **Identify discontinuities**: positions where variety > 50 (jump-cut)
-4. **Fix the mapping**: Adjust the shader's `float param = u_src_foo * range + offset` formula
-5. **Re-run Tier 2** to verify the fix
-6. **Adjust default**: Set the default to the position with the highest variety score
+## Test Architecture
 
-**Common mapping fixes:**
-- Dead zone at high end → reduce range: `param * 4.0` → `param * 2.0`
-- Dead zone at low end → add offset: `param * range` → `offset + param * range`
-- Jump-cut at a specific position → use smoothstep or quadratic: `param * param * range`
-- Most of the range is boring → remap to the interesting region only
+### Sources Test (`test_sources.py`)
+
+Tests ALL procedural sources. Param definitions live in a registry that mirrors `SourceRegistry.cpp`:
+
+```python
+# Auto-discover: query /api/sources to get all sources and their params
+def test_all_source_params(app):
+    sources = app.list_sources()["sources"]
+    for src in sources:
+        for param in src["params"]:
+            # Test at default, 0.0, 0.5, 1.0
+            ...
+```
+
+This is self-maintaining — when a new source is added to SourceRegistry.cpp, it automatically appears in the API and gets tested. No manual test definitions needed.
+
+### Effects Test (`test_effects.py`)
+
+Tests ALL 112 effects. Uses the `/api/state` endpoint to discover effects and params:
+
+```python
+def test_all_effect_params(app):
+    state = app.state()
+    for fx in state["effects"]:
+        for param in fx["params"]:
+            # Enable effect, set param, render, verify
+            ...
+```
+
+Also self-maintaining — new effects automatically get tested.
+
+### Audio Reactivity Test (`test_audio_reactivity.py`)
+
+Injects synthetic audio features and verifies they change the output:
+
+```python
+FEATURE_TESTS = [
+    {"rms": 0.0} vs {"rms": 1.0},
+    {"beatPhase": 0.0} vs {"beatPhase": 0.5},
+    {"spectralCentroid": 200.0} vs {"spectralCentroid": 8000.0},
+    {"bandEnergies": [1,0,0,0,0,0,0]} vs {"bandEnergies": [0,0,0,0,0,0,1]},
+]
+```
+
+For each pair: load a source, inject features, render, verify frames are different.
+
+### Time Sweep Test (`test_time_sweep.py`)
+
+For every animated source/effect, render at t=0, t=1, t=5, t=10 and verify frames change:
+
+```python
+def test_time_changes_output(app, source_id):
+    frames = [render_at_time(app, source_id, t) for t in [0.0, 1.0, 5.0, 10.0]]
+    # At least 2 pairs must differ
+    ...
+```
+
+### Performance Test (`test_performance.py`)
+
+Render 10 frames per source/effect, measure average render time:
+
+```python
+def test_render_performance(app, source_id):
+    times = []
+    for i in range(10):
+        start = time.time()
+        app.render_frame(...)
+        times.append(time.time() - start)
+    avg_ms = np.mean(times) * 1000
+    assert avg_ms < 50, f"{source_id} takes {avg_ms:.0f}ms (budget: 50ms including HTTP overhead)"
+```
+
+### Transition Test (`test_transitions.py`)
+
+For all 15 transitions, render at progress 0.0, 0.25, 0.5, 0.75, 1.0 between two images:
+
+```python
+# Requires: POST /api/set_transition {"type": "dissolve", "progress": 0.5}
+# (may need new API endpoint)
+```
+
+## Self-Maintaining Design
+
+The key principle: **tests discover what to test from the running app's API**, not from hardcoded lists. When a new effect or source is added:
+
+1. It gets registered in `SourceRegistry.cpp` or `EffectLibrary.cpp`
+2. The Eyes API exposes it via `/api/sources` or `/api/state`
+3. The test auto-discovers it and sweeps all its params
+
+The only hardcoded test data is:
+- Threshold values (brightness > 5, PSNR ranges)
+- Audio feature test pairs (which features to inject)
+- Known exceptions (effects that are intentionally black at certain params)
+
+## Phase Coverage Matrix
+
+| Phase | What's Added | Verified By |
+|-------|-------------|-------------|
+| **P16** | 5 time effects + feedback system | `test_effects.py` (params), `test_time_sweep.py` (temporal), feedback needs compositor test |
+| **P17** | 19 creative sources | `test_sources.py` (auto-discovered), `test_range_quality.py` (tuning) |
+| **P18** | 10 audio effects + 8 audio sources + text | `test_effects.py`, `test_sources.py`, `test_audio_reactivity.py` (feature injection) |
+| **P19** | 8 complex effects + 12 sources | `test_effects.py`, `test_sources.py` |
+| **P20** | Layer router, FFGL, text, simulations | Needs compositor-level tests (not shader-level) |
+| **P21** | Live performance controls | Needs interaction tests (binding/MIDI), not visual |
+
+### Gaps That Need Additional Work
+
+1. **Feedback system (P16)** — `FeedbackProcessor` operates at compositor level, not shader level. Needs a compositor test: enable feedback on a layer, render 10 frames, verify the feedback accumulates (frame 10 should differ from frame 1 in a specific way).
+
+2. **Layer Router (P20)** — Tests need multi-layer setup via the API. May need a new endpoint: `POST /api/set_layer_source`.
+
+3. **FFGL Plugins (P20)** — External binaries, need host-level testing, not shader testing.
+
+4. **Performance under load** — Current perf test uses one source at a time. Need multi-layer perf test (4 layers with effects = realistic VJ load).
+
+5. **Transitions (P16-19)** — Need a new API endpoint to test transitions between two images at various progress values.
 
 ## Integration with Build Workflow
 
-The "kick off phase N" protocol in CLAUDE.md should include:
+In CLAUDE.md "kick off phase N" protocol, step 4 (self-validate):
 
-> After completing all tasks and before reporting to the user:
-> 1. Build: `cmake --build build --config Release`
-> 2. C++ tests: `ctest --test-dir build`
-> 3. **Visual tests** (if source shaders were added/modified):
->    `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_fractals.py -v`
-> 4. Fix any visual test failures before proceeding
+```
+4. Self-validate:
+   - Build passes
+   - C++ tests pass
+   - IF sources/effects/shaders changed:
+     - Tier 1: pytest tests/visual/test_sources.py test_effects.py -v
+     - Tier 2: pytest tests/visual/test_range_quality.py -v (for changed items)
+     - Fix ALL failures before proceeding
+   - IF audio-reactive features changed:
+     - pytest tests/visual/test_audio_reactivity.py -v
+```
 
-This makes Tier 1 part of the standard self-validation step.
+## File Structure
+
+```
+tests/visual/
+├── TESTING.md                     # Eyes harness docs
+├── SHADER_VERIFICATION.md         # THIS FILE — verification system design
+├── conftest.py                    # App spawn/reset fixtures
+├── vj_controller.py               # Python HTTP client
+├── vision_check.py                # PSNR/SSIM comparison
+├── shader_preview.html            # Browser WebGL tester
+├── test_render_pipeline.py        # Core render/effect/feature tests
+├── test_fractals.py               # Fractal-specific param tests (hardcoded)
+├── test_sources.py                # ALL sources auto-discovered param sweep
+├── test_effects.py                # ALL effects auto-discovered param sweep
+├── test_range_quality.py          # 11-position range quality with CSV reports
+├── test_audio_reactivity.py       # Feature injection verification
+├── test_time_sweep.py             # Temporal animation verification
+├── test_performance.py            # Render time budget verification
+├── test_transitions.py            # Transition progress sweep
+├── golden_frames/                 # Reference images
+├── diffs/                         # Failure diff images
+└── reports/                       # Range quality CSVs
+```

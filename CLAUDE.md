@@ -749,13 +749,17 @@ When the user says **"kick off phase N"**, follow this exact sequence:
    - Build: `cmake --build build --config Release` exits 0
    - Tests: all existing + new tests pass
    - Grep: no RT violations (no `new`/`malloc` in audio callback or analysis steady-state, no `std::mutex` on hot paths)
-   - **Shader verification (MANDATORY if sources/shaders changed)**: Follow the 4-tier system in `tests/visual/SHADER_VERIFICATION.md`:
-     - **Tier 1**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_fractals.py -v` — every param non-black, every control has visible effect, no discontinuities
-     - **Tier 2**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_range_quality.py -v` — 70%+ useful range per param, no dead zones, generates CSV reports
-     - **Tier 3**: Open `tests/visual/shader_preview.html` in browser, move every slider end-to-end, verify smooth transitions
-     - **Tier 4**: Build app, load source, test each slider manually (user does this)
-     - Fix ALL Tier 1/2 failures before reporting to user. Tier 3 is Claude's visual check. Tier 4 is the user's.
-   - **Eyes render tests**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_render_pipeline.py -v` for effects/pipeline changes
+   - **Shader verification (MANDATORY if sources/effects/shaders changed)**: Follow the 4-tier system in `tests/visual/SHADER_VERIFICATION.md`:
+     - **Tier 1 — Sources**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_sources.py -v` — auto-discovers ALL sources, sweeps every param, checks non-black + has-effect + no-discontinuity
+     - **Tier 1 — Effects**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_effects.py -v` — auto-discovers ALL 112 effects, verifies each param changes output
+     - **Tier 1 — Audio**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_audio_reactivity.py -v` — verifies injected audio features change source/effect output
+     - **Tier 1 — Time**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_time_sweep.py -v` — verifies animated sources change over time
+     - **Tier 1 — Performance**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_performance.py -v` — verifies render time within budget
+     - **Tier 2**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/test_range_quality.py -v` — 11-position sweep, CSV reports, 70%+ useful range, no dead zones
+     - **Tier 3**: Open `tests/visual/shader_preview.html` in browser, move every slider end-to-end
+     - **Tier 4**: User tests in the actual app
+     - Fix ALL Tier 1 failures before reporting. Tier 2 for tuning. Tier 3 is Claude's visual check. Tier 4 is user's.
+   - **Quick run all visual tests**: `AUDIODNA_NO_SPAWN=1 pytest tests/visual/ -v --ignore=tests/visual/test_range_quality.py` (range quality is slow, run separately for tuning)
    - Phase-specific checks listed in PHASE_GUIDE.md
 
 5. **Decision point — does this phase have UI changes?**

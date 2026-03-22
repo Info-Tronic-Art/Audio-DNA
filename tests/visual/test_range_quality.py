@@ -137,6 +137,46 @@ class TestRangeQuality:
         assert not metrics["has_discontinuity"], (
             f"{source_id}:{param_name} has discontinuity (PSNR < 8 between adjacent steps)"
         )
+
+
+class TestAutoDiscoveredRangeQuality:
+    """Auto-discover all sources and sweep all their params.
+
+    This class discovers sources from the running app's API.
+    Use for comprehensive tuning: pytest test_range_quality.py -k "AutoDiscovered" -v
+    """
+
+    def test_all_source_param_ranges(self, app, tmp_path):
+        """Sweep every param on every source. Generates CSV reports."""
+        data = app.list_sources()
+        issues = []
+        for src in data["sources"]:
+            for param in src.get("params", []):
+                results = render_sweep(app, tmp_path, src["id"], param["uniform"], steps=11)
+                metrics = analyze_sweep(results)
+                save_report(src["id"], param["name"], param["uniform"], results, metrics)
+
+                if metrics["useful_range"] < 0.7:
+                    issues.append(
+                        f"{src['id']}:{param['name']} — "
+                        f"{metrics['useful_range']*100:.0f}% useful range"
+                    )
+                if metrics["has_discontinuity"]:
+                    issues.append(
+                        f"{src['id']}:{param['name']} — discontinuity detected"
+                    )
+
+        if issues:
+            report_path = str(tmp_path / "range_quality_issues.txt")
+            with open(report_path, "w") as f:
+                f.write("\n".join(issues))
+            print(f"\n{'='*60}")
+            print(f"Range quality issues ({len(issues)}):")
+            for i in issues[:30]:
+                print(f"  {i}")
+            print(f"Full report: {report_path}")
+            print(f"CSV reports: {REPORTS_DIR}/")
+            print(f"{'='*60}")
         assert metrics["distinct_pairs"] >= 3, (
             f"{source_id}:{param_name} only {metrics['distinct_pairs']}/{metrics['total_pairs']} "
             f"pairs are distinct. Control may not be working."
