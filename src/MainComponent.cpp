@@ -2,7 +2,8 @@
 #include "ui/PreferencesDialog.h"
 #include "analysis/BPMTracker.h"
 
-MainComponent::MainComponent()
+MainComponent::MainComponent(bool testMode, int testPort)
+    : testMode_(testMode), testPort_(testPort)
 {
     setLookAndFeel(&lookAndFeel_);
 
@@ -878,8 +879,23 @@ MainComponent::MainComponent()
     midiHandler_ = std::make_unique<MidiHandler>(bindingManager_);
     midiHandler_->start(audioEngine_.getDeviceManager());
 
-    // Start analysis
-    analysisThread_.startThread(juce::Thread::Priority::high);
+    // Start analysis (skip in test mode — features are injected via HTTP)
+    if (!testMode_)
+        analysisThread_.startThread(juce::Thread::Priority::high);
+
+#if AUDIODNA_TEST_SERVER
+    if (testMode_)
+    {
+        testServer_ = std::make_unique<TestServer>(
+            previewPanel_.getRenderer(),
+            analysisThread_.getFeatureBus(),
+            composition_,
+            previewPanel_.getRenderer().getEffectChain(),
+            testPort_);
+        testServer_->start();
+        std::cerr << "[Eyes] Test server started on port " << testPort_ << std::endl;
+    }
+#endif
 
     setWantsKeyboardFocus(true);
     // Register as key listener on top-level component to catch keys globally
@@ -889,11 +905,16 @@ MainComponent::MainComponent()
 
 MainComponent::~MainComponent()
 {
+#if AUDIODNA_TEST_SERVER
+    if (testServer_)
+        testServer_->stop();
+#endif
 #if AUDIODNA_HAS_CAMERA
     closeCamera();
 #endif
     outputWindow_.reset();
-    analysisThread_.stopThread(1000);
+    if (!testMode_)
+        analysisThread_.stopThread(1000);
     setLookAndFeel(nullptr);
 }
 

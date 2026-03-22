@@ -18,6 +18,7 @@
 #include "model/Deck.h"
 #include "model/Autopilot.h"
 #include <mutex>
+#include <future>
 #include <unordered_map>
 
 // Renderer: implements juce::OpenGLRenderer to drive the GL render loop.
@@ -168,6 +169,20 @@ public:
     // Render frame time tracking
     float getFrameTimeMs() const { return frameTimeMs_.load(std::memory_order_relaxed); }
 
+    // === Frame Capture (Eyes test harness) ===
+
+    // Request a single frame capture. Blocks the calling thread until the GL
+    // thread renders and saves the frame. Returns true on success.
+    // Must NOT be called from the GL thread (deadlock).
+    // timeOverride: if >= 0, overrides u_time for deterministic rendering.
+    // width/height: if > 0, temporarily sets locked resolution.
+    bool captureFrame(const juce::File& outputPath, float timeOverride = -1.0f,
+                      int width = 0, int height = 0);
+
+    // Override u_time for deterministic test rendering. Set to < 0 to disable.
+    void setTimeOverride(float t) { timeOverride_.store(t, std::memory_order_relaxed); }
+    float getTimeOverride() const { return timeOverride_.load(std::memory_order_relaxed); }
+
 private:
     std::atomic<float> masterLevel_{1.0f};
     std::atomic<float> frameTimeMs_{0.0f};
@@ -217,4 +232,17 @@ private:
     std::string activeSourceType_;
     std::vector<Clip::SourceParam> activeSourceParams_;
     bool hasActiveSource_ = false;
+
+    // Frame capture (Eyes test harness)
+    std::atomic<float> timeOverride_{-1.0f};
+    std::mutex captureMutex_;
+    std::atomic<bool> pendingCapture_{false};
+    juce::File captureOutputPath_;
+    int captureWidth_ = 0;
+    int captureHeight_ = 0;
+    std::promise<bool>* capturePromise_ = nullptr;
+
+    // Process pending capture after render. Called from renderOpenGL().
+    void processPendingCapture(float renderW, float renderH,
+                               float vpX, float vpY, float vpW, float vpH);
 };

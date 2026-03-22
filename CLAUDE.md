@@ -608,6 +608,22 @@ cmake --build build --config Release -j$(nproc)
 
 Aubio will be added via system install or FetchContent. On macOS: `brew install aubio`. On Linux: `sudo apt install libaubio-dev`. The `FindAubio.cmake` module will locate it.
 
+### Visual Testing Harness (Eyes)
+
+Build with `-DAUDIODNA_BUILD_TEST_SERVER=ON` to embed an HTTP test API. Run with `--test-mode` to start the server. Python scripts send commands (load image, enable effects, inject audio features, capture frames) and compare rendered PNGs against golden references using PSNR/SSIM.
+
+See `tests/visual/TESTING.md` for the full API reference, Python client docs, and test authoring guide.
+
+```bash
+# Build with Eyes
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DAUDIODNA_BUILD_TEST_SERVER=ON
+cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+# Run visual tests
+pip install -r tests/visual/requirements-test.txt
+cd tests/visual && pytest test_render_pipeline.py -v
+```
+
 ---
 
 ## Development Rules

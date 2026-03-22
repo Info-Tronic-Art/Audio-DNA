@@ -28,6 +28,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(JUCE)
 
+# --- Visual Test Server (Eyes) ---
+option(AUDIODNA_BUILD_TEST_SERVER "Build with embedded HTTP test server (Eyes)" OFF)
+if(AUDIODNA_BUILD_TEST_SERVER)
+    FetchContent_Declare(
+        httplib
+        GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+        GIT_TAG        v0.18.3
+        GIT_SHALLOW    TRUE
+    )
+    FetchContent_MakeAvailable(httplib)
+endif()
+
 # --- Application Target ---
 juce_add_gui_app(AudioDNA
     PRODUCT_NAME "Audio-DNA"
@@ -243,6 +255,14 @@ target_sources(AudioDNA PRIVATE
     src/render/EmbeddedShaders.h
 )
 
+# Conditionally add test server sources
+if(AUDIODNA_BUILD_TEST_SERVER)
+    target_sources(AudioDNA PRIVATE
+        src/test/TestServer.h
+        src/test/TestServer.cpp
+    )
+endif()
+
 target_include_directories(AudioDNA PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Camera support: macOS and Windows only (Linux lacks juce_video camera support)
@@ -262,6 +282,12 @@ target_compile_definitions(AudioDNA PRIVATE
     JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:AudioDNA,JUCE_VERSION>"
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
+
+# Add test server compile definition and link
+if(AUDIODNA_BUILD_TEST_SERVER)
+    target_compile_definitions(AudioDNA PRIVATE AUDIODNA_TEST_SERVER=1)
+    target_link_libraries(AudioDNA PRIVATE httplib::httplib)
+endif()
 
 set(AUDIODNA_LIBS
     juce::juce_audio_basics

@@ -163,7 +163,15 @@ void Renderer::renderOpenGL()
 
     // Check if we have anything to render
     if (!texMgr_.hasImage() && !sourceActive && !deckActive)
+    {
+        // Process pending frame capture even when there's nothing to render
+        auto* comp2 = glContext_.getTargetComponent();
+        float s2 = static_cast<float>(glContext_.getRenderingScale());
+        float cw2 = comp2 ? static_cast<float>(comp2->getWidth()) * s2 : 256.0f;
+        float ch2 = comp2 ? static_cast<float>(comp2->getHeight()) * s2 : 256.0f;
+        processPendingCapture(cw2, ch2, 0, 0, cw2, ch2);
         return; // Nothing to render yet
+    }
 
     // Read latest audio features (lock-free)
     const FeatureSnapshot* snap = featureBus_.acquireRead();
@@ -190,9 +198,10 @@ void Renderer::renderOpenGL()
         }
     }
 
-    // Calculate time
-    float time = static_cast<float>(
-        juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
+    // Calculate time (allow override for deterministic test rendering)
+    float overrideT = timeOverride_.load(std::memory_order_relaxed);
+    float time = (overrideT >= 0.0f) ? overrideT
+        : static_cast<float>(juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
 
     // Get physical pixel dimensions
     auto* component = glContext_.getTargetComponent();
@@ -280,6 +289,8 @@ void Renderer::renderOpenGL()
         glViewport(0, 0, static_cast<int>(compW), static_cast<int>(compH));
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        // Still process pending frame capture (captures the black frame)
+        processPendingCapture(compW, compH, 0, 0, compW, compH);
         return;
     }
 
@@ -374,6 +385,9 @@ void Renderer::renderOpenGL()
         renderProfileAccum_ = 0.0;
         renderProfileCount_ = 0;
     }
+
+    // Process pending frame capture (Eyes test harness)
+    processPendingCapture(renderW, renderH, vpX, vpY, vpW, vpH);
 }
 
 void Renderer::openGLContextClosing()
@@ -986,4 +1000,121 @@ void Renderer::initEffectChain()
 
     // No demo effects or mappings — user enables what they want via the FX browser
     mappingEngine_.clearAll();
+}
+
+// === Frame Capture (Eyes test harness) ===
+
+bool Renderer::captureFrame(const juce::File& outputPath, float timeOverride,
+                            int width, int height)
+{
+    // Clamp dimensions to safe max (avoid huge allocations)
+    if (width > 1920) width = 1920;
+    if (height > 1080) height = 1080;
+
+    std::promise<bool> promise;
+    auto future = promise.get_future();
+
+    {
+        std::lock_guard<std::mutex> lock(captureMutex_);
+        captureOutputPath_ = outputPath;
+        captureWidth_ = width;
+        captureHeight_ = height;
+        capturePromise_ = &promise;
+        pendingCapture_.store(true, std::memory_order_release);
+    }
+
+    // Set time override for this frame
+    float prevTime = timeOverride_.load(std::memory_order_relaxed);
+    if (timeOverride >= 0.0f)
+        timeOverride_.store(timeOverride, std::memory_order_relaxed);
+
+    // Wait for GL thread to process (max 5 seconds)
+    auto status = future.wait_for(std::chrono::seconds(5));
+
+    // Restore time override
+    timeOverride_.store(prevTime, std::memory_order_relaxed);
+
+    if (status == std::future_status::timeout)
+    {
+        std::cerr << "[Eyes] Frame capture timed out after 5s" << std::endl;
+        std::lock_guard<std::mutex> lock(captureMutex_);
+        pendingCapture_.store(false, std::memory_order_relaxed);
+        capturePromise_ = nullptr;
+        return false;
+    }
+
+    return future.get();
+}
+
+void Renderer::processPendingCapture(float renderW, float renderH,
+                                      float vpX, float vpY, float vpW, float vpH)
+{
+    // Quick check without lock (avoids lock contention on every frame)
+    if (!pendingCapture_.load(std::memory_order_acquire))
+        return;
+
+    std::lock_guard<std::mutex> lock(captureMutex_);
+    if (!pendingCapture_.load(std::memory_order_relaxed) || capturePromise_ == nullptr)
+        return;
+
+    std::cerr << "[Eyes] Processing capture: " << renderW << "x" << renderH
+              << " vp=(" << vpX << "," << vpY << "," << vpW << "," << vpH << ")" << std::endl;
+
+    // Determine capture area
+    int readX = static_cast<int>(vpX);
+    int readY = static_cast<int>(vpY);
+    int readW = static_cast<int>(vpW > 0 ? vpW : renderW);
+    int readH = static_cast<int>(vpH > 0 ? vpH : renderH);
+
+    if (readW <= 0 || readH <= 0)
+    {
+        std::cerr << "[Eyes] Invalid capture dimensions: " << readW << "x" << readH << std::endl;
+        capturePromise_->set_value(false);
+        pendingCapture_.store(false, std::memory_order_relaxed);
+        capturePromise_ = nullptr;
+        return;
+    }
+
+    // Read pixels from the current framebuffer (default FBO after render)
+    std::vector<uint8_t> pixels(static_cast<size_t>(readW) * static_cast<size_t>(readH) * 4);
+    glReadPixels(readX, readY, readW, readH, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+
+    // Create JUCE image and copy pixels (flip vertically: GL origin is bottom-left)
+    juce::Image img(juce::Image::ARGB, readW, readH, false);
+    {
+        juce::Image::BitmapData bmp(img, juce::Image::BitmapData::writeOnly);
+        for (int y = 0; y < readH; ++y)
+        {
+            const auto* srcRow = pixels.data() + static_cast<size_t>(readH - 1 - y) * static_cast<size_t>(readW) * 4;
+            for (int x = 0; x < readW; ++x)
+            {
+                bmp.setPixelColour(x, y,
+                    juce::Colour(srcRow[x * 4],     // R
+                                 srcRow[x * 4 + 1], // G
+                                 srcRow[x * 4 + 2], // B
+                                 srcRow[x * 4 + 3]  // A
+                    ));
+            }
+        }
+    }
+
+    // Write PNG
+    captureOutputPath_.getParentDirectory().createDirectory();
+    juce::FileOutputStream fos(captureOutputPath_);
+    bool ok = false;
+    if (fos.openedOk())
+    {
+        juce::PNGImageFormat pngFormat;
+        ok = pngFormat.writeImageToStream(img, fos);
+    }
+
+    if (ok)
+        std::cerr << "[Eyes] Captured frame: " << captureOutputPath_.getFullPathName()
+                  << " (" << readW << "x" << readH << ")" << std::endl;
+    else
+        std::cerr << "[Eyes] Failed to write PNG: " << captureOutputPath_.getFullPathName() << std::endl;
+
+    capturePromise_->set_value(ok);
+    pendingCapture_ = false;
+    capturePromise_ = nullptr;
 }

@@ -28,6 +28,9 @@
 #include "ui/MidiLearnOverlay.h"
 #include "midi/MidiHandler.h"
 #include "recording/SessionRecorder.h"
+#if AUDIODNA_TEST_SERVER
+ #include "test/TestServer.h"
+#endif
 #if AUDIODNA_HAS_CAMERA
  #include <juce_video/juce_video.h>
 #endif
@@ -42,7 +45,7 @@ class MainComponent : public juce::Component,
                       private juce::Timer
 {
 public:
-    MainComponent();
+    MainComponent(bool testMode = false, int testPort = 8080);
     ~MainComponent() override;
 
     void paint(juce::Graphics& g) override;
@@ -247,6 +250,13 @@ private:
     void handleFileDrop(int layerIndex, int column, const juce::File& file);
     void handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
     void handleDeckSwitch(int deckIndex);
+
+    // Test mode
+    bool testMode_ = false;
+    int testPort_ = 8080;
+#if AUDIODNA_TEST_SERVER
+    std::unique_ptr<TestServer> testServer_;
+#endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

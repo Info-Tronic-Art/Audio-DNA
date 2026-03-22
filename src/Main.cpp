@@ -8,9 +8,22 @@ public:
     const juce::String getApplicationVersion() override { return "0.1.0"; }
     bool moreThanOneInstanceAllowed() override          { return false; }
 
-    void initialise(const juce::String&) override
+    void initialise(const juce::String& commandLine) override
     {
-        mainWindow_ = std::make_unique<MainWindow>(getApplicationName());
+        // Parse command-line arguments
+        bool testMode = false;
+        int testPort = 8080;
+
+        auto args = juce::StringArray::fromTokens(commandLine, " ", "\"");
+        for (const auto& arg : args)
+        {
+            if (arg == "--test-mode")
+                testMode = true;
+            else if (arg.startsWith("--test-port="))
+                testPort = arg.fromFirstOccurrenceOf("=", false, false).getIntValue();
+        }
+
+        mainWindow_ = std::make_unique<MainWindow>(getApplicationName(), testMode, testPort);
     }
 
     void shutdown() override
@@ -27,12 +40,12 @@ private:
     class MainWindow : public juce::DocumentWindow
     {
     public:
-        explicit MainWindow(const juce::String& name)
+        explicit MainWindow(const juce::String& name, bool testMode = false, int testPort = 8080)
             : DocumentWindow(name,
                              juce::Colour(0xff1a1a2e),
                              DocumentWindow::allButtons)
         {
-            auto* mainComp = new MainComponent();
+            auto* mainComp = new MainComponent(testMode, testPort);
 
             setUsingNativeTitleBar(true);
             setContentOwned(mainComp, true);
