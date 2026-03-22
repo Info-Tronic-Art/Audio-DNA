@@ -27,12 +27,14 @@ void ProceduralSource::initGL(int width, int height)
         createFBO(pingFBO_[1], pingTex_[1], width, height);
         currentPing_ = 0;
 
-        // Clear both ping-pong buffers to black
+        // Clear both ping-pong buffers to black with alpha=0
+        // Alpha=0 signals "uninitialized" to stateful shaders that use
+        // state.a < 0.1 as a seed trigger (e.g., Cellular Automata)
         for (int i = 0; i < 2; ++i)
         {
             glBindFramebuffer(GL_FRAMEBUFFER, pingFBO_[i]);
             glViewport(0, 0, width, height);
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT);
         }
     }
@@ -76,7 +78,7 @@ void ProceduralSource::reset()
     {
         glBindFramebuffer(GL_FRAMEBUFFER, pingFBO_[i]);
         glViewport(0, 0, fboWidth_, fboHeight_);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

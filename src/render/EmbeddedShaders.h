@@ -6266,30 +6266,35 @@ inline const char* sourceApollonian = R"(
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float zoom = exp(u_src_zoom * 4.0);
+
+        float zoom = 1.0 + u_src_zoom * 8.0;
         float rot = u_time * (u_src_rotation - 0.5) * 0.5;
-        float c = cos(rot), s = sin(rot);
-        uv = vec2(uv.x*c - uv.y*s, uv.x*s + uv.y*c);
+        float ca = cos(rot), sa = sin(rot);
+        uv = vec2(uv.x*ca - uv.y*sa, uv.x*sa + uv.y*ca);
         uv *= zoom;
+
+        // Apollonian gasket via Kleinian group / IFS
         vec2 p = uv;
-        float scale = 1.0;
-        int maxIter = int(u_src_iterations * 15.0) + 5;
         float minDist = 1e10;
-        for (int i = 0; i < maxIter; i++) {
+        int maxIter = int(u_src_iterations * 20.0) + 8;
+
+        for (int i = 0; i < 30; i++) {
+            if (i >= maxIter) break;
             p = abs(p);
-            // Circle inversion
-            float r2 = dot(p, p);
-            if (r2 < 0.25) { p /= (r2 * 4.0); scale *= 4.0 * r2; }
-            else if (r2 < 1.0) { p /= r2; scale *= r2; }
-            p -= vec2(0.5, 0.5);
+            if (p.x < p.y) p = p.yx;  // fold
+            p -= vec2(1.0, 1.0);
+            if (p.y < -0.5 * p.x) p = vec2(p.x - p.y, p.y + p.x) * 0.7071; // 45 degree fold
             float d = length(p);
-            minDist = min(minDist, d / scale);
+            minDist = min(minDist, d);
+            p *= 2.0;
+            p -= vec2(1.5, 0.5);
         }
-        float edge = smoothstep(0.01, 0.0, minDist);
-        float fill = smoothstep(0.05, 0.0, minDist);
-        float hue = u_src_color_shift + minDist * 5.0;
+
+        // Distance-based coloring
+        float glow = exp(-minDist * 3.0);
+        float hue = u_src_color_shift + log(minDist + 1.0) * 0.5;
         vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
-        col *= fill * (0.8 + u_rms * 0.4);
+        col *= glow * (0.8 + u_rms * 0.4);
         fragColor = vec4(col, 1.0);
     }
 )";

@@ -62,7 +62,7 @@ void SourceRegistry::registerDefaults()
     registerSource("mandelbrot", [] {
         auto s = std::make_unique<ProceduralSource>("mandelbrot", "Mandelbrot / Julia", "Fractal", "source_mandelbrot");
         s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
-        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Zoom", "u_src_zoom", 0.0f);
         s->addParam("Center X", "u_src_center_x", 0.5f);
         s->addParam("Center Y", "u_src_center_y", 0.5f);
         s->addParam("Julia Mix", "u_src_julia_mix", 0.0f);
@@ -453,7 +453,7 @@ void SourceRegistry::registerDefaults()
 
     registerSource("apollonian", [] {
         auto s = std::make_unique<ProceduralSource>("apollonian", "Apollonian Gasket", "Fractal", "source_apollonian");
-        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Zoom", "u_src_zoom", 0.0f);
         s->addParam("Iterations", "u_src_iterations", 0.4f);
         s->addParam("Rotation", "u_src_rotation", 0.5f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
