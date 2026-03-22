@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA Shader Preview</title>
+<style>
+body { margin: 0; background: #1a1a1a; color: #e0e0e0; font-family: monospace; display: flex; height: 100vh; }
+#sidebar { width: 320px; padding: 10px; overflow-y: auto; background: #222; border-right: 1px solid #444; }
+#sidebar h3 { margin: 5px 0; color: #88ccff; }
+canvas { flex: 1; display: block; }
+.param { margin: 4px 0; display: flex; align-items: center; gap: 6px; }
+.param label { width: 100px; font-size: 11px; text-align: right; }
+.param input[type=range] { flex: 1; }
+.param .val { width: 40px; font-size: 10px; text-align: left; }
+select { width: 100%; margin: 4px 0; background: #333; color: #e0e0e0; border: 1px solid #555; padding: 4px; }
+button { background: #444; color: #e0e0e0; border: 1px solid #666; padding: 4px 8px; cursor: pointer; margin: 2px; }
+button:hover { background: #555; }
+.section { border-top: 1px solid #444; margin-top: 8px; padding-top: 6px; }
+#status { font-size: 10px; color: #88ff88; margin: 4px 0; }
+#error { font-size: 10px; color: #ff6666; margin: 4px 0; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div id="sidebar">
+    <h3>Shader Preview</h3>
+    <div>
+        <select id="shaderSelect"></select>
+    </div>
+    <div id="status"></div>
+    <div id="error"></div>
+    <div class="section">
+        <h3>Parameters</h3>
+        <div id="params"></div>
+    </div>
+    <div class="section">
+        <h3>Audio Simulation</h3>
+        <div class="param">
+            <label>RMS</label>
+            <input type="range" id="u_rms" min="0" max="1" step="0.01" value="0.5">
+            <span class="val" id="u_rms_val">0.50</span>
+        </div>
+        <div class="param">
+            <label>Beat Phase</label>
+            <input type="range" id="u_beatPhase" min="0" max="1" step="0.01" value="0">
+            <span class="val" id="u_beatPhase_val">0.00</span>
+        </div>
+        <div class="param">
+            <label>Bass</label>
+            <input type="range" id="u_bass" min="0" max="1" step="0.01" value="0.3">
+            <span class="val" id="u_bass_val">0.30</span>
+        </div>
+        <button onclick="toggleAutoAudio()">Toggle Auto Audio</button>
+    </div>
+    <div class="section">
+        <button onclick="captureFrame()">Save PNG</button>
+        <button onclick="togglePause()">Pause/Play</button>
+    </div>
+</div>
+<canvas id="c"></canvas>
+
+<script>
+// WebGL2 shader preview for Audio-DNA fractal sources
+// Converts GLSL 410 to WebGL2 (GLSL 300 es) automatically
+
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl2', { antialias: true, preserveDrawingBuffer: true });
+if (!gl) { document.getElementById('error').textContent = 'WebGL2 not supported'; }
+
+let program = null;
+let vao = null;
+let startTime = performance.now() / 1000;
+let paused = false;
+let pauseTime = 0;
+let autoAudio = false;
+let currentShader = null;
+let uniforms = {};
+
+// Fullscreen quad
+function initQuad() {
+    const verts = new Float32Array([-1,-1, 1,-1, -1,1, 1,1]);
+    const uvs = new Float32Array([0,0, 1,0, 0,1, 1,1]);
+    vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const vb = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+    gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    const ub = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, ub);
+    gl.bufferData(gl.ARRAY_BUFFER, uvs, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
+}
+
+// Convert GLSL 410 to 300 es
+function convertShader(src) {
+    let s = src.trim();
+    // Replace version
+    s = s.replace(/#version\s+410\s+core/, '#version 300 es\nprecision highp float;');
+    // in/out already correct for 300 es
+    return s;
+}
+
+const vertSrc = `#version 300 es
+precision highp float;
+layout(location=0) in vec2 position;
+layout(location=1) in vec2 texCoord;
+out vec2 v_texCoord;
+void main() {
+    v_texCoord = texCoord;
+    gl_Position = vec4(position, 0.0, 1.0);
+}`;
+
+function compileShader(src, type) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        const log = gl.getShaderInfoLog(s);
+        gl.deleteShader(s);
+        throw new Error(log);
+    }
+    return s;
+}
+
+function buildProgram(fragSrc) {
+    if (program) gl.deleteProgram(program);
+    const errEl = document.getElementById('error');
+    const statusEl = document.getElementById('status');
+    try {
+        const vs = compileShader(vertSrc, gl.VERTEX_SHADER);
+        const fs = compileShader(convertShader(fragSrc), gl.FRAGMENT_SHADER);
+        program = gl.createProgram();
+        gl.attachShader(program, vs);
+        gl.attachShader(program, fs);
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            throw new Error(gl.getProgramInfoLog(program));
+        }
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+        errEl.textContent = '';
+        statusEl.textContent = 'Compiled OK';
+        // Cache uniform locations
+        uniforms = {};
+        const n = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+        for (let i = 0; i < n; i++) {
+            const info = gl.getActiveUniform(program, i);
+            uniforms[info.name] = gl.getUniformLocation(program, info.name);
+        }
+        return true;
+    } catch (e) {
+        errEl.textContent = e.message;
+        statusEl.textContent = 'Compile ERROR';
+        program = null;
+        return false;
+    }
+}
+
+// Shader definitions — paste GLSL 410 fragment shaders here
+// Each entry: { name, category, src, params: [{name, uniform, default, min, max}] }
+const SHADERS = [];
+
+function addShader(name, category, src, params) {
+    SHADERS.push({ name, category, src, params: params || [] });
+}
+
+// ============================================================
+// FRACTAL SOURCES — paste shader source strings here
+// ============================================================
+
+// The shaders will be added dynamically by copying from EmbeddedShaders.h
+// For now, include placeholders that will be filled during testing
+
+function populateSelect() {
+    const sel = document.getElementById('shaderSelect');
+    sel.innerHTML = '';
+    let lastCat = '';
+    SHADERS.forEach((s, i) => {
+        if (s.category !== lastCat) {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = s.category;
+            sel.appendChild(optgroup);
+            lastCat = s.category;
+        }
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = s.name;
+        sel.lastElementChild.appendChild(opt);
+    });
+    sel.onchange = () => loadShader(parseInt(sel.value));
+}
+
+function createParamUI(params) {
+    const container = document.getElementById('params');
+    container.innerHTML = '';
+    params.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'param';
+        const label = document.createElement('label');
+        label.textContent = p.name;
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = p.min || 0;
+        input.max = p.max || 1;
+        input.step = 0.001;
+        input.value = p.default;
+        input.id = 'param_' + p.uniform;
+        const val = document.createElement('span');
+        val.className = 'val';
+        val.id = 'param_' + p.uniform + '_val';
+        val.textContent = parseFloat(p.default).toFixed(3);
+        input.oninput = () => { val.textContent = parseFloat(input.value).toFixed(3); };
+        div.appendChild(label);
+        div.appendChild(input);
+        div.appendChild(val);
+        container.appendChild(div);
+    });
+}
+
+function loadShader(index) {
+    const s = SHADERS[index];
+    currentShader = s;
+    if (buildProgram(s.src)) {
+        createParamUI(s.params);
+    }
+}
+
+function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+}
+
+function render() {
+    if (!paused) requestAnimationFrame(render);
+    if (!program || !currentShader) return;
+    resize();
+    gl.useProgram(program);
+    const t = paused ? pauseTime : (performance.now() / 1000 - startTime);
+
+    // Set built-in uniforms
+    if (uniforms.u_time != null) gl.uniform1f(uniforms.u_time, t);
+    if (uniforms.u_resolution != null) gl.uniform2f(uniforms.u_resolution, canvas.width, canvas.height);
+
+    // Audio uniforms
+    let rms = parseFloat(document.getElementById('u_rms').value);
+    let beat = parseFloat(document.getElementById('u_beatPhase').value);
+    let bass = parseFloat(document.getElementById('u_bass').value);
+    if (autoAudio) {
+        rms = 0.3 + 0.4 * Math.sin(t * 2.0) * Math.sin(t * 2.0);
+        beat = (t * 2.0) % 1.0;
+        bass = 0.2 + 0.5 * Math.sin(t * 1.5) * Math.sin(t * 1.5);
+        document.getElementById('u_rms').value = rms;
+        document.getElementById('u_rms_val').textContent = rms.toFixed(2);
+        document.getElementById('u_beatPhase').value = beat;
+        document.getElementById('u_beatPhase_val').textContent = beat.toFixed(2);
+        document.getElementById('u_bass').value = bass;
+        document.getElementById('u_bass_val').textContent = bass.toFixed(2);
+    }
+    if (uniforms.u_rms != null) gl.uniform1f(uniforms.u_rms, rms);
+    if (uniforms.u_beatPhase != null) gl.uniform1f(uniforms.u_beatPhase, beat);
+    if (uniforms.u_bass != null) gl.uniform1f(uniforms.u_bass, bass);
+
+    // Source params
+    currentShader.params.forEach(p => {
+        const loc = uniforms[p.uniform];
+        if (loc != null) {
+            const el = document.getElementById('param_' + p.uniform);
+            gl.uniform1f(loc, el ? parseFloat(el.value) : p.default);
+        }
+    });
+
+    gl.bindVertexArray(vao);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+function togglePause() {
+    if (paused) {
+        startTime += (performance.now() / 1000 - pauseTime);
+        paused = false;
+        requestAnimationFrame(render);
+    } else {
+        pauseTime = performance.now() / 1000 - startTime;
+        paused = true;
+    }
+}
+
+function toggleAutoAudio() { autoAudio = !autoAudio; }
+
+function captureFrame() {
+    const link = document.createElement('a');
+    link.download = (currentShader ? currentShader.name.replace(/\s+/g,'_') : 'frame') + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+}
+
+// Audio simulation slider wiring
+['u_rms', 'u_beatPhase', 'u_bass'].forEach(id => {
+    const el = document.getElementById(id);
+    el.oninput = () => { document.getElementById(id + '_val').textContent = parseFloat(el.value).toFixed(2); };
+});
+
+// Initialize
+initQuad();
+window.addEventListener('resize', resize);
+
+// ============================================================
+// SHADER LIBRARY — Add shaders here for testing
+// ============================================================
+// To test a new shader:
+// 1. Copy the GLSL source from EmbeddedShaders.h
+// 2. Call addShader(name, category, src, params)
+// 3. Reload the page
+
+// Example: existing Mandelbrot
+addShader('Mandelbrot / Julia', 'Fractal', `
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_beatPhase;
+    uniform float u_src_zoom;
+    uniform float u_src_center_x;
+    uniform float u_src_center_y;
+    uniform float u_src_julia_mix;
+    uniform float u_src_max_iter;
+    uniform float u_src_power;
+    uniform float u_src_color_speed;
+    uniform float u_src_color_shift;
+    uniform float u_src_dive_speed;
+    uniform float u_src_location;
+    uniform float u_src_palette;
+
+    // 8 cosine palettes
+    vec3 palette(float t, int idx) {
+        // a, b, c, d vectors for cosine palette
+        vec3 a, b, c, d;
+        if (idx == 0) { // Fire
+            a=vec3(0.5,0.2,0.05); b=vec3(0.5,0.3,0.15); c=vec3(1.0,0.7,0.4); d=vec3(0.0,0.15,0.2);
+        } else if (idx == 1) { // Ocean
+            a=vec3(0.0,0.3,0.5); b=vec3(0.0,0.3,0.3); c=vec3(1.0,1.0,1.0); d=vec3(0.0,0.2,0.5);
+        } else if (idx == 2) { // Neon
+            a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(1.0,1.0,1.0); d=vec3(0.0,0.1,0.2);
+        } else if (idx == 3) { // Grayscale
+            a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(1.0,1.0,1.0); d=vec3(0.0,0.0,0.0);
+        } else if (idx == 4) { // Rainbow
+            a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(1.0,1.0,1.0); d=vec3(0.0,0.33,0.67);
+        } else if (idx == 5) { // Psychedelic
+            a=vec3(0.5,0.5,0.5); b=vec3(0.5,0.5,0.5); c=vec3(2.0,1.0,1.0); d=vec3(0.5,0.2,0.25);
+        } else if (idx == 6) { // Ice
+            a=vec3(0.7,0.8,1.0); b=vec3(0.3,0.2,0.0); c=vec3(1.0,1.0,1.0); d=vec3(0.5,0.6,0.7);
+        } else { // Sunset
+            a=vec3(0.5,0.3,0.2); b=vec3(0.5,0.4,0.3); c=vec3(1.0,0.7,0.4); d=vec3(0.0,0.05,0.3);
+        }
+        return a + b * cos(6.28318 * (c * t + d));
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+
+        // Auto-dive
+        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
+        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
+        float zoom = exp(-(u_src_zoom * 10.0 + autoZoom));
+
+        // 10 interesting locations
+        vec2 locations[10];
+        locations[0] = vec2(-0.7436439, 0.1318259);   // Seahorse valley
+        locations[1] = vec2(-0.1011, 0.9563);          // Spiral arm
+        locations[2] = vec2(-1.7497, 0.0);             // Mini-brot antenna
+        locations[3] = vec2(0.2501, 0.0);              // Elephant valley
+        locations[4] = vec2(-0.162, 1.0405);           // Double spiral
+        locations[5] = vec2(-1.25066, 0.02012);        // Mini-brot near antenna
+        locations[6] = vec2(-0.745428, 0.113009);      // Deep seahorse spiral
+        locations[7] = vec2(-0.0452407, 0.9868162);    // Galaxy spiral
+        locations[8] = vec2(0.3580, 0.6435);           // Mini Julia island
+        locations[9] = vec2(-1.985540, 0.0);           // Far mini-brot
+
+        vec2 center;
+        if (diveSpeed > 0.01) {
+            int targetIdx = int(mod(u_time * 0.04, 10.0));
+            center = locations[targetIdx];
+        } else {
+            // Location param selects preset, or manual center
+            float locIdx = u_src_location * 9.0;
+            if (locIdx > 0.1) {
+                int li = int(locIdx);
+                center = locations[li];
+            } else {
+                center = vec2(-0.5 + u_src_center_x * 2.0 - 0.5,
+                               u_src_center_y * 2.0 - 1.0);
+            }
+        }
+        uv = uv * zoom + center;
+
+        // Auto-increase iterations with zoom
+        int baseIter = 32 + int(u_src_max_iter * 224.0);
+        int autoIter = int(log(1.0/zoom + 1.0) * 15.0);
+        int maxIter = min(baseIter + autoIter, 400);
+        float power = 2.0 + u_src_power * 6.0;
+
+        vec2 c, z;
+        float juliaMix = u_src_julia_mix;
+        vec2 juliaC = vec2(-0.7 + 0.3 * sin(u_time * 0.1), 0.27 + 0.15 * cos(u_time * 0.13));
+
+        if (juliaMix > 0.5) {
+            z = uv;
+            c = juliaC;
+        } else {
+            z = vec2(0.0);
+            c = uv;
+        }
+
+        int iter = 0;
+        for (int i = 0; i < 400; i++) {
+            if (i >= maxIter) break;
+            if (dot(z, z) > 4.0) break;
+            if (power < 2.5) {
+                z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
+            } else {
+                float r = length(z);
+                float theta = atan(z.y, z.x);
+                float rn = pow(r, power);
+                z = rn * vec2(cos(power * theta), sin(power * theta)) + c;
+            }
+            iter = i;
+        }
+
+        float si = float(iter);
+        if (iter < maxIter - 1) {
+            si = float(iter) - log2(log2(dot(z,z))) + 4.0;
+        }
+
+        vec3 col = vec3(0.0);
+        if (iter < maxIter - 1) {
+            float t = si * (0.01 + u_src_color_speed * 0.08) + u_src_color_shift * 6.28 + u_time * 0.02;
+            int palIdx = int(u_src_palette * 7.0);
+            col = palette(t, palIdx);
+        }
+
+        col *= (0.7 + u_rms * 0.5);
+        fragColor = vec4(col, 1.0);
+    }
+`, [
+    {name:'Dive Speed', uniform:'u_src_dive_speed', default:0.0},
+    {name:'Location', uniform:'u_src_location', default:0.0},
+    {name:'Zoom', uniform:'u_src_zoom', default:0.0},
+    {name:'Center X', uniform:'u_src_center_x', default:0.5},
+    {name:'Center Y', uniform:'u_src_center_y', default:0.5},
+    {name:'Julia Mix', uniform:'u_src_julia_mix', default:0.0},
+    {name:'Max Iterations', uniform:'u_src_max_iter', default:0.3},
+    {name:'Power', uniform:'u_src_power', default:0.0},
+    {name:'Color Speed', uniform:'u_src_color_speed', default:0.3},
+    {name:'Color Shift', uniform:'u_src_color_shift', default:0.0},
+    {name:'Palette', uniform:'u_src_palette', default:0.57},
+]);
+
+// ============================================================
+// Initialize
+// ============================================================
+populateSelect();
+if (SHADERS.length > 0) loadShader(0);
+requestAnimationFrame(render);
+
+</script>
+</body>
+</html>

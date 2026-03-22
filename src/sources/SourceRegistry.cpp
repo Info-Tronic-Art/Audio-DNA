@@ -55,6 +55,8 @@ void SourceRegistry::registerDefaults()
         s->addParam("Fold Angle", "u_src_fold_angle", 0.4f);
         s->addParam("Zoom", "u_src_zoom", 0.5f);
         s->addParam("Rotation", "u_src_rotation", 0.0f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
@@ -62,6 +64,7 @@ void SourceRegistry::registerDefaults()
     registerSource("mandelbrot", [] {
         auto s = std::make_unique<ProceduralSource>("mandelbrot", "Mandelbrot / Julia", "Fractal", "source_mandelbrot");
         s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
+        s->addParam("Location", "u_src_location", 0.0f);
         s->addParam("Zoom", "u_src_zoom", 0.0f);
         s->addParam("Center X", "u_src_center_x", 0.5f);
         s->addParam("Center Y", "u_src_center_y", 0.5f);
@@ -70,6 +73,7 @@ void SourceRegistry::registerDefaults()
         s->addParam("Power", "u_src_power", 0.0f);
         s->addParam("Color Speed", "u_src_color_speed", 0.3f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
@@ -410,24 +414,28 @@ void SourceRegistry::registerDefaults()
     registerSource("julia_set", [] {
         auto s = std::make_unique<ProceduralSource>("julia_set", "Julia Set", "Fractal", "source_julia_set");
         s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
+        s->addParam("Location", "u_src_location", 0.0f);
         s->addParam("C Real", "u_src_cx", 0.35f);
         s->addParam("C Imaginary", "u_src_cy", 0.38f);
         s->addParam("Zoom", "u_src_zoom", 0.25f);
         s->addParam("Iterations", "u_src_iterations", 0.3f);
         s->addParam("Color Speed", "u_src_color_speed", 0.3f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
     registerSource("burning_ship", [] {
         auto s = std::make_unique<ProceduralSource>("burning_ship", "Burning Ship", "Fractal", "source_burning_ship");
         s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
+        s->addParam("Location", "u_src_location", 0.0f);
         s->addParam("Center X", "u_src_center_x", 0.55f);
         s->addParam("Center Y", "u_src_center_y", 0.6f);
         s->addParam("Zoom", "u_src_zoom", 0.2f);
         s->addParam("Iterations", "u_src_iterations", 0.3f);
         s->addParam("Color Speed", "u_src_color_speed", 0.3f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
@@ -438,25 +446,30 @@ void SourceRegistry::registerDefaults()
         s->addParam("Zoom", "u_src_zoom", 0.3f);
         s->addParam("Damping", "u_src_damping", 0.5f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
     registerSource("sierpinski", [] {
         auto s = std::make_unique<ProceduralSource>("sierpinski", "Sierpinski", "Fractal", "source_sierpinski");
+        s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
         s->addParam("Mode", "u_src_mode", 0.0f);
-        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Zoom", "u_src_zoom", 0.0f);
         s->addParam("Iterations", "u_src_iterations", 0.5f);
         s->addParam("Rotation", "u_src_rotation", 0.5f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
     registerSource("apollonian", [] {
         auto s = std::make_unique<ProceduralSource>("apollonian", "Apollonian Gasket", "Fractal", "source_apollonian");
+        s->addParam("Dive Speed", "u_src_dive_speed", 0.0f);
         s->addParam("Zoom", "u_src_zoom", 0.0f);
         s->addParam("Iterations", "u_src_iterations", 0.4f);
         s->addParam("Rotation", "u_src_rotation", 0.5f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
@@ -466,20 +479,39 @@ void SourceRegistry::registerDefaults()
         auto s = std::make_unique<ProceduralSource>("mandelbulb", "Mandelbulb", "3D", "source_mandelbulb");
         s->addParam("Power", "u_src_power", 0.5f);
         s->addParam("Iterations", "u_src_iterations", 0.4f);
-        s->addParam("Rotation X", "u_src_rotation_x", 0.55f);
-        s->addParam("Rotation Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.55f);
         s->addParam("Detail", "u_src_detail", 0.5f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Cross Section", "u_src_slice", 0.5f);
+        s->addParam("Slice Count", "u_src_slice_count", 0.0f);
+        s->addParam("Glow", "u_src_glow", 0.0f);
+        s->addParam("Trail Distance", "u_src_trail_dist", 0.0f);
+        s->addParam("Trail Fade", "u_src_trail_fade", 0.5f);
+        s->addParam("Slice Distance", "u_src_slice_dist", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
     registerSource("menger_sponge", [] {
         auto s = std::make_unique<ProceduralSource>("menger_sponge", "Menger Sponge", "3D", "source_menger_sponge");
         s->addParam("Iterations", "u_src_iterations", 0.5f);
-        s->addParam("Rotation X", "u_src_rotation_x", 0.55f);
-        s->addParam("Rotation Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.55f);
         s->addParam("Twist", "u_src_twist", 0.0f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Cross Section", "u_src_slice", 0.5f);
+        s->addParam("Slice Count", "u_src_slice_count", 0.0f);
+        s->addParam("Trail Distance", "u_src_trail_dist", 0.0f);
+        s->addParam("Trail Fade", "u_src_trail_fade", 0.5f);
+        s->addParam("Slice Distance", "u_src_slice_dist", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 
@@ -488,10 +520,118 @@ void SourceRegistry::registerDefaults()
         s->addParam("Scale", "u_src_scale", 0.4f);
         s->addParam("Iterations", "u_src_iterations", 0.4f);
         s->addParam("Fold Type", "u_src_fold_type", 0.0f);
-        s->addParam("Rotation X", "u_src_rotation_x", 0.55f);
-        s->addParam("Rotation Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.55f);
         s->addParam("Offset", "u_src_offset", 0.5f);
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Cross Section", "u_src_slice", 0.5f);
+        s->addParam("Slice Count", "u_src_slice_count", 0.0f);
+        s->addParam("Trail Distance", "u_src_trail_dist", 0.0f);
+        s->addParam("Trail Fade", "u_src_trail_fade", 0.5f);
+        s->addParam("Slice Distance", "u_src_slice_dist", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
+        return s;
+    });
+
+    // === NEW 3D Fractal sources ===
+
+    registerSource("julia_set_3d", [] {
+        auto s = std::make_unique<ProceduralSource>("julia_set_3d", "Julia Set 3D", "3D", "source_julia_set_3d");
+        s->addParam("Location", "u_src_location", 0.0f);
+        s->addParam("C Real", "u_src_cx", 0.35f);
+        s->addParam("C Imaginary", "u_src_cy", 0.6f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.55f);
+        s->addParam("Iterations", "u_src_iterations", 0.4f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Cross Section", "u_src_slice", 0.5f);
+        s->addParam("Slice Count", "u_src_slice_count", 0.0f);
+        s->addParam("Glow", "u_src_glow", 0.0f);
+        s->addParam("Trail Distance", "u_src_trail_dist", 0.0f);
+        s->addParam("Trail Fade", "u_src_trail_fade", 0.5f);
+        s->addParam("Slice Distance", "u_src_slice_dist", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
+        return s;
+    });
+
+    registerSource("burning_ship_3d", [] {
+        auto s = std::make_unique<ProceduralSource>("burning_ship_3d", "Burning Ship 3D", "3D", "source_burning_ship_3d");
+        s->addParam("Power", "u_src_power", 0.5f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.55f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Cross Section", "u_src_slice", 0.5f);
+        s->addParam("Slice Count", "u_src_slice_count", 0.0f);
+        s->addParam("Glow", "u_src_glow", 0.0f);
+        s->addParam("Trail Distance", "u_src_trail_dist", 0.0f);
+        s->addParam("Trail Fade", "u_src_trail_fade", 0.5f);
+        s->addParam("Slice Distance", "u_src_slice_dist", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
+        return s;
+    });
+
+    registerSource("newton_3d", [] {
+        auto s = std::make_unique<ProceduralSource>("newton_3d", "Newton 3D", "3D", "source_newton_3d");
+        s->addParam("Power", "u_src_power", 0.2f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.55f);
+        s->addParam("Damping", "u_src_damping", 0.5f);
+        s->addParam("Height", "u_src_height", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Trail Distance", "u_src_trail_dist", 0.0f);
+        s->addParam("Trail Fade", "u_src_trail_fade", 0.5f);
+        s->addParam("Slice Count", "u_src_slice_count", 0.0f);
+        s->addParam("Slice Distance", "u_src_slice_dist", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
+        return s;
+    });
+
+    registerSource("sierpinski_tetra", [] {
+        auto s = std::make_unique<ProceduralSource>("sierpinski_tetra", "Sierpinski Tetrahedron", "3D", "source_sierpinski_tetra");
+        s->addParam("Iterations", "u_src_iterations", 0.5f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.55f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Cross Section", "u_src_slice", 0.5f);
+        s->addParam("Slice Count", "u_src_slice_count", 0.0f);
+        s->addParam("Trail Distance", "u_src_trail_dist", 0.0f);
+        s->addParam("Trail Fade", "u_src_trail_fade", 0.5f);
+        s->addParam("Slice Distance", "u_src_slice_dist", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
+        return s;
+    });
+
+    registerSource("apollonian_3d", [] {
+        auto s = std::make_unique<ProceduralSource>("apollonian_3d", "Apollonian 3D", "3D", "source_apollonian_3d");
+        s->addParam("Scale", "u_src_scale", 0.3f);
+        s->addParam("Iterations", "u_src_iterations", 0.4f);
+        s->addParam("Angle X", "u_src_rotation_x", 0.55f);
+        s->addParam("Angle Y", "u_src_rotation_y", 0.55f);
+        s->addParam("Zoom", "u_src_zoom", 0.3f);
+        s->addParam("Speed", "u_src_speed", 0.55f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        s->addParam("Cross Section", "u_src_slice", 0.5f);
+        s->addParam("Slice Count", "u_src_slice_count", 0.0f);
+        s->addParam("Trail Distance", "u_src_trail_dist", 0.0f);
+        s->addParam("Trail Fade", "u_src_trail_fade", 0.5f);
+        s->addParam("Slice Distance", "u_src_slice_dist", 0.3f);
+        s->addParam("Feedback", "u_src_feedback", 0.0f);
+        s->addParam("Palette", "u_src_palette", 0.6f);
         return s;
     });
 

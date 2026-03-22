@@ -2682,6 +2682,21 @@ inline const char* sourceKaleidoFractal = R"(
     uniform float u_src_fold_angle;
     uniform float u_src_zoom;
     uniform float u_src_rotation;
+    uniform float u_src_color_shift;
+    uniform float u_src_palette;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
 
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
@@ -2695,7 +2710,6 @@ inline const char* sourceKaleidoFractal = R"(
         float angle = 0.5 + u_src_fold_angle * 2.5;
         float rot = u_src_rotation * 6.28318 + u_time * 0.1;
 
-        // Apply rotation
         float cs = cos(rot), sn = sin(rot);
         uv = vec2(uv.x * cs - uv.y * sn, uv.x * sn + uv.y * cs);
 
@@ -2703,17 +2717,19 @@ inline const char* sourceKaleidoFractal = R"(
         for (int i = 0; i < 16; i++) {
             if (i >= iters) break;
             uv = abs(uv) - angle;
-            // Rotate each iteration
             float a = 0.7853 + float(i) * 0.1 + u_time * 0.02;
             float c = cos(a), s = sin(a);
             uv = vec2(uv.x * c - uv.y * s, uv.x * s + uv.y * c);
             d = min(d, length(uv));
         }
 
-        // Coloring
-        float brightness = 0.7 + u_rms * 0.5;
-        vec3 col = 0.5 + 0.5 * cos(d * 8.0 + u_time * 0.3 + vec3(0.0, 1.0, 2.0));
-        col *= exp(-d * 1.5) * brightness;
+        // Much brighter coloring — softer falloff, higher base brightness
+        float t = d * 4.0 + u_src_color_shift * 6.28 + u_time * 0.3;
+        int palIdx = int(u_src_palette * 7.0);
+        vec3 col = fracPalette(t, palIdx);
+        // Soft glow falloff instead of harsh exp
+        float glow = 1.0 / (1.0 + d * d * 4.0);
+        col *= glow * (0.9 + u_rms * 0.4);
 
         fragColor = vec4(col, 1.0);
     }
@@ -2737,66 +2753,85 @@ inline const char* sourceMandelbrot = R"(
     uniform float u_src_color_speed;
     uniform float u_src_color_shift;
     uniform float u_src_dive_speed;
+    uniform float u_src_location;
+    uniform float u_src_palette;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
 
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
 
-        // Auto-dive: continuously zoom into an interesting point
-        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
-        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
-
-        // Exponential zoom (manual + auto-dive)
-        float zoom = exp(-(u_src_zoom * 10.0 + autoZoom));
-
-        // Interesting dive targets (cycle between them)
-        vec2 diveTargets[4];
-        diveTargets[0] = vec2(-0.7436439, 0.1318259);  // Seahorse valley
-        diveTargets[1] = vec2(-0.1011, 0.9563);         // Spiral arm
-        diveTargets[2] = vec2(-1.7497, 0.0);            // Mini-brot antenna
-        diveTargets[3] = vec2(0.2501, 0.0);              // Elephant valley
+        // === CENTER: Location presets override Center X/Y ===
+        // 10 interesting Mandelbrot locations
+        vec2 locations[10];
+        locations[0] = vec2(-0.7436439, 0.1318259);   // Seahorse valley
+        locations[1] = vec2(-0.1011, 0.9563);          // Spiral arm
+        locations[2] = vec2(-1.7497, 0.0);             // Mini-brot antenna
+        locations[3] = vec2(0.2501, 0.0);              // Elephant valley
+        locations[4] = vec2(-0.162, 1.0405);           // Double spiral
+        locations[5] = vec2(-1.25066, 0.02012);        // Mini-brot near antenna
+        locations[6] = vec2(-0.745428, 0.113009);      // Deep seahorse spiral
+        locations[7] = vec2(-0.0452407, 0.9868162);    // Galaxy spiral
+        locations[8] = vec2(0.3580, 0.6435);           // Mini Julia island
+        locations[9] = vec2(-1.985540, 0.0);           // Far mini-brot
 
         vec2 center;
-        if (diveSpeed > 0.01) {
-            // Pick dive target based on time cycle (switch every ~25s of zoom)
-            int targetIdx = int(mod(u_time * 0.04, 4.0));
-            center = diveTargets[targetIdx];
+        float locIdx = u_src_location * 9.0;
+        if (locIdx > 0.5) {
+            // Location preset selected — smoothly interpolate between them
+            int li = int(locIdx);
+            float frac = locIdx - float(li);
+            int li2 = min(li + 1, 9);
+            frac = frac * frac * (3.0 - 2.0 * frac);
+            center = mix(locations[min(li, 9)], locations[min(li2, 9)], frac);
         } else {
-            center = vec2(-0.5 + u_src_center_x * 2.0 - 0.5,
-                           u_src_center_y * 2.0 - 1.0);
+            // Manual center: X [0,1] -> [-2.5, 1.5], Y [0,1] -> [-1.5, 1.5]
+            // At default 0.5/0.5 = (-0.5, 0.0) = center of the Mandelbrot set
+            center = vec2(u_src_center_x * 4.0 - 2.5,
+                          u_src_center_y * 3.0 - 1.5);
         }
+
+        // === ZOOM: continuous, no wrap. Dive speed = auto-zoom clamped at float precision limit ===
+        float diveRate = u_src_dive_speed * u_src_dive_speed * 2.0;
+        float zoomExp = u_src_zoom * 7.0 + u_time * diveRate * 0.12;
+        zoomExp = min(zoomExp, 7.0); // float precision limit
+        float zoom = exp(-zoomExp);
+
         uv = uv * zoom + center;
 
-        // Auto-increase iterations with zoom depth for detail
+        // Auto-increase iterations with zoom depth
         int baseIter = 32 + int(u_src_max_iter * 224.0);
-        int autoIter = int(autoZoom * 15.0);
-        int maxIter = min(baseIter + autoIter, 400);
-        float power = 2.0 + u_src_power * 6.0;
+        int zoomIter = int(zoomExp * 30.0);
+        int maxIter = min(baseIter + zoomIter, 400);
+        // Power: 2-4 range
+        float power = 2.0 + u_src_power * 2.0;
 
-        // Julia / Mandelbrot mode
         vec2 c, z;
         float juliaMix = u_src_julia_mix;
         vec2 juliaC = vec2(-0.7 + 0.3 * sin(u_time * 0.1), 0.27 + 0.15 * cos(u_time * 0.13));
-
-        if (juliaMix > 0.5) {
-            z = uv;
-            c = juliaC;
-        } else {
-            z = vec2(0.0);
-            c = uv;
-        }
+        if (juliaMix > 0.5) { z = uv; c = juliaC; }
+        else { z = vec2(0.0); c = uv; }
 
         int iter = 0;
-        for (int i = 0; i < 256; i++) {
+        for (int i = 0; i < 400; i++) {
             if (i >= maxIter) break;
             if (dot(z, z) > 4.0) break;
-
             if (power < 2.5) {
-                // Standard z^2 (fastest path)
                 z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
             } else {
-                // Multibrot z^n via polar
                 float r = length(z);
                 float theta = atan(z.y, z.x);
                 float rn = pow(r, power);
@@ -2805,16 +2840,17 @@ inline const char* sourceMandelbrot = R"(
             iter = i;
         }
 
-        // Smooth iteration count for anti-banding
+        // Smooth iteration count — clamp to avoid negatives at high power
         float si = float(iter);
         if (iter < maxIter - 1) {
-            si = float(iter) - log2(log2(dot(z,z))) + 4.0;
+            si = max(float(iter) - log2(log2(dot(z,z))) + 4.0, 0.0);
         }
 
         vec3 col = vec3(0.0);
         if (iter < maxIter - 1) {
             float t = si * (0.01 + u_src_color_speed * 0.08) + u_src_color_shift * 6.28 + u_time * 0.02;
-            col = 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
+            int palIdx = int(u_src_palette * 7.0);
+            col = fracPalette(t, palIdx);
         }
 
         col *= (0.7 + u_rms * 0.5);
@@ -6030,8 +6066,15 @@ inline const char* sourceMoireLines = R"(
 // ============================================================
 // FRACTAL SOURCES — Tier 1 (fragment shader native)
 // ============================================================
+// UX OVERHAUL: All 2D fractals now have:
+//   - Location presets (u_src_location cycles through interesting coordinates)
+//   - Color palettes (u_src_palette selects from 8 cosine palettes)
+//   - Iteration auto-scaling with manual zoom depth
+//   - Gentler parameter sensitivity (quadratic curves)
+//   - Dive speed locks center to interesting target
+// ============================================================
 
-// Julia Set — animate c for morphing fractals
+// Julia Set — animate c for morphing fractals, with preset c-values and palettes
 inline const char* sourceJuliaSet = R"(
     #version 410 core
     in vec2 v_texCoord;
@@ -6045,46 +6088,107 @@ inline const char* sourceJuliaSet = R"(
     uniform float u_src_color_speed;
     uniform float u_src_color_shift;
     uniform float u_src_dive_speed;
+    uniform float u_src_location;
+    uniform float u_src_palette;
     uniform float u_rms;
     uniform float u_beatPhase;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        // Auto-dive zoom
-        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
-        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
-        float zoom = exp(u_src_zoom * 8.0 - 2.0 + autoZoom);
+
+        // === ZOOM: continuous, no wrap. Dive speed = auto-zoom + c-morph ===
+        float diveRate = u_src_dive_speed * u_src_dive_speed * 2.0;
+        float zoomExp = u_src_zoom * 6.0 + u_time * diveRate * 0.12;
+        zoomExp = min(zoomExp, 6.0); // float precision limit
+        float zoom = exp(zoomExp);
         uv /= zoom;
-        // Julia c-value: animate with time and audio, morph between presets during dive
+
+        // 10 beautiful Julia c-values near the Mandelbrot boundary
+        vec2 presets[10];
+        presets[0] = vec2(-0.7, 0.27015);      // Classic spiral
+        presets[1] = vec2(-0.4, 0.6);           // Dragon
+        presets[2] = vec2(0.355, 0.355);        // Symmetric dendrite
+        presets[3] = vec2(-0.54, 0.54);         // Snowflake
+        presets[4] = vec2(-0.123, 0.745);       // Douady rabbit
+        presets[5] = vec2(0.0, 0.8);            // Dendrite
+        presets[6] = vec2(-0.75, 0.0);          // San Marco / Basilica
+        presets[7] = vec2(-0.77, 0.22);         // Galaxy spiral
+        presets[8] = vec2(0.285, 0.01);         // Spiral nebula
+        presets[9] = vec2(-0.8, 0.156);         // Organic tendrils
+
+        // === C-VALUE: Location presets override C Real/C Imaginary ===
+        // Dive speed morphs through presets (Julia "dive" = c-value animation)
         float cx, cy;
-        if (diveSpeed > 0.01) {
-            // Slowly morph c through beautiful regions
-            float phase = u_time * 0.08;
-            cx = -0.7 + 0.3 * sin(phase) + 0.1 * sin(phase * 2.7);
-            cy = 0.27 + 0.2 * cos(phase * 0.9) + 0.05 * cos(phase * 3.1);
+        float diveRate = u_src_dive_speed * u_src_dive_speed * 2.0;
+        float locIdx = u_src_location * 9.0;
+
+        if (diveRate > 0.001) {
+            // Dive: smoothly morph c through all presets
+            float phase = u_time * diveRate * 0.3;
+            float idx = mod(phase, 10.0);
+            int i0 = int(idx);
+            int i1 = int(mod(idx + 1.0, 10.0));
+            float frac = fract(idx);
+            frac = frac * frac * (3.0 - 2.0 * frac);
+            cx = mix(presets[i0].x, presets[i1].x, frac);
+            cy = mix(presets[i0].y, presets[i1].y, frac);
+        } else if (locIdx > 0.5) {
+            // Location preset selected
+            int li = int(locIdx);
+            float frac = locIdx - float(li);
+            int li2 = min(li + 1, 9);
+            frac = frac * frac * (3.0 - 2.0 * frac);
+            cx = mix(presets[min(li, 9)].x, presets[min(li2, 9)].x, frac);
+            cy = mix(presets[min(li, 9)].y, presets[min(li2, 9)].y, frac);
         } else {
-            cx = (u_src_cx - 0.5) * 2.0 + sin(u_time * 0.2) * 0.05 * u_rms;
-            cy = (u_src_cy - 0.5) * 2.0 + cos(u_time * 0.15) * 0.05 * u_rms;
+            // Manual c-value: cx [0,1] -> [-1, 0.5], cy [0,1] -> [-1, 1]
+            cx = u_src_cx * 1.5 - 1.0;
+            cy = u_src_cy * 2.0 - 1.0;
+            // Subtle audio modulation
+            cx += sin(u_time * 0.2) * 0.02 * u_rms;
+            cy += cos(u_time * 0.15) * 0.02 * u_rms;
         }
+
         vec2 z = uv;
         vec2 c = vec2(cx, cy);
+
+        // Auto-scale iterations with zoom depth
         int baseIter = int(u_src_iterations * 200.0) + 20;
-        int maxIter = min(baseIter + int(autoZoom * 10.0), 400);
+        int zoomIter = int(zoomExp * 15.0);
+        int maxIter = min(baseIter + zoomIter, 400);
+
         int i;
-        for (i = 0; i < maxIter; i++) {
+        for (i = 0; i < 400; i++) {
+            if (i >= maxIter) break;
             z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
             if (dot(z,z) > 4.0) break;
         }
-        if (i == maxIter) { fragColor = vec4(0,0,0,1); return; }
-        float si = float(i) - log2(log2(dot(z,z))) + 4.0;
+        if (i >= maxIter) { fragColor = vec4(0,0,0,1); return; }
+        float si = max(float(i) - log2(log2(dot(z,z))) + 4.0, 0.0);
         float t = si * (0.02 + u_src_color_speed * 0.1) + u_src_color_shift * 6.28;
-        vec3 col = 0.5 + 0.5 * cos(6.28318 * (t + vec3(0.0, 0.33, 0.67)));
+        int palIdx = int(u_src_palette * 7.0);
+        vec3 col = fracPalette(t, palIdx);
+        col *= 0.85 + u_rms * 0.3;
         fragColor = vec4(col, 1.0);
     }
 )";
 
-// Burning Ship — aggressive flame-like fractal
+// Burning Ship — aggressive flame-like fractal, with location presets and palettes
 inline const char* sourceBurningShip = R"(
     #version 410 core
     in vec2 v_texCoord;
@@ -6098,43 +6202,80 @@ inline const char* sourceBurningShip = R"(
     uniform float u_src_color_speed;
     uniform float u_src_color_shift;
     uniform float u_src_dive_speed;
+    uniform float u_src_location;
+    uniform float u_src_palette;
     uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
-        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
-        float zoom = exp(u_src_zoom * 8.0 - 1.0 + autoZoom);
+
+        // === CENTER: Location presets override Center X/Y ===
+        vec2 locations[6];
+        locations[0] = vec2(-1.762, -0.028);    // Smokestack
+        locations[1] = vec2(-1.755, 0.02);      // Ship hull detail
+        locations[2] = vec2(-0.4, -0.6);        // Main body center
+        locations[3] = vec2(-1.94, -0.0005);    // Far antenna mini-ship
+        locations[4] = vec2(-1.781, -0.0);      // Mast spiral
+        locations[5] = vec2(-0.15, -1.03);      // South continent
+
         vec2 center;
-        if (diveSpeed > 0.01) {
-            // Dive into the ship's smokestack
-            center = vec2(-1.762, -0.028);
+        float locIdx = u_src_location * 5.0;
+        if (locIdx > 0.5) {
+            int li = min(int(locIdx), 5);
+            center = locations[li];
         } else {
-            center = vec2((u_src_center_x - 0.5) * 4.0 - 0.5,
-                           (u_src_center_y - 0.5) * 4.0 - 0.5);
+            // Manual center: X [0,1] -> [-2.0, 0.5], Y [0,1] -> [-1.5, 0.5]
+            // At default 0.5/0.5 -> (-0.75, -0.5) = center of main ship body
+            center = vec2(u_src_center_x * 2.5 - 2.0,
+                          u_src_center_y * 2.0 - 1.5);
         }
+
+        // === ZOOM: continuous, no wrap. Dive speed = auto-zoom clamped at float precision limit ===
+        float diveRate = u_src_dive_speed * u_src_dive_speed * 2.0;
+        float zoomExp = u_src_zoom * 7.0 + u_time * diveRate * 0.12;
+        zoomExp = min(zoomExp, 7.0);
+        float zoom = exp(zoomExp);
+
         uv = uv / zoom + center;
+
         vec2 z = vec2(0.0);
         vec2 c = uv;
         int baseIter = int(u_src_iterations * 200.0) + 20;
-        int maxIter = min(baseIter + int(autoZoom * 15.0), 400);
+        int zoomIter = int(zoomExp * 25.0);
+        int maxIter = min(baseIter + zoomIter, 400);
         int i;
-        for (i = 0; i < maxIter; i++) {
-            z = abs(z); // The burning ship twist
+        for (i = 0; i < 400; i++) {
+            if (i >= maxIter) break;
+            z = abs(z);
             z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
             if (dot(z,z) > 4.0) break;
         }
-        if (i == maxIter) { fragColor = vec4(0,0,0,1); return; }
-        float si = float(i) - log2(log2(dot(z,z))) + 4.0;
+        if (i >= maxIter) { fragColor = vec4(0,0,0,1); return; }
+        float si = max(float(i) - log2(log2(dot(z,z))) + 4.0, 0.0);
         float t = si * (0.02 + u_src_color_speed * 0.1) + u_src_color_shift * 6.28;
-        vec3 col = 0.5 + 0.5 * cos(6.28318 * (t * 0.7 + vec3(0.0, 0.1, 0.2)));
+        int palIdx = int(u_src_palette * 7.0);
+        vec3 col = fracPalette(t, palIdx);
         col *= 0.85 + u_rms * 0.3;
         fragColor = vec4(col, 1.0);
     }
 )";
 
-// Newton Fractal — psychedelic basins of attraction
+// Newton Fractal — psychedelic basins of attraction, with palettes and presets
 inline const char* sourceNewtonFractal = R"(
     #version 410 core
     in vec2 v_texCoord;
@@ -6146,42 +6287,61 @@ inline const char* sourceNewtonFractal = R"(
     uniform float u_src_damping;
     uniform float u_src_color_shift;
     uniform float u_src_dive_speed;
+    uniform float u_src_palette;
     uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
     vec2 cmul(vec2 a, vec2 b) { return vec2(a.x*b.x-a.y*b.y, a.x*b.y+a.y*b.x); }
     vec2 cdiv(vec2 a, vec2 b) { return cmul(a, vec2(b.x,-b.y)) / dot(b,b); }
+
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float diveSpeed = u_src_dive_speed * u_src_dive_speed * 8.0;
-        float autoZoom = diveSpeed > 0.01 ? u_time * diveSpeed : 0.0;
-        float zoom = exp(u_src_zoom * 6.0 - 1.0 + autoZoom);
-        // Dive into root boundary
-        if (diveSpeed > 0.01) {
-            uv = uv / zoom + vec2(0.5, 0.866); // boundary between roots
-        } else {
-            uv /= zoom;
-        }
-        int n = int(u_src_power * 5.0) + 3; // power 3-8
-        float damp = 0.5 + u_src_damping * 1.0; // relaxation
+        // === ZOOM: continuous, no wrap. Dive speed = auto-zoom clamped ===
+        float diveRate = u_src_dive_speed * u_src_dive_speed * 2.0;
+        float zoomExp = u_src_zoom * 5.0 + u_time * diveRate * 0.12;
+        zoomExp = min(zoomExp, 5.0);
+        float zoom = exp(zoomExp);
+
+        // Center: always target boundary between first two roots (0.5, 0.866)
+        // The Newton fractal is most interesting at root boundaries
+        vec2 nCenter = vec2(0.5, 0.866) * (diveRate > 0.001 ? 1.0 : 0.0);
+        uv = uv / zoom + nCenter;
+        // Power: 3 to 8 with quadratic sensitivity
+        float rawPow = u_src_power;
+        int n = int(rawPow * rawPow * 5.0) + 3;
+        float damp = 0.5 + u_src_damping * 1.0;
         vec2 z = uv;
-        int maxIter = 50;
+        int maxIter = 50 + int(zoomExp * 6.0);
+        maxIter = min(maxIter, 120);
         int i;
         float minDist = 1e10;
         int closestRoot = 0;
-        for (i = 0; i < maxIter; i++) {
-            // Compute z^n and z^(n-1) using polar form
+        for (i = 0; i < 120; i++) {
+            if (i >= maxIter) break;
             float r = length(z);
             if (r < 0.0001) break;
             float theta = atan(z.y, z.x);
             vec2 zn = pow(r, float(n)) * vec2(cos(float(n)*theta), sin(float(n)*theta));
             vec2 zn1 = pow(r, float(n-1)) * vec2(cos(float(n-1)*theta), sin(float(n-1)*theta));
-            // Newton step: z - damp * (z^n - 1) / (n * z^(n-1))
             vec2 fz = zn - vec2(1.0, 0.0);
             vec2 fpz = float(n) * zn1;
             z -= damp * cdiv(fz, fpz);
-            // Check convergence to roots (nth roots of unity)
-            for (int k = 0; k < n; k++) {
+            for (int k = 0; k < 8; k++) {
+                if (k >= n) break;
                 float ra = 6.28318 * float(k) / float(n);
                 vec2 root = vec2(cos(ra), sin(ra));
                 float d = length(z - root);
@@ -6191,68 +6351,96 @@ inline const char* sourceNewtonFractal = R"(
         }
         float hue = float(closestRoot) / float(n) + u_src_color_shift;
         float brightness = 1.0 - float(i) / float(maxIter);
-        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        int palIdx = int(u_src_palette * 7.0);
+        vec3 col = fracPalette(hue, palIdx);
         col *= brightness * (0.8 + u_rms * 0.4);
         fragColor = vec4(col, 1.0);
     }
 )";
 
-// Sierpinski — triangle and carpet modes via folding
+// Sierpinski — triangle and carpet modes, with palettes and zoom auto-iter
 inline const char* sourceSierpinski = R"(
     #version 410 core
     in vec2 v_texCoord;
     out vec4 fragColor;
     uniform float u_time;
     uniform vec2 u_resolution;
-    uniform float u_src_mode;       // 0=triangle, 1=carpet
+    uniform float u_src_mode;
     uniform float u_src_zoom;
     uniform float u_src_iterations;
     uniform float u_src_rotation;
     uniform float u_src_color_shift;
+    uniform float u_src_dive_speed;
+    uniform float u_src_palette;
     uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float zoom = exp(u_src_zoom * 6.0);
+        // Zoom: continuous with dive speed, no wrap
+        float diveRate = u_src_dive_speed * u_src_dive_speed * 2.0;
+        float zoomExp = u_src_zoom * 5.0 + u_time * diveRate * 0.12;
+        zoomExp = min(zoomExp, 5.0);
+        float zoomPow = exp(zoomExp * 0.5);
         float rot = u_time * (u_src_rotation - 0.5) * 1.0;
         float c = cos(rot), s = sin(rot);
         uv = vec2(uv.x*c - uv.y*s, uv.x*s + uv.y*c);
-        uv *= zoom;
-        int maxIter = int(u_src_iterations * 12.0) + 3;
+        uv /= zoomPow;
+        // Auto-scale iterations with zoom
+        int baseIter = int(u_src_iterations * 12.0) + 3;
+        int zoomIter = int(zoomExp * 1.5);
+        int maxIter = min(baseIter + zoomIter, 20);
         bool isCarpet = u_src_mode > 0.5;
         float val = 1.0;
+        float iterFrac = 0.0;
         if (isCarpet) {
-            // Sierpinski Carpet
+            // Sierpinski Carpet: remove center cell at each scale
             vec2 p = fract(uv * 0.5 + 0.5);
-            for (int i = 0; i < maxIter; i++) {
+            for (int i = 0; i < 20; i++) {
+                if (i >= maxIter) break;
                 p *= 3.0;
                 vec2 cell = floor(p);
-                if (cell.x == 1.0 && cell.y == 1.0) { val = 0.0; break; }
+                if (cell.x == 1.0 && cell.y == 1.0) { val = 0.0; iterFrac = float(i)/float(maxIter); break; }
                 p = fract(p);
             }
         } else {
-            // Sierpinski Triangle (folding)
-            vec2 p = uv * 0.5 + vec2(0.5, 0.25);
-            for (int i = 0; i < maxIter; i++) {
+            // Sierpinski Triangle: modular arithmetic approach
+            // A point is in the gasket if at every scale, it's NOT in the upper-right quadrant
+            vec2 p = fract(uv * 0.5 + 0.5);
+            for (int i = 0; i < 20; i++) {
+                if (i >= maxIter) break;
                 p *= 2.0;
-                if (p.x + p.y > 1.5) p = 2.0 - p;
-                if (p.x > 1.0) p.x -= 1.0;
-                if (p.y > 1.0) p.y -= 1.0;
+                vec2 cell = floor(p);
+                // If both coordinates are >= 1 (upper-right), it's a hole
+                if (cell.x >= 1.0 && cell.y >= 1.0) { val = 0.0; iterFrac = float(i)/float(maxIter); break; }
+                p = fract(p);
             }
-            float d = length(p - vec2(0.5, 0.35));
-            val = smoothstep(0.5, 0.3, d);
         }
-        float hue = u_src_color_shift;
+        int palIdx = int(u_src_palette * 7.0);
+        float hue = u_src_color_shift + iterFrac;
         vec3 col;
-        if (hue < 0.01) col = vec3(val);
-        else col = val * (0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))));
+        if (u_src_palette < 0.01 && u_src_color_shift < 0.01) col = vec3(val);
+        else col = val * fracPalette(hue, palIdx);
         col *= 0.8 + u_rms * 0.4;
         fragColor = vec4(col, 1.0);
     }
 )";
 
-// Apollonian Gasket — circle packing fractal
+// Apollonian Gasket — circle packing fractal, with palettes
 inline const char* sourceApollonian = R"(
     #version 410 core
     in vec2 v_texCoord;
@@ -6263,39 +6451,58 @@ inline const char* sourceApollonian = R"(
     uniform float u_src_iterations;
     uniform float u_src_rotation;
     uniform float u_src_color_shift;
+    uniform float u_src_dive_speed;
+    uniform float u_src_palette;
     uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-
-        float zoom = 1.0 + u_src_zoom * 8.0;
+        // Zoom: continuous with dive speed, no wrap
+        float diveRate = u_src_dive_speed * u_src_dive_speed * 2.0;
+        float zoomExp = u_src_zoom * 5.0 + u_time * diveRate * 0.12;
+        zoomExp = min(zoomExp, 5.0);
+        float zoom = exp(zoomExp * 0.5);
         float rot = u_time * (u_src_rotation - 0.5) * 0.5;
         float ca = cos(rot), sa = sin(rot);
         uv = vec2(uv.x*ca - uv.y*sa, uv.x*sa + uv.y*ca);
-        uv *= zoom;
-
-        // Apollonian gasket via Kleinian group / IFS
+        uv /= zoom;
         vec2 p = uv;
         float minDist = 1e10;
-        int maxIter = int(u_src_iterations * 20.0) + 8;
-
-        for (int i = 0; i < 30; i++) {
+        float iterColor = 0.0;
+        int baseIter = int(u_src_iterations * 20.0) + 8;
+        int zoomIter = int(zoomExp * 2.0);
+        int maxIter = min(baseIter + zoomIter, 40);
+        for (int i = 0; i < 40; i++) {
             if (i >= maxIter) break;
             p = abs(p);
-            if (p.x < p.y) p = p.yx;  // fold
+            if (p.x < p.y) p = p.yx;
             p -= vec2(1.0, 1.0);
-            if (p.y < -0.5 * p.x) p = vec2(p.x - p.y, p.y + p.x) * 0.7071; // 45 degree fold
+            if (p.y < -0.5 * p.x) p = vec2(p.x - p.y, p.y + p.x) * 0.7071;
             float d = length(p);
-            minDist = min(minDist, d);
+            if (d < minDist) { minDist = d; iterColor = float(i); }
             p *= 2.0;
             p -= vec2(1.5, 0.5);
         }
-
-        // Distance-based coloring
-        float glow = exp(-minDist * 3.0);
-        float hue = u_src_color_shift + log(minDist + 1.0) * 0.5;
-        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        // Brighter, more contrasty coloring
+        float glow = 1.0 / (1.0 + minDist * minDist * 8.0);
+        float hue = u_src_color_shift + iterColor * 0.1 + log(minDist + 0.01) * 0.3;
+        int palIdx = int(u_src_palette * 7.0);
+        vec3 col = fracPalette(hue, palIdx);
         col *= glow * (0.8 + u_rms * 0.4);
         fragColor = vec4(col, 1.0);
     }
@@ -6303,9 +6510,11 @@ inline const char* sourceApollonian = R"(
 
 // ============================================================
 // 3D FRACTAL SOURCES — Ray Marched
+// All 3D fractals now have: palette, cross-section slice, glow,
+// orbit trap coloring, lighting, camera orbit, dive speed
 // ============================================================
 
-// Mandelbulb — 3D Mandelbrot analog
+// Mandelbulb — 3D Mandelbrot analog, with power morphing, cross-section, palettes
 inline const char* sourceMandelbulb = R"(
     #version 410 core
     in vec2 v_texCoord;
@@ -6318,18 +6527,43 @@ inline const char* sourceMandelbulb = R"(
     uniform float u_src_rotation_y;
     uniform float u_src_detail;
     uniform float u_src_color_shift;
+    uniform float u_src_slice;
+    uniform float u_src_glow;
+    uniform float u_src_palette;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_trail_dist;
+    uniform float u_src_trail_fade;
+    uniform float u_src_slice_count;
+    uniform float u_src_slice_dist;
+    uniform float u_src_feedback;
     uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
 
     mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
     mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
 
-    float mandelbulbDE(vec3 pos, float power) {
+    float mandelbulbDE(vec3 pos, float power, out float trap) {
         vec3 z = pos;
         float dr = 1.0, r = 0.0;
+        trap = 1e10;
         for (int i = 0; i < 12; i++) {
             r = length(z);
             if (r > 2.0) break;
-            float theta = acos(z.z / r);
+            trap = min(trap, length(z));
+            float theta = acos(clamp(z.z / r, -1.0, 1.0));
             float phi = atan(z.y, z.x);
             dr = pow(r, power - 1.0) * power * dr + 1.0;
             float zr = pow(r, power);
@@ -6342,34 +6576,86 @@ inline const char* sourceMandelbulb = R"(
 
     vec3 calcNormal(vec3 p, float pw) {
         vec2 e = vec2(0.001, 0.0);
+        float dummy;
         return normalize(vec3(
-            mandelbulbDE(p+e.xyy,pw) - mandelbulbDE(p-e.xyy,pw),
-            mandelbulbDE(p+e.yxy,pw) - mandelbulbDE(p-e.yxy,pw),
-            mandelbulbDE(p+e.yyx,pw) - mandelbulbDE(p-e.yyx,pw)));
+            mandelbulbDE(p+e.xyy,pw,dummy) - mandelbulbDE(p-e.xyy,pw,dummy),
+            mandelbulbDE(p+e.yxy,pw,dummy) - mandelbulbDE(p-e.yxy,pw,dummy),
+            mandelbulbDE(p+e.yyx,pw,dummy) - mandelbulbDE(p-e.yyx,pw,dummy)));
     }
 
     void main() {
         vec2 uv = (v_texCoord - 0.5) * 2.0;
         float aspect = u_resolution.x / u_resolution.y;
         uv.x *= aspect;
-        float power = 2.0 + u_src_power * 12.0;
-        float rx = u_time * (u_src_rotation_x - 0.5) * 1.0;
-        float ry = u_time * (u_src_rotation_y - 0.5) * 1.0;
-        mat3 rot = rotY(ry) * rotX(rx);
-        vec3 ro = rot * vec3(0, 0, 2.5);
+        float rawPow = u_src_power;
+        float power = 2.0 + rawPow * rawPow * 14.0;
+
+        // Auto-rotation: 0.5 = stopped, <0.5 = reverse, >0.5 = forward
+        float autoSpeed = (u_src_speed - 0.5) * 2.0;
+        float angleX = u_src_rotation_x * 6.28318 + u_time * autoSpeed;
+        float angleY = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
+        mat3 rot = rotY(angleY) * rotX(angleX);
+
+        // Camera distance: zoom [0,1] -> [5.0, 0.3]
+        float camDist = mix(5.0, 0.3, u_src_zoom);
+        vec3 ro = rot * vec3(0, 0, camDist);
         vec3 target = vec3(0);
         vec3 fwd = normalize(target - ro);
         vec3 right = normalize(cross(fwd, vec3(0,1,0)));
         vec3 up = cross(right, fwd);
         vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+        // Cross-section: single or multi-slice
+        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        bool useSlice = abs(u_src_slice - 0.5) > 0.01;
+        int sliceCount = int(u_src_slice_count * 4.0) + 1;
+        float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
+
+        float glowAmt = u_src_glow * u_src_glow * 4.0;
+        int numTrails = int(u_src_trail_dist * 5.0);
+        float trailDecay = 0.3 + u_src_trail_fade * 0.5;
+
         float t = 0.0;
         float glow = 0.0;
         bool hit = false;
+        float trapVal = 0.0;
         for (int i = 0; i < 80; i++) {
             vec3 p = ro + rd * t;
-            float d = mandelbulbDE(p, power);
-            glow += 1.0 / (1.0 + d * d * 500.0);
-            if (d < 0.001) { hit = true; break; }
+            float trap;
+            float d = mandelbulbDE(p, power, trap);
+            if (useSlice) {
+                if (sliceCount <= 1) {
+                    d = max(d, abs(p.z - sliceZ) - 0.02);
+                } else {
+                    float md = 1e10;
+                    for (int s = 0; s < 5; s++) {
+                        if (s >= sliceCount) break;
+                        float z = sliceZ + float(s - sliceCount/2) * sliceSpacing;
+                        md = min(md, abs(p.z - z) - 0.02);
+                    }
+                    d = max(d, md);
+                }
+            }
+            float glowBase = 1.0 / (1.0 + d * d * 500.0);
+            float trailGlow = 0.0;
+            if (d < 0.1 && numTrails > 0) {
+                for (int tr = 0; tr < 5; tr++) {
+                    if (tr >= numTrails) break;
+                    float offset = float(tr + 1) * 0.02;
+                    vec3 tp = p + rd * offset;
+                    float tdmy;
+                    float td = mandelbulbDE(tp, power, tdmy);
+                    float tg = 1.0 / (1.0 + td * td * 500.0);
+                    trailGlow += tg * pow(trailDecay, float(tr + 1));
+                }
+            }
+            glow += glowBase + trailGlow * 0.3;
+            // Feedback: modulate glow with periodic rings for echo/feedback look
+            if (u_src_feedback > 0.01 && d < 0.5) {
+                float fbRings = sin(d * u_src_feedback * 100.0) * 0.5 + 0.5;
+                glow += fbRings * u_src_feedback * glowBase * 3.0;
+            }
+            if (d < 0.001) { hit = true; trapVal = trap; break; }
             t += d;
             if (t > 10.0) break;
         }
@@ -6379,16 +6665,18 @@ inline const char* sourceMandelbulb = R"(
             vec3 n = calcNormal(p, power);
             vec3 light = normalize(vec3(1, 2, 3));
             float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
-            float hue = u_src_color_shift + length(p) * 0.5;
-            col = diff * (0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))));
+            float hue = u_src_color_shift + trapVal * 2.0;
+            int palIdx = int(u_src_palette * 7.0);
+            col = diff * fracPalette(hue, palIdx);
         }
-        col += vec3(0.1, 0.15, 0.3) * glow * 0.015;
+        col += vec3(0.1, 0.15, 0.3) * glow * 0.015 * (1.0 + glowAmt);
+
         col *= 0.8 + u_rms * 0.4;
         fragColor = vec4(col, 1.0);
     }
 )";
 
-// Menger Sponge — 3D Sierpinski cube
+// Menger Sponge — 3D Sierpinski cube, with palettes and cross-section
 inline const char* sourceMengerSponge = R"(
     #version 410 core
     in vec2 v_texCoord;
@@ -6400,7 +6688,29 @@ inline const char* sourceMengerSponge = R"(
     uniform float u_src_rotation_y;
     uniform float u_src_twist;
     uniform float u_src_color_shift;
+    uniform float u_src_slice;
+    uniform float u_src_palette;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_trail_dist;
+    uniform float u_src_trail_fade;
+    uniform float u_src_slice_count;
+    uniform float u_src_slice_dist;
+    uniform float u_src_feedback;
     uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
 
     mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
     mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
@@ -6413,8 +6723,8 @@ inline const char* sourceMengerSponge = R"(
     float mengerDE(vec3 p, int iters, float twistAmt) {
         float d = sdBox(p, vec3(1.0));
         float s = 1.0;
-        for (int i = 0; i < iters; i++) {
-            // Optional twist per iteration
+        for (int i = 0; i < 8; i++) {
+            if (i >= iters) break;
             if (twistAmt > 0.01) {
                 float ta = twistAmt * float(i) * 0.3;
                 float tc = cos(ta), ts = sin(ta);
@@ -6446,21 +6756,61 @@ inline const char* sourceMengerSponge = R"(
         uv.x *= aspect;
         int iters = int(u_src_iterations * 5.0) + 2;
         float twistAmt = u_src_twist * 2.0;
-        float rx = u_time * (u_src_rotation_x - 0.5) * 1.0;
-        float ry = u_time * (u_src_rotation_y - 0.5) * 1.0;
+        float autoSpeed = (u_src_speed - 0.5) * 2.0;
+        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
         mat3 rot = rotY(ry) * rotX(rx);
-        vec3 ro = rot * vec3(0, 0, 3.0);
+        float camDist = mix(5.0, 0.3, u_src_zoom);
+        vec3 ro = rot * vec3(0, 0, camDist);
         vec3 fwd = normalize(-ro);
         vec3 right = normalize(cross(fwd, vec3(0,1,0)));
         vec3 up = cross(right, fwd);
         vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        bool useSlice = abs(u_src_slice - 0.5) > 0.01;
+        int sliceCount = int(u_src_slice_count * 4.0) + 1;
+        float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
+
+        int numTrails = int(u_src_trail_dist * 5.0);
+        float trailDecay = 0.3 + u_src_trail_fade * 0.5;
+
         float t = 0.0;
         float glow = 0.0;
         bool hit = false;
         for (int i = 0; i < 80; i++) {
             vec3 p = ro + rd * t;
             float d = mengerDE(p, iters, twistAmt);
-            glow += 1.0 / (1.0 + d * d * 200.0);
+            if (useSlice) {
+                if (sliceCount <= 1) {
+                    d = max(d, abs(p.z - sliceZ) - 0.02);
+                } else {
+                    float md = 1e10;
+                    for (int s = 0; s < 5; s++) {
+                        if (s >= sliceCount) break;
+                        float z = sliceZ + float(s - sliceCount/2) * sliceSpacing;
+                        md = min(md, abs(p.z - z) - 0.02);
+                    }
+                    d = max(d, md);
+                }
+            }
+            float glowBase = 1.0 / (1.0 + d * d * 200.0);
+            float trailGlow = 0.0;
+            if (d < 0.1 && numTrails > 0) {
+                for (int tr = 0; tr < 5; tr++) {
+                    if (tr >= numTrails) break;
+                    float offset = float(tr + 1) * 0.02;
+                    vec3 tp = p + rd * offset;
+                    float td = mengerDE(tp, iters, twistAmt);
+                    float tg = 1.0 / (1.0 + td * td * 200.0);
+                    trailGlow += tg * pow(trailDecay, float(tr + 1));
+                }
+            }
+            glow += glowBase + trailGlow * 0.3;
+            if (u_src_feedback > 0.01 && d < 0.5) {
+                float fbRings = sin(d * u_src_feedback * 100.0) * 0.5 + 0.5;
+                glow += fbRings * u_src_feedback * glowBase * 3.0;
+            }
             if (d < 0.001) { hit = true; break; }
             t += d;
             if (t > 10.0) break;
@@ -6472,15 +6822,17 @@ inline const char* sourceMengerSponge = R"(
             vec3 light = normalize(vec3(1, 2, 3));
             float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
             float hue = u_src_color_shift + abs(n.x) * 0.2 + abs(n.y) * 0.3;
-            col = diff * (0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))));
+            int palIdx = int(u_src_palette * 7.0);
+            col = diff * fracPalette(hue, palIdx);
         }
         col += vec3(0.15, 0.1, 0.25) * glow * 0.01;
+
         col *= 0.8 + u_rms * 0.4;
         fragColor = vec4(col, 1.0);
     }
 )";
 
-// KIFS — Kaleidoscopic IFS, most versatile 3D fractal
+// KIFS — Kaleidoscopic IFS with palettes and cross-section
 inline const char* sourceKIFS = R"(
     #version 410 core
     in vec2 v_texCoord;
@@ -6494,33 +6846,50 @@ inline const char* sourceKIFS = R"(
     uniform float u_src_rotation_y;
     uniform float u_src_offset;
     uniform float u_src_color_shift;
+    uniform float u_src_slice;
+    uniform float u_src_palette;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_trail_dist;
+    uniform float u_src_trail_fade;
+    uniform float u_src_slice_count;
+    uniform float u_src_slice_dist;
+    uniform float u_src_feedback;
     uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
 
     mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
     mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
-    mat3 rotZ(float a) { float c=cos(a),s=sin(a); return mat3(c,-s,0, s,c,0, 0,0,1); }
 
     float kifsDE(vec3 p, float sc, int iters, float foldType, float off) {
-        vec3 offset = vec3(1.0, 1.0, 1.0) * off * 2.0;
+        vec3 offset = vec3(1.0) * off * 2.0;
         float iterRot = u_time * 0.1;
-        for (int i = 0; i < iters; i++) {
+        for (int i = 0; i < 15; i++) {
+            if (i >= iters) break;
             p = abs(p);
-            // Fold types
             if (foldType < 0.33) {
-                // Tetrahedral fold
                 if (p.x - p.y < 0.0) p.xy = p.yx;
                 if (p.x - p.z < 0.0) p.xz = p.zx;
                 if (p.y - p.z < 0.0) p.yz = p.zy;
             } else if (foldType < 0.67) {
-                // Menger-style fold
                 if (p.x - p.y < 0.0) p.xy = p.yx;
                 if (p.x - p.z < 0.0) p.xz = p.zx;
-                // Rotation fold
                 float a = iterRot + float(i) * 0.5;
                 float rc = cos(a), rs = sin(a);
                 p.yz = vec2(p.y*rc - p.z*rs, p.y*rs + p.z*rc);
             } else {
-                // Octahedral fold
                 if (p.x + p.y < 0.0) { float t = -p.y; p.y = -p.x; p.x = t; }
                 if (p.x + p.z < 0.0) { float t = -p.z; p.z = -p.x; p.x = t; }
                 if (p.y + p.z < 0.0) { float t = -p.z; p.z = -p.y; p.y = t; }
@@ -6546,21 +6915,61 @@ inline const char* sourceKIFS = R"(
         int iters = int(u_src_iterations * 10.0) + 3;
         float foldType = u_src_fold_type;
         float off = u_src_offset;
-        float rx = u_time * (u_src_rotation_x - 0.5) * 1.0;
-        float ry = u_time * (u_src_rotation_y - 0.5) * 1.0;
+        float autoSpeed = (u_src_speed - 0.5) * 2.0;
+        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
         mat3 rot = rotY(ry) * rotX(rx);
-        vec3 ro = rot * vec3(0, 0, 3.5);
+        float camDist = mix(5.0, 0.3, u_src_zoom);
+        vec3 ro = rot * vec3(0, 0, camDist);
         vec3 fwd = normalize(-ro);
         vec3 right = normalize(cross(fwd, vec3(0,1,0)));
         vec3 up = cross(right, fwd);
         vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+        float sliceZ = (u_src_slice - 0.5) * 4.0;
+        bool useSlice = abs(u_src_slice - 0.5) > 0.01;
+        int sliceCount = int(u_src_slice_count * 4.0) + 1;
+        float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
+
+        int numTrails = int(u_src_trail_dist * 5.0);
+        float trailDecay = 0.3 + u_src_trail_fade * 0.5;
+
         float t = 0.0;
         float glow = 0.0;
         bool hit = false;
         for (int i = 0; i < 80; i++) {
             vec3 p = ro + rd * t;
             float d = kifsDE(p, sc, iters, foldType, off);
-            glow += 1.0 / (1.0 + d * d * 300.0);
+            if (useSlice) {
+                if (sliceCount <= 1) {
+                    d = max(d, abs(p.z - sliceZ) - 0.02);
+                } else {
+                    float md = 1e10;
+                    for (int s = 0; s < 5; s++) {
+                        if (s >= sliceCount) break;
+                        float z = sliceZ + float(s - sliceCount/2) * sliceSpacing;
+                        md = min(md, abs(p.z - z) - 0.02);
+                    }
+                    d = max(d, md);
+                }
+            }
+            float glowBase = 1.0 / (1.0 + d * d * 300.0);
+            float trailGlow = 0.0;
+            if (d < 0.1 && numTrails > 0) {
+                for (int tr = 0; tr < 5; tr++) {
+                    if (tr >= numTrails) break;
+                    float offset = float(tr + 1) * 0.02;
+                    vec3 tp = p + rd * offset;
+                    float td = kifsDE(tp, sc, iters, foldType, off);
+                    float tg = 1.0 / (1.0 + td * td * 300.0);
+                    trailGlow += tg * pow(trailDecay, float(tr + 1));
+                }
+            }
+            glow += glowBase + trailGlow * 0.3;
+            if (u_src_feedback > 0.01 && d < 0.5) {
+                float fbRings = sin(d * u_src_feedback * 100.0) * 0.5 + 0.5;
+                glow += fbRings * u_src_feedback * glowBase * 3.0;
+            }
             if (d < 0.001) { hit = true; break; }
             t += d;
             if (t > 10.0) break;
@@ -6572,9 +6981,782 @@ inline const char* sourceKIFS = R"(
             vec3 light = normalize(vec3(1, 2, 3));
             float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
             float hue = u_src_color_shift + dot(abs(n), vec3(0.3, 0.5, 0.2));
-            col = diff * (0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))));
+            int palIdx = int(u_src_palette * 7.0);
+            col = diff * fracPalette(hue, palIdx);
         }
         col += vec3(0.1, 0.2, 0.3) * glow * 0.012;
+
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// ============================================================
+// NEW 3D FRACTAL SOURCES
+// ============================================================
+
+// Julia Set 3D — Quaternion Julia set, ray marched
+inline const char* sourceJuliaSet3D = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_cx;
+    uniform float u_src_cy;
+    uniform float u_src_rotation_x;
+    uniform float u_src_rotation_y;
+    uniform float u_src_iterations;
+    uniform float u_src_color_shift;
+    uniform float u_src_slice;
+    uniform float u_src_glow;
+    uniform float u_src_palette;
+    uniform float u_src_location;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_trail_dist;
+    uniform float u_src_trail_fade;
+    uniform float u_src_slice_count;
+    uniform float u_src_slice_dist;
+    uniform float u_src_feedback;
+    uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
+    mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+    mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+
+    // Quaternion multiply: q = (x, y, z, w) = xi + yj + zk + w
+    vec4 qmul(vec4 a, vec4 b) {
+        return vec4(
+            a.w*b.x + a.x*b.w + a.y*b.z - a.z*b.y,
+            a.w*b.y - a.x*b.z + a.y*b.w + a.z*b.x,
+            a.w*b.z + a.x*b.y - a.y*b.x + a.z*b.w,
+            a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z);
+    }
+
+    float julia3DDE(vec3 pos, vec4 c, out float trap) {
+        vec4 z = vec4(pos, 0.0);
+        float dz = 1.0;
+        trap = 1e10;
+        for (int i = 0; i < 10; i++) {
+            dz = 2.0 * length(z) * dz;
+            z = qmul(z, z) + c;
+            trap = min(trap, length(z.xyz));
+            if (dot(z, z) > 4.0) break;
+        }
+        float r = length(z);
+        return 0.5 * r * log(r) / max(dz, 0.0001);
+    }
+
+    vec3 calcNormal(vec3 p, vec4 c) {
+        vec2 e = vec2(0.001, 0.0);
+        float dummy;
+        return normalize(vec3(
+            julia3DDE(p+e.xyy,c,dummy) - julia3DDE(p-e.xyy,c,dummy),
+            julia3DDE(p+e.yxy,c,dummy) - julia3DDE(p-e.yxy,c,dummy),
+            julia3DDE(p+e.yyx,c,dummy) - julia3DDE(p-e.yyx,c,dummy)));
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+
+        // Preset quaternion c-values
+        vec4 presets[6];
+        presets[0] = vec4(-0.2, 0.6, 0.2, 0.0);
+        presets[1] = vec4(-0.213, -0.0410, -0.563, -0.560);
+        presets[2] = vec4(-0.1, 0.6, 0.0, 0.0);
+        presets[3] = vec4(-0.291, -0.399, 0.339, 0.437);
+        presets[4] = vec4(0.185, 0.478, 0.125, -0.392);
+        presets[5] = vec4(-0.4, 0.6, 0.2, -0.1);
+
+        vec4 c;
+        float locIdx = u_src_location * 5.0;
+        if (locIdx > 0.1) {
+            int li = int(locIdx);
+            c = presets[min(li, 5)];
+        } else {
+            float rawCx = (u_src_cx - 0.5);
+            float rawCy = (u_src_cy - 0.5);
+            c = vec4(sign(rawCx)*rawCx*rawCx*4.0, sign(rawCy)*rawCy*rawCy*4.0, 0.0, 0.0);
+        }
+
+        float autoSpeed = (u_src_speed - 0.5) * 2.0;
+        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
+        mat3 rot = rotY(ry) * rotX(rx);
+        float camDist = mix(5.0, 0.3, u_src_zoom);
+        vec3 ro = rot * vec3(0, 0, camDist);
+        vec3 fwd = normalize(-ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        bool useSlice = abs(u_src_slice - 0.5) > 0.01;
+        int sliceCount = int(u_src_slice_count * 4.0) + 1;
+        float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
+        float glowAmt = u_src_glow * u_src_glow * 4.0;
+        int numTrails = int(u_src_trail_dist * 5.0);
+        float trailDecay = 0.3 + u_src_trail_fade * 0.5;
+
+        float t = 0.0, glow = 0.0, trapVal = 0.0;
+        bool hit = false;
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * t;
+            float trap;
+            float d = julia3DDE(p, c, trap);
+            if (useSlice) {
+                if (sliceCount <= 1) {
+                    d = max(d, abs(p.z - sliceZ) - 0.02);
+                } else {
+                    float md = 1e10;
+                    for (int s = 0; s < 5; s++) {
+                        if (s >= sliceCount) break;
+                        float z = sliceZ + float(s - sliceCount/2) * sliceSpacing;
+                        md = min(md, abs(p.z - z) - 0.02);
+                    }
+                    d = max(d, md);
+                }
+            }
+            float glowBase = 1.0 / (1.0 + d * d * 500.0);
+            float trailGlow = 0.0;
+            if (d < 0.1 && numTrails > 0) {
+                for (int tr = 0; tr < 5; tr++) {
+                    if (tr >= numTrails) break;
+                    float offset = float(tr + 1) * 0.02;
+                    vec3 tp = p + rd * offset;
+                    float tdmy;
+                    float td = julia3DDE(tp, c, tdmy);
+                    float tg = 1.0 / (1.0 + td * td * 500.0);
+                    trailGlow += tg * pow(trailDecay, float(tr + 1));
+                }
+            }
+            glow += glowBase + trailGlow * 0.3;
+            // Feedback: modulate glow with periodic rings for echo/feedback look
+            if (u_src_feedback > 0.01 && d < 0.5) {
+                float fbRings = sin(d * u_src_feedback * 100.0) * 0.5 + 0.5;
+                glow += fbRings * u_src_feedback * glowBase * 3.0;
+            }
+            if (d < 0.001) { hit = true; trapVal = trap; break; }
+            t += d;
+            if (t > 10.0) break;
+        }
+        vec3 col = vec3(0.0);
+        if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p, c);
+            vec3 light = normalize(vec3(1, 2, 3));
+            float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
+            float hue = u_src_color_shift + trapVal * 2.0;
+            int palIdx = int(u_src_palette * 7.0);
+            col = diff * fracPalette(hue, palIdx);
+        }
+        col += vec3(0.15, 0.1, 0.3) * glow * 0.015 * (1.0 + glowAmt);
+
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Burning Ship 3D — triplex algebra with abs(), ray marched
+inline const char* sourceBurningShip3D = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_power;
+    uniform float u_src_rotation_x;
+    uniform float u_src_rotation_y;
+    uniform float u_src_color_shift;
+    uniform float u_src_slice;
+    uniform float u_src_glow;
+    uniform float u_src_palette;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_trail_dist;
+    uniform float u_src_trail_fade;
+    uniform float u_src_slice_count;
+    uniform float u_src_slice_dist;
+    uniform float u_src_feedback;
+    uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
+    mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+    mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+
+    float burningShip3DDE(vec3 pos, float power, out float trap) {
+        vec3 z = pos;
+        float dr = 1.0, r = 0.0;
+        trap = 1e10;
+        for (int i = 0; i < 10; i++) {
+            z = abs(z); // The burning ship twist in 3D
+            r = length(z);
+            if (r > 2.0) break;
+            trap = min(trap, r);
+            float theta = acos(clamp(z.z / r, -1.0, 1.0));
+            float phi = atan(z.y, z.x);
+            dr = pow(r, power - 1.0) * power * dr + 1.0;
+            float zr = pow(r, power);
+            theta *= power; phi *= power;
+            z = zr * vec3(sin(theta)*cos(phi), sin(theta)*sin(phi), cos(theta));
+            z += pos;
+        }
+        return 0.5 * log(r) * r / max(dr, 0.0001);
+    }
+
+    vec3 calcNormal(vec3 p, float pw) {
+        vec2 e = vec2(0.001, 0.0);
+        float dummy;
+        return normalize(vec3(
+            burningShip3DDE(p+e.xyy,pw,dummy) - burningShip3DDE(p-e.xyy,pw,dummy),
+            burningShip3DDE(p+e.yxy,pw,dummy) - burningShip3DDE(p-e.yxy,pw,dummy),
+            burningShip3DDE(p+e.yyx,pw,dummy) - burningShip3DDE(p-e.yyx,pw,dummy)));
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        float power = 2.0 + u_src_power * u_src_power * 14.0;
+        float autoSpeed = (u_src_speed - 0.5) * 2.0;
+        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
+        mat3 rot = rotY(ry) * rotX(rx);
+        float camDist = mix(5.0, 0.3, u_src_zoom);
+        vec3 ro = rot * vec3(0, 0, camDist);
+        vec3 fwd = normalize(-ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        bool useSlice = abs(u_src_slice - 0.5) > 0.01;
+        int sliceCount = int(u_src_slice_count * 4.0) + 1;
+        float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
+        float glowAmt = u_src_glow * u_src_glow * 4.0;
+        int numTrails = int(u_src_trail_dist * 5.0);
+        float trailDecay = 0.3 + u_src_trail_fade * 0.5;
+
+        float t = 0.0, glow = 0.0, trapVal = 0.0;
+        bool hit = false;
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * t;
+            float trap;
+            float d = burningShip3DDE(p, power, trap);
+            if (useSlice) {
+                if (sliceCount <= 1) {
+                    d = max(d, abs(p.z - sliceZ) - 0.02);
+                } else {
+                    float md = 1e10;
+                    for (int s = 0; s < 5; s++) {
+                        if (s >= sliceCount) break;
+                        float z = sliceZ + float(s - sliceCount/2) * sliceSpacing;
+                        md = min(md, abs(p.z - z) - 0.02);
+                    }
+                    d = max(d, md);
+                }
+            }
+            float glowBase = 1.0 / (1.0 + d * d * 500.0);
+            float trailGlow = 0.0;
+            if (d < 0.1 && numTrails > 0) {
+                for (int tr = 0; tr < 5; tr++) {
+                    if (tr >= numTrails) break;
+                    float offset = float(tr + 1) * 0.02;
+                    vec3 tp = p + rd * offset;
+                    float tdmy;
+                    float td = burningShip3DDE(tp, power, tdmy);
+                    float tg = 1.0 / (1.0 + td * td * 500.0);
+                    trailGlow += tg * pow(trailDecay, float(tr + 1));
+                }
+            }
+            glow += glowBase + trailGlow * 0.3;
+            // Feedback: modulate glow with periodic rings for echo/feedback look
+            if (u_src_feedback > 0.01 && d < 0.5) {
+                float fbRings = sin(d * u_src_feedback * 100.0) * 0.5 + 0.5;
+                glow += fbRings * u_src_feedback * glowBase * 3.0;
+            }
+            if (d < 0.001) { hit = true; trapVal = trap; break; }
+            t += d;
+            if (t > 10.0) break;
+        }
+        vec3 col = vec3(0.0);
+        if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p, power);
+            vec3 light = normalize(vec3(1, 2, 3));
+            float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
+            float hue = u_src_color_shift + trapVal * 2.0;
+            int palIdx = int(u_src_palette * 7.0);
+            col = diff * fracPalette(hue, palIdx);
+        }
+        col += vec3(0.2, 0.1, 0.05) * glow * 0.015 * (1.0 + glowAmt);
+
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Newton 3D — height field from 2D Newton iteration, ray marched
+inline const char* sourceNewton3D = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_power;
+    uniform float u_src_rotation_x;
+    uniform float u_src_rotation_y;
+    uniform float u_src_damping;
+    uniform float u_src_color_shift;
+    uniform float u_src_height;
+    uniform float u_src_palette;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_trail_dist;
+    uniform float u_src_trail_fade;
+    uniform float u_src_slice_count;
+    uniform float u_src_slice_dist;
+    uniform float u_src_feedback;
+    uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
+    mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+    mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+
+    vec2 cmul(vec2 a, vec2 b) { return vec2(a.x*b.x-a.y*b.y, a.x*b.y+a.y*b.x); }
+    vec2 cdiv(vec2 a, vec2 b) { return cmul(a, vec2(b.x,-b.y)) / dot(b,b); }
+
+    // Newton iteration count as height + root coloring
+    void newtonIterate(vec2 uv, int n, float damp, out float height, out int rootIdx) {
+        vec2 z = uv;
+        float minDist = 1e10;
+        rootIdx = 0;
+        int i;
+        for (i = 0; i < 30; i++) {
+            float r = length(z);
+            if (r < 0.0001) break;
+            float theta = atan(z.y, z.x);
+            vec2 zn = pow(r, float(n)) * vec2(cos(float(n)*theta), sin(float(n)*theta));
+            vec2 zn1 = pow(r, float(n-1)) * vec2(cos(float(n-1)*theta), sin(float(n-1)*theta));
+            vec2 fz = zn - vec2(1.0, 0.0);
+            vec2 fpz = float(n) * zn1;
+            z -= damp * cdiv(fz, fpz);
+            for (int k = 0; k < 8; k++) {
+                if (k >= n) break;
+                float ra = 6.28318 * float(k) / float(n);
+                vec2 root = vec2(cos(ra), sin(ra));
+                float d = length(z - root);
+                if (d < minDist) { minDist = d; rootIdx = k; }
+            }
+            if (minDist < 0.001) break;
+        }
+        height = 1.0 - float(i) / 30.0;
+    }
+
+    float newtonDE(vec3 p, int n, float damp, float heightScale) {
+        float h; int root;
+        newtonIterate(p.xz, n, damp, h, root);
+        return p.y - h * heightScale;
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        int n = int(u_src_power * u_src_power * 5.0) + 3;
+        float damp = 0.5 + u_src_damping * 1.0;
+        float heightScale = 0.2 + u_src_height * 1.5;
+        float autoSpeed = (u_src_speed - 0.5) * 2.0;
+        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed + 0.3;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
+        mat3 rot = rotY(ry) * rotX(rx);
+        float camDist = mix(5.0, 0.3, u_src_zoom);
+        vec3 ro = rot * vec3(0, 1.5, camDist);
+        vec3 target = vec3(0, 0.2, 0);
+        vec3 fwd = normalize(target - ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+        int numTrails = int(u_src_trail_dist * 5.0);
+        float trailDecay = 0.3 + u_src_trail_fade * 0.5;
+
+        float t = 0.0;
+        float glow = 0.0;
+        bool hit = false;
+        vec3 hitP = vec3(0);
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * t;
+            float d = newtonDE(p, n, damp, heightScale);
+            float glowBase = 1.0 / (1.0 + d * d * 100.0);
+            float trailGlow = 0.0;
+            if (abs(d) < 0.1 && numTrails > 0) {
+                for (int tr = 0; tr < 5; tr++) {
+                    if (tr >= numTrails) break;
+                    float offset = float(tr + 1) * 0.02;
+                    vec3 tp = p + rd * offset;
+                    float td = newtonDE(tp, n, damp, heightScale);
+                    float tg = 1.0 / (1.0 + td * td * 100.0);
+                    trailGlow += tg * pow(trailDecay, float(tr + 1));
+                }
+            }
+            glow += glowBase + trailGlow * 0.3;
+            if (u_src_feedback > 0.01 && abs(d) < 0.5) {
+                float fbRings = sin(abs(d) * u_src_feedback * 100.0) * 0.5 + 0.5;
+                glow += fbRings * u_src_feedback * glowBase * 3.0;
+            }
+            if (abs(d) < 0.005) { hit = true; hitP = p; break; }
+            t += max(d * 0.5, 0.005); // Conservative step
+            if (t > 10.0) break;
+        }
+        vec3 col = vec3(0.0);
+        if (hit) {
+            // Normal via finite differences
+            vec2 e = vec2(0.01, 0.0);
+            vec3 n3 = normalize(vec3(
+                newtonDE(hitP+e.xyy,n,damp,heightScale) - newtonDE(hitP-e.xyy,n,damp,heightScale),
+                newtonDE(hitP+e.yxy,n,damp,heightScale) - newtonDE(hitP-e.yxy,n,damp,heightScale),
+                newtonDE(hitP+e.yyx,n,damp,heightScale) - newtonDE(hitP-e.yyx,n,damp,heightScale)));
+            vec3 light = normalize(vec3(1, 2, 3));
+            float diff = max(dot(n3, light), 0.0) * 0.7 + 0.3;
+            float h; int root;
+            newtonIterate(hitP.xz, n, damp, h, root);
+            float hue = float(root) / float(n) + u_src_color_shift;
+            int palIdx = int(u_src_palette * 7.0);
+            col = diff * fracPalette(hue, palIdx);
+        }
+        col += vec3(0.1, 0.15, 0.2) * glow * 0.008;
+
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Sierpinski Tetrahedron — 3D IFS fractal via folding
+inline const char* sourceSierpinskiTetra = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_iterations;
+    uniform float u_src_rotation_x;
+    uniform float u_src_rotation_y;
+    uniform float u_src_color_shift;
+    uniform float u_src_slice;
+    uniform float u_src_palette;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_trail_dist;
+    uniform float u_src_trail_fade;
+    uniform float u_src_slice_count;
+    uniform float u_src_slice_dist;
+    uniform float u_src_feedback;
+    uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
+    mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+    mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+
+    float sierpinskiTetraDE(vec3 z, int iters) {
+        float Scale = 2.0;
+        vec3 Offset = vec3(1.0, 1.0, 1.0);
+        for (int n = 0; n < 15; n++) {
+            if (n >= iters) break;
+            // Tetrahedral folds
+            if (z.x + z.y < 0.0) z.xy = -z.yx;
+            if (z.x + z.z < 0.0) z.xz = -z.zx;
+            if (z.y + z.z < 0.0) z.zy = -z.yz;
+            z = z * Scale - Offset * (Scale - 1.0);
+        }
+        return length(z) * pow(Scale, -float(iters));
+    }
+
+    vec3 calcNormal(vec3 p, int it) {
+        vec2 e = vec2(0.001, 0.0);
+        return normalize(vec3(
+            sierpinskiTetraDE(p+e.xyy,it) - sierpinskiTetraDE(p-e.xyy,it),
+            sierpinskiTetraDE(p+e.yxy,it) - sierpinskiTetraDE(p-e.yxy,it),
+            sierpinskiTetraDE(p+e.yyx,it) - sierpinskiTetraDE(p-e.yyx,it)));
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        int iters = int(u_src_iterations * 12.0) + 3;
+        float autoSpeed = (u_src_speed - 0.5) * 2.0;
+        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
+        mat3 rot = rotY(ry) * rotX(rx);
+        float camDist = mix(5.0, 0.3, u_src_zoom);
+        vec3 ro = rot * vec3(0, 0, camDist);
+        vec3 fwd = normalize(-ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+        float sliceZ = (u_src_slice - 0.5) * 3.0;
+        bool useSlice = abs(u_src_slice - 0.5) > 0.01;
+        int sliceCount = int(u_src_slice_count * 4.0) + 1;
+        float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
+
+        int numTrails = int(u_src_trail_dist * 5.0);
+        float trailDecay = 0.3 + u_src_trail_fade * 0.5;
+
+        float t = 0.0, glow = 0.0;
+        bool hit = false;
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * t;
+            float d = sierpinskiTetraDE(p, iters);
+            if (useSlice) {
+                if (sliceCount <= 1) {
+                    d = max(d, abs(p.z - sliceZ) - 0.02);
+                } else {
+                    float md = 1e10;
+                    for (int s = 0; s < 5; s++) {
+                        if (s >= sliceCount) break;
+                        float z = sliceZ + float(s - sliceCount/2) * sliceSpacing;
+                        md = min(md, abs(p.z - z) - 0.02);
+                    }
+                    d = max(d, md);
+                }
+            }
+            float glowBase = 1.0 / (1.0 + d * d * 300.0);
+            float trailGlow = 0.0;
+            if (d < 0.1 && numTrails > 0) {
+                for (int tr = 0; tr < 5; tr++) {
+                    if (tr >= numTrails) break;
+                    float offset = float(tr + 1) * 0.02;
+                    vec3 tp = p + rd * offset;
+                    float td = sierpinskiTetraDE(tp, iters);
+                    float tg = 1.0 / (1.0 + td * td * 300.0);
+                    trailGlow += tg * pow(trailDecay, float(tr + 1));
+                }
+            }
+            glow += glowBase + trailGlow * 0.3;
+            if (u_src_feedback > 0.01 && d < 0.5) {
+                float fbRings = sin(d * u_src_feedback * 100.0) * 0.5 + 0.5;
+                glow += fbRings * u_src_feedback * glowBase * 3.0;
+            }
+            if (d < 0.001) { hit = true; break; }
+            t += d;
+            if (t > 10.0) break;
+        }
+        vec3 col = vec3(0.0);
+        if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p, iters);
+            vec3 light = normalize(vec3(1, 2, 3));
+            float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
+            float hue = u_src_color_shift + dot(abs(n), vec3(0.3, 0.5, 0.2));
+            int palIdx = int(u_src_palette * 7.0);
+            col = diff * fracPalette(hue, palIdx);
+        }
+        col += vec3(0.1, 0.15, 0.25) * glow * 0.012;
+
+        col *= 0.8 + u_rms * 0.4;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// Apollonian 3D — sphere packing via 3D inversive geometry
+inline const char* sourceApollonian3D = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_iterations;
+    uniform float u_src_rotation_x;
+    uniform float u_src_rotation_y;
+    uniform float u_src_color_shift;
+    uniform float u_src_scale;
+    uniform float u_src_slice;
+    uniform float u_src_palette;
+    uniform float u_src_zoom;
+    uniform float u_src_speed;
+    uniform float u_src_trail_dist;
+    uniform float u_src_trail_fade;
+    uniform float u_src_slice_count;
+    uniform float u_src_slice_dist;
+    uniform float u_src_feedback;
+    uniform float u_rms;
+
+    vec3 fracPalette(float t, int idx) {
+        vec3 a,b,c,d;
+        if(idx==0){a=vec3(.5,.2,.05);b=vec3(.5,.3,.15);c=vec3(1,.7,.4);d=vec3(0,.15,.2);}
+        else if(idx==1){a=vec3(0,.3,.5);b=vec3(0,.3,.3);c=vec3(1,1,1);d=vec3(0,.2,.5);}
+        else if(idx==2){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.1,.2);}
+        else if(idx==3){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,0,0);}
+        else if(idx==4){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(1,1,1);d=vec3(0,.33,.67);}
+        else if(idx==5){a=vec3(.5,.5,.5);b=vec3(.5,.5,.5);c=vec3(2,1,1);d=vec3(.5,.2,.25);}
+        else if(idx==6){a=vec3(.7,.8,1);b=vec3(.3,.2,0);c=vec3(1,1,1);d=vec3(.5,.6,.7);}
+        else{a=vec3(.5,.3,.2);b=vec3(.5,.4,.3);c=vec3(1,.7,.4);d=vec3(0,.05,.3);}
+        return a+b*cos(6.28318*(c*t+d));
+    }
+
+    mat3 rotY(float a) { float c=cos(a),s=sin(a); return mat3(c,0,s, 0,1,0, -s,0,c); }
+    mat3 rotX(float a) { float c=cos(a),s=sin(a); return mat3(1,0,0, 0,c,-s, 0,s,c); }
+
+    float apollonian3DDE(vec3 p, int iters, float sc) {
+        float s = 1.0;
+        float minR = 1e10;
+        for (int i = 0; i < 20; i++) {
+            if (i >= iters) break;
+            p = abs(p);
+            // Sort coordinates descending
+            if (p.x < p.y) p.xy = p.yx;
+            if (p.x < p.z) p.xz = p.zx;
+            if (p.y < p.z) p.yz = p.zy;
+            // Scale and translate
+            p = p * sc - vec3(sc - 1.0);
+            s *= sc;
+            // Sphere inversion
+            float r2 = dot(p, p);
+            float k = max(1.0 / r2, 1.0);
+            p *= k;
+            s *= k;
+            minR = min(minR, r2);
+        }
+        return (length(p) - 0.5) / s;
+    }
+
+    vec3 calcNormal(vec3 p, int it, float sc) {
+        vec2 e = vec2(0.001, 0.0);
+        return normalize(vec3(
+            apollonian3DDE(p+e.xyy,it,sc) - apollonian3DDE(p-e.xyy,it,sc),
+            apollonian3DDE(p+e.yxy,it,sc) - apollonian3DDE(p-e.yxy,it,sc),
+            apollonian3DDE(p+e.yyx,it,sc) - apollonian3DDE(p-e.yyx,it,sc)));
+    }
+
+    void main() {
+        vec2 uv = (v_texCoord - 0.5) * 2.0;
+        float aspect = u_resolution.x / u_resolution.y;
+        uv.x *= aspect;
+        int iters = int(u_src_iterations * 15.0) + 5;
+        float sc = 1.5 + u_src_scale * 2.0;
+        float autoSpeed = (u_src_speed - 0.5) * 2.0;
+        float rx = u_src_rotation_x * 6.28318 + u_time * autoSpeed;
+        float ry = u_src_rotation_y * 6.28318 + u_time * autoSpeed * 0.7;
+        mat3 rot = rotY(ry) * rotX(rx);
+        float camDist = mix(6.0, 0.3, u_src_zoom);
+        vec3 ro = rot * vec3(0, 0, camDist);
+        vec3 fwd = normalize(-ro);
+        vec3 right = normalize(cross(fwd, vec3(0,1,0)));
+        vec3 up = cross(right, fwd);
+        vec3 rd = normalize(fwd + uv.x * right + uv.y * up);
+
+        float sliceZ = (u_src_slice - 0.5) * 4.0;
+        bool useSlice = abs(u_src_slice - 0.5) > 0.01;
+        int sliceCount = int(u_src_slice_count * 4.0) + 1;
+        float sliceSpacing = 0.1 + u_src_slice_dist * 0.8;
+
+        int numTrails = int(u_src_trail_dist * 5.0);
+        float trailDecay = 0.3 + u_src_trail_fade * 0.5;
+
+        float t = 0.0, glow = 0.0;
+        bool hit = false;
+        for (int i = 0; i < 80; i++) {
+            vec3 p = ro + rd * t;
+            float d = apollonian3DDE(p, iters, sc);
+            if (useSlice) {
+                if (sliceCount <= 1) {
+                    d = max(d, abs(p.z - sliceZ) - 0.02);
+                } else {
+                    float md = 1e10;
+                    for (int s = 0; s < 5; s++) {
+                        if (s >= sliceCount) break;
+                        float z = sliceZ + float(s - sliceCount/2) * sliceSpacing;
+                        md = min(md, abs(p.z - z) - 0.02);
+                    }
+                    d = max(d, md);
+                }
+            }
+            float glowBase = 1.0 / (1.0 + d * d * 200.0);
+            float trailGlow = 0.0;
+            if (d < 0.1 && numTrails > 0) {
+                for (int tr = 0; tr < 5; tr++) {
+                    if (tr >= numTrails) break;
+                    float offset = float(tr + 1) * 0.02;
+                    vec3 tp = p + rd * offset;
+                    float td = apollonian3DDE(tp, iters, sc);
+                    float tg = 1.0 / (1.0 + td * td * 200.0);
+                    trailGlow += tg * pow(trailDecay, float(tr + 1));
+                }
+            }
+            glow += glowBase + trailGlow * 0.3;
+            if (u_src_feedback > 0.01 && d < 0.5) {
+                float fbRings = sin(d * u_src_feedback * 100.0) * 0.5 + 0.5;
+                glow += fbRings * u_src_feedback * glowBase * 3.0;
+            }
+            if (d < 0.001) { hit = true; break; }
+            t += d;
+            if (t > 15.0) break;
+        }
+        vec3 col = vec3(0.0);
+        if (hit) {
+            vec3 p = ro + rd * t;
+            vec3 n = calcNormal(p, iters, sc);
+            vec3 light = normalize(vec3(1, 2, 3));
+            float diff = max(dot(n, light), 0.0) * 0.7 + 0.3;
+            float hue = u_src_color_shift + dot(abs(n), vec3(0.2, 0.3, 0.5));
+            int palIdx = int(u_src_palette * 7.0);
+            col = diff * fracPalette(hue, palIdx);
+        }
+        col += vec3(0.1, 0.15, 0.25) * glow * 0.01;
+
         col *= 0.8 + u_rms * 0.4;
         fragColor = vec4(col, 1.0);
     }

@@ -160,6 +160,32 @@ class VJAppController:
         """Reset all effects, clear images, restore defaults."""
         return self._post("/api/reset", {})
 
+    def load_source(self, source_type: str, params: dict = None) -> dict:
+        """Load a procedural source into the active clip.
+
+        Args:
+            source_type: Source ID (e.g., "mandelbrot", "julia_set", "mandelbulb").
+            params: Dict of uniform_name -> value (all [0, 1]).
+        """
+        body = {"source_type": source_type}
+        if params:
+            body["params"] = params
+        return self._post("/api/load_source", body)
+
+    def update_source_params(self, params: dict) -> dict:
+        """Update parameters on the currently active source.
+
+        Args:
+            params: Dict of uniform_name -> value.
+        """
+        return self._post("/api/update_source_params", {"params": params})
+
+    def list_sources(self) -> dict:
+        """Get all registered procedural sources with their parameters."""
+        r = requests.get(f"{self.base_url}/api/sources", timeout=10)
+        r.raise_for_status()
+        return r.json()
+
     def _post(self, path: str, data: dict) -> dict:
         """Send a POST request with JSON body."""
         r = requests.post(f"{self.base_url}{path}", json=data, timeout=15)

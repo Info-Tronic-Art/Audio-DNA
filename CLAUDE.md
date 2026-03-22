@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 110 effects across 9 categories, 15 clip-to-clip transitions, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 52 procedural sources (including 8 raymarched 3D torus sources), VJ panel UI.
+**Key capabilities**: 110 effects across 9 categories, 15 clip-to-clip transitions, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 55 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 32+ pattern/noise/geometric sources), VJ panel UI.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -542,7 +542,7 @@ Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 96 GLS
 - Clip timeline with draggable in/out points, beat division markers, playhead triangle
 - Session recording (timestamped event capture + JSON save/load + playback)
 - Undo/redo from the start (Command pattern)
-- 40 procedural sources (fractal, noise, geometric, etc.)
+- 55 procedural sources: 7 2D fractals (Mandelbrot, Julia, Burning Ship, Newton, Sierpinski, Apollonian, Kaleido), 8 3D ray-marched fractals (Mandelbulb, Menger, KIFS, Julia3D, BurningShip3D, Newton3D, SierpinskiTetra, Apollonian3D), 8 torus, plus noise/geometric/pattern sources
 - Video playback via FFmpeg (MP4/MOV/AVI/MKV/WebM/HAP Alpha) with transport controls
 - Image sequence playback (multi-image drag-drop as video) with configurable FPS
 - BPM Sync transport mode for video/image sequences with beat division presets
@@ -867,6 +867,16 @@ These bugs were discovered and fixed during P14. Future phases MUST avoid reintr
 6. **Unicode button text**: JUCE's default button font at small sizes (26px buttons) may not render multi-byte Unicode glyphs. Use ASCII characters ("<", ">", "||") instead of Unicode arrows/symbols for small buttons.
 
 7. **Transport state on clip switch**: `triggerClipImmediate()` must NOT force `playing = true` when re-activating a previously-played clip. Use a `hasBeenTriggered` flag to distinguish first activation from returning to a prior clip.
+
+8. **Source param right-click reset**: `buildSourceParamControls()` in ClipInspector MUST call `pc->setDefaultValue(sp.defaultValue)` for every `UniversalParamControl` created from source params. Without this, right-click reset doesn't work on source sliders.
+
+9. **Fractal zoom design**: NEVER use `fract()` for zoom looping — it creates visible jump-cuts at the wrap point. Use direct `zoomExp = slider * range + time * diveRate`, clamped at max depth. For 2D fractals, max depth is limited by float precision (~`exp(-7)` for Mandelbrot). Dive speed = auto-zoom rate only, never changes the center target.
+
+10. **Fractal center vs location vs dive**: These three controls MUST be cleanly separated. Center X/Y always works when location=0. Location > 0 overrides center to a preset. Dive speed only controls zoom rate, never the center point. If dive changes the center, users see random jumping.
+
+11. **2D fractal power range**: Mandelbrot power > 4 makes the set too small — most of the screen is solid color at the same center. Limit power range to 2-4 for VJ use. Clamp smooth iteration count with `max(si, 0.0)` to prevent negative values at high power.
+
+12. **3D fractal zoom range**: Camera distance `mix(5.0, 0.3, zoom)` lets users go from far outside to inside the fractal. At zoom=1 the camera is at distance 0.3 — inside most fractals.
 
 ### Updating This Document
 

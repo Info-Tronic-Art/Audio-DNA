@@ -382,6 +382,11 @@ void SourcesBrowser::buildSourceList()
     sources_.push_back({"Mandelbulb",               "mandelbulb",          "3D",           juce::Colour(0xffffca28)});
     sources_.push_back({"Menger Sponge",            "menger_sponge",       "3D",           juce::Colour(0xffffca28)});
     sources_.push_back({"Kaleidoscopic IFS",        "kifs",                "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Julia Set 3D",             "julia_set_3d",        "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Burning Ship 3D",          "burning_ship_3d",     "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Newton 3D",                "newton_3d",           "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Sierpinski Tetrahedron",   "sierpinski_tetra",    "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Apollonian 3D",            "apollonian_3d",       "3D",           juce::Colour(0xffffca28)});
 
     // Raymarched Torus / Tunnel sources
     sources_.push_back({"Striped Torus",             "striped_torus",       "3D",           juce::Colour(0xffffca28)});

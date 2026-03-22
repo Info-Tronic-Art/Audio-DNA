@@ -901,6 +901,13 @@ void Renderer::compileAllShaders()
     compile("source_menger_sponge",   EmbeddedShaders::sourceMengerSponge);
     compile("source_kifs",            EmbeddedShaders::sourceKIFS);
 
+    // New 3D Fractal sources
+    compile("source_julia_set_3d",    EmbeddedShaders::sourceJuliaSet3D);
+    compile("source_burning_ship_3d", EmbeddedShaders::sourceBurningShip3D);
+    compile("source_newton_3d",       EmbeddedShaders::sourceNewton3D);
+    compile("source_sierpinski_tetra", EmbeddedShaders::sourceSierpinskiTetra);
+    compile("source_apollonian_3d",   EmbeddedShaders::sourceApollonian3D);
+
     // Raymarched Torus / Tunnel sources
     compile("source_striped_torus",    EmbeddedShaders::sourceStripedTorus);
     compile("source_spiral_vortex",    EmbeddedShaders::sourceSpiralVortex);

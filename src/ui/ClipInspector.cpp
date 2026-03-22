@@ -767,6 +767,7 @@ void ClipInspector::buildSourceParamControls()
         auto pc = std::make_unique<UniversalParamControl>();
         pc->setParamName(juce::String(sp.name));
         pc->setParamValue(sp.value);
+        pc->setDefaultValue(sp.defaultValue);
         pc->setSignalRegistry(signalRegistry_);
 
         auto idx = i;
