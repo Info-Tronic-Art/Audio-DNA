@@ -522,7 +522,18 @@ Register as transition shaders in EmbeddedShaders.h + compile in Renderer. Compo
 | P16.9 | Add "Feedback" section to LayerInspector — 6 parameter sliders with signal routing triangles, plus a preset dropdown | `src/ui/LayerInspector.h/cpp` |
 | P16.10 | Implement 6 feedback presets: Zoom In, Spiral, Drift, Kaleidoscope, Echo, Stretch — each sets the 6 FeedbackConfig values to pre-defined combinations | `src/render/FeedbackProcessor.cpp` |
 
-**UI validation**: Apply Ghost Trails to a video clip — should see motion persistence. Enable feedback on a layer with a clip + Tile Grid effect — should create infinite zoom tunnel. Feedback params should have signal routing triangles. Time category should appear in FX browser with 4-5 effects.
+**Tasks — Signal Routing Integration (REQUIRED for signal tests to activate)**:
+
+| Task | Description | Files |
+|------|-------------|-------|
+| P16.11 | Wire `RoutingEngine::processFrame()` into `Renderer::renderOpenGL()` — after FeatureSnapshot acquire, call `signalRegistry_.evaluateAll(snapshot)` then `routingEngine_.processFrame(signals, writer)` where writer sets effect params | `src/render/Renderer.h/cpp` |
+| P16.12 | Pass `SignalRegistry&` and `RoutingEngine&` to TestServer constructor. Add 5 REST endpoints: `GET /api/signals` (list signals + cached values), `POST /api/add_route` (create route), `DELETE /api/remove_route/{id}`, `GET /api/routes` (list routes + current output), `POST /api/set_macro` | `src/test/TestServer.h/cpp`, `src/MainComponent.cpp` |
+| P16.13 | Add `list_signals()`, `add_route()`, `remove_route()`, `list_routes()`, `set_macro()` to Python VJAppController | `tests/visual/vj_controller.py` |
+| P16.14 | Remove `pytest.skip()` from `tests/visual/test_signals.py::TestSignalRouteEndToEnd` — all signal route tests should now pass | `tests/visual/test_signals.py` |
+
+**Verification spec**: See `tests/visual/SIGNAL_TEST_SPEC.md` for full API endpoint specs, test coverage matrix, and integration prerequisites.
+
+**UI validation**: Apply Ghost Trails to a video clip — should see motion persistence. Enable feedback on a layer with a clip + Tile Grid effect — should create infinite zoom tunnel. Feedback params should have signal routing triangles. Time category should appear in FX browser with 4-5 effects. Signal route tests (`pytest tests/visual/test_signals.py -v`) should all pass.
 
 ---
 
