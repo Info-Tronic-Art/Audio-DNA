@@ -2127,9 +2127,11 @@ inline const char* strobe = R"(
     void main() {
         vec4 color = texture(u_texture, v_texCoord);
         float rate = 1.0 + u_strobe_rate * 15.0; // 1 to 16 Hz
-        float flash = step(0.9, fract(u_time * rate)) * u_strobe_intensity;
-        color.rgb += flash;
-        color.rgb = clamp(color.rgb, 0.0, 1.0);
+        float duty = 0.1 + u_strobe_intensity * 0.8; // duty cycle 10%-90%
+        float phase = fract(u_time * rate);
+        // Square wave: on when phase < duty, off otherwise
+        float on = step(phase, duty);
+        color.rgb *= on;
         fragColor = color;
     }
 )";
