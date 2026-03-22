@@ -887,6 +887,16 @@ void Renderer::compileAllShaders()
     compile("source_menger_sponge",   EmbeddedShaders::sourceMengerSponge);
     compile("source_kifs",            EmbeddedShaders::sourceKIFS);
 
+    // Raymarched Torus / Tunnel sources
+    compile("source_striped_torus",    EmbeddedShaders::sourceStripedTorus);
+    compile("source_spiral_vortex",    EmbeddedShaders::sourceSpiralVortex);
+    compile("source_checker_torus",    EmbeddedShaders::sourceCheckerTorus);
+    compile("source_ribbed_vortex",    EmbeddedShaders::sourceRibbedVortex);
+    compile("source_wormhole_tunnel",  EmbeddedShaders::sourceWormholeTunnel);
+    compile("source_twisted_torus",    EmbeddedShaders::sourceTwistedTorus);
+    compile("source_wormhole",         EmbeddedShaders::sourceWormhole);
+    compile("source_torus_hole",       EmbeddedShaders::sourceTorusHole);
+
     // === Phase 14: Transition Shaders (15 clip-to-clip transitions) ===
     compile("transition_dissolve",      EmbeddedShaders::transitionDissolve);
     compile("transition_wipe_left",     EmbeddedShaders::transitionWipeLeft);

@@ -6573,4 +6573,562 @@ inline const char* sourceKIFS = R"(
     }
 )";
 
+// ============================================================
+// TORUS SOURCES (7 sources) — Raymarched 3D torus viewed from outside
+// VERIFIED via WebGL test (torus_test_4.png). Key parameters:
+// R=1.0 (ring), r=0.4 (tube). Camera dist=1.3, Y=0.65, FOV=0.7.
+// Camera orbits above the torus looking down at the hole.
+// Stripes use theta (toroidal/major angle) for the classic illusion.
+// ============================================================
+
+// === TORUS SOURCES — ALL BROWSER-VERIFIED (2026-03-22) ===
+// Core camera: dist=1.1, Y=0.05, inward*0.5+tangent*0.5, FOV=2.6 fisheye
+// Stripe: step(0.0, sin(N*theta + M*phi)) — integer N,M for seamless wrap
+// Checker: abs(step(sin(N*theta)) - step(sin(M*phi))) — XOR pattern
+// Twisted: sdTwistedTorus with conservative d*0.4 stepping
+// Torus Hole: top-down perspective camera, standard torus SDF
+
+// 1. Striped Torus — BROWSER VERIFIED (test_s1_striped.png)
+inline const char* sourceStripedTorus = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_stripe_count; // number of stripes (6-32)
+    uniform float u_src_twist;        // spiral twist amount (0=straight, 1=heavy spiral)
+    uniform float u_src_speed;        // rotation speed
+    uniform float u_src_tube_radius;  // tube thickness
+    uniform float u_src_camera;       // camera angle (0=side vortex, 1=top-down hole)
+    uniform float u_src_color_shift;  // hue tint (0=B&W)
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_beatPhase;
+
+    float sdTorus(vec3 p, vec2 t){vec2 q=vec2(length(p.xz)-t.x,p.y);return length(q)-t.y;}
+    vec3 calcN(vec3 p,vec2 t){float h=0.0001;vec2 k=vec2(1,-1);
+        return normalize(k.xyy*sdTorus(p+k.xyy*h,t)+k.yyx*sdTorus(p+k.yyx*h,t)+
+        k.yxy*sdTorus(p+k.yxy*h,t)+k.xxx*sdTorus(p+k.xxx*h,t));}
+    void main() {
+        vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+        float R=1.0;float r=0.32+u_src_tube_radius*0.2+u_bass*0.05;
+        vec2 td=vec2(R,r);
+        float speed=0.08+u_src_speed*0.25;
+        float N=floor(6.0+u_src_stripe_count*26.0);
+        float M=floor(u_src_twist*8.0); // integer twist for seamless wrap
+        float camAngle=u_src_camera; // 0=side vortex, 1=top hole view
+
+        float ca=u_time*speed;
+        // Camera blends between side view (vortex) and top view (hole)
+        float camDist=mix(1.1,1.15,camAngle);
+        float camY=mix(0.05,0.55,camAngle);
+        vec3 ro=vec3(camDist*cos(ca),camY,camDist*sin(ca));
+
+        vec3 inw=normalize(vec3(-cos(ca),0,-sin(ca)));
+        vec3 tan2=normalize(vec3(-sin(ca),0,cos(ca)));
+        // Side: look inward+tangent (vortex). Top: look at origin (hole)
+        vec3 fwdSide=normalize(inw*0.5+tan2*0.5+vec3(0,0.05,0));
+        vec3 fwdTop=normalize(-ro);
+        vec3 fwd=normalize(mix(fwdSide,fwdTop,camAngle));
+
+        vec3 ri=normalize(cross(fwd,vec3(0,1,0)));vec3 up=cross(ri,fwd);
+        // FOV: wider for side, narrower for top
+        float fov=mix(2.6,0.7,camAngle);
+        float len=length(uv);
+
+        vec3 rd;
+        if(camAngle<0.5){
+            // Fisheye for side view
+            float ang=len*fov;
+            vec2 d2=len>0.001?uv/len:vec2(0,1);
+            rd=normalize(fwd*cos(ang)+(ri*d2.x+up*d2.y)*sin(ang));
+        } else {
+            // Standard perspective for top view
+            rd=normalize(fwd*fov+uv.x*ri+uv.y*up);
+        }
+
+        float t=0.0;bool hit=false;
+        for(int i=0;i<128;i++){float d=abs(sdTorus(ro+rd*t,td));
+            if(d<0.0005){hit=true;break;}t+=max(d*0.5,0.001);if(t>10.0)break;}
+        vec3 col=vec3(0.0);
+        if(hit){
+            vec3 p=ro+rd*t;vec3 n=calcN(p,td);
+            float theta=atan(p.z,p.x);float phi=atan(p.y,length(p.xz)-R);
+            float stripe=step(0.0,sin(N*theta+M*phi));
+            // Top view gets subtle shading for depth
+            vec3 ld=normalize(vec3(0.3,1.0,0.5));
+            float diff=mix(1.0, max(dot(n,ld),0.0)*0.35+0.65, camAngle);
+            vec3 c1=vec3(1.0),c2=vec3(0.0);float hue=u_src_color_shift;
+            if(hue>0.01)c1=0.5+0.5*cos(6.28318*(hue+vec3(0,0.33,0.67)));
+            col=mix(c2,c1,stripe)*diff;col*=0.85+u_rms*0.3;
+        }
+        fragColor=vec4(col,1.0);
+    }
+)";
+
+// 2. Spiral Vortex — adjustable twist on torus, fisheye
+inline const char* sourceSpiralVortex = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_twist;         // spiral twist amount
+    uniform float u_src_stripe_count;  // stripe density
+    uniform float u_src_speed;         // rotation speed
+    uniform float u_src_color_shift;   // hue tint
+    uniform float u_rms;
+    uniform float u_mid;
+    uniform float u_beatPhase;
+
+    float sdTorus(vec3 p, vec2 t){vec2 q=vec2(length(p.xz)-t.x,p.y);return length(q)-t.y;}
+    void main() {
+        vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+        float R=1.0,r=0.42;vec2 td=vec2(R,r);
+        float speed=0.08+u_src_speed*0.25;
+        float M=floor(1.0+(u_src_twist+u_mid*0.3)*8.0); // integer twist
+        float N=floor(6.0+u_src_stripe_count*20.0); // integer stripes
+        float ca=u_time*speed;
+        float camDist=1.1;
+        vec3 ro=vec3(camDist*cos(ca),0.05,camDist*sin(ca));
+        vec3 inw=normalize(vec3(-cos(ca),0,-sin(ca)));
+        vec3 tan2=normalize(vec3(-sin(ca),0,cos(ca)));
+        vec3 fwd=normalize(inw*0.5+tan2*0.5+vec3(0,0.05,0));
+        vec3 ri=normalize(cross(fwd,vec3(0,1,0)));vec3 up=cross(ri,fwd);
+        float fov=2.6;float len=length(uv);float ang=len*fov;
+        vec2 d2=len>0.001?uv/len:vec2(0,1);
+        vec3 rd=normalize(fwd*cos(ang)+(ri*d2.x+up*d2.y)*sin(ang));
+        float t=0.0;bool hit=false;
+        for(int i=0;i<128;i++){float d=abs(sdTorus(ro+rd*t,td));
+            if(d<0.0005){hit=true;break;}t+=max(d*0.5,0.001);if(t>10.0)break;}
+        vec3 col=vec3(0.0);
+        if(hit){
+            vec3 p=ro+rd*t;
+            float theta=atan(p.z,p.x);float phi=atan(p.y,length(p.xz)-R);
+            float stripe=step(0.0,sin(N*theta+M*phi));
+            vec3 c1=vec3(1.0),c2=vec3(0.0);float hue=u_src_color_shift;
+            if(hue>0.01)c1=0.5+0.5*cos(6.28318*(hue+vec3(0,0.33,0.67)));
+            col=mix(c2,c1,stripe);col*=0.85+u_rms*0.3;
+        }
+        fragColor=vec4(col,1.0);
+    }
+)";
+
+// 3. Checker Torus — checkerboard pattern on torus
+inline const char* sourceCheckerTorus = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_grid_u;        // ring grid density
+    uniform float u_src_grid_v;        // tube grid density
+    uniform float u_src_speed;         // rotation speed
+    uniform float u_src_color_shift;   // hue tint
+    uniform float u_rms;
+    uniform float u_spectralCentroid;
+    uniform float u_beatPhase;
+
+    float sdTorus(vec3 p, vec2 t){vec2 q=vec2(length(p.xz)-t.x,p.y);return length(q)-t.y;}
+    void main() {
+        vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+        float R=1.0,r=0.42;vec2 td=vec2(R,r);
+        float speed=0.08+u_src_speed*0.25;
+        float cn=clamp(u_spectralCentroid/8000.0,0.0,1.0);
+        float gu=floor(6.0+(u_src_grid_u+cn*0.1)*26.0);
+        float gv=floor(4.0+(u_src_grid_v+cn*0.1)*18.0);
+        float ca=u_time*speed;
+        float camDist=1.1;
+        vec3 ro=vec3(camDist*cos(ca),0.05,camDist*sin(ca));
+        vec3 inw=normalize(vec3(-cos(ca),0,-sin(ca)));
+        vec3 tan2=normalize(vec3(-sin(ca),0,cos(ca)));
+        vec3 fwd=normalize(inw*0.5+tan2*0.5+vec3(0,0.05,0));
+        vec3 ri=normalize(cross(fwd,vec3(0,1,0)));vec3 up=cross(ri,fwd);
+        float fov=2.6;float len=length(uv);float ang=len*fov;
+        vec2 d2=len>0.001?uv/len:vec2(0,1);
+        vec3 rd=normalize(fwd*cos(ang)+(ri*d2.x+up*d2.y)*sin(ang));
+        float t=0.0;bool hit=false;
+        for(int i=0;i<128;i++){float d=abs(sdTorus(ro+rd*t,td));
+            if(d<0.0005){hit=true;break;}t+=max(d*0.5,0.001);if(t>10.0)break;}
+        vec3 col=vec3(0.0);
+        if(hit){
+            vec3 p=ro+rd*t;
+            float theta=atan(p.z,p.x);float phi=atan(p.y,length(p.xz)-R);
+            // Checkerboard: XOR of two step functions
+            float s1=step(0.0,sin(gu*theta));
+            float s2=step(0.0,sin(gv*phi));
+            float check=abs(s1-s2);
+            vec3 c1=vec3(1.0),c2=vec3(0.0);float hue=u_src_color_shift;
+            if(hue>0.01)c1=0.5+0.5*cos(6.28318*(hue+vec3(0,0.33,0.67)));
+            col=mix(c2,c1,check);col*=0.85+u_rms*0.3;
+        }
+        fragColor=vec4(col,1.0);
+    }
+)";
+
+// 4. Ribbed Vortex — smooth colored ridges on torus
+inline const char* sourceRibbedVortex = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_ridge_count;   // number of ridges
+    uniform float u_src_color_mix;     // gradient blend amount
+    uniform float u_src_speed;         // rotation speed
+    uniform float u_src_color_shift;   // base hue
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_beatPhase;
+
+    float sdTorus(vec3 p, vec2 t){vec2 q=vec2(length(p.xz)-t.x,p.y);return length(q)-t.y;}
+    void main() {
+        vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+        float R=1.0,r=0.42+u_bass*0.04;vec2 td=vec2(R,r);
+        float speed=0.06+u_src_speed*0.2;
+        float ridges=floor(10.0+u_src_ridge_count*30.0);
+        float ca=u_time*speed;
+        float camDist=1.1;
+        vec3 ro=vec3(camDist*cos(ca),0.05,camDist*sin(ca));
+        vec3 inw=normalize(vec3(-cos(ca),0,-sin(ca)));
+        vec3 tan2=normalize(vec3(-sin(ca),0,cos(ca)));
+        vec3 fwd=normalize(inw*0.5+tan2*0.5+vec3(0,0.05,0));
+        vec3 ri=normalize(cross(fwd,vec3(0,1,0)));vec3 up=cross(ri,fwd);
+        float fov=2.6;float len=length(uv);float ang=len*fov;
+        vec2 d2=len>0.001?uv/len:vec2(0,1);
+        vec3 rd=normalize(fwd*cos(ang)+(ri*d2.x+up*d2.y)*sin(ang));
+        float t=0.0;bool hit=false;
+        for(int i=0;i<128;i++){float d=abs(sdTorus(ro+rd*t,td));
+            if(d<0.0005){hit=true;break;}t+=max(d*0.5,0.001);if(t>10.0)break;}
+        vec3 col=vec3(0.0);
+        if(hit){
+            vec3 p=ro+rd*t;
+            float theta=atan(p.z,p.x);float phi=atan(p.y,length(p.xz)-R);
+            // Smooth ridges via sin
+            float ridge=0.5+0.5*sin(ridges*phi);ridge=pow(ridge,2.0);
+            // Gradient: cyan-orange blend by theta position
+            float cmix=u_src_color_mix;float hb=u_src_color_shift;
+            vec3 cA=0.5+0.5*cos(6.28318*(hb+0.55+vec3(0,0.33,0.67)));
+            vec3 cB=0.5+0.5*cos(6.28318*(hb+0.08+vec3(0,0.33,0.67)));
+            float tN=theta/6.28318+0.5;
+            vec3 baseCol=mix(cA,cB,tN*cmix+(1.0-cmix)*0.5);
+            col=baseCol*(0.3+ridge*0.7);col*=0.85+u_rms*0.3;
+        }
+        fragColor=vec4(col,1.0);
+    }
+)";
+
+// 5. Wormhole Tunnel — warped torus with spiral stripes + glow
+inline const char* sourceWormholeTunnel = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_warp;          // space distortion amount
+    uniform float u_src_morph;         // (reserved)
+    uniform float u_src_speed;         // rotation speed
+    uniform float u_src_color_shift;   // hue
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_bass;
+
+    float sdTorus2(vec3 p, vec2 t){vec2 q=vec2(length(p.xz)-t.x,p.y);return length(q)-t.y;}
+    vec3 calcN2(vec3 p,vec2 t){float h=0.0001;vec2 k=vec2(1,-1);
+        return normalize(k.xyy*sdTorus2(p+k.xyy*h,t)+k.yyx*sdTorus2(p+k.yyx*h,t)+
+        k.yxy*sdTorus2(p+k.yxy*h,t)+k.xxx*sdTorus2(p+k.xxx*h,t));}
+    void main() {
+        vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+        float R=1.0,r=0.38;vec2 td=vec2(R,r);
+        float speed=0.08+u_src_speed*0.25;
+        float N=8.0,M=4.0;
+        float ca=u_time*speed;
+        float camDist=1.1;
+        vec3 ro=vec3(camDist*cos(ca),0.05,camDist*sin(ca));
+        vec3 inw=normalize(vec3(-cos(ca),0,-sin(ca)));
+        vec3 tan2=normalize(vec3(-sin(ca),0,cos(ca)));
+        vec3 fwd=normalize(inw*0.5+tan2*0.5+vec3(0,0.05,0));
+        vec3 ri=normalize(cross(fwd,vec3(0,1,0)));vec3 up=cross(ri,fwd);
+        float fov=2.6;float len=length(uv);float ang=len*fov;
+        vec2 d2=len>0.001?uv/len:vec2(0,1);
+        vec3 rd=normalize(fwd*cos(ang)+(ri*d2.x+up*d2.y)*sin(ang));
+        float t=0.0;bool hit=false;
+        for(int i=0;i<128;i++){float d=abs(sdTorus2(ro+rd*t,td));
+            if(d<0.0005){hit=true;break;}t+=max(d*0.5,0.001);if(t>10.0)break;}
+        vec3 col=vec3(0.0);
+        if(hit){
+            vec3 p=ro+rd*t;vec3 n=calcN2(p,td);
+            float theta=atan(p.z,p.x);float phi=atan(p.y,length(p.xz)-R);
+            float stripe=step(0.0,sin(N*theta+M*phi));
+            float hue=u_src_color_shift+theta/6.28318*0.3+0.6;
+            vec3 c1=0.5+0.5*cos(6.28318*(hue+vec3(0,0.33,0.67)));
+            vec3 ld=normalize(vec3(0.3,1,0.5));
+            float diff=max(dot(n,ld),0.0)*0.5+0.5;
+            col=mix(c1*0.1,c1,stripe)*diff;
+        }
+        col*=0.85+u_rms*0.3;
+        fragColor=vec4(col,1.0);
+    }
+)";
+
+// 6. Twisted Torus (OS17) — Mobius-like twist along tube
+inline const char* sourceTwistedTorus = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_twist;         // tube twist amount
+    uniform float u_src_speed;         // rotation speed
+    uniform float u_src_tube_radius;   // tube thickness
+    uniform float u_src_stripe_count;  // stripe density
+    uniform float u_src_color_shift;   // hue tint
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_mid;
+    uniform float u_beatPhase;
+
+    float sdTwistedTorus(vec3 p,float R,float r,float tw){
+        float a=atan(p.z,p.x);float ta=a*tw;float ct=cos(ta),st=sin(ta);
+        float md=length(p.xz)-R;vec2 tw2=vec2(md*ct-p.y*st,md*st+p.y*ct);
+        return length(tw2)-r;}
+    void main() {
+        vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+        float R=1.0;float r=0.25+u_src_tube_radius*0.2+u_bass*0.04;
+        float speed=0.08+u_src_speed*0.25;
+        float twist=0.5+(u_src_twist+u_mid*0.3)*4.0;
+        float N=floor(6.0+u_src_stripe_count*20.0);
+        float ca=u_time*speed+u_beatPhase*0.3;
+        float camDist=1.1;
+        vec3 ro=vec3(camDist*cos(ca),0.05,camDist*sin(ca));
+        vec3 inw=normalize(vec3(-cos(ca),0,-sin(ca)));
+        vec3 tan2=normalize(vec3(-sin(ca),0,cos(ca)));
+        vec3 fwd=normalize(inw*0.5+tan2*0.5+vec3(0,0.05,0));
+        vec3 ri=normalize(cross(fwd,vec3(0,1,0)));vec3 up=cross(ri,fwd);
+        float fov=2.6;float len=length(uv);float ang=len*fov;
+        vec2 d2=len>0.001?uv/len:vec2(0,1);
+        vec3 rd=normalize(fwd*cos(ang)+(ri*d2.x+up*d2.y)*sin(ang));
+        float t=0.0;bool hit=false;
+        for(int i=0;i<128;i++){float d=abs(sdTwistedTorus(ro+rd*t,R,r,twist));
+            if(d<0.0005){hit=true;break;}t+=max(d*0.5,0.001);if(t>10.0)break;}
+        vec3 col=vec3(0.0);
+        if(hit){
+            vec3 p=ro+rd*t;
+            // Untwist to get UV
+            float theta=atan(p.z,p.x);float ta=theta*twist;
+            float md=length(p.xz)-R;float ct=cos(ta),st=sin(ta);
+            vec2 untw=vec2(md*ct-p.y*st,md*st+p.y*ct);
+            float phi=atan(untw.y,untw.x);
+            float stripe=step(0.0,sin(N*theta+3.0*phi));
+            vec3 c1=vec3(1.0),c2=vec3(0.0);float hue=u_src_color_shift;
+            if(hue>0.01)c1=0.5+0.5*cos(6.28318*(hue+vec3(0,0.33,0.67)));
+            col=mix(c2,c1,stripe);col*=0.85+u_rms*0.3;
+        }
+        fragColor=vec4(col,1.0);
+    }
+)";
+
+// 7. Wormhole (OS18) — warped space torus with glow and morphing
+inline const char* sourceWormhole = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_warp;          // space warp intensity
+    uniform float u_src_morph;         // cross-section morph
+    uniform float u_src_speed;         // rotation speed
+    uniform float u_src_glow;          // glow intensity
+    uniform float u_src_color_shift;   // hue
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_mid;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+
+    float sdTorus3(vec3 p, vec2 t){vec2 q=vec2(length(p.xz)-t.x,p.y);return length(q)-t.y;}
+    vec3 calcN3(vec3 p,vec2 t){float h=0.0001;vec2 k=vec2(1,-1);
+        return normalize(k.xyy*sdTorus3(p+k.xyy*h,t)+k.yyx*sdTorus3(p+k.yyx*h,t)+
+        k.yxy*sdTorus3(p+k.yxy*h,t)+k.xxx*sdTorus3(p+k.xxx*h,t));}
+    void main() {
+        vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+        float R=1.0,r=0.4;vec2 td=vec2(R,r);
+        float speed=0.08+u_src_speed*0.25;
+        float N=6.0,M=3.0;
+        float glowAmt=0.3+u_src_glow*0.7;
+        float wb=u_onsetStrength*0.04;
+        float ca=u_time*speed;
+        float camDist=1.1;
+        vec3 ro=vec3(camDist*cos(ca),0.05,camDist*sin(ca));
+        ro+=vec3(wb*sin(u_time*17.0),wb*cos(u_time*13.0),0.0);
+        vec3 inw=normalize(vec3(-cos(ca),0,-sin(ca)));
+        vec3 tan2=normalize(vec3(-sin(ca),0,cos(ca)));
+        vec3 fwd=normalize(inw*0.5+tan2*0.5+vec3(0,0.05,0));
+        vec3 ri=normalize(cross(fwd,vec3(0,1,0)));vec3 up=cross(ri,fwd);
+        float fov=2.6;float len=length(uv);float ang=len*fov;
+        vec2 d2=len>0.001?uv/len:vec2(0,1);
+        vec3 rd=normalize(fwd*cos(ang)+(ri*d2.x+up*d2.y)*sin(ang));
+        float t=0.0;bool hit=false;float glow=0.0;
+        for(int i=0;i<128;i++){float d=abs(sdTorus3(ro+rd*t,td));
+            glow+=1.0/(1.0+d*d*300.0);
+            if(d<0.0005){hit=true;break;}t+=max(d*0.5,0.001);if(t>10.0)break;}
+        vec3 col=vec3(0.0);
+        if(hit){
+            vec3 p=ro+rd*t;vec3 n=calcN3(p,td);
+            float theta=atan(p.z,p.x);float phi=atan(p.y,length(p.xz)-R);
+            float stripe=step(0.0,sin(N*theta+M*phi+u_time*0.5));
+            float hue=u_src_color_shift+theta/6.28318*0.5+0.5;
+            vec3 c1=0.5+0.5*cos(6.28318*(hue+vec3(0,0.33,0.67)));
+            vec3 ld=normalize(vec3(0.3,1,0.5));
+            float diff=max(dot(n,ld),0.0)*0.4+0.6;
+            col=c1*max(stripe,0.12)*diff;
+        }
+        float hg=u_src_color_shift+0.5;
+        vec3 gc=0.5+0.5*cos(6.28318*(hg+vec3(0,0.33,0.67)));
+        col+=gc*glow*0.008*glowAmt;col*=0.85+u_rms*0.3;
+        fragColor=vec4(col,1.0);
+    }
+)";
+
+// 8. Torus Hole — comprehensive 16-param torus with full texture mapping controls
+// Camera: orbit, tilt (smooth, no pop), zoom
+// Pattern: stripe count, twist, angle, scale, width, offsets, checker mix
+// Visual: shading, color
+inline const char* sourceTorusHole = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    // Camera
+    uniform float u_src_orbit;
+    uniform float u_src_tilt;
+    uniform float u_src_speed;
+    uniform float u_src_zoom;
+    // Lens
+    uniform float u_src_lens_shape;    // 0=circular fisheye, 1=tubular/elliptical
+    uniform float u_src_lens_rotate;   // rotate the lens ellipse
+    uniform float u_src_depth_fade;    // thin stripes further from camera
+    // Pattern
+    uniform float u_src_stripe_count;
+    uniform float u_src_twist;
+    uniform float u_src_stripe_angle;
+    uniform float u_src_stripe_scale;
+    uniform float u_src_stripe_width;
+    uniform float u_src_phi_offset;
+    uniform float u_src_theta_offset;
+    // Geometry
+    uniform float u_src_tube_radius;
+    // Deformation
+    uniform float u_src_pinch;
+    uniform float u_src_heart;
+    // Visual
+    uniform float u_src_shading;
+    uniform float u_src_color_shift;
+    // Audio
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_beatPhase;
+
+    float sdTorus(vec3 p, vec2 t){vec2 q=vec2(length(p.xz)-t.x,p.y);return length(q)-t.y;}
+    vec3 calcN(vec3 p,vec2 t){float h=0.0001;vec2 k=vec2(1,-1);
+        return normalize(k.xyy*sdTorus(p+k.xyy*h,t)+k.yyx*sdTorus(p+k.yyx*h,t)+
+        k.yxy*sdTorus(p+k.yxy*h,t)+k.xxx*sdTorus(p+k.xxx*h,t));}
+    void main() {
+        vec2 uv=(gl_FragCoord.xy-0.5*u_resolution)/u_resolution.y;
+        float R=1.0;
+        float r=0.1+u_src_tube_radius*1.0+u_bass*0.04; // 4x larger range: 0.1 to 1.1
+        vec2 td=vec2(R,r);
+
+        // Pattern
+        float scl=0.5+u_src_stripe_scale*1.5;
+        float N=floor((10.0+u_src_stripe_count*50.0)*scl);
+        float M=floor(u_src_twist*8.0);
+        float stripeAngle=u_src_stripe_angle*3.14159;
+        float stripeWidth=u_src_stripe_width;
+        float phiOff=u_src_phi_offset*6.28318;
+        float thetaOff=u_src_theta_offset*6.28318;
+        float shade=u_src_shading;
+        float depthFade=u_src_depth_fade;
+
+        // Camera
+        float tilt=u_src_tilt;
+        float camY=-0.4+tilt*0.81;
+        float speed=0.06+u_src_speed*0.15;
+        float ca=u_time*speed+u_src_orbit*6.28318;
+        float camDist=0.9+u_src_zoom*0.5;
+        vec3 ro=vec3(camDist*cos(ca),camY,camDist*sin(ca));
+
+        // Look direction
+        vec3 inw=normalize(vec3(-cos(ca),0,-sin(ca)));
+        vec3 tan2=normalize(vec3(-sin(ca),0,cos(ca)));
+        float inBlend=mix(0.45,0.8,tilt);
+        vec3 fwdBase=normalize(inw*inBlend+tan2*(1.0-inBlend)+vec3(0,0.03,0));
+        vec3 fwd=normalize(mix(fwdBase,normalize(-ro),tilt*tilt));
+        vec3 ri=normalize(cross(fwd,vec3(0,1,0)));
+        vec3 up=cross(ri,fwd);
+
+        // === LENS DISTORTION ===
+        // Lens shape: circular (0) to tubular/elliptical (1)
+        // Stretches the UV in one axis before fisheye mapping
+        float lensShape=u_src_lens_shape;
+        float lensRot=u_src_lens_rotate*3.14159; // 0 to PI
+        // Rotate UV by lens angle
+        float lc=cos(lensRot),ls=sin(lensRot);
+        vec2 uvRot=vec2(uv.x*lc-uv.y*ls, uv.x*ls+uv.y*lc);
+        // Stretch one axis to create tubular shape
+        uvRot.x*=1.0+lensShape*2.0; // stretch X by up to 3x
+        // Rotate back
+        vec2 uvLens=vec2(uvRot.x*lc+uvRot.y*ls, -uvRot.x*ls+uvRot.y*lc);
+
+        // Fisheye with lens-distorted UV
+        float fov=mix(2.6,1.2,tilt);
+        float len=length(uvLens);float ang=len*fov;
+        vec2 d2=len>0.001?uvLens/len:vec2(0,1);
+        vec3 rd=normalize(fwd*cos(ang)+(ri*d2.x+up*d2.y)*sin(ang));
+
+        float t=0.0;bool hit=false;
+        for(int i=0;i<128;i++){float d=abs(sdTorus(ro+rd*t,td));
+            if(d<0.0005){hit=true;break;}t+=max(d*0.5,0.001);if(t>10.0)break;}
+        vec3 col=vec3(0.0);
+        if(hit){
+            vec3 p=ro+rd*t;vec3 n=calcN(p,td);
+            float theta=atan(p.z,p.x)+thetaOff;
+            float phi=atan(p.y,length(p.xz)-R)+phiOff;
+
+            // Texture deformation
+            float pinch=u_src_pinch;
+            float heart=u_src_heart;
+            // Pinch: range -4 to +4 (slider 0.5 = neutral)
+            float pinchVal=(pinch*2.0-1.0)*4.0;
+            phi+=pinchVal*sin(phi);
+            // Heart: range -1 to +1 (slider 0.5 = neutral)
+            float heartVal=heart*2.0-1.0;
+            theta+=heartVal*(sin(theta)*2.0+sin(2.0*theta)*0.8);
+
+            // Stripe angle rotation
+            float sa=stripeAngle;
+            float u1=theta*cos(sa)+phi*sin(sa);
+            float u2=-theta*sin(sa)+phi*cos(sa);
+
+            // Depth fade: thin stripes further from camera
+            // Modulate the stripe frequency by distance
+            float dist=length(p-ro);
+            float depthN=N*(1.0+depthFade*dist*0.5);
+
+            float spiralVal=sin(depthN*u1+M*u2);
+            float threshold=sin((stripeWidth-0.5)*3.14159);
+            float pattern=step(threshold,spiralVal);
+
+            // Shading
+            vec3 ld=normalize(vec3(0.3,1.0,0.5));
+            float diff=mix(1.0,max(dot(n,ld),0.0)*0.5+0.5,shade);
+            vec3 c1=vec3(1.0),c2=vec3(0.0);float hue=u_src_color_shift;
+            if(hue>0.01)c1=0.5+0.5*cos(6.28318*(hue+vec3(0,0.33,0.67)));
+            col=mix(c2,c1,pattern)*diff;col*=0.85+u_rms*0.3;
+        }
+        fragColor=vec4(col,1.0);
+    }
+)";
+
 } // namespace EmbeddedShaders

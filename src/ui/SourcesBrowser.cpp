@@ -382,6 +382,16 @@ void SourcesBrowser::buildSourceList()
     sources_.push_back({"Mandelbulb",               "mandelbulb",          "3D",           juce::Colour(0xffffca28)});
     sources_.push_back({"Menger Sponge",            "menger_sponge",       "3D",           juce::Colour(0xffffca28)});
     sources_.push_back({"Kaleidoscopic IFS",        "kifs",                "3D",           juce::Colour(0xffffca28)});
+
+    // Raymarched Torus / Tunnel sources
+    sources_.push_back({"Striped Torus",             "striped_torus",       "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Spiral Vortex",             "spiral_vortex",       "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Checker Torus",             "checker_torus",       "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Ribbed Vortex",             "ribbed_vortex",       "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Wormhole Tunnel",           "wormhole_tunnel",     "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Twisted Torus",             "twisted_torus",       "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Wormhole",                  "wormhole",            "3D",           juce::Colour(0xffffca28)});
+    sources_.push_back({"Torus Hole",                "torus_hole",          "3D",           juce::Colour(0xffffca28)});
     sources_.push_back({"Zigzag Lines",             "zigzag_lines",        "Lines",        juce::Colour(0xffce93d8)});
     sources_.push_back({"Star Burst",               "star_burst",          "Lines",        juce::Colour(0xffce93d8)});
     sources_.push_back({"Polygon Lines",            "polygon_lines",       "Lines",        juce::Colour(0xffce93d8)});

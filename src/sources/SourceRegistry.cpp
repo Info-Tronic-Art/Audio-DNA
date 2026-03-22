@@ -495,6 +495,116 @@ void SourceRegistry::registerDefaults()
         return s;
     });
 
+    // ============================================================
+    // Raymarched Torus / Tunnel Sources (7 sources)
+    // ============================================================
+
+    // Helper: adds shared torus controls (camera, lens, geometry, deformation, visual)
+    auto addTorusControls = [](ProceduralSource* s) {
+        // Camera
+        s->addParam("Orbit", "u_src_orbit", 0.0f);
+        s->addParam("Tilt", "u_src_tilt", 0.49f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Zoom", "u_src_zoom", 0.4f);
+        // Lens
+        s->addParam("Lens Shape", "u_src_lens_shape", 0.0f);
+        s->addParam("Lens Rotate", "u_src_lens_rotate", 0.0f);
+        s->addParam("Depth Fade", "u_src_depth_fade", 0.0f);
+        // Geometry
+        s->addParam("Tube Radius", "u_src_tube_radius", 0.32f);
+        // Deformation
+        s->addParam("Pinch", "u_src_pinch", 0.5f);
+        s->addParam("Heart", "u_src_heart", 0.5f);
+        // Visual
+        s->addParam("Shading", "u_src_shading", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+    };
+
+    registerSource("striped_torus", [&addTorusControls] {
+        auto s = std::make_unique<ProceduralSource>("striped_torus", "Striped Torus", "3D", "source_striped_torus");
+        s->addParam("Stripe Count", "u_src_stripe_count", 0.3f);
+        s->addParam("Twist", "u_src_twist", 0.4f);
+        addTorusControls(s.get());
+        return s;
+    });
+
+    registerSource("spiral_vortex", [&addTorusControls] {
+        auto s = std::make_unique<ProceduralSource>("spiral_vortex", "Spiral Vortex", "3D", "source_spiral_vortex");
+        s->addParam("Twist", "u_src_twist", 0.3f);
+        s->addParam("Stripe Count", "u_src_stripe_count", 0.3f);
+        addTorusControls(s.get());
+        return s;
+    });
+
+    registerSource("checker_torus", [&addTorusControls] {
+        auto s = std::make_unique<ProceduralSource>("checker_torus", "Checker Torus", "3D", "source_checker_torus");
+        s->addParam("Grid U", "u_src_grid_u", 0.3f);
+        s->addParam("Grid V", "u_src_grid_v", 0.3f);
+        addTorusControls(s.get());
+        return s;
+    });
+
+    registerSource("ribbed_vortex", [&addTorusControls] {
+        auto s = std::make_unique<ProceduralSource>("ribbed_vortex", "Ribbed Vortex", "3D", "source_ribbed_vortex");
+        s->addParam("Ridge Count", "u_src_ridge_count", 0.3f);
+        s->addParam("Color Mix", "u_src_color_mix", 0.5f);
+        addTorusControls(s.get());
+        return s;
+    });
+
+    registerSource("wormhole_tunnel", [&addTorusControls] {
+        auto s = std::make_unique<ProceduralSource>("wormhole_tunnel", "Wormhole Tunnel", "3D", "source_wormhole_tunnel");
+        s->addParam("Warp", "u_src_warp", 0.3f);
+        addTorusControls(s.get());
+        return s;
+    });
+
+    registerSource("twisted_torus", [&addTorusControls] {
+        auto s = std::make_unique<ProceduralSource>("twisted_torus", "Twisted Torus", "3D", "source_twisted_torus");
+        s->addParam("Twist", "u_src_twist", 0.3f);
+        s->addParam("Stripe Count", "u_src_stripe_count", 0.3f);
+        addTorusControls(s.get());
+        return s;
+    });
+
+    registerSource("wormhole", [&addTorusControls] {
+        auto s = std::make_unique<ProceduralSource>("wormhole", "Wormhole", "3D", "source_wormhole");
+        s->addParam("Warp", "u_src_warp", 0.3f);
+        s->addParam("Glow", "u_src_glow", 0.4f);
+        addTorusControls(s.get());
+        return s;
+    });
+
+    registerSource("torus_hole", [] {
+        auto s = std::make_unique<ProceduralSource>("torus_hole", "Torus Hole", "3D", "source_torus_hole");
+        // Camera
+        s->addParam("Orbit", "u_src_orbit", 0.0f);
+        s->addParam("Tilt", "u_src_tilt", 0.49f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Zoom", "u_src_zoom", 0.4f);
+        // Lens
+        s->addParam("Lens Shape", "u_src_lens_shape", 0.0f);
+        s->addParam("Lens Rotate", "u_src_lens_rotate", 0.0f);
+        s->addParam("Depth Fade", "u_src_depth_fade", 0.0f);
+        // Pattern
+        s->addParam("Stripe Count", "u_src_stripe_count", 0.6f);
+        s->addParam("Twist", "u_src_twist", 0.5f);
+        s->addParam("Stripe Angle", "u_src_stripe_angle", 0.0f);
+        s->addParam("Stripe Scale", "u_src_stripe_scale", 0.33f);
+        s->addParam("Stripe Width", "u_src_stripe_width", 0.5f);
+        s->addParam("Phi Offset", "u_src_phi_offset", 0.0f);
+        s->addParam("Theta Offset", "u_src_theta_offset", 0.0f);
+        // Geometry
+        s->addParam("Tube Radius", "u_src_tube_radius", 0.32f);
+        // Deformation
+        s->addParam("Pinch", "u_src_pinch", 0.5f);
+        s->addParam("Heart", "u_src_heart", 0.5f);
+        // Visual
+        s->addParam("Shading", "u_src_shading", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
     registerSource("line_generator", [] {
         auto s = std::make_unique<ProceduralSource>("line_generator", "Line Generator", "Lines", "source_line_generator");
         s->addParam("Pattern", "u_src_pattern", 0.0f);

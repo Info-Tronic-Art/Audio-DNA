@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 110 effects across 9 categories, 15 clip-to-clip transitions, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 22 procedural sources, VJ panel UI.
+**Key capabilities**: 110 effects across 9 categories, 15 clip-to-clip transitions, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 52 procedural sources (including 8 raymarched 3D torus sources), VJ panel UI.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -751,6 +751,30 @@ Before refactoring any threading code, read these research documents first:
 - Check `CMakeLists.txt` before adding any dependency
 - Prefer JUCE built-in functionality over new libraries
 - Any new runtime dependency must be justified against the "Why not X" column in the tech stack table above
+
+### Visual Shader Testing Protocol (MANDATORY for procedural sources)
+
+**NEVER ship a new procedural source shader to the app without browser-verified visual testing.**
+
+Complex shaders (raymarched 3D, torus, fractals) MUST be tested in-browser via Playwright before building the C++ app. The browser test loop is ~5 seconds vs ~30 seconds for a full rebuild — iterating in-browser is 6x faster and prevents shipping broken visuals.
+
+**Testing workflow:**
+1. Write the shader in `test_torus.html` (or `test_[name].html`) at project root
+2. Start HTTP server: `python3 -m http.server [port] &` (run_in_background)
+3. Navigate Playwright: `browser_navigate` to `http://localhost:[port]/test_[name].html`
+4. Wait 2s, take screenshot with `browser_take_screenshot`
+5. Compare screenshot against reference image — verify ALL of:
+   - Frame fill (source must fill the viewport, minimal background)
+   - Pattern matches reference (stripe density, curvature, convergence)
+   - No seam artifacts or visual glitches
+   - Correct centering (use `(gl_FragCoord.xy - 0.5*u_resolution) / u_resolution.y`)
+6. Iterate shader parameters until **98% visual parity** with reference
+7. ONLY THEN port to `EmbeddedShaders.h`, register, compile
+8. Clean up test files
+
+**98% parity requirement**: The shader must match the reference image in overall composition, stripe/pattern structure, and fill. Minor differences in exact stripe count or rotation angle are acceptable. Major differences in camera angle, pattern type, or visual artifacts are NOT acceptable.
+
+**Reference**: See `memory/3dSpiral.md` for verified torus parameters, camera setups, and stripe formulas.
 
 ### Common Pitfalls (from P14 development)
 
