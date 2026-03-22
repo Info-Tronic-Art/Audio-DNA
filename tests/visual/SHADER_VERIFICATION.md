@@ -13,6 +13,7 @@ Shaders compile but produce broken visuals. C++ tests can't catch: black screens
 | **Procedural Sources** | 55 | `test_sources.py` | Every param at 5+ positions, non-black, has-effect, no-discontinuity |
 | **Effects (FX)** | 112 | `test_effects.py` | Every param at 5+ positions on a test image, non-black, has-effect |
 | **Audio Reactivity** | ~20 features | `test_audio_reactivity.py` | Injected features change effect/source output |
+| **Signal Routing** | 22+ signals, routes, macros | `test_signals.py` | Feature injection → signal → route → param → visual change |
 | **Transitions** | 15 | `test_transitions.py` | Progress 0→1 produces smooth crossfade |
 | **Time Dependence** | all animated | `test_time_sweep.py` | Rendering at t=0, 1, 5, 10 produces different non-black frames |
 | **Performance** | all | `test_performance.py` | Render time per frame < 16ms (60fps target) |
