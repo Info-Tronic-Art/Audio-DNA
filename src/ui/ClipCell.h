@@ -59,6 +59,8 @@ public:
     std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDrop; // FX dropped from browser
     std::function<void(int layerIndex, int column, const juce::String& sourceId)> onSourceDrop; // Source dropped from browser
     std::function<void(int srcLayer, int srcCol, int dstLayer, int dstCol)> onClipMove; // Clip dragged from one cell to another
+    std::function<void(int layerIndex, int column, const std::string& presetPath)> onMilkDropDrop; // Single MilkDrop preset
+    std::function<void(int layerIndex, int column, const std::vector<std::string>& presetPaths)> onMilkDropPlaylistDrop; // Multi-preset playlist
 
     // Load/update thumbnail from clip's media file
     void updateThumbnail();

@@ -1,8 +1,11 @@
 #include "Renderer.h"
 #include "render/EmbeddedShaders.h"
+#include "sources/ProjectMSource.h"
+#include "analysis/AnalysisThread.h"
 #include <iostream>
 #include <chrono>
 #include <string>
+#include <random>
 
 using namespace juce::gl;
 Renderer::Renderer(FeatureBus& featureBus)
@@ -213,6 +216,102 @@ void Renderer::renderOpenGL()
             // Notify UI thread to refresh deck view
             auto callback = onAutopilotAdvanced_;
             juce::MessageManager::callAsync([callback]() { callback(); });
+        }
+    }
+
+    // P20.5: Process MilkDrop preset playlist cycling (beat-synced preset advance within clips)
+    if (deckActive)
+    {
+        for (int li = 0; li < deck->getNumLayers(); ++li)
+        {
+            auto* layer = deck->getLayer(li);
+            if (!layer || layer->activeClipColumn < 0) continue;
+
+            auto* clip = layer->getActiveClip();
+            if (!clip || clip->sourceType != "projectm_visualizer") continue;
+            if (!clip->hasPresetPlaylist()) continue;
+            if (clip->presetPlaylist.size() <= 1) continue;
+
+            // Detect beat crossing
+            bool beatCrossing = (snap->beatPhase < lastPlaylistBeatPhase_ - 0.5f);
+            lastPlaylistBeatPhase_ = snap->beatPhase;
+
+            if (beatCrossing)
+            {
+                clip->presetBeatsPlayed++;
+
+                int targetBeats = clip->playlistTriggerBeats;
+                if (clip->playlistTrigger == Clip::PlaylistTrigger::Bars)
+                    targetBeats *= 4;
+                else if (clip->playlistTrigger == Clip::PlaylistTrigger::Phrase)
+                    targetBeats *= 16;
+
+                if (clip->presetBeatsPlayed >= targetBeats)
+                {
+                    clip->presetBeatsPlayed = 0;
+                    int listSize = static_cast<int>(clip->presetPlaylist.size());
+
+                    // Advance based on cycle mode
+                    int nextIdx = clip->presetPlaylistIndex;
+                    switch (clip->playlistCycleMode)
+                    {
+                        case Clip::PlaylistCycleMode::Sequential:
+                            nextIdx = (nextIdx + 1) % listSize;
+                            break;
+                        case Clip::PlaylistCycleMode::Reverse:
+                            nextIdx = (nextIdx - 1 + listSize) % listSize;
+                            break;
+                        case Clip::PlaylistCycleMode::RandomOther:
+                        {
+                            static std::mt19937 rng(std::random_device{}());
+                            int r = std::uniform_int_distribution<int>(0, listSize - 2)(rng);
+                            nextIdx = (r >= nextIdx) ? r + 1 : r;
+                            break;
+                        }
+                        case Clip::PlaylistCycleMode::RandomBag:
+                        case Clip::PlaylistCycleMode::PingPong:
+                        {
+                            static std::mt19937 rng(std::random_device{}());
+                            nextIdx = std::uniform_int_distribution<int>(0, listSize - 1)(rng);
+                            break;
+                        }
+                    }
+
+                    clip->presetPlaylistIndex = nextIdx;
+                    const auto& entry = clip->presetPlaylist[static_cast<size_t>(nextIdx)];
+
+                    // Load the next preset into the projectM source
+                    auto* pmSource = dynamic_cast<ProjectMSource*>(
+                        getOrCreateSource("projectm_visualizer"));
+                    if (pmSource)
+                        pmSource->loadPreset(entry.presetPath, true);
+                }
+            }
+
+            // Also handle structural transitions (On Drop / On Breakdown)
+            if (clip->playlistTrigger == Clip::PlaylistTrigger::OnDrop
+                && snap->structuralState == 2 && lastPlaylistStructState_ != 2)
+            {
+                clip->presetBeatsPlayed = 0;
+                static std::mt19937 rng(std::random_device{}());
+                int listSize = static_cast<int>(clip->presetPlaylist.size());
+                clip->presetPlaylistIndex = std::uniform_int_distribution<int>(0, listSize - 1)(rng);
+                auto* pmSource = dynamic_cast<ProjectMSource*>(getOrCreateSource("projectm_visualizer"));
+                if (pmSource)
+                    pmSource->loadPreset(clip->presetPlaylist[static_cast<size_t>(clip->presetPlaylistIndex)].presetPath, true);
+            }
+            if (clip->playlistTrigger == Clip::PlaylistTrigger::OnBreakdown
+                && snap->structuralState == 3 && lastPlaylistStructState_ != 3)
+            {
+                clip->presetBeatsPlayed = 0;
+                static std::mt19937 rng(std::random_device{}());
+                int listSize = static_cast<int>(clip->presetPlaylist.size());
+                clip->presetPlaylistIndex = std::uniform_int_distribution<int>(0, listSize - 1)(rng);
+                auto* pmSource = dynamic_cast<ProjectMSource*>(getOrCreateSource("projectm_visualizer"));
+                if (pmSource)
+                    pmSource->loadPreset(clip->presetPlaylist[static_cast<size_t>(clip->presetPlaylistIndex)].presetPath, true);
+            }
+            lastPlaylistStructState_ = snap->structuralState;
         }
     }
 
@@ -513,6 +612,18 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
 
     // Provide compositor feedback texture for sources that use it
     source->setFeedbackTexture(compositor_.getFeedbackTexture());
+
+    // P20.5: Feed PCM audio to projectM sources
+    if (sourceId == "projectm_visualizer" && analysisThread_)
+    {
+        if (auto* pmSource = dynamic_cast<ProjectMSource*>(source))
+        {
+            float pcmBuf[AnalysisThread::kPCMSnapshotSize];
+            int count = analysisThread_->getPCMSamples(pcmBuf, AnalysisThread::kPCMSnapshotSize);
+            if (count > 0)
+                pmSource->feedAudio(pcmBuf, count);
+        }
+    }
 
     // Get latest audio snapshot for audio-reactive sources
     const FeatureSnapshot* snap = featureBus_.acquireRead();

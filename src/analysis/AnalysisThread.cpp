@@ -285,6 +285,16 @@ void AnalysisThread::run()
                      analysisBuffer_.data() + offset,
                      static_cast<size_t>(wfCount) * sizeof(float));
         waveformSampleCount_.store(wfCount, std::memory_order_release);
+
+        // Copy PCM snapshot for external consumers (e.g., projectM)
+        int pcmCount = std::min(kBlockSize, kPCMSnapshotSize);
+        int pcmOffset = kBlockSize - pcmCount;
+        int writeIdx = 1 - pcmWriteIdx_.load(std::memory_order_relaxed);
+        std::memcpy(const_cast<float*>(pcmSnapshot_[writeIdx].data()),
+                     analysisBuffer_.data() + pcmOffset,
+                     static_cast<size_t>(pcmCount) * sizeof(float));
+        pcmSampleCount_.store(pcmCount, std::memory_order_relaxed);
+        pcmWriteIdx_.store(writeIdx, std::memory_order_release);
     }
 }
 
@@ -293,4 +303,14 @@ void AnalysisThread::getWaveformSamples(float* dest, int& count) const
     count = waveformSampleCount_.load(std::memory_order_acquire);
     if (count > 0)
         std::memcpy(dest, waveformBuffer_.data(), static_cast<size_t>(count) * sizeof(float));
+}
+
+int AnalysisThread::getPCMSamples(float* dest, int maxSamples) const
+{
+    int readIdx = pcmWriteIdx_.load(std::memory_order_acquire);
+    int count = pcmSampleCount_.load(std::memory_order_relaxed);
+    int toCopy = std::min(count, std::min(maxSamples, kPCMSnapshotSize));
+    if (toCopy > 0)
+        std::memcpy(dest, pcmSnapshot_[readIdx].data(), static_cast<size_t>(toCopy) * sizeof(float));
+    return toCopy;
 }

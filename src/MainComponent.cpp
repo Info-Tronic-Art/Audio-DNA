@@ -1,6 +1,7 @@
 #include "MainComponent.h"
 #include "ui/PreferencesDialog.h"
 #include "analysis/BPMTracker.h"
+#include "sources/ProjectMSource.h"
 
 MainComponent::MainComponent(bool testMode, int testPort)
     : testMode_(testMode), testPort_(testPort)
@@ -380,6 +381,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     composition_.initDefault();
     signalRegistry_.initDefaults();
     previewPanel_.getRenderer().setSignalRegistry(&signalRegistry_);
+    previewPanel_.getRenderer().setAnalysisThread(&analysisThread_);
 
     topBar_ = std::make_unique<TopBar>(analysisThread_.getFeatureBus(), composition_);
     addAndMakeVisible(topBar_.get());
@@ -751,6 +753,107 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
         if (deckView_) deckView_->rebuildGrid();
     };
+    // === MilkDrop single preset drop onto cell ===
+    deckView_->onMilkDropDropped = [this](int layerIdx, int col, const std::string& presetPath) {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        auto* layer = deck->getLayer(layerIdx);
+        if (!layer) return;
+
+        layer->ensureColumns(col + 1);
+        if (deck->numColumns < col + 1) deck->numColumns = col + 1;
+
+        // Create a projectM source clip with the preset path stored
+        Clip clip;
+        clip.name = juce::File(presetPath).getFileNameWithoutExtension().toStdString();
+        clip.mediaType = Clip::MediaType::Source;
+        clip.sourceType = "projectm_visualizer";
+
+        // Populate source params from registry
+        auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
+        auto tempSrc = srcRegistry.createSource("projectm_visualizer");
+        if (tempSrc)
+        {
+            for (int i = 0; i < tempSrc->getNumParams(); ++i)
+            {
+                const auto& p = tempSrc->getParam(i);
+                Clip::SourceParam sp;
+                sp.name = p.name;
+                sp.uniformName = p.uniformName;
+                sp.value = p.defaultValue;
+                sp.defaultValue = p.defaultValue;
+                clip.sourceParams.push_back(sp);
+            }
+        }
+
+        // Store the preset path as a single-entry playlist
+        Clip::PresetEntry entry;
+        entry.presetPath = presetPath;
+        entry.presetName = clip.name;
+        clip.presetPlaylist.push_back(entry);
+
+        deck->setClip(layerIdx, col, clip);
+        if (deckView_) deckView_->rebuildGrid();
+        if (inspectorPanel_)
+        {
+            auto* newClip = deck->getClip(layerIdx, col);
+            if (newClip) inspectorPanel_->inspectClip(newClip);
+        }
+    };
+
+    // === MilkDrop multi-preset playlist drop onto cell ===
+    deckView_->onMilkDropPlaylistDropped = [this](int layerIdx, int col, const std::vector<std::string>& presetPaths) {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        auto* layer = deck->getLayer(layerIdx);
+        if (!layer) return;
+
+        layer->ensureColumns(col + 1);
+        if (deck->numColumns < col + 1) deck->numColumns = col + 1;
+
+        Clip clip;
+        clip.name = "MilkDrop Playlist (" + std::to_string(presetPaths.size()) + ")";
+        clip.mediaType = Clip::MediaType::Source;
+        clip.sourceType = "projectm_visualizer";
+
+        // Populate source params
+        auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
+        auto tempSrc = srcRegistry.createSource("projectm_visualizer");
+        if (tempSrc)
+        {
+            for (int i = 0; i < tempSrc->getNumParams(); ++i)
+            {
+                const auto& p = tempSrc->getParam(i);
+                Clip::SourceParam sp;
+                sp.name = p.name;
+                sp.uniformName = p.uniformName;
+                sp.value = p.defaultValue;
+                sp.defaultValue = p.defaultValue;
+                clip.sourceParams.push_back(sp);
+            }
+        }
+
+        // Store all presets as playlist
+        for (const auto& path : presetPaths)
+        {
+            Clip::PresetEntry entry;
+            entry.presetPath = path;
+            entry.presetName = juce::File(path).getFileNameWithoutExtension().toStdString();
+            clip.presetPlaylist.push_back(entry);
+        }
+        clip.playlistEnabled = true;
+        clip.playlistCycleMode = Clip::PlaylistCycleMode::RandomBag;
+        clip.playlistTriggerBeats = 8;
+
+        deck->setClip(layerIdx, col, clip);
+        if (deckView_) deckView_->rebuildGrid();
+        if (inspectorPanel_)
+        {
+            auto* newClip = deck->getClip(layerIdx, col);
+            if (newClip) inspectorPanel_->inspectClip(newClip);
+        }
+    };
+
     deckView_->onDeckSwitched = [this](int deckIdx) {
         handleDeckSwitch(deckIdx);
     };
@@ -857,6 +960,67 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 inspectorPanel_->inspectClip(newClip);
         }
     };
+
+    // === v2: MilkDrop Preset Browser Wiring ===
+    {
+        // Get or create the projectM source to access its preset manager
+        auto* pmSource = dynamic_cast<ProjectMSource*>(
+            previewPanel_.getRenderer().getOrCreateSource("projectm_visualizer"));
+        if (pmSource)
+        {
+            auto& mgr = pmSource->getPresetManager();
+
+            // Scan bundled presets from the resources directory
+            auto exePath = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
+            // macOS: .app/Contents/MacOS/Audio-DNA → .app/Contents/Resources/
+            auto bundledDir = exePath.getParentDirectory().getParentDirectory()
+                                     .getChildFile("Resources").getChildFile("projectm_presets");
+            if (!bundledDir.isDirectory())
+            {
+                // Development fallback: look relative to working directory
+                bundledDir = juce::File::getCurrentWorkingDirectory().getChildFile("resources/projectm_presets");
+            }
+            if (bundledDir.isDirectory())
+            {
+                mgr.scanDirectory(bundledDir.getFullPathName().toStdString());
+                // Load mood/energy metadata manifest
+                auto manifestFile = bundledDir.getChildFile("presets.json");
+                if (manifestFile.existsAsFile())
+                    mgr.loadManifest(manifestFile.getFullPathName().toStdString());
+            }
+
+            // Also scan the Cream of the Crop collection if available
+            auto creamDir = juce::File("/tmp/milkdrop-presets");
+            if (creamDir.isDirectory())
+                mgr.scanDirectory(creamDir.getFullPathName().toStdString());
+
+            // Wire the browser to the preset manager
+            browserPanel_->getMilkDropBrowser().setPresetManager(&mgr);
+            browserPanel_->getMilkDropBrowser().setPresetSelector(&pmSource->getPresetSelector());
+
+            // Wire preset selection callback: load preset into projectM source
+            browserPanel_->getMilkDropBrowser().onPresetSelected = [this](const std::string& path) {
+                auto* src = dynamic_cast<ProjectMSource*>(
+                    previewPanel_.getRenderer().getOrCreateSource("projectm_visualizer"));
+                if (src)
+                {
+                    src->loadPreset(path, true); // smooth transition
+
+                    // Also set the source as active in the preview renderer
+                    previewPanel_.getRenderer().setActiveSource("projectm_visualizer");
+                    previewPanel_.getRenderer().clearImage();
+                    currentImageFile_ = juce::File();
+
+                    // Extract display name from path
+                    juce::File presetFile(path);
+                    fileLabel_.setText("MilkDrop: " + presetFile.getFileNameWithoutExtension(),
+                                       juce::dontSendNotification);
+                }
+            };
+
+            std::cerr << "[MilkDrop] Loaded " << mgr.getPresetCount() << " presets" << std::endl;
+        }
+    }
 
     // === v2: Timing Window ===
     timingWindow_ = std::make_unique<TimingWindow>();

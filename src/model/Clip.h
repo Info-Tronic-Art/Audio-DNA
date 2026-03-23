@@ -110,6 +110,36 @@ struct Clip
     float anchorX = 0.0f;           // Anchor point offset from center
     float anchorY = 0.0f;
 
+    // === MilkDrop Preset Playlist (P20.5) ===
+    // When sourceType == "projectm_visualizer", this playlist cycles through presets.
+    struct PresetEntry
+    {
+        std::string presetPath;       // Full path to .milk file
+        std::string presetName;       // Display name
+        std::string mood;             // Mood tag for smart cycling
+        float energy = 0.5f;          // Energy level [0,1]
+    };
+    std::vector<PresetEntry> presetPlaylist;
+    mutable int presetPlaylistIndex = 0;    // Current position in playlist
+    mutable int presetBeatsPlayed = 0;      // Beat counter for playlist cycling
+
+    enum class PlaylistCycleMode : uint8_t
+    {
+        Sequential, Reverse, RandomOther, RandomBag, PingPong
+    };
+    PlaylistCycleMode playlistCycleMode = PlaylistCycleMode::RandomBag;
+
+    enum class PlaylistTrigger : uint8_t
+    {
+        Beats, Bars, Phrase, OnDrop, OnBreakdown, Manual
+    };
+    PlaylistTrigger playlistTrigger = PlaylistTrigger::Beats;
+    int playlistTriggerBeats = 8;           // N beats/bars depending on trigger mode
+    float playlistBlendSeconds = 1.5f;      // Crossfade duration between presets
+    bool playlistEnabled = false;           // Master enable for playlist cycling
+
+    bool hasPresetPlaylist() const { return !presetPlaylist.empty() && playlistEnabled; }
+
     // === Runtime State (not serialized) ===
     mutable bool playing = false; // mutable: render thread updates for OneShot/PingPong stop
     mutable double playheadPosition = 0.0; // [0,1] normalized — mutable for render-thread updates via const Clip*
@@ -147,6 +177,14 @@ struct Clip
         numCuepoints = 0;
         autopilotAction = AutopilotAction::LayerDetermined;
         autopilotDuration = AutopilotDuration::LayerDetermined;
+        presetPlaylist.clear();
+        presetPlaylistIndex = 0;
+        presetBeatsPlayed = 0;
+        playlistCycleMode = PlaylistCycleMode::RandomBag;
+        playlistTrigger = PlaylistTrigger::Beats;
+        playlistTriggerBeats = 8;
+        playlistBlendSeconds = 1.5f;
+        playlistEnabled = false;
         playing = false;
         playheadPosition = 0.0;
         beatsPlayed = 0;

@@ -1,4 +1,5 @@
 #include "sources/SourceRegistry.h"
+#include "sources/ProjectMSource.h"
 
 SourceRegistry::SourceRegistry()
 {
@@ -1250,6 +1251,11 @@ void SourceRegistry::registerDefaults()
         s->addParam("Curl", "u_src_curl", 0.6f);
         s->addParam("Decay", "u_src_decay", 0.5f);
         return s;
+    });
+
+    // P20.5: MilkDrop Visualizer via libprojectM-4
+    registerSource("projectm_visualizer", [] {
+        return std::make_unique<ProjectMSource>();
     });
 
     // Layer Router — routes another layer's output as source content

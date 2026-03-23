@@ -41,6 +41,8 @@ public:
     std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDropped;
     std::function<void(int layerIndex, int column, const juce::String& sourceId)> onSourceDropped;
     std::function<void(int srcLayer, int srcCol, int dstLayer, int dstCol)> onClipMoved;
+    std::function<void(int layerIndex, int column, const std::string& presetPath)> onMilkDropDropped;
+    std::function<void(int layerIndex, int column, const std::vector<std::string>& presetPaths)> onMilkDropPlaylistDropped;
     std::function<void(int deckIndex)> onDeckSwitched;
 
     // Get active column (-1 if none)

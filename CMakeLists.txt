@@ -17,6 +17,9 @@ find_package(Aubio REQUIRED)
 # --- FFmpeg (video decode: libavformat, libavcodec, libavutil, libswscale) ---
 find_package(FFmpeg REQUIRED)
 
+# --- libprojectM-4 (MilkDrop visualizer, optional) ---
+find_package(ProjectM QUIET)
+
 # --- JUCE via FetchContent ---
 include(FetchContent)
 
@@ -166,6 +169,12 @@ target_sources(AudioDNA PRIVATE
     src/sources/ProceduralSource.cpp
     src/sources/SourceRegistry.h
     src/sources/SourceRegistry.cpp
+    src/sources/ProjectMSource.h
+    src/sources/ProjectMSource.cpp
+    src/sources/ProjectMPresetManager.h
+    src/sources/ProjectMPresetManager.cpp
+    src/sources/PresetSelector.h
+    src/sources/PresetSelector.cpp
 
     # Effects
     src/effects/Effect.h
@@ -242,6 +251,8 @@ target_sources(AudioDNA PRIVATE
     src/ui/RecordPanel.cpp
     src/ui/BrowserPanel.h
     src/ui/BrowserPanel.cpp
+    src/ui/MilkDropBrowser.h
+    src/ui/MilkDropBrowser.cpp
     src/ui/MenuBarModel.h
     src/ui/MenuBarModel.cpp
     src/ui/PreferencesDialog.h
@@ -284,6 +295,12 @@ target_compile_definitions(AudioDNA PRIVATE
     JUCE_APPLICATION_VERSION_STRING="$<TARGET_PROPERTY:AudioDNA,JUCE_VERSION>"
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
+
+# Add projectM support if found
+if(ProjectM_FOUND)
+    target_compile_definitions(AudioDNA PRIVATE AUDIODNA_HAS_PROJECTM=1)
+    target_link_libraries(AudioDNA PRIVATE ProjectM::ProjectM)
+endif()
 
 # Add test server compile definition and link
 if(AUDIODNA_BUILD_TEST_SERVER)

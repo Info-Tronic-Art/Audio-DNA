@@ -70,6 +70,11 @@ private:
         juce::Label renderResLabel_{"", "Render Resolution:"};
         juce::ComboBox renderResSelector_;
 
+        // MilkDrop preset directory (in Video tab)
+        juce::Label milkDropDirLabel_{"", "MilkDrop Presets:"};
+        juce::TextEditor milkDropDirEdit_;
+        juce::TextButton milkDropBrowseBtn_{"Browse..."};
+
         // About tab
         juce::Label versionLabel_;
         juce::Label creditsLabel_;

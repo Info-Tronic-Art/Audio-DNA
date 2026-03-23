@@ -70,6 +70,7 @@ private:
     void handleLoadSource(const httplib::Request& req, httplib::Response& res);
     void handleUpdateSourceParams(const httplib::Request& req, httplib::Response& res);
     void handleListSources(const httplib::Request& req, httplib::Response& res);
+    void handleLoadMilkDropPreset(const httplib::Request& req, httplib::Response& res);
 
     // Signal/routing endpoints (P16)
     void handleListSignals(const httplib::Request& req, httplib::Response& res);

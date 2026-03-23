@@ -150,6 +150,12 @@ void DeckView::rebuildGrid()
             cell->onSourceDrop = [this](int li, int c, const juce::String& sourceId) {
                 if (onSourceDropped) onSourceDropped(li, c, sourceId);
             };
+            cell->onMilkDropDrop = [this](int li, int c, const std::string& path) {
+                if (onMilkDropDropped) onMilkDropDropped(li, c, path);
+            };
+            cell->onMilkDropPlaylistDrop = [this](int li, int c, const std::vector<std::string>& paths) {
+                if (onMilkDropPlaylistDropped) onMilkDropPlaylistDropped(li, c, paths);
+            };
             cell->onClipMove = [this](int srcL, int srcC, int dstL, int dstC) {
                 if (onClipMoved) onClipMoved(srcL, srcC, dstL, dstC);
             };

@@ -99,6 +99,9 @@ public:
     // Source registry — for creating procedural source instances
     SourceRegistry& getSourceRegistry() { return sourceRegistry_; }
 
+    // P20.5: Set analysis thread pointer for PCM audio feed to projectM sources
+    void setAnalysisThread(class AnalysisThread* at) { analysisThread_ = at; }
+
     // Get or create an active procedural source instance for a source type ID.
     // Returns nullptr if the source ID is not registered.
     ProceduralSource* getOrCreateSource(const std::string& sourceId);
@@ -221,6 +224,13 @@ private:
     // Procedural sources
     SourceRegistry sourceRegistry_;
     std::unordered_map<std::string, std::unique_ptr<ProceduralSource>> activeSources_;
+
+    // P20.5: Analysis thread for PCM audio feed to projectM
+    AnalysisThread* analysisThread_ = nullptr;
+
+    // P20.5: Playlist cycling state tracking
+    float lastPlaylistBeatPhase_ = 0.0f;
+    uint8_t lastPlaylistStructState_ = 0;
 
     // Video players — keyed by clip ID
     std::mutex videoPlayerMutex_;

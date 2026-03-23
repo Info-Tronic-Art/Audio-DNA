@@ -17,6 +17,7 @@ BrowserPanel::BrowserPanel()
     setupTabBtn(sourcesTabBtn_, Tab::Sources);
     setupTabBtn(compDecksTabBtn_, Tab::CompDecks);
     setupTabBtn(recordTabBtn_, Tab::Record);
+    setupTabBtn(milkDropTabBtn_, Tab::MilkDrop);
 
     // Tab content
     addAndMakeVisible(filesBrowser_);
@@ -24,6 +25,7 @@ BrowserPanel::BrowserPanel()
     addAndMakeVisible(sourcesBrowser_);
     addAndMakeVisible(compDecksBrowser_);
     addAndMakeVisible(recordPanel_);
+    addAndMakeVisible(milkDropBrowser_);
 
     updateTabButtonColors();
     showActiveTab();
@@ -52,6 +54,7 @@ void BrowserPanel::paint(juce::Graphics& g)
         case Tab::Sources:   activeTabBounds = sourcesTabBtn_.getBounds(); break;
         case Tab::CompDecks: activeTabBounds = compDecksTabBtn_.getBounds(); break;
         case Tab::Record:    activeTabBounds = recordTabBtn_.getBounds(); break;
+        case Tab::MilkDrop:  activeTabBounds = milkDropTabBtn_.getBounds(); break;
     }
     g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan));
     g.fillRect(activeTabBounds.getX(), activeTabBounds.getBottom() - 3,
@@ -64,12 +67,13 @@ void BrowserPanel::resized()
 
     // Tab bar
     auto tabBar = area.removeFromTop(kTabBarHeight);
-    int tabWidth = tabBar.getWidth() / 5;
+    int tabWidth = tabBar.getWidth() / 6;
     filesTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
     fxTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
     sourcesTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
     compDecksTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
-    recordTabBtn_.setBounds(tabBar);
+    recordTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
+    milkDropTabBtn_.setBounds(tabBar);
 
     // Content area
     filesBrowser_.setBounds(area);
@@ -77,6 +81,7 @@ void BrowserPanel::resized()
     sourcesBrowser_.setBounds(area);
     compDecksBrowser_.setBounds(area);
     recordPanel_.setBounds(area);
+    milkDropBrowser_.setBounds(area);
 
     showActiveTab();
 }
@@ -129,6 +134,7 @@ void BrowserPanel::updateTabButtonColors()
     setTabColor(sourcesTabBtn_, Tab::Sources);
     setTabColor(compDecksTabBtn_, Tab::CompDecks);
     setTabColor(recordTabBtn_, Tab::Record);
+    setTabColor(milkDropTabBtn_, Tab::MilkDrop);
 }
 
 void BrowserPanel::showActiveTab()
@@ -138,4 +144,5 @@ void BrowserPanel::showActiveTab()
     sourcesBrowser_.setVisible(activeTab_ == Tab::Sources);
     compDecksBrowser_.setVisible(activeTab_ == Tab::CompDecks);
     recordPanel_.setVisible(activeTab_ == Tab::Record);
+    milkDropBrowser_.setVisible(activeTab_ == Tab::MilkDrop);
 }

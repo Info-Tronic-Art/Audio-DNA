@@ -109,6 +109,29 @@ PreferencesDialog::Content::Content()
     renderResSelector_.addItem("3840x2160", 5);
     renderResSelector_.setSelectedId(1, juce::dontSendNotification);
 
+    // MilkDrop preset directory
+    addChildComponent(milkDropDirLabel_);
+    addChildComponent(milkDropDirEdit_);
+    milkDropDirEdit_.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xff2a2a2a));
+    milkDropDirEdit_.setColour(juce::TextEditor::textColourId,
+                                juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    milkDropDirEdit_.setTextToShowWhenEmpty("Path to .milk preset folder...", juce::Colour(0xff606070));
+    addChildComponent(milkDropBrowseBtn_);
+    milkDropBrowseBtn_.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff2a2a3e));
+    milkDropBrowseBtn_.setColour(juce::TextButton::textColourOffId,
+                                  juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    milkDropBrowseBtn_.onClick = [this] {
+        auto chooser = std::make_shared<juce::FileChooser>(
+            "Select MilkDrop Preset Directory", juce::File{}, "");
+        chooser->launchAsync(juce::FileBrowserComponent::openMode
+                           | juce::FileBrowserComponent::canSelectDirectories,
+            [this, chooser](const juce::FileChooser& fc) {
+                auto result = fc.getResult();
+                if (result.isDirectory())
+                    milkDropDirEdit_.setText(result.getFullPathName(), true);
+            });
+    };
+
     // About tab
     addChildComponent(versionLabel_);
     versionLabel_.setText("Audio-DNA v0.1.0", juce::dontSendNotification);
@@ -140,6 +163,7 @@ PreferencesDialog::Content::Content()
     styleLabel(bpmRangeLabel_);
     styleLabel(fpsTargetLabel_);
     styleLabel(renderResLabel_);
+    styleLabel(milkDropDirLabel_);
 
     updateTabButtonColors();
     showActiveTab();
@@ -239,6 +263,9 @@ void PreferencesDialog::Content::showActiveTab()
     fpsTargetSelector_.setVisible(false);
     renderResLabel_.setVisible(false);
     renderResSelector_.setVisible(false);
+    milkDropDirLabel_.setVisible(false);
+    milkDropDirEdit_.setVisible(false);
+    milkDropBrowseBtn_.setVisible(false);
     versionLabel_.setVisible(false);
     creditsLabel_.setVisible(false);
     tooltipLabel_.setVisible(false);
@@ -265,6 +292,9 @@ void PreferencesDialog::Content::showActiveTab()
             fpsTargetSelector_.setVisible(true);
             renderResLabel_.setVisible(true);
             renderResSelector_.setVisible(true);
+            milkDropDirLabel_.setVisible(true);
+            milkDropDirEdit_.setVisible(true);
+            milkDropBrowseBtn_.setVisible(true);
             break;
         case Tab::About:
             versionLabel_.setVisible(true);
@@ -327,6 +357,14 @@ void PreferencesDialog::Content::layoutVideoTab(juce::Rectangle<int> area)
     renderResLabel_.setBounds(row2.removeFromLeft(labelW));
     row2.removeFromLeft(8);
     renderResSelector_.setBounds(row2.removeFromLeft(controlW));
+
+    area.removeFromTop(16);
+    auto row3 = area.removeFromTop(28);
+    milkDropDirLabel_.setBounds(row3.removeFromLeft(labelW));
+    row3.removeFromLeft(8);
+    milkDropBrowseBtn_.setBounds(row3.removeFromRight(80));
+    row3.removeFromRight(4);
+    milkDropDirEdit_.setBounds(row3);
 }
 
 void PreferencesDialog::Content::layoutAboutTab(juce::Rectangle<int> area)

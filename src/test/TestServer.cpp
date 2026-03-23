@@ -7,6 +7,7 @@
 #include "effects/Effect.h"
 #include "model/Composition.h"
 #include "sources/SourceRegistry.h"
+#include "sources/ProjectMSource.h"
 #include "signal/SignalRegistry.h"
 #include "routing/RoutingEngine.h"
 #include "model/Clip.h"
@@ -128,6 +129,10 @@ void TestServer::setupRoutes()
 
     server_.Get("/api/sources", [this](const httplib::Request& req, httplib::Response& res) {
         handleListSources(req, res);
+    });
+
+    server_.Post("/api/load_milkdrop_preset", [this](const httplib::Request& req, httplib::Response& res) {
+        handleLoadMilkDropPreset(req, res);
     });
 
     // P16: Signal/routing endpoints
@@ -851,6 +856,74 @@ void TestServer::handleSetMacro(const httplib::Request& req, httplib::Response& 
     obj->setProperty("ok", true);
     obj->setProperty("note", "Macro endpoint stub — full MacroBank integration pending");
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleLoadMilkDropPreset(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    if (!obj || !obj->hasProperty("preset_path"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'preset_path' field"), "application/json");
+        return;
+    }
+
+    std::string presetPath = obj->getProperty("preset_path").toString().toStdString();
+
+    // First ensure the projectm_visualizer source is active
+    renderer_.setActiveSource("projectm_visualizer");
+    juce::Thread::sleep(200); // Give GL thread time to create the source
+
+    // Access the source and load the preset
+    auto* source = renderer_.getOrCreateSource("projectm_visualizer");
+    if (!source)
+    {
+        res.status = 500;
+        res.set_content(jsonError("Failed to create projectM source"), "application/json");
+        return;
+    }
+
+#ifdef AUDIODNA_HAS_PROJECTM
+    auto* pmSource = dynamic_cast<ProjectMSource*>(source);
+    if (pmSource)
+    {
+        pmSource->loadPreset(presetPath, false);
+
+        // Generate synthetic audio (bass-heavy beat pattern) and feed to projectM
+        // This ensures the preset has audio to react to even in test mode
+        constexpr int kSynthSamples = 512;
+        float synthPCM[kSynthSamples];
+        for (int i = 0; i < kSynthSamples; ++i)
+        {
+            float t = static_cast<float>(i) / 48000.0f;
+            // Bass drum at 120 BPM + some mid-range content
+            synthPCM[i] = 0.7f * std::sin(2.0f * 3.14159f * 80.0f * t)
+                        + 0.3f * std::sin(2.0f * 3.14159f * 440.0f * t)
+                        + 0.1f * std::sin(2.0f * 3.14159f * 2000.0f * t);
+        }
+
+        // Feed audio multiple times and wait for GL thread to render
+        for (int frame = 0; frame < 60; ++frame)
+        {
+            pmSource->feedAudio(synthPCM, kSynthSamples);
+            juce::Thread::sleep(16); // ~60fps
+        }
+
+        res.set_content(jsonOk(), "application/json");
+    }
+    else
+#endif
+    {
+        res.set_content(jsonError("projectM not available"), "application/json");
+    }
 }
 
 #endif // AUDIODNA_TEST_SERVER

@@ -5,12 +5,13 @@
 #include "ui/SourcesBrowser.h"
 #include "ui/CompDecksBrowser.h"
 #include "ui/RecordPanel.h"
+#include "ui/MilkDropBrowser.h"
 #include "ui/LookAndFeel.h"
 #include "effects/EffectLibrary.h"
 #include "model/Composition.h"
 #include <memory>
 
-// BrowserPanel: 5-tab container for Files, FX, Sources, Comp/Decks, Record.
+// BrowserPanel: 6-tab container for Files, FX, Sources, Comp/Decks, Record, MilkDrop.
 // Lives in the right-bottom section of the main layout.
 class BrowserPanel : public juce::Component
 {
@@ -33,8 +34,9 @@ public:
     SourcesBrowser& getSourcesBrowser() { return sourcesBrowser_; }
     CompDecksBrowser& getCompDecksBrowser() { return compDecksBrowser_; }
     RecordPanel& getRecordPanel() { return recordPanel_; }
+    MilkDropBrowser& getMilkDropBrowser() { return milkDropBrowser_; }
 
-    enum class Tab : int { Files = 0, FX = 1, Sources = 2, CompDecks = 3, Record = 4 };
+    enum class Tab : int { Files = 0, FX = 1, Sources = 2, CompDecks = 3, Record = 4, MilkDrop = 5 };
     void setActiveTab(Tab tab);
     Tab getActiveTab() const { return activeTab_; }
 
@@ -47,6 +49,7 @@ private:
     juce::TextButton sourcesTabBtn_{"Sources"};
     juce::TextButton compDecksTabBtn_{"Comp/Decks"};
     juce::TextButton recordTabBtn_{"Record"};
+    juce::TextButton milkDropTabBtn_{"MilkDrop"};
 
     // Tab content
     FilesBrowser filesBrowser_;
@@ -54,6 +57,7 @@ private:
     SourcesBrowser sourcesBrowser_;
     CompDecksBrowser compDecksBrowser_;
     RecordPanel recordPanel_;
+    MilkDropBrowser milkDropBrowser_;
 
     static constexpr int kTabBarHeight = 26;
 

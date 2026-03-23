@@ -343,13 +343,14 @@ bool ClipCell::isInThumbnailArea(const juce::Point<int>& pos) const
 bool ClipCell::isInterestedInDragSource(const SourceDetails& details)
 {
     auto desc = details.description.toString();
-    return desc.startsWith("fx:") || desc.startsWith("source:") || desc.startsWith("clip:") || desc.startsWith("files:");
+    return desc.startsWith("fx:") || desc.startsWith("source:") || desc.startsWith("clip:")
+        || desc.startsWith("files:") || desc.startsWith("milkdrop:") || desc.startsWith("milkdrop_playlist:");
 }
 
 void ClipCell::itemDragEnter(const SourceDetails& details)
 {
     auto desc = details.description.toString();
-    if (desc.startsWith("source:"))
+    if (desc.startsWith("source:") || desc.startsWith("milkdrop:") || desc.startsWith("milkdrop_playlist:"))
         sourceDragHover_ = true;
     else if (desc.startsWith("clip:") || desc.startsWith("files:"))
         dragHover_ = true;
@@ -451,5 +452,23 @@ void ClipCell::itemDropped(const SourceDetails& details)
                 }
             }
         }
+    }
+    else if (desc.startsWith("milkdrop_playlist:"))
+    {
+        // Multi-preset playlist drop
+        auto pathStr = desc.substring(18);
+        auto paths = juce::StringArray::fromTokens(pathStr, "|", "");
+        std::vector<std::string> presetPaths;
+        for (const auto& p : paths)
+            if (p.isNotEmpty()) presetPaths.push_back(p.toStdString());
+        if (!presetPaths.empty() && onMilkDropPlaylistDrop)
+            onMilkDropPlaylistDrop(layerIndex_, column_, presetPaths);
+    }
+    else if (desc.startsWith("milkdrop:"))
+    {
+        // Single preset drop
+        auto presetPath = desc.substring(9).toStdString();
+        if (!presetPath.empty() && onMilkDropDrop)
+            onMilkDropDrop(layerIndex_, column_, presetPath);
     }
 }

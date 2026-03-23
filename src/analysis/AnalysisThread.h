@@ -63,6 +63,12 @@ public:
 
     static constexpr int kWaveformBufferSize = 2048;
 
+    // Get recent PCM samples for external consumers (e.g., projectM).
+    // Returns number of samples copied (up to maxSamples, max kPCMSnapshotSize).
+    // Lock-free: reads from an atomic-swapped snapshot.
+    static constexpr int kPCMSnapshotSize = 512;
+    int getPCMSamples(float* dest, int maxSamples) const;
+
 private:
     RingBuffer<float>& ringBuffer_;
 
@@ -77,6 +83,11 @@ private:
     // Waveform display buffer
     alignas(64) std::array<float, kWaveformBufferSize> waveformBuffer_{};
     std::atomic<int> waveformSampleCount_{0};
+
+    // PCM snapshot for external consumers (lock-free double buffer)
+    alignas(64) std::array<float, kPCMSnapshotSize> pcmSnapshot_[2]{};
+    std::atomic<int> pcmWriteIdx_{0};  // toggles 0/1
+    std::atomic<int> pcmSampleCount_{0};
 
     // Feature publishing
     FeatureBus featureBus_;
