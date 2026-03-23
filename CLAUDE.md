@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 115 effects across 10 categories (including 5 temporal time effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 55 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 32+ pattern/noise/geometric sources), signal routing engine wired into render loop, VJ panel UI.
+**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 76 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 44+ pattern/noise/geometric/math/particle/nature sources), signal routing engine wired into render loop, VJ panel UI.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -361,22 +361,23 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 
 ## Effects Library
 
-115 effects across 10 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
+135 effects across 11 categories + 15 transition shaders. All parameters normalized to [0.0, 1.0] — the shader maps to internal ranges. All shaders are embedded in `src/render/EmbeddedShaders.h`.
 
 ### Effect Categories (115 total)
 
 | Category | Count | Examples |
 |----------|-------|---------|
-| **3D / Depth** | 7 | Perspective Tilt, Cylinder Wrap, Sphere Wrap, Tunnel, Page Curl, Parallax Layers, Dot Field |
-| **Warp** | 26 | Ripple, Bulge, Wave, Liquid, Kaleidoscope, Fisheye, Swirl, Polar Coords, Twirl, Shear, Elastic Bounce, Ripple Pond, Diamond Distort, Barrel Distort, Sine Grid, Glitch Displace, Quad Mirror, Flip, Warp Field, Slide Wrap, Tile Grid, Spot Zoom, Bendoscope, UV Remap, Liquid Morph, Infinite Zoom |
-| **Color** | 28 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize, Greyscale, Threshold, Exposure, Vibrance, Auto Mask, Chroma Key, Palette Remap, Color Grade |
-| **Glitch** | 13 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Glitch Displace, Pixel Explosion, Color Flash, Fragment Burst, Signal Destroy |
-| **Pattern** | 17 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision, Triangulate, Neon Edge, Cartoon Ink, Pop Raster, Brush Strokes, Bump Light |
-| **Animation** | 5 | Strobe, Pulse, Slit Scan, Point Zoom, Directional Feedback |
-| **Time** | 5 | Echo (temporal trails with Add/Screen/Max/Blend operators), Posterize Time (frame rate reduction), Freeze (full-frame freeze), Screen Split (CCTV grid with per-cell delay via ring buffer), Frame Stutter (time-jump rewind via ring buffer) |
+| **3D / Depth** | 9 | Perspective Tilt, Cylinder Wrap, Sphere Wrap, Tunnel, Page Curl, Parallax Layers, Dot Field, Luminance Terrain, Voxel Matrix |
+| **Warp** | 27 | Ripple, Bulge, Wave, Liquid, Kaleidoscope, Fisheye, Swirl, Polar Coords, Twirl, Shear, Elastic Bounce, Ripple Pond, Diamond Distort, Barrel Distort, Sine Grid, Glitch Displace, Quad Mirror, Flip, Warp Field, Slide Wrap, Tile Grid, Spot Zoom, Bendoscope, UV Remap, Liquid Morph, Infinite Zoom, Density Wave |
+| **Color** | 31 | Hue Shift, Saturation, Brightness, Duotone, Chromatic Aberration, Invert, Posterize, Color Shift, Thermal, Contrast, Sepia, Cross Process, Split Tone, Color Halftone, Dither, Heat Map, Selective Color, Film Grain, Gamma Levels, Solarize, Greyscale, Threshold, Exposure, Vibrance, Auto Mask, Chroma Key, Palette Remap, Color Grade, Pitch Chromatic Shift, Key Palette, Chroma Dissolve |
+| **Glitch** | 16 | Pixel Scatter, RGB Split, Block Glitch, Scanlines, Digital Rain, Noise, Mirror, Pixelate, Glitch Displace, Pixel Explosion, Color Flash, Fragment Burst, Signal Destroy, Rhythm Slice, Data Corruption, Glitch Sort |
+| **Pattern** | 19 | CRT Simulation, VHS Effect, ASCII Art, Dot Matrix, Crosshatch, Emboss, Oil Paint, Pencil Sketch, Voronoi Glass, Cross Stitch, Night Vision, Triangulate, Neon Edge, Cartoon Ink, Pop Raster, Brush Strokes, Bump Light, Monitor Wall, Topographic Lines |
+| **Animation** | 6 | Strobe, Pulse, Slit Scan, Point Zoom, Directional Feedback, Transient Flash |
+| **Audio** | 3 | Harmonic Displacement, Timbral Mosaic, Structural Morph, Beat Ripple |
+| **Time** | 6 | Echo (temporal trails with Add/Screen/Max/Blend operators), Posterize Time (frame rate reduction), Freeze (full-frame freeze), Screen Split (CCTV grid with per-cell delay via ring buffer), Frame Stutter (time-jump rewind via ring buffer), Channel Delay (per-RGB temporal offset) |
 | **Blend** | 5 | Double Exposure, Frosted Glass, Prism Refract, Rain on Glass, Hexagonalize |
 | **Composite** | 3 | Line Cloner, Radial Cloner, Cube Scatter |
-| **Blur/Post** | 8 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect, Sharpen, Edge Blur |
+| **Blur/Post** | 9 | Gaussian Blur, Zoom Blur, Shake, Vignette, Motion Blur, Glow, Edge Detect, Sharpen, Edge Blur, Drop Shadow |
 
 ### Transition Shaders (15 total)
 
@@ -543,7 +544,7 @@ Core audio pipeline, full 13-stage analysis engine, OpenGL rendering with 96 GLS
 - Clip timeline with draggable in/out points, beat division markers, playhead triangle
 - Session recording (timestamped event capture + JSON save/load + playback)
 - Undo/redo from the start (Command pattern)
-- 55 procedural sources: 7 2D fractals (Mandelbrot, Julia, Burning Ship, Newton, Sierpinski, Apollonian, Kaleido), 8 3D ray-marched fractals (Mandelbulb, Menger, KIFS, Julia3D, BurningShip3D, Newton3D, SierpinskiTetra, Apollonian3D), 8 torus, plus noise/geometric/pattern sources
+- 64 procedural sources: 7 2D fractals, 8 3D ray-marched fractals, 8 3D torus, 8 audio-visual (Spectrum Landscape, Chromatic Ring, Band Tower, Timbral Nebula, Structural Landscape, Cymatics, Spectral Waterfall, Spectral Ring), 1 text (Scrolling Text Wall), plus noise/geometric/pattern sources
 - Video playback via FFmpeg (MP4/MOV/AVI/MKV/WebM/HAP Alpha) with transport controls
 - Image sequence playback (multi-image drag-drop as video) with configurable FPS
 - BPM Sync transport mode for video/image sequences with beat division presets
@@ -943,7 +944,35 @@ All fractal sources, their parameters, design rules, and test infrastructure in 
 
 **Signal Routing**: `SignalRegistry::evaluateAll()` and `RoutingEngine::processFrame()` run every frame in `Renderer::renderOpenGL()`. Renderer holds a `SignalRegistry*` (owned by MainComponent) and a `RoutingEngine`. TestServer exposes 5 signal/routing REST endpoints.
 
-### Common Pitfalls (from P14-P16 development)
+### Audio Uniform System (P18)
+
+Effect shaders and source shaders can access all 42+ audio features via uniforms. The uniform uploading is implemented in three places:
+
+- **`ProceduralSource::uploadUniforms()`** — for procedural sources. Uploads all basic + extended uniforms.
+- **`CompositorEngine::uploadAudioUniforms()`** — for per-clip/layer effects in deck mode. Called via `setLatestSnapshot()` before `compositeDeck()`.
+- **`EffectChain::uploadEffectUniforms()`** — for global effects in single-image mode. Called via `setLatestSnapshot()` before `render()`.
+
+**Available uniforms in all shaders** (effect and source):
+
+| Uniform | Type | Source |
+|---------|------|--------|
+| `u_rms` | float | RMS amplitude |
+| `u_bass`, `u_mid`, `u_high` | float | Band energies [1], [3], [5] |
+| `u_beatPhase`, `u_barPhase`, `u_phrasePhase` | float | Beat/bar/phrase sawtooths |
+| `u_spectralCentroid`, `u_spectralFlux` | float | Spectral features |
+| `u_onsetStrength`, `u_onsetDetected` | float | Onset (detected = 0 or 1) |
+| `u_dominantPitch`, `u_pitchConfidence` | float | Pitch detection |
+| `u_detectedKey`, `u_keyIsMajor` | float | Key detection (-1 to 11, 0/1) |
+| `u_structuralState` | float | 0=normal, 1=buildup, 2=drop, 3=breakdown |
+| `u_bpm` | float | Current BPM |
+| `u_hcdf` | float | Harmonic change detection function |
+| `u_bandEnergies[7]` | float array | All 7 frequency bands |
+| `u_chromagram[12]` | float array | 12 pitch classes (C through B) |
+| `u_mfccs[13]` | float array | 13 MFCC coefficients |
+
+**Important**: These uniforms are available in every shader but only consume GPU resources if the shader declares them. Unused uniforms are silently ignored by `glGetUniformLocation` returning -1.
+
+### Common Pitfalls (from P14-P18 development)
 
 These bugs were discovered and fixed. Future phases MUST avoid reintroducing them:
 

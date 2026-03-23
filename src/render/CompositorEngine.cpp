@@ -308,6 +308,9 @@ GLuint CompositorEngine::applyClipEffects(const Clip& clip, GLuint inputTex,
         if (resLoc >= 0)
             glUniform2f(resLoc, static_cast<float>(w), static_cast<float>(h));
 
+        // Audio feature uniforms (P18: audio-reactive effects)
+        uploadAudioUniforms(program);
+
         // Effect parameter uniforms from slot values
         for (size_t p = 0; p < def->params.size() && p < slot.paramValues.size(); ++p)
         {
@@ -1268,4 +1271,47 @@ GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return effectTex_A_;
+}
+
+void CompositorEngine::uploadAudioUniforms(juce::OpenGLShaderProgram* program) const
+{
+    if (!latestSnapshot_ || !program) return;
+
+    auto loc = [&](const char* name) {
+        return program->getUniformIDFromName(name);
+    };
+
+    const auto& snap = *latestSnapshot_;
+
+    // Basic audio features
+    auto l = loc("u_rms");      if (l >= 0) glUniform1f(l, snap.rms);
+    l = loc("u_bass");           if (l >= 0) glUniform1f(l, snap.bandEnergies[1]);
+    l = loc("u_mid");            if (l >= 0) glUniform1f(l, snap.bandEnergies[3]);
+    l = loc("u_high");           if (l >= 0) glUniform1f(l, snap.bandEnergies[5]);
+    l = loc("u_beatPhase");      if (l >= 0) glUniform1f(l, snap.beatPhase);
+    l = loc("u_barPhase");       if (l >= 0) glUniform1f(l, snap.barPhase);
+    l = loc("u_phrasePhase");    if (l >= 0) glUniform1f(l, snap.phrasePhase);
+    l = loc("u_spectralCentroid"); if (l >= 0) glUniform1f(l, snap.spectralCentroid);
+    l = loc("u_spectralFlux");   if (l >= 0) glUniform1f(l, snap.spectralFlux);
+    l = loc("u_onsetStrength");  if (l >= 0) glUniform1f(l, snap.onsetStrength);
+    l = loc("u_onsetDetected");  if (l >= 0) glUniform1f(l, snap.onsetDetected ? 1.0f : 0.0f);
+    l = loc("u_dominantPitch");  if (l >= 0) glUniform1f(l, snap.dominantPitch);
+    l = loc("u_pitchConfidence"); if (l >= 0) glUniform1f(l, snap.pitchConfidence);
+    l = loc("u_detectedKey");    if (l >= 0) glUniform1f(l, static_cast<float>(snap.detectedKey));
+    l = loc("u_keyIsMajor");     if (l >= 0) glUniform1f(l, snap.keyIsMajor ? 1.0f : 0.0f);
+    l = loc("u_structuralState"); if (l >= 0) glUniform1f(l, static_cast<float>(snap.structuralState));
+    l = loc("u_bpm");            if (l >= 0) glUniform1f(l, snap.bpm);
+    l = loc("u_hcdf");           if (l >= 0) glUniform1f(l, snap.harmonicChangeDetection);
+
+    // 7-band energies as array
+    l = loc("u_bandEnergies");
+    if (l >= 0) glUniform1fv(l, 7, snap.bandEnergies);
+
+    // 12-note chromagram as array
+    l = loc("u_chromagram");
+    if (l >= 0) glUniform1fv(l, 12, snap.chromagram);
+
+    // 13 MFCCs as array
+    l = loc("u_mfccs");
+    if (l >= 0) glUniform1fv(l, 13, snap.mfccs);
 }

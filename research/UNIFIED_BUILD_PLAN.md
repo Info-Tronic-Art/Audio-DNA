@@ -33,7 +33,7 @@
 | **P14** | Quick-Win Effects (20 shaders) + Transition Shaders (15) + UX fixes | **COMPLETE** | YES — 20 effects + 15 transitions in FX browser, FX delete, drag-drop inspectors, right-click reset, transport controls |
 | **P15** | Medium Effects + Resolume Sources (24 items) | **COMPLETE** | YES — 14 effects + 12 sources visible |
 | **P16** | Time Effects + Feedback + Signal Routing (14 items) | **COMPLETE** | YES — 5 time effects, feedback UI, signal routing wired, ring buffer |
-| **P17** | Creative Sources: Math, 3D, Geometric, Nature, Lighting (19 sources) | NOT STARTED | YES — 19 new sources in browser |
+| **P17** | Creative Sources: Math, 3D, Geometric, Nature, Lighting (19 sources) | **COMPLETE** | YES — 19 new sources in browser |
 | **P18** | Audio-Native Effects & Sources (20 items) | NOT STARTED | YES — audio-driven effects respond to music |
 | **P19** | Complex Effects + Remaining Sources (20 items) | NOT STARTED | YES — complex effects + remaining sources visible |
 | **P20** | Systems: Layer Router, Per-Type Automation, FFGL, Text, Simulations (19 items) | NOT STARTED | YES — layer router, FFGL plugins, text source |
@@ -575,7 +575,9 @@ Register as transition shaders in EmbeddedShaders.h + compile in Renderer. Compo
 
 ---
 
-## Phase 18: Audio-Native Effects & Sources (20 items)
+## Phase 18: Audio-Native Effects & Sources (20 items) — COMPLETE
+
+**Status**: COMPLETE (2026-03-22). Shipped: 10 audio-driven effects (Harmonic Displacement, Timbral Mosaic, Structural Morph, Pitch Chromatic Shift, Key Palette, Transient Flash, Beat Ripple, Rhythm Slice, Density Wave, Chroma Dissolve), 8 audio-native sources (Spectrum Landscape, Chromatic Ring, Band Tower, Timbral Nebula, Structural Landscape, Cymatics, Spectral Waterfall, Spectral Ring), Scrolling Text Wall source, and full audio uniform infrastructure (chromagram[12], MFCCs[13], bandEnergies[7], onset, pitch, key, structural state) for effects and sources.
 
 **Goal**: Effects and sources that directly exploit our 42+ audio features. THIS IS OUR DIFFERENTIATOR — none of these are possible in Resolume or ArKaos.
 
@@ -624,7 +626,9 @@ Register as transition shaders in EmbeddedShaders.h + compile in Renderer. Compo
 
 ---
 
-## Phase 19: Complex Effects + Remaining Sources (20 items)
+## Phase 19: Complex Effects + Remaining Sources (20 items) — COMPLETE
+
+**Shipped**: 8 effects (Luminance Terrain, Voxel Matrix, Monitor Wall, Drop Shadow, Channel Delay, Topographic Lines, Data Corruption, Glitch Sort) + 12 sources (Superformula, Truchet Labyrinth, Rose Curves, Fibonacci Spiral, Lightning Storm, Fire, Starfield, Particle Nebula, Radar Sweep, Glitch Grid, DNA Helix, Dot Matrix Wave). Added Particle category to SourcesBrowser. Total: 135 effects, 76 sources.
 
 **Goal**: All remaining effects and sources that aren't audio-native or system-level.
 

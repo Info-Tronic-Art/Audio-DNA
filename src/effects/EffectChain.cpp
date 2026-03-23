@@ -276,6 +276,54 @@ void EffectChain::uploadEffectUniforms(juce::OpenGLShaderProgram* program,
     if (resLoc >= 0)
         glUniform2f(resLoc, width, height);
 
+    // Audio feature uniforms (P18: audio-reactive effects)
+    if (latestSnapshot_)
+    {
+        const auto& snap = *latestSnapshot_;
+        auto l = getCachedUniformLocation(program, "u_rms");
+        if (l >= 0) glUniform1f(l, snap.rms);
+        l = getCachedUniformLocation(program, "u_bass");
+        if (l >= 0) glUniform1f(l, snap.bandEnergies[1]);
+        l = getCachedUniformLocation(program, "u_mid");
+        if (l >= 0) glUniform1f(l, snap.bandEnergies[3]);
+        l = getCachedUniformLocation(program, "u_high");
+        if (l >= 0) glUniform1f(l, snap.bandEnergies[5]);
+        l = getCachedUniformLocation(program, "u_beatPhase");
+        if (l >= 0) glUniform1f(l, snap.beatPhase);
+        l = getCachedUniformLocation(program, "u_barPhase");
+        if (l >= 0) glUniform1f(l, snap.barPhase);
+        l = getCachedUniformLocation(program, "u_phrasePhase");
+        if (l >= 0) glUniform1f(l, snap.phrasePhase);
+        l = getCachedUniformLocation(program, "u_spectralCentroid");
+        if (l >= 0) glUniform1f(l, snap.spectralCentroid);
+        l = getCachedUniformLocation(program, "u_spectralFlux");
+        if (l >= 0) glUniform1f(l, snap.spectralFlux);
+        l = getCachedUniformLocation(program, "u_onsetStrength");
+        if (l >= 0) glUniform1f(l, snap.onsetStrength);
+        l = getCachedUniformLocation(program, "u_onsetDetected");
+        if (l >= 0) glUniform1f(l, snap.onsetDetected ? 1.0f : 0.0f);
+        l = getCachedUniformLocation(program, "u_dominantPitch");
+        if (l >= 0) glUniform1f(l, snap.dominantPitch);
+        l = getCachedUniformLocation(program, "u_pitchConfidence");
+        if (l >= 0) glUniform1f(l, snap.pitchConfidence);
+        l = getCachedUniformLocation(program, "u_detectedKey");
+        if (l >= 0) glUniform1f(l, static_cast<float>(snap.detectedKey));
+        l = getCachedUniformLocation(program, "u_keyIsMajor");
+        if (l >= 0) glUniform1f(l, snap.keyIsMajor ? 1.0f : 0.0f);
+        l = getCachedUniformLocation(program, "u_structuralState");
+        if (l >= 0) glUniform1f(l, static_cast<float>(snap.structuralState));
+        l = getCachedUniformLocation(program, "u_bpm");
+        if (l >= 0) glUniform1f(l, snap.bpm);
+        l = getCachedUniformLocation(program, "u_hcdf");
+        if (l >= 0) glUniform1f(l, snap.harmonicChangeDetection);
+        l = getCachedUniformLocation(program, "u_bandEnergies");
+        if (l >= 0) glUniform1fv(l, 7, snap.bandEnergies);
+        l = getCachedUniformLocation(program, "u_chromagram");
+        if (l >= 0) glUniform1fv(l, 12, snap.chromagram);
+        l = getCachedUniformLocation(program, "u_mfccs");
+        if (l >= 0) glUniform1fv(l, 13, snap.mfccs);
+    }
+
     // Effect-specific parameter uniforms (cached)
     for (int i = 0; i < effect.getNumParams(); ++i)
     {

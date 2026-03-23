@@ -9997,4 +9997,1810 @@ inline const char* sourceDualPlaneDrift = R"(
     }
 )";
 
+// ============================================================
+// Phase 18: Audio-Native Effects (10 effects)
+// These effects use extended audio uniforms (chromagram, MFCCs,
+// structural state, onset, pitch, key detection) — our differentiator.
+// ============================================================
+
+// P18.1: Harmonic Displacement — chromagram drives 12 directional UV offsets
+static constexpr const char* harmonicDisplace = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_harmdisplace_amount;
+    uniform float u_harmdisplace_smooth;
+    uniform float u_harmdisplace_color;
+    uniform float u_chromagram[12];
+    uniform float u_hcdf;
+    uniform float u_time;
+    void main() {
+        float amount = u_harmdisplace_amount * 0.08;
+        float sharpness = mix(1.0, 3.0, 1.0 - u_harmdisplace_smooth);
+        vec2 disp = vec2(0.0);
+        for (int i = 0; i < 12; i++) {
+            float angle = float(i) * 0.5236; // 2*PI/12
+            float energy = pow(u_chromagram[i], sharpness);
+            disp += vec2(cos(angle), sin(angle)) * energy;
+        }
+        disp *= amount * (0.5 + u_hcdf * 2.0);
+        vec2 uv = v_texCoord + disp;
+        vec4 col = texture(u_texture, uv);
+        if (u_harmdisplace_color > 0.01) {
+            // Tint by dominant chroma direction
+            float hue = atan(disp.y, disp.x) / 6.28318 + 0.5;
+            vec3 tint = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+            col.rgb = mix(col.rgb, col.rgb * tint, u_harmdisplace_color);
+        }
+        fragColor = col;
+    }
+)";
+
+// P18.2: Timbral Mosaic — MFCCs control Voronoi tile properties
+static constexpr const char* timbralMosaic = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_timbremosaic_amount;
+    uniform float u_timbremosaic_size;
+    uniform float u_timbremosaic_complexity;
+    uniform float u_mfccs[13];
+    uniform float u_time;
+    vec2 hash2(vec2 p) {
+        p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+        return fract(sin(p) * 43758.5453);
+    }
+    void main() {
+        float amount = u_timbremosaic_amount;
+        if (amount < 0.01) { fragColor = texture(u_texture, v_texCoord); return; }
+        float tileSize = mix(0.02, 0.15, u_timbremosaic_size);
+        tileSize *= mix(0.5, 1.5, clamp(u_mfccs[0] * 0.5 + 0.5, 0.0, 1.0));
+        vec2 uv = v_texCoord / tileSize;
+        vec2 iuv = floor(uv);
+        vec2 fuv = fract(uv);
+        float minDist = 1e9;
+        vec2 nearestCell = vec2(0.0);
+        for (int y = -1; y <= 1; y++)
+        for (int x = -1; x <= 1; x++) {
+            vec2 neighbor = vec2(float(x), float(y));
+            vec2 point = hash2(iuv + neighbor);
+            point = 0.5 + 0.5 * sin(u_time * 0.3 + 6.28318 * point);
+            float d = length(neighbor + point - fuv);
+            if (d < minDist) { minDist = d; nearestCell = iuv + neighbor; }
+        }
+        vec2 cellCenter = (nearestCell + 0.5) * tileSize;
+        // Complexity controls how many MFCCs modulate the mosaic
+        float complexity = u_timbremosaic_complexity;
+        float rotation = u_mfccs[2] * 0.5 * complexity;
+        vec2 sampleOffset = vec2(u_mfccs[3], u_mfccs[4]) * 0.02 * complexity;
+        vec2 sampleUV = clamp(cellCenter + sampleOffset, 0.0, 1.0);
+        vec4 tileCol = texture(u_texture, sampleUV);
+        // Edge color influenced by more MFCCs at higher complexity
+        float edge = smoothstep(0.0, 0.05, minDist);
+        float edgeBright = 0.5 + abs(u_mfccs[1]) * 2.0;
+        float hueShift = (u_mfccs[5] + u_mfccs[6]) * complexity;
+        vec3 edgeCol = 0.5 + 0.5 * cos(6.28318 * (hueShift + vec3(0.0, 0.33, 0.67)));
+        edgeCol *= 0.1 * edgeBright;
+        // Tile color rotation by complexity
+        float cr = cos(rotation), sr = sin(rotation);
+        tileCol.rg = vec2(cr * tileCol.r - sr * tileCol.g, sr * tileCol.r + cr * tileCol.g);
+        vec3 result = mix(edgeCol, tileCol.rgb, edge);
+        fragColor = vec4(mix(texture(u_texture, v_texCoord).rgb, result, amount), tileCol.a);
+    }
+)";
+
+// P18.3: Structural Morph — 4 UV distortions blended by structural state
+static constexpr const char* structuralMorph = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_structmorph_intensity;
+    uniform float u_structmorph_normal;
+    uniform float u_structmorph_drop;
+    uniform float u_structuralState;
+    uniform float u_rms;
+    uniform float u_time;
+    void main() {
+        float intensity = u_structmorph_intensity;
+        if (intensity < 0.01) { fragColor = texture(u_texture, v_texCoord); return; }
+        vec2 uv = v_texCoord;
+        vec2 center = uv - 0.5;
+        float state = u_structuralState; // 0=normal, 1=buildup, 2=drop, 3=breakdown
+        // Normal: gentle wave — style controls frequency and amplitude
+        float normalAmt = u_structmorph_normal * 0.06 * intensity;
+        float normalFreq = mix(3.0, 12.0, u_structmorph_normal);
+        vec2 normal = vec2(sin(uv.y * normalFreq + u_time * 2.0) * normalAmt,
+                           cos(uv.x * normalFreq + u_time * 1.5) * normalAmt);
+        // Buildup: increasing swirl
+        float swirlAmt = 0.3 * intensity;
+        float angle = length(center) * 10.0 * swirlAmt;
+        float ca = cos(angle), sa = sin(angle);
+        vec2 buildup = vec2(ca * center.x - sa * center.y, sa * center.x + ca * center.y) - center;
+        // Drop: explosion outward
+        float dropStr = u_structmorph_drop * intensity * 0.15;
+        vec2 drop = normalize(center + 0.001) * dropStr * (1.0 + u_rms);
+        // Breakdown: slow drift inward
+        vec2 breakdown = -center * 0.03 * intensity;
+        // Blend by state (smooth transitions)
+        float w0 = max(0.0, 1.0 - abs(state));
+        float w1 = max(0.0, 1.0 - abs(state - 1.0));
+        float w2 = max(0.0, 1.0 - abs(state - 2.0));
+        float w3 = max(0.0, 1.0 - abs(state - 3.0));
+        vec2 disp = normal * w0 + buildup * w1 + drop * w2 + breakdown * w3;
+        fragColor = texture(u_texture, uv + disp);
+    }
+)";
+
+// P18.4: Pitch Chromatic Shift — hue shift based on detected pitch/key
+static constexpr const char* pitchChromaShift = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_pitchcolor_amount;
+    uniform float u_pitchcolor_mode;
+    uniform float u_pitchcolor_sat;
+    uniform float u_dominantPitch;
+    uniform float u_detectedKey;
+    uniform float u_chromagram[12];
+    vec3 rgb2hsv(vec3 c) {
+        vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+        vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+        vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+        float d = q.x - min(q.w, q.y);
+        float e = 1.0e-10;
+        return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+    }
+    vec3 hsv2rgb(vec3 c) {
+        vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    }
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float amount = u_pitchcolor_amount;
+        if (amount < 0.01) { fragColor = col; return; }
+        float hueShift = 0.0;
+        if (u_pitchcolor_mode < 0.33) {
+            // Note-based: pitch class -> hue position
+            float midiNote = 12.0 * log2(max(u_dominantPitch, 20.0) / 440.0) + 69.0;
+            hueShift = mod(midiNote, 12.0) / 12.0;
+        } else if (u_pitchcolor_mode < 0.66) {
+            // Key-based: smooth key palette
+            hueShift = u_detectedKey >= 0.0 ? u_detectedKey / 12.0 : 0.0;
+        } else {
+            // Chromagram-weighted: weighted average of all active notes
+            float totalEnergy = 0.0;
+            float weightedHue = 0.0;
+            for (int i = 0; i < 12; i++) {
+                weightedHue += u_chromagram[i] * float(i) / 12.0;
+                totalEnergy += u_chromagram[i];
+            }
+            hueShift = totalEnergy > 0.001 ? weightedHue / totalEnergy : 0.0;
+        }
+        vec3 hsv = rgb2hsv(col.rgb);
+        hsv.x = fract(hsv.x + hueShift * amount);
+        hsv.y *= mix(1.0, 1.5, u_pitchcolor_sat * amount);
+        hsv.y = clamp(hsv.y, 0.0, 1.0);
+        fragColor = vec4(hsv2rgb(hsv), col.a);
+    }
+)";
+
+// P18.5: Key Palette — auto color remap based on detected key + major/minor
+static constexpr const char* keyPalette = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_keypalette_amount;
+    uniform float u_keypalette_bright;
+    uniform float u_keypalette_sat;
+    uniform float u_detectedKey;
+    uniform float u_keyIsMajor;
+    vec3 keyColor(float key, float isMajor) {
+        // Scriabin-inspired: each key has a characteristic hue
+        // Major = warm, saturated. Minor = cool, desaturated.
+        float hue = key / 12.0;
+        float sat = isMajor > 0.5 ? 0.7 : 0.4;
+        float val = isMajor > 0.5 ? 0.9 : 0.7;
+        return 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))) * sat * val;
+    }
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float amount = u_keypalette_amount;
+        if (amount < 0.01 || u_detectedKey < 0.0) { fragColor = col; return; }
+        float luma = dot(col.rgb, vec3(0.299, 0.587, 0.114));
+        vec3 palette = keyColor(u_detectedKey, u_keyIsMajor);
+        palette *= mix(0.5, 1.5, u_keypalette_bright);
+        vec3 tinted = palette * luma;
+        tinted = mix(vec3(luma), tinted, mix(0.5, 1.5, u_keypalette_sat));
+        fragColor = vec4(mix(col.rgb, tinted, amount), col.a);
+    }
+)";
+
+// P18.6: Transient Flash — onset-triggered visual flash
+static constexpr const char* transientFlash = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_transflash_style;
+    uniform float u_transflash_intensity;
+    uniform float u_transflash_decay;
+    uniform float u_onsetDetected;
+    uniform float u_onsetStrength;
+    uniform float u_time;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float intensity = u_transflash_intensity;
+        if (intensity < 0.01) { fragColor = col; return; }
+        // Use onset strength directly — it has fast attack, natural decay
+        float flash = u_onsetStrength * intensity;
+        flash = pow(flash, mix(0.3, 2.0, u_transflash_decay));
+        if (u_transflash_style < 0.25) {
+            // White flash
+            col.rgb = mix(col.rgb, vec3(1.0), flash);
+        } else if (u_transflash_style < 0.5) {
+            // Invert flash
+            col.rgb = mix(col.rgb, 1.0 - col.rgb, flash);
+        } else if (u_transflash_style < 0.75) {
+            // Edge glow flash
+            vec2 uv = v_texCoord;
+            vec2 texel = vec2(1.0) / vec2(textureSize(u_texture, 0));
+            float edge = length(
+                texture(u_texture, uv + texel).rgb - texture(u_texture, uv - texel).rgb);
+            col.rgb += vec3(edge * flash * 3.0);
+        } else {
+            // Zoom punch
+            vec2 center = v_texCoord - 0.5;
+            vec2 zoomedUV = 0.5 + center * (1.0 - flash * 0.1);
+            col = mix(col, texture(u_texture, zoomedUV), flash);
+        }
+        fragColor = col;
+    }
+)";
+
+// P18.7: Beat Ripple — onset drops ripples from random positions
+static constexpr const char* beatRipple = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_beatripple_intensity;
+    uniform float u_beatripple_decay;
+    uniform float u_beatripple_count;
+    uniform float u_onsetDetected;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+    uniform float u_time;
+    float hash(float n) { return fract(sin(n) * 43758.5453); }
+    void main() {
+        float intensity = u_beatripple_intensity;
+        if (intensity < 0.01) { fragColor = texture(u_texture, v_texCoord); return; }
+        int maxRipples = int(mix(2.0, 8.0, u_beatripple_count));
+        float decay = mix(0.3, 3.0, u_beatripple_decay);
+        vec2 uv = v_texCoord;
+        vec2 totalDisp = vec2(0.0);
+        for (int i = 0; i < 8; i++) {
+            if (i >= maxRipples) break;
+            // Each ripple has a pseudo-random center and birth time
+            float seed = float(i) * 7.31;
+            vec2 center = vec2(hash(seed), hash(seed + 1.0));
+            // Ripple age based on beat phase offset
+            float age = fract(u_time * 0.5 + hash(seed + 2.0));
+            float strength = exp(-age * decay) * intensity;
+            float dist = length(uv - center);
+            float wave = sin(dist * 30.0 - age * 20.0) * strength;
+            totalDisp += normalize(uv - center + 0.001) * wave * 0.02;
+        }
+        // Extra impulse on actual onsets
+        totalDisp *= 1.0 + u_onsetStrength * 2.0;
+        fragColor = texture(u_texture, uv + totalDisp);
+    }
+)";
+
+// P18.8: Rhythm Slice — horizontal strips shift on beat divisions
+static constexpr const char* rhythmSlice = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_rhythmslice_amount;
+    uniform float u_rhythmslice_count;
+    uniform float u_rhythmslice_sync;
+    uniform float u_beatPhase;
+    uniform float u_barPhase;
+    uniform float u_phrasePhase;
+    uniform float u_time;
+    float hash(float n) { return fract(sin(n) * 43758.5453); }
+    void main() {
+        float amount = u_rhythmslice_amount;
+        if (amount < 0.01) { fragColor = texture(u_texture, v_texCoord); return; }
+        float sliceCount = mix(4.0, 16.0, u_rhythmslice_count);
+        float sliceIndex = floor(v_texCoord.y * sliceCount);
+        float slicePhase = sliceIndex / sliceCount;
+        // Each slice syncs to a different beat division
+        float division = mod(sliceIndex, 3.0);
+        float phase;
+        if (division < 1.0) phase = u_phrasePhase;      // slow: phrase level
+        else if (division < 2.0) phase = u_barPhase;     // medium: bar level
+        else phase = u_beatPhase;                         // fast: beat level
+        // Mix in random offset based on sync parameter
+        float randomOffset = hash(sliceIndex * 17.3 + floor(u_time * 2.0)) * (1.0 - u_rhythmslice_sync);
+        float offset = sin((phase + randomOffset) * 6.28318) * amount * 0.15;
+        vec2 uv = v_texCoord;
+        uv.x += offset;
+        uv.x = fract(uv.x);
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+// P18.9: Density Wave — beat-synced compression/rarefaction waves
+static constexpr const char* densityWave = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_densitywave_amount;
+    uniform float u_densitywave_dir;
+    uniform float u_densitywave_wl;
+    uniform float u_beatPhase;
+    uniform float u_rms;
+    uniform float u_time;
+    void main() {
+        float amount = u_densitywave_amount;
+        if (amount < 0.01) { fragColor = texture(u_texture, v_texCoord); return; }
+        vec2 uv = v_texCoord;
+        float freq = mix(2.0, 12.0, u_densitywave_wl);
+        float dir = u_densitywave_dir * 6.28318;
+        vec2 axis = vec2(cos(dir), sin(dir));
+        float pos = dot(uv - 0.5, axis);
+        float wave = sin(pos * freq + u_beatPhase * 6.28318) * amount * 0.1 * (0.5 + u_rms);
+        uv += axis * wave;
+        fragColor = texture(u_texture, uv);
+    }
+)";
+
+// P18.10: Chroma Dissolve — dissolve image by note-matched hue
+static constexpr const char* chromaDissolve = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_chromadiss_amount;
+    uniform float u_chromadiss_softness;
+    uniform float u_chromagram[12];
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float amount = u_chromadiss_amount;
+        if (amount < 0.01) { fragColor = col; return; }
+        // Get pixel hue (0-1)
+        float cMax = max(col.r, max(col.g, col.b));
+        float cMin = min(col.r, min(col.g, col.b));
+        float delta = cMax - cMin;
+        float hue = 0.0;
+        if (delta > 0.001) {
+            if (cMax == col.r) hue = mod((col.g - col.b) / delta, 6.0) / 6.0;
+            else if (cMax == col.g) hue = ((col.b - col.r) / delta + 2.0) / 6.0;
+            else hue = ((col.r - col.g) / delta + 4.0) / 6.0;
+        }
+        hue = fract(hue);
+        // Map hue to pitch class (0-11)
+        float noteFloat = hue * 12.0;
+        int note = int(floor(noteFloat)) % 12;
+        int noteNext = (note + 1) % 12;
+        float blend = fract(noteFloat);
+        float energy = mix(u_chromagram[note], u_chromagram[noteNext], blend);
+        // Higher energy = more of that hue dissolves
+        float softness = mix(0.05, 0.5, u_chromadiss_softness);
+        float dissolve = smoothstep(energy * amount - softness, energy * amount + softness, 0.5);
+        col.a *= dissolve;
+        col.rgb *= dissolve;
+        fragColor = col;
+    }
+)";
+
+// ============================================================
+// Phase 18: Audio-Native Sources (8 sources)
+// ============================================================
+
+// P18.11: Spectrum Landscape — 7-band FFT as 3D terrain
+static constexpr const char* sourceSpectrumLandscape = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_height;
+    uniform float u_src_camera;
+    uniform float u_src_color_mode;
+    uniform float u_src_glow;
+    uniform float u_src_smoothing;
+    uniform float u_bandEnergies[7];
+    uniform float u_rms;
+    uniform float u_spectralCentroid;
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        // Map X to 7 frequency bands
+        float bandF = uv.x * 6.0;
+        int band = clamp(int(bandF), 0, 6);
+        int bandNext = min(band + 1, 6);
+        float blendB = fract(bandF);
+        // Smooth interpolation between bands
+        float energy = mix(u_bandEnergies[band], u_bandEnergies[bandNext], blendB);
+        energy = mix(energy, energy, u_src_smoothing); // temporal smoothing placeholder
+        float heightScale = mix(0.1, 0.8, u_src_height);
+        float barHeight = energy * heightScale;
+        // Camera angle: 0=overhead (bar chart), 1=horizon (perspective)
+        float camAngle = u_src_camera;
+        float y = uv.y;
+        // Apply perspective skew
+        y = mix(y, y * (0.3 + uv.x * 0.7), camAngle * 0.5);
+        float dist = y - (0.1 + barHeight);
+        // Color by mode
+        vec3 col;
+        float hue;
+        if (u_src_color_mode < 0.33) {
+            // Amplitude heat map
+            hue = energy * 0.7;
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        } else if (u_src_color_mode < 0.66) {
+            // Frequency rainbow
+            hue = uv.x;
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        } else {
+            // Monochrome
+            col = vec3(0.8, 0.9, 1.0);
+        }
+        float bar = smoothstep(0.005, 0.0, dist);
+        float glow = exp(-abs(dist) * mix(5.0, 20.0, 1.0 - u_src_glow)) * energy;
+        col = col * bar + col * glow * 0.5;
+        col *= 0.7 + u_rms * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P18.12: Chromatic Ring — 12-segment circle showing pitch class energy
+static constexpr const char* sourceChromaticRing = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_ring_width;
+    uniform float u_src_glow;
+    uniform float u_src_rotation;
+    uniform float u_src_ripple;
+    uniform float u_chromagram[12];
+    uniform float u_detectedKey;
+    uniform float u_hcdf;
+    uniform float u_pitchConfidence;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float angle = atan(uv.y, uv.x) + 3.14159;
+        float rotation = u_src_rotation * 6.28318 + u_time * 0.2;
+        angle = mod(angle + rotation, 6.28318);
+        float r = length(uv);
+        float ringR = 0.35;
+        float ringW = mix(0.05, 0.2, u_src_ring_width);
+        // Which pitch class
+        float noteF = angle / 6.28318 * 12.0;
+        int note = int(floor(noteF)) % 12;
+        float energy = u_chromagram[note];
+        // Ring distance
+        float ringDist = abs(r - ringR);
+        float inRing = smoothstep(ringW, ringW - 0.01, ringDist);
+        // Energy modulates ring width outward
+        float energyRing = smoothstep(ringW + energy * 0.1, ringW + energy * 0.1 - 0.01, ringDist);
+        // Color per note (rainbow around the circle)
+        float hue = float(note) / 12.0;
+        vec3 noteColor = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        // Highlight detected key
+        float isKey = (u_detectedKey >= 0.0 && abs(float(note) - u_detectedKey) < 0.5) ? 1.0 : 0.0;
+        vec3 col = noteColor * energy * (1.0 + isKey * 0.5);
+        col *= max(inRing, energyRing);
+        // HCDF ripple
+        float ripple = sin(r * 30.0 - u_time * 5.0) * u_src_ripple * u_hcdf;
+        col += noteColor * max(0.0, ripple) * 0.3;
+        // Glow
+        float glow = exp(-ringDist * mix(5.0, 20.0, 1.0 - u_src_glow)) * energy * 0.3;
+        col += noteColor * glow;
+        col *= 0.5 + u_pitchConfidence * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P18.13: Band Tower — 7 vertical towers driven by frequency bands
+static constexpr const char* sourceBandTower = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_shape;
+    uniform float u_src_spacing;
+    uniform float u_src_reflection;
+    uniform float u_src_color_mode;
+    uniform float u_src_smoothing;
+    uniform float u_src_rotation_3d;
+    uniform float u_bandEnergies[7];
+    uniform float u_spectralCentroid;
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float spacing = mix(0.02, 0.06, u_src_spacing);
+        float barWidth = (1.0 - spacing * 8.0) / 7.0;
+        vec3 col = vec3(0.0);
+        // Band colors
+        vec3 bandColors[7] = vec3[7](
+            vec3(0.8, 0.1, 0.1),   // Sub - red
+            vec3(0.9, 0.4, 0.1),   // Bass - orange
+            vec3(0.9, 0.8, 0.1),   // LowMid - yellow
+            vec3(0.1, 0.8, 0.2),   // Mid - green
+            vec3(0.1, 0.5, 0.9),   // HighMid - blue
+            vec3(0.4, 0.2, 0.9),   // Presence - indigo
+            vec3(0.8, 0.2, 0.8)    // Brilliance - violet
+        );
+        for (int i = 0; i < 7; i++) {
+            float x0 = spacing + float(i) * (barWidth + spacing);
+            float x1 = x0 + barWidth;
+            float energy = u_bandEnergies[i];
+            float barH = energy * 0.8 + 0.02;
+            if (uv.x >= x0 && uv.x <= x1) {
+                vec3 bandCol;
+                if (u_src_color_mode < 0.33) bandCol = bandColors[i];
+                else if (u_src_color_mode < 0.66) {
+                    float h = float(i) / 7.0;
+                    bandCol = 0.5 + 0.5 * cos(6.28318 * (h + u_time * 0.1 + vec3(0.0, 0.33, 0.67)));
+                } else bandCol = vec3(0.8);
+                // Main bar
+                if (uv.y < barH) {
+                    float grad = uv.y / barH;
+                    col = bandCol * (0.5 + grad * 0.5);
+                    col += vec3(energy * 0.3); // peak glow
+                }
+                // Reflection
+                if (u_src_reflection > 0.01) {
+                    float reflY = -uv.y;
+                    if (reflY > -barH && uv.y < 0.0) {
+                        col += bandCol * 0.2 * u_src_reflection;
+                    }
+                }
+            }
+        }
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P18.14: Timbral Nebula — 13 MFCCs as particle cloud positions
+static constexpr const char* sourceTimbralNebula = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_particles;
+    uniform float u_src_spread;
+    uniform float u_src_trail;
+    uniform float u_src_color_source;
+    uniform float u_src_glow;
+    uniform float u_src_sensitivity;
+    uniform float u_mfccs[13];
+    uniform float u_spectralCentroid;
+    uniform float u_rms;
+    uniform float u_hcdf;
+    float hash(float n) { return fract(sin(n) * 43758.5453); }
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float sensitivity = mix(0.5, 4.0, u_src_sensitivity);
+        float spread = mix(0.2, 0.8, u_src_spread);
+        int numParticles = int(mix(20.0, 80.0, u_src_particles));
+        vec3 col = vec3(0.0);
+        for (int i = 0; i < 80; i++) {
+            if (i >= numParticles) break;
+            // Position driven by MFCCs — each particle mapped to a pair of coefficients
+            int mIdx1 = i % 13;
+            int mIdx2 = (i * 7 + 3) % 13;
+            float m1 = u_mfccs[mIdx1] * sensitivity;
+            float m2 = u_mfccs[mIdx2] * sensitivity;
+            // Base position from hash, offset by MFCC values
+            vec2 basePos = vec2(hash(float(i) * 3.7) - 0.5, hash(float(i) * 5.3) - 0.5);
+            vec2 pos = basePos * spread + vec2(m1, m2) * 0.3;
+            // Trail: smear in the direction of change
+            pos += vec2(sin(u_time * 0.5 + float(i)), cos(u_time * 0.3 + float(i) * 1.3)) * u_src_trail * 0.05;
+            float dist = length(uv - pos);
+            float size = 0.01 + u_rms * 0.02;
+            float particle = exp(-dist * dist / (size * size));
+            // Color
+            float hue;
+            if (u_src_color_source < 0.33) {
+                hue = clamp(u_spectralCentroid / 8000.0, 0.0, 1.0);
+            } else if (u_src_color_source < 0.66) {
+                hue = float(mIdx1) / 13.0;
+            } else {
+                hue = 0.6;
+            }
+            vec3 pCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+            col += pCol * particle;
+        }
+        // Glow
+        col *= 1.0 + u_src_glow * 0.5;
+        col *= 0.7 + u_rms * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P18.15: Structural Landscape — terrain evolving with song structure
+static constexpr const char* sourceStructuralLandscape = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_scale;
+    uniform float u_src_history;
+    uniform float u_src_drama;
+    uniform float u_src_palette;
+    uniform float u_src_fog;
+    uniform float u_src_camera;
+    uniform float u_structuralState;
+    uniform float u_rms;
+    uniform float u_spectralFlux;
+    uniform float u_bpm;
+    float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.5453);
+        float b = fract(sin(dot(i + vec2(1,0), vec2(127.1, 311.7))) * 43758.5453);
+        float c = fract(sin(dot(i + vec2(0,1), vec2(127.1, 311.7))) * 43758.5453);
+        float d = fract(sin(dot(i + vec2(1,1), vec2(127.1, 311.7))) * 43758.5453);
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+    float fbm(vec2 p) {
+        float v = 0.0, a = 0.5;
+        for (int i = 0; i < 5; i++) {
+            v += a * noise(p);
+            p *= 2.0;
+            a *= 0.5;
+        }
+        return v;
+    }
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float scale = mix(2.0, 8.0, u_src_scale);
+        vec2 p = uv * scale;
+        p.x += u_time * (u_bpm > 0.0 ? u_bpm / 120.0 : 1.0) * 0.3;
+        float state = u_structuralState;
+        float drama = u_src_drama;
+        // Terrain height modulated by structural state
+        float h = fbm(p);
+        h += u_spectralFlux * 0.2 * drama;
+        // State-specific modulations
+        if (state > 0.5 && state < 1.5) {
+            // Buildup: terrain rises
+            h += 0.2 * drama;
+            h += sin(p.x * 3.0 + u_time * 2.0) * 0.1 * drama;
+        } else if (state > 1.5 && state < 2.5) {
+            // Drop: dramatic peaks
+            h *= 1.0 + 0.5 * drama;
+            h += u_rms * 0.3 * drama;
+        } else if (state > 2.5) {
+            // Breakdown: flatten, fog
+            h *= 0.5;
+        }
+        float terrain = smoothstep(uv.y - 0.02, uv.y + 0.02, h * 0.6);
+        // Color by palette
+        vec3 col;
+        float hue;
+        if (u_src_palette < 0.33) {
+            // Earth
+            col = mix(vec3(0.1, 0.3, 0.1), vec3(0.6, 0.4, 0.2), h);
+            col = mix(col, vec3(0.9, 0.9, 1.0), max(0.0, h - 0.7));
+        } else if (u_src_palette < 0.66) {
+            // Neon
+            hue = h * 0.5 + u_time * 0.05;
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        } else {
+            // Minimal
+            col = vec3(h * 0.8 + 0.1);
+        }
+        col *= terrain;
+        // Fog
+        float fog = (1.0 - uv.y) * u_src_fog;
+        if (state > 2.5) fog *= 2.0; // extra fog in breakdowns
+        col = mix(col, vec3(0.05, 0.05, 0.1), fog * 0.5);
+        col *= 0.7 + u_rms * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P18.16: Cymatics — Chladni figures from dominant pitch
+static constexpr const char* sourceCymatics = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_resonance;
+    uniform float u_src_damping;
+    uniform float u_src_color_shift;
+    uniform float u_dominantPitch;
+    uniform float u_pitchConfidence;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        // Derive frequency from pitch (normalize to useful range)
+        float pitch = clamp(u_dominantPitch, 50.0, 2000.0);
+        float freq = pitch / 50.0; // normalize to ~1-40 range
+        freq *= mix(0.5, 2.0, u_src_resonance);
+        // Chladni figure: cos(n*pi*x)*cos(m*pi*y) - cos(m*pi*x)*cos(n*pi*y) = 0
+        float n = floor(freq * 0.5) + 1.0;
+        float m = floor(freq * 0.3) + 1.0;
+        float pattern = cos(n * 3.14159 * uv.x) * cos(m * 3.14159 * uv.y)
+                       - cos(m * 3.14159 * uv.x) * cos(n * 3.14159 * uv.y);
+        // Add second mode for richer patterns
+        float n2 = n + 1.0, m2 = m + 1.0;
+        float pattern2 = cos(n2 * 3.14159 * uv.x) * cos(m2 * 3.14159 * uv.y)
+                        - cos(m2 * 3.14159 * uv.x) * cos(n2 * 3.14159 * uv.y);
+        pattern = mix(pattern, pattern2, 0.3);
+        // Nodal lines (where pattern ≈ 0)
+        float sharpness = mix(5.0, 30.0, u_src_resonance);
+        float line = exp(-abs(pattern) * sharpness);
+        // Damping: blend with smoothed version
+        float damping = u_src_damping;
+        line = mix(line, smoothstep(0.3, 0.0, abs(pattern)), damping);
+        // Color
+        float hue = u_src_color_shift + freq * 0.01;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= line;
+        col *= 0.3 + u_pitchConfidence * 0.7;
+        col *= 0.6 + u_rms * 0.6;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P18.17: Spectral Waterfall — scrolling spectrogram
+// Non-stateful version: simulates history using time-offset noise
+static constexpr const char* sourceSpectralWaterfall = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_scroll;
+    uniform float u_src_color_mode;
+    uniform float u_src_log_scale;
+    uniform float u_bandEnergies[7];
+    uniform float u_rms;
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float scrollSpeed = mix(0.3, 3.0, u_src_scroll);
+        // Map X to frequency bands
+        float bandF = uv.x * 6.0;
+        if (u_src_log_scale > 0.5) {
+            bandF = pow(uv.x, 2.0) * 6.0;
+        }
+        int band = clamp(int(bandF), 0, 6);
+        int bandNext = min(band + 1, 6);
+        float blend = fract(bandF);
+        float energy = mix(u_bandEnergies[band], u_bandEnergies[bandNext], blend);
+        // Y position represents time: top = now, bottom = past
+        // Current band energy at top, fading/varying downward
+        float age = (1.0 - uv.y); // 0 at top (now), 1 at bottom (old)
+        float scrollPhase = u_time * scrollSpeed;
+        // Simulate past energy: current energy decays + noise for variation
+        float noise = fract(sin(dot(vec2(bandF, uv.y * 100.0 + scrollPhase), vec2(127.1, 311.7))) * 43758.5453);
+        float pastEnergy = energy * exp(-age * 2.0) + noise * 0.1 * (1.0 - age * 0.5);
+        pastEnergy = clamp(pastEnergy, 0.0, 1.0);
+        // Add scrolling line pattern for visual movement
+        float line = sin((uv.y + scrollPhase * 0.1) * u_resolution.y * 0.3) * 0.03;
+        pastEnergy += line;
+        pastEnergy = clamp(pastEnergy, 0.0, 1.0);
+        // Color modes
+        vec3 col;
+        if (u_src_color_mode < 0.33) {
+            // Thermal: black → blue → red → yellow → white
+            col = mix(vec3(0.0, 0.0, 0.2), vec3(1.0, 0.0, 0.0), clamp(pastEnergy * 2.0, 0.0, 1.0));
+            col = mix(col, vec3(1.0, 1.0, 0.0), max(0.0, pastEnergy - 0.5) * 2.0);
+            col = mix(col, vec3(1.0), max(0.0, pastEnergy - 0.85) * 6.67);
+        } else if (u_src_color_mode < 0.66) {
+            // Neon rainbow
+            float hue = uv.x * 0.8;
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+            col *= pastEnergy;
+        } else {
+            // Monochrome green (classic spectrogram)
+            col = vec3(0.0, pastEnergy * 0.9, pastEnergy * 0.3);
+        }
+        col *= 0.7 + u_rms * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P18.18: Spectral Ring — circular FFT display
+static constexpr const char* sourceSpectralRing = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_radius;
+    uniform float u_src_thickness;
+    uniform float u_src_glow;
+    uniform float u_src_rotation;
+    uniform float u_src_color_shift;
+    uniform float u_bandEnergies[7];
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+    uniform float u_rms;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float r = length(uv);
+        float angle = atan(uv.y, uv.x) + 3.14159;
+        // Beat-driven rotation
+        float rot = u_src_rotation * u_time * 2.0 + u_beatPhase * 0.5;
+        angle = mod(angle + rot, 6.28318);
+        float ringR = mix(0.15, 0.4, u_src_radius);
+        float thick = mix(0.01, 0.06, u_src_thickness);
+        // Map angle to 7 bands (repeated for symmetry)
+        float bandAngle = angle / 6.28318 * 7.0;
+        int band = int(floor(bandAngle)) % 7;
+        float energy = u_bandEnergies[band];
+        // Onset pulse
+        float pulse = 1.0 + u_onsetStrength * 0.2;
+        float barHeight = energy * 0.2 * pulse;
+        // Distance from ring
+        float innerR = ringR - thick;
+        float outerR = ringR + thick + barHeight;
+        float inRing = smoothstep(innerR - 0.005, innerR, r) * smoothstep(outerR, outerR - 0.005, r);
+        // Color
+        float hue = float(band) / 7.0 + u_src_color_shift;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= inRing;
+        // Glow
+        float dist = abs(r - ringR);
+        float glow = exp(-dist * mix(10.0, 40.0, 1.0 - u_src_glow)) * energy * 0.4;
+        col += 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67))) * glow;
+        col *= 0.7 + u_rms * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// P18.19: Bitmap Font Atlas (embedded as constant data)
+// 8x8 pixel grid, 128 ASCII characters, used by Text Wall source.
+// The atlas is generated procedurally in the text wall shader using
+// a simplified approach — bitmap data for basic characters encoded
+// as integer bit patterns.
+
+// P18.20: Scrolling Text Wall — uses procedural bitmap font
+static constexpr const char* sourceTextWall = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_src_speed;
+    uniform float u_src_density;
+    uniform float u_src_size;
+    uniform float u_src_color_shift;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    // Procedural character renderer — simplified bitmap font
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float character(vec2 p, float charId) {
+        // 5x7 bitmap characters encoded procedurally
+        // Each character is a unique pattern based on hash
+        vec2 cell = floor(p * vec2(5.0, 7.0));
+        if (cell.x < 0.0 || cell.x >= 5.0 || cell.y < 0.0 || cell.y >= 7.0) return 0.0;
+        float bit = step(0.4, hash(cell + charId * 17.0));
+        // Make it look more like text: vertical strokes more likely
+        bit *= step(0.3, hash(vec2(cell.x, charId)));
+        return bit;
+    }
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float cellSize = mix(0.02, 0.08, u_src_size);
+        float density = mix(0.3, 1.0, u_src_density);
+        float speed = mix(0.2, 3.0, u_src_speed);
+        // Scrolling grid of characters
+        vec2 scrollUV = uv;
+        scrollUV.y += u_time * speed;
+        scrollUV.x += sin(uv.y * 3.0 + u_time) * 0.02;
+        vec2 cell = floor(scrollUV / cellSize);
+        vec2 cellUV = fract(scrollUV / cellSize);
+        // Character selection per cell
+        float charId = hash(cell);
+        // Skip some cells for density
+        float visible = step(1.0 - density, hash(cell * 7.3));
+        float ch = character(cellUV, charId * 100.0) * visible;
+        // Beat-reactive brightness
+        float brightness = 0.5 + u_rms * 0.5 + u_beatPhase * 0.2;
+        // Color
+        float hue = u_src_color_shift + cell.x * 0.01 + u_time * 0.05;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= ch * brightness;
+        // Slight glow
+        col += col * 0.3;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+// ============================================================
+// Phase 19: Complex Effects (8 shaders)
+// ============================================================
+
+inline const char* lumaTerrain = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_lumaterrain_height;
+    uniform float u_lumaterrain_segments;
+    uniform float u_lumaterrain_angle;
+    void main() {
+        float numLines = floor(u_lumaterrain_segments * 80.0) + 5.0;
+        float lineSpacing = 1.0 / numLines;
+        float lineY = floor(v_texCoord.y * numLines) / numLines + lineSpacing * 0.5;
+        vec4 lineColor = texture(u_texture, vec2(v_texCoord.x, lineY));
+        float luma = dot(lineColor.rgb, vec3(0.299, 0.587, 0.114));
+        float height = u_lumaterrain_height * 0.4;
+        float offsetY = luma * height;
+        // Perspective tilt
+        float tilt = mix(0.0, 0.5, u_lumaterrain_angle);
+        float perspY = v_texCoord.y + (v_texCoord.y - 0.5) * tilt;
+        float distToLine = abs(perspY - lineY - offsetY);
+        float lineWidth = lineSpacing * 0.3;
+        float line = smoothstep(lineWidth, lineWidth * 0.3, distToLine);
+        // Darken lines behind (simple depth)
+        float depth = 1.0 - (1.0 - v_texCoord.y) * 0.4 * u_lumaterrain_angle;
+        fragColor = mix(texture(u_texture, v_texCoord), lineColor * depth, line);
+    }
+)";
+
+inline const char* voxelMatrix = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_voxel_size;
+    uniform float u_voxel_height;
+    uniform float u_voxel_rotation;
+    void main() {
+        float blockSize = mix(0.008, 0.06, u_voxel_size);
+        vec2 blockPos = floor(v_texCoord / blockSize) * blockSize;
+        vec2 blockCenter = blockPos + blockSize * 0.5;
+        vec4 blockColor = texture(u_texture, blockCenter);
+        float luma = dot(blockColor.rgb, vec3(0.299, 0.587, 0.114));
+        vec2 inBlock = (v_texCoord - blockPos) / blockSize;
+        // 3D extrusion shading
+        float raised = luma * u_voxel_height;
+        float topFace = step(raised * 0.3, 1.0 - inBlock.y);
+        float shade = 1.0 - raised * 0.5 * (1.0 - inBlock.y);
+        // Side face darkening
+        float sideDark = 1.0;
+        if (inBlock.x < 0.15) sideDark = 0.7 + 0.3 * (inBlock.x / 0.15);
+        if (inBlock.x > 0.85) sideDark = 0.7 + 0.3 * ((1.0 - inBlock.x) / 0.15);
+        // Border
+        float borderW = 0.06;
+        float border = step(borderW, inBlock.x) * step(inBlock.x, 1.0 - borderW) *
+                       step(borderW, inBlock.y) * step(inBlock.y, 1.0 - borderW);
+        // Rotation effect — shift sampling angle
+        float angle = u_voxel_rotation * 6.28318;
+        float s = sin(angle) * 0.02;
+        vec2 rotOffset = vec2(s * (inBlock.y - 0.5), -s * (inBlock.x - 0.5));
+        vec4 rotColor = texture(u_texture, blockCenter + rotOffset);
+        vec4 finalColor = mix(blockColor, rotColor, u_voxel_rotation);
+        fragColor = finalColor * shade * sideDark * border;
+    }
+)";
+
+inline const char* monitorWall = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_monwall_cols;
+    uniform float u_monwall_rows;
+    uniform float u_monwall_border;
+    uniform float u_monwall_glow;
+    void main() {
+        float cols = floor(u_monwall_cols * 6.0) + 2.0;
+        float rows = floor(u_monwall_rows * 4.0) + 2.0;
+        vec2 cell = fract(v_texCoord * vec2(cols, rows));
+        float borderW = u_monwall_border * 0.12 + 0.01;
+        float mask = step(borderW, cell.x) * step(cell.x, 1.0 - borderW) *
+                     step(borderW, cell.y) * step(cell.y, 1.0 - borderW);
+        vec4 content = texture(u_texture, v_texCoord);
+        // Screen glow near edges
+        float edgeDist = min(min(cell.x, 1.0 - cell.x), min(cell.y, 1.0 - cell.y));
+        float glow = smoothstep(borderW * 3.0, borderW, edgeDist) * u_monwall_glow;
+        content.rgb += content.rgb * glow * 0.5;
+        // Bezel color (dark gray)
+        vec3 bezel = vec3(0.05);
+        fragColor = vec4(mix(bezel, content.rgb, mask), 1.0);
+    }
+)";
+
+inline const char* dropShadow = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_shadow_ox;
+    uniform float u_shadow_oy;
+    uniform float u_shadow_blur;
+    uniform float u_shadow_opacity;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        vec2 shadowOffset = (vec2(u_shadow_ox, u_shadow_oy) - 0.5) * 0.15;
+        float blurSize = u_shadow_blur * 0.015;
+        // Blurred shadow sample
+        float shadow = 0.0;
+        float total = 0.0;
+        for (int x = -3; x <= 3; x++) {
+            for (int y = -3; y <= 3; y++) {
+                float w = exp(-float(x*x + y*y) / 8.0);
+                vec2 offset = vec2(float(x), float(y)) * blurSize;
+                vec4 s = texture(u_texture, v_texCoord - shadowOffset + offset);
+                shadow += dot(s.rgb, vec3(0.299, 0.587, 0.114)) * w;
+                total += w;
+            }
+        }
+        shadow /= total;
+        // Apply shadow behind content
+        float contentLuma = dot(col.rgb, vec3(0.299, 0.587, 0.114));
+        float shadowMask = shadow * u_shadow_opacity * (1.0 - contentLuma * 0.5);
+        vec3 result = col.rgb * (1.0 - shadowMask * 0.7);
+        result = mix(result, col.rgb, contentLuma);
+        fragColor = vec4(result, col.a);
+    }
+)";
+
+inline const char* channelDelay = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform sampler2D u_prev_frame;
+    uniform float u_delay_r;
+    uniform float u_delay_g;
+    uniform float u_delay_b;
+    void main() {
+        vec4 current = texture(u_texture, v_texCoord);
+        vec4 prev = texture(u_prev_frame, v_texCoord);
+        // Each channel blends between current and previous based on delay amount
+        float rMix = u_delay_r;
+        float gMix = u_delay_g;
+        float bMix = u_delay_b;
+        float r = mix(current.r, prev.r, rMix);
+        float g = mix(current.g, prev.g, gMix);
+        float b = mix(current.b, prev.b, bMix);
+        fragColor = vec4(r, g, b, current.a);
+    }
+)";
+
+inline const char* topoLines = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_topo_amount;
+    uniform float u_topo_levels;
+    uniform float u_topo_thickness;
+    uniform float u_topo_color;
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float luma = dot(col.rgb, vec3(0.299, 0.587, 0.114));
+        float numLevels = mix(4.0, 24.0, u_topo_levels);
+        float contour = fract(luma * numLevels);
+        float thickness = mix(0.02, 0.45, u_topo_thickness);
+        float line = smoothstep(thickness, thickness * 0.3, abs(contour - 0.5));
+        // Color modes: 0=white, 0.5=height-mapped, 1.0=overlay on original
+        vec3 lineColor;
+        if (u_topo_color < 0.33) {
+            lineColor = vec3(1.0);
+        } else if (u_topo_color < 0.66) {
+            float hue = luma * 0.8;
+            lineColor = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        } else {
+            lineColor = col.rgb * 1.5;
+        }
+        fragColor = mix(col, vec4(lineColor, col.a), line * u_topo_amount);
+    }
+)";
+
+inline const char* dataCorrupt = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_datacorrupt_amount;
+    uniform float u_datacorrupt_block;
+    uniform float u_datacorrupt_color;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float blockSize = mix(0.01, 0.12, u_datacorrupt_block);
+        vec2 blockIdx = floor(v_texCoord / blockSize);
+        float blockRand = hash(blockIdx + floor(u_time * 3.0));
+        vec2 uv = v_texCoord;
+        // Block displacement
+        if (blockRand < u_datacorrupt_amount * 0.4) {
+            float displaceX = (hash(blockIdx * 3.7) - 0.5) * 0.2 * u_datacorrupt_amount;
+            uv.x = fract(uv.x + displaceX);
+        }
+        vec4 sample_col = texture(u_texture, uv);
+        // Posterize (JPEG-like compression artifact)
+        float quant = mix(256.0, 4.0, u_datacorrupt_amount);
+        vec3 posterized = floor(sample_col.rgb * quant) / quant;
+        // Chroma subsampling damage
+        float chromaBlock = blockSize * mix(1.0, 4.0, u_datacorrupt_color);
+        vec2 chromaUV = floor(uv / chromaBlock) * chromaBlock + chromaBlock * 0.5;
+        vec3 chromaSample = texture(u_texture, chromaUV).rgb;
+        // Mix damaged chroma with posterized luma
+        float luma = dot(posterized, vec3(0.299, 0.587, 0.114));
+        vec3 damaged = vec3(luma) + (chromaSample - vec3(dot(chromaSample, vec3(0.299, 0.587, 0.114)))) * (1.0 - u_datacorrupt_color * 0.5);
+        // Random color channel swap
+        if (hash(blockIdx * 5.1 + floor(u_time * 5.0)) < u_datacorrupt_amount * 0.2) {
+            damaged = damaged.gbr;
+        }
+        fragColor = vec4(mix(col.rgb, damaged, u_datacorrupt_amount), col.a);
+    }
+)";
+
+inline const char* glitchSort = R"(#version 410 core
+    out vec4 fragColor;
+    in vec2 v_texCoord;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_glitchsort_amount;
+    uniform float u_glitchsort_threshold;
+    uniform float u_glitchsort_dir;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+        vec4 col = texture(u_texture, v_texCoord);
+        float luma = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float threshold = u_glitchsort_threshold;
+        // Direction: 0=horizontal, 0.5=vertical, 1.0=diagonal
+        vec2 sortDir;
+        if (u_glitchsort_dir < 0.33) {
+            sortDir = vec2(1.0 / u_resolution.x, 0.0);
+        } else if (u_glitchsort_dir < 0.66) {
+            sortDir = vec2(0.0, 1.0 / u_resolution.y);
+        } else {
+            sortDir = vec2(1.0 / u_resolution.x, 1.0 / u_resolution.y);
+        }
+        // Pixel sort approximation: scan neighbors and shift bright pixels
+        vec4 result = col;
+        if (luma > threshold) {
+            int steps = int(u_glitchsort_amount * 40.0) + 1;
+            float bestLuma = luma;
+            vec2 bestUV = v_texCoord;
+            for (int i = 1; i <= 40; i++) {
+                if (i > steps) break;
+                vec2 sampleUV = v_texCoord - sortDir * float(i);
+                if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0) break;
+                vec4 s = texture(u_texture, sampleUV);
+                float sl = dot(s.rgb, vec3(0.2126, 0.7152, 0.0722));
+                if (sl > threshold && sl < bestLuma) {
+                    bestLuma = sl;
+                    bestUV = sampleUV;
+                }
+            }
+            result = texture(u_texture, bestUV);
+        }
+        // Row-based glitch streaks for extra visual interest
+        float rowHash = hash(vec2(floor(v_texCoord.y * u_resolution.y), floor(u_time * 4.0)));
+        if (rowHash < u_glitchsort_amount * 0.15 && luma > threshold) {
+            float streak = hash(vec2(floor(v_texCoord.y * u_resolution.y), 0.0)) * 0.1;
+            result = texture(u_texture, v_texCoord + sortDir * streak * u_glitchsort_amount);
+        }
+        fragColor = mix(col, result, u_glitchsort_amount);
+    }
+)";
+
+// ============================================================
+// Phase 19: Remaining Sources (12 shaders)
+// ============================================================
+
+inline const char* sourceSuperformula = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_src_m;
+    uniform float u_src_n1;
+    uniform float u_src_n2;
+    uniform float u_src_n3;
+    uniform float u_src_size;
+    uniform float u_src_color_shift;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float theta = atan(uv.y, uv.x) + u_time * 0.3;
+        float r = length(uv);
+        float m = mix(3.0, 10.0, u_src_m);
+        float n1 = mix(0.2, 4.0, u_src_n1);
+        float n2 = mix(0.2, 4.0, u_src_n2);
+        float n3 = mix(0.2, 4.0, u_src_n3);
+        float t = m * theta / 4.0;
+        float sf = pow(pow(abs(cos(t)), n2) + pow(abs(sin(t)), n3), -1.0 / n1);
+        float scale = mix(0.15, 0.6, u_src_size);
+        // Fill shape interior
+        float fill = smoothstep(0.02, 0.0, r - sf * scale) * 0.6;
+        // Edge glow
+        float edge = 0.0;
+        for (int i = 0; i < 3; i++) {
+            float layerScale = scale * (1.0 + float(i) * 0.15);
+            float dist = abs(r - sf * layerScale);
+            float thickness = 0.015 + float(i) * 0.005;
+            edge += smoothstep(thickness, 0.0, dist) * (1.0 - float(i) * 0.25);
+        }
+        float shape = max(fill, edge);
+        float hue = u_src_color_shift + theta / 6.28318 * 0.5;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= shape * (1.0 + u_rms * 0.5);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+inline const char* sourceTruchet = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_barPhase;
+    uniform float u_src_density;
+    uniform float u_src_style;
+    uniform float u_src_thickness;
+    uniform float u_src_glow;
+    uniform float u_src_color_shift;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float density = mix(4.0, 20.0, u_src_density);
+        vec2 gridUV = uv * density;
+        vec2 cell = floor(gridUV);
+        vec2 f = fract(gridUV);
+        // Tile rotation based on hash + time
+        float h = hash(cell + floor(u_time * 0.5) * 0.1);
+        float rot = floor(h * 4.0); // 0, 1, 2, 3
+        // Rotate UV within cell
+        if (rot >= 1.0) { f = vec2(1.0 - f.y, f.x); }
+        if (rot >= 2.0) { f = vec2(1.0 - f.y, f.x); }
+        if (rot >= 3.0) { f = vec2(1.0 - f.y, f.x); }
+        float pattern = 0.0;
+        float thickness = mix(0.02, 0.2, u_src_thickness);
+        if (u_src_style < 0.33) {
+            // Quarter circles
+            float d1 = abs(length(f) - 1.0);
+            float d2 = abs(length(f - 1.0) - 1.0);
+            pattern = smoothstep(thickness, thickness * 0.3, d1) +
+                      smoothstep(thickness, thickness * 0.3, d2);
+        } else if (u_src_style < 0.66) {
+            // Diagonal lines
+            float d1 = abs(f.x + f.y - 1.0) / 1.414;
+            float d2 = abs(f.x - f.y) / 1.414;
+            pattern = smoothstep(thickness, thickness * 0.3, min(d1, d2));
+        } else {
+            // Triangles
+            float d = abs(f.x - f.y);
+            pattern = smoothstep(thickness, thickness * 0.3, d);
+            float d2 = abs(f.x + f.y - 1.0);
+            pattern += smoothstep(thickness * 0.7, thickness * 0.2, d2) * 0.5;
+        }
+        pattern = clamp(pattern, 0.0, 1.0);
+        // Glow
+        pattern *= (0.6 + u_src_glow * 0.8);
+        float hue = u_src_color_shift + hash(cell) * 0.2 + u_time * 0.05;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= pattern * (1.2 + u_rms * 0.5);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+inline const char* sourceParticleNebula = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_spectralCentroid;
+    uniform float u_src_density;
+    uniform float u_src_scale;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+    // Simplex-like noise
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+        return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+    }
+    float fbm(vec2 p) {
+        float v = 0.0;
+        float amp = 0.5;
+        for (int i = 0; i < 5; i++) {
+            v += noise(p) * amp;
+            p *= 2.1;
+            amp *= 0.5;
+        }
+        return v;
+    }
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float scale = mix(1.0, 5.0, u_src_scale);
+        float speed = mix(0.1, 0.6, u_src_speed);
+        uv *= scale;
+        uv += u_time * speed * vec2(0.3, 0.2);
+        // Multi-layer nebula
+        float n1 = fbm(uv);
+        float n2 = fbm(uv * 1.5 + 3.7);
+        float n3 = fbm(uv + vec2(n1, n2) * 0.5);
+        float combined = n3 * mix(0.5, 2.0, u_src_density);
+        combined = pow(combined, mix(1.5, 0.5, u_bass));
+        // Color: nebula gradient
+        float hue = u_src_color_shift + combined * 0.3 + u_time * 0.02;
+        vec3 col1 = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        vec3 col2 = 0.5 + 0.5 * cos(6.28318 * (hue + 0.5 + vec3(0.0, 0.33, 0.67)));
+        vec3 col = mix(col1, col2, combined);
+        col *= combined * (0.7 + u_rms * 0.6);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+inline const char* sourceLightning = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_onsetStrength;
+    uniform float u_onsetDetected;
+    uniform float u_spectralCentroid;
+    uniform float u_src_intensity;
+    uniform float u_src_branches;
+    uniform float u_src_glow;
+    uniform float u_src_color_shift;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+    float bolt(vec2 uv, float seed, float branches) {
+        float brightness = 0.0;
+        float segments = 20.0;
+        vec2 prev = vec2(hash(vec2(seed, 0.0)) * 0.8 - 0.4 + 0.5, 1.0);
+        for (float i = 1.0; i <= 20.0; i++) {
+            float t = i / segments;
+            float nx = noise(vec2(seed * 10.0 + i * 0.5, u_time * 8.0)) * 0.6 - 0.3;
+            vec2 curr = vec2(prev.x + nx * 0.15, 1.0 - t);
+            // Line segment distance
+            vec2 pa = uv - prev;
+            vec2 ba = curr - prev;
+            float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+            float d = length(pa - ba * h);
+            brightness += smoothstep(0.02, 0.0, d) * (1.0 - t * 0.5);
+            // Branch
+            if (branches > 0.3 && hash(vec2(seed + i, 3.0)) < branches * 0.3) {
+                vec2 branchEnd = curr + vec2(hash(vec2(seed + i, 5.0)) * 0.2 - 0.1, -0.05);
+                vec2 pb = uv - curr;
+                vec2 bb = branchEnd - curr;
+                float hb = clamp(dot(pb, bb) / dot(bb, bb), 0.0, 1.0);
+                float db = length(pb - bb * hb);
+                brightness += smoothstep(0.015, 0.0, db) * 0.5 * (1.0 - t);
+            }
+            prev = curr;
+        }
+        return brightness;
+    }
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float intensity = mix(0.3, 2.0, u_src_intensity);
+        // Trigger bolts on onset or periodically
+        float trigger = max(u_onsetStrength, sin(u_time * 2.0) * 0.3 + 0.3);
+        float brightness = 0.0;
+        int numBolts = int(trigger * 3.0) + 1;
+        for (int b = 0; b < 3; b++) {
+            if (b >= numBolts) break;
+            float seed = floor(u_time * 6.0) + float(b) * 7.3;
+            brightness += bolt(uv, seed, u_src_branches) * intensity;
+        }
+        // Glow
+        brightness += brightness * u_src_glow * 0.5;
+        // Color
+        float hue = u_src_color_shift;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        // White core + colored glow
+        brightness *= 2.0;
+        vec3 result = mix(col * brightness, vec3(brightness), min(brightness * 0.5, 1.0));
+        fragColor = vec4(result, 1.0);
+    }
+)";
+
+inline const char* sourceFire = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_onsetStrength;
+    uniform float u_src_height;
+    uniform float u_src_turbulence;
+    uniform float u_src_speed;
+    uniform float u_src_color_shift;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x),
+                   mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+    float fbm(vec2 p) {
+        float v = 0.0;
+        float amp = 0.5;
+        mat2 rot = mat2(0.8, -0.6, 0.6, 0.8);
+        for (int i = 0; i < 5; i++) {
+            v += noise(p) * amp;
+            p = rot * p * 2.1;
+            amp *= 0.5;
+        }
+        return v;
+    }
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float speed = mix(1.0, 5.0, u_src_speed);
+        float turb = mix(1.0, 6.0, u_src_turbulence);
+        float height = mix(0.3, 1.0, u_src_height) + u_bass * 0.3;
+        // Fire shape: strongest at bottom, fading up
+        vec2 fireUV = vec2(uv.x * 3.0, uv.y * 2.0 - u_time * speed);
+        float n = fbm(fireUV * turb);
+        float n2 = fbm(fireUV * turb * 1.5 + 5.0);
+        // Flame envelope
+        float flameShape = (1.0 - uv.y) * height;
+        flameShape *= smoothstep(0.0, 0.3, 0.5 - abs(uv.x - 0.5));
+        float fire = n * n2 * flameShape * 3.0;
+        fire = pow(max(fire, 0.0), 1.5);
+        // Fire palette: black → red → orange → yellow → white
+        vec3 col;
+        if (u_src_color_shift < 0.33) {
+            // Orange fire
+            col = mix(vec3(0.0), vec3(1.0, 0.2, 0.0), clamp(fire, 0.0, 1.0));
+            col = mix(col, vec3(1.0, 0.6, 0.0), clamp(fire - 0.3, 0.0, 1.0));
+            col = mix(col, vec3(1.0, 1.0, 0.5), clamp(fire - 0.7, 0.0, 1.0));
+        } else if (u_src_color_shift < 0.66) {
+            // Blue fire
+            col = mix(vec3(0.0), vec3(0.0, 0.2, 1.0), clamp(fire, 0.0, 1.0));
+            col = mix(col, vec3(0.2, 0.5, 1.0), clamp(fire - 0.3, 0.0, 1.0));
+            col = mix(col, vec3(0.7, 0.9, 1.0), clamp(fire - 0.7, 0.0, 1.0));
+        } else {
+            // Green fire
+            col = mix(vec3(0.0), vec3(0.0, 0.8, 0.2), clamp(fire, 0.0, 1.0));
+            col = mix(col, vec3(0.3, 1.0, 0.3), clamp(fire - 0.3, 0.0, 1.0));
+            col = mix(col, vec3(0.8, 1.0, 0.7), clamp(fire - 0.7, 0.0, 1.0));
+        }
+        // Onset flare
+        col += col * u_onsetStrength * 0.5;
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+inline const char* sourceStarfield = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+    uniform float u_src_speed;
+    uniform float u_src_density;
+    uniform float u_src_streak;
+    uniform float u_src_color_shift;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float speed = mix(0.3, 2.0, u_src_speed);
+        float t = u_time * speed;
+        vec3 result = vec3(0.0);
+        for (int layer = 0; layer < 5; layer++) {
+            float depth = 0.5 + float(layer) * 0.5;
+            float layerDensity = mix(6.0, 20.0, u_src_density);
+            vec2 starUV = uv * layerDensity / depth;
+            starUV.y -= t / depth;
+            vec2 cell = floor(starUV);
+            vec2 f = fract(starUV) - 0.5;
+            float h = hash(cell + float(layer) * 100.0);
+            if (h > 0.3) {
+                vec2 starPos = vec2(h * 0.6 - 0.3, hash(cell.yx + float(layer) * 50.0) * 0.6 - 0.3);
+                float d = length(f - starPos);
+                float starSize = 0.05 + h * 0.08;
+                float star = smoothstep(starSize, 0.0, d);
+                // Glow halo
+                float glow = smoothstep(starSize * 3.0, 0.0, d) * 0.3;
+                star += glow;
+                // Streak
+                if (u_src_streak > 0.01) {
+                    vec2 streakDir = vec2(0.0, starSize * u_src_streak * 4.0);
+                    float streakD = length(f - starPos - streakDir * 0.5);
+                    star = max(star, smoothstep(starSize * 2.0, 0.0, min(d, streakD)) * 0.6);
+                }
+                float twinkle = sin(u_time * 3.0 + h * 50.0) * 0.2 + 0.8;
+                float brightness = star * twinkle / depth;
+                float hue = u_src_color_shift + h * 0.3;
+                vec3 starCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+                starCol = mix(starCol, vec3(1.0), star * 0.5);
+                result += starCol * brightness;
+            }
+        }
+        result *= (1.0 + u_rms * 0.5);
+        fragColor = vec4(result, 1.0);
+    }
+)";
+
+inline const char* sourceDNAHelix = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_chromagram[12];
+    uniform float u_src_speed;
+    uniform float u_src_zoom;
+    uniform float u_src_glow;
+    uniform float u_src_color_shift;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float speed = mix(0.5, 3.0, u_src_speed);
+        float zoom = mix(0.3, 1.5, u_src_zoom);
+        uv *= zoom;
+        float rotAngle = u_time * speed;
+        // Double helix parameters
+        float helixY = uv.y;
+        float phase1 = helixY * 8.0 + rotAngle;
+        float phase2 = phase1 + 3.14159;
+        float strand1X = sin(phase1) * 0.25;
+        float strand2X = sin(phase2) * 0.25;
+        float strand1Z = cos(phase1);
+        float strand2Z = cos(phase2);
+        // Draw strands as tubes
+        // Glow around strands
+        float glowR = 0.25;
+        float d1 = length(vec2(uv.x - strand1X, 0.0));
+        float d2 = length(vec2(uv.x - strand2X, 0.0));
+        float tubeR = 0.05;
+        float tube1 = smoothstep(tubeR, tubeR * 0.2, d1) * (strand1Z * 0.3 + 0.7);
+        float tube2 = smoothstep(tubeR, tubeR * 0.2, d2) * (strand2Z * 0.3 + 0.7);
+        // Add glow halos
+        tube1 += smoothstep(glowR, 0.0, d1) * 0.4;
+        tube2 += smoothstep(glowR, 0.0, d2) * 0.4;
+        // Rungs connecting strands (12 per turn = pitch classes)
+        float rungBrightness = 0.0;
+        for (int i = 0; i < 12; i++) {
+            float rungPhase = float(i) * 3.14159 * 2.0 / 12.0;
+            float rungY = fract((helixY * 8.0 + rotAngle - rungPhase) / (2.0 * 3.14159));
+            if (abs(rungY - 0.5) < 0.01) {
+                float rungX1 = sin(rungPhase + rotAngle) * 0.25;
+                float rungX2 = sin(rungPhase + rotAngle + 3.14159) * 0.25;
+                float minX = min(rungX1, rungX2);
+                float maxX = max(rungX1, rungX2);
+                if (uv.x > minX - 0.01 && uv.x < maxX + 0.01) {
+                    float chromaVal = u_chromagram[i];
+                    rungBrightness += chromaVal * 0.8;
+                }
+            }
+        }
+        float glowMult = 1.0 + u_src_glow * 0.8;
+        float hue = u_src_color_shift + helixY * 0.1;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        vec3 col2 = 0.5 + 0.5 * cos(6.28318 * (hue + 0.5 + vec3(0.0, 0.33, 0.67)));
+        vec3 result = (col * tube1 + col2 * tube2 + vec3(0.8, 0.9, 1.0) * rungBrightness) * glowMult;
+        result *= (1.0 + u_rms * 0.5);
+        fragColor = vec4(result, 1.0);
+    }
+)";
+
+inline const char* sourceFibonacci = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_src_elements;
+    uniform float u_src_size;
+    uniform float u_src_spread;
+    uniform float u_src_glow;
+    uniform float u_src_color_shift;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        int maxElements = int(mix(20.0, 200.0, u_src_elements));
+        float elementSize = mix(0.02, 0.08, u_src_size);
+        float spread = mix(0.015, 0.06, u_src_spread);
+        float goldenAngle = 2.39996323;
+        vec3 result = vec3(0.0);
+        for (int i = 0; i < 200; i++) {
+            if (i >= maxElements) break;
+            float fibAngle = float(i) * goldenAngle + u_time * 0.3;
+            float fibRadius = sqrt(float(i)) * spread;
+            vec2 pos = vec2(cos(fibAngle), sin(fibAngle)) * fibRadius;
+            float d = length(uv - pos);
+            float elem = smoothstep(elementSize, elementSize * 0.1, d);
+            // Glow halo
+            elem += smoothstep(elementSize * 3.0, 0.0, d) * 0.15;
+            // Pulse individual elements
+            float pulse = sin(u_time * 2.0 + float(i) * 0.3) * 0.3 + 0.7;
+            float hue = u_src_color_shift + float(i) / float(maxElements);
+            vec3 elemCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+            result += elemCol * elem * pulse;
+        }
+        result *= (0.8 + u_src_glow * 1.0) * (1.0 + u_rms * 0.5);
+        fragColor = vec4(result, 1.0);
+    }
+)";
+
+inline const char* sourceRadar = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_bandEnergies[7];
+    uniform float u_onsetStrength;
+    uniform float u_src_speed;
+    uniform float u_src_decay;
+    uniform float u_src_grid;
+    uniform float u_src_color_shift;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float radius = length(uv);
+        float angle = atan(uv.y, uv.x);
+        float PI = 3.14159265;
+        // Sweep line
+        float sweepAngle = u_time * mix(1.0, 5.0, u_src_speed);
+        float sweepMod = mod(sweepAngle, 2.0 * PI);
+        float angleDiff = mod(angle - sweepMod + 2.0 * PI, 2.0 * PI);
+        float sweepTrail = mix(0.3, 1.5, u_src_decay);
+        float sweep = exp(-angleDiff / sweepTrail) * 0.8;
+        // Sweep line itself
+        sweep += smoothstep(0.05, 0.0, angleDiff) * 1.5;
+        // Grid rings
+        float gridIntensity = u_src_grid;
+        float rings = smoothstep(0.005, 0.0, abs(mod(radius, 0.1) - 0.05)) * gridIntensity * 0.4;
+        // Cross lines
+        float cross = smoothstep(0.003, 0.0, abs(uv.x)) * gridIntensity * 0.2;
+        cross += smoothstep(0.003, 0.0, abs(uv.y)) * gridIntensity * 0.2;
+        // Band energy blips
+        float blips = 0.0;
+        for (int i = 0; i < 7; i++) {
+            float blipR = float(i + 1) * 0.06;
+            float blipAngle = float(i) * PI * 2.0 / 7.0 + sweepMod;
+            vec2 blipPos = vec2(cos(blipAngle), sin(blipAngle)) * blipR;
+            float d = length(uv - blipPos);
+            blips += smoothstep(0.02, 0.0, d) * u_bandEnergies[i] * 2.0;
+        }
+        // Circular mask
+        float mask = smoothstep(0.5, 0.48, radius);
+        float total = (sweep + rings + cross + blips) * mask;
+        // Color
+        float hue = u_src_color_shift;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        vec3 result = col * total;
+        // White-hot blips
+        result += vec3(blips * 0.5);
+        fragColor = vec4(result, 1.0);
+    }
+)";
+
+inline const char* sourceGlitchGrid = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_onsetStrength;
+    uniform float u_beatPhase;
+    uniform float u_src_grid;
+    uniform float u_src_chaos;
+    uniform float u_src_flicker;
+    uniform float u_src_color_shift;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution;
+        float cellCount = mix(4.0, 16.0, u_src_grid);
+        vec2 cellIdx = floor(uv * cellCount);
+        vec2 cellUV = fract(uv * cellCount);
+        float cellRand = hash(cellIdx);
+        float timeStep = floor(u_time * mix(2.0, 12.0, u_src_flicker));
+        float flickerRand = hash(cellIdx + timeStep);
+        // Glitch: shuffle some cells
+        vec2 displayIdx = cellIdx;
+        if (cellRand < u_src_chaos) {
+            displayIdx = vec2(
+                mod(cellIdx.x + floor(hash(vec2(timeStep, cellIdx.y)) * cellCount), cellCount),
+                mod(cellIdx.y + floor(hash(vec2(cellIdx.x, timeStep)) * cellCount), cellCount)
+            );
+        }
+        // Cell content: colored rectangle with random fill
+        float fill = hash(displayIdx + 0.1);
+        float brightness = flickerRand;
+        brightness *= step(0.2, fill);
+        // Border
+        float border = step(0.05, cellUV.x) * step(cellUV.x, 0.95) *
+                       step(0.05, cellUV.y) * step(cellUV.y, 0.95);
+        float hue = u_src_color_shift + hash(displayIdx * 3.0) * 0.4;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        col *= brightness * border;
+        // Onset flash
+        col += col * u_onsetStrength * 0.5;
+        col *= (0.6 + u_rms * 0.6);
+        fragColor = vec4(col, 1.0);
+    }
+)";
+
+inline const char* sourceRoseCurves = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_dominantPitch;
+    uniform float u_beatPhase;
+    uniform float u_src_k;
+    uniform float u_src_thickness;
+    uniform float u_src_layers;
+    uniform float u_src_glow;
+    uniform float u_src_color_shift;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float theta = atan(uv.y, uv.x) + u_time * 0.2;
+        float r = length(uv);
+        float k = mix(2.0, 12.0, u_src_k);
+        float thickness = mix(0.003, 0.04, u_src_thickness);
+        float layerCount = mix(1.0, 5.0, u_src_layers);
+        vec3 result = vec3(0.0);
+        for (int i = 0; i < 5; i++) {
+            if (float(i) >= layerCount) break;
+            float layerK = k + float(i) * 0.7;
+            float layerRot = float(i) * 0.3;
+            float roseR = abs(cos(layerK * (theta + layerRot))) * 0.35;
+            float d = abs(r - roseR);
+            float curve = smoothstep(thickness, thickness * 0.1, d);
+            // Fill interior slightly
+            float fill = smoothstep(0.01, 0.0, r - roseR) * 0.15;
+            float brightness = (curve + fill) * (1.0 - float(i) * 0.15);
+            float hue = u_src_color_shift + float(i) * 0.12 + theta / 6.28318 * 0.2;
+            vec3 layerCol = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+            result += layerCol * brightness;
+        }
+        result *= (0.8 + u_src_glow * 1.0) * (1.0 + u_rms * 0.5);
+        fragColor = vec4(result, 1.0);
+    }
+)";
+
+inline const char* sourceDotMatrixWave = R"(#version 410 core
+    out vec4 fragColor;
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform float u_rms;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+    uniform float u_bandEnergies[7];
+    uniform float u_src_density;
+    uniform float u_src_speed;
+    uniform float u_src_damping;
+    uniform float u_src_size;
+    uniform float u_src_color;
+    uniform float u_src_sources;
+    void main() {
+        vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution) / u_resolution.y;
+        float density = mix(8.0, 48.0, u_src_density);
+        float dotSize = mix(0.01, 0.04, u_src_size);
+        float speed = mix(2.0, 10.0, u_src_speed);
+        float damping = mix(0.5, 3.0, u_src_damping);
+        int numSources = int(mix(1.0, 5.0, u_src_sources));
+        // Grid of dots
+        vec2 gridUV = uv * density;
+        vec2 cell = floor(gridUV);
+        vec2 f = fract(gridUV) - 0.5;
+        vec2 dotPos = cell / density;
+        // Wave sources
+        float waveAmp = 0.0;
+        for (int s = 0; s < 5; s++) {
+            if (s >= numSources) break;
+            // Source positions spread across the field
+            float angle = float(s) * 6.28318 / float(numSources) + u_time * 0.2;
+            vec2 srcPos = vec2(cos(angle), sin(angle)) * 0.2;
+            float dist = length(dotPos - srcPos);
+            float wave = sin(dist * speed * 6.28318 - u_time * speed) / (1.0 + damping * dist);
+            waveAmp += wave * 0.5;
+        }
+        // Dot rendering with wave-modulated size
+        float modSize = dotSize * (1.0 + waveAmp);
+        modSize = max(modSize, 0.002);
+        float dot = smoothstep(modSize, modSize * 0.3, length(f / density));
+        // Color
+        float hue = u_src_color + waveAmp * 0.2;
+        vec3 col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        float brightness = dot * (0.5 + abs(waveAmp)) * (0.7 + u_rms * 0.5);
+        fragColor = vec4(col * brightness, 1.0);
+    }
+)";
+
 } // namespace EmbeddedShaders

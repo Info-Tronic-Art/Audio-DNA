@@ -690,6 +690,125 @@ void EffectLibrary::registerDefaults()
         {"decay",      "u_dfb_decay",      0.7f},
         {"hue shift",  "u_dfb_hue_shift",  0.0f}
     }});
+
+    // ============================================================
+    // Phase 18: Audio-Native Effects (10 effects)
+    // These effects use extended audio uniforms — our differentiator.
+    // ============================================================
+
+    registerEffect({"Harmonic Displacement", "audio", "harmonic_displace", {
+        {"amount",     "u_harmdisplace_amount",  0.5f},
+        {"smoothing",  "u_harmdisplace_smooth",  0.5f},
+        {"color mode", "u_harmdisplace_color",   0.0f}
+    }});
+
+    registerEffect({"Timbral Mosaic", "audio", "timbral_mosaic", {
+        {"amount",     "u_timbremosaic_amount",     0.5f},
+        {"base size",  "u_timbremosaic_size",       0.5f},
+        {"complexity", "u_timbremosaic_complexity", 0.5f}
+    }});
+
+    registerEffect({"Structural Morph", "audio", "structural_morph", {
+        {"intensity",   "u_structmorph_intensity", 0.5f},
+        {"normal style", "u_structmorph_normal",   0.3f},
+        {"drop style",  "u_structmorph_drop",      0.5f}
+    }});
+
+    registerEffect({"Pitch Chromatic Shift", "color", "pitch_chroma_shift", {
+        {"amount",     "u_pitchcolor_amount", 0.5f},
+        {"mode",       "u_pitchcolor_mode",   0.0f},
+        {"saturation", "u_pitchcolor_sat",    0.5f}
+    }});
+
+    registerEffect({"Key Palette", "color", "key_palette", {
+        {"amount",     "u_keypalette_amount", 0.5f},
+        {"brightness", "u_keypalette_bright", 0.5f},
+        {"saturation", "u_keypalette_sat",    0.5f}
+    }});
+
+    registerEffect({"Transient Flash", "animation", "transient_flash", {
+        {"style",     "u_transflash_style",     0.0f},
+        {"intensity", "u_transflash_intensity", 0.5f},
+        {"decay",     "u_transflash_decay",     0.5f}
+    }});
+
+    registerEffect({"Beat Ripple", "audio", "beat_ripple", {
+        {"intensity", "u_beatripple_intensity", 0.5f},
+        {"decay",     "u_beatripple_decay",     0.5f},
+        {"count",     "u_beatripple_count",     0.3f}
+    }});
+
+    registerEffect({"Rhythm Slice", "glitch", "rhythm_slice", {
+        {"amount", "u_rhythmslice_amount", 0.5f},
+        {"slices", "u_rhythmslice_count",  0.5f},
+        {"sync",   "u_rhythmslice_sync",   0.5f}
+    }});
+
+    registerEffect({"Density Wave", "warp", "density_wave", {
+        {"amount",     "u_densitywave_amount", 0.5f},
+        {"direction",  "u_densitywave_dir",    0.0f},
+        {"wavelength", "u_densitywave_wl",     0.5f}
+    }});
+
+    registerEffect({"Chroma Dissolve", "color", "chroma_dissolve", {
+        {"amount",   "u_chromadiss_amount",   0.5f},
+        {"softness", "u_chromadiss_softness", 0.5f}
+    }});
+
+    // ============================================================
+    // Phase 19: Complex Effects (8 effects)
+    // ============================================================
+
+    registerEffect({"Luminance Terrain", "3d", "luma_terrain", {
+        {"height",   "u_lumaterrain_height",   0.5f},
+        {"segments", "u_lumaterrain_segments", 0.5f},
+        {"angle",    "u_lumaterrain_angle",    0.3f}
+    }});
+
+    registerEffect({"Voxel Matrix", "3d", "voxel_matrix", {
+        {"size",     "u_voxel_size",     0.3f},
+        {"height",   "u_voxel_height",   0.5f},
+        {"rotation", "u_voxel_rotation", 0.0f}
+    }});
+
+    registerEffect({"Monitor Wall", "pattern", "monitor_wall", {
+        {"columns", "u_monwall_cols",   0.3f},
+        {"rows",    "u_monwall_rows",   0.3f},
+        {"border",  "u_monwall_border", 0.3f},
+        {"glow",    "u_monwall_glow",   0.3f}
+    }});
+
+    registerEffect({"Drop Shadow", "blur", "drop_shadow", {
+        {"offset x", "u_shadow_ox",      0.6f},
+        {"offset y", "u_shadow_oy",      0.4f},
+        {"blur",     "u_shadow_blur",    0.3f},
+        {"opacity",  "u_shadow_opacity", 0.5f}
+    }});
+
+    registerEffect({"Channel Delay", "time", "channel_delay", {
+        {"red delay",   "u_delay_r", 0.0f},
+        {"green delay", "u_delay_g", 0.0f},
+        {"blue delay",  "u_delay_b", 0.0f}
+    }, true});
+
+    registerEffect({"Topographic Lines", "pattern", "topo_lines", {
+        {"amount",    "u_topo_amount",    0.5f},
+        {"levels",    "u_topo_levels",    0.5f},
+        {"thickness", "u_topo_thickness", 0.3f},
+        {"color mode","u_topo_color",     0.0f}
+    }});
+
+    registerEffect({"Data Corruption", "glitch", "data_corrupt", {
+        {"amount",       "u_datacorrupt_amount", 0.5f},
+        {"block size",   "u_datacorrupt_block",  0.5f},
+        {"color damage", "u_datacorrupt_color",  0.5f}
+    }});
+
+    registerEffect({"Glitch Sort", "glitch", "glitch_sort", {
+        {"amount",    "u_glitchsort_amount",    0.5f},
+        {"threshold", "u_glitchsort_threshold", 0.5f},
+        {"direction", "u_glitchsort_dir",       0.0f}
+    }});
 }
 
 std::unique_ptr<Effect> EffectLibrary::createEffect(const juce::String& name) const

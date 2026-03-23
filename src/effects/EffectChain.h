@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_opengl/juce_opengl.h>
 #include "effects/Effect.h"
+#include "analysis/FeatureSnapshot.h"
 #include "render/ShaderManager.h"
 #include "render/TextureManager.h"
 #include "render/FullscreenQuad.h"
@@ -57,6 +58,10 @@ public:
     // Returns the texture from the last completed render, or 0 if none.
     GLuint getPreviousFrameTexture() const { return prevFrameTexture_; }
 
+    // Set the latest audio feature snapshot for audio-reactive effects.
+    // Pointer must remain valid through the next render() call.
+    void setLatestSnapshot(const FeatureSnapshot* snap) { latestSnapshot_ = snap; }
+
 private:
     // Upload an effect's parameters as uniforms
     void uploadEffectUniforms(juce::OpenGLShaderProgram* program,
@@ -69,6 +74,8 @@ private:
                      float dryWet,
                      ShaderManager& shaderMgr, FullscreenQuad& quad,
                      GLuint targetFBO, float width, float height);
+
+    const FeatureSnapshot* latestSnapshot_ = nullptr;
 
     std::vector<std::unique_ptr<Effect>> effects_;
 

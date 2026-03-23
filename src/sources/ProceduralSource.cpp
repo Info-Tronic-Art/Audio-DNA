@@ -175,6 +175,36 @@ void ProceduralSource::uploadUniforms(juce::OpenGLShaderProgram* program,
     auto onsetLoc = loc("u_onsetStrength");
     if (onsetLoc >= 0) glUniform1f(onsetLoc, snapshot.onsetStrength);
 
+    // P18: Extended audio uniforms for audio-native sources
+    auto l = loc("u_onsetDetected");
+    if (l >= 0) glUniform1f(l, snapshot.onsetDetected ? 1.0f : 0.0f);
+    l = loc("u_barPhase");
+    if (l >= 0) glUniform1f(l, snapshot.barPhase);
+    l = loc("u_phrasePhase");
+    if (l >= 0) glUniform1f(l, snapshot.phrasePhase);
+    l = loc("u_spectralFlux");
+    if (l >= 0) glUniform1f(l, snapshot.spectralFlux);
+    l = loc("u_dominantPitch");
+    if (l >= 0) glUniform1f(l, snapshot.dominantPitch);
+    l = loc("u_pitchConfidence");
+    if (l >= 0) glUniform1f(l, snapshot.pitchConfidence);
+    l = loc("u_detectedKey");
+    if (l >= 0) glUniform1f(l, static_cast<float>(snapshot.detectedKey));
+    l = loc("u_keyIsMajor");
+    if (l >= 0) glUniform1f(l, snapshot.keyIsMajor ? 1.0f : 0.0f);
+    l = loc("u_structuralState");
+    if (l >= 0) glUniform1f(l, static_cast<float>(snapshot.structuralState));
+    l = loc("u_bpm");
+    if (l >= 0) glUniform1f(l, snapshot.bpm);
+    l = loc("u_hcdf");
+    if (l >= 0) glUniform1f(l, snapshot.harmonicChangeDetection);
+    l = loc("u_bandEnergies");
+    if (l >= 0) glUniform1fv(l, 7, snapshot.bandEnergies);
+    l = loc("u_chromagram");
+    if (l >= 0) glUniform1fv(l, 12, snapshot.chromagram);
+    l = loc("u_mfccs");
+    if (l >= 0) glUniform1fv(l, 13, snapshot.mfccs);
+
     // Feedback texture (unit 1) — previous frame's composited output
     auto feedbackLoc = loc("u_feedbackTex");
     if (feedbackLoc >= 0 && feedbackTex_ != 0)

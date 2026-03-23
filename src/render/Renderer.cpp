@@ -277,6 +277,8 @@ void Renderer::renderOpenGL()
     // Priority: deck compositor > active source > loaded image
     if (deckActive)
     {
+        // P18: provide audio snapshot to compositor for audio-reactive effects
+        compositor_.setLatestSnapshot(snap);
         sourceTexture = compositor_.compositeDeck(*deck, shaderMgr_, quad_, time,
                                                    static_cast<int>(renderW),
                                                    static_cast<int>(renderH));
@@ -312,6 +314,8 @@ void Renderer::renderOpenGL()
         return;
     }
 
+    // P18: provide audio snapshot to effect chain for audio-reactive effects
+    effectChain_.setLatestSnapshot(snap);
     effectChain_.render(sourceTexture,
                         shaderMgr_, texMgr_, quad_,
                         time, renderW, renderH,
@@ -972,6 +976,53 @@ void Renderer::compileAllShaders()
 
     // === Phase 16: Feedback blend shader (layer-level) ===
     compile("feedback_blend",       EmbeddedShaders::feedbackBlend);
+
+    // === Phase 18: Audio-Native Effects ===
+    compile("harmonic_displace",    EmbeddedShaders::harmonicDisplace);
+    compile("timbral_mosaic",       EmbeddedShaders::timbralMosaic);
+    compile("structural_morph",     EmbeddedShaders::structuralMorph);
+    compile("pitch_chroma_shift",   EmbeddedShaders::pitchChromaShift);
+    compile("key_palette",          EmbeddedShaders::keyPalette);
+    compile("transient_flash",      EmbeddedShaders::transientFlash);
+    compile("beat_ripple",          EmbeddedShaders::beatRipple);
+    compile("rhythm_slice",         EmbeddedShaders::rhythmSlice);
+    compile("density_wave",         EmbeddedShaders::densityWave);
+    compile("chroma_dissolve",      EmbeddedShaders::chromaDissolve);
+
+    // === Phase 18: Audio-Native Sources ===
+    compile("source_spectrum_landscape",    EmbeddedShaders::sourceSpectrumLandscape);
+    compile("source_chromatic_ring",        EmbeddedShaders::sourceChromaticRing);
+    compile("source_band_tower",            EmbeddedShaders::sourceBandTower);
+    compile("source_timbral_nebula",        EmbeddedShaders::sourceTimbralNebula);
+    compile("source_structural_landscape",  EmbeddedShaders::sourceStructuralLandscape);
+    compile("source_cymatics",              EmbeddedShaders::sourceCymatics);
+    compile("source_spectral_waterfall",    EmbeddedShaders::sourceSpectralWaterfall);
+    compile("source_spectral_ring",         EmbeddedShaders::sourceSpectralRing);
+    compile("source_text_wall",             EmbeddedShaders::sourceTextWall);
+
+    // === Phase 19: Complex Effects ===
+    compile("luma_terrain",     EmbeddedShaders::lumaTerrain);
+    compile("voxel_matrix",     EmbeddedShaders::voxelMatrix);
+    compile("monitor_wall",     EmbeddedShaders::monitorWall);
+    compile("drop_shadow",      EmbeddedShaders::dropShadow);
+    compile("channel_delay",    EmbeddedShaders::channelDelay);
+    compile("topo_lines",       EmbeddedShaders::topoLines);
+    compile("data_corrupt",     EmbeddedShaders::dataCorrupt);
+    compile("glitch_sort",      EmbeddedShaders::glitchSort);
+
+    // === Phase 19: Remaining Sources ===
+    compile("source_superformula",     EmbeddedShaders::sourceSuperformula);
+    compile("source_truchet",          EmbeddedShaders::sourceTruchet);
+    compile("source_rose",             EmbeddedShaders::sourceRoseCurves);
+    compile("source_fibonacci",        EmbeddedShaders::sourceFibonacci);
+    compile("source_lightning",        EmbeddedShaders::sourceLightning);
+    compile("source_fire",             EmbeddedShaders::sourceFire);
+    compile("source_starfield",        EmbeddedShaders::sourceStarfield);
+    compile("source_nebula",           EmbeddedShaders::sourceParticleNebula);
+    compile("source_radar",            EmbeddedShaders::sourceRadar);
+    compile("source_glitch_grid",      EmbeddedShaders::sourceGlitchGrid);
+    compile("source_dna",              EmbeddedShaders::sourceDNAHelix);
+    compile("source_dot_matrix",       EmbeddedShaders::sourceDotMatrixWave);
 
     // === Phase 14: Transition Shaders (15 clip-to-clip transitions) ===
     compile("transition_dissolve",      EmbeddedShaders::transitionDissolve);

@@ -989,6 +989,216 @@ void SourceRegistry::registerDefaults()
         s->addParam("Color Shift", "u_src_color_shift", 0.0f);
         return s;
     });
+
+    // ============================================================
+    // Phase 18: Audio-Native Sources (8 sources + Text Wall)
+    // ============================================================
+
+    registerSource("spectrum_landscape", [] {
+        auto s = std::make_unique<ProceduralSource>("spectrum_landscape", "Spectrum Landscape", "Audio-Visual", "source_spectrum_landscape");
+        s->addParam("Height Scale", "u_src_height", 0.5f);
+        s->addParam("Camera Angle", "u_src_camera", 0.3f);
+        s->addParam("Color Mode", "u_src_color_mode", 0.0f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Smoothing", "u_src_smoothing", 0.5f);
+        return s;
+    });
+
+    registerSource("chromatic_ring", [] {
+        auto s = std::make_unique<ProceduralSource>("chromatic_ring", "Chromatic Ring", "Audio-Visual", "source_chromatic_ring");
+        s->addParam("Ring Width", "u_src_ring_width", 0.5f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Rotation", "u_src_rotation", 0.0f);
+        s->addParam("Ripple", "u_src_ripple", 0.5f);
+        return s;
+    });
+
+    registerSource("band_tower", [] {
+        auto s = std::make_unique<ProceduralSource>("band_tower", "Band Tower", "Audio-Visual", "source_band_tower");
+        s->addParam("Shape", "u_src_shape", 0.0f);
+        s->addParam("Spacing", "u_src_spacing", 0.3f);
+        s->addParam("Reflection", "u_src_reflection", 0.3f);
+        s->addParam("Color Mode", "u_src_color_mode", 0.0f);
+        s->addParam("Smoothing", "u_src_smoothing", 0.5f);
+        s->addParam("3D Rotation", "u_src_rotation_3d", 0.0f);
+        return s;
+    });
+
+    registerSource("timbral_nebula", [] {
+        auto s = std::make_unique<ProceduralSource>("timbral_nebula", "Timbral Nebula", "Audio-Visual", "source_timbral_nebula");
+        s->addParam("Particle Count", "u_src_particles", 0.5f);
+        s->addParam("Spread", "u_src_spread", 0.5f);
+        s->addParam("Trail Length", "u_src_trail", 0.3f);
+        s->addParam("Color Source", "u_src_color_source", 0.0f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Sensitivity", "u_src_sensitivity", 0.5f);
+        return s;
+    });
+
+    registerSource("structural_landscape", [] {
+        auto s = std::make_unique<ProceduralSource>("structural_landscape", "Structural Landscape", "Audio-Visual", "source_structural_landscape");
+        s->addParam("Terrain Scale", "u_src_scale", 0.5f);
+        s->addParam("History Length", "u_src_history", 0.5f);
+        s->addParam("Drama", "u_src_drama", 0.5f);
+        s->addParam("Color Palette", "u_src_palette", 0.0f);
+        s->addParam("Fog", "u_src_fog", 0.3f);
+        s->addParam("Camera Height", "u_src_camera", 0.5f);
+        return s;
+    });
+
+    registerSource("cymatics", [] {
+        auto s = std::make_unique<ProceduralSource>("cymatics", "Cymatics", "Audio-Visual", "source_cymatics");
+        s->addParam("Resonance", "u_src_resonance", 0.5f);
+        s->addParam("Damping", "u_src_damping", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("spectral_waterfall", [] {
+        auto s = std::make_unique<ProceduralSource>("spectral_waterfall", "Spectral Waterfall", "Audio-Visual", "source_spectral_waterfall");
+        s->addParam("Scroll Speed", "u_src_scroll", 0.5f);
+        s->addParam("Color Mode", "u_src_color_mode", 0.0f);
+        s->addParam("Log Scale", "u_src_log_scale", 0.5f);
+        return s;
+    });
+
+    registerSource("spectral_ring", [] {
+        auto s = std::make_unique<ProceduralSource>("spectral_ring", "Spectral Ring", "Audio-Visual", "source_spectral_ring");
+        s->addParam("Radius", "u_src_radius", 0.5f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Rotation", "u_src_rotation", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("text_wall", [] {
+        auto s = std::make_unique<ProceduralSource>("text_wall", "Scrolling Text Wall", "Text", "source_text_wall");
+        s->addParam("Speed", "u_src_speed", 0.4f);
+        s->addParam("Density", "u_src_density", 0.6f);
+        s->addParam("Size", "u_src_size", 0.4f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.3f);
+        return s;
+    });
+
+    // ============================================================
+    // Phase 19: Remaining Sources (12 new sources)
+    // ============================================================
+
+    registerSource("superformula", [] {
+        auto s = std::make_unique<ProceduralSource>("superformula", "Superformula", "Math", "source_superformula");
+        s->addParam("Symmetry", "u_src_m", 0.3f);
+        s->addParam("Roundness", "u_src_n1", 0.5f);
+        s->addParam("Concavity", "u_src_n2", 0.5f);
+        s->addParam("Blobbiness", "u_src_n3", 0.5f);
+        s->addParam("Size", "u_src_size", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("truchet_labyrinth", [] {
+        auto s = std::make_unique<ProceduralSource>("truchet_labyrinth", "Truchet Labyrinth", "Math", "source_truchet");
+        s->addParam("Density", "u_src_density", 0.5f);
+        s->addParam("Style", "u_src_style", 0.0f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("rose_curves", [] {
+        auto s = std::make_unique<ProceduralSource>("rose_curves", "Rose Curves", "Math", "source_rose");
+        s->addParam("Petals", "u_src_k", 0.5f);
+        s->addParam("Thickness", "u_src_thickness", 0.3f);
+        s->addParam("Layers", "u_src_layers", 0.5f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("fibonacci_spiral", [] {
+        auto s = std::make_unique<ProceduralSource>("fibonacci_spiral", "Fibonacci Spiral", "Math", "source_fibonacci");
+        s->addParam("Elements", "u_src_elements", 0.5f);
+        s->addParam("Size", "u_src_size", 0.5f);
+        s->addParam("Spread", "u_src_spread", 0.5f);
+        s->addParam("Glow", "u_src_glow", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("lightning_storm", [] {
+        auto s = std::make_unique<ProceduralSource>("lightning_storm", "Lightning Storm", "Particle", "source_lightning");
+        s->addParam("Intensity", "u_src_intensity", 0.5f);
+        s->addParam("Branches", "u_src_branches", 0.5f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("fire", [] {
+        auto s = std::make_unique<ProceduralSource>("fire", "Fire", "Nature", "source_fire");
+        s->addParam("Height", "u_src_height", 0.5f);
+        s->addParam("Turbulence", "u_src_turbulence", 0.5f);
+        s->addParam("Speed", "u_src_speed", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("starfield", [] {
+        auto s = std::make_unique<ProceduralSource>("starfield", "Starfield", "Particle", "source_starfield");
+        s->addParam("Speed", "u_src_speed", 0.5f);
+        s->addParam("Density", "u_src_density", 0.5f);
+        s->addParam("Streak", "u_src_streak", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("particle_nebula", [] {
+        auto s = std::make_unique<ProceduralSource>("particle_nebula", "Particle Nebula", "Particle", "source_nebula");
+        s->addParam("Density", "u_src_density", 0.5f);
+        s->addParam("Scale", "u_src_scale", 0.5f);
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("radar_sweep", [] {
+        auto s = std::make_unique<ProceduralSource>("radar_sweep", "Radar Sweep", "Geometric", "source_radar");
+        s->addParam("Speed", "u_src_speed", 0.5f);
+        s->addParam("Decay", "u_src_decay", 0.5f);
+        s->addParam("Grid", "u_src_grid", 0.3f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("glitch_grid", [] {
+        auto s = std::make_unique<ProceduralSource>("glitch_grid", "Glitch Grid", "Pattern", "source_glitch_grid");
+        s->addParam("Grid Size", "u_src_grid", 0.4f);
+        s->addParam("Chaos", "u_src_chaos", 0.5f);
+        s->addParam("Flicker", "u_src_flicker", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("dna_helix", [] {
+        auto s = std::make_unique<ProceduralSource>("dna_helix", "DNA Helix", "3D", "source_dna");
+        s->addParam("Speed", "u_src_speed", 0.3f);
+        s->addParam("Zoom", "u_src_zoom", 0.5f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Color Shift", "u_src_color_shift", 0.0f);
+        return s;
+    });
+
+    registerSource("dot_matrix_wave", [] {
+        auto s = std::make_unique<ProceduralSource>("dot_matrix_wave", "Dot Matrix Wave", "Geometric", "source_dot_matrix");
+        s->addParam("Density", "u_src_density", 0.5f);
+        s->addParam("Speed", "u_src_speed", 0.5f);
+        s->addParam("Damping", "u_src_damping", 0.5f);
+        s->addParam("Dot Size", "u_src_size", 0.3f);
+        s->addParam("Color", "u_src_color", 0.0f);
+        s->addParam("Sources", "u_src_sources", 0.5f);
+        return s;
+    });
 }
 
 std::unique_ptr<ProceduralSource> SourceRegistry::createSource(const std::string& id) const

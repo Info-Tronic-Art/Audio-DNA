@@ -334,6 +334,8 @@ void SourcesBrowser::buildSourceList()
     categories_.push_back({"Lines",        juce::Colour(0xffce93d8)});
     categories_.push_back({"Math",         juce::Colour(0xffba68c8)});
     categories_.push_back({"Lighting",     juce::Colour(0xfffff176)});
+    categories_.push_back({"Text",         juce::Colour(0xffe0e0e0)});
+    categories_.push_back({"Particle",     juce::Colour(0xffef5350)});
 
     // Input sources — live feeds
     sources_.push_back({"Camera Input",             "camera",              "Input",        juce::Colour(0xffef5350)});
@@ -438,6 +440,43 @@ void SourcesBrowser::buildSourceList()
 
     // Phase 17: Lighting sources
     sources_.push_back({"Laser Scanner",            "laser_scanner",       "Lighting",     juce::Colour(0xfffff176)});
+
+    // Phase 18: Audio-Native Sources
+    sources_.push_back({"Spectrum Landscape",       "spectrum_landscape",  "Audio-Visual", juce::Colour(0xffff7043)});
+    sources_.push_back({"Chromatic Ring",           "chromatic_ring",      "Audio-Visual", juce::Colour(0xffff7043)});
+    sources_.push_back({"Band Tower",               "band_tower",          "Audio-Visual", juce::Colour(0xffff7043)});
+    sources_.push_back({"Timbral Nebula",           "timbral_nebula",      "Audio-Visual", juce::Colour(0xffff7043)});
+    sources_.push_back({"Structural Landscape",     "structural_landscape","Audio-Visual", juce::Colour(0xffff7043)});
+    sources_.push_back({"Cymatics",                 "cymatics",            "Audio-Visual", juce::Colour(0xffff7043)});
+    sources_.push_back({"Spectral Waterfall",       "spectral_waterfall",  "Audio-Visual", juce::Colour(0xffff7043)});
+    sources_.push_back({"Spectral Ring",            "spectral_ring",       "Audio-Visual", juce::Colour(0xffff7043)});
+
+    // Phase 18: Text source
+    sources_.push_back({"Scrolling Text Wall",      "text_wall",           "Text",         juce::Colour(0xffe0e0e0)});
+
+    // Phase 19: Math sources
+    sources_.push_back({"Superformula",             "superformula",        "Math",         juce::Colour(0xffba68c8)});
+    sources_.push_back({"Truchet Labyrinth",        "truchet_labyrinth",   "Math",         juce::Colour(0xffba68c8)});
+    sources_.push_back({"Rose Curves",              "rose_curves",         "Math",         juce::Colour(0xffba68c8)});
+    sources_.push_back({"Fibonacci Spiral",         "fibonacci_spiral",    "Math",         juce::Colour(0xffba68c8)});
+
+    // Phase 19: Particle sources
+    sources_.push_back({"Lightning Storm",          "lightning_storm",     "Particle",     juce::Colour(0xffef5350)});
+    sources_.push_back({"Starfield",                "starfield",           "Particle",     juce::Colour(0xffef5350)});
+    sources_.push_back({"Particle Nebula",          "particle_nebula",     "Particle",     juce::Colour(0xffef5350)});
+
+    // Phase 19: Nature sources
+    sources_.push_back({"Fire",                     "fire",                "Nature",       juce::Colour(0xff26c6da)});
+
+    // Phase 19: Geometric sources
+    sources_.push_back({"Radar Sweep",              "radar_sweep",         "Geometric",    juce::Colour(0xff4fc3f7)});
+    sources_.push_back({"Dot Matrix Wave",          "dot_matrix_wave",     "Geometric",    juce::Colour(0xff4fc3f7)});
+
+    // Phase 19: Pattern sources
+    sources_.push_back({"Glitch Grid",              "glitch_grid",         "Pattern",      juce::Colour(0xff4fc3f7)});
+
+    // Phase 19: 3D sources
+    sources_.push_back({"DNA Helix",                "dna_helix",           "3D",           juce::Colour(0xffffca28)});
 }
 
 void SourcesBrowser::toggleCategory(int catIndex)

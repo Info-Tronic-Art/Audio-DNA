@@ -121,6 +121,16 @@ private:
     VideoFrameFn videoFrameFn_;
     EffectLibrary* effectLibrary_ = nullptr;
 
+    // Audio feature snapshot for audio-reactive effects
+    const FeatureSnapshot* latestSnapshot_ = nullptr;
+
+public:
+    // Set the latest audio feature snapshot for audio-reactive effects.
+    // Call before compositeDeck() each frame. Pointer must remain valid until compositeDeck() returns.
+    void setLatestSnapshot(const FeatureSnapshot* snap) { latestSnapshot_ = snap; }
+
+private:
+
     // Per-layer feedback processors (keyed by layer ID)
     std::unordered_map<uint32_t, std::unique_ptr<FeedbackProcessor>> feedbackProcessors_;
 
@@ -172,6 +182,10 @@ private:
 
     void createFBO(GLuint& fbo, GLuint& tex, int w, int h);
     void deleteFBO(GLuint& fbo, GLuint& tex);
+
+    // Upload audio feature uniforms to the current shader program.
+    // Used by audio-reactive effects (P18) that need chromagram, MFCCs, etc.
+    void uploadAudioUniforms(juce::OpenGLShaderProgram* program) const;
 
     // Apply per-clip transform (position/scale/rotation) to a texture
     GLuint applyClipTransform(const Clip& clip, GLuint srcTex,
