@@ -44,6 +44,8 @@ public:
     std::function<void(int layerIndex, int column, const std::string& presetPath)> onMilkDropDropped;
     std::function<void(int layerIndex, int column, const std::vector<std::string>& presetPaths)> onMilkDropPlaylistDropped;
     std::function<void(int deckIndex)> onDeckSwitched;
+    std::function<void(int layerIndex)> onLayerFoldToggle;         // P24.12
+    std::function<void(int fromIndex, int toIndex)> onLayerReorder; // P24.13
 
     // Get active column (-1 if none)
     int getActiveColumn() const { return activeColumn_; }

@@ -188,6 +188,7 @@ catch_discover_tests(test_composition)
 add_executable(test_routing_engine
     test_routing_engine.cpp
     ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/signal/ChainedSignal.cpp
     ${SRC_DIR}/routing/RoutingEngine.cpp
     ${SRC_DIR}/mapping/MappingEngine.cpp
     ${SRC_DIR}/effects/Effect.cpp

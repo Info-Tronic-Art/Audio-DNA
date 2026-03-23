@@ -151,6 +151,28 @@ void ClipCell::paint(juce::Graphics& g)
         g.setColour(juce::Colour(0xffbb88ff));
         g.drawRect(bounds, 2.0f);
     }
+
+    // P24.5: Content lock indicator (padlock icon in top-right)
+    if (clip_ && clip_->contentLocked)
+    {
+        auto lockBounds = bounds.removeFromTop(14.0f).removeFromRight(14.0f);
+        g.setColour(juce::Colour(0xffff8800));
+        g.setFont(juce::Font(juce::FontOptions(10.0f).withStyle("Bold")));
+        g.drawText("L", lockBounds, juce::Justification::centred, false);
+    }
+
+    // P24.7: Missing file indicator (red border + "!" marker)
+    if (clip_ && clip_->hasMedia() &&
+        (clip_->mediaType == Clip::MediaType::Image || clip_->mediaType == Clip::MediaType::Video) &&
+        clip_->mediaFile != juce::File() && !clip_->mediaFile.existsAsFile())
+    {
+        auto b = getLocalBounds().toFloat();
+        g.setColour(juce::Colour(0xffcc3333));
+        g.drawRect(b, 2.0f);
+        auto markerBounds = b.removeFromTop(14.0f).removeFromLeft(14.0f);
+        g.setFont(juce::Font(juce::FontOptions(11.0f).withStyle("Bold")));
+        g.drawText("!", markerBounds, juce::Justification::centred, false);
+    }
 }
 
 void ClipCell::resized() {}

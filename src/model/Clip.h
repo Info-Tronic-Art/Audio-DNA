@@ -149,6 +149,9 @@ struct Clip
 
     bool hasPresetPlaylist() const { return !presetPlaylist.empty() && playlistEnabled; }
 
+    // === Content Lock (P24.5) ===
+    bool contentLocked = false;    // When true, prevents accidental media replacement via drag-drop
+
     // === Runtime State (not serialized) ===
     mutable bool playing = false; // mutable: render thread updates for OneShot/PingPong stop
     mutable double playheadPosition = 0.0; // [0,1] normalized — mutable for render-thread updates via const Clip*
@@ -161,6 +164,81 @@ struct Clip
     bool isPlayable() const { return mediaType == MediaType::Video || mediaType == MediaType::ImageSequence; }
     bool hasEffects() const { return !effects.empty(); }
     bool isEmpty() const { return !hasMedia() && !hasEffects(); }
+
+    // P24.4: Replace media content while preserving effects, transport, and autopilot settings.
+    // Returns false if contentLocked is true.
+    bool replaceContent(const Clip& newContent)
+    {
+        if (contentLocked) return false;
+
+        // Preserve these
+        auto savedEffects = std::move(effects);
+        auto savedClipOpacity = clipOpacity;
+        auto savedTransport = transportMode;
+        auto savedLoop = loopMode;
+        auto savedSpeed = speed;
+        auto savedReverse = reverse;
+        auto savedInPoint = inPoint;
+        auto savedOutPoint = outPoint;
+        auto savedBeatSnap = beatSnapMode;
+        auto savedAutopilotAction = autopilotAction;
+        auto savedAutopilotDuration = autopilotDuration;
+        auto savedBlendOverride = blendOverride;
+        auto savedAlphaType = alphaType;
+        auto savedChannelR = channelR, savedChannelG = channelG;
+        auto savedChannelB = channelB, savedChannelA = channelA;
+        auto savedTransform = std::make_tuple(positionX, positionY, scale, rotation, anchorX, anchorY);
+        auto savedLock = contentLocked;
+
+        // Copy new content (media only)
+        name = newContent.name;
+        mediaType = newContent.mediaType;
+        mediaFile = newContent.mediaFile;
+        cameraDeviceIndex = newContent.cameraDeviceIndex;
+        sourceType = newContent.sourceType;
+        sourceParams = newContent.sourceParams;
+        hasAlpha = newContent.hasAlpha;
+        sequenceFiles = newContent.sequenceFiles;
+        sequenceFps = newContent.sequenceFps;
+        beatDivision = newContent.beatDivision;
+        videoBeats = newContent.videoBeats;
+        clipWidth = newContent.clipWidth;
+        clipHeight = newContent.clipHeight;
+        thumbnail = newContent.thumbnail;
+        presetPlaylist = newContent.presetPlaylist;
+        presetPlaylistIndex = newContent.presetPlaylistIndex;
+        playlistCycleMode = newContent.playlistCycleMode;
+        playlistTrigger = newContent.playlistTrigger;
+        playlistTriggerBeats = newContent.playlistTriggerBeats;
+        playlistBlendSeconds = newContent.playlistBlendSeconds;
+        playlistEnabled = newContent.playlistEnabled;
+
+        // Restore preserved settings
+        effects = std::move(savedEffects);
+        clipOpacity = savedClipOpacity;
+        transportMode = savedTransport;
+        loopMode = savedLoop;
+        speed = savedSpeed;
+        reverse = savedReverse;
+        inPoint = savedInPoint;
+        outPoint = savedOutPoint;
+        beatSnapMode = savedBeatSnap;
+        autopilotAction = savedAutopilotAction;
+        autopilotDuration = savedAutopilotDuration;
+        blendOverride = savedBlendOverride;
+        alphaType = savedAlphaType;
+        channelR = savedChannelR; channelG = savedChannelG;
+        channelB = savedChannelB; channelA = savedChannelA;
+        std::tie(positionX, positionY, scale, rotation, anchorX, anchorY) = savedTransform;
+        contentLocked = savedLock;
+
+        // Reset runtime state
+        playing = newContent.playing;
+        playheadPosition = 0.0;
+        beatsPlayed = 0;
+
+        return true;
+    }
 
     void clear()
     {
@@ -195,6 +273,7 @@ struct Clip
         playlistTriggerBeats = 8;
         playlistBlendSeconds = 1.5f;
         playlistEnabled = false;
+        contentLocked = false;
         playing = false;
         playheadPosition = 0.0;
         beatsPlayed = 0;

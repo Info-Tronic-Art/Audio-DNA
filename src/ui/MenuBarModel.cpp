@@ -31,6 +31,9 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
 
         case 1: // Composition
         {
+            menu.addItem(kCompUndo,     "Undo",                       true, false);
+            menu.addItem(kCompRedo,     "Redo",                       true, false);
+            menu.addSeparator();
             menu.addItem(kCompNew,      "New Composition",            true, false);
             menu.addItem(kCompOpen,     "Open...",                    true, false);
             menu.addSeparator();
@@ -39,6 +42,9 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addSeparator();
             menu.addItem(kCompCopyEffects,  "Copy Global Effects",   true, false);
             menu.addItem(kCompPasteEffects, "Paste Global Effects",  true, false);
+            menu.addSeparator();
+            menu.addItem(kCompCollectMedia,   "Collect Media...",        true, false);
+            menu.addItem(kCompRelocateFiles,  "Relocate Missing Files...", true, false);
             break;
         }
 
@@ -73,6 +79,10 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addSeparator();
             menu.addItem(kLayerIgnoreColumnTrigger, "Ignore Column Trigger", true, false);
             menu.addItem(kLayerLockContent,    "Lock Content",              true, false);
+            menu.addSeparator();
+            menu.addItem(kLayerFold,           "Fold/Unfold Layer",         true, false);
+            menu.addItem(kLayerMoveUp,         "Move Layer Up",             true, false);
+            menu.addItem(kLayerMoveDown,       "Move Layer Down",           true, false);
             break;
         }
 
@@ -108,6 +118,9 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addSeparator();
             menu.addItem(kClipNewSource,    "New Procedural Source",   true, false);
             menu.addItem(kClipNewEffect,    "New Effect Clip",         true, false);
+            menu.addSeparator();
+            menu.addItem(kClipReplaceContent, "Replace Content...",    true, false);
+            menu.addItem(kClipLockContent,    "Lock Content",          true, false);
             break;
         }
 
@@ -149,6 +162,9 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addItem(kShortcutsEditMIDI,     "Edit MIDI Mappings...",      true, false);
             menu.addSeparator();
             menu.addItem(kShortcutsStop,         "Stop All",                   true, false);
+            menu.addSeparator();
+            menu.addItem(kShortcutsExportBindings, "Export Bindings...",        true, false);
+            menu.addItem(kShortcutsImportBindings, "Import Bindings...",        true, false);
             break;
         }
 
@@ -163,6 +179,10 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addSeparator();
             menu.addItem(kViewFpsStats,        "FPS and Stats",     true, false);
             menu.addItem(kViewProgrammingMode, "Programming Mode",  true, false);
+            menu.addSeparator();
+            menu.addItem(kViewSaveLayout,      "Save Layout...",    true, false);
+            menu.addItem(kViewLoadLayout,      "Load Layout...",    true, false);
+            menu.addItem(kViewResetLayout,     "Reset Layout",      true, false);
             break;
         }
 

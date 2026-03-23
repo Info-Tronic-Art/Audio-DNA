@@ -88,6 +88,27 @@ enum class MappingCurve : uint8_t
     SCurve,        // smoothstep: x^2 * (3 - 2x)
     Stepped,       // floor(x * N) / N  — quantized
 
+    // P24: Easing functions
+    CircularIn,
+    CircularOut,
+    CircularInOut,
+    BackIn,        // Overshoots then settles
+    BackOut,
+    BackInOut,
+    ElasticIn,     // Spring oscillation
+    ElasticOut,
+    ElasticInOut,
+    BounceIn,
+    BounceOut,
+    BounceInOut,
+    CubicIn,
+    CubicOut,
+    CubicInOut,
+    SineIn,
+    SineOut,
+    SineInOut,
+    Hold,          // Step function: 0 until 1.0
+
     Count
 };
 

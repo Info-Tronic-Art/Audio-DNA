@@ -65,12 +65,31 @@ static juce::String getCurveName(MappingCurve curve)
 {
     switch (curve)
     {
-        case MappingCurve::Linear:      return "Linear";
-        case MappingCurve::Exponential: return "Exponential";
-        case MappingCurve::Logarithmic: return "Logarithmic";
-        case MappingCurve::SCurve:      return "S-Curve";
-        case MappingCurve::Stepped:     return "Stepped";
-        case MappingCurve::Count:       return "---";
+        case MappingCurve::Linear:        return "Linear";
+        case MappingCurve::Exponential:   return "Exponential";
+        case MappingCurve::Logarithmic:   return "Logarithmic";
+        case MappingCurve::SCurve:        return "S-Curve";
+        case MappingCurve::Stepped:       return "Stepped";
+        case MappingCurve::CircularIn:    return "Circular In";
+        case MappingCurve::CircularOut:   return "Circular Out";
+        case MappingCurve::CircularInOut: return "Circular In/Out";
+        case MappingCurve::BackIn:        return "Back In";
+        case MappingCurve::BackOut:       return "Back Out";
+        case MappingCurve::BackInOut:     return "Back In/Out";
+        case MappingCurve::ElasticIn:     return "Elastic In";
+        case MappingCurve::ElasticOut:    return "Elastic Out";
+        case MappingCurve::ElasticInOut:  return "Elastic In/Out";
+        case MappingCurve::BounceIn:      return "Bounce In";
+        case MappingCurve::BounceOut:     return "Bounce Out";
+        case MappingCurve::BounceInOut:   return "Bounce In/Out";
+        case MappingCurve::CubicIn:       return "Cubic In";
+        case MappingCurve::CubicOut:      return "Cubic Out";
+        case MappingCurve::CubicInOut:    return "Cubic In/Out";
+        case MappingCurve::SineIn:        return "Sine In";
+        case MappingCurve::SineOut:       return "Sine Out";
+        case MappingCurve::SineInOut:     return "Sine In/Out";
+        case MappingCurve::Hold:          return "Hold";
+        case MappingCurve::Count:         return "---";
     }
     return "Unknown";
 }

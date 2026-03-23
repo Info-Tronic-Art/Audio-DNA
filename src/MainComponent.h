@@ -27,6 +27,7 @@
 #include "ui/BindingOverlay.h"
 #include "ui/MidiLearnOverlay.h"
 #include "midi/MidiHandler.h"
+#include "core/UndoManager.h"
 #include "recording/SessionRecorder.h"
 #include "recording/VideoRecorder.h"
 #include "sync/LinkSync.h"
@@ -198,6 +199,7 @@ private:
 
     // === v2: Signal Bar + Top Bar + Deck ===
     Composition composition_;
+    UndoManager undoManager_;
     SignalRegistry signalRegistry_;
     MacroBank globalMacroBank_{MacroBank::Scope::Global};
     SessionRecorder sessionRecorder_;

@@ -1,5 +1,6 @@
 #pragma once
 #include "binding/Binding.h"
+#include <juce_core/juce_core.h>
 #include <vector>
 #include <functional>
 #include <unordered_map>
@@ -53,6 +54,12 @@ public:
 
     // Track relative CC accumulated values (for Relative mode encoders)
     float getRelativeCCValue(int channel, int cc) const;
+
+    // P24.10: Serialization for binding presets
+    juce::var toVar() const;
+    void fromVar(const juce::var& v);
+    bool saveToFile(const juce::File& file) const;
+    bool loadFromFile(const juce::File& file);
 
 private:
     std::vector<Binding> bindings_;

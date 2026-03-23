@@ -48,6 +48,8 @@ public:
     std::function<void(int layerIndex)> onTransportPause;
     std::function<void(int layerIndex)> onTransportBack;
     std::function<void(int layerIndex)> onTransportForward;
+    std::function<void(int layerIndex)> onFoldToggle;        // P24.12
+    std::function<void(int fromIndex, int toIndex)> onLayerDragReorder; // P24.13
 
 private:
     void mouseDown(const juce::MouseEvent& event) override;

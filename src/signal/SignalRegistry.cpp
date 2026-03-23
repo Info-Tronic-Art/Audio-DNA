@@ -1,4 +1,5 @@
 #include "SignalRegistry.h"
+#include "signal/ChainedSignal.h"
 
 void SignalRegistry::initDefaults()
 {
@@ -64,11 +65,23 @@ void SignalRegistry::initDefaults()
         signals_.push_back(std::move(mod2));
         cachedValues_.push_back(0.0f);
     }
+
+    // P24: Clip Position signal (hidden by default)
+    {
+        auto clipPos = std::make_unique<ClipPositionSignal>("Clip Position");
+        clipPos->setId(nextId_++);
+        clipPos->setVisible(false);
+        signals_.push_back(std::move(clipPos));
+        cachedValues_.push_back(0.0f);
+    }
 }
 
 void SignalRegistry::addSignal(std::unique_ptr<Signal> signal)
 {
     signal->setId(nextId_++);
+    // P24: Wire ChainedSignal to this registry for cached value lookups
+    if (auto* chained = dynamic_cast<ChainedSignal*>(signal.get()))
+        chained->setRegistry(this);
     signals_.push_back(std::move(signal));
     cachedValues_.push_back(0.0f);
 }
@@ -147,4 +160,14 @@ float SignalRegistry::getCachedValue(uint32_t signalId) const
             return cachedValues_[i];
     }
     return 0.0f;
+}
+
+ClipPositionSignal* SignalRegistry::getClipPositionSignal()
+{
+    for (auto& sig : signals_)
+    {
+        if (auto* clipPos = dynamic_cast<ClipPositionSignal*>(sig.get()))
+            return clipPos;
+    }
+    return nullptr;
 }

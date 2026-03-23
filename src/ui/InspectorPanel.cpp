@@ -17,6 +17,14 @@ InspectorPanel::InspectorPanel()
     setupTabBtn(compTabBtn_, Tab::Composition);
     setupTabBtn(signalTabBtn_, Tab::Signal);
 
+    // P24.11: Pin button
+    pinBtn_.setColour(juce::TextButton::buttonColourId,
+                      juce::Colour(AudioDNALookAndFeel::kSurface));
+    pinBtn_.setColour(juce::TextButton::textColourOffId,
+                      juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    pinBtn_.onClick = [this] { setPinned(!pinned_); };
+    addAndMakeVisible(pinBtn_);
+
     // Viewports — each wraps its inspector content for scrolling
     clipViewport_.setViewedComponent(&clipInspector_, false);
     clipViewport_.setScrollBarsShown(true, false);
@@ -70,8 +78,9 @@ void InspectorPanel::resized()
 {
     auto area = getLocalBounds();
 
-    // Tab bar
+    // Tab bar — pin button takes 30px from right
     auto tabBar = area.removeFromTop(kTabBarHeight);
+    pinBtn_.setBounds(tabBar.removeFromRight(30));
     int tabWidth = tabBar.getWidth() / 4;
     clipTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
     layerTabBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
@@ -124,19 +133,19 @@ void InspectorPanel::setMacroBank(MacroBank* bank)
 void InspectorPanel::inspectClip(Clip* clip)
 {
     clipInspector_.setClip(clip);
-    setActiveTab(Tab::Clip);
+    if (!pinned_) setActiveTab(Tab::Clip);
 }
 
 void InspectorPanel::inspectLayer(Layer* layer)
 {
     layerInspector_.setLayer(layer);
-    setActiveTab(Tab::Layer);
+    if (!pinned_) setActiveTab(Tab::Layer);
 }
 
 void InspectorPanel::inspectSignal(Signal* signal)
 {
     signalInspector_.setSignal(signal);
-    setActiveTab(Tab::Signal);
+    if (!pinned_) setActiveTab(Tab::Signal);
 }
 
 void InspectorPanel::showCompositionTab()
@@ -196,4 +205,12 @@ void InspectorPanel::showActiveTab()
     layerViewport_.setVisible(activeTab_ == Tab::Layer);
     compViewport_.setVisible(activeTab_ == Tab::Composition);
     signalViewport_.setVisible(activeTab_ == Tab::Signal);
+}
+
+void InspectorPanel::updatePinButton()
+{
+    pinBtn_.setButtonText(pinned_ ? "Unpin" : "Pin");
+    pinBtn_.setColour(juce::TextButton::buttonColourId,
+                      pinned_ ? juce::Colour(0xff4a6a4a) : juce::Colour(AudioDNALookAndFeel::kSurface));
+    pinBtn_.repaint();
 }

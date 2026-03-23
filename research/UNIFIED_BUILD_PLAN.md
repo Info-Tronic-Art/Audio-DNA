@@ -974,6 +974,6 @@ P24 (Workflow) is independent.
 | **P21** | 2-3 | 10 live performance controls | +live performance |
 | **P22** | 3-4 | 10 output/integration features | +Syphon, NDI, recording, API |
 | **P23** | 2-3 | 8 smart audio features | +genre detect, ISF, smart autopilot |
-| **P24** | 2-3 | 13 workflow polish features | +easing, signal chain, layout presets |
+| **P24** | ~~2-3~~ 1 | ~~13 workflow polish~~ **COMPLETE**: 21 easing, signal chain, clip position, content replace/lock, layout presets, missing file relocate, collect media, undo, binding presets, inspector pin, layer fold/reorder | +easing, signal chain, layout presets |
 | **P25** | 2-3 | 8 advanced audio analysis features | +sidechain, stems, formant |
 | **Total** | **~30-40** | | **131 FX + 68 src + 8 systems + 59 features** |

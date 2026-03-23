@@ -122,16 +122,7 @@ float MappingEngine::extractSource(MappingSource source, const FeatureSnapshot& 
 
 float MappingEngine::applyCurve(MappingCurve curve, float x, int steppedN)
 {
-    switch (curve)
-    {
-        case MappingCurve::Linear:      return CurveTransforms::linear(x);
-        case MappingCurve::Exponential: return CurveTransforms::exponential(x);
-        case MappingCurve::Logarithmic: return CurveTransforms::logarithmic(x);
-        case MappingCurve::SCurve:      return CurveTransforms::sCurve(x);
-        case MappingCurve::Stepped:     return CurveTransforms::stepped(x, steppedN);
-        case MappingCurve::Count:       return CurveTransforms::linear(x);
-    }
-    return CurveTransforms::linear(x);
+    return CurveTransforms::applyCurve(static_cast<int>(curve), x, steppedN);
 }
 
 void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& chain)

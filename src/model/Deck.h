@@ -67,6 +67,22 @@ struct Deck
         return true;
     }
 
+    // P24.13: Move a layer from one index to another
+    bool moveLayer(int fromIndex, int toIndex)
+    {
+        if (fromIndex < 0 || fromIndex >= static_cast<int>(layers.size()))
+            return false;
+        if (toIndex < 0 || toIndex >= static_cast<int>(layers.size()))
+            return false;
+        if (fromIndex == toIndex)
+            return false;
+
+        Layer temp = std::move(layers[static_cast<size_t>(fromIndex)]);
+        layers.erase(layers.begin() + fromIndex);
+        layers.insert(layers.begin() + toIndex, std::move(temp));
+        return true;
+    }
+
     // === Column Management ===
     void addColumn()
     {

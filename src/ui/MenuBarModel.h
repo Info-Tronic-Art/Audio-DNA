@@ -24,12 +24,16 @@ public:
         kImportISF,
 
         // Composition menu
+        kCompUndo = 1098,
+        kCompRedo = 1099,
         kCompNew = 1100,
         kCompOpen,
         kCompSave,
         kCompSaveAs,
         kCompCopyEffects,
         kCompPasteEffects,
+        kCompCollectMedia,     // P24.8: Package composition + all media files
+        kCompRelocateFiles,    // P24.7: Find and relink missing media files
 
         // Deck menu
         kDeckNew = 1200,
@@ -53,6 +57,9 @@ public:
         kLayerRemove,
         kLayerIgnoreColumnTrigger,
         kLayerLockContent,
+        kLayerFold,           // P24.12: Toggle fold
+        kLayerMoveUp,         // P24.13: Move layer up
+        kLayerMoveDown,       // P24.13: Move layer down
 
         // Column menu
         kColumnNew = 1400,
@@ -76,6 +83,8 @@ public:
         kClipShowInFinder,
         kClipNewSource,
         kClipNewEffect,
+        kClipReplaceContent,   // P24.4: Swap media keeping effects
+        kClipLockContent,      // P24.5: Toggle content lock
 
         // Output menu
         kOutputDisabled = 1600,
@@ -91,6 +100,8 @@ public:
         kShortcutsEditKeyboard = 1700,
         kShortcutsEditMIDI,
         kShortcutsStop,
+        kShortcutsExportBindings,  // P24.10
+        kShortcutsImportBindings,  // P24.10
 
         // View menu
         kViewSignalBar = 1800,
@@ -101,6 +112,11 @@ public:
         kViewTimingWindow,
         kViewFpsStats,
         kViewProgrammingMode,
+
+        // P24 additions
+        kViewSaveLayout = 1850,
+        kViewLoadLayout,
+        kViewResetLayout,
     };
 
     // Callbacks — MainComponent wires these

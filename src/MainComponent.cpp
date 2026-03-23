@@ -1620,6 +1620,16 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
+    // Cmd/Ctrl+Z = Undo, Cmd/Ctrl+Shift+Z = Redo
+    if (key.isKeyCode('Z') && mod.isCommandDown())
+    {
+        if (mod.isShiftDown())
+            undoManager_.redo();
+        else
+            undoManager_.undo();
+        return true;
+    }
+
     // Cmd/Ctrl+S = save preset
     if (key.isKeyCode('S') && mod.isCommandDown())
     {
@@ -2594,6 +2604,13 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
     auto* deck = composition_.getActiveDeck();
     if (!deck) return;
 
+    // P24.5: Check content lock before replacing
+    if (auto* existing = deck->getClip(layerIndex, column))
+    {
+        if (existing->contentLocked)
+            return; // Silently refuse — locked content
+    }
+
     Clip clip;
     clip.name = file.getFileNameWithoutExtension().toStdString();
     clip.mediaFile = file;
@@ -2718,6 +2735,12 @@ void MainComponent::handleMenuCommand(int commandId)
             break;
 
         // --- Composition menu ---
+        case C::kCompUndo:
+            undoManager_.undo();
+            break;
+        case C::kCompRedo:
+            undoManager_.redo();
+            break;
         case C::kCompNew:
             composition_.initDefault();
             if (deckView_) deckView_->rebuildGrid();
@@ -2732,6 +2755,118 @@ void MainComponent::handleMenuCommand(int commandId)
         case C::kCompSaveAs:
             savePreset();
             break;
+
+        case C::kCompCollectMedia:
+        {
+            // P24.8: Collect all media files into a folder alongside the composition
+            fileChooser_ = std::make_unique<juce::FileChooser>(
+                "Collect Media — Choose Destination Folder",
+                juce::File::getSpecialLocation(juce::File::userDesktopDirectory));
+            fileChooser_->launchAsync(
+                juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+                [this](const juce::FileChooser& fc) {
+                    auto results = fc.getResults();
+                    if (results.isEmpty()) return;
+                    auto destDir = results.getFirst().getChildFile(
+                        juce::String(composition_.name) + "_media");
+                    destDir.createDirectory();
+                    int copied = 0;
+                    // Iterate all decks/layers/clips
+                    for (auto& deck : composition_.decks)
+                    {
+                        for (int l = 0; l < deck.getNumLayers(); ++l)
+                        {
+                            auto* layer = deck.getLayer(l);
+                            if (!layer) continue;
+                            for (auto& clipOpt : layer->clips)
+                            {
+                                if (!clipOpt.has_value()) continue;
+                                auto& clip = clipOpt.value();
+                                if (clip.mediaFile != juce::File() && clip.mediaFile.existsAsFile())
+                                {
+                                    auto dest = destDir.getChildFile(clip.mediaFile.getFileName());
+                                    if (!dest.existsAsFile())
+                                    {
+                                        clip.mediaFile.copyFileTo(dest);
+                                        ++copied;
+                                    }
+                                    clip.mediaFile = dest; // Relink to collected copy
+                                }
+                                for (auto& sf : clip.sequenceFiles)
+                                {
+                                    if (sf.existsAsFile())
+                                    {
+                                        auto dest = destDir.getChildFile(sf.getFileName());
+                                        if (!dest.existsAsFile())
+                                            sf.copyFileTo(dest);
+                                        sf = dest;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Also save composition JSON
+                    auto compFile = destDir.getParentDirectory().getChildFile(
+                        juce::String(composition_.name) + ".json");
+                    composition_.saveToFile(compFile);
+                    DBG("Collected " + juce::String(copied) + " media files to " + destDir.getFullPathName());
+                });
+            break;
+        }
+
+        case C::kCompRelocateFiles:
+        {
+            // P24.7: Relocate missing files — choose folder to search
+            fileChooser_ = std::make_unique<juce::FileChooser>(
+                "Choose Folder to Search for Missing Files",
+                juce::File::getSpecialLocation(juce::File::userHomeDirectory));
+            fileChooser_->launchAsync(
+                juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories,
+                [this](const juce::FileChooser& fc) {
+                    auto results = fc.getResults();
+                    if (results.isEmpty()) return;
+                    auto searchDir = results.getFirst();
+                    int found = 0;
+                    for (auto& deck : composition_.decks)
+                    {
+                        for (int l = 0; l < deck.getNumLayers(); ++l)
+                        {
+                            auto* layer = deck.getLayer(l);
+                            if (!layer) continue;
+                            for (auto& clipOpt : layer->clips)
+                            {
+                                if (!clipOpt.has_value()) continue;
+                                auto& clip = clipOpt.value();
+                                if (clip.mediaFile != juce::File() && !clip.mediaFile.existsAsFile())
+                                {
+                                    // Search for file by name in the search directory
+                                    auto name = clip.mediaFile.getFileName();
+                                    auto candidate = searchDir.getChildFile(name);
+                                    if (candidate.existsAsFile())
+                                    {
+                                        clip.mediaFile = candidate;
+                                        ++found;
+                                    }
+                                    else
+                                    {
+                                        // Deep search — check subdirectories
+                                        auto matches = searchDir.findChildFiles(
+                                            juce::File::findFiles, true, name);
+                                        if (!matches.isEmpty())
+                                        {
+                                            clip.mediaFile = matches.getFirst();
+                                            ++found;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (deckView_) deckView_->rebuildGrid();
+                    DBG("Relocated " + juce::String(found) + " missing files");
+                });
+            break;
+        }
 
         // --- Deck menu ---
         case C::kDeckNew:
@@ -2801,6 +2936,52 @@ void MainComponent::handleMenuCommand(int commandId)
             }
             break;
 
+        case C::kLayerFold:
+        {
+            // P24.12: Toggle fold on the selected layer
+            int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
+            if (selLayer >= 0)
+            {
+                if (auto* deck = composition_.getActiveDeck())
+                {
+                    if (auto* layer = deck->getLayer(selLayer))
+                    {
+                        layer->folded = !layer->folded;
+                        if (deckView_) deckView_->rebuildGrid();
+                    }
+                }
+            }
+            break;
+        }
+        case C::kLayerMoveUp:
+        {
+            // P24.13: Move selected layer up (swap with layer above)
+            int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
+            if (selLayer > 0)
+            {
+                if (auto* deck = composition_.getActiveDeck())
+                {
+                    deck->moveLayer(selLayer, selLayer - 1);
+                    if (deckView_) { deckView_->rebuildGrid(); deckView_->selectLayer(selLayer - 1); }
+                }
+            }
+            break;
+        }
+        case C::kLayerMoveDown:
+        {
+            // P24.13: Move selected layer down (swap with layer below)
+            int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
+            if (auto* deck = composition_.getActiveDeck())
+            {
+                if (selLayer >= 0 && selLayer < deck->getNumLayers() - 1)
+                {
+                    deck->moveLayer(selLayer, selLayer + 1);
+                    if (deckView_) { deckView_->rebuildGrid(); deckView_->selectLayer(selLayer + 1); }
+                }
+            }
+            break;
+        }
+
         // --- Column menu ---
         case C::kColumnNew:
         case C::kColumnInsertBefore:
@@ -2836,6 +3017,84 @@ void MainComponent::handleMenuCommand(int commandId)
                 }
             }
             break;
+
+        case C::kClipReplaceContent:
+        {
+            // P24.4: Replace content keeping effects — open file chooser
+            if (deckView_ && !deckView_->getSelectedCells().empty())
+            {
+                auto cell = deckView_->getSelectedCells().front();
+                fileChooser_ = std::make_unique<juce::FileChooser>(
+                    "Replace Content",
+                    juce::File::getSpecialLocation(juce::File::userHomeDirectory),
+                    "*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.tiff;*.mov;*.avi;*.mp4;*.mkv;*.webm;*.m4v");
+                fileChooser_->launchAsync(
+                    juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                    [this, cell](const juce::FileChooser& fc)
+                    {
+                        auto results = fc.getResults();
+                        if (results.isEmpty()) return;
+                        auto file = results.getFirst();
+                        auto* deck = composition_.getActiveDeck();
+                        if (!deck) return;
+                        auto* existing = deck->getClip(cell.layer, cell.column);
+                        if (!existing) return;
+
+                        // Build new content clip
+                        Clip newContent;
+                        newContent.name = file.getFileNameWithoutExtension().toStdString();
+                        newContent.mediaFile = file;
+                        auto ext = file.getFileExtension().toLowerCase();
+                        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" ||
+                            ext == ".gif" || ext == ".bmp" || ext == ".tiff")
+                        {
+                            newContent.mediaType = Clip::MediaType::Image;
+                            newContent.playing = true;
+                        }
+                        else
+                        {
+                            newContent.mediaType = Clip::MediaType::Video;
+                            newContent.playing = true;
+                            auto& renderer = previewPanel_.getRenderer();
+                            if (renderer.openVideoForClip(existing->id, file))
+                            {
+                                if (auto* player = renderer.getVideoPlayer(existing->id))
+                                {
+                                    newContent.hasAlpha = player->hasAlpha();
+                                    newContent.clipWidth = player->getWidth();
+                                    newContent.clipHeight = player->getHeight();
+                                    newContent.thumbnail = player->getThumbnail(90, 72);
+                                }
+                            }
+                        }
+
+                        existing->replaceContent(newContent);
+                        if (deckView_) deckView_->rebuildGrid();
+                        if (inspectorPanel_) inspectorPanel_->refresh();
+                    });
+            }
+            break;
+        }
+
+        case C::kClipLockContent:
+        {
+            // P24.5: Toggle content lock on selected clip
+            if (deckView_ && !deckView_->getSelectedCells().empty())
+            {
+                auto* deck = composition_.getActiveDeck();
+                if (deck)
+                {
+                    for (auto& cell : deckView_->getSelectedCells())
+                    {
+                        if (auto* clip = deck->getClip(cell.layer, cell.column))
+                            clip->contentLocked = !clip->contentLocked;
+                    }
+                    if (deckView_) deckView_->refresh();
+                    if (inspectorPanel_) inspectorPanel_->refresh();
+                }
+            }
+            break;
+        }
 
         // --- Output menu ---
         case C::kOutputDisabled:
@@ -2889,6 +3148,37 @@ void MainComponent::handleMenuCommand(int commandId)
         case C::kShortcutsStop:
             exitAllBindingModes();
             break;
+        case C::kShortcutsExportBindings:
+        {
+            auto bindDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                               .getChildFile("Audio-DNA").getChildFile("bindings");
+            bindDir.createDirectory();
+            fileChooser_ = std::make_unique<juce::FileChooser>(
+                "Export Bindings", bindDir, "*.json");
+            fileChooser_->launchAsync(
+                juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+                [this](const juce::FileChooser& fc) {
+                    auto results = fc.getResults();
+                    if (results.isEmpty()) return;
+                    bindingManager_.saveToFile(results.getFirst().withFileExtension("json"));
+                });
+            break;
+        }
+        case C::kShortcutsImportBindings:
+        {
+            auto bindDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                               .getChildFile("Audio-DNA").getChildFile("bindings");
+            fileChooser_ = std::make_unique<juce::FileChooser>(
+                "Import Bindings", bindDir, "*.json");
+            fileChooser_->launchAsync(
+                juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                [this](const juce::FileChooser& fc) {
+                    auto results = fc.getResults();
+                    if (results.isEmpty()) return;
+                    bindingManager_.loadFromFile(results.getFirst());
+                });
+            break;
+        }
 
         // --- View menu ---
         case C::kViewProgrammingMode:
@@ -2903,6 +3193,67 @@ void MainComponent::handleMenuCommand(int commandId)
                     signalBar_->onSizeChanged();
             }
             break;
+
+        // P24.6: Layout presets
+        case C::kViewSaveLayout:
+        {
+            auto layoutDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                 .getChildFile("Audio-DNA").getChildFile("layouts");
+            layoutDir.createDirectory();
+            fileChooser_ = std::make_unique<juce::FileChooser>(
+                "Save Layout", layoutDir, "*.json");
+            fileChooser_->launchAsync(
+                juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+                [this](const juce::FileChooser& fc) {
+                    auto results = fc.getResults();
+                    if (results.isEmpty()) return;
+                    auto file = results.getFirst().withFileExtension("json");
+                    auto* obj = new juce::DynamicObject();
+                    obj->setProperty("deckDividerY", deckDividerY_);
+                    juce::Array<juce::var> vd;
+                    for (int i = 0; i < 3; ++i)
+                        vd.add(static_cast<double>(vDividerFrac_[i]));
+                    obj->setProperty("vDividerFrac", vd);
+                    file.replaceWithText(juce::JSON::toString(juce::var(obj)));
+                });
+            break;
+        }
+        case C::kViewLoadLayout:
+        {
+            auto layoutDir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                 .getChildFile("Audio-DNA").getChildFile("layouts");
+            fileChooser_ = std::make_unique<juce::FileChooser>(
+                "Load Layout", layoutDir, "*.json");
+            fileChooser_->launchAsync(
+                juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                [this](const juce::FileChooser& fc) {
+                    auto results = fc.getResults();
+                    if (results.isEmpty()) return;
+                    auto json = results.getFirst().loadFileAsString();
+                    auto parsed = juce::JSON::parse(json);
+                    if (auto* obj = parsed.getDynamicObject())
+                    {
+                        if (obj->hasProperty("deckDividerY"))
+                            deckDividerY_ = static_cast<int>(obj->getProperty("deckDividerY"));
+                        if (auto* vd = obj->getProperty("vDividerFrac").getArray())
+                        {
+                            for (int i = 0; i < std::min(3, static_cast<int>(vd->size())); ++i)
+                                vDividerFrac_[i] = static_cast<float>(static_cast<double>((*vd)[i]));
+                        }
+                        resized();
+                    }
+                });
+            break;
+        }
+        case C::kViewResetLayout:
+        {
+            deckDividerY_ = -1;
+            vDividerFrac_[0] = 0.22f;
+            vDividerFrac_[1] = 0.50f;
+            vDividerFrac_[2] = 0.75f;
+            resized();
+            break;
+        }
 
         default:
             DBG("Menu command not yet implemented: " + juce::String(commandId));

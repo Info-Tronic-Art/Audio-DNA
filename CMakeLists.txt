@@ -158,6 +158,9 @@ target_sources(AudioDNA PRIVATE
     src/signal/AudioSignal.h
     src/signal/OscillatorSignal.h
     src/signal/EnvelopeSignal.h
+    src/signal/ChainedSignal.h
+    src/signal/ChainedSignal.cpp
+    src/signal/ClipPositionSignal.h
     src/signal/SignalRegistry.h
     src/signal/SignalRegistry.cpp
 

@@ -72,6 +72,10 @@ juce::var Clip::toVar() const
         cpArray.add(static_cast<double>(cuepoints[i]));
     obj->setProperty("cuepoints", cpArray);
 
+    // P24.5: Content lock
+    if (contentLocked)
+        obj->setProperty("contentLocked", true);
+
     return juce::var(obj);
 }
 
@@ -169,5 +173,9 @@ void Clip::fromVar(const juce::var& v)
                     cuepoints[numCuepoints++] = static_cast<float>(static_cast<double>(cp));
             }
         }
+
+        // P24.5: Content lock
+        if (obj->hasProperty("contentLocked"))
+            contentLocked = static_cast<bool>(obj->getProperty("contentLocked"));
     }
 }

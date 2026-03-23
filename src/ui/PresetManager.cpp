@@ -7,7 +7,7 @@ static const char* const kSourceNames[] = {
     "LUFS", "DynamicRange", "TransientDensity",
     "SpectralCentroid", "SpectralFlux", "SpectralFlatness", "SpectralRolloff",
     "BandSub", "BandBass", "BandLowMid", "BandMid", "BandHighMid", "BandPresence", "BandBrilliance",
-    "OnsetStrength", "BeatPhase", "BPM",
+    "OnsetStrength", "BeatPhase", "BPM", "BarPhase", "PhrasePhase", "BarCount",
     "StructuralState",
     "DominantPitch", "PitchConfidence", "DetectedKey", "HarmonicChange",
     "MFCC0", "MFCC1", "MFCC2", "MFCC3", "MFCC4", "MFCC5", "MFCC6",
@@ -19,7 +19,14 @@ static const char* const kSourceNames[] = {
 static constexpr int kNumSources = static_cast<int>(MappingSource::Count);
 
 static const char* const kCurveNames[] = {
-    "Linear", "Exponential", "Logarithmic", "SCurve", "Stepped"
+    "Linear", "Exponential", "Logarithmic", "SCurve", "Stepped",
+    "CircularIn", "CircularOut", "CircularInOut",
+    "BackIn", "BackOut", "BackInOut",
+    "ElasticIn", "ElasticOut", "ElasticInOut",
+    "BounceIn", "BounceOut", "BounceInOut",
+    "CubicIn", "CubicOut", "CubicInOut",
+    "SineIn", "SineOut", "SineInOut",
+    "Hold"
 };
 
 static constexpr int kNumCurves = static_cast<int>(MappingCurve::Count);

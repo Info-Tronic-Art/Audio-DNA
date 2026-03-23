@@ -3,9 +3,13 @@
 #include "signal/AudioSignal.h"
 #include "signal/OscillatorSignal.h"
 #include "signal/EnvelopeSignal.h"
+#include "signal/ClipPositionSignal.h"
 #include <vector>
 #include <memory>
 #include <string>
+
+// Forward declarations for signal types included in .cpp
+class ChainedSignal;
 
 // SignalRegistry: manages all active signals in the application.
 // Populated at startup with default audio signals and modulation slots.
@@ -38,6 +42,10 @@ public:
 
     // Get the last evaluated value for a signal (avoid re-evaluation).
     float getCachedValue(uint32_t signalId) const;
+
+    // P24: Get the clip position signal for updating from render thread
+    ClipPositionSignal* getClipPositionSignal();
+
 
 private:
     std::vector<std::unique_ptr<Signal>> signals_;

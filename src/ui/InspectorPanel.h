@@ -51,6 +51,10 @@ public:
     ClipInspector& getClipInspector() { return clipInspector_; }
     LayerInspector& getLayerInspector() { return layerInspector_; }
 
+    // P24.11: Pin inspector — prevents auto-switching tabs during performance
+    bool isPinned() const { return pinned_; }
+    void setPinned(bool p) { pinned_ = p; updatePinButton(); }
+
 private:
     Tab activeTab_ = Tab::Clip;
 
@@ -73,11 +77,14 @@ private:
     SignalInspector signalInspector_;
 
     Composition* composition_ = nullptr;
+    bool pinned_ = false;
+    juce::TextButton pinBtn_{"Pin"};
 
     static constexpr int kTabBarHeight = 26;
 
     void updateTabButtonColors();
     void showActiveTab();
+    void updatePinButton();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(InspectorPanel)
 };

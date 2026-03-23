@@ -50,6 +50,7 @@ struct Layer
     bool autopilotEnabled = false;
     bool ignoreColumnTrigger = false;
     bool persistent = false;        // If true, this layer keeps rendering even when deck is not active
+    bool folded = false;            // P24.12: If true, layer row is collapsed in DeckView
 
     // === Mix Mode — unified list for both layer blending and clip transitions ===
     // V dropdown picks a MixMode for persistent layer compositing.

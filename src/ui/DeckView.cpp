@@ -236,9 +236,14 @@ int DeckView::getNaturalHeight() const
     auto* deck = composition_->getActiveDeck();
     if (!deck) return 200;
 
-    int numLayers = deck->getNumLayers();
-    int rowHeight = kCellHeight + kCellGap;
-    return kColumnTriggerHeight + rowHeight * numLayers + kDeckTabHeight;
+    static constexpr int kFoldedHeight = 22;
+    int totalRowHeight = 0;
+    for (int i = 0; i < deck->getNumLayers(); ++i)
+    {
+        auto* layer = deck->getLayer(i);
+        totalRowHeight += (layer && layer->folded) ? (kFoldedHeight + kCellGap) : (kCellHeight + kCellGap);
+    }
+    return kColumnTriggerHeight + totalRowHeight + kDeckTabHeight;
 }
 
 void DeckView::layoutGrid()
@@ -247,22 +252,28 @@ void DeckView::layoutGrid()
     auto* deck = composition_->getActiveDeck();
     if (!deck) return;
 
-    int numLayers = deck->getNumLayers();
     int numCols = deck->numColumns;
-    int rowHeight = kCellHeight + kCellGap;
+    static constexpr int kFoldedHeight = 22; // P24.12: collapsed row height
 
-    // Total content size
+    // Calculate total content height with variable row heights
     int contentWidth = kLayerStripWidth + (kCellWidth + kCellGap) * numCols + 30;
-    int contentHeight = rowHeight * numLayers;
+    int contentHeight = 0;
+    for (int i = 0; i < deck->getNumLayers(); ++i)
+    {
+        auto* layer = deck->getLayer(i);
+        contentHeight += (layer && layer->folded) ? (kFoldedHeight + kCellGap) : (kCellHeight + kCellGap);
+    }
     gridContent_->setSize(contentWidth, contentHeight);
 
+    int y = 0;
     for (int displayRow = 0; displayRow < static_cast<int>(layerStrips_.size()); ++displayRow)
     {
-        int y = displayRow * rowHeight;
+        auto* layer = deck->getLayer(displayRow);
+        int rowH = (layer && layer->folded) ? kFoldedHeight : kCellHeight;
 
         // Layer strip on the left
         layerStrips_[static_cast<size_t>(displayRow)]->setBounds(
-            0, y, kLayerStripWidth, kCellHeight);
+            0, y, kLayerStripWidth, rowH);
 
         // Clip cells
         auto& layerCells = clipCells_[static_cast<size_t>(displayRow)];
@@ -270,8 +281,10 @@ void DeckView::layoutGrid()
         {
             int x = kLayerStripWidth + col * (kCellWidth + kCellGap);
             if (layerCells[static_cast<size_t>(col)])
-                layerCells[static_cast<size_t>(col)]->setBounds(x, y, kCellWidth, kCellHeight);
+                layerCells[static_cast<size_t>(col)]->setBounds(x, y, kCellWidth, rowH);
         }
+
+        y += rowH + kCellGap;
     }
 }
 

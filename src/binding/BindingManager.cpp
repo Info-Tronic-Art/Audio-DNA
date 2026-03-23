@@ -208,3 +208,99 @@ float BindingManager::getRelativeCCValue(int channel, int cc) const
         return it->second;
     return 0.5f;
 }
+
+// P24.10: Binding presets — serialization
+
+juce::var BindingManager::toVar() const
+{
+    juce::Array<juce::var> arr;
+    for (const auto& b : bindings_)
+    {
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("inputType", static_cast<int>(b.inputType));
+        obj->setProperty("keyCode", b.keyCode);
+        obj->setProperty("keyModShift", b.keyModShift);
+        obj->setProperty("keyModCmd", b.keyModCmd);
+        obj->setProperty("keyModAlt", b.keyModAlt);
+        obj->setProperty("midiChannel", b.midiChannel);
+        obj->setProperty("midiNote", b.midiNote);
+        obj->setProperty("midiCC", b.midiCC);
+        obj->setProperty("action", static_cast<int>(b.action));
+        obj->setProperty("triggerMode", static_cast<int>(b.triggerMode));
+        obj->setProperty("ccMode", static_cast<int>(b.ccMode));
+        obj->setProperty("ccStepSize", static_cast<double>(b.ccStepSize));
+        obj->setProperty("targetMode", static_cast<int>(b.targetMode));
+        obj->setProperty("targetClipId", static_cast<int>(b.targetClipId));
+        obj->setProperty("velocityToOpacity", b.velocityToOpacity);
+        obj->setProperty("targetLayerIndex", b.targetLayerIndex);
+        obj->setProperty("targetColumn", b.targetColumn);
+        obj->setProperty("targetDeckIndex", b.targetDeckIndex);
+        obj->setProperty("targetEffectIndex", b.targetEffectIndex);
+        obj->setProperty("targetMacroIndex", b.targetMacroIndex);
+        obj->setProperty("enabled", b.enabled);
+        arr.add(juce::var(obj));
+    }
+    auto* root = new juce::DynamicObject();
+    root->setProperty("bindings", arr);
+    root->setProperty("version", 1);
+    return juce::var(root);
+}
+
+void BindingManager::fromVar(const juce::var& v)
+{
+    bindings_.clear();
+    relativeCCValues_.clear();
+
+    if (auto* root = v.getDynamicObject())
+    {
+        if (auto* arr = root->getProperty("bindings").getArray())
+        {
+            for (const auto& bVar : *arr)
+            {
+                if (auto* obj = bVar.getDynamicObject())
+                {
+                    Binding b;
+                    b.id = nextId_++;
+                    b.inputType = static_cast<Binding::InputType>(static_cast<int>(obj->getProperty("inputType")));
+                    b.keyCode = static_cast<int>(obj->getProperty("keyCode"));
+                    b.keyModShift = static_cast<bool>(obj->getProperty("keyModShift"));
+                    b.keyModCmd = static_cast<bool>(obj->getProperty("keyModCmd"));
+                    b.keyModAlt = static_cast<bool>(obj->getProperty("keyModAlt"));
+                    b.midiChannel = static_cast<int>(obj->getProperty("midiChannel"));
+                    b.midiNote = static_cast<int>(obj->getProperty("midiNote"));
+                    b.midiCC = static_cast<int>(obj->getProperty("midiCC"));
+                    b.action = static_cast<Binding::Action>(static_cast<int>(obj->getProperty("action")));
+                    b.triggerMode = static_cast<Binding::TriggerMode>(static_cast<int>(obj->getProperty("triggerMode")));
+                    b.ccMode = static_cast<Binding::CCMode>(static_cast<int>(obj->getProperty("ccMode")));
+                    b.ccStepSize = static_cast<float>(static_cast<double>(obj->getProperty("ccStepSize")));
+                    b.targetMode = static_cast<Binding::TargetMode>(static_cast<int>(obj->getProperty("targetMode")));
+                    b.targetClipId = static_cast<uint32_t>(static_cast<int>(obj->getProperty("targetClipId")));
+                    b.velocityToOpacity = static_cast<bool>(obj->getProperty("velocityToOpacity"));
+                    b.targetLayerIndex = static_cast<int>(obj->getProperty("targetLayerIndex"));
+                    b.targetColumn = static_cast<int>(obj->getProperty("targetColumn"));
+                    b.targetDeckIndex = static_cast<int>(obj->getProperty("targetDeckIndex"));
+                    b.targetEffectIndex = static_cast<int>(obj->getProperty("targetEffectIndex"));
+                    b.targetMacroIndex = static_cast<int>(obj->getProperty("targetMacroIndex"));
+                    b.enabled = static_cast<bool>(obj->getProperty("enabled"));
+                    bindings_.push_back(b);
+                }
+            }
+        }
+    }
+}
+
+bool BindingManager::saveToFile(const juce::File& file) const
+{
+    auto json = juce::JSON::toString(toVar());
+    return file.replaceWithText(json);
+}
+
+bool BindingManager::loadFromFile(const juce::File& file)
+{
+    auto json = file.loadFileAsString();
+    if (json.isEmpty()) return false;
+    auto parsed = juce::JSON::parse(json);
+    if (parsed.isVoid()) return false;
+    fromVar(parsed);
+    return true;
+}
