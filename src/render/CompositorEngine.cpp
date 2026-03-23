@@ -838,6 +838,68 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
     return accumulatorTex_;
 }
 
+void CompositorEngine::compositePersistentLayers(Deck& deck,
+                                                  ShaderManager& shaderMgr,
+                                                  FullscreenQuad& quad,
+                                                  float time,
+                                                  int width, int height)
+{
+    using namespace juce::gl;
+
+    if (!glInitialized_) return;
+
+    // Iterate layers, compositing only those marked persistent and with active clips
+    for (auto& layer : deck.layers)
+    {
+        if (!layer.persistent || !layer.visible || layer.bypassed)
+            continue;
+
+        const Clip* clip = layer.getActiveClip();
+        if (clip == nullptr)
+            continue;
+
+        // Only composite Opaque/Transparent persistent layers for now
+        if (layer.type != Layer::Type::Opaque && layer.type != Layer::Type::Transparent)
+            continue;
+
+        GLuint clipTex = 0;
+        if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+        {
+            clipTex = getKeyTexture(clip->mediaFile);
+        }
+        else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty() && sourceRenderFn_)
+        {
+            const auto* params = clip->sourceParams.empty() ? nullptr : &clip->sourceParams;
+            clipTex = sourceRenderFn_(clip->sourceType, time, width, height, params);
+        }
+        else if ((clip->mediaType == Clip::MediaType::Video ||
+                  clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
+        {
+            float dt = 1.0f / 60.0f;
+            clipTex = videoFrameFn_(clip, dt);
+        }
+
+        if (clipTex == 0) continue;
+
+        // Apply clip effects
+        GLuint processedTex = applyClipEffects(*clip, clipTex,
+                                                shaderMgr, quad, time, width, height,
+                                                layer.id);
+        if (processedTex == 0) processedTex = clipTex;
+
+        // Keying for transparent layers
+        if (layer.type == Layer::Type::Transparent)
+        {
+            applyLayerKeying(layer, processedTex, scratchFBO_, shaderMgr, quad, width, height);
+            blendLayerOntoAccumulator(layer, scratchTex_, shaderMgr, quad, width, height);
+        }
+        else
+        {
+            blendLayerOntoAccumulator(layer, processedTex, shaderMgr, quad, width, height);
+        }
+    }
+}
+
 void CompositorEngine::applyLayerKeying(const Layer& layer, GLuint srcTex, GLuint dstFBO,
                                          ShaderManager& shaderMgr, FullscreenQuad& quad,
                                          int w, int h)

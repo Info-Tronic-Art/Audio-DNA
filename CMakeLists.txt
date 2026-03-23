@@ -31,6 +31,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(JUCE)
 
+# --- Ableton Link (network tempo sync, optional) ---
+option(AUDIODNA_BUILD_LINK "Build with Ableton Link network tempo sync" OFF)
+if(AUDIODNA_BUILD_LINK)
+    FetchContent_Declare(
+        AbletonLink
+        GIT_REPOSITORY https://github.com/Ableton/link.git
+        GIT_TAG        Link-3.1.2
+        GIT_SHALLOW    TRUE
+    )
+    FetchContent_MakeAvailable(AbletonLink)
+endif()
+
 # --- Visual Test Server (Eyes) ---
 option(AUDIODNA_BUILD_TEST_SERVER "Build with embedded HTTP test server (Eyes)" OFF)
 if(AUDIODNA_BUILD_TEST_SERVER)
@@ -153,6 +165,10 @@ target_sources(AudioDNA PRIVATE
     # MIDI (v2)
     src/midi/MidiHandler.h
     src/midi/MidiHandler.cpp
+
+    # Sync (v2 - P21: Ableton Link)
+    src/sync/LinkSync.h
+    src/sync/LinkSync.cpp
 
     # Media (v2 - Phase 11: Video playback)
     src/media/VideoPlayer.h
@@ -306,6 +322,13 @@ endif()
 if(AUDIODNA_BUILD_TEST_SERVER)
     target_compile_definitions(AudioDNA PRIVATE AUDIODNA_TEST_SERVER=1)
     target_link_libraries(AudioDNA PRIVATE httplib::httplib)
+endif()
+
+# Add Ableton Link support if enabled
+if(AUDIODNA_BUILD_LINK)
+    target_compile_definitions(AudioDNA PRIVATE AUDIODNA_HAS_LINK=1 LINK_PLATFORM_MACOSX=1)
+    target_include_directories(AudioDNA PRIVATE ${abletonlink_SOURCE_DIR}/include)
+    target_include_directories(AudioDNA PRIVATE ${abletonlink_SOURCE_DIR}/modules/asio-standalone/asio/include)
 endif()
 
 set(AUDIODNA_LIBS

@@ -13,6 +13,7 @@ juce::var Layer::toVar() const
     obj->setProperty("muted", muted);
     obj->setProperty("autopilotEnabled", autopilotEnabled);
     obj->setProperty("ignoreColumnTrigger", ignoreColumnTrigger);
+    obj->setProperty("persistent", persistent);
     obj->setProperty("blendMode", static_cast<int>(blendMode));
     obj->setProperty("keyingMode", static_cast<int>(keyingMode));
     obj->setProperty("keyThreshold", static_cast<double>(keyThreshold));
@@ -76,6 +77,7 @@ void Layer::fromVar(const juce::var& v)
         muted = static_cast<bool>(obj->getProperty("muted"));
         autopilotEnabled = static_cast<bool>(obj->getProperty("autopilotEnabled"));
         ignoreColumnTrigger = static_cast<bool>(obj->getProperty("ignoreColumnTrigger"));
+        persistent = static_cast<bool>(obj->getProperty("persistent"));
         blendMode = static_cast<MixMode>(static_cast<int>(obj->getProperty("blendMode")));
         keyingMode = static_cast<KeyingMode>(static_cast<int>(obj->getProperty("keyingMode")));
         keyThreshold = static_cast<float>(static_cast<double>(obj->getProperty("keyThreshold")));

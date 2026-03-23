@@ -49,6 +49,7 @@ struct Layer
     bool muted = false;          // Audio mute
     bool autopilotEnabled = false;
     bool ignoreColumnTrigger = false;
+    bool persistent = false;        // If true, this layer keeps rendering even when deck is not active
 
     // === Mix Mode — unified list for both layer blending and clip transitions ===
     // V dropdown picks a MixMode for persistent layer compositing.
@@ -198,9 +199,11 @@ struct Layer
             return;
         }
 
-        // Check beat snap: if the target clip has beatSnap, queue for next beat
+        // Check beat snap: if the target clip has beat snap enabled, queue for next beat/bar
         auto& clipOpt = clips[static_cast<size_t>(column)];
-        if (clipOpt.has_value() && clipOpt->beatSnap && column != activeClipColumn)
+        bool snapEnabled = clipOpt.has_value() &&
+                          (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off || clipOpt->beatSnap);
+        if (snapEnabled && column != activeClipColumn)
         {
             pendingTriggerColumn = column;
             return;
@@ -246,9 +249,38 @@ struct Layer
     }
 
     // Process pending beat-snapped triggers. Call on each beat detection.
-    void processPendingTrigger()
+    // beatInBar: which beat within the bar (0-3). barCount: total bars elapsed.
+    void processPendingTrigger(int beatInBar = 0, int barCount = 0)
     {
-        if (pendingTriggerColumn >= 0)
+        if (pendingTriggerColumn < 0)
+            return;
+
+        // Determine the required snap granularity from the pending clip
+        auto snapMode = Clip::BeatSnapMode::Beat; // default
+        auto& clipOpt = clips[static_cast<size_t>(pendingTriggerColumn)];
+        if (clipOpt.has_value())
+            snapMode = (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off)
+                       ? clipOpt->beatSnapMode : Clip::BeatSnapMode::Beat;
+
+        bool shouldTrigger = false;
+        switch (snapMode)
+        {
+            case Clip::BeatSnapMode::Off:
+            case Clip::BeatSnapMode::Beat:
+                shouldTrigger = true; // Every beat
+                break;
+            case Clip::BeatSnapMode::Bar:
+                shouldTrigger = (beatInBar == 0); // First beat of bar
+                break;
+            case Clip::BeatSnapMode::TwoBar:
+                shouldTrigger = (beatInBar == 0 && (barCount % 2) == 0);
+                break;
+            case Clip::BeatSnapMode::FourBar:
+                shouldTrigger = (beatInBar == 0 && (barCount % 4) == 0);
+                break;
+        }
+
+        if (shouldTrigger)
             triggerClipImmediate(pendingTriggerColumn);
     }
 

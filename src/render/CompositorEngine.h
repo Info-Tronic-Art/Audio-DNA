@@ -75,6 +75,14 @@ public:
                          float time,
                          int width, int height);
 
+    // P21: Composite only persistent layers from a non-active deck onto the
+    // existing accumulator. Call AFTER compositeDeck() for the active deck.
+    void compositePersistentLayers(Deck& deck,
+                                   ShaderManager& shaderMgr,
+                                   FullscreenQuad& quad,
+                                   float time,
+                                   int width, int height);
+
     bool hasActiveLayers() const { return hasActiveLayers_; }
 
     // Copy the current composited frame into the persistent feedback buffer.

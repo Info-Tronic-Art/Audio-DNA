@@ -151,6 +151,24 @@ LayerInspector::LayerInspector()
     masterControl_.onExpandToggled = [this] { resized(); if (auto* p = getParentComponent()) p->resized(); };
     addAndMakeVisible(masterControl_);
 
+    // P21: Persistent layer toggle
+    persistentToggle_.setColour(juce::ToggleButton::textColourId,
+                                juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    persistentToggle_.setTooltip("Keep this layer rendering when switching to another deck");
+    persistentToggle_.onClick = [this] {
+        if (layer_) layer_->persistent = persistentToggle_.getToggleState();
+    };
+    addAndMakeVisible(persistentToggle_);
+
+    // Ignore Column Trigger toggle
+    ignoreColumnToggle_.setColour(juce::ToggleButton::textColourId,
+                                  juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    ignoreColumnToggle_.setTooltip("This layer ignores column trigger buttons");
+    ignoreColumnToggle_.onClick = [this] {
+        if (layer_) layer_->ignoreColumnTrigger = ignoreColumnToggle_.getToggleState();
+    };
+    addAndMakeVisible(ignoreColumnToggle_);
+
     // --- Video: Blend mode ---
     populateBlendModes();
     blendModeSelector_.onChange = [this] {
@@ -512,7 +530,7 @@ void LayerInspector::paint(juce::Graphics& g)
     }
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Layer");
-    y += kSectionHeaderHeight + masterControl_.getPreferredHeight() + kSectionGap;
+    y += kSectionHeaderHeight + masterControl_.getPreferredHeight() + kRowHeight + kSectionGap;
 
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Video");
     y += kSectionHeaderHeight + kRowHeight + opacityControl_.getPreferredHeight()
@@ -615,7 +633,10 @@ void LayerInspector::resized()
     // --- Layer (Master) ---
     y += kSectionHeaderHeight;
     masterControl_.setBounds(area.getX(), y, area.getWidth(), masterControl_.getPreferredHeight());
-    y += masterControl_.getPreferredHeight() + kSectionGap;
+    y += masterControl_.getPreferredHeight();
+    persistentToggle_.setBounds(area.getX(), y, area.getWidth() / 2, kRowHeight);
+    ignoreColumnToggle_.setBounds(area.getX() + area.getWidth() / 2, y, area.getWidth() / 2, kRowHeight);
+    y += kRowHeight + kSectionGap;
 
     // --- Video ---
     y += kSectionHeaderHeight;
@@ -765,7 +786,7 @@ int LayerInspector::getPreferredHeight() const
         if (apTriggerModeSelector_.getSelectedId() == 2) apRows += 1;
         h += kSectionHeaderHeight + kRowHeight * apRows + kSectionGap; // Autopilot
     }
-    h += kSectionHeaderHeight + masterControl_.getPreferredHeight() + kSectionGap; // Layer
+    h += kSectionHeaderHeight + masterControl_.getPreferredHeight() + kRowHeight + kSectionGap; // Layer + toggles
     h += kSectionHeaderHeight + kRowHeight + opacityControl_.getPreferredHeight() + kRowHeight * 3 + kSectionGap; // Video
     h += kSectionHeaderHeight + kRowHeight * 2 + kSectionGap; // Transition
 
@@ -864,6 +885,8 @@ void LayerInspector::syncFromLayer()
     }
 
     masterControl_.setParamValue(layer_->opacity);
+    persistentToggle_.setToggleState(layer_->persistent, juce::dontSendNotification);
+    ignoreColumnToggle_.setToggleState(layer_->ignoreColumnTrigger, juce::dontSendNotification);
     opacityControl_.setParamValue(layer_->opacity);
     blendModeSelector_.setSelectedId(static_cast<int>(layer_->blendMode) + 1, juce::dontSendNotification);
     widthSlider_.setValue(layer_->layerWidth, juce::dontSendNotification);

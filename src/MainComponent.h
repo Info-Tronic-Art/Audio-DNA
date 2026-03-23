@@ -28,6 +28,7 @@
 #include "ui/MidiLearnOverlay.h"
 #include "midi/MidiHandler.h"
 #include "recording/SessionRecorder.h"
+#include "sync/LinkSync.h"
 #if AUDIODNA_TEST_SERVER
  #include "test/TestServer.h"
 #endif
@@ -195,6 +196,7 @@ private:
     SignalRegistry signalRegistry_;
     MacroBank globalMacroBank_{MacroBank::Scope::Global};
     SessionRecorder sessionRecorder_;
+    LinkSync linkSync_;
     std::unique_ptr<juce::TooltipWindow> tooltipWindow_;
     bool tooltipsEnabled_ = true;
     std::unique_ptr<TopBar> topBar_;

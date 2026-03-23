@@ -381,6 +381,19 @@ void Renderer::renderOpenGL()
         sourceTexture = compositor_.compositeDeck(*deck, shaderMgr_, quad_, time,
                                                    static_cast<int>(renderW),
                                                    static_cast<int>(renderH));
+
+        // P21: Composite persistent layers from non-active decks
+        if (composition_)
+        {
+            for (auto& otherDeck : composition_->decks)
+            {
+                if (&otherDeck == deck) continue; // Skip active deck
+                compositor_.compositePersistentLayers(otherDeck, shaderMgr_, quad_, time,
+                                                       static_cast<int>(renderW),
+                                                       static_cast<int>(renderH));
+            }
+        }
+
         // Update persistent feedback buffer for feedback effects
         compositor_.updateFeedbackBuffer(shaderMgr_, quad_,
                                           static_cast<int>(renderW),

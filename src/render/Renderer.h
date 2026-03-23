@@ -82,6 +82,9 @@ public:
     void setActiveDeck(Deck* deck) { activeDeck_.store(deck, std::memory_order_release); }
     Deck* getActiveDeck() const { return activeDeck_.load(std::memory_order_acquire); }
 
+    // P21: Set composition pointer for persistent layer rendering across decks.
+    void setComposition(Composition* comp) { composition_ = comp; }
+
     // Callback when autopilot advances a clip (called async on message thread)
     void setOnAutopilotAdvanced(std::function<void()> fn) { onAutopilotAdvanced_ = std::move(fn); }
 
@@ -218,6 +221,7 @@ private:
     // Compositor
     CompositorEngine compositor_;
     std::atomic<Deck*> activeDeck_{nullptr};
+    Composition* composition_ = nullptr; // P21: for persistent layer rendering across decks
     Autopilot autopilot_;  // Processes beat-synced clip advancement
     std::function<void()> onAutopilotAdvanced_;  // UI refresh callback
 

@@ -2,6 +2,7 @@
 #include "binding/Binding.h"
 #include <vector>
 #include <functional>
+#include <unordered_map>
 
 // BindingManager: stores all bindings and processes input events.
 // When an input matches a binding, the associated action callback is invoked.
@@ -50,10 +51,16 @@ public:
                                                        bool shift, bool cmd, bool alt)>;
     void setBindingCaptureCallback(BindingCaptureCallback cb) { captureCallback_ = std::move(cb); }
 
+    // Track relative CC accumulated values (for Relative mode encoders)
+    float getRelativeCCValue(int channel, int cc) const;
+
 private:
     std::vector<Binding> bindings_;
     uint32_t nextId_ = 1;
     bool bindingMode_ = false;
     ActionCallback actionCallback_;
     BindingCaptureCallback captureCallback_;
+
+    // Relative CC accumulated values: key = (channel << 8) | cc
+    std::unordered_map<int, float> relativeCCValues_;
 };

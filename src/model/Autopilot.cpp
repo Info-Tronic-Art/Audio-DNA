@@ -45,11 +45,13 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
         return anyAdvanced;
 
     // Process any beat-snapped pending triggers on beat crossing
+    // P21: pass beat position info for bar/2-bar/4-bar snap granularity
     for (auto& layer : deck.layers)
     {
         if (layer.pendingTriggerColumn >= 0)
         {
-            layer.processPendingTrigger();
+            layer.processPendingTrigger(static_cast<int>(snapshot.beatInBar),
+                                         static_cast<int>(snapshot.barCount));
             anyAdvanced = true;
         }
     }

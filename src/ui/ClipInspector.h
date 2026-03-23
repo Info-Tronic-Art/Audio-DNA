@@ -85,7 +85,7 @@ private:
     juce::ComboBox autopilotDurationSelector_;
 
     // --- Beat Snap ---
-    juce::ToggleButton beatSnapToggle_{"Beat Snap"};
+    juce::ComboBox beatSnapSelector_;
 
     // --- Image Sequence FPS ---
     ResettableSlider sequenceFpsSlider_;

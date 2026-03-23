@@ -157,13 +157,21 @@ ClipInspector::ClipInspector()
     };
     addAndMakeVisible(autopilotDurationSelector_);
 
-    // Beat snap
-    beatSnapToggle_.setColour(juce::ToggleButton::textColourId,
-                              juce::Colour(AudioDNALookAndFeel::kTextPrimary));
-    beatSnapToggle_.onStateChange = [this] {
-        if (clip_) clip_->beatSnap = beatSnapToggle_.getToggleState();
+    // Beat snap mode (P21: granularity)
+    beatSnapSelector_.setTextWhenNothingSelected("Snap Off");
+    beatSnapSelector_.addItem("Snap Off", 1);
+    beatSnapSelector_.addItem("Beat", 2);
+    beatSnapSelector_.addItem("Bar", 3);
+    beatSnapSelector_.addItem("2 Bar", 4);
+    beatSnapSelector_.addItem("4 Bar", 5);
+    beatSnapSelector_.setTooltip("Quantize clip trigger to next beat/bar boundary");
+    beatSnapSelector_.onChange = [this] {
+        if (!clip_) return;
+        int sel = beatSnapSelector_.getSelectedId();
+        clip_->beatSnapMode = static_cast<Clip::BeatSnapMode>(sel - 1);
+        clip_->beatSnap = (sel > 1);
     };
-    addAndMakeVisible(beatSnapToggle_);
+    addAndMakeVisible(beatSnapSelector_);
 
     // Image sequence FPS slider
     sequenceFpsLabel_.setText("Images/ Sec", juce::dontSendNotification);
@@ -682,7 +690,7 @@ void ClipInspector::resized()
         auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
         autopilotDurationSelector_.setBounds(row.removeFromLeft(row.getWidth() / 2 - 2));
         row.removeFromLeft(4);
-        beatSnapToggle_.setBounds(row);
+        beatSnapSelector_.setBounds(row);
     }
     y += kRowHeight + kSectionGap;
 
@@ -1132,7 +1140,7 @@ void ClipInspector::syncFromClip()
     speedSlider_.setValue(static_cast<double>(clip_->speed), juce::dontSendNotification);
     reverseBtn_.setColour(juce::TextButton::buttonColourId,
         clip_->reverse ? juce::Colour(0xff4a4a2a) : juce::Colour(AudioDNALookAndFeel::kSurface));
-    beatSnapToggle_.setToggleState(clip_->beatSnap, juce::dontSendNotification);
+    beatSnapSelector_.setSelectedId(static_cast<int>(clip_->beatSnapMode) + 1, juce::dontSendNotification);
 
     // Image sequence FPS / beat division
     if (clip_->isPlayable())

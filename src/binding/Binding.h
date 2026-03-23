@@ -33,6 +33,7 @@ struct Binding
         LayerTransport,     // Play/pause/reverse on layer
         ToggleEffectBypass, // Bypass a specific effect
         AdjustMacro,        // Continuous control of a macro knob
+        AdjustLayerOpacity, // Continuous control of layer opacity
         SwitchDeck,
         TapTempo,
         Resync,
@@ -41,6 +42,39 @@ struct Binding
         MasterOpacity       // Continuous control of master opacity
     };
     Action action = Action::TriggerClip;
+
+    // === Trigger Mode (P21) ===
+    // Controls whether the binding fires on press only (Toggle) or press+release (Momentary/Piano).
+    enum class TriggerMode : uint8_t
+    {
+        Toggle,     // Press = activate, press again = deactivate (default)
+        Momentary   // Press = activate, release = deactivate (piano mode)
+    };
+    TriggerMode triggerMode = TriggerMode::Toggle;
+
+    // === MIDI CC Mode (P21) ===
+    // For CC bindings: Absolute (0-127 maps directly) or Relative (delta from 64).
+    enum class CCMode : uint8_t
+    {
+        Absolute,   // 0-127 → 0.0-1.0 (default)
+        Relative    // < 64 = decrement, > 64 = increment (endless encoders)
+    };
+    CCMode ccMode = CCMode::Absolute;
+    float ccStepSize = 0.01f; // Step size for relative CC mode
+
+    // === Targeting Mode (P21) ===
+    // Controls what the binding targets.
+    enum class TargetMode : uint8_t
+    {
+        ByPosition, // Targets the clip/layer at the specified index (survives reorder)
+        ThisItem,   // Targets a specific clip by ID (follows the clip if moved)
+        Selected    // Targets whatever is currently selected in the UI
+    };
+    TargetMode targetMode = TargetMode::ByPosition;
+    uint32_t targetClipId = 0;  // For ThisItem mode — the specific clip ID to target
+
+    // === MIDI Velocity (P21) ===
+    bool velocityToOpacity = false; // If true, MIDI velocity maps to clip opacity on trigger
 
     // === Action Parameters ===
     int targetLayerIndex = 0;

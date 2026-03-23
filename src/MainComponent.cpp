@@ -510,8 +510,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     addAndMakeVisible(deckView_.get());
     deckView_->setComposition(&composition_);
 
-    // Wire the active deck into the renderer for compositor rendering
+    // Wire the active deck and composition into the renderer for compositor rendering
     previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+    previewPanel_.getRenderer().setComposition(&composition_);
 
     // P20: Wire per-type autopilot config into the renderer
     previewPanel_.getRenderer().setPerTypeAutopilotConfig(&composition_.perTypeAutopilot);
@@ -1580,8 +1581,30 @@ bool MainComponent::keyPressed(const juce::KeyPress& /*key*/, juce::Component* /
     return false;
 }
 
-bool MainComponent::keyStateChanged(bool /*isKeyDown*/)
+bool MainComponent::keyStateChanged(bool isKeyDown)
 {
+    // Route key releases to the binding manager for momentary/piano mode
+    if (!isKeyDown)
+    {
+        // JUCE doesn't tell us WHICH key was released in keyStateChanged,
+        // so we poll all currently-bound keyboard keys to detect releases.
+        // This is the standard JUCE pattern for key-up detection.
+        for (int i = 0; i < bindingManager_.getNumBindings(); ++i)
+        {
+            auto* b = bindingManager_.getBindingAt(i);
+            if (!b || !b->enabled) continue;
+            if (b->inputType != Binding::InputType::Keyboard) continue;
+            if (b->triggerMode != Binding::TriggerMode::Momentary) continue;
+
+            // Check if this bound key is currently released
+            if (!juce::KeyPress::isKeyCurrentlyDown(b->keyCode))
+            {
+                // Fire the release action
+                handleBindingAction(*b, 0.0f);
+            }
+        }
+        return true;
+    }
     return false;
 }
 
@@ -1661,6 +1684,21 @@ void MainComponent::timerCallback()
     // Refresh inspector at ~10Hz to show signal-driven values
     if (uiUpdateCounter_ % 3 == 0 && inspectorPanel_)
         inspectorPanel_->refresh();
+
+    // P21: Ableton Link sync — update cached state and feed BPM tracker
+    if (linkSync_.isEnabled())
+    {
+        linkSync_.update();
+        double linkBPM = linkSync_.getBPM();
+        if (linkBPM > 0.0)
+        {
+            if (auto* tracker = analysisThread_.getBpmTracker())
+            {
+                tracker->setManualMode(true);
+                tracker->setManualBPM(static_cast<float>(linkBPM));
+            }
+        }
+    }
 
     // Beat-synced randomization (runs at 30Hz for accurate beat detection)
     if (beatRandomToggle_.getToggleState())
@@ -2962,17 +3000,125 @@ void MainComponent::buildBindableTargets(std::vector<BindingOverlay::BindableTar
 
 void MainComponent::handleBindingAction(const Binding& binding, float value)
 {
+    // === Resolve target layer/column based on targeting mode ===
+    int resolvedLayer = binding.targetLayerIndex;
+    int resolvedColumn = binding.targetColumn;
+
+    if (binding.targetMode == Binding::TargetMode::Selected)
+    {
+        // Use whatever clip/layer is currently selected in the inspector
+        if (auto* deck = composition_.getActiveDeck())
+        {
+            // Find the selected clip — use the first layer's active clip
+            for (int li = 0; li < static_cast<int>(deck->layers.size()); ++li)
+            {
+                if (deck->layers[static_cast<size_t>(li)].activeClipColumn >= 0)
+                {
+                    resolvedLayer = li;
+                    resolvedColumn = deck->layers[static_cast<size_t>(li)].activeClipColumn;
+                    break;
+                }
+            }
+        }
+    }
+    else if (binding.targetMode == Binding::TargetMode::ThisItem && binding.targetClipId > 0)
+    {
+        // Find the clip by ID across all layers/columns in the active deck
+        if (auto* deck = composition_.getActiveDeck())
+        {
+            bool found = false;
+            for (int li = 0; li < static_cast<int>(deck->layers.size()) && !found; ++li)
+            {
+                auto& layer = deck->layers[static_cast<size_t>(li)];
+                for (int ci = 0; ci < static_cast<int>(layer.clips.size()) && !found; ++ci)
+                {
+                    if (layer.clips[static_cast<size_t>(ci)].has_value() &&
+                        layer.clips[static_cast<size_t>(ci)]->id == binding.targetClipId)
+                    {
+                        resolvedLayer = li;
+                        resolvedColumn = ci;
+                        found = true;
+                    }
+                }
+            }
+        }
+    }
+    // ByPosition: use binding.targetLayerIndex / targetColumn directly (default)
+
     switch (binding.action)
     {
         case Binding::Action::TriggerClip:
+        {
             if (value > 0.0f)
-                handleClipTrigger(binding.targetLayerIndex, binding.targetColumn);
+            {
+                // Apply MIDI velocity to clip opacity if enabled
+                if (binding.velocityToOpacity && binding.inputType == Binding::InputType::MidiNote)
+                {
+                    if (auto* deck = composition_.getActiveDeck())
+                    {
+                        auto* layer = deck->getLayer(resolvedLayer);
+                        if (layer)
+                        {
+                            auto* clip = layer->getClipAt(resolvedColumn);
+                            if (clip)
+                                clip->clipOpacity = value; // velocity already normalized 0-1
+                        }
+                    }
+                }
+                handleClipTrigger(resolvedLayer, resolvedColumn);
+            }
+            else if (binding.triggerMode == Binding::TriggerMode::Momentary)
+            {
+                // Momentary release: clear the active clip on this layer
+                if (auto* deck = composition_.getActiveDeck())
+                {
+                    auto* layer = deck->getLayer(resolvedLayer);
+                    if (layer && layer->activeClipColumn == resolvedColumn)
+                    {
+                        layer->clearActiveClip();
+                        previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+                        if (deckView_) deckView_->refresh();
+                    }
+                }
+            }
             break;
+        }
 
         case Binding::Action::TriggerColumn:
+        {
             if (value > 0.0f)
-                handleColumnTrigger(binding.targetColumn);
+            {
+                // Apply velocity to all clips in the column if enabled
+                if (binding.velocityToOpacity && binding.inputType == Binding::InputType::MidiNote)
+                {
+                    if (auto* deck = composition_.getActiveDeck())
+                    {
+                        for (auto& layer : deck->layers)
+                        {
+                            auto* clip = layer.getClipAt(resolvedColumn);
+                            if (clip)
+                                clip->clipOpacity = value;
+                        }
+                    }
+                }
+                handleColumnTrigger(resolvedColumn);
+            }
+            else if (binding.triggerMode == Binding::TriggerMode::Momentary)
+            {
+                // Momentary release: clear all layers in this column
+                if (auto* deck = composition_.getActiveDeck())
+                {
+                    for (auto& layer : deck->layers)
+                    {
+                        if (layer.activeClipColumn == resolvedColumn)
+                            layer.clearActiveClip();
+                    }
+                    previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+                    if (deckView_) deckView_->refresh();
+                }
+            }
             break;
+        }
 
         case Binding::Action::ToggleLayerBypass:
         case Binding::Action::ToggleLayerSolo:
@@ -2985,7 +3131,7 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
                 auto* deck = composition_.getActiveDeck();
                 if (deck)
                 {
-                    auto* layer = deck->getLayer(binding.targetLayerIndex);
+                    auto* layer = deck->getLayer(resolvedLayer);
                     if (layer)
                     {
                         switch (binding.action)
@@ -3023,7 +3169,6 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
         case Binding::Action::TapTempo:
             if (value > 0.0f)
             {
-                // Record a tap and compute BPM (same logic as TopBar)
                 double now = juce::Time::getMillisecondCounterHiRes() / 1000.0;
                 static std::array<double, 8> bindingTapTimes{};
                 static int bindingTapCount = 0;
@@ -3077,14 +3222,69 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             break;
 
         case Binding::Action::MasterOpacity:
-            // CC value: set master opacity
             composition_.masterOpacity = value;
             break;
 
-        case Binding::Action::LayerTransport:
-        case Binding::Action::ToggleEffectBypass:
-        case Binding::Action::AdjustMacro:
-            // TODO: implement in future phases
+        case Binding::Action::AdjustLayerOpacity:
+        {
+            if (auto* deck = composition_.getActiveDeck())
+            {
+                auto* layer = deck->getLayer(resolvedLayer);
+                if (layer)
+                    layer->opacity = value;
+            }
             break;
+        }
+
+        case Binding::Action::LayerTransport:
+        {
+            if (value > 0.0f)
+            {
+                if (auto* deck = composition_.getActiveDeck())
+                {
+                    auto* layer = deck->getLayer(resolvedLayer);
+                    if (layer)
+                    {
+                        auto* clip = layer->getActiveClip();
+                        if (clip)
+                        {
+                            clip->playing = !clip->playing;
+                            if (deckView_) deckView_->refresh();
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        case Binding::Action::ToggleEffectBypass:
+        {
+            if (value > 0.0f)
+            {
+                if (auto* deck = composition_.getActiveDeck())
+                {
+                    auto* layer = deck->getLayer(resolvedLayer);
+                    if (layer)
+                    {
+                        auto* clip = layer->getActiveClip();
+                        if (clip && binding.targetEffectIndex >= 0 &&
+                            binding.targetEffectIndex < static_cast<int>(clip->effects.size()))
+                        {
+                            auto& fx = clip->effects[static_cast<size_t>(binding.targetEffectIndex)];
+                            fx.bypassed = !fx.bypassed;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        case Binding::Action::AdjustMacro:
+        {
+            // CC value → macro knob
+            if (binding.targetMacroIndex >= 0 && binding.targetMacroIndex < MacroBank::kNumMacros)
+                globalMacroBank_.getMacro(binding.targetMacroIndex).manualValue = value;
+            break;
+        }
     }
 }

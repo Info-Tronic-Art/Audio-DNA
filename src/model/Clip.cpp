@@ -44,6 +44,7 @@ juce::var Clip::toVar() const
     obj->setProperty("inPoint", static_cast<double>(inPoint));
     obj->setProperty("outPoint", static_cast<double>(outPoint));
     obj->setProperty("beatSnap", beatSnap);
+    obj->setProperty("beatSnapMode", static_cast<int>(beatSnapMode));
     obj->setProperty("autopilotAction", static_cast<int>(autopilotAction));
     obj->setProperty("autopilotDuration", static_cast<int>(autopilotDuration));
     obj->setProperty("autopilotCustomBeats", autopilotCustomBeats);
@@ -131,6 +132,10 @@ void Clip::fromVar(const juce::var& v)
         else
             outPoint = 1.0f;
         beatSnap = static_cast<bool>(obj->getProperty("beatSnap"));
+        beatSnapMode = static_cast<BeatSnapMode>(static_cast<int>(obj->getProperty("beatSnapMode")));
+        // Upgrade legacy: if beatSnap is true but beatSnapMode is Off, set to Beat
+        if (beatSnap && beatSnapMode == BeatSnapMode::Off)
+            beatSnapMode = BeatSnapMode::Beat;
         autopilotAction = static_cast<AutopilotAction>(static_cast<int>(obj->getProperty("autopilotAction")));
         autopilotDuration = static_cast<AutopilotDuration>(static_cast<int>(obj->getProperty("autopilotDuration")));
         autopilotCustomBeats = static_cast<int>(obj->getProperty("autopilotCustomBeats"));

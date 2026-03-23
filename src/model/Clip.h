@@ -68,8 +68,17 @@ struct Clip
     float inPoint = 0.0f;           // [0,1] playback start position (draggable on timeline)
     float outPoint = 1.0f;          // [0,1] playback end position (draggable on timeline)
 
-    // === Beat Snap ===
-    bool beatSnap = false;          // Snap playhead to beat on trigger
+    // === Beat Snap (P21: granularity) ===
+    enum class BeatSnapMode : uint8_t
+    {
+        Off,        // No snapping — trigger immediately
+        Beat,       // Snap to next beat
+        Bar,        // Snap to next bar (4 beats)
+        TwoBar,     // Snap to next 2-bar boundary (8 beats)
+        FourBar     // Snap to next 4-bar boundary (16 beats)
+    };
+    BeatSnapMode beatSnapMode = BeatSnapMode::Off;
+    bool beatSnap = false;          // Legacy compat: true if beatSnapMode != Off
 
     // === Cuepoints ===
     static constexpr int kMaxCuepoints = 8;
@@ -173,6 +182,7 @@ struct Clip
         startOffset = 0.0f;
         inPoint = 0.0f;
         outPoint = 1.0f;
+        beatSnapMode = BeatSnapMode::Off;
         beatSnap = false;
         numCuepoints = 0;
         autopilotAction = AutopilotAction::LayerDetermined;

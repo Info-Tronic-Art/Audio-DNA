@@ -34,10 +34,11 @@
 | **P15** | Medium Effects + Resolume Sources (24 items) | **COMPLETE** | YES — 14 effects + 12 sources visible |
 | **P16** | Time Effects + Feedback + Signal Routing (14 items) | **COMPLETE** | YES — 5 time effects, feedback UI, signal routing wired, ring buffer |
 | **P17** | Creative Sources: Math, 3D, Geometric, Nature, Lighting (19 sources) | **COMPLETE** | YES — 19 new sources in browser |
-| **P18** | Audio-Native Effects & Sources (20 items) | NOT STARTED | YES — audio-driven effects respond to music |
-| **P19** | Complex Effects + Remaining Sources (20 items) | NOT STARTED | YES — complex effects + remaining sources visible |
-| **P20** | Systems: Layer Router, Per-Type Automation, FFGL, Text, Simulations (19 items) | NOT STARTED | YES — layer router, FFGL plugins, text source |
-| **P20.5** | projectM MilkDrop Visualizer Integration (10 items) | NOT STARTED | YES — MilkDrop presets render as source, audio-reactive, preset browser |
+| **P18** | Audio-Native Effects & Sources (20 items) | **COMPLETE** | YES — audio-driven effects respond to music |
+| **P19** | Complex Effects + Remaining Sources (20 items) | **COMPLETE** | YES — complex effects + remaining sources visible |
+| **P20** | Systems: Layer Router, Per-Type Automation, Text, Simulations (19 items) | **COMPLETE** | YES — layer router, per-type autopilot, text source |
+| **P20.5** | projectM MilkDrop Visualizer Integration (10 items) | **COMPLETE** | YES — MilkDrop presets render as source, audio-reactive, preset browser |
+| **P21** | Live Performance Controls (10 items) | **COMPLETE** | YES — beat snap dropdown, persistent toggle, binding modes |
 
 ---
 
