@@ -77,6 +77,9 @@ public:
     // Compositor engine
     CompositorEngine& getCompositor() { return compositor_; }
 
+    // Effect library (for looking up effect definitions by name)
+    EffectLibrary& getEffectLibrary() { return effectLibrary_; }
+
     // Set the active deck for compositor rendering. Thread-safe.
     // Pass nullptr to disable deck compositing (reverts to single-image mode).
     void setActiveDeck(Deck* deck) { activeDeck_.store(deck, std::memory_order_release); }
@@ -104,6 +107,12 @@ public:
 
     // P20.5: Set analysis thread pointer for PCM audio feed to projectM sources
     void setAnalysisThread(class AnalysisThread* at) { analysisThread_ = at; }
+
+    // P22.6: Set video recorder for real-time frame capture
+    void setVideoRecorder(class VideoRecorder* recorder) { videoRecorder_ = recorder; }
+
+    // P22.1: Set Syphon output for inter-app texture sharing
+    void setSyphonOutput(class SyphonOutput* syphon) { syphonOutput_ = syphon; }
 
     // Get or create an active procedural source instance for a source type ID.
     // Returns nullptr if the source ID is not registered.
@@ -188,7 +197,7 @@ public:
     // Render frame time tracking
     float getFrameTimeMs() const { return frameTimeMs_.load(std::memory_order_relaxed); }
 
-    // === Frame Capture (Eyes test harness) ===
+    // === Frame Capture ===
 
     // Request a single frame capture. Blocks the calling thread until the GL
     // thread renders and saves the frame. Returns true on success.
@@ -197,6 +206,14 @@ public:
     // width/height: if > 0, temporarily sets locked resolution.
     bool captureFrame(const juce::File& outputPath, float timeOverride = -1.0f,
                       int width = 0, int height = 0);
+
+    // P22.7: Take a snapshot (PNG) to the snapshots directory.
+    // Returns the saved file path, or empty on failure.
+    // If autoImportCallback is set, calls it on message thread with the file.
+    juce::File takeSnapshot();
+    void setSnapshotDir(const juce::File& dir) { snapshotDir_ = dir; }
+    juce::File getSnapshotDir() const { return snapshotDir_; }
+    std::function<void(const juce::File&)> onSnapshotTaken;
 
     // Override u_time for deterministic test rendering. Set to < 0 to disable.
     void setTimeOverride(float t) { timeOverride_.store(t, std::memory_order_relaxed); }
@@ -232,6 +249,10 @@ private:
     // P20.5: Analysis thread for PCM audio feed to projectM
     AnalysisThread* analysisThread_ = nullptr;
 
+    // P22: Output integrations (owned by MainComponent, not Renderer)
+    VideoRecorder* videoRecorder_ = nullptr;
+    SyphonOutput* syphonOutput_ = nullptr;
+
     // P20.5: Playlist cycling state tracking
     float lastPlaylistBeatPhase_ = 0.0f;
     uint8_t lastPlaylistStructState_ = 0;
@@ -264,7 +285,7 @@ private:
     std::vector<Clip::SourceParam> activeSourceParams_;
     bool hasActiveSource_ = false;
 
-    // Frame capture (Eyes test harness)
+    // Frame capture
     std::atomic<float> timeOverride_{-1.0f};
     std::mutex captureMutex_;
     std::atomic<bool> pendingCapture_{false};
@@ -272,6 +293,7 @@ private:
     int captureWidth_ = 0;
     int captureHeight_ = 0;
     std::promise<bool>* capturePromise_ = nullptr;
+    juce::File snapshotDir_; // P22.7: where snapshots are saved
 
     // Process pending capture after render. Called from renderOpenGL().
     void processPendingCapture(float renderW, float renderH,

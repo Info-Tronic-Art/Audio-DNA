@@ -135,6 +135,9 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addItem(kOutputIdentifyDisplays, "Identify Displays",   true, false);
             menu.addItem(kOutputTestCard,         "Test Card",           true, false);
             menu.addItem(kOutputSnapshot,         "Snapshot",            true, false);
+            menu.addSeparator();
+            menu.addItem(kOutputStartRecording,   "Start Recording",     true, false);
+            menu.addItem(kOutputStopRecording,    "Stop Recording",      true, false);
             break;
         }
 

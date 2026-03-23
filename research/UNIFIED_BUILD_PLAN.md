@@ -39,6 +39,7 @@
 | **P20** | Systems: Layer Router, Per-Type Automation, Text, Simulations (19 items) | **COMPLETE** | YES — layer router, per-type autopilot, text source |
 | **P20.5** | projectM MilkDrop Visualizer Integration (10 items) | **COMPLETE** | YES — MilkDrop presets render as source, audio-reactive, preset browser |
 | **P21** | Live Performance Controls (10 items) | **COMPLETE** | YES — beat snap dropdown, persistent toggle, binding modes |
+| **P22** | Output & Integration (10 items) | **COMPLETE** | YES — REST API, OSC, MIDI output, video recording, Syphon, snapshot |
 
 ---
 

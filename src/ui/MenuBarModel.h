@@ -83,6 +83,8 @@ public:
         kOutputIdentifyDisplays,
         kOutputTestCard,
         kOutputSnapshot,
+        kOutputStartRecording,
+        kOutputStopRecording,
 
         // Shortcuts menu
         kShortcutsEditKeyboard = 1700,

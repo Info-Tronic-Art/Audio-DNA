@@ -43,16 +43,21 @@ if(AUDIODNA_BUILD_LINK)
     FetchContent_MakeAvailable(AbletonLink)
 endif()
 
-# --- Visual Test Server (Eyes) ---
+# --- cpp-httplib (HTTP server: production API + test server) ---
+FetchContent_Declare(
+    httplib
+    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+    GIT_TAG        v0.18.3
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(httplib)
+
+# --- Visual Test Server (Eyes, optional) ---
 option(AUDIODNA_BUILD_TEST_SERVER "Build with embedded HTTP test server (Eyes)" OFF)
-if(AUDIODNA_BUILD_TEST_SERVER)
-    FetchContent_Declare(
-        httplib
-        GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-        GIT_TAG        v0.18.3
-        GIT_SHALLOW    TRUE
-    )
-    FetchContent_MakeAvailable(httplib)
+
+# --- Syphon (macOS inter-app GPU texture sharing, optional) ---
+if(APPLE)
+    option(AUDIODNA_BUILD_SYPHON "Build with Syphon output (macOS)" OFF)
 endif()
 
 # --- Application Target ---
@@ -162,9 +167,11 @@ target_sources(AudioDNA PRIVATE
     src/binding/BindingManager.h
     src/binding/BindingManager.cpp
 
-    # MIDI (v2)
+    # MIDI (v2 + P22.10 output)
     src/midi/MidiHandler.h
     src/midi/MidiHandler.cpp
+    src/midi/MidiOutputHandler.h
+    src/midi/MidiOutputHandler.cpp
 
     # Sync (v2 - P21: Ableton Link)
     src/sync/LinkSync.h
@@ -176,9 +183,11 @@ target_sources(AudioDNA PRIVATE
     src/media/ImageSequence.h
     src/media/ImageSequence.cpp
 
-    # Recording (v2 - Phase 12)
+    # Recording (v2 - Phase 12 + P22.6 video recording)
     src/recording/SessionRecorder.h
     src/recording/SessionRecorder.cpp
+    src/recording/VideoRecorder.h
+    src/recording/VideoRecorder.cpp
 
     # Sources (v2 - Phase 10)
     src/sources/ProceduralSource.h
@@ -282,6 +291,21 @@ target_sources(AudioDNA PRIVATE
     src/render/FeedbackProcessor.h
     src/render/FeedbackProcessor.cpp
     src/render/EmbeddedShaders.h
+
+    # API server (P22.8 — always available)
+    src/api/ApiServer.h
+    src/api/ApiServer.cpp
+
+    # OSC handler (P22.9)
+    src/osc/OscHandler.h
+    src/osc/OscHandler.cpp
+
+    # Output / texture sharing (P22.1-P22.5)
+    src/output/SyphonOutput.h
+    src/output/SyphonInput.h
+    src/output/SpoutOutput.h
+    src/output/NdiOutput.h
+    src/output/NdiInput.h
 )
 
 # Conditionally add test server sources
@@ -289,6 +313,14 @@ if(AUDIODNA_BUILD_TEST_SERVER)
     target_sources(AudioDNA PRIVATE
         src/test/TestServer.h
         src/test/TestServer.cpp
+    )
+endif()
+
+# Syphon Obj-C++ sources (macOS only)
+if(APPLE)
+    target_sources(AudioDNA PRIVATE
+        src/output/SyphonOutput.mm
+        src/output/SyphonInput.mm
     )
 endif()
 
@@ -318,10 +350,23 @@ if(ProjectM_FOUND)
     target_link_libraries(AudioDNA PRIVATE ProjectM::ProjectM)
 endif()
 
-# Add test server compile definition and link
+# httplib is always linked (production API server + optional test server)
+target_link_libraries(AudioDNA PRIVATE httplib::httplib)
+
+# Add test server compile definition
 if(AUDIODNA_BUILD_TEST_SERVER)
     target_compile_definitions(AudioDNA PRIVATE AUDIODNA_TEST_SERVER=1)
-    target_link_libraries(AudioDNA PRIVATE httplib::httplib)
+endif()
+
+# Syphon framework (optional, macOS only)
+if(APPLE AND AUDIODNA_BUILD_SYPHON)
+    find_library(SYPHON_FRAMEWORK Syphon PATHS /Library/Frameworks)
+    if(SYPHON_FRAMEWORK)
+        target_link_libraries(AudioDNA PRIVATE ${SYPHON_FRAMEWORK})
+        target_compile_definitions(AudioDNA PRIVATE AUDIODNA_HAS_SYPHON=1)
+    else()
+        message(WARNING "Syphon.framework not found in /Library/Frameworks — Syphon disabled")
+    endif()
 endif()
 
 # Add Ableton Link support if enabled
@@ -342,6 +387,7 @@ set(AUDIODNA_LIBS
     juce::juce_gui_basics
     juce::juce_gui_extra
     juce::juce_opengl
+    juce::juce_osc
     Aubio::Aubio
     FFmpeg::FFmpeg
 )

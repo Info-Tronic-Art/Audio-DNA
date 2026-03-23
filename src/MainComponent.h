@@ -28,7 +28,12 @@
 #include "ui/MidiLearnOverlay.h"
 #include "midi/MidiHandler.h"
 #include "recording/SessionRecorder.h"
+#include "recording/VideoRecorder.h"
 #include "sync/LinkSync.h"
+#include "api/ApiServer.h"
+#include "osc/OscHandler.h"
+#include "midi/MidiOutputHandler.h"
+#include "output/SyphonOutput.h"
 #if AUDIODNA_TEST_SERVER
  #include "test/TestServer.h"
 #endif
@@ -259,6 +264,13 @@ private:
 #if AUDIODNA_TEST_SERVER
     std::unique_ptr<TestServer> testServer_;
 #endif
+
+    // === P22: Output & Integration ===
+    std::unique_ptr<ApiServer> apiServer_;
+    OscHandler oscHandler_;
+    MidiOutputHandler midiOutputHandler_;
+    VideoRecorder videoRecorder_;
+    SyphonOutput syphonOutput_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainComponent)
 };

@@ -383,6 +383,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
     previewPanel_.getRenderer().setSignalRegistry(&signalRegistry_);
     previewPanel_.getRenderer().setAnalysisThread(&analysisThread_);
 
+    // P22: Wire output integrations to renderer
+    previewPanel_.getRenderer().setVideoRecorder(&videoRecorder_);
+    previewPanel_.getRenderer().setSyphonOutput(&syphonOutput_);
+
     topBar_ = std::make_unique<TopBar>(analysisThread_.getFeatureBus(), composition_);
     addAndMakeVisible(topBar_.get());
 
@@ -1069,6 +1073,55 @@ MainComponent::MainComponent(bool testMode, int testPort)
     }
 #endif
 
+    // P22.8: Start production API server (port 7070)
+    apiServer_ = std::make_unique<ApiServer>(
+        previewPanel_.getRenderer(),
+        analysisThread_.getFeatureBus(),
+        composition_,
+        previewPanel_.getRenderer().getEffectChain(),
+        previewPanel_.getRenderer().getSourceRegistry(),
+        signalRegistry_,
+        previewPanel_.getRenderer().getRoutingEngine(),
+        bindingManager_,
+        sessionRecorder_,
+        7070);
+    apiServer_->onTriggerClip = [this](int layer, int column) { handleClipTrigger(layer, column); };
+    apiServer_->onTriggerColumn = [this](int column) { handleColumnTrigger(column); };
+    apiServer_->onSwitchDeck = [this](int deckIdx) { handleDeckSwitch(deckIdx); };
+    apiServer_->onSnapshot = [this]() {
+        auto& renderer = previewPanel_.getRenderer();
+        std::thread([&renderer]() { renderer.takeSnapshot(); }).detach();
+    };
+    apiServer_->start();
+
+    // P22.9: Set up OSC handler callbacks (starts on demand from preferences)
+    oscHandler_.onTriggerClip = [this](int layer, int column) {
+        juce::MessageManager::callAsync([this, layer, column]() { handleClipTrigger(layer, column); });
+    };
+    oscHandler_.onSwitchDeck = [this](int deckIdx) {
+        juce::MessageManager::callAsync([this, deckIdx]() { handleDeckSwitch(deckIdx); });
+    };
+    oscHandler_.onSetMaster = [this](float level) {
+        composition_.masterOpacity = level;
+    };
+    oscHandler_.onSetLayerOpacity = [this](int layerIdx, float opacity) {
+        if (auto* deck = composition_.getActiveDeck())
+            if (auto* layer = deck->getLayer(layerIdx))
+                layer->opacity = opacity;
+    };
+    oscHandler_.onSnapshot = [this]() {
+        auto& renderer = previewPanel_.getRenderer();
+        std::thread([&renderer]() { renderer.takeSnapshot(); }).detach();
+    };
+
+    // P22.6: Video recorder callback
+    videoRecorder_.onRecordingFinished = [this](bool success, const juce::File& file) {
+        if (success)
+            std::cerr << "[VideoRecorder] Saved: " << file.getFullPathName() << std::endl;
+        else
+            std::cerr << "[VideoRecorder] Recording failed" << std::endl;
+    };
+
     setWantsKeyboardFocus(true);
     // Register as key listener on top-level component to catch keys globally
     addKeyListener(this);
@@ -1077,6 +1130,13 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
 MainComponent::~MainComponent()
 {
+    // P22: Stop output/integration services
+    if (apiServer_)
+        apiServer_->stop();
+    oscHandler_.stopListening();
+    midiOutputHandler_.closeDevice();
+    videoRecorder_.stopRecording();
+
 #if AUDIODNA_TEST_SERVER
     if (testServer_)
         testServer_->stop();
@@ -1699,6 +1759,10 @@ void MainComponent::timerCallback()
             }
         }
     }
+
+    // P22.10: Update MIDI output pad feedback (~6Hz)
+    if (uiUpdateCounter_ == 0 && midiOutputHandler_.isOpen())
+        midiOutputHandler_.updateFromDeck(composition_.getActiveDeck());
 
     // Beat-synced randomization (runs at 30Hz for accurate beat detection)
     if (beatRandomToggle_.getToggleState())
@@ -2685,8 +2749,42 @@ void MainComponent::handleMenuCommand(int commandId)
             closeOutput();
             break;
         case C::kOutputSnapshot:
-            // TODO: implement screenshot
+        {
+            // P22.7: Take a snapshot on a background thread (captureFrame blocks)
+            auto& renderer = previewPanel_.getRenderer();
+            std::thread([&renderer]() {
+                renderer.takeSnapshot();
+            }).detach();
             break;
+        }
+        case C::kOutputStartRecording:
+        {
+            if (!videoRecorder_.isRecording())
+            {
+                auto docsDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+                                   .getChildFile("Audio-DNA").getChildFile("Recordings");
+                docsDir.createDirectory();
+                auto now = juce::Time::getCurrentTime();
+                auto filename = "recording_" + now.formatted("%Y%m%d_%H%M%S") + ".mp4";
+                auto outputFile = docsDir.getChildFile(filename);
+
+                VideoRecorder::Config cfg;
+                cfg.codec = VideoRecorder::Codec::H264;
+                cfg.width = 1920;
+                cfg.height = 1080;
+                cfg.fps = 30;
+                cfg.quality = 23;
+
+                videoRecorder_.startRecording(outputFile, cfg);
+            }
+            break;
+        }
+        case C::kOutputStopRecording:
+        {
+            if (videoRecorder_.isRecording())
+                videoRecorder_.stopRecording();
+            break;
+        }
 
         // --- Shortcuts menu ---
         case C::kShortcutsEditKeyboard:
@@ -3284,6 +3382,42 @@ void MainComponent::handleBindingAction(const Binding& binding, float value)
             // CC value → macro knob
             if (binding.targetMacroIndex >= 0 && binding.targetMacroIndex < MacroBank::kNumMacros)
                 globalMacroBank_.getMacro(binding.targetMacroIndex).manualValue = value;
+            break;
+        }
+
+        case Binding::Action::Snapshot:
+        {
+            if (value > 0.0f)
+            {
+                auto& renderer = previewPanel_.getRenderer();
+                std::thread([&renderer]() {
+                    renderer.takeSnapshot();
+                }).detach();
+            }
+            break;
+        }
+
+        case Binding::Action::ToggleRecording:
+        {
+            if (value > 0.0f)
+            {
+                if (videoRecorder_.isRecording())
+                {
+                    videoRecorder_.stopRecording();
+                }
+                else
+                {
+                    auto docsDir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+                                       .getChildFile("Audio-DNA").getChildFile("Recordings");
+                    docsDir.createDirectory();
+                    auto now = juce::Time::getCurrentTime();
+                    auto filename = "recording_" + now.formatted("%Y%m%d_%H%M%S") + ".mp4";
+                    VideoRecorder::Config cfg;
+                    cfg.codec = VideoRecorder::Codec::H264;
+                    cfg.width = 1920; cfg.height = 1080; cfg.fps = 30; cfg.quality = 23;
+                    videoRecorder_.startRecording(docsDir.getChildFile(filename), cfg);
+                }
+            }
             break;
         }
     }

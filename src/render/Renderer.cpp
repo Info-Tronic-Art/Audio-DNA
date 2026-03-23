@@ -2,6 +2,8 @@
 #include "render/EmbeddedShaders.h"
 #include "sources/ProjectMSource.h"
 #include "analysis/AnalysisThread.h"
+#include "recording/VideoRecorder.h"
+#include "output/SyphonOutput.h"
 #include <iostream>
 #include <chrono>
 #include <string>
@@ -520,7 +522,11 @@ void Renderer::renderOpenGL()
         renderProfileCount_ = 0;
     }
 
-    // Process pending frame capture (Eyes test harness)
+    // P22.6: Submit frame to video recorder (if recording)
+    if (videoRecorder_ != nullptr)
+        videoRecorder_->submitFrame(static_cast<int>(renderW), static_cast<int>(renderH));
+
+    // Process pending frame capture (Eyes test harness + P22.7 snapshots)
     processPendingCapture(renderW, renderH, vpX, vpY, vpW, vpH);
 }
 
@@ -1396,4 +1402,38 @@ void Renderer::processPendingCapture(float renderW, float renderH,
     capturePromise_->set_value(ok);
     pendingCapture_ = false;
     capturePromise_ = nullptr;
+}
+
+// P22.7: Take a snapshot to the snapshots directory
+juce::File Renderer::takeSnapshot()
+{
+    // Ensure snapshot directory exists
+    juce::File dir = snapshotDir_;
+    if (dir == juce::File{})
+        dir = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)
+                  .getChildFile("Audio-DNA").getChildFile("Snapshots");
+    dir.createDirectory();
+
+    // Generate timestamped filename
+    auto now = juce::Time::getCurrentTime();
+    auto filename = "snapshot_" + now.formatted("%Y%m%d_%H%M%S") + ".png";
+    auto outputFile = dir.getChildFile(filename);
+
+    // Remove the 1920x1080 cap for user snapshots — use current render resolution
+    bool ok = captureFrame(outputFile);
+
+    if (ok)
+    {
+        std::cerr << "[Snapshot] Saved: " << outputFile.getFullPathName() << std::endl;
+        if (onSnapshotTaken)
+        {
+            auto file = outputFile;
+            auto cb = onSnapshotTaken;
+            juce::MessageManager::callAsync([cb, file]() { cb(file); });
+        }
+        return outputFile;
+    }
+
+    std::cerr << "[Snapshot] Failed to save snapshot" << std::endl;
+    return {};
 }

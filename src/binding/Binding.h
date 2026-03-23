@@ -39,7 +39,9 @@ struct Binding
         Resync,
         GlobalPlayPause,
         GlobalStop,
-        MasterOpacity       // Continuous control of master opacity
+        MasterOpacity,      // Continuous control of master opacity
+        Snapshot,           // P22.7: Take a PNG screenshot
+        ToggleRecording     // P22.6: Start/stop video recording
     };
     Action action = Action::TriggerClip;
 

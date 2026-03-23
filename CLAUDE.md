@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 81 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 44+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar).
+**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 81 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 44+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output/input (macOS, optional).
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -148,9 +148,13 @@ All data flows forward. No backward dependencies on the hot path.
 | **stb_image** | latest | Public domain | Fallback image loading for formats JUCE doesn't handle | Single header. JUCE handles PNG/JPEG/GIF natively. | `third_party/` (optional) |
 | **CMake** | 3.24+ | — | Build system | JUCE 7+ has first-class CMake support (`juce_add_gui_app`). Industry standard. Alternative: Projucer (deprecated). | `CMakeLists.txt` |
 
-| **FFmpeg** | 8.0 | LGPL/GPL | Video decode: MP4, MOV, QuickTime, AVI, MKV, WebM, M4V, HAP Alpha (libavformat, libavcodec, libavutil, libswscale) | Industry standard video decode. Supports all major codecs including H.264, H.265, ProRes, HAP Alpha. Alternative: GStreamer (heavier, less portable). | `cmake/FindFFmpeg.cmake`, `CMakeLists.txt` |
+| **FFmpeg** | 8.0 | LGPL/GPL | Video decode AND encode: MP4, MOV, QuickTime, AVI, MKV, WebM, M4V, HAP Alpha (libavformat, libavcodec, libavutil, libswscale). P22: Also used for real-time video recording (H.264/ProRes/MJPEG encoding). | Industry standard video codec. Supports all major codecs including H.264, H.265, ProRes, HAP Alpha. Alternative: GStreamer (heavier, less portable). | `cmake/FindFFmpeg.cmake`, `CMakeLists.txt` |
 
-**Total runtime dependencies: 3 (JUCE, Aubio, FFmpeg). Test-only: 1 (Catch2). Aubio's only transitive dependency is the C math library. JUCE bundles its own deps (freetype, zlib). FFmpeg is located via Homebrew on macOS.**
+| **cpp-httplib** | 0.18.3 | MIT | HTTP server for production REST API (port 7070) and Eyes test server (port 8080) | Single-header C++ HTTP library. Always linked (promoted from test-only in P22). | `CMakeLists.txt` FetchContent |
+| **juce_osc** | (bundled) | GPLv3 | OSC message receiving for external control (TouchOSC, Max/MSP, etc.) | JUCE built-in OSC module. | JUCE module `juce_osc` |
+| **Syphon** | latest | BSD | macOS inter-app GPU texture sharing (zero-copy via IOSurface). Optional. | Enables sending/receiving textures to/from MadMapper, VDMX, OBS. Requires Syphon.framework in /Library/Frameworks/. | `CMakeLists.txt`, `AUDIODNA_BUILD_SYPHON` option |
+
+**Total runtime dependencies: 4 (JUCE, Aubio, FFmpeg, cpp-httplib). Test-only: 1 (Catch2). Aubio's only transitive dependency is the C math library. JUCE bundles its own deps (freetype, zlib). FFmpeg is located via Homebrew on macOS.**
 
 ---
 
@@ -199,7 +203,18 @@ AudioDNA/
 │   │   ├── VideoPlayer.h/cpp         ✅ # [P11] FFmpeg video decode (MP4/MOV/AVI/MKV/HAP Alpha) → GL texture
 │   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
 │   ├── recording/
-│   │   └── SessionRecorder.h/cpp     ✅ # [P12] Timestamped event recording/playback for performance capture
+│   │   ├── SessionRecorder.h/cpp     ✅ # [P12] Timestamped event recording/playback for performance capture
+│   │   └── VideoRecorder.h/cpp       ✅ # [P22] Real-time video recording (FFmpeg H.264/ProRes/MJPEG, triple-buffered GL readback)
+│   ├── api/
+│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 20+ endpoints, CORS, always-on)
+│   ├── osc/
+│   │   └── OscHandler.h/cpp          ✅ # [P22] OSC input receiver (juce_osc, /audiodna/* address patterns)
+│   ├── output/
+│   │   ├── SyphonOutput.h/.mm        ✅ # [P22] macOS Syphon server (zero-copy GPU texture sharing, optional)
+│   │   ├── SyphonInput.h/.mm         ✅ # [P22] macOS Syphon client (receive textures from other apps, optional)
+│   │   ├── SpoutOutput.h                # [P22] Windows Spout stub (not implemented on macOS)
+│   │   ├── NdiOutput.h                  # [P22] NDI output stub (requires NDI SDK)
+│   │   └── NdiInput.h                   # [P22] NDI input stub (requires NDI SDK)
 │   ├── effects/
 │   │   ├── EffectLibrary.h/cpp          # [M4] Registry: creates Effect instances from shaders
 │   │   ├── Effect.h/cpp              ✅ # Single effect: shader program + param list
@@ -1022,6 +1037,12 @@ These bugs were discovered and fixed. Future phases MUST avoid reintroducing the
 
 23. **Per-type autopilot must be explicitly enabled**: `PerTypeAutopilotConfig::perTypeEnabled` defaults to `false`. When disabled, the existing per-layer/per-clip autopilot settings take precedence. The per-type config only overrides beat counts and action (random vs sequential) for each layer type when enabled in the Composition Inspector.
 
+24. **httplib is always linked, not test-only**: In P22, cpp-httplib was promoted from conditional (`AUDIODNA_BUILD_TEST_SERVER`) to always-linked. Both `ApiServer` (port 7070) and `TestServer` (port 8080, conditional) use it. The `#include <httplib.h>` works everywhere now.
+
+25. **VideoRecorder triple-buffer has no mutex on GL thread**: The GL thread writes to pixel buffers via atomic index rotation. The encoder thread reads from a different buffer and wakes via condition variable. If the encoder can't keep up, frames are dropped (counted in `droppedFrames_`). Never add a mutex to `submitFrame()`.
+
+26. **Syphon uses `__has_include` for compile-time detection**: Even with `-DAUDIODNA_BUILD_SYPHON=ON`, if `<Syphon/Syphon.h>` isn't found, the Obj-C++ code compiles as a no-op stub. This prevents build failures when the framework isn't installed.
+
 ### Layer Router System (P20)
 
 The Layer Router source (`layer_router`) lets one layer use another layer's rendered output as its input texture. This enables feedback loops, picture-in-picture, and cross-layer effects.
@@ -1057,6 +1078,24 @@ Composition-level automation that sets different beat timings per layer type:
 **Ableton Link**: Optional (`-DAUDIODNA_BUILD_LINK=ON`). `LinkSync` class wraps `ableton::Link`, updates cached BPM/phase via atomics. When enabled, overrides BPM tracker with Link's tempo via manual mode.
 
 **Key-up routing**: `MainComponent::keyStateChanged()` polls all momentary-bound keys and fires release actions. MIDI note-off already routed through `BindingManager::processMidiNoteOff()`.
+
+### Output & Integration System (P22)
+
+**Production REST API** (`ApiServer`, port 7070, always-on): 20+ endpoints for external control. cpp-httplib on a background thread with CORS headers. Endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm, /api/features, /api/inject_features, /api/load_image, /api/load_source, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset. All GL mutations go through existing thread-safe APIs.
+
+**OSC Input** (`OscHandler`, `juce_osc` module): Receives OSC on configurable UDP port. Address patterns: `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity|bypass|solo|mute`, `/audiodna/deck/{n}`, `/audiodna/master`, `/audiodna/bpm`, `/audiodna/snapshot`, `/audiodna/effect/{name}/{param}`, `/audiodna/macro/{n}`. Uses `MessageLoopCallback` template parameter for thread-safe dispatch on JUCE message thread.
+
+**MIDI Output** (`MidiOutputHandler`): Sends note-on/off to hardware controllers (Launchpad X/Mini MK3) for clip state feedback. 5 states: Empty(off), Loaded(velocity 5), Playing(velocity 60), Triggered(velocity 52), ActiveWithFx(velocity 62). Polls deck state ~6Hz from timerCallback. Note mapping: `(layer+1)*10 + (column+1)` for Launchpad grid layout.
+
+**Video Recording** (`VideoRecorder`): Real-time capture from GL framebuffer to H.264/ProRes/MJPEG via FFmpeg. Triple-buffered pixel readback (GL thread does `glReadPixels` into rotating CPU buffers, encoder thread picks up via condition variable). No mutex on GL thread hot path. Codec selection via `VideoRecorder::Config`. Menu: Output > Start/Stop Recording. Saves to ~/Documents/Audio-DNA/Recordings/.
+
+**Snapshot** (`Renderer::takeSnapshot()`): Saves timestamped PNG to ~/Documents/Audio-DNA/Snapshots/. Uses existing `captureFrame()` infrastructure. Bindable via `Binding::Action::Snapshot`. Also available via REST API (`POST /api/snapshot`).
+
+**Syphon Output** (`SyphonOutput`, macOS only, optional): Zero-copy GPU texture sharing via IOSurface. Obj-C++ wrapper around `SyphonServer`. Uses `__has_include(<Syphon/Syphon.h>)` for compile-time detection. Enable with `-DAUDIODNA_BUILD_SYPHON=ON` + install Syphon.framework to /Library/Frameworks/.
+
+**Syphon Input** (`SyphonInput`, macOS only): Receives textures from other apps via `SyphonClient`. Lists available servers via `SyphonServerDirectory`.
+
+**Spout/NDI**: Header-only stubs. Spout is Windows-only (requires Spout2 SDK). NDI requires separately downloaded SDK from ndi.video.
 
 ### Updating This Document
 
