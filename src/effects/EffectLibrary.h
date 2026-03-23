@@ -49,6 +49,9 @@ public:
 
     int getNumEffects() const { return static_cast<int>(defs_.size()); }
 
+    // P23: Public registration for dynamically loaded effects (ISF import)
+    void registerDynamic(const EffectDef& def) { registerEffect(def); }
+
 private:
     void registerEffect(const EffectDef& def);
 

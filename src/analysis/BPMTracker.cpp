@@ -29,6 +29,11 @@ BPMTracker::BPMTracker(int hopSize, int bufSize, int sampleRate)
     std::fill(std::begin(beatScores_), std::end(beatScores_), 0.0f);
     std::fill(std::begin(positionScoreSums_), std::end(positionScoreSums_), 0.0f);
     std::fill(std::begin(positionScoreCounts_), std::end(positionScoreCounts_), 0);
+
+    // P23: Smart BPM recovery
+    hopsPerSecBpm_ = static_cast<float>(sampleRate) / static_cast<float>(hopSize);
+    silenceEntryHops_ = static_cast<int>(0.3f * hopsPerSecBpm_);  // ~300ms to declare silence
+    silenceExitHops_ = static_cast<int>(0.1f * hopsPerSecBpm_);   // ~100ms to resume
 }
 
 BPMTracker::~BPMTracker()
@@ -83,6 +88,14 @@ void BPMTracker::runPipeline(float rawBpm, float conf, bool beat)
     }
 
     float gatedBPM = foldBPMToRange(rawBpm);
+
+    // === P23: Smart BPM Recovery ===
+    // During silence, hold the last good BPM and keep phase running
+    if (inSilence_ && lockedBPM_ > 0.0f)
+    {
+        updatePhase(false, 0.0f); // No beats during silence, phase free-runs
+        return;
+    }
 
     // === Stage 2: Confidence Gate ===
     // Only accept estimates with sufficient confidence
@@ -481,4 +494,51 @@ void BPMTracker::resetBeatPhase()
 void BPMTracker::setManualMode(bool enabled)
 {
     manualMode_.store(enabled, std::memory_order_relaxed);
+}
+
+// === P23: Smart BPM Recovery ===
+
+void BPMTracker::feedSilenceDetection(float rms)
+{
+    if (rms < silenceRmsThreshold_)
+    {
+        if (!inSilence_)
+        {
+            ++silenceCountdown_;
+            if (silenceCountdown_ >= silenceEntryHops_)
+            {
+                inSilence_ = true;
+                silenceHopCount_ = 0;
+                silenceCountdown_ = 0;
+            }
+        }
+        else
+        {
+            ++silenceHopCount_;
+            silenceCountdown_ = 0; // reset exit countdown
+        }
+    }
+    else
+    {
+        if (inSilence_)
+        {
+            ++silenceCountdown_;
+            if (silenceCountdown_ >= silenceExitHops_)
+            {
+                inSilence_ = false;
+                silenceHopCount_ = 0;
+                silenceCountdown_ = 0;
+            }
+        }
+        else
+        {
+            silenceCountdown_ = 0; // reset entry countdown
+        }
+    }
+}
+
+float BPMTracker::silenceDuration() const
+{
+    if (!inSilence_ || hopsPerSecBpm_ <= 0.0f) return 0.0f;
+    return static_cast<float>(silenceHopCount_) / hopsPerSecBpm_;
 }

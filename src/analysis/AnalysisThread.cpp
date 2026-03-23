@@ -10,6 +10,7 @@
 #include "LoudnessAnalyzer.h"
 #include "StructuralDetector.h"
 #include "PitchTracker.h"
+#include "GenreDetector.h"
 #include <cmath>
 #include <algorithm>
 
@@ -32,6 +33,8 @@ AnalysisThread::AnalysisThread(RingBuffer<float>& ringBuffer)
     structuralDetector_ = std::make_unique<StructuralDetector>(
                               static_cast<float>(kSampleRate), kHopSize);
     pitchTracker_       = std::make_unique<PitchTracker>(kHopSize, FFTProcessor::kFFTSize, kSampleRate);
+    genreDetector_      = std::make_unique<GenreDetector>(
+                              static_cast<float>(kSampleRate), kHopSize);
 
     // Init transient density tracking
     onsetHistory_.fill(false);
@@ -144,6 +147,8 @@ void AnalysisThread::run()
         stageStart = stageEnd;
 
         // --- 5. BPM tracking + beat phase + downbeat detection ---
+        // P23: Feed RMS for smart BPM recovery (silence detection)
+        bpmTracker_->feedSilenceDetection(rms);
         bpmTracker_->process(hopBuffer.data());
 
         // Feed spectral features for downbeat scoring (uses bass energy, flux, HCDF)
@@ -238,6 +243,36 @@ void AnalysisThread::run()
         stageTimesUs_[10] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
         stageStart = stageEnd;
 
+        // --- 13. Genre detection ---
+        {
+            GenreDetector::Features gf;
+            gf.bpm              = snap->bpm;
+            gf.rms              = snap->rms;
+            gf.spectralCentroid = snap->spectralCentroid;
+            gf.spectralFlux     = snap->spectralFlux;
+            gf.spectralFlatness = snap->spectralFlatness;
+            gf.spectralRolloff  = snap->spectralRolloff;
+            gf.transientDensity = snap->transientDensity;
+            std::memcpy(gf.bandEnergies, snap->bandEnergies, sizeof(gf.bandEnergies));
+            std::memcpy(gf.chromagram, snap->chromagram, sizeof(gf.chromagram));
+            std::memcpy(gf.mfccs, snap->mfccs, sizeof(gf.mfccs));
+            gf.dynamicRange     = snap->dynamicRange;
+            gf.structuralState  = snap->structuralState;
+            gf.trackerState     = snap->trackerState;
+            gf.harmonicChangeDetection = snap->harmonicChangeDetection;
+
+            genreDetector_->process(gf);
+            snap->detectedGenre   = genreDetector_->detectedGenre();
+            snap->genreConfidence = genreDetector_->genreConfidence();
+            snap->energyState     = genreDetector_->energyState();
+            std::memcpy(snap->genreScores, genreDetector_->genreScores(),
+                         sizeof(snap->genreScores));
+        }
+
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[11] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
+
         // --- Timing ---
         snap->timestamp = totalSamplesProcessed_;
         snap->wallClockSeconds = static_cast<double>(totalSamplesProcessed_)
@@ -261,11 +296,11 @@ void AnalysisThread::run()
             static const char* stageNames[] = {
                 "RMS/Peak", "FFT", "Spectral", "Onset", "BPM",
                 "MFCC", "Chroma", "Key", "Pitch", "Loudness",
-                "Structural"
+                "Structural", "Genre"
             };
             double total = 0.0;
             std::cerr << "[Analysis Profile] Per-stage avg (us) over " << kProfileInterval << " hops:" << std::endl;
-            for (int s = 0; s < 11; ++s)
+            for (int s = 0; s < 12; ++s)
             {
                 double avg = stageTimesUs_[static_cast<size_t>(s)] / kProfileInterval;
                 total += avg;

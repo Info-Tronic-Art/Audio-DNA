@@ -322,6 +322,14 @@ void EffectChain::uploadEffectUniforms(juce::OpenGLShaderProgram* program,
         if (l >= 0) glUniform1fv(l, 12, snap.chromagram);
         l = getCachedUniformLocation(program, "u_mfccs");
         if (l >= 0) glUniform1fv(l, 13, snap.mfccs);
+
+        // P23: Genre detection uniforms
+        l = getCachedUniformLocation(program, "u_genre");
+        if (l >= 0) glUniform1f(l, static_cast<float>(snap.detectedGenre));
+        l = getCachedUniformLocation(program, "u_genreConfidence");
+        if (l >= 0) glUniform1f(l, snap.genreConfidence);
+        l = getCachedUniformLocation(program, "u_energyState");
+        if (l >= 0) glUniform1f(l, static_cast<float>(snap.energyState));
     }
 
     // Effect-specific parameter uniforms (cached)

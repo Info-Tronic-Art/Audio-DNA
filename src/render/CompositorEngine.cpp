@@ -1436,4 +1436,12 @@ void CompositorEngine::uploadAudioUniforms(juce::OpenGLShaderProgram* program) c
     // 13 MFCCs as array
     l = loc("u_mfccs");
     if (l >= 0) glUniform1fv(l, 13, snap.mfccs);
+
+    // P23: Genre detection uniforms
+    l = loc("u_genre");
+    if (l >= 0) glUniform1f(l, static_cast<float>(snap.detectedGenre));
+    l = loc("u_genreConfidence");
+    if (l >= 0) glUniform1f(l, snap.genreConfidence);
+    l = loc("u_energyState");
+    if (l >= 0) glUniform1f(l, static_cast<float>(snap.energyState));
 }

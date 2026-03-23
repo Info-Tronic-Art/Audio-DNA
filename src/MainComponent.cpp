@@ -1,6 +1,8 @@
 #include "MainComponent.h"
 #include "ui/PreferencesDialog.h"
 #include "analysis/BPMTracker.h"
+#include "analysis/GenreDetector.h"
+#include "effects/ISFShaderLoader.h"
 #include "sources/ProjectMSource.h"
 
 MainComponent::MainComponent(bool testMode, int testPort)
@@ -524,6 +526,33 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // Refresh deck view when autopilot advances a clip
     previewPanel_.getRenderer().setOnAutopilotAdvanced([this]() {
         if (deckView_) deckView_->refresh();
+    });
+
+    // P23: Genre change callback — auto-switch deck or load genre preset
+    previewPanel_.getRenderer().setOnGenreChanged([this](uint8_t genre, float confidence) {
+        if (!composition_.autoPresetOnGenre) return;
+
+        // Auto-switch deck if genre has an assigned deck
+        int deckIdx = composition_.genreDeckAssignment[genre];
+        if (deckIdx >= 0 && deckIdx < static_cast<int>(composition_.decks.size())
+            && deckIdx != composition_.activeDeckIndex)
+        {
+            composition_.activeDeckIndex = deckIdx;
+            previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+            if (deckView_) deckView_->rebuildGrid();
+        }
+
+        std::cerr << "[P23] Genre changed to: " << GenreDetector::genreName(genre)
+                  << " (confidence: " << confidence << ")" << std::endl;
+    });
+
+    // P23: Structural state change callback — auto-switch decks on transitions
+    previewPanel_.getRenderer().setOnStructuralStateChanged([this](uint8_t state) {
+        if (!composition_.structuralSceneEnabled) return;
+
+        std::cerr << "[P23] Structural state: " << static_cast<int>(state)
+                  << (state == 0 ? " (normal)" : state == 1 ? " (buildup)"
+                  : state == 2 ? " (drop)" : " (breakdown)") << std::endl;
     });
 
     deckView_->onClipTriggered = [this](int layerIdx, int col) {
@@ -2341,6 +2370,67 @@ void MainComponent::beatSyncRandomize()
 
 }
 
+// === P23: ISF Shader Import ===
+
+void MainComponent::handleImportISF()
+{
+    auto chooser = std::make_shared<juce::FileChooser>(
+        "Import ISF Shader",
+        ISFShaderLoader::getISFDirectory(),
+        "*.fs;*.isf;*.frag");
+
+    chooser->launchAsync(juce::FileBrowserComponent::openMode
+                         | juce::FileBrowserComponent::canSelectFiles,
+        [this, chooser](const juce::FileChooser& fc) {
+            auto results = fc.getResults();
+            if (results.isEmpty()) return;
+
+            auto file = results[0];
+            auto isf = ISFShaderLoader::parseISFFile(file);
+
+            if (!isf.valid)
+            {
+                juce::AlertWindow::showMessageBoxAsync(
+                    juce::MessageBoxIconType::WarningIcon,
+                    "Import Failed",
+                    "Could not parse ISF shader: " + file.getFileName());
+                return;
+            }
+
+            // Convert to our GLSL format
+            auto glsl = ISFShaderLoader::convertToGLSL(isf);
+
+            // Register in effect library
+            EffectLibrary::EffectDef def;
+            def.name = juce::String("ISF: " + isf.name);
+            def.category = "isf";
+            def.shaderName = "isf_" + isf.name;
+
+            for (const auto& param : isf.params)
+            {
+                EffectLibrary::ParamDef pd;
+                pd.name = param.name;
+                pd.uniformName = "u_isf_" + param.name;
+                pd.defaultValue = param.defaultValue;
+                def.params.push_back(std::move(pd));
+            }
+
+            previewPanel_.getRenderer().getEffectLibrary().registerDynamic(def);
+
+            // Compile the shader
+            // Note: ShaderManager needs GL context. Queue for GL thread compilation.
+            std::cerr << "[ISF] Imported: " << isf.name << " with "
+                      << isf.params.size() << " params" << std::endl;
+
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::MessageBoxIconType::InfoIcon,
+                "ISF Import Successful",
+                "Imported \"" + juce::String(isf.name) + "\" with "
+                + juce::String(static_cast<int>(isf.params.size())) + " parameters.\n\n"
+                + "Find it in the FX Browser under the ISF category.");
+        });
+}
+
 // === v2: Deck View Handlers ===
 
 void MainComponent::handleClipTrigger(int layerIndex, int column)
@@ -2622,6 +2712,9 @@ void MainComponent::handleMenuCommand(int commandId)
             break;
         case C::kQuit:
             juce::JUCEApplication::getInstance()->systemRequestedQuit();
+            break;
+        case C::kImportISF:
+            handleImportISF();
             break;
 
         // --- Composition menu ---

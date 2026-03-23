@@ -30,7 +30,10 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
                 Clip::AutopilotAction action = getActionForClip(*clip, layer);
                 if (action != Clip::AutopilotAction::DoNothing)
                 {
-                    advanceClip(layer, layer.activeClipColumn, action, deck.numColumns);
+                    if (smartRandomEnabled_ && action == Clip::AutopilotAction::PlayRandom)
+                        smartAdvanceClip(layer, layer.activeClipColumn, deck.numColumns, snapshot);
+                    else
+                        advanceClip(layer, layer.activeClipColumn, action, deck.numColumns);
                     anyAdvanced = true;
                 }
             }
@@ -90,7 +93,11 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
         {
             if (action != Clip::AutopilotAction::DoNothing)
             {
-                advanceClip(layer, layer.activeClipColumn, action, deck.numColumns);
+                // P23: Use smart random when enabled and action is PlayRandom
+                if (smartRandomEnabled_ && action == Clip::AutopilotAction::PlayRandom)
+                    smartAdvanceClip(layer, layer.activeClipColumn, deck.numColumns, snapshot);
+                else
+                    advanceClip(layer, layer.activeClipColumn, action, deck.numColumns);
                 anyAdvanced = true;
             }
         }
@@ -275,4 +282,87 @@ void Autopilot::advanceClip(Layer& layer, int currentCol, Clip::AutopilotAction 
     {
         layer.triggerClip(nextCol);
     }
+}
+
+void Autopilot::smartAdvanceClip(Layer& layer, int currentCol,
+                                  int numColumns, const FeatureSnapshot& snapshot) const
+{
+    // Collect all columns with clips (excluding current)
+    std::vector<int> candidates;
+    for (int c = 0; c < numColumns; ++c)
+    {
+        if (c != currentCol && layer.getClipAt(c) != nullptr)
+            candidates.push_back(c);
+    }
+
+    if (candidates.empty())
+        return;
+
+    // If only 1-2 candidates, just pick randomly (not enough for smart selection)
+    if (candidates.size() <= 2)
+    {
+        int nextCol = candidates[static_cast<size_t>(std::rand()) % candidates.size()];
+        if (nextCol >= 0) layer.triggerClip(nextCol);
+        return;
+    }
+
+    // Score each candidate based on position-implied energy vs current energy state.
+    // Convention: lower column indices = calmer, higher = more intense.
+    // Energy state: 0=low, 1=medium, 2=high
+    // Structural state: 0=normal, 1=buildup, 2=drop, 3=breakdown
+    //
+    // Strategy:
+    //   - Drop (2) → prefer high-energy clips (last third)
+    //   - Buildup (1) → prefer medium-high clips (escalating)
+    //   - Breakdown (3) → prefer low-energy clips (first third)
+    //   - Normal (0) → prefer clips matching energy state
+
+    float targetIntensity = 0.5f; // default: medium
+    switch (snapshot.structuralState)
+    {
+        case 2: // Drop — intense
+            targetIntensity = 0.85f;
+            break;
+        case 1: // Buildup — escalating
+            targetIntensity = 0.65f;
+            break;
+        case 3: // Breakdown — calm
+            targetIntensity = 0.15f;
+            break;
+        default: // Normal — follow energy
+            targetIntensity = static_cast<float>(snapshot.energyState) / 2.0f;
+            break;
+    }
+
+    // Score each candidate: higher score = better match
+    std::vector<float> scores(candidates.size(), 0.0f);
+    float maxCol = static_cast<float>(numColumns - 1);
+
+    for (size_t i = 0; i < candidates.size(); ++i)
+    {
+        float clipIntensity = (maxCol > 0.0f)
+            ? static_cast<float>(candidates[i]) / maxCol
+            : 0.5f;
+
+        // Score is inverse of distance to target intensity
+        float dist = std::fabs(clipIntensity - targetIntensity);
+        scores[i] = 1.0f - dist;
+
+        // Add small random jitter to prevent always picking the same clip
+        scores[i] += (static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) * 0.2f;
+    }
+
+    // Pick the candidate with the highest score
+    size_t bestIdx = 0;
+    float bestScore = scores[0];
+    for (size_t i = 1; i < scores.size(); ++i)
+    {
+        if (scores[i] > bestScore)
+        {
+            bestScore = scores[i];
+            bestIdx = i;
+        }
+    }
+
+    layer.triggerClip(candidates[bestIdx]);
 }

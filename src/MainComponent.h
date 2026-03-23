@@ -252,6 +252,7 @@ private:
     void mouseUp(const juce::MouseEvent& event) override;
     void mouseMove(const juce::MouseEvent& event) override;
 
+    void handleImportISF();
     void handleClipTrigger(int layerIndex, int column);
     void handleColumnTrigger(int column);
     void handleFileDrop(int layerIndex, int column, const juce::File& file);

@@ -228,6 +228,9 @@ void ApiServer::handleStatus(const httplib::Request&, httplib::Response& res)
         obj->setProperty("barPhase", static_cast<double>(snap->barPhase));
         obj->setProperty("phrasePhase", static_cast<double>(snap->phrasePhase));
         obj->setProperty("structuralState", static_cast<int>(snap->structuralState));
+        obj->setProperty("detectedGenre", static_cast<int>(snap->detectedGenre));
+        obj->setProperty("genreConfidence", static_cast<double>(snap->genreConfidence));
+        obj->setProperty("energyState", static_cast<int>(snap->energyState));
     }
 
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
@@ -535,6 +538,11 @@ void ApiServer::handleGetFeatures(const httplib::Request&, httplib::Response& re
         obj->setProperty("dominantPitch", static_cast<double>(snap->dominantPitch));
         obj->setProperty("structuralState", static_cast<int>(snap->structuralState));
 
+        // P23: Genre detection
+        obj->setProperty("detectedGenre", static_cast<int>(snap->detectedGenre));
+        obj->setProperty("genreConfidence", static_cast<double>(snap->genreConfidence));
+        obj->setProperty("energyState", static_cast<int>(snap->energyState));
+
         juce::Array<juce::var> bands;
         for (int i = 0; i < 7; ++i)
             bands.add(static_cast<double>(snap->bandEnergies[i]));
@@ -571,6 +579,11 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
     if (json.hasProperty("onsetStrength")) snap.onsetStrength = static_cast<float>(static_cast<double>(json["onsetStrength"]));
     if (json.hasProperty("onsetDetected")) snap.onsetDetected = static_cast<bool>(json["onsetDetected"]);
     if (json.hasProperty("structuralState")) snap.structuralState = static_cast<uint8_t>(static_cast<int>(json["structuralState"]));
+
+    // P23: Genre detection fields
+    if (json.hasProperty("detectedGenre")) snap.detectedGenre = static_cast<uint8_t>(static_cast<int>(json["detectedGenre"]));
+    if (json.hasProperty("genreConfidence")) snap.genreConfidence = static_cast<float>(static_cast<double>(json["genreConfidence"]));
+    if (json.hasProperty("energyState")) snap.energyState = static_cast<uint8_t>(static_cast<int>(json["energyState"]));
 
     if (json.hasProperty("bandEnergies"))
     {

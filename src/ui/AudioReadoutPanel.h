@@ -41,11 +41,15 @@ private:
     float drawBarIndicator(juce::Graphics& g, float y, float width);
     float drawOnsetIndicator(juce::Graphics& g, float y, float width);
     float drawStructuralState(juce::Graphics& g, float y, float width);
+    float drawGenreState(juce::Graphics& g, float y, float width);
 
     // Key name helper
     static juce::String keyName(int key, bool isMajor);
     static juce::String structStateName(uint8_t state);
     static juce::Colour structStateColour(uint8_t state);
+    static juce::String genreName(uint8_t genre);
+    static juce::Colour genreColour(uint8_t genre);
+    static juce::String energyName(uint8_t energy);
     static juce::String trackerStateName(uint8_t state);
     static juce::Colour trackerStateColour(uint8_t state);
 

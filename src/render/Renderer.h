@@ -91,11 +91,22 @@ public:
     // Callback when autopilot advances a clip (called async on message thread)
     void setOnAutopilotAdvanced(std::function<void()> fn) { onAutopilotAdvanced_ = std::move(fn); }
 
+    // P23: Callback when genre changes (called async on message thread)
+    // Params: new genre ID (0-7), confidence [0,1]
+    void setOnGenreChanged(std::function<void(uint8_t, float)> fn) { onGenreChanged_ = std::move(fn); }
+
+    // P23: Callback when structural state changes (called async on message thread)
+    // Params: new state (0=normal, 1=buildup, 2=drop, 3=breakdown)
+    void setOnStructuralStateChanged(std::function<void(uint8_t)> fn) { onStructuralStateChanged_ = std::move(fn); }
+
     // P20: Set per-type autopilot config (from Composition)
     void setPerTypeAutopilotConfig(const Composition::PerTypeAutopilotConfig* config)
     {
         autopilot_.setPerTypeConfig(config);
     }
+
+    // P23: Enable smart random autopilot (energy-aware clip selection)
+    void setSmartRandomEnabled(bool enabled) { autopilot_.setSmartRandomEnabled(enabled); }
 
     // Signal routing — P16: wire signals into render loop
     void setSignalRegistry(SignalRegistry* reg) { signalRegistry_ = reg; }
@@ -241,6 +252,12 @@ private:
     Composition* composition_ = nullptr; // P21: for persistent layer rendering across decks
     Autopilot autopilot_;  // Processes beat-synced clip advancement
     std::function<void()> onAutopilotAdvanced_;  // UI refresh callback
+
+    // P23: Genre/structural change detection
+    uint8_t lastDetectedGenre_ = 6;     // Last confirmed genre (default Pop/Electronic)
+    uint8_t lastStructuralState_ = 0;   // Last structural state
+    std::function<void(uint8_t, float)> onGenreChanged_;
+    std::function<void(uint8_t)> onStructuralStateChanged_;
 
     // Procedural sources
     SourceRegistry sourceRegistry_;

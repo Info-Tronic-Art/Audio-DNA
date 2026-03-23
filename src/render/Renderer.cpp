@@ -221,6 +221,34 @@ void Renderer::renderOpenGL()
         }
     }
 
+    // P23: Detect genre changes and fire callback
+    {
+        uint8_t currentGenre = snap->detectedGenre;
+        if (currentGenre != lastDetectedGenre_ && snap->genreConfidence > 0.1f)
+        {
+            lastDetectedGenre_ = currentGenre;
+            if (onGenreChanged_)
+            {
+                auto callback = onGenreChanged_;
+                auto genre = currentGenre;
+                auto conf = snap->genreConfidence;
+                juce::MessageManager::callAsync([callback, genre, conf]() { callback(genre, conf); });
+            }
+        }
+
+        uint8_t currentStructural = snap->structuralState;
+        if (currentStructural != lastStructuralState_)
+        {
+            lastStructuralState_ = currentStructural;
+            if (onStructuralStateChanged_)
+            {
+                auto callback = onStructuralStateChanged_;
+                auto state = currentStructural;
+                juce::MessageManager::callAsync([callback, state]() { callback(state); });
+            }
+        }
+    }
+
     // P20.5: Process MilkDrop preset playlist cycling (beat-synced preset advance within clips)
     if (deckActive)
     {

@@ -58,6 +58,11 @@ void AudioReadoutPanel::timerCallback()
     displaySnap_.keyIsMajor     = snap->keyIsMajor;
     displaySnap_.structuralState = snap->structuralState;
 
+    // P23: Genre detection
+    displaySnap_.detectedGenre   = snap->detectedGenre;
+    displaySnap_.genreConfidence = snap->genreConfidence;
+    displaySnap_.energyState     = snap->energyState;
+
     // Onset flash: spike on onset, fast decay
     if (snap->onsetDetected)
         onsetFlash_ = 1.0f;
@@ -166,6 +171,10 @@ void AudioReadoutPanel::paint(juce::Graphics& g)
     // === STRUCTURAL ===
     y = drawSection(g, y, w, "Structure");
     y = drawStructuralState(g, y, w);
+
+    // === GENRE (P23) ===
+    y = drawSection(g, y, w, "Genre");
+    y = drawGenreState(g, y, w);
 }
 
 //==============================================================================
@@ -506,5 +515,113 @@ juce::Colour AudioReadoutPanel::trackerStateColour(uint8_t state)
         case 1: return juce::Colour(AudioDNALookAndFeel::kMeterYellow);   // Locking - yellow
         case 2: return juce::Colour(AudioDNALookAndFeel::kMeterGreen);    // Locked - green
         default: return juce::Colour(AudioDNALookAndFeel::kTextSecondary);
+    }
+}
+
+// === P23: Genre Display ===
+
+float AudioReadoutPanel::drawGenreState(juce::Graphics& g, float y, float width)
+{
+    float x = static_cast<float>(getLocalBounds().getX()) + 8.0f;
+
+    // Genre name with colored indicator
+    auto genreCol = genreColour(displaySnap_.detectedGenre);
+    auto name = genreName(displaySnap_.detectedGenre);
+
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    g.setFont(juce::Font(juce::FontOptions(11.0f)));
+    g.drawText("Genre", juce::Rectangle<float>(x, y, 40.0f, 14.0f),
+               juce::Justification::centredLeft);
+
+    // Colored dot
+    g.setColour(genreCol);
+    g.fillEllipse(x + 44.0f, y + 3.0f, 8.0f, 8.0f);
+
+    // Genre name
+    g.setFont(juce::Font(juce::FontOptions(11.0f, juce::Font::bold)));
+    g.drawText(name, juce::Rectangle<float>(x + 56.0f, y, width - 56.0f, 14.0f),
+               juce::Justification::centredLeft);
+
+    y += 16.0f;
+
+    // Confidence bar
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    g.setFont(juce::Font(juce::FontOptions(10.0f)));
+    g.drawText("Conf", juce::Rectangle<float>(x, y, 30.0f, 12.0f),
+               juce::Justification::centredLeft);
+
+    float barX = x + 34.0f;
+    float barW = width - 42.0f;
+    float barH = 8.0f;
+
+    // Background bar
+    g.setColour(juce::Colour(0xff2a2a3a));
+    g.fillRect(barX, y + 2.0f, barW, barH);
+
+    // Confidence fill
+    g.setColour(genreCol.withAlpha(0.7f));
+    g.fillRect(barX, y + 2.0f, barW * displaySnap_.genreConfidence, barH);
+
+    y += 14.0f;
+
+    // Energy state
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    g.setFont(juce::Font(juce::FontOptions(10.0f)));
+    g.drawText("Energy", juce::Rectangle<float>(x, y, 40.0f, 12.0f),
+               juce::Justification::centredLeft);
+
+    auto energyStr = energyName(displaySnap_.energyState);
+    auto energyCol = (displaySnap_.energyState == 0) ? juce::Colour(0xff4fc3f7)    // Low - light blue
+                   : (displaySnap_.energyState == 2) ? juce::Colour(0xffff5252)    // High - red
+                   : juce::Colour(0xffffab40);                                      // Medium - amber
+
+    g.setColour(energyCol);
+    g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
+    g.drawText(energyStr, juce::Rectangle<float>(x + 44.0f, y, width - 52.0f, 12.0f),
+               juce::Justification::centredLeft);
+
+    return y + 16.0f;
+}
+
+juce::String AudioReadoutPanel::genreName(uint8_t genre)
+{
+    switch (genre)
+    {
+        case 0: return "House";
+        case 1: return "Techno";
+        case 2: return "Drum & Bass";
+        case 3: return "Hip-Hop";
+        case 4: return "Ambient";
+        case 5: return "Rock";
+        case 6: return "Pop/Electronic";
+        case 7: return "Jazz/Other";
+        default: return "Unknown";
+    }
+}
+
+juce::Colour AudioReadoutPanel::genreColour(uint8_t genre)
+{
+    switch (genre)
+    {
+        case 0: return juce::Colour(0xff00e676);   // House - green
+        case 1: return juce::Colour(0xffff1744);   // Techno - red
+        case 2: return juce::Colour(0xffff6d00);   // DnB - orange
+        case 3: return juce::Colour(0xffffab00);   // Hip-Hop - amber
+        case 4: return juce::Colour(0xff4fc3f7);   // Ambient - light blue
+        case 5: return juce::Colour(0xffb71c1c);   // Rock - dark red
+        case 6: return juce::Colour(0xff7c4dff);   // Pop/Electronic - purple
+        case 7: return juce::Colour(0xff00bcd4);   // Jazz/Other - teal
+        default: return juce::Colour(AudioDNALookAndFeel::kTextSecondary);
+    }
+}
+
+juce::String AudioReadoutPanel::energyName(uint8_t energy)
+{
+    switch (energy)
+    {
+        case 0: return "Low";
+        case 1: return "Medium";
+        case 2: return "High";
+        default: return "?";
     }
 }

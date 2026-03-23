@@ -109,6 +109,9 @@ target_sources(AudioDNA PRIVATE
     src/analysis/StructuralDetector.cpp
     src/analysis/PitchTracker.h
     src/analysis/PitchTracker.cpp
+    src/analysis/GenreDetector.h
+    src/analysis/GenreDetector.cpp
+    src/analysis/GenreSmoothing.h
 
     # Features
     src/features/FeatureBus.h
@@ -132,6 +135,8 @@ target_sources(AudioDNA PRIVATE
     src/mapping/CurveTransforms.h
     src/mapping/MappingEngine.h
     src/mapping/MappingEngine.cpp
+    src/mapping/MappingSuggester.h
+    src/mapping/MappingSuggester.cpp
 
     # Core (v2)
     src/core/Command.h
@@ -208,6 +213,8 @@ target_sources(AudioDNA PRIVATE
     src/effects/EffectChain.cpp
     src/effects/EffectLibrary.h
     src/effects/EffectLibrary.cpp
+    src/effects/ISFShaderLoader.h
+    src/effects/ISFShaderLoader.cpp
     src/effects/UniformBridge.h
     src/effects/UniformBridge.cpp
 

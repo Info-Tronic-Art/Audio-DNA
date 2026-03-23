@@ -21,6 +21,8 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
         {
             menu.addItem(kPreferences, "Preferences...",  true, false);
             menu.addSeparator();
+            menu.addItem(kImportISF, "Import ISF Shader...", true, false);
+            menu.addSeparator();
             menu.addItem(kAbout, "About Audio-DNA");
             menu.addSeparator();
             menu.addItem(kQuit, "Quit", true, false);

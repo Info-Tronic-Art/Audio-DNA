@@ -21,6 +21,9 @@ public:
     // Returns true if any clip was auto-advanced.
     bool processFrame(Deck& deck, const FeatureSnapshot& snapshot);
 
+    // P23: Enable smart random mode (energy-aware clip selection)
+    void setSmartRandomEnabled(bool enabled) { smartRandomEnabled_ = enabled; }
+
     // P20: Set the composition-level per-type config (called from MainComponent)
     void setPerTypeConfig(const Composition::PerTypeAutopilotConfig* config)
     {
@@ -44,10 +47,18 @@ private:
     // P20: Get action based on layer type
     Clip::AutopilotAction getPerTypeAction(const Layer& layer) const;
 
+    // P23: Smart random — select clips based on energy/structural state
+    void smartAdvanceClip(Layer& layer, int currentCol,
+                          int numColumns, const FeatureSnapshot& snapshot) const;
+
     // Track beats for each layer
     float lastBeatPhase_ = 0.0f;
     bool lastOnBeat_ = false;
 
     // P20: Per-type autopilot config (owned by Composition, not us)
     const Composition::PerTypeAutopilotConfig* perTypeConfig_ = nullptr;
+
+    // P23: Smart random mode
+    bool smartRandomEnabled_ = false;
+    uint8_t lastEnergyState_ = 1;
 };

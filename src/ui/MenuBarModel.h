@@ -21,6 +21,7 @@ public:
         kPreferences = 1000,
         kAbout,
         kQuit,
+        kImportISF,
 
         // Composition menu
         kCompNew = 1100,

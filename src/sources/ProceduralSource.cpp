@@ -205,6 +205,14 @@ void ProceduralSource::uploadUniforms(juce::OpenGLShaderProgram* program,
     l = loc("u_mfccs");
     if (l >= 0) glUniform1fv(l, 13, snapshot.mfccs);
 
+    // P23: Genre detection uniforms
+    l = loc("u_genre");
+    if (l >= 0) glUniform1f(l, static_cast<float>(snapshot.detectedGenre));
+    l = loc("u_genreConfidence");
+    if (l >= 0) glUniform1f(l, snapshot.genreConfidence);
+    l = loc("u_energyState");
+    if (l >= 0) glUniform1f(l, static_cast<float>(snapshot.energyState));
+
     // Feedback texture (unit 1) — previous frame's composited output
     auto feedbackLoc = loc("u_feedbackTex");
     if (feedbackLoc >= 0 && feedbackTex_ != 0)

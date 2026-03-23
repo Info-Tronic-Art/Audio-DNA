@@ -116,6 +116,16 @@ public:
     void setSilence(float dbThreshold);
     void setPhraseBars(int bars);
 
+    // P23: Smart BPM recovery — feed RMS for silence detection
+    // Call each hop with the current RMS value. When silence is detected,
+    // the BPM tracker holds the last good BPM and phase continues running.
+    // On audio resumption, it gradually resumes the pipeline.
+    void feedSilenceDetection(float rms);
+
+    // P23: Query silence state
+    bool isSilent() const { return inSilence_; }
+    float silenceDuration() const; // seconds
+
     // Reset phrase/bar counters (called on Resync)
     void resetPhrase();
 
@@ -204,6 +214,15 @@ private:
     int      phraseBars_ = kDefaultPhraseBars; // configurable phrase length
     bool     prevDownbeatDetected_ = false;    // edge detection for bar counting
     uint8_t  prevStructuralState_ = 0;         // for detecting structural transitions
+
+    // === P23: Smart BPM recovery ===
+    bool  inSilence_ = false;
+    int   silenceHopCount_ = 0;         // hops since silence started
+    float silenceRmsThreshold_ = 0.005f; // RMS below this = silence
+    int   silenceEntryHops_ = 0;        // hops below threshold before declaring silence (~300ms)
+    int   silenceExitHops_ = 0;         // hops above threshold before resuming (~100ms)
+    int   silenceCountdown_ = 0;        // countdown for entry/exit hysteresis
+    float hopsPerSecBpm_ = 0.0f;        // cached for duration calculation
 
     // --- Internal pipeline methods ---
 

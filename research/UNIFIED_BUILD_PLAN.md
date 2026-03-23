@@ -870,9 +870,11 @@ Register as transition shaders in EmbeddedShaders.h + compile in Renderer. Compo
 
 ---
 
-## Phase 23: Smart Audio Features
+## Phase 23: Smart Audio Features — COMPLETE
 
 **Goal**: Innovative audio-driven features that differentiate Audio-DNA.
+
+**Completed 2026-03-23**: 8-genre real-time detection, AI mapping suggestions, smart energy-aware autopilot, structural scene triggering, ISF shader import, per-genre smoothing, smart BPM recovery during silence. 8 new files, 14 modified. Genre uniforms (u_genre, u_genreConfidence, u_energyState) in all 3 shader paths. Genre display in AudioReadoutPanel. Eyes-validated.
 
 **Tasks**:
 

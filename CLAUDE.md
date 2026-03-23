@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 81 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 44+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output/input (macOS, optional).
+**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 81 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 44+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output/input (macOS, optional), real-time genre detection (8 genres), AI mapping suggestions, smart energy-aware autopilot, structural scene triggering, ISF shader import, per-genre smoothing tuning, smart BPM recovery during silence.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -63,6 +63,10 @@ Runs on user events. Handles all UI interaction — sliders, buttons, file choos
 | `harmonicChangeDetection` | `float` | HCDF value | Harmonic change rate |
 | `barCount` | `uint16_t` | bars since reset | Bars since last phrase reset |
 | `phrasePhase` | `float` | [0, 1) | Sawtooth over N bars (configurable, default 8) |
+| `detectedGenre` | `uint8_t` | 0-7 | Genre classification (P23) |
+| `genreConfidence` | `float` | [0, 1] | How dominant the top genre is |
+| `energyState` | `uint8_t` | 0-2 | 0=low, 1=medium, 2=high energy |
+| `genreScores[8]` | `float[8]` | normalized | Smoothed scores for all 8 genres |
 
 **Mapping** — Routes any audio feature to any effect parameter:
 
@@ -189,14 +193,17 @@ AudioDNA/
 │   │   ├── KeyDetector.h/cpp         ✅ # Krumhansl-Schmuckler: chroma × 24 key templates
 │   │   ├── LoudnessAnalyzer.h/cpp    ✅ # K-weighting biquads + 400ms window → LUFS
 │   │   ├── StructuralDetector.h/cpp  ✅ # Multi-scale EMA envelopes → state machine
-│   │   └── PitchTracker.h/cpp        ✅ # Aubio yinfft pitch detection
+│   │   ├── PitchTracker.h/cpp        ✅ # Aubio yinfft pitch detection
+│   │   ├── GenreDetector.h/cpp       ✅ # [P23] 8-genre real-time classification from audio features
+│   │   └── GenreSmoothing.h          ✅ # [P23] Per-genre attack/release smoothing parameters
 │   ├── features/
 │   │   ├── FeatureBus.h/cpp          ✅ # Triple-buffer atomic swap (3× FeatureSnapshot)
 │   │   └── Smoother.h               ✅ # EMA + One-Euro filter (header-only)
 │   ├── mapping/
 │   │   ├── MappingEngine.h/cpp          # [M4] Source→curve→scale→target routing
 │   │   ├── MappingTypes.h               # [M4] Mapping, Source, Curve enums
-│   │   └── CurveTransforms.h            # [M4] lin/exp/log/sigmoid/step pure functions
+│   │   ├── CurveTransforms.h            # [M4] lin/exp/log/sigmoid/step pure functions
+│   │   └── MappingSuggester.h/cpp    ✅ # [P23] AI mapping suggestions based on genre + features
 │   ├── keyboard/
 │   │   └── KeySlot.h                    # [M7] Per-key data model (media, effects, transparency, latch/random)
 │   ├── media/
@@ -219,7 +226,8 @@ AudioDNA/
 │   │   ├── EffectLibrary.h/cpp          # [M4] Registry: creates Effect instances from shaders
 │   │   ├── Effect.h/cpp              ✅ # Single effect: shader program + param list
 │   │   ├── EffectChain.h/cpp         ✅ # Ordered chain with ping-pong FBOs
-│   │   └── UniformBridge.h/cpp       ✅ # Maps effect params → glUniform calls
+│   │   ├── UniformBridge.h/cpp       ✅ # Maps effect params → glUniform calls
+│   │   └── ISFShaderLoader.h/cpp     ✅ # [P23] ISF shader import with GLSL 410 conversion
 │   ├── render/
 │   │   ├── Renderer.h/cpp            ✅ # OpenGLRenderer impl, GL 4.1 core, frame loop
 │   │   ├── ShaderManager.h/cpp       ✅ # Compile, link, hot-reload from shaders/
@@ -370,6 +378,7 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 12. HCDF: chroma difference function
 13. Transient density: onset count in sliding window
 14. Phrase tracking: bar count + phrase phase sawtooth over N bars (resets on structural transitions)
+15. Genre detection: multi-feature scoring → 8 genres + energy state (P23)
 ```
 
 ---
@@ -984,6 +993,9 @@ Effect shaders and source shaders can access all 42+ audio features via uniforms
 | `u_bandEnergies[7]` | float array | All 7 frequency bands |
 | `u_chromagram[12]` | float array | 12 pitch classes (C through B) |
 | `u_mfccs[13]` | float array | 13 MFCC coefficients |
+| `u_genre` | float | Detected genre (0-7): House/Techno/DnB/HipHop/Ambient/Rock/Pop/Jazz |
+| `u_genreConfidence` | float | Genre classification confidence [0, 1] |
+| `u_energyState` | float | Overall energy level (0=low, 1=medium, 2=high) |
 
 **Important**: These uniforms are available in every shader but only consume GPU resources if the shader declares them. Unused uniforms are silently ignored by `glGetUniformLocation` returning -1.
 
@@ -1096,6 +1108,24 @@ Composition-level automation that sets different beat timings per layer type:
 **Syphon Input** (`SyphonInput`, macOS only): Receives textures from other apps via `SyphonClient`. Lists available servers via `SyphonServerDirectory`.
 
 **Spout/NDI**: Header-only stubs. Spout is Windows-only (requires Spout2 SDK). NDI requires separately downloaded SDK from ndi.video.
+
+### Smart Audio Features (P23)
+
+**Genre Detection** (`GenreDetector`): Real-time 8-genre classification from audio features. Uses multi-feature scoring (BPM range, spectral profile, transient density, chromatic complexity) with ~2s EMA smoothing and ~3s hysteresis. Runs as stage 13 in the AnalysisThread pipeline. Zero allocation in steady state. Genres: House (0), Techno (1), DnB (2), Hip-Hop (3), Ambient (4), Rock (5), Pop/Electronic (6), Jazz/Other (7). Also tracks energy state (0=low, 1=medium, 2=high).
+
+**Auto-Preset Selection**: When `composition.autoPresetOnGenre` is enabled, genre changes fire `Renderer::onGenreChanged_` callback on the message thread. Can auto-switch decks via `composition.genreDeckAssignment[8]` (genre→deck index mapping).
+
+**AI Mapping Suggestions** (`MappingSuggester`): Stateless utility that analyzes audio features and detected genre to recommend signal→parameter routes. Returns scored suggestions with source, target effect/param, curve type, and human-readable reason. Genre-specific suggestions for all 8 genres.
+
+**Smart Random Autopilot**: When `smartRandomEnabled` is active and autopilot action is PlayRandom, clips are selected based on structural state and energy level instead of pure random. Convention: lower column indices = calmer content, higher = more intense. Drop→intense clips, breakdown→calm clips.
+
+**Structural Scene Triggering**: `Renderer::onStructuralStateChanged_` fires on structural transitions (normal/buildup/drop/breakdown). Controlled by `composition.structuralSceneEnabled`.
+
+**ISF Shader Import** (`ISFShaderLoader`): Imports Interactive Shader Format (.isf/.fs) shaders from isf.video. Parses JSON metadata from comment blocks, extracts parameter definitions (float/bool/long), wraps GLSL with ISF compatibility defines (`TIME`, `RENDERSIZE`, `isf_FragNormCoord`, `IMG_NORM_PIXEL`), converts to GLSL 410. Registers as effects in EffectLibrary with "ISF" category. Menu: Audio-DNA > Import ISF Shader...
+
+**Per-Genre Smoothing** (`GenreSmoothing`): Provides genre-specific EMA attack/release alphas and One-Euro filter parameters. Techno/DnB = fast attack (0.50-0.55), Ambient = slow (0.12), Hip-Hop = punchy attack + smooth release.
+
+**Smart BPM Recovery**: `BPMTracker::feedSilenceDetection(rms)` detects silence (RMS < 0.005 for 300ms) and holds the last good BPM. Phase continues free-running during silence. Resumes after 100ms of audio above threshold. Prevents BPM jumping to 0 during DJ transitions or track endings.
 
 ### Updating This Document
 

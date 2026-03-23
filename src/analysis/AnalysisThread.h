@@ -18,6 +18,7 @@ class KeyDetector;
 class LoudnessAnalyzer;
 class StructuralDetector;
 class PitchTracker;
+class GenreDetector;
 
 // Dedicated thread that reads from ring buffer, runs the full audio analysis
 // pipeline, and publishes FeatureSnapshots to the FeatureBus.
@@ -35,6 +36,7 @@ class PitchTracker;
 //  10. Loudness (LUFS, dynamic range)
 //  11. Structural detection
 //  12. Transient density
+//  13. Genre detection
 class AnalysisThread : public juce::Thread
 {
 public:
@@ -103,6 +105,7 @@ private:
     std::unique_ptr<LoudnessAnalyzer> loudnessAnalyzer_;
     std::unique_ptr<StructuralDetector> structuralDetector_;
     std::unique_ptr<PitchTracker> pitchTracker_;
+    std::unique_ptr<GenreDetector> genreDetector_;
 
     // Transient density: sliding window onset counter
     static constexpr int kOnsetWindowSize = 256;  // ~2.7 seconds at 93.75 hops/sec

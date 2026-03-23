@@ -85,6 +85,18 @@ struct Composition
     };
     PerTypeAutopilotConfig perTypeAutopilot;
 
+    // === Genre-Aware Automation (P23) ===
+    bool autoPresetOnGenre = false;         // Auto-switch visual preset on genre change
+    bool smartAutopilotEnabled = false;     // Energy-aware clip selection
+    bool structuralSceneEnabled = false;    // Auto-switch decks on structural transitions
+
+    // Per-genre deck assignment: which deck to switch to when genre is detected
+    // Index = genre ID (0-7), value = deck index (-1 = no switch)
+    int genreDeckAssignment[8] = { -1, -1, -1, -1, -1, -1, -1, -1 };
+
+    // Per-genre effect preset: name of FX preset to load when genre is detected
+    std::string genrePresetNames[8] = {};
+
     // === Output Settings ===
     int outputWidth = 1920;
     int outputHeight = 1080;

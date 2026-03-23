@@ -65,6 +65,12 @@ struct alignas(64) FeatureSnapshot
     // Harmonic change
     float harmonicChangeDetection = 0.0f;  // HCDF — frame-to-frame chroma distance
 
+    // Genre detection (P23)
+    uint8_t detectedGenre = 6;             // 0=House, 1=Techno, 2=DnB, 3=HipHop, 4=Ambient, 5=Rock, 6=Pop/Electronic, 7=Jazz/Other
+    float   genreConfidence = 0.0f;        // [0, 1] — how dominant the top genre is
+    uint8_t energyState = 1;               // 0=low, 1=medium, 2=high — overall energy level
+    float   genreScores[8] = {};           // Raw smoothed scores for all 8 genres
+
     void clear()
     {
         std::memset(this, 0, sizeof(FeatureSnapshot));
