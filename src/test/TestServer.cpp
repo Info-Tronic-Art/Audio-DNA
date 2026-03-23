@@ -441,6 +441,13 @@ void TestServer::handleInjectFeatures(const httplib::Request& req, httplib::Resp
         }
     }
 
+    // P25: Advanced audio analysis features
+    snap->sidechainPump = get("sidechainPump");
+    snap->swingRatio = obj->hasProperty("swingRatio") ? get("swingRatio") : 0.5f;
+    snap->formantPresence = get("formantPresence");
+    snap->resonancePeak = get("resonancePeak");
+    snap->reeseBass = get("reeseBass");
+
     featureBus_.publishWrite();
 
     res.set_content(jsonOk(), "application/json");

@@ -115,6 +115,13 @@ float MappingEngine::extractSource(MappingSource source, const FeatureSnapshot& 
         case MappingSource::ChromaAs: return snap.chromagram[10];
         case MappingSource::ChromaB:  return snap.chromagram[11];
 
+        // Advanced audio (P25)
+        case MappingSource::SidechainPump:    return snap.sidechainPump;
+        case MappingSource::SwingRatio:       return snap.swingRatio;
+        case MappingSource::FormantPresence:  return snap.formantPresence;
+        case MappingSource::ResonancePeak:    return snap.resonancePeak;
+        case MappingSource::ReeseBass:        return snap.reeseBass;
+
         case MappingSource::Count:    return 0.0f;
     }
     return 0.0f;

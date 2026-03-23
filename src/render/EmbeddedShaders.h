@@ -64,6 +64,84 @@ inline const char* effectDryWet = R"(
     }
 )";
 
+// P25: Composition-level transform shader
+// Applies position, scale, rotation around an anchor point to the entire output.
+inline const char* compTransform = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    uniform vec2  u_comp_position;  // Normalized offset (-1 to 1)
+    uniform float u_comp_scale;     // Scale factor (1.0 = 100%)
+    uniform float u_comp_rotation;  // Rotation in radians
+    uniform vec2  u_comp_anchor;    // Anchor point (0,0 = center)
+
+    void main() {
+        // Transform UV coordinates
+        vec2 uv = v_texCoord - 0.5;  // Center at origin
+
+        // Apply anchor offset
+        uv -= u_comp_anchor * 0.5;
+
+        // Apply rotation
+        float c = cos(u_comp_rotation);
+        float s = sin(u_comp_rotation);
+        uv = mat2(c, -s, s, c) * uv;
+
+        // Apply scale (inverse: smaller scale = zoom in)
+        uv /= max(u_comp_scale, 0.001);
+
+        // Undo anchor offset
+        uv += u_comp_anchor * 0.5;
+
+        // Apply position offset
+        uv -= u_comp_position * 0.5;
+
+        // Back to [0,1]
+        uv += 0.5;
+
+        // Sample with black outside bounds
+        if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0)
+            fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        else
+            fragColor = texture(u_texture, uv);
+    }
+)";
+
+// P25: Cross-deck transition shader
+// Blends two textures with configurable blend mode during deck transitions.
+inline const char* deckTransition = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_textureA;   // Outgoing deck
+    uniform sampler2D u_textureB;   // Incoming deck
+    uniform float u_progress;       // 0 = full A, 1 = full B
+    uniform int u_blendMode;        // 0=Alpha, 1=Add, 2=Multiply
+
+    void main() {
+        vec4 a = texture(u_textureA, v_texCoord);
+        vec4 b = texture(u_textureB, v_texCoord);
+        float t = clamp(u_progress, 0.0, 1.0);
+
+        vec4 result;
+        if (u_blendMode == 1) {
+            // Additive: lerp but add the contributions
+            result = a * (1.0 - t) + b * t;
+            result.rgb = min(result.rgb + a.rgb * b.rgb * t * (1.0 - t) * 4.0, vec3(1.0));
+            result.a = 1.0;
+        } else if (u_blendMode == 2) {
+            // Multiply: lerp with multiply blending at crossover
+            vec4 mul = vec4(a.rgb * b.rgb, 1.0);
+            result = mix(mix(a, mul, t), mix(mul, b, t), t);
+        } else {
+            // Alpha (default): simple crossfade
+            result = mix(a, b, t);
+        }
+        fragColor = result;
+    }
+)";
+
 // === Shared GLSL Utility Functions ===
 // These are prepended to shaders that need them during compilation.
 

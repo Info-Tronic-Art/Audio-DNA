@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 81 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 44+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output/input (macOS, optional), real-time genre detection (8 genres), AI mapping suggestions, smart energy-aware autopilot, structural scene triggering, ISF shader import, per-genre smoothing tuning, smart BPM recovery during silence.
+**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 81 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 44+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output/input (macOS, optional), real-time genre detection (8 genres), AI mapping suggestions, smart energy-aware autopilot, structural scene triggering, ISF shader import, per-genre smoothing tuning, smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -67,6 +67,11 @@ Runs on user events. Handles all UI interaction — sliders, buttons, file choos
 | `genreConfidence` | `float` | [0, 1] | How dominant the top genre is |
 | `energyState` | `uint8_t` | 0-2 | 0=low, 1=medium, 2=high energy |
 | `genreScores[8]` | `float[8]` | normalized | Smoothed scores for all 8 genres |
+| `sidechainPump` | `float` | [0, 1] | Bass/mid anti-correlation (sidechain compression) |
+| `swingRatio` | `float` | [0.5, ~0.67] | 0.5=straight, >0.5=swung timing |
+| `formantPresence` | `float` | [0, 1] | Vocal formant energy concentration (300-3000 Hz) |
+| `resonancePeak` | `float` | [0, 1] | Spectral kurtosis (sharp resonance peaks) |
+| `reeseBass` | `float` | [0, 1] | Bass spectral spread (reese/wobble detection) |
 
 **Mapping** — Routes any audio feature to any effect parameter:
 
@@ -195,7 +200,8 @@ AudioDNA/
 │   │   ├── StructuralDetector.h/cpp  ✅ # Multi-scale EMA envelopes → state machine
 │   │   ├── PitchTracker.h/cpp        ✅ # Aubio yinfft pitch detection
 │   │   ├── GenreDetector.h/cpp       ✅ # [P23] 8-genre real-time classification from audio features
-│   │   └── GenreSmoothing.h          ✅ # [P23] Per-genre attack/release smoothing parameters
+│   │   ├── GenreSmoothing.h          ✅ # [P23] Per-genre attack/release smoothing parameters
+│   │   └── AdvancedAudioAnalyzer.h/cpp ✅ # [P25] Sidechain pump, swing, formant, resonance, reese bass
 │   ├── features/
 │   │   ├── FeatureBus.h/cpp          ✅ # Triple-buffer atomic swap (3× FeatureSnapshot)
 │   │   └── Smoother.h               ✅ # EMA + One-Euro filter (header-only)
@@ -379,6 +385,7 @@ All features are computed per hop (512 samples = 10.7ms @ 48kHz) in the analysis
 13. Transient density: onset count in sliding window
 14. Phrase tracking: bar count + phrase phase sawtooth over N bars (resets on structural transitions)
 15. Genre detection: multi-feature scoring → 8 genres + energy state (P23)
+16. Advanced analysis: sidechain pump, swing ratio, formant presence, resonance peak, reese bass (P25)
 ```
 
 ---
@@ -996,6 +1003,11 @@ Effect shaders and source shaders can access all 42+ audio features via uniforms
 | `u_genre` | float | Detected genre (0-7): House/Techno/DnB/HipHop/Ambient/Rock/Pop/Jazz |
 | `u_genreConfidence` | float | Genre classification confidence [0, 1] |
 | `u_energyState` | float | Overall energy level (0=low, 1=medium, 2=high) |
+| `u_sidechainPump` | float | Bass/mid anti-correlation [0, 1] (P25) |
+| `u_swingRatio` | float | Timing swing 0.5=straight, >0.5=swung (P25) |
+| `u_formantPresence` | float | Vocal formant energy [0, 1] (P25) |
+| `u_resonancePeak` | float | Spectral kurtosis [0, 1] (P25) |
+| `u_reeseBass` | float | Bass spectral spread [0, 1] (P25) |
 
 **Important**: These uniforms are available in every shader but only consume GPU resources if the shader declares them. Unused uniforms are silently ignored by `glGetUniformLocation` returning -1.
 
@@ -1126,6 +1138,32 @@ Composition-level automation that sets different beat timings per layer type:
 **Per-Genre Smoothing** (`GenreSmoothing`): Provides genre-specific EMA attack/release alphas and One-Euro filter parameters. Techno/DnB = fast attack (0.50-0.55), Ambient = slow (0.12), Hip-Hop = punchy attack + smooth release.
 
 **Smart BPM Recovery**: `BPMTracker::feedSilenceDetection(rms)` detects silence (RMS < 0.005 for 300ms) and holds the last good BPM. Phase continues free-running during silence. Resumes after 100ms of audio above threshold. Prevents BPM jumping to 0 during DJ transitions or track endings.
+
+### Advanced Audio Analysis (P25)
+
+**AdvancedAudioAnalyzer** (`src/analysis/AdvancedAudioAnalyzer.h/cpp`): Computes 5 advanced spectral features per hop, added as stage 14 in the analysis pipeline. All buffers pre-allocated, zero allocation in steady state.
+
+| Feature | Algorithm | Output | Uniform | Use Case |
+|---------|-----------|--------|---------|----------|
+| **Sidechain Pump** | Pearson correlation of bass vs mid envelopes (64-hop window). Negative r = pumping. | [0, 1] | `u_sidechainPump` | Techno/house sidechain detection |
+| **Swing Ratio** | Inter-onset interval histogram. Consecutive pairs long/short ratio. | [0.5, ~0.67] | `u_swingRatio` | Hip-hop shuffle detection |
+| **Formant Presence** | Energy ratio in 300-3000 Hz vocal range vs total. Adaptive normalization. | [0, 1] | `u_formantPresence` | Vocal content detection |
+| **Resonance Peak** | Spectral kurtosis in 200-8000 Hz. High = sharp filter peaks. | [0, 1] | `u_resonancePeak` | Filter sweep/synth resonance |
+| **Reese Bass** | Spectral spread (weighted std dev) in 30-200 Hz. Wide = detuned/wobble. | [0, 1] | `u_reeseBass` | DnB reese bass detection |
+
+All 5 features are available as MappingSource enum values (`SidechainPump`, `SwingRatio`, `FormantPresence`, `ResonancePeak`, `ReeseBass`), as hidden signals in SignalRegistry, and as shader uniforms in all 3 render paths.
+
+### Composition-Level Transform (P25)
+
+The `comp_transform` shader applies position/scale/rotation to the entire final output. Applied after the effect chain renders, before the master level dim. Uses `glBlitFramebuffer` to copy the framebuffer, then renders the transform shader.
+
+Fields in `Composition`: `compPositionX/Y` (normalized offset), `compScale` (1.0=100%), `compRotation` (degrees), `compAnchorX/Y`. UI controls already exist in the CompositionInspector's Transform section.
+
+### Cross-Deck Transitions (P25)
+
+When `Composition::activeDeckIndex` changes, the Renderer saves the current frame as the "outgoing" deck texture and blends to the new deck over `Composition::globalTransitionSpeed` seconds. Three blend modes: Alpha (crossfade), Add (additive), Multiply. Uses `Composition::crossfaderBlendMode` for the blend mode.
+
+The `deck_transition` shader takes two textures (`u_textureA` = outgoing, `u_textureB` = incoming) and a progress uniform. Frame is saved to `prevDeckTexture_` on deck switch detection.
 
 ### Updating This Document
 

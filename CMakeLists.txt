@@ -112,6 +112,8 @@ target_sources(AudioDNA PRIVATE
     src/analysis/GenreDetector.h
     src/analysis/GenreDetector.cpp
     src/analysis/GenreSmoothing.h
+    src/analysis/AdvancedAudioAnalyzer.h
+    src/analysis/AdvancedAudioAnalyzer.cpp
 
     # Features
     src/features/FeatureBus.h

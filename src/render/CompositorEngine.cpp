@@ -1444,4 +1444,16 @@ void CompositorEngine::uploadAudioUniforms(juce::OpenGLShaderProgram* program) c
     if (l >= 0) glUniform1f(l, snap.genreConfidence);
     l = loc("u_energyState");
     if (l >= 0) glUniform1f(l, static_cast<float>(snap.energyState));
+
+    // P25: Advanced audio analysis uniforms
+    l = loc("u_sidechainPump");
+    if (l >= 0) glUniform1f(l, snap.sidechainPump);
+    l = loc("u_swingRatio");
+    if (l >= 0) glUniform1f(l, snap.swingRatio);
+    l = loc("u_formantPresence");
+    if (l >= 0) glUniform1f(l, snap.formantPresence);
+    l = loc("u_resonancePeak");
+    if (l >= 0) glUniform1f(l, snap.resonancePeak);
+    l = loc("u_reeseBass");
+    if (l >= 0) glUniform1f(l, snap.reeseBass);
 }

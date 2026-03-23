@@ -19,6 +19,7 @@ class LoudnessAnalyzer;
 class StructuralDetector;
 class PitchTracker;
 class GenreDetector;
+class AdvancedAudioAnalyzer;
 
 // Dedicated thread that reads from ring buffer, runs the full audio analysis
 // pipeline, and publishes FeatureSnapshots to the FeatureBus.
@@ -106,6 +107,7 @@ private:
     std::unique_ptr<StructuralDetector> structuralDetector_;
     std::unique_ptr<PitchTracker> pitchTracker_;
     std::unique_ptr<GenreDetector> genreDetector_;
+    std::unique_ptr<AdvancedAudioAnalyzer> advancedAnalyzer_;
 
     // Transient density: sliding window onset counter
     static constexpr int kOnsetWindowSize = 256;  // ~2.7 seconds at 93.75 hops/sec
@@ -129,7 +131,7 @@ private:
     std::atomic<float> cpuLoad_{0.0f};
 
     // Per-stage profiling (logged periodically)
-    static constexpr int kNumStages = 13;
+    static constexpr int kNumStages = 14;
     std::array<double, kNumStages> stageTimesUs_{};
     int profileFrameCount_ = 0;
     static constexpr int kProfileInterval = 500;  // Log every N hops (~5.3s)

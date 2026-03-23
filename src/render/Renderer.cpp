@@ -464,6 +464,100 @@ void Renderer::renderOpenGL()
                         static_cast<GLuint>(defaultFBO),
                         vpX, vpY, vpW, vpH);
 
+    // P25: Apply composition-level transform (position, scale, rotation)
+    applyCompTransform(static_cast<GLuint>(defaultFBO), vpX, vpY, vpW, vpH);
+
+    // P25: Cross-deck transition blending
+    if (composition_ && deckTransitionProgress_ < 1.0f)
+    {
+        int w = static_cast<int>(vpW);
+        int h = static_cast<int>(vpH);
+        if (w > 0 && h > 0 && prevDeckTexture_ != 0)
+        {
+            // Copy current framebuffer (new deck) to a temp texture
+            ensureCompTransformFBO(w, h);
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compTransformFBO_);
+            glBlitFramebuffer(
+                static_cast<int>(vpX), static_cast<int>(vpY),
+                static_cast<int>(vpX + vpW), static_cast<int>(vpY + vpH),
+                0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+            // Draw the transition shader (old deck → new deck)
+            glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+            glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
+                       static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
+
+            auto* prog = shaderMgr_.getProgram("deck_transition");
+            if (prog)
+            {
+                prog->use();
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, prevDeckTexture_);
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, compTransformTexture_);
+                glActiveTexture(GL_TEXTURE0);
+
+                auto l = prog->getUniformIDFromName("u_textureA");
+                if (l >= 0) glUniform1i(l, 0);
+                l = prog->getUniformIDFromName("u_textureB");
+                if (l >= 0) glUniform1i(l, 1);
+                l = prog->getUniformIDFromName("u_progress");
+                if (l >= 0) glUniform1f(l, deckTransitionProgress_);
+                l = prog->getUniformIDFromName("u_blendMode");
+                if (l >= 0) glUniform1i(l, static_cast<int>(composition_->crossfaderBlendMode));
+
+                glDisable(GL_BLEND);
+                quad_.draw();
+            }
+        }
+
+        // Advance transition progress
+        deckTransitionProgress_ += deckTransitionSpeed_;
+        if (deckTransitionProgress_ >= 1.0f)
+            deckTransitionProgress_ = 1.0f;
+    }
+
+    // P25: Detect deck switch and initiate transition
+    if (composition_)
+    {
+        int currentDeckIdx = composition_->activeDeckIndex;
+        if (currentDeckIdx != prevActiveDeckIndex_)
+        {
+            // Save the current framebuffer as the "outgoing" deck texture
+            int w = static_cast<int>(vpW);
+            int h = static_cast<int>(vpH);
+            if (w > 0 && h > 0 && deckTransitionProgress_ >= 1.0f)
+            {
+                ensurePrevDeckFBO(w, h);
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, prevDeckFBO_);
+                glBlitFramebuffer(
+                    static_cast<int>(vpX), static_cast<int>(vpY),
+                    static_cast<int>(vpX + vpW), static_cast<int>(vpY + vpH),
+                    0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+                glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+            }
+
+            // Start transition based on composition's transition speed
+            float transSpeed = composition_->globalTransitionSpeed;
+            if (transSpeed > 0.001f)
+            {
+                deckTransitionProgress_ = 0.0f;
+                // Speed in progress-per-frame: 1.0 / (transSpeed * fps)
+                // Assume ~60fps
+                deckTransitionSpeed_ = 1.0f / (transSpeed * 60.0f);
+            }
+            else
+            {
+                // Instant cut
+                deckTransitionProgress_ = 1.0f;
+            }
+
+            prevActiveDeckIndex_ = currentDeckIdx;
+        }
+    }
+
     // Apply master level (dim/blackout) using DST_COLOR blend to multiply
     float level = masterLevel_.load(std::memory_order_relaxed);
     if (level < 0.99f)
@@ -580,6 +674,14 @@ void Renderer::openGLContextClosing()
     }
 
     compositor_.releaseGL();
+
+    // P25: Release composition transform FBO
+    if (compTransformFBO_ != 0) { glDeleteFramebuffers(1, &compTransformFBO_); compTransformFBO_ = 0; }
+    if (compTransformTexture_ != 0) { glDeleteTextures(1, &compTransformTexture_); compTransformTexture_ = 0; }
+    // P25: Release previous deck FBO
+    if (prevDeckFBO_ != 0) { glDeleteFramebuffers(1, &prevDeckFBO_); prevDeckFBO_ = 0; }
+    if (prevDeckTexture_ != 0) { glDeleteTextures(1, &prevDeckTexture_); prevDeckTexture_ = 0; }
+
     shaderMgr_.releaseAll();
     texMgr_.release();
     quad_.release();
@@ -904,6 +1006,8 @@ void Renderer::compileAllShaders()
     compile("opacity_blend",        EmbeddedShaders::opacityBlend);
     compile("effect_dry_wet",       EmbeddedShaders::effectDryWet);
     compile("effect_drywet",        EmbeddedShaders::effectDryWet);
+    compile("comp_transform",       EmbeddedShaders::compTransform);
+    compile("deck_transition",      EmbeddedShaders::deckTransition);
 
     // Warp
     compile("ripple",               EmbeddedShaders::ripple);
@@ -1464,4 +1568,122 @@ juce::File Renderer::takeSnapshot()
 
     std::cerr << "[Snapshot] Failed to save snapshot" << std::endl;
     return {};
+}
+
+// P25: Ensure composition transform FBO exists at the right size
+void Renderer::ensureCompTransformFBO(int width, int height)
+{
+    if (compTransformTexture_ != 0 && compTransformWidth_ == width && compTransformHeight_ == height)
+        return;
+
+    if (compTransformFBO_ != 0) glDeleteFramebuffers(1, &compTransformFBO_);
+    if (compTransformTexture_ != 0) glDeleteTextures(1, &compTransformTexture_);
+
+    glGenTextures(1, &compTransformTexture_);
+    glBindTexture(GL_TEXTURE_2D, compTransformTexture_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glGenFramebuffers(1, &compTransformFBO_);
+    glBindFramebuffer(GL_FRAMEBUFFER, compTransformFBO_);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, compTransformTexture_, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    compTransformWidth_ = width;
+    compTransformHeight_ = height;
+}
+
+// P25: Apply composition-level transform (position, scale, rotation)
+void Renderer::applyCompTransform(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH)
+{
+    if (!composition_) return;
+
+    // Check if any transform is non-default
+    float posX = composition_->compPositionX;
+    float posY = composition_->compPositionY;
+    float scale = composition_->compScale;
+    float rotation = composition_->compRotation;
+    float anchorX = composition_->compAnchorX;
+    float anchorY = composition_->compAnchorY;
+
+    bool isDefault = (std::abs(posX) < 0.001f && std::abs(posY) < 0.001f &&
+                      std::abs(scale - 1.0f) < 0.001f && std::abs(rotation) < 0.01f);
+    if (isDefault) return;
+
+    int w = static_cast<int>(vpW);
+    int h = static_cast<int>(vpH);
+    if (w <= 0 || h <= 0) return;
+
+    ensureCompTransformFBO(w, h);
+
+    // Copy current framebuffer content to the transform texture
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, defaultFBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, compTransformFBO_);
+    glBlitFramebuffer(
+        static_cast<int>(vpX), static_cast<int>(vpY),
+        static_cast<int>(vpX + vpW), static_cast<int>(vpY + vpH),
+        0, 0, w, h,
+        GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+    // Now render the transform shader to the default FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+    glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
+               static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    auto* prog = shaderMgr_.getProgram("comp_transform");
+    if (!prog) return;
+
+    prog->use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, compTransformTexture_);
+
+    auto loc = [&](const char* name) {
+        return prog->getUniformIDFromName(name);
+    };
+
+    auto l = loc("u_texture");
+    if (l >= 0) glUniform1i(l, 0);
+    l = loc("u_comp_position");
+    if (l >= 0) glUniform2f(l, posX, posY);
+    l = loc("u_comp_scale");
+    if (l >= 0) glUniform1f(l, scale);
+    l = loc("u_comp_rotation");
+    // Convert degrees to radians
+    if (l >= 0) glUniform1f(l, rotation * 3.14159265f / 180.0f);
+    l = loc("u_comp_anchor");
+    if (l >= 0) glUniform2f(l, anchorX, anchorY);
+
+    glDisable(GL_BLEND);
+    quad_.draw();
+}
+
+// P25: Ensure previous deck FBO exists at the right size
+void Renderer::ensurePrevDeckFBO(int width, int height)
+{
+    if (prevDeckTexture_ != 0 && prevDeckWidth_ == width && prevDeckHeight_ == height)
+        return;
+
+    if (prevDeckFBO_ != 0) glDeleteFramebuffers(1, &prevDeckFBO_);
+    if (prevDeckTexture_ != 0) glDeleteTextures(1, &prevDeckTexture_);
+
+    glGenTextures(1, &prevDeckTexture_);
+    glBindTexture(GL_TEXTURE_2D, prevDeckTexture_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glGenFramebuffers(1, &prevDeckFBO_);
+    glBindFramebuffer(GL_FRAMEBUFFER, prevDeckFBO_);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, prevDeckTexture_, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    prevDeckWidth_ = width;
+    prevDeckHeight_ = height;
 }

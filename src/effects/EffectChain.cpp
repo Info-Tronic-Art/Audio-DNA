@@ -330,6 +330,18 @@ void EffectChain::uploadEffectUniforms(juce::OpenGLShaderProgram* program,
         if (l >= 0) glUniform1f(l, snap.genreConfidence);
         l = getCachedUniformLocation(program, "u_energyState");
         if (l >= 0) glUniform1f(l, static_cast<float>(snap.energyState));
+
+        // P25: Advanced audio analysis uniforms
+        l = getCachedUniformLocation(program, "u_sidechainPump");
+        if (l >= 0) glUniform1f(l, snap.sidechainPump);
+        l = getCachedUniformLocation(program, "u_swingRatio");
+        if (l >= 0) glUniform1f(l, snap.swingRatio);
+        l = getCachedUniformLocation(program, "u_formantPresence");
+        if (l >= 0) glUniform1f(l, snap.formantPresence);
+        l = getCachedUniformLocation(program, "u_resonancePeak");
+        if (l >= 0) glUniform1f(l, snap.resonancePeak);
+        l = getCachedUniformLocation(program, "u_reeseBass");
+        if (l >= 0) glUniform1f(l, snap.reeseBass);
     }
 
     // Effect-specific parameter uniforms (cached)

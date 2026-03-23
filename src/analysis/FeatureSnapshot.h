@@ -71,6 +71,13 @@ struct alignas(64) FeatureSnapshot
     uint8_t energyState = 1;               // 0=low, 1=medium, 2=high — overall energy level
     float   genreScores[8] = {};           // Raw smoothed scores for all 8 genres
 
+    // Advanced audio analysis (P25)
+    float sidechainPump = 0.0f;            // [0, 1] — bass/mid anti-correlation (sidechain compression detection)
+    float swingRatio = 0.5f;               // [0.5, ~0.67] — 0.5=straight, >0.5=swung timing
+    float formantPresence = 0.0f;          // [0, 1] — vocal formant energy concentration (300-3000 Hz)
+    float resonancePeak = 0.0f;            // [0, 1] — spectral kurtosis (sharp peaks vs flat)
+    float reeseBass = 0.0f;               // [0, 1] — bass spectral spread (reese/wobble detection)
+
     void clear()
     {
         std::memset(this, 0, sizeof(FeatureSnapshot));
@@ -78,5 +85,6 @@ struct alignas(64) FeatureSnapshot
         lufs = -100.0f;
         detectedKey = -1;
         keyIsMajor = true;
+        swingRatio = 0.5f;  // 0.5 = straight timing
     }
 };

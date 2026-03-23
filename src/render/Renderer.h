@@ -231,6 +231,24 @@ public:
     float getTimeOverride() const { return timeOverride_.load(std::memory_order_relaxed); }
 
 private:
+    // P25: Composition-level transform FBO
+    GLuint compTransformFBO_ = 0;
+    GLuint compTransformTexture_ = 0;
+    int compTransformWidth_ = 0;
+    int compTransformHeight_ = 0;
+    void ensureCompTransformFBO(int width, int height);
+    void applyCompTransform(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH);
+
+    // P25: Cross-deck transition state
+    GLuint prevDeckFBO_ = 0;
+    GLuint prevDeckTexture_ = 0;
+    int prevDeckWidth_ = 0;
+    int prevDeckHeight_ = 0;
+    void ensurePrevDeckFBO(int width, int height);
+    int prevActiveDeckIndex_ = 0;
+    float deckTransitionProgress_ = 1.0f;  // 1.0 = complete (no transition)
+    float deckTransitionSpeed_ = 0.0f;     // Progress per frame (0 = instant)
+
     std::atomic<float> masterLevel_{1.0f};
     std::atomic<float> frameTimeMs_{0.0f};
     double renderProfileAccum_ = 0.0;

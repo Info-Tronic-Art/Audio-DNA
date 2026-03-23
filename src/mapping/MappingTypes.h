@@ -76,6 +76,13 @@ enum class MappingSource : uint8_t
     ChromaAs,
     ChromaB,
 
+    // Advanced audio (P25)
+    SidechainPump,     // Bass/mid anti-correlation (sidechain compression detection)
+    SwingRatio,        // Timing deviation from straight grid
+    FormantPresence,   // Vocal formant energy concentration
+    ResonancePeak,     // Spectral kurtosis (sharp peaks)
+    ReeseBass,         // Bass spectral spread (reese/wobble)
+
     Count  // sentinel — total number of sources
 };
 

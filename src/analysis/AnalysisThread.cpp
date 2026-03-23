@@ -11,6 +11,7 @@
 #include "StructuralDetector.h"
 #include "PitchTracker.h"
 #include "GenreDetector.h"
+#include "AdvancedAudioAnalyzer.h"
 #include <cmath>
 #include <algorithm>
 
@@ -35,6 +36,9 @@ AnalysisThread::AnalysisThread(RingBuffer<float>& ringBuffer)
     pitchTracker_       = std::make_unique<PitchTracker>(kHopSize, FFTProcessor::kFFTSize, kSampleRate);
     genreDetector_      = std::make_unique<GenreDetector>(
                               static_cast<float>(kSampleRate), kHopSize);
+    advancedAnalyzer_   = std::make_unique<AdvancedAudioAnalyzer>(
+                              FFTProcessor::kNumBins, static_cast<float>(kSampleRate),
+                              FFTProcessor::kFFTSize, kHopSize);
 
     // Init transient density tracking
     onsetHistory_.fill(false);
@@ -273,6 +277,23 @@ void AnalysisThread::run()
         stageTimesUs_[11] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
         stageStart = stageEnd;
 
+        // --- 14. Advanced audio analysis (P25) ---
+        {
+            float bassEnergy = snap->bandEnergies[0] + snap->bandEnergies[1];
+            float midEnergy  = snap->bandEnergies[2] + snap->bandEnergies[3];
+            advancedAnalyzer_->process(mag, bassEnergy, midEnergy,
+                                        snap->onsetDetected, snap->rms);
+            snap->sidechainPump   = advancedAnalyzer_->sidechainPump();
+            snap->swingRatio      = advancedAnalyzer_->swingRatio();
+            snap->formantPresence = advancedAnalyzer_->formantPresence();
+            snap->resonancePeak   = advancedAnalyzer_->resonancePeak();
+            snap->reeseBass       = advancedAnalyzer_->reeseBass();
+        }
+
+        stageEnd = std::chrono::high_resolution_clock::now();
+        stageTimesUs_[12] += std::chrono::duration<double, std::micro>(stageEnd - stageStart).count();
+        stageStart = stageEnd;
+
         // --- Timing ---
         snap->timestamp = totalSamplesProcessed_;
         snap->wallClockSeconds = static_cast<double>(totalSamplesProcessed_)
@@ -296,11 +317,11 @@ void AnalysisThread::run()
             static const char* stageNames[] = {
                 "RMS/Peak", "FFT", "Spectral", "Onset", "BPM",
                 "MFCC", "Chroma", "Key", "Pitch", "Loudness",
-                "Structural", "Genre"
+                "Structural", "Genre", "Advanced"
             };
             double total = 0.0;
             std::cerr << "[Analysis Profile] Per-stage avg (us) over " << kProfileInterval << " hops:" << std::endl;
-            for (int s = 0; s < 12; ++s)
+            for (int s = 0; s < 13; ++s)
             {
                 double avg = stageTimesUs_[static_cast<size_t>(s)] / kProfileInterval;
                 total += avg;

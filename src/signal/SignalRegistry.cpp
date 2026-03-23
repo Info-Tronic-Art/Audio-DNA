@@ -52,6 +52,13 @@ void SignalRegistry::initDefaults()
     addHiddenAudio("Note Confidence", MappingSource::PitchConfidence, Signal::Category::Pitch);
     addHiddenAudio("Chord Change",   MappingSource::HarmonicChange,   Signal::Category::Pitch);
 
+    // P25: Advanced audio analysis signals (hidden by default)
+    addHiddenAudio("Sidechain Pump",  MappingSource::SidechainPump,   Signal::Category::Amplitude);
+    addHiddenAudio("Swing",           MappingSource::SwingRatio,      Signal::Category::Rhythm);
+    addHiddenAudio("Vocal Presence",  MappingSource::FormantPresence, Signal::Category::Amplitude);
+    addHiddenAudio("Resonance",       MappingSource::ResonancePeak,   Signal::Category::Amplitude);
+    addHiddenAudio("Reese Bass",      MappingSource::ReeseBass,       Signal::Category::Bands);
+
     // Default modulation signals (2 visible)
     {
         auto mod1 = std::make_unique<OscillatorSignal>("Mod 1", OscillatorSignal::WaveShape::Sine, 1.0f);

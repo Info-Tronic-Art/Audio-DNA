@@ -213,6 +213,18 @@ void ProceduralSource::uploadUniforms(juce::OpenGLShaderProgram* program,
     l = loc("u_energyState");
     if (l >= 0) glUniform1f(l, static_cast<float>(snapshot.energyState));
 
+    // P25: Advanced audio analysis uniforms
+    l = loc("u_sidechainPump");
+    if (l >= 0) glUniform1f(l, snapshot.sidechainPump);
+    l = loc("u_swingRatio");
+    if (l >= 0) glUniform1f(l, snapshot.swingRatio);
+    l = loc("u_formantPresence");
+    if (l >= 0) glUniform1f(l, snapshot.formantPresence);
+    l = loc("u_resonancePeak");
+    if (l >= 0) glUniform1f(l, snapshot.resonancePeak);
+    l = loc("u_reeseBass");
+    if (l >= 0) glUniform1f(l, snapshot.reeseBass);
+
     // Feedback texture (unit 1) — previous frame's composited output
     auto feedbackLoc = loc("u_feedbackTex");
     if (feedbackLoc >= 0 && feedbackTex_ != 0)
