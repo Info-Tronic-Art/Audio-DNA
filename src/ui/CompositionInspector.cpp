@@ -80,6 +80,57 @@ CompositionInspector::CompositionInspector()
     };
     addAndMakeVisible(apMasterLayerSelector_);
 
+    // --- Per-Type Autopilot (P20) ---
+    perTypeEnabledToggle_.setColour(juce::ToggleButton::textColourId,
+                                     juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    perTypeEnabledToggle_.onStateChange = [this] {
+        if (composition_) composition_->perTypeAutopilot.perTypeEnabled = perTypeEnabledToggle_.getToggleState();
+    };
+    addAndMakeVisible(perTypeEnabledToggle_);
+
+    auto setupCycleSlider = [this](ResettableSlider& slider, float defaultVal, const char* label) {
+        slider.setSliderStyle(juce::Slider::IncDecButtons);
+        slider.setTextBoxStyle(juce::Slider::TextBoxLeft, false, 30, 20);
+        slider.setRange(1, 64, 1);
+        slider.setValue(defaultVal, juce::dontSendNotification);
+        slider.setDefaultValue(defaultVal);
+        slider.setScrollWheelEnabled(false);
+        slider.setColour(juce::Slider::textBoxTextColourId,
+                          juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+        addAndMakeVisible(slider);
+    };
+
+    setupCycleSlider(opaqueCycleSlider_, 16.0, "Opaque Beats");
+    opaqueCycleSlider_.onValueChange = [this] {
+        if (composition_) composition_->perTypeAutopilot.opaqueCycleBeats = static_cast<int>(opaqueCycleSlider_.getValue());
+    };
+
+    setupCycleSlider(transparentCycleSlider_, 8.0, "Transparent Beats");
+    transparentCycleSlider_.onValueChange = [this] {
+        if (composition_) composition_->perTypeAutopilot.transparentCycleBeats = static_cast<int>(transparentCycleSlider_.getValue());
+    };
+
+    setupCycleSlider(effectCycleSlider_, 4.0, "Effect Beats");
+    effectCycleSlider_.onValueChange = [this] {
+        if (composition_) composition_->perTypeAutopilot.effectCycleBeats = static_cast<int>(effectCycleSlider_.getValue());
+    };
+
+    transparentRandomToggle_.setColour(juce::ToggleButton::textColourId,
+                                        juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    transparentRandomToggle_.setToggleState(true, juce::dontSendNotification);
+    transparentRandomToggle_.onStateChange = [this] {
+        if (composition_) composition_->perTypeAutopilot.transparentRandomize = transparentRandomToggle_.getToggleState();
+    };
+    addAndMakeVisible(transparentRandomToggle_);
+
+    effectRandomToggle_.setColour(juce::ToggleButton::textColourId,
+                                   juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    effectRandomToggle_.setToggleState(true, juce::dontSendNotification);
+    effectRandomToggle_.onStateChange = [this] {
+        if (composition_) composition_->perTypeAutopilot.effectRandomize = effectRandomToggle_.getToggleState();
+    };
+    addAndMakeVisible(effectRandomToggle_);
+
     // --- Composition Master + Speed (with signal triangles) ---
     masterControl_.setParamName("Master");
     masterControl_.setParamValue(1.0f);
@@ -173,6 +224,20 @@ void CompositionInspector::paint(juce::Graphics& g)
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Autopilot");
     y += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap;
 
+    // P20: Per-Type Autopilot section
+    paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Per-Type Autopilot");
+    y += kSectionHeaderHeight;
+    // Paint labels for per-type cycle rows
+    int labelW = 80;
+    g.setColour(juce::Colour(AudioDNALookAndFeel::kTextSecondary));
+    g.setFont(juce::Font(juce::FontOptions(11.0f)));
+    g.drawText("Opaque", 8, y, labelW, kRowHeight, juce::Justification::centredLeft);
+    y += kRowHeight;
+    g.drawText("Transparent", 8, y, labelW, kRowHeight, juce::Justification::centredLeft);
+    y += kRowHeight;
+    g.drawText("Effect", 8, y, labelW, kRowHeight, juce::Justification::centredLeft);
+    y += kRowHeight * 2 + kSectionGap;  // extra row for randomize toggles
+
     paintSectionHeader(g, {0, y, getWidth(), kSectionHeaderHeight}, "Composition");
     y += kSectionHeaderHeight + masterControl_.getPreferredHeight() + speedControl_.getPreferredHeight() + kSectionGap;
 
@@ -241,6 +306,35 @@ void CompositionInspector::resized()
         apMasterLayerSelector_.setBounds(row);
     }
     y += kRowHeight + kSectionGap;
+
+    // P20: Per-Type Autopilot section
+    y += kSectionHeaderHeight;
+
+    // Per-Type enable toggle + Opaque cycle
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        perTypeEnabledToggle_.setBounds(row.removeFromLeft(80));
+        opaqueCycleSlider_.setBounds(row);
+    }
+    y += kRowHeight;
+
+    // Transparent cycle + randomize
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        row.removeFromLeft(80); // label space
+        transparentCycleSlider_.setBounds(row.removeFromLeft(row.getWidth() / 2));
+        transparentRandomToggle_.setBounds(row);
+    }
+    y += kRowHeight;
+
+    // Effect cycle + randomize
+    {
+        auto row = juce::Rectangle<int>(area.getX(), y, area.getWidth(), kRowHeight);
+        row.removeFromLeft(80); // label space
+        effectCycleSlider_.setBounds(row.removeFromLeft(row.getWidth() / 2));
+        effectRandomToggle_.setBounds(row);
+    }
+    y += kRowHeight * 2 + kSectionGap;
 
     // Composition section
     y += kSectionHeaderHeight;
@@ -333,6 +427,7 @@ int CompositionInspector::getPreferredHeight() const
     int h = kNameBarHeight;
     h += MacroPanel::kPreferredHeight + kSectionGap;
     h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Autopilot
+    h += kSectionHeaderHeight + kRowHeight * 4 + kSectionGap; // Per-Type Autopilot (P20)
     h += kSectionHeaderHeight + masterControl_.getPreferredHeight() + speedControl_.getPreferredHeight() + kSectionGap; // Composition
     h += kSectionHeaderHeight + opacityControl_.getPreferredHeight() + kSectionGap; // Video
     h += kSectionHeaderHeight; // Transform header
@@ -405,6 +500,14 @@ void CompositionInspector::syncFromComposition()
     apClipLoopsSlider_.setValue(composition_->autopilotClipLoops, juce::dontSendNotification);
     apLoopToggle_.setToggleState(composition_->autopilotLoop, juce::dontSendNotification);
     apMasterLayerSelector_.setSelectedId(composition_->autopilotMasterLayer + 2, juce::dontSendNotification);
+
+    // P20: Per-Type Autopilot
+    perTypeEnabledToggle_.setToggleState(composition_->perTypeAutopilot.perTypeEnabled, juce::dontSendNotification);
+    opaqueCycleSlider_.setValue(composition_->perTypeAutopilot.opaqueCycleBeats, juce::dontSendNotification);
+    transparentCycleSlider_.setValue(composition_->perTypeAutopilot.transparentCycleBeats, juce::dontSendNotification);
+    effectCycleSlider_.setValue(composition_->perTypeAutopilot.effectCycleBeats, juce::dontSendNotification);
+    transparentRandomToggle_.setToggleState(composition_->perTypeAutopilot.transparentRandomize, juce::dontSendNotification);
+    effectRandomToggle_.setToggleState(composition_->perTypeAutopilot.effectRandomize, juce::dontSendNotification);
 
     // Transform
     posXControl_.setParamValue(composition_->compPositionX / 3840.0f + 0.5f);

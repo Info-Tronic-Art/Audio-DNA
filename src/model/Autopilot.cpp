@@ -66,14 +66,26 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
         // Increment beats played on this clip
         clip->beatsPlayed++;
 
-        // Check if it's time to advance
-        int targetBeats = getBeatsForClip(*clip, layer);
+        // P20: Use per-type timing if enabled, otherwise use per-clip/layer timing
+        int targetBeats;
+        Clip::AutopilotAction action;
+
+        if (perTypeConfig_ && perTypeConfig_->perTypeEnabled)
+        {
+            targetBeats = getPerTypeBeats(layer);
+            action = getPerTypeAction(layer);
+        }
+        else
+        {
+            targetBeats = getBeatsForClip(*clip, layer);
+            action = getActionForClip(*clip, layer);
+        }
+
         if (targetBeats <= 0)
             continue;
 
         if (clip->beatsPlayed >= targetBeats)
         {
-            Clip::AutopilotAction action = getActionForClip(*clip, layer);
             if (action != Clip::AutopilotAction::DoNothing)
             {
                 advanceClip(layer, layer.activeClipColumn, action, deck.numColumns);
@@ -83,6 +95,51 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
     }
 
     return anyAdvanced;
+}
+
+int Autopilot::getPerTypeBeats(const Layer& layer) const
+{
+    if (!perTypeConfig_) return 4;
+
+    switch (layer.type)
+    {
+        case Layer::Type::Opaque:
+            return perTypeConfig_->opaqueCycleBeats;
+        case Layer::Type::Transparent:
+        case Layer::Type::ThreeD:
+        case Layer::Type::Mask:
+            return perTypeConfig_->transparentCycleBeats;
+        case Layer::Type::FXOnly:
+            return perTypeConfig_->effectCycleBeats;
+        default:
+            return 4;
+    }
+}
+
+Clip::AutopilotAction Autopilot::getPerTypeAction(const Layer& layer) const
+{
+    if (!perTypeConfig_) return Clip::AutopilotAction::PlayNext;
+
+    bool shouldRandomize = perTypeConfig_->globalRandomize;
+
+    if (!shouldRandomize)
+    {
+        switch (layer.type)
+        {
+            case Layer::Type::Transparent:
+            case Layer::Type::ThreeD:
+            case Layer::Type::Mask:
+                shouldRandomize = perTypeConfig_->transparentRandomize;
+                break;
+            case Layer::Type::FXOnly:
+                shouldRandomize = perTypeConfig_->effectRandomize;
+                break;
+            default:
+                break;
+        }
+    }
+
+    return shouldRandomize ? Clip::AutopilotAction::PlayRandom : Clip::AutopilotAction::PlayNext;
 }
 
 int Autopilot::getBeatsForClip(const Clip& clip, const Layer& layer) const

@@ -511,6 +511,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // Wire the active deck into the renderer for compositor rendering
     previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
 
+    // P20: Wire per-type autopilot config into the renderer
+    previewPanel_.getRenderer().setPerTypeAutopilotConfig(&composition_.perTypeAutopilot);
+
     // Refresh deck view when autopilot advances a clip
     previewPanel_.getRenderer().setOnAutopilotAdvanced([this]() {
         if (deckView_) deckView_->refresh();

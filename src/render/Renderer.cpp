@@ -457,6 +457,40 @@ ProceduralSource* Renderer::getOrCreateSource(const std::string& sourceId)
 GLuint Renderer::renderSource(const std::string& sourceId, float time, int width, int height,
                                const std::vector<Clip::SourceParam>* clipSourceParams)
 {
+    // P20: Layer Router — return another layer's saved output texture
+    if (sourceId == "layer_router")
+    {
+        // Read the "Source Layer" param to determine which layer to route from
+        float layerParam = 0.0f;
+        if (clipSourceParams)
+        {
+            for (const auto& cp : *clipSourceParams)
+            {
+                if (cp.uniformName == "u_src_layer")
+                {
+                    layerParam = cp.value;
+                    break;
+                }
+            }
+        }
+        // Map [0,1] to layer index. Assumes max ~10 layers.
+        int layerIndex = static_cast<int>(layerParam * 9.0f + 0.5f);
+
+        // Find layer ID from index in the active deck
+        Deck* deck = activeDeck_.load(std::memory_order_acquire);
+        if (deck)
+        {
+            if (layerIndex >= 0 && layerIndex < deck->getNumLayers())
+            {
+                uint32_t targetLayerId = deck->layers[static_cast<size_t>(layerIndex)].id;
+                GLuint tex = compositor_.getLayerOutputTexture(targetLayerId);
+                if (tex != 0)
+                    return tex;
+            }
+        }
+        return 0; // No layer output available yet
+    }
+
     auto* source = getOrCreateSource(sourceId);
     if (!source)
         return 0;
@@ -1040,6 +1074,14 @@ void Renderer::compileAllShaders()
     compile("transition_flip_h",        EmbeddedShaders::transitionFlipH);
     compile("transition_cut",           EmbeddedShaders::transitionCut);
     compile("transition_fade_black",    EmbeddedShaders::transitionFadeBlack);
+
+    // === Phase 20: System Sources ===
+    compile("source_text_animator",     EmbeddedShaders::sourceTextAnimator);
+    compile("source_strange_attractor", EmbeddedShaders::sourceStrangeAttractor);
+    compile("source_gravity_well",      EmbeddedShaders::sourceGravityWell);
+    compile("source_fluid_dynamics",    EmbeddedShaders::sourceFluidDynamics);
+    compile("source_fluid_display",     EmbeddedShaders::sourceFluidDisplay);
+    compile("source_layer_router",      EmbeddedShaders::sourceLayerRouter);
 
     std::cerr << "[Renderer] All shaders compiled." << std::endl;
 }

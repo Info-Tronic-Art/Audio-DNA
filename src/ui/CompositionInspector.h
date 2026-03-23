@@ -55,6 +55,14 @@ private:
     juce::ToggleButton apLoopToggle_{"Loop"};
     juce::ComboBox apMasterLayerSelector_;
 
+    // --- Per-Type Autopilot (P20) ---
+    juce::ToggleButton perTypeEnabledToggle_{"Per-Type"};
+    ResettableSlider opaqueCycleSlider_;
+    ResettableSlider transparentCycleSlider_;
+    ResettableSlider effectCycleSlider_;
+    juce::ToggleButton transparentRandomToggle_{"Randomize"};
+    juce::ToggleButton effectRandomToggle_{"Randomize"};
+
     // --- Composition (Master + Speed) ---
     UniversalParamControl masterControl_;
     UniversalParamControl speedControl_;

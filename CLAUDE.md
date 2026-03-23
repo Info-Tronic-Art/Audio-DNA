@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 76 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 44+ pattern/noise/geometric/math/particle/nature sources), signal routing engine wired into render loop, VJ panel UI.
+**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 81 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 44+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -972,7 +972,7 @@ Effect shaders and source shaders can access all 42+ audio features via uniforms
 
 **Important**: These uniforms are available in every shader but only consume GPU resources if the shader declares them. Unused uniforms are silently ignored by `glGetUniformLocation` returning -1.
 
-### Common Pitfalls (from P14-P18 development)
+### Common Pitfalls (from P14-P20 development)
 
 These bugs were discovered and fixed. Future phases MUST avoid reintroducing them:
 
@@ -1015,6 +1015,30 @@ These bugs were discovered and fixed. Future phases MUST avoid reintroducing the
 19. **Effects that need frame history (Screen Split, Frame Stutter) can't use the normal shader pipeline**: They need access to a ring buffer of N past frames, not just one `u_prev_frame`. These effects are intercepted in `applyClipEffects()` before normal shader rendering and handled by the compositor directly using `applyScreenSplit()` or ring buffer lookups. They still register in EffectLibrary for FX browser visibility but set `temporal = false`.
 
 20. **Ring buffer VRAM budget**: Storing frames at full resolution is prohibitive (1080p × 4 bytes × 480 frames = 4GB). Store ring buffer frames at 1/4 resolution via `kRingDownscale = 4`. Each cell in Screen Split is already small, so the downscale is invisible.
+
+21. **Layer Router renders black without other layers**: The Layer Router source reads another layer's saved output from `layerOutputTextures_`. If the target layer hasn't rendered yet this frame (layers render bottom-to-top), the texture is from the previous frame. If no layer has ever rendered (first frame), it returns 0. This is by design — Layer Router on a lower layer reads the target's previous frame.
+
+22. **Stateful simulation sources need continuous frames**: Strange Attractor, Gravity Well, and Fluid Dynamics are ping-pong FBO sources that accumulate state over time. They appear black in single-frame test mode because they need many frames to develop visible output. Fluid Dynamics additionally needs audio injection (bass/mid/high/onset) to create dye. Test these sources with continuous animation or injected audio features.
+
+23. **Per-type autopilot must be explicitly enabled**: `PerTypeAutopilotConfig::perTypeEnabled` defaults to `false`. When disabled, the existing per-layer/per-clip autopilot settings take precedence. The per-type config only overrides beat counts and action (random vs sequential) for each layer type when enabled in the Composition Inspector.
+
+### Layer Router System (P20)
+
+The Layer Router source (`layer_router`) lets one layer use another layer's rendered output as its input texture. This enables feedback loops, picture-in-picture, and cross-layer effects.
+
+**Architecture**:
+- `CompositorEngine::compositeDeck()` saves each layer's final clip texture (after effects, transform, before keying/blending) into `layerOutputTextures_` keyed by layer ID
+- When a clip has `sourceType == "layer_router"`, `Renderer::renderSource()` intercepts it, reads the `u_src_layer` param to determine which layer index to read, and returns the saved texture
+- The "Source Layer" param maps [0,1] to layer indices 0-9
+- Self-reference safety: if a layer routes to itself, it gets the previous frame's output (one frame delay). Circular references between two layers produce feedback effects.
+
+### Per-Type Autopilot (P20)
+
+Composition-level automation that sets different beat timings per layer type:
+- **Opaque layers**: cycle every N beats (default 16)
+- **Transparent layers**: cycle every N beats (default 8), optional randomization
+- **FX Only layers**: cycle every N beats (default 4), optional randomization
+- Config in `Composition::PerTypeAutopilotConfig`, UI in CompositionInspector "Per-Type Autopilot" section
 
 ### Updating This Document
 

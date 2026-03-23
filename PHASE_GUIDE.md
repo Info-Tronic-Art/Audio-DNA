@@ -198,7 +198,7 @@ That document is self-contained — it has every task, every file to read, every
 | **P17** | Creative Sources: Math, 3D, Geometric, Nature, Lighting (19 sources) | **COMPLETE** |
 | **P18** | Audio-Native Effects & Sources (20 items) | **COMPLETE** |
 | **P19** | Complex Effects + Remaining Sources (20 items) | **COMPLETE** |
-| **P20** | Systems: Layer Router, Per-Type Automation, FFGL, Text, Simulations (19 items) | NOT STARTED |
+| **P20** | Systems: Layer Router, Per-Type Automation, Text Animator, Simulations (15 items) | **COMPLETE** |
 | **P21** | Live Performance Controls (piano mode, MIDI velocity, persistent clips, Ableton Link) | NOT STARTED |
 | **P22** | Output & Integration (Syphon/Spout, NDI, video recording, REST API, OSC) | NOT STARTED |
 | **P23** | Smart Audio Features (genre detect, AI mapping, smart autopilot, ISF import) | NOT STARTED |

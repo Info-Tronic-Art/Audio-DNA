@@ -670,9 +670,11 @@ Register as transition shaders in EmbeddedShaders.h + compile in Renderer. Compo
 
 ---
 
-## Phase 20: Systems + Infrastructure Features
+## Phase 20: Systems + Infrastructure Features — **COMPLETE**
 
-**Goal**: Major system features — Layer Router, Per-Type Automation, FFGL Plugin Hosting, Text Animator, Stateful Simulations.
+**Goal**: Major system features — Layer Router, Per-Type Automation, Text Animator, Stateful Simulations.
+
+**Shipped**: Layer Router (per-layer texture save + routing), Per-Type Autopilot (composition-level config + UI), Text Animator (GLSL glyph grid with 4 animation modes), Strange Attractor (6 attractor types), Gravity Well (audio-reactive particle system), Fluid Dynamics (2D Navier-Stokes with audio injection). FFGL Plugin Hosting deferred to a future phase (requires external SDK + plugin ecosystem). Total: 5 new sources (81 total), 1 new system (per-type autopilot), 2 new source categories (Simulation, Routing).
 
 **Read first**: `CLAUDE.md`, this file
 **Read before editing**: Listed per task below

@@ -336,6 +336,8 @@ void SourcesBrowser::buildSourceList()
     categories_.push_back({"Lighting",     juce::Colour(0xfffff176)});
     categories_.push_back({"Text",         juce::Colour(0xffe0e0e0)});
     categories_.push_back({"Particle",     juce::Colour(0xffef5350)});
+    categories_.push_back({"Simulation",   juce::Colour(0xff7986cb)});
+    categories_.push_back({"Routing",      juce::Colour(0xff80cbc4)});
 
     // Input sources — live feeds
     sources_.push_back({"Camera Input",             "camera",              "Input",        juce::Colour(0xffef5350)});

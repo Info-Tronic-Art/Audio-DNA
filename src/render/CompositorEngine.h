@@ -236,4 +236,38 @@ private:
 
     // Map Layer::MixMode transition enum to shader name
     static juce::String getTransitionShaderName(Layer::MixMode mode);
+
+    // === Layer Router Support (P20) ===
+    // Per-layer saved output textures, keyed by layer ID.
+    // Updated during compositeDeck() after each layer is rendered.
+    // Layer Router sources read from this map.
+    std::unordered_map<uint32_t, GLuint> layerOutputTextures_;
+
+    // Dedicated FBOs for saving per-layer output (separate from effect/scratch FBOs)
+    std::unordered_map<uint32_t, GLuint> layerOutputFBOs_;
+    std::unordered_map<uint32_t, GLuint> layerOutputTexStorage_;
+
+    // Create/get a layer output FBO/texture pair
+    void ensureLayerOutputFBO(uint32_t layerId, int w, int h);
+
+    // Save the current clip texture into the layer's output storage
+    void saveLayerOutput(uint32_t layerId, GLuint srcTex,
+                         ShaderManager& shaderMgr, FullscreenQuad& quad, int w, int h);
+
+public:
+    // Get the saved output texture for a specific layer (for Layer Router)
+    GLuint getLayerOutputTexture(uint32_t layerId) const
+    {
+        auto it = layerOutputTextures_.find(layerId);
+        return (it != layerOutputTextures_.end()) ? it->second : 0;
+    }
+
+    // Get all available layer IDs that have saved output
+    std::vector<uint32_t> getAvailableLayerIds() const
+    {
+        std::vector<uint32_t> ids;
+        for (const auto& [id, tex] : layerOutputTextures_)
+            ids.push_back(id);
+        return ids;
+    }
 };

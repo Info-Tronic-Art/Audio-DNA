@@ -48,6 +48,19 @@ void CompositorEngine::releaseGL()
     }
     layerTemporalBuffers_.clear();
 
+    // Release per-layer output textures (Layer Router P20)
+    for (auto& [id, fbo] : layerOutputFBOs_)
+    {
+        if (fbo != 0) glDeleteFramebuffers(1, &fbo);
+    }
+    for (auto& [id, tex] : layerOutputTexStorage_)
+    {
+        if (tex != 0) glDeleteTextures(1, &tex);
+    }
+    layerOutputFBOs_.clear();
+    layerOutputTexStorage_.clear();
+    layerOutputTextures_.clear();
+
     // Release per-layer ring buffers
     for (auto& [id, ring] : layerRingBuffers_)
     {
@@ -81,6 +94,15 @@ void CompositorEngine::resize(int width, int height)
     createFBO(effectFBO_B_, effectTex_B_, width, height);
     createFBO(transitionFBO_, transitionTex_, width, height);
     createFBO(feedbackFBO_, feedbackTex_, width, height);
+
+    // P20: Invalidate layer output FBOs (they'll be recreated at new size)
+    for (auto& [id, fbo] : layerOutputFBOs_)
+        if (fbo != 0) glDeleteFramebuffers(1, &fbo);
+    for (auto& [id, tex] : layerOutputTexStorage_)
+        if (tex != 0) glDeleteTextures(1, &tex);
+    layerOutputFBOs_.clear();
+    layerOutputTexStorage_.clear();
+    layerOutputTextures_.clear();
 }
 
 void CompositorEngine::createFBO(GLuint& fbo, GLuint& tex, int w, int h)
@@ -103,6 +125,41 @@ void CompositorEngine::deleteFBO(GLuint& fbo, GLuint& tex)
 {
     if (fbo != 0) { glDeleteFramebuffers(1, &fbo); fbo = 0; }
     if (tex != 0) { glDeleteTextures(1, &tex); tex = 0; }
+}
+
+// === Layer Router Support (P20) ===
+
+void CompositorEngine::ensureLayerOutputFBO(uint32_t layerId, int w, int h)
+{
+    auto it = layerOutputFBOs_.find(layerId);
+    if (it != layerOutputFBOs_.end())
+        return; // Already created
+
+    GLuint fbo = 0, tex = 0;
+    createFBO(fbo, tex, w, h);
+    layerOutputFBOs_[layerId] = fbo;
+    layerOutputTexStorage_[layerId] = tex;
+    layerOutputTextures_[layerId] = tex;
+}
+
+void CompositorEngine::saveLayerOutput(uint32_t layerId, GLuint srcTex,
+                                        ShaderManager& shaderMgr, FullscreenQuad& quad,
+                                        int w, int h)
+{
+    ensureLayerOutputFBO(layerId, w, h);
+
+    GLuint fbo = layerOutputFBOs_[layerId];
+    auto* prog = shaderMgr.getProgram("passthrough");
+    if (!prog) return;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glViewport(0, 0, w, h);
+    glDisable(GL_BLEND);
+    prog->use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, srcTex);
+    glUniform1i(glGetUniformLocation(prog->getProgramID(), "u_texture"), 0);
+    quad.draw();
 }
 
 GLuint CompositorEngine::loadKeyImage(const juce::File& imageFile)
@@ -698,6 +755,9 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
 
                 // P13.5.5: Apply layer transform
                 clipTex = applyLayerTransform(layer, clipTex, shaderMgr, quad, width, height);
+
+                // P20: Save layer output for Layer Router sources
+                saveLayerOutput(layer.id, clipTex, shaderMgr, quad, width, height);
 
                 if (layer.type == Layer::Type::Transparent)
                 {

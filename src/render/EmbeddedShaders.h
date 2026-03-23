@@ -11803,4 +11803,616 @@ inline const char* sourceDotMatrixWave = R"(#version 410 core
     }
 )";
 
+// === Phase 20: Text Animator Source ===
+inline const char* sourceTextAnimator = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+    uniform float u_src_font_size;
+    uniform float u_src_text_r;
+    uniform float u_src_text_g;
+    uniform float u_src_text_b;
+    uniform float u_src_anim;
+    uniform float u_src_speed;
+    uniform float u_src_columns;
+    uniform float u_src_spacing;
+
+    // Simple pseudo-random
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    // 7-segment digit renderer
+    float segment(vec2 p, vec2 a, vec2 b, float w) {
+        vec2 pa = p - a, ba = b - a;
+        float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+        return smoothstep(w, w * 0.3, length(pa - ba * h));
+    }
+
+    // Render a pseudo-character glyph (block-based like pixel art text)
+    float renderGlyph(vec2 uv, float charId, float strokeW) {
+        float w = strokeW;
+        float s = 0.0;
+        int bits = int(hash(vec2(charId, 0.0)) * 127.0);
+        // Top horizontal
+        if ((bits & 1) != 0) s += segment(uv, vec2(0.1, 0.9), vec2(0.9, 0.9), w);
+        // Middle horizontal
+        if ((bits & 2) != 0) s += segment(uv, vec2(0.1, 0.5), vec2(0.9, 0.5), w);
+        // Bottom horizontal
+        if ((bits & 4) != 0) s += segment(uv, vec2(0.1, 0.1), vec2(0.9, 0.1), w);
+        // Top-left vertical
+        if ((bits & 8) != 0) s += segment(uv, vec2(0.1, 0.5), vec2(0.1, 0.9), w);
+        // Top-right vertical
+        if ((bits & 16) != 0) s += segment(uv, vec2(0.9, 0.5), vec2(0.9, 0.9), w);
+        // Bottom-left vertical
+        if ((bits & 32) != 0) s += segment(uv, vec2(0.1, 0.1), vec2(0.1, 0.5), w);
+        // Bottom-right vertical
+        if ((bits & 64) != 0) s += segment(uv, vec2(0.9, 0.1), vec2(0.9, 0.5), w);
+        return clamp(s, 0.0, 1.0);
+    }
+
+    void main() {
+        vec2 uv = v_texCoord;
+        float speed = mix(0.2, 3.0, u_src_speed);
+        float fontSize = mix(4.0, 40.0, u_src_font_size);
+        float cols = mix(4.0, 60.0, u_src_columns);
+        float spacing = mix(0.8, 2.0, u_src_spacing);
+        float anim = u_src_anim;
+
+        // Grid of characters
+        float aspect = u_resolution.x / u_resolution.y;
+        float rows = cols / aspect * spacing;
+        vec2 grid = vec2(cols, rows);
+
+        // Animation modes
+        if (anim < 0.25) {
+            // Scroll up
+            uv.y += u_time * speed * 0.2;
+        } else if (anim < 0.5) {
+            // Scroll left
+            uv.x += u_time * speed * 0.2;
+        } else if (anim < 0.75) {
+            // Wave
+            uv.y += sin(uv.x * 6.28318 * 2.0 + u_time * speed) * 0.02;
+        }
+        // else: typewriter (handled per-character below)
+
+        vec2 cellId = floor(uv * grid);
+        vec2 cellUv = fract(uv * grid);
+
+        // Character ID based on cell position + time animation
+        float charId;
+        if (anim >= 0.75) {
+            // Typewriter: reveal characters left-to-right
+            float reveal = fract(u_time * speed * 0.3) * (cols + 5.0);
+            if (cellId.x > reveal) {
+                fragColor = vec4(0.0);
+                return;
+            }
+            charId = hash(cellId) * 100.0;
+        } else {
+            charId = hash(cellId + floor(vec2(u_time * speed * 0.5))) * 100.0;
+        }
+
+        // Render glyph
+        // fontSize controls stroke width: thin glyphs at 0, thick at 1
+        float strokeWidth = mix(0.02, 0.12, u_src_font_size);
+        float glyph = renderGlyph(cellUv, charId, strokeWidth);
+
+        // Color with audio reactivity
+        vec3 textColor = vec3(u_src_text_r, u_src_text_g, u_src_text_b);
+        float brightness = glyph * (0.7 + u_rms * 0.5);
+
+        // Onset flash
+        brightness += u_onsetStrength * 0.3 * glyph;
+
+        // Beat pulse on random characters
+        if (hash(cellId * 3.7) > 0.7)
+            brightness *= 1.0 + u_beatPhase * 0.3;
+
+        fragColor = vec4(textColor * brightness, brightness > 0.01 ? 1.0 : 0.0);
+    }
+)";
+
+// === Phase 20: Strange Attractor Field Source ===
+inline const char* sourceStrangeAttractor = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;  // Previous state (for trail persistence)
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+    uniform float u_src_attractor;
+    uniform float u_src_speed;
+    uniform float u_src_trail;
+    uniform float u_src_rotation;
+    uniform float u_src_glow;
+    uniform float u_src_color_mode;
+
+    // Lorenz attractor
+    vec3 lorenz(vec3 p) {
+        float sigma = 10.0, rho = 28.0, beta = 8.0 / 3.0;
+        return vec3(sigma * (p.y - p.x), p.x * (rho - p.z) - p.y, p.x * p.y - beta * p.z);
+    }
+
+    // Rossler attractor
+    vec3 rossler(vec3 p) {
+        float a = 0.2, b = 0.2, c = 5.7;
+        return vec3(-p.y - p.z, p.x + a * p.y, b + p.z * (p.x - c));
+    }
+
+    // Halvorsen attractor
+    vec3 halvorsen(vec3 p) {
+        float a = 1.89;
+        return vec3(-a * p.x - 4.0 * p.y - 4.0 * p.z - p.y * p.y,
+                    -a * p.y - 4.0 * p.z - 4.0 * p.x - p.z * p.z,
+                    -a * p.z - 4.0 * p.x - 4.0 * p.y - p.x * p.x);
+    }
+
+    // Thomas attractor
+    vec3 thomas(vec3 p) {
+        float b = 0.208186;
+        return vec3(sin(p.y) - b * p.x, sin(p.z) - b * p.y, sin(p.x) - b * p.z);
+    }
+
+    // Aizawa attractor
+    vec3 aizawa(vec3 p) {
+        float a = 0.95, b = 0.7, c = 0.6, d = 3.5, e = 0.25, f = 0.1;
+        return vec3((p.z - b) * p.x - d * p.y,
+                    d * p.x + (p.z - b) * p.y,
+                    c + a * p.z - p.z * p.z * p.z / 3.0 - (p.x * p.x + p.y * p.y) * (1.0 + e * p.z) + f * p.z * p.x * p.x * p.x);
+    }
+
+    // Dadras attractor
+    vec3 dadras(vec3 p) {
+        float a = 3.0, b = 2.7, c = 1.7, d = 2.0, e = 9.0;
+        return vec3(p.y - a * p.x + b * p.y * p.z,
+                    c * p.y - p.x * p.z + p.z,
+                    d * p.x * p.y - e * p.z);
+    }
+
+    vec3 computeAttractor(vec3 p, int type) {
+        if (type == 0) return lorenz(p);
+        if (type == 1) return rossler(p);
+        if (type == 2) return halvorsen(p);
+        if (type == 3) return thomas(p);
+        if (type == 4) return aizawa(p);
+        return dadras(p);
+    }
+
+    void main() {
+        vec2 uv = v_texCoord;
+
+        // Read previous frame for trail persistence
+        vec4 prev = texture(u_texture, uv);
+        float trail = mix(0.85, 0.995, u_src_trail);
+        vec4 faded = prev * trail;
+
+        float speed = mix(0.001, 0.01, u_src_speed) * (0.7 + u_rms * 0.5);
+        int attractorType = int(u_src_attractor * 5.0 + 0.5);
+
+        // Rotation for viewing angle
+        float rotSpeed = mix(-1.0, 1.0, u_src_rotation);
+        float angle = u_time * rotSpeed * 0.5;
+        float ca = cos(angle), sa = sin(angle);
+
+        // Simulate multiple particles using pixel-seeded initial conditions
+        float brightness = 0.0;
+        vec3 particleColor = vec3(0.0);
+        float dt = speed;
+
+        for (int i = 0; i < 8; i++) {
+            // Seed particles from pixel neighborhood + offsets
+            vec3 p;
+            if (attractorType == 0) p = vec3(1.0, 1.0, 1.0) + vec3(float(i) * 0.1);
+            else if (attractorType == 1) p = vec3(0.1, 0.1, 0.1) + vec3(float(i) * 0.05);
+            else if (attractorType == 2) p = vec3(-1.0, -1.0, -2.0) + vec3(float(i) * 0.1);
+            else if (attractorType == 3) p = vec3(1.0, 0.0, 0.0) + vec3(float(i) * 0.1);
+            else if (attractorType == 4) p = vec3(0.1, 0.0, 0.0) + vec3(float(i) * 0.05);
+            else p = vec3(1.0, 1.0, 0.0) + vec3(float(i) * 0.1);
+
+            // Integrate forward to time-dependent position
+            int steps = int(u_time * 100.0 * speed * 10.0) + i * 50;
+            steps = min(steps, 500);
+            for (int s = 0; s < 500; s++) {
+                if (s >= steps) break;
+                vec3 dp = computeAttractor(p, attractorType);
+                p += dp * dt;
+            }
+
+            // Project 3D -> 2D with rotation
+            vec3 rp = vec3(ca * p.x - sa * p.z, p.y, sa * p.x + ca * p.z);
+
+            // Scale to screen coordinates
+            float scale;
+            if (attractorType == 0) scale = 0.02;      // Lorenz
+            else if (attractorType == 1) scale = 0.04;  // Rossler
+            else if (attractorType == 2) scale = 0.04;  // Halvorsen
+            else if (attractorType == 3) scale = 0.15;  // Thomas
+            else if (attractorType == 4) scale = 0.2;   // Aizawa
+            else scale = 0.02;                           // Dadras
+
+            vec2 projected = rp.xy * scale + 0.5;
+            float dist = length(uv - projected);
+
+            // Point size with glow
+            float glowAmount = mix(0.005, 0.03, u_src_glow);
+            float point = exp(-dist * dist / (glowAmount * glowAmount));
+
+            // Velocity-based coloring
+            vec3 dp = computeAttractor(p, attractorType);
+            float vel = length(dp);
+
+            vec3 col;
+            float cm = u_src_color_mode;
+            if (cm < 0.33) {
+                // Velocity-mapped color
+                col = 0.5 + 0.5 * cos(6.28318 * (vel * 0.01 + vec3(0.0, 0.33, 0.67)));
+            } else if (cm < 0.67) {
+                // Position-mapped color
+                col = 0.5 + 0.5 * cos(6.28318 * (length(p) * 0.05 + vec3(0.0, 0.33, 0.67)));
+            } else {
+                // Fixed hue cycling with time
+                col = 0.5 + 0.5 * cos(6.28318 * (u_time * 0.1 + vec3(0.0, 0.33, 0.67)));
+            }
+
+            brightness += point;
+            particleColor += col * point;
+        }
+
+        // Combine with faded previous frame
+        vec3 newColor = brightness > 0.001 ? particleColor / max(brightness, 0.001) : vec3(0.0);
+        vec3 result = max(faded.rgb, newColor * brightness);
+
+        // Onset creates burst
+        result += newColor * u_onsetStrength * 0.5;
+
+        fragColor = vec4(result, 1.0);
+    }
+)";
+
+// === Phase 20: Gravity Well Source ===
+inline const char* sourceGravityWell = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;  // Previous state (particle field)
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+    uniform float u_onsetDetected;
+    uniform float u_spectralCentroid;
+    uniform float u_src_gravity;
+    uniform float u_src_scatter;
+    uniform float u_src_trail;
+    uniform float u_src_wells;
+    uniform float u_src_color_mode;
+    uniform float u_src_particle_density;
+
+    float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    }
+
+    vec2 hash2(vec2 p) {
+        return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453);
+    }
+
+    void main() {
+        vec2 uv = v_texCoord;
+        vec2 pos = (uv - 0.5) * 2.0; // [-1, 1]
+
+        // Previous frame for trail persistence
+        vec4 prev = texture(u_texture, uv);
+        float trailFade = mix(0.90, 0.995, u_src_trail);
+
+        // Number of gravity wells (1-4)
+        int numWells = int(u_src_wells * 3.0 + 1.5);
+        float gravity = mix(0.5, 5.0, u_src_gravity);
+
+        // Scatter force on onset
+        float scatterForce = u_onsetDetected * mix(0.0, 2.0, u_src_scatter);
+
+        // Compute gravitational field at this pixel
+        vec2 totalForce = vec2(0.0);
+        float totalPotential = 0.0;
+
+        for (int i = 0; i < 4; i++) {
+            if (i >= numWells) break;
+
+            // Well positions (orbit slowly, affected by audio)
+            float angle = float(i) * 6.28318 / float(numWells) + u_time * 0.3;
+            float radius = 0.3 + 0.1 * sin(u_time * 0.5 + float(i));
+            vec2 wellPos;
+            if (numWells == 1) {
+                wellPos = vec2(0.0);
+            } else {
+                wellPos = vec2(cos(angle), sin(angle)) * radius;
+            }
+
+            // Bass makes well pulse
+            wellPos *= 1.0 + u_bass * 0.2;
+
+            vec2 dir = wellPos - pos;
+            float dist = length(dir) + 0.01;
+            vec2 force = normalize(dir) * gravity / (dist * dist + 0.1);
+
+            // Scatter: reverse force on onset
+            force -= normalize(dir) * scatterForce / (dist + 0.1);
+
+            totalForce += force;
+            totalPotential += 1.0 / (dist + 0.1);
+        }
+
+        // Particle generation — use force field to create visual
+        // Particles are implicitly represented by the force field
+        float density = mix(10.0, 80.0, u_src_particle_density);
+        vec2 cellId = floor(uv * density);
+        vec2 cellUv = fract(uv * density) - 0.5;
+
+        // Each cell has a particle
+        vec2 particleOffset = hash2(cellId) - 0.5;
+        particleOffset *= 0.8;
+
+        // Apply force to particle position (advection)
+        vec2 advectedPos = cellUv - particleOffset;
+        advectedPos += totalForce * 0.01;
+
+        float dist = length(advectedPos);
+        float particle = smoothstep(0.15, 0.0, dist);
+
+        // Color based on mode
+        vec3 col;
+        float cm = u_src_color_mode;
+        if (cm < 0.33) {
+            // Velocity-based
+            float vel = length(totalForce);
+            col = 0.5 + 0.5 * cos(6.28318 * (vel * 0.1 + vec3(0.0, 0.33, 0.67)));
+        } else if (cm < 0.67) {
+            // Distance-based
+            col = 0.5 + 0.5 * cos(6.28318 * (totalPotential * 0.1 + vec3(0.0, 0.33, 0.67)));
+        } else {
+            // Fixed warm
+            col = vec3(1.0, 0.6, 0.2);
+        }
+
+        // Orbital streaks from force field
+        float streak = abs(dot(normalize(totalForce + 0.001), normalize(advectedPos + 0.001)));
+        streak = pow(streak, 3.0);
+
+        float brightness = (particle + streak * 0.3) * (0.5 + u_rms * 0.8);
+
+        // Combine with trail
+        vec3 newColor = col * brightness;
+        vec3 result = max(prev.rgb * trailFade, newColor);
+
+        // Onset explosion: bright flash at well centers
+        if (u_onsetDetected > 0.5) {
+            for (int i = 0; i < 4; i++) {
+                if (i >= numWells) break;
+                float angle = float(i) * 6.28318 / float(numWells) + u_time * 0.3;
+                float radius = (numWells == 1) ? 0.0 : 0.3;
+                vec2 wellPos = vec2(cos(angle), sin(angle)) * radius;
+                float d = length(pos - wellPos);
+                result += col * exp(-d * d * 5.0) * u_onsetStrength;
+            }
+        }
+
+        fragColor = vec4(result, 1.0);
+    }
+)";
+
+// === Phase 20: Fluid Dynamics Source ===
+inline const char* sourceFluidDynamics = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;  // Previous state: RG = velocity, BA = dye
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_rms;
+    uniform float u_bass;
+    uniform float u_mid;
+    uniform float u_high;
+    uniform float u_beatPhase;
+    uniform float u_onsetStrength;
+    uniform float u_onsetDetected;
+    uniform float u_spectralCentroid;
+    uniform float u_src_viscosity;
+    uniform float u_src_diffusion;
+    uniform float u_src_inject_radius;
+    uniform float u_src_color_mode;
+    uniform float u_src_curl;
+    uniform float u_src_decay;
+
+    vec4 sampleState(vec2 uv) {
+        return texture(u_texture, clamp(uv, 0.0, 1.0));
+    }
+
+    void main() {
+        vec2 uv = v_texCoord;
+        vec2 texel = 1.0 / u_resolution;
+
+        // Read current state: RG = velocity field, BA = dye (hue, brightness)
+        vec4 state = sampleState(uv);
+        vec2 vel = state.rg * 2.0 - 1.0; // Decode from [0,1] to [-1,1]
+        vec2 dye = state.ba;
+
+        // === Advection: move quantities along velocity field ===
+        float visc = mix(0.999, 0.95, u_src_viscosity);
+        vec2 advectUV = uv - vel * texel * 2.0;
+        vec4 advected = sampleState(advectUV);
+        vec2 advVel = advected.rg * 2.0 - 1.0;
+        vec2 advDye = advected.ba;
+
+        // === Diffusion: smooth the velocity field ===
+        float diff = mix(0.0, 0.3, u_src_diffusion);
+        vec2 velL = sampleState(uv + vec2(-texel.x, 0.0)).rg * 2.0 - 1.0;
+        vec2 velR = sampleState(uv + vec2( texel.x, 0.0)).rg * 2.0 - 1.0;
+        vec2 velU = sampleState(uv + vec2(0.0,  texel.y)).rg * 2.0 - 1.0;
+        vec2 velD = sampleState(uv + vec2(0.0, -texel.y)).rg * 2.0 - 1.0;
+        vec2 velAvg = (velL + velR + velU + velD) * 0.25;
+
+        // Apply viscosity (damping) and diffusion (smoothing)
+        vel = mix(advVel, velAvg, diff) * visc;
+
+        // === Vorticity confinement ===
+        float curlStrength = mix(0.0, 0.5, u_src_curl);
+        float wL = length(velL), wR = length(velR);
+        float wU = length(velU), wD = length(velD);
+        float curl = (wR - wL) - (wU - wD);
+        vec2 curlForce = normalize(vec2(abs(wU) - abs(wD), abs(wR) - abs(wL)) + 0.0001);
+        curlForce *= sign(curl) * curlStrength;
+        vel += curlForce * texel.x;
+
+        // === Pressure projection (simple relaxation) ===
+        float divL = sampleState(uv + vec2(-texel.x, 0.0)).r * 2.0 - 1.0;
+        float divR = sampleState(uv + vec2( texel.x, 0.0)).r * 2.0 - 1.0;
+        float divU = sampleState(uv + vec2(0.0,  texel.y)).g * 2.0 - 1.0;
+        float divD = sampleState(uv + vec2(0.0, -texel.y)).g * 2.0 - 1.0;
+        float div = ((divR - divL) + (divU - divD)) * 0.5;
+        vel -= vec2(divR - divL, divU - divD) * 0.25;
+
+        // === Audio injection ===
+        float injectR = mix(0.02, 0.15, u_src_inject_radius);
+        vec2 pos = uv - 0.5;
+
+        // Bass: inject from bottom center (blue dye, upward velocity)
+        float bassDist = length(pos - vec2(0.0, -0.4));
+        if (bassDist < injectR) {
+            float strength = u_bass * smoothstep(injectR, 0.0, bassDist);
+            vel += vec2(0.0, strength * 2.0);
+            dye.x = mix(dye.x, 0.6, strength); // blue hue
+            dye.y = max(dye.y, strength);
+        }
+
+        // Mid: inject from sides (green dye)
+        for (int side = -1; side <= 1; side += 2) {
+            float midDist = length(pos - vec2(float(side) * 0.4, 0.0));
+            if (midDist < injectR) {
+                float strength = u_mid * smoothstep(injectR, 0.0, midDist);
+                vel += vec2(float(-side) * strength * 2.0, 0.0);
+                dye.x = mix(dye.x, 0.33, strength); // green hue
+                dye.y = max(dye.y, strength);
+            }
+        }
+
+        // High: inject from top (magenta dye, downward velocity)
+        float highDist = length(pos - vec2(0.0, 0.4));
+        if (highDist < injectR) {
+            float strength = u_high * smoothstep(injectR, 0.0, highDist);
+            vel += vec2(0.0, -strength * 2.0);
+            dye.x = mix(dye.x, 0.85, strength); // magenta hue
+            dye.y = max(dye.y, strength);
+        }
+
+        // Onset: burst at center with spectral color
+        if (u_onsetDetected > 0.5) {
+            float onsetDist = length(pos);
+            if (onsetDist < injectR * 2.0) {
+                float strength = u_onsetStrength * smoothstep(injectR * 2.0, 0.0, onsetDist);
+                // Radial burst
+                vec2 dir = normalize(pos + 0.0001);
+                vel += dir * strength * 3.0;
+                // Spectral centroid maps to hue
+                dye.x = u_spectralCentroid / 8000.0;
+                dye.y = max(dye.y, strength);
+            }
+        }
+
+        // === Dye advection and decay ===
+        vec2 dyeAdvUV = uv - vel * texel * 2.0;
+        vec2 advDyeFull = sampleState(dyeAdvUV).ba;
+        dye = mix(advDyeFull, dye, 0.3);
+        float decay = mix(0.998, 0.98, u_src_decay);
+        dye.y *= decay;
+
+        // Clamp velocity to [-1,1] range
+        vel = clamp(vel, -1.0, 1.0);
+
+        // Encode: RG = velocity (mapped to [0,1]), BA = dye
+        vec2 velEncoded = vel * 0.5 + 0.5;
+
+        // Store state
+        // But also output visible color for the render
+        // The state is stored in the ping-pong buffer; we output color
+        float hue = dye.x;
+        float brightness = dye.y;
+
+        vec3 col;
+        float cm = u_src_color_mode;
+        if (cm < 0.33) {
+            // Audio frequency colors
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        } else if (cm < 0.67) {
+            // Complementary
+            col = 0.5 + 0.5 * cos(6.28318 * (hue * 2.0 + vec3(0.0, 0.5, 0.25)));
+        } else {
+            // Mono (white/blue)
+            col = mix(vec3(0.1, 0.2, 0.5), vec3(1.0), brightness);
+        }
+
+        // Mix visual output with state storage
+        // We need the state in RGBA, but also want visual output
+        // Solution: store state, but output will be reinterpreted visually
+        // For stateful ping-pong, we store the actual state data
+        fragColor = vec4(velEncoded, dye);
+    }
+)";
+
+// Fluid dynamics DISPLAY shader (converts state to visual color)
+// Used as a post-process on the fluid state for visual output
+inline const char* sourceFluidDisplay = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;  // Fluid state: RG = velocity, BA = dye
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_src_color_mode;
+
+    void main() {
+        vec4 state = texture(u_texture, v_texCoord);
+        float hue = state.b;
+        float brightness = state.a;
+
+        vec3 col;
+        float cm = u_src_color_mode;
+        if (cm < 0.33) {
+            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
+        } else if (cm < 0.67) {
+            col = 0.5 + 0.5 * cos(6.28318 * (hue * 2.0 + vec3(0.0, 0.5, 0.25)));
+        } else {
+            col = mix(vec3(0.1, 0.2, 0.5), vec3(1.0), brightness);
+        }
+
+        fragColor = vec4(col * brightness, 1.0);
+    }
+)";
+
+// === Phase 20: Layer Router — passthrough shader (just copies input) ===
+// The Layer Router doesn't need its own shader since it returns another layer's texture directly.
+// But for consistency with the ProceduralSource system, we provide a passthrough.
+inline const char* sourceLayerRouter = R"(
+    #version 410 core
+    in vec2 v_texCoord;
+    out vec4 fragColor;
+    uniform sampler2D u_texture;
+    void main() {
+        fragColor = texture(u_texture, v_texCoord);
+    }
+)";
+
 } // namespace EmbeddedShaders

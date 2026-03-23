@@ -60,6 +60,31 @@ struct Composition
     bool autopilotLoop = false;
     int autopilotMasterLayer = -1;  // -1 = Off
 
+    // === Per-Type Autopilot (P20) ===
+    // Separate timers/settings for Opaque, Transparent, and FX layers.
+    struct PerTypeAutopilotConfig
+    {
+        // Opaque layers
+        int opaqueCycleBeats = 16;
+        bool opaquePlayUntilEnd = false;
+
+        // Transparent layers
+        int transparentCycleBeats = 8;
+        int transparentMaxLayers = 2;
+        bool transparentRandomize = true;
+
+        // Effect layers
+        int effectCycleBeats = 4;
+        int effectMaxLayers = 2;
+        bool effectRandomize = true;
+
+        // Global overrides
+        bool perTypeEnabled = false;    // false = use existing per-layer autopilot
+        bool globalRandomize = false;
+        bool loopAutopilot = true;
+    };
+    PerTypeAutopilotConfig perTypeAutopilot;
+
     // === Output Settings ===
     int outputWidth = 1920;
     int outputHeight = 1080;

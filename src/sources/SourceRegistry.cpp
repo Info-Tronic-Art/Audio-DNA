@@ -1199,6 +1199,65 @@ void SourceRegistry::registerDefaults()
         s->addParam("Sources", "u_src_sources", 0.5f);
         return s;
     });
+
+    // === Phase 20: System Sources ===
+
+    // Text Animator — animated procedural text grid
+    registerSource("text_animator", [] {
+        auto s = std::make_unique<ProceduralSource>("text_animator", "Text Animator", "Text", "source_text_animator");
+        s->addParam("Font Size", "u_src_font_size", 0.4f);
+        s->addParam("Text Red", "u_src_text_r", 0.0f);
+        s->addParam("Text Green", "u_src_text_g", 1.0f);
+        s->addParam("Text Blue", "u_src_text_b", 0.5f);
+        s->addParam("Animation", "u_src_anim", 0.0f);
+        s->addParam("Speed", "u_src_speed", 0.4f);
+        s->addParam("Columns", "u_src_columns", 0.3f);
+        s->addParam("Spacing", "u_src_spacing", 0.5f);
+        return s;
+    });
+
+    // Strange Attractor Field — Lorenz, Rossler, Halvorsen, Thomas, Aizawa, Dadras
+    registerSource("strange_attractor", [] {
+        auto s = std::make_unique<ProceduralSource>("strange_attractor", "Strange Attractor", "Simulation", "source_strange_attractor", true);
+        s->addParam("Attractor Type", "u_src_attractor", 0.0f);
+        s->addParam("Speed", "u_src_speed", 0.5f);
+        s->addParam("Trail Length", "u_src_trail", 0.7f);
+        s->addParam("Rotation", "u_src_rotation", 0.3f);
+        s->addParam("Glow", "u_src_glow", 0.5f);
+        s->addParam("Color Mode", "u_src_color_mode", 0.0f);
+        return s;
+    });
+
+    // Gravity Well — particles attracted to central well(s)
+    registerSource("gravity_well", [] {
+        auto s = std::make_unique<ProceduralSource>("gravity_well", "Gravity Well", "Simulation", "source_gravity_well", true);
+        s->addParam("Particle Density", "u_src_particle_density", 0.5f);
+        s->addParam("Gravity", "u_src_gravity", 0.6f);
+        s->addParam("Scatter", "u_src_scatter", 0.3f);
+        s->addParam("Trail Length", "u_src_trail", 0.6f);
+        s->addParam("Wells", "u_src_wells", 0.0f);
+        s->addParam("Color Mode", "u_src_color_mode", 0.0f);
+        return s;
+    });
+
+    // Fluid Dynamics — 2D Navier-Stokes with audio injection
+    registerSource("fluid_dynamics", [] {
+        auto s = std::make_unique<ProceduralSource>("fluid_dynamics", "Fluid Dynamics", "Simulation", "source_fluid_dynamics", true);
+        s->addParam("Viscosity", "u_src_viscosity", 0.4f);
+        s->addParam("Diffusion", "u_src_diffusion", 0.3f);
+        s->addParam("Injection Radius", "u_src_inject_radius", 0.2f);
+        s->addParam("Color Mode", "u_src_color_mode", 0.0f);
+        s->addParam("Curl", "u_src_curl", 0.6f);
+        s->addParam("Decay", "u_src_decay", 0.5f);
+        return s;
+    });
+
+    // Layer Router — routes another layer's output as source content
+    registerSource("layer_router", [] {
+        auto s = std::make_unique<ProceduralSource>("layer_router", "Layer Router", "Routing", "source_layer_router");
+        s->addParam("Source Layer", "u_src_layer", 0.0f);
+        return s;
+    });
 }
 
 std::unique_ptr<ProceduralSource> SourceRegistry::createSource(const std::string& id) const

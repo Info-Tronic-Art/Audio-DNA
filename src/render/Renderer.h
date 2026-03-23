@@ -85,6 +85,12 @@ public:
     // Callback when autopilot advances a clip (called async on message thread)
     void setOnAutopilotAdvanced(std::function<void()> fn) { onAutopilotAdvanced_ = std::move(fn); }
 
+    // P20: Set per-type autopilot config (from Composition)
+    void setPerTypeAutopilotConfig(const Composition::PerTypeAutopilotConfig* config)
+    {
+        autopilot_.setPerTypeConfig(config);
+    }
+
     // Signal routing — P16: wire signals into render loop
     void setSignalRegistry(SignalRegistry* reg) { signalRegistry_ = reg; }
     SignalRegistry* getSignalRegistry() { return signalRegistry_; }
