@@ -12,32 +12,32 @@ void EffectLibrary::registerDefaults()
     // === Warp Effects ===
 
     registerEffect({"Ripple", "warp", "ripple", {
-        {"intensity", "u_ripple_intensity", 0.0f},
+        {"intensity", "u_ripple_intensity", 0.4f},
         {"freq",      "u_ripple_freq",      0.5f},
         {"speed",     "u_ripple_speed",     0.5f}
     }});
 
     registerEffect({"Bulge", "warp", "bulge", {
-        {"amount",   "u_bulge_amount",   0.0f},
+        {"amount",   "u_bulge_amount",   0.6f},
         {"center_x", "u_bulge_center_x", 0.5f},
         {"center_y", "u_bulge_center_y", 0.5f}
     }});
 
     registerEffect({"Wave", "warp", "wave", {
-        {"amplitude", "u_wave_amp",       0.0f},
+        {"amplitude", "u_wave_amp",       0.4f},
         {"frequency", "u_wave_freq",      0.5f},
         {"direction", "u_wave_direction", 0.0f}
     }});
 
     registerEffect({"Liquid", "warp", "liquid", {
         {"viscosity",  "u_liquid_visc", 0.5f},
-        {"turbulence", "u_liquid_turb", 0.0f}
+        {"turbulence", "u_liquid_turb", 0.4f}
     }});
 
     // === Color Effects ===
 
     registerEffect({"Hue Shift", "color", "hue_shift", {
-        {"amount", "u_hue_shift", 0.0f}
+        {"amount", "u_hue_shift", 0.3f}
     }});
 
     registerEffect({"Saturation", "color", "saturation", {
@@ -55,55 +55,55 @@ void EffectLibrary::registerDefaults()
         {"color2_r", "u_duotone_b_r", 1.0f},
         {"color2_g", "u_duotone_b_g", 0.5f},
         {"color2_b", "u_duotone_b_b", 0.0f},
-        {"mix",      "u_duotone_mix", 0.0f}
+        {"mix",      "u_duotone_mix", 0.5f}
     }});
 
     registerEffect({"Chromatic Aberration", "color", "chromatic_aberration", {
-        {"amount", "u_chroma_amount", 0.0f},
+        {"amount", "u_chroma_amount", 0.4f},
         {"angle",  "u_chroma_angle",  0.0f}
     }});
 
     // === Glitch Effects ===
 
     registerEffect({"Pixel Scatter", "glitch", "pixel_scatter", {
-        {"amount", "u_scatter_amount", 0.0f},
+        {"amount", "u_scatter_amount", 0.4f},
         {"seed",   "u_scatter_seed",   0.0f}
     }});
 
     registerEffect({"RGB Split", "glitch", "rgb_split", {
-        {"amount", "u_rgb_split", 0.0f},
+        {"amount", "u_rgb_split", 0.4f},
         {"angle",  "u_rgb_angle", 0.0f}
     }});
 
     registerEffect({"Block Glitch", "glitch", "block_glitch", {
-        {"intensity",  "u_block_glitch_int",  0.0f},
+        {"intensity",  "u_block_glitch_int",  0.4f},
         {"block_size", "u_block_glitch_size", 0.5f}
     }});
 
     registerEffect({"Scanlines", "glitch", "scanlines", {
-        {"intensity", "u_scanline_int",  0.0f},
+        {"intensity", "u_scanline_int",  0.4f},
         {"frequency", "u_scanline_freq", 0.5f}
     }});
 
     // === Blur/Post Effects ===
 
     registerEffect({"Gaussian Blur", "blur", "gaussian_blur", {
-        {"radius", "u_blur_radius", 0.0f}
+        {"radius", "u_blur_radius", 0.3f}
     }});
 
     registerEffect({"Zoom Blur", "blur", "zoom_blur", {
-        {"amount",   "u_zoom_blur",       0.0f},
+        {"amount",   "u_zoom_blur",       0.3f},
         {"center_x", "u_zoom_center_x",   0.5f},
         {"center_y", "u_zoom_center_y",   0.5f}
     }});
 
     registerEffect({"Shake", "blur", "shake", {
-        {"amount_x", "u_shake_x", 0.0f},
+        {"amount_x", "u_shake_x", 0.3f},
         {"amount_y", "u_shake_y", 0.0f}
     }});
 
     registerEffect({"Vignette", "blur", "vignette", {
-        {"intensity", "u_vignette_int",  0.0f},
+        {"intensity", "u_vignette_int",  0.5f},
         {"softness",  "u_vignette_soft", 0.6f}
     }});
 
@@ -119,18 +119,18 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Swirl", "warp", "swirl", {
-        {"amount", "u_swirl_amount", 0.0f},
+        {"amount", "u_swirl_amount", 0.6f},
         {"radius", "u_swirl_radius", 0.5f}
     }});
 
     // === Additional Color Effects ===
 
     registerEffect({"Invert", "color", "invert", {
-        {"amount", "u_invert_amount", 0.0f}
+        {"amount", "u_invert_amount", 0.7f}
     }});
 
     registerEffect({"Posterize", "color", "posterize", {
-        {"levels", "u_posterize_levels", 1.0f}
+        {"levels", "u_posterize_levels", 0.3f}
     }});
 
     registerEffect({"Color Shift", "color", "color_shift", {
@@ -140,7 +140,7 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Thermal", "color", "thermal", {
-        {"amount", "u_thermal_amount", 0.0f}
+        {"amount", "u_thermal_amount", 0.7f}
     }});
 
     registerEffect({"Contrast", "color", "color_matrix", {
@@ -151,38 +151,38 @@ void EffectLibrary::registerDefaults()
     // === Additional Glitch Effects ===
 
     registerEffect({"Digital Rain", "glitch", "digital_rain", {
-        {"intensity", "u_rain_intensity", 0.0f},
+        {"intensity", "u_rain_intensity", 0.4f},
         {"speed",     "u_rain_speed",     0.5f}
     }});
 
     registerEffect({"Noise", "glitch", "noise_overlay", {
-        {"amount", "u_noise_amount", 0.0f},
+        {"amount", "u_noise_amount", 0.3f},
         {"speed",  "u_noise_speed",  0.5f}
     }});
 
     registerEffect({"Mirror", "glitch", "mirror", {
-        {"horizontal", "u_mirror_x", 0.0f},
+        {"horizontal", "u_mirror_x", 1.0f},
         {"vertical",   "u_mirror_y", 0.0f}
     }});
 
     registerEffect({"Pixelate", "glitch", "pixelate", {
-        {"size", "u_pixelate_size", 0.0f}
+        {"size", "u_pixelate_size", 0.3f}
     }});
 
     // === Additional Blur/Post Effects ===
 
     registerEffect({"Motion Blur", "blur", "motion_blur", {
-        {"amount", "u_motion_blur_amount", 0.0f},
+        {"amount", "u_motion_blur_amount", 0.4f},
         {"angle",  "u_motion_blur_angle",  0.0f}
     }});
 
     registerEffect({"Glow", "blur", "glow", {
-        {"amount",    "u_glow_amount",    0.0f},
+        {"amount",    "u_glow_amount",    0.4f},
         {"threshold", "u_glow_threshold", 0.5f}
     }});
 
     registerEffect({"Edge Detect", "blur", "edge_detect", {
-        {"amount", "u_edge_amount", 0.0f}
+        {"amount", "u_edge_amount", 0.5f}
     }});
 
     // ============================================================
@@ -195,12 +195,12 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Cylinder Wrap", "3d", "cylinder_wrap", {
-        {"amount", "u_cylinder_amount", 0.0f},
+        {"amount", "u_cylinder_amount", 0.5f},
         {"axis",   "u_cylinder_axis",   0.0f}
     }});
 
     registerEffect({"Sphere Wrap", "3d", "sphere_wrap", {
-        {"amount", "u_sphere_amount", 0.0f}
+        {"amount", "u_sphere_amount", 0.5f}
     }});
 
     registerEffect({"Tunnel", "3d", "tunnel", {
@@ -209,12 +209,12 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Page Curl", "3d", "page_curl", {
-        {"amount", "u_curl_amount", 0.0f},
+        {"amount", "u_curl_amount", 0.5f},
         {"radius", "u_curl_radius", 0.5f}
     }});
 
     registerEffect({"Parallax Layers", "3d", "parallax_layers", {
-        {"amount",    "u_parallax_amount",    0.0f},
+        {"amount",    "u_parallax_amount",    0.4f},
         {"direction", "u_parallax_direction", 0.0f}
     }});
 
@@ -223,11 +223,11 @@ void EffectLibrary::registerDefaults()
     // ============================================================
 
     registerEffect({"Polar Coords", "warp", "polar_coords", {
-        {"amount", "u_polar_amount", 0.0f}
+        {"amount", "u_polar_amount", 0.5f}
     }});
 
     registerEffect({"Twirl", "warp", "twirl", {
-        {"amount", "u_twirl_amount", 0.0f},
+        {"amount", "u_twirl_amount", 0.6f},
         {"radius", "u_twirl_radius", 0.5f}
     }});
 
@@ -237,18 +237,18 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Elastic Bounce", "warp", "elastic_bounce", {
-        {"amount", "u_elastic_amount", 0.0f},
+        {"amount", "u_elastic_amount", 0.4f},
         {"freq",   "u_elastic_freq",   0.5f}
     }});
 
     registerEffect({"Ripple Pond", "warp", "ripple_pond", {
-        {"intensity", "u_pond_intensity", 0.0f},
+        {"intensity", "u_pond_intensity", 0.4f},
         {"freq",      "u_pond_freq",      0.5f}
     }});
 
     registerEffect({"Diamond Distort", "warp", "diamond_distort", {
         {"size",   "u_diamond_size",   0.5f},
-        {"amount", "u_diamond_amount", 0.0f}
+        {"amount", "u_diamond_amount", 0.4f}
     }});
 
     registerEffect({"Barrel Distort", "warp", "barrel_distort", {
@@ -257,11 +257,11 @@ void EffectLibrary::registerDefaults()
 
     registerEffect({"Sine Grid", "warp", "sine_grid", {
         {"freq",   "u_sinegrid_freq",   0.5f},
-        {"amount", "u_sinegrid_amount", 0.0f}
+        {"amount", "u_sinegrid_amount", 0.4f}
     }});
 
     registerEffect({"Glitch Displace", "warp", "glitch_displace", {
-        {"amount", "u_glitchdisp_amount", 0.0f},
+        {"amount", "u_glitchdisp_amount", 0.4f},
         {"speed",  "u_glitchdisp_speed",  0.5f}
     }});
 
@@ -270,31 +270,31 @@ void EffectLibrary::registerDefaults()
     // ============================================================
 
     registerEffect({"Sepia", "color", "sepia", {
-        {"amount", "u_sepia_amount", 0.0f}
+        {"amount", "u_sepia_amount", 0.7f}
     }});
 
     registerEffect({"Cross Process", "color", "cross_process", {
-        {"amount", "u_crossprocess_amount", 0.0f}
+        {"amount", "u_crossprocess_amount", 0.7f}
     }});
 
     registerEffect({"Split Tone", "color", "split_tone", {
         {"shadow_hue",    "u_splittone_shadow_hue",    0.6f},
         {"highlight_hue", "u_splittone_highlight_hue", 0.1f},
-        {"amount",        "u_splittone_amount",        0.0f}
+        {"amount",        "u_splittone_amount",        0.5f}
     }});
 
     registerEffect({"Color Halftone", "color", "color_halftone", {
         {"scale",  "u_halftone_scale",  0.5f},
-        {"amount", "u_halftone_amount", 0.0f}
+        {"amount", "u_halftone_amount", 0.5f}
     }});
 
     registerEffect({"Dither", "color", "ordered_dither", {
         {"levels", "u_dither_levels", 0.5f},
-        {"amount", "u_dither_amount", 0.0f}
+        {"amount", "u_dither_amount", 0.5f}
     }});
 
     registerEffect({"Heat Map", "color", "heat_map", {
-        {"amount", "u_heatmap_amount", 0.0f}
+        {"amount", "u_heatmap_amount", 0.7f}
     }});
 
     registerEffect({"Selective Color", "color", "selective_color", {
@@ -303,7 +303,7 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Film Grain", "color", "film_grain", {
-        {"amount", "u_grain_amount", 0.0f},
+        {"amount", "u_grain_amount", 0.3f},
         {"size",   "u_grain_size",   0.5f}
     }});
 
@@ -315,7 +315,7 @@ void EffectLibrary::registerDefaults()
 
     registerEffect({"Solarize", "color", "solarize", {
         {"threshold", "u_solarize_threshold", 0.5f},
-        {"amount",    "u_solarize_amount",    0.0f}
+        {"amount",    "u_solarize_amount",    0.5f}
     }});
 
     // ============================================================
@@ -328,7 +328,7 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"VHS", "pattern", "vhs_effect", {
-        {"amount",   "u_vhs_amount",   0.0f},
+        {"amount",   "u_vhs_amount",   0.5f},
         {"tracking", "u_vhs_tracking", 0.3f}
     }});
 
@@ -339,16 +339,16 @@ void EffectLibrary::registerDefaults()
 
     registerEffect({"Dot Matrix", "pattern", "dot_matrix", {
         {"scale",  "u_dotmatrix_scale",  0.5f},
-        {"amount", "u_dotmatrix_amount", 0.0f}
+        {"amount", "u_dotmatrix_amount", 0.5f}
     }});
 
     registerEffect({"Crosshatch", "pattern", "crosshatch", {
         {"density", "u_crosshatch_density", 0.5f},
-        {"amount",  "u_crosshatch_amount",  0.0f}
+        {"amount",  "u_crosshatch_amount",  0.5f}
     }});
 
     registerEffect({"Emboss", "pattern", "emboss", {
-        {"amount", "u_emboss_amount", 0.0f},
+        {"amount", "u_emboss_amount", 0.5f},
         {"angle",  "u_emboss_angle",  0.0f}
     }});
 
@@ -357,7 +357,7 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Pencil Sketch", "pattern", "pencil_sketch", {
-        {"amount",  "u_sketch_amount",  0.0f},
+        {"amount",  "u_sketch_amount",  0.5f},
         {"density", "u_sketch_density", 0.5f}
     }});
 
@@ -368,11 +368,11 @@ void EffectLibrary::registerDefaults()
 
     registerEffect({"Cross Stitch", "pattern", "cross_stitch", {
         {"scale",  "u_stitch_scale",  0.5f},
-        {"amount", "u_stitch_amount", 0.0f}
+        {"amount", "u_stitch_amount", 0.5f}
     }});
 
     registerEffect({"Night Vision", "pattern", "night_vision", {
-        {"amount", "u_nightvision_amount", 0.0f}
+        {"amount", "u_nightvision_amount", 0.7f}
     }});
 
     // ============================================================
@@ -381,16 +381,16 @@ void EffectLibrary::registerDefaults()
 
     registerEffect({"Strobe", "animation", "strobe", {
         {"rate",      "u_strobe_rate",      0.5f},
-        {"intensity", "u_strobe_intensity", 0.0f}
+        {"intensity", "u_strobe_intensity", 0.5f}
     }});
 
     registerEffect({"Pulse", "animation", "pulse", {
-        {"amount", "u_pulse_amount", 0.0f},
+        {"amount", "u_pulse_amount", 0.4f},
         {"speed",  "u_pulse_speed",  0.5f}
     }});
 
     registerEffect({"Slit Scan", "animation", "slit_scan", {
-        {"amount",    "u_slitscan_amount",    0.0f},
+        {"amount",    "u_slitscan_amount",    0.4f},
         {"direction", "u_slitscan_direction", 0.0f}
     }});
 
@@ -400,26 +400,26 @@ void EffectLibrary::registerDefaults()
 
     registerEffect({"Double Exposure", "blend", "double_exposure", {
         {"offset", "u_double_offset", 0.3f},
-        {"blend",  "u_double_blend",  0.0f}
+        {"blend",  "u_double_blend",  0.5f}
     }});
 
     registerEffect({"Frosted Glass", "blend", "frosted_glass", {
-        {"amount", "u_frost_amount", 0.0f},
+        {"amount", "u_frost_amount", 0.5f},
         {"scale",  "u_frost_scale",  0.5f}
     }});
 
     registerEffect({"Prism", "blend", "prism_refract", {
-        {"amount", "u_prism_amount", 0.0f},
+        {"amount", "u_prism_amount", 0.4f},
         {"angle",  "u_prism_angle",  0.0f}
     }});
 
     registerEffect({"Rain on Glass", "blend", "rain_on_glass", {
-        {"amount", "u_raindrop_amount", 0.0f},
+        {"amount", "u_raindrop_amount", 0.5f},
         {"speed",  "u_raindrop_speed",  0.5f}
     }});
 
     registerEffect({"Hexagonalize", "blend", "hexagonalize", {
-        {"scale", "u_hex_scale", 0.0f}
+        {"scale", "u_hex_scale", 0.4f}
     }});
 
     // ============================================================
@@ -428,12 +428,12 @@ void EffectLibrary::registerDefaults()
 
     registerEffect({"Greyscale", "color", "greyscale", {
         {"method", "u_grey_method", 0.0f},
-        {"amount", "u_grey_amount", 0.0f}
+        {"amount", "u_grey_amount", 0.7f}
     }});
 
     registerEffect({"Threshold", "color", "threshold", {
         {"level", "u_threshold_level", 0.5f},
-        {"amount", "u_threshold_amount", 0.0f}
+        {"amount", "u_threshold_amount", 0.7f}
     }});
 
     registerEffect({"Exposure", "color", "exposure", {
@@ -455,25 +455,25 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Warp Field", "warp", "warp_field", {
-        {"amount", "u_warpfield_amount", 0.0f},
+        {"amount", "u_warpfield_amount", 0.4f},
         {"frequency", "u_warpfield_freq", 0.5f},
         {"speed", "u_warpfield_speed", 0.3f}
     }});
 
     registerEffect({"Sharpen", "blur", "sharpen", {
-        {"amount", "u_sharpen_amount", 0.0f},
+        {"amount", "u_sharpen_amount", 0.4f},
         {"radius", "u_sharpen_radius", 0.3f}
     }});
 
     registerEffect({"Pixel Explosion", "glitch", "pixel_explosion", {
-        {"force", "u_explode_force", 0.0f},
+        {"force", "u_explode_force", 0.4f},
         {"decay", "u_explode_decay", 0.5f},
         {"center x", "u_explode_cx", 0.5f},
         {"center y", "u_explode_cy", 0.5f}
     }});
 
     registerEffect({"Color Flash", "glitch", "color_flash", {
-        {"intensity", "u_flash_intensity", 0.0f},
+        {"intensity", "u_flash_intensity", 0.5f},
         {"red", "u_flash_r", 1.0f},
         {"green", "u_flash_g", 1.0f},
         {"blue", "u_flash_b", 1.0f},
@@ -488,12 +488,12 @@ void EffectLibrary::registerDefaults()
     registerEffect({"Dot Field", "3d", "dot_field", {
         {"size", "u_dotfield_size", 0.3f},
         {"spacing", "u_dotfield_spacing", 0.5f},
-        {"depth", "u_dotfield_depth", 0.0f}
+        {"depth", "u_dotfield_depth", 0.4f}
     }});
 
     registerEffect({"Triangulate", "pattern", "triangulate", {
         {"size", "u_tri_size", 0.3f},
-        {"amount", "u_tri_amount", 0.0f}
+        {"amount", "u_tri_amount", 0.5f}
     }});
 
     registerEffect({"Auto Mask", "color", "auto_mask", {
@@ -506,7 +506,7 @@ void EffectLibrary::registerDefaults()
         {"hue", "u_chromakey_hue", 0.33f},
         {"tolerance", "u_chromakey_tolerance", 0.3f},
         {"softness", "u_chromakey_softness", 0.3f},
-        {"amount", "u_chromakey_amount", 0.0f}
+        {"amount", "u_chromakey_amount", 0.7f}
     }});
 
     registerEffect({"Tile Grid", "warp", "tile_grid", {
@@ -553,11 +553,11 @@ void EffectLibrary::registerDefaults()
     registerEffect({"Palette Remap", "color", "palette_remap", {
         {"palette", "u_palette_index", 0.0f},
         {"cycle", "u_palette_cycle", 0.0f},
-        {"amount", "u_palette_amount", 0.0f}
+        {"amount", "u_palette_amount", 0.7f}
     }});
 
     registerEffect({"Color Grade", "color", "lut_grade", {
-        {"amount", "u_lut_amount", 0.0f}
+        {"amount", "u_lut_amount", 0.7f}
     }});
 
     registerEffect({"Bendoscope", "warp", "bendoscope", {
@@ -567,27 +567,27 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"UV Remap", "warp", "uv_remap", {
-        {"amount", "u_uvremap_amount", 0.0f},
+        {"amount", "u_uvremap_amount", 0.4f},
         {"scale", "u_uvremap_scale", 0.5f},
         {"speed", "u_uvremap_speed", 0.3f}
     }});
 
     registerEffect({"Liquid Morph", "warp", "liquid_morph", {
         {"viscosity", "u_goo_viscosity", 0.5f},
-        {"amount", "u_goo_amount", 0.0f},
+        {"amount", "u_goo_amount", 0.4f},
         {"scale", "u_goo_scale", 0.5f}
     }});
 
     registerEffect({"Edge Blur", "blur", "edge_blur", {
         {"threshold", "u_edgeblur_threshold", 0.5f},
-        {"amount", "u_edgeblur_amount", 0.0f}
+        {"amount", "u_edgeblur_amount", 0.4f}
     }});
 
     registerEffect({"Brush Strokes", "pattern", "brush_strokes", {
         {"size", "u_brush_size", 0.4f},
         {"angle", "u_brush_angle", 0.0f},
         {"flow", "u_brush_flow", 0.5f},
-        {"amount", "u_brush_amount", 0.0f}
+        {"amount", "u_brush_amount", 0.5f}
     }});
 
     registerEffect({"Fragment Burst", "glitch", "fragment_burst", {
@@ -598,7 +598,7 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Signal Destroy", "glitch", "signal_destroy", {
-        {"amount", "u_destroy_amount", 0.0f},
+        {"amount", "u_destroy_amount", 0.4f},
         {"speed", "u_destroy_speed", 0.5f},
         {"mode", "u_destroy_mode", 0.0f}
     }});
@@ -621,7 +621,7 @@ void EffectLibrary::registerDefaults()
     registerEffect({"Cube Scatter", "composite", "cube_scatter", {
         {"grid x", "u_cubescat_gx", 0.3f},
         {"grid y", "u_cubescat_gy", 0.3f},
-        {"explode", "u_cubescat_explode", 0.0f},
+        {"explode", "u_cubescat_explode", 0.3f},
         {"rotation", "u_cubescat_rotation", 0.0f}
     }});
 
@@ -644,12 +644,12 @@ void EffectLibrary::registerDefaults()
     // ============================================================
 
     registerEffect({"Echo", "time", "ghost_trails", {
-        {"decay",    "u_trail_length", 0.0f},
+        {"decay",    "u_trail_length", 0.5f},
         {"operator", "u_trail_fade",   0.0f}
     }, true});
 
     registerEffect({"Posterize Time", "time", "frame_hold", {
-        {"frame rate", "u_hold_rate",   0.0f},
+        {"frame rate", "u_hold_rate",   0.5f},
         {"amount",     "u_hold_amount", 1.0f}
     }, true});
 
@@ -658,15 +658,15 @@ void EffectLibrary::registerDefaults()
     }, true});
 
     registerEffect({"Screen Split", "time", "screen_split", {
-        {"columns",         "u_screensplit_cols",  0.0f},
-        {"rows",            "u_screensplit_rows",  0.0f},
+        {"columns",         "u_screensplit_cols",  0.3f},
+        {"rows",            "u_screensplit_rows",  0.3f},
         {"frames per cell", "u_screensplit_delay", 0.25f},
         {"direction",       "u_screensplit_mode",  0.0f}
     }, false});
 
     registerEffect({"Frame Stutter", "time", "frame_delay", {
         {"depth",   "u_delay_depth",   0.3f},
-        {"stutter", "u_delay_stutter", 0.0f}
+        {"stutter", "u_delay_stutter", 0.4f}
     }, false});
 
     // === Feedback Effect ===
@@ -786,7 +786,7 @@ void EffectLibrary::registerDefaults()
     }});
 
     registerEffect({"Channel Delay", "time", "channel_delay", {
-        {"red delay",   "u_delay_r", 0.0f},
+        {"red delay",   "u_delay_r", 0.3f},
         {"green delay", "u_delay_g", 0.0f},
         {"blue delay",  "u_delay_b", 0.0f}
     }, true});

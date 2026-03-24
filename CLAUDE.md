@@ -1067,6 +1067,10 @@ These bugs were discovered and fixed. Future phases MUST avoid reintroducing the
 
 26. **Syphon uses `__has_include` for compile-time detection**: Even with `-DAUDIODNA_BUILD_SYPHON=ON`, if `<Syphon/Syphon.h>` isn't found, the Obj-C++ code compiles as a no-op stub. This prevents build failures when the framework isn't installed.
 
+27. **Effect defaults must be visible on first add**: Every effect's primary parameter default must produce a visible change when the effect is first dragged onto a clip. Defaults of 0.0 make effects invisible — users think the effect is broken. Set primary params to 0.3-0.7 depending on the effect. Exception: bidirectional effects (Saturation, Brightness, Exposure, Vibrance, Contrast, Color Shift, Shear, Fisheye, Barrel Distort) correctly use 0.5=neutral. Flip uses 0.0=normal (it's a toggle). This was audited and fixed across all 135 effects in the FX/Source Audit (2026-03-23).
+
+28. **Eyes render_frame doesn't apply effect chain**: The test server's `render_frame` endpoint captures the raw image/source output but does NOT apply the global effect chain from `EffectChain::render()`. Effects set via `set_effect` API are registered in state but not rendered in captures. To verify effect rendering, use the live app or test effects via explicit param comparison (set params, verify state readback). This is a known test infrastructure limitation.
+
 ### Layer Router System (P20)
 
 The Layer Router source (`layer_router`) lets one layer use another layer's rendered output as its input texture. This enables feedback loops, picture-in-picture, and cross-layer effects.
