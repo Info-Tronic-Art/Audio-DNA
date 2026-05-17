@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v4-05: Terminal</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; color: #b8b8b8; font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace; overflow: hidden; width: 1920px; height: 1080px; font-size: 11px; line-height: 1.4; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  grid-template-rows: 28px 18px 1fr 26px;
+  grid-template-areas:
+    "topbar topbar"
+    "signals signals"
+    "main inspect"
+    "cmdbar cmdbar";
+  width: 1920px;
+  height: 1080px;
+}
+
+/* --- Top Bar --- */
+.topbar {
+  grid-area: topbar;
+  background: #111;
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 6px;
+  font-size: 10px;
+}
+.topbar .brand { color: #00d9ff; font-weight: bold; letter-spacing: 2px; }
+.topbar .pipe { color: #333; }
+.topbar .kv { color: #888; }
+.topbar .kv .k { color: #666; }
+.topbar .kv .v { color: #e0e0e0; }
+.topbar .kv .v.green { color: #4caf50; }
+.topbar .kv .v.cyan { color: #00d9ff; }
+.topbar .kv .v.yellow { color: #cccc44; }
+.bpm-big { font-size: 16px; font-weight: bold; color: #4caf50; }
+.btn-char { background: #1a1a1a; border: 1px solid #2a2a2a; color: #888; padding: 1px 6px; cursor: pointer; font-family: inherit; font-size: 10px; }
+.btn-char:hover { border-color: #00d9ff; color: #00d9ff; }
+.btn-char.active { background: #00d9ff; color: #0a0a0a; border-color: #00d9ff; }
+.topbar .spacer { flex: 1; }
+.perf-text { color: #555; font-size: 10px; }
+
+/* --- Signal Strip (single-line telemetry) --- */
+.signals {
+  grid-area: signals;
+  background: #0e0e0e;
+  border-bottom: 1px solid #1a1a1a;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 2px;
+  font-size: 9px;
+  color: #555;
+  overflow: hidden;
+}
+.signals .sig { display: inline; }
+.signals .sig .sk { color: #555; }
+.signals .sig .sv { color: #888; }
+.signals .sig .bar { display: inline-block; width: 30px; height: 6px; background: #1a1a1a; position: relative; vertical-align: middle; margin: 0 1px; }
+.signals .sig .bar .fill { height: 100%; position: absolute; left: 0; top: 0; }
+.signals .sep { color: #222; margin: 0 3px; }
+
+/* --- Main Area (deck grid as character art) --- */
+.main-area {
+  grid-area: main;
+  background: #0a0a0a;
+  overflow: auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Character-bordered deck area */
+.deck-header {
+  background: #0e0e0e;
+  padding: 3px 8px;
+  border-bottom: 1px solid #1a1a1a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.deck-header .deck-label { color: #00d9ff; font-weight: bold; }
+.deck-header .deck-tabs-text { color: #555; }
+.deck-header .deck-tabs-text .active { color: #00d9ff; text-decoration: underline; }
+
+/* Column header */
+.col-header {
+  display: flex;
+  padding: 0;
+  background: #0e0e0e;
+  border-bottom: 1px solid #222;
+  font-size: 10px;
+}
+.col-header .layer-spacer { width: 320px; padding: 2px 8px; color: #333; border-right: 1px solid #1a1a1a; }
+.col-header .col-num { flex: 1; text-align: center; color: #555; padding: 2px 0; border-right: 1px solid #1a1a1a; cursor: pointer; }
+.col-header .col-num:hover { color: #00d9ff; }
+.col-header .col-num.active { color: #00d9ff; background: rgba(0,217,255,0.04); }
+
+/* Layer rows as text blocks */
+.layer-text-row {
+  display: flex;
+  border-bottom: 1px solid #151515;
+  min-height: 80px;
+}
+.layer-text-row:hover { background: rgba(255,255,255,0.01); }
+.layer-text-row.active { background: rgba(0,217,255,0.03); }
+
+.layer-info {
+  width: 320px;
+  border-right: 1px solid #1a1a1a;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.layer-info .layer-line { color: #b8b8b8; }
+.layer-info .layer-line .name { color: #e0e0e0; font-weight: bold; }
+.layer-info .layer-line .type-tag { color: #888; }
+.layer-info .layer-line .type-tag.opaque { color: #6688cc; }
+.layer-info .layer-line .type-tag.transparent { color: #66cc88; }
+.layer-info .layer-line .type-tag.fx { color: #cc8866; }
+.layer-info .prop { color: #666; }
+.layer-info .prop .pk { color: #555; }
+.layer-info .prop .pv { color: #aaa; }
+.layer-info .prop .pv.cyan { color: #00d9ff; }
+.layer-info .bar-text { display: inline-block; }
+.layer-info .bar-char { color: #333; }
+.layer-info .bar-fill-char { color: #00d9ff; }
+.layer-info .btns { display: flex; gap: 2px; margin-top: 2px; }
+.layer-info .btn-sm { background: #151515; border: 1px solid #222; color: #555; padding: 1px 4px; font-size: 9px; cursor: pointer; font-family: inherit; }
+.layer-info .btn-sm:hover { border-color: #00d9ff; color: #00d9ff; }
+
+.cell-row { display: flex; flex: 1; }
+.text-cell {
+  flex: 1;
+  border-right: 1px solid #151515;
+  padding: 4px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 90px;
+}
+.text-cell:hover { background: rgba(0,217,255,0.03); }
+.text-cell.active { background: rgba(0,217,255,0.06); border-color: #00d9ff; }
+.text-cell .cell-name { color: #ccc; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.text-cell .cell-type { color: #555; font-size: 9px; }
+.text-cell .cell-fx { color: #00d9ff; font-size: 9px; }
+.text-cell .cell-status { font-size: 9px; }
+.text-cell .cell-status.playing { color: #4caf50; }
+.text-cell .cell-status.loaded { color: #555; }
+.text-cell.empty { }
+.text-cell.empty .cell-name { color: #222; }
+
+/* Effects shown as CLI commands */
+.fx-cli { color: #888; font-size: 9px; }
+.fx-cli .cmd { color: #aaa; }
+.fx-cli .flag { color: #666; }
+.fx-cli .val { color: #00d9ff; }
+
+/* --- Preview thumbnail with ASCII border --- */
+.preview-box {
+  padding: 8px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.preview-ascii-border {
+  border: 1px solid #333;
+  padding: 2px;
+  display: inline-block;
+}
+.preview-thumb {
+  width: 200px;
+  height: 112px;
+  background: linear-gradient(135deg, #0a1530, #1a0a40, #300a20);
+  position: relative;
+}
+.preview-thumb .live { position: absolute; top: 2px; right: 2px; color: #cc0000; font-size: 9px; font-weight: bold; }
+.preview-info-text { color: #555; font-size: 9px; margin-top: 2px; }
+
+/* --- Inspector (right) --- */
+.inspect {
+  grid-area: inspect;
+  background: #0e0e0e;
+  border-left: 1px solid #222;
+  overflow-y: auto;
+  padding: 0;
+}
+.insp-tabs { display: flex; border-bottom: 1px solid #222; padding: 0 8px; }
+.insp-tab { padding: 4px 10px; color: #555; cursor: pointer; font-size: 10px; }
+.insp-tab.active { color: #00d9ff; border-bottom: 1px solid #00d9ff; }
+.insp-header { padding: 6px 8px; color: #e0e0e0; font-weight: bold; font-size: 12px; border-bottom: 1px solid #1a1a1a; }
+
+/* Section headers as comments */
+.section-comment { color: #444; padding: 6px 8px 2px; font-size: 10px; }
+
+/* Params as key=value */
+.param-kv { padding: 2px 8px 2px 16px; display: flex; align-items: center; gap: 4px; }
+.param-kv:hover { background: rgba(255,255,255,0.02); }
+.param-kv .tri { color: #333; font-size: 8px; cursor: pointer; width: 10px; }
+.param-kv .tri.on { color: #00d9ff; }
+.param-kv .pk { color: #888; width: 100px; }
+.param-kv .eq { color: #444; }
+.param-kv .pv { color: #e0e0e0; width: 40px; text-align: right; }
+.param-kv .pbar { flex: 1; height: 3px; background: #1a1a1a; position: relative; margin-left: 8px; }
+.param-kv .pbar .pfill { height: 100%; background: #00d9ff; position: absolute; left: 0; top: 0; opacity: 0.6; }
+
+/* Effects as CLI commands */
+.fx-block { padding: 2px 8px; }
+.fx-cmd-line { padding: 2px 0; color: #888; }
+.fx-cmd-line .prompt { color: #444; }
+.fx-cmd-line .cmd { color: #aaa; }
+.fx-cmd-line .arg { color: #e0e0e0; }
+.fx-cmd-line .flag { color: #666; }
+.fx-cmd-line .val { color: #00d9ff; }
+
+/* Knobs as text gauges */
+.knobs-text { padding: 4px 8px; display: flex; gap: 4px; flex-wrap: wrap; }
+.knob-text { display: flex; flex-direction: column; align-items: center; width: 40px; }
+.knob-gauge { color: #555; font-size: 9px; text-align: center; }
+.knob-gauge .filled { color: #00d9ff; }
+.knob-name { font-size: 8px; color: #555; }
+
+/* --- Command Bar --- */
+.cmdbar {
+  grid-area: cmdbar;
+  background: #111;
+  border-top: 1px solid #222;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+}
+.cmdbar .prompt { color: #00d9ff; font-size: 11px; }
+.cmdbar input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  font-family: inherit;
+  font-size: 11px;
+  outline: none;
+}
+.cmdbar .hint { color: #333; font-size: 10px; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #222; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="brand">AUDIO-DNA</span>
+    <span class="pipe">|</span>
+    <span class="kv"><span class="k">src=</span><span class="v">mic</span></span>
+    <span class="kv"><span class="k">gain=</span><span class="v">1.00</span></span>
+    <span class="pipe">|</span>
+    <span class="btn-char active">PLAY</span>
+    <span class="btn-char">PAUSE</span>
+    <span class="btn-char">STOP</span>
+    <span class="pipe">|</span>
+    <span class="bpm-big">128.0</span>
+    <span class="kv"><span class="v green">LOCKED</span></span>
+    <span class="kv"><span class="k">bar=</span><span class="v">7</span></span>
+    <span class="kv"><span class="k">phr=</span><span class="v">0.42</span></span>
+    <span class="pipe">|</span>
+    <span class="btn-char">TAP</span>
+    <span class="btn-char">RESYNC</span>
+    <span class="btn-char">MANUAL</span>
+    <span class="pipe">|</span>
+    <span class="btn-char">/4</span><span class="btn-char">/2</span><span class="btn-char active">x1</span><span class="btn-char">x2</span><span class="btn-char">x4</span>
+    <span class="pipe">|</span>
+    <span class="kv"><span class="k">quant=</span><span class="v cyan">beat</span></span>
+    <span class="kv"><span class="k">fade=</span><span class="v">0.3s</span></span>
+    <span class="kv"><span class="k">master=</span><span class="v">1.00</span></span>
+    <span class="kv"><span class="k">out=</span><span class="v cyan">LG:fullscreen</span></span>
+    <span class="spacer"></span>
+    <span class="perf-text">60fps 2.1%dsp</span>
+  </div>
+
+  <!-- SIGNAL STRIP (telemetry line) -->
+  <div class="signals">
+    <span class="sig"><span class="sk">rms=</span><span class="sv">0.62</span><span class="bar"><span class="fill" style="width:62%;background:#00d9ff;"></span></span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">peak=</span><span class="sv">0.81</span><span class="bar"><span class="fill" style="width:81%;background:#00d9ff;"></span></span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">bass=</span><span class="sv">0.74</span><span class="bar"><span class="fill" style="width:74%;background:#ff6644;"></span></span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">mid=</span><span class="sv">0.45</span><span class="bar"><span class="fill" style="width:45%;background:#ffaa22;"></span></span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">high=</span><span class="sv">0.33</span><span class="bar"><span class="fill" style="width:33%;background:#44cc88;"></span></span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">beat=</span><span class="sv">0.25</span><span class="bar"><span class="fill" style="width:25%;background:#aa66ff;"></span></span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">onset=</span><span class="sv">0.15</span><span class="bar"><span class="fill" style="width:15%;background:#ff4488;"></span></span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">key=</span><span class="sv">Am</span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">genre=</span><span class="sv">techno</span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">struct=</span><span class="sv" style="color:#ffcc00;">drop</span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">pump=</span><span class="sv">0.45</span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">swing=</span><span class="sv">0.51</span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">formant=</span><span class="sv">0.30</span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">reson=</span><span class="sv">0.22</span></span>
+    <span class="sep">|</span>
+    <span class="sig"><span class="sk">reese=</span><span class="sv">0.18</span></span>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+
+    <!-- Deck header -->
+    <div class="deck-header">
+      <span class="deck-label">[DECK 1]</span>
+      <span class="deck-tabs-text"><span class="active">1:Main Show</span> | 2:Breakdown | 3:Ambient | 4:Empty</span>
+    </div>
+
+    <!-- Column header -->
+    <div class="col-header">
+      <div class="layer-spacer">LAYER</div>
+      <div class="col-num active">01</div>
+      <div class="col-num">02</div>
+      <div class="col-num">03</div>
+      <div class="col-num">04</div>
+      <div class="col-num">05</div>
+      <div class="col-num">06</div>
+      <div class="col-num">07</div>
+      <div class="col-num">08</div>
+      <div class="col-num">09</div>
+      <div class="col-num">10</div>
+      <div class="col-num">11</div>
+      <div class="col-num">12</div>
+    </div>
+
+    <!-- Layer 3 -->
+    <div class="layer-text-row active">
+      <div class="layer-info">
+        <div class="layer-line"><span class="name">FX Overlay</span> <span class="type-tag fx">[FX ONLY]</span></div>
+        <div class="prop"><span class="pk">V:</span><span class="pv">0.70</span> <span class="bar-text"><span class="bar-fill-char">======</span><span class="bar-char">====</span></span> <span class="pk">S:</span><span class="pv">1.0x</span> <span class="pk">B:</span><span class="pv">Additive</span></div>
+        <div class="prop"><span class="pk">FX:</span><span class="pv cyan">3</span> <span class="pk">Fade:</span><span class="pv">0.3s</span> <span class="pk">Auto:</span><span class="pv">beat/8</span></div>
+        <div class="fx-cli"><span class="cmd">&gt; ripple</span> <span class="flag">--intensity</span> <span class="val">0.50</span> <span class="flag">--frequency</span> <span class="val">0.60</span></div>
+        <div class="fx-cli"><span class="cmd">&gt; echo</span> <span class="flag">--decay</span> <span class="val">0.85</span> <span class="flag">--mix</span> <span class="val">0.70</span></div>
+        <div class="fx-cli"><span class="cmd">&gt; glow</span> <span class="flag">--intensity</span> <span class="val">0.45</span> <span class="flag">--radius</span> <span class="val">0.30</span></div>
+        <div class="btns">
+          <span class="btn-sm">X</span><span class="btn-sm">B</span><span class="btn-sm">S</span>
+          <span class="btn-sm">&lt;</span><span class="btn-sm">||</span><span class="btn-sm">&gt;</span>
+        </div>
+      </div>
+      <div class="cell-row">
+        <div class="text-cell active"><div class="cell-name">FX - Glow Chain</div><div class="cell-type">fx-only</div><div class="cell-status playing">[PLAYING]</div><div class="cell-fx">fx:3</div></div>
+        <div class="text-cell"><div class="cell-name">FX - Echo Trail</div><div class="cell-type">fx-only</div><div class="cell-status loaded">[loaded]</div><div class="cell-fx">fx:2</div></div>
+        <div class="text-cell"><div class="cell-name">FX - Data Corrupt</div><div class="cell-type">fx-only</div><div class="cell-status loaded">[loaded]</div><div class="cell-fx">fx:4</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+      </div>
+    </div>
+
+    <!-- Layer 2 -->
+    <div class="layer-text-row">
+      <div class="layer-info">
+        <div class="layer-line"><span class="name">Fractals</span> <span class="type-tag transparent">[TRANSPARENT]</span></div>
+        <div class="prop"><span class="pk">V:</span><span class="pv">0.85</span> <span class="bar-text"><span class="bar-fill-char">========</span><span class="bar-char">==</span></span> <span class="pk">S:</span><span class="pv">1.0x</span> <span class="pk">B:</span><span class="pv">Screen</span></div>
+        <div class="prop"><span class="pk">FX:</span><span class="pv cyan">2</span> <span class="pk">Key:</span><span class="pv">luma/0.30</span> <span class="pk">Auto:</span><span class="pv">beat/16</span></div>
+        <div class="prop"><span class="pk">Feedback:</span><span class="pv cyan">Zoom In</span> <span class="pk">amount:</span><span class="pv">0.40</span></div>
+        <div class="fx-cli"><span class="cmd">&gt; hue_shift</span> <span class="flag">--amount</span> <span class="val">0.72</span> <span class="flag">~bass</span></div>
+        <div class="fx-cli"><span class="cmd">&gt; glow</span> <span class="flag">--intensity</span> <span class="val">0.45</span></div>
+        <div class="btns">
+          <span class="btn-sm">X</span><span class="btn-sm">B</span><span class="btn-sm">S</span>
+          <span class="btn-sm">&lt;</span><span class="btn-sm">||</span><span class="btn-sm">&gt;</span>
+        </div>
+      </div>
+      <div class="cell-row">
+        <div class="text-cell active"><div class="cell-name">Mandelbrot</div><div class="cell-type">source</div><div class="cell-status playing">[PLAYING]</div><div class="cell-fx">fx:2</div></div>
+        <div class="text-cell"><div class="cell-name">Julia Set</div><div class="cell-type">source</div><div class="cell-status loaded">[loaded]</div><div class="cell-fx">fx:1</div></div>
+        <div class="text-cell"><div class="cell-name">Mandelbulb</div><div class="cell-type">source</div><div class="cell-status loaded">[loaded]</div></div>
+        <div class="text-cell"><div class="cell-name">Menger Sponge</div><div class="cell-type">source</div><div class="cell-status loaded">[loaded]</div></div>
+        <div class="text-cell"><div class="cell-name">Newton 3D</div><div class="cell-type">source</div><div class="cell-status loaded">[loaded]</div></div>
+        <div class="text-cell"><div class="cell-name">Apollonian 3D</div><div class="cell-type">source</div><div class="cell-status loaded">[loaded]</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+      </div>
+    </div>
+
+    <!-- Layer 1 -->
+    <div class="layer-text-row">
+      <div class="layer-info">
+        <div class="layer-line"><span class="name">Background</span> <span class="type-tag opaque">[OPAQUE]</span></div>
+        <div class="prop"><span class="pk">V:</span><span class="pv">1.00</span> <span class="bar-text"><span class="bar-fill-char">==========</span></span> <span class="pk">S:</span><span class="pv">2.0x</span> <span class="pk">B:</span><span class="pv">Normal</span></div>
+        <div class="prop"><span class="pk">FX:</span><span class="pv cyan">1</span> <span class="pk">Fade:</span><span class="pv">0.3s</span> <span class="pk">Trans:</span><span class="pv">Cut</span></div>
+        <div class="fx-cli"><span class="cmd">&gt; saturation</span> <span class="flag">--amount</span> <span class="val">0.65</span></div>
+        <div class="btns">
+          <span class="btn-sm">X</span><span class="btn-sm">B</span><span class="btn-sm">S</span>
+          <span class="btn-sm">&lt;</span><span class="btn-sm">||</span><span class="btn-sm">&gt;</span>
+        </div>
+      </div>
+      <div class="cell-row">
+        <div class="text-cell active"><div class="cell-name">city_night.jpg</div><div class="cell-type">image</div><div class="cell-status playing">[PLAYING]</div><div class="cell-fx">fx:1</div></div>
+        <div class="text-cell"><div class="cell-name">abstract_01.jpg</div><div class="cell-type">image</div><div class="cell-status loaded">[loaded]</div></div>
+        <div class="text-cell"><div class="cell-name">nature_loop.mp4</div><div class="cell-type">video</div><div class="cell-status loaded">[loaded]</div></div>
+        <div class="text-cell"><div class="cell-name">particles.mov</div><div class="cell-type">video</div><div class="cell-status loaded">[loaded]</div><div class="cell-fx">fx:2</div></div>
+        <div class="text-cell"><div class="cell-name">tunnel.mp4</div><div class="cell-type">video</div><div class="cell-status loaded">[loaded]</div></div>
+        <div class="text-cell"><div class="cell-name">fire_loop.mov</div><div class="cell-type">video</div><div class="cell-status loaded">[loaded]</div><div class="cell-fx">fx:1</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+        <div class="text-cell empty"><div class="cell-name">---</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="inspect">
+    <div class="insp-tabs">
+      <div class="insp-tab active">clip</div>
+      <div class="insp-tab">layer</div>
+      <div class="insp-tab">comp</div>
+      <div class="insp-tab">signal</div>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-box">
+      <div class="preview-ascii-border">
+        <div class="preview-thumb">
+          <div class="live">[LIVE]</div>
+        </div>
+      </div>
+      <div class="preview-info-text">1920x1080 deck:1 layer:2 col:1</div>
+    </div>
+
+    <div class="insp-header">Mandelbrot</div>
+
+    <!-- Dashboard as text gauges -->
+    <div class="section-comment"># dashboard (8 macros)</div>
+    <div class="knobs-text">
+      <div class="knob-text"><div class="knob-gauge">[<span class="filled">===</span><span style="color:#333">====</span>]</div><div class="knob-name">Zoom</div></div>
+      <div class="knob-text"><div class="knob-gauge">[<span class="filled">====</span><span style="color:#333">===</span>]</div><div class="knob-name">Dive</div></div>
+      <div class="knob-text"><div class="knob-gauge">[<span class="filled">==</span><span style="color:#333">=====</span>]</div><div class="knob-name">Color</div></div>
+      <div class="knob-text"><div class="knob-gauge">[<span class="filled">=====</span><span style="color:#333">==</span>]</div><div class="knob-name">Power</div></div>
+      <div class="knob-text"><div class="knob-gauge">[<span class="filled">====</span><span style="color:#333">===</span>]</div><div class="knob-name">Iter</div></div>
+      <div class="knob-text"><div class="knob-gauge">[<span style="color:#333">=======</span>]</div><div class="knob-name">M6</div></div>
+      <div class="knob-text"><div class="knob-gauge">[<span style="color:#333">=======</span>]</div><div class="knob-name">M7</div></div>
+      <div class="knob-text"><div class="knob-gauge">[<span style="color:#333">=======</span>]</div><div class="knob-name">M8</div></div>
+    </div>
+
+    <!-- Source params as key=value -->
+    <div class="section-comment"># source.params</div>
+    <div class="param-kv"><span class="tri on">~</span><span class="pk">dive_speed</span><span class="eq">=</span><span class="pv">0.35</span><div class="pbar"><div class="pfill" style="width:35%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">location</span><span class="eq">=</span><span class="pv">3</span><div class="pbar"><div class="pfill" style="width:30%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">zoom</span><span class="eq">=</span><span class="pv">0.60</span><div class="pbar"><div class="pfill" style="width:60%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">center_x</span><span class="eq">=</span><span class="pv">0.50</span><div class="pbar"><div class="pfill" style="width:50%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">center_y</span><span class="eq">=</span><span class="pv">0.50</span><div class="pbar"><div class="pfill" style="width:50%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">julia_mix</span><span class="eq">=</span><span class="pv">0.00</span><div class="pbar"><div class="pfill" style="width:0%;"></div></div></div>
+    <div class="param-kv"><span class="tri on">~</span><span class="pk">max_iter</span><span class="eq">=</span><span class="pv">0.50</span><div class="pbar"><div class="pfill" style="width:50%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">power</span><span class="eq">=</span><span class="pv">0.25</span><div class="pbar"><div class="pfill" style="width:25%;"></div></div></div>
+    <div class="param-kv"><span class="tri on">~</span><span class="pk">color_speed</span><span class="eq">=</span><span class="pv">0.40</span><div class="pbar"><div class="pfill" style="width:40%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">palette</span><span class="eq">=</span><span class="pv">0.60</span><div class="pbar"><div class="pfill" style="width:60%;"></div></div></div>
+
+    <!-- Video -->
+    <div class="section-comment"># video</div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">opacity</span><span class="eq">=</span><span class="pv">1.00</span><div class="pbar"><div class="pfill" style="width:100%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">blend</span><span class="eq">=</span><span class="pv" style="width:auto;color:#888;">layer_determined</span></div>
+
+    <!-- Transform -->
+    <div class="section-comment"># transform</div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">position_x</span><span class="eq">=</span><span class="pv">0.00</span><div class="pbar"><div class="pfill" style="width:50%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">position_y</span><span class="eq">=</span><span class="pv">0.00</span><div class="pbar"><div class="pfill" style="width:50%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">scale</span><span class="eq">=</span><span class="pv">1.00</span><div class="pbar"><div class="pfill" style="width:50%;"></div></div></div>
+    <div class="param-kv"><span class="tri on">~</span><span class="pk">rotation</span><span class="eq">=</span><span class="pv">0.00</span><div class="pbar"><div class="pfill" style="width:0%;"></div></div></div>
+
+    <!-- Effects as CLI -->
+    <div class="section-comment"># effects (2 active)</div>
+    <div class="fx-block">
+      <div class="fx-cmd-line"><span class="prompt">&gt; </span><span class="cmd">hue_shift</span> <span class="flag">--dry_wet</span> <span class="val">1.00</span> <span class="flag">--amount</span> <span class="val">0.72</span> <span style="color:#00d9ff;">~bass</span></div>
+      <div class="param-kv" style="padding-left:24px;"><span class="tri on">~</span><span class="pk">dry_wet</span><span class="eq">=</span><span class="pv">1.00</span><div class="pbar"><div class="pfill" style="width:100%;"></div></div></div>
+      <div class="param-kv" style="padding-left:24px;"><span class="tri on">~</span><span class="pk">shift_amount</span><span class="eq">=</span><span class="pv">0.72</span><div class="pbar"><div class="pfill" style="width:72%;"></div></div></div>
+    </div>
+    <div class="fx-block">
+      <div class="fx-cmd-line"><span class="prompt">&gt; </span><span class="cmd">glow</span> <span class="flag">--intensity</span> <span class="val">0.45</span> <span class="flag">--radius</span> <span class="val">0.30</span></div>
+      <div class="param-kv" style="padding-left:24px;"><span class="tri"> </span><span class="pk">intensity</span><span class="eq">=</span><span class="pv">0.45</span><div class="pbar"><div class="pfill" style="width:45%;"></div></div></div>
+      <div class="param-kv" style="padding-left:24px;"><span class="tri"> </span><span class="pk">radius</span><span class="eq">=</span><span class="pv">0.30</span><div class="pbar"><div class="pfill" style="width:30%;"></div></div></div>
+    </div>
+
+    <!-- Transport -->
+    <div class="section-comment"># transport</div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">mode</span><span class="eq">=</span><span class="pv" style="width:auto;color:#888;">bpm_sync</span></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">speed</span><span class="eq">=</span><span class="pv">1.00</span><div class="pbar"><div class="pfill" style="width:25%;"></div></div></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">beats_cycle</span><span class="eq">=</span><span class="pv" style="width:auto;color:#888;">4</span></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">loop</span><span class="eq">=</span><span class="pv" style="width:auto;color:#888;">loop</span></div>
+
+    <!-- Autopilot -->
+    <div class="section-comment"># autopilot</div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">action</span><span class="eq">=</span><span class="pv" style="width:auto;color:#888;">layer_determined</span></div>
+    <div class="param-kv"><span class="tri"> </span><span class="pk">beat_snap</span><span class="eq">=</span><span class="pv" style="width:auto;color:#888;">bar</span></div>
+  </div>
+
+  <!-- COMMAND BAR -->
+  <div class="cmdbar">
+    <span class="prompt">audiodna&gt;</span>
+    <input type="text" placeholder="add fx ripple to L2C1 --intensity 0.5" spellcheck="false">
+    <span class="hint">Tab: autocomplete | Enter: execute | Esc: cancel</span>
+  </div>
+
+</div>
+</body>
+</html>

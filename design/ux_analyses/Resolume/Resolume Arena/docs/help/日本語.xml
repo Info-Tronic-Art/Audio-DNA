@@ -1,0 +1,1655 @@
+<?xml version="1.0" encoding="utf-8"?>
+<contextual_help language="ja">
+  <default>
+    <title><![CDATA[ヘルプ]]></title>
+    <text><![CDATA[詳細を知りたい箇所にマウスを動かしてください。]]></text>
+  </default>
+  <help components="'Clear All Layers Button'">
+    <title><![CDATA[全レイヤーをクリア]]></title>
+    <text><![CDATA[全クリップを、全レイヤーからイジェクトする。]]></text>
+  </help>
+  <help components="'Bypass All Layers Button'">
+    <title><![CDATA[マスターバイパス]]></title>
+    <text><![CDATA[全アウトプットをブラックにします。]]></text>
+  </help>
+  <help components="'selectCompositionEventButton'">
+    <title><![CDATA[コンポジション]]></title>
+    <text><![CDATA[プレビューウィンドウでコンポジションをプレビューし、コンポジションパネルにフォーカスします。]]></text>
+  </help>
+  <help components="'compositionMasterSlider'">
+    <title><![CDATA[マスター不透明度]]></title>
+    <text><![CDATA[全アウトプットをブラックにフェードする。]]></text>
+  </help>
+  <help components="'speedSlider' 'compositionControlComponent'">
+    <title><![CDATA[マスタースピード]]></title>
+    <text><![CDATA[全クリップのスピードを上げる、または下げる。]]></text>
+  </help>
+  <help components="'forwardButton' 'compositionControlComponent'">
+    <title><![CDATA[グローバルプレイフォワード]]></title>
+    <text><![CDATA[プレイ中の全クリップを進む方向にプレイする]]></text>
+  </help>
+  <help components="'backwardsButton' 'compositionControlComponent'">
+    <title><![CDATA[グローバルプレイバックワード]]></title>
+    <text><![CDATA[プレイ中の全クリップを戻る方向にプレイする]]></text>
+  </help>
+  <help components="'pauseButton' 'compositionControlComponent'">
+    <title><![CDATA[グローバル停止]]></title>
+    <text><![CDATA[プレイ中の全クリップを停止]]></text>
+  </help>
+  <help components="'randomButton' 'compositionControlComponent'">
+    <title><![CDATA[グローバル ランダムプレイ]]></title>
+    <text><![CDATA[プレイ中の全クリップをランダムなフレームにジャンプする]]></text>
+  </help>
+  <help components="'connectPrevColumn'">
+    <title><![CDATA[前のコラムをトリガー]]></title>
+    <text><![CDATA[コラムをステップで戻る。]]></text>
+  </help>
+  <help components="'connectNextColumn'">
+    <title><![CDATA[次のコラムをトリガー]]></title>
+    <text><![CDATA[コラムをステップで進む。]]></text>
+  </help>
+  <help components="'vuBar' | 'fftBarsComponent'">
+    <title><![CDATA[イコライザー]]></title>
+    <text><![CDATA[この空のスペースを埋めるためFFTビジュアライザーを付加し、オーディオを可視化しました。しかしオーディオを”見る”などということができるでしょうか？ならビデオを”聞く”こともできますか？私たちの惑星は、巨大な熊の背中にとまった蝿に過ぎないのでしょうか？]]></text>
+  </help>
+  <help components="'columnTriggerComponent' 'groupedComponent' '' 'columnsViewport'">
+    <title><![CDATA[コラムトリガー]]></title>
+    <text><![CDATA[全クリップをスタートする]]></text>
+  </help>
+  <help components="'clearLayerButton'">
+    <title><![CDATA[レイヤーのクリア]]></title>
+    <text><![CDATA[プレイ中のクリップをこのレイヤーからクリアする。]]></text>
+  </help>
+  <help components="'soloLayerButton'">
+    <title><![CDATA[レイヤーソロ]]></title>
+    <text><![CDATA[このレイヤーの、レイヤー全体のみを表示する。]]></text>
+  </help>
+  <help components="'bypassLayerButton'">
+    <title><![CDATA[レイヤーのバイパス]]></title>
+    <text><![CDATA[このレイヤーを隠す。]]></text>
+  </help>
+  <help components="'blendModeComboboxLabel' 'blendModeCombobox' 'Layer Control Component'">
+    <title><![CDATA[レイヤーブレンドモードを選択する]]></title>
+    <text><![CDATA[非常に沢山あるブレンドモードより、1つを選択します。]]></text>
+  </help>
+  <help components="'volumeSlider' 'Layer Control Component'">
+    <title><![CDATA[オーディオ音量]]></title>
+    <text><![CDATA[レイヤーの音量を調節します。]]></text>
+  </help>
+  <help components="'masterSlider' 'Layer Control Component'">
+    <title><![CDATA[レイヤーマスター]]></title>
+    <text><![CDATA[レイヤーの不透明度とボリュームを一度に調節する。]]></text>
+  </help>
+  <help components="'opacitySlider' 'Layer Control Component'">
+    <title><![CDATA[ビデオ不透明度]]></title>
+    <text><![CDATA[レイヤーの不透明度を調節します。ブレンドモードにより、このスライダーの視覚的効果は異なります。]]></text>
+  </help>
+  <help components="'clipTriggerComponent' 'Layer Control Component'">
+    <title><![CDATA[現在のクリップ]]></title>
+    <text><![CDATA[このクリップは現在レイヤーでプレイ中です。クリッププロパティパネルで、プロパティを調節してください。]]></text>
+  </help>
+  <help components="'speedSlider' | 'n' 'speedSlider'">
+    <title><![CDATA[スピード]]></title>
+    <text><![CDATA[タイムラインのプレイバックスピードを設定します。1はノーマルレート、2は2倍速です。]]></text>
+  </help>
+  <help components="'timelineSlider' '*' 'Layer Control Component'">
+    <title><![CDATA[タイムライン]]></title>
+    <text><![CDATA[このタイムラインはクリップのプレイバック位置を表示します。プレイヘッドをつかんでスクラブします。]]></text>
+  </help>
+  <help components="'' 'clipTriggerComponent' 'groupedComponent'">
+    <title><![CDATA[クリップ]]></title>
+    <text><![CDATA[このクリップをトリガーする。さあ、今この瞬間にぴったりのクリップです。]]></text>
+  </help>
+  <help components="'clipTriggerComponent' 'groupedComponent'">
+    <title><![CDATA[クリップハンドル]]></title>
+    <text><![CDATA[このクリップをプレビューおよびデッキ内の別の場所にドラッグするには、クリップ名をクリックします。]]></text>
+  </help>
+  <help components="'relocateButton'">
+    <title><![CDATA[クリップをリロケート]]></title>
+    <text><![CDATA[クリックして、コンピューターのどこか深淵に潜むこのファイルをもう一度探し出します。]]></text>
+  </help>
+  <help components="'Layer Control Component' 'groupedComponent'">
+    <title><![CDATA[レイヤーを選択およびプレビューする]]></title>
+    <text><![CDATA[クリックしてこのレイヤーを選択、編集およびプレビューします。]]></text>
+  </help>
+  <help components="'groupAButton' | 'groupBButton'">
+    <title><![CDATA[クロスフェーダーバスに割り当てる]]></title>
+    <text><![CDATA[これにより、グループまたはレイヤーを、クロスフェーダーの対応するバスに割り当てます。]]></text>
+  </help>
+  <help components="'AVsliderTrans T' | 'Duration' 'transitionParamsComponent' | '*' 'spinner' 'paramBaseComponent' 'Duration' 'transitionParamsComponent'">
+    <title><![CDATA[トランジションタイム]]></title>
+    <text><![CDATA[トランジションのデュレーションを0-10秒の間でコントロールする]]></text>
+  </help>
+  <help components="'transitionBlendModeButton' | 'Blend Mode' 'transitionMixerParamsComponent' |  '' '' 'paramBaseComponent' 'Blend Mode' 'transitionMixerParamsComponent'">
+    <title><![CDATA[トランジションを選択]]></title>
+    <text><![CDATA[リストからトランジションを選択、またはランダムオプションへ。]]></text>
+  </help>
+  <help components="'connectPrevClip'">
+    <title><![CDATA[前のクリップをトリガー]]></title>
+    <text><![CDATA[クリップ間をステップで戻ります。]]></text>
+  </help>
+  <help components="'connectNextClip'">
+    <title><![CDATA[次のクリップをトリガー]]></title>
+    <text><![CDATA[クリップ間をステップで進みます。]]></text>
+  </help>
+  <help components="'layerGroupControlComponent' 'groupedComponent'">
+    <title><![CDATA[グループを選択およびプレビュー]]></title>
+    <text><![CDATA[クリックしてグループを選択、編集およびプレビューします。]]></text>
+  </help>
+  <help components="'clearLayerGroupButton'">
+    <title><![CDATA[グループのクリア]]></title>
+    <text><![CDATA[プレイ中の全クリップをこのグループからクリアします。]]></text>
+  </help>
+  <help components="'soloLayerGroupButton'">
+    <title><![CDATA[グループソロ]]></title>
+    <text><![CDATA[このグループの、グループ全体のみを表示し、ほかは表示しない。]]></text>
+  </help>
+  <help components="'bypassLayerGroupButton'">
+    <title><![CDATA[グループのバイパス]]></title>
+    <text><![CDATA[グループ全体を隠します。]]></text>
+  </help>
+  <help components="'speedSlider' 'layerGroupControlComponent'">
+    <title><![CDATA[グループスピード]]></title>
+    <text><![CDATA[グループ内の全クリップのプレイバックスピードを設定します。]]></text>
+  </help>
+  <help components="'forwardsButton' 'layerGroupControlComponent'">
+    <title><![CDATA[グループプレイフォワード]]></title>
+    <text><![CDATA[グループ内の全クリップを進む方向にプレイします]]></text>
+  </help>
+  <help components="'backwardsButton' 'layerGroupControlComponent'">
+    <title><![CDATA[グループプレイバックワード]]></title>
+    <text><![CDATA[グループ内の全クリップを戻る方向にプレイします]]></text>
+  </help>
+  <help components="'pauseButton' 'layerGroupControlComponent'">
+    <title><![CDATA[グループ停止]]></title>
+    <text><![CDATA[グループ内の全クリップを停止する]]></text>
+  </help>
+  <help components="'randomButton' 'layerGroupControlComponent'">
+    <title><![CDATA[グループ ランダムプレイ]]></title>
+    <text><![CDATA[グループ内の全クリップをランダムなフレームにジャンプする]]></text>
+  </help>
+  <help components="'connectPrevColumn' 'layerGroupControlComponent'">
+    <title><![CDATA[前のグループコラムをトリガー]]></title>
+    <text><![CDATA[グループ内のコラムをステップで戻ります。]]></text>
+  </help>
+  <help components="'connectNextColumn' 'layerGroupControlComponent'">
+    <title><![CDATA[次のグループコラムをトリガー]]></title>
+    <text><![CDATA[グループ内のコラムをステップで進みます。]]></text>
+  </help>
+  <help components="'columnTriggerComponent' 'groupedComponent' 'groupedComponent' '' 'clipsAndGroupsViewport'">
+    <title><![CDATA[グループコラムトリガー]]></title>
+    <text><![CDATA[グループコラム内の全クリップを一度にスタートします。]]></text>
+  </help>
+  <help components="'crossFaderSlider'">
+    <title><![CDATA[クロスフェーダー]]></title>
+    <text><![CDATA[まずレイヤーをクロスフェーダーのバスAおよびBに割り当て、その後フェーダーを左から右、右から左へ動かして、*ウィッカ* *ワッカ*します。]]></text>
+  </help>
+  <help components="'fadeToAButton' | 'fadeToBButton'">
+    <title><![CDATA[バスへフェード]]></title>
+    <text><![CDATA[クリックして、クロスフェーダーをこのバスに切り替えます。この動作はコンポジションパネルで変更できます。]]></text>
+  </help>
+  <help components="'' '' '' '' '' 'LayersAndClips'">
+    <title><![CDATA[デッキ]]></title>
+    <text><![CDATA[デッキにはすべてのクリップが含まれています。コンポジションには複数のデッキを収められます。デッキはレコードのようなもの、コンポジションはレコードバッグのようなものです。]]></text>
+  </help>
+  <help components="'*' '' '' '' '' '' 'LayersAndClips'">
+    <title><![CDATA[デッキ]]></title>
+    <text><![CDATA[このデッキに切り替えます。]]></text>
+  </help>
+  <help components="'selectPrevDeckButton'">
+    <title><![CDATA[前のデッキを選択]]></title>
+    <text><![CDATA[デッキ間をステップで戻ります。]]></text>
+  </help>
+  <help components="'selectNextDeckButton'">
+    <title><![CDATA[次のデッキを選択]]></title>
+    <text><![CDATA[デッキ間をステップで進みます。]]></text>
+  </help>
+  <help components="'barHighlightComponent'">
+    <title><![CDATA[ビートインディケーター]]></title>
+    <text><![CDATA[音楽の拍を視覚的に表したものです。4拍で1小節となり、4小節ごとに黄色のアウトラインが点滅します。さあ踊りましょう！]]></text>
+  </help>
+  <help components="'linkToggle'">
+    <title><![CDATA[リンク切り替え]]></title>
+    <text><![CDATA[ResolumeをAbleton Link セッションに合流、またはAbleton Linkセッションから離脱させます。]]></text>
+  </help>
+  <help components="'toolbarTempoComponent'">
+    <title><![CDATA[BPMクロック]]></title>
+    <text><![CDATA[１分あたりの拍数（BPM）は、音楽のテンポに合わせてResolume内の全てを動作させるため使用されます。]]></text>
+  </help>
+  <help components="'bpmValueLabel'">
+    <title><![CDATA[BPM値]]></title>
+    <text><![CDATA[現在の、１分あたりの拍数です。]]></text>
+  </help>
+  <help components="'bpmIncButton' | 'bpmDecButton'">
+    <title><![CDATA[BPM調節]]></title>
+    <text><![CDATA[一度のインクリメントでBPMを調節する。]]></text>
+  </help>
+  <help components="'bpmPullButton' | 'bpmPushButton'">
+    <title><![CDATA[BPMナッジアップ／ダウン]]></title>
+    <text><![CDATA[一時的にBPMをナッジアップまたはダウンします。ナッジのパーセンテージはプリファレンスで設定します。]]></text>
+  </help>
+  <help components="'bpmDivideButton' | 'bpmMultiplyButton'">
+    <title><![CDATA[BPM分割／乗算]]></title>
+    <text><![CDATA[現在のBPMをすばやく半分／2倍にします。]]></text>
+  </help>
+  <help components="'bpmTapButton'">
+    <title><![CDATA[BPMタッパー]]></title>
+    <text><![CDATA[音楽に合わせてタップし、BPMを設定します。最低2回のクリックが必要ですが、4回以上クリックすればさらに正確な結果が得られます。]]></text>
+  </help>
+  <help components="'bpmResyncButton'">
+    <title><![CDATA[BPMクロックの再同期]]></title>
+    <text><![CDATA[BPMクロックを最初の小節へリセットします。BPMの再調節に使用します。]]></text>
+  </help>
+  <help components="'bpmPauseButton'">
+    <title><![CDATA[BPMクロックの停止]]></title>
+    <text><![CDATA[BPMクロックを停止します。]]></text>
+  </help>
+  <help components="'metronomeButton'">
+    <title><![CDATA[メトロノーム]]></title>
+    <text><![CDATA[クリックがチクタクと流れていきます。]]></text>
+  </help>
+  <help components="'smpteLabel'">
+    <title><![CDATA[SMPTE]]></title>
+    <text><![CDATA[SMPTEを使用してビデオプレイバックを外部クロックと同期します。]]></text>
+  </help>
+  <help components="'ToolbarSMPTEComponent'">
+    <title><![CDATA[SMPTE入力]]></title>
+    <text><![CDATA[Resolume Arenaには2つのSMPTE入力があり、デュアルデッキを駆使するDJにも対応できます。]]></text>
+  </help>
+  <help components="'SMPTEInputLabel1' | 'SMPTEInputLabel2'">
+    <title><![CDATA[SMPTE入力]]></title>
+    <text><![CDATA[入力されているSMPTE信号の現在のタイムコードです。]]></text>
+  </help>
+  <help components="'smpteDelayCompensationSlider' | 'smpteDelayCompensationSlider1' | '*' 'smpteDelayCompensationSlider' | '*' 'smpteDelayCompensationSlider1' | 'delayLabel' | 'delayLabel2'">
+    <title><![CDATA[SMPTE入力遅延補正]]></title>
+    <text><![CDATA[SMPTE入力信号の遅延補正のためにフレームでのオフセットを行います。]]></text>
+  </help>
+  <help components="'fftLabelComponent' | 'FFT Gain'">
+    <title><![CDATA[FFTゲイン]]></title>
+    <text><![CDATA[FFT入力のマスターゲインを調節します。入力オーディオ信号のブーストに使用します。]]></text>
+  </help>
+  <help components="'recordButton'">
+    <title><![CDATA[レコーディング]]></title>
+    <text><![CDATA[現在のビデオアウトプットをディスクにレコーディングします。クリックするとレコーディングを開始し、もう一度クリックすると停止して、レコーディングしたクリップをデッキに追加し、再使用できるようにします。]]></text>
+  </help>
+  <help components="'monitor' 'Output Monitor' | 'Output Monitor'">
+    <title><![CDATA[モニター]]></title>
+    <text><![CDATA[モニターを、作業状況の把握に使用します。アウトプットモニターでは、メインミックスをプレビューします。プレビューモニターではミックスに送信する前のレイヤー、グループまたはファイルをプレビューします。]]></text>
+  </help>
+  <help components="'menuButton' 'Output Monitor'">
+    <title><![CDATA[モニターセットアップ]]></title>
+    <text><![CDATA[クリックしてモニターの配置を変更します。]]></text>
+  </help>
+  <help components="'*' 'panelMonitorComponent' | 'foldComponentHeader' 'groupedComponent' | 'monitor' 'groupedComponent'">
+    <title><![CDATA[パネルモニター]]></title>
+    <text><![CDATA[このパネルで選択しているものをライブプレビューします。]]></text>
+  </help>
+  <help components="'*' 'dashboardComponent' | 'dashboardComponent' | '*' 'paramBaseComponent' 'dashboardComponent'">
+    <title><![CDATA[ダッシュボード]]></title>
+    <text><![CDATA[ダッシュボードでは、よく変更するパラメーターへ素早くアクセスできます。パラメーター名をつかんで、いずれかのダイヤルへドロップしてリンクします。1つのダイヤルにさらにパラメーターをドロップして、一度に複数のパラメーターをコントロールすることも可能です。]]></text>
+  </help>
+  <help components="'*' 'commonParamsComponent' | 'commonParamsComponent'">
+    <title><![CDATA[コモン]]></title>
+    <text><![CDATA[このパネル内のオーディオおよびビデオ両方のプレイに作用するプロパティを調節します。]]></text>
+  </help>
+  <help components="'*' 'audioParamsComponent' | 'audioParamsComponent'">
+    <title><![CDATA[オーディオ]]></title>
+    <text><![CDATA[このパネルのオーディオをコントロールします。]]></text>
+  </help>
+  <help components="'*' 'videoParamsComponent' | 'videoParamsComponent' | '*' '*' 'videoParamsComponent'">
+    <title><![CDATA[ビデオ]]></title>
+    <text><![CDATA[このパネルのビデオをコントロールします。]]></text>
+  </help>
+  <help components="'*' 'crossFaderParamsComponent' | 'crossFaderParamsComponent' | '*' '*' 'crossFaderParamsComponent'">
+    <title><![CDATA[クロスフェーダー]]></title>
+    <text><![CDATA[クロスフェーダーの動作を調節します。]]></text>
+  </help>
+  <help components="'renderPassComponent' | '*' 'renderPassComponent' | '*' '*' 'renderPassComponent' | '*' 'groupedComponent' '' 'renderPassComponent'">
+    <title><![CDATA[ビデオエフェクト]]></title>
+    <text><![CDATA[このパネルで選択したビデオプロパティを調節します。]]></text>
+  </help>
+  <help components="'audioEffectComponent' | '*' 'audioEffectComponent' | '*' '*' 'audioEffectComponent'">
+    <title><![CDATA[オーディオエフェクト]]></title>
+    <text><![CDATA[このパネルで選択したオーディオプロパティを調節します。]]></text>
+  </help>
+  <help components="'uiButton' 'audioEffectComponent'">
+    <title><![CDATA[VST]]></title>
+    <text><![CDATA[VSTプラグインのカスタムUIを開きます。]]></text>
+  </help>
+  <help components="'PresetsButton'">
+    <title><![CDATA[エフェクトプリセット]]></title>
+    <text><![CDATA[エフェクトプリセットを使用すると、エフェクトの全パラメーターをすばやく特定の値にします。新規プリセットを作成するには、このメニューから'Save'（保存）を選択します。]]></text>
+  </help>
+  <help components="'bypassButton'">
+    <title><![CDATA[エフェクトのバイパス]]></title>
+    <text><![CDATA[エフェクトを削除することなく無効にします。]]></text>
+  </help>
+  <help components="'removeButton'">
+    <title><![CDATA[エフェクトの削除]]></title>
+    <text/>
+  </help>
+  <help components="'paramColorPickerComponent' | '*' 'paramColorPickerComponent' | '*' '*' '*' '*' 'paramColorComponent' | '*' '*' '*' '*' '*' 'paramColorPickerComponent'">
+    <title><![CDATA[カラーピッカー]]></title>
+    <text><![CDATA[HSBスライダー、RGBスライダーまたは好みのスウォッチのパレットで、フルスペクトラムからカラーを選択します。]]></text>
+  </help>
+  <help components="'Composition'">
+    <title><![CDATA[コンポジションパネル]]></title>
+    <text><![CDATA[コンポジションに関する全ての情報はここにあります。マスク、エフェクトなどなんでもです。こちらでおこなうことは、コンポジション全体に適用されます。]]></text>
+  </help>
+  <help components="'nameLabel' 'Composition'">
+    <title><![CDATA[コンポジション名]]></title>
+    <text><![CDATA[現在のコンポジションの名前および解像度。]]></text>
+  </help>
+  <help components="'menuButton' '' 'Composition'">
+    <title><![CDATA[コンポジションメニュー]]></title>
+    <text><![CDATA[コンポジションメニューを開きます。]]></text>
+  </help>
+  <help components="'Layer' | 'layerPropertiesComponent' | 'layerPropertiesHeaderComponent' 'Layer'">
+    <title><![CDATA[アクティブレイヤーパネル]]></title>
+    <text><![CDATA[有効なレイヤーに関する全ての情報はここにあります。マスク、エフェクトなどなんでもです。こちらでおこなうことは全て、現在のレイヤーに適用されます。]]></text>
+  </help>
+  <help components="'nameLabel' 'layerPropertiesHeaderComponent'">
+    <title><![CDATA[レイヤー名]]></title>
+    <text><![CDATA[このレイヤーの名前。変更するにはクリックします。]]></text>
+  </help>
+  <help components="'menuButton' 'layerPropertiesHeaderComponent'">
+    <title><![CDATA[レイヤーメニュー]]></title>
+    <text><![CDATA[レイヤーメニューを開きます。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'layerAutoPilotComponent' | 'layerAutoPilotComponent'">
+    <title><![CDATA[オートパイロット]]></title>
+    <text><![CDATA[オートパイロットは、レイヤーの全クリップのプレイバックに使用します。例えば飲み物を取りに行く間、Resolumeにプレイを任せることなどができます。]]></text>
+  </help>
+  <help components="'backwardsButton2' 'layerAutoPilotComponent'">
+    <title><![CDATA[オートパイロットで戻る方向にプレイ]]></title>
+    <text><![CDATA[現在のレイヤーのクリップを逆順でプレイします。]]></text>
+  </help>
+  <help components="'forwardsButton2' 'layerAutoPilotComponent'">
+    <title><![CDATA[オートパイロットを進む方向にプレイ]]></title>
+    <text><![CDATA[現在のレイヤーのクリップを順番にプレイします。]]></text>
+  </help>
+  <help components="'pauseButton2' 'layerAutoPilotComponent'">
+    <title><![CDATA[オートパイロット停止]]></title>
+    <text><![CDATA[オートパイロットをオフにします。ユーザーによるコントロールに戻ります。]]></text>
+  </help>
+  <help components="'randomButton2' 'layerAutoPilotComponent'">
+    <title><![CDATA[オートパイロット　ランダムプレイ]]></title>
+    <text><![CDATA[現在のレイヤーのクリップをランダムにプレイします。]]></text>
+  </help>
+  <help components="'*' 'transitionParamsComponent'">
+    <title><![CDATA[トランジション]]></title>
+    <text><![CDATA[トランジションのプロパティを調節します。これらのコントロールは、レイヤー上のコントロール類に反映します。]]></text>
+  </help>
+  <help components="'Group' | | '*' 'Group'">
+    <title><![CDATA[アクティブグループパネル]]></title>
+    <text><![CDATA[有効になっているグループの情報は全てここにあります。マスク、エフェクトなどなんでもです。こちらでおこなうことは、現在のグループに適用されます。]]></text>
+  </help>
+  <help components="'nameLabel' '' 'Group'">
+    <title><![CDATA[グループ名]]></title>
+    <text><![CDATA[このグループの名前。変更するにはクリックします。]]></text>
+  </help>
+  <help components="'menuButton' '' 'Group'">
+    <title><![CDATA[グループメニュー]]></title>
+    <text><![CDATA[グループメニューを開きます。]]></text>
+  </help>
+  <help components="'Clip' | '' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[アクティブクリップタブ]]></title>
+    <text><![CDATA[有効になっているクリップの情報は全てここにあります。マスク、エフェクトなどなんでもです。こちらでおこなうことは、現在選択中のクリップに適用されます。]]></text>
+  </help>
+  <help components="'nameLabel' '' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[クリップ名]]></title>
+    <text><![CDATA[クリップ名を変更するにはここをクリックします。]]></text>
+  </help>
+  <help components="'menuButton' '' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[クリップメニュー]]></title>
+    <text><![CDATA[クリップメニューを開きます。]]></text>
+  </help>
+  <help components="'transportTypeComboBoxLabel'">
+    <title><![CDATA[トランスポートモード]]></title>
+    <text><![CDATA[クリップのプレイバックに使用するタイミングを選択します。タイムラインではスピードを手動でコントロールでき、BPM SyncはクリップをマスターBPMにマッチさせます。Arenaではクリップを同期させるSMPTEソースも選択できます。]]></text>
+  </help>
+  <help components="'*' 'clipProperties' | 'foldComponentHeader' '*' 'clipProperties'">
+    <title><![CDATA[クリップトランスポートコントロール]]></title>
+    <text><![CDATA[クリップをどのようにプレイバックするかをコントロールします。進む、戻る、速く、遅く、等を決定します。]]></text>
+  </help>
+  <help components="'timeLabelButton">
+    <title><![CDATA[クリップタイム]]></title>
+    <text><![CDATA[現在のフレームの、秒単位のタイムです。クリックで残り時間表示に切り替えます。]]></text>
+  </help>
+  <help components="'paramSlider' '*' 'clipProperties'">
+    <title><![CDATA[タイムライン]]></title>
+    <text><![CDATA[このタイムラインでは、クリップのプレイバック位置を表示します。スクラブするにはプレイヘッドをつかみます。インポイントおよびアウトポイントを動かして、クリップをトリミングします。]]></text>
+  </help>
+  <help components="'*' '*' 'clipTransportTimelineComponent' |   '*' '*' '*' '*' '*' 'clipTransportTimelineComponent' | '*' '*' '*' '*' 'clipTransportTimelineComponent'">
+    <title><![CDATA[タイムラインスピード]]></title>
+    <text><![CDATA[クリップのプレイバック速度をコントロールします。]]></text>
+  </help>
+  <help components="'*' '*' 'clipTransportVideoComponent' | '*' '*' '*' 'clipTransportVideoComponent' |  '*' '*' '*' '*' 'clipTransportVideoComponent'">
+    <title><![CDATA[BPMスピード]]></title>
+    <text><![CDATA[クリップのプレイバック速度を、BPMおよび拍によってテンポを決めコントロールします。]]></text>
+  </help>
+  <help components="'' 'groupedComponent' 'clipTransportSMPTEComponent' | '*' '' 'groupedComponent' 'clipTransportSMPTEComponent'">
+    <title><![CDATA[SMPTE入力のセットアップ]]></title>
+    <text><![CDATA[このクリップを同期するSMPTE入力をすばやく切り替えます。ここでオフセットも調節します。]]></text>
+  </help>
+  <help components="'forwardButton'">
+    <title><![CDATA[進む方向へプレイ]]></title>
+    <text/>
+  </help>
+  <help components="'backwardsButton'">
+    <title><![CDATA[戻る方向へプレイ]]></title>
+    <text/>
+  </help>
+  <help components="'pauseButton'">
+    <title><![CDATA[プレイバックを停止]]></title>
+    <text/>
+  </help>
+  <help components="'randomButton'">
+    <title><![CDATA[ランダムプレイバック]]></title>
+    <text><![CDATA[タイムラインのランダムな場所へジャンプします。タイムラインがBPMシンクモードの場合、繰り返し、ランダムな拍にジャンプしてプレイします。]]></text>
+  </help>
+  <help components="'loopButton'">
+    <title><![CDATA[ループ]]></title>
+    <text><![CDATA[クリップの最終地点に到達すると、また最初からスタートします。そしてそれをいつまでもいつまでも繰り返します。]]></text>
+  </help>
+  <help components="'bounceButton'">
+    <title><![CDATA[バウンス]]></title>
+    <text><![CDATA[タイムラインを進んで、戻って、進んで、戻って、、、、を繰り返します。]]></text>
+  </help>
+  <help components="'playOnceButton'">
+    <title><![CDATA[プレイワンス]]></title>
+    <text><![CDATA[タイムラインを一度だけプレイした後、消えます。]]></text>
+  </help>
+  <help components="'playOnceAndHoldButton'">
+    <title><![CDATA[プレイワンスしてホールド]]></title>
+    <text><![CDATA[タイムラインを一度だけプレイした後、最後のフレームをスクリーンに表示し続けます。]]></text>
+  </help>
+  <help components="'rewindButton'">
+    <title><![CDATA[リスタート]]></title>
+    <text><![CDATA[トリガーすると、タイムラインを頭からプレイします。]]></text>
+  </help>
+  <help components="'continueButton'">
+    <title><![CDATA[コンティニュー]]></title>
+    <text><![CDATA[前回プレイした位置の続きからプレイバックします。]]></text>
+  </help>
+  <help components="'playRelativeButton'">
+    <title><![CDATA[レラティブ]]></title>
+    <text><![CDATA[前のクリップがプレイされた位置から続けてプレイバックします。そんな機能もあります。]]></text>
+  </help>
+  <help components="'beatLooperComponent' | 'foldComponentHeader' 'beatLooperComponent' | '*' 'beatLooperComponent' 'clipProperties'">
+    <title><![CDATA[BeatLoopr]]></title>
+    <text><![CDATA[クリップを即座に、クオンタイズした拍に合わせてループします。とても面白い機能です！]]></text>
+  </help>
+  <help components="'cuePointsComponent' | 'foldComponentHeader' 'cuePointsComponent'">
+    <title><![CDATA[キューポイント]]></title>
+    <text><![CDATA[この6つのキューポイントを使用し、クリップの異なる位置にジャンプします。矢印型の小さなボタンのいずれかを押してキューポイントを設定します。キューポイントにジャンプするには対応するボタンを押します。]]></text>
+  </help>
+  <help components="'cueSetButton'">
+    <title><![CDATA[キューポイントの設定]]></title>
+    <text><![CDATA[押した瞬間に、キューポイントを設定します。同じ場所にもう一度ジャンプするには、右側の大き目のボタンを使います。]]></text>
+  </help>
+  <help components="'cueJumpButton'">
+    <title><![CDATA[キューポイントへジャンプ]]></title>
+    <text><![CDATA[左側の小さなキューポイントセットボタンで設定した位置にジャンプします。]]></text>
+  </help>
+  <help components="'AudioTrackInfoComponent'">
+    <title><![CDATA[クリップオーディオ]]></title>
+    <text><![CDATA[有効なクリップのオーディオトラックの情報。]]></text>
+  </help>
+  <help components="'VideoTrackInfoComponent'">
+    <title><![CDATA[クリップビデオ]]></title>
+    <text><![CDATA[有効なクリップのビデオトラックの情報。ここで現在有効になっているクリップのコーデック、解像度、フレームレートおよびデュレーション（継続時間）が確認できます。ファイルをこのエリアにドラッグすると、プロパティとエフェクトはそのまま、ビデオトラックを置き換えます。]]></text>
+  </help>
+  <help components="'removeButton' 'AudioTrackInfoComponent'">
+    <title><![CDATA[オーディオの削除]]></title>
+    <text><![CDATA[クリップからオーディオを削除します。]]></text>
+  </help>
+  <help components="'removeButton' 'VideoTrackInfoComponent'">
+    <title><![CDATA[ビデオの削除]]></title>
+    <text><![CDATA[クリップからビデオを削除します。]]></text>
+  </help>
+  <help components="'scaleToFitButton'">
+    <title><![CDATA[ビデオの最大化]]></title>
+    <text><![CDATA[ビデオをコンポジションのサイズにスケーリングします。]]></text>
+  </help>
+  <help components="'colorsRButton' | 'colorsGButton' | 'colorsBButton'">
+    <title><![CDATA[カラーチャンネルの切り替え]]></title>
+    <text><![CDATA[ビデオのR、GおよびBのカラーチャンネルのオン／オフを切り替えます。このチャンネルのみを確認するには右クリック。]]></text>
+  </help>
+  <help components="'colorsAButton'">
+    <title><![CDATA[アルファチャンネル]]></title>
+    <text><![CDATA[ビデオにアルファチャンネルがある場合は、このボタンでオン／オフを切り替えます。]]></text>
+  </help>
+  <help components="'Blend Mode' 'videoMixerParamsComponent' 'trackSettingsComponent'">
+    <title><![CDATA[レイヤーブレンドモードに優先する]]></title>
+    <text><![CDATA[このドロップダウンを使用し、レイヤーの設定に関係なく、クリップが必ず特定のブレンドモードを使用するように設定できます。]]></text>
+  </help>
+  <help components="'*' 'renderPassGeneratorComponent' | '*' '*' 'renderPassGeneratorComponent'">
+    <title><![CDATA[ジェネレーターパラメーター]]></title>
+    <text><![CDATA[このジェネレーティブソースの外観およびフィールを調節する。]]></text>
+  </help>
+  <help components="'Duration' 'groupedComponent'">
+    <title><![CDATA[デュレーション]]></title>
+    <text><![CDATA[オートパイロット有効時に、このクリップをプレイする時間の長さです。秒単位で設定します。]]></text>
+  </help>
+  <help components="'Input' 'videoSettingsComponent'">
+    <title><![CDATA[ビデオルーターインプット]]></title>
+    <text><![CDATA[このビデオルーターへのインプットを選択します。任意のレイヤー、グループまたは、ルーターの下の複数レイヤーの結果を選択します。プレビューを選択することも可能です。]]></text>
+  </help>
+  <help components="'Input Opacity' 'groupedComponent'">
+    <title><![CDATA[ビデオルーターインプット不透明度]]></title>
+    <text><![CDATA[このルーターが、ソースの不透明度の影響を受けるかどうかを選択します。基本的には、プリフェーダー／ポストフェーダーの切り替えです。]]></text>
+  </help>
+  <help components="'Input Bypass/Solo' 'groupedComponent'">
+    <title><![CDATA[ビデオルーターバイパスソロ]]></title>
+    <text><![CDATA[このルーターが、ソースのバイパスおよびソロスイッチの影響を受けるかどうかを選択します。]]></text>
+  </help>
+  <help components="'Alpha Type'">
+    <title><![CDATA[アルファチャンネル解釈]]></title>
+    <text><![CDATA[Resolumeがこのクリップのアルファチャンネルを解釈する方法を選択します。通常は’Premultiplied’を選択します。コンテンツの周囲におかしな光の輪が見える場合は、’Straight’にします。]]></text>
+  </help>
+  <help components="'Servers' 'videoSettingsComponent' | 'Syphon Servers' 'videoSettingsComponent'">
+    <title><![CDATA[サーバーの選択]]></title>
+    <text><![CDATA[使用可能なサーバーがリスト表示されます。リストから1つ選択します。]]></text>
+  </help>
+  <help components="'*' 'videoSettingsComponent'">
+    <title><![CDATA[カメラ入力設定]]></title>
+    <text><![CDATA[ここで、このライブカメラ入力のセッティングを調節します。機器が対応していれば、ビデオフォーマットは自動的に適切なセッティングへアップデートされます。]]></text>
+  </help>
+  <help components="'*' 'paramBaseComponent'">
+    <title><![CDATA[パラメーター]]></title>
+    <text><![CDATA[このパラメーター名の上で右クリックすると、リセットします。このパラメーターの名前をつかんで、ダッシュボードのダイヤル上にドロップすると、このパラメーターをダイヤルでコントロールできるようになります。黒い矢印をクリックして、複数あるパラメーターアニメーションコントロールから1つを選択します。]]></text>
+  </help>
+  <help components="'*' 'spinner' 'paramBaseComponent'">
+    <title><![CDATA[スピナーパラメーター]]></title>
+    <text><![CDATA[+および – ボタンを押すと、パラメーターを少しずつ変更します。
+クリックしてドラッグすると、もっと大まかに調節できます。デフォルトへリセットするには右クリックします。]]></text>
+  </help>
+  <help components="'toggleButton' 'paramBaseComponent'">
+    <title><![CDATA[パラメーター切り替え]]></title>
+    <text><![CDATA[オフから再度オンにしたことがありますか？]]></text>
+  </help>
+  <help components="'choiceButton1' 'paramBaseComponent' | 'choiceButton2' 'paramBaseComponent' | 'choiceButton3' 'paramBaseComponent' | 'choiceButton4' 'paramBaseComponent' | 'choiceButton5' 'paramBaseComponent'">
+    <title><![CDATA[チョイスパラメーター]]></title>
+    <text><![CDATA[これにより、コントロールをいくつかの異なる状態に設定できます。]]></text>
+  </help>
+  <help components="'paramSliderLabel' 'paramSlider' 'paramBaseComponent' | 'colorSliderLabel' 'colorSlider' 'paramBaseComponent' | '' '' 'paramBaseComponent' | 'spinnerLabel' 'spinner' 'paramBaseComponent' | 'colorDisplay' 'paramColorComponent'">
+    <title><![CDATA[パラメーター値]]></title>
+    <text><![CDATA[このパラメーターの実際の値を、適用可能な箇所において有意の単位で表現します。ローテーションは角度、スケールはパーセンテージ、オーディオレベルはdB、などです。]]></text>
+  </help>
+  <help components="'paramSlider' 'paramTimelineComponent' 'paramBaseComponent' | 'paramTimelineComponent' 'paramBaseComponent'">
+    <title><![CDATA[タイムラインパラメーター アニメーション]]></title>
+    <text><![CDATA[タイムラインでパラメーターをアニメート、スピードをセット、ループ、角度、など。]]></text>
+  </help>
+  <help components="'paramRangeSlider' 'paramLinkComponent' 'paramBaseComponent' | 'speedDialsComboBoxLabel' 'speedDialsComboBox' 'paramLinkComponent' 'paramBaseComponent' | 'linkRangeSliderText' 'paramLinkComponent' 'paramBaseComponent' | 'linkRangeSlider' 'paramLinkComponent' 'paramBaseComponent'">
+    <title><![CDATA[ダッシュボードダイヤルへのリンク]]></title>
+    <text><![CDATA[このパラメーターの値は、リンクしているダイヤルで決定します。1つのダイヤルで複数のパラメーターをコントロールできます！つまり、ビデオエフェクトのパラメーターとオーディオエフェクトのパラメーターを同時にコントロールできるということです。素晴らしいでしょう？]]></text>
+  </help>
+  <help components="'parameterTimelineSliderBpm' | '*' 'ParamLinkBPMComponent' 'paramBaseComponent' | '*' 'parameterBeatSpinner' 'ParamLinkBPMComponent' 'paramBaseComponent' | 'ParamLinkBPMComponent' 'paramBaseComponent'">
+    <title><![CDATA[BPMパラメーターアニメーション]]></title>
+    <text><![CDATA[グローバルBPMクロックに同期したパラメーターをアニメートします。]]></text>
+  </help>
+  <help components="'invertToggleButton' | 'toggleButton' 'parameterBaseComponent'">
+    <title><![CDATA[インバート値]]></title>
+    <text><![CDATA[値を反転してマップします。例えば：インプット値が低い場合、パラメーター値が高くなります。]]></text>
+  </help>
+  <help components="'ParamLinkFFTBasicComponent' | '*' 'ParamLinkFFTBasicComponent' 'paramBaseComponent' | '*' 'ParamLinkFFTExtendedComponent' 'paramBaseComponent' 'paramBaseComponent' | 'ParamLinkFFTExtendedComponent'">
+    <title><![CDATA[FFTパラメーター]]></title>
+    <text><![CDATA[選択したオーディオソースのピーク値に合わせて、このパラメーターをアニメートします。例えば弾むような重低音に合わせて。]]></text>
+  </help>
+  <help components="'' 'paramEnvelopeComponent' 'paramBaseComponent' | '' '' 'paramEnvelopeComponent' 'paramBaseComponent'">
+    <title><![CDATA[エンベロープ]]></title>
+    <text><![CDATA[このパラメーターのアウトプットを、カスタムのカーブによってリマップします。キーフレームの追加および削除はダブルクリック、インターポーレーション変更は各キーフレームを右クリックします。]]></text>
+  </help>
+  <help components="'searchBar' | '*' 'searchBar' | 'clearFilterButton'">
+    <title><![CDATA[検索]]></title>
+    <text><![CDATA[テキストをタイピング入力し、リスト表示を絞り込みます。CTRL-?を押すと、検索窓にすばやくジャンプします。]]></text>
+  </help>
+  <help components="'Slices' | '' '' '' 'treeView' 'Slices' | 'treeView' 'Slices'">
+    <title><![CDATA[スライスブラウザ]]></title>
+    <text><![CDATA[アドバンスアウトプットで現在有効になっている全スライスがここに表示されます。コンポジション、グループ、レイヤーまたはクリップパネルにドラッグし、これらのスライスをインプットとするエフェクトを作成します。すばやくおこなうにはスクリーン全体を、詳細に選択するには個々のスライスをドラッグします。]]></text>
+  </help>
+  <help components="'Files' | '' 'Files' | '' '' '' '' 'Files'">
+    <title><![CDATA[ファイルブラウザ]]></title>
+    <text><![CDATA[ファイルをこのブラウザからデッキ内のいずれかのクリップにドラッグして読み込みます。ファイルをダブルクリックすると、プレビューモニターでプレビューします。]]></text>
+  </help>
+  <help components="'upButton' 'Files'">
+    <title><![CDATA[ディレクトリーアップ]]></title>
+    <text><![CDATA[ファイルシステム内のディレクトリを1階層上がります。]]></text>
+  </help>
+  <help components="'*' 'currentDirectoryComboBox' 'Files' | 'currentDirectoryComboBox' 'Files'">
+    <title><![CDATA[ディレクトリチューザー]]></title>
+    <text><![CDATA[異なるドライブまたはディレクトリを選択します。]]></text>
+  </help>
+  <help components="'favouriteButton' 'Files'">
+    <title><![CDATA[永遠のベストディレクトリ！]]></title>
+    <text><![CDATA[お気に入りディレクトリのリストに現在のディレクトリを加える、またはディレクトリリストから現在のディレクトリを削除します。すべてのディレクトリは平等ではありますが、いくつかは特別です。]]></text>
+  </help>
+  <help components="'listTypeButton' 'Files'">
+    <title><![CDATA[プレビューの表示]]></title>
+    <text><![CDATA[ブラウザを有効にすると、ピクチャーとビデオファイルがプレビューされます。これにより、ファイルの初回表示時に少し遅延が生じます。]]></text>
+  </help>
+  <help components="'Compositions' | 'ComponentTVIComposition' | 'ComponentTVIDeck'">
+    <title><![CDATA[コンポジション／デッキ]]></title>
+    <text><![CDATA[このリストには、保存したコンポジションおよびその中のデッキが含まれます。コンポジションまたはデッキをダブルクリックして読み込みます。他のコンポジションのデッキを現在のコンポジションに読み込むことができます。]]></text>
+  </help>
+  <help components="'Effects' | 'videoEffectsButton' | 'audioEffectsButton' | '' '' '' 'treeView' '*' 'effectListsComponent' 'Effects' | 'treeView' '*' 'effectListsComponent' 'Effects'">
+    <title><![CDATA[オーディオおよびビデオエフェクト]]></title>
+    <text><![CDATA[プリセットを含む、オーディオおよびビデオエフェクトのリスト。エフェクトまたはプリセットをクリップ、レイヤー、グループまたはコンポジションにドラッグします。または、ダブルクリックして現在の選択の上にプレビューします。]]></text>
+  </help>
+  <help components="'Sources' | 'Sources Tree View' | '' '' '' 'Sources Tree View'">
+    <title><![CDATA[ソース]]></title>
+    <text><![CDATA[様々なタイプのビデオおよびオーディオソースです。NDIおよびSpout/Syphonサーバー、ジェネレーティブFFGLプラグイン、Feedbackファンタイムスおよびマジカルなビデオルーターなど、コンピューター上で使用可能なキャプチャー機器すべてです。
+クリップにドラッグして使用するか、ダブルクリックしてプレビューします。]]></text>
+  </help>
+  <help components="'*' '*' 'Help'">
+    <title><![CDATA[ヘルプ！ヘルプ！]]></title>
+    <text><![CDATA[カーソルを合わせないで！]]></text>
+  </help>
+  <help components="'closeHelpButton'">
+    <title><![CDATA[ヘルプを閉じる]]></title>
+    <text><![CDATA[この項目について充分ご理解されているなら、どうぞ閉じてください。表示メニューでもご利用いただけます！]]></text>
+  </help>
+  <help components="'currentTimeLabel'">
+    <title><![CDATA[現在のタイム]]></title>
+    <text><![CDATA[遅れちゃう！遅れちゃう！大事な日なのに！こんにちはもさようならも言う間がない！]]></text>
+  </help>
+  <help components="'statusbarLabel'">
+    <title><![CDATA[現在のバージョン]]></title>
+    <text><![CDATA[現在のバージョンは最新ですか？]]></text>
+  </help>
+  <help components="'Shortcuts'">
+    <title><![CDATA[キーボード、MIDI、OSCおよびDMXショートカット]]></title>
+    <text><![CDATA[インターフェイス内の色づけされた要素にはすべて、ショートカットが割り当てられています。シンプルにクリックして、コントロールに使用したいキーボードのキーまたはMIDIメッセージを押します。ショートカットを削除するには、Deleteまたはバックスペースキーを押します。]]></text>
+  </help>
+  <help components="'' '' 'shortcutXmlStatesPickerComponent' 'ShortcutsTreeViewComponent'">
+    <title><![CDATA[ショートカットプリセット]]></title>
+    <text><![CDATA[ここでは、現在有効なショートカットを切り替えます。ショートカットプリセットは大変便利です！MIDIコントローラーごとに異なるプリセットを設定したり、異なるVJスタイルに異なるプリセットを使用したりできます。]]></text>
+  </help>
+  <help components="'' '' '' 'treeView' 'ShortcutsTreeViewComponent' | 'treeView' 'ShortcutsTreeViewComponent'">
+    <title><![CDATA[ショートカットリスト]]></title>
+    <text><![CDATA[このプリセット内で有効な各プリセットのリストです。2回使用されているショートカットは赤色で表示されます。現在使用できないショートカットはグレーで表示されます。ソートを変更するには右クリックします。]]></text>
+  </help>
+  <help components="'targetTypeComboboxLabel' | 'targetLabel'">
+    <title><![CDATA[ショートカットターゲット]]></title>
+    <text><![CDATA[ここでは、このショートカットが実際コントロールするものを決定します。"Selected..."では選択中のクリップ、レイヤー、またはグループに対してショートカットが作用します。"This..."は、この特定のクリップ、レイヤー、またはグループを、コンポジション内のどこへ移動しようと、常にコントロールします。"By Position"はショートカットをインデックスに割り当てます。すると、たとえばレイヤーの重ね順を変更しても、常に1番目のレイヤーをコントロールします。]]></text>
+  </help>
+  <help components="'modeLabel' | 'modeComboBoxLabel'">
+    <title><![CDATA[ショートカットモード]]></title>
+    <text><![CDATA[ここでは、このショートカットのモードを変更します。最も重要なのはToggle(切替)とValue(値)の2つでしょう。トグルは押すごとに、2つの値の間で切り替えます。Value(値)はパラメーターを常に決まった値に設定します。他のモードについての解説は、マニュアルをご覧下さい。]]></text>
+  </help>
+  <help components="'pianoButton'">
+    <title><![CDATA[ピアノモード]]></title>
+    <text><![CDATA[キーダウンすると、パラメーターが最大値へジャンプします。キーをリリースすると、パラメーターは最小値へとジャンプして戻ります。]]></text>
+  </help>
+  <help components="'rangeLabel' | 'rangeSlider' | 'midiRangeSlider' | 'midiRangeLabel'">
+    <title><![CDATA[レンジの設定]]></title>
+    <text><![CDATA[パラメーターの最小値および最大値を設定します。]]></text>
+  </help>
+  <help components="'mouseXButton'">
+    <title><![CDATA[マウスを左から右へ]]></title>
+    <text><![CDATA[キーをホールドし、マウスを左から右へと動かしてパラメーターをコントロールします。]]></text>
+  </help>
+  <help components="'mouseYButton'">
+    <title><![CDATA[マウスを上下に]]></title>
+    <text><![CDATA[キーをホールドし、マウスを上下に動かしてパラメーターをコントロールします。]]></text>
+  </help>
+  <help components="'invertButton'">
+    <title><![CDATA[マウスの動作を反転する]]></title>
+    <text><![CDATA[上に動かせば下がり、下に動かせば上がります。左は右を意味し、右は左を意味します。
+さてこのしかめっつらを反転してみましょう。]]></text>
+  </help>
+  <help components="'valueSlider' | 'valueLabel'">
+    <title><![CDATA[値の設定]]></title>
+    <text><![CDATA[これを使用して、パラメーターを任意の値に設定します。]]></text>
+  </help>
+  <help components="'midiChannelLabel' | 'midiChannelComboBoxLabel' | 'midiKeyLabel' | 'midiNoteComboBoxLabel' | 'midiControllerNumberLabel' | 'midiControllerNumberComboBoxLabel'">
+    <title><![CDATA[MIDIメッセージ]]></title>
+    <text><![CDATA[MIDIラーンを使用すると、これらが自動的に選択されますが、ここで手動で変更できます。]]></text>
+  </help>
+  <help components="'midiControllerTypeLabel' | 'midiControllerTypeComboBoxLabel'">
+    <title><![CDATA[MIDIコントローラーモード]]></title>
+    <text><![CDATA[エンドレスダイヤルは'Relative'に設定してください。MIDIコントローラーは'Absolute'に。CCを送信するボタンは自然への冒涜ですが、'Button'にセットすれば使用できます。]]></text>
+  </help>
+  <help components="'invertValueToggle'">
+    <title><![CDATA[値の反転]]></title>
+    <text><![CDATA[パラメーターが、ローからハイへ上昇する代わりに、ハイからローへ下降するようにします。]]></text>
+  </help>
+  <help components="'stepLabel' | '*' Step Slider' | 'stepSizeLabel'">
+    <title><![CDATA[ステップサイズ]]></title>
+    <text><![CDATA[パラメーター値を非常に精細に／荒くします。]]></text>
+  </help>
+  <help components="'loopValueToggle'">
+    <title><![CDATA[パラメーター値をループ]]></title>
+    <text><![CDATA[最大値または最小値に達したときに、パラメーター値をループします。]]></text>
+  </help>
+  <help components="'midiOutVelocityLabel'">
+    <title><![CDATA[MIDI出力ベロシティ]]></title>
+    <text><![CDATA[ここでは、MIDIノートからコントローラーへ返送するベロシティを定義します。対応するコントローラーのカスタムカラーを選択できます。]]></text>
+  </help>
+  <help components="'velocityStatusLabel' | 'velocityStatusComboBoxLabel'">
+    <title><![CDATA[MIDI出力ステイタス]]></title>
+    <text><![CDATA[ボタンの各状態で送信するベロシティを選択するドロップダウンです。ほとんどのボタンでは、単純にオンおよびオフのカラーを選択するくらいです。とはいえ例えばクリップトリガーには5種類の状態を設定できます！カラーが沢山です！]]></text>
+  </help>
+  <help components="'velocityValueLabel' | ' '' '' '*' 'shortcutEditorMIDINoteComponent''">
+    <title><![CDATA[MIDI出力ベロシティ]]></title>
+    <text><![CDATA[このステイトで送信する実際のベロシティです。これでパッドのカラーを設定します。各コントローラーは独自のカラースキームを使用しますが、ユーザーの使用開始を後押しするため、APC40Mk2 および APC Miniのプレビュースウォッチを装備しています。]]></text>
+  </help>
+  <help components="'oscInputLabel' | 'shortcutInputAddressLabel'">
+    <title><![CDATA[OSC入力]]></title>
+    <text><![CDATA[現在選択中のインターフェイスエフェメントのOSC入力アドレスです。1番目のアドレスはアブソリュートアドレスで、常に有効です。2番めのアドレスは、現在の選択によって異なるエレメントをコントロールします。入力されるアドレスは変更できません。]]></text>
+  </help>
+  <help components="'shortcutEditorOSCComponent' | 'typeTagLabel'">
+    <title><![CDATA[OSCタイプタグ]]></title>
+    <text><![CDATA[このアドレスにどのタイプのアーギュメント（フロート、インテジャーまたはストリング）を送信するか、どの範囲に送信するかを表します。]]></text>
+  </help>
+  <help components="'enableOutputButton' |'oscOutputLabel'">
+    <title><![CDATA[OSC出力]]></title>
+    <text><![CDATA[現在選択しているインターフェイスエレメントからOSC出力を有効にするには、このボックスにチェックを入れます。]]></text>
+  </help>
+  <help components="'wildcardComboBoxLabel'">
+    <title><![CDATA[OSC出力ワイルドカード]]></title>
+    <text><![CDATA[このドロップダウンを使用して、このエレメントまたは類似の全エレメントに対するOSC出力を1度にすばやく有効にします。カスタムアドレスの出力も選択できます。]]></text>
+  </help>
+  <help components="'shortcutOutputAddressLabel'">
+    <title><![CDATA[OSC出力アドレス]]></title>
+    <text><![CDATA[このインターフェイスエレメントが送信するOSCアドレスを変更します。]]></text>
+  </help>
+  <help components="'universeLabel' | 'universeComboBoxLabel'">
+    <title><![CDATA[DMX Lumiverse]]></title>
+    <text><![CDATA[DMX ショートカットが一部を占めるResolumeの内部ユニバースを選択します。”Preference”のDMXタブより、物理的DMXインプットにLumiverseを割り当てます。]]></text>
+  </help>
+  <help components="'dmxChannelLabel' | '*' 'dmxChannelSlider'">
+    <title><![CDATA[DMXチャンネル]]></title>
+    <text><![CDATA[このショートカットを使用するチャンネルを手動で調節します。]]></text>
+  </help>
+  <help components="'' 'Preferences'">
+    <title><![CDATA[プリファレンスウィンドウ]]></title>
+    <text><![CDATA[タブをいずれか1つ選択し、プリファレンスを調節します。]]></text>
+  </help>
+  <help components="'GeneralPreferencesComponent' | 'generalTabButton' | 'GeneralPreferencesComponentHeader'">
+    <title><![CDATA[一般プリファレンス]]></title>
+    <text/>
+  </help>
+  <help components="'recordDirectoryLabel'">
+    <title><![CDATA[レコードディレクトリ]]></title>
+    <text><![CDATA[レコーディングしたファイルを保存する場所です。]]></text>
+  </help>
+  <help components="'browseRecordDirectoryButton'">
+    <title><![CDATA[ディレクトリを選択]]></title>
+    <text><![CDATA[クリックしてカスタムの場所を設定します。]]></text>
+  </help>
+  <help components="'RecordVideoButton'">
+    <title><![CDATA[ビデオのレコーディング]]></title>
+    <text><![CDATA[レコーディング機能を使用する際に、ビデオアウトプットを含めるかどうかを選択します。]]></text>
+  </help>
+  <help components="'RecordAudioButton'">
+    <title><![CDATA[オーディオのレコーディング]]></title>
+    <text><![CDATA[レコーディング機能を使用する際に、オーディオアウトプットを含めるかどうかを選択します。]]></text>
+  </help>
+  <help components="'audioTabButton' | 'AudioPreferencesComponent' | '*' 'AudioPreferencesComponent'">
+    <title><![CDATA[オーディオプリファレンス]]></title>
+    <text/>
+  </help>
+  <help components="'AudioOutputDeviceLabel' | 'OutputDeviceComboBoxLabel'">
+    <title><![CDATA[オーディオ出力機器]]></title>
+    <text><![CDATA[オーディオを聴く機器を選択します。]]></text>
+  </help>
+  <help components="'AudioInputDeviceLabel' | 'InputDeviceComboBoxLabel'">
+    <title><![CDATA[オーディオ入力機器]]></title>
+    <text><![CDATA[全オーディオ入力に使用する機器を選択します。]]></text>
+  </help>
+  <help components="'MasterOutputChannelsLabel' | 'masterOutputChannelsComboBoxLabel'">
+    <title><![CDATA[マスター出力チャンネル]]></title>
+    <text><![CDATA[マスターオーディオ出力を聴くチャンネルを選択します。]]></text>
+  </help>
+  <help components="'MasterOutputDelayLabel' | 'masterOutputDelaySlider' | 'masterOutputDelaySliderLabel'">
+    <title><![CDATA[マスター出力遅延]]></title>
+    <text><![CDATA[ビデオ信号フローで生じる遅延を補正するため、Resolumeから出力するオーディオを遅延させます。]]></text>
+  </help>
+  <help components="'PreviewOutputChannelsLabel' | 'previewOutputChannelsComboBoxLabel'">
+    <title><![CDATA[プレビューアウトプットチャンネル]]></title>
+    <text><![CDATA[プレビューオーディオ出力を聴くチャンネルを選択します。]]></text>
+  </help>
+  <help components="'refreshButton' 'AudioPreferencesComponent'">
+    <title><![CDATA[オーディオ機器のリフレッシュ]]></title>
+    <text><![CDATA[クリックして新規に接続したオーディオインターフェイスをチェックします。]]></text>
+  </help>
+  <help components="'SampleRateLabel' | 'sampleRateComboBoxLabel'">
+    <title><![CDATA[サンプルレート]]></title>
+    <text><![CDATA[サンプルレートを上げるとオーディオが高品質になりますが、特にオーディオエフェクトを使用している場合は処理が増えます。通常、デフォルトにしておけば問題ありません。]]></text>
+  </help>
+  <help components="'BufferSizeLabel' | 'blockSizeSlider' | 'blockSizeSliderLabel'">
+    <title><![CDATA[バッファーサイズ]]></title>
+    <text><![CDATA[バッファーサイズを上げると、レイテンシーが大きくなりますが、バッファーサイズを低く設定しすぎると、オーディオに問題が生じます。自信がない場合は1024にしておくと良いでしょう。]]></text>
+  </help>
+  <help components="'ExternalAudioFFTInputLabel' | 'fftInputChannelsComboBoxLabel'">
+    <title><![CDATA[外部オーディオFFTインプット]]></title>
+    <text><![CDATA[オーディオ分析に使用するインプットを選択します]]></text>
+  </help>
+  <help components="'AudioFFTInputGainLabel' | 'fftInputGainSlider' | 'fftInputGainSliderLabel'">
+    <title><![CDATA[オーディオFFTインプットゲイン]]></title>
+    <text><![CDATA[入力オーディオ信号の音量をブーストします。]]></text>
+  </help>
+  <help components="'SMPTEInput1Label' | 'smpteInput1ComboBoxLabel' | 'SMPTEInput2Label' | 'smpteInput2ComboBoxLabel'">
+    <title><![CDATA[SMPTE入力]]></title>
+    <text><![CDATA[SMPTEコントロールに使用するオーディオインプットを選択します。]]></text>
+  </help>
+  <help components="'SMPTETimecodeFramerate' | 'smpteFramerateComboBoxLabel'">
+    <title><![CDATA[SMPTEタイムコード フレームレート]]></title>
+    <text><![CDATA[これにより、受信SMPTE信号のフレームレートとマッチします。]]></text>
+  </help>
+  <help components="'VSTPluginDirectoriesLabel' | 'DirectoryListTreeViewItemComponent' '' '' '' 'vstDirsTreeView' | 'vstDirsTreeView'">
+    <title><![CDATA[VSTプラグインディレクトリ]]></title>
+    <text><![CDATA[ResolumeがVSTプラグインを検索するディレクトリです。デフォルトプラグインの場所は、マニュアルをご覧ください。]]></text>
+  </help>
+  <help components="'chooseDirectoryButton'">
+    <title><![CDATA[ディレクトリの選択]]></title>
+    <text><![CDATA[クリックしてカスタムロケーションをブラウズします。]]></text>
+  </help>
+  <help components="'vstDirAddButton'">
+    <title><![CDATA[VSTディレクトリの追加]]></title>
+    <text/>
+  </help>
+  <help components="'vstDirRemoveButton'">
+    <title><![CDATA[選択したVSTディレクトリを削除]]></title>
+    <text/>
+  </help>
+  <help components="'videoTabButton' | '*' 'VideoPreferencesComponent' | 'VideoPreferencesComponent'">
+    <title><![CDATA[ビデオプリファレンス]]></title>
+    <text/>
+  </help>
+  <help components="'ffglDirsTreeView' | 'DirectoryListTreeViewItemComponent' '' '' '' 'ffglDirsTreeView'">
+    <title><![CDATA[FFGLプラグインディレクトリ]]></title>
+    <text><![CDATA[Resolmeが追加FFGLプラグインを検索するディレクトリです。]]></text>
+  </help>
+  <help components="'addDirectoryButton'">
+    <title><![CDATA[ディレクトリの追加]]></title>
+    <text><![CDATA[クリックしてディレクトリを追加します。]]></text>
+  </help>
+  <help components="'removeDirectoryButton'">
+    <title><![CDATA[ディレクトリの削除]]></title>
+    <text><![CDATA[選択中のディレクトリをクリックで削除します。]]></text>
+  </help>
+  <help components="'radioDarkGrid' | 'radioLightGrid' | 'radioBlack'">
+    <title><![CDATA[ダーク透明度グリッド]]></title>
+    <text><![CDATA[バックグラウンドを変更して、アルファチャンネルを持つコンテンツをプレビューしていることを表します。]]></text>
+  </help>
+  <help components="'midiTabButton' | '*' 'MidiPreferencesComponent' | 'MidiPreferencesComponent'">
+    <title><![CDATA[MIDIプリファレンス]]></title>
+    <text/>
+  </help>
+  <help components="'refreshListButton'">
+    <title><![CDATA[機器のリフレッシュ]]></title>
+    <text><![CDATA[クリックで機器リストをリフレッシュします。]]></text>
+  </help>
+  <help components="'' '' '' '' 'midiDevicesTreeView' | 'midiDevicesTreeView'">
+    <title><![CDATA[MIDI機器]]></title>
+    <text><![CDATA[接続されている全MIDI機器および使用可能なインプットならびにアウトプットのリスト。]]></text>
+  </help>
+  <help components="'expandButton'">
+    <title><![CDATA[トラフィックの表示]]></title>
+    <text><![CDATA[ビューを拡張し、入力メッセージのリストを表示します。]]></text>
+  </help>
+  <help components="'clearButton' 'MidiMonitorComponent' |  'MidiMonitorComponent' | 'table' '' 'MidiMonitorComponent' | '' '' '' '' '' 'table' '' 'MidiMonitorComponent'">
+    <title><![CDATA[MIDIトラフィック]]></title>
+    <text><![CDATA[最新200の受信MIDIメッセージリスト。]]></text>
+  </help>
+  <help components="'oscTabButton' |'oscPreferencesTitleLabel' | 'OscPreferencesComponent'">
+    <title><![CDATA[OSCプリファレンス]]></title>
+    <text/>
+  </help>
+  <help components="'oscInputToggle'">
+    <title><![CDATA[OSCインプットを有効にする]]></title>
+    <text><![CDATA[これを切り替えると、選択したポートに入力されるOSCメッセージを聴取します。]]></text>
+  </help>
+  <help components="'oscInputPortLabel'">
+    <title><![CDATA[OSCインプットポート]]></title>
+    <text><![CDATA[Resolumeが入力OSCメッセージを聴取するポートです。]]></text>
+  </help>
+  <help components="'oscOutputToggle'">
+    <title><![CDATA[OSCアウトプットを有効にする]]></title>
+    <text><![CDATA[これを切り替えると、選択した宛先にOSCメッセージを送信します。]]></text>
+  </help>
+  <help components="'' 'OutputComboBox'">
+    <title><![CDATA[OSCアウトプット選択]]></title>
+    <text><![CDATA[OSCメッセージの送り先を選択します。]]></text>
+  </help>
+  <help components="'oscOutputPortLabel'">
+    <title><![CDATA[OSCアウトプットポート]]></title>
+    <text><![CDATA[このポートにResolumeがOSCメッセージを送信します。]]></text>
+  </help>
+  <help components="'oscOutputAddressLabel'">
+    <title><![CDATA[OSCアウトプットIPアドレス]]></title>
+    <text><![CDATA[これは、ResolumeがOSCメッセージを送信するコンピューターまたはモバイル機器のIPアドレスです。]]></text>
+  </help>
+  <help components="'oscBundleToggle'">
+    <title><![CDATA[バンドルの使用]]></title>
+    <text><![CDATA[Resolumeが、送信前にOSCメッセージをバンドルするか否かを選択します。ほとんどのOSCアプリケーションではバンドルしなくても問題ありませんが、中にはバンドルを好むアプリケーションもあります。]]></text>
+  </help>
+  <help components="'*' '' 'OscPreferencesComponent' |  'OscPreferencesComponent' | 'table' '' '' 'OscPreferencesComponent' | '' 'table' '' '' 'OscPreferencesComponent' | '' '' '' '' '' 'table' '' '' 'OscPreferencesComponent'">
+    <title><![CDATA[OSCトラフィック]]></title>
+    <text><![CDATA[最新200の受信OSCメッセージのリストです。]]></text>
+  </help>
+  <help components="'dmxTabButton' | 'msgLabel' 'DMXPreferencesComponent' | 'DMXPreferencesComponent'">
+    <title><![CDATA[DMXプリファレンス]]></title>
+    <text/>
+  </help>
+  <help components="'Input Button' 'DMXPreferencesComponent'">
+    <title><![CDATA[Art-Netインプットの追加]]></title>
+    <text><![CDATA[DMXを受信する入力機器を追加します。]]></text>
+  </help>
+  <help components="'deleteButton' 'InputHeader' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[Art-Netインプットを削除]]></title>
+    <text><![CDATA[この機器を削除します。]]></text>
+  </help>
+  <help components="'nodeNameEditor' 'DMXPreferencesComponent'">
+    <title><![CDATA[Art-Netノード名]]></title>
+    <text><![CDATA[Art-Net ネットワークにおけるResolumeのインスタンスの名称を設定します。]]></text>
+  </help>
+  <help components="'InputHeader' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[Art-Netインプット設定]]></title>
+    <text><![CDATA[このインプットのチャンネルオフセットおよびユニバースを調節します。]]></text>
+  </help>
+  <help components="'Subnet' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[サブネット番号]]></title>
+    <text><![CDATA[サブネットの範囲は0-15です。このインプットで聴取するArt-Netユニバースを、ユニバース番号とともに構成します。]]></text>
+  </help>
+  <help components="'Universe' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[ユニバース]]></title>
+    <text><![CDATA[ユニバースの範囲は0-15です。このインプットで聴取するArt-Netユニバースをサブネット番号とともに構成します。]]></text>
+  </help>
+  <help components="'Channel Offset' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[DMXチャンネルオフセット]]></title>
+    <text><![CDATA[DMXチャンネルオフセット番号で、割り当てた全DMXチャンネルをシフトアップ／ダウンします。]]></text>
+  </help>
+  <help components="'Bind IP Label' 'DMXPreferencesComponent' | 'bindIPComboLabel' 'bindIPCombo' 'DMXPreferencesComponent'">
+    <title><![CDATA[ネットワークアダプターの選択]]></title>
+    <text><![CDATA[ResolumeでArt-Netに使用するネットワークインターフェイスを選択します。ワイヤレスカードではなくワイヤレスネットワークを使用していることを確認します。]]></text>
+  </help>
+  <help components="'DmxMonitor'">
+    <title><![CDATA[Art-Netモニター]]></title>
+    <text><![CDATA[ネットワーク上の全Art-Netトラフィックをモニターします。有効なサブネットおよびユニバースが点灯します。そうしたらサブネットおよびユニバースを選択し、全512チャンネルで受信している値を確認します。]]></text>
+  </help>
+  <help components="'defaultsTabButton' | 'msgLabel' 'DefaultPreferencesComponent' | 'DefaultPreferencesComponent' | '*' 'DefaultPreferencesComponent' | '*' '*' 'DefaultPreferencesComponent'">
+    <title><![CDATA[デフォルトの設定]]></title>
+    <text><![CDATA[Resolumeがデフォルトとして使用する値を変更します。クリップデフォルトは、コンポジションに新規クリップを追加する際に適用されます。コンポジション内に既に存在するクリップには作用しません。]]></text>
+  </help>
+  <help components="'TempoNudgeLabel' 'DefaultPreferencesComponent' | 'TempoNudgeRangeSlider' 'DefaultPreferencesComponent'">
+    <title><![CDATA[テンポナッジ値]]></title>
+    <text><![CDATA[ナッジボタンを長押ししながら、BPMをシフトアップ／ダウンする際のパーセンテージです。]]></text>
+  </help>
+  <help components="'*' '' 'Composition Settings' | '' 'Composition Settings'">
+    <title><![CDATA[コンポジション設定]]></title>
+    <text><![CDATA[このウィンドウで、コンポジション名、説明およびサイズ等を設定します。]]></text>
+  </help>
+  <help components="'widthLabel' | 'heightLabel' | 'resolutionsComboBox'">
+    <title><![CDATA[ピクセルでのコンポジションのサイズ]]></title>
+    <text><![CDATA[ここに任意のサイズをタイプして入力するか、ドロップダウンメニューから所定の解像度1つを選択します。]]></text>
+  </help>
+  <help components="'addItemButton'">
+    <title><![CDATA[アイテムの追加]]></title>
+    <text><![CDATA[アウトプットセットアップに、新規スクリーン、スライスおよびフィクスチャーを追加します。]]></text>
+  </help>
+  <help components="'' '' 'xmlStatesPickerComponent'">
+    <title><![CDATA[プリセットメニュー]]></title>
+    <text><![CDATA[保存、読み込みおよび異なるアウトプットセットアップを管理します。]]></text>
+  </help>
+  <help components="'addScreen'">
+    <title><![CDATA[スクリーンの追加]]></title>
+    <text><![CDATA[新規スクリーンを作成します。スクリーンは物理的またはバーチャルアウトプットのいずれにも割り当てられます。]]></text>
+  </help>
+  <help components="'addSlice'">
+    <title><![CDATA[スライスの追加]]></title>
+    <text><![CDATA[現在のスクリーンに別のスライスを追加します。]]></text>
+  </help>
+  <help components="'addPolygon'">
+    <title><![CDATA[ポリゴンの追加]]></title>
+    <text><![CDATA[現在のスクリーンにポリゴンスライスを追加します。]]></text>
+  </help>
+  <help components="'addSliceTriangle'">
+    <title><![CDATA[トライアングルポリゴンの追加]]></title>
+    <text><![CDATA[三角形のポリゴンスライスを素早く追加します。]]></text>
+  </help>
+  <help components="'addSlicePolygon'">
+    <title><![CDATA[ポリゴンを描く]]></title>
+    <text><![CDATA[ポリゴンスライスを追加し、コンポジションにポイントを描くことでどのようなシェイプも作成できます。]]></text>
+  </help>
+  <help components="'addMask' ||  'addMaskSquare' || 'addMaskCircle' || 'addMaskTriangle' || 'addMaskHexagon'">
+    <title><![CDATA[マスクの追加]]></title>
+    <text><![CDATA[現在のスクリーンに新規アウトプットマスクを追加します。]]></text>
+  </help>
+  <help components="'addMaskPolygon'">
+    <title><![CDATA[マスクを描く]]></title>
+    <text><![CDATA[あなたのイマジネーション以外は何にも制限されることのない、マスクシェイプを作成します。コンポジションでドローイングし、ポイントを追加します。]]></text>
+  </help>
+  <help components="'addLumiverse'">
+    <title><![CDATA[Lumiverseの追加]]></title>
+    <text><![CDATA[新規Lumiverseを作成します。これはDMXフィクスチャーのビッグバンにも匹敵します。]]></text>
+  </help>
+  <help components="'addFixture'">
+    <title><![CDATA[フィクスチャーの追加]]></title>
+    <text><![CDATA[現在のLumiverseに新規フィクスチャーを追加します。]]></text>
+  </help>
+  <help components="'Screen'">
+    <title><![CDATA[スクリーン]]></title>
+    <text><![CDATA[このスクリーンを選択して編集します。すばやくアウトプットを割り当てるには右クリックします。]]></text>
+  </help>
+  <help components="'X' 'Screen'">
+    <title><![CDATA[スクリーンの削除]]></title>
+    <text><![CDATA[これでスクリーンと、それに含まれる全てを削除します。]]></text>
+  </help>
+  <help components="'enableButton' 'Screen'">
+    <title><![CDATA[スクリーンの有効化]]></title>
+    <text><![CDATA[スクリーン内の全スライスおよびマスクの、有効／無効を一度に切り替えます。]]></text>
+  </help>
+  <help components="'foldButton' 'Screen'">
+    <title><![CDATA[スクリーンをたたむ]]></title>
+    <text><![CDATA[このスクリーンの全スライスをたたみます。これにより、インプットセレクションタブのスライスも隠すので、作業スペースを整理できます。]]></text>
+  </help>
+  <help components="'sliceToggle'">
+    <title><![CDATA[スライスの有効化]]></title>
+    <text><![CDATA[このスライスをアウトプットでオン／オフします。]]></text>
+  </help>
+  <help components="'Slice'">
+    <title><![CDATA[スライス]]></title>
+    <text><![CDATA[このスライスを選択して編集します。右クリックでさらにオプションを表示し、ダブルクリックで名称変更します。]]></text>
+  </help>
+  <help components="'X' 'Slice'">
+    <title><![CDATA[スライスの削除]]></title>
+    <text><![CDATA[このスライスを完全に削除します。]]></text>
+  </help>
+  <help components="'Input Mask'">
+    <title><![CDATA[インプットマスク]]></title>
+    <text><![CDATA[このインプットマスクを選択して編集します。]]></text>
+  </help>
+  <help components="'sliceMaskToggleButton' 'Input Mask'">
+    <title><![CDATA[インプットマスクの有効化]]></title>
+    <text><![CDATA[このスライスのインプットマスクを有効／無効にします。]]></text>
+  </help>
+  <help components="'X' 'Input Mask">
+    <title><![CDATA[スライスインプットマスクの削除]]></title>
+    <text><![CDATA[スライスの本質を明らかにします。]]></text>
+  </help>
+  <help components="'Polygon'">
+    <title><![CDATA[ポリゴンスライス]]></title>
+    <text><![CDATA[このポリゴンを選択して編集します。]]></text>
+  </help>
+  <help components="'sliceToggle' 'Polygon'">
+    <title><![CDATA[ポリゴンの有効化]]></title>
+    <text><![CDATA[アウトプットでこのポリゴンを表示／非表示にします。]]></text>
+  </help>
+  <help components="'X' 'Polygon'">
+    <title><![CDATA[ポリゴンの削除]]></title>
+    <text><![CDATA[ポリゴンを削除します！]]></text>
+  </help>
+  <help components="'Mask'">
+    <title><![CDATA[マスク]]></title>
+    <text><![CDATA[このマスクを選択して編集します。]]></text>
+  </help>
+  <help components="'sliceToggle' 'Mask'">
+    <title><![CDATA[マスクの有効化]]></title>
+    <text><![CDATA[アウトプットでこのマスクを表示／非表示にします。]]></text>
+  </help>
+  <help components="'X' 'Mask'">
+    <title><![CDATA[マスクの削除]]></title>
+    <text><![CDATA[このマスクを完全に削除します。]]></text>
+  </help>
+  <help components="'Lumiverse'">
+    <title><![CDATA[Lumiverse]]></title>
+    <text><![CDATA[このLumiverseを選択して編集します。右クリックで直接Art-Netノードに送信します。]]></text>
+  </help>
+  <help components="'enableButton' 'Lumiverse'">
+    <title><![CDATA[Lumiverseの有効化]]></title>
+    <text><![CDATA[このLumiverse内のフィクスチャーを一度にオフにします。]]></text>
+  </help>
+  <help components="'foldButton' 'Lumiverse'">
+    <title><![CDATA[Lumiverseをたたむ]]></title>
+    <text><![CDATA[このLumiverseをたたみます。するとインプットセレクションタブのフィクスチャーも隠すため、作業スペースがすっきりします。]]></text>
+  </help>
+  <help components="'X' 'Lumiverse'">
+    <title><![CDATA[Lumiverseの削除]]></title>
+    <text><![CDATA[Lumiverseを9000の太陽の力でやっつけます。]]></text>
+  </help>
+  <help components="'DmxSlice'">
+    <title><![CDATA[フィクスチャースライス]]></title>
+    <text><![CDATA[このフィクスチャーを選択して編集します。]]></text>
+  </help>
+  <help components="'sliceToggle' 'DmxSlice'">
+    <title><![CDATA[フィクスチャーの有効化]]></title>
+    <text><![CDATA[このフィクスチャーへのアウトプットを無効にします。これにより、ResolumeからこのフィクスチャーへのDMXデータ送信をストップします。]]></text>
+  </help>
+  <help components="'X' 'DmxSlice'">
+    <title><![CDATA[フィクスチャーの削除]]></title>
+    <text><![CDATA[このフィクスチャーを完全に削除します。]]></text>
+  </help>
+  <help components="'Input Selection' || 'ScreenSetup' 'InputAdvancedScreenSetupComponent'">
+    <title><![CDATA[インプットセレクション]]></title>
+    <text><![CDATA[ここでは、スライスのインプットとして使用するコンポジションの部分を定義します。プリセットオプションは右クリックします。制限およびコピーには、通常のALT/SHIFT/CTRL(CMD)モディファイアを使用します。]]></text>
+  </help>
+  <help components="'Output Transformation' || 'ScreenSetup' 'OutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[アウトプットトランスフォーメーション]]></title>
+    <text><![CDATA[アウトプットでのスライスのシェイプや位置を変更します。各スライスは個別に移動およびリシェイプしてアウトプットにラインナップできます。プリセットオプションは右クリックします。制限およびコピーには、通常のALT/SHIFT/CTRL(CMD)モディファイアを使用します。]]></text>
+  </help>
+  <help components="'DMX Output' || 'ScreenSetup' 'DMXOutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[DMXアウトプット]]></title>
+    <text><![CDATA[ここではフィクスチャーのスタートチャンネルを視覚的にリアレンジしたり、オーバーラップをチェックします。]]></text>
+  </help>
+  <help components="'zoomComboBoxLabel' | 'zoomComboBox'">
+    <title><![CDATA[ズーム]]></title>
+    <text><![CDATA[現在の表示をズームインまたはズームアウトする、または表示を現在の選択またはコンポジションにフィットさせます。]]></text>
+  </help>
+  <help components="'panMode'">
+    <title><![CDATA[パンツール]]></title>
+    <text><![CDATA[これは定位をあちこちへ動かすのに使用します。スペースバーをホールドするとすばやくパンツールへ切り替えます。]]></text>
+  </help>
+  <help components="'undoButton'">
+    <title><![CDATA[アンドゥ]]></title>
+    <text><![CDATA[それはやめておきましょう。アンドゥしましょう。]]></text>
+  </help>
+  <help components="'redoButton'">
+    <title><![CDATA[リドゥ]]></title>
+    <text><![CDATA[今おこなったアンドゥを取り消します。]]></text>
+  </help>
+  <help components="'snapButton'">
+    <title><![CDATA[スナッピング切り替え]]></title>
+    <text><![CDATA[スライスアクションでのホットスライスを有効／無効にします。]]></text>
+  </help>
+  <help components="'showGrid'">
+    <title><![CDATA[グリッドを表示]]></title>
+    <text><![CDATA[現在アウトプットで有効なスライスの名称およびアウトプット先を表示し、複雑なアウトプット設定の中ですばやくスライスを特定するのに役立ちます。また、スライスサーフィスにパースペクティブグリッドを表示し、カーソルの場所を大きな赤い十字で表示します。]]></text>
+  </help>
+  <help components="'showLedGrid'">
+    <title><![CDATA[LEDグリッドを表示]]></title>
+    <text><![CDATA[8x8ピクセルのグリッドを表示し、全スライスをそこへスナップします。これは、LEDプロセッサーへのアウトプットにスライスを配置する際に役立ちます。]]></text>
+  </help>
+  <help components="'compositionSizeLabel'">
+    <title><![CDATA[コンポジション解像度]]></title>
+    <text><![CDATA[現在インプットとして使用されているコンポジションの幅と高さです。]]></text>
+  </help>
+  <help components="'editPointsButton'">
+    <title><![CDATA[エディットポイントモード]]></title>
+    <text><![CDATA[エディットポイントモードでは、現在のスライスの各ポイントの位置やカーブを変更します。
+“T”のキーを叩くと、エディットポイントとトランスフォームモードの間ですばやく切り替えます。]]></text>
+  </help>
+  <help components="'transformButton'">
+    <title><![CDATA[トランスフォームモード]]></title>
+    <text><![CDATA[スライス全体の位置、回転またはスケールを変更します。“T”のキーを叩くと、エディットポイントとトランスフォームモードをすばやく切り替えます。]]></text>
+  </help>
+  <help components="'foldComponentHeader' '*' 'groupedComponent' '' 'dataViewport'">
+    <title><![CDATA[名称]]></title>
+    <text><![CDATA[現在選択しているものに関して、聞きたいけど聞けないことすべてです。]]></text>
+  </help>
+  <help components="'Device'">
+    <title><![CDATA[機器の選択]]></title>
+    <text><![CDATA[このスクリーンを物理的アウトプットとバーチャルアウトプットのいずれに送信するかを選択します。物理的アウトプットはコンピューターに接続した外部ディスプレイです。バーチャルアウトプットにはSyphon/Spout および NDI、またアドバンスアウトプット内に内部ルーティングしているスクリーンも含まれます。]]></text>
+  </help>
+  <help components="'Width' 'Screen' || 'Height' 'Screen'">
+    <title><![CDATA[スクリーンの幅と高さ]]></title>
+    <text><![CDATA[バーチャルアウトプットの幅および高さを設定します。]]></text>
+  </help>
+  <help components="'Opacity' 'Screen' || 'Opacity' 'Lumiverse'">
+    <title><![CDATA[不透明度]]></title>
+    <text><![CDATA[有効なスクリーンまたはLumiverseをフェードイン／アウトします。]]></text>
+  </help>
+  <help components="'Brightness' 'Screen' || 'Contrast' 'Screen' || 'Red' 'Screen' || 'Green' 'Screen' || 'Blue' 'Screen' | 'Brightness' 'Lumiverse' || 'Contrast' 'Lumiverse' || 'Red' 'Lumiverse' || 'Green' 'Lumiverse' || 'Blue' 'Lumiverse'">
+    <title><![CDATA[カラー補正]]></title>
+    <text><![CDATA[これを使用してミスマッチなプロジェクターまたはLEDスクリーン間の差異を調節します。]]></text>
+  </help>
+  <help components="'*' 'Output Guide' | '*' '*' 'Output Guide' | '*' '*' '*' 'Output Guide' | '*' 'Input Guide' | '*' '*' 'Input Guide' | '*' '*' '*' 'Input Guide'">
+    <title><![CDATA[ガイド]]></title>
+    <text><![CDATA[ピクセルマップのビジュアルガイドとしてイメージファイルを読み込みます。]]></text>
+  </help>
+  <help components="'Delay' '*' 'groupedComponent' '' 'dataViewport' '*'">
+    <title><![CDATA[スクリーン遅延]]></title>
+    <text><![CDATA[他のアウトプットの遅延補正のため、このスクリーンにミリ秒単位で遅延を付加します。]]></text>
+  </help>
+  <help components="'TargetIP' 'Lumiverse'">
+    <title><![CDATA[ターゲットIP]]></title>
+    <text><![CDATA[Lumiverse の送信先である、Art-Net のIPアドレスです。]]></text>
+  </help>
+  <help components="'Subnet' 'Lumiverse' | 'Universe' 'Lumiverse'">
+    <title><![CDATA[サブネットおよびユニバース]]></title>
+    <text><![CDATA[このLumiverseの送信先である Art-Netノードのサブネットおよびユニバースです。]]></text>
+  </help>
+  <help components="'Framerate' 'Lumiverse'">
+    <title><![CDATA[DMXフレームレート]]></title>
+    <text><![CDATA[このLumiverseがDMXパケットでネットワークをスパムする頻度を選択します。]]></text>
+  </help>
+  <help components="'Input Source'">
+    <title><![CDATA[インプットソース]]></title>
+    <text><![CDATA[ドロップダウンより、スライスへのインプットを選択できます。選択肢は多数あります。コンポジションを選択するか、レイヤーに直接アクセスし、コンポジションをバイパスします。プレビューウィンドウもインプットとして使用できます。バーチャルスクリーンをスライスへ戻るようルーティングすると、さらに楽しめます。]]></text>
+  </help>
+  <help components="'Input Opacity'">
+    <title><![CDATA[インプット不透明度]]></title>
+    <text><![CDATA[スライスの不透明度をレイヤーの不透明度の値に従わせるか、レイヤーの不透明度に関わらず常に表示するかを切り替えます。これは最終的なアウトプットにレイヤーをワープさせつつ、コンポジションには表示させない場合に便利です。]]></text>
+  </help>
+  <help components="'Input Bypass/Solo'">
+    <title><![CDATA[インプットバイパス／ソロ]]></title>
+    <text><![CDATA[スライスが、レイヤーのバイパスおよびソロスイッチに従うか、無視するかを切り替えます。これは最終的なアウトプットにレイヤーをワープさせつつ、コンポジションには表示させない場合に便利です。]]></text>
+  </help>
+  <help components="'X' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent' || 'Y' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent'">
+    <title><![CDATA[スライスインプットX位置およびY位置]]></title>
+    <text><![CDATA[コンポジションに相関した、スライス、スライスマスクまたはフィクスチャーの中央点の位置です。インプットに使用するコンポジションの部分を定義します。]]></text>
+  </help>
+  <help components="'Left' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent' || 'Top' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent'">
+    <title><![CDATA[スライスインプット左上端位置]]></title>
+    <text><![CDATA[コンポジションに相関した、スライス、スライスマスクまたはフィクスチャーの左上端の位置です。]]></text>
+  </help>
+  <help components="'Width' 'ScreenLayerInputParams' || 'Height' 'ScreenLayerInputParams'">
+    <title><![CDATA[スライスインプットの幅および高さ]]></title>
+    <text><![CDATA[現在のスライス、スライスマスクまたはフィクスチャーのインプット幅および高さ。インプットに使用するコンポジションのエリアのサイズを定義します。]]></text>
+  </help>
+  <help components="'Rotation' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent'">
+    <title><![CDATA[スライスインプットローテーション]]></title>
+    <text><![CDATA[たとえば回転式LEDスクリーンで作業する際に、このスライス、スライスマスクまたはフィクスチャーのインプットを回転します。]]></text>
+  </help>
+  <help components="'toggleButton' 'Soft Edge'">
+    <title><![CDATA[ソフトエッジの有効化]]></title>
+    <text><![CDATA[このボックスへのチェックで、現在のスライスでソフトエッジをオン／オフします。2つ以上のプロジェクターがオーバーラップする場所でアウトプットをブレンドする際に使用します。スライスがオーバーラップするエリアでは、アウトプットがマスクされます。]]></text>
+  </help>
+  <help components="'label' 'Soft Edge'">
+    <title><![CDATA[ソフトエッジ]]></title>
+    <text><![CDATA[現在のスライスの、ソフトエッジ設定の情報です。]]></text>
+  </help>
+  <help components="'Power'">
+    <title><![CDATA[ソフトエッジパワー]]></title>
+    <text><![CDATA[これを使って、ブレンディングエリア内のソフトエッジのカーブの緩急をコントロールします。]]></text>
+  </help>
+  <help components="'Luminance'">
+    <title><![CDATA[ソフトエッジルミナンス]]></title>
+    <text><![CDATA[これを使って、ブレンディングエリア内の、ソフトエッジカーブ中央点の輝度をコントロールします。]]></text>
+  </help>
+  <help components="'Gamma'">
+    <title><![CDATA[ソフトエッジガンマ]]></title>
+    <text><![CDATA[これを使って、ブレンディングエリアの全体的な輝度をコントロールします。]]></text>
+  </help>
+  <help components="'Gamma Red' || 'Gamma Green' || 'Gamma Blue'">
+    <title><![CDATA[RGBガンマ補正]]></title>
+    <text><![CDATA[ブレンディングエリアのカラーチャンネルをコントロールします。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'InputMask'">
+    <title><![CDATA[スライスインプットマスク]]></title>
+    <text><![CDATA[このスライスのインプットにマスクを追加し、透明度を作成します。]]></text>
+  </help>
+  <help components="'addLoveMask'">
+    <title><![CDATA[ハートインプットマスクの追加]]></title>
+    <text><![CDATA[空虚さを埋められるのは愛だけだからです。]]></text>
+  </help>
+  <help components="'addSquareMask' || 'addCircleMask' || 'addTriangleMask' || 'addHexagonMask'">
+    <title><![CDATA[インプットマスクの追加]]></title>
+    <text><![CDATA[このスライスに、すばやくプリセットマスクシェイプを追加します。]]></text>
+  </help>
+  <help components="'addPolygonMask'">
+    <title><![CDATA[インプットマスクのドローイング]]></title>
+    <text><![CDATA[このスライスに、あなたのオリジナルのインプットマスクシェイプをドローイングします。]]></text>
+  </help>
+  <help components="'Flip'">
+    <title><![CDATA[フリップ]]></title>
+    <text><![CDATA[スライスまたはフィクスチャーのアウトプットを水平軸、垂直軸、またはその両方で反転します。]]></text>
+  </help>
+  <help components="'Is Key'">
+    <title><![CDATA[キーチャンネルの切り替え]]></title>
+    <text><![CDATA[ブロードキャストミキサーで使用するため、アルファチャンネルをブラックアンドホワイトでレンダリングします。]]></text>
+  </help>
+  <help components="'Black BG'">
+    <title><![CDATA[ブラックバックグラウンド]]></title>
+    <text><![CDATA[不透明度が最小の場合でも、スライスをソリッドブラックのバックグラウンドでレンダリングします。プロジェクションマッピング設定で、オブジェクトが部分的に重なっている場合に便利です。]]></text>
+  </help>
+  <help components="'' '' 'FixtureChoiceDropdown'">
+    <title><![CDATA[フィクスチャー選択]]></title>
+    <text><![CDATA[このフィクスチャースライスで使用するパーソナリティを選択します。]]></text>
+  </help>
+  <help components="'FixtureChoiceEdit'">
+    <title><![CDATA[フィクスチャーエディターを開く]]></title>
+    <text><![CDATA[現在のパーソナリティを編集するか、スクラッチから新規作成します。]]></text>
+  </help>
+  <help components="'Start Channel' 'Fixture'">
+    <title><![CDATA[スタートチャンネル]]></title>
+    <text><![CDATA[このフィクスチャーから送信する、Lumiverseの1番目のチャンネルです。]]></text>
+  </help>
+  <help components="'GenericFixtureChoiceParam' || 'GenericFixtureRangeParam'">
+    <title><![CDATA[DMXパラメーター]]></title>
+    <text><![CDATA[このフィクスチャーの任意の機能をコントロールします。]]></text>
+  </help>
+  <help components="'paramBaseComponent' 'DipSwitches' | 'onButton' | 'offButton'">
+    <title><![CDATA[ディップスイッチ]]></title>
+    <text><![CDATA[この世界には10種類の人間がいます。バイナリを理解している人間と、理解していない人間です。]]></text>
+  </help>
+  <help components="'FixturePixelsParam'">
+    <title><![CDATA[フィクスチャーアウトプットプレビュー]]></title>
+    <text><![CDATA[このフィクスチャーが送出しているRGBデータのプレビューです。]]></text>
+  </help>
+  <help components="'Width' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Height' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[アウトプット幅および高さ]]></title>
+    <text><![CDATA[現在のスライスまたはマスクの、ピクセルでのアウトプット幅および高さ。アウトプットにおけるサイズを定義します。]]></text>
+  </help>
+  <help components="'X' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Y' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'X' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent' || 'Y' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[アウトプットX位置およびY位置]]></title>
+    <text><![CDATA[アウトプットに相関したスライスまたはマスクの中央点の位置です。アウトプットでスライスが表示される位置を定義します。]]></text>
+  </help>
+  <help components="'Left' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Top' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Left' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent' || 'Top' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[アウトプット左上端位置]]></title>
+    <text><![CDATA[アウトプットに相関した、スライスまたはマスクの左上端位置です。]]></text>
+  </help>
+  <help components="'Brightness' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Contrast' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Red' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Green' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Blue' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[カラー補正]]></title>
+    <text><![CDATA[個々のスライスまたはフィクスチャーの調節に使用します。輝度をほんの少し上げると、ステージでスライスまたはフィクスチャーの場所を特定するのに役立ちます。]]></text>
+  </help>
+  <help components="'Rotation' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Rotation' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[アウトプットローテーション]]></title>
+    <text><![CDATA[最終的なアウトプットで、スライスまたはマスクを、その中心点で回転します。回転しすぎないようにしてください。ピクセルを吐き出してしまいます。]]></text>
+  </help>
+  <help components="'Point Mode'">
+    <title><![CDATA[スライスポイントモード]]></title>
+    <text><![CDATA[スライスポイントの補間モードをリネアとベジェのいずれかより選択します。]]></text>
+  </help>
+  <help components="'Subdivisions X'">
+    <title><![CDATA[水平スライスワープポイント]]></title>
+    <text><![CDATA[現在のスライスに水平ワープポイントを追加または削除します。]]></text>
+  </help>
+  <help components="'Subdivisions Y'">
+    <title><![CDATA[垂直スライスワープポイント]]></title>
+    <text><![CDATA[現在のスライスに垂直ワープポイントを追加または削除します。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'Point'">
+    <title><![CDATA[現在のポイント]]></title>
+    <text><![CDATA[現在選択しているポイントのX位置およびY位置の情報です。]]></text>
+  </help>
+  <help components="'X' 'Point' '*' '*' '*' '*' '*' | 'X' 'ToolsParams' '*' '*' '*' '*' '*'">
+    <title><![CDATA[ポイントX位置]]></title>
+    <text><![CDATA[現在選択しているポイントのX軸における位置をピクセルで表したものです。]]></text>
+  </help>
+  <help components="'Y' 'Point' '*' '*' '*' '*' '*'|'Y' 'ToolsParams' '*' '*' '*' '*' '*'">
+    <title><![CDATA[ポイントY位置]]></title>
+    <text><![CDATA[現在選択しているポイントのY軸における位置をピクセルで表したものです。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'Black Level Compensation'">
+    <title><![CDATA[ブラックレベル補正]]></title>
+    <text><![CDATA[スライスのブラックレベルを調節します。非オーバーラップ部分とオーバーラップ部分の知覚的な差を調節し、エッジブレンドしたスライスの輝度をマッチさせます。]]></text>
+  </help>
+  <help components="'Red' 'Black Level Compensation' || 'Green' 'Black Level Compensation' || 'Blue' 'Black Level Compensation'">
+    <title><![CDATA[チャンネル補正]]></title>
+    <text><![CDATA[このスライスのブラックにおける、レッド、グリーン及びブルーの量を増加させます。]]></text>
+  </help>
+  <help components="'Invert' 'MaskParams'">
+    <title><![CDATA[マスクのインバート]]></title>
+    <text><![CDATA[マスクシェイプの外側／内側のいずれをマスクするかを切り替えます。]]></text>
+  </help>
+  <help components="'cancelButton'">
+    <title><![CDATA[キャンセル]]></title>
+    <text><![CDATA[今までおこなった作業をすべてキャンセルします。アドバンスアウトプットを閉じ、以前の状態に戻します。あなたのミドルネームが“ノスタルジア”である場合のみに、これを使用して下さい。]]></text>
+  </help>
+  <help components="'okButton'">
+    <title><![CDATA[保存して閉じる]]></title>
+    <text><![CDATA[おこなった作業すべてを確定します。アドバンスアウトプットを閉じ、加えた変更をすべて適用して、現在のセットアップを保存します。あなたのミドルネームが“ピクセルパーフェクト”の場合のみ実行してください。]]></text>
+  </help>
+  <help components="'GenericFixtureName' || 'Fixtures' | 'filesList'">
+    <title><![CDATA[パーソナリティ ライブラリ]]></title>
+    <text><![CDATA[ライブラリ内の全フィクスチャーパーソナリティのリストです。]]></text>
+  </help>
+  <help components="'createFixtureButton'">
+    <title><![CDATA[フィクスチャーの作成]]></title>
+    <text><![CDATA[スクラッチから新規パーソナリティを作成します。]]></text>
+  </help>
+  <help components="'deleteFixtureButton'">
+    <title><![CDATA[フィクスチャーの削除]]></title>
+    <text><![CDATA[選択したパーソナリティをリストから削除します。]]></text>
+  </help>
+  <help components="'addPixelParameterButton'">
+    <title><![CDATA[パラメーターの追加]]></title>
+    <text><![CDATA[このパーソナリティに新規パラメーターを追加します。]]></text>
+  </help>
+  <help components="'removePixelParameterButton'">
+    <title><![CDATA[パラメーターの削除]]></title>
+    <text><![CDATA[選択したパラメーターをリストより削除します。]]></text>
+  </help>
+  <help components="'closeButton' '' 'Fixture Editor'">
+    <title><![CDATA[エディターを閉じる]]></title>
+    <text><![CDATA[エディターを閉じ、加えた変更をすべて保存します。]]></text>
+  </help>
+  <help components="'FixtureParameters'">
+    <title><![CDATA[フィクスチャーパラメーター]]></title>
+    <text><![CDATA[このパーソナリティの機能をコントロールするパラメーターです。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'PixelsParam'">
+    <title><![CDATA[ピクセルブロック]]></title>
+    <text><![CDATA[ピクセルのブロックで、フィクスチャーにカラーデータを送信するのに使用します。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'GenericParam'">
+    <title><![CDATA[DMXパラメーター]]></title>
+    <text><![CDATA[このパーソナリティの任意の機能をコントロールします。順序を入れ替えるには、パラメーターをドラッグして移動します。]]></text>
+  </help>
+  <help components="'Default'">
+    <title><![CDATA[デフォルト値]]></title>
+    <text><![CDATA[このパラメーターが送信するDMX初期値を設定します。]]></text>
+  </help>
+  <help components="'Width' 'PixelsParam' || 'Height' 'PixelsParam'">
+    <title><![CDATA[ピクセル幅]]></title>
+    <text><![CDATA[フィクスチャーのピクセル数を設定します。]]></text>
+  </help>
+  <help components="'Color Space' 'PixelsParam'">
+    <title><![CDATA[カラースペース]]></title>
+    <text><![CDATA[このフィクスチャーが受信するチャンネルと、その順序を選択します。]]></text>
+  </help>
+  <help components="'Gamma' 'PixelsParam'">
+    <title><![CDATA[ガンマ]]></title>
+    <text><![CDATA[このパーソナリティのガンマ補正を調節します。]]></text>
+  </help>
+  <help components="'Distribution' 'PixelsParam'">
+    <title><![CDATA[ディストリビューション]]></title>
+    <text><![CDATA[パーソナリティに対するチャンネルのディストリビューション を定義します。矢印は最初のチャンネルを意味し、それに続く矢印の方向は、チャンネルがフィクスチャー内を蛇行していく方向を示します。]]></text>
+  </help>
+  <help components="'Pixels' || 'PixelGroup'">
+    <title><![CDATA[ピクセルディストリビューション]]></title>
+    <text><![CDATA[パーソナリティにチャンネルがどのように配分されているかを視覚的に表したものです。]]></text>
+  </help>
+  <help components="'CollectButton' '' 'Media Manager'">
+    <title><![CDATA[メディアの収集]]></title>
+    <text><![CDATA[このコンポジションに使用されている全映像を一箇所に集めます。]]></text>
+  </help>
+  <help components="'LocateMissingFilesButton' '' 'Media Manager'">
+    <title><![CDATA[すべてを探す]]></title>
+    <text><![CDATA[フォルダを選択し、見つからないファイルをすべて検索します。サブフォルダもすべて検索します。]]></text>
+  </help>
+  <help components="'CloseButton' '' 'Media Manager'">
+    <title><![CDATA[閉じる]]></title>
+    <text><![CDATA[さあ、これで完了です！]]></text>
+  </help>
+  <help components="'' '' '' '' '' '' 'TableList' '' 'Media Manager' | '' '' '' '' '' 'TableList' '' 'Media Manager'">
+    <title><![CDATA[ファイル情報]]></title>
+    <text><![CDATA[このコンポジションの全ファイルのリストです。見つからないファイルは赤色でマークされています。]]></text>
+  </help>
+  <help components="'RelocateButton' '' '' '' '' '' '' 'TableList' '' 'Media Manager'">
+    <title><![CDATA[ファイルの再配置]]></title>
+    <text><![CDATA[このファイルを再配置または置き換えます。]]></text>
+  </help>
+  <help components="'UpdateCompositionToggle' '' 'Collect Media'">
+    <title><![CDATA[コンポジションのアップデート]]></title>
+    <text><![CDATA[すべてのファイルを一箇所に収集します。完了したら、現在のコンポジションは新しいパスでアップデートされます。コンポジションファイルを一箇所に集め、一元管理するのに便利です。]]></text>
+  </help>
+  <help components="'CopyCompositionToggle' '' 'Collect Media'">
+    <title><![CDATA[コンポジションのコピー]]></title>
+    <text><![CDATA[全ファイルを1つの場所に集めます。これを実行すると、現在のコンポジションもそこにコピーされます。別のコンピューターにコンポジションとファイルを移動させる際に便利です。]]></text>
+  </help>
+  <help components="'compositionMasterSlider' | 'propertyHeader' 'Master'">
+    <title><![CDATA[AVマスター]]></title>
+    <text><![CDATA[全クリップを暗転し、全サウンドをフェードアウトします。]]></text>
+  </help>
+  <help components="'speedSlider' 'compositionControlComponent' | 'propertyHeader' 'Speed' 'commonParamsComponent' 'groupedComponent' '' 'viewport' 'Composition'">
+    <title><![CDATA[マスタースピード]]></title>
+    <text><![CDATA[全クリップのスピードを上げる、または下げます。]]></text>
+  </help>
+  <help components="'forwardButton' 'compositionControlComponent' | ' forwardsButton2">
+    <title><![CDATA[グローバルプレイフォワード]]></title>
+    <text><![CDATA[現在プレイ中の全クリップを前進方向に再生する]]></text>
+  </help>
+  <help components="'blendModeComboboxLabel' 'blendModeCombobox' 'Layer Control Component' | 'propertyHeader' 'Blend Mode' 'videoMixerParamsComponent' 'videoParamsComponent' 'groupedComponent' '' 'viewport' 'Layer' | 'propertyHeader' 'Blend Mode' 'transitionMixerParamsComponent' 'transitionParamsComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[レイヤーブレンドモード選択]]></title>
+    <text><![CDATA[数多のブレンドモードから1つを選択します。]]></text>
+  </help>
+  <help components="'volumeSlider' 'Layer Control Component' | 'propertyHeader' 'Volume' 'audioParamsComponent' 'groupedComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[オーディオ音量]]></title>
+    <text><![CDATA[レイヤーの音量を調節します。]]></text>
+  </help>
+  <help components="'volumeSlider' 'Layer Control Component' | 'propertyHeader' 'Volume' 'audioParamsComponent' 'groupedComponent' 'groupedComponent' '' 'viewport' 'Composition'">
+    <title><![CDATA[オーディオ音量]]></title>
+    <text><![CDATA[コンポジションの音量を調節します。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Pan' 'audioParamsComponent' 'groupedComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[オーディオ定位]]></title>
+    <text><![CDATA[レイヤーの定位を調節します。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Pan' 'audioParamsComponent' 'groupedComponent' 'groupedComponent' '' 'viewport' 'Composition'">
+    <title><![CDATA[オーディオ定位]]></title>
+    <text><![CDATA[コンポジションの定位を調節します。]]></text>
+  </help>
+  <help components="'AVsliderTrans T' | 'Duration' 'transitionParamsComponent' | '*' 'spinner' 'paramBaseComponent' 'Duration' 'transitionParamsComponent' | 'propertyHeader' 'Duration' 'transitionParamsComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[トランジションタイム]]></title>
+    <text><![CDATA[トランジションの継続時間を0-10秒の間で制御します。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'dashboardComponent' 'clipProperties' 'SingleClipPropertiesComponent' 'Clip' 'TabbedContainer' | '*' 'dashboardComponent' | 'dashboardComponent' | '*' 'paramBaseComponent' 'dashboardComponent'">
+    <title><![CDATA[ダッシュボード]]></title>
+    <text><![CDATA[ダッシュボードを使用すると、変更することの多いパラメーターに素早くアクセスできます。パラメーター名をつかみ、いずれかのダイヤルにドロップしてリンクします。1つのダイヤルにさらにパラメーターをドロップし、1度に複数のパラメーターを制御することも可能です。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'layerAutoPilotComponent' | 'layerAutoPilotComponent' | 'foldComponentHeader' 'autoPilotGroupComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[オートパイロット]]></title>
+    <text><![CDATA[オートパイロットは、レイヤー内の全クリップをプレイバックする際に使用します。Resolumeをしばらく自動操縦にして、その間にドリンクを楽しむこともできますよ。]]></text>
+  </help>
+  <help components="'forwardsButton2' 'layerAutoPilotComponent' | 'forwardButton2' 'layerAutoPilotComponent' 'autoPilotGroupComponent'">
+    <title><![CDATA[オートパイロット プレイフォワード]]></title>
+    <text><![CDATA[現在のレイヤーのクリップを続けてプレイします。]]></text>
+  </help>
+  <help components="'*' '*' 'clipTransportTimelineComponent' |   '*' '*' '*' '*' '*' 'clipTransportTimelineComponent' | '*' '*' '*' '*' 'clipTransportTimelineComponent' | 'propertyHeader' 'Speed' 'groupedComponent' 'clipTransportTimelineComponent' 'clipProperties' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[タイムラインスピード]]></title>
+    <text><![CDATA[クリップがプレイバックする速さを制御します。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'cuePointsComponent' 'clipProperties' 'SingleClipPropertiesComponent' 'Clip'| 'cuePointsComponent' | 'foldComponentHeader' 'cuePointsComponent'">
+    <title><![CDATA[キューポイント]]></title>
+    <text><![CDATA[6つのキューポイントを使用して、クリップ内の異なる位置へジャンプします。小さな矢印型のボタンのいずれかを押して、キューポイントを設定します。それに対応するボタンを使用して、キューポイントへジャンプします。]]></text>
+  </help>
+  <help components="'PopupComboBoxLabel' 'PopupComboBox' 'currentDirectoryComboBox' 'Files' |'*' 'currentDirectoryComboBox' 'Files' | 'currentDirectoryComboBox' 'Files'">
+    <title><![CDATA[ディレクトリーチューザー]]></title>
+    <text><![CDATA[ここで、異なるドライブやディレクトリーを選択します。]]></text>
+  </help>
+  <help components="'playModeLabel' 'playMode'">
+    <title><![CDATA[プレイモード]]></title>
+    <text><![CDATA[Resolumeがクリップをプレイバックする方式を選択します。Loop（ループ）では、クリップが最後に達すると、始めからクリップをスタートします。Random（ランダム）ではタイムラインのランダムな場所にジャンプします。タイムラインがBPM Syncモードの場合は、ランダムな拍にジャンプしてプレイします。Bounce（バウンス）ではタイムラインを前進／後戻りします。Play Once（プレイワンス）は、1度だけプレイします。]]></text>
+  </help>
+  <help components="'playModeAwayLabel' 'playModeAway'">
+    <title><![CDATA[トリガーモード]]></title>
+    <text><![CDATA[Resolumeによるクリップのトリガー方式を選択します。Continues（コンティニュー）では残された位置からプレイバックします。Relative（レラティブ）では前のクリップの位置から続けてプレイバックします。]]></text>
+  </help>
+  <help components="'screenPickerButton'">
+    <title><![CDATA[スクリーンピッカー]]></title>
+    <text><![CDATA[スクリーンの任意の場所からカラーを選択します。ピックして選択します。]]></text>
+  </help>
+  <help components="'pickerButton'">
+    <title><![CDATA[カラーピッカー]]></title>
+    <text><![CDATA[HSBスライダー、RGBスライダー、さらにはお気に入りのスウォッチのパレットで、フルスペクトラムよりカラーを選択します。]]></text>
+  </help>
+  <help components="'hsbButton'">
+    <title><![CDATA[HSBカラースペース]]></title>
+    <text><![CDATA[HSBスライダー、RGBスライダー、さらにはお気に入りのスウォッチのパレットで、フルスペクトラムよりカラーを選択します。]]></text>
+  </help>
+  <help components="'rgbButton'">
+    <title><![CDATA[RGBカラースペース]]></title>
+    <text><![CDATA[HSBスライダー、RGBスライダー、さらにはお気に入りのスウォッチのパレットで、フルスペクトラムよりカラーを選択します。]]></text>
+  </help>
+  <help components="'showPaletteButton' | 'paramColorPaletteComponent' | 'paramColorButton'">
+    <title><![CDATA[カラーパレット]]></title>
+    <text><![CDATA[パレットからカラーを選択します。パレットを右クリックすると、さらなるオプションを表示します。プロフェッショナルなヒント：パレットをアニメートできます！]]></text>
+  </help>
+  <help components="'PresetsButton'">
+    <title><![CDATA[プリセット]]></title>
+    <text><![CDATA[プリセットを管理します。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Curve' 'crossFaderParamsComponent'">
+    <title><![CDATA[クロスフェーダーカーブ]]></title>
+    <text><![CDATA[クロスフェーダーのカーブを調節します。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Behaviour' 'crossFaderParamsComponent'">
+    <title><![CDATA[クロスフェーダービヘイビア]]></title>
+    <text><![CDATA[クロスフェーダーのふるまい方を、通常のクロスフェーダーと同様に設定します。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Blend Mode' 'crossFaderMixerParamsComponent'">
+    <title><![CDATA[クロスフェーダーブレンドモード]]></title>
+    <text><![CDATA[ブレンドモードをクロスフェーダーに設定します。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Auto Size'">
+    <title><![CDATA[オートサイズ]]></title>
+    <text><![CDATA[レイヤー内の全クリップを、コンポジションの寸法に合わせて自動的に、フィット、フィルまたはストレッチの方式でリサイズします。]]></text>
+  </help>
+  <help components="'-' | '+' | '*2' | '/2'">
+    <title><![CDATA[デュレーション調節]]></title>
+    <text><![CDATA[減算、追加、複製および分割。Resolumeの基本です。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Duration'">
+    <title><![CDATA[デュレーション]]></title>
+    <text/>
+  </help>
+  <help components="'foldComponentHeader' 'autoPilotGroupComponent' 'groupedComponent' '' 'viewport' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[オートパイロット]]></title>
+    <text><![CDATA[オートパイロット時における任意のクリップのふるまい方を調節します]]></text>
+  </help>
+  <help components="'propertyHeader' 'view' 'layerAutoPilotComponent' 'autoPilotGroupComponent' 'groupedComponent' '' 'viewport' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[オートパイロットアクション]]></title>
+    <text><![CDATA[オートパイロット時における任意のクリップのふるまい方を設定します。]]></text>
+  </help>
+  <help components="'propertyHeader' 'AutoPilotLoopCount' 'layerAutoPilotComponent' 'autoPilotGroupComponent' 'groupedComponent' '' 'viewport' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[ループ]]></title>
+    <text><![CDATA[クリップのリピート回数を決定します。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Blend Mode' 'videoMixerParamsComponent' 'trackSettingsComponent' 'VideoTrackInfoComponent' 'groupedComponent' '' 'viewport' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[クリップブレンドモード]]></title>
+    <text><![CDATA[特定のクリップのカスタムブレンドモードを設定します。このモードは、そのクリップのレイヤーブレンドモードを上書きします。]]></text>
+  </help>
+  <help components="'Clear All of theLayers Button'">
+    <title><![CDATA[すべてのレイヤーを消去する]]></title>
+    <text><![CDATA[すべてのクリップを、すべてのレイヤーからイジェクトする。]]></text>
+  </help>
+  <help components="'Queue' 'tabbedButtonBar'">
+    <title><![CDATA[レンダリング キュー]]></title>
+    <text><![CDATA[キューにはレンダリングされたクリップがすべて含まれます。コンポジションで使用するにはドラッグアンドドロップします。]]></text>
+  </help>
+  <help components="'view' '' '' '' '' 'view' 'Queue'">
+    <title><![CDATA[レンダリングしたクリップ]]></title>
+    <text><![CDATA[クリップは正常にレンダリングされました。]]></text>
+  </help>
+  <help components="'openFolderButton' 'view' '' '' '' '' 'view' 'Queue'">
+    <title><![CDATA[エクスプローラーで表示]]></title>
+    <text><![CDATA[レンダリングしたクリップをエクスプローラーで表示]]></text>
+  </help>
+  <help components="'removeButton' 'view' '' '' '' '' 'view' 'Queue'">
+    <title><![CDATA[キューからクリップを削除]]></title>
+    <text><![CDATA[キューからクリップを削除する。この動作でファイルは削除しません。]]></text>
+  </help>
+  <help components="'newExtensionButton'">
+    <title><![CDATA[Create Patch]]></title>
+    <text><![CDATA[Create a new source, mixer or effect in Wire.]]></text>
+  </help>
+  <help components="'editExtensionButton'">
+    <title><![CDATA[Edit Patch]]></title>
+    <text><![CDATA[Edit this patch in Wire.]]></text>
+  </help>
+  <help components="'forkExtensionButton'">
+    <title><![CDATA[Fork Patch]]></title>
+    <text><![CDATA[Create a copy of this patch and edit it in Wire.]]></text>
+  </help>
+  <help components="'menuButton' 'Composition Monitor' | 'menuButton' 'Preview Monitor' | 'menuButton' 'Layer Monitor' | 'menuButton' 'Group Monitor'">
+    <title><![CDATA[Monitor Options]]></title>
+    <text><![CDATA[Adjust what you want to monitor (composition, preview, group or layer) and change monitor opacity behavior.]]></text>
+  </help>
+  <help components="'favoriteExtensionButton'">
+    <title><![CDATA[Favorite]]></title>
+    <text><![CDATA[Select to add or remove this source or effect to your Favorites.]]></text>
+  </help>
+  <help components="'panHand'">
+    <title><![CDATA[Pan Tool]]></title>
+    <text><![CDATA[Use this to pan around.]]></text>
+  </help>
+  <help components="'widgetStatus'">
+    <title><![CDATA[Widget is disabled]]></title>
+    <text><![CDATA[Transform widget is disabled because either Rotation X, Y or Anchor is not at default value, or multiple clips are selected, or the test card is enabled.]]></text>
+  </help>
+</contextual_help>

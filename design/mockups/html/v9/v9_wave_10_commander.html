@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Audio-DNA V9 Wave — Waveform Commander</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #000; color: #e0e0e0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 12px; overflow: hidden; }
+
+/* ---- TOP BAR ---- */
+.top-bar { height: 34px; background: #1a1a1a; display: flex; align-items: center; padding: 0 10px; gap: 12px; border-bottom: 1px solid #333; }
+.top-bar .brand { color: #ff8800; font-weight: 700; font-size: 14px; letter-spacing: 0.5px; }
+.top-bar .bpm-box { background: #111; border: 1px solid #ff8800; color: #ff8800; font-size: 20px; font-weight: 700; padding: 2px 14px; min-width: 86px; text-align: center; }
+.top-bar .beat-wheel { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #444; position: relative; }
+.beat-seg { position: absolute; width: 12px; height: 12px; }
+.beat-seg-tl { top: 1px; left: 1px; border-radius: 12px 0 0 0; background: #ff8800; }
+.beat-seg-tr { top: 1px; right: 1px; border-radius: 0 12px 0 0; background: #ff8800; }
+.beat-seg-bl { bottom: 1px; left: 1px; border-radius: 0 0 0 12px; background: #333; }
+.beat-seg-br { bottom: 1px; right: 1px; border-radius: 0 0 12px 0; background: #333; }
+.top-bar label { color: #666; font-size: 10px; text-transform: uppercase; }
+.top-bar .value { color: #e0e0e0; font-size: 11px; margin-left: 2px; }
+.top-bar .btn { background: #222; border: 1px solid #444; color: #999; padding: 3px 10px; cursor: pointer; font-size: 10px; }
+.top-bar .btn.active { border-color: #ff8800; color: #ff8800; }
+.spacer { flex: 1; }
+.transport-btn { background: #222; border: 1px solid #444; color: #ccc; width: 28px; height: 24px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; }
+.transport-btn.active { color: #ff8800; border-color: #ff8800; }
+
+/* ---- WAVEFORM STRIP (120px, extra tall, with embedded info) ---- */
+.waveform-strip { height: 120px; background: #0a0a0a; position: relative; border-bottom: 1px solid #444; }
+
+.playhead { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #ff8800; z-index: 20; box-shadow: 0 0 14px rgba(255,136,0,0.6); }
+.playhead::before { content: ''; position: absolute; top: -2px; left: -5px; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #ff8800; }
+
+.struct-zone { position: absolute; top: 0; bottom: 0; opacity: 0.10; }
+.struct-zone.drop { background: #ff3300; }
+.struct-zone.buildup { background: #ffcc00; }
+.struct-zone.breakdown { background: #0066ff; }
+
+.beat-line { position: absolute; top: 0; bottom: 0; width: 1px; }
+.beat-line.beat { background: rgba(255,255,255,0.05); }
+.beat-line.bar { background: rgba(255,136,0,0.2); }
+.beat-line.downbeat { background: rgba(255,136,0,0.45); width: 2px; }
+
+.bar-label { position: absolute; bottom: 8px; font-size: 8px; color: #444; z-index: 5; }
+
+/* Embedded BPM/bar/phrase info overlaid on waveform (semi-transparent) */
+.wf-embed-info { position: absolute; top: 6px; left: 0; right: 0; padding: 0 12px; display: flex; gap: 16px; z-index: 15; }
+.wf-embed-info .ei { font-size: 11px; color: rgba(255,255,255,0.25); }
+.wf-embed-info .ei .ev { color: rgba(255,136,0,0.5); font-weight: 700; }
+.wf-embed-info .ei .ev.dim { color: rgba(255,255,255,0.3); }
+
+/* Large BPM overlay in center */
+.wf-bpm-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 15; pointer-events: none; }
+.wf-bpm-overlay .bpm-large { font-size: 28px; font-weight: 700; color: rgba(255,136,0,0.12); letter-spacing: 2px; }
+
+/* Time remaining */
+.wf-time { position: absolute; top: 6px; right: 12px; font-size: 10px; color: rgba(255,255,255,0.3); z-index: 15; font-variant-numeric: tabular-nums; }
+
+/* Phrase bar */
+.phrase-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: #111; }
+.phrase-bar .pf { height: 100%; background: linear-gradient(90deg, #ff8800 0%, #ff8800 25%, transparent 25%); }
+
+/* ---- MAIN LAYOUT ---- */
+.main { display: flex; height: calc(1080px - 34px - 120px - 90px - 22px); }
+
+/* ---- LEFT SIDEBAR: Signal meters + Quick ref ---- */
+.left-sidebar { width: 240px; background: #0a0a0a; border-right: 1px solid #333; display: flex; flex-direction: column; }
+.ls-header { height: 22px; background: #111; display: flex; align-items: center; padding: 0 8px; font-size: 10px; color: #ff8800; font-weight: 700; border-bottom: 1px solid #222; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* VU-style vertical meters */
+.vu-meters { flex: 1; display: flex; flex-direction: column; padding: 4px; gap: 1px; overflow-y: auto; }
+.vu-row { display: flex; align-items: center; height: 22px; gap: 4px; padding: 0 4px; }
+.vu-row .vu-label { font-size: 8px; color: #555; width: 48px; text-align: right; text-transform: uppercase; }
+.vu-row .vu-track { flex: 1; height: 10px; background: #111; position: relative; overflow: hidden; border: 1px solid #1a1a1a; }
+.vu-row .vu-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.vu-row .vu-peak { position: absolute; top: 0; bottom: 0; width: 2px; }
+.vu-row .vu-val { font-size: 8px; color: #888; width: 30px; text-align: left; font-variant-numeric: tabular-nums; }
+
+/* Quick reference grid */
+.qr-section { border-top: 1px solid #222; padding: 4px; }
+.qr-title { font-size: 9px; color: #666; text-transform: uppercase; padding: 2px 4px; margin-bottom: 3px; }
+.qr-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+.qr-tile { height: 36px; background: #111; border: 1px solid #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+.qr-tile:hover { border-color: #ff8800; }
+.qr-tile .qt-icon { font-size: 12px; margin-bottom: 1px; }
+.qr-tile .qt-label { font-size: 7px; color: #888; }
+
+/* ---- CENTER: DECK GRID ---- */
+.center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.deck-header { height: 22px; background: #111; display: flex; align-items: center; padding: 0 8px; gap: 4px; border-bottom: 1px solid #222; }
+.deck-tab { padding: 2px 12px; font-size: 10px; color: #555; cursor: pointer; }
+.deck-tab.active { color: #ff8800; background: #1a1a1a; }
+
+.deck-grid { flex: 1; display: flex; flex-direction: column; padding: 3px; gap: 2px; overflow: hidden; }
+.layer-row { display: flex; gap: 2px; flex: 1; min-height: 0; }
+
+.layer-label { width: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0d0d0d; font-size: 9px; gap: 2px; padding: 2px; }
+.layer-label .l-name { color: #ccc; font-weight: 600; font-size: 10px; }
+.layer-label .l-type { font-size: 7px; padding: 1px 3px; border: 1px solid #444; }
+.layer-label .l-type.opaque { color: #ff8800; border-color: #ff8800; }
+.layer-label .l-type.transparent { color: #00ccff; border-color: #00ccff; }
+.layer-label .l-type.fxonly { color: #cc44ff; border-color: #cc44ff; }
+.layer-label .l-opacity { width: 80%; height: 3px; background: #333; margin-top: 2px; }
+.layer-label .lo-fill { height: 100%; background: #ff8800; }
+
+/* Large clip cells with signal overlays */
+.clip-cell { flex: 1; background: #0d0d0d; border: 1px solid #1a1a1a; position: relative; overflow: hidden; cursor: pointer; min-width: 0; }
+.clip-cell:hover { border-color: #ff8800; }
+.clip-cell.active { border-color: #ff8800; box-shadow: 0 0 8px rgba(255,136,0,0.3); }
+.clip-cell.empty { background: #060606; border-color: #0d0d0d; }
+.clip-thumb { position: absolute; inset: 0; }
+.clip-name { position: absolute; bottom: 2px; left: 3px; font-size: 8px; color: #fff; text-shadow: 0 0 4px #000, 0 0 8px #000; z-index: 3; white-space: nowrap; }
+
+/* Signal overlay on clips (mini meter bar at top) */
+.clip-signal-overlay { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: rgba(0,0,0,0.5); z-index: 4; }
+.clip-signal-overlay .cso-fill { height: 100%; }
+
+/* Signal dot */
+.clip-signal-dot { position: absolute; top: 5px; right: 3px; width: 5px; height: 5px; border-radius: 50%; z-index: 4; }
+
+/* FX badge on clip */
+.clip-fx-badge { position: absolute; top: 5px; left: 3px; font-size: 7px; color: #cc44ff; background: rgba(0,0,0,0.6); padding: 0 3px; z-index: 4; }
+
+/* ---- RIGHT SIDEBAR: INSPECTOR ---- */
+.right-sidebar { width: 320px; background: #111; border-left: 1px solid #333; display: flex; flex-direction: column; }
+.insp-tabs { height: 24px; display: flex; background: #1a1a1a; border-bottom: 1px solid #333; }
+.insp-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #555; cursor: pointer; border-bottom: 2px solid transparent; }
+.insp-tab.active { color: #ff8800; border-bottom-color: #ff8800; }
+.insp-content { flex: 1; overflow-y: auto; padding: 6px; }
+
+.insp-section { margin-bottom: 6px; }
+.insp-section-title { font-size: 9px; color: #ff8800; text-transform: uppercase; font-weight: 700; padding: 2px 0; border-bottom: 1px solid #222; margin-bottom: 3px; }
+
+/* Source card with waveform preview */
+.source-card { background: #1a1a1a; border: 1px solid #222; padding: 6px; margin-bottom: 4px; }
+.source-card .sc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.source-card .sc-name { font-size: 10px; color: #ccc; font-weight: 600; }
+.source-card .sc-connections { font-size: 8px; color: #ff8800; }
+.source-card .sc-waveform { height: 20px; background: #111; position: relative; overflow: hidden; margin-bottom: 2px; }
+.source-card .sc-wf-fill { position: absolute; bottom: 0; left: 0; }
+.source-card .sc-info { font-size: 8px; color: #666; display: flex; gap: 8px; }
+
+/* Dashboard knobs */
+.dashboard { display: flex; flex-wrap: wrap; gap: 4px; padding: 2px; }
+.knob { width: 42px; display: flex; flex-direction: column; align-items: center; }
+.knob .k-ring { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #333; position: relative; background: #0a0a0a; }
+.knob .k-ring .k-arc { position: absolute; inset: 2px; border-radius: 50%; border: 2px solid transparent; border-top-color: #ff8800; border-left-color: #ff8800; }
+.knob .k-label { font-size: 7px; color: #666; margin-top: 1px; }
+.knob .k-value { font-size: 7px; color: #ccc; }
+
+.param-row { display: flex; align-items: center; height: 20px; gap: 3px; }
+.param-row .tri { width: 0; height: 0; border-left: 5px solid #333; border-top: 3px solid transparent; border-bottom: 3px solid transparent; cursor: pointer; }
+.param-row .tri.connected { border-left-color: #ff8800; }
+.param-row .p-label { font-size: 9px; color: #888; width: 60px; }
+.param-row .p-slider { flex: 1; height: 3px; background: #333; position: relative; }
+.param-row .p-slider .p-fill { height: 100%; background: #ff8800; }
+.param-row .p-value { font-size: 9px; color: #aaa; width: 28px; text-align: right; }
+
+.fx-row { display: flex; align-items: center; height: 20px; gap: 3px; padding: 0 3px; background: #1a1a1a; margin-bottom: 1px; }
+.fx-row .bypass { width: 14px; height: 14px; font-size: 8px; background: #222; border: 1px solid #444; color: #666; display: flex; align-items: center; justify-content: center; }
+.fx-row .bypass.active { border-color: #ff8800; color: #ff8800; }
+.fx-row .fx-name { font-size: 10px; color: #ccc; flex: 1; }
+.fx-row .fx-x { font-size: 9px; color: #444; cursor: pointer; }
+
+/* Preset list */
+.preset-list { }
+.preset-item { display: flex; align-items: center; height: 22px; padding: 0 6px; gap: 6px; cursor: pointer; }
+.preset-item:hover { background: #1a1a1a; }
+.preset-item .pi-dot { width: 6px; height: 6px; border-radius: 50%; background: #333; }
+.preset-item .pi-dot.active { background: #ff8800; }
+.preset-item .pi-name { font-size: 10px; color: #ccc; flex: 1; }
+.preset-item .pi-genre { font-size: 8px; color: #666; }
+
+/* ---- BOTTOM: BROWSER STRIP ---- */
+.browser-strip { height: 90px; background: #0d0d0d; border-top: 1px solid #333; display: flex; }
+.browser-tabs { width: 70px; display: flex; flex-direction: column; border-right: 1px solid #222; }
+.browser-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #555; cursor: pointer; border-left: 2px solid transparent; }
+.browser-tab.active { color: #ff8800; border-left-color: #ff8800; background: #111; }
+.browser-content { flex: 1; display: flex; gap: 4px; padding: 6px; overflow-x: auto; }
+.browser-thumb { width: 68px; height: 68px; background: #111; border: 1px solid #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
+.browser-thumb:hover { border-color: #ff8800; }
+.browser-thumb .bt-preview { position: absolute; inset: 0; bottom: 14px; }
+.browser-thumb .bt-name { font-size: 7px; color: #ccc; padding: 2px; z-index: 1; text-shadow: 0 0 3px #000; }
+
+/* ---- FOOTER ---- */
+.footer { height: 22px; background: #111; border-top: 1px solid #333; display: flex; align-items: center; padding: 0 10px; font-size: 9px; color: #555; gap: 16px; }
+.footer .fps { color: #ff8800; }
+
+/* ---- GRADIENTS ---- */
+.grad-1 { background: linear-gradient(135deg, #ff4400 0%, #880066 50%, #2200aa 100%); }
+.grad-2 { background: linear-gradient(160deg, #00aaff 0%, #004488 40%, #001122 100%); }
+.grad-3 { background: linear-gradient(45deg, #ffcc00 0%, #ff6600 50%, #cc0033 100%); }
+.grad-4 { background: linear-gradient(200deg, #22ff88 0%, #006644 50%, #002211 100%); }
+.grad-5 { background: linear-gradient(90deg, #ff00ff 0%, #6600cc 50%, #110033 100%); }
+.grad-6 { background: linear-gradient(135deg, #0088ff 0%, #00ccff 50%, #88ffff 100%); }
+.grad-7 { background: linear-gradient(180deg, #ff8800 0%, #cc2200 100%); }
+.grad-8 { background: linear-gradient(135deg, #aaffee 0%, #226688 50%, #001122 100%); }
+.grad-9 { background: linear-gradient(45deg, #ff2200 0%, #440000 100%); }
+.grad-10 { background: linear-gradient(135deg, #8844ff 0%, #220066 100%); }
+.grad-11 { background: linear-gradient(135deg, #225500 0%, #88ff00 100%); }
+.grad-12 { background: linear-gradient(180deg, #003366 0%, #00ccff 100%); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <span class="brand">AUDIO-DNA</span>
+  <div class="bpm-box">122.0</div>
+  <div class="beat-wheel">
+    <div class="beat-seg beat-seg-tl"></div>
+    <div class="beat-seg beat-seg-tr"></div>
+    <div class="beat-seg beat-seg-bl"></div>
+    <div class="beat-seg beat-seg-br"></div>
+  </div>
+  <label>Bar <span class="value">2/4</span></label>
+  <label>Phrase <span class="value">2/8</span></label>
+  <label>Key <span class="value">Dm</span></label>
+  <div class="transport-btn active">&#9654;</div>
+  <div class="transport-btn">&#9646;&#9646;</div>
+  <div class="transport-btn">&#9632;</div>
+  <div class="spacer"></div>
+  <label>Genre <span class="value" style="color:#ff8800">Ambient</span></label>
+  <label>Energy <span class="value" style="color:#ffcc00;">Low</span></label>
+  <label>State <span class="value">Normal</span></label>
+  <div class="btn active">Autopilot</div>
+  <div class="btn">Manual BPM</div>
+  <div class="btn">Link</div>
+  <label>Master <span class="value">100%</span></label>
+</div>
+
+<!-- WAVEFORM STRIP (120px, extra tall, embedded info) -->
+<div class="waveform-strip">
+  <div class="playhead"></div>
+
+  <!-- Structural zones -->
+  <div class="struct-zone buildup" style="left:60%;width:8%;"></div>
+  <div class="struct-zone breakdown" style="left:68%;width:15%;"></div>
+
+  <!-- Beat grid -->
+  <div class="beat-line downbeat" style="left:5%;"></div>
+  <div class="beat-line beat" style="left:8.75%;"></div>
+  <div class="beat-line beat" style="left:12.5%;"></div>
+  <div class="beat-line beat" style="left:16.25%;"></div>
+  <div class="beat-line bar" style="left:20%;"></div>
+  <div class="beat-line beat" style="left:23.75%;"></div>
+  <div class="beat-line beat" style="left:27.5%;"></div>
+  <div class="beat-line beat" style="left:31.25%;"></div>
+  <div class="beat-line downbeat" style="left:35%;"></div>
+  <div class="beat-line beat" style="left:38.75%;"></div>
+  <div class="beat-line beat" style="left:42.5%;"></div>
+  <div class="beat-line beat" style="left:46.25%;"></div>
+  <div class="beat-line bar" style="left:50%;"></div>
+  <div class="beat-line beat" style="left:53.75%;"></div>
+  <div class="beat-line beat" style="left:57.5%;"></div>
+  <div class="beat-line beat" style="left:61.25%;"></div>
+  <div class="beat-line downbeat" style="left:65%;"></div>
+  <div class="beat-line beat" style="left:68.75%;"></div>
+  <div class="beat-line beat" style="left:72.5%;"></div>
+  <div class="beat-line beat" style="left:76.25%;"></div>
+  <div class="beat-line bar" style="left:80%;"></div>
+  <div class="beat-line beat" style="left:83.75%;"></div>
+  <div class="beat-line beat" style="left:87.5%;"></div>
+  <div class="beat-line beat" style="left:91.25%;"></div>
+  <div class="beat-line downbeat" style="left:95%;"></div>
+
+  <div class="bar-label" style="left:6%;">5</div>
+  <div class="bar-label" style="left:21%;">6</div>
+  <div class="bar-label" style="left:36%;">7</div>
+  <div class="bar-label" style="left:51%;">8</div>
+  <div class="bar-label" style="left:66%;">9</div>
+  <div class="bar-label" style="left:81%;">10</div>
+
+  <!-- Embedded info overlays -->
+  <div class="wf-embed-info">
+    <div class="ei">Bar <span class="ev">2</span>/4</div>
+    <div class="ei">Phrase <span class="ev">2</span>/8</div>
+    <div class="ei">State: <span class="ev dim">Normal</span></div>
+    <div class="ei">Key: <span class="ev">Dm</span></div>
+  </div>
+  <div class="wf-time">-3:14.7</div>
+  <div class="wf-bpm-overlay"><span class="bpm-large">122 BPM</span></div>
+
+  <!-- Waveform SVG (Ambient style - gentle, flowing, lots of pads) -->
+  <svg width="1920" height="90" style="position:absolute;top:14px;left:0;" preserveAspectRatio="none" viewBox="0 0 1920 90">
+    <!-- Bass (blue) - deep ambient sub, wide and soft -->
+    <rect x="40" y="38" width="8" height="18" fill="#1a44aa" opacity="0.5"/>
+    <rect x="50" y="36" width="8" height="22" fill="#1a44aa" opacity="0.55"/>
+    <rect x="62" y="34" width="8" height="26" fill="#2255cc" opacity="0.6"/>
+    <rect x="74" y="32" width="8" height="30" fill="#2255cc" opacity="0.65"/>
+    <rect x="86" y="30" width="8" height="34" fill="#2266dd" opacity="0.7"/>
+    <rect x="100" y="28" width="8" height="36" fill="#2266dd" opacity="0.72"/>
+    <rect x="114" y="30" width="8" height="34" fill="#2266dd" opacity="0.7"/>
+    <rect x="128" y="32" width="8" height="30" fill="#2255cc" opacity="0.65"/>
+    <rect x="142" y="34" width="8" height="26" fill="#2255cc" opacity="0.6"/>
+    <rect x="160" y="32" width="8" height="30" fill="#2255cc" opacity="0.62"/>
+    <rect x="180" y="30" width="8" height="34" fill="#2266dd" opacity="0.68"/>
+    <rect x="200" y="28" width="8" height="36" fill="#2266dd" opacity="0.72"/>
+    <rect x="220" y="26" width="8" height="40" fill="#2266dd" opacity="0.75"/>
+    <rect x="240" y="24" width="8" height="44" fill="#3377ee" opacity="0.78"/>
+    <rect x="260" y="26" width="8" height="40" fill="#2266dd" opacity="0.75"/>
+    <rect x="280" y="28" width="8" height="36" fill="#2266dd" opacity="0.72"/>
+    <rect x="300" y="26" width="8" height="40" fill="#2266dd" opacity="0.74"/>
+    <rect x="320" y="24" width="8" height="44" fill="#3377ee" opacity="0.78"/>
+    <rect x="340" y="22" width="9" height="48" fill="#3377ee" opacity="0.8"/>
+    <rect x="360" y="20" width="9" height="52" fill="#3377ee" opacity="0.82"/>
+    <rect x="380" y="22" width="9" height="48" fill="#3377ee" opacity="0.8"/>
+    <rect x="400" y="24" width="8" height="44" fill="#3377ee" opacity="0.78"/>
+    <rect x="420" y="22" width="8" height="48" fill="#3377ee" opacity="0.8"/>
+    <rect x="440" y="20" width="9" height="52" fill="#3377ee" opacity="0.82"/>
+    <rect x="460" y="18" width="9" height="56" fill="#4488ff" opacity="0.85"/>
+    <rect x="480" y="16" width="10" height="60" fill="#4488ff" opacity="0.88"/>
+    <rect x="500" y="18" width="9" height="56" fill="#4488ff" opacity="0.85"/>
+    <rect x="520" y="20" width="9" height="52" fill="#3377ee" opacity="0.82"/>
+    <rect x="540" y="18" width="9" height="56" fill="#4488ff" opacity="0.85"/>
+    <rect x="560" y="16" width="10" height="60" fill="#4488ff" opacity="0.88"/>
+    <rect x="580" y="14" width="10" height="64" fill="#4488ff" opacity="0.9"/>
+    <rect x="600" y="12" width="10" height="68" fill="#4488ff" opacity="0.92"/>
+    <rect x="622" y="14" width="10" height="64" fill="#4488ff" opacity="0.9"/>
+    <rect x="644" y="16" width="10" height="60" fill="#4488ff" opacity="0.88"/>
+    <rect x="666" y="14" width="10" height="64" fill="#4488ff" opacity="0.9"/>
+    <rect x="688" y="12" width="11" height="68" fill="#55aaff" opacity="0.92"/>
+    <rect x="710" y="10" width="11" height="72" fill="#55aaff" opacity="0.95"/>
+    <rect x="732" y="8" width="12" height="76" fill="#55aaff" opacity="0.97"/>
+    <rect x="756" y="6" width="12" height="80" fill="#55aaff" opacity="1"/>
+    <rect x="780" y="8" width="12" height="76" fill="#55aaff" opacity="0.97"/>
+    <rect x="804" y="10" width="11" height="72" fill="#55aaff" opacity="0.95"/>
+    <rect x="828" y="8" width="12" height="76" fill="#55aaff" opacity="0.97"/>
+    <rect x="852" y="6" width="12" height="80" fill="#55aaff" opacity="1"/>
+    <rect x="876" y="4" width="13" height="84" fill="#66bbff" opacity="1"/>
+    <rect x="900" y="6" width="12" height="80" fill="#55aaff" opacity="1"/>
+    <rect x="924" y="4" width="13" height="84" fill="#66bbff" opacity="1"/>
+    <rect x="950" y="2" width="14" height="88" fill="#77ccff" opacity="1"/>
+    <rect x="966" y="4" width="13" height="84" fill="#66bbff" opacity="1"/>
+    <rect x="982" y="6" width="12" height="80" fill="#55aaff" opacity="0.98"/>
+    <rect x="1000" y="8" width="11" height="76" fill="#55aaff" opacity="0.95"/>
+    <rect x="1020" y="10" width="11" height="72" fill="#4488ff" opacity="0.92"/>
+    <rect x="1040" y="12" width="10" height="68" fill="#4488ff" opacity="0.9"/>
+    <rect x="1060" y="14" width="10" height="64" fill="#4488ff" opacity="0.88"/>
+    <rect x="1080" y="16" width="10" height="60" fill="#4488ff" opacity="0.85"/>
+    <rect x="1100" y="18" width="9" height="56" fill="#3377ee" opacity="0.82"/>
+    <rect x="1120" y="20" width="9" height="52" fill="#3377ee" opacity="0.8"/>
+    <rect x="1140" y="22" width="9" height="48" fill="#3377ee" opacity="0.78"/>
+    <rect x="1160" y="24" width="8" height="44" fill="#3377ee" opacity="0.75"/>
+    <rect x="1180" y="26" width="8" height="40" fill="#2266dd" opacity="0.72"/>
+    <rect x="1200" y="28" width="8" height="36" fill="#2266dd" opacity="0.7"/>
+    <rect x="1240" y="30" width="8" height="32" fill="#2255cc" opacity="0.65"/>
+    <rect x="1280" y="32" width="8" height="28" fill="#2255cc" opacity="0.6"/>
+    <rect x="1320" y="34" width="8" height="24" fill="#1a44aa" opacity="0.55"/>
+    <rect x="1360" y="36" width="8" height="20" fill="#1a44aa" opacity="0.5"/>
+    <rect x="1400" y="38" width="7" height="16" fill="#1a44aa" opacity="0.45"/>
+    <rect x="1440" y="38" width="7" height="16" fill="#1a44aa" opacity="0.4"/>
+    <rect x="1520" y="40" width="6" height="12" fill="#1a44aa" opacity="0.35"/>
+    <rect x="1600" y="40" width="6" height="12" fill="#1a44aa" opacity="0.3"/>
+    <rect x="1700" y="42" width="5" height="8" fill="#1a44aa" opacity="0.25"/>
+    <rect x="1800" y="44" width="4" height="6" fill="#1a44aa" opacity="0.2"/>
+    <!-- Mids (cyan) - pad textures, gentle shimmer -->
+    <rect x="100" y="34" width="6" height="22" fill="#00bbcc" opacity="0.4"/>
+    <rect x="180" y="32" width="6" height="26" fill="#00ccdd" opacity="0.45"/>
+    <rect x="260" y="30" width="6" height="30" fill="#00ccdd" opacity="0.5"/>
+    <rect x="340" y="26" width="7" height="36" fill="#00ddee" opacity="0.55"/>
+    <rect x="420" y="24" width="7" height="40" fill="#00ddee" opacity="0.6"/>
+    <rect x="500" y="22" width="7" height="44" fill="#00eeff" opacity="0.65"/>
+    <rect x="580" y="20" width="7" height="48" fill="#00eeff" opacity="0.7"/>
+    <rect x="660" y="18" width="8" height="52" fill="#44ffff" opacity="0.72"/>
+    <rect x="740" y="16" width="8" height="56" fill="#44ffff" opacity="0.75"/>
+    <rect x="820" y="14" width="8" height="60" fill="#44ffff" opacity="0.78"/>
+    <rect x="900" y="12" width="8" height="64" fill="#66ffff" opacity="0.8"/>
+    <rect x="950" y="10" width="8" height="68" fill="#66ffff" opacity="0.82"/>
+    <rect x="1000" y="14" width="8" height="60" fill="#44ffff" opacity="0.75"/>
+    <rect x="1080" y="20" width="7" height="48" fill="#00eeff" opacity="0.65"/>
+    <rect x="1160" y="26" width="7" height="36" fill="#00ddee" opacity="0.55"/>
+    <rect x="1240" y="32" width="6" height="26" fill="#00ccdd" opacity="0.45"/>
+    <!-- Highs (white) - subtle sparkle -->
+    <rect x="340" y="32" width="3" height="16" fill="#ccddee" opacity="0.3"/>
+    <rect x="500" y="28" width="3" height="22" fill="#ddeeff" opacity="0.35"/>
+    <rect x="660" y="24" width="4" height="28" fill="#ddeeff" opacity="0.4"/>
+    <rect x="820" y="20" width="4" height="34" fill="#eef4ff" opacity="0.45"/>
+    <rect x="950" y="16" width="5" height="40" fill="#ffffff" opacity="0.45"/>
+    <rect x="1000" y="20" width="4" height="34" fill="#eef4ff" opacity="0.4"/>
+  </svg>
+
+  <!-- Phrase bar -->
+  <div class="phrase-bar"><div class="pf"></div></div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main">
+  <!-- LEFT SIDEBAR -->
+  <div class="left-sidebar">
+    <div class="ls-header">Signal Meters</div>
+    <div class="vu-meters">
+      <div class="vu-row"><span class="vu-label">RMS</span><div class="vu-track"><div class="vu-fill" style="width:45%;background:linear-gradient(90deg,#ff8800,#ff4400);"></div><div class="vu-peak" style="left:48%;background:#ff8800;"></div></div><span class="vu-val">0.45</span></div>
+      <div class="vu-row"><span class="vu-label">Peak</span><div class="vu-track"><div class="vu-fill" style="width:55%;background:linear-gradient(90deg,#ff8800,#ff4400);"></div><div class="vu-peak" style="left:60%;background:#ff4400;"></div></div><span class="vu-val">0.55</span></div>
+      <div class="vu-row"><span class="vu-label">Sub</span><div class="vu-track"><div class="vu-fill" style="width:65%;background:#1a44aa;"></div></div><span class="vu-val">0.65</span></div>
+      <div class="vu-row"><span class="vu-label">Bass</span><div class="vu-track"><div class="vu-fill" style="width:58%;background:#2266dd;"></div></div><span class="vu-val">0.58</span></div>
+      <div class="vu-row"><span class="vu-label">Low Mid</span><div class="vu-track"><div class="vu-fill" style="width:42%;background:#00aacc;"></div></div><span class="vu-val">0.42</span></div>
+      <div class="vu-row"><span class="vu-label">Mid</span><div class="vu-track"><div class="vu-fill" style="width:38%;background:#00ccdd;"></div></div><span class="vu-val">0.38</span></div>
+      <div class="vu-row"><span class="vu-label">High Mid</span><div class="vu-track"><div class="vu-fill" style="width:30%;background:#00ddee;"></div></div><span class="vu-val">0.30</span></div>
+      <div class="vu-row"><span class="vu-label">Presence</span><div class="vu-track"><div class="vu-fill" style="width:25%;background:#88ddff;"></div></div><span class="vu-val">0.25</span></div>
+      <div class="vu-row"><span class="vu-label">Brilliance</span><div class="vu-track"><div class="vu-fill" style="width:18%;background:#ddeeff;"></div></div><span class="vu-val">0.18</span></div>
+      <div class="vu-row"><span class="vu-label">Flux</span><div class="vu-track"><div class="vu-fill" style="width:35%;background:#ff6633;"></div></div><span class="vu-val">0.35</span></div>
+      <div class="vu-row"><span class="vu-label">Onset</span><div class="vu-track"><div class="vu-fill" style="width:12%;background:#ff3300;"></div></div><span class="vu-val">0.12</span></div>
+      <div class="vu-row"><span class="vu-label">Centroid</span><div class="vu-track"><div class="vu-fill" style="width:32%;background:#ffaa00;"></div></div><span class="vu-val">1.2k</span></div>
+      <div class="vu-row"><span class="vu-label">LUFS</span><div class="vu-track"><div class="vu-fill" style="width:40%;background:#ffcc00;"></div></div><span class="vu-val">-18</span></div>
+      <div class="vu-row"><span class="vu-label">Beat</span><div class="vu-track"><div class="vu-fill" style="width:50%;background:#ff8800;"></div></div><span class="vu-val">0.50</span></div>
+      <div class="vu-row"><span class="vu-label">Pump</span><div class="vu-track"><div class="vu-fill" style="width:15%;background:#cc44ff;"></div></div><span class="vu-val">0.15</span></div>
+      <div class="vu-row"><span class="vu-label">Swing</span><div class="vu-track"><div class="vu-fill" style="width:50%;background:#00ff88;"></div></div><span class="vu-val">0.50</span></div>
+      <div class="vu-row"><span class="vu-label">Formant</span><div class="vu-track"><div class="vu-fill" style="width:22%;background:#ff66aa;"></div></div><span class="vu-val">0.22</span></div>
+      <div class="vu-row"><span class="vu-label">Resonance</span><div class="vu-track"><div class="vu-fill" style="width:18%;background:#ff8800;"></div></div><span class="vu-val">0.18</span></div>
+      <div class="vu-row"><span class="vu-label">Reese</span><div class="vu-track"><div class="vu-fill" style="width:28%;background:#6644ff;"></div></div><span class="vu-val">0.28</span></div>
+    </div>
+
+    <!-- Quick reference -->
+    <div class="qr-section">
+      <div class="qr-title">Quick Reference</div>
+      <div class="qr-grid">
+        <div class="qr-tile"><span class="qt-label">Ripple</span></div>
+        <div class="qr-tile"><span class="qt-label">Echo</span></div>
+        <div class="qr-tile"><span class="qt-label">Freeze</span></div>
+        <div class="qr-tile"><span class="qt-label">Glow</span></div>
+        <div class="qr-tile"><span class="qt-label">Kalidosc</span></div>
+        <div class="qr-tile"><span class="qt-label">ChromAb</span></div>
+        <div class="qr-tile"><span class="qt-label">RGB Spl</span></div>
+        <div class="qr-tile"><span class="qt-label">Scanline</span></div>
+        <div class="qr-tile"><span class="qt-label">Pixelate</span></div>
+        <div class="qr-tile"><span class="qt-label">Slit Scan</span></div>
+        <div class="qr-tile"><span class="qt-label">Vignette</span></div>
+        <div class="qr-tile"><span class="qt-label">Blur</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: DECK GRID -->
+  <div class="center">
+    <div class="deck-header">
+      <div class="deck-tab active">Deck A</div>
+      <div class="deck-tab">Deck B</div>
+      <div class="deck-tab">Deck C</div>
+      <div class="deck-tab">Deck D</div>
+      <div class="spacer"></div>
+      <span style="font-size:9px;color:#555;">4 Layers x 6 Clips</span>
+    </div>
+    <div class="deck-grid">
+      <!-- Layer 1 -->
+      <div class="layer-row">
+        <div class="layer-label">
+          <span class="l-name">Layer 1</span>
+          <span class="l-type opaque">Opaque</span>
+          <div class="l-opacity"><div class="lo-fill" style="width:100%;"></div></div>
+        </div>
+        <div class="clip-cell active">
+          <div class="clip-thumb grad-1"></div>
+          <span class="clip-name">Mandelbrot</span>
+          <div class="clip-signal-overlay"><div class="cso-fill" style="width:72%;background:#ff8800;"></div></div>
+          <div class="clip-signal-dot" style="background:#ff8800;"></div>
+        </div>
+        <div class="clip-cell">
+          <div class="clip-thumb grad-2"></div>
+          <span class="clip-name">Julia Set</span>
+          <div class="clip-signal-overlay"><div class="cso-fill" style="width:45%;background:#00ccff;"></div></div>
+        </div>
+        <div class="clip-cell">
+          <div class="clip-thumb grad-3"></div>
+          <span class="clip-name">Spectrum Ring</span>
+          <div class="clip-signal-overlay"><div class="cso-fill" style="width:60%;background:#ff8800;"></div></div>
+          <div class="clip-signal-dot" style="background:#00ccff;"></div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb grad-4"></div><span class="clip-name">Perlin Noise</span></div>
+        <div class="clip-cell"><div class="clip-thumb grad-5"></div><span class="clip-name">Cymatics</span></div>
+        <div class="clip-cell"><div class="clip-thumb grad-7"></div><span class="clip-name">Band Tower</span></div>
+      </div>
+      <!-- Layer 2 -->
+      <div class="layer-row">
+        <div class="layer-label">
+          <span class="l-name">Layer 2</span>
+          <span class="l-type transparent">Transparent</span>
+          <div class="l-opacity"><div class="lo-fill" style="width:65%;"></div></div>
+        </div>
+        <div class="clip-cell">
+          <div class="clip-thumb grad-6"></div>
+          <span class="clip-name">Timbral Nebula</span>
+          <div class="clip-signal-overlay"><div class="cso-fill" style="width:38%;background:#00ccff;"></div></div>
+        </div>
+        <div class="clip-cell active">
+          <div class="clip-thumb grad-9"></div>
+          <span class="clip-name">Kaleido Fractal</span>
+          <div class="clip-signal-overlay"><div class="cso-fill" style="width:55%;background:#ff8800;"></div></div>
+          <div class="clip-signal-dot" style="background:#ff8800;"></div>
+          <div class="clip-fx-badge">FX:2</div>
+        </div>
+        <div class="clip-cell">
+          <div class="clip-thumb grad-10"></div>
+          <span class="clip-name">Burning Ship</span>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb grad-8"></div><span class="clip-name">Mandelbulb</span></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+      <!-- Layer 3 -->
+      <div class="layer-row">
+        <div class="layer-label">
+          <span class="l-name">Layer 3</span>
+          <span class="l-type transparent">Transparent</span>
+          <div class="l-opacity"><div class="lo-fill" style="width:40%;"></div></div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb grad-4"></div><span class="clip-name">Menger Sponge</span></div>
+        <div class="clip-cell"><div class="clip-thumb grad-8"></div><span class="clip-name">KIFS</span></div>
+        <div class="clip-cell active">
+          <div class="clip-thumb grad-5"></div>
+          <span class="clip-name">Text Wall</span>
+          <div class="clip-signal-overlay"><div class="cso-fill" style="width:32%;background:#00ccff;"></div></div>
+          <div class="clip-signal-dot" style="background:#00ccff;"></div>
+        </div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+      <!-- Layer 4 -->
+      <div class="layer-row">
+        <div class="layer-label">
+          <span class="l-name">Layer 4</span>
+          <span class="l-type fxonly">FX Only</span>
+          <div class="l-opacity"><div class="lo-fill" style="width:100%;"></div></div>
+        </div>
+        <div class="clip-cell active">
+          <div class="clip-thumb" style="background:linear-gradient(90deg,#ff880033,#ff880008);"></div>
+          <span class="clip-name">Echo + Glow</span>
+          <div class="clip-signal-dot" style="background:#cc44ff;"></div>
+          <div class="clip-fx-badge">FX:2</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb" style="background:linear-gradient(90deg,#00ccff22,#00ccff08);"></div><span class="clip-name">Kaleidoscope</span></div>
+        <div class="clip-cell"><div class="clip-thumb" style="background:linear-gradient(90deg,#ff00ff18,#ff00ff06);"></div><span class="clip-name">Chromatic Ab.</span></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR: INSPECTOR -->
+  <div class="right-sidebar">
+    <div class="insp-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Composition</div>
+      <div class="insp-tab" style="color:#ff8800;">Signals</div>
+      <div class="insp-tab">Presets</div>
+    </div>
+    <div class="insp-content">
+      <!-- Signals tab content shown -->
+      <div class="insp-section">
+        <div class="insp-section-title">Active Signal Sources</div>
+
+        <!-- Source cards with waveform previews -->
+        <div class="source-card">
+          <div class="sc-header"><span class="sc-name">RMS (Amplitude)</span><span class="sc-connections">3 connections</span></div>
+          <div class="sc-waveform">
+            <svg width="100%" height="20" preserveAspectRatio="none" viewBox="0 0 280 20">
+              <polyline points="0,18 10,16 20,14 30,12 40,14 50,10 60,8 70,6 80,8 90,10 100,8 110,6 120,4 130,6 140,8 150,6 160,4 170,2 180,4 190,6 200,8 210,6 220,8 230,10 240,12 250,14 260,16 270,18" fill="none" stroke="#ff8800" stroke-width="1.5" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="sc-info"><span>Current: 0.45</span><span>Smoothing: 0.15</span><span>Curve: Exp</span></div>
+        </div>
+
+        <div class="source-card">
+          <div class="sc-header"><span class="sc-name">Beat Phase</span><span class="sc-connections">2 connections</span></div>
+          <div class="sc-waveform">
+            <svg width="100%" height="20" preserveAspectRatio="none" viewBox="0 0 280 20">
+              <polyline points="0,18 20,16 40,14 60,12 80,10 100,8 120,6 140,4 160,2 180,4 200,6 220,8 240,12 260,16 280,18" fill="none" stroke="#ff8800" stroke-width="1.5" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="sc-info"><span>Current: 0.50</span><span>Smoothing: 0.0</span><span>Curve: Lin</span></div>
+        </div>
+
+        <div class="source-card">
+          <div class="sc-header"><span class="sc-name">Bass Energy</span><span class="sc-connections">2 connections</span></div>
+          <div class="sc-waveform">
+            <svg width="100%" height="20" preserveAspectRatio="none" viewBox="0 0 280 20">
+              <polyline points="0,14 10,12 20,8 30,4 40,2 50,4 60,8 70,12 80,14 90,12 100,8 110,4 120,2 130,4 140,8 150,10 160,12 170,10 180,6 190,2 200,4 210,8 220,12 230,14 240,12 250,8 260,6 270,10 280,14" fill="none" stroke="#2266dd" stroke-width="1.5" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="sc-info"><span>Current: 0.58</span><span>Smoothing: 0.2</span><span>Curve: S-Curve</span></div>
+        </div>
+
+        <div class="source-card">
+          <div class="sc-header"><span class="sc-name">Spectral Flux</span><span class="sc-connections">1 connection</span></div>
+          <div class="sc-waveform">
+            <svg width="100%" height="20" preserveAspectRatio="none" viewBox="0 0 280 20">
+              <polyline points="0,18 20,18 30,18 40,14 42,2 44,16 60,18 80,18 100,18 110,14 112,2 114,16 140,18 160,18 180,18 200,14 202,2 204,16 220,18 240,18 260,18 280,18" fill="none" stroke="#ff6633" stroke-width="1.5" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="sc-info"><span>Current: 0.35</span><span>Smoothing: 0.1</span><span>Curve: Log</span></div>
+        </div>
+
+        <div class="source-card">
+          <div class="sc-header"><span class="sc-name">Phrase Phase</span><span class="sc-connections">1 connection</span></div>
+          <div class="sc-waveform">
+            <svg width="100%" height="20" preserveAspectRatio="none" viewBox="0 0 280 20">
+              <polyline points="0,18 35,15 70,12 105,9 140,6 175,4 210,2 245,4 280,8" fill="none" stroke="#ffcc00" stroke-width="1.5" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="sc-info"><span>Current: 0.25</span><span>Smoothing: 0.0</span><span>Curve: Lin</span></div>
+        </div>
+      </div>
+
+      <!-- Presets section below signals -->
+      <div class="insp-section">
+        <div class="insp-section-title">Presets</div>
+        <div class="preset-list">
+          <div class="preset-item"><div class="pi-dot active"></div><span class="pi-name">Ambient Wash</span><span class="pi-genre">Ambient</span></div>
+          <div class="preset-item"><div class="pi-dot"></div><span class="pi-name">Club Banger</span><span class="pi-genre">House</span></div>
+          <div class="preset-item"><div class="pi-dot"></div><span class="pi-name">Glitch Storm</span><span class="pi-genre">DnB</span></div>
+          <div class="preset-item"><div class="pi-dot"></div><span class="pi-name">Fractal Dive</span><span class="pi-genre">Techno</span></div>
+          <div class="preset-item"><div class="pi-dot"></div><span class="pi-name">Lo-Fi Beats</span><span class="pi-genre">Hip-Hop</span></div>
+          <div class="preset-item"><div class="pi-dot"></div><span class="pi-name">Neon City</span><span class="pi-genre">Pop</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM: BROWSER STRIP -->
+<div class="browser-strip">
+  <div class="browser-tabs">
+    <div class="browser-tab active">Sources</div>
+    <div class="browser-tab">FX</div>
+    <div class="browser-tab">Files</div>
+    <div class="browser-tab">Presets</div>
+  </div>
+  <div class="browser-content">
+    <div class="browser-thumb"><div class="bt-preview grad-1"></div><span class="bt-name">Mandelbrot</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-2"></div><span class="bt-name">Julia Set</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-3"></div><span class="bt-name">Spectrum Ring</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-4"></div><span class="bt-name">Perlin Noise</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-5"></div><span class="bt-name">Cymatics</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-7"></div><span class="bt-name">Band Tower</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-8"></div><span class="bt-name">Apollonian</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-6"></div><span class="bt-name">Timbral Nebula</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-10"></div><span class="bt-name">Kaleido Fractal</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-9"></div><span class="bt-name">Burning Ship</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-12"></div><span class="bt-name">Menger Sponge</span></div>
+    <div class="browser-thumb"><div class="bt-preview grad-11"></div><span class="bt-name">Sierpinski</span></div>
+    <div class="browser-thumb"><div class="bt-preview" style="background:linear-gradient(135deg,#443300,#ff8800);"></div><span class="bt-name">Mandelbulb</span></div>
+    <div class="browser-thumb"><div class="bt-preview" style="background:linear-gradient(135deg,#002244,#00ccff);"></div><span class="bt-name">KIFS</span></div>
+    <div class="browser-thumb"><div class="bt-preview" style="background:linear-gradient(135deg,#330044,#cc44ff);"></div><span class="bt-name">Fluid Dynamics</span></div>
+    <div class="browser-thumb"><div class="bt-preview" style="background:linear-gradient(135deg,#003300,#00ff44);"></div><span class="bt-name">Newton 3D</span></div>
+    <div class="browser-thumb"><div class="bt-preview" style="background:linear-gradient(135deg,#442200,#ffaa00);"></div><span class="bt-name">Strange Attr</span></div>
+    <div class="browser-thumb"><div class="bt-preview" style="background:linear-gradient(135deg,#220044,#8800ff);"></div><span class="bt-name">Gravity Well</span></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span class="fps">60.0 fps</span>
+  <span>1920x1080</span>
+  <span>OpenGL 4.1</span>
+  <span>Audio: Built-in Microphone (48kHz)</span>
+  <div class="spacer"></div>
+  <span>Ambient / Low Energy</span>
+  <span style="color:#ff8800;">REC</span>
+  <span>Syphon: Active</span>
+</div>
+
+</body>
+</html>

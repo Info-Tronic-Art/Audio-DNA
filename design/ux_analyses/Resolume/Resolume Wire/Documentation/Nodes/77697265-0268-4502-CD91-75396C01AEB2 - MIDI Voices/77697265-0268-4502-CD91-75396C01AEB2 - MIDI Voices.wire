@@ -1,0 +1,159 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          2,
+          "output"
+        ],
+        "to": [
+          0,
+          "midi"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "MIDI Voices",
+      "identifier": "841ea5d8-2732-449a-a661-41960b198d0f",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 3,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "maxNumVoices": {
+            "type": "number",
+            "value": 16
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 692,
+          "y": 548
+        },
+        "class": {
+          "id": "77697265-0268-4502-CD91-75396C01AEB2",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "midi": {
+            "type": "midi",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "MIDI Voices"
+      },
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "MIDI VOICES\n\nVoices are the number of musical notes that can be played back simultaneously in a MIDI sound device. MIDI provides up to 16 channels of simultaneous playback. The number of voices is the total number of notes from all the instruments played back through all the channels. For example, if one of the channels is a piano, up to 10 fingers could strike the keyboard at the same time, generating 10 notes."
+          }
+        },
+        "bounds": {
+          "height": 209,
+          "width": 498,
+          "x": 466,
+          "y": 297
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "2": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 519,
+          "y": 548
+        },
+        "class": {
+          "id": "77697265-5275-4BB0-97B0-DBEEFD85997B",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "midi",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "MIDI In"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -0.02209091186523438,
+        "y": 0.06627273559570312,
+        "zoom": 1
+      },
+      "selection": [
+        "0"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

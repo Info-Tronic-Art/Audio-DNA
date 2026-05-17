@@ -1,0 +1,433 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          3,
+          "output"
+        ],
+        "to": [
+          2,
+          "replace"
+        ]
+      },
+      {
+        "from": [
+          2,
+          "output0"
+        ],
+        "to": [
+          5,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          6,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          4,
+          "output0"
+        ],
+        "to": [
+          2,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "Replace Example",
+      "identifier": "6d41d4ea-be9d-4b3d-a635-49f93be076c1",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 12,
+    "nodes": {
+      "10": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Main\nThe string in which you want to replace something.\n\n• Match\nThe string you want to replace.\n\n• Replace\nThe replacement string"
+          }
+        },
+        "bounds": {
+          "height": 384,
+          "width": 312,
+          "x": 395.5,
+          "y": 618.1875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "11": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "ATTRIBUTES\n\n• Mode\nChoose whether to replace all matches, only the first match or only the last match."
+          }
+        },
+        "bounds": {
+          "height": 376,
+          "width": 308,
+          "x": 1130.5,
+          "y": 618.1875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "2": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "match-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "mode": {
+            "type": "choice",
+            "value": "All"
+          },
+          "replace-dimensions": {
+            "type": "dimensions",
+            "value": []
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 678,
+          "y": 421
+        },
+        "class": {
+          "id": "77697265-5852-44AB-89e5-F52a24ca2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": ""
+          },
+          "match": {
+            "type": "string",
+            "value": "Wire"
+          },
+          "replace": {
+            "type": "string",
+            "value": ""
+          }
+        },
+        "hidden": [],
+        "name": "Replace"
+      },
+      "3": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 461,
+          "y": 507
+        },
+        "class": {
+          "id": "77697265-F29F-45E9-A833-21E09C750BA7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": "Resolume"
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "String In"
+      },
+      "4": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "string"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 396,
+          "y": 421
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": "Wire is Awesome!"
+          }
+        },
+        "hidden": [],
+        "name": "String"
+      },
+      "5": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "font": {
+            "type": "choice",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "style": {
+            "type": "choice",
+            "value": "Bold"
+          }
+        },
+        "bounds": {
+          "height": 154,
+          "width": 195,
+          "x": 902,
+          "y": 421
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Text Render"
+      },
+      "6": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1125,
+          "y": 421
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      },
+      "7": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "REPLACE\n\nThe replace node takes a string and then replaces the match string with the replace string.\n\nIn this example we send  \"Wire is Awesome!\" to the Replace node.\nThere we look for the word \"Wire\" and replace it with \"Resolume\"."
+          }
+        },
+        "bounds": {
+          "height": 169,
+          "width": 487,
+          "x": 543,
+          "y": 184
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "9": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a string\n\n"
+          }
+        },
+        "bounds": {
+          "height": 380,
+          "width": 334,
+          "x": 749.58203125,
+          "y": 617.8125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 159,
+        "y": 113,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 6,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

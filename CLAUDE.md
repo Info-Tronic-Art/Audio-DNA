@@ -8,7 +8,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 81 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 44+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output/input (macOS, optional), real-time genre detection (8 genres), AI mapping suggestions, smart energy-aware autopilot, structural scene triggering, ISF shader import, per-genre smoothing tuning, smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
+**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources (7 2D fractals, 8 3D ray-marched fractals, 8 3D torus sources, 8 audio-visual sources, 1 text source, 3 simulation sources, 1 text animator, 1 layer router, 71+ pattern/noise/geometric/math/particle/nature sources), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output/input (macOS, optional), real-time genre detection (8 genres), AI mapping suggestions, smart energy-aware autopilot, structural scene triggering, ISF shader import, per-genre smoothing tuning, smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -148,7 +148,7 @@ All data flows forward. No backward dependencies on the hot path.
 
 | Library | Version | License | What It Owns | Why Chosen Over Alternatives | Configured In |
 |---------|---------|---------|-------------|---------------------------|---------------|
-| **JUCE** | 7.0.12 | GPLv3 | Audio I/O, file playback (WAV/AIFF/FLAC/MP3/OGG), windowing, OpenGL context, UI widgets, message thread | Single framework for audio + UI + OpenGL. `AudioTransportSource` for file playback with background disk I/O. `AudioDeviceManager` for device enum/hot-plug across CoreAudio/WASAPI/ALSA/JACK. Alternatives: SDL2+ImGui (no audio file playback), Qt (poor RT audio). | `CMakeLists.txt` line 16-22, FetchContent |
+| **JUCE** | 8.0.4 | GPLv3 | Audio I/O, file playback (WAV/AIFF/FLAC/MP3/OGG), windowing, OpenGL context, UI widgets, message thread | Single framework for audio + UI + OpenGL. `AudioTransportSource` for file playback with background disk I/O. `AudioDeviceManager` for device enum/hot-plug across CoreAudio/WASAPI/ALSA/JACK. Alternatives: SDL2+ImGui (no audio file playback), Qt (poor RT audio). | `CMakeLists.txt` line 16-22, FetchContent |
 | **Aubio** | 0.4.9+ | GPLv3 | BPM tracking (`aubio_tempo`), onset detection (`aubio_onset`), pitch detection (`aubio_pitch`) | Battle-tested beat/onset algorithms that beat custom implementations. Small C footprint. Alternative: Essentia (AGPL, massive dependency tree including FFTW/TagLib/yaml-cpp). | `CMakeLists.txt` (to be added in M2) |
 | **juce::dsp::FFT** | (bundled) | GPLv3 | 2048-point FFT, magnitude spectrum (1025 bins) | Uses vDSP on macOS, IPP if available. No extra dependency. Adequate for 2048-pt. Alternatives: FFTW (GPL, overkill at 2048), KissFFT (slower). | JUCE module `juce_dsp` |
 | **OpenGL 4.1 Core** | 4.1 | — | All image effects rendering via GLSL fragment shaders | macOS caps at 4.1 (Apple deprecated GL). Sufficient for 2D image effects on fullscreen quads. No compute shaders (require 4.3). Alternatives: Vulkan (overkill for 2D), Metal (macOS-only). | JUCE module `juce_opengl` |
@@ -172,8 +172,9 @@ All data flows forward. No backward dependencies on the hot path.
 ```
 AudioDNA/
 ├── CLAUDE.md                            ← YOU ARE HERE
-├── ARCHITECTURE.md                      # Full system architecture document
-├── TASKPLAN.md                          # All milestones and tasks
+├── ARCHITECTURE_V2.md                   # Current v2 system design specification
+├── docs/archive/v1/ARCHITECTURE_V1.md  # [ARCHIVED] v1 keyboard launcher design
+├── docs/archive/v1/TASKPLAN_V1.md      # [ARCHIVED] v1 milestone plan
 ├── CMakeLists.txt                       # Root build: JUCE via FetchContent, C++20
 ├── cmake/
 │   ├── CompilerWarnings.cmake           # Per-compiler warning flags (-Wall -Wextra etc.)
@@ -211,7 +212,6 @@ AudioDNA/
 │   │   ├── CurveTransforms.h            # [M4] lin/exp/log/sigmoid/step pure functions
 │   │   └── MappingSuggester.h/cpp    ✅ # [P23] AI mapping suggestions based on genre + features
 │   ├── keyboard/
-│   │   └── KeySlot.h                    # [M7] Per-key data model (media, effects, transparency, latch/random)
 │   ├── media/
 │   │   ├── VideoPlayer.h/cpp         ✅ # [P11] FFmpeg video decode (MP4/MOV/AVI/MKV/HAP Alpha) → GL texture
 │   │   └── ImageSequence.h/cpp       ✅ # [P11] Multi-image playback as video clip with configurable FPS
@@ -841,7 +841,8 @@ P1 (BPM lock) ──→ P2 (downbeat) ──→ P3 (architecture) ──→ P4 (
 - Always read this CLAUDE.md before touching any file
 - Check PHASE_GUIDE.md for current phase status and what's next
 - Read `ARCHITECTURE_V2.md` for the v2 design spec
-- Read `TASKPLAN_V2.md` for task details
+- Note: `ARCHITECTURE.md` (v1 keyboard launcher) is archived at `docs/archive/v1/ARCHITECTURE_V1.md`. The current design spec is `ARCHITECTURE_V2.md`.
+- Note: `TASKPLAN_V2.md` is archived at `docs/archive/TASKPLAN_V2.md` — all phases P1-P25 are complete.
 - Read existing source files before modifying them
 
 ### Debugging Audio Issues
@@ -1188,4 +1189,4 @@ The `research/` directory contains 30 documents organized by prefix:
 | `IMPL_` | Implementation guides | `project_setup.md` (CMake/CI), `minimal_prototype.md` (380-line prototype), `testing_validation.md` (Catch2, test signals), `calibration_adaptation.md` (auto-tuning) |
 | `REF_` | Reference material | `math_reference.md` (DFT, biquads, window functions), `latency_numbers.md` (per-stage budgets), `genre_parameter_presets.md` (8 genre profiles), `resources_links.md` (papers, datasets) |
 
-These are read-only reference material. All decisions have been made and are reflected in ARCHITECTURE.md and this CLAUDE.md.
+These are read-only reference material. All decisions have been made and are reflected in ARCHITECTURE_V2.md and this CLAUDE.md.

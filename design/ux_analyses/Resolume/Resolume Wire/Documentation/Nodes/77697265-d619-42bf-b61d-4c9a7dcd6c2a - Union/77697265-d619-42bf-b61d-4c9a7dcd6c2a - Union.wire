@@ -1,0 +1,805 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					69,
+					"output"
+				],
+				"to": [
+					68,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					70,
+					"output"
+				],
+				"to": [
+					68,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					68,
+					"output0"
+				],
+				"to": [
+					71,
+					"input"
+				]
+			},
+			{
+				"from": [
+					72,
+					"output"
+				],
+				"to": [
+					73,
+					"input"
+				]
+			},
+			{
+				"from": [
+					75,
+					"pattern"
+				],
+				"to": [
+					73,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					73,
+					"output"
+				],
+				"to": [
+					81,
+					"input"
+				]
+			},
+			{
+				"from": [
+					81,
+					"channel0"
+				],
+				"to": [
+					82,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					81,
+					"channel1"
+				],
+				"to": [
+					82,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					81,
+					"channel2"
+				],
+				"to": [
+					82,
+					"input2"
+				]
+			},
+			{
+				"from": [
+					81,
+					"channel3"
+				],
+				"to": [
+					82,
+					"input3"
+				]
+			},
+			{
+				"from": [
+					82,
+					"output0"
+				],
+				"to": [
+					83,
+					"input"
+				]
+			}
+		],
+		"inputOrder": [],
+		"meta": {
+			"author": "Mark Buitenwerf",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 15,
+					"patch": 0
+				}
+			},
+			"description": "This patch explains what this node does.",
+			"displayName": "77697265-d619-42bf-b61d-4c9a7dcd6c2a - Union",
+			"identifier": "830b9703-5eb8-4c3e-bb71-726416a2d207",
+			"licenseName": "",
+			"mail": "mail@resolume.com",
+			"originalTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 11,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "master",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 16,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "www.resolume.com",
+			"vendor": "Resolume"
+		},
+		"nextNodeId": 86,
+		"nodes": {
+			"1": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "UNION\n\nThe Union node creates an union of two or more shapes. \nThe smoothing mode and input amount can be set in the node panel.\nThe default is 2 but up to 25 shapes can be unified at once."
+					}
+				},
+				"bounds": {
+					"height": 135.0641937255859375,
+					"width": 548.0394287109375,
+					"x": -26.6552886962890625,
+					"y": 342.59326171875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"68": {
+				"attributes": {
+					"input0-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input1-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"size": {
+						"type": "integer",
+						"value": 2
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 238.8569488525390625,
+					"y": 636.5205078125
+				},
+				"class": {
+					"id": "77697265-d619-42bf-b61d-4c9a7dcd6c2a",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input0": {
+						"type": "procedural",
+						"value": null
+					},
+					"input1": {
+						"type": "procedural",
+						"value": null
+					},
+					"smoothing": {
+						"type": "float",
+						"value": 0.5322001576423645
+					}
+				},
+				"hidden": [
+					"size",
+					"input0-dimensions",
+					"input1-dimensions"
+				],
+				"name": "Union",
+				"thumbnail_visible": true
+			},
+			"69": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": -1.06366539001464844,
+					"y": 636.5205078125
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.5
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle",
+				"thumbnail_visible": true
+			},
+			"70": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": -1.06366539001464844,
+					"y": 726.1011962890625
+				},
+				"class": {
+					"id": "77697265-ad7a-4f41-8d67-643bf49f2ea4",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"begin": {
+						"type": "float2",
+						"value": [
+							-0.5,
+							0
+						]
+					},
+					"end": {
+						"type": "float2",
+						"value": [
+							0.5,
+							0
+						]
+					},
+					"thickness": {
+						"type": "float",
+						"value": 0.02500000037252903
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Line",
+				"thumbnail_visible": true
+			},
+			"71": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 467.0931396484375,
+					"y": 640.415283203125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"72": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 105,
+					"width": 195,
+					"x": -0.802764892578125,
+					"y": 1051.0128173828125
+				},
+				"class": {
+					"id": "77697265-4db6-4573-8aa7-42362bc44931",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"height": {
+						"type": "float",
+						"value": 0.30000001192092896
+					},
+					"round": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"width": {
+						"type": "float",
+						"value": 0.30000001192092896
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Rectangle",
+				"thumbnail_visible": true
+			},
+			"73": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 4
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 233.1708831787109375,
+					"y": 1051.0128173828125
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"input-type",
+					"translation-type",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": true
+			},
+			"75": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 2
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 2
+					},
+					"type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 105,
+					"width": 195,
+					"x": -0.802764892578125,
+					"y": 1180.4654541015625
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"size": {
+						"type": "float2",
+						"value": [
+							0.25,
+							0.25
+						]
+					}
+				},
+				"hidden": [
+					"type",
+					"flow"
+				],
+				"name": "Grid Pattern",
+				"thumbnail_visible": true
+			},
+			"81": {
+				"attributes": {
+					"dimensions": {
+						"type": "integer",
+						"value": 4
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"type": {
+						"type": "type",
+						"value": "procedural"
+					}
+				},
+				"bounds": {
+					"height": 129,
+					"width": 195,
+					"x": 451.4505615234375,
+					"y": 1051.6014404296875
+				},
+				"class": {
+					"id": "77697265-3732-42da-883e-b641d4a49224",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"type",
+					"flow",
+					"dimensions"
+				],
+				"name": "Split",
+				"thumbnail_visible": true
+			},
+			"82": {
+				"attributes": {
+					"input0-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input1-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input2-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input3-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"size": {
+						"type": "integer",
+						"value": 4
+					}
+				},
+				"bounds": {
+					"height": 153,
+					"width": 195,
+					"x": 702.6845703125,
+					"y": 1051.6014404296875
+				},
+				"class": {
+					"id": "77697265-d619-42bf-b61d-4c9a7dcd6c2a",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input0": {
+						"type": "procedural",
+						"value": null
+					},
+					"input1": {
+						"type": "procedural",
+						"value": null
+					},
+					"input2": {
+						"type": "procedural",
+						"value": null
+					},
+					"input3": {
+						"type": "procedural",
+						"value": null
+					},
+					"smoothing": {
+						"type": "float",
+						"value": 0.33070710301399231
+					}
+				},
+				"hidden": [
+					"mode",
+					"size",
+					"input0-dimensions",
+					"input1-dimensions",
+					"input2-dimensions",
+					"input3-dimensions"
+				],
+				"name": "Union",
+				"thumbnail_visible": true
+			},
+			"83": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 925.1500244140625,
+					"y": 1052.052001953125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"84": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 1: UNION OF CIRCLE & LINE\n\nIn this example we are creating a union from a Circle and Line shape."
+					}
+				},
+				"bounds": {
+					"height": 394.71844482421875,
+					"width": 703.41485595703125,
+					"x": -28.74086570739746094,
+					"y": 500.05426025390625
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"85": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 2: UNION OF MULTIPLE SHAPES\n\nIn this example we are creating a union from 4 rectangles placed in a grid."
+					}
+				},
+				"bounds": {
+					"height": 417.6683349609375,
+					"width": 1100.8651123046875,
+					"x": -28.74086570739746094,
+					"y": 912.99835205078125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": -99.36956787109375,
+				"y": 252.31524658203125,
+				"zoom": 0.82104253768920898
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": [
+					null,
+					null
+				]
+			}
+		},
+		"deviceConnections": {
+			"input": {}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null,
+					"Syphon": null
+				}
+			}
+		}
+	}
+}

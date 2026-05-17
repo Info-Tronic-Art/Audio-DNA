@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v2 — Design 09: Command Palette</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0d0d0d; font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; color: #e0e0e0; font-size: 11px; }
+
+/* ═══════════════════ TOP BAR 28px ═══════════════════ */
+.topbar { height: 28px; background: #111111; display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid #222; gap: 6px; }
+.topbar-section { display: flex; align-items: center; gap: 5px; }
+.topbar-divider { width: 1px; height: 16px; background: #333; margin: 0 4px; }
+.topbar .btn { height: 20px; padding: 0 7px; background: #1a1a1a; border: 1px solid #333; color: #e0e0e0; font-size: 10px; cursor: pointer; display: flex; align-items: center; gap: 3px; }
+.topbar .btn:hover { border-color: #00d9ff; }
+.topbar .btn.active { background: #00d9ff22; border-color: #00d9ff; color: #00d9ff; }
+.topbar .label { color: #888; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+.topbar .value { color: #e0e0e0; font-size: 11px; font-weight: 600; }
+.topbar .value.cyan { color: #00d9ff; }
+.bpm-display { background: #1a1a1a; border: 1px solid #333; padding: 2px 6px; font-size: 13px; font-weight: 700; color: #00d9ff; min-width: 52px; text-align: center; }
+
+/* Beat wheel */
+.beat-wheel { width: 20px; height: 20px; position: relative; }
+.beat-wheel svg { width: 20px; height: 20px; }
+.beat-segment { fill: none; stroke: #333; stroke-width: 2.5; }
+.beat-segment.active { stroke: #00d9ff; }
+.bar-readout { font-size: 9px; color: #888; }
+
+/* Transport */
+.transport-btns { display: flex; gap: 2px; }
+.transport-btns .btn { width: 22px; padding: 0; justify-content: center; font-size: 11px; }
+.transport-btns .btn.play { color: #4f4; border-color: #4f4; background: #4f422; }
+
+/* FPS */
+.fps { color: #4f4; font-size: 10px; font-weight: 600; }
+
+/* Cmd hint */
+.cmd-hint { display: flex; align-items: center; gap: 4px; background: #1a1a1a; border: 1px solid #333; padding: 2px 8px; height: 20px; color: #666; font-size: 10px; cursor: pointer; }
+.cmd-hint .icon { color: #00d9ff; font-size: 12px; }
+.cmd-hint kbd { background: #252525; border: 1px solid #444; padding: 0 4px; font-size: 9px; color: #999; font-family: inherit; }
+
+.topbar-spacer { flex: 1; }
+
+/* ═══════════════════ MAIN LAYOUT ═══════════════════ */
+.main { display: flex; height: calc(1080px - 28px); }
+
+/* LEFT: Deck 55% */
+.deck-panel { width: 55%; display: flex; flex-direction: column; border-right: 1px solid #222; }
+
+/* RIGHT: 45% */
+.right-panel { width: 45%; display: flex; flex-direction: column; }
+
+/* Preview */
+.preview-area { height: 50%; border-bottom: 1px solid #222; position: relative; display: flex; align-items: center; justify-content: center; background: #0a0a0a; }
+.preview-canvas { width: 100%; height: 100%; background: radial-gradient(ellipse at 45% 40%, #1a0030 0%, #0a0020 30%, #050015 60%, #000 100%); position: relative; overflow: hidden; }
+/* Fractal-like visual */
+.preview-canvas::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 48% 42%, rgba(100,0,255,0.6) 0%, rgba(0,100,255,0.3) 20%, transparent 50%), radial-gradient(circle at 55% 55%, rgba(255,0,100,0.4) 0%, rgba(200,0,50,0.2) 15%, transparent 40%), radial-gradient(circle at 40% 60%, rgba(0,200,255,0.3) 0%, transparent 30%); }
+.preview-canvas::after { content: ''; position: absolute; inset: 0; background: repeating-conic-gradient(from 0deg at 48% 42%, rgba(128,0,255,0.15) 0deg, transparent 3deg, rgba(0,128,255,0.1) 6deg, transparent 9deg); }
+.preview-label { position: absolute; top: 6px; left: 8px; font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Context panel */
+.context-panel { height: 50%; display: flex; flex-direction: column; background: #111; }
+.context-tabs { display: flex; height: 24px; background: #0d0d0d; border-bottom: 1px solid #222; }
+.context-tab { padding: 0 12px; font-size: 10px; color: #888; display: flex; align-items: center; cursor: pointer; border-bottom: 2px solid transparent; }
+.context-tab.active { color: #00d9ff; border-bottom-color: #00d9ff; }
+.context-body { flex: 1; overflow-y: auto; padding: 6px; }
+
+/* ═══════════════════ DECK ═══════════════════ */
+.deck-header { height: 22px; display: flex; align-items: center; background: #111; border-bottom: 1px solid #222; padding: 0 6px; gap: 4px; }
+.deck-tab { padding: 2px 10px; font-size: 10px; color: #888; cursor: pointer; background: #1a1a1a; border: 1px solid #333; }
+.deck-tab.active { color: #00d9ff; border-color: #00d9ff; background: #00d9ff11; }
+
+.deck-grid { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Layer row */
+.layer-row { display: flex; border-bottom: 1px solid #1a1a1a; }
+.layer-strip { width: 160px; min-width: 160px; background: #111; border-right: 1px solid #222; padding: 4px 5px; display: flex; flex-direction: column; justify-content: space-between; }
+.layer-name { font-size: 10px; font-weight: 600; color: #e0e0e0; display: flex; align-items: center; gap: 4px; }
+.layer-type-badge { font-size: 8px; padding: 1px 4px; background: #1a1a1a; border: 1px solid #444; color: #aaa; text-transform: uppercase; }
+.layer-type-badge.opaque { border-color: #00d9ff44; color: #00d9ff; }
+.layer-type-badge.transparent { border-color: #ff990044; color: #ff9900; }
+.layer-type-badge.fxonly { border-color: #ff00ff44; color: #ff00ff; }
+.layer-controls { display: flex; align-items: center; gap: 3px; margin-top: 2px; }
+.layer-controls .mini-btn { width: 16px; height: 14px; background: #1a1a1a; border: 1px solid #333; color: #888; font-size: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.layer-controls .mini-btn.active { color: #00d9ff; border-color: #00d9ff; }
+.layer-controls .mini-btn.solo { color: #ff0; border-color: #ff0; }
+.layer-controls .mini-btn.mute { color: #f44; border-color: #f44; }
+.layer-opacity { width: 50px; height: 4px; background: #333; margin-left: auto; position: relative; }
+.layer-opacity-fill { height: 100%; background: #00d9ff; }
+.layer-opacity-val { font-size: 8px; color: #888; margin-left: 3px; }
+.layer-blend { font-size: 8px; color: #666; margin-top: 1px; }
+
+/* Cells */
+.cells-row { display: flex; flex: 1; overflow-x: auto; }
+.cell { width: 85px; min-width: 85px; height: 62px; border-right: 1px solid #1a1a1a; position: relative; cursor: pointer; overflow: hidden; }
+.cell:hover { outline: 1px solid #00d9ff44; outline-offset: -1px; }
+.cell.active { outline: 2px solid #00d9ff; outline-offset: -2px; }
+.cell.selected { outline: 1px solid #fff; outline-offset: -1px; }
+.cell-thumb { width: 100%; height: 100%; object-fit: cover; }
+.cell-bg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.cell-label { position: absolute; bottom: 1px; left: 2px; font-size: 7px; color: #999; text-shadow: 0 1px 2px #000; max-width: 80px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cell-playing { position: absolute; top: 2px; right: 2px; width: 5px; height: 5px; background: #4f4; border-radius: 50%; }
+.cell-fx-dots { position: absolute; top: 2px; left: 2px; display: flex; gap: 2px; }
+.cell-fx-dot { width: 4px; height: 4px; background: #00d9ff; border-radius: 50%; }
+
+/* Column triggers */
+.col-triggers { display: flex; padding-left: 160px; border-bottom: 1px solid #222; background: #0d0d0d; }
+.col-trigger { width: 85px; min-width: 85px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 7px; color: #555; border-right: 1px solid #1a1a1a; cursor: pointer; }
+.col-trigger:hover { color: #00d9ff; background: #00d9ff11; }
+.col-trigger.active { color: #00d9ff; background: #00d9ff22; }
+
+/* Waveform + spectrum below deck */
+.deck-footer { height: 32px; display: flex; background: #0d0d0d; border-top: 1px solid #222; }
+.waveform-mini { flex: 1; position: relative; overflow: hidden; }
+.waveform-mini canvas, .spectrum-mini canvas { display: block; }
+
+/* ═══════════════════ INSPECTOR (context panel content) ═══════════════════ */
+.inspector-section { margin-bottom: 6px; }
+.inspector-section-header { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.8px; padding: 4px 6px; background: #0d0d0d; border: 1px solid #1a1a1a; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.inspector-section-header .toggle { color: #555; font-size: 8px; }
+.inspector-section-body { padding: 4px 6px; }
+
+/* Param rows */
+.param-row { display: flex; align-items: center; height: 18px; margin-bottom: 2px; }
+.param-label { width: 90px; font-size: 9px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.param-slider-track { flex: 1; height: 4px; background: #333; position: relative; cursor: pointer; margin: 0 6px; }
+.param-slider-fill { height: 100%; background: #00d9ff; }
+.param-slider-handle { position: absolute; top: -4px; width: 2px; height: 12px; background: #fff; }
+.param-value { width: 32px; font-size: 9px; color: #ccc; text-align: right; }
+.param-signal { width: 10px; height: 10px; margin-left: 3px; cursor: pointer; }
+.param-signal svg { width: 10px; height: 10px; }
+
+/* Effect stack */
+.fx-stack-item { display: flex; align-items: center; height: 20px; padding: 0 4px; background: #1a1a1a; border: 1px solid #222; margin-bottom: 1px; }
+.fx-stack-item .fx-bypass { width: 14px; height: 14px; background: none; border: 1px solid #444; color: #888; font-size: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 4px; }
+.fx-stack-item .fx-bypass.active { color: #00d9ff; border-color: #00d9ff; }
+.fx-stack-item .fx-name { flex: 1; font-size: 10px; color: #e0e0e0; }
+.fx-stack-item .fx-delete { width: 14px; height: 14px; background: none; border: none; color: #555; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.fx-stack-item .fx-delete:hover { color: #f44; }
+
+/* ═══════════════════ COMMAND PALETTE OVERLAY ═══════════════════ */
+.palette-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; flex-direction: column; align-items: center; padding-top: 200px; }
+.palette-box { width: 600px; background: #151515; border: 1px solid #333; box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 1px rgba(0,217,255,0.3); }
+.palette-input-wrap { padding: 8px 12px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 8px; }
+.palette-icon { color: #00d9ff; font-size: 16px; }
+.palette-input { flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 16px; font-family: inherit; font-weight: 300; caret-color: #00d9ff; }
+.palette-input::placeholder { color: #555; }
+.palette-hint { font-size: 10px; color: #555; }
+
+.palette-results { max-height: 320px; overflow-y: auto; }
+.palette-section { padding: 6px 12px 2px; font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+
+.palette-result { display: flex; align-items: center; padding: 8px 12px; cursor: pointer; border-left: 3px solid transparent; gap: 10px; }
+.palette-result:hover { background: #1a1a1a; }
+.palette-result.selected { background: #1a1a1a; border-left-color: #00d9ff; }
+.palette-result-badge { padding: 2px 6px; font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; min-width: 44px; text-align: center; }
+.badge-warp { background: #00d9ff22; color: #00d9ff; border: 1px solid #00d9ff44; }
+.badge-glitch { background: #ff004422; color: #ff4444; border: 1px solid #ff444444; }
+.badge-blend { background: #44ff4422; color: #44ff44; border: 1px solid #44ff4444; }
+.badge-composite { background: #ff990022; color: #ff9900; border: 1px solid #ff990044; }
+.badge-source { background: #aa44ff22; color: #aa44ff; border: 1px solid #aa44ff44; }
+.badge-action { background: #ffff0022; color: #ffff44; border: 1px solid #ffff4444; }
+.badge-color { background: #ff44ff22; color: #ff44ff; border: 1px solid #ff44ff44; }
+
+.palette-result-text { flex: 1; }
+.palette-result-name { font-size: 13px; color: #e0e0e0; font-weight: 500; }
+.palette-result-desc { font-size: 10px; color: #666; margin-top: 1px; }
+.palette-result-shortcut { font-size: 9px; color: #444; font-family: monospace; }
+
+.palette-footer { padding: 6px 12px; border-top: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+.palette-footer-hint { font-size: 9px; color: #444; display: flex; gap: 12px; }
+.palette-footer-hint kbd { background: #1a1a1a; border: 1px solid #333; padding: 1px 4px; font-size: 8px; color: #666; }
+.palette-categories { display: flex; gap: 8px; }
+.palette-cat { font-size: 8px; color: #444; }
+.palette-cat span { color: #666; }
+
+/* ═══════════════════ GENERATED CONTENT ═══════════════════ */
+/* Source cell backgrounds */
+.src-mandelbrot { background: radial-gradient(circle at 40% 50%, #1a0040 0%, #0a0020 40%, #050010 70%, #000 100%); }
+.src-julia { background: radial-gradient(circle at 55% 45%, #003040 0%, #001520 40%, #000a10 70%, #000 100%); }
+.src-perlin { background: linear-gradient(135deg, #1a1a0a 0%, #0d0d05 50%, #1a1a0a 100%); }
+.src-kaleidoscope { background: conic-gradient(from 0deg, #200030, #003020, #302000, #200030); }
+.src-torus { background: radial-gradient(ellipse at 50% 40%, #2a1540 0%, #150a20 40%, #0a0510 70%, #000 100%); }
+.src-particles { background: radial-gradient(circle at 30% 60%, #001a1a 0%, #000d0d 50%, #000 100%); }
+.src-fluid { background: linear-gradient(45deg, #1a0020 0%, #001020 50%, #100020 100%); }
+.src-spectrum { background: linear-gradient(0deg, #001a00 0%, #001a1a 30%, #1a001a 60%, #1a0000 100%); }
+.img-cell1 { background: linear-gradient(180deg, #1a1020 0%, #201020 50%, #0a0510 100%); }
+.img-cell2 { background: linear-gradient(135deg, #0a1a20 0%, #102030 50%, #0a1020 100%); }
+.img-cell3 { background: linear-gradient(45deg, #201010 0%, #301510 50%, #100a05 100%); }
+.img-cell4 { background: linear-gradient(180deg, #0a0a1a 0%, #15102a 50%, #0a0a10 100%); }
+.img-cell5 { background: linear-gradient(225deg, #1a1a0a 0%, #20200a 50%, #0a0a05 100%); }
+.img-cell6 { background: radial-gradient(circle, #201520 0%, #100a10 50%, #050505 100%); }
+.empty-cell { background: #0d0d0d; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0d0d0d; }
+::-webkit-scrollbar-thumb { background: #333; }
+
+/* Waveform SVG styling */
+.waveform-svg { width: 100%; height: 100%; }
+.waveform-line { fill: none; stroke: #00d9ff; stroke-width: 1; opacity: 0.8; }
+.spectrum-bar { fill: #00d9ff; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ TOP BAR ═══════════════════ -->
+<div class="topbar">
+  <div class="topbar-section">
+    <div class="btn active">System Audio</div>
+    <div class="btn">Mic</div>
+    <div class="btn">File</div>
+  </div>
+  <div class="topbar-divider"></div>
+
+  <div class="topbar-section">
+    <span class="label">BPM</span>
+    <div class="bpm-display">128.0</div>
+    <div class="beat-wheel">
+      <svg viewBox="0 0 20 20">
+        <path d="M10 2 A8 8 0 0 1 18 10" class="beat-segment active"/>
+        <path d="M18 10 A8 8 0 0 1 10 18" class="beat-segment active"/>
+        <path d="M10 18 A8 8 0 0 1 2 10" class="beat-segment"/>
+        <path d="M2 10 A8 8 0 0 1 10 2" class="beat-segment"/>
+      </svg>
+    </div>
+    <span class="bar-readout">Bar 3/8</span>
+    <div class="btn active">Manual</div>
+  </div>
+  <div class="topbar-divider"></div>
+
+  <div class="topbar-section transport-btns">
+    <div class="btn" style="font-size:9px;">|&lt;</div>
+    <div class="btn play">&#9654;</div>
+    <div class="btn">&#9724;</div>
+  </div>
+  <div class="topbar-divider"></div>
+
+  <div class="topbar-section">
+    <span class="label">Master</span>
+    <div style="width:60px;height:4px;background:#333;position:relative;">
+      <div style="width:85%;height:100%;background:#e0e0e0;"></div>
+    </div>
+    <span class="value" style="font-size:9px;">85%</span>
+  </div>
+  <div class="topbar-divider"></div>
+
+  <div class="topbar-section">
+    <div class="btn">Fullscreen</div>
+    <div class="btn active" style="color:#4f4;border-color:#4f4;">Record</div>
+  </div>
+
+  <div class="topbar-spacer"></div>
+
+  <div class="topbar-section">
+    <span class="fps">60.0 fps</span>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="cmd-hint">
+    <span class="icon">&#9906;</span>
+    <span>Commands</span>
+    <kbd>Ctrl</kbd>+<kbd>Space</kbd>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<div class="main">
+
+  <!-- LEFT: DECK PANEL (55%) -->
+  <div class="deck-panel">
+    <div class="deck-header">
+      <div class="deck-tab active">Deck A</div>
+      <div class="deck-tab">Deck B</div>
+      <div class="deck-tab">Deck C</div>
+      <div style="flex:1"></div>
+      <div class="btn" style="height:16px;font-size:9px;padding:0 5px;">+ Layer</div>
+    </div>
+
+    <!-- Column triggers -->
+    <div class="col-triggers">
+      <div class="col-trigger active">1</div>
+      <div class="col-trigger">2</div>
+      <div class="col-trigger">3</div>
+      <div class="col-trigger">4</div>
+      <div class="col-trigger">5</div>
+      <div class="col-trigger">6</div>
+      <div class="col-trigger">7</div>
+      <div class="col-trigger">8</div>
+      <div class="col-trigger">9</div>
+      <div class="col-trigger">10</div>
+      <div class="col-trigger">11</div>
+      <div class="col-trigger">12</div>
+    </div>
+
+    <div class="deck-grid">
+      <!-- LAYER 1: Opaque -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div>
+            <div class="layer-name">
+              Layer 1
+              <span class="layer-type-badge opaque">Opaque</span>
+            </div>
+            <div class="layer-blend">Blend: Normal</div>
+          </div>
+          <div class="layer-controls">
+            <div class="mini-btn active">B</div>
+            <div class="mini-btn solo">S</div>
+            <div class="mini-btn">M</div>
+            <div class="mini-btn active">A</div>
+            <div class="layer-opacity"><div class="layer-opacity-fill" style="width:100%"></div></div>
+            <span class="layer-opacity-val">100</span>
+          </div>
+        </div>
+        <div class="cells-row">
+          <div class="cell active">
+            <div class="cell-bg src-mandelbrot"></div>
+            <div class="cell-playing"></div>
+            <div class="cell-fx-dots"><div class="cell-fx-dot"></div><div class="cell-fx-dot"></div></div>
+            <div class="cell-label">Mandelbrot</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg src-julia"></div>
+            <div class="cell-fx-dots"><div class="cell-fx-dot"></div></div>
+            <div class="cell-label">Julia Set</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg img-cell1"></div>
+            <div class="cell-label">nebula_01.jpg</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg src-kaleidoscope"></div>
+            <div class="cell-label">Kaleidoscopic</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg img-cell2"></div>
+            <div class="cell-fx-dots"><div class="cell-fx-dot"></div></div>
+            <div class="cell-label">city_night.png</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg src-torus"></div>
+            <div class="cell-label">Spiral Torus</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg img-cell3"></div>
+            <div class="cell-label">abstract_02.jpg</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg src-fluid"></div>
+            <div class="cell-label">Fluid Dynamics</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg img-cell4"></div>
+            <div class="cell-label">scan_grid.png</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 2: Transparent -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div>
+            <div class="layer-name">
+              Layer 2
+              <span class="layer-type-badge transparent">Transparent</span>
+            </div>
+            <div class="layer-blend">Blend: Screen</div>
+          </div>
+          <div class="layer-controls">
+            <div class="mini-btn active">B</div>
+            <div class="mini-btn">S</div>
+            <div class="mini-btn">M</div>
+            <div class="mini-btn">A</div>
+            <div class="layer-opacity"><div class="layer-opacity-fill" style="width:72%"></div></div>
+            <span class="layer-opacity-val">72</span>
+          </div>
+        </div>
+        <div class="cells-row">
+          <div class="cell">
+            <div class="cell-bg src-particles"></div>
+            <div class="cell-playing"></div>
+            <div class="cell-label">Gravity Well</div>
+          </div>
+          <div class="cell selected">
+            <div class="cell-bg src-spectrum"></div>
+            <div class="cell-fx-dots"><div class="cell-fx-dot"></div><div class="cell-fx-dot"></div><div class="cell-fx-dot"></div></div>
+            <div class="cell-label">Spectral Ring</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg img-cell5"></div>
+            <div class="cell-label">overlay_tex.png</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg src-perlin"></div>
+            <div class="cell-label">Perlin Noise</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg img-cell6"></div>
+            <div class="cell-label">smoke_loop.mp4</div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg empty-cell"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 3: FX Only -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div>
+            <div class="layer-name">
+              Layer 3
+              <span class="layer-type-badge fxonly">FX Only</span>
+            </div>
+            <div class="layer-blend">Blend: Add</div>
+          </div>
+          <div class="layer-controls">
+            <div class="mini-btn active">B</div>
+            <div class="mini-btn">S</div>
+            <div class="mini-btn">M</div>
+            <div class="mini-btn active">A</div>
+            <div class="layer-opacity"><div class="layer-opacity-fill" style="width:55%"></div></div>
+            <span class="layer-opacity-val">55</span>
+          </div>
+        </div>
+        <div class="cells-row">
+          <div class="cell">
+            <div class="cell-bg" style="background:#111;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:8px;color:#ff00ff;">Echo+Ripple</span>
+            </div>
+            <div class="cell-playing"></div>
+            <div class="cell-fx-dots"><div class="cell-fx-dot"></div><div class="cell-fx-dot"></div></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg" style="background:#111;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:8px;color:#ff00ff;">Glitch Set</span>
+            </div>
+            <div class="cell-fx-dots"><div class="cell-fx-dot"></div><div class="cell-fx-dot"></div><div class="cell-fx-dot"></div></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg" style="background:#111;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:8px;color:#ff00ff;">Color Flash</span>
+            </div>
+            <div class="cell-fx-dots"><div class="cell-fx-dot"></div></div>
+          </div>
+          <div class="cell">
+            <div class="cell-bg" style="background:#111;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:8px;color:#ff00ff;">Freeze+Stutter</span>
+            </div>
+            <div class="cell-fx-dots"><div class="cell-fx-dot"></div><div class="cell-fx-dot"></div></div>
+          </div>
+          <div class="cell"><div class="cell-bg empty-cell"></div></div>
+          <div class="cell"><div class="cell-bg empty-cell"></div></div>
+          <div class="cell"><div class="cell-bg empty-cell"></div></div>
+          <div class="cell"><div class="cell-bg empty-cell"></div></div>
+          <div class="cell"><div class="cell-bg empty-cell"></div></div>
+          <div class="cell"><div class="cell-bg empty-cell"></div></div>
+          <div class="cell"><div class="cell-bg empty-cell"></div></div>
+          <div class="cell"><div class="cell-bg empty-cell"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Waveform + Spectrum footer -->
+    <div class="deck-footer">
+      <div class="waveform-mini">
+        <svg class="waveform-svg" viewBox="0 0 1056 32" preserveAspectRatio="none">
+          <polyline class="waveform-line" points="0,16 10,12 20,18 30,8 40,22 50,6 60,24 70,10 80,20 90,14 100,18 110,8 120,26 130,4 140,24 150,12 160,16 170,10 180,22 190,6 200,20 210,14 220,18 230,10 240,24 250,8 260,22 270,12 280,16 290,10 300,20 310,6 320,26 330,8 340,18 350,14 360,20 370,10 380,22 390,8 400,24 410,12 420,16 430,14 440,18 450,10 460,22 470,6 480,24 490,12 500,20 510,8 520,16 530,14 540,22 550,6 560,26 570,10 580,18 590,12 600,20 610,8 620,16 630,14 640,22 650,6 660,24 670,10 680,20 690,14 700,16 710,8 720,24 730,6 740,22 750,12 760,18 770,10 780,20 790,14 800,16 810,8 820,24 830,6 840,22 850,12 860,18 870,10 880,22 890,14 900,16 910,8 920,24 930,6 940,20 950,12 960,18 970,10 980,22 990,14 1000,16 1010,12 1020,18 1030,10 1040,20 1056,16"/>
+        </svg>
+      </div>
+      <div style="width:1px;background:#222;"></div>
+      <div style="width:180px;display:flex;align-items:flex-end;justify-content:center;gap:2px;padding:2px 4px;">
+        <div style="width:18px;height:28px;background:#00d9ff;opacity:0.9;"></div>
+        <div style="width:18px;height:22px;background:#00d9ff;opacity:0.8;"></div>
+        <div style="width:18px;height:14px;background:#00d9ff;opacity:0.7;"></div>
+        <div style="width:18px;height:10px;background:#00d9ff;opacity:0.6;"></div>
+        <div style="width:18px;height:16px;background:#00d9ff;opacity:0.7;"></div>
+        <div style="width:18px;height:8px;background:#00d9ff;opacity:0.5;"></div>
+        <div style="width:18px;height:4px;background:#00d9ff;opacity:0.4;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL (45%) -->
+  <div class="right-panel">
+
+    <!-- PREVIEW -->
+    <div class="preview-area">
+      <div class="preview-canvas">
+        <span class="preview-label">Output Preview</span>
+        <!-- Fractal visual rendered via CSS gradients -->
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 46% 38%, rgba(120,40,220,0.7) 0%, rgba(60,20,140,0.5) 12%, transparent 35%);"></div>
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 52% 48%, rgba(0,180,255,0.4) 0%, transparent 25%);"></div>
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 44% 55%, rgba(255,60,120,0.3) 0%, transparent 20%);"></div>
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 60% 35%, rgba(80,0,200,0.5) 0%, rgba(40,0,120,0.3) 8%, transparent 20%);"></div>
+        <!-- Spiral lines suggestion -->
+        <div style="position:absolute;inset:0;background:repeating-conic-gradient(from 30deg at 48% 42%, rgba(100,50,200,0.2) 0deg, transparent 2deg, rgba(0,150,255,0.1) 4deg, transparent 6deg);mix-blend-mode:screen;"></div>
+      </div>
+    </div>
+
+    <!-- CONTEXT PANEL (Inspector) -->
+    <div class="context-panel">
+      <div class="context-tabs">
+        <div class="context-tab active">Clip</div>
+        <div class="context-tab">Layer</div>
+        <div class="context-tab">Composition</div>
+        <div class="context-tab">Signal</div>
+        <div class="context-tab">Browser</div>
+        <div style="flex:1;"></div>
+        <div class="context-tab" style="color:#555;">Spectral Ring &mdash; L2 C2</div>
+      </div>
+      <div class="context-body">
+
+        <!-- Source section -->
+        <div class="inspector-section">
+          <div class="inspector-section-header">
+            Source: Spectral Ring
+            <span class="toggle">&#9660;</span>
+          </div>
+          <div class="inspector-section-body">
+            <div class="param-row">
+              <span class="param-label">Ring Count</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:60%"></div><div class="param-slider-handle" style="left:60%"></div></div>
+              <span class="param-value">6</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#333"/></svg></span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Ring Radius</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:45%"></div><div class="param-slider-handle" style="left:45%"></div></div>
+              <span class="param-value">0.45</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#00d9ff"/></svg></span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Color Shift</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:30%"></div><div class="param-slider-handle" style="left:30%"></div></div>
+              <span class="param-value">0.30</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#333"/></svg></span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Speed</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:55%"></div><div class="param-slider-handle" style="left:55%"></div></div>
+              <span class="param-value">0.55</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#333"/></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clip Effects -->
+        <div class="inspector-section">
+          <div class="inspector-section-header">
+            Clip Effects (3)
+            <span class="toggle">&#9660;</span>
+          </div>
+          <div class="inspector-section-body">
+            <div class="fx-stack-item">
+              <div class="fx-bypass active">B</div>
+              <span class="fx-name">Hue Shift</span>
+              <span class="fx-delete">X</span>
+            </div>
+            <div style="padding: 2px 4px 4px 22px;">
+              <div class="param-row">
+                <span class="param-label">Amount</span>
+                <div class="param-slider-track"><div class="param-slider-fill" style="width:70%"></div><div class="param-slider-handle" style="left:70%"></div></div>
+                <span class="param-value">0.70</span>
+                <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#00d9ff"/></svg></span>
+              </div>
+            </div>
+            <div class="fx-stack-item">
+              <div class="fx-bypass active">B</div>
+              <span class="fx-name">Ripple</span>
+              <span class="fx-delete">X</span>
+            </div>
+            <div class="fx-stack-item">
+              <div class="fx-bypass" style="color:#555;">B</div>
+              <span class="fx-name" style="color:#666;">Scanlines</span>
+              <span class="fx-delete">X</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transform -->
+        <div class="inspector-section">
+          <div class="inspector-section-header">
+            Transform
+            <span class="toggle">&#9660;</span>
+          </div>
+          <div class="inspector-section-body">
+            <div class="param-row">
+              <span class="param-label">Position X</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:50%"></div><div class="param-slider-handle" style="left:50%"></div></div>
+              <span class="param-value">0.00</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#333"/></svg></span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Position Y</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:50%"></div><div class="param-slider-handle" style="left:50%"></div></div>
+              <span class="param-value">0.00</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#333"/></svg></span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Scale</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:50%"></div><div class="param-slider-handle" style="left:50%"></div></div>
+              <span class="param-value">1.00</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#333"/></svg></span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Rotation</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:50%"></div><div class="param-slider-handle" style="left:50%"></div></div>
+              <span class="param-value">0.0&deg;</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#333"/></svg></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video section -->
+        <div class="inspector-section">
+          <div class="inspector-section-header">
+            Video
+            <span class="toggle">&#9660;</span>
+          </div>
+          <div class="inspector-section-body">
+            <div class="param-row">
+              <span class="param-label">Opacity</span>
+              <div class="param-slider-track"><div class="param-slider-fill" style="width:100%"></div><div class="param-slider-handle" style="left:100%"></div></div>
+              <span class="param-value">1.00</span>
+              <span class="param-signal"><svg viewBox="0 0 10 10"><polygon points="5,0 10,10 0,10" fill="#333"/></svg></span>
+            </div>
+            <div class="param-row">
+              <span class="param-label">Blend Mode</span>
+              <span style="font-size:9px;color:#ccc;margin-left:auto;">Screen</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════ COMMAND PALETTE OVERLAY ═══════════════════ -->
+<div class="palette-overlay">
+  <div class="palette-box">
+    <div class="palette-input-wrap">
+      <span class="palette-icon">&#9906;</span>
+      <input class="palette-input" type="text" value="add r" placeholder="Type a command..." readonly>
+      <span class="palette-hint">Esc to close</span>
+    </div>
+
+    <div class="palette-results">
+      <div class="palette-section">Effects</div>
+
+      <div class="palette-result selected">
+        <span class="palette-result-badge badge-warp">Warp</span>
+        <div class="palette-result-text">
+          <div class="palette-result-name">Ripple</div>
+          <div class="palette-result-desc">UV distortion via sin(dist * freq + time) &mdash; classic water ripple</div>
+        </div>
+        <span class="palette-result-shortcut">Adds to L2 C2</span>
+      </div>
+
+      <div class="palette-result">
+        <span class="palette-result-badge badge-glitch">Glitch</span>
+        <div class="palette-result-text">
+          <div class="palette-result-name">RGB Split</div>
+          <div class="palette-result-desc">Directional RGB channel offset &mdash; chromatic separation</div>
+        </div>
+        <span class="palette-result-shortcut">Adds to L2 C2</span>
+      </div>
+
+      <div class="palette-result">
+        <span class="palette-result-badge badge-blend">Blend</span>
+        <div class="palette-result-text">
+          <div class="palette-result-name">Rain on Glass</div>
+          <div class="palette-result-desc">Animated rain droplets with refraction distortion</div>
+        </div>
+        <span class="palette-result-shortcut">Adds to L2 C2</span>
+      </div>
+
+      <div class="palette-result">
+        <span class="palette-result-badge badge-composite">Composite</span>
+        <div class="palette-result-text">
+          <div class="palette-result-name">Radial Cloner</div>
+          <div class="palette-result-desc">Duplicate image in radial arrangement around center</div>
+        </div>
+        <span class="palette-result-shortcut">Adds to L2 C2</span>
+      </div>
+
+      <div class="palette-section">Sources</div>
+
+      <div class="palette-result">
+        <span class="palette-result-badge badge-source">Source</span>
+        <div class="palette-result-text">
+          <div class="palette-result-name">Random Walk</div>
+          <div class="palette-result-desc">Procedural random walk particle system</div>
+        </div>
+        <span class="palette-result-shortcut">New clip</span>
+      </div>
+
+      <div class="palette-section">Actions</div>
+
+      <div class="palette-result">
+        <span class="palette-result-badge badge-action">Action</span>
+        <div class="palette-result-text">
+          <div class="palette-result-name">Reset All Effects</div>
+          <div class="palette-result-desc">Remove all effects from current clip</div>
+        </div>
+        <span class="palette-result-shortcut">Ctrl+Shift+R</span>
+      </div>
+
+      <div class="palette-result">
+        <span class="palette-result-badge badge-action">Action</span>
+        <div class="palette-result-text">
+          <div class="palette-result-name">Record Session</div>
+          <div class="palette-result-desc">Start recording all parameter changes</div>
+        </div>
+        <span class="palette-result-shortcut">Ctrl+R</span>
+      </div>
+    </div>
+
+    <div class="palette-footer">
+      <div class="palette-footer-hint">
+        <span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> Navigate</span>
+        <span><kbd>Enter</kbd> Select</span>
+        <span><kbd>Tab</kbd> Category</span>
+        <span><kbd>Esc</kbd> Close</span>
+      </div>
+      <div class="palette-categories">
+        <div class="palette-cat"><span>add</span> effect</div>
+        <div class="palette-cat"><span>source</span> name</div>
+        <div class="palette-cat"><span>bind</span> target</div>
+        <div class="palette-cat"><span>set</span> param val</div>
+        <div class="palette-cat"><span>load</span> preset</div>
+        <div class="palette-cat"><span>output</span> display</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

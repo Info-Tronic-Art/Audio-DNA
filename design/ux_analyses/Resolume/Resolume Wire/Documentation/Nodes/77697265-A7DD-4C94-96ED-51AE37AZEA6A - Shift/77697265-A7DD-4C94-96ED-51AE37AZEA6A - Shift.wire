@@ -1,0 +1,962 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					78,
+					"output"
+				],
+				"to": [
+					79,
+					"input"
+				]
+			},
+			{
+				"from": [
+					80,
+					"output"
+				],
+				"to": [
+					73,
+					"offset"
+				]
+			},
+			{
+				"from": [
+					79,
+					"output0"
+				],
+				"to": [
+					82,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					82,
+					"output0"
+				],
+				"to": [
+					81,
+					"input"
+				]
+			},
+			{
+				"from": [
+					73,
+					"output0"
+				],
+				"to": [
+					76,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					74,
+					"pattern"
+				],
+				"to": [
+					73,
+					"container"
+				]
+			},
+			{
+				"from": [
+					77,
+					"pattern"
+				],
+				"to": [
+					76,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					76,
+					"output"
+				],
+				"to": [
+					79,
+					"translation"
+				]
+			}
+		],
+		"inputOrder": [],
+		"meta": {
+			"author": "Mark Buitenwerf",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"description": "Explains what this node does",
+			"displayName": "Shift Example",
+			"identifier": "105e2b5c-ec81-4f6b-90a9-470d43602812",
+			"licenseName": "",
+			"mail": "mail@resolume.com",
+			"originalTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 11,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "7.14.0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "www.resolume.com",
+			"vendor": "Resolume"
+		},
+		"nextNodeId": 85,
+		"nodes": {
+			"68": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "OUTLETS\n\n• Main\nThe shifted collection\n\n"
+					}
+				},
+				"bounds": {
+					"height": 398.759002685546875,
+					"width": 334,
+					"x": 184.8841552734375,
+					"y": 702.6724853515625
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"69": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "INLETS\n\n• Main\nThe collection you wish to shift.\n\n• Offset\nThe amount of shift you want."
+					}
+				},
+				"bounds": {
+					"height": 397.98046875,
+					"width": 312,
+					"x": -169.1978759765625,
+					"y": 702.6724853515625
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"71": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "SHIFT\nThe Shift node lets you shift the contents of a collection. Simply input your collection (for example an array) into the shift node an use the offset parameter to shift the collection around. The collection automatically wraps.\n\nExample: We shift the Linear array by using an saw oscillator on the offset of the shift node. "
+					}
+				},
+				"bounds": {
+					"height": 170.3124847412109375,
+					"width": 1046.9403076171875,
+					"x": -171.488311767578125,
+					"y": -62.7585906982421875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"73": {
+				"attributes": {
+					"container-dimensions": {
+						"type": "integer",
+						"value": 10
+					},
+					"container-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 77.856109619140625,
+					"y": 377.667633056640625
+				},
+				"class": {
+					"id": "77697265-A7DD-4C94-96ED-51AE37AZEA6A",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"container": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"offset": {
+						"type": "integer",
+						"value": -3
+					}
+				},
+				"hidden": [
+					"flow",
+					"container-type",
+					"container-dimensions"
+				],
+				"name": "Shift"
+			},
+			"74": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"size": {
+						"type": "integer",
+						"value": 10
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": -167.9532928466796875,
+					"y": 377.667633056640625
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"max": {
+						"type": "float",
+						"value": 1
+					},
+					"min": {
+						"type": "float",
+						"value": -1
+					}
+				},
+				"hidden": [
+					"type",
+					"flow",
+					"size",
+					"include-max"
+				],
+				"name": "Linear"
+			},
+			"76": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 339.856109619140625,
+					"y": 258.667633056640625
+				},
+				"class": {
+					"id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"input1": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Float2"
+			},
+			"77": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"size": {
+						"type": "integer",
+						"value": 10
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 77.856109619140625,
+					"y": 258.667633056640625
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"max": {
+						"type": "float",
+						"value": 1.5
+					},
+					"min": {
+						"type": "float",
+						"value": -1.5
+					}
+				},
+				"hidden": [
+					"type",
+					"flow",
+					"size",
+					"include-max"
+				],
+				"name": "Linear"
+			},
+			"78": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 10
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 339.856109619140625,
+					"y": 163.6676483154296875
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": [
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612
+						]
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle"
+			},
+			"79": {
+				"attributes": {
+					"anchor-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					},
+					"rotation-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"scale-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 580.8560791015625,
+					"y": 163.6676483154296875
+				},
+				"class": {
+					"id": "77697265-9225-4009-9D2D-5F898E94CC33",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"anchor": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"rotation": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"scale": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"input-type",
+					"translation-type",
+					"rotation-type",
+					"scale-type",
+					"anchor-type",
+					"instances"
+				],
+				"name": "Transform"
+			},
+			"80": {
+				"attributes": {
+					"anti-alias": {
+						"type": "bool",
+						"value": false
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": -168.143890380859375,
+					"y": 508.667694091796875
+				},
+				"class": {
+					"id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": -10
+					},
+					"frequency": {
+						"type": "float",
+						"value": 0.64999997615814209
+					},
+					"offset": {
+						"type": "float",
+						"value": 0
+					},
+					"phase-offset": {
+						"type": "float",
+						"value": 0
+					},
+					"reset-phase": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"reset-phase",
+					"unipolar",
+					"anti-alias",
+					"instances"
+				],
+				"name": "Saw"
+			},
+			"81": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1037.0765380859375,
+					"y": 163.4344635009765625
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture"
+			},
+			"82": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 10
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 808.3499755859375,
+					"y": 163.4344329833984375
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								-0,
+								-0,
+								-0,
+								1
+							]
+						}
+					},
+					"material": {
+						"type": "float4",
+						"value": [
+							0.94509804248809814,
+							0.57647061347961426,
+							0.95686274766921997,
+							1
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth"
+				],
+				"name": "Shape Render"
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": -433.870849609375,
+				"y": -93.631591796875,
+				"zoom": 0.75412368774414062
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null,
+					"Syphon": null
+				}
+			}
+		}
+	}
+}

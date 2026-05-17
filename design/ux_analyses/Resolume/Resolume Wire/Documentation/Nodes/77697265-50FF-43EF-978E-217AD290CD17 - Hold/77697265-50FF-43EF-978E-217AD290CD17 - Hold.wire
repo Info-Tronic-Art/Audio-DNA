@@ -1,0 +1,555 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          15,
+          "trigger"
+        ],
+        "to": [
+          14,
+          "trigger"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output"
+        ],
+        "to": [
+          16,
+          "width"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output"
+        ],
+        "to": [
+          16,
+          "height"
+        ]
+      },
+      {
+        "from": [
+          16,
+          "output"
+        ],
+        "to": [
+          17,
+          "shape"
+        ]
+      },
+      {
+        "from": [
+          17,
+          "output0"
+        ],
+        "to": [
+          18,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          20,
+          "signal"
+        ]
+      },
+      {
+        "from": [
+          20,
+          "output0"
+        ],
+        "to": [
+          14,
+          "attack-time"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          20,
+          "arm"
+        ]
+      },
+      {
+        "from": [
+          19,
+          "output"
+        ],
+        "to": [
+          20,
+          "release"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "This patch explains what this node does.",
+      "displayName": "Hold Example",
+      "identifier": "011c4adf-9754-4d92-ab8e-192b09d8b3e2",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 21,
+    "nodes": {
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "HOLD\n\nHold let's you sample an event by arming it. After that you can send it out by releasing it. Hold is like a recording device for events.\n\n- Patch Explained -\n• In this patch the Hold node is used to adjust the attack time of the Attack Release node without disturbing the animation in process.\n• The Float value is send to both the input and the arm inlets making sure that any change made to the float is stored in the hold node.\n• Releasing the value to the Attack Release can be done manually by pressing the Trigger node.\n\n"
+          }
+        },
+        "bounds": {
+          "height": 209,
+          "width": 1009,
+          "x": 108.203125,
+          "y": 97.9921875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "12": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "max": {
+            "type": "number",
+            "value": 1
+          },
+          "min": {
+            "type": "number",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 108,
+          "y": 408
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0.20000000298023224
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Float (Event)"
+      },
+      "14": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 110,
+          "width": 195,
+          "x": 542,
+          "y": 394
+        },
+        "class": {
+          "id": "77697265-D980-43B3-9237-6683B154A5B0",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "attack-time": {
+            "type": "float",
+            "value": 0.10888892412185668
+          },
+          "linear": {
+            "type": "bool",
+            "value": true
+          },
+          "release": {
+            "type": "trigger",
+            "value": null
+          },
+          "release-time": {
+            "type": "float",
+            "value": 2
+          },
+          "reset": {
+            "type": "trigger",
+            "value": null
+          },
+          "restart-at-zero": {
+            "type": "bool",
+            "value": true
+          },
+          "trigger": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "release",
+          "reset",
+          "restart-at-zero",
+          "linear"
+        ],
+        "name": "Attack Release"
+      },
+      "15": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 292,
+          "y": 342
+        },
+        "class": {
+          "id": "77697265-FD65-470F-9F75-ED878267980E",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "enabled": {
+            "type": "bool",
+            "value": true
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.5
+          },
+          "reset": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "enabled",
+          "reset",
+          "phase"
+        ],
+        "name": "Metronome"
+      },
+      "16": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 777,
+          "y": 393.7999877929687
+        },
+        "class": {
+          "id": "77697265-3D51-4B4E-A18D-58E3EF5049C7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "height": {
+            "type": "float",
+            "value": 0.5
+          },
+          "width": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Rhombus"
+      },
+      "17": {
+        "attributes": {
+          "antialising-direction": {
+            "type": "choice",
+            "value": "In"
+          },
+          "material-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "shape-dimensions": {
+            "type": "dimensions",
+            "value": []
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 1005,
+          "y": 394
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "antialiasing": {
+            "type": "float",
+            "value": 4
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              0.21568627655506137,
+              0.7450980544090271,
+              0.3450980484485626,
+              1
+            ]
+          },
+          "shape": {
+            "type": "procedural",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Shape Render"
+      },
+      "18": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 1231,
+          "y": 394
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "19": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 108,
+          "y": 513
+        },
+        "class": {
+          "id": "77697265-e61f-42c0-862a-0dca04e14569",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Release"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs whatever value is being held.\n\n"
+          }
+        },
+        "bounds": {
+          "height": 380,
+          "width": 334,
+          "x": 462.08984375,
+          "y": 648.54296875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "20": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "signal-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 292,
+          "y": 447
+        },
+        "class": {
+          "id": "77697265-50FF-43EF-978E-217AD290CD17",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "arm": {
+            "type": "trigger",
+            "value": null
+          },
+          "release": {
+            "type": "trigger",
+            "value": null
+          },
+          "signal": {
+            "type": "float",
+            "value": 0.20000000298023224
+          }
+        },
+        "hidden": [],
+        "name": "Hold"
+      },
+      "3": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Input\nThe value that you want to hold goes here.\n\n• Arm\nThis can be a trigger or an event change to arm the Hold node and store the incomming value.\n\n• Release.\nThis can be a trigger or an event change to release the value currently stored by the Hold node\n"
+          }
+        },
+        "bounds": {
+          "height": 384,
+          "width": 312,
+          "x": 108.0078125,
+          "y": 648.91796875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 88,
+        "y": 59,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 18,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

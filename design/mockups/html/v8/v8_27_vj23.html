@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 23 - Resolume-Style Massive Grid</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #111111; color: #c0c0c0;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11px; user-select: none;
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  height: 32px; background: #1a1a1a; display: flex; align-items: center;
+  border-bottom: 1px solid #2a2a2a; padding: 0 8px; gap: 4px;
+}
+.logo {
+  display: flex; align-items: center; gap: 6px; margin-right: 12px;
+}
+.logo-diamond {
+  width: 18px; height: 18px; background: #3a3a3a; transform: rotate(45deg);
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-diamond-inner { width: 8px; height: 8px; background: #50b050; }
+.logo-text { font-size: 13px; font-weight: 700; color: #d0d0d0; letter-spacing: 1px; }
+.top-sep { width: 1px; height: 20px; background: #333; margin: 0 8px; }
+.broadcast-btn {
+  background: #252525; border: 1px solid #3a3a3a; color: #aaa; padding: 3px 10px;
+  font-size: 10px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+}
+.broadcast-btn::after { content: '\25BC'; font-size: 7px; }
+.bpm-display {
+  background: #0a0a0a; border: 1px solid #333; color: #50b050; padding: 3px 8px;
+  font-size: 13px; font-weight: 700; font-family: 'Consolas', monospace; margin-left: 8px;
+}
+.top-tabs { display: flex; margin-left: 16px; gap: 1px; }
+.top-tab {
+  padding: 4px 10px; background: #1e1e1e; color: #888; font-size: 10px;
+  border: 1px solid #2a2a2a; cursor: pointer; font-weight: 600;
+}
+.top-tab.active { background: #2a2a2a; color: #50b050; border-bottom-color: #50b050; }
+.top-tab.input { background: #1a2a1a; }
+.top-tab.video { background: #1a1a2a; }
+.top-tab.deck { background: #2a1a1a; }
+.top-tab.text { background: #2a2a1a; }
+.top-spacer { flex: 1; }
+.resync-btn {
+  background: #2a1a1a; border: 1px solid #553333; color: #cc6666; padding: 3px 12px;
+  font-size: 10px; font-weight: 700; cursor: pointer;
+}
+
+/* ── MAIN LAYOUT ── */
+.main-area {
+  display: flex; height: calc(1080px - 32px - 140px);
+}
+
+/* ── LEFT PANEL: FILE BROWSER ── */
+.left-panel {
+  width: 180px; background: #141414; border-right: 1px solid #2a2a2a;
+  display: flex; flex-direction: column;
+}
+.panel-header {
+  padding: 6px 8px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+  font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px;
+}
+.file-tree { flex: 1; overflow-y: auto; padding: 4px 0; }
+.tree-item {
+  padding: 3px 8px; display: flex; align-items: center; gap: 5px; cursor: pointer;
+  color: #888;
+}
+.tree-item:hover { background: #1e1e1e; color: #c0c0c0; }
+.tree-item.folder { color: #999; font-weight: 600; }
+.tree-item.indent1 { padding-left: 20px; }
+.tree-item.indent2 { padding-left: 32px; }
+.tree-icon { font-size: 9px; width: 12px; text-align: center; }
+.tree-icon.folder-icon { color: #7a7a4a; }
+.tree-icon.file-icon { color: #555; }
+.tree-item.selected { background: #1a2a1a; color: #50b050; }
+
+/* ── RIGHT PANEL: PROPERTIES ── */
+.right-panel {
+  width: 220px; background: #141414; border-left: 1px solid #2a2a2a;
+  display: flex; flex-direction: column;
+}
+.right-tabs { display: flex; border-bottom: 1px solid #2a2a2a; }
+.right-tab {
+  flex: 1; padding: 6px 4px; text-align: center; font-size: 10px; font-weight: 700;
+  color: #666; background: #1a1a1a; cursor: pointer; border-right: 1px solid #222;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.right-tab:last-child { border-right: none; }
+.right-tab.active { color: #50b050; background: #1e1e1e; border-bottom: 2px solid #50b050; }
+.right-content { flex: 1; overflow-y: auto; }
+.section-header {
+  padding: 6px 8px; background: #1a1a1a; border-bottom: 1px solid #252525;
+  border-top: 1px solid #252525; font-size: 10px; font-weight: 700; color: #888;
+  display: flex; align-items: center; gap: 4px; cursor: pointer;
+}
+.section-header .arrow { font-size: 8px; color: #555; }
+.prop-row {
+  display: flex; align-items: center; padding: 3px 8px; gap: 4px;
+}
+.prop-label { width: 65px; color: #666; font-size: 10px; text-align: right; padding-right: 6px; }
+.prop-input {
+  flex: 1; background: #0a0a0a; border: 1px solid #2a2a2a; color: #aaa; padding: 2px 4px;
+  font-size: 10px; font-family: 'Consolas', monospace;
+}
+.prop-select {
+  flex: 1; background: #0a0a0a; border: 1px solid #2a2a2a; color: #aaa; padding: 2px 4px;
+  font-size: 10px; appearance: none;
+}
+.add-layer-btn {
+  margin: 6px 8px; padding: 4px; background: #1e2e1e; border: 1px solid #2a3a2a;
+  color: #50b050; text-align: center; font-size: 10px; font-weight: 700; cursor: pointer;
+}
+
+/* ── CLIP GRID ── */
+.grid-area {
+  flex: 1; display: flex; flex-direction: column; background: #111;
+}
+.grid-label {
+  padding: 4px 10px; font-size: 10px; color: #555; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; background: #141414;
+  border-bottom: 1px solid #1e1e1e;
+}
+.grid-scroll { flex: 1; overflow: auto; padding: 2px; }
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(7, 1fr);
+  gap: 2px;
+  height: 100%;
+  min-height: 560px;
+}
+.clip-cell {
+  background: #161616; border: 1px solid #222; display: flex; flex-direction: column;
+  padding: 3px; position: relative; cursor: pointer; min-height: 75px;
+}
+.clip-cell:hover { border-color: #3a3a3a; }
+.clip-cell.active { border-color: #50b050; box-shadow: inset 0 0 8px rgba(80,176,80,0.15); }
+.clip-cell.selected { border-color: #4090c0; }
+.clip-cell.empty { background: #111; border-color: #1a1a1a; }
+.clip-type {
+  font-size: 8px; color: #555; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 2px;
+}
+.clip-type.image { color: #5a7a5a; }
+.clip-type.blend { color: #7a5a7a; }
+.clip-type.source { color: #5a5a7a; }
+.clip-type.video { color: #7a7a5a; }
+.clip-name {
+  font-size: 9px; color: #888; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; margin-bottom: auto;
+}
+.clip-params {
+  display: flex; gap: 1px; flex-wrap: wrap; margin-top: 2px;
+}
+.clip-param-btn {
+  width: 14px; height: 12px; background: #1e1e1e; border: 1px solid #2a2a2a;
+  font-size: 7px; color: #555; display: flex; align-items: center;
+  justify-content: center; cursor: pointer;
+}
+.clip-param-btn.lit { background: #1e2e1e; border-color: #3a4a3a; color: #50b050; }
+.clip-preview {
+  position: absolute; top: 3px; right: 3px; width: 24px; height: 18px;
+  background: #0a0a0a; border: 1px solid #222;
+}
+.clip-preview-inner {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 6px; color: #333;
+}
+
+/* ── CHANNEL LABELS ── */
+.channel-labels {
+  display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px;
+  padding: 0 2px; background: #131313;
+}
+.channel-label {
+  text-align: center; font-size: 9px; color: #555; font-weight: 700;
+  padding: 2px 0; border-top: 1px solid #222;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.channel-label.active { color: #50b050; }
+
+/* ── BOTTOM: CHANNEL FADERS ── */
+.bottom-bar {
+  height: 140px; background: #131313; border-top: 1px solid #2a2a2a;
+  display: flex; flex-direction: column;
+}
+.fader-strip {
+  flex: 1; display: grid; grid-template-columns: 180px 1fr 220px;
+  gap: 0;
+}
+.fader-left-pad { background: #131313; border-right: 1px solid #222; }
+.fader-right-pad { background: #131313; border-left: 1px solid #222; }
+.faders-container {
+  display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px;
+  padding: 4px 2px;
+}
+.channel-fader {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.fader-track {
+  width: 8px; height: 60px; background: #0a0a0a; border: 1px solid #222;
+  position: relative; border-radius: 2px;
+}
+.fader-fill {
+  position: absolute; bottom: 0; left: 0; right: 0; background: #2a5a2a;
+  border-radius: 0 0 1px 1px;
+}
+.fader-thumb {
+  position: absolute; left: -3px; right: -3px; height: 6px;
+  background: #555; border: 1px solid #777; border-radius: 1px; cursor: pointer;
+}
+.fader-level {
+  width: 4px; height: 60px; background: #0a0a0a; border: 1px solid #1a1a1a;
+  position: relative;
+}
+.fader-level-fill {
+  position: absolute; bottom: 0; left: 0; right: 0; background: #3a6a3a;
+}
+.fader-level-peak {
+  position: absolute; left: 0; right: 0; height: 1px; background: #50b050;
+}
+.flash-btn {
+  width: 100%; padding: 3px 0; background: #1a1a1a; border: 1px solid #333;
+  color: #888; font-size: 8px; font-weight: 700; cursor: pointer; text-align: center;
+}
+.flash-btn:hover { background: #2a2a2a; color: #ccc; }
+.flash-btn.strobe { border-color: #553333; color: #aa6666; }
+.flash-btn.strobe:hover { background: #2a1a1a; color: #cc6666; }
+.fader-value {
+  font-size: 8px; color: #555; font-family: 'Consolas', monospace;
+}
+.fader-group {
+  display: flex; gap: 2px; align-items: flex-end;
+}
+
+/* ── BOTTOM RIGHT LOGO ── */
+.bottom-logo {
+  position: fixed; bottom: 8px; right: 10px;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+}
+.bottom-diamond {
+  width: 20px; height: 20px; background: #1e1e1e; transform: rotate(45deg);
+  border: 1px solid #333; display: flex; align-items: center; justify-content: center;
+}
+.bottom-diamond-dot { width: 6px; height: 6px; background: #3a6a3a; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="logo-diamond"><div class="logo-diamond-inner"></div></div>
+    <span class="logo-text">Audio-DNA VJ</span>
+  </div>
+  <div class="top-sep"></div>
+  <div class="broadcast-btn">Broadcast</div>
+  <div class="bpm-display">128.00</div>
+  <div class="top-tabs">
+    <div class="top-tab input active">I1</div>
+    <div class="top-tab input">I</div>
+    <div class="top-tab video">V1</div>
+    <div class="top-tab video">V</div>
+    <div class="top-tab video">V2</div>
+    <div class="top-tab video">V</div>
+    <div class="top-tab deck">D1</div>
+    <div class="top-tab deck">D</div>
+    <div class="top-tab text">T1</div>
+    <div class="top-tab text">T</div>
+  </div>
+  <div class="top-spacer"></div>
+  <div class="resync-btn">RESYNC</div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+
+  <!-- LEFT: FILE BROWSER -->
+  <div class="left-panel">
+    <div class="panel-header">Files</div>
+    <div class="file-tree">
+      <div class="tree-item folder"><span class="tree-icon folder-icon">&#9660;</span> Blends</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend001.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend002.png</div>
+      <div class="tree-item indent1 selected"><span class="tree-icon file-icon">&#9632;</span> blend003.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend004.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend005.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend006.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend007.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend008.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend009.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> blend010.png</div>
+      <div class="tree-item folder"><span class="tree-icon folder-icon">&#9660;</span> Effects</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> glow_pulse.isf</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> rgb_split.isf</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> kaleidoscope.isf</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> mirror_quad.isf</div>
+      <div class="tree-item folder"><span class="tree-icon folder-icon">&#9654;</span> Images</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> cityscape_01.jpg</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> abstract_02.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> neon_grid.png</div>
+      <div class="tree-item indent1"><span class="tree-icon file-icon">&#9632;</span> smoke_loop.mp4</div>
+      <div class="tree-item folder"><span class="tree-icon folder-icon">&#9654;</span> Media</div>
+      <div class="tree-item folder"><span class="tree-icon folder-icon">&#9654;</span> Presets</div>
+      <div class="tree-item folder"><span class="tree-icon folder-icon">&#9654;</span> Recordings</div>
+    </div>
+  </div>
+
+  <!-- CENTER: CLIP GRID -->
+  <div class="grid-area">
+    <div class="grid-label">Clip Grid</div>
+    <div class="grid-scroll">
+      <div class="grid-container" id="clipGrid"></div>
+    </div>
+    <div class="channel-labels" id="channelLabels"></div>
+  </div>
+
+  <!-- RIGHT: PROPERTIES -->
+  <div class="right-panel">
+    <div class="right-tabs">
+      <div class="right-tab active">CLIP</div>
+      <div class="right-tab">SOURCES</div>
+      <div class="right-tab">FX</div>
+      <div class="right-tab">OUTPUT</div>
+    </div>
+    <div class="right-content">
+      <div class="add-layer-btn">+ Layer</div>
+
+      <div class="section-header"><span class="arrow">&#9660;</span> Properties</div>
+      <div class="prop-row"><span class="prop-label">Name</span><input class="prop-input" value="blend003"></div>
+      <div class="prop-row"><span class="prop-label">Source</span><input class="prop-input" value="blend003.png"></div>
+      <div class="prop-row"><span class="prop-label">Blend</span><select class="prop-select"><option>Normal</option></select></div>
+
+      <div class="section-header"><span class="arrow">&#9660;</span> Transform</div>
+      <div class="prop-row"><span class="prop-label">X Position</span><input class="prop-input" value="0.000"></div>
+      <div class="prop-row"><span class="prop-label">Y Position</span><input class="prop-input" value="0.000"></div>
+      <div class="prop-row"><span class="prop-label">X Scale</span><input class="prop-input" value="1.000"></div>
+      <div class="prop-row"><span class="prop-label">Y Scale</span><input class="prop-input" value="1.000"></div>
+
+      <div class="section-header"><span class="arrow">&#9660;</span> Rotation</div>
+      <div class="prop-row"><span class="prop-label">X Rotation</span><input class="prop-input" value="0.0"></div>
+      <div class="prop-row"><span class="prop-label">Rotation</span><input class="prop-input" value="0.0"></div>
+
+      <div class="section-header"><span class="arrow">&#9660;</span> Animation</div>
+      <div class="prop-row"><span class="prop-label">LFO Freq</span><input class="prop-input" value="1.000"></div>
+      <div class="prop-row"><span class="prop-label">LFO Amp</span><input class="prop-input" value="0.000"></div>
+
+      <div class="section-header"><span class="arrow">&#9660;</span> UV Mapping</div>
+      <div class="prop-row"><span class="prop-label">UV Pos</span><input class="prop-input" value="0.500"></div>
+      <div class="prop-row"><span class="prop-label">UV Scale</span><input class="prop-input" value="1.000"></div>
+      <div class="prop-row"><span class="prop-label">UV Rotate</span><input class="prop-input" value="0.0"></div>
+
+      <div class="section-header"><span class="arrow">&#9660;</span> Audio Link</div>
+      <div class="prop-row"><span class="prop-label">Source</span><select class="prop-select"><option>None</option></select></div>
+      <div class="prop-row"><span class="prop-label">Curve</span><select class="prop-select"><option>Linear</option></select></div>
+      <div class="prop-row"><span class="prop-label">Smooth</span><input class="prop-input" value="0.150"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM: CHANNEL FADERS -->
+<div class="bottom-bar">
+  <div class="fader-strip">
+    <div class="fader-left-pad"></div>
+    <div class="faders-container" id="faderStrip"></div>
+    <div class="fader-right-pad"></div>
+  </div>
+</div>
+
+<!-- BOTTOM RIGHT LOGO -->
+<div class="bottom-logo">
+  <div class="bottom-diamond"><div class="bottom-diamond-dot"></div></div>
+</div>
+
+<script>
+// Clip data
+const clipTypes = ['Image','Blend','Source','Video','Image','Blend','Source','','Image','Video'];
+const clipNames = [
+  ['cityscape_01','blend003','Perlin Noise','smoke_loop','abstract_02','blend007','Mandelbrot','','neon_grid','particle_01'],
+  ['gradient_a','blend001','Julia Set','fire_loop','texture_05','blend009','Kaleidoscope','tunnel_02','grid_warp','wave_gen'],
+  ['skyline_03','blend005','Voronoi','rain_fx','marble_01','blend002','Menger','','geo_pattern','laser_beam'],
+  ['portrait_01','blend008','Simplex','glitch_01','chrome_02','blend004','Sierpinski','spiral_01','hex_tile','strobe_fx'],
+  ['night_01','blend006','Fractal','data_viz','metal_03','blend010','Apollonian','','dot_field','pulse_ring'],
+  ['forest_02','blend003','Reaction','vhs_loop','concrete_01','blend001','KIFS','morph_01','line_weave','flash_gen'],
+  ['ocean_01','blend009','Attractor','','water_04','blend005','Newton','','cross_hatch','beat_pulse']
+];
+const activeIndices = [2,10,15,23,31,42,51,55,63,68];
+const selectedIndex = 2;
+
+const grid = document.getElementById('clipGrid');
+for (let row = 0; row < 7; row++) {
+  for (let col = 0; col < 10; col++) {
+    const idx = row * 10 + col;
+    const cell = document.createElement('div');
+    const name = clipNames[row][col];
+    const isEmpty = name === '';
+    cell.className = 'clip-cell' + (activeIndices.includes(idx) ? ' active' : '') + (idx === selectedIndex ? ' selected' : '') + (isEmpty ? ' empty' : '');
+
+    if (!isEmpty) {
+      const typeLabel = clipTypes[col % clipTypes.length] || 'Image';
+      cell.innerHTML = `
+        <span class="clip-type ${typeLabel.toLowerCase()}">${typeLabel}</span>
+        <span class="clip-name">${name}</span>
+        <div class="clip-preview"><div class="clip-preview-inner">&#9632;</div></div>
+        <div class="clip-params">
+          ${[1,2,3,4,5].map(n => `<div class="clip-param-btn${Math.random() > 0.6 ? ' lit' : ''}">${n}</div>`).join('')}
+        </div>
+      `;
+    }
+    grid.appendChild(cell);
+  }
+}
+
+// Channel labels
+const labels = document.getElementById('channelLabels');
+for (let i = 1; i <= 10; i++) {
+  const lbl = document.createElement('div');
+  lbl.className = 'channel-label' + ([1,3,5,7,10].includes(i) ? ' active' : '');
+  lbl.textContent = 'CH ' + i;
+  labels.appendChild(lbl);
+}
+
+// Faders
+const faderContainer = document.getElementById('faderStrip');
+const faderHeights = [78, 55, 90, 42, 65, 85, 30, 50, 70, 95];
+const levelHeights = [65, 40, 80, 30, 55, 75, 20, 38, 60, 88];
+const peakPositions = [70, 48, 85, 38, 60, 80, 28, 44, 66, 92];
+
+for (let i = 0; i < 10; i++) {
+  const ch = document.createElement('div');
+  ch.className = 'channel-fader';
+  const fh = faderHeights[i];
+  const lh = levelHeights[i];
+  const pp = peakPositions[i];
+  ch.innerHTML = `
+    <div class="fader-group">
+      <div class="fader-track">
+        <div class="fader-fill" style="height:${fh}%"></div>
+        <div class="fader-thumb" style="bottom:calc(${fh}% - 3px)"></div>
+      </div>
+      <div class="fader-level">
+        <div class="fader-level-fill" style="height:${lh}%"></div>
+        <div class="fader-level-peak" style="bottom:${pp}%"></div>
+      </div>
+    </div>
+    <div class="fader-value">${(fh / 100).toFixed(2)}</div>
+    <div class="flash-btn">FLASH</div>
+    <div class="flash-btn strobe">STROBE</div>
+  `;
+  faderContainer.appendChild(ch);
+}
+</script>
+</body>
+</html>

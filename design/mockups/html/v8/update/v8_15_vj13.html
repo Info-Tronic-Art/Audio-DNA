@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA V.2 - VJ13 DAW-Style Layout (Improved)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #1a1a1a; color: #e0e0e0;
+  font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
+  font-size: 12px;
+}
+
+/* ── MENU BAR ── */
+.menu-bar {
+  display: flex; align-items: center;
+  height: 24px; background: #0e0e0e; border-bottom: 1px solid #2a2a2a;
+  padding: 0 8px; font-size: 11px; gap: 0;
+}
+.menu-item {
+  padding: 0 12px; height: 24px; line-height: 24px;
+  color: #bbb; cursor: pointer; white-space: nowrap;
+}
+.menu-item:first-child { color: #4cff4c; font-weight: 700; letter-spacing: 1px; }
+.menu-item:hover { background: #2a2a2a; color: #fff; }
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 44px; background: linear-gradient(180deg, #181818 0%, #111 100%);
+  border-bottom: 1px solid #333; padding: 0 12px;
+}
+.top-left { display: flex; align-items: center; gap: 16px; }
+.bpm-group { display: flex; align-items: center; gap: 6px; }
+.bpm-display {
+  font-size: 22px; font-weight: 700; color: #4cff4c;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+.bpm-label { font-size: 9px; color: #666; text-transform: uppercase; }
+.bpm-sub { font-size: 9px; color: #555; font-family: monospace; }
+.beat-wheel {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid #333; position: relative; margin-left: 2px;
+}
+.beat-segment {
+  position: absolute; width: 10px; height: 10px;
+  border-radius: 2px;
+}
+.beat-segment.active { opacity: 1; }
+.beat-segment.inactive { opacity: 0.2; }
+
+.top-center { display: flex; align-items: center; gap: 12px; }
+.master-meter { display: flex; align-items: center; gap: 5px; }
+.master-meter-label { font-size: 8px; color: #666; text-transform: uppercase; }
+.meter-bars { display: flex; gap: 1px; align-items: flex-end; height: 26px; }
+.meter-bar { width: 4px; border-radius: 1px; }
+
+.quantize-group { display: flex; align-items: center; gap: 4px; }
+.quant-label { font-size: 8px; color: #666; text-transform: uppercase; }
+.quant-btn {
+  padding: 2px 8px; font-size: 9px; background: #222; border: 1px solid #444;
+  color: #aaa; cursor: pointer; font-weight: 600;
+}
+.quant-btn.active { background: #2a4a2a; border-color: #4a8a4a; color: #4cff4c; }
+
+.fade-group { display: flex; align-items: center; gap: 4px; }
+.fade-label { font-size: 8px; color: #666; text-transform: uppercase; }
+.fade-time { font-size: 10px; color: #aaa; font-family: monospace; background: #1a1a1a; border: 1px solid #333; padding: 1px 6px; width: 40px; text-align: center; }
+
+.top-right { display: flex; align-items: center; gap: 6px; }
+.deck-tabs { display: flex; gap: 0; }
+.deck-tab {
+  padding: 5px 16px; font-size: 10px; font-weight: 700;
+  background: #1a1a1a; border: 1px solid #333; border-bottom: none;
+  color: #777; cursor: pointer; text-transform: uppercase;
+  margin-right: -1px;
+}
+.deck-tab.active { background: #222; color: #4cff4c; border-color: #4a8a4a; border-bottom: 1px solid #222; }
+.deck-tab.add { color: #555; font-size: 14px; padding: 3px 10px; }
+
+/* ── SIGNAL BAR ── */
+.signal-bar {
+  height: 40px; background: linear-gradient(180deg, #141414 0%, #111 100%);
+  border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 10px; gap: 8px;
+}
+.signal-meter {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 42px;
+}
+.signal-meter-label { font-size: 7px; color: #555; text-transform: uppercase; white-space: nowrap; }
+.signal-meter-bar-bg {
+  width: 36px; height: 14px; background: #0a0a0a; border: 1px solid #2a2a2a;
+  position: relative; overflow: hidden;
+}
+.signal-meter-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+}
+.signal-meter-value { font-size: 8px; color: #888; font-family: monospace; }
+
+/* ── MAIN LAYOUT ── */
+.main-layout {
+  display: flex;
+  height: calc(1080px - 24px - 44px - 40px - 220px - 28px);
+}
+
+/* ── LAYERS AREA ── */
+.layers-area {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+.layer-section {
+  border-bottom: 1px solid #2a2a2a;
+  flex: 1;
+  display: flex; flex-direction: column;
+  min-height: 0;
+}
+.layer-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 8px; background: linear-gradient(180deg, #252525 0%, #1e1e1e 100%);
+  border-bottom: 1px solid #2a2a2a;
+  height: 26px; flex-shrink: 0;
+}
+.layer-fold { font-size: 9px; color: #666; cursor: pointer; width: 14px; text-align: center; }
+.layer-type-badge {
+  font-size: 7px; padding: 1px 5px; border-radius: 2px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.layer-type-opaque { background: #2a3a2a; color: #6c6; border: 1px solid #3a5a3a; }
+.layer-type-transparent { background: #2a2a3a; color: #88f; border: 1px solid #3a3a6a; }
+.layer-type-fx { background: #3a2a3a; color: #c8c; border: 1px solid #5a3a5a; }
+.layer-name {
+  font-size: 11px; font-weight: 700; color: #ddd;
+  text-transform: uppercase; min-width: 80px;
+}
+.layer-controls { display: flex; align-items: center; gap: 3px; margin-left: auto; }
+.layer-ctrl-btn {
+  width: 20px; height: 18px; font-size: 8px; font-weight: 700;
+  background: #222; border: 1px solid #444; color: #999;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.layer-ctrl-btn.active-s { background: #4a4a1a; border-color: #8a8a3a; color: #ff0; }
+.layer-ctrl-btn.active-m { background: #4a1a1a; border-color: #8a3a3a; color: #f44; }
+.layer-lock { font-size: 9px; color: #555; cursor: pointer; margin-left: 4px; }
+.layer-lock.locked { color: #ff8844; }
+
+.signal-triangle {
+  width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-bottom: 6px solid #4cff4c;
+  display: inline-block; margin: 0 2px; cursor: pointer;
+}
+.signal-triangle.inactive { border-bottom-color: #333; }
+
+.clip-row-container {
+  flex: 1; display: flex; align-items: stretch; padding: 3px 8px;
+  gap: 4px; overflow: hidden; background: #151515;
+  min-height: 0;
+}
+
+.clip-thumb {
+  flex: 1; min-width: 0;
+  background: #111; border: 1px solid #2a2a2a;
+  display: flex; flex-direction: column;
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.clip-thumb:hover { border-color: #555; }
+.clip-thumb.active { border-color: #4cff4c; box-shadow: 0 0 8px rgba(76,255,76,0.25); }
+.clip-thumb.triggered { border-color: #ff8800; }
+.clip-waveform { flex: 1; position: relative; overflow: hidden; min-height: 0; }
+.clip-waveform canvas { width: 100%; height: 100%; }
+.clip-label {
+  font-size: 8px; color: #999; text-align: center;
+  padding: 1px 2px; background: #0e0e0e; border-top: 1px solid #222;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.clip-fx-dots {
+  display: flex; gap: 2px; justify-content: center; padding: 1px 0;
+  background: #0e0e0e;
+}
+.clip-fx-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+/* ── INSPECTOR PANEL ── */
+.inspector-panel {
+  width: 280px; background: #161616; border-left: 1px solid #333;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.inspector-tabs {
+  display: flex; height: 26px; border-bottom: 1px solid #333;
+  background: #111;
+}
+.inspector-tab {
+  flex: 1; font-size: 9px; font-weight: 700; text-transform: uppercase;
+  color: #666; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-right: 1px solid #2a2a2a;
+}
+.inspector-tab:last-child { border-right: none; }
+.inspector-tab.active { color: #4cff4c; background: #1a1a1a; border-bottom: 2px solid #4cff4c; }
+
+.inspector-body {
+  flex: 1; overflow-y: auto; padding: 6px 8px;
+}
+.inspector-section {
+  margin-bottom: 8px;
+}
+.inspector-section-title {
+  font-size: 9px; font-weight: 700; color: #888; text-transform: uppercase;
+  padding: 4px 0 3px 0; border-bottom: 1px solid #2a2a2a; margin-bottom: 5px;
+  letter-spacing: 0.5px;
+}
+.inspector-row {
+  display: flex; align-items: center; gap: 4px;
+  margin-bottom: 3px; height: 20px;
+}
+.inspector-label { font-size: 9px; color: #888; min-width: 60px; }
+.inspector-slider-bg {
+  flex: 1; height: 8px; background: #0a0a0a; border: 1px solid #333;
+  position: relative; cursor: pointer;
+}
+.inspector-slider-fill {
+  height: 100%; background: linear-gradient(90deg, #2a5a2a, #4cff4c);
+}
+.inspector-value { font-size: 9px; color: #aaa; font-family: monospace; min-width: 28px; text-align: right; }
+
+/* Dashboard knobs */
+.dashboard-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  padding: 4px 0;
+}
+.dashboard-knob {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.knob-circle {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: conic-gradient(from 210deg, #333 0%, #666 50%, #333 100%);
+  border: 2px solid #444; position: relative;
+}
+.knob-circle::after {
+  content: ''; position: absolute;
+  width: 2px; height: 10px; background: #ddd;
+  top: 3px; left: 50%; transform: translateX(-50%) rotate(var(--rot, 0deg));
+  border-radius: 1px;
+}
+.knob-label { font-size: 7px; color: #666; text-transform: uppercase; text-align: center; }
+.knob-value { font-size: 8px; color: #aaa; font-family: monospace; }
+
+/* Cuepoints */
+.cuepoint-row {
+  display: flex; gap: 3px; margin: 4px 0;
+}
+.cuepoint-btn {
+  flex: 1; height: 16px; font-size: 7px; font-weight: 700;
+  border: 1px solid #444; background: #222; color: #888;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cuepoint-btn.set { background: #2a3a4a; border-color: #4a6a8a; color: #88ccff; }
+
+/* Effects stack */
+.fx-stack-item {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 4px; background: #1a1a1a; border: 1px solid #2a2a2a;
+  margin-bottom: 2px;
+}
+.fx-bypass-btn {
+  width: 14px; height: 14px; font-size: 8px; font-weight: 700;
+  background: #222; border: 1px solid #444; color: #4cff4c;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.fx-bypass-btn.bypassed { color: #555; }
+.fx-name { flex: 1; font-size: 9px; color: #ccc; }
+.fx-delete-btn {
+  width: 14px; height: 14px; font-size: 9px;
+  background: #222; border: 1px solid #444; color: #666;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.fx-delete-btn:hover { color: #f44; }
+
+/* Autopilot */
+.autopilot-section {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+}
+.autopilot-toggle {
+  padding: 2px 8px; font-size: 8px; font-weight: 700;
+  background: #222; border: 1px solid #444; color: #666; cursor: pointer;
+}
+.autopilot-toggle.active { background: #2a4a2a; border-color: #4a8a4a; color: #4cff4c; }
+.autopilot-mode {
+  font-size: 8px; color: #888; background: #1a1a1a; border: 1px solid #333;
+  padding: 1px 6px;
+}
+
+/* Keying */
+.keying-dropdown {
+  width: 100%; font-size: 9px; background: #1a1a1a; border: 1px solid #333;
+  color: #aaa; padding: 2px 4px;
+}
+
+/* Feedback */
+.feedback-preset-row {
+  display: flex; gap: 3px; flex-wrap: wrap; margin: 3px 0;
+}
+.feedback-preset {
+  padding: 2px 6px; font-size: 7px; background: #222; border: 1px solid #333;
+  color: #888; cursor: pointer; text-transform: uppercase;
+}
+.feedback-preset.active { background: #2a2a3a; border-color: #4a4a8a; color: #88f; }
+
+/* Transform */
+.transform-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+}
+
+/* ── BROWSER PANEL ── */
+.browser-panel {
+  width: 200px; background: #141414; border-left: 1px solid #333;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.browser-tabs {
+  display: flex; height: 24px; border-bottom: 1px solid #333;
+  background: #111;
+}
+.browser-tab {
+  flex: 1; font-size: 8px; font-weight: 700; text-transform: uppercase;
+  color: #666; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-right: 1px solid #2a2a2a;
+}
+.browser-tab:last-child { border-right: none; }
+.browser-tab.active { color: #ff8844; background: #1a1a1a; border-bottom: 2px solid #ff8844; }
+
+.browser-body { flex: 1; overflow-y: auto; padding: 4px 6px; }
+.browser-category {
+  font-size: 8px; font-weight: 700; color: #666; text-transform: uppercase;
+  padding: 4px 0 2px; border-bottom: 1px solid #222; margin-bottom: 3px;
+}
+.browser-item {
+  padding: 3px 6px; font-size: 9px; color: #aaa; cursor: pointer;
+  border: 1px solid transparent; margin-bottom: 1px;
+}
+.browser-item:hover { background: #222; border-color: #333; color: #ddd; }
+.browser-item.draggable { cursor: grab; }
+
+/* ── BOTTOM: FADERS ── */
+.fader-section {
+  height: 220px; background: linear-gradient(180deg, #161616 0%, #111 100%);
+  border-top: 2px solid #333;
+  display: flex; padding: 6px 16px; gap: 0;
+}
+.fader-column {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  border-right: 1px solid #1e1e1e; padding: 0 6px;
+}
+.fader-column:last-child { border-right: none; }
+.fader-label { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 2px; font-weight: 600; }
+.fader-track {
+  width: 26px; height: 110px; background: #080808;
+  border: 1px solid #333; position: relative; margin: 2px 0;
+}
+.fader-fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, #2a6a2a, #4cff4c);
+}
+.fader-handle {
+  position: absolute; left: -3px; right: -3px; height: 8px;
+  background: #ccc; border: 1px solid #888;
+  cursor: ns-resize;
+}
+.trim-section { display: flex; flex-direction: column; align-items: center; margin-top: 3px; }
+.trim-label { font-size: 7px; color: #555; text-transform: uppercase; }
+.trim-knob {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: conic-gradient(from 210deg, #3a3a3a 0%, #777 50%, #3a3a3a 100%);
+  border: 2px solid #4a4a4a; margin: 2px 0; position: relative;
+}
+.trim-knob::after {
+  content: ''; position: absolute;
+  width: 2px; height: 7px; background: #ddd;
+  top: 2px; left: 50%; transform: translateX(-50%) rotate(30deg);
+  border-radius: 1px;
+}
+.flash-btn {
+  margin-top: 3px; padding: 2px 10px;
+  font-size: 8px; text-transform: uppercase; font-weight: 700;
+  background: #2a1a1a; border: 1px solid #5a3a3a; color: #ff6666;
+  cursor: pointer;
+}
+.flash-btn:hover { background: #4a2a2a; }
+
+/* ── FOOTER ── */
+.footer-bar {
+  height: 28px; background: #0e0e0e; border-top: 1px solid #333;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; font-size: 10px;
+}
+.footer-left { display: flex; align-items: center; gap: 14px; color: #666; }
+.footer-stat { display: flex; align-items: center; gap: 4px; }
+.footer-stat-label { font-size: 8px; color: #555; text-transform: uppercase; }
+.footer-stat-value { font-size: 10px; font-family: monospace; }
+.footer-stat-value.good { color: #4cff4c; }
+.footer-stat-value.warn { color: #ffaa00; }
+.footer-stat-value.bad { color: #ff4444; }
+
+.audio-player { display: flex; align-items: center; gap: 6px; }
+.player-btn {
+  width: 22px; height: 20px; background: #1a1a1a; border: 1px solid #333;
+  color: #aaa; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 9px;
+}
+.player-btn:hover { background: #2a2a2a; color: #ddd; }
+.player-btn.play { background: #2a4a2a; border-color: #3a6a3a; color: #4cff4c; }
+.player-waveform {
+  width: 300px; height: 18px; background: #080808; border: 1px solid #2a2a2a;
+  position: relative; overflow: hidden;
+}
+.player-waveform canvas { width: 100%; height: 100%; }
+.player-time { font-family: monospace; color: #4cff4c; font-size: 10px; }
+
+.footer-right { display: flex; align-items: center; gap: 12px; }
+.rec-indicator {
+  display: flex; align-items: center; gap: 4px; font-size: 9px;
+}
+.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff2222; animation: recBlink 1s infinite; }
+@keyframes recBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.rec-dot.idle { background: #444; animation: none; }
+.output-status { color: #777; font-size: 9px; }
+.output-dot { display: inline-block; width: 5px; height: 5px; background: #4cff4c; border-radius: 50%; margin-right: 3px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div class="menu-bar">
+  <div class="menu-item">Audio-DNA</div>
+  <div class="menu-item">Composition</div>
+  <div class="menu-item">Deck</div>
+  <div class="menu-item">Layer</div>
+  <div class="menu-item">Column</div>
+  <div class="menu-item">Clip</div>
+  <div class="menu-item">Output</div>
+  <div class="menu-item">Shortcuts</div>
+  <div class="menu-item">View</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="top-left">
+    <div class="bpm-group">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;">
+        <span class="bpm-label">BPM</span>
+        <span class="bpm-sub">Bar 12</span>
+      </div>
+      <span class="bpm-display">128.0</span>
+      <div class="beat-wheel" id="beatWheel"></div>
+    </div>
+    <div class="quantize-group">
+      <span class="quant-label">Quantize</span>
+      <button class="quant-btn">Free</button>
+      <button class="quant-btn active">Beat</button>
+      <button class="quant-btn">Bar</button>
+      <button class="quant-btn">2 Bar</button>
+    </div>
+    <div class="fade-group">
+      <span class="fade-label">Fade</span>
+      <div class="fade-time">0.5s</div>
+    </div>
+  </div>
+
+  <div class="top-center">
+    <div class="master-meter">
+      <span class="master-meter-label">Master</span>
+      <div class="meter-bars" id="masterMeter"></div>
+    </div>
+  </div>
+
+  <div class="top-right">
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck 1</div>
+      <div class="deck-tab">Deck 2</div>
+      <div class="deck-tab">Deck 3</div>
+      <div class="deck-tab add">+</div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNAL BAR -->
+<div class="signal-bar" id="signalBar"></div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+  <!-- LAYERS -->
+  <div class="layers-area" id="layersArea"></div>
+
+  <!-- INSPECTOR -->
+  <div class="inspector-panel">
+    <div class="inspector-tabs">
+      <div class="inspector-tab active">Clip</div>
+      <div class="inspector-tab">Layer</div>
+      <div class="inspector-tab">Comp</div>
+      <div class="inspector-tab">Signal</div>
+    </div>
+    <div class="inspector-body" id="inspectorBody"></div>
+  </div>
+
+  <!-- BROWSER -->
+  <div class="browser-panel">
+    <div class="browser-tabs">
+      <div class="browser-tab active">Files</div>
+      <div class="browser-tab">FX</div>
+      <div class="browser-tab">Sources</div>
+    </div>
+    <div class="browser-body" id="browserBody"></div>
+  </div>
+</div>
+
+<!-- FADER SECTION -->
+<div class="fader-section" id="faderSection"></div>
+
+<!-- FOOTER -->
+<div class="footer-bar">
+  <div class="footer-left">
+    <div class="footer-stat">
+      <span class="footer-stat-label">Frames Per Second</span>
+      <span class="footer-stat-value good">60.0</span>
+    </div>
+    <div class="footer-stat">
+      <span class="footer-stat-label">DSP</span>
+      <span class="footer-stat-value good">2.1ms</span>
+    </div>
+    <div class="footer-stat">
+      <span class="footer-stat-label">GPU</span>
+      <span class="footer-stat-value good">4.2ms</span>
+    </div>
+    <div class="footer-stat">
+      <span class="footer-stat-label">Render</span>
+      <span class="footer-stat-value good">6.3ms</span>
+    </div>
+  </div>
+
+  <div class="audio-player">
+    <button class="player-btn">|&lt;</button>
+    <button class="player-btn play">&#9654;</button>
+    <button class="player-btn">&#9632;</button>
+    <div class="player-waveform"><canvas id="playerWaveform"></canvas></div>
+    <span class="player-time">02:34 / 05:12</span>
+  </div>
+
+  <div class="footer-right">
+    <div class="rec-indicator">
+      <div class="rec-dot idle"></div>
+      <span style="color:#666;">Record</span>
+    </div>
+    <span class="output-status">
+      <span class="output-dot"></span>Output: Display 2 1920x1080 60Hz
+    </span>
+    <span style="font-family:monospace;color:#555;">00:02:34:07</span>
+  </div>
+</div>
+
+<script>
+// ── Beat wheel ──
+const beatWheel = document.getElementById('beatWheel');
+const beatPositions = [
+  { top: '2px', left: '9px' },
+  { top: '9px', right: '2px' },
+  { bottom: '2px', left: '9px' },
+  { top: '9px', left: '2px' }
+];
+beatPositions.forEach((pos, i) => {
+  const seg = document.createElement('div');
+  seg.className = 'beat-segment ' + (i === 0 ? 'active' : 'inactive');
+  seg.style.width = '6px'; seg.style.height = '6px';
+  seg.style.position = 'absolute';
+  seg.style.borderRadius = '1px';
+  seg.style.background = i === 0 ? '#4cff4c' : '#333';
+  Object.entries(pos).forEach(([k, v]) => seg.style[k] = v);
+  beatWheel.appendChild(seg);
+});
+
+// ── Master meter ──
+const meterContainer = document.getElementById('masterMeter');
+const meterHeights = [14, 18, 22, 20, 16, 24, 21, 18, 15, 12, 10, 16, 20, 22, 18, 14];
+meterHeights.forEach(h => {
+  const bar = document.createElement('div');
+  bar.className = 'meter-bar';
+  bar.style.height = h + 'px';
+  bar.style.background = h > 22 ? '#ff4444' : h > 18 ? '#ffcc00' : '#4cff4c';
+  meterContainer.appendChild(bar);
+});
+
+// ── Signal bar ──
+const signalBar = document.getElementById('signalBar');
+const signals = [
+  { name: 'RMS', value: 0.72, color: '#4cff4c' },
+  { name: 'Peak', value: 0.91, color: '#ffcc00' },
+  { name: 'Bass', value: 0.85, color: '#ff4444' },
+  { name: 'Low Mid', value: 0.55, color: '#ff8844' },
+  { name: 'Mid', value: 0.45, color: '#ffcc44' },
+  { name: 'High Mid', value: 0.38, color: '#44ff88' },
+  { name: 'Presence', value: 0.32, color: '#44ccff' },
+  { name: 'Brilliance', value: 0.22, color: '#8888ff' },
+  { name: 'Beat', value: 0.65, color: '#4cff4c' },
+  { name: 'Centroid', value: 0.48, color: '#cc88ff' },
+  { name: 'Flux', value: 0.35, color: '#ff88cc' },
+  { name: 'Onset', value: 0.90, color: '#ff4444' }
+];
+signals.forEach(s => {
+  const m = document.createElement('div');
+  m.className = 'signal-meter';
+  m.innerHTML = `
+    <div class="signal-meter-label">${s.name}</div>
+    <div class="signal-meter-bar-bg">
+      <div class="signal-meter-fill" style="width:${s.value*100}%;background:${s.color};"></div>
+    </div>
+    <div class="signal-meter-value">${s.value.toFixed(2)}</div>
+  `;
+  signalBar.appendChild(m);
+});
+// Spacer then extra info
+const spacer = document.createElement('div');
+spacer.style.flex = '1';
+signalBar.appendChild(spacer);
+const genreTag = document.createElement('div');
+genreTag.style.cssText = 'font-size:9px;color:#888;text-align:right;padding-right:4px;';
+genreTag.innerHTML = '<span style="color:#555;font-size:7px;text-transform:uppercase;">Genre</span><br><span style="color:#cc88ff;">Techno</span>';
+signalBar.appendChild(genreTag);
+const energyTag = document.createElement('div');
+energyTag.style.cssText = 'font-size:9px;color:#888;text-align:right;padding-right:4px;';
+energyTag.innerHTML = '<span style="color:#555;font-size:7px;text-transform:uppercase;">Energy</span><br><span style="color:#ff8844;">High</span>';
+signalBar.appendChild(energyTag);
+
+// ── Layers ──
+const layers = [
+  {
+    name: 'Layer 1', type: 'Opaque', typeClass: 'layer-type-opaque',
+    clips: [
+      { name: 'Neon Grid', color: '#00ff88', active: true, fxCount: 3 },
+      { name: 'Tunnel VHS', color: '#00ccff', fxCount: 1 },
+      { name: 'Fractal Dive', color: '#4444ff', fxCount: 2 },
+      { name: 'Plasma Wave', color: '#cc44ff', fxCount: 0 },
+      { name: 'Glitch Burst', color: '#ff4444', fxCount: 1 },
+      { name: 'Sun Flare', color: '#ffcc00', fxCount: 0 },
+      { name: 'Particle Storm', color: '#ffffff', fxCount: 2 },
+      { name: 'Warp Field', color: '#44ffcc', fxCount: 1 }
+    ]
+  },
+  {
+    name: 'Layer 2', type: 'Transparent', typeClass: 'layer-type-transparent',
+    clips: [
+      { name: 'Scan Lines', color: '#44ff44', fxCount: 1 },
+      { name: 'Rain Drops', color: '#00aaff', active: true, fxCount: 2 },
+      { name: 'Bokeh Float', color: '#6666ff', fxCount: 0 },
+      { name: 'Smoke Trail', color: '#aa44cc', fxCount: 1 },
+      { name: 'Fire Embers', color: '#ff6644', fxCount: 0 },
+      { name: 'Star Field', color: '#ffee44', fxCount: 2 },
+      { name: 'Light Leak', color: '#ff88cc', fxCount: 1 }
+    ]
+  },
+  {
+    name: 'Layer 3', type: 'FX Only', typeClass: 'layer-type-fx',
+    clips: [
+      { name: 'Gradient Flow', color: '#22cc66', fxCount: 0 },
+      { name: 'Deep Ocean', color: '#22aadd', fxCount: 1 },
+      { name: 'Cosmos', color: '#5555ee', fxCount: 3 },
+      { name: 'Magenta Fog', color: '#dd44aa', active: true, fxCount: 2 },
+      { name: 'Lava Pulse', color: '#ee5522', fxCount: 1 },
+      { name: 'Aurora', color: '#44ddaa', fxCount: 0 },
+      { name: 'Noise Static', color: '#cccccc', fxCount: 1 },
+      { name: 'Dark Matter', color: '#666699', fxCount: 0 }
+    ]
+  }
+];
+
+const layersArea = document.getElementById('layersArea');
+
+layers.forEach((layer, li) => {
+  const section = document.createElement('div');
+  section.className = 'layer-section';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'layer-header';
+  header.innerHTML = `
+    <span class="layer-fold">v</span>
+    <span class="layer-type-badge ${layer.typeClass}">${layer.type}</span>
+    <span class="layer-name">${layer.name}</span>
+    <span class="signal-triangle" title="Layer signal"></span>
+    <span class="layer-lock" title="Content lock">&#128275;</span>
+    <div class="layer-controls">
+      <div class="layer-ctrl-btn active-s" title="Solo">S</div>
+      <div class="layer-ctrl-btn" title="Mute">M</div>
+      <div class="layer-ctrl-btn" title="Bypass">B</div>
+    </div>
+  `;
+  section.appendChild(header);
+
+  // Clip row
+  const clipRow = document.createElement('div');
+  clipRow.className = 'clip-row-container';
+
+  layer.clips.forEach((clip, ci) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'clip-thumb' + (clip.active ? ' active' : '');
+
+    const wf = document.createElement('div');
+    wf.className = 'clip-waveform';
+    const canvas = document.createElement('canvas');
+    canvas.width = 200; canvas.height = 80;
+    wf.appendChild(canvas);
+    thumb.appendChild(wf);
+
+    // FX dots
+    if (clip.fxCount > 0) {
+      const dotsDiv = document.createElement('div');
+      dotsDiv.className = 'clip-fx-dots';
+      for (let i = 0; i < clip.fxCount; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'clip-fx-dot';
+        dot.style.background = ['#4cff4c', '#ff8844', '#8888ff'][i % 3];
+        dotsDiv.appendChild(dot);
+      }
+      thumb.appendChild(dotsDiv);
+    }
+
+    const label = document.createElement('div');
+    label.className = 'clip-label';
+    label.textContent = clip.name;
+    thumb.appendChild(label);
+
+    clipRow.appendChild(thumb);
+    drawWaveform(canvas, clip.color, ci + li * 8);
+  });
+
+  section.appendChild(clipRow);
+  layersArea.appendChild(section);
+});
+
+// ── Inspector ──
+const inspectorBody = document.getElementById('inspectorBody');
+
+// Dashboard knobs
+const dashSection = document.createElement('div');
+dashSection.className = 'inspector-section';
+dashSection.innerHTML = '<div class="inspector-section-title">Dashboard</div>';
+const dashGrid = document.createElement('div');
+dashGrid.className = 'dashboard-grid';
+const knobNames = ['Ripple', 'Hue Shift', 'Echo', 'Saturation', 'Glow', 'Zoom Blur', 'Contrast', 'Brightness'];
+const knobValues = [0.45, 0.72, 0.30, 0.55, 0.20, 0.10, 0.60, 0.80];
+const knobRotations = [-90, 45, -45, 15, -60, -80, 30, 70];
+knobNames.forEach((name, i) => {
+  const k = document.createElement('div');
+  k.className = 'dashboard-knob';
+  k.innerHTML = `
+    <div class="knob-circle" style="--rot:${knobRotations[i]}deg;"></div>
+    <div class="knob-label">${name}</div>
+    <div class="knob-value">${knobValues[i].toFixed(2)}</div>
+  `;
+  dashGrid.appendChild(k);
+});
+dashSection.appendChild(dashGrid);
+inspectorBody.appendChild(dashSection);
+
+// Clip info
+const clipSection = document.createElement('div');
+clipSection.className = 'inspector-section';
+clipSection.innerHTML = `
+  <div class="inspector-section-title">Clip: Neon Grid</div>
+  <div class="inspector-row">
+    <span class="inspector-label">Source</span>
+    <span style="font-size:9px;color:#aaa;flex:1;">Image Sequence</span>
+  </div>
+  <div class="inspector-row">
+    <span class="inspector-label">Opacity</span>
+    <div class="signal-triangle" style="margin-right:2px;"></div>
+    <div class="inspector-slider-bg"><div class="inspector-slider-fill" style="width:85%;"></div></div>
+    <span class="inspector-value">0.85</span>
+  </div>
+  <div class="inspector-row">
+    <span class="inspector-label">Speed</span>
+    <div class="signal-triangle inactive" style="margin-right:2px;"></div>
+    <div class="inspector-slider-bg"><div class="inspector-slider-fill" style="width:50%;"></div></div>
+    <span class="inspector-value">1.00</span>
+  </div>
+  <div class="inspector-row">
+    <span class="inspector-label">Blend</span>
+    <span style="font-size:9px;color:#aaa;flex:1;background:#1a1a1a;border:1px solid #333;padding:1px 4px;">Alpha</span>
+  </div>
+`;
+inspectorBody.appendChild(clipSection);
+
+// Cuepoints
+const cueSection = document.createElement('div');
+cueSection.className = 'inspector-section';
+cueSection.innerHTML = '<div class="inspector-section-title">Cuepoints</div>';
+const cueRow = document.createElement('div');
+cueRow.className = 'cuepoint-row';
+for (let i = 0; i < 8; i++) {
+  const btn = document.createElement('div');
+  btn.className = 'cuepoint-btn' + (i < 3 ? ' set' : '');
+  btn.textContent = i + 1;
+  cueRow.appendChild(btn);
+}
+cueSection.appendChild(cueRow);
+inspectorBody.appendChild(cueSection);
+
+// Autopilot
+const autoSection = document.createElement('div');
+autoSection.className = 'inspector-section';
+autoSection.innerHTML = `
+  <div class="inspector-section-title">Autopilot</div>
+  <div class="autopilot-section">
+    <div class="autopilot-toggle active">On</div>
+    <div class="autopilot-mode">On Beat</div>
+    <div class="autopilot-mode">8 Beats</div>
+    <div class="autopilot-mode">Random</div>
+  </div>
+`;
+inspectorBody.appendChild(autoSection);
+
+// Effects stack
+const fxSection = document.createElement('div');
+fxSection.className = 'inspector-section';
+fxSection.innerHTML = '<div class="inspector-section-title">Effects</div>';
+const effects = [
+  { name: 'Ripple', bypassed: false },
+  { name: 'Hue Shift', bypassed: false },
+  { name: 'Echo', bypassed: true }
+];
+effects.forEach(fx => {
+  const item = document.createElement('div');
+  item.className = 'fx-stack-item';
+  item.innerHTML = `
+    <div class="fx-bypass-btn ${fx.bypassed ? 'bypassed' : ''}">${fx.bypassed ? '-' : 'B'}</div>
+    <span class="fx-name">${fx.name}</span>
+    <div class="signal-triangle${fx.name === 'Ripple' ? '' : ' inactive'}"></div>
+    <div class="fx-delete-btn">x</div>
+  `;
+  fxSection.appendChild(item);
+
+  // Param row under effect
+  if (!fx.bypassed) {
+    const paramRow = document.createElement('div');
+    paramRow.className = 'inspector-row';
+    paramRow.style.paddingLeft = '18px';
+    const paramVal = fx.name === 'Ripple' ? 0.45 : 0.72;
+    paramRow.innerHTML = `
+      <span class="inspector-label" style="min-width:50px;">Intensity</span>
+      <div class="signal-triangle" style="margin-right:2px;"></div>
+      <div class="inspector-slider-bg"><div class="inspector-slider-fill" style="width:${paramVal*100}%;"></div></div>
+      <span class="inspector-value">${paramVal.toFixed(2)}</span>
+    `;
+    fxSection.appendChild(paramRow);
+  }
+});
+inspectorBody.appendChild(fxSection);
+
+// Keying
+const keySection = document.createElement('div');
+keySection.className = 'inspector-section';
+keySection.innerHTML = `
+  <div class="inspector-section-title">Keying</div>
+  <select class="keying-dropdown">
+    <option>None</option>
+    <option>Additive</option>
+    <option selected>Luma is Alpha</option>
+    <option>Inverted Luma is Alpha</option>
+    <option>Chroma Key</option>
+  </select>
+`;
+inspectorBody.appendChild(keySection);
+
+// Feedback
+const fbSection = document.createElement('div');
+fbSection.className = 'inspector-section';
+fbSection.innerHTML = `
+  <div class="inspector-section-title">Feedback</div>
+  <div class="feedback-preset-row">
+    <div class="feedback-preset">Off</div>
+    <div class="feedback-preset active">Zoom In</div>
+    <div class="feedback-preset">Spiral</div>
+    <div class="feedback-preset">Drift</div>
+    <div class="feedback-preset">Kaleidoscope</div>
+    <div class="feedback-preset">Echo</div>
+  </div>
+  <div class="inspector-row">
+    <span class="inspector-label">Amount</span>
+    <div class="inspector-slider-bg"><div class="inspector-slider-fill" style="width:35%;"></div></div>
+    <span class="inspector-value">0.35</span>
+  </div>
+`;
+inspectorBody.appendChild(fbSection);
+
+// Transform
+const txSection = document.createElement('div');
+txSection.className = 'inspector-section';
+txSection.innerHTML = `
+  <div class="inspector-section-title">Transform</div>
+  <div class="transform-grid">
+    <div class="inspector-row">
+      <span class="inspector-label" style="min-width:42px;">Pos X</span>
+      <div class="inspector-slider-bg"><div class="inspector-slider-fill" style="width:50%;"></div></div>
+      <span class="inspector-value">0.00</span>
+    </div>
+    <div class="inspector-row">
+      <span class="inspector-label" style="min-width:42px;">Pos Y</span>
+      <div class="inspector-slider-bg"><div class="inspector-slider-fill" style="width:50%;"></div></div>
+      <span class="inspector-value">0.00</span>
+    </div>
+    <div class="inspector-row">
+      <span class="inspector-label" style="min-width:42px;">Scale</span>
+      <div class="inspector-slider-bg"><div class="inspector-slider-fill" style="width:50%;"></div></div>
+      <span class="inspector-value">1.00</span>
+    </div>
+    <div class="inspector-row">
+      <span class="inspector-label" style="min-width:42px;">Rotation</span>
+      <div class="inspector-slider-bg"><div class="inspector-slider-fill" style="width:50%;"></div></div>
+      <span class="inspector-value">0.0</span>
+    </div>
+  </div>
+`;
+inspectorBody.appendChild(txSection);
+
+// ── Browser ──
+const browserBody = document.getElementById('browserBody');
+const fxCategories = {
+  'Warp': ['Ripple', 'Bulge', 'Wave', 'Liquid', 'Kaleidoscope', 'Fisheye', 'Swirl'],
+  'Color': ['Hue Shift', 'Saturation', 'Brightness', 'Duotone', 'Chromatic Aberration', 'Invert', 'Posterize'],
+  'Glitch': ['Pixel Scatter', 'RGB Split', 'Block Glitch', 'Scanlines', 'Digital Rain'],
+  'Time': ['Echo', 'Posterize Time', 'Freeze', 'Screen Split', 'Frame Stutter'],
+  'Blur': ['Gaussian Blur', 'Zoom Blur', 'Motion Blur', 'Glow', 'Sharpen'],
+  'Pattern': ['CRT Simulation', 'VHS Effect', 'ASCII Art', 'Dot Matrix'],
+  'Audio': ['Harmonic Displacement', 'Timbral Mosaic', 'Beat Ripple']
+};
+Object.entries(fxCategories).forEach(([cat, items]) => {
+  const catEl = document.createElement('div');
+  catEl.className = 'browser-category';
+  catEl.textContent = cat;
+  browserBody.appendChild(catEl);
+  items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'browser-item draggable';
+    el.textContent = item;
+    browserBody.appendChild(el);
+  });
+});
+
+// ── Faders ──
+const faderSection = document.getElementById('faderSection');
+const faderData = [
+  { label: 'Layer 1', opacity: 0.85 },
+  { label: 'Layer 2', opacity: 0.60 },
+  { label: 'Layer 3', opacity: 0.70 },
+  { label: 'Master', opacity: 0.95 },
+  { label: 'FX Send A', opacity: 0.45 },
+  { label: 'FX Send B', opacity: 0.30 },
+  { label: 'Aux 1', opacity: 0.55 },
+  { label: 'Aux 2', opacity: 0.40 }
+];
+
+faderData.forEach(f => {
+  const col = document.createElement('div');
+  col.className = 'fader-column';
+  const pct = Math.round(f.opacity * 100);
+  const fillH = f.opacity * 108;
+  col.innerHTML = `
+    <div class="fader-label">${f.label}</div>
+    <div style="font-size:9px;color:#4cff4c;font-family:monospace;margin-bottom:1px;">${pct}%</div>
+    <div class="fader-track">
+      <div class="fader-fill" style="height:${fillH}px;"></div>
+      <div class="fader-handle" style="bottom:${fillH - 4}px;"></div>
+    </div>
+    <div class="trim-section">
+      <div class="trim-label">Trim</div>
+      <div class="trim-knob"></div>
+    </div>
+    <button class="flash-btn">Flash</button>
+  `;
+  faderSection.appendChild(col);
+});
+
+// ── Player waveform ──
+const playerCanvas = document.getElementById('playerWaveform');
+playerCanvas.width = 300; playerCanvas.height = 18;
+const pctx = playerCanvas.getContext('2d');
+pctx.fillStyle = '#080808';
+pctx.fillRect(0, 0, 300, 18);
+for (let x = 0; x < 300; x++) {
+  const amp = Math.abs(pseudoNoise(x * 0.03 + 5.5)) * 7;
+  const played = x < 146;
+  pctx.fillStyle = played ? '#4cff4c' : '#1a3a1a';
+  pctx.fillRect(x, 9 - amp, 1, amp * 2);
+}
+pctx.fillStyle = '#ffffff';
+pctx.fillRect(146, 0, 1, 18);
+
+// ── Drawing functions ──
+function drawWaveform(canvas, color, seed) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, w, h);
+
+  const grad = ctx.createLinearGradient(0, 0, w, 0);
+  grad.addColorStop(0, color);
+  grad.addColorStop(0.5, shiftHue(color, 30));
+  grad.addColorStop(1, shiftHue(color, 60));
+
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.8;
+
+  for (let line = 0; line < 3; line++) {
+    ctx.beginPath();
+    for (let x = 0; x < w; x++) {
+      const n = pseudoNoise(x * 0.05 + seed * 7.3 + line * 2.1);
+      const amp = (h * 0.35) * (1 - line * 0.25);
+      const y = h / 2 + n * amp;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const n = Math.abs(pseudoNoise(x * 0.05 + seed * 7.3));
+    const y = h / 2 - n * h * 0.35;
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  for (let x = w - 1; x >= 0; x--) {
+    const n = Math.abs(pseudoNoise(x * 0.05 + seed * 7.3));
+    const y = h / 2 + n * h * 0.35;
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function pseudoNoise(x) {
+  return Math.sin(x * 12.9898 + 78.233) * Math.sin(x * 4.1414 + 13.71) * 0.8 +
+         Math.sin(x * 3.14159 + 1.618) * 0.3;
+}
+
+function shiftHue(hex, deg) {
+  let r = parseInt(hex.slice(1,3),16)/255;
+  let g = parseInt(hex.slice(3,5),16)/255;
+  let b = parseInt(hex.slice(5,7),16)/255;
+  let max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h, s, l = (max+min)/2;
+  if (max === min) { h = s = 0; }
+  else {
+    let d = max - min;
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    if (max === r) h = ((g-b)/d + (g<b?6:0))/6;
+    else if (max === g) h = ((b-r)/d+2)/6;
+    else h = ((r-g)/d+4)/6;
+  }
+  h = (h + deg/360) % 1;
+  function hue2rgb(p,q,t) { if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; }
+  let q = l < 0.5 ? l*(1+s) : l+s-l*s;
+  let p = 2*l - q;
+  let rr = Math.round(hue2rgb(p,q,h+1/3)*255);
+  let gg = Math.round(hue2rgb(p,q,h)*255);
+  let bb = Math.round(hue2rgb(p,q,h-1/3)*255);
+  return `#${rr.toString(16).padStart(2,'0')}${gg.toString(16).padStart(2,'0')}${bb.toString(16).padStart(2,'0')}`;
+}
+</script>
+</body>
+</html>

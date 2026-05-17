@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 24b - Improved Full Layout</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+  background: #0a0a0e;
+  color: #d0d0d0;
+  font-size: 12px;
+}
+
+/* ── MENU BAR (24px) ── */
+.menu-bar {
+  height: 24px;
+  background: #111116;
+  border-bottom: 1px solid #222230;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 0;
+  font-size: 12px;
+}
+.menu-item {
+  padding: 3px 12px;
+  color: #aaa;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.menu-item:first-child { color: #00e5ff; font-weight: 700; }
+.menu-item:hover { background: #1e1e28; color: #e0e0e0; }
+
+/* ── TOP BAR (38px) ── */
+.top-bar {
+  height: 38px;
+  background: linear-gradient(180deg, #1e1e26 0%, #16161c 100%);
+  border-bottom: 1px solid #2a2a35;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 8px;
+}
+.top-bar .bpm-section {
+  display: flex; align-items: center; gap: 6px;
+  background: #0d0d12;
+  border: 1px solid #2a2a35;
+  padding: 3px 10px;
+}
+.top-bar .bpm-label { color: #888; font-size: 10px; text-transform: uppercase; }
+.top-bar .bpm-value { color: #00e5ff; font-size: 16px; font-weight: 700; font-family: 'Consolas', monospace; }
+.beat-wheel {
+  width: 26px; height: 26px;
+  position: relative;
+}
+.beat-wheel canvas { width: 100%; height: 100%; }
+.top-btn {
+  background: #1a1a22;
+  border: 1px solid #333340;
+  color: #aaa;
+  padding: 4px 10px;
+  font-size: 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.top-btn:hover { background: #252530; color: #ddd; }
+.top-btn.active { background: #00e5ff22; border-color: #00e5ff; color: #00e5ff; }
+.top-bar .divider {
+  width: 1px; height: 22px; background: #2a2a35; margin: 0 4px;
+}
+.top-bar .spacer { flex: 1; }
+.quantize-section {
+  display: flex; align-items: center; gap: 4px;
+}
+.quantize-section .q-label { color: #666; font-size: 10px; text-transform: uppercase; }
+.quantize-select {
+  background: #0d0d12; border: 1px solid #2a2a35; color: #aaa;
+  font-size: 10px; padding: 2px 6px;
+}
+.fade-section {
+  display: flex; align-items: center; gap: 4px;
+}
+.fade-section .f-label { color: #666; font-size: 10px; text-transform: uppercase; }
+.fade-slider {
+  width: 50px; height: 4px; background: #2a2a35; position: relative;
+  display: inline-block; vertical-align: middle;
+}
+.fade-slider .fill { height: 100%; width: 30%; background: #00e5ff; }
+.fade-value { color: #aaa; font-size: 10px; font-family: 'Consolas', monospace; }
+.room-delay {
+  color: #777; font-size: 11px;
+  display: flex; align-items: center; gap: 6px;
+}
+.room-delay span { color: #aaa; }
+.level-meter-group {
+  display: flex; gap: 2px; align-items: flex-end; height: 22px;
+}
+.level-bar {
+  width: 3px; border-radius: 1px;
+}
+.master-slider-section {
+  display: flex; align-items: center; gap: 4px;
+}
+.master-slider-section .ms-label { color: #666; font-size: 10px; text-transform: uppercase; }
+.master-slider {
+  width: 60px; height: 4px; background: #2a2a35; position: relative;
+}
+.master-slider .fill { height: 100%; width: 85%; background: #00e5ff; }
+
+/* ── SIGNAL BAR (40px) ── */
+.signal-bar {
+  height: 40px;
+  background: linear-gradient(180deg, #131318 0%, #101016 100%);
+  border-bottom: 1px solid #1e1e28;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+}
+.signal-bar .sb-label {
+  color: #555; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.5px; margin-right: 4px; white-space: nowrap;
+}
+.signal-meter {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 1px; flex: 0 0 auto;
+}
+.signal-meter .sm-bar-container {
+  width: 14px; height: 22px;
+  background: #0a0a10;
+  border: 1px solid #1e1e28;
+  position: relative;
+  overflow: hidden;
+}
+.signal-meter .sm-bar-fill {
+  position: absolute; bottom: 0; width: 100%;
+  background: #00e5ff;
+  transition: height 0.1s;
+}
+.signal-meter .sm-label {
+  font-size: 7px; color: #555; text-transform: uppercase;
+  letter-spacing: 0.3px; white-space: nowrap;
+  max-width: 36px; overflow: hidden; text-overflow: ellipsis;
+  text-align: center;
+}
+.signal-bar .sb-divider {
+  width: 1px; height: 28px; background: #1e1e28; margin: 0 4px;
+}
+
+/* ── MAIN LAYOUT ── */
+.main-area {
+  display: flex;
+  height: calc(1080px - 24px - 38px - 40px - 190px - 24px);
+  /* menu 24 + top 38 + signal 40 + bottom 190 + footer 24 */
+}
+
+/* ── LEFT: SCENE FLOW PANEL ── */
+.scene-panel {
+  width: 260px;
+  background: linear-gradient(180deg, #121218 0%, #0e0e14 100%);
+  border-right: 1px solid #1e1e28;
+  display: flex;
+  flex-direction: column;
+}
+.panel-header {
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  border-bottom: 1px solid #1e1e28;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.panel-header .icon { color: #00e5ff; }
+.scene-list {
+  flex: 0 0 auto;
+  padding: 4px 6px;
+}
+.scene-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  margin-bottom: 2px;
+  background: #16161e;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.scene-item:hover { background: #1a1a24; }
+.scene-item.active {
+  background: linear-gradient(90deg, #00e5ff15, #00e5ff08);
+  border-color: #00e5ff55;
+}
+.scene-item .scene-name { font-size: 11px; font-weight: 500; }
+.scene-item.active .scene-name { color: #00e5ff; }
+.scene-trigger {
+  font-size: 9px; padding: 2px 6px;
+  background: #222230; color: #888;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.scene-item.active .scene-trigger { background: #00e5ff33; color: #00e5ff; }
+.add-scene {
+  padding: 5px 8px; margin: 2px 6px 6px;
+  text-align: center; color: #555; font-size: 10px;
+  border: 1px dashed #2a2a35; cursor: pointer;
+}
+.add-scene:hover { color: #888; border-color: #444; }
+
+/* Layer Detail Table */
+.layer-detail-section {
+  flex: 1; border-top: 1px solid #1e1e28;
+  overflow-y: auto;
+}
+.layer-detail-header {
+  padding: 4px 10px;
+  font-size: 9px; color: #555;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  background: #0c0c12;
+  border-bottom: 1px solid #1a1a22;
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr;
+  gap: 4px;
+}
+.layer-detail-row {
+  display: grid;
+  grid-template-columns: 18px 1fr 1fr;
+  gap: 4px;
+  padding: 4px 10px;
+  border-bottom: 1px solid #14141a;
+  font-size: 11px;
+  align-items: start;
+}
+.layer-detail-row:hover { background: #16161e; }
+.layer-num { color: #555; font-weight: 600; font-size: 10px; }
+.layer-detail-row .clip-name { color: #bbb; font-size: 11px; }
+.layer-detail-row .clip-name .label { color: #555; font-size: 9px; display: block; margin-bottom: 1px; }
+.layer-detail-row .param-info { color: #888; font-size: 10px; }
+.layer-detail-row .param-info .label { color: #555; font-size: 9px; display: block; margin-bottom: 1px; }
+.param-tag {
+  display: inline-block;
+  background: #1a1a24;
+  padding: 1px 5px;
+  font-size: 9px; color: #aaa; margin-top: 2px;
+}
+
+/* ── CENTER: LIVE OUTPUT ── */
+.center-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #0a0a0e;
+}
+.center-header {
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  border-bottom: 1px solid #1e1e28;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.center-header .res-info { font-size: 10px; color: #555; font-weight: 400; }
+.preview-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #050508;
+  position: relative;
+  overflow: hidden;
+}
+.preview-canvas { width: 100%; height: 100%; }
+.transport-bar {
+  height: 36px;
+  background: #111118;
+  border-top: 1px solid #1e1e28;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 6px;
+}
+.transport-btn {
+  width: 26px; height: 26px;
+  background: #1a1a24;
+  border: 1px solid #2a2a35;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 11px;
+}
+.transport-btn:hover { background: #252530; color: #fff; }
+.transport-btn.playing { background: #00e5ff22; border-color: #00e5ff; color: #00e5ff; }
+.timeline-track {
+  flex: 1; height: 5px;
+  background: #1a1a24;
+  position: relative; cursor: pointer;
+}
+.timeline-fill {
+  height: 100%; width: 38%;
+  background: linear-gradient(90deg, #00e5ff, #00b8d4);
+}
+.timeline-handle {
+  width: 8px; height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute; top: -2px; left: 38%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 6px #00e5ff88;
+}
+.time-display {
+  font-family: 'Consolas', monospace;
+  font-size: 12px; color: #00e5ff;
+  min-width: 70px; text-align: right;
+}
+
+/* ── RIGHT: INSPECTOR + BROWSER ── */
+.right-panel {
+  width: 280px;
+  background: linear-gradient(180deg, #121218 0%, #0e0e14 100%);
+  border-left: 1px solid #1e1e28;
+  display: flex;
+  flex-direction: column;
+}
+.right-panel-tabs {
+  display: flex;
+  border-bottom: 1px solid #1e1e28;
+  background: #0e0e14;
+}
+.rp-tab {
+  flex: 1; padding: 6px 4px;
+  text-align: center;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  color: #555; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.rp-tab.active { color: #00e5ff; border-bottom-color: #00e5ff; }
+.rp-tab:hover { color: #999; }
+
+/* Inspector content */
+.inspector-content {
+  flex: 1; overflow-y: auto; padding: 6px;
+}
+.insp-section {
+  margin-bottom: 6px;
+  border: 1px solid #1a1a24;
+  background: #14141c;
+}
+.insp-section-header {
+  padding: 5px 8px;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  color: #888; background: #111118;
+  border-bottom: 1px solid #1a1a24;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.insp-section-header .collapse-icon { color: #555; font-size: 8px; }
+.insp-row {
+  display: flex; align-items: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid #14141a;
+  gap: 6px;
+}
+.insp-row .signal-tri {
+  width: 0; height: 0;
+  border-left: 5px solid #555;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  cursor: pointer; flex-shrink: 0;
+}
+.insp-row .signal-tri.connected {
+  border-left-color: #00e5ff;
+}
+.insp-row .param-name {
+  font-size: 10px; color: #999; flex: 0 0 60px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.insp-slider {
+  flex: 1; height: 3px; background: #2a2a35;
+  position: relative;
+}
+.insp-slider .fill { height: 100%; background: #00e5ff; }
+.insp-row .param-val {
+  font-size: 9px; color: #777; font-family: 'Consolas', monospace;
+  flex: 0 0 28px; text-align: right;
+}
+
+/* Dashboard knobs */
+.dashboard-knobs {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 4px; padding: 6px 8px;
+}
+.dash-knob {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1px;
+}
+.dash-knob .knob { width: 28px; height: 28px; position: relative; }
+.dash-knob .knob canvas { width: 100%; height: 100%; }
+.dash-knob .dk-label {
+  font-size: 7px; color: #555; text-transform: uppercase;
+  letter-spacing: 0.3px; text-align: center;
+}
+
+/* Cuepoints */
+.cuepoint-row {
+  display: flex; gap: 3px; padding: 4px 8px;
+}
+.cue-btn {
+  flex: 1; padding: 3px 0;
+  text-align: center; font-size: 9px; font-weight: 600;
+  background: #1a1a24; border: 1px solid #2a2a35; color: #666;
+  cursor: pointer;
+}
+.cue-btn.set { background: #00e5ff22; border-color: #00e5ff55; color: #00e5ff; }
+
+/* Effect stack */
+.fx-stack-item {
+  display: flex; align-items: center;
+  padding: 3px 8px; gap: 4px;
+  border-bottom: 1px solid #14141a;
+}
+.fx-stack-item .fx-bypass {
+  width: 14px; height: 14px;
+  background: #1a1a24; border: 1px solid #2a2a35;
+  font-size: 7px; color: #888;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.fx-stack-item .fx-bypass.active { background: #00e5ff22; border-color: #00e5ff; color: #00e5ff; }
+.fx-stack-item .fx-name { font-size: 10px; color: #bbb; flex: 1; }
+.fx-stack-item .fx-remove { color: #555; font-size: 10px; cursor: pointer; }
+.fx-stack-item .fx-remove:hover { color: #ff5252; }
+
+/* Keying, Feedback sections */
+.key-select, .fb-select {
+  background: #0d0d12; border: 1px solid #2a2a35; color: #aaa;
+  font-size: 10px; padding: 2px 6px; width: 100%;
+}
+.insp-toggle-row {
+  display: flex; align-items: center; padding: 3px 8px;
+  gap: 6px; border-bottom: 1px solid #14141a;
+}
+.insp-toggle {
+  width: 26px; height: 14px; background: #2a2a35;
+  border-radius: 7px; position: relative; cursor: pointer;
+}
+.insp-toggle .dot {
+  width: 10px; height: 10px; background: #666;
+  border-radius: 50%; position: absolute;
+  top: 2px; left: 2px; transition: all 0.15s;
+}
+.insp-toggle.on .dot { left: 14px; background: #00e5ff; }
+.insp-toggle.on { background: #00e5ff33; }
+.insp-toggle-label { font-size: 10px; color: #999; }
+
+/* Browser content */
+.browser-content { flex: 1; overflow-y: auto; display: none; }
+.browser-content.visible { display: flex; flex-direction: column; }
+.browser-tabs {
+  display: flex; border-bottom: 1px solid #1e1e28;
+}
+.br-tab {
+  flex: 1; padding: 5px; text-align: center;
+  font-size: 10px; font-weight: 600;
+  text-transform: uppercase; color: #555; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.br-tab.active { color: #ffab40; border-bottom-color: #ffab40; }
+.browser-list {
+  flex: 1; overflow-y: auto; padding: 4px;
+}
+.browser-cat {
+  font-size: 9px; color: #555; text-transform: uppercase;
+  letter-spacing: 0.8px; padding: 4px 6px;
+  border-bottom: 1px solid #14141a;
+}
+.browser-item {
+  padding: 4px 8px; font-size: 11px; color: #bbb;
+  cursor: grab; border-bottom: 1px solid #14141a;
+  display: flex; align-items: center; gap: 6px;
+}
+.browser-item:hover { background: #1a1a24; }
+.browser-item .bi-icon {
+  font-size: 9px; padding: 1px 4px; background: #222230; color: #888;
+  text-transform: uppercase;
+}
+.browser-item .bi-icon.warp { color: #00e5ff; background: #00e5ff15; }
+.browser-item .bi-icon.color { color: #ffab40; background: #ffab4015; }
+.browser-item .bi-icon.glitch { color: #ff5252; background: #ff525215; }
+.browser-item .bi-icon.blur { color: #76ff03; background: #76ff0315; }
+.browser-item .bi-icon.src { color: #e040fb; background: #e040fb15; }
+
+/* ── BOTTOM: DECK TABS + LAYER STRIPS ── */
+.bottom-area {
+  height: 190px;
+  background: linear-gradient(180deg, #111118 0%, #0d0d14 100%);
+  border-top: 1px solid #2a2a35;
+  display: flex;
+  flex-direction: column;
+}
+.deck-row {
+  display: flex; height: 24px;
+  background: #0a0a10;
+  border-bottom: 1px solid #1a1a22;
+  padding: 0 8px;
+  align-items: flex-end;
+  gap: 1px;
+}
+.deck-tab {
+  padding: 3px 16px;
+  font-size: 10px; font-weight: 700;
+  color: #555; background: #14141c;
+  border: 1px solid #1e1e28; border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  cursor: pointer; text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.deck-tab.active { background: #1a1a24; color: #00e5ff; border-color: #2a2a35; }
+.deck-tab.add-deck { padding: 3px 10px; color: #444; font-size: 12px; }
+.layer-tabs {
+  display: flex; height: 22px;
+  background: #0c0c12;
+  border-bottom: 1px solid #1a1a22;
+  padding: 0 8px;
+  gap: 1px;
+  align-items: flex-end;
+}
+.layer-tab {
+  padding: 3px 12px;
+  font-size: 10px; font-weight: 600;
+  color: #555; background: #14141c;
+  border: 1px solid #1e1e28; border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  cursor: pointer; text-transform: uppercase;
+}
+.layer-tab.active { background: #1a1a24; color: #00e5ff; border-color: #2a2a35; }
+.layer-tab.add-tab { padding: 3px 8px; color: #444; font-size: 12px; }
+.layer-cards-container {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+  padding: 4px 8px;
+  overflow-x: auto;
+}
+.layer-card {
+  flex: 0 0 calc((100% - 24px) / 7);
+  min-width: 180px;
+  background: #16161e;
+  border: 1px solid #22222c;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  position: relative;
+}
+.layer-card:hover { border-color: #333340; }
+.layer-card.active { border-color: #00e5ff55; }
+.layer-card .card-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.layer-card .clip-title {
+  font-size: 10px; font-weight: 600; color: #ccc;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 90px;
+}
+.card-header-badges {
+  display: flex; gap: 3px; align-items: center;
+}
+.engine-badge {
+  font-size: 7px; padding: 1px 4px;
+  font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.engine-badge.proc { background: #00e5ff22; color: #00e5ff; }
+.engine-badge.img { background: #ff990022; color: #ff9900; }
+.engine-badge.vid { background: #e040fb22; color: #e040fb; }
+.engine-badge.fx { background: #76ff0322; color: #76ff03; }
+.type-badge {
+  font-size: 7px; padding: 1px 4px;
+  font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.type-badge.opaque { background: #ffffff15; color: #aaa; }
+.type-badge.transparent { background: #ffab4015; color: #ffab40; }
+.type-badge.fxonly { background: #76ff0315; color: #76ff03; }
+.type-badge.mask { background: #e040fb15; color: #e040fb; }
+.lock-icon {
+  font-size: 9px; color: #555; cursor: pointer;
+}
+.lock-icon.locked { color: #ffab40; }
+.fold-icon {
+  font-size: 8px; color: #444; cursor: pointer;
+}
+
+/* Card controls row */
+.card-controls-row {
+  display: flex; align-items: center; gap: 4px;
+  margin-bottom: 3px;
+}
+.card-signal-tri {
+  width: 0; height: 0;
+  border-left: 4px solid #555;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+.card-signal-tri.connected { border-left-color: #00e5ff; }
+.card-mini-slider {
+  flex: 1; height: 3px; background: #2a2a35;
+  position: relative;
+}
+.card-mini-slider .fill { height: 100%; background: #00e5ff; }
+.card-mini-label { font-size: 8px; color: #555; width: 24px; }
+
+.knobs-row {
+  display: flex; gap: 8px; margin: 2px 0 4px; justify-content: center;
+}
+.knob-group {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.knob { width: 28px; height: 28px; position: relative; }
+.knob canvas { width: 100%; height: 100%; }
+.knob-label { font-size: 7px; color: #555; text-transform: uppercase; letter-spacing: 0.3px; }
+.card-buttons {
+  display: flex; gap: 2px; margin-top: auto;
+}
+.card-btn {
+  flex: 1; padding: 2px 0;
+  text-align: center; font-size: 8px; font-weight: 600;
+  background: #1a1a24; border: 1px solid #2a2a35;
+  color: #888; cursor: pointer; text-transform: uppercase;
+}
+.card-btn:hover { background: #222230; color: #bbb; }
+.card-btn.active { background: #00e5ff22; border-color: #00e5ff55; color: #00e5ff; }
+.card-btn.strobe { color: #ff5252; }
+.expand-toggle {
+  position: absolute; bottom: 3px; right: 5px;
+  font-size: 9px; color: #444; cursor: pointer;
+}
+
+/* ── FOOTER (24px) ── */
+.footer {
+  height: 24px;
+  background: #0a0a0e;
+  border-top: 1px solid #1e1e28;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 14px;
+}
+.footer-item {
+  font-size: 10px; color: #555;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.footer .spacer { flex: 1; }
+.footer-item.highlight { color: #00e5ff; }
+.footer-item.recording { color: #ff5252; }
+.footer-item .val { color: #888; font-family: 'Consolas', monospace; }
+.footer-perf {
+  display: flex; gap: 12px; align-items: center;
+}
+.perf-dot { width: 6px; height: 6px; border-radius: 50%; background: #76ff03; display: inline-block; }
+.perf-dot.warn { background: #ffab40; }
+.perf-dot.bad { background: #ff5252; }
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div class="menu-bar">
+  <div class="menu-item">Audio-DNA</div>
+  <div class="menu-item">Composition</div>
+  <div class="menu-item">Deck</div>
+  <div class="menu-item">Layer</div>
+  <div class="menu-item">Column</div>
+  <div class="menu-item">Clip</div>
+  <div class="menu-item">Output</div>
+  <div class="menu-item">Shortcuts</div>
+  <div class="menu-item">View</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="bpm-section">
+    <span class="bpm-label">BPM</span>
+    <span class="bpm-value">128.00</span>
+  </div>
+  <div class="beat-wheel"><canvas id="beatWheelCanvas"></canvas></div>
+  <button class="top-btn">Tap</button>
+  <button class="top-btn">Nudge -</button>
+  <button class="top-btn">Nudge +</button>
+  <button class="top-btn active">Resync</button>
+  <div class="divider"></div>
+  <div class="quantize-section">
+    <span class="q-label">Quantize</span>
+    <select class="quantize-select">
+      <option>Off</option>
+      <option selected>Beat</option>
+      <option>Bar</option>
+      <option>2 Bar</option>
+      <option>4 Bar</option>
+    </select>
+  </div>
+  <div class="divider"></div>
+  <div class="fade-section">
+    <span class="f-label">Fade</span>
+    <div class="fade-slider"><div class="fill"></div></div>
+    <span class="fade-value">0.3s</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="master-slider-section">
+    <span class="ms-label">Master</span>
+    <div class="master-slider"><div class="fill"></div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="room-delay">Delay: <span>+0ms</span></div>
+  <div class="level-meter-group" id="levelMeterL"></div>
+  <div class="level-meter-group" id="levelMeterR"></div>
+</div>
+
+<!-- SIGNAL BAR -->
+<div class="signal-bar">
+  <span class="sb-label">Signal</span>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:75%;background:#00e5ff"></div></div><span class="sm-label">RMS</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:90%;background:#ff5252"></div></div><span class="sm-label">Peak</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:85%;background:#76ff03"></div></div><span class="sm-label">Bass</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:55%;background:#76ff03"></div></div><span class="sm-label">Mid</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:40%;background:#76ff03"></div></div><span class="sm-label">High</span></div>
+  <div class="sb-divider"></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:60%;background:#ffab40"></div></div><span class="sm-label">Flux</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:45%;background:#ffab40"></div></div><span class="sm-label">Bright</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:30%;background:#ffab40"></div></div><span class="sm-label">Flat</span></div>
+  <div class="sb-divider"></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:70%;background:#e040fb"></div></div><span class="sm-label">Beat</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:35%;background:#e040fb"></div></div><span class="sm-label">Bar</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:20%;background:#e040fb"></div></div><span class="sm-label">Phrase</span></div>
+  <div class="signal-meter"><div class="sm-bar-container"><div class="sm-bar-fill" style="height:50%;background:#e040fb"></div></div><span class="sm-label">Onset</span></div>
+  <div class="sb-divider"></div>
+  <span class="sb-label" style="color:#888;">Genre: <span style="color:#00e5ff">Techno</span></span>
+  <span class="sb-label" style="color:#888;">Energy: <span style="color:#ffab40">High</span></span>
+  <span class="sb-label" style="color:#888;">Structure: <span style="color:#76ff03">Drop</span></span>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+
+  <!-- LEFT: SCENE FLOW PANEL -->
+  <div class="scene-panel">
+    <div class="panel-header"><span class="icon">&#9654;</span> Scene Flow</div>
+    <div class="scene-list">
+      <div class="scene-item"><span class="scene-name">Intro - Ambient Build</span><span class="scene-trigger">Q</span></div>
+      <div class="scene-item"><span class="scene-name">Verse - Geometry</span><span class="scene-trigger">W</span></div>
+      <div class="scene-item active"><span class="scene-name">Chorus - Full Energy</span><span class="scene-trigger">E</span></div>
+      <div class="scene-item"><span class="scene-name">Drop - Particle Storm</span><span class="scene-trigger">R</span></div>
+      <div class="scene-item"><span class="scene-name">Breakdown - Minimal</span><span class="scene-trigger">T</span></div>
+    </div>
+    <div class="add-scene">+ Add Scene</div>
+
+    <div class="layer-detail-section">
+      <div class="layer-detail-header">
+        <span>#</span><span>Clip</span><span>Info</span>
+      </div>
+      <div class="layer-detail-row">
+        <span class="layer-num">1</span>
+        <div class="clip-name"><span class="label">Clip</span>Geo-Pulse A</div>
+        <div class="param-info"><span class="label">Type</span>Opaque<br><span class="param-tag">Procedural</span></div>
+      </div>
+      <div class="layer-detail-row">
+        <span class="layer-num">2</span>
+        <div class="clip-name"><span class="label">Clip</span>Cityscape B</div>
+        <div class="param-info"><span class="label">Type</span>Transparent<br><span class="param-tag">Image Sequence</span></div>
+      </div>
+      <div class="layer-detail-row">
+        <span class="layer-num">3</span>
+        <div class="clip-name"><span class="label">Clip</span>Synth Trail C</div>
+        <div class="param-info"><span class="label">Type</span>Transparent<br><span class="param-tag">Video</span></div>
+      </div>
+      <div class="layer-detail-row">
+        <span class="layer-num">4</span>
+        <div class="clip-name"><span class="label">Clip</span>Ripple FX</div>
+        <div class="param-info"><span class="label">Type</span>FX Only<br><span class="param-tag">Effect Layer</span></div>
+      </div>
+      <div class="layer-detail-row">
+        <span class="layer-num">5</span>
+        <div class="clip-name"><span class="label">Clip</span>Particle Flow D</div>
+        <div class="param-info"><span class="label">Type</span>Transparent<br><span class="param-tag">Procedural</span></div>
+      </div>
+      <div class="layer-detail-row">
+        <span class="layer-num">6</span>
+        <div class="clip-name"><span class="label">Clip</span>Aerial E</div>
+        <div class="param-info"><span class="label">Type</span>Transparent<br><span class="param-tag">Video</span></div>
+      </div>
+      <div class="layer-detail-row">
+        <span class="layer-num">7</span>
+        <div class="clip-name"><span class="label">Clip</span>Neon Tunnel G</div>
+        <div class="param-info"><span class="label">Type</span>Mask<br><span class="param-tag">Procedural</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: LIVE OUTPUT -->
+  <div class="center-panel">
+    <div class="center-header">
+      <span><span class="icon" style="color:#00e5ff;">&#9679;</span> Live Output Preview</span>
+      <span class="res-info">1920 x 1080 @ 60fps</span>
+    </div>
+    <div class="preview-container">
+      <canvas class="preview-canvas" id="previewCanvas"></canvas>
+    </div>
+    <div class="transport-bar">
+      <div class="transport-btn playing" title="Play">&#9654;</div>
+      <div class="transport-btn" title="Pause">||</div>
+      <div class="transport-btn" title="Stop">&#9632;</div>
+      <div class="timeline-track">
+        <div class="timeline-fill"></div>
+        <div class="timeline-handle"></div>
+      </div>
+      <div class="time-display">01:34:15</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: INSPECTOR + BROWSER -->
+  <div class="right-panel">
+    <div class="right-panel-tabs">
+      <div class="rp-tab active" onclick="switchRightPanel('inspector')">Inspector</div>
+      <div class="rp-tab" onclick="switchRightPanel('browser')">Browser</div>
+    </div>
+
+    <!-- INSPECTOR -->
+    <div class="inspector-content" id="inspectorPanel">
+      <!-- Inspector sub-tabs -->
+      <div style="display:flex;border-bottom:1px solid #1e1e28;margin:-6px -6px 6px;padding:0 4px;">
+        <div class="rp-tab active" style="font-size:9px;padding:4px 6px;">Clip</div>
+        <div class="rp-tab" style="font-size:9px;padding:4px 6px;">Layer</div>
+        <div class="rp-tab" style="font-size:9px;padding:4px 6px;">Composition</div>
+        <div class="rp-tab" style="font-size:9px;padding:4px 6px;">Signal</div>
+      </div>
+
+      <!-- Dashboard Knobs -->
+      <div class="insp-section">
+        <div class="insp-section-header">Dashboard <span class="collapse-icon">&#9660;</span></div>
+        <div class="dashboard-knobs" id="dashKnobs"></div>
+      </div>
+
+      <!-- Video / Transport -->
+      <div class="insp-section">
+        <div class="insp-section-header">Video <span class="collapse-icon">&#9660;</span></div>
+        <div class="insp-row">
+          <div class="signal-tri connected"></div>
+          <span class="param-name">Opacity</span>
+          <div class="insp-slider"><div class="fill" style="width:100%"></div></div>
+          <span class="param-val">1.00</span>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Width</span>
+          <div class="insp-slider"><div class="fill" style="width:50%"></div></div>
+          <span class="param-val">0.50</span>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Height</span>
+          <div class="insp-slider"><div class="fill" style="width:50%"></div></div>
+          <span class="param-val">0.50</span>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Blend</span>
+          <div style="flex:1;font-size:10px;color:#aaa;">Add</div>
+          <span class="param-val"></span>
+        </div>
+      </div>
+
+      <!-- Cuepoints -->
+      <div class="insp-section">
+        <div class="insp-section-header">Cuepoints <span class="collapse-icon">&#9660;</span></div>
+        <div class="cuepoint-row">
+          <div class="cue-btn set">1</div>
+          <div class="cue-btn set">2</div>
+          <div class="cue-btn">3</div>
+          <div class="cue-btn">4</div>
+          <div class="cue-btn set">5</div>
+          <div class="cue-btn">6</div>
+          <div class="cue-btn">7</div>
+          <div class="cue-btn">8</div>
+        </div>
+      </div>
+
+      <!-- Autopilot -->
+      <div class="insp-section">
+        <div class="insp-section-header">Autopilot <span class="collapse-icon">&#9660;</span></div>
+        <div class="insp-toggle-row">
+          <div class="insp-toggle on"><div class="dot"></div></div>
+          <span class="insp-toggle-label">Enabled</span>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Beats</span>
+          <div style="flex:1;font-size:10px;color:#aaa;">8</div>
+          <span class="param-val"></span>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Action</span>
+          <div style="flex:1;font-size:10px;color:#aaa;">Random</div>
+          <span class="param-val"></span>
+        </div>
+      </div>
+
+      <!-- Effect Stack -->
+      <div class="insp-section">
+        <div class="insp-section-header">Effects <span class="collapse-icon">&#9660;</span></div>
+        <div class="fx-stack-item">
+          <div class="fx-bypass active">B</div>
+          <span class="fx-name">Ripple</span>
+          <div class="signal-tri connected" style="margin-left:auto;"></div>
+          <span class="fx-remove">x</span>
+        </div>
+        <div class="fx-stack-item">
+          <div class="fx-bypass active">B</div>
+          <span class="fx-name">Hue Shift</span>
+          <div class="signal-tri connected" style="margin-left:auto;"></div>
+          <span class="fx-remove">x</span>
+        </div>
+        <div class="fx-stack-item">
+          <div class="fx-bypass">B</div>
+          <span class="fx-name">Echo</span>
+          <div class="signal-tri" style="margin-left:auto;"></div>
+          <span class="fx-remove">x</span>
+        </div>
+        <div style="padding:4px 8px;text-align:center;color:#555;font-size:10px;border:1px dashed #2a2a35;margin:4px 8px;cursor:pointer;">
+          + Drop Effect Here
+        </div>
+      </div>
+
+      <!-- Keying -->
+      <div class="insp-section">
+        <div class="insp-section-header">Keying <span class="collapse-icon">&#9660;</span></div>
+        <div class="insp-row">
+          <span class="param-name" style="flex:0 0 50px">Mode</span>
+          <select class="key-select" style="flex:1;">
+            <option>Luma is Alpha</option>
+            <option>Inverted Luma is Alpha</option>
+            <option>Chroma Key</option>
+            <option>Auto Mask</option>
+          </select>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Threshold</span>
+          <div class="insp-slider"><div class="fill" style="width:30%"></div></div>
+          <span class="param-val">0.30</span>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="insp-section">
+        <div class="insp-section-header">Feedback <span class="collapse-icon">&#9660;</span></div>
+        <div class="insp-toggle-row">
+          <div class="insp-toggle"><div class="dot"></div></div>
+          <span class="insp-toggle-label">Enabled</span>
+        </div>
+        <div class="insp-row">
+          <span class="param-name" style="flex:0 0 50px">Preset</span>
+          <select class="fb-select" style="flex:1;">
+            <option>Zoom In</option>
+            <option>Spiral</option>
+            <option>Drift</option>
+            <option>Kaleidoscope</option>
+            <option>Echo</option>
+            <option>Stretch</option>
+          </select>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Amount</span>
+          <div class="insp-slider"><div class="fill" style="width:0%"></div></div>
+          <span class="param-val">0.00</span>
+        </div>
+      </div>
+
+      <!-- Transform -->
+      <div class="insp-section">
+        <div class="insp-section-header">Transform <span class="collapse-icon">&#9660;</span></div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Position X</span>
+          <div class="insp-slider"><div class="fill" style="width:50%"></div></div>
+          <span class="param-val">0.00</span>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Position Y</span>
+          <div class="insp-slider"><div class="fill" style="width:50%"></div></div>
+          <span class="param-val">0.00</span>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri connected"></div>
+          <span class="param-name">Scale</span>
+          <div class="insp-slider"><div class="fill" style="width:50%"></div></div>
+          <span class="param-val">1.00</span>
+        </div>
+        <div class="insp-row">
+          <div class="signal-tri"></div>
+          <span class="param-name">Rotation</span>
+          <div class="insp-slider"><div class="fill" style="width:50%"></div></div>
+          <span class="param-val">0.0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BROWSER -->
+    <div class="browser-content" id="browserPanel">
+      <div class="browser-tabs">
+        <div class="br-tab" onclick="switchBrowserTab('files')">Files</div>
+        <div class="br-tab active" onclick="switchBrowserTab('fx')">FX</div>
+        <div class="br-tab" onclick="switchBrowserTab('sources')">Sources</div>
+      </div>
+      <div class="browser-list" id="browserList">
+        <!-- FX tab content -->
+        <div class="browser-cat">Warp (27)</div>
+        <div class="browser-item"><span class="bi-icon warp">Warp</span> Ripple</div>
+        <div class="browser-item"><span class="bi-icon warp">Warp</span> Bulge</div>
+        <div class="browser-item"><span class="bi-icon warp">Warp</span> Wave</div>
+        <div class="browser-item"><span class="bi-icon warp">Warp</span> Liquid</div>
+        <div class="browser-item"><span class="bi-icon warp">Warp</span> Kaleidoscope</div>
+        <div class="browser-item"><span class="bi-icon warp">Warp</span> Infinite Zoom</div>
+        <div class="browser-cat">Color (31)</div>
+        <div class="browser-item"><span class="bi-icon color">Color</span> Hue Shift</div>
+        <div class="browser-item"><span class="bi-icon color">Color</span> Saturation</div>
+        <div class="browser-item"><span class="bi-icon color">Color</span> Chromatic Aberration</div>
+        <div class="browser-item"><span class="bi-icon color">Color</span> Duotone</div>
+        <div class="browser-cat">Glitch (16)</div>
+        <div class="browser-item"><span class="bi-icon glitch">Glitch</span> Pixel Scatter</div>
+        <div class="browser-item"><span class="bi-icon glitch">Glitch</span> RGB Split</div>
+        <div class="browser-item"><span class="bi-icon glitch">Glitch</span> Block Glitch</div>
+        <div class="browser-item"><span class="bi-icon glitch">Glitch</span> Signal Destroy</div>
+        <div class="browser-cat">Blur / Post (9)</div>
+        <div class="browser-item"><span class="bi-icon blur">Blur</span> Gaussian Blur</div>
+        <div class="browser-item"><span class="bi-icon blur">Blur</span> Glow</div>
+        <div class="browser-item"><span class="bi-icon blur">Blur</span> Motion Blur</div>
+        <div class="browser-cat">Time (6)</div>
+        <div class="browser-item"><span class="bi-icon">Time</span> Echo</div>
+        <div class="browser-item"><span class="bi-icon">Time</span> Freeze</div>
+        <div class="browser-item"><span class="bi-icon">Time</span> Screen Split</div>
+        <div class="browser-cat">Audio (3)</div>
+        <div class="browser-item"><span class="bi-icon src">Audio</span> Harmonic Displacement</div>
+        <div class="browser-item"><span class="bi-icon src">Audio</span> Timbral Mosaic</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM: DECK TABS + LAYER STRIPS -->
+<div class="bottom-area">
+  <div class="deck-row">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <div class="deck-tab add-deck">+</div>
+  </div>
+  <div class="layer-tabs">
+    <div class="layer-tab active">Layer 1</div>
+    <div class="layer-tab">Layer 2</div>
+    <div class="layer-tab">Layer 3</div>
+    <div class="layer-tab">Layer 4</div>
+    <div class="layer-tab">Layer 5</div>
+    <div class="layer-tab">Layer 6</div>
+    <div class="layer-tab">Layer 7</div>
+    <div class="layer-tab add-tab">+</div>
+  </div>
+  <div class="layer-cards-container" id="layerCards"></div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-perf">
+    <span class="perf-dot"></span>
+    <span class="footer-item">Frames Per Second: <span class="val">60.0</span></span>
+  </div>
+  <span class="footer-item">DSP Load: <span class="val">2.1%</span></span>
+  <span class="footer-item">GPU: <span class="val">34%</span></span>
+  <span class="footer-item">Layers: <span class="val">7/10</span></span>
+  <span class="footer-item">Effects: <span class="val">12</span></span>
+  <div class="spacer"></div>
+  <span class="footer-item recording">&#9679; Recording 00:12:34</span>
+  <span class="footer-item">Syphon: <span class="val" style="color:#76ff03;">Active</span></span>
+  <span class="footer-item">Output: <span class="val">Display 2</span></span>
+  <span class="footer-item">Preset: <span class="val">Techno Set A</span></span>
+</div>
+
+<script>
+// ── RIGHT PANEL SWITCHING ──
+function switchRightPanel(tab) {
+  const insp = document.getElementById('inspectorPanel');
+  const brow = document.getElementById('browserPanel');
+  const tabs = document.querySelectorAll('.right-panel-tabs .rp-tab');
+  if (tab === 'inspector') {
+    insp.style.display = 'block';
+    brow.classList.remove('visible');
+    tabs[0].classList.add('active');
+    tabs[1].classList.remove('active');
+  } else {
+    insp.style.display = 'none';
+    brow.classList.add('visible');
+    tabs[1].classList.add('active');
+    tabs[0].classList.remove('active');
+  }
+}
+
+function switchBrowserTab(tab) {
+  // Visual only for mockup
+  const tabs = document.querySelectorAll('.browser-tabs .br-tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  if (tab === 'files') tabs[0].classList.add('active');
+  if (tab === 'fx') tabs[1].classList.add('active');
+  if (tab === 'sources') tabs[2].classList.add('active');
+}
+
+// ── BEAT WHEEL ──
+(function() {
+  const c = document.getElementById('beatWheelCanvas');
+  const ctx = c.getContext('2d');
+  c.width = 52; c.height = 52;
+  const cx = 26, cy = 26, r = 10;
+  let t = 0;
+  function draw() {
+    t += 0.03;
+    ctx.clearRect(0, 0, 52, 52);
+    // 4 segments
+    for (let i = 0; i < 4; i++) {
+      const sa = -Math.PI/2 + i * Math.PI/2;
+      const ea = sa + Math.PI/2 - 0.08;
+      const beatIdx = Math.floor((t * 2) % 4);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, sa, ea);
+      ctx.strokeStyle = i <= beatIdx ? '#00e5ff' : '#333340';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+    // Phase dot
+    const a = -Math.PI/2 + ((t * 2) % 1) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(a) * (r + 4), cy + Math.sin(a) * (r + 4), 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── LEVEL METERS ──
+function buildLevelMeters() {
+  const barsL = [0.3, 0.5, 0.7, 0.85, 0.95, 0.9, 0.75, 0.6, 0.45, 0.3, 0.2, 0.15];
+  const barsR = [0.25, 0.45, 0.65, 0.8, 0.88, 0.82, 0.7, 0.55, 0.4, 0.28, 0.18, 0.12];
+  [['levelMeterL', barsL], ['levelMeterR', barsR]].forEach(([id, bars]) => {
+    const el = document.getElementById(id);
+    bars.forEach(v => {
+      const d = document.createElement('div');
+      d.className = 'level-bar';
+      const h = Math.round(v * 20);
+      d.style.height = h + 'px';
+      d.style.background = v > 0.85 ? '#ff5252' : v > 0.6 ? '#ffab40' : '#00e5ff';
+      el.appendChild(d);
+    });
+  });
+}
+buildLevelMeters();
+
+// ── PREVIEW CANVAS ──
+(function() {
+  const c = document.getElementById('previewCanvas');
+  const ctx = c.getContext('2d');
+  let w, h, t = 0;
+  function resize() {
+    const r = c.getBoundingClientRect();
+    c.width = r.width * 2; c.height = r.height * 2;
+    w = c.width; h = c.height;
+  }
+  resize();
+
+  const particles = [];
+  for (let i = 0; i < 300; i++) {
+    particles.push({
+      x: Math.random() * 2, y: Math.random() * 2,
+      vx: (Math.random() - 0.5) * 0.003,
+      vy: (Math.random() - 0.5) * 0.003,
+      size: Math.random() * 3 + 1,
+      hue: Math.random() * 360,
+      life: Math.random()
+    });
+  }
+
+  function draw() {
+    t += 0.016;
+    ctx.fillStyle = 'rgba(5,5,10,0.15)';
+    ctx.fillRect(0, 0, w, h);
+
+    for (let i = 0; i < 6; i++) {
+      const cx2 = w/2 + Math.cos(t * 0.3 + i * 1.05) * w * 0.25;
+      const cy2 = h/2 + Math.sin(t * 0.4 + i * 0.87) * h * 0.2;
+      const r = 40 + Math.sin(t + i) * 20;
+      const sides = 3 + (i % 4);
+      ctx.beginPath();
+      for (let s = 0; s <= sides; s++) {
+        const a = (s / sides) * Math.PI * 2 + t * 0.5 + i;
+        const px = cx2 + Math.cos(a) * r;
+        const py = cy2 + Math.sin(a) * r;
+        s === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = `hsla(${(i * 60 + t * 30) % 360}, 80%, 60%, 0.3)`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > 2) p.vx *= -1;
+      if (p.y < 0 || p.y > 2) p.vy *= -1;
+      p.hue = (p.hue + 0.5) % 360;
+      p.life = 0.5 + Math.sin(t * 2 + p.hue * 0.01) * 0.4;
+      const px = p.x * w / 2;
+      const py = p.y * h / 2;
+      ctx.beginPath();
+      ctx.arc(px, py, p.size * p.life * 2, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue}, 90%, 65%, ${p.life * 0.7})`;
+      ctx.fill();
+      const grad = ctx.createRadialGradient(px, py, 0, px, py, p.size * 6);
+      grad.addColorStop(0, `hsla(${p.hue}, 100%, 70%, ${p.life * 0.15})`);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(px - p.size * 6, py - p.size * 6, p.size * 12, p.size * 12);
+    });
+
+    const burstR = 80 + Math.sin(t * 3) * 30;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + t * 0.7;
+      const lx = w/2 + Math.cos(a) * burstR;
+      const ly = h/2 + Math.sin(a) * burstR;
+      ctx.beginPath();
+      ctx.moveTo(w/2, h/2);
+      ctx.lineTo(lx, ly);
+      ctx.strokeStyle = `hsla(${(t * 50 + i * 30) % 360}, 80%, 60%, 0.25)`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── DASHBOARD KNOBS ──
+(function() {
+  const knobNames = ['Macro 1', 'Macro 2', 'Macro 3', 'Macro 4', 'Macro 5', 'Macro 6', 'Macro 7', 'Macro 8'];
+  const knobVals = [0.7, 0.4, 0.6, 0.85, 0.3, 0.55, 0.9, 0.2];
+  const container = document.getElementById('dashKnobs');
+  knobNames.forEach((name, i) => {
+    const dk = document.createElement('div');
+    dk.className = 'dash-knob';
+    dk.innerHTML = `<div class="knob"><canvas id="dkC${i}"></canvas></div><span class="dk-label">${name}</span>`;
+    container.appendChild(dk);
+  });
+  setTimeout(() => {
+    knobVals.forEach((v, i) => drawKnob(`dkC${i}`, v, i < 4 ? '#00e5ff' : '#ffab40'));
+  }, 50);
+})();
+
+// ── LAYER CARDS ──
+const layerData = [
+  { name: 'Geo-Pulse A', engine: 'proc', type: 'opaque', sat: 0.65, bri: 0.8, opacity: 1.0, fx: true, macro: false, strobe: false, locked: false, sigOp: true },
+  { name: 'Cityscape B', engine: 'img', type: 'transparent', sat: 0.5, bri: 0.7, opacity: 0.75, fx: false, macro: true, strobe: false, locked: true, sigOp: false },
+  { name: 'Synth Trail C', engine: 'vid', type: 'transparent', sat: 0.75, bri: 0.6, opacity: 0.6, fx: true, macro: true, strobe: false, locked: false, sigOp: true },
+  { name: 'Ripple FX', engine: 'fx', type: 'fxonly', sat: 0.4, bri: 0.9, opacity: 1.0, fx: true, macro: false, strobe: false, locked: false, sigOp: false },
+  { name: 'Particle D', engine: 'proc', type: 'transparent', sat: 0.55, bri: 0.75, opacity: 0.8, fx: true, macro: false, strobe: true, locked: false, sigOp: true },
+  { name: 'Aerial E', engine: 'vid', type: 'transparent', sat: 0.6, bri: 0.5, opacity: 0.5, fx: true, macro: true, strobe: false, locked: true, sigOp: false },
+  { name: 'Neon Tunnel G', engine: 'proc', type: 'mask', sat: 0.85, bri: 0.65, opacity: 1.0, fx: false, macro: false, strobe: false, locked: false, sigOp: true },
+];
+
+const container = document.getElementById('layerCards');
+layerData.forEach((ld, idx) => {
+  const card = document.createElement('div');
+  card.className = 'layer-card' + (idx === 0 ? ' active' : '');
+  const typeLabel = {opaque:'Opaque',transparent:'Transp',fxonly:'FX Only',mask:'Mask'}[ld.type] || ld.type;
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="clip-title">${ld.name}</div>
+      <div class="card-header-badges">
+        <span class="type-badge ${ld.type}">${typeLabel}</span>
+        <span class="engine-badge ${ld.engine}">${ld.engine}</span>
+        <span class="lock-icon ${ld.locked ? 'locked' : ''}">${ld.locked ? '&#128274;' : '&#128275;'}</span>
+        <span class="fold-icon">&#9660;</span>
+      </div>
+    </div>
+    <div class="card-controls-row">
+      <div class="card-signal-tri ${ld.sigOp ? 'connected' : ''}"></div>
+      <span class="card-mini-label">Opac</span>
+      <div class="card-mini-slider"><div class="fill" style="width:${ld.opacity * 100}%"></div></div>
+    </div>
+    <div class="knobs-row">
+      <div class="knob-group">
+        <div class="knob"><canvas id="knobSat${idx}"></canvas></div>
+        <span class="knob-label">Saturation</span>
+      </div>
+      <div class="knob-group">
+        <div class="knob"><canvas id="knobBri${idx}"></canvas></div>
+        <span class="knob-label">Brightness</span>
+      </div>
+    </div>
+    <div class="card-buttons">
+      <div class="card-btn ${ld.fx ? 'active' : ''}">FX</div>
+      <div class="card-btn ${ld.macro ? 'active' : ''}">Macro</div>
+      <div class="card-btn ${ld.strobe ? 'strobe' : ''}">Strobe</div>
+    </div>
+    <span class="expand-toggle">&#9660;</span>
+  `;
+  container.appendChild(card);
+  setTimeout(() => {
+    drawKnob(`knobSat${idx}`, ld.sat, '#00e5ff');
+    drawKnob(`knobBri${idx}`, ld.bri, '#ffab40');
+  }, 50);
+});
+
+function drawKnob(canvasId, value, color) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const r = c.getBoundingClientRect();
+  c.width = r.width * 2; c.height = r.height * 2;
+  const cx = c.width / 2, cy = c.height / 2;
+  const radius = cx * 0.7;
+  const startAngle = Math.PI * 0.75;
+  const endAngle = Math.PI * 2.25;
+  const valueAngle = startAngle + (endAngle - startAngle) * value;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, startAngle, endAngle);
+  ctx.strokeStyle = '#2a2a35';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, startAngle, valueAngle);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  const dx = cx + Math.cos(valueAngle) * radius;
+  const dy = cy + Math.sin(valueAngle) * radius;
+  ctx.beginPath();
+  ctx.arc(dx, dy, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1a24';
+  ctx.fill();
+  ctx.strokeStyle = '#333340';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — SETUP BRIDGE</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+  html, body {
+    width: 1920px;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    font-size: 11px;
+    overflow: hidden;
+  }
+  .mono { font-family: 'IBM Plex Mono', 'SF Mono', Menlo, monospace; }
+  .app { width: 1920px; height: 1200px; position: relative; background: #1a1a1a; }
+
+  /* Grain overlay */
+  .grain {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.03; z-index: 9999;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* ============ TOP BAR (44px) ============ */
+  .topbar {
+    height: 44px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 20px;
+  }
+  .logo {
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    font-size: 12px;
+    color: #e0e0e0;
+  }
+  .logo .dot { color: #5fdba7; }
+  .bpm-big {
+    color: #5fdba7;
+    font-size: 48px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    line-height: 44px;
+    letter-spacing: -0.02em;
+  }
+  .top-meta {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 44px;
+    font-size: 10px;
+    color: #888;
+    gap: 2px;
+    min-width: 80px;
+  }
+  .top-meta .v { color: #e0e0e0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .struct-pill {
+    background: #5fdba7;
+    color: #0a0a0a;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .beatwheel {
+    width: 28px; height: 28px; position: relative;
+  }
+  .transport-btns {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+  }
+  .tb {
+    width: 28px; height: 28px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .tb.rec { background: #ff4040; color: #fff; border-color: #ff4040; font-weight: 700; }
+  .mode-toggle {
+    display: flex;
+    margin-left: auto;
+    border: 1px solid #3a3a3a;
+  }
+  .mode-toggle .mt {
+    padding: 6px 14px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    color: #888;
+    background: #2a2a2a;
+    border-right: 1px solid #3a3a3a;
+    position: relative;
+  }
+  .mode-toggle .mt:last-child { border-right: 0; }
+  .mode-toggle .mt.active {
+    color: #e0e0e0;
+  }
+  .mode-toggle .mt.active::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px;
+    background: #5fdba7;
+  }
+
+  /* ============ RESOLUME TRANSPORT STRIP (32px) ============ */
+  .rtstrip {
+    height: 32px;
+    background: #222;
+    border-bottom: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+  }
+  .rtb {
+    height: 22px;
+    min-width: 26px;
+    padding: 0 6px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #e0e0e0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .rtb.mint { color: #5fdba7; }
+  .rtsep { width: 1px; height: 16px; background: #333; margin: 0 6px; }
+
+  /* ============ SIGNAL QUICK-REF BAR (22px) ============ */
+  .sigbar {
+    height: 22px;
+    background: #181818;
+    border-bottom: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #888;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .sigbar .s { padding: 0 10px; border-right: 1px solid #2a2a2a; }
+  .sigbar .s:last-child { border-right: 0; }
+  .sigbar .s .vv { color: #e0e0e0; }
+  .sigbar .s .vv.mint { color: #5fdba7; }
+
+  /* ============ STRIP LABELS ============ */
+  .strip-label {
+    width: 160px;
+    flex-shrink: 0;
+    background: #1f1f1f;
+    border-right: 1px solid #3a3a3a;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 14px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    gap: 4px;
+  }
+  .strip-label .count { color: #5fdba7; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0; }
+  .strip-label .hint { color: #5a5a5a; font-size: 9px; letter-spacing: 0.08em; font-weight: 400; text-transform: none; }
+
+  /* ============ STRIP 1: ACTIVE ROUTES (120px) ============ */
+  .strip1 {
+    height: 120px;
+    background: #1a1a1a;
+    display: flex;
+    border-bottom: 1px solid #5fdba7;
+    position: relative;
+  }
+  .routes-scroll {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+  .route-chip {
+    width: 280px;
+    height: 80px;
+    background: #232323;
+    border: 1px solid #3a3a3a;
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 10px;
+  }
+  .route-chip.active { border: 2px solid #5fdba7; }
+  .route-chip.bypassed { opacity: 0.45; }
+  .route-chip.bypassed .rc-source,
+  .route-chip.bypassed .rc-target { color: #888; }
+  .route-chip.bypassed .rc-arrow { color: #555; }
+  .rc-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #e0e0e0;
+    letter-spacing: 0.06em;
+  }
+  .rc-source { font-weight: 600; }
+  .rc-arrow { color: #5fdba7; font-size: 16px; line-height: 1; }
+  .rc-target { color: #e0e0e0; font-weight: 500; font-size: 10.5px; letter-spacing: 0.05em; }
+  .rc-mid {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .rc-curve {
+    background: #5fdba7;
+    color: #0a0a0a;
+    padding: 1px 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .rc-curve.lin { background: #3a3a3a; color: #e0e0e0; }
+  .rc-curve.log { background: #3a3a3a; color: #e0e0e0; }
+  .rc-curve.scurve { background: #3a3a3a; color: #e0e0e0; }
+  .rc-spark {
+    width: 50px;
+    height: 12px;
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    position: relative;
+    overflow: hidden;
+  }
+  .rc-spark svg { display: block; }
+  .rc-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 0.06em;
+  }
+  .rc-bottom {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .rc-smooth {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: #888;
+  }
+  .rc-smooth .mv { color: #e0e0e0; }
+  .rc-btns { display: flex; gap: 2px; }
+  .rc-btn {
+    width: 20px; height: 20px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+  .rc-btn.x { color: #ff6060; }
+  .rc-btn.p { background: #5fdba7; color: #0a0a0a; border-color: #5fdba7; }
+  .routes-scroll::after {
+    content: "";
+    position: absolute;
+    right: 0; top: 0; bottom: 0; width: 40px;
+    background: linear-gradient(to left, #1a1a1a, transparent);
+    pointer-events: none;
+  }
+
+  /* ============ STRIP 2: SIGNAL CHIP DRAG TRAY (80px) ============ */
+  .strip2 {
+    height: 80px;
+    background: #161616;
+    display: flex;
+    border-bottom: 1px solid #5fdba7;
+  }
+  .chips-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 4px 14px;
+    gap: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .chip-row {
+    display: flex;
+    align-items: center;
+    height: 34px;
+    gap: 4px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+  .cat-label {
+    font-size: 9px;
+    color: #5a5a5a;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    margin-right: 6px;
+    text-transform: uppercase;
+  }
+  .chip {
+    height: 28px;
+    min-width: 70px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 8px 0 4px;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #e0e0e0;
+  }
+  .chip .drag { color: #5a5a5a; font-weight: 700; letter-spacing: -0.1em; }
+  .chip .nm { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: #c0c0c0; font-weight: 500; }
+  .chip .vl { color: #5fdba7; font-family: 'IBM Plex Mono', monospace; font-size: 10px; }
+  .chip.active { border-color: #5fdba7; }
+  .chip.hot .vl { color: #5fdba7; }
+  .cat-sep { width: 1px; height: 18px; background: #5fdba7; margin: 0 6px; opacity: 0.4; }
+
+  /* ============ STRIP 3: TRIANGLE PROMINENCE PANEL ============ */
+  .strip3 {
+    height: 882px;
+    background: #1a1a1a;
+    display: flex;
+  }
+  .prom-wrap {
+    flex: 1;
+    display: flex;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  .prom-col {
+    width: 440px;
+    border-right: 1px solid #3a3a3a;
+    background: #1d1d1d;
+    display: flex;
+    flex-direction: column;
+  }
+  .prom-col:last-child { border-right: 0; }
+  .prom-ctx {
+    height: 28px;
+    background: #141414;
+    border-bottom: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: #888;
+    font-weight: 700;
+    justify-content: space-between;
+  }
+  .prom-ctx .ctx-count { color: #5fdba7; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0; font-size: 11px; font-weight: 400; }
+
+  /* Section headers — 24px dark strip */
+  .sec {
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .sec-head {
+    height: 24px;
+    background: #141414;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+    position: relative;
+  }
+  .sec-head.routed::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0; width: 3px;
+    background: #5fdba7;
+  }
+  .sec-tri {
+    font-size: 8px;
+    color: #888;
+  }
+  .sec-name {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: #c0c0c0;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .sec-p {
+    margin-left: auto;
+    font-size: 9px;
+    color: #888;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 0 4px;
+  }
+
+  /* Inspector row */
+  .row {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 10px;
+    gap: 6px;
+    border-bottom: 1px solid #232323;
+    position: relative;
+    background: #1d1d1d;
+  }
+  .row.routed { background: #1f2521; }
+  .row.routed::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0; width: 2px;
+    background: #5fdba7;
+  }
+  .row.drop-target {
+    outline: 1px dashed #5fdba7;
+    outline-offset: -2px;
+    background: #1a2520;
+  }
+  .row-lbl {
+    width: 82px;
+    font-size: 10px;
+    color: #888;
+    text-align: right;
+    letter-spacing: 0.04em;
+  }
+  .row-val {
+    width: 44px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #e0e0e0;
+    text-align: right;
+  }
+  .row-pm {
+    width: 14px; height: 16px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-size: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .row-bar {
+    flex: 1;
+    height: 10px;
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    position: relative;
+  }
+  .row-bar .fill { height: 100%; background: #3a3a3a; }
+  .row-bar .fill.mint { background: #5fdba7; }
+  .row-bar .ind {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 2px;
+    background: #5fdba7;
+  }
+
+  /* Prominent triangle */
+  .row-tri-wrap {
+    width: 20px; height: 20px;
+    border: 1px solid #3a3a3a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .row-tri-wrap.routed { border-color: #5fdba7; background: #0e1e18; }
+  .row-tri-wrap.hot { border-color: #5fdba7; }
+  .row-tri {
+    width: 0; height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 10px solid #666;
+  }
+  .row-tri.routed {
+    border-top-color: #5fdba7;
+  }
+  .row-p-btn {
+    width: 24px; height: 18px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .row-p-btn.routed { background: #5fdba7; color: #0a0a0a; border-color: #5fdba7; }
+
+  /* Knob rows */
+  .knob-row {
+    display: flex;
+    padding: 10px 8px;
+    gap: 8px;
+    background: #1d1d1d;
+    border-bottom: 1px solid #232323;
+    flex-wrap: wrap;
+  }
+  .knob {
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .knob .k-ring {
+    width: 40px; height: 40px;
+    background: #161616;
+    border: 1px solid #3a3a3a;
+    border-radius: 50% !important;
+    position: relative;
+  }
+  .knob .k-dot {
+    position: absolute;
+    top: 3px; left: 50%;
+    width: 3px; height: 10px;
+    background: #5fdba7;
+    transform-origin: 50% 17px;
+  }
+  .knob .k-lbl {
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 0.08em;
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+  }
+  .knob .k-val {
+    font-size: 9px;
+    color: #5fdba7;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .knob .k-tri {
+    width: 18px; height: 18px;
+    border: 1px solid #3a3a3a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+    margin-top: 2px;
+  }
+  .knob .k-tri.routed { border-color: #5fdba7; background: #0e1e18; }
+  .knob .k-tri .kt {
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid #666;
+  }
+  .knob .k-tri.routed .kt {
+    border-top-color: #5fdba7;
+  }
+
+  /* Cue points */
+  .cues {
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    background: #1d1d1d;
+    border-bottom: 1px solid #232323;
+  }
+  .cue {
+    height: 26px;
+    background: #161616;
+    border: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #888;
+  }
+  .cue.set { color: #5fdba7; border-color: #5fdba7; background: #0e1e18; }
+
+  /* Effects */
+  .fx-row {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 6px;
+    background: #1d1d1d;
+    border-bottom: 1px solid #232323;
+  }
+  .fx-bypass {
+    width: 16px; height: 16px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    color: #c0c0c0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+  .fx-name {
+    font-size: 11px;
+    color: #e0e0e0;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    flex: 1;
+  }
+  .fx-x {
+    width: 16px; height: 16px;
+    color: #ff6060;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+  }
+
+  .drop-hint {
+    position: absolute;
+    bottom: 8px; right: 10px;
+    font-size: 9px;
+    color: #5fdba7;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.1em;
+    background: #0e1e18;
+    border: 1px dashed #5fdba7;
+    padding: 3px 8px;
+  }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="grain"></div>
+
+  <!-- ==================== TOP BAR ==================== -->
+  <div class="topbar">
+    <div class="logo">AUDIO<span class="dot">.</span>DNA</div>
+    <div class="bpm-big mono">128</div>
+    <div class="top-meta">
+      <span>BAR</span>
+      <span class="v">3·2</span>
+    </div>
+    <div class="top-meta">
+      <span>PHRASE</span>
+      <span class="v">5 / 8</span>
+    </div>
+    <div class="struct-pill">DROP</div>
+
+    <div class="beatwheel">
+      <svg width="28" height="28" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="11" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+        <path d="M 14 3 A 11 11 0 0 1 25 14 L 14 14 Z" fill="#5fdba7"/>
+        <circle cx="14" cy="14" r="2.5" fill="#5fdba7"/>
+      </svg>
+    </div>
+
+    <div class="transport-btns">
+      <div class="tb">▶</div>
+      <div class="tb">‖</div>
+      <div class="tb">■</div>
+      <div class="tb mono" style="width:36px; color:#5fdba7;">Q8</div>
+      <div class="tb mono">FD</div>
+      <div class="tb mono" style="width:48px;">MSTR</div>
+      <div class="tb rec">REC</div>
+      <div class="tb mono" style="width:48px;">60 fps</div>
+    </div>
+
+    <div class="mode-toggle">
+      <div class="mt">LIVE</div>
+      <div class="mt">PROGRAM</div>
+      <div class="mt active">SETUP</div>
+    </div>
+  </div>
+
+  <!-- ==================== RESOLUME TRANSPORT STRIP ==================== -->
+  <div class="rtstrip">
+    <div class="rtb">▶</div>
+    <div class="rtb">‖</div>
+    <div class="rtb">■</div>
+    <div class="rtsep"></div>
+    <div class="rtb mint" style="min-width:40px;">128</div>
+    <div class="rtb">−</div>
+    <div class="rtb">+</div>
+    <div class="rtsep"></div>
+    <div class="rtb">|◂</div>
+    <div class="rtb">▸|</div>
+    <div class="rtb">/2</div>
+    <div class="rtb">×2</div>
+    <div class="rtsep"></div>
+    <div class="rtb mint">TAP</div>
+    <div class="rtb">RESYNC</div>
+    <div class="rtsep"></div>
+    <div class="rtb">◐</div>
+    <div class="rtsep"></div>
+    <div class="rtb">↶</div>
+    <div class="rtb">↷</div>
+    <div style="flex:1"></div>
+    <div class="rtb" style="color:#888;">SETUP MODE — SIGNAL ROUTING</div>
+  </div>
+
+  <!-- ==================== SIGNAL QUICK-REF BAR ==================== -->
+  <div class="sigbar">
+    <span class="s">RMS <span class="vv">0.73</span></span>
+    <span class="s">PEAK <span class="vv">0.91</span></span>
+    <span class="s">LUFS <span class="vv">-12.4</span></span>
+    <span class="s">FLUX <span class="vv">0.42</span></span>
+    <span class="s">CENTROID <span class="vv">2.8k</span></span>
+    <span class="s">BASS <span class="vv mint">0.88</span></span>
+    <span class="s">MID <span class="vv">0.45</span></span>
+    <span class="s">HIGH <span class="vv">0.31</span></span>
+    <span class="s">BPM <span class="vv mint">128</span></span>
+    <span class="s">KEY <span class="vv">Am</span></span>
+    <span class="s">GENRE <span class="vv mint">TECHNO</span></span>
+    <span class="s">PITCH <span class="vv">220Hz</span></span>
+    <span class="s">ONSETS <span class="vv">4.2/s</span></span>
+    <span class="s">CREST <span class="vv">2.1</span></span>
+    <span class="s">FLAT <span class="vv">0.28</span></span>
+  </div>
+
+  <!-- ==================== STRIP 1: ACTIVE ROUTES ==================== -->
+  <div class="strip1">
+    <div class="strip-label">
+      <div>ACTIVE ROUTES <span class="count">(14)</span></div>
+      <div class="hint">live signal → target</div>
+    </div>
+    <div class="routes-scroll">
+
+      <!-- Route 1 - ACTIVE -->
+      <div class="route-chip active">
+        <div class="rc-top">
+          <span class="rc-source">BASS BAND</span>
+          <span class="rc-arrow">→</span>
+          <span class="rc-target">RIPPLE.INTENSITY</span>
+        </div>
+        <div class="rc-mid">
+          <span class="rc-curve">EXP</span>
+          <span class="rc-spark">
+            <svg width="50" height="12"><polyline points="0,10 5,8 10,3 15,6 20,2 25,9 30,4 35,7 40,2 45,8 50,5" fill="none" stroke="#5fdba7" stroke-width="1"/></svg>
+          </span>
+          <span class="rc-meta">0.88</span>
+        </div>
+        <div class="rc-bottom">
+          <span class="rc-smooth">α <span class="mv">0.18</span> · in [0 – 1]</span>
+          <div class="rc-btns">
+            <div class="rc-btn">B</div>
+            <div class="rc-btn p">P.</div>
+            <div class="rc-btn x">✕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route 2 -->
+      <div class="route-chip">
+        <div class="rc-top">
+          <span class="rc-source">BEAT PHASE</span>
+          <span class="rc-arrow">→</span>
+          <span class="rc-target">KALEIDO.ROTATION</span>
+        </div>
+        <div class="rc-mid">
+          <span class="rc-curve lin">LIN</span>
+          <span class="rc-spark">
+            <svg width="50" height="12"><polyline points="0,2 6,10 7,2 13,10 14,2 20,10 21,2 27,10 28,2 34,10 35,2 41,10 42,2 48,10 50,4" fill="none" stroke="#5fdba7" stroke-width="1"/></svg>
+          </span>
+          <span class="rc-meta">0.42</span>
+        </div>
+        <div class="rc-bottom">
+          <span class="rc-smooth">α <span class="mv">0.00</span> · out [0 – 360]</span>
+          <div class="rc-btns">
+            <div class="rc-btn">B</div>
+            <div class="rc-btn p">P.</div>
+            <div class="rc-btn x">✕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route 3 -->
+      <div class="route-chip">
+        <div class="rc-top">
+          <span class="rc-source">ONSET STR</span>
+          <span class="rc-arrow">→</span>
+          <span class="rc-target">GLITCH.AMOUNT</span>
+        </div>
+        <div class="rc-mid">
+          <span class="rc-curve">EXP</span>
+          <span class="rc-spark">
+            <svg width="50" height="12"><polyline points="0,11 2,11 4,3 6,10 8,11 14,11 16,2 18,10 22,11 26,11 28,4 30,10 34,11 38,11 40,3 42,10 46,11 50,11" fill="none" stroke="#5fdba7" stroke-width="1"/></svg>
+          </span>
+          <span class="rc-meta">0.76</span>
+        </div>
+        <div class="rc-bottom">
+          <span class="rc-smooth">α <span class="mv">0.30</span> · strike 4.2/s</span>
+          <div class="rc-btns">
+            <div class="rc-btn">B</div>
+            <div class="rc-btn p">P.</div>
+            <div class="rc-btn x">✕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route 4 -->
+      <div class="route-chip">
+        <div class="rc-top">
+          <span class="rc-source">CENTROID</span>
+          <span class="rc-arrow">→</span>
+          <span class="rc-target">HUESHIFT.AMT</span>
+        </div>
+        <div class="rc-mid">
+          <span class="rc-curve log">LOG</span>
+          <span class="rc-spark">
+            <svg width="50" height="12"><polyline points="0,7 5,6 10,8 15,5 20,6 25,4 30,5 35,7 40,6 45,8 50,6" fill="none" stroke="#5fdba7" stroke-width="1"/></svg>
+          </span>
+          <span class="rc-meta">2.8k</span>
+        </div>
+        <div class="rc-bottom">
+          <span class="rc-smooth">α <span class="mv">0.22</span> · range 200 – 8k</span>
+          <div class="rc-btns">
+            <div class="rc-btn">B</div>
+            <div class="rc-btn p">P.</div>
+            <div class="rc-btn x">✕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route 5 -->
+      <div class="route-chip">
+        <div class="rc-top">
+          <span class="rc-source">PHRASE PH</span>
+          <span class="rc-arrow">→</span>
+          <span class="rc-target">LYR2.OPACITY</span>
+        </div>
+        <div class="rc-mid">
+          <span class="rc-curve scurve">S-CURVE</span>
+          <span class="rc-spark">
+            <svg width="50" height="12"><polyline points="0,10 10,9 20,7 25,6 30,4 40,3 50,2" fill="none" stroke="#5fdba7" stroke-width="1"/></svg>
+          </span>
+          <span class="rc-meta">0.58</span>
+        </div>
+        <div class="rc-bottom">
+          <span class="rc-smooth">α <span class="mv">0.12</span> · 8-bar cycle</span>
+          <div class="rc-btns">
+            <div class="rc-btn">B</div>
+            <div class="rc-btn p">P.</div>
+            <div class="rc-btn x">✕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route 6 - BYPASSED -->
+      <div class="route-chip bypassed">
+        <div class="rc-top">
+          <span class="rc-source">SIDECHAIN</span>
+          <span class="rc-arrow">→</span>
+          <span class="rc-target">SCALE.COMP</span>
+        </div>
+        <div class="rc-mid">
+          <span class="rc-curve lin">LIN</span>
+          <span class="rc-spark">
+            <svg width="50" height="12"><polyline points="0,6 10,6 20,6 30,6 40,6 50,6" fill="none" stroke="#555" stroke-width="1"/></svg>
+          </span>
+          <span class="rc-meta">—</span>
+        </div>
+        <div class="rc-bottom">
+          <span class="rc-smooth">BYPASSED</span>
+          <div class="rc-btns">
+            <div class="rc-btn">B</div>
+            <div class="rc-btn p">P.</div>
+            <div class="rc-btn x">✕</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Route 7 (partial) -->
+      <div class="route-chip">
+        <div class="rc-top">
+          <span class="rc-source">CHROMA C</span>
+          <span class="rc-arrow">→</span>
+          <span class="rc-target">DUOTONE.HUE</span>
+        </div>
+        <div class="rc-mid">
+          <span class="rc-curve lin">LIN</span>
+          <span class="rc-spark">
+            <svg width="50" height="12"><polyline points="0,8 8,4 16,6 24,3 32,7 40,5 48,8 50,7" fill="none" stroke="#5fdba7" stroke-width="1"/></svg>
+          </span>
+          <span class="rc-meta">0.31</span>
+        </div>
+        <div class="rc-bottom">
+          <span class="rc-smooth">α <span class="mv">0.20</span></span>
+          <div class="rc-btns">
+            <div class="rc-btn">B</div>
+            <div class="rc-btn p">P.</div>
+            <div class="rc-btn x">✕</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== STRIP 2: SIGNAL CHIP DRAG TRAY ==================== -->
+  <div class="strip2">
+    <div class="strip-label">
+      <div>DRAG SIGNALS</div>
+      <div class="hint">drop onto any ▼ triangle</div>
+    </div>
+    <div class="chips-wrap">
+
+      <!-- Row 1 -->
+      <div class="chip-row">
+        <span class="cat-label">DYN</span>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">RMS</span><span class="vl">0.73</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Peak</span><span class="vl">0.91</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">LUFS</span><span class="vl">-12.4</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Crest</span><span class="vl">2.1</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Transients</span><span class="vl">4.2/s</span></div>
+
+        <span class="cat-sep"></span>
+
+        <span class="cat-label">SPECTRAL</span>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Centroid</span><span class="vl">2.8k</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Flux</span><span class="vl">0.42</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Flat</span><span class="vl">0.28</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Rolloff</span><span class="vl">8.5k</span></div>
+
+        <span class="cat-sep"></span>
+
+        <span class="cat-label">BANDS</span>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Sub</span><span class="vl">0.42</span></div>
+        <div class="chip active hot"><span class="drag">⋮⋮</span><span class="nm">Bass</span><span class="vl">0.88</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">LowMid</span><span class="vl">0.51</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Mid</span><span class="vl">0.45</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">HighMid</span><span class="vl">0.38</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Presence</span><span class="vl">0.31</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Brilliance</span><span class="vl">0.19</span></div>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="chip-row">
+        <span class="cat-label">RHYTHM</span>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">BeatPh</span><span class="vl">0.42</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">BarPh</span><span class="vl">0.61</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">PhrasePh</span><span class="vl">0.58</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Onset</span><span class="vl">0.76</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">BPM</span><span class="vl">128</span></div>
+
+        <span class="cat-sep"></span>
+
+        <span class="cat-label">PITCH</span>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Pitch</span><span class="vl">220Hz</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">PConf</span><span class="vl">0.82</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">ChrC</span><span class="vl">0.31</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">ChrD</span><span class="vl">0.12</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">ChrE</span><span class="vl">0.44</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">ChrG</span><span class="vl">0.28</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">ChrA</span><span class="vl">0.71</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Key</span><span class="vl">Am</span></div>
+
+        <span class="cat-sep"></span>
+
+        <span class="cat-label">ADV</span>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Sidechain</span><span class="vl">0.55</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Swing</span><span class="vl">0.58</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Formant</span><span class="vl">0.42</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Reson</span><span class="vl">0.33</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Reese</span><span class="vl">0.21</span></div>
+        <div class="chip"><span class="drag">⋮⋮</span><span class="nm">Genre</span><span class="vl">TECHNO</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== STRIP 3: TRIANGLE PROMINENCE PANEL ==================== -->
+  <div class="strip3">
+    <div class="strip-label">
+      <div>PARAMETER TARGETS</div>
+      <div class="hint">click ▼ to route · drop a signal</div>
+    </div>
+
+    <div class="prom-wrap">
+
+      <!-- ============ COLUMN A: COMPOSITION ============ -->
+      <div class="prom-col">
+        <div class="prom-ctx">
+          <span>COMPOSITION</span>
+          <span class="ctx-count">3 / 11 ROUTED</span>
+        </div>
+
+        <!-- MASTER (routed) -->
+        <div class="sec">
+          <div class="sec-head routed">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">MASTER</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Gain</div>
+            <div class="row-val">0.84</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:84%;"></div><div class="ind" style="left:84%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Fall</div>
+            <div class="row-val">0.30</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:30%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Speed</div>
+            <div class="row-val">1.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+        <!-- AUDIO -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">AUDIO</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Volume</div>
+            <div class="row-val">0.75</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:75%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Pan</div>
+            <div class="row-val">0.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+        <!-- VIDEO -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">VIDEO</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row drop-target">
+            <div class="row-tri-wrap hot"><div class="row-tri"></div></div>
+            <div class="row-lbl">Opacity</div>
+            <div class="row-val">1.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:100%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Width</div>
+            <div class="row-val">1920</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:100%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Height</div>
+            <div class="row-val">1080</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:100%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+        <!-- CROSSFADER -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">CROSSFADER</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Blend</div>
+            <div class="row-val">ALPHA</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:33%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Behaviour</div>
+            <div class="row-val">SMTH</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Curve</div>
+            <div class="row-val">0.58</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:58%;"></div><div class="ind" style="left:58%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+        </div>
+
+        <!-- TRANSFORM (routed) -->
+        <div class="sec">
+          <div class="sec-head routed">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">TRANSFORM</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Scale</div>
+            <div class="row-val">1.12</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:56%;"></div><div class="ind" style="left:56%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ COLUMN B: LAYER ============ -->
+      <div class="prom-col">
+        <div class="prom-ctx">
+          <span>LAYER 2 — VISUALS</span>
+          <span class="ctx-count">5 / 14 ROUTED</span>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">DASHBOARD</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="knob-row">
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(-60deg);"></div></div>
+              <div class="k-lbl">LINK 1</div>
+              <div class="k-val">0.32</div>
+              <div class="k-tri routed"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(30deg);"></div></div>
+              <div class="k-lbl">LINK 2</div>
+              <div class="k-val">0.68</div>
+              <div class="k-tri"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(-90deg);"></div></div>
+              <div class="k-lbl">LINK 3</div>
+              <div class="k-val">0.15</div>
+              <div class="k-tri"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(90deg);"></div></div>
+              <div class="k-lbl">LINK 4</div>
+              <div class="k-val">0.84</div>
+              <div class="k-tri routed"><div class="kt"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AUTOPILOT -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">AUTOPILOT</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Direction</div>
+            <div class="row-val">FWD</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:25%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Duration</div>
+            <div class="row-val">16b</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Clip Loops</div>
+            <div class="row-val">4</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:33%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Loop</div>
+            <div class="row-val">ON</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:100%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+        <!-- LAYER (routed) -->
+        <div class="sec">
+          <div class="sec-head routed">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">LAYER</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Master</div>
+            <div class="row-val">0.92</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:92%;"></div><div class="ind" style="left:92%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+        </div>
+
+        <!-- VIDEO -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">VIDEO</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Blend</div>
+            <div class="row-val">ADD</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:33%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Opacity</div>
+            <div class="row-val">0.58</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:58%;"></div><div class="ind" style="left:58%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Width</div>
+            <div class="row-val">1.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:100%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Height</div>
+            <div class="row-val">1.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:100%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Auto Size</div>
+            <div class="row-val">FIT</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+        <!-- TRANSITION -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">TRANSITION</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Blend</div>
+            <div class="row-val">DISSOL</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:20%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Duration</div>
+            <div class="row-val">2 bar</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:30%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+        <!-- TRANSFORM (routed) -->
+        <div class="sec">
+          <div class="sec-head routed">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">TRANSFORM</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Position X</div>
+            <div class="row-val">0.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Position Y</div>
+            <div class="row-val">0.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Scale</div>
+            <div class="row-val">1.42</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:71%;"></div><div class="ind" style="left:71%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Rotation</div>
+            <div class="row-val">150°</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:42%;"></div><div class="ind" style="left:42%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Anchor</div>
+            <div class="row-val">0.50</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============ COLUMN C: CLIP ============ -->
+      <div class="prom-col" style="position:relative;">
+        <div class="prom-ctx">
+          <span>CLIP — NEON_TUNNEL_01</span>
+          <span class="ctx-count">6 / 22 ROUTED</span>
+        </div>
+
+        <!-- DASHBOARD 8 knobs -->
+        <div class="sec">
+          <div class="sec-head routed">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">DASHBOARD</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="knob-row">
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(-120deg);"></div></div>
+              <div class="k-lbl">K1</div>
+              <div class="k-val">0.12</div>
+              <div class="k-tri routed"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(-30deg);"></div></div>
+              <div class="k-lbl">K2</div>
+              <div class="k-val">0.44</div>
+              <div class="k-tri"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(60deg);"></div></div>
+              <div class="k-lbl">K3</div>
+              <div class="k-val">0.72</div>
+              <div class="k-tri routed"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(120deg);"></div></div>
+              <div class="k-lbl">K4</div>
+              <div class="k-val">0.88</div>
+              <div class="k-tri"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(-90deg);"></div></div>
+              <div class="k-lbl">K5</div>
+              <div class="k-val">0.25</div>
+              <div class="k-tri"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(45deg);"></div></div>
+              <div class="k-lbl">K6</div>
+              <div class="k-val">0.63</div>
+              <div class="k-tri routed"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(-60deg);"></div></div>
+              <div class="k-lbl">K7</div>
+              <div class="k-val">0.30</div>
+              <div class="k-tri"><div class="kt"></div></div>
+            </div>
+            <div class="knob">
+              <div class="k-ring"><div class="k-dot" style="transform:translateX(-50%) rotate(100deg);"></div></div>
+              <div class="k-lbl">K8</div>
+              <div class="k-val">0.77</div>
+              <div class="k-tri"><div class="kt"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TRANSPORT -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">TRANSPORT</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">In</div>
+            <div class="row-val">0.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:0%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Out</div>
+            <div class="row-val">1.00</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:100%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Speed</div>
+            <div class="row-val">1.35</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:67%;"></div><div class="ind" style="left:67%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+          <div class="row drop-target">
+            <div class="row-tri-wrap hot"><div class="row-tri"></div></div>
+            <div class="row-lbl">Beat Div</div>
+            <div class="row-val">4</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:40%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Loop Mode</div>
+            <div class="row-val">LOOP</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:33%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+        <!-- CUEPOINTS -->
+        <div class="sec">
+          <div class="sec-head">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">CUEPOINTS</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="cues">
+            <div class="cue set">Q1 · 0.00</div>
+            <div class="cue set">Q2 · 0.25</div>
+            <div class="cue set">Q3 · 0.50</div>
+            <div class="cue">Q4</div>
+            <div class="cue set">Q5 · 0.68</div>
+            <div class="cue">Q6</div>
+            <div class="cue">Q7</div>
+            <div class="cue">Q8</div>
+          </div>
+        </div>
+
+        <!-- EFFECTS -->
+        <div class="sec">
+          <div class="sec-head routed">
+            <span class="sec-tri">▼</span>
+            <span class="sec-name">EFFECTS (3)</span>
+            <span class="sec-p">P.</span>
+          </div>
+          <div class="fx-row">
+            <div class="fx-bypass">B</div>
+            <div class="fx-name">Ripple</div>
+            <div class="fx-x">✕</div>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Intensity</div>
+            <div class="row-val">0.88</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:88%;"></div><div class="ind" style="left:88%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Frequency</div>
+            <div class="row-val">0.50</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+
+          <div class="fx-row">
+            <div class="fx-bypass">B</div>
+            <div class="fx-name">Kaleido</div>
+            <div class="fx-x">✕</div>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Rotation</div>
+            <div class="row-val">0.42</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:42%;"></div><div class="ind" style="left:42%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Segments</div>
+            <div class="row-val">8</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:50%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+
+          <div class="fx-row">
+            <div class="fx-bypass">B</div>
+            <div class="fx-name">Glitch</div>
+            <div class="fx-x">✕</div>
+          </div>
+          <div class="row routed">
+            <div class="row-tri-wrap routed"><div class="row-tri routed"></div></div>
+            <div class="row-lbl">Amount</div>
+            <div class="row-val">0.76</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill mint" style="width:76%;"></div><div class="ind" style="left:76%;"></div></div>
+            <div class="row-p-btn routed">P.</div>
+          </div>
+          <div class="row">
+            <div class="row-tri-wrap"><div class="row-tri"></div></div>
+            <div class="row-lbl">Block Size</div>
+            <div class="row-val">0.30</div>
+            <div class="row-pm">−</div>
+            <div class="row-pm">+</div>
+            <div class="row-bar"><div class="fill" style="width:30%;"></div></div>
+            <div class="row-p-btn">P.</div>
+          </div>
+        </div>
+
+        <div class="drop-hint">▼ DROP SIGNAL TO ROUTE</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

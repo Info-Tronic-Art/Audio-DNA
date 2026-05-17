@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Audio-DNA V9 Wave — Waveform Minimal</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #000; color: #e0e0e0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 12px; overflow: hidden; }
+
+/* ---- COMPACT TOP BAR (32px, no menu bar) ---- */
+.top-bar { height: 32px; background: #111; display: flex; align-items: center; padding: 0 12px; gap: 10px; border-bottom: 1px solid #222; }
+.top-bar .brand { color: #ff8800; font-weight: 700; font-size: 13px; letter-spacing: 0.5px; }
+.top-bar .bpm-box { background: #0a0a0a; border: 1px solid #ff8800; color: #ff8800; font-size: 18px; font-weight: 700; padding: 1px 12px; min-width: 80px; text-align: center; }
+.top-bar .beat-wheel { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #333; position: relative; }
+.beat-seg { position: absolute; width: 10px; height: 10px; }
+.beat-seg-tl { top: 1px; left: 1px; border-radius: 10px 0 0 0; background: #ff8800; }
+.beat-seg-tr { top: 1px; right: 1px; border-radius: 0 10px 0 0; background: #ff8800; }
+.beat-seg-bl { bottom: 1px; left: 1px; border-radius: 0 0 0 10px; background: #333; }
+.beat-seg-br { bottom: 1px; right: 1px; border-radius: 0 0 10px 0; background: #333; }
+.top-bar label { color: #555; font-size: 9px; text-transform: uppercase; }
+.top-bar .value { color: #ccc; font-size: 10px; margin-left: 2px; }
+.top-bar .btn { background: #1a1a1a; border: 1px solid #333; color: #888; padding: 2px 8px; cursor: pointer; font-size: 9px; }
+.top-bar .btn.active { border-color: #ff8800; color: #ff8800; }
+.spacer { flex: 1; }
+.top-bar .transport-btn { background: #1a1a1a; border: 1px solid #333; color: #888; width: 24px; height: 22px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; }
+.top-bar .transport-btn.active { color: #ff8800; border-color: #ff8800; }
+.master-fader { width: 60px; height: 4px; background: #333; position: relative; }
+.master-fader .mf-fill { height: 100%; background: #ff8800; width: 100%; }
+
+/* ---- WAVEFORM STRIP (100px) ---- */
+.waveform-strip { height: 100px; background: #0a0a0a; position: relative; border-bottom: 1px solid #222; }
+
+/* Playhead */
+.playhead { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #ff8800; z-index: 20; box-shadow: 0 0 10px rgba(255,136,0,0.5); }
+.playhead::before { content: ''; position: absolute; top: -1px; left: -4px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid #ff8800; }
+
+/* Structural zones */
+.struct-zone { position: absolute; top: 0; bottom: 0; opacity: 0.10; }
+.struct-zone.drop { background: #ff3300; }
+.struct-zone.buildup { background: #ffcc00; }
+.struct-zone.breakdown { background: #0066ff; }
+
+/* Phrase bar at bottom */
+.phrase-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: #111; }
+.phrase-bar .pf { height: 100%; background: linear-gradient(90deg, #ff8800 0%, #ff8800 42%, transparent 42%); }
+
+/* Beat grid lines */
+.beat-line { position: absolute; top: 0; bottom: 0; width: 1px; }
+.beat-line.beat { background: rgba(255,255,255,0.06); }
+.beat-line.bar { background: rgba(255,136,0,0.25); }
+.beat-line.downbeat { background: rgba(255,136,0,0.5); width: 2px; }
+
+/* Bar numbers */
+.bar-label { position: absolute; bottom: 6px; font-size: 8px; color: #444; z-index: 5; }
+
+/* BPM/bar overlay on waveform */
+.wf-overlay { position: absolute; top: 4px; right: 8px; font-size: 9px; color: #444; z-index: 10; display: flex; gap: 12px; }
+.wf-overlay .wo-item { display: flex; gap: 3px; align-items: center; }
+.wf-overlay .wo-val { color: #888; }
+
+/* ---- DECK AREA ---- */
+.deck-area { display: flex; flex-direction: column; height: calc(1080px - 32px - 100px - 30px); }
+
+/* Deck tabs */
+.deck-tabs { height: 22px; background: #111; display: flex; align-items: center; padding: 0 4px; gap: 2px; border-bottom: 1px solid #222; }
+.deck-tab { padding: 2px 14px; font-size: 10px; color: #555; cursor: pointer; }
+.deck-tab.active { color: #ff8800; background: #1a1a1a; }
+
+/* Full-width grid */
+.deck-grid { flex: 1; display: flex; flex-direction: column; padding: 3px; gap: 2px; overflow: hidden; }
+.layer-row { display: flex; gap: 2px; flex: 1; min-height: 0; }
+
+/* Thin layer labels */
+.layer-label { width: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0d0d0d; font-size: 9px; color: #888; gap: 2px; }
+.layer-label .l-name { color: #ccc; font-weight: 600; font-size: 10px; }
+.layer-label .l-type { font-size: 7px; padding: 0px 3px; }
+.layer-label .l-type.opaque { color: #ff8800; }
+.layer-label .l-type.transparent { color: #00ccff; }
+.layer-label .l-type.fxonly { color: #cc44ff; }
+.layer-opacity { width: 3px; height: 50%; background: #222; position: relative; align-self: center; }
+.layer-opacity .lo-fill { position: absolute; bottom: 0; width: 100%; background: #ff8800; }
+
+/* Clip cells */
+.clip-cell { flex: 1; background: #0d0d0d; border: 1px solid #1a1a1a; position: relative; overflow: hidden; cursor: pointer; min-width: 0; }
+.clip-cell:hover { border-color: #ff8800; }
+.clip-cell.active { border-color: #ff8800; box-shadow: inset 0 0 8px rgba(255,136,0,0.15); }
+.clip-cell.empty { background: #060606; border-color: #111; }
+.clip-thumb { position: absolute; inset: 0; }
+.clip-name { position: absolute; bottom: 1px; left: 2px; font-size: 8px; color: #ddd; text-shadow: 0 0 4px #000; z-index: 2; white-space: nowrap; }
+.clip-signal { position: absolute; top: 2px; right: 2px; width: 4px; height: 4px; border-radius: 50%; }
+
+/* ---- BOTTOM TAB BAR (pull-up drawers) ---- */
+.bottom-bar { height: 30px; background: #111; border-top: 1px solid #333; display: flex; align-items: center; padding: 0 8px; gap: 2px; }
+.bb-tab { padding: 4px 16px; font-size: 10px; color: #555; cursor: pointer; background: #1a1a1a; border: 1px solid #222; border-bottom: none; }
+.bb-tab:hover { color: #ccc; }
+.bb-tab.active { color: #ff8800; border-color: #ff8800; }
+.bb-tab .arrow { font-size: 8px; margin-left: 4px; }
+.bb-spacer { flex: 1; }
+.bb-info { font-size: 9px; color: #444; display: flex; gap: 14px; }
+.bb-info .fps { color: #ff8800; }
+
+/* ---- GRADIENTS ---- */
+.grad-1 { background: linear-gradient(135deg, #ff4400 0%, #880066 50%, #2200aa 100%); }
+.grad-2 { background: linear-gradient(160deg, #00aaff 0%, #004488 40%, #001122 100%); }
+.grad-3 { background: linear-gradient(45deg, #ffcc00 0%, #ff6600 50%, #cc0033 100%); }
+.grad-4 { background: linear-gradient(200deg, #22ff88 0%, #006644 50%, #002211 100%); }
+.grad-5 { background: linear-gradient(90deg, #ff00ff 0%, #6600cc 50%, #110033 100%); }
+.grad-6 { background: linear-gradient(135deg, #0088ff 0%, #00ccff 50%, #88ffff 100%); }
+.grad-7 { background: linear-gradient(180deg, #ff8800 0%, #cc2200 100%); }
+.grad-8 { background: linear-gradient(135deg, #aaffee 0%, #226688 50%, #001122 100%); }
+.grad-9 { background: linear-gradient(45deg, #ff2200 0%, #440000 100%); }
+.grad-10 { background: linear-gradient(135deg, #8844ff 0%, #220066 100%); }
+.grad-11 { background: linear-gradient(135deg, #225500 0%, #88ff00 100%); }
+.grad-12 { background: linear-gradient(180deg, #003366 0%, #00ccff 100%); }
+</style>
+</head>
+<body>
+
+<!-- COMPACT TOP BAR -->
+<div class="top-bar">
+  <span class="brand">AUDIO-DNA</span>
+  <div class="bpm-box">128.0</div>
+  <div class="beat-wheel">
+    <div class="beat-seg beat-seg-tl"></div>
+    <div class="beat-seg beat-seg-tr"></div>
+    <div class="beat-seg beat-seg-bl"></div>
+    <div class="beat-seg beat-seg-br"></div>
+  </div>
+  <label>Bar <span class="value">3/4</span></label>
+  <label>Phrase <span class="value">5/8</span></label>
+  <div class="transport-btn active">&#9654;</div>
+  <div class="transport-btn">&#9646;&#9646;</div>
+  <div class="spacer"></div>
+  <label>Key <span class="value">Fm</span></label>
+  <label>Genre <span class="value" style="color:#ff8800">Techno</span></label>
+  <div class="btn active">Autopilot</div>
+  <div class="btn">Manual BPM</div>
+  <label>Master</label>
+  <div class="master-fader"><div class="mf-fill"></div></div>
+</div>
+
+<!-- WAVEFORM STRIP (clean with beat grid + structural zones) -->
+<div class="waveform-strip">
+  <div class="playhead"></div>
+
+  <!-- Structural zones -->
+  <div class="struct-zone buildup" style="left:18%;width:6%;"></div>
+  <div class="struct-zone drop" style="left:24%;width:18%;"></div>
+  <div class="struct-zone breakdown" style="left:72%;width:10%;"></div>
+
+  <!-- Beat grid lines -->
+  <div class="beat-line downbeat" style="left:5%;"></div>
+  <div class="beat-line beat" style="left:8.75%;"></div>
+  <div class="beat-line beat" style="left:12.5%;"></div>
+  <div class="beat-line beat" style="left:16.25%;"></div>
+  <div class="beat-line bar" style="left:20%;"></div>
+  <div class="beat-line beat" style="left:23.75%;"></div>
+  <div class="beat-line beat" style="left:27.5%;"></div>
+  <div class="beat-line beat" style="left:31.25%;"></div>
+  <div class="beat-line downbeat" style="left:35%;"></div>
+  <div class="beat-line beat" style="left:38.75%;"></div>
+  <div class="beat-line beat" style="left:42.5%;"></div>
+  <div class="beat-line beat" style="left:46.25%;"></div>
+  <div class="beat-line bar" style="left:50%;"></div>
+  <div class="beat-line beat" style="left:53.75%;"></div>
+  <div class="beat-line beat" style="left:57.5%;"></div>
+  <div class="beat-line beat" style="left:61.25%;"></div>
+  <div class="beat-line downbeat" style="left:65%;"></div>
+  <div class="beat-line beat" style="left:68.75%;"></div>
+  <div class="beat-line beat" style="left:72.5%;"></div>
+  <div class="beat-line beat" style="left:76.25%;"></div>
+  <div class="beat-line bar" style="left:80%;"></div>
+  <div class="beat-line beat" style="left:83.75%;"></div>
+  <div class="beat-line beat" style="left:87.5%;"></div>
+  <div class="beat-line beat" style="left:91.25%;"></div>
+  <div class="beat-line downbeat" style="left:95%;"></div>
+
+  <!-- Bar labels -->
+  <div class="bar-label" style="left:6%;">25</div>
+  <div class="bar-label" style="left:21%;">26</div>
+  <div class="bar-label" style="left:36%;">27</div>
+  <div class="bar-label" style="left:51%;">28</div>
+  <div class="bar-label" style="left:66%;">29</div>
+  <div class="bar-label" style="left:81%;">30</div>
+  <div class="bar-label" style="left:96%;">31</div>
+
+  <!-- Waveform SVG (full width, frequency-colored) -->
+  <svg width="1920" height="80" style="position:absolute;top:6px;left:0;" preserveAspectRatio="none" viewBox="0 0 1920 80">
+    <!-- Bass layer (blue) - kick drum pattern -->
+    <rect x="96" y="30" width="4" height="28" fill="#2255cc" opacity="0.85"/>
+    <rect x="102" y="34" width="3" height="20" fill="#2255cc" opacity="0.7"/>
+    <rect x="108" y="38" width="2" height="12" fill="#1a44aa" opacity="0.5"/>
+    <rect x="168" y="36" width="3" height="16" fill="#2255cc" opacity="0.6"/>
+    <rect x="192" y="28" width="4" height="30" fill="#2266dd" opacity="0.85"/>
+    <rect x="198" y="32" width="3" height="22" fill="#2255cc" opacity="0.7"/>
+    <rect x="288" y="30" width="4" height="28" fill="#2255cc" opacity="0.85"/>
+    <rect x="294" y="34" width="3" height="18" fill="#2255cc" opacity="0.65"/>
+    <rect x="384" y="26" width="5" height="34" fill="#2266dd" opacity="0.9"/>
+    <rect x="390" y="30" width="4" height="26" fill="#2266dd" opacity="0.8"/>
+    <rect x="396" y="34" width="3" height="18" fill="#2255cc" opacity="0.6"/>
+    <rect x="460" y="24" width="5" height="36" fill="#3377ee" opacity="0.9"/>
+    <rect x="467" y="28" width="4" height="30" fill="#2266dd" opacity="0.8"/>
+    <rect x="473" y="32" width="3" height="22" fill="#2255cc" opacity="0.65"/>
+    <rect x="480" y="36" width="2" height="14" fill="#1a44aa" opacity="0.5"/>
+    <rect x="540" y="28" width="4" height="30" fill="#2266dd" opacity="0.85"/>
+    <rect x="546" y="32" width="3" height="22" fill="#2255cc" opacity="0.7"/>
+    <rect x="576" y="22" width="5" height="40" fill="#3377ee" opacity="0.95"/>
+    <rect x="583" y="26" width="4" height="34" fill="#2266dd" opacity="0.85"/>
+    <rect x="589" y="30" width="3" height="26" fill="#2255cc" opacity="0.7"/>
+    <rect x="672" y="26" width="4" height="34" fill="#2266dd" opacity="0.85"/>
+    <rect x="678" y="30" width="3" height="26" fill="#2255cc" opacity="0.7"/>
+    <rect x="768" y="22" width="5" height="40" fill="#3377ee" opacity="0.95"/>
+    <rect x="775" y="26" width="4" height="34" fill="#2266dd" opacity="0.85"/>
+    <rect x="864" y="28" width="4" height="30" fill="#2266dd" opacity="0.85"/>
+    <rect x="870" y="32" width="3" height="22" fill="#2255cc" opacity="0.7"/>
+    <rect x="960" y="18" width="6" height="48" fill="#4488ff" opacity="1"/>
+    <rect x="968" y="22" width="5" height="40" fill="#3377ee" opacity="0.9"/>
+    <rect x="975" y="28" width="4" height="30" fill="#2266dd" opacity="0.8"/>
+    <rect x="981" y="34" width="3" height="18" fill="#2255cc" opacity="0.6"/>
+    <rect x="1056" y="24" width="5" height="36" fill="#3377ee" opacity="0.9"/>
+    <rect x="1063" y="28" width="4" height="30" fill="#2266dd" opacity="0.8"/>
+    <rect x="1152" y="26" width="4" height="34" fill="#2266dd" opacity="0.85"/>
+    <rect x="1248" y="22" width="5" height="40" fill="#3377ee" opacity="0.95"/>
+    <rect x="1255" y="26" width="4" height="34" fill="#2266dd" opacity="0.85"/>
+    <rect x="1344" y="30" width="4" height="26" fill="#2255cc" opacity="0.75"/>
+    <rect x="1350" y="34" width="3" height="18" fill="#2255cc" opacity="0.6"/>
+    <rect x="1380" y="28" width="4" height="28" fill="#2255cc" opacity="0.65"/>
+    <rect x="1440" y="34" width="3" height="16" fill="#1a44aa" opacity="0.5"/>
+    <rect x="1536" y="36" width="3" height="14" fill="#1a44aa" opacity="0.45"/>
+    <rect x="1632" y="34" width="3" height="16" fill="#1a44aa" opacity="0.4"/>
+    <rect x="1728" y="36" width="2" height="12" fill="#1a44aa" opacity="0.35"/>
+    <rect x="1824" y="38" width="2" height="8" fill="#1a44aa" opacity="0.3"/>
+    <!-- Mids (cyan) - hi-hat / synth pattern -->
+    <rect x="120" y="36" width="2" height="10" fill="#00bbcc" opacity="0.6"/>
+    <rect x="144" y="34" width="2" height="14" fill="#00bbcc" opacity="0.6"/>
+    <rect x="216" y="32" width="2" height="16" fill="#00ccdd" opacity="0.7"/>
+    <rect x="264" y="34" width="2" height="14" fill="#00bbcc" opacity="0.6"/>
+    <rect x="312" y="36" width="2" height="10" fill="#00bbcc" opacity="0.5"/>
+    <rect x="336" y="32" width="2" height="16" fill="#00ccdd" opacity="0.7"/>
+    <rect x="408" y="30" width="2" height="20" fill="#00ccdd" opacity="0.75"/>
+    <rect x="432" y="32" width="2" height="16" fill="#00ccdd" opacity="0.7"/>
+    <rect x="504" y="30" width="3" height="20" fill="#00ddee" opacity="0.8"/>
+    <rect x="528" y="32" width="2" height="16" fill="#00ccdd" opacity="0.7"/>
+    <rect x="600" y="28" width="3" height="24" fill="#00ddee" opacity="0.85"/>
+    <rect x="624" y="30" width="2" height="20" fill="#00ccdd" opacity="0.75"/>
+    <rect x="696" y="30" width="2" height="20" fill="#00ccdd" opacity="0.7"/>
+    <rect x="792" y="28" width="3" height="24" fill="#00ddee" opacity="0.8"/>
+    <rect x="888" y="30" width="2" height="20" fill="#00ccdd" opacity="0.7"/>
+    <rect x="984" y="26" width="3" height="26" fill="#00eeff" opacity="0.85"/>
+    <rect x="1008" y="28" width="2" height="22" fill="#00ddee" opacity="0.8"/>
+    <rect x="1080" y="30" width="2" height="20" fill="#00ccdd" opacity="0.7"/>
+    <rect x="1176" y="30" width="2" height="20" fill="#00ccdd" opacity="0.7"/>
+    <rect x="1272" y="28" width="3" height="22" fill="#00ddee" opacity="0.75"/>
+    <!-- Highs (white) -->
+    <rect x="144" y="38" width="1" height="6" fill="#ccddee" opacity="0.4"/>
+    <rect x="336" y="36" width="1" height="8" fill="#ccddee" opacity="0.4"/>
+    <rect x="504" y="34" width="1" height="10" fill="#ddeeff" opacity="0.5"/>
+    <rect x="600" y="32" width="2" height="12" fill="#ddeeff" opacity="0.55"/>
+    <rect x="792" y="32" width="1" height="12" fill="#ddeeff" opacity="0.5"/>
+    <rect x="960" y="26" width="2" height="16" fill="#ffffff" opacity="0.6"/>
+    <rect x="984" y="30" width="1" height="12" fill="#eef4ff" opacity="0.5"/>
+  </svg>
+
+  <!-- BPM/bar/phrase overlay -->
+  <div class="wf-overlay">
+    <div class="wo-item"><span style="color:#555;">Bar</span> <span class="wo-val">27 / 4</span></div>
+    <div class="wo-item"><span style="color:#555;">Phrase</span> <span class="wo-val">5 / 8</span></div>
+    <div class="wo-item"><span style="color:#555;">State</span> <span class="wo-val" style="color:#ff8800;">Drop</span></div>
+  </div>
+
+  <!-- Phrase bar -->
+  <div class="phrase-bar"><div class="pf"></div></div>
+</div>
+
+<!-- DECK AREA -->
+<div class="deck-area">
+  <!-- Deck tabs -->
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck A</div>
+    <div class="deck-tab">Deck B</div>
+    <div class="deck-tab">Deck C</div>
+    <div class="deck-tab">Deck D</div>
+  </div>
+
+  <!-- Full-width grid: 5 layers x 10 columns -->
+  <div class="deck-grid">
+    <!-- Layer 1 -->
+    <div class="layer-row">
+      <div class="layer-label">
+        <span class="l-name">L1</span>
+        <span class="l-type opaque">Opaque</span>
+        <div class="layer-opacity" style="height:30px;"><div class="lo-fill" style="height:100%;"></div></div>
+      </div>
+      <div class="clip-cell active"><div class="clip-thumb grad-1"></div><span class="clip-name">Mandelbrot</span><div class="clip-signal" style="background:#ff8800;"></div></div>
+      <div class="clip-cell"><div class="clip-thumb grad-2"></div><span class="clip-name">Julia Set</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-3"></div><span class="clip-name">Spectrum Ring</span><div class="clip-signal" style="background:#00ccff;"></div></div>
+      <div class="clip-cell"><div class="clip-thumb grad-4"></div><span class="clip-name">Perlin Noise</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-5"></div><span class="clip-name">Cymatics</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-7"></div><span class="clip-name">Band Tower</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-8"></div><span class="clip-name">Apollonian</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-6"></div><span class="clip-name">Newton Fractal</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-9"></div><span class="clip-name">Burning Ship</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-11"></div><span class="clip-name">Sierpinski</span></div>
+    </div>
+    <!-- Layer 2 -->
+    <div class="layer-row">
+      <div class="layer-label">
+        <span class="l-name">L2</span>
+        <span class="l-type transparent">Transparent</span>
+        <div class="layer-opacity" style="height:30px;"><div class="lo-fill" style="height:75%;"></div></div>
+      </div>
+      <div class="clip-cell"><div class="clip-thumb grad-6"></div><span class="clip-name">Timbral Nebula</span></div>
+      <div class="clip-cell active"><div class="clip-thumb grad-10"></div><span class="clip-name">Kaleido Fractal</span><div class="clip-signal" style="background:#ff8800;"></div></div>
+      <div class="clip-cell"><div class="clip-thumb grad-12"></div><span class="clip-name">Menger Sponge</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-3"></div><span class="clip-name">Fluid Dynamics</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-1"></div><span class="clip-name">Spectral Waterfall</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-5"></div><span class="clip-name">Mandelbulb</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-4"></div><span class="clip-name">KIFS</span></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+    </div>
+    <!-- Layer 3 -->
+    <div class="layer-row">
+      <div class="layer-label">
+        <span class="l-name">L3</span>
+        <span class="l-type transparent">Transparent</span>
+        <div class="layer-opacity" style="height:30px;"><div class="lo-fill" style="height:50%;"></div></div>
+      </div>
+      <div class="clip-cell"><div class="clip-thumb grad-8"></div><span class="clip-name">Chromatic Ring</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-2"></div><span class="clip-name">Strange Attractor</span></div>
+      <div class="clip-cell active"><div class="clip-thumb grad-7"></div><span class="clip-name">Gravity Well</span><div class="clip-signal" style="background:#00ccff;"></div></div>
+      <div class="clip-cell"><div class="clip-thumb grad-11"></div><span class="clip-name">Text Wall</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-9"></div><span class="clip-name">Structural Land</span></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+    </div>
+    <!-- Layer 4 -->
+    <div class="layer-row">
+      <div class="layer-label">
+        <span class="l-name">L4</span>
+        <span class="l-type transparent">Transparent</span>
+        <div class="layer-opacity" style="height:30px;"><div class="lo-fill" style="height:40%;"></div></div>
+      </div>
+      <div class="clip-cell"><div class="clip-thumb" style="background:linear-gradient(180deg,#003355,#001122);"></div><span class="clip-name">Layer Router</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-12"></div><span class="clip-name">Voronoi</span></div>
+      <div class="clip-cell"><div class="clip-thumb grad-6"></div><span class="clip-name">Julia 3D</span></div>
+      <div class="clip-cell active"><div class="clip-thumb grad-10"></div><span class="clip-name">Apollonian 3D</span></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+    </div>
+    <!-- Layer 5 -->
+    <div class="layer-row">
+      <div class="layer-label">
+        <span class="l-name">L5</span>
+        <span class="l-type fxonly">FX Only</span>
+        <div class="layer-opacity" style="height:30px;"><div class="lo-fill" style="height:100%;"></div></div>
+      </div>
+      <div class="clip-cell active"><div class="clip-thumb" style="background:linear-gradient(90deg,#ff880033,#ff880008);"></div><span class="clip-name">Echo + Glow</span><div class="clip-signal" style="background:#cc44ff;"></div></div>
+      <div class="clip-cell"><div class="clip-thumb" style="background:linear-gradient(90deg,#00ccff22,#00ccff08);"></div><span class="clip-name">Kaleidoscope</span></div>
+      <div class="clip-cell"><div class="clip-thumb" style="background:linear-gradient(90deg,#ff00ff18,#ff00ff06);"></div><span class="clip-name">Chromatic Ab.</span></div>
+      <div class="clip-cell"><div class="clip-thumb" style="background:linear-gradient(90deg,#ffcc0018,#ffcc0006);"></div><span class="clip-name">Scanlines</span></div>
+      <div class="clip-cell"><div class="clip-thumb" style="background:linear-gradient(90deg,#ff000018,#ff000006);"></div><span class="clip-name">RGB Split</span></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM TAB BAR -->
+<div class="bottom-bar">
+  <div class="bb-tab active">Inspector <span class="arrow">^</span></div>
+  <div class="bb-tab">Browser <span class="arrow">^</span></div>
+  <div class="bb-tab">Signals <span class="arrow">^</span></div>
+  <div class="bb-tab">Presets <span class="arrow">^</span></div>
+  <div class="bb-spacer"></div>
+  <div class="bb-info">
+    <span class="fps">60.0 fps</span>
+    <span>1920x1080</span>
+    <span>OpenGL 4.1</span>
+    <span>Techno / High Energy</span>
+    <span style="color:#ff8800;">REC</span>
+  </div>
+</div>
+
+</body>
+</html>

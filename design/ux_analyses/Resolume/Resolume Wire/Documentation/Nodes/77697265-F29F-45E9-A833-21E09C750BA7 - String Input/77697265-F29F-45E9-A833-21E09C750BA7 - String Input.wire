@@ -1,0 +1,377 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          90,
+          "output"
+        ],
+        "to": [
+          91,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          91,
+          "output"
+        ],
+        "to": [
+          92,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      90
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "unknown",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "Explains what this node does",
+      "displayName": "String Example",
+      "identifier": "06ab501f-cd3e-4ae3-bae5-e70a4fd2f37b",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "originalTarget": {
+        "branch": "unknown",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 11,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 93,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "STRING In\nThe String In node takes text from the user and outputs it as a string type.\nBecause the String In node is an input node, the input box will appear in the Arena/Avenue interface and in the Dashboard panel."
+          }
+        },
+        "bounds": {
+          "height": 83.74152374267578,
+          "width": 710.1564331054688,
+          "x": -250.79342651367188,
+          "y": 267.4165954589844
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "89": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE: HAIL THE PATCHLORD\n\nIn this example we send a string from the String In node to te Text Render node to convert it to a texture.\nYou might ask yourself: who is the Patchlord? You... You my friend, are the Patchlord!! "
+          }
+        },
+        "bounds": {
+          "height": 349.36260986328125,
+          "width": 710.7627563476562,
+          "x": -250.89332580566406,
+          "y": 373.5634765625
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "90": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -196.50204467773438,
+          "y": 495.6778259277344
+        },
+        "class": {
+          "id": "77697265-F29F-45E9-A833-21E09C750BA7",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": "All hail the Patchlord!"
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "options-count",
+          "widget"
+        ],
+        "name": "String In"
+      },
+      "91": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "font": {
+            "type": "string",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "style": {
+            "type": "string",
+            "value": "Regular"
+          }
+        },
+        "bounds": {
+          "height": 178,
+          "width": 195,
+          "x": -6.502046585083008,
+          "y": 495.6778259277344
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass",
+          "font",
+          "style",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Text Render"
+      },
+      "92": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 248.49795532226562,
+          "y": 495.6778259277344
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -504,
+        "y": 14.5,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null,
+          "Syphon": null
+        }
+      }
+    }
+  }
+}

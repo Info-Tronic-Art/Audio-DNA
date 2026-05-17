@@ -1,0 +1,390 @@
+openapi: 3.0.1
+info:
+  title: Wire REST API
+  description:  This is the API reference for the Resolume Wire REST API. To use this API, start Resolume Wire and enable the 
+                server under the 'Webserve' heading in the preferences.
+  contact:
+    email: support@resolume.com
+  version: 0.0.1
+servers:
+- url: /api/v1
+tags:
+- name: api
+  description: Retrieve information about the API itself
+- name: patch
+  description: Patch-related information
+- name: inputs
+  description: Inspect or control inputs in the patch
+paths:
+  /product:
+    get:
+      tags:
+      - api
+      summary: Retrieve product information
+      description: This contains the product name and version information
+      operationId: get_product
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductInfo'
+  /patch:
+    get:
+      tags:
+      - patch
+      summary: Retrieve patch-related information
+      description: The name, description and licensing information on the patch
+      operationId: get_patch
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatchInfo'
+  /inputs:
+    get:
+      tags:
+      - inputs
+      summary: Retrieve all known inputs
+      description: List all inputs and their associated values
+      operationId: get_inputs
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManyInputs'
+  /inputs/ids:
+    get:
+      tags:
+      - inputs
+      summary: Retrieve all input ids in the patch
+      description: List all valid input ids
+      operationId: get_input_ids
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InputIDs'
+  /input/{input-id}:
+    get:
+      tags:
+      - inputs
+      summary: Retrieve an input with its unique id
+      description: Retrieve a specific input
+      operationId: get_input
+      parameters:
+      - name: input-id
+        in: path
+        description: Unique identifier for the input to retrieve
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnyInput'
+        404:
+          description: The given input does not exist
+          content: {}
+    put:
+      tags:
+      - inputs
+      summary: Update the  input with the given id
+      description: Update a specific input
+      operationId: replace_input
+      parameters:
+      - name: input-id
+        in: path
+        description: Unique identifier for the input to update
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        description: The updated values for the input
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnyInput'
+      responses:
+        204:
+          description: successful operation
+        400:
+          description: The given JSON is invalid or contains incorrect values
+        404:
+          description: Requested input not found
+components:
+  schemas:
+    ProductInfo:
+      description: Generic information about the product serving the api
+      type: object
+      properties:
+        name:
+          description: The product name. This is always the string 'Wire'
+          type: string
+        major:
+          description: The major version number of the Arena or Avenue instance handling the request.
+          type: integer
+          format: int64
+        minor:
+          description: The minor version number of the Arena or Avenue instance handling the request.
+          type: integer
+          format: int64
+        micro:
+          description: The micro version number of the Arena or Avenue instance handling the request.
+          type: integer
+          format: int64
+        revision:
+          description: The revision of the Arena or Avenue instance handling the request.
+          type: integer
+          format: int64
+    PatchInfo:
+      description: Patch-related information
+      type: object
+      properties:
+        description:
+          description: The description about the patch
+          type: string
+        display_name:
+          description: The name to display for the patch
+          type: string
+        category:
+          description: The type of patch this represents
+          type: string
+          enum: [source, effect, mixer]
+          nullable: true
+        video:
+          description: Video- and display-related properties
+          type: object
+          properties:
+            width:
+              description: Width (in pixels) of the generated output
+              type: integer
+              format: int32
+            height:
+              description: Height (in pixels) of the generated output
+              type: integer
+              format: int32
+        credits:
+          description: Credits to the patch author
+          type: object
+          properties:
+            author:
+              description: The person or entity responsible for writing the patch
+              type: string
+            vendor:
+              description: The entity responsible for distribution of the patch
+              type: string
+            email:
+              description: An email address to reach the author
+              type: string
+            url:
+              description: The homepage for this patch
+              type: string
+        license:
+          description: Licensing information for this patch
+          type: object
+          properties:
+            name:
+              description: The logical name for the license
+              type: string
+            file:
+              description: The file name under which the license can be found
+              type: string
+        identifier:
+          description: A unique identifier for the patch
+          type: string
+    Float4:
+      description: A four-dimensional float value
+      type: object
+      properties:
+        x:
+          description: The X component
+          type: number
+          format: float
+        y:
+          description: The Y component
+          type: number
+          format: float
+        z:
+          description: The Z component
+          type: number
+          format: float
+        w:
+          description: The W component
+          type: number
+          format: float
+    InputIDs:
+      description: A list of all valid input ids in the patch
+      type: array
+      items:
+        description: The unique identifier for the input
+        type: integer
+        format: int64
+    Input:
+      description: A single input inside the patch
+      type: object
+      properties:
+        id:
+          description: The unique identifier for the input
+          type: integer
+          format: int64
+          readOnly: true
+        name:
+          description: The name of the input
+          type: string
+          readOnly: true
+        semantic:
+          description: Semantic description of the input type
+          type: string
+          readOnly: true
+        flow:
+          description: Whether the input is event- or signal-based
+          type: string
+          enum: [signal, event]
+          readOnly: true
+        datatype:
+          description: The data type of this input
+          type: string
+          enum: [
+            trigger, float, int,
+            bool, float_4, string,
+            resource_image, resource_video,
+            resource_isf
+          ]
+          readOnly: true
+        unit:
+          description: The selected unit for the input
+          type: string
+          enum: [
+            none, milliseconds,
+            seconds, hertz,
+            percent, degrees,
+            decibels, pixels,
+            factor
+          ]
+        instance_count:
+          description: Number of instances in this input
+          type: integer
+          format: int64
+          readOnly: true
+    InputBool:
+      description: An input holding boolean values
+      allOf:
+        - $ref: '#/components/schemas/Input'
+        - type: object
+          properties:
+            view:
+              description: The view, describing how to display the values
+              type: string
+              enum: [
+                toggle, piano_button
+              ]
+            values:
+              description: Boolean value for each instance
+              type: array
+              items:
+                type: boolean
+    InputFloat:
+      description: An input holding floating point values
+      allOf:
+        - $ref: '#/components/schemas/Input'
+        - type: object
+          properties:
+            min:
+              description: The lowest number allowed for each instance
+              type: number
+              format: float
+              nullable: true
+            max:
+              description: The highest number allowed for each instance
+              type: number
+              format: float
+              nullable: true
+            values:
+              description: Floating point value for each instance
+              type: array
+              items:
+                type: number
+                format: float
+    InputFloat4:
+      description: An input holding Float4 values
+      allOf:
+        - $ref: '#/components/schemas/Input'
+        - type: object
+          properties:
+            values:
+              description: Float4 value for each instance
+              type: array
+              items:
+                $ref: '#/components/schemas/Float4'
+    InputInt:
+      description: An input holding integer values
+      allOf:
+        - $ref: '#/components/schemas/Input'
+        - type: object
+          properties:
+            min:
+              description: The lowest number allowed for each instance
+              type: integer
+              nullable: true
+            max:
+              description: The highest number allowed for each instance
+              type: integer
+              nullable: true
+            values:
+              description: Integer value for each instance
+              type: array
+              items:
+                description: Integer value for each instance
+                type: integer
+    InputString:
+      description: An input holding text values
+      allOf:
+        - $ref: '#/components/schemas/Input'
+        - type: object
+          properties:
+            values:
+              description: String value for each instance
+              type: array
+              items:
+                type: string
+    InputResource:
+      description: An input choosing a resource
+      allOf:
+        - $ref: '#/components/schemas/Input'
+        - type: object
+          properties:
+            values:
+              description: Resource path for each instance
+              type: array
+              items:
+                type: object
+                properties:
+                  path:
+                    description: Path to the resource on disk
+                    type: string
+    AnyInput:
+      oneOf:
+        - $ref: '#/components/schemas/InputBool'
+        - $ref: '#/components/schemas/InputFloat'
+        - $ref: '#/components/schemas/InputFloat4'
+        - $ref: '#/components/schemas/InputInt'
+        - $ref: '#/components/schemas/InputString'
+        - $ref: '#/components/schemas/InputResource'
+    ManyInputs:
+      description: Zero or more inputs, of any type
+      type: array
+      items:
+        $ref: '#/components/schemas/AnyInput'

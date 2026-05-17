@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA V4-07: Filmstrip</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #1a1a1a; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; width: 1920px; height: 1080px; overflow: hidden; position: relative; }
+
+/* TOP BAR */
+.top-bar { height: 34px; background: #222; display: flex; align-items: center; padding: 0 8px; gap: 6px; border-bottom: 1px solid #333; font-size: 11px; }
+.top-bar select { background: #2a2a2a; color: #e0e0e0; border: 1px solid #444; font-size: 10px; height: 22px; padding: 0 4px; }
+.tb-btn { background: #2a2a2a; color: #e0e0e0; border: 1px solid #444; padding: 2px 8px; font-size: 10px; cursor: pointer; height: 22px; }
+.tb-btn:hover { background: #3a3a3a; }
+.tb-btn.active { background: #00d9ff; color: #111; }
+.tb-divider { width: 1px; height: 20px; background: #444; margin: 0 4px; }
+.tb-slider { width: 60px; height: 4px; background: #444; position: relative; display: inline-block; vertical-align: middle; }
+.tb-slider .fill { height: 100%; background: #00d9ff; }
+.bpm-display { font-size: 18px; font-weight: 700; color: #4caf50; }
+.bpm-label { color: #888; font-size: 9px; }
+.beat-wheel { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #555; display: inline-flex; flex-wrap: wrap; overflow: hidden; }
+.beat-wheel .seg { width: 50%; height: 50%; }
+.beat-wheel .seg.on { background: #00d9ff; }
+.beat-wheel .seg.off { background: #333; }
+.fps { color: #4caf50; font-weight: 600; }
+.spacer { flex: 1; }
+
+/* SIGNAL BAR */
+.signal-bar { height: 44px; background: #1e1e1e; border-bottom: 1px solid #333; display: flex; align-items: center; padding: 0 12px; gap: 6px; }
+.sig { display: flex; flex-direction: column; align-items: center; width: 50px; }
+.sig .lbl { font-size: 7px; color: #777; }
+.sig .bar { width: 6px; height: 24px; background: #2a2a2a; position: relative; }
+.sig .bar .f { position: absolute; bottom: 0; width: 100%; }
+.sig .v { font-size: 7px; color: #999; }
+
+/* MAIN LAYOUT */
+.main { display: flex; height: calc(1080px - 34px - 44px - 240px); }
+
+/* FILMSTRIP AREA */
+.filmstrip-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* SINGLE FILMSTRIP */
+.filmstrip { display: flex; height: 33.33%; border-bottom: 1px solid #2a2a2a; }
+
+.strip-controls { width: 120px; background: #1e1e1e; border-right: 1px solid #333; padding: 6px; display: flex; flex-direction: column; gap: 3px; }
+.strip-name { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.strip-badge { display: inline-block; font-size: 8px; padding: 1px 5px; margin-bottom: 4px; }
+.strip-badge.opaque { background: #2a3a2a; color: #6c6; }
+.strip-badge.trans { background: #2a2a3a; color: #66c; }
+.strip-badge.fx { background: #3a2a2a; color: #c66; }
+.strip-btns { display: flex; gap: 2px; margin-bottom: 3px; }
+.strip-btn { width: 20px; height: 16px; background: #2a2a2a; border: 1px solid #444; color: #888; font-size: 8px; text-align: center; line-height: 16px; cursor: pointer; }
+.strip-btn.ab { background: #4a2020; color: #e66; }
+.strip-btn.as { background: #3a3a20; color: #cc6; }
+.strip-slider-row { display: flex; align-items: center; gap: 3px; }
+.strip-slider-row .l { font-size: 8px; color: #888; width: 14px; }
+.strip-slider-row .track { flex: 1; height: 3px; background: #333; position: relative; }
+.strip-slider-row .track .f { height: 100%; }
+.strip-slider-row .val { font-size: 8px; color: #aaa; width: 24px; text-align: right; }
+.strip-dd { font-size: 8px; background: #2a2a2a; border: 1px solid #444; color: #aaa; height: 16px; width: 100%; padding: 0 2px; }
+
+.strip-clips { flex: 1; display: flex; overflow-x: auto; gap: 6px; padding: 6px; align-items: flex-start; }
+
+/* FILMSTRIP CLIP CARD */
+.film-card { width: 150px; min-width: 150px; height: calc(100% - 12px); background: #222; border: 2px solid #333; cursor: pointer; display: flex; flex-direction: column; transition: border-color 0.15s; position: relative; }
+.film-card:hover { border-color: #555; }
+.film-card.active { border-color: #00d9ff; }
+.film-card.selected { border-color: #fff; }
+.film-thumb { flex: 1; overflow: hidden; position: relative; }
+.film-thumb .grad { width: 100%; height: 100%; }
+.film-info { padding: 4px 6px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; }
+.film-info .name { font-size: 10px; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100px; }
+.film-info .badges { display: flex; gap: 2px; }
+.film-badge { font-size: 7px; padding: 1px 3px; background: #00d9ff22; color: #00d9ff; border: 1px solid #00d9ff33; }
+.film-playhead { position: absolute; bottom: 0; left: 0; height: 3px; background: #00d9ff; }
+.film-sprocket { position: absolute; top: 0; left: 0; right: 0; height: 8px; display: flex; gap: 8px; padding: 0 4px; }
+.film-sprocket .hole { width: 6px; height: 4px; background: #1a1a1a; margin-top: 2px; }
+.film-sprocket-btm { position: absolute; bottom: 0; left: 0; right: 0; height: 8px; display: flex; gap: 8px; padding: 0 4px; }
+.film-sprocket-btm .hole { width: 6px; height: 4px; background: #1a1a1a; margin-top: 2px; }
+
+/* Gradient thumbnails */
+.g-city { background: linear-gradient(135deg, #1a1a2a, #2a2030, #181828); }
+.g-nature { background: linear-gradient(135deg, #0a2a0a, #1a3a1a, #0a2a0a); }
+.g-abstract { background: linear-gradient(135deg, #3a1a1a, #4a2a1a, #3a1a0a); }
+.g-neon { background: linear-gradient(135deg, #0a0a2a, #2a0a3a, #0a0a2a); }
+.g-water { background: linear-gradient(135deg, #0a1a3a, #1a2a4a, #0a1a2a); }
+.g-fire { background: linear-gradient(135deg, #3a1a0a, #4a2a0a, #3a0a0a); }
+.g-smoke { background: linear-gradient(135deg, #2a2a2a, #3a3a3a, #2a2a2a); }
+.g-mandelbrot { background: linear-gradient(135deg, #0a0a3a, #1a0a4a, #3a0a2a); }
+.g-julia { background: linear-gradient(135deg, #2a1a3a, #1a2a4a, #3a1a2a); }
+.g-spectrum { background: linear-gradient(135deg, #00d9ff22, #ff006622, #00ff8822); }
+.g-torus { background: linear-gradient(135deg, #1a0a3a, #2a1a4a, #1a0a2a); }
+.g-perlin { background: linear-gradient(135deg, #1a2a1a, #2a3a2a, #1a2a1a); }
+.g-menger { background: linear-gradient(135deg, #2a2a2a, #3a3a3a, #1a1a1a); }
+.g-fluid { background: linear-gradient(135deg, #0a2a3a, #1a3a4a, #0a1a2a); }
+.g-portrait { background: linear-gradient(135deg, #2a2020, #3a2a2a, #2a1a1a); }
+
+/* BROWSER (right side) */
+.browser-panel { width: 280px; background: #1e1e1e; border-left: 1px solid #333; display: flex; flex-direction: column; }
+.browser-preview { padding: 8px; border-bottom: 1px solid #333; }
+.browser-preview .img { width: 240px; height: 135px; margin: 0 auto; background: linear-gradient(135deg, #0a0a2a, #1a0a3a, #2a0a1a); border: 1px solid #333; position: relative; overflow: hidden; }
+.browser-preview .img .overlay1 { position: absolute; inset: 0; background: radial-gradient(circle at 35% 45%, #00d9ff15 0%, transparent 60%); }
+.browser-preview .img .overlay2 { position: absolute; inset: 0; background: radial-gradient(ellipse at 65% 55%, #ff006615 0%, transparent 50%); }
+.browser-preview .lbl { text-align: center; font-size: 9px; color: #666; margin-top: 3px; }
+.browser-tabs { display: flex; border-bottom: 1px solid #333; }
+.browser-tab { flex: 1; text-align: center; padding: 5px 0; font-size: 9px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; }
+.browser-tab.active { color: #00d9ff; border-bottom-color: #00d9ff; }
+.browser-search { padding: 4px 8px; border-bottom: 1px solid #2a2a2a; }
+.browser-search input { width: 100%; background: #2a2a2a; border: 1px solid #444; color: #ccc; font-size: 10px; height: 22px; padding: 0 6px; }
+.browser-list { flex: 1; overflow-y: auto; padding: 4px; }
+.browser-cat { padding: 2px 8px; font-size: 9px; color: #888; background: #222; margin: 2px 0; cursor: pointer; }
+.browser-item { padding: 3px 12px; font-size: 10px; color: #ccc; cursor: pointer; }
+.browser-item:hover { background: #2a2a2a; color: #00d9ff; }
+
+/* BOTTOM INSPECTOR */
+.bottom-inspector { height: 240px; background: #1e1e1e; border-top: 1px solid #333; display: flex; }
+
+.insp-main { flex: 1; display: flex; flex-direction: column; }
+.insp-header { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px; background: #222; border-bottom: 1px solid #333; }
+.insp-header .title { font-size: 12px; font-weight: 600; }
+.insp-tabs { display: flex; border-bottom: 1px solid #333; }
+.insp-tab { padding: 5px 12px; font-size: 10px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; }
+.insp-tab.active { color: #00d9ff; border-bottom-color: #00d9ff; }
+.insp-content { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; gap: 20px; }
+.insp-col { flex: 1; }
+.insp-section-title { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; border-bottom: 1px solid #2a2a2a; padding-bottom: 2px; }
+.insp-row { display: flex; align-items: center; margin-bottom: 3px; }
+.insp-row .l { width: 70px; font-size: 10px; color: #999; }
+.insp-row .track { flex: 1; height: 3px; background: #333; position: relative; }
+.insp-row .track .f { height: 100%; background: #00d9ff; }
+.insp-row .v { width: 32px; text-align: right; font-size: 9px; color: #aaa; }
+.insp-row select { flex: 1; background: #2a2a2a; border: 1px solid #444; color: #ccc; font-size: 10px; height: 18px; }
+
+/* DASHBOARD KNOBS */
+.dashboard { display: flex; gap: 6px; padding: 4px 0; }
+.dk { display: flex; flex-direction: column; align-items: center; }
+.dk .ring { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #444; background: #2a2a2a; position: relative; }
+.dk .ring .ind { position: absolute; width: 2px; height: 8px; background: #00d9ff; top: 3px; left: 13px; transform-origin: bottom center; }
+.dk .lb { font-size: 7px; color: #666; }
+
+/* FX stack in inspector */
+.fx-stack { }
+.fx-row { display: flex; align-items: center; padding: 2px 4px; background: #252525; margin-bottom: 1px; }
+.fx-row .b { width: 14px; height: 14px; background: #2a2a2a; border: 1px solid #555; color: #888; font-size: 7px; text-align: center; line-height: 14px; margin-right: 4px; }
+.fx-row .n { flex: 1; font-size: 10px; color: #ccc; }
+.fx-row .vl { font-size: 9px; color: #666; margin-right: 4px; }
+.fx-row .x { color: #666; font-size: 9px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <select style="width:100px"><option>Mic Input</option></select>
+  <div class="tb-slider"><div class="fill" style="width:50%"></div></div>
+  <div class="tb-divider"></div>
+  <div class="tb-btn">Play</div><div class="tb-btn">Pause</div><div class="tb-btn">Stop</div>
+  <div class="tb-divider"></div>
+  <div class="beat-wheel"><div class="seg on"></div><div class="seg off"></div><div class="seg off"></div><div class="seg off"></div></div>
+  <span style="font-size:10px;color:#888">Bar 3</span>
+  <span style="font-size:10px;color:#888">Phr 0.37</span>
+  <div class="tb-divider"></div>
+  <span class="bpm-display">128.0</span>
+  <span class="bpm-label">LOCKED</span>
+  <div class="tb-btn">Tap</div><div class="tb-btn">Resync</div><div class="tb-btn">Manual</div>
+  <div class="tb-divider"></div>
+  <div class="tb-btn">/4</div><div class="tb-btn">/2</div><div class="tb-btn active">x1</div><div class="tb-btn">x2</div><div class="tb-btn">x4</div>
+  <div class="tb-divider"></div>
+  <span style="font-size:10px;color:#888">Quantize</span>
+  <select style="width:85px"><option>Next Beat</option></select>
+  <span style="font-size:10px;color:#888">Fade</span>
+  <div class="tb-slider" style="width:50px"><div class="fill" style="width:30%"></div></div>
+  <span class="spacer"></span>
+  <span style="font-size:10px;color:#888">Master</span>
+  <div class="tb-slider"><div class="fill" style="width:75%"></div></div>
+  <div class="tb-divider"></div>
+  <select style="width:130px"><option>Fullscreen - Display 2</option></select>
+  <div class="tb-divider"></div>
+  <span class="fps">60 fps</span>
+  <span style="font-size:10px;color:#888;margin-left:4px">DSP 12%</span>
+</div>
+
+<!-- SIGNAL BAR -->
+<div class="signal-bar">
+  <div class="sig"><span class="lbl">RMS</span><div class="bar"><div class="f" style="height:65%;background:#00d9ff"></div></div><span class="v">0.65</span></div>
+  <div class="sig"><span class="lbl">Peak</span><div class="bar"><div class="f" style="height:82%;background:#00d9ff"></div></div><span class="v">0.82</span></div>
+  <div class="sig"><span class="lbl">Bass</span><div class="bar"><div class="f" style="height:78%;background:#e74c3c"></div></div><span class="v">0.78</span></div>
+  <div class="sig"><span class="lbl">Mid</span><div class="bar"><div class="f" style="height:45%;background:#f39c12"></div></div><span class="v">0.45</span></div>
+  <div class="sig"><span class="lbl">High</span><div class="bar"><div class="f" style="height:32%;background:#2ecc71"></div></div><span class="v">0.32</span></div>
+  <div class="sig"><span class="lbl">Beat</span><div class="bar"><div class="f" style="height:60%;background:#9b59b6"></div></div><span class="v">0.60</span></div>
+  <div class="sig"><span class="lbl">Bar</span><div class="bar"><div class="f" style="height:37%;background:#9b59b6"></div></div><span class="v">0.37</span></div>
+  <div class="sig"><span class="lbl">BPM</span><div class="bar"><div class="f" style="height:53%;background:#1abc9c"></div></div><span class="v">128</span></div>
+  <div class="sig"><span class="lbl">Onset</span><div class="bar"><div class="f" style="height:15%;background:#e67e22"></div></div><span class="v">0.15</span></div>
+  <div class="sig"><span class="lbl">Pitch</span><div class="bar"><div class="f" style="height:55%;background:#3498db"></div></div><span class="v">440</span></div>
+  <div class="sig"><span class="lbl">Key</span><div class="bar"><div class="f" style="height:70%;background:#3498db"></div></div><span class="v">Am</span></div>
+  <div class="sig"><span class="lbl">Flux</span><div class="bar"><div class="f" style="height:38%;background:#00d9ff"></div></div><span class="v">0.38</span></div>
+  <div class="sig"><span class="lbl">Genre</span><div class="bar"><div class="f" style="height:80%;background:#9b59b6"></div></div><span class="v">Tech</span></div>
+  <div class="sig"><span class="lbl">Pump</span><div class="bar"><div class="f" style="height:62%;background:#e74c3c"></div></div><span class="v">0.62</span></div>
+</div>
+
+<!-- MAIN: FILMSTRIPS + BROWSER -->
+<div class="main">
+  <div class="filmstrip-area">
+
+    <!-- LAYER 1 FILMSTRIP -->
+    <div class="filmstrip">
+      <div class="strip-controls">
+        <div class="strip-name">Layer 1</div>
+        <span class="strip-badge opaque">Opaque</span>
+        <div class="strip-btns">
+          <div class="strip-btn">X</div><div class="strip-btn">B</div><div class="strip-btn">S</div>
+          <div style="width:4px"></div>
+          <div class="strip-btn">&lt;</div><div class="strip-btn">||</div><div class="strip-btn">&gt;</div>
+        </div>
+        <div class="strip-slider-row"><span class="l">V</span><div class="track"><div class="f" style="width:100%;background:#00d9ff"></div></div><span class="val">1.00</span></div>
+        <div class="strip-slider-row"><span class="l">S</span><div class="track"><div class="f" style="width:50%;background:#00d9ff"></div></div><span class="val">1.0x</span></div>
+        <select class="strip-dd"><option>Normal</option></select>
+        <select class="strip-dd"><option>Dissolve</option></select>
+      </div>
+      <div class="strip-clips">
+        <div class="film-card active">
+          <div class="film-thumb"><div class="grad g-city"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div><div class="film-playhead" style="width:45%"></div></div>
+          <div class="film-info"><span class="name">City Night.jpg</span><div class="badges"><span class="film-badge">Hue</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-nature"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">Forest.png</span><div class="badges"></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-abstract"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">Waves.mp4</span><div class="badges"><span class="film-badge">Rip</span><span class="film-badge">Sat</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-water"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">Ocean.jpg</span><div class="badges"></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-smoke"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">Smoke.mp4</span><div class="badges"><span class="film-badge">Blur</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-perlin"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">SRC Perlin</span><div class="badges"></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-neon"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">Neon Grid.png</span><div class="badges"><span class="film-badge">Glow</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-fire"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">Flames.mp4</span><div class="badges"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAYER 2 FILMSTRIP -->
+    <div class="filmstrip">
+      <div class="strip-controls">
+        <div class="strip-name">Layer 2</div>
+        <span class="strip-badge trans">Transparent</span>
+        <div class="strip-btns">
+          <div class="strip-btn">X</div><div class="strip-btn">B</div><div class="strip-btn">S</div>
+          <div style="width:4px"></div>
+          <div class="strip-btn">&lt;</div><div class="strip-btn">||</div><div class="strip-btn">&gt;</div>
+        </div>
+        <div class="strip-slider-row"><span class="l">V</span><div class="track"><div class="f" style="width:70%;background:#00d9ff"></div></div><span class="val">0.70</span></div>
+        <div class="strip-slider-row"><span class="l">S</span><div class="track"><div class="f" style="width:50%;background:#00d9ff"></div></div><span class="val">1.0x</span></div>
+        <select class="strip-dd"><option>Additive</option></select>
+        <select class="strip-dd"><option>Dissolve</option></select>
+      </div>
+      <div class="strip-clips">
+        <div class="film-card active">
+          <div class="film-thumb"><div class="grad g-mandelbrot"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div><div class="film-playhead" style="width:72%"></div></div>
+          <div class="film-info"><span class="name">SRC Mandelbrot</span><div class="badges"><span class="film-badge">Echo</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-julia"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">SRC Julia Set</span><div class="badges"></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-spectrum"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">SRC Spectrum</span><div class="badges"><span class="film-badge">Glow</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-torus"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">SRC Torus</span><div class="badges"><span class="film-badge">Hue</span><span class="film-badge">Kal</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-portrait"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">Face.png</span><div class="badges"><span class="film-badge">Thr</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-menger"></div><div class="film-sprocket"><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div></div></div>
+          <div class="film-info"><span class="name">SRC Menger</span><div class="badges"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAYER 3 FILMSTRIP -->
+    <div class="filmstrip">
+      <div class="strip-controls">
+        <div class="strip-name">Layer 3</div>
+        <span class="strip-badge fx">FX Only</span>
+        <div class="strip-btns">
+          <div class="strip-btn">X</div><div class="strip-btn ab">B</div><div class="strip-btn">S</div>
+          <div style="width:4px"></div>
+          <div class="strip-btn">&lt;</div><div class="strip-btn">||</div><div class="strip-btn">&gt;</div>
+        </div>
+        <div class="strip-slider-row"><span class="l">V</span><div class="track"><div class="f" style="width:50%;background:#00d9ff"></div></div><span class="val">0.50</span></div>
+        <div class="strip-slider-row"><span class="l">S</span><div class="track"><div class="f" style="width:50%;background:#00d9ff"></div></div><span class="val">1.0x</span></div>
+        <select class="strip-dd"><option>Screen</option></select>
+        <select class="strip-dd"><option>Cut</option></select>
+      </div>
+      <div class="strip-clips">
+        <div class="film-card active">
+          <div class="film-thumb" style="display:flex;align-items:center;justify-content:center;background:#252525"><span style="font-size:14px;color:#c66;font-weight:600">FX - Bass Pulse</span></div>
+          <div class="film-info"><span class="name">FX - Bass Pulse</span><div class="badges"><span class="film-badge">Rip</span><span class="film-badge">Glow</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb" style="display:flex;align-items:center;justify-content:center;background:#252525"><span style="font-size:14px;color:#c66;font-weight:600">FX - Glitch Drop</span></div>
+          <div class="film-info"><span class="name">FX - Glitch Drop</span><div class="badges"><span class="film-badge">Blk</span><span class="film-badge">RGB</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb" style="display:flex;align-items:center;justify-content:center;background:#252525"><span style="font-size:14px;color:#c66;font-weight:600">FX - Strobe</span></div>
+          <div class="film-info"><span class="name">FX - Strobe</span><div class="badges"><span class="film-badge">Str</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb" style="display:flex;align-items:center;justify-content:center;background:#252525"><span style="font-size:14px;color:#c66;font-weight:600">FX - Dreamy</span></div>
+          <div class="film-info"><span class="name">FX - Dreamy</span><div class="badges"><span class="film-badge">Blur</span><span class="film-badge">Sat</span></div></div>
+        </div>
+        <div class="film-card">
+          <div class="film-thumb"><div class="grad g-fluid"></div></div>
+          <div class="film-info"><span class="name">SRC Fluid Sim</span><div class="badges"><span class="film-badge">Hue</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROWSER -->
+  <div class="browser-panel">
+    <div class="browser-preview">
+      <div class="img">
+        <div class="overlay1"></div>
+        <div class="overlay2"></div>
+      </div>
+      <div class="lbl">240 x 135 Preview</div>
+    </div>
+    <div class="browser-tabs">
+      <div class="browser-tab">Files</div>
+      <div class="browser-tab active">FX</div>
+      <div class="browser-tab">Sources</div>
+      <div class="browser-tab">Comp</div>
+      <div class="browser-tab">Rec</div>
+      <div class="browser-tab">MilkDrop</div>
+    </div>
+    <div class="browser-search"><input placeholder="Search effects..." /></div>
+    <div class="browser-list">
+      <div class="browser-cat">Warp (28)</div>
+      <div class="browser-item">Ripple</div>
+      <div class="browser-item">Bulge</div>
+      <div class="browser-item">Wave</div>
+      <div class="browser-item">Liquid</div>
+      <div class="browser-item">Kaleidoscope</div>
+      <div class="browser-item">Fisheye</div>
+      <div class="browser-item">Swirl</div>
+      <div class="browser-item">Twirl</div>
+      <div class="browser-cat">Color (31)</div>
+      <div class="browser-item">Hue Shift</div>
+      <div class="browser-item">Saturation</div>
+      <div class="browser-item">Brightness</div>
+      <div class="browser-item">Duotone</div>
+      <div class="browser-item">Chromatic Aberration</div>
+      <div class="browser-item">Invert</div>
+      <div class="browser-cat">Glitch (16)</div>
+      <div class="browser-item">Pixel Scatter</div>
+      <div class="browser-item">RGB Split</div>
+      <div class="browser-item">Block Glitch</div>
+      <div class="browser-cat">Blur/Post (9)</div>
+      <div class="browser-item">Gaussian Blur</div>
+      <div class="browser-item">Zoom Blur</div>
+      <div class="browser-item">Glow</div>
+      <div class="browser-cat">Pattern (19)</div>
+      <div class="browser-item">CRT Simulation</div>
+      <div class="browser-item">ASCII Art</div>
+      <div class="browser-cat">Time (6)</div>
+      <div class="browser-item">Echo</div>
+      <div class="browser-item">Freeze</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM INSPECTOR -->
+<div class="bottom-inspector">
+  <div class="insp-main">
+    <div class="insp-header"><span class="title">City Night.jpg</span><span style="font-size:10px;color:#666;cursor:pointer">Pin</span></div>
+    <div class="insp-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Composition</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+    <div class="insp-content">
+      <div class="insp-col">
+        <div class="insp-section-title">Dashboard</div>
+        <div class="dashboard">
+          <div class="dk"><div class="ring"><div class="ind" style="transform:rotate(-45deg)"></div></div><div class="lb">Macro 1</div></div>
+          <div class="dk"><div class="ring"><div class="ind" style="transform:rotate(30deg)"></div></div><div class="lb">Macro 2</div></div>
+          <div class="dk"><div class="ring"><div class="ind" style="transform:rotate(-90deg)"></div></div><div class="lb">Macro 3</div></div>
+          <div class="dk"><div class="ring"><div class="ind" style="transform:rotate(60deg)"></div></div><div class="lb">Macro 4</div></div>
+          <div class="dk"><div class="ring"><div class="ind" style="transform:rotate(0deg)"></div></div><div class="lb">Macro 5</div></div>
+          <div class="dk"><div class="ring"><div class="ind" style="transform:rotate(-30deg)"></div></div><div class="lb">Macro 6</div></div>
+          <div class="dk"><div class="ring"><div class="ind" style="transform:rotate(45deg)"></div></div><div class="lb">Macro 7</div></div>
+          <div class="dk"><div class="ring"><div class="ind" style="transform:rotate(-60deg)"></div></div><div class="lb">Macro 8</div></div>
+        </div>
+        <div class="insp-section-title" style="margin-top:6px">Transport</div>
+        <div class="insp-row"><span class="l">Mode</span><select><option>Timeline</option></select></div>
+        <div class="insp-row"><span class="l">Speed</span><div class="track"><div class="f" style="width:50%"></div></div><span class="v">1.0x</span></div>
+        <div class="insp-row"><span class="l">Loop</span><select><option>Loop</option></select></div>
+      </div>
+      <div class="insp-col">
+        <div class="insp-section-title">Video</div>
+        <div class="insp-row"><span class="l">Opacity</span><div class="track"><div class="f" style="width:100%"></div></div><span class="v">1.00</span></div>
+        <div class="insp-row"><span class="l">Blend</span><select><option>Layer Determined</option></select></div>
+        <div class="insp-section-title" style="margin-top:6px">Transform</div>
+        <div class="insp-row"><span class="l">Position X</span><div class="track"><div class="f" style="width:50%"></div></div><span class="v">0</span></div>
+        <div class="insp-row"><span class="l">Position Y</span><div class="track"><div class="f" style="width:50%"></div></div><span class="v">0</span></div>
+        <div class="insp-row"><span class="l">Scale</span><div class="track"><div class="f" style="width:50%"></div></div><span class="v">1.00</span></div>
+        <div class="insp-row"><span class="l">Rotation</span><div class="track"><div class="f" style="width:50%"></div></div><span class="v">0.0</span></div>
+      </div>
+      <div class="insp-col">
+        <div class="insp-section-title">Effects</div>
+        <div class="fx-stack">
+          <div class="fx-row"><div class="b">B</div><span class="n">Hue Shift</span><span class="vl">0.65</span><span class="x">X</span></div>
+        </div>
+        <div style="margin-top:4px">
+          <div class="insp-row"><span class="l" style="width:55px">Dry/Wet</span><div class="track"><div class="f" style="width:100%"></div></div><span class="v">1.00</span></div>
+          <div class="insp-row"><span class="l" style="width:55px">Amount</span><div class="track"><div class="f" style="width:65%"></div></div><span class="v">0.65</span></div>
+        </div>
+        <div class="insp-section-title" style="margin-top:6px">Autopilot</div>
+        <div class="insp-row"><span class="l">Action</span><select><option>Play Next</option></select></div>
+        <div class="insp-row"><span class="l">Duration</span><select><option>4 beats</option></select></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

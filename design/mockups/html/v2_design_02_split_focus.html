@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v2 — Split Focus (Perform Mode)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0a0a0a; color: #e0e0e0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 11px; }
+
+/* ══════════════════════ TOP BAR ══════════════════════ */
+.top-bar {
+  height: 30px; background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+  border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 8px;
+  position: relative; z-index: 100;
+}
+.tb-group { display: flex; align-items: center; gap: 4px; }
+.tb-divider { width: 1px; height: 18px; background: #333; margin: 0 6px; }
+.tb-label { color: #666; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 3px; }
+.tb-btn { height: 22px; padding: 0 8px; background: #222; border: 1px solid #333; color: #bbb; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tb-btn:hover { background: #2a2a2a; }
+.tb-btn.active { background: #00d9ff22; border-color: #00d9ff66; color: #00d9ff; }
+.tb-btn.transport { width: 28px; height: 24px; font-size: 13px; }
+.tb-btn.transport.playing { color: #00d9ff; }
+.tb-select { height: 22px; padding: 0 6px; background: #1a1a1a; border: 1px solid #333; color: #ccc; font-size: 10px; }
+.tb-bpm-display { font-size: 16px; font-weight: 700; color: #00d9ff; margin: 0 4px; min-width: 52px; text-align: center; letter-spacing: -0.5px; }
+.tb-spacer { flex: 1; }
+.tb-stat { color: #555; font-size: 9px; margin-left: 8px; }
+.tb-stat span { color: #777; }
+.tb-gain { width: 50px; height: 4px; background: #222; position: relative; }
+.tb-gain-fill { height: 100%; background: linear-gradient(90deg, #00d9ff44, #00d9ff); }
+
+/* Mode toggle */
+.mode-toggle {
+  display: flex; margin: 0 8px; border: 1px solid #333;
+}
+.mode-btn {
+  height: 22px; padding: 0 14px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  display: flex; align-items: center; cursor: pointer; text-transform: uppercase;
+}
+.mode-btn.perform {
+  background: #00d9ff; color: #000; border-right: 1px solid #00a0cc;
+}
+.mode-btn.edit {
+  background: #1a1a1a; color: #555;
+}
+
+/* Beat wheel */
+.beat-wheel { width: 22px; height: 22px; position: relative; margin: 0 4px; }
+.beat-wheel svg { width: 22px; height: 22px; }
+.bw-seg { fill: none; stroke: #333; stroke-width: 2.5; }
+.bw-seg.lit { stroke: #00d9ff; }
+.bw-state { font-size: 8px; color: #888; margin-left: 2px; }
+
+/* BPM multipliers */
+.tb-mult { width: 20px; height: 18px; font-size: 8px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #666; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.tb-mult.active { color: #00d9ff; border-color: #00d9ff55; }
+
+/* ══════════════════════ MAIN AREA ══════════════════════ */
+.main-area {
+  display: flex; flex: 1; position: relative;
+}
+
+/* ══════════════════════ DECK GRID (Full width minus preview) ══════════════════════ */
+.deck-container {
+  flex: 1; display: flex; flex-direction: column; background: #0a0a0a;
+}
+
+/* Column triggers */
+.col-triggers {
+  height: 22px; display: flex; margin-left: 160px; background: #0c0c0c; border-bottom: 1px solid #1a1a1a;
+}
+.col-trigger {
+  flex: 1; max-width: 120px; min-width: 100px; height: 22px; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #444; border-right: 1px solid #1a1a1a; position: relative; cursor: pointer;
+}
+.col-trigger.active { color: #888; }
+.col-trigger.active::after {
+  content: ''; position: absolute; bottom: 0; left: 10%; width: 80%; height: 2px; background: #00d9ff;
+}
+
+/* Layer rows — taller for perform mode */
+.layer-row {
+  display: flex; border-bottom: 1px solid #1a1a1a; flex: 1;
+}
+
+/* Compact layer strip for perform */
+.layer-strip {
+  width: 160px; min-width: 160px; background: linear-gradient(180deg, #141414 0%, #101010 100%);
+  border-right: 1px solid #222; padding: 6px 8px; display: flex; flex-direction: column; gap: 3px;
+}
+.ls-top { display: flex; align-items: center; gap: 6px; }
+.ls-name { font-weight: 700; font-size: 12px; color: #e0e0e0; flex: 1; }
+.ls-type {
+  font-size: 8px; padding: 1px 5px; font-weight: 700; letter-spacing: 0.3px;
+}
+.ls-type.opaque { background: #00d9ff22; color: #00d9ff; border: 1px solid #00d9ff44; }
+.ls-type.transparent { background: #ff990022; color: #ff9900; border: 1px solid #ff990044; }
+.ls-type.fx { background: #ff00ff22; color: #ff00ff; border: 1px solid #ff00ff44; }
+
+.ls-controls { display: flex; align-items: center; gap: 4px; }
+.ls-btn { width: 20px; height: 18px; font-size: 9px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #666; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 600; }
+.ls-btn.active { color: #ff4444; border-color: #ff444466; }
+
+.ls-opacity-bar {
+  height: 8px; background: #111; position: relative; margin-top: 2px; border: 1px solid #1a1a1a;
+}
+.ls-opacity-fill { height: 100%; background: linear-gradient(90deg, #00d9ff33, #00d9ff); }
+.ls-opacity-text { position: absolute; right: 4px; top: -1px; font-size: 8px; color: #aaa; font-weight: 600; }
+
+.ls-transport { display: flex; gap: 3px; margin-top: auto; align-items: center; }
+.ls-transport-btn { width: 22px; height: 18px; font-size: 12px; background: transparent; border: 1px solid #222; color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.ls-transport-btn.playing { color: #00d9ff; border-color: #00d9ff44; }
+
+/* Clip cells — larger for perform */
+.clip-grid {
+  display: flex; flex: 1; overflow: hidden;
+}
+.clip-cell {
+  flex: 1; max-width: 120px; min-width: 100px; border-right: 1px solid #1a1a1a;
+  background: #0e0e0e; display: flex; flex-direction: column; cursor: pointer; position: relative;
+}
+.clip-cell:hover { background: #131313; }
+.clip-cell.active {
+  border: 2px solid #00d9ff; background: #00d9ff05;
+}
+.clip-cell.selected { border: 1px solid #00d9ff66; }
+.clip-cell.has-fx::after {
+  content: 'FX'; position: absolute; top: 3px; right: 3px; font-size: 8px; color: #ff00ff;
+  background: #ff00ff22; padding: 1px 4px; font-weight: 700; z-index: 2;
+}
+
+.cc-thumb {
+  flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.cc-thumb.mandelbrot { background: radial-gradient(ellipse at 40% 50%, #000 18%, #1a0a3e 38%, #3a1a6a 52%, #ff6600 68%, #ffcc00 80%, #000 92%); }
+.cc-thumb.plasma { background: radial-gradient(circle at 30% 40%, #ff0066 0%, #6600ff 30%, #00ffcc 60%, #ff0066 100%); }
+.cc-thumb.spectral { background: conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0000); }
+.cc-thumb.kaleido { background: repeating-conic-gradient(from 0deg, #00d9ff22, #ff00ff22 30deg, #ffcc0022 60deg); }
+.cc-thumb.noise { background: repeating-linear-gradient(45deg, #111 0px, #222 2px, #111 4px); }
+.cc-thumb.torus { background: radial-gradient(ellipse at 50% 45%, #ff440088 0%, #ff004488 30%, #22004488 60%, #000 80%); }
+.cc-thumb.fluid { background: linear-gradient(120deg, #003366, #006699 30%, #00ccff44 50%, #003366 70%, #001133); }
+.cc-thumb.attractor { background: radial-gradient(circle at 55% 45%, #ffcc0066 0%, #ff660044 25%, #11001a 60%); }
+.cc-thumb.julia { background: linear-gradient(135deg, #220044, #440088, #8800ff, #440088, #220044); }
+.cc-thumb.cymatics { background: radial-gradient(circle, #ff880044 0%, #ff440022 40%, #000 80%); }
+.cc-thumb.waterfall { background: linear-gradient(to right, #000, #003, #006, #009, #00c, #009, #006, #003, #000); }
+.cc-thumb.empty { background: #080808; }
+
+.cc-name {
+  height: 18px; background: #0b0b0b; border-top: 1px solid #1a1a1a; padding: 0 5px;
+  display: flex; align-items: center; font-size: 10px; color: #777; white-space: nowrap; overflow: hidden;
+}
+.cc-name.active-name { color: #00d9ff; font-weight: 600; }
+.cc-playhead {
+  position: absolute; bottom: 18px; left: 0; width: 100%; height: 3px; background: #00d9ff22;
+}
+.cc-playhead-pos { height: 100%; background: #00d9ff; }
+
+/* Deck tabs */
+.deck-tabs {
+  height: 22px; background: #0a0a0a; display: flex; align-items: center; padding-left: 160px; gap: 0;
+  border-top: 1px solid #1a1a1a;
+}
+.deck-tab {
+  padding: 0 16px; height: 22px; display: flex; align-items: center; font-size: 10px; color: #555;
+  cursor: pointer; position: relative;
+}
+.deck-tab.active { color: #ccc; }
+.deck-tab.active::after { content: ''; position: absolute; bottom: 0; left: 4px; right: 4px; height: 2px; background: #00d9ff; }
+
+/* ══════════════════════ FLOATING PREVIEW ══════════════════════ */
+.preview-float {
+  position: absolute; top: 4px; right: 4px; width: 340px; height: 196px;
+  border: 1px solid #00d9ff44; background: #000; z-index: 50;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+}
+.preview-content {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 38% 48%, #000 15%, #1a0a3e 35%, #3a1a6a 50%, #ff6600 65%, #ffcc00 78%, #000 92%);
+  position: relative;
+}
+/* Ripple + Hue overlay */
+.preview-content::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%, transparent 20%, rgba(0,217,255,0.03) 40%, transparent 55%, rgba(0,217,255,0.02) 70%, transparent 85%);
+}
+.preview-content::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(255,0,100,0.02) 100%);
+}
+.preview-fps {
+  position: absolute; bottom: 4px; right: 6px; font-size: 9px; color: #00d9ff88;
+  background: rgba(0,0,0,0.6); padding: 1px 4px;
+}
+.preview-label {
+  position: absolute; top: 4px; left: 6px; font-size: 8px; color: #00d9ff55;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.preview-res {
+  position: absolute; top: 4px; right: 6px; font-size: 8px; color: #44444488;
+}
+
+/* ══════════════════════ HORIZONTAL CONTROL STRIP ══════════════════════ */
+.control-strip {
+  height: 120px; background: linear-gradient(180deg, #141414 0%, #0e0e0e 100%);
+  border-top: 1px solid #2a2a2a; display: flex; align-items: stretch;
+  padding: 0;
+}
+
+/* Left section: mini preview + clip info */
+.cs-left {
+  width: 260px; display: flex; align-items: center; padding: 8px 12px; gap: 10px;
+  border-right: 1px solid #1a1a1a;
+}
+.cs-mini-preview {
+  width: 128px; height: 72px; background: radial-gradient(ellipse at 40% 50%, #000 18%, #1a0a3e 38%, #3a1a6a 52%, #ff6600 68%, #ffcc00 80%, #000 92%);
+  border: 1px solid #333; flex-shrink: 0;
+}
+.cs-clip-info { display: flex; flex-direction: column; gap: 3px; }
+.cs-clip-name { font-size: 13px; font-weight: 700; color: #e0e0e0; }
+.cs-clip-source {
+  display: flex; align-items: center; gap: 4px;
+}
+.cs-source-badge {
+  font-size: 8px; padding: 1px 5px; background: #00d9ff22; color: #00d9ff; border: 1px solid #00d9ff44;
+  font-weight: 600;
+}
+.cs-clip-location { font-size: 9px; color: #555; }
+
+/* Center section: parameters */
+.cs-center {
+  flex: 1; display: flex; flex-direction: column; padding: 8px 16px; gap: 4px;
+}
+.cs-param-label-row {
+  display: flex; gap: 0; margin-bottom: 2px;
+}
+.cs-param-group {
+  flex: 1; display: flex; flex-direction: column; gap: 3px; padding: 0 4px;
+}
+.cs-pg-header {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cs-pg-name { font-size: 9px; color: #888; font-weight: 600; }
+.cs-pg-value { font-size: 10px; color: #bbb; font-variant-numeric: tabular-nums; }
+
+/* Wide slider */
+.cs-slider {
+  height: 10px; background: #111; border: 1px solid #222; position: relative; cursor: pointer;
+}
+.cs-slider-fill { height: 100%; background: #00d9ff; }
+.cs-slider-fill.warm { background: linear-gradient(90deg, #ff660044, #ff6600); }
+.cs-slider-fill.cool { background: linear-gradient(90deg, #00d9ff44, #00d9ff); }
+.cs-slider-fill.purple { background: linear-gradient(90deg, #8800ff44, #8800ff); }
+.cs-slider-fill.green { background: linear-gradient(90deg, #00ff8844, #00ff88); }
+
+/* Signal triangle on params */
+.cs-triangle {
+  width: 6px; height: 6px; display: inline-block; margin-right: 3px;
+  border-left: 4px solid #444; border-top: 3px solid transparent; border-bottom: 3px solid transparent;
+}
+.cs-triangle.connected { border-left-color: #00d9ff; }
+
+/* Effect pills */
+.cs-effects {
+  display: flex; gap: 4px; margin-top: auto;
+}
+.cs-fx-pill {
+  display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
+  background: #00d9ff15; border: 1px solid #00d9ff44; cursor: pointer;
+}
+.cs-fx-pill-name { font-size: 10px; color: #00d9ff; font-weight: 500; }
+.cs-fx-pill-bypass {
+  width: 12px; height: 12px; background: #00d9ff; display: flex; align-items: center; justify-content: center;
+  font-size: 7px; color: #000; font-weight: 700; cursor: pointer;
+}
+.cs-fx-pill.bypassed { background: #1a1a1a; border-color: #333; }
+.cs-fx-pill.bypassed .cs-fx-pill-name { color: #555; }
+.cs-fx-pill.bypassed .cs-fx-pill-bypass { background: #333; color: #666; }
+
+/* Right section: blend/transition */
+.cs-right {
+  width: 340px; display: flex; flex-direction: column; padding: 8px 12px; gap: 4px;
+  border-left: 1px solid #1a1a1a;
+}
+.cs-right-row {
+  display: flex; align-items: center; gap: 6px; height: 20px;
+}
+.cs-right-label { font-size: 9px; color: #666; width: 65px; text-align: right; }
+.cs-right-value { font-size: 10px; color: #bbb; }
+.cs-right-select {
+  height: 20px; padding: 0 6px; background: #111; border: 1px solid #222; color: #bbb; font-size: 10px; flex: 1;
+}
+.cs-opacity-slider {
+  flex: 1; height: 10px; background: #111; border: 1px solid #222; position: relative;
+}
+.cs-opacity-fill { height: 100%; background: linear-gradient(90deg, transparent, #e0e0e0); width: 100%; }
+
+/* Autopilot badge */
+.cs-autopilot-badge {
+  display: flex; align-items: center; gap: 4px; padding: 2px 8px;
+  background: #00d9ff15; border: 1px solid #00d9ff33;
+}
+.cs-ap-dot { width: 6px; height: 6px; background: #00d9ff; border-radius: 50%; animation: apPulse 2s ease-in-out infinite; }
+@keyframes apPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+.cs-ap-text { font-size: 9px; color: #00d9ff; }
+
+/* ══════════════════════ AUDIO STRIP ══════════════════════ */
+.audio-strip {
+  height: 16px; background: #0a0a0a; border-top: 1px solid #1a1a1a;
+  display: flex; align-items: center; padding: 0 12px; gap: 12px;
+}
+.as-bands {
+  display: flex; align-items: center; gap: 3px;
+}
+.as-band-dot {
+  border-radius: 50%;
+}
+.as-band-sub { width: 10px; height: 10px; background: #ff0044; opacity: 0.8; }
+.as-band-bass { width: 12px; height: 12px; background: #ff4400; opacity: 0.9; }
+.as-band-lomid { width: 8px; height: 8px; background: #ff8800; opacity: 0.6; }
+.as-band-mid { width: 6px; height: 6px; background: #ffcc00; opacity: 0.5; }
+.as-band-himid { width: 5px; height: 5px; background: #88ff00; opacity: 0.4; }
+.as-band-pres { width: 7px; height: 7px; background: #00ccff; opacity: 0.6; }
+.as-band-brill { width: 4px; height: 4px; background: #8844ff; opacity: 0.3; }
+
+.as-divider { width: 1px; height: 10px; background: #222; }
+
+.as-bpm { font-size: 11px; font-weight: 700; color: #00d9ff; }
+.as-beat-dot {
+  width: 8px; height: 8px; background: #00d9ff; border-radius: 50%; opacity: 0.8;
+  animation: beatPulse 0.47s ease-out infinite; /* ~128 BPM */
+}
+@keyframes beatPulse {
+  0% { opacity: 1; transform: scale(1.3); }
+  100% { opacity: 0.3; transform: scale(0.8); }
+}
+
+.as-rms { font-size: 9px; color: #666; }
+.as-rms span { color: #888; }
+.as-structural {
+  font-size: 8px; padding: 1px 6px; background: #ff660022; color: #ff6600; border: 1px solid #ff660044;
+  text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;
+}
+.as-spacer { flex: 1; }
+.as-stats { font-size: 9px; color: #444; }
+.as-stats span { color: #666; }
+</style>
+</head>
+<body>
+<div style="width:1920px; height:1080px; display:flex; flex-direction:column;">
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<div class="top-bar">
+  <!-- Audio source -->
+  <div class="tb-group">
+    <span class="tb-label">In</span>
+    <select class="tb-select" style="width: 110px;">
+      <option>MacBook Pro Mic</option>
+    </select>
+    <div class="tb-gain"><div class="tb-gain-fill" style="width:72%;"></div></div>
+  </div>
+
+  <div class="tb-divider"></div>
+
+  <!-- Transport -->
+  <div class="tb-group">
+    <div class="tb-btn transport playing">&#9654;</div>
+    <div class="tb-btn transport">&#9646;&#9646;</div>
+    <div class="tb-btn transport">&#9632;</div>
+  </div>
+
+  <div class="tb-divider"></div>
+
+  <!-- Mode toggle -->
+  <div class="mode-toggle">
+    <div class="mode-btn perform">Perform</div>
+    <div class="mode-btn edit">Edit</div>
+  </div>
+
+  <div class="tb-spacer"></div>
+
+  <!-- BPM section -->
+  <div class="tb-group">
+    <div class="beat-wheel">
+      <svg viewBox="0 0 22 22">
+        <circle class="bw-seg lit" cx="11" cy="11" r="8" stroke-dasharray="12.5 38" stroke-dashoffset="-6"/>
+        <circle class="bw-seg lit" cx="11" cy="11" r="8" stroke-dasharray="12.5 38" stroke-dashoffset="-19"/>
+        <circle class="bw-seg" cx="11" cy="11" r="8" stroke-dasharray="12.5 38" stroke-dashoffset="-31.5"/>
+        <circle class="bw-seg" cx="11" cy="11" r="8" stroke-dasharray="12.5 38" stroke-dashoffset="-44"/>
+      </svg>
+    </div>
+    <span class="bw-state">2.4</span>
+
+    <div class="tb-bpm-display">128.4</div>
+
+    <div class="tb-btn" style="font-size:9px; padding: 0 6px;">Tap</div>
+    <div class="tb-btn" style="font-size:9px; padding: 0 6px;">Resync</div>
+    <div class="tb-btn active" style="font-size:9px; padding: 0 6px;">Manual</div>
+
+    <div class="tb-divider"></div>
+
+    <div class="tb-mult">/4</div>
+    <div class="tb-mult">/2</div>
+    <div class="tb-mult active">1x</div>
+    <div class="tb-mult">2x</div>
+    <div class="tb-mult">4x</div>
+  </div>
+
+  <div class="tb-spacer"></div>
+
+  <div class="tb-divider"></div>
+
+  <!-- Right controls -->
+  <div class="tb-group">
+    <span class="tb-label">Quantize</span>
+    <select class="tb-select" style="width: 50px;"><option>1 Bar</option></select>
+    <div class="tb-divider"></div>
+    <span class="tb-label">Fade</span>
+    <div class="tb-gain" style="width:40px;"><div class="tb-gain-fill" style="width:100%;"></div></div>
+    <div class="tb-divider"></div>
+    <span class="tb-label">Master</span>
+    <div class="tb-gain" style="width:40px;"><div class="tb-gain-fill" style="width:85%;"></div></div>
+    <div class="tb-divider"></div>
+    <div class="tb-btn" style="font-size:9px;">Output</div>
+    <div class="tb-btn" style="font-size:9px;">Rec</div>
+  </div>
+
+  <div class="tb-divider"></div>
+
+  <span class="tb-stat"><span>60.0</span> fps</span>
+  <span class="tb-stat"><span>0.8</span> ms</span>
+</div>
+
+<!-- ═══════════════ MAIN AREA ═══════════════ -->
+<div class="main-area" style="flex:1; position:relative;">
+
+  <!-- Deck container -->
+  <div class="deck-container">
+
+    <!-- Column triggers -->
+    <div class="col-triggers">
+      <div class="col-trigger">1</div>
+      <div class="col-trigger">2</div>
+      <div class="col-trigger active">3</div>
+      <div class="col-trigger">4</div>
+      <div class="col-trigger">5</div>
+      <div class="col-trigger">6</div>
+      <div class="col-trigger">7</div>
+      <div class="col-trigger">8</div>
+      <div class="col-trigger">9</div>
+      <div class="col-trigger">10</div>
+      <div class="col-trigger">11</div>
+      <div class="col-trigger">12</div>
+    </div>
+
+    <!-- Layer 1 -->
+    <div class="layer-row">
+      <div class="layer-strip">
+        <div class="ls-top">
+          <span class="ls-name">Layer 1</span>
+          <span class="ls-type opaque">O</span>
+        </div>
+        <div class="ls-controls">
+          <div class="ls-btn">X</div>
+          <div class="ls-btn">B</div>
+          <div class="ls-btn">S</div>
+        </div>
+        <div class="ls-opacity-bar">
+          <div class="ls-opacity-fill" style="width: 100%;"></div>
+          <span class="ls-opacity-text">100%</span>
+        </div>
+        <div class="ls-transport">
+          <div class="ls-transport-btn playing">&#9654;</div>
+          <div class="ls-transport-btn">&#9632;</div>
+          <span style="font-size: 9px; color: #555; margin-left: auto;">Add</span>
+        </div>
+      </div>
+      <div class="clip-grid">
+        <div class="clip-cell">
+          <div class="cc-thumb plasma"></div>
+          <div class="cc-name">Plasma</div>
+        </div>
+        <div class="clip-cell has-fx">
+          <div class="cc-thumb noise"></div>
+          <div class="cc-name">Perlin Field</div>
+        </div>
+        <div class="clip-cell active has-fx">
+          <div class="cc-thumb mandelbrot"></div>
+          <div class="cc-name active-name">Mandelbrot</div>
+          <div class="cc-playhead"><div class="cc-playhead-pos" style="width:35%;"></div></div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb spectral"></div>
+          <div class="cc-name">Spectral Ring</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb kaleido"></div>
+          <div class="cc-name">Kaleido Fractal</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb torus"></div>
+          <div class="cc-name">Spiral Torus</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb fluid"></div>
+          <div class="cc-name">Fluid Sim</div>
+        </div>
+        <div class="clip-cell has-fx">
+          <div class="cc-thumb" style="background: radial-gradient(circle, #00ff8844 0%, #00448822 40%, #000 80%);">
+          </div>
+          <div class="cc-name">Gravity Well</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb" style="background: repeating-conic-gradient(from 0deg, #ff000011, #00ff0011, #0000ff11, #ff000011);">
+          </div>
+          <div class="cc-name">Newton 3D</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb" style="background: linear-gradient(135deg, #ff006622, #00d9ff22, #ff006622, #00d9ff22);">
+          </div>
+          <div class="cc-name">Menger Sponge</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 2 -->
+    <div class="layer-row">
+      <div class="layer-strip">
+        <div class="ls-top">
+          <span class="ls-name">Layer 2</span>
+          <span class="ls-type transparent">T</span>
+        </div>
+        <div class="ls-controls">
+          <div class="ls-btn">X</div>
+          <div class="ls-btn">B</div>
+          <div class="ls-btn">S</div>
+        </div>
+        <div class="ls-opacity-bar">
+          <div class="ls-opacity-fill" style="width: 68%;"></div>
+          <span class="ls-opacity-text">68%</span>
+        </div>
+        <div class="ls-transport">
+          <div class="ls-transport-btn playing">&#9654;</div>
+          <div class="ls-transport-btn">&#9632;</div>
+          <span style="font-size: 9px; color: #555; margin-left: auto;">Screen</span>
+        </div>
+      </div>
+      <div class="clip-grid">
+        <div class="clip-cell">
+          <div class="cc-thumb attractor"></div>
+          <div class="cc-name">Strange Attr</div>
+        </div>
+        <div class="clip-cell has-fx">
+          <div class="cc-thumb julia"></div>
+          <div class="cc-name">Julia Set</div>
+        </div>
+        <div class="clip-cell selected">
+          <div class="cc-thumb cymatics"></div>
+          <div class="cc-name">Cymatics</div>
+          <div class="cc-playhead"><div class="cc-playhead-pos" style="width:62%;"></div></div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb waterfall"></div>
+          <div class="cc-name">Spec Waterfall</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb" style="background: radial-gradient(circle, #ff006644 0%, transparent 60%);"></div>
+          <div class="cc-name">Band Tower</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb" style="background: conic-gradient(from 0deg, #ff440022, #00d9ff22, #ff00ff22, #ff440022);"></div>
+          <div class="cc-name">Chromatic Ring</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb" style="background: linear-gradient(0deg, #003300, #006600 30%, #00cc00 50%, #006600 70%, #003300);"></div>
+          <div class="cc-name">Text Wall</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb" style="background: repeating-linear-gradient(45deg, #22004411 0px, #44008811 5px, transparent 10px);"></div>
+          <div class="cc-name">Timbral Neb</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 3 -->
+    <div class="layer-row">
+      <div class="layer-strip">
+        <div class="ls-top">
+          <span class="ls-name">Layer 3</span>
+          <span class="ls-type fx">FX</span>
+        </div>
+        <div class="ls-controls">
+          <div class="ls-btn active">X</div>
+          <div class="ls-btn">B</div>
+          <div class="ls-btn">S</div>
+        </div>
+        <div class="ls-opacity-bar">
+          <div class="ls-opacity-fill" style="width: 45%;"></div>
+          <span class="ls-opacity-text">45%</span>
+        </div>
+        <div class="ls-transport">
+          <div class="ls-transport-btn">&#9654;</div>
+          <div class="ls-transport-btn">&#9632;</div>
+          <span style="font-size: 9px; color: #555; margin-left: auto;">Multiply</span>
+        </div>
+      </div>
+      <div class="clip-grid">
+        <div class="clip-cell has-fx">
+          <div class="cc-thumb" style="background: linear-gradient(45deg, #ff000011, #00ff0011, #0000ff11); display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 9px; color: #ff00ff66;">Echo+Glow</span>
+          </div>
+          <div class="cc-name">FX Chain A</div>
+        </div>
+        <div class="clip-cell has-fx">
+          <div class="cc-thumb" style="background: repeating-linear-gradient(0deg, #ff00ff08 0px, transparent 3px, transparent 6px); display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 9px; color: #ff00ff66;">Scanlines</span>
+          </div>
+          <div class="cc-name">FX Chain B</div>
+        </div>
+        <div class="clip-cell has-fx">
+          <div class="cc-thumb" style="background: radial-gradient(circle, #00d9ff11 0%, transparent 50%); display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 9px; color: #ff00ff66;">RGB Split</span>
+          </div>
+          <div class="cc-name">FX Chain C</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cc-thumb empty"></div>
+          <div class="cc-name" style="color:#333;">Empty</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deck tabs -->
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck 1</div>
+      <div class="deck-tab">Deck 2</div>
+      <div class="deck-tab">Deck 3</div>
+      <div class="deck-tab" style="color:#333;">+</div>
+    </div>
+  </div>
+
+  <!-- Floating preview -->
+  <div class="preview-float">
+    <div class="preview-content">
+      <span class="preview-label">Output</span>
+      <span class="preview-res">1920x1080</span>
+      <span class="preview-fps">60.0 fps</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ HORIZONTAL CONTROL STRIP ═══════════════ -->
+<div class="control-strip">
+
+  <!-- Left: mini preview + clip info -->
+  <div class="cs-left">
+    <div class="cs-mini-preview"></div>
+    <div class="cs-clip-info">
+      <div class="cs-clip-name">Mandelbrot</div>
+      <div class="cs-clip-source">
+        <span class="cs-source-badge">Source</span>
+        <span style="font-size:9px; color:#666;">2D Fractal</span>
+      </div>
+      <div class="cs-clip-location">Layer 1, Column 3</div>
+      <div style="margin-top: 2px;">
+        <div class="cs-autopilot-badge">
+          <div class="cs-ap-dot"></div>
+          <span class="cs-ap-text">Autopilot 16 beats</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center: key parameters -->
+  <div class="cs-center">
+    <!-- Source params row -->
+    <div style="display: flex; gap: 8px; margin-bottom: 2px;">
+      <span style="font-size: 9px; color: #00d9ff; font-weight: 600; white-space: nowrap; width: 50px;">Source</span>
+      <div style="flex: 1; display: flex; gap: 8px;">
+        <!-- Zoom -->
+        <div class="cs-param-group">
+          <div class="cs-pg-header">
+            <span class="cs-pg-name"><span class="cs-triangle connected"></span>Zoom</span>
+            <span class="cs-pg-value">0.45</span>
+          </div>
+          <div class="cs-slider"><div class="cs-slider-fill warm" style="width:45%;"></div></div>
+        </div>
+        <!-- Color Speed -->
+        <div class="cs-param-group">
+          <div class="cs-pg-header">
+            <span class="cs-pg-name"><span class="cs-triangle connected"></span>Color Speed</span>
+            <span class="cs-pg-value">0.30</span>
+          </div>
+          <div class="cs-slider"><div class="cs-slider-fill cool" style="width:30%;"></div></div>
+        </div>
+        <!-- Iterations -->
+        <div class="cs-param-group">
+          <div class="cs-pg-header">
+            <span class="cs-pg-name"><span class="cs-triangle"></span>Iterations</span>
+            <span class="cs-pg-value">0.72</span>
+          </div>
+          <div class="cs-slider"><div class="cs-slider-fill purple" style="width:72%;"></div></div>
+        </div>
+        <!-- Palette -->
+        <div class="cs-param-group">
+          <div class="cs-pg-header">
+            <span class="cs-pg-name"><span class="cs-triangle"></span>Palette</span>
+            <span class="cs-pg-value">0.60</span>
+          </div>
+          <div class="cs-slider"><div class="cs-slider-fill green" style="width:60%;"></div></div>
+        </div>
+        <!-- Dive Speed -->
+        <div class="cs-param-group">
+          <div class="cs-pg-header">
+            <span class="cs-pg-name"><span class="cs-triangle connected"></span>Dive Speed</span>
+            <span class="cs-pg-value">0.20</span>
+          </div>
+          <div class="cs-slider"><div class="cs-slider-fill cool" style="width:20%;"></div></div>
+        </div>
+        <!-- Power -->
+        <div class="cs-param-group">
+          <div class="cs-pg-header">
+            <span class="cs-pg-name"><span class="cs-triangle"></span>Power</span>
+            <span class="cs-pg-value">0.50</span>
+          </div>
+          <div class="cs-slider"><div class="cs-slider-fill warm" style="width:50%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Effects row -->
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span style="font-size: 9px; color: #ff00ff; font-weight: 600; white-space: nowrap; width: 50px;">Effects</span>
+      <div class="cs-effects">
+        <div class="cs-fx-pill">
+          <div class="cs-fx-pill-bypass">B</div>
+          <span class="cs-fx-pill-name">Ripple</span>
+        </div>
+        <div class="cs-fx-pill">
+          <div class="cs-fx-pill-bypass">B</div>
+          <span class="cs-fx-pill-name">Hue Shift</span>
+        </div>
+      </div>
+      <!-- Effect quick params -->
+      <div style="flex: 1; display: flex; gap: 8px; margin-left: 12px;">
+        <div class="cs-param-group">
+          <div class="cs-pg-header">
+            <span class="cs-pg-name" style="color: #ff00ff88;">Ripple Intensity</span>
+            <span class="cs-pg-value">0.55</span>
+          </div>
+          <div class="cs-slider"><div class="cs-slider-fill" style="width:55%; background: linear-gradient(90deg, #ff00ff44, #ff00ff);"></div></div>
+        </div>
+        <div class="cs-param-group">
+          <div class="cs-pg-header">
+            <span class="cs-pg-name" style="color: #ff00ff88;">Hue Amount</span>
+            <span class="cs-pg-value">0.38</span>
+          </div>
+          <div class="cs-slider"><div class="cs-slider-fill" style="width:38%; background: linear-gradient(90deg, #ff00ff44, #ff00ff);"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: blend/transition/opacity -->
+  <div class="cs-right">
+    <div class="cs-right-row">
+      <span class="cs-right-label">Blend Mode</span>
+      <select class="cs-right-select"><option>Add</option></select>
+    </div>
+    <div class="cs-right-row">
+      <span class="cs-right-label">Opacity</span>
+      <div class="cs-opacity-slider">
+        <div class="cs-opacity-fill"></div>
+      </div>
+      <span class="cs-right-value" style="width:32px; text-align:right;">100%</span>
+    </div>
+    <div class="cs-right-row">
+      <span class="cs-right-label">Transition</span>
+      <select class="cs-right-select" style="width:80px;"><option>Dissolve</option></select>
+      <span class="cs-right-value">2.0s</span>
+    </div>
+    <div class="cs-right-row">
+      <span class="cs-right-label">Transport</span>
+      <span style="font-size:9px; padding: 2px 6px; background: #00d9ff22; color: #00d9ff; border: 1px solid #00d9ff44;">BPM Sync</span>
+      <span class="cs-right-value">4 beats</span>
+    </div>
+    <div class="cs-right-row">
+      <span class="cs-right-label">Loop Mode</span>
+      <span class="cs-right-value">Loop</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ AUDIO STRIP ═══════════════ -->
+<div class="audio-strip">
+  <div class="as-bands">
+    <div class="as-band-dot as-band-sub"></div>
+    <div class="as-band-dot as-band-bass"></div>
+    <div class="as-band-dot as-band-lomid"></div>
+    <div class="as-band-dot as-band-mid"></div>
+    <div class="as-band-dot as-band-himid"></div>
+    <div class="as-band-dot as-band-pres"></div>
+    <div class="as-band-dot as-band-brill"></div>
+  </div>
+
+  <div class="as-divider"></div>
+
+  <span class="as-bpm">128.4</span>
+  <div class="as-beat-dot"></div>
+
+  <div class="as-divider"></div>
+
+  <span class="as-rms">RMS <span>0.42</span></span>
+  <span class="as-rms">Peak <span>0.78</span></span>
+
+  <div class="as-divider"></div>
+
+  <span class="as-structural">Drop</span>
+
+  <div class="as-spacer"></div>
+
+  <span class="as-stats"><span>60.0</span> fps &middot; <span>0.8</span>ms &middot; <span>2.1</span>% dsp</span>
+</div>
+
+</div>
+</body>
+</html>

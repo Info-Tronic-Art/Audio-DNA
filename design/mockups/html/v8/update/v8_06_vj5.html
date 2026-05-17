@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 5 - Broadcast/Live Production Layout (Updated)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #111; color: #e0e0e0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12px; display: flex; flex-direction: column;
+}
+
+/* ===== MENU BAR (24px) ===== */
+.menu-bar {
+  height: 24px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 8px; flex-shrink: 0;
+}
+.menu-item {
+  padding: 2px 12px; font-size: 12px; color: #bbb; cursor: pointer;
+  border-radius: 2px;
+}
+.menu-item:first-child { font-weight: 700; color: #4ae0a0; }
+.menu-item:hover { background: #333; color: #fff; }
+
+/* ===== TOP BAR ===== */
+.top-bar {
+  height: 44px; background: linear-gradient(180deg, #1e1e1e, #1a1a1a);
+  border-bottom: 1px solid #333;
+  display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+}
+.bpm-display {
+  font-size: 26px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums;
+  background: #0d0d0d; padding: 2px 12px; border: 1px solid #444; border-radius: 2px;
+  min-width: 120px; text-align: center;
+}
+.bpm-label { font-size: 10px; color: #888; margin-left: -2px; }
+.top-btn {
+  background: #2a2a2a; color: #bbb; border: 1px solid #444; padding: 4px 10px;
+  font-size: 11px; cursor: pointer; border-radius: 2px; font-weight: 600;
+}
+.top-btn:hover { background: #3a3a3a; color: #fff; }
+.top-btn.active { border-color: #4ae0a0; color: #4ae0a0; background: #1a2a1a; }
+.beat-indicator {
+  width: 160px; height: 22px; background: #0d0d0d; border: 1px solid #444; border-radius: 2px;
+  display: flex; gap: 2px; padding: 2px;
+}
+.beat-seg { flex: 1; border-radius: 1px; }
+.beat-seg.active-1 { background: linear-gradient(to right, #2d8040, #4ae0a0); }
+.beat-seg.active-2 { background: linear-gradient(to right, #4ae0a0, #8ae050); }
+.beat-seg.active-3 { background: linear-gradient(to right, #8ae050, #c8e040); }
+.beat-seg.inactive { background: #222; }
+.top-sep { width: 1px; height: 24px; background: #333; margin: 0 4px; }
+.quantize-box {
+  display: flex; align-items: center; gap: 4px;
+}
+.quantize-label { font-size: 10px; color: #888; font-weight: 600; text-transform: uppercase; }
+.quantize-select {
+  background: #222; color: #4ae0a0; border: 1px solid #444; padding: 2px 6px;
+  font-size: 10px; border-radius: 2px; font-weight: 600;
+}
+.fade-box { display: flex; align-items: center; gap: 4px; }
+.fade-label { font-size: 10px; color: #888; font-weight: 600; text-transform: uppercase; }
+.fade-value {
+  background: #222; color: #fff; border: 1px solid #444; padding: 2px 6px;
+  font-size: 10px; border-radius: 2px; width: 40px; text-align: center;
+}
+
+/* ===== SIGNAL BAR (40px) ===== */
+.signal-bar {
+  height: 40px; background: #131313; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 8px; gap: 3px; flex-shrink: 0;
+}
+.signal-meter {
+  width: 38px; height: 32px; display: flex; flex-direction: column; align-items: center;
+  position: relative;
+}
+.signal-meter-label { font-size: 7px; color: #555; text-transform: uppercase; margin-bottom: 1px; letter-spacing: 0.3px; }
+.signal-meter-bar {
+  width: 6px; height: 18px; background: #222; border-radius: 1px; position: relative; overflow: hidden;
+}
+.signal-meter-fill {
+  position: absolute; bottom: 0; width: 100%; border-radius: 1px;
+}
+.signal-meter-value { font-size: 7px; color: #666; margin-top: 1px; font-variant-numeric: tabular-nums; }
+.signal-sep { width: 1px; height: 28px; background: #2a2a2a; margin: 0 2px; }
+
+/* ===== SAFETY ROW ===== */
+.safety-row {
+  height: 32px; background: #161616; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 10px; gap: 5px; flex-shrink: 0;
+}
+.safety-btn {
+  padding: 3px 10px; font-size: 10px; font-weight: 700; border: 1px solid #444;
+  cursor: pointer; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px;
+  height: 24px; display: flex; align-items: center;
+}
+.btn-blackout { background: #1a1a1a; color: #888; border-color: #555; }
+.btn-safe { background: #1a1a1a; color: #4ae0a0; border-color: #2d6040; }
+.btn-panic { background: #8b1a1a; color: #ff4444; border-color: #cc2222; font-size: 11px; }
+.btn-panic:hover { background: #aa2222; }
+.btn-kill { background: #2a2a1a; color: #e0c040; border-color: #665520; }
+.btn-resync { background: #1a2a2a; color: #40c0e0; border-color: #206065; }
+.btn-audio-in { background: #1a2a1a; color: #4ae0a0; border-color: #2d5040; }
+.btn-led { background: #2a1a2a; color: #c080e0; border-color: #504060; }
+.safety-spacer { flex: 1; }
+.safety-info { color: #4ae0a0; font-size: 10px; font-weight: 600; }
+
+/* ===== MAIN CONTENT ===== */
+.main-content { flex: 1; display: flex; min-height: 0; }
+
+/* ===== LEFT: SCENE FLOW ===== */
+.scene-flow {
+  width: 200px; background: #141414; border-right: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.panel-header {
+  height: 26px; background: #1e1e1e; border-bottom: 1px solid #333;
+  display: flex; align-items: center; padding: 0 10px;
+  font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px;
+}
+.scene-list { flex: 1; overflow-y: auto; padding: 4px; }
+.scene-item {
+  background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 2px;
+  padding: 5px 8px; margin-bottom: 2px; cursor: pointer;
+}
+.scene-item.live { border-color: #c8a020; background: #2a2510; }
+.scene-item .scene-name { font-size: 11px; font-weight: 600; color: #ddd; margin-bottom: 2px; }
+.scene-item .scene-controls { display: flex; gap: 3px; align-items: center; }
+.scene-badge {
+  font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 2px; text-transform: uppercase;
+}
+.badge-now { background: #2d8040; color: #fff; }
+.badge-next { background: #2060a0; color: #aaccff; }
+.badge-live { background: #c8a020; color: #fff; }
+.badge-trigger {
+  background: #2a2a2a; color: #888; border: 1px solid #444; font-size: 8px;
+  padding: 1px 5px; cursor: pointer;
+}
+.badge-trigger:hover { background: #3a3a3a; }
+.badge-fade { background: #1a2a3a; color: #60a0d0; }
+.scene-add {
+  color: #4ae0a0; font-size: 10px; padding: 5px 8px; cursor: pointer; text-align: center;
+  border: 1px dashed #2d5040; border-radius: 2px; margin: 2px 0;
+}
+
+/* ===== CENTER AREA ===== */
+.center-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* ===== PREVIEW SECTION ===== */
+.preview-section {
+  height: 240px; background: #0d0d0d; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  padding: 8px; flex-shrink: 0;
+}
+.preview-box {
+  width: 380px; height: 214px; background: #000; border: 2px solid #333;
+  border-radius: 3px; position: relative; overflow: hidden;
+}
+.preview-box.cue { border-color: #2060a0; }
+.preview-box.live { border-color: #4ae0a0; }
+.preview-label {
+  position: absolute; top: 5px; left: 7px; font-size: 9px; font-weight: 700;
+  padding: 1px 7px; border-radius: 2px; text-transform: uppercase; letter-spacing: 1px;
+}
+.preview-box.cue .preview-label { background: #2060a0; color: #fff; }
+.preview-box.live .preview-label { background: #2d8040; color: #fff; }
+.preview-canvas { width: 100%; height: 100%; }
+.take-btn-area { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.take-btn {
+  background: linear-gradient(180deg, #2d8040, #1a5028);
+  color: #fff; border: 2px solid #4ae0a0; padding: 10px 14px;
+  font-size: 12px; font-weight: 700; cursor: pointer; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 1px; text-align: center; line-height: 1.3;
+}
+.take-btn:hover { background: linear-gradient(180deg, #3a9050, #2a6038); }
+.take-arrow { color: #4ae0a0; font-size: 20px; }
+
+/* ===== DECK TABS ===== */
+.deck-tabs {
+  height: 24px; background: #181818; border-bottom: 1px solid #333;
+  display: flex; align-items: stretch; padding: 0 8px; flex-shrink: 0;
+}
+.deck-tab {
+  padding: 0 14px; display: flex; align-items: center;
+  font-size: 10px; font-weight: 600; color: #666; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.deck-tab:hover { color: #aaa; }
+.deck-tab.active { color: #4ae0a0; border-bottom-color: #4ae0a0; }
+.deck-tab.add { color: #555; font-size: 13px; }
+
+/* ===== LAYER TABS ===== */
+.layer-tabs {
+  height: 24px; background: #1a1a1a; border-bottom: 1px solid #333;
+  display: flex; align-items: stretch; padding: 0 8px; flex-shrink: 0;
+}
+.layer-tab {
+  padding: 0 14px; display: flex; align-items: center;
+  font-size: 10px; font-weight: 600; color: #666; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.layer-tab:hover { color: #aaa; }
+.layer-tab.active { color: #4ae0a0; border-bottom-color: #4ae0a0; }
+
+/* ===== LAYER STRIPS ===== */
+.layer-strips {
+  flex: 1; overflow-y: auto; padding: 4px 6px; display: flex; flex-direction: column; gap: 3px;
+}
+.layer-card {
+  background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 2px;
+  padding: 6px 8px; display: flex; align-items: center; gap: 8px;
+  min-height: 62px;
+}
+.layer-card.active { border-color: #3a5a3a; background: #1a2a1a; }
+.layer-card.folded { min-height: 28px; padding: 3px 8px; }
+.layer-on-toggle {
+  width: 28px; height: 16px; border-radius: 8px; cursor: pointer; position: relative; flex-shrink: 0;
+}
+.layer-on-toggle.on { background: #2d8040; }
+.layer-on-toggle.off { background: #333; }
+.layer-on-toggle::after {
+  content: ''; position: absolute; width: 12px; height: 12px;
+  border-radius: 50%; top: 2px; background: #ddd;
+}
+.layer-on-toggle.on::after { left: 14px; }
+.layer-on-toggle.off::after { left: 2px; }
+.layer-info { flex: 1; min-width: 0; }
+.layer-clip-name { font-size: 11px; font-weight: 600; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer-meta { display: flex; gap: 4px; align-items: center; margin-top: 2px; flex-wrap: wrap; }
+.type-badge {
+  font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 2px;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.type-opaque { background: #2a3a4a; color: #60a0d0; }
+.type-transparent { background: #2a3a2a; color: #60d080; }
+.type-fxonly { background: #3a2a3a; color: #c080e0; }
+.type-mask { background: #3a3a2a; color: #c0b060; }
+.engine-badge {
+  font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 2px;
+  background: #2a2a2a; color: #888; text-transform: uppercase;
+}
+.layer-btn {
+  font-size: 9px; font-weight: 600; padding: 2px 6px; border: 1px solid #444;
+  background: #222; color: #aaa; cursor: pointer; border-radius: 2px;
+  height: 22px; display: flex; align-items: center;
+}
+.layer-btn.active { border-color: #4ae0a0; color: #4ae0a0; background: #1a2a1a; }
+.layer-btn.strobe { border-color: #553030; background: #2a1a1a; color: #cc6060; }
+.layer-btn.lock { color: #e0c040; border-color: #554420; }
+.fold-btn {
+  font-size: 9px; color: #555; cursor: pointer; padding: 1px 4px;
+  border: 1px solid #333; background: #1a1a1a; border-radius: 2px;
+}
+.layer-knobs { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.rotary-knob { width: 44px; display: flex; flex-direction: column; align-items: center; position: relative; }
+.rotary-knob canvas { width: 44px; height: 44px; }
+.knob-label { font-size: 7px; color: #666; text-align: center; text-transform: uppercase; }
+.knob-value { font-size: 8px; color: #aaa; text-align: center; font-weight: 600; }
+.signal-triangle {
+  width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-bottom: 6px solid #4ae0a0; position: absolute; top: -2px; left: 50%; transform: translateX(-50%);
+  cursor: pointer;
+}
+.signal-triangle.inactive { border-bottom-color: #333; }
+
+/* ===== RIGHT PANEL: INSPECTOR + BROWSER ===== */
+.right-panel {
+  width: 280px; background: #141414; border-left: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+
+/* Inspector */
+.inspector { flex: 1; display: flex; flex-direction: column; min-height: 0; border-bottom: 1px solid #2a2a2a; }
+.inspector-tabs {
+  height: 24px; background: #1a1a1a; border-bottom: 1px solid #333;
+  display: flex; align-items: stretch; flex-shrink: 0;
+}
+.inspector-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 600; color: #666; cursor: pointer;
+  border-bottom: 2px solid transparent; text-transform: uppercase;
+}
+.inspector-tab.active { color: #4ae0a0; border-bottom-color: #4ae0a0; }
+.inspector-content { flex: 1; overflow-y: auto; padding: 6px 8px; }
+
+/* Inspector sections */
+.insp-section { margin-bottom: 8px; }
+.insp-section-header {
+  font-size: 9px; font-weight: 700; color: #888; text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid #2a2a2a; padding-bottom: 3px;
+}
+.insp-section-header .collapse-icon { color: #555; cursor: pointer; font-size: 8px; }
+.insp-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 3px; height: 20px;
+}
+.insp-label { font-size: 10px; color: #999; width: 70px; flex-shrink: 0; }
+.insp-slider-track {
+  flex: 1; height: 4px; background: #2a2a2a; border-radius: 2px; position: relative;
+}
+.insp-slider-fill {
+  height: 100%; border-radius: 2px; position: absolute; left: 0; top: 0;
+}
+.insp-value { font-size: 9px; color: #aaa; width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+.insp-signal-tri {
+  width: 0; height: 0; border-left: 3px solid transparent; border-right: 3px solid transparent;
+  border-bottom: 5px solid #333; cursor: pointer; flex-shrink: 0;
+}
+.insp-signal-tri.active { border-bottom-color: #4ae0a0; }
+
+/* Dashboard knobs */
+.dashboard-knobs {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 6px;
+}
+.dash-knob {
+  display: flex; flex-direction: column; align-items: center;
+}
+.dash-knob canvas { width: 36px; height: 36px; }
+.dash-knob-label { font-size: 7px; color: #555; text-transform: uppercase; margin-top: 1px; }
+
+/* Cuepoints */
+.cuepoints-row {
+  display: flex; gap: 3px; margin-bottom: 6px;
+}
+.cuepoint-btn {
+  width: 28px; height: 18px; display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; border-radius: 2px; cursor: pointer;
+  border: 1px solid #444; background: #222; color: #888;
+}
+.cuepoint-btn.set { background: #1a2a3a; color: #40a0e0; border-color: #2060a0; }
+
+/* Effect stack */
+.fx-stack-item {
+  display: flex; align-items: center; gap: 4px; padding: 3px 6px;
+  background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 2px; margin-bottom: 2px;
+  height: 24px;
+}
+.fx-bypass-btn {
+  width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; border-radius: 2px; cursor: pointer;
+  background: #2d8040; color: #fff; border: none;
+}
+.fx-bypass-btn.bypassed { background: #333; color: #666; }
+.fx-stack-name { flex: 1; font-size: 10px; color: #ddd; }
+.fx-delete-btn {
+  font-size: 9px; color: #666; cursor: pointer; padding: 0 3px;
+}
+.fx-delete-btn:hover { color: #ff4444; }
+
+/* Keying dropdown */
+.insp-select {
+  background: #222; color: #bbb; border: 1px solid #444; padding: 2px 6px;
+  font-size: 10px; border-radius: 2px; flex: 1;
+}
+
+/* Feedback section */
+.feedback-row { display: flex; gap: 4px; margin-bottom: 4px; }
+.feedback-preset-btn {
+  font-size: 8px; padding: 2px 6px; background: #222; border: 1px solid #333;
+  color: #888; border-radius: 2px; cursor: pointer;
+}
+.feedback-preset-btn.active { border-color: #4ae0a0; color: #4ae0a0; background: #1a2a1a; }
+
+/* Transform grid */
+.transform-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+}
+
+/* Autopilot */
+.autopilot-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.autopilot-toggle {
+  width: 24px; height: 14px; border-radius: 7px; cursor: pointer; position: relative;
+}
+.autopilot-toggle.on { background: #2d8040; }
+.autopilot-toggle.off { background: #333; }
+.autopilot-toggle::after {
+  content: ''; position: absolute; width: 10px; height: 10px;
+  border-radius: 50%; top: 2px; background: #ddd;
+}
+.autopilot-toggle.on::after { left: 12px; }
+.autopilot-toggle.off::after { left: 2px; }
+
+/* Browser */
+.browser { height: 240px; display: flex; flex-direction: column; flex-shrink: 0; }
+.browser-tabs {
+  height: 24px; background: #1a1a1a; border-bottom: 1px solid #333;
+  display: flex; align-items: stretch; flex-shrink: 0;
+}
+.browser-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 600; color: #666; cursor: pointer;
+  border-bottom: 2px solid transparent; text-transform: uppercase;
+}
+.browser-tab.active { color: #4ae0a0; border-bottom-color: #4ae0a0; }
+.browser-content { flex: 1; overflow-y: auto; padding: 4px 6px; }
+.browser-category {
+  font-size: 8px; font-weight: 700; color: #555; text-transform: uppercase;
+  letter-spacing: 0.5px; margin: 4px 0 2px 0;
+}
+.browser-item {
+  display: flex; align-items: center; gap: 6px; padding: 3px 6px;
+  cursor: pointer; border-radius: 2px; font-size: 10px; color: #bbb;
+}
+.browser-item:hover { background: #222; color: #fff; }
+.browser-item-icon {
+  width: 18px; height: 18px; background: #222; border-radius: 2px;
+  display: flex; align-items: center; justify-content: center; font-size: 9px; color: #666;
+}
+.browser-search {
+  margin: 4px 0; padding: 3px 8px; background: #1a1a1a; border: 1px solid #333;
+  border-radius: 2px; color: #aaa; font-size: 10px; width: 100%;
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  height: 28px; background: #1a1a1a; border-top: 1px solid #333;
+  display: flex; align-items: center; padding: 0 10px; gap: 8px; flex-shrink: 0;
+}
+.footer-stat {
+  font-size: 9px; color: #555; display: flex; align-items: center; gap: 3px;
+}
+.footer-stat .stat-label { color: #555; }
+.footer-stat .stat-value { color: #888; font-weight: 600; font-variant-numeric: tabular-nums; }
+.footer-stat .stat-good { color: #4ae0a0; }
+.footer-stat .stat-warn { color: #e0c040; }
+.footer-stat .stat-recording { color: #ff4444; }
+.footer-sep { width: 1px; height: 16px; background: #333; }
+.footer-spacer { flex: 1; }
+.footer-btn {
+  font-size: 9px; color: #666; cursor: pointer; padding: 2px 8px;
+  border: 1px solid #333; background: #222; border-radius: 2px;
+}
+.footer-btn:hover { color: #aaa; background: #2a2a2a; }
+.recording-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #ff4444;
+  animation: blink 1s infinite;
+}
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div class="menu-bar">
+  <div class="menu-item">Audio-DNA</div>
+  <div class="menu-item">Composition</div>
+  <div class="menu-item">Deck</div>
+  <div class="menu-item">Layer</div>
+  <div class="menu-item">Column</div>
+  <div class="menu-item">Clip</div>
+  <div class="menu-item">Output</div>
+  <div class="menu-item">Shortcuts</div>
+  <div class="menu-item">View</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="bpm-display">128.00</div>
+  <div class="bpm-label">BPM</div>
+  <button class="top-btn">Tap</button>
+  <button class="top-btn">Nudge -</button>
+  <button class="top-btn">Nudge +</button>
+  <button class="top-btn" style="color:#40c0e0;">Resync</button>
+  <div class="beat-indicator">
+    <div class="beat-seg active-1"></div>
+    <div class="beat-seg active-2"></div>
+    <div class="beat-seg active-3"></div>
+    <div class="beat-seg inactive"></div>
+  </div>
+  <div class="top-sep"></div>
+  <div class="quantize-box">
+    <span class="quantize-label">Quantize</span>
+    <select class="quantize-select">
+      <option>1 Bar</option><option>1/2 Bar</option><option>1 Beat</option><option>Off</option>
+    </select>
+  </div>
+  <div class="top-sep"></div>
+  <div class="fade-box">
+    <span class="fade-label">Fade</span>
+    <input class="fade-value" value="0.5s" readonly>
+  </div>
+  <div class="top-sep"></div>
+  <button class="top-btn active">Manual</button>
+  <div style="flex:1;"></div>
+  <span style="color:#888; font-size:10px;">Room Delay: <span style="color:#4ae0a0; font-weight:600;">+0ms</span></span>
+</div>
+
+<!-- SIGNAL BAR -->
+<div class="signal-bar" id="signalBar">
+  <!-- Generated by JS -->
+</div>
+
+<!-- SAFETY ROW -->
+<div class="safety-row">
+  <button class="safety-btn btn-blackout">Blackout</button>
+  <button class="safety-btn btn-safe">Safe Look</button>
+  <button class="safety-btn btn-panic">PANIC</button>
+  <button class="safety-btn btn-kill">Kill Effects</button>
+  <button class="safety-btn btn-resync">Hard Resync</button>
+  <div class="safety-spacer"></div>
+  <button class="safety-btn btn-audio-in">Audio Input</button>
+  <button class="safety-btn btn-led">LED Wall</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- LEFT: SCENE FLOW -->
+  <div class="scene-flow">
+    <div class="panel-header">Scene Flow</div>
+    <div class="scene-list">
+      <div class="scene-item">
+        <div class="scene-name">Intro</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-now">NOW</span>
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-name">Verse</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-next">NEXT</span>
+          <span class="scene-badge badge-fade">Fade</span>
+        </div>
+      </div>
+      <div class="scene-item live">
+        <div class="scene-name">Chorus</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-live">LIVE</span>
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-name">Drop</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-name">Bridge</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-name">Outro</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-add">+ Add Scene</div>
+    </div>
+  </div>
+
+  <!-- CENTER AREA -->
+  <div class="center-area">
+
+    <!-- PREVIEW SECTION -->
+    <div class="preview-section">
+      <div class="preview-box cue">
+        <div class="preview-label">CUE</div>
+        <canvas class="preview-canvas" id="cueCanvas"></canvas>
+      </div>
+      <div class="take-btn-area">
+        <div class="take-arrow">&#9654;</div>
+        <button class="take-btn">TAKE<br>TO LIVE</button>
+        <div class="take-arrow">&#9654;</div>
+      </div>
+      <div class="preview-box live">
+        <div class="preview-label">LIVE</div>
+        <canvas class="preview-canvas" id="liveCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- DECK TABS -->
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck 1</div>
+      <div class="deck-tab">Deck 2</div>
+      <div class="deck-tab">Deck 3</div>
+      <div class="deck-tab add">+</div>
+    </div>
+
+    <!-- LAYER TABS -->
+    <div class="layer-tabs">
+      <div class="layer-tab active">Layer 1</div>
+      <div class="layer-tab">Layer 2</div>
+      <div class="layer-tab">Layer 3</div>
+      <div class="layer-tab">Layer 4</div>
+      <div class="layer-tab">Layer 5</div>
+      <div class="layer-tab">Layer 6</div>
+      <div class="layer-tab">Layer 7</div>
+      <div class="layer-tab">Layer 8</div>
+    </div>
+
+    <!-- LAYER STRIPS -->
+    <div class="layer-strips" id="layerStrips">
+      <!-- Generated by JS -->
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL: INSPECTOR + BROWSER -->
+  <div class="right-panel">
+
+    <!-- INSPECTOR -->
+    <div class="inspector">
+      <div class="inspector-tabs">
+        <div class="inspector-tab active">Clip</div>
+        <div class="inspector-tab">Layer</div>
+        <div class="inspector-tab">Composition</div>
+        <div class="inspector-tab">Signal</div>
+      </div>
+      <div class="inspector-content" id="inspectorContent">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+
+    <!-- BROWSER -->
+    <div class="browser">
+      <div class="browser-tabs">
+        <div class="browser-tab active">Files</div>
+        <div class="browser-tab">Effects</div>
+        <div class="browser-tab">Sources</div>
+      </div>
+      <div class="browser-content" id="browserContent">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-stat">
+    <span class="stat-label">FPS</span>
+    <span class="stat-value stat-good">60</span>
+  </div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">
+    <span class="stat-label">DSP</span>
+    <span class="stat-value stat-good">1.2ms</span>
+  </div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">
+    <span class="stat-label">GPU</span>
+    <span class="stat-value stat-good">4.1ms</span>
+  </div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">
+    <span class="stat-label">VRAM</span>
+    <span class="stat-value">312MB</span>
+  </div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">
+    <span class="recording-dot"></span>
+    <span class="stat-value stat-recording">Recording</span>
+    <span class="stat-value">00:04:22</span>
+  </div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">
+    <span class="stat-label">Output</span>
+    <span class="stat-value">1920x1080</span>
+  </div>
+  <div class="footer-spacer"></div>
+  <div class="footer-stat">
+    <span class="stat-label">Session</span>
+    <span class="stat-value">Untitled</span>
+    <span class="stat-value">00:42:18</span>
+  </div>
+  <div class="footer-sep"></div>
+  <button class="footer-btn">Save</button>
+  <button class="footer-btn">Load</button>
+</div>
+
+<script>
+// ===== SIGNAL BAR =====
+function buildSignalBar() {
+  const container = document.getElementById('signalBar');
+  const signals = [
+    { name: 'RMS', value: 0.72, color: '#4ae0a0' },
+    { name: 'Peak', value: 0.88, color: '#4ae0a0' },
+    { name: 'Bass', value: 0.85, color: '#ff6644' },
+    { name: 'Low Mid', value: 0.55, color: '#e0a040' },
+    { name: 'Mid', value: 0.42, color: '#e0e040' },
+    { name: 'High Mid', value: 0.35, color: '#80e040' },
+    { name: 'Presence', value: 0.28, color: '#40e0a0' },
+    { name: 'Brilliance', value: 0.15, color: '#40a0e0' },
+    { name: 'Beat', value: 0.75, color: '#fff' },
+    { name: 'Onset', value: 0.60, color: '#ff8844' },
+    { name: 'Centroid', value: 0.38, color: '#c080e0' },
+    { name: 'BPM', value: 0.53, color: '#40c0e0' },
+  ];
+  signals.forEach((s, i) => {
+    if (i === 8) {
+      const sep = document.createElement('div');
+      sep.className = 'signal-sep';
+      container.appendChild(sep);
+    }
+    const meter = document.createElement('div');
+    meter.className = 'signal-meter';
+    meter.innerHTML = `
+      <div class="signal-meter-label">${s.name}</div>
+      <div class="signal-meter-bar">
+        <div class="signal-meter-fill" style="height:${s.value * 100}%; background:${s.color};"></div>
+      </div>
+      <div class="signal-meter-value">${(s.value * 100).toFixed(0)}</div>
+    `;
+    container.appendChild(meter);
+  });
+
+  // Spectrum mini display
+  const sep2 = document.createElement('div');
+  sep2.className = 'signal-sep';
+  container.appendChild(sep2);
+  const specMini = document.createElement('canvas');
+  specMini.width = 200; specMini.height = 32;
+  specMini.style.cssText = 'width:200px; height:32px; border-radius:2px;';
+  container.appendChild(specMini);
+  drawMiniSpectrum(specMini);
+}
+
+function drawMiniSpectrum(canvas) {
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, 200, 32);
+  const heights = [18,22,28,24,16,20,26,22,12,18,24,20,10,16,22,18,8,14,20,16,6,10,14,10,4,8,12,8,4,6,4];
+  const colors = ['#ff6644','#ff6644','#e0a040','#e0a040','#e0e040','#80e040','#40e0a0','#40a0e0','#4080e0'];
+  heights.forEach((h, i) => {
+    const ci = Math.floor(i / heights.length * colors.length);
+    ctx.fillStyle = colors[ci] || '#40a0e0';
+    ctx.globalAlpha = 0.8;
+    ctx.fillRect(i * 6.4 + 1, 32 - h, 5, h);
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ===== LAYER STRIP DATA =====
+const layers = [
+  { name: 'Video Clip Gen-Pulse A', engine: 'GPU', type: 'Opaque', on: true, fx: true, strobe: false, lock: false, folded: false, opacity: 100, speed: 1.0, active: true },
+  { name: 'Loop Kaleidoscope B', engine: 'GPU', type: 'Transparent', on: true, fx: true, strobe: false, lock: false, folded: false, opacity: 85, speed: 0.75, active: false },
+  { name: 'Camera Feed 1', engine: 'CAM', type: 'Opaque', on: true, fx: false, strobe: false, lock: true, folded: false, opacity: 60, speed: 1.0, active: false },
+  { name: 'Fractal Mandelbulb C', engine: 'SRC', type: 'Transparent', on: true, fx: true, strobe: true, lock: false, folded: false, opacity: 45, speed: 1.25, active: false },
+  { name: 'Text Overlay Title', engine: 'TXT', type: 'FX Only', on: false, fx: false, strobe: false, lock: false, folded: true, opacity: 100, speed: 1.0, active: false },
+  { name: 'Strobe Flash White', engine: 'GEN', type: 'Transparent', on: true, fx: true, strobe: true, lock: false, folded: true, opacity: 100, speed: 2.0, active: false },
+  { name: 'Gradient Wash D', engine: 'SRC', type: 'Mask', on: false, fx: false, strobe: false, lock: false, folded: true, opacity: 30, speed: 0.5, active: false },
+  { name: 'Video Clip Dropzone', engine: 'GPU', type: 'Opaque', on: true, fx: true, strobe: false, lock: false, folded: false, opacity: 75, speed: 1.0, active: false },
+];
+
+const typeClasses = { 'Opaque': 'type-opaque', 'Transparent': 'type-transparent', 'FX Only': 'type-fxonly', 'Mask': 'type-mask' };
+
+function drawRotaryKnob(canvas, value, max, color) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 4;
+  ctx.clearRect(0, 0, w, h);
+  const startAngle = 0.75 * Math.PI;
+  const endAngle = 2.25 * Math.PI;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, false);
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  const pct = value / max;
+  const valAngle = startAngle + pct * (endAngle - startAngle);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, valAngle, false);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  const px = cx + (r - 5) * Math.cos(valAngle);
+  const py = cy + (r - 5) * Math.sin(valAngle);
+  ctx.beginPath();
+  ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 8, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fill();
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function buildLayerStrips() {
+  const container = document.getElementById('layerStrips');
+  layers.forEach((l, i) => {
+    const card = document.createElement('div');
+    card.className = 'layer-card' + (l.active ? ' active' : '') + (l.folded ? ' folded' : '');
+    if (l.folded) {
+      card.innerHTML = `
+        <button class="fold-btn">&#9654;</button>
+        <div class="layer-on-toggle ${l.on ? 'on' : 'off'}"></div>
+        <span class="type-badge ${typeClasses[l.type]}">${l.type}</span>
+        <span style="font-size:10px; color:#888; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${l.name}</span>
+        <span style="font-size:9px; color:#666;">${l.opacity}%</span>
+      `;
+    } else {
+      card.innerHTML = `
+        <button class="fold-btn">&#9660;</button>
+        <div class="layer-on-toggle ${l.on ? 'on' : 'off'}"></div>
+        <div class="layer-info">
+          <div class="layer-clip-name">${l.name}</div>
+          <div class="layer-meta">
+            <span class="type-badge ${typeClasses[l.type]}">${l.type}</span>
+            <span class="engine-badge">${l.engine}</span>
+            ${l.fx ? '<button class="layer-btn active">Effects</button>' : '<button class="layer-btn">Effects</button>'}
+            ${l.strobe ? '<button class="layer-btn strobe">Strobe</button>' : ''}
+            ${l.lock ? '<button class="layer-btn lock">Locked</button>' : ''}
+          </div>
+        </div>
+        <div class="layer-knobs">
+          <div class="rotary-knob">
+            <div class="signal-triangle ${i === 0 ? 'active' : 'inactive'}"></div>
+            <canvas id="knobOpacity${i}" width="88" height="88"></canvas>
+            <div class="knob-label">Opacity</div>
+            <div class="knob-value">${l.opacity}%</div>
+          </div>
+          <div class="rotary-knob">
+            <div class="signal-triangle inactive"></div>
+            <canvas id="knobSpeed${i}" width="88" height="88"></canvas>
+            <div class="knob-label">Speed</div>
+            <div class="knob-value">${l.speed.toFixed(2)}x</div>
+          </div>
+        </div>
+      `;
+    }
+    container.appendChild(card);
+  });
+  layers.forEach((l, i) => {
+    if (l.folded) return;
+    const opC = document.getElementById(`knobOpacity${i}`);
+    const spC = document.getElementById(`knobSpeed${i}`);
+    if (opC) drawRotaryKnob(opC, l.opacity, 100, '#4ae0a0');
+    if (spC) drawRotaryKnob(spC, l.speed, 3.0, '#40a0e0');
+  });
+}
+
+// ===== INSPECTOR =====
+function buildInspector() {
+  const container = document.getElementById('inspectorContent');
+
+  // Dashboard knobs
+  let html = '<div class="insp-section"><div class="insp-section-header"><span class="collapse-icon">&#9660;</span> Dashboard</div>';
+  html += '<div class="dashboard-knobs">';
+  const dashNames = ['Link 1', 'Link 2', 'Link 3', 'Link 4', 'Link 5', 'Link 6', 'Link 7', 'Link 8'];
+  dashNames.forEach((n, i) => {
+    html += `<div class="dash-knob"><canvas id="dashKnob${i}" width="72" height="72"></canvas><div class="dash-knob-label">${n}</div></div>`;
+  });
+  html += '</div></div>';
+
+  // Transport
+  html += '<div class="insp-section"><div class="insp-section-header"><span class="collapse-icon">&#9660;</span> Transport</div>';
+  html += '<div class="cuepoints-row">';
+  for (let i = 1; i <= 8; i++) {
+    html += `<div class="cuepoint-btn ${i <= 3 ? 'set' : ''}">${i}</div>`;
+  }
+  html += '</div>';
+  html += buildSlider('In Point', 0.0, '#40a0e0', true);
+  html += buildSlider('Out Point', 1.0, '#40a0e0', true);
+  html += buildSlider('Speed', 0.5, '#40a0e0', true);
+  html += '</div>';
+
+  // Autopilot
+  html += '<div class="insp-section"><div class="insp-section-header"><span class="collapse-icon">&#9660;</span> Autopilot</div>';
+  html += '<div class="autopilot-row"><div class="autopilot-toggle on"></div><span style="font-size:10px; color:#4ae0a0;">Enabled</span></div>';
+  html += buildSlider('Duration', 0.5, '#c080e0', false);
+  html += '<div class="insp-row"><span class="insp-label">Action</span><select class="insp-select"><option>Play Random</option><option>Play Next</option></select></div>';
+  html += '</div>';
+
+  // Effect Stack
+  html += '<div class="insp-section"><div class="insp-section-header"><span class="collapse-icon">&#9660;</span> Effect Stack</div>';
+  const fxList = [
+    { name: 'Ripple', bypassed: false },
+    { name: 'Hue Shift', bypassed: false },
+    { name: 'Echo', bypassed: true },
+  ];
+  fxList.forEach(fx => {
+    html += `<div class="fx-stack-item">
+      <button class="fx-bypass-btn ${fx.bypassed ? 'bypassed' : ''}">B</button>
+      <span class="fx-stack-name">${fx.name}</span>
+      <div class="insp-signal-tri active"></div>
+      <span class="fx-delete-btn">X</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Keying
+  html += '<div class="insp-section"><div class="insp-section-header"><span class="collapse-icon">&#9660;</span> Keying</div>';
+  html += '<div class="insp-row"><span class="insp-label">Alpha Type</span><select class="insp-select"><option>Luma is Alpha</option><option>Additive</option><option>None</option></select></div>';
+  html += '</div>';
+
+  // Feedback
+  html += '<div class="insp-section"><div class="insp-section-header"><span class="collapse-icon">&#9660;</span> Feedback</div>';
+  html += '<div class="feedback-row">';
+  ['Zoom In','Spiral','Drift','Kaleidoscope','Echo','Stretch'].forEach((p, i) => {
+    html += `<button class="feedback-preset-btn ${i === 0 ? 'active' : ''}">${p}</button>`;
+  });
+  html += '</div>';
+  html += buildSlider('Amount', 0.3, '#c080e0', true);
+  html += buildSlider('Decay', 0.7, '#c080e0', true);
+  html += '</div>';
+
+  // Transform
+  html += '<div class="insp-section"><div class="insp-section-header"><span class="collapse-icon">&#9660;</span> Transform</div>';
+  html += '<div class="transform-grid">';
+  html += buildSlider('Position X', 0.5, '#40a0e0', true);
+  html += buildSlider('Position Y', 0.5, '#40a0e0', true);
+  html += buildSlider('Scale', 0.5, '#40a0e0', true);
+  html += buildSlider('Rotation', 0.0, '#40a0e0', true);
+  html += '</div></div>';
+
+  container.innerHTML = html;
+
+  // Draw dashboard knobs
+  const dashValues = [0.6, 0.3, 0.8, 0.1, 0.5, 0.9, 0.4, 0.7];
+  const dashColors = ['#4ae0a0','#40a0e0','#c080e0','#e0c040','#4ae0a0','#40a0e0','#c080e0','#e0c040'];
+  dashValues.forEach((v, i) => {
+    const c = document.getElementById(`dashKnob${i}`);
+    if (c) drawRotaryKnob(c, v, 1.0, dashColors[i]);
+  });
+}
+
+function buildSlider(label, value, color, hasSignal) {
+  const pct = (value * 100).toFixed(0);
+  return `<div class="insp-row">
+    ${hasSignal ? '<div class="insp-signal-tri"></div>' : ''}
+    <span class="insp-label">${label}</span>
+    <div class="insp-slider-track"><div class="insp-slider-fill" style="width:${pct}%; background:${color};"></div></div>
+    <span class="insp-value">${value.toFixed(2)}</span>
+  </div>`;
+}
+
+// ===== BROWSER =====
+function buildBrowser() {
+  const container = document.getElementById('browserContent');
+  let html = '<input class="browser-search" placeholder="Search effects..." value="">';
+
+  html += '<div class="browser-category">Warp (27)</div>';
+  ['Ripple','Bulge','Wave','Liquid','Kaleidoscope','Fisheye','Swirl'].forEach(name => {
+    html += `<div class="browser-item"><div class="browser-item-icon">W</div>${name}</div>`;
+  });
+
+  html += '<div class="browser-category">Color (31)</div>';
+  ['Hue Shift','Saturation','Brightness','Duotone','Chromatic Aberration'].forEach(name => {
+    html += `<div class="browser-item"><div class="browser-item-icon">C</div>${name}</div>`;
+  });
+
+  html += '<div class="browser-category">Glitch (16)</div>';
+  ['Pixel Scatter','RGB Split','Block Glitch','Scanlines'].forEach(name => {
+    html += `<div class="browser-item"><div class="browser-item-icon">G</div>${name}</div>`;
+  });
+
+  html += '<div class="browser-category">Time (6)</div>';
+  ['Echo','Freeze','Frame Stutter','Posterize Time'].forEach(name => {
+    html += `<div class="browser-item"><div class="browser-item-icon">T</div>${name}</div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ===== PREVIEW CANVASES =====
+function drawCuePreview() {
+  const canvas = document.getElementById('cueCanvas');
+  canvas.width = 380; canvas.height = 214;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(190, 107, 20, 190, 107, 180);
+  grad.addColorStop(0, '#1a3a5a');
+  grad.addColorStop(0.4, '#0a1a2a');
+  grad.addColorStop(1, '#000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 380, 214);
+  ctx.strokeStyle = '#2060a0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.arc(190, 107, 25 + i * 22, 0, Math.PI * 2);
+    ctx.globalAlpha = 0.3 - i * 0.04;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = '#1a3050';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < 380; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 214); ctx.stroke(); }
+  for (let y = 0; y < 214; y += 30) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(380, y); ctx.stroke(); }
+}
+
+function drawLivePreview() {
+  const canvas = document.getElementById('liveCanvas');
+  canvas.width = 380; canvas.height = 214;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(190, 107, 10, 190, 107, 180);
+  grad.addColorStop(0, '#4ae0a0');
+  grad.addColorStop(0.3, '#1a5040');
+  grad.addColorStop(0.6, '#0a2a1a');
+  grad.addColorStop(1, '#000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 380, 214);
+  ctx.strokeStyle = '#4ae0a0';
+  ctx.lineWidth = 1;
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
+    ctx.globalAlpha = 0.2 + Math.random() * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(190, 107);
+    ctx.lineTo(190 + Math.cos(a) * 180, 107 + Math.sin(a) * 180);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  for (let i = 4; i >= 0; i--) {
+    ctx.beginPath();
+    ctx.arc(190, 107, 10 + i * 14, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(74, 224, 160, ${0.1 + (4 - i) * 0.05})`;
+    ctx.fill();
+  }
+  for (let i = 0; i < 25; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 120;
+    ctx.beginPath();
+    ctx.arc(190 + Math.cos(angle) * dist, 107 + Math.sin(angle) * dist, 1 + Math.random() * 2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(74, 224, 160, ${0.3 + Math.random() * 0.5})`;
+    ctx.fill();
+  }
+}
+
+// ===== INIT =====
+buildSignalBar();
+buildLayerStrips();
+buildInspector();
+buildBrowser();
+drawCuePreview();
+drawLivePreview();
+</script>
+</body>
+</html>

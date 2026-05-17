@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 10 — Improved Colorful Layer Strips</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #0a0a0e; color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+  font-size: 12px;
+}
+
+/* ── MENU BAR (24px) ── */
+.menu-bar {
+  height: 24px; background: #0c0c12;
+  display: flex; align-items: center; padding: 0 8px;
+  border-bottom: 1px solid #1e1e28;
+  gap: 0;
+}
+.menu-item {
+  padding: 3px 12px; font-size: 11px; color: #b0b0b8;
+  cursor: pointer; position: relative;
+}
+.menu-item:first-child { font-weight: 700; color: #fff; }
+.menu-item:hover { background: #2a2a38; color: #fff; }
+
+/* ── SIGNAL BAR (40px) ── */
+.signal-bar {
+  height: 40px; background: #0e0e14;
+  display: flex; align-items: center; padding: 0 10px;
+  border-bottom: 1px solid #1e1e28; gap: 6px;
+}
+.signal-label {
+  font-size: 8px; color: #555; text-transform: uppercase; font-weight: 700;
+  letter-spacing: 1px; margin-right: 4px; flex-shrink: 0;
+}
+.signal-meter {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  flex-shrink: 0; width: 44px;
+}
+.signal-meter-name { font-size: 7px; color: #666; text-transform: uppercase; font-weight: 600; }
+.signal-meter-bar-wrap {
+  width: 36px; height: 16px; background: #111118; border: 1px solid #252530;
+  border-radius: 2px; position: relative; overflow: hidden;
+}
+.signal-meter-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  border-radius: 1px;
+}
+.signal-meter-val { font-size: 7px; color: #888; font-family: monospace; }
+
+/* ── TOP BAR ── */
+.top-bar {
+  height: 44px; background: #111118;
+  display: flex; align-items: center; padding: 0 12px;
+  border-bottom: 1px solid #252530;
+  gap: 10px;
+}
+.logo {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 700; color: #fff;
+  letter-spacing: 1px; flex-shrink: 0;
+}
+.logo .dna-icon {
+  width: 24px; height: 24px; border-radius: 5px;
+  background: linear-gradient(135deg, #00ccff, #7c3aed, #ff2266);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 900; color: #fff;
+}
+.bpm-block {
+  display: flex; align-items: center; gap: 6px;
+  background: #1a1a24; border: 1px solid #333340; border-radius: 4px;
+  padding: 3px 10px;
+}
+.bpm-value {
+  font-size: 22px; font-weight: 700; color: #00ff88;
+  font-family: 'Courier New', monospace; letter-spacing: 1px;
+}
+.bpm-label { font-size: 8px; color: #888; text-transform: uppercase; }
+.btn-small {
+  padding: 3px 8px; border-radius: 3px; border: 1px solid #444;
+  background: #222230; color: #ccc; font-size: 9px; cursor: pointer;
+  font-weight: 600; text-transform: uppercase; flex-shrink: 0;
+}
+.btn-small.tap { background: #2a1a3a; border-color: #7c3aed; color: #b388ff; }
+.btn-small.resync { background: #1a2a2a; border-color: #00aa66; color: #00ff88; }
+.beat-dots {
+  display: flex; gap: 4px; align-items: center;
+}
+.beat-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #333; border: 1px solid #555;
+}
+.beat-dot.active { background: #00ff88; border-color: #00ff88; box-shadow: 0 0 6px #00ff88; }
+.beat-dot.bar { background: #005533; border-color: #00aa66; }
+.top-sep {
+  width: 1px; height: 24px; background: #333340; flex-shrink: 0;
+}
+.quantize-block {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.quantize-label { font-size: 8px; color: #777; text-transform: uppercase; font-weight: 600; }
+.quantize-select {
+  background: #1a1a24; border: 1px solid #333; border-radius: 3px;
+  color: #ccc; font-size: 10px; padding: 2px 6px; font-family: inherit;
+}
+.fade-block {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.fade-label { font-size: 8px; color: #777; text-transform: uppercase; font-weight: 600; }
+.fade-value {
+  background: #1a1a24; border: 1px solid #333; border-radius: 3px;
+  color: #ffaa00; font-size: 10px; padding: 2px 6px; font-family: monospace;
+  min-width: 36px; text-align: center;
+}
+
+.top-spacer { flex: 1; }
+.master-slider-wrap {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.master-label { font-size: 8px; color: #777; text-transform: uppercase; font-weight: 600; }
+.master-track {
+  width: 80px; height: 6px; background: #1a1a24; border-radius: 3px;
+  border: 1px solid #333; position: relative;
+}
+.master-fill {
+  height: 100%; width: 85%; background: linear-gradient(90deg, #00cc44, #00ff66);
+  border-radius: 2px;
+}
+.master-val { font-size: 9px; color: #ccc; font-family: monospace; }
+
+/* ── DECK TABS ── */
+.deck-tabs {
+  height: 26px; background: #0e0e14; display: flex; align-items: center;
+  padding: 0 10px; border-bottom: 1px solid #1e1e28; gap: 2px;
+}
+.deck-tab {
+  padding: 4px 18px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; color: #888; cursor: pointer;
+  border: 1px solid transparent; border-bottom: none;
+  border-radius: 3px 3px 0 0; letter-spacing: 0.5px;
+}
+.deck-tab.active {
+  background: #1a1a24; color: #00ccff; border-color: #333;
+  border-bottom: 2px solid #00ccff;
+}
+.deck-tab:hover:not(.active) { color: #ccc; background: #161620; }
+.deck-tab.add { color: #555; font-size: 14px; padding: 4px 10px; }
+
+/* ── MAIN AREA ── */
+.main-area {
+  display: flex;
+  height: calc(1080px - 24px - 40px - 44px - 26px - 28px);
+}
+
+/* ── LEFT: LAYER STRIPS ── */
+.layer-strips-panel {
+  flex: 1; overflow-y: auto; padding: 3px 4px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.layer-strip {
+  background: #111118; border: 1px solid #222230; border-radius: 3px;
+  display: flex; align-items: center; padding: 4px 6px; gap: 6px;
+  min-height: 100px;
+}
+.layer-strip:nth-child(odd) { background: #121219; }
+
+/* Layer left: name + PSM + type badge */
+.layer-left {
+  width: 90px; display: flex; flex-direction: column; gap: 3px;
+  align-items: center; flex-shrink: 0;
+}
+.layer-name {
+  font-size: 11px; font-weight: 700; color: #fff;
+  text-align: center; width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.layer-type-badge {
+  font-size: 7px; font-weight: 700; text-transform: uppercase;
+  padding: 1px 6px; border-radius: 2px; letter-spacing: 0.5px;
+}
+.badge-opaque { background: #1a2a1a; color: #66cc66; border: 1px solid #338833; }
+.badge-transparent { background: #2a2a1a; color: #cccc66; border: 1px solid #888833; }
+.badge-fx { background: #2a1a2a; color: #cc66cc; border: 1px solid #883388; }
+.psm-buttons { display: flex; gap: 2px; }
+.psm-btn {
+  width: 24px; height: 20px; border-radius: 2px; border: none;
+  font-size: 9px; font-weight: 800; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.psm-btn.play { background: #0d3d1a; color: #00ff66; border: 1px solid #00aa44; }
+.psm-btn.play.active { background: #00cc44; color: #000; }
+.psm-btn.solo { background: #3d3d0d; color: #ffdd00; border: 1px solid #aa8800; }
+.psm-btn.mute { background: #3d0d0d; color: #ff4444; border: 1px solid #aa2222; }
+.layer-tools {
+  display: flex; gap: 2px; margin-top: 1px;
+}
+.layer-tool-btn {
+  width: 18px; height: 16px; border-radius: 2px; border: 1px solid #333;
+  background: #1a1a24; color: #888; font-size: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.layer-tool-btn.locked { color: #ffaa00; border-color: #aa7700; }
+
+/* Layer info section */
+.layer-info {
+  width: 160px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.info-row {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 9px; color: #888;
+}
+.info-row .label { color: #555; width: 65px; text-align: right; font-size: 8px; }
+.info-row .value {
+  color: #ccc; background: #1a1a24; padding: 1px 5px;
+  border-radius: 2px; flex: 1; font-size: 9px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Knobs section with signal triangles */
+.knobs-section {
+  display: flex; gap: 10px; flex-shrink: 0;
+  padding: 0 6px;
+}
+.knob-wrapper {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  position: relative;
+}
+.knob-label { font-size: 8px; color: #888; text-transform: uppercase; font-weight: 600; }
+.knob-value { font-size: 8px; color: #ccc; font-family: monospace; }
+.knob-svg { width: 46px; height: 46px; }
+.signal-triangle {
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid #00ccff;
+  position: absolute; top: -2px; right: -2px;
+  cursor: pointer;
+}
+.signal-triangle.mapped { border-bottom-color: #00ff88; }
+.signal-triangle.unmapped { border-bottom-color: #444; }
+
+/* Opacity slider */
+.opacity-section {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  flex-shrink: 0; margin: 0 4px;
+}
+.opacity-label { font-size: 8px; color: #888; text-transform: uppercase; }
+.opacity-track {
+  width: 8px; height: 60px; background: #1a1a24; border-radius: 3px;
+  border: 1px solid #333; position: relative;
+}
+.opacity-fill {
+  position: absolute; bottom: 0; width: 100%; border-radius: 0 0 2px 2px;
+  background: linear-gradient(to top, #00ccff, #0088cc);
+}
+.opacity-thumb {
+  position: absolute; width: 12px; height: 5px; background: #fff;
+  border-radius: 2px; left: -2px;
+}
+
+/* Clip cells (mini thumbnails) */
+.clip-cells {
+  display: flex; gap: 3px; flex-shrink: 0; padding: 0 4px;
+}
+.clip-cell {
+  width: 52px; height: 38px; background: #0a0a14; border: 1px solid #2a2a35;
+  border-radius: 3px; position: relative; overflow: hidden; cursor: pointer;
+}
+.clip-cell.active { border-color: #00ccff; box-shadow: 0 0 4px rgba(0,204,255,0.3); }
+.clip-cell-label {
+  position: absolute; bottom: 1px; left: 0; right: 0;
+  font-size: 6px; color: #888; text-align: center;
+  background: rgba(0,0,0,0.7); padding: 1px 0;
+}
+
+/* Expand/fold toggle */
+.expand-toggle {
+  width: 18px; height: 18px; border-radius: 2px;
+  background: #1a1a24; border: 1px solid #333; color: #888;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer; flex-shrink: 0;
+}
+
+/* ── RIGHT: INSPECTOR + BROWSER ── */
+.right-panel {
+  width: 280px; background: #0e0e14; border-left: 1px solid #222230;
+  display: flex; flex-direction: column;
+}
+
+/* Inspector tabs */
+.inspector-tabs {
+  display: flex; height: 26px; border-bottom: 1px solid #222230;
+}
+.insp-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #666; cursor: pointer;
+  text-transform: uppercase; border-bottom: 2px solid transparent;
+  letter-spacing: 0.5px;
+}
+.insp-tab.active { color: #00ccff; border-bottom-color: #00ccff; background: #111118; }
+.insp-tab:hover:not(.active) { color: #aaa; }
+
+/* Inspector content */
+.inspector-body {
+  flex: 1; overflow-y: auto; padding: 6px;
+}
+.insp-section {
+  margin-bottom: 8px;
+}
+.insp-section-header {
+  font-size: 9px; font-weight: 700; color: #7c3aed;
+  text-transform: uppercase; letter-spacing: 1px;
+  padding: 3px 0; border-bottom: 1px solid #222230;
+  margin-bottom: 4px; display: flex; align-items: center; gap: 6px;
+}
+.insp-section-header .collapse { color: #555; cursor: pointer; font-size: 8px; }
+
+/* Dashboard knobs (2x4 grid) */
+.dashboard-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 4px; margin-bottom: 6px;
+}
+.dash-knob {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.dash-knob-label { font-size: 7px; color: #777; text-transform: uppercase; }
+.dash-knob-svg { width: 36px; height: 36px; }
+.dash-knob-val { font-size: 7px; color: #aaa; font-family: monospace; }
+
+/* Cuepoints */
+.cuepoint-row {
+  display: flex; gap: 3px; margin-bottom: 4px;
+}
+.cue-btn {
+  flex: 1; height: 18px; border-radius: 2px; border: 1px solid #333;
+  background: #1a1a24; color: #888; font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cue-btn.set { background: #1a2a1a; border-color: #338833; color: #66ff66; }
+
+/* Autopilot */
+.autopilot-row {
+  display: flex; align-items: center; gap: 4px; margin-bottom: 4px;
+}
+.autopilot-toggle {
+  width: 28px; height: 14px; border-radius: 7px; background: #333;
+  position: relative; cursor: pointer;
+}
+.autopilot-toggle.on { background: #00aa44; }
+.autopilot-toggle .dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #fff;
+  position: absolute; top: 2px; left: 2px; transition: 0.2s;
+}
+.autopilot-toggle.on .dot { left: 16px; }
+.autopilot-label { font-size: 9px; color: #ccc; }
+.autopilot-beats {
+  margin-left: auto; font-size: 9px; color: #ffaa00;
+  background: #1a1a24; padding: 1px 6px; border-radius: 2px; border: 1px solid #333;
+}
+
+/* Effects stack */
+.fx-stack { margin-bottom: 4px; }
+.fx-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 4px; background: #141420; border: 1px solid #222230;
+  border-radius: 2px; margin-bottom: 2px;
+}
+.fx-bypass {
+  width: 14px; height: 14px; border-radius: 2px; border: 1px solid #555;
+  background: #1a1a24; color: #888; font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.fx-bypass.active { background: #00aa44; color: #fff; border-color: #00cc44; }
+.fx-name { flex: 1; font-size: 9px; color: #ccc; }
+.fx-signal-tri {
+  width: 0; height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 4px solid #00ccff;
+  cursor: pointer;
+}
+.fx-remove {
+  font-size: 9px; color: #ff4444; cursor: pointer; font-weight: 700;
+}
+
+/* Keying section */
+.keying-row {
+  display: flex; align-items: center; gap: 4px; margin-bottom: 3px;
+}
+.keying-label { font-size: 9px; color: #888; width: 70px; }
+.keying-select {
+  flex: 1; background: #1a1a24; border: 1px solid #333; border-radius: 2px;
+  color: #ccc; font-size: 9px; padding: 2px 4px; font-family: inherit;
+}
+
+/* Transform sliders */
+.transform-row {
+  display: flex; align-items: center; gap: 4px; margin-bottom: 3px;
+}
+.transform-label { font-size: 8px; color: #888; width: 55px; text-align: right; }
+.transform-track {
+  flex: 1; height: 4px; background: #1a1a24; border-radius: 2px;
+  border: 1px solid #252530; position: relative;
+}
+.transform-fill {
+  height: 100%; border-radius: 1px;
+}
+.transform-val { font-size: 8px; color: #aaa; font-family: monospace; width: 30px; text-align: right; }
+.transform-signal {
+  width: 0; height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 4px solid #444;
+}
+
+/* Feedback section */
+.feedback-row {
+  display: flex; align-items: center; gap: 4px; margin-bottom: 3px;
+}
+.feedback-preset {
+  flex: 1; background: #1a1a24; border: 1px solid #333; border-radius: 2px;
+  color: #ccc; font-size: 9px; padding: 2px 4px; font-family: inherit;
+}
+
+/* ── BROWSER (below inspector) ── */
+.browser-section {
+  border-top: 1px solid #222230;
+  display: flex; flex-direction: column;
+  height: 240px;
+}
+.browser-tabs {
+  display: flex; height: 22px; border-bottom: 1px solid #222230;
+}
+.browser-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #666; cursor: pointer;
+  text-transform: uppercase; border-bottom: 2px solid transparent;
+}
+.browser-tab.active { color: #ff8833; border-bottom-color: #ff8833; background: #111118; }
+.browser-tab:hover:not(.active) { color: #aaa; }
+.browser-body {
+  flex: 1; overflow-y: auto; padding: 4px 6px;
+}
+.browser-cat {
+  font-size: 8px; font-weight: 700; color: #ff8833;
+  text-transform: uppercase; margin: 4px 0 2px; letter-spacing: 1px;
+}
+.browser-item {
+  padding: 3px 6px; font-size: 9px; color: #ccc;
+  background: #141420; border: 1px solid #1e1e28;
+  border-radius: 2px; margin-bottom: 2px; cursor: pointer;
+}
+.browser-item:hover { border-color: #444; background: #1a1a28; }
+
+/* Bottom panel controls */
+.bottom-controls {
+  padding: 4px 6px; border-top: 1px solid #222230;
+  display: flex; gap: 4px;
+}
+.blackout-btn {
+  flex: 1; padding: 6px; border-radius: 3px;
+  background: #1a0a0a; border: 2px solid #ff2222;
+  color: #ff4444; font-size: 11px; font-weight: 800;
+  text-transform: uppercase; cursor: pointer; text-align: center;
+  letter-spacing: 1px;
+}
+.master-btn {
+  flex: 1; padding: 6px; border-radius: 3px;
+  background: #0a2a0a; border: 2px solid #00cc44;
+  color: #00ff66; font-size: 11px; font-weight: 800;
+  text-transform: uppercase; cursor: pointer; text-align: center;
+  letter-spacing: 1px;
+}
+
+/* ── FOOTER (28px) ── */
+.footer {
+  height: 28px; background: #0c0c12; border-top: 1px solid #252530;
+  display: flex; align-items: center; padding: 0 10px; gap: 12px;
+}
+.footer-stat {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; color: #888;
+}
+.footer-stat .val { color: #00ff88; font-family: monospace; font-weight: 600; }
+.footer-stat .val.warn { color: #ffaa00; }
+.footer-stat .val.bad { color: #ff4444; }
+.footer-sep { width: 1px; height: 16px; background: #252530; }
+.footer-spacer { flex: 1; }
+.rec-indicator {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; color: #ff4444; font-weight: 700; text-transform: uppercase;
+}
+.rec-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #ff4444;
+  animation: recBlink 1s infinite;
+}
+@keyframes recBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.footer-btn {
+  padding: 2px 10px; border-radius: 2px; border: 1px solid #333;
+  background: #1a1a24; color: #999; font-size: 9px;
+  font-weight: 600; text-transform: uppercase; cursor: pointer;
+}
+.footer-btn:hover { color: #fff; border-color: #555; }
+.syphon-badge {
+  font-size: 8px; color: #7c3aed; border: 1px solid #5522aa;
+  padding: 1px 6px; border-radius: 2px; background: #1a1028;
+  font-weight: 600;
+}
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div class="menu-bar">
+  <div class="menu-item">Audio-DNA</div>
+  <div class="menu-item">Composition</div>
+  <div class="menu-item">Deck</div>
+  <div class="menu-item">Layer</div>
+  <div class="menu-item">Column</div>
+  <div class="menu-item">Clip</div>
+  <div class="menu-item">Output</div>
+  <div class="menu-item">Shortcuts</div>
+  <div class="menu-item">View</div>
+</div>
+
+<!-- SIGNAL BAR -->
+<div class="signal-bar">
+  <div class="signal-label">Signal</div>
+  <div id="signalMeters"></div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="dna-icon">&#x29BE;</div>
+    <span>Audio-DNA</span>
+  </div>
+  <div class="bpm-block">
+    <div>
+      <div class="bpm-label">BPM</div>
+      <div class="bpm-value">128.00</div>
+    </div>
+  </div>
+  <div class="btn-small tap">Tap</div>
+  <div class="btn-small">Nudge -</div>
+  <div class="btn-small">Nudge +</div>
+  <div class="btn-small resync">Resync</div>
+  <div class="beat-dots">
+    <div class="beat-dot active"></div>
+    <div class="beat-dot bar"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+  </div>
+  <div class="top-sep"></div>
+  <div class="quantize-block">
+    <div class="quantize-label">Quantize</div>
+    <select class="quantize-select">
+      <option>1 Beat</option>
+      <option selected>1 Bar</option>
+      <option>2 Bars</option>
+      <option>4 Bars</option>
+    </select>
+  </div>
+  <div class="top-sep"></div>
+  <div class="fade-block">
+    <div class="fade-label">Crossfade</div>
+    <div class="fade-value">0.5s</div>
+  </div>
+  <div class="top-spacer"></div>
+  <div class="master-slider-wrap">
+    <div class="master-label">Master</div>
+    <div class="master-track"><div class="master-fill"></div></div>
+    <div class="master-val">85%</div>
+  </div>
+</div>
+
+<!-- DECK TABS -->
+<div class="deck-tabs">
+  <div class="deck-tab active">Deck 1</div>
+  <div class="deck-tab">Deck 2</div>
+  <div class="deck-tab">Deck 3</div>
+  <div class="deck-tab add">+</div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+  <!-- LAYER STRIPS -->
+  <div class="layer-strips-panel" id="layerStrips"></div>
+
+  <!-- RIGHT PANEL: INSPECTOR + BROWSER -->
+  <div class="right-panel">
+    <!-- Inspector tabs -->
+    <div class="inspector-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Composition</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+
+    <!-- Inspector body -->
+    <div class="inspector-body" id="inspectorBody"></div>
+
+    <!-- Browser -->
+    <div class="browser-section">
+      <div class="browser-tabs">
+        <div class="browser-tab active">Files</div>
+        <div class="browser-tab">Effects</div>
+        <div class="browser-tab">Sources</div>
+      </div>
+      <div class="browser-body" id="browserBody"></div>
+    </div>
+
+    <!-- Bottom controls -->
+    <div class="bottom-controls">
+      <div class="blackout-btn">Blackout</div>
+      <div class="master-btn">Fullscreen</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-stat">Frames Per Second: <span class="val">60.0</span></div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">DSP Load: <span class="val">12%</span></div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">GPU: <span class="val">34%</span></div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">Layers: <span class="val">8 / 8</span></div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">Effects: <span class="val">14</span></div>
+  <div class="footer-sep"></div>
+  <div class="rec-indicator">
+    <div class="rec-dot"></div>
+    Recording 00:03:42
+  </div>
+  <div class="footer-spacer"></div>
+  <div class="syphon-badge">Syphon Active</div>
+  <div class="footer-sep"></div>
+  <div class="footer-stat">Output: <span class="val">1920 x 1080</span></div>
+  <div class="footer-sep"></div>
+  <div class="footer-btn">Save</div>
+  <div class="footer-btn">Load</div>
+</div>
+
+<script>
+// ── Signal Bar Meters ──
+const signalMeters = [
+  { name: 'RMS', val: 0.62, color: '#00ff88' },
+  { name: 'Peak', val: 0.88, color: '#ffaa00' },
+  { name: 'Bass', val: 0.75, color: '#ff3355' },
+  { name: 'Mid', val: 0.45, color: '#33ff88' },
+  { name: 'High', val: 0.30, color: '#3388ff' },
+  { name: 'Flux', val: 0.55, color: '#ff8833' },
+  { name: 'Centroid', val: 0.40, color: '#cc66ff' },
+  { name: 'Onset', val: 0.90, color: '#ff2266' },
+  { name: 'Phase', val: 0.35, color: '#00ccff' },
+  { name: 'Chroma', val: 0.50, color: '#ffdd00' },
+  { name: 'Pitch', val: 0.65, color: '#66ffcc' },
+  { name: 'Energy', val: 0.72, color: '#ff66aa' },
+];
+
+const sigContainer = document.getElementById('signalMeters');
+sigContainer.style.display = 'flex';
+sigContainer.style.gap = '4px';
+sigContainer.style.flex = '1';
+sigContainer.style.justifyContent = 'center';
+
+signalMeters.forEach(m => {
+  const el = document.createElement('div');
+  el.className = 'signal-meter';
+  el.innerHTML = `
+    <div class="signal-meter-name">${m.name}</div>
+    <div class="signal-meter-bar-wrap">
+      <div class="signal-meter-fill" style="width:${m.val * 100}%; background:${m.color}; opacity:0.8;"></div>
+    </div>
+    <div class="signal-meter-val">${(m.val * 100).toFixed(0)}</div>
+  `;
+  sigContainer.appendChild(el);
+});
+
+// ── SVG Knob generator ──
+function createKnob(label, value, uid, arcColor, size, hasSigTri, sigMapped) {
+  size = size || 46;
+  const cx = size / 2, cy = size / 2, r = size / 2 - 3;
+  const startAngle = -135;
+  const rad = (a) => (a * Math.PI) / 180;
+
+  function arcPath(start, end, radius) {
+    const x1 = cx + radius * Math.cos(rad(start));
+    const y1 = cy + radius * Math.sin(rad(start));
+    const x2 = cx + radius * Math.cos(rad(end));
+    const y2 = cy + radius * Math.sin(rad(end));
+    const large = (end - start) > 180 ? 1 : 0;
+    return `M${x1},${y1} A${radius},${radius} 0 ${large} 1 ${x2},${y2}`;
+  }
+
+  const bgEnd = startAngle + 270;
+  const valEnd = startAngle + (value / 100) * 270;
+  const px = cx + (r - 6) * Math.cos(rad(valEnd));
+  const py = cy + (r - 6) * Math.sin(rad(valEnd));
+
+  const triHtml = hasSigTri
+    ? `<div class="signal-triangle ${sigMapped ? 'mapped' : 'unmapped'}"></div>`
+    : '';
+
+  return `
+    <div class="knob-wrapper">
+      ${triHtml}
+      <div class="knob-label">${label}</div>
+      <svg class="knob-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+        <defs>
+          <filter id="g${uid}" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <path d="${arcPath(startAngle, bgEnd, r)}" fill="none" stroke="#2a2a35" stroke-width="3" stroke-linecap="round"/>
+        ${value > 0 ? `<path d="${arcPath(startAngle, valEnd, r)}" fill="none" stroke="${arcColor}" stroke-width="3" stroke-linecap="round" filter="url(#g${uid})"/>` : ''}
+        <circle cx="${cx}" cy="${cy}" r="${r * 0.42}" fill="#1a1a24" stroke="#2a2a35" stroke-width="1"/>
+        <line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" stroke="#ddd" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div class="knob-value">${value}%</div>
+    </div>
+  `;
+}
+
+// ── Dashboard knob (small) ──
+function createDashKnob(label, value, uid, arcColor) {
+  return createKnob(label, value, uid, arcColor, 36, false, false)
+    .replace('knob-wrapper', 'dash-knob')
+    .replace('knob-label', 'dash-knob-label')
+    .replace('knob-svg', 'dash-knob-svg')
+    .replace('knob-value', 'dash-knob-val');
+}
+
+// ── Layer data ──
+const layers = [
+  { name: 'Main Visual', type: 'Mandelbulb', content: '3D Fractal', audio: 'Bass Energy', layerType: 'Opaque', hue: 72, sat: 85, bright: 60, speed: 45, opacity: 0.9, play: true, locked: false, fxCount: 3, sigMap: [true, true, false, true] },
+  { name: 'Spectrum Viz', type: 'Spectrum', content: 'Audio Viz', audio: 'Full Spectrum', layerType: 'Transparent', hue: 30, sat: 70, bright: 80, speed: 55, opacity: 0.75, play: true, locked: false, fxCount: 2, sigMap: [false, true, true, false] },
+  { name: 'Kaleidoscope', type: 'Kaleidoscope', content: 'Pattern', audio: 'Beat Phase', layerType: 'Transparent', hue: 88, sat: 60, bright: 55, speed: 70, opacity: 0.85, play: true, locked: true, fxCount: 4, sigMap: [true, false, true, true] },
+  { name: 'Background', type: 'Perlin Noise', content: 'Procedural', audio: 'Spectral Flux', layerType: 'Opaque', hue: 50, sat: 90, bright: 45, speed: 30, opacity: 0.65, play: false, locked: false, fxCount: 1, sigMap: [false, false, true, false] },
+  { name: 'Fractal Layer', type: 'Julia Set', content: '2D Fractal', audio: 'RMS', layerType: 'Transparent', hue: 65, sat: 75, bright: 70, speed: 80, opacity: 0.95, play: true, locked: false, fxCount: 2, sigMap: [true, true, false, false] },
+  { name: 'Video Loop', type: 'Video File', content: 'loop_01.mp4', audio: 'Onset', layerType: 'Opaque', hue: 40, sat: 55, bright: 90, speed: 50, opacity: 0.5, play: false, locked: true, fxCount: 0, sigMap: [false, false, false, false] },
+  { name: 'FX Layer', type: 'Strange Attractor', content: 'Simulation', audio: 'Centroid', layerType: 'FX', hue: 95, sat: 80, bright: 35, speed: 65, opacity: 0.7, play: true, locked: false, fxCount: 5, sigMap: [true, true, true, true] },
+  { name: 'Camera Feed', type: 'Camera', content: 'Live Feed', audio: 'None', layerType: 'Transparent', hue: 20, sat: 40, bright: 50, speed: 25, opacity: 0.6, play: false, locked: false, fxCount: 1, sigMap: [false, false, false, true] },
+];
+
+const knobColors = ['#ff3355', '#33ff88', '#3388ff', '#ff8833'];
+const knobLabels = ['Hue', 'Saturation', 'Brightness', 'Speed'];
+
+const container = document.getElementById('layerStrips');
+
+layers.forEach((layer, i) => {
+  const opacityH = Math.round(layer.opacity * 60);
+  const opacityY = 60 - opacityH;
+  const vals = [layer.hue, layer.sat, layer.bright, layer.speed];
+
+  const badgeClass = layer.layerType === 'Opaque' ? 'badge-opaque'
+    : layer.layerType === 'Transparent' ? 'badge-transparent' : 'badge-fx';
+
+  // Mini clip cells
+  const cellCount = 4;
+  let cells = '';
+  for (let c = 0; c < cellCount; c++) {
+    const isActive = c === 0;
+    const hasContent = c < 2;
+    const bg = hasContent
+      ? `background: linear-gradient(${120 + c * 30}deg, ${knobColors[i % 4]}22, #0a0a14);`
+      : '';
+    cells += `<div class="clip-cell${isActive ? ' active' : ''}" style="${bg}">
+      ${hasContent ? `<div class="clip-cell-label">${c === 0 ? layer.type : 'Alt ' + c}</div>` : ''}
+    </div>`;
+  }
+
+  const strip = document.createElement('div');
+  strip.className = 'layer-strip';
+  strip.innerHTML = `
+    <div class="layer-left">
+      <div class="layer-name">${layer.name}</div>
+      <div class="layer-type-badge ${badgeClass}">${layer.layerType}</div>
+      <div class="psm-buttons">
+        <div class="psm-btn play ${layer.play ? 'active' : ''}">P</div>
+        <div class="psm-btn solo">S</div>
+        <div class="psm-btn mute">M</div>
+      </div>
+      <div class="layer-tools">
+        <div class="layer-tool-btn ${layer.locked ? 'locked' : ''}" title="Content Lock">${layer.locked ? '&#128274;' : '&#128275;'}</div>
+        <div class="layer-tool-btn" title="Fold">&#x25B2;</div>
+      </div>
+    </div>
+    <div class="layer-info">
+      <div class="info-row"><span class="label">Source</span><span class="value">${layer.type}</span></div>
+      <div class="info-row"><span class="label">Content</span><span class="value">${layer.content}</span></div>
+      <div class="info-row"><span class="label">Audio</span><span class="value">${layer.audio}</span></div>
+      <div class="info-row"><span class="label">Effects</span><span class="value">${layer.fxCount} active</span></div>
+    </div>
+    <div class="knobs-section">
+      ${vals.map((v, ki) => createKnob(knobLabels[ki], v, `L${i}K${ki}`, knobColors[ki], 46, true, layer.sigMap[ki])).join('')}
+    </div>
+    <div class="opacity-section">
+      <div class="opacity-label">Opacity</div>
+      <div class="opacity-track">
+        <div class="opacity-fill" style="height:${opacityH}px;"></div>
+        <div class="opacity-thumb" style="bottom:${opacityH - 3}px;"></div>
+      </div>
+      <div style="font-size:8px; color:#ccc; font-family:monospace;">${Math.round(layer.opacity * 100)}%</div>
+    </div>
+    <div class="clip-cells">${cells}</div>
+    <div class="expand-toggle">&#x25BC;</div>
+  `;
+  container.appendChild(strip);
+});
+
+// ── Inspector content ──
+const inspBody = document.getElementById('inspectorBody');
+inspBody.innerHTML = `
+  <!-- Dashboard -->
+  <div class="insp-section">
+    <div class="insp-section-header"><span class="collapse">&#x25BC;</span> Dashboard</div>
+    <div class="dashboard-grid">
+      ${createDashKnob('Link 1', 72, 'D1', '#ff3355')}
+      ${createDashKnob('Link 2', 45, 'D2', '#33ff88')}
+      ${createDashKnob('Link 3', 60, 'D3', '#3388ff')}
+      ${createDashKnob('Link 4', 30, 'D4', '#ff8833')}
+      ${createDashKnob('Link 5', 85, 'D5', '#cc66ff')}
+      ${createDashKnob('Link 6', 50, 'D6', '#00ccff')}
+      ${createDashKnob('Link 7', 20, 'D7', '#ffdd00')}
+      ${createDashKnob('Link 8', 65, 'D8', '#ff66aa')}
+    </div>
+  </div>
+
+  <!-- Cuepoints -->
+  <div class="insp-section">
+    <div class="insp-section-header"><span class="collapse">&#x25BC;</span> Cuepoints</div>
+    <div class="cuepoint-row">
+      <div class="cue-btn set">1</div>
+      <div class="cue-btn set">2</div>
+      <div class="cue-btn">3</div>
+      <div class="cue-btn">4</div>
+      <div class="cue-btn set">5</div>
+      <div class="cue-btn">6</div>
+      <div class="cue-btn">7</div>
+      <div class="cue-btn">8</div>
+    </div>
+  </div>
+
+  <!-- Autopilot -->
+  <div class="insp-section">
+    <div class="insp-section-header"><span class="collapse">&#x25BC;</span> Autopilot</div>
+    <div class="autopilot-row">
+      <div class="autopilot-toggle on"><div class="dot"></div></div>
+      <div class="autopilot-label">On Beat</div>
+      <div class="autopilot-beats">4 Beats</div>
+    </div>
+    <div class="autopilot-row">
+      <div style="font-size:9px; color:#888; margin-left:4px;">Action:</div>
+      <div style="font-size:9px; color:#ccc; margin-left:4px;">Play Random</div>
+    </div>
+  </div>
+
+  <!-- Effects Stack -->
+  <div class="insp-section">
+    <div class="insp-section-header"><span class="collapse">&#x25BC;</span> Effects</div>
+    <div class="fx-stack">
+      <div class="fx-row">
+        <div class="fx-bypass active">B</div>
+        <div class="fx-name">Ripple</div>
+        <div class="fx-signal-tri"></div>
+        <div class="fx-remove">X</div>
+      </div>
+      <div class="fx-row">
+        <div class="fx-bypass active">B</div>
+        <div class="fx-name">Hue Shift</div>
+        <div class="fx-signal-tri" style="border-bottom-color:#00ff88;"></div>
+        <div class="fx-remove">X</div>
+      </div>
+      <div class="fx-row">
+        <div class="fx-bypass">B</div>
+        <div class="fx-name">Echo</div>
+        <div class="fx-signal-tri" style="border-bottom-color:#444;"></div>
+        <div class="fx-remove">X</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keying -->
+  <div class="insp-section">
+    <div class="insp-section-header"><span class="collapse">&#x25BC;</span> Keying</div>
+    <div class="keying-row">
+      <div class="keying-label">Alpha Type</div>
+      <select class="keying-select">
+        <option>None</option>
+        <option selected>Luma is Alpha</option>
+        <option>Chroma Key</option>
+      </select>
+    </div>
+    <div class="keying-row">
+      <div class="keying-label">Blend Mode</div>
+      <select class="keying-select">
+        <option selected>Add</option>
+        <option>Screen</option>
+        <option>Multiply</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="insp-section">
+    <div class="insp-section-header"><span class="collapse">&#x25BC;</span> Feedback</div>
+    <div class="feedback-row">
+      <div class="autopilot-toggle"><div class="dot"></div></div>
+      <div class="autopilot-label">Enable</div>
+      <select class="feedback-preset">
+        <option>None</option>
+        <option>Zoom In</option>
+        <option>Spiral</option>
+        <option>Echo</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Transform -->
+  <div class="insp-section">
+    <div class="insp-section-header"><span class="collapse">&#x25BC;</span> Transform</div>
+    <div class="transform-row">
+      <div class="transform-label">Position X</div>
+      <div class="transform-signal"></div>
+      <div class="transform-track"><div class="transform-fill" style="width:50%; background:#555;"></div></div>
+      <div class="transform-val">0.0</div>
+    </div>
+    <div class="transform-row">
+      <div class="transform-label">Position Y</div>
+      <div class="transform-signal"></div>
+      <div class="transform-track"><div class="transform-fill" style="width:50%; background:#555;"></div></div>
+      <div class="transform-val">0.0</div>
+    </div>
+    <div class="transform-row">
+      <div class="transform-label">Scale</div>
+      <div class="transform-signal" style="border-bottom-color:#00ccff;"></div>
+      <div class="transform-track"><div class="transform-fill" style="width:70%; background:#00ccff;"></div></div>
+      <div class="transform-val">1.0</div>
+    </div>
+    <div class="transform-row">
+      <div class="transform-label">Rotation</div>
+      <div class="transform-signal"></div>
+      <div class="transform-track"><div class="transform-fill" style="width:50%; background:#555;"></div></div>
+      <div class="transform-val">0.0</div>
+    </div>
+  </div>
+`;
+
+// ── Browser content ──
+const browserBody = document.getElementById('browserBody');
+browserBody.innerHTML = `
+  <div class="browser-cat">Warp</div>
+  <div class="browser-item">Ripple</div>
+  <div class="browser-item">Bulge</div>
+  <div class="browser-item">Wave</div>
+  <div class="browser-item">Kaleidoscope</div>
+  <div class="browser-item">Liquid</div>
+  <div class="browser-cat">Color</div>
+  <div class="browser-item">Hue Shift</div>
+  <div class="browser-item">Saturation</div>
+  <div class="browser-item">Duotone</div>
+  <div class="browser-item">Chromatic Aberration</div>
+  <div class="browser-cat">Glitch</div>
+  <div class="browser-item">Pixel Scatter</div>
+  <div class="browser-item">RGB Split</div>
+  <div class="browser-item">Block Glitch</div>
+  <div class="browser-cat">Time</div>
+  <div class="browser-item">Echo</div>
+  <div class="browser-item">Freeze</div>
+  <div class="browser-item">Frame Stutter</div>
+  <div class="browser-cat">Blur / Post</div>
+  <div class="browser-item">Gaussian Blur</div>
+  <div class="browser-item">Glow</div>
+  <div class="browser-item">Vignette</div>
+`;
+</script>
+</body>
+</html>

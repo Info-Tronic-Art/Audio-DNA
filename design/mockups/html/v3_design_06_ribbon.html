@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — v3 Design 06: Ribbon</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #0c0c0f; color: #d8d8d8; font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif; font-size: 11px; overflow: hidden; position: relative; }
+
+/* ═══════════════ TOP BAR (28px) ═══════════════ */
+.top-bar {
+  height: 28px; width: 100%; background: #111114; border-bottom: 1px solid #1e1e22;
+  display: flex; align-items: center; padding: 0 8px; gap: 2px; position: relative; z-index: 10;
+}
+.tb-section { display: flex; align-items: center; gap: 3px; }
+.tb-sep { width: 1px; height: 16px; background: #2a2a30; margin: 0 5px; }
+.tb-btn { height: 20px; padding: 0 7px; background: #1e1e24; border: 1px solid #2a2a30; color: #999; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tb-btn:hover { background: #2a2a34; color: #ddd; }
+.tb-btn.active { background: #1a2a3a; color: #00d9ff; border-color: #00d9ff44; }
+.tb-btn.transport { width: 24px; height: 20px; font-size: 11px; }
+.tb-btn.blackout { background: #1a1111; color: #662222; border-color: #331111; font-weight: bold; }
+.tb-dropdown { height: 20px; padding: 0 6px; background: #1a1a20; border: 1px solid #2a2a30; color: #aaa; font-size: 10px; }
+.tb-slider-wrap { display: flex; align-items: center; gap: 3px; }
+.tb-slider { width: 50px; height: 4px; background: #2a2a30; position: relative; }
+.tb-slider-fill { height: 100%; background: #00d9ff33; position: absolute; left: 0; top: 0; }
+.tb-slider-thumb { width: 2px; height: 10px; background: #00d9ff; position: absolute; top: -3px; }
+.tb-label { color: #555; font-size: 9px; white-space: nowrap; }
+.tb-bpm { font-size: 15px; font-weight: 700; color: #44bb44; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.tb-state { font-size: 8px; color: #44bb44; letter-spacing: 0.5px; }
+.tb-beat-wheel { width: 20px; height: 20px; position: relative; }
+.tb-beat-seg { position: absolute; width: 8px; height: 8px; border-radius: 50%; }
+.tb-beat-seg.active { background: #00d9ff; box-shadow: 0 0 4px #00d9ff88; }
+.tb-beat-seg.dim { background: #222230; }
+.tb-beat-seg:nth-child(1) { top: 1px; left: 1px; }
+.tb-beat-seg:nth-child(2) { top: 1px; right: 1px; }
+.tb-beat-seg:nth-child(3) { bottom: 1px; right: 1px; }
+.tb-beat-seg:nth-child(4) { bottom: 1px; left: 1px; }
+.tb-mult { font-size: 9px; padding: 0 4px; }
+.tb-stats { font-size: 9px; color: #555; font-variant-numeric: tabular-nums; display: flex; gap: 8px; }
+.tb-spacer { flex: 1; }
+.tb-bar-phrase { font-size: 8px; color: #556; line-height: 1.3; }
+
+/* ═══════════════ RIBBON BAR (80px) ═══════════════ */
+.ribbon-bar {
+  height: 80px; width: 100%; background: #111116; border-bottom: 1px solid #1e1e22;
+  display: flex; flex-direction: column; position: relative; z-index: 9;
+}
+.ribbon-tabs {
+  height: 22px; display: flex; align-items: flex-end; padding: 0 6px; gap: 0; background: #0e0e12;
+  border-bottom: 1px solid #1a1a20;
+}
+.ribbon-tab {
+  height: 20px; padding: 0 14px; font-size: 10px; color: #666; cursor: pointer;
+  display: flex; align-items: center; border: 1px solid transparent; border-bottom: none;
+  background: transparent; letter-spacing: 0.3px;
+}
+.ribbon-tab:hover { color: #999; }
+.ribbon-tab.active {
+  color: #00d9ff; background: #111116; border-color: #1e1e22; border-bottom: 1px solid #111116;
+  margin-bottom: -1px; font-weight: 600;
+}
+.ribbon-content {
+  flex: 1; display: flex; align-items: center; padding: 0 8px; gap: 0; overflow: hidden;
+}
+.ribbon-group {
+  display: flex; flex-direction: column; padding: 4px 10px 3px; gap: 2px; position: relative;
+  border-right: 1px solid #1e1e24; height: 100%;
+}
+.ribbon-group:last-child { border-right: none; }
+.ribbon-group-label {
+  font-size: 7px; color: #444; text-transform: uppercase; letter-spacing: 0.8px;
+  text-align: center; padding-top: 1px; margin-top: auto;
+}
+.ribbon-group-content {
+  display: flex; align-items: center; gap: 6px; flex: 1;
+}
+
+/* Ribbon controls */
+.r-btn {
+  height: 22px; padding: 0 8px; background: #1a1a22; border: 1px solid #252530; color: #999;
+  font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.r-btn:hover { background: #222230; color: #ddd; }
+.r-btn.active { background: #0d2030; color: #00d9ff; border-color: #00d9ff44; }
+.r-btn.transport { width: 26px; font-size: 13px; }
+.r-dropdown {
+  height: 22px; padding: 0 6px; background: #1a1a22; border: 1px solid #252530; color: #aaa;
+  font-size: 10px; min-width: 60px;
+}
+
+/* Ribbon slider */
+.r-slider-group { display: flex; flex-direction: column; gap: 1px; min-width: 80px; }
+.r-slider-group.wide { min-width: 100px; }
+.r-slider-label { display: flex; justify-content: space-between; align-items: center; }
+.r-slider-name { font-size: 8px; color: #666; }
+.r-slider-val { font-size: 8px; color: #00d9ff; font-variant-numeric: tabular-nums; }
+.r-slider {
+  width: 100%; height: 6px; background: #1a1a22; position: relative; cursor: pointer;
+}
+.r-slider-fill { height: 100%; position: absolute; left: 0; top: 0; background: #00d9ff33; }
+.r-slider-thumb { width: 2px; height: 12px; background: #00d9ff; position: absolute; top: -3px; }
+
+/* Source-specific accent */
+.r-slider-fill.source { background: #ff880033; }
+.r-slider-thumb.source { background: #ff8800; }
+.r-slider-val.source { color: #ff8800; }
+
+/* Effects pills */
+.fx-pill {
+  display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px;
+  background: #1a1a22; border: 1px solid #252530; cursor: pointer; white-space: nowrap;
+}
+.fx-pill:hover { background: #222230; }
+.fx-pill .fx-bypass {
+  width: 8px; height: 8px; border-radius: 50%; background: #00d9ff; flex-shrink: 0;
+}
+.fx-pill .fx-bypass.off { background: #333; }
+.fx-pill .fx-name { font-size: 9px; color: #bbb; }
+.fx-pill .fx-val { font-size: 8px; color: #00d9ff66; }
+.fx-pill.active { border-color: #00d9ff44; background: #0d1520; }
+.fx-add {
+  width: 22px; height: 22px; background: #1a1a22; border: 1px solid #252530; color: #555;
+  font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.fx-add:hover { color: #00d9ff; border-color: #00d9ff44; }
+
+/* ═══════════════ MAIN AREA ═══════════════ */
+.main { display: flex; height: calc(100% - 28px - 80px - 16px); }
+
+/* ═══════════════ LEFT: DECK (60%) ═══════════════ */
+.deck-area { width: 1152px; display: flex; flex-direction: column; background: #0c0c0f; }
+
+/* Column triggers */
+.col-triggers { display: flex; height: 20px; margin-left: 160px; }
+.col-trig {
+  width: 80px; height: 20px; background: #111115; border: 1px solid #1a1a1e;
+  color: #444; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.col-trig.active { color: #00d9ff; border-bottom: 2px solid #00d9ff; background: #0d1520; }
+
+.grid-scroll { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Layer row */
+.layer-row { display: flex; height: 60px; border-bottom: 1px solid #141418; }
+
+/* Layer strip (160px) */
+.layer-strip {
+  width: 160px; background: #111115; border-right: 1px solid #1a1a1e;
+  display: flex; flex-direction: column; padding: 3px; position: relative; flex-shrink: 0;
+}
+.ls-top { display: flex; align-items: center; gap: 2px; margin-bottom: 2px; }
+.ls-name { font-size: 10px; font-weight: 600; color: #bbb; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-type { font-size: 7px; padding: 1px 4px; color: #888; background: #1a1a22; }
+.ls-btn { width: 18px; height: 16px; background: #1a1a22; border: 1px solid #222228; color: #666; font-size: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ls-btn.bypass-on { background: #2a1515; color: #884444; }
+.ls-btn.solo-on { background: #252518; color: #888844; }
+.ls-mid { display: flex; align-items: center; gap: 3px; flex: 1; }
+.ls-thumb { width: 36px; height: 28px; background: #080810; border: 1px solid #1a1a22; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.ls-controls { flex: 1; display: flex; flex-direction: column; gap: 2px; padding-left: 3px; }
+.ls-bar-row { display: flex; align-items: center; gap: 3px; height: 12px; }
+.ls-bar-label { font-size: 7px; color: #555; width: 8px; }
+.ls-bar { flex: 1; height: 4px; background: #1a1a22; position: relative; }
+.ls-bar-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.ls-bar-fill.teal { background: #00aa8844; }
+.ls-blend { font-size: 8px; color: #555; margin-top: 1px; }
+
+/* Cells */
+.cells-row { display: flex; flex: 1; }
+.cell {
+  width: 80px; height: 60px; background: #0e0e12; border: 1px solid #161619;
+  display: flex; flex-direction: column; cursor: pointer; position: relative; flex-shrink: 0;
+}
+.cell:hover { border-color: #2a2a34; }
+.cell.playing { border: 2px solid #00d9ff44; background: #0d1218; }
+.cell.selected { border: 2px solid #ffffff55; }
+.cell-thumb {
+  flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  font-size: 7px; color: #444;
+}
+.cell-thumb-grad { width: 100%; height: 100%; }
+.cell-name {
+  height: 14px; padding: 0 3px; font-size: 8px; color: #777; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; background: #0a0a0e; display: flex; align-items: center;
+}
+.cell-fx-badge {
+  position: absolute; top: 2px; right: 2px; font-size: 7px; color: #00d9ff; background: #0d151e;
+  padding: 0 3px; border: 1px solid #00d9ff33;
+}
+
+/* Deck tabs */
+.deck-tabs {
+  height: 22px; display: flex; align-items: center; margin-left: 160px; padding: 0 4px; gap: 2px;
+  background: #0e0e12; border-top: 1px solid #1a1a1e;
+}
+.deck-tab {
+  height: 18px; padding: 0 14px; font-size: 9px; color: #555; cursor: pointer;
+  display: flex; align-items: center; background: #131316;
+}
+.deck-tab.active { color: #00d9ff; background: #0d1520; border-bottom: 2px solid #00d9ff; }
+
+/* ═══════════════ RIGHT PANEL (40%) ═══════════════ */
+.right-panel { width: 768px; display: flex; flex-direction: column; border-left: 1px solid #1e1e22; }
+
+/* Preview */
+.preview-area { flex: 6; background: #080810; position: relative; display: flex; align-items: center; justify-content: center; }
+.preview-viewport {
+  width: 720px; height: 405px; background: #000;
+  background: linear-gradient(135deg, #0a0510 0%, #150828 25%, #201040 50%, #100420 75%, #050210 100%);
+  position: relative; overflow: hidden;
+}
+/* Mandelbrot-like fractal overlay */
+.preview-fractal {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 35% 55%, #000000 0%, transparent 25%),
+    radial-gradient(ellipse at 38% 52%, #1a0040 0%, transparent 30%),
+    radial-gradient(ellipse at 42% 48%, #300060 0%, transparent 35%),
+    radial-gradient(circle at 55% 45%, #440088 0%, transparent 15%),
+    radial-gradient(circle at 60% 40%, #5500aa 0%, transparent 10%),
+    radial-gradient(ellipse at 50% 50%, #000 0%, #0a0020 30%, #150040 50%, #200060 70%, #000 100%);
+}
+.preview-label {
+  position: absolute; bottom: 6px; left: 8px; font-size: 8px; color: #444;
+}
+.preview-clip-label {
+  position: absolute; top: 6px; left: 8px; font-size: 9px; color: #00d9ff88;
+}
+
+/* Browser */
+.browser-area { flex: 4; background: #0e0e12; border-top: 1px solid #1e1e22; display: flex; flex-direction: column; }
+.browser-tabs {
+  height: 22px; display: flex; align-items: center; padding: 0 4px; gap: 0;
+  background: #0c0c10; border-bottom: 1px solid #1a1a1e;
+}
+.browser-tab {
+  height: 20px; padding: 0 10px; font-size: 9px; color: #555; cursor: pointer;
+  display: flex; align-items: center;
+}
+.browser-tab.active { color: #00d9ff; border-bottom: 2px solid #00d9ff; }
+.browser-search {
+  margin: 4px 6px; height: 20px; background: #111116; border: 1px solid #1e1e24;
+  padding: 0 8px; color: #888; font-size: 10px; display: flex; align-items: center;
+}
+.browser-search-icon { color: #444; margin-right: 4px; font-size: 10px; }
+.browser-list { flex: 1; overflow: hidden; padding: 0 4px; }
+.browser-cat {
+  padding: 4px 4px 2px; font-size: 8px; color: #555; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 1px solid #1a1a1e;
+}
+.browser-item {
+  height: 20px; padding: 0 8px; font-size: 10px; color: #999; display: flex; align-items: center;
+  cursor: pointer;
+}
+.browser-item:hover { background: #161620; color: #ddd; }
+.browser-item .cat-dot { width: 4px; height: 4px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+.cat-warp { background: #ff4488; }
+.cat-color { background: #44aaff; }
+.cat-glitch { background: #ff8844; }
+.cat-time { background: #aa44ff; }
+.cat-blur { background: #44ffaa; }
+.cat-3d { background: #ffaa44; }
+.cat-pattern { background: #8888ff; }
+.cat-anim { background: #ff4444; }
+
+/* ═══════════════ AUDIO STRIP (16px) ═══════════════ */
+.audio-strip {
+  height: 16px; width: 100%; background: #0a0a0e; border-top: 1px solid #1a1a1e;
+  display: flex; align-items: center; padding: 0 8px; gap: 6px;
+}
+.as-dot { width: 3px; height: 8px; border-radius: 0; }
+.as-group { display: flex; gap: 1px; align-items: flex-end; }
+.as-label { font-size: 7px; color: #444; margin-left: 3px; margin-right: 2px; }
+.as-val { font-size: 8px; color: #556; font-variant-numeric: tabular-nums; }
+.as-spacer { flex: 1; }
+.as-key { font-size: 9px; color: #666; }
+.as-bpm-small { font-size: 9px; color: #44bb44; font-weight: 600; }
+
+/* ═══════════════ RESPONSIVE HELPERS ═══════════════ */
+.signal-tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 6px solid #555; display: inline-block; margin-right: 3px; }
+.signal-tri.connected { border-bottom-color: #ff8800; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<div class="top-bar">
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width:85px;">Mic Input</div>
+    <div class="tb-label">Gain</div>
+    <div class="tb-slider" style="width:40px;">
+      <div class="tb-slider-fill" style="width:50%;"></div>
+      <div class="tb-slider-thumb" style="left:calc(50% - 1px);"></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn transport">&#9654;</div>
+    <div class="tb-btn transport">&#9646;&#9646;</div>
+    <div class="tb-btn transport">&#9632;</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-beat-wheel">
+      <div class="tb-beat-seg active"></div>
+      <div class="tb-beat-seg dim"></div>
+      <div class="tb-beat-seg dim"></div>
+      <div class="tb-beat-seg dim"></div>
+    </div>
+    <div class="tb-bar-phrase">Bar 3<br>Phr 0.38</div>
+    <div class="tb-bpm">128.0</div>
+    <div class="tb-state">LOCKED</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn">Tap</div>
+    <div class="tb-btn">Resync</div>
+    <div class="tb-btn tb-mult">/4</div>
+    <div class="tb-btn tb-mult">/2</div>
+    <div class="tb-btn active tb-mult">x1</div>
+    <div class="tb-btn tb-mult">x2</div>
+    <div class="tb-btn tb-mult">x4</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Quantize</div>
+    <div class="tb-dropdown" style="width:70px;">Next Beat</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Master</div>
+    <div class="tb-slider" style="width:50px;">
+      <div class="tb-slider-fill" style="width:100%;"></div>
+      <div class="tb-slider-thumb" style="left:calc(100% - 2px);"></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn blackout">BO</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width:90px;">Fullscreen 1</div>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-stats">
+    <span>60 fps</span>
+    <span>2.1% dsp</span>
+  </div>
+</div>
+
+<!-- ═══════════════ RIBBON BAR ═══════════════ -->
+<div class="ribbon-bar">
+  <div class="ribbon-tabs">
+    <div class="ribbon-tab active">Clip</div>
+    <div class="ribbon-tab">Layer</div>
+    <div class="ribbon-tab">Composition</div>
+    <div class="ribbon-tab">Signal</div>
+  </div>
+  <div class="ribbon-content">
+
+    <!-- TRANSPORT GROUP -->
+    <div class="ribbon-group" style="min-width:130px;">
+      <div class="ribbon-group-content">
+        <div class="r-btn transport">&#9664;</div>
+        <div class="r-btn transport active">&#9654;</div>
+        <div class="r-btn transport">&#9646;&#9646;</div>
+        <div style="display:flex;flex-direction:column;gap:3px;min-width:65px;">
+          <div class="r-slider-group">
+            <div class="r-slider-label"><span class="r-slider-name">Speed</span><span class="r-slider-val">1.00x</span></div>
+            <div class="r-slider"><div class="r-slider-fill" style="width:50%;"></div><div class="r-slider-thumb" style="left:calc(50% - 1px);"></div></div>
+          </div>
+          <div style="display:flex;gap:2px;">
+            <div class="r-dropdown" style="min-width:50px; font-size:9px;">Loop</div>
+          </div>
+        </div>
+      </div>
+      <div class="ribbon-group-label">Transport</div>
+    </div>
+
+    <!-- SOURCE PARAMS GROUP (Mandelbrot) -->
+    <div class="ribbon-group" style="flex:1; min-width:480px;">
+      <div class="ribbon-group-content" style="gap:8px;">
+        <div style="display:flex;align-items:center;gap:4px;margin-right:4px;">
+          <span style="font-size:9px;color:#ff8800;font-weight:600;">Mandelbrot</span>
+        </div>
+        <div class="r-slider-group">
+          <div class="r-slider-label"><span class="signal-tri connected"></span><span class="r-slider-name">Dive Speed</span><span class="r-slider-val source">0.35</span></div>
+          <div class="r-slider"><div class="r-slider-fill source" style="width:35%;"></div><div class="r-slider-thumb source" style="left:calc(35% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group">
+          <div class="r-slider-label"><span class="r-slider-name">Location</span><span class="r-slider-val source">Seahorse</span></div>
+          <div class="r-slider"><div class="r-slider-fill source" style="width:30%;"></div><div class="r-slider-thumb source" style="left:calc(30% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group">
+          <div class="r-slider-label"><span class="r-slider-name">Zoom</span><span class="r-slider-val source">0.62</span></div>
+          <div class="r-slider"><div class="r-slider-fill source" style="width:62%;"></div><div class="r-slider-thumb source" style="left:calc(62% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group">
+          <div class="r-slider-label"><span class="signal-tri connected"></span><span class="r-slider-name">Iterations</span><span class="r-slider-val source">0.55</span></div>
+          <div class="r-slider"><div class="r-slider-fill source" style="width:55%;"></div><div class="r-slider-thumb source" style="left:calc(55% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group">
+          <div class="r-slider-label"><span class="r-slider-name">Power</span><span class="r-slider-val source">0.25</span></div>
+          <div class="r-slider"><div class="r-slider-fill source" style="width:25%;"></div><div class="r-slider-thumb source" style="left:calc(25% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group">
+          <div class="r-slider-label"><span class="signal-tri connected"></span><span class="r-slider-name">Color Speed</span><span class="r-slider-val source">0.40</span></div>
+          <div class="r-slider"><div class="r-slider-fill source" style="width:40%;"></div><div class="r-slider-thumb source" style="left:calc(40% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group">
+          <div class="r-slider-label"><span class="r-slider-name">Color Shift</span><span class="r-slider-val source">0.15</span></div>
+          <div class="r-slider"><div class="r-slider-fill source" style="width:15%;"></div><div class="r-slider-thumb source" style="left:calc(15% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group">
+          <div class="r-slider-label"><span class="r-slider-name">Palette</span><span class="r-slider-val source">Psyche</span></div>
+          <div class="r-slider"><div class="r-slider-fill source" style="width:71%;"></div><div class="r-slider-thumb source" style="left:calc(71% - 1px);"></div></div>
+        </div>
+      </div>
+      <div class="ribbon-group-label">Source Parameters</div>
+    </div>
+
+    <!-- EFFECTS GROUP -->
+    <div class="ribbon-group" style="min-width:210px;">
+      <div class="ribbon-group-content" style="gap:4px;">
+        <div class="fx-pill active">
+          <div class="fx-bypass"></div>
+          <span class="fx-name">Echo</span>
+          <span class="fx-val">0.85</span>
+        </div>
+        <div class="fx-pill">
+          <div class="fx-bypass"></div>
+          <span class="fx-name">Hue Shift</span>
+          <span class="fx-val">0.30</span>
+        </div>
+        <div class="fx-pill">
+          <div class="fx-bypass off"></div>
+          <span class="fx-name">Ripple</span>
+          <span class="fx-val">0.50</span>
+        </div>
+        <div class="fx-add">+</div>
+      </div>
+      <div class="ribbon-group-label">Effects</div>
+    </div>
+
+    <!-- VIDEO GROUP -->
+    <div class="ribbon-group" style="min-width:120px;">
+      <div class="ribbon-group-content" style="gap:6px;">
+        <div class="r-slider-group" style="min-width:55px;">
+          <div class="r-slider-label"><span class="r-slider-name">Opacity</span><span class="r-slider-val">1.00</span></div>
+          <div class="r-slider"><div class="r-slider-fill" style="width:100%;"></div><div class="r-slider-thumb" style="left:calc(100% - 2px);"></div></div>
+        </div>
+        <div class="r-dropdown" style="min-width:55px;font-size:8px;">Normal</div>
+      </div>
+      <div class="ribbon-group-label">Video</div>
+    </div>
+
+    <!-- TRANSFORM GROUP -->
+    <div class="ribbon-group" style="min-width:210px;">
+      <div class="ribbon-group-content" style="gap:6px;">
+        <div class="r-slider-group" style="min-width:46px;">
+          <div class="r-slider-label"><span class="r-slider-name">Pos X</span><span class="r-slider-val">0</span></div>
+          <div class="r-slider"><div class="r-slider-fill" style="width:50%;"></div><div class="r-slider-thumb" style="left:calc(50% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group" style="min-width:46px;">
+          <div class="r-slider-label"><span class="r-slider-name">Pos Y</span><span class="r-slider-val">0</span></div>
+          <div class="r-slider"><div class="r-slider-fill" style="width:50%;"></div><div class="r-slider-thumb" style="left:calc(50% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group" style="min-width:46px;">
+          <div class="r-slider-label"><span class="r-slider-name">Scale</span><span class="r-slider-val">1.00</span></div>
+          <div class="r-slider"><div class="r-slider-fill" style="width:50%;"></div><div class="r-slider-thumb" style="left:calc(50% - 1px);"></div></div>
+        </div>
+        <div class="r-slider-group" style="min-width:46px;">
+          <div class="r-slider-label"><span class="signal-tri"></span><span class="r-slider-name">Rot</span><span class="r-slider-val">0.0</span></div>
+          <div class="r-slider"><div class="r-slider-fill" style="width:50%;"></div><div class="r-slider-thumb" style="left:calc(50% - 1px);"></div></div>
+        </div>
+      </div>
+      <div class="ribbon-group-label">Transform</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN AREA ═══════════════ -->
+<div class="main">
+  <!-- DECK GRID (60%) -->
+  <div class="deck-area">
+    <!-- Column triggers -->
+    <div class="col-triggers">
+      <div class="col-trig">1</div>
+      <div class="col-trig active">2</div>
+      <div class="col-trig">3</div>
+      <div class="col-trig">4</div>
+      <div class="col-trig">5</div>
+      <div class="col-trig">6</div>
+      <div class="col-trig">7</div>
+      <div class="col-trig">8</div>
+      <div class="col-trig">9</div>
+      <div class="col-trig">10</div>
+      <div class="col-trig">11</div>
+      <div class="col-trig">12</div>
+    </div>
+
+    <div class="grid-scroll">
+
+      <!-- LAYER 3 (top, Transparent) -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <span class="ls-name">Layer 3 - Overlay</span>
+            <span class="ls-type">TRANS</span>
+            <div class="ls-btn">X</div>
+            <div class="ls-btn">B</div>
+            <div class="ls-btn">S</div>
+          </div>
+          <div class="ls-mid">
+            <div class="ls-thumb">
+              <div class="ls-thumb-grad" style="background:linear-gradient(45deg,#00334466,#002244);"></div>
+            </div>
+            <div class="ls-controls">
+              <div class="ls-bar-row"><span class="ls-bar-label">V</span><div class="ls-bar"><div class="ls-bar-fill teal" style="width:80%;"></div></div></div>
+              <div class="ls-blend">Screen</div>
+            </div>
+          </div>
+        </div>
+        <div class="cells-row">
+          <div class="cell"><div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#001a33,#003355);"></div></div><div class="cell-name">Perlin Noise</div></div>
+          <div class="cell playing"><div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#002244,#004466);"></div></div><div class="cell-name">Spectral Ring</div></div>
+          <div class="cell"><div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#112200,#224400);"></div></div><div class="cell-name">Voronoi</div></div>
+          <div class="cell"><div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#220022,#440044);"></div></div><div class="cell-name">Timbral Neb.</div></div>
+          <div class="cell"><div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#221100,#442200);"></div></div><div class="cell-name">Fire Tunnel</div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+        </div>
+      </div>
+
+      <!-- LAYER 2 (Transparent) -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <span class="ls-name">Layer 2 - FX</span>
+            <span class="ls-type" style="color:#aa88ff;">FX</span>
+            <div class="ls-btn">X</div>
+            <div class="ls-btn bypass-on">B</div>
+            <div class="ls-btn">S</div>
+          </div>
+          <div class="ls-mid">
+            <div class="ls-thumb">
+              <div class="ls-thumb-grad" style="background:#111;display:flex;align-items:center;justify-content:center;font-size:7px;color:#aa88ff;">FX</div>
+            </div>
+            <div class="ls-controls">
+              <div class="ls-bar-row"><span class="ls-bar-label">V</span><div class="ls-bar"><div class="ls-bar-fill teal" style="width:100%;"></div></div></div>
+              <div class="ls-blend">Add</div>
+            </div>
+          </div>
+        </div>
+        <div class="cells-row">
+          <div class="cell"><div class="cell-thumb"><div class="cell-thumb-grad" style="background:#111;"></div></div><div class="cell-name">FX - Glow</div><div class="cell-fx-badge">FX 2</div></div>
+          <div class="cell playing"><div class="cell-thumb"><div class="cell-thumb-grad" style="background:#111;"></div></div><div class="cell-name">FX - Kaleid</div><div class="cell-fx-badge">FX 3</div></div>
+          <div class="cell"><div class="cell-thumb"><div class="cell-thumb-grad" style="background:#111;"></div></div><div class="cell-name">FX - Glitch</div><div class="cell-fx-badge">FX 1</div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb" style="color:#333;">empty</div><div class="cell-name"></div></div>
+        </div>
+      </div>
+
+      <!-- LAYER 1 (Opaque — SELECTED) -->
+      <div class="layer-row" style="background:#0d0d12;">
+        <div class="layer-strip" style="background:#131318;">
+          <div class="ls-top">
+            <span class="ls-name" style="color:#eee;">Layer 1 - Main</span>
+            <span class="ls-type" style="color:#aaa;">OPAQ</span>
+            <div class="ls-btn">X</div>
+            <div class="ls-btn">B</div>
+            <div class="ls-btn">S</div>
+          </div>
+          <div class="ls-mid">
+            <div class="ls-thumb" style="border-color:#00d9ff44;">
+              <div class="ls-thumb-grad" style="background:linear-gradient(135deg,#0a0510,#201040,#0a0510);"></div>
+            </div>
+            <div class="ls-controls">
+              <div class="ls-bar-row"><span class="ls-bar-label">V</span><div class="ls-bar"><div class="ls-bar-fill teal" style="width:100%;"></div></div></div>
+              <div class="ls-blend">Normal</div>
+            </div>
+          </div>
+        </div>
+        <div class="cells-row">
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:radial-gradient(circle,#330066,#110022);"></div></div>
+            <div class="cell-name">Julia Set</div>
+          </div>
+          <!-- THIS IS THE SELECTED + PLAYING CLIP -->
+          <div class="cell selected" style="border:2px solid #ffffff88;">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:radial-gradient(ellipse at 40% 50%,#000,#1a0040 30%,#300060 50%,#0a0020);"></div></div>
+            <div class="cell-name" style="color:#fff;">Mandelbrot</div>
+            <div class="cell-fx-badge">FX 3</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#002211,#004433);"></div></div>
+            <div class="cell-name">Sierpinski</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:radial-gradient(circle,#440000,#220000);"></div></div>
+            <div class="cell-name">Burning Ship</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#001133,#002255);"></div></div>
+            <div class="cell-name">Mandelbulb</div>
+            <div class="cell-fx-badge">FX 1</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(45deg,#220033,#110044);"></div></div>
+            <div class="cell-name">Menger</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:conic-gradient(#220022,#002222,#222200,#220022);"></div></div>
+            <div class="cell-name">Kaleido Frac.</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#113300,#225500);"></div></div>
+            <div class="cell-name">Newton 3D</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:radial-gradient(circle,#003344,#001122);"></div></div>
+            <div class="cell-name">Apollonian</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#330011,#550022);"></div></div>
+            <div class="cell-name">KIFS</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:linear-gradient(135deg,#001a00,#003300);"></div></div>
+            <div class="cell-name">Sierp. Tetra</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background:radial-gradient(circle,#002244,#001122);"></div></div>
+            <div class="cell-name">Julia 3D</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Deck tabs -->
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck 1</div>
+      <div class="deck-tab">Deck 2</div>
+      <div class="deck-tab">Deck 3</div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL (40%) -->
+  <div class="right-panel">
+    <!-- PREVIEW (60%) -->
+    <div class="preview-area">
+      <div class="preview-viewport">
+        <div class="preview-fractal"></div>
+        <div class="preview-clip-label">Layer 1 / Mandelbrot</div>
+        <div class="preview-label">1920 x 1080 @ 60fps</div>
+      </div>
+    </div>
+
+    <!-- BROWSER (40%) -->
+    <div class="browser-area">
+      <div class="browser-tabs">
+        <div class="browser-tab">Files</div>
+        <div class="browser-tab active">FX</div>
+        <div class="browser-tab">Sources</div>
+        <div class="browser-tab">Decks</div>
+        <div class="browser-tab">Record</div>
+        <div class="browser-tab">MilkDrop</div>
+      </div>
+      <div class="browser-search"><span class="browser-search-icon">&#128269;</span> Search effects...</div>
+      <div class="browser-list">
+        <div class="browser-cat">Warp (28)</div>
+        <div class="browser-item"><span class="cat-dot cat-warp"></span>Ripple</div>
+        <div class="browser-item"><span class="cat-dot cat-warp"></span>Bulge</div>
+        <div class="browser-item"><span class="cat-dot cat-warp"></span>Wave</div>
+        <div class="browser-item"><span class="cat-dot cat-warp"></span>Liquid</div>
+        <div class="browser-item"><span class="cat-dot cat-warp"></span>Kaleidoscope</div>
+        <div class="browser-item"><span class="cat-dot cat-warp"></span>Fisheye</div>
+        <div class="browser-item"><span class="cat-dot cat-warp"></span>Swirl</div>
+        <div class="browser-item"><span class="cat-dot cat-warp"></span>Infinite Zoom</div>
+        <div class="browser-cat">Color (31)</div>
+        <div class="browser-item"><span class="cat-dot cat-color"></span>Hue Shift</div>
+        <div class="browser-item"><span class="cat-dot cat-color"></span>Saturation</div>
+        <div class="browser-item"><span class="cat-dot cat-color"></span>Chromatic Aberration</div>
+        <div class="browser-cat">Time (6)</div>
+        <div class="browser-item"><span class="cat-dot cat-time"></span>Echo</div>
+        <div class="browser-item"><span class="cat-dot cat-time"></span>Freeze</div>
+        <div class="browser-item"><span class="cat-dot cat-time"></span>Screen Split</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ AUDIO STRIP ═══════════════ -->
+<div class="audio-strip">
+  <div class="as-group">
+    <div class="as-dot" style="height:6px;background:#ff4444;"></div>
+    <div class="as-dot" style="height:5px;background:#ff6644;"></div>
+    <div class="as-dot" style="height:7px;background:#ff8844;"></div>
+  </div>
+  <span class="as-label">RMS</span>
+  <span class="as-val">0.72</span>
+
+  <div class="as-group" style="margin-left:6px;">
+    <div class="as-dot" style="height:8px;background:#4488ff;"></div>
+    <div class="as-dot" style="height:5px;background:#44aaff;"></div>
+    <div class="as-dot" style="height:3px;background:#44ccff;"></div>
+  </div>
+  <span class="as-label">Bass</span>
+  <span class="as-val">0.88</span>
+
+  <div class="as-group" style="margin-left:6px;">
+    <div class="as-dot" style="height:4px;background:#44ff88;"></div>
+    <div class="as-dot" style="height:6px;background:#44ffaa;"></div>
+    <div class="as-dot" style="height:3px;background:#44ffcc;"></div>
+  </div>
+  <span class="as-label">Mid</span>
+  <span class="as-val">0.41</span>
+
+  <div class="as-group" style="margin-left:6px;">
+    <div class="as-dot" style="height:2px;background:#aa44ff;"></div>
+    <div class="as-dot" style="height:3px;background:#cc44ff;"></div>
+    <div class="as-dot" style="height:2px;background:#ee44ff;"></div>
+  </div>
+  <span class="as-label">High</span>
+  <span class="as-val">0.18</span>
+
+  <div class="as-group" style="margin-left:8px;">
+    <div class="as-dot" style="height:5px;background:#00d9ff;width:2px;"></div>
+  </div>
+  <span class="as-label">Beat</span>
+  <span class="as-val" style="color:#00d9ff;">0.31</span>
+
+  <div class="as-group" style="margin-left:6px;">
+    <div class="as-dot" style="height:4px;background:#ff8800;width:2px;"></div>
+  </div>
+  <span class="as-label">Onset</span>
+  <span class="as-val">0.65</span>
+
+  <div class="as-group" style="margin-left:6px;">
+    <div class="as-dot" style="height:3px;background:#ffcc00;width:2px;"></div>
+  </div>
+  <span class="as-label">Pitch</span>
+  <span class="as-val">440Hz</span>
+
+  <div class="as-spacer"></div>
+
+  <span class="as-key">Am</span>
+  <span style="margin:0 4px;color:#2a2a30;">|</span>
+  <span class="as-bpm-small">128.0</span>
+  <span class="as-label" style="margin-left:2px;">BPM</span>
+  <span style="margin:0 4px;color:#2a2a30;">|</span>
+  <span class="as-label">Drop</span>
+</div>
+
+</body>
+</html>

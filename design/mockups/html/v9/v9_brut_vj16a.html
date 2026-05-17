@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA V9 Brutalist VJ16A — Full Inspector + Browser + Signal Bar</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:1920px; height:1080px; overflow:hidden; }
+body {
+  background:#0a0a0a;
+  color:#e8e8e8;
+  font-family:'IBM Plex Sans', system-ui, sans-serif;
+  font-size:11px;
+  font-weight:400;
+  letter-spacing:0.02em;
+  position:relative;
+}
+
+/* ─── 3% SVG GRAIN OVERLAY ─── */
+body::before {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:1000; opacity:0.03;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.mono { font-family:'IBM Plex Mono', monospace; }
+.sans { font-family:'IBM Plex Sans', sans-serif; }
+
+.app {
+  width:1920px; height:1080px; background:#0a0a0a;
+  display:flex; flex-direction:column; overflow:hidden; position:relative;
+}
+
+/* ============ MENU BAR 24px ============ */
+.menu-bar {
+  height:24px; background:#0a0a0a; display:flex; align-items:center;
+  padding:0 14px; border-bottom:1px solid #222; gap:22px; flex-shrink:0;
+  font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:500;
+  text-transform:uppercase; letter-spacing:0.08em; color:#6e6e6e;
+}
+.mb-brand { color:#e8e8e8; font-weight:700; letter-spacing:0.15em; }
+.mb-item { cursor:pointer; }
+.mb-item:hover { color:#e8e8e8; }
+.mb-right { margin-left:auto; display:flex; gap:22px; }
+.mb-right b { color:#e8e8e8; font-weight:500; }
+
+/* ============ TOP BAR 40px ============ */
+.top-bar {
+  height:40px; background:#0a0a0a; display:flex; align-items:center;
+  padding:0 14px; border-bottom:1px solid #222; gap:16px; flex-shrink:0;
+  position:relative; overflow:visible; z-index:20;
+}
+.tb-logo {
+  font-family:'IBM Plex Mono', monospace; font-size:13px; font-weight:700;
+  color:#fff; letter-spacing:0.2em; text-transform:uppercase;
+}
+.tb-logo span { color:#6e6e6e; font-weight:400; }
+
+.tb-bpm-wrap {
+  display:flex; align-items:baseline; gap:8px;
+  margin-top:-10px; margin-bottom:-10px; /* BPM peeks above */
+}
+.tb-bpm-val {
+  font-family:'IBM Plex Mono', monospace; font-size:48px; font-weight:700;
+  color:#ff4500; line-height:1; letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums;
+}
+.tb-bpm-lbl {
+  font-family:'IBM Plex Mono', monospace; font-size:10px; color:#6e6e6e;
+  text-transform:uppercase; letter-spacing:0.15em;
+}
+.tb-tap {
+  font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600;
+  color:#e8e8e8; background:#0a0a0a; border:1px solid #333;
+  padding:5px 12px; cursor:pointer; text-transform:uppercase; letter-spacing:0.1em;
+  height:24px; min-width:44px;
+}
+.tb-tap:hover { border-color:#6e6e6e; }
+
+.tb-sep { width:1px; height:28px; background:#222; }
+
+.tb-bar-info {
+  font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6e6e6e;
+  text-transform:uppercase; letter-spacing:0.12em;
+}
+.tb-bar-info b { color:#e8e8e8; font-weight:600; }
+
+/* Beat wheel 4-square */
+.beat-wheel {
+  width:22px; height:22px; border:1px solid #333; position:relative;
+  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+}
+.bw-cell { border:1px solid #0a0a0a; }
+.bw-cell.lit { background:#ff4500; animation:beatPulse 0.469s linear; }
+.bw-cell.dim { background:#1a1a1a; }
+@keyframes beatPulse {
+  0% { opacity:1; }
+  30% { opacity:0.9; }
+  100% { opacity:0.25; }
+}
+
+.tb-quantize {
+  display:flex; align-items:center; gap:6px;
+  font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:0.1em;
+}
+.tb-quantize-lbl { font-size:9px; color:#6e6e6e; }
+.tb-quantize-val {
+  font-size:11px; color:#e8e8e8; background:#111; border:1px solid #333;
+  padding:3px 8px; font-weight:600;
+}
+
+.tb-fade {
+  display:flex; align-items:center; gap:6px;
+  font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:0.1em;
+}
+.tb-fade-lbl { font-size:9px; color:#6e6e6e; }
+.tb-fade-val {
+  font-size:11px; color:#e8e8e8; background:#0a0a0a; border:1px solid #333;
+  padding:3px 8px;
+}
+
+.tb-master { margin-left:auto; display:flex; align-items:center; gap:10px; }
+.tb-master-lbl {
+  font-family:'IBM Plex Mono', monospace; font-size:9px; color:#6e6e6e;
+  text-transform:uppercase; letter-spacing:0.15em;
+}
+.tb-master-meter {
+  display:flex; gap:1px; align-items:center; height:18px;
+}
+.tb-master-bar {
+  width:4px; height:18px; background:#111; border:1px solid #222; position:relative; overflow:hidden;
+}
+.tb-master-bar .fill {
+  position:absolute; bottom:0; left:0; right:0;
+  transition:height 80ms linear;
+}
+.fill-lo { background:#e8e8e8; }
+.fill-md { background:#e8e8e8; }
+.fill-hi { background:#ff4500; }
+
+.tb-rec {
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600;
+  color:#ff4500; text-transform:uppercase; letter-spacing:0.12em;
+  border:1px solid #ff4500; padding:3px 8px;
+  display:flex; align-items:center; gap:5px;
+}
+.tb-rec-dot {
+  width:6px; height:6px; background:#ff4500; animation:beatPulse 1s linear infinite;
+}
+
+/* ============ SIGNAL BAR 40px ============ */
+.signal-bar {
+  height:40px; background:#0a0a0a; display:flex; align-items:center;
+  padding:0 8px; border-bottom:1px solid #222; flex-shrink:0; gap:2px;
+}
+.sig-meter {
+  display:flex; flex-direction:column; justify-content:center;
+  flex:1; max-width:70px; min-width:50px; padding:2px 4px;
+  height:36px; position:relative;
+  border-left:3px solid transparent;
+}
+.sig-meter.selected { border-left-color:#ff4500; background:#111; }
+.sig-label {
+  font-family:'IBM Plex Mono', monospace; font-size:8px; font-weight:500;
+  color:#6e6e6e; text-transform:uppercase; letter-spacing:0.1em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  margin-bottom:2px;
+}
+.sig-meter.selected .sig-label { color:#e8e8e8; }
+.sig-bar {
+  width:100%; height:14px; background:#111; border:1px solid #222;
+  position:relative; overflow:hidden;
+}
+.sig-fill {
+  position:absolute; left:0; top:0; height:100%; background:#e8e8e8;
+  transition:width 80ms linear;
+}
+.sig-meter.selected .sig-fill { background:#ff4500; }
+.sig-val {
+  font-family:'IBM Plex Mono', monospace; font-size:8px; color:#6e6e6e;
+  font-variant-numeric:tabular-nums; margin-top:2px;
+}
+.sig-val.just-changed { color:#ff4500; animation:flash 0.2s linear; }
+@keyframes flash {
+  0% { background:rgba(255,69,0,0.4); }
+  100% { background:transparent; }
+}
+
+/* ============ DECK TABS 26px ============ */
+.deck-tabs {
+  height:26px; background:#0a0a0a; display:flex; align-items:flex-end;
+  padding:0 8px; border-bottom:1px solid #333; flex-shrink:0; gap:0;
+  position:relative;
+}
+.deck-tab {
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:500;
+  color:#6e6e6e; text-transform:uppercase; letter-spacing:0.12em;
+  padding:5px 16px; cursor:pointer;
+  background:#0a0a0a; border:1px solid #333; border-bottom:none;
+  position:relative; top:1px; height:25px;
+  display:flex; align-items:center;
+}
+.deck-tab:hover { color:#e8e8e8; }
+.deck-tab.active {
+  color:#e8e8e8; background:#1a1a1a; border-color:#333;
+  font-weight:700;
+}
+.deck-tab.active::after {
+  content:''; position:absolute; left:0; right:0; bottom:-1px;
+  height:2px; background:#ff4500;
+}
+.deck-tab-add {
+  font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6e6e6e;
+  padding:5px 10px; cursor:pointer; background:transparent;
+  border:1px dashed #333; border-bottom:none; height:25px;
+  display:flex; align-items:center;
+  position:relative; top:1px;
+}
+.deck-tab-add:hover { border-color:#6e6e6e; color:#e8e8e8; }
+
+.deck-tabs-spacer { flex:1; }
+
+.scene-row { display:flex; gap:4px; align-items:center; padding-bottom:3px; }
+.scene-btn {
+  width:80px; height:20px;
+  font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:500;
+  color:#6e6e6e; background:#0a0a0a; border:1px solid #222;
+  cursor:pointer; text-transform:uppercase; letter-spacing:0.1em;
+  display:flex; align-items:center; justify-content:center;
+}
+.scene-btn:hover { color:#e8e8e8; border-color:#6e6e6e; }
+.scene-btn.active { color:#0a0a0a; background:#e8e8e8; border-color:#e8e8e8; font-weight:700; }
+
+/* ============ MAIN AREA ============ */
+.main-area { display:flex; flex:1; overflow:hidden; min-height:0; }
+
+/* ─── LEFT PANEL ─── */
+.left-panel { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* Column headers */
+.col-hdr-row {
+  display:flex; height:24px; background:#0a0a0a; border-bottom:1px solid #222;
+  flex-shrink:0;
+}
+.col-hdr-layer {
+  width:230px; flex-shrink:0; border-right:1px solid #222;
+  display:flex; align-items:center; padding:0 12px;
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600;
+  color:#6e6e6e; text-transform:uppercase; letter-spacing:0.15em;
+}
+.col-hdr-cols { display:flex; flex:1; overflow-x:auto; }
+.col-hdr {
+  min-width:100px; flex:1; display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:500;
+  color:#6e6e6e; text-transform:uppercase; letter-spacing:0.15em;
+  border-right:1px solid #222; position:relative;
+}
+.col-hdr.active { color:#e8e8e8; font-weight:700; }
+.col-hdr.active::after {
+  content:''; position:absolute; left:0; right:0; bottom:-1px;
+  height:2px; background:#ff4500;
+}
+
+/* ─── LAYER STRIPS ─── */
+.layer-strips { display:flex; flex-direction:column; flex:1; overflow-y:auto; }
+.layer-strip {
+  display:flex; border-bottom:1px solid #222; flex:1; min-height:0;
+}
+
+/* Layer header */
+.layer-header {
+  width:230px; background:#111; padding:8px 10px; flex-shrink:0;
+  border-right:1px solid #333; display:flex; flex-direction:column; gap:5px;
+  overflow:hidden;
+}
+
+.layer-top-row { display:flex; align-items:center; gap:5px; }
+.layer-check {
+  width:12px; height:12px; appearance:none; -webkit-appearance:none;
+  border:1px solid #333; background:#0a0a0a; cursor:pointer; position:relative;
+}
+.layer-check:checked { background:#e8e8e8; border-color:#e8e8e8; }
+.layer-check:checked::after {
+  content:''; position:absolute; inset:2px; background:#0a0a0a;
+}
+
+.layer-ms-btn {
+  width:20px; height:18px; border:1px solid #333; background:#0a0a0a;
+  font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:700;
+  color:#6e6e6e; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.layer-ms-btn:hover { color:#e8e8e8; border-color:#6e6e6e; }
+.layer-ms-btn.muted {
+  background:#332200; border-color:#ff4500; color:#ff4500;
+}
+.layer-ms-btn.solo {
+  background:#003355; border-color:#e8e8e8; color:#e8e8e8;
+}
+
+.layer-name {
+  font-family:'IBM Plex Sans', sans-serif; font-size:13px; font-weight:600;
+  color:#fff; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+.layer-type-badge {
+  font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:500;
+  padding:2px 6px; border:1px solid #333; color:#6e6e6e;
+  text-transform:uppercase; letter-spacing:0.1em; background:transparent;
+}
+.layer-type-badge.opaque { border-color:#555; color:#e8e8e8; }
+.layer-type-badge.transparent { border-color:#444; color:#b5b5b5; }
+.layer-type-badge.fxonly { border-color:#444; color:#9e9e9e; }
+.layer-type-badge.mask { border-color:#444; color:#9e9e9e; }
+
+.layer-fold-btn, .layer-lock-btn {
+  width:14px; height:14px; background:none; border:none; color:#6e6e6e;
+  font-size:10px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono', monospace;
+}
+.layer-fold-btn:hover, .layer-lock-btn:hover { color:#e8e8e8; }
+.layer-lock-btn.locked { color:#e8e8e8; }
+
+.layer-clip-info {
+  font-family:'IBM Plex Mono', monospace; font-size:11px; color:#9e9e9e;
+  text-transform:uppercase; letter-spacing:0.05em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.layer-clip-info b { color:#e8e8e8; font-weight:600; }
+
+.layer-mini-meter {
+  height:14px; background:#0a0a0a; border:1px solid #222; position:relative; overflow:hidden;
+}
+
+.layer-params {
+  display:flex; flex-wrap:wrap; gap:2px 10px; align-items:center;
+  font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6e6e6e;
+  text-transform:uppercase; letter-spacing:0.05em;
+}
+.layer-params span { white-space:nowrap; display:inline-flex; align-items:center; gap:3px; }
+.layer-params .val { color:#e8e8e8; font-weight:500; }
+
+.signal-tri {
+  display:inline-block; width:0; height:0;
+  border-left:4px solid transparent; border-right:4px solid transparent;
+  cursor:pointer; vertical-align:middle;
+}
+.signal-tri.mapped { border-top:6px solid #ff4500; }
+.signal-tri.unmapped { border-top:6px solid #444; }
+.signal-tri-down { border-top:6px solid #e8e8e8; }
+
+.layer-opacity-row { display:flex; align-items:center; gap:6px; }
+.opacity-lbl {
+  font-family:'IBM Plex Mono', monospace; font-size:10px; color:#6e6e6e;
+  text-transform:uppercase; letter-spacing:0.1em;
+}
+.opacity-slider {
+  flex:1; height:5px; background:#222; border:1px solid #333;
+  appearance:none; -webkit-appearance:none; outline:none; cursor:pointer;
+  position:relative;
+}
+.opacity-slider::-webkit-slider-runnable-track {
+  height:3px; background:#222;
+}
+.opacity-slider::-webkit-slider-thumb {
+  appearance:none; -webkit-appearance:none; width:4px; height:12px;
+  background:#e8e8e8; border:none; cursor:pointer; margin-top:-5px;
+}
+.opacity-fill-bar {
+  position:absolute; left:0; top:0; height:100%; background:#e8e8e8;
+  pointer-events:none;
+}
+.opacity-val {
+  font-family:'IBM Plex Mono', monospace; font-size:11px; color:#e8e8e8;
+  font-weight:600; width:34px; text-align:right; font-variant-numeric:tabular-nums;
+}
+
+.layer-blend-row { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.blend-mode-pill {
+  font-family:'IBM Plex Mono', monospace; font-size:9px; color:#e8e8e8;
+  background:#0a0a0a; border:1px solid #333; padding:2px 6px;
+  text-transform:uppercase; letter-spacing:0.1em;
+}
+.auto-badge, .persist-badge {
+  font-family:'IBM Plex Mono', monospace; font-size:9px; color:#6e6e6e;
+  background:transparent; border:1px solid #333; padding:2px 5px;
+  text-transform:uppercase; letter-spacing:0.1em;
+}
+
+/* Clip grid */
+.clip-grid {
+  display:flex; flex:1; overflow-x:auto; background:#0a0a0a;
+  padding:4px 0;
+}
+.clip-column {
+  min-width:100px; flex:1; border-right:1px solid #222;
+  display:flex; flex-direction:column; align-items:center;
+  padding:2px 3px; gap:3px; justify-content:center;
+}
+.clip-cell {
+  width:92px; flex:1; max-height:calc(100% - 4px); min-height:60px;
+  background:#111; border:1px solid #333; display:flex; flex-direction:column;
+  cursor:pointer; position:relative; overflow:hidden;
+}
+.clip-cell:hover { border-color:#6e6e6e; }
+.clip-cell.playing { background:#ff4500; border-color:#ff4500; }
+.clip-cell.playing .clip-name-bar { background:#ff4500; color:#0a0a0a; }
+.clip-cell.queued {
+  border:1px dashed #e8e8e8;
+}
+.clip-thumb {
+  width:100%; flex:1; min-height:0; background:#0a0a0a;
+  position:relative; overflow:hidden;
+}
+.clip-thumb svg { width:100%; height:100%; display:block; }
+.clip-name-bar {
+  height:18px; background:#1a1a1a; border-top:1px solid #222;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono', monospace; font-size:9px; color:#e8e8e8;
+  text-transform:uppercase; letter-spacing:0.08em; padding:0 4px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.clip-cell.playing .clip-name-bar { font-weight:700; }
+.clip-empty {
+  background:transparent; border:1px dashed #222;
+}
+.clip-fx-dots {
+  position:absolute; bottom:20px; right:3px; display:flex; gap:2px; z-index:2;
+}
+.clip-fx-dot { width:3px; height:3px; background:#e8e8e8; }
+
+/* ============ RIGHT PANEL ============ */
+.right-panel {
+  width:580px; background:#0a0a0a; border-left:1px solid #222;
+  display:flex; flex-shrink:0;
+}
+
+/* ─── INSPECTOR COLUMN 340px ─── */
+.inspector-col {
+  width:340px; border-right:1px solid #222; display:flex; flex-direction:column;
+  overflow:hidden;
+}
+
+/* Preview monitor (TOP, 300x170, docked) */
+.preview-monitor {
+  width:300px; height:170px; margin:10px auto 8px; flex-shrink:0;
+  background:#000; border:1px solid #333; position:relative; overflow:hidden;
+}
+.preview-monitor::after {
+  content:''; position:absolute; left:0; right:0; bottom:0; height:2px; background:#ff4500;
+}
+.preview-live-tag {
+  position:absolute; top:6px; left:6px;
+  font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:700;
+  color:#fff; background:#ff4500; padding:2px 6px; letter-spacing:0.15em;
+  text-transform:uppercase; z-index:5;
+}
+.preview-res-tag {
+  position:absolute; top:6px; right:6px;
+  font-family:'IBM Plex Mono', monospace; font-size:9px; color:#e8e8e8;
+  letter-spacing:0.1em; z-index:5;
+}
+
+.inspector-tabs {
+  display:flex; height:24px; border-bottom:1px solid #222; flex-shrink:0;
+  margin-top:2px;
+}
+.inspector-tab {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:500;
+  color:#6e6e6e; text-transform:uppercase; letter-spacing:0.15em;
+  cursor:pointer; background:#0a0a0a; border-right:1px solid #222;
+}
+.inspector-tab:last-child { border-right:none; }
+.inspector-tab:hover { color:#e8e8e8; }
+.inspector-tab.active { color:#fff; background:#111; font-weight:700; }
+.inspector-tab.active::after {
+  content:''; display:block; position:absolute; height:1px; background:#ff4500;
+}
+
+.inspector-content { flex:1; overflow-y:auto; padding:6px 8px; }
+
+.insp-section { background:#0a0a0a; border:1px solid #222; margin-bottom:4px; }
+.insp-section-hdr {
+  display:flex; align-items:center; padding:5px 8px; cursor:pointer;
+  background:#111; border-bottom:1px solid #222; gap:6px; height:24px;
+}
+.insp-section-hdr:hover { background:#1a1a1a; }
+.insp-section-title {
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600;
+  color:#e8e8e8; text-transform:uppercase; letter-spacing:0.15em; flex:1;
+}
+.insp-section-arrow {
+  font-family:'IBM Plex Mono', monospace; font-size:9px; color:#6e6e6e;
+}
+.insp-section-body { padding:6px 8px; }
+
+.insp-param-row {
+  display:flex; align-items:center; gap:5px; margin-bottom:4px; min-height:16px;
+}
+.insp-param-label {
+  font-family:'IBM Plex Mono', monospace; font-size:10px; color:#9e9e9e;
+  width:64px; text-transform:uppercase; letter-spacing:0.1em; flex-shrink:0;
+}
+.insp-param-slider {
+  flex:1; height:4px; background:#222; border:1px solid #333;
+  appearance:none; -webkit-appearance:none; outline:none; cursor:pointer;
+  position:relative;
+}
+.insp-param-slider::-webkit-slider-thumb {
+  appearance:none; -webkit-appearance:none; width:3px; height:10px;
+  background:#e8e8e8; border:none; cursor:pointer; margin-top:-4px;
+}
+.insp-param-val {
+  font-family:'IBM Plex Mono', monospace; font-size:10px; color:#e8e8e8;
+  width:36px; text-align:right; font-variant-numeric:tabular-nums; font-weight:500;
+}
+
+/* Dashboard knobs */
+.dashboard-grid {
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; padding:4px 0;
+}
+.dash-knob {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+}
+.dash-knob-circle {
+  width:36px; height:36px; border:1px solid #333; background:#0a0a0a;
+  position:relative; cursor:pointer;
+}
+.dash-knob-circle.linked { border-color:#e8e8e8; }
+.dash-knob-circle .knob-ind {
+  position:absolute; width:2px; height:14px; background:#e8e8e8;
+  top:2px; left:calc(50% - 1px); transform-origin:bottom center;
+}
+.dash-knob-circle.linked .knob-ind { background:#ff4500; }
+.dash-knob-label {
+  font-family:'IBM Plex Mono', monospace; font-size:9px; color:#6e6e6e;
+  text-transform:uppercase; letter-spacing:0.1em;
+}
+
+/* Effect stack */
+.fx-stack-item {
+  display:flex; align-items:center; gap:5px; padding:4px 6px;
+  background:#111; border:1px solid #222; margin-bottom:2px; height:24px;
+}
+.fx-stack-bypass {
+  width:18px; height:16px; background:#e8e8e8; border:1px solid #e8e8e8;
+  font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:700;
+  color:#0a0a0a; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.fx-stack-bypass.bypassed {
+  background:transparent; border-color:#333; color:#6e6e6e;
+}
+.fx-stack-tri {
+  display:inline-block; width:0; height:0;
+  border-left:4px solid transparent; border-right:4px solid transparent;
+  border-top:6px solid #ff4500; cursor:pointer;
+}
+.fx-stack-tri.unmapped { border-top-color:#444; }
+.fx-stack-name {
+  font-family:'IBM Plex Mono', monospace; font-size:11px; color:#e8e8e8;
+  flex:1; text-transform:uppercase; letter-spacing:0.08em;
+}
+.fx-stack-name.bypassed { color:#555; }
+.fx-stack-remove {
+  color:#6e6e6e; font-family:'IBM Plex Mono', monospace; font-size:11px;
+  cursor:pointer; padding:0 4px;
+}
+.fx-stack-remove:hover { color:#ff4500; }
+
+.fx-params { padding:3px 6px 5px 24px; border-bottom:1px solid #222; margin-bottom:2px; }
+
+/* Cuepoint pads */
+.cue-row { display:flex; gap:3px; padding:2px 0; }
+.cue-pad {
+  flex:1; height:24px; background:#0a0a0a; border:1px solid #333;
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600;
+  color:#6e6e6e; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.cue-pad.set { background:#1a1a1a; border-color:#e8e8e8; color:#e8e8e8; }
+.cue-pad.current { background:#ff4500; border-color:#ff4500; color:#0a0a0a; font-weight:700; }
+
+/* Autopilot */
+.ap-row {
+  display:flex; align-items:center; gap:6px; margin-bottom:4px;
+  font-family:'IBM Plex Mono', monospace; font-size:11px;
+}
+.ap-toggle {
+  width:32px; height:14px; background:#222; border:1px solid #333;
+  position:relative; cursor:pointer; flex-shrink:0;
+}
+.ap-toggle.on { background:#ff4500; border-color:#ff4500; }
+.ap-toggle::after {
+  content:''; position:absolute; width:10px; height:10px; top:1px; left:1px;
+  background:#e8e8e8; transition:left 100ms linear;
+}
+.ap-toggle.on::after { left:19px; background:#0a0a0a; }
+.ap-label { color:#9e9e9e; text-transform:uppercase; letter-spacing:0.1em; width:60px; }
+.ap-select {
+  flex:1; background:#0a0a0a; border:1px solid #333; color:#e8e8e8;
+  font-family:'IBM Plex Mono', monospace; font-size:10px; padding:3px 6px;
+  text-transform:uppercase; letter-spacing:0.08em; height:22px;
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5'><path d='M0 0 L4 5 L8 0' fill='%236e6e6e'/></svg>");
+  background-repeat:no-repeat; background-position:right 6px center;
+  padding-right:20px;
+}
+
+/* ─── BROWSER COLUMN 240px ─── */
+.browser-col { width:240px; display:flex; flex-direction:column; overflow:hidden; }
+
+.browser-tabs {
+  display:flex; flex-wrap:wrap; border-bottom:1px solid #222; flex-shrink:0;
+  background:#0a0a0a;
+}
+.browser-tab {
+  flex:1; min-width:33.33%; height:24px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:500;
+  color:#6e6e6e; text-transform:uppercase; letter-spacing:0.15em;
+  cursor:pointer; background:#0a0a0a;
+  border-right:1px solid #222; border-bottom:1px solid #222;
+}
+.browser-tab:hover { color:#e8e8e8; }
+.browser-tab.active { color:#fff; background:#111; font-weight:700; position:relative; }
+.browser-tab.active::after {
+  content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px; background:#ff4500;
+}
+
+.browser-search {
+  height:26px; display:flex; align-items:center; padding:0 8px;
+  border-bottom:1px solid #222; background:#0a0a0a; flex-shrink:0;
+}
+.browser-search input {
+  flex:1; background:#0a0a0a; border:1px solid #333; color:#e8e8e8;
+  font-family:'IBM Plex Mono', monospace; font-size:10px; padding:3px 6px;
+  outline:none; text-transform:uppercase; letter-spacing:0.08em; height:20px;
+}
+.browser-search input::placeholder { color:#6e6e6e; }
+
+.browser-content { flex:1; overflow-y:auto; padding:4px 6px; }
+
+.fx-category {
+  display:flex; align-items:center; gap:4px; padding:8px 0 4px;
+  font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:700;
+  color:#e8e8e8; text-transform:uppercase; letter-spacing:0.15em;
+  border-bottom:1px solid #222; margin-bottom:3px;
+}
+.fx-category-count { color:#6e6e6e; font-weight:500; }
+.fx-category-arrow { margin-left:auto; color:#6e6e6e; font-size:9px; }
+
+.fx-item {
+  display:flex; align-items:center; gap:6px; padding:3px 6px;
+  background:transparent; border:1px solid transparent; margin-bottom:1px; cursor:grab;
+  height:20px;
+}
+.fx-item:hover { background:#111; border-color:#333; }
+.fx-item-name {
+  font-family:'IBM Plex Mono', monospace; font-size:10px; color:#e8e8e8;
+  text-transform:uppercase; letter-spacing:0.08em; flex:1;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.fx-item-cat {
+  font-family:'IBM Plex Mono', monospace; font-size:9px; color:#6e6e6e;
+  margin-left:auto; text-transform:uppercase;
+}
+
+/* ─── FOOTER 24px ─── */
+.footer {
+  height:24px; background:#0a0a0a; display:flex; align-items:center;
+  padding:0 14px; border-top:1px solid #222; flex-shrink:0;
+  font-family:'IBM Plex Mono', monospace; font-size:11px; color:#6e6e6e;
+  text-transform:uppercase; letter-spacing:0.1em; gap:14px;
+}
+.footer b { color:#e8e8e8; font-weight:500; }
+.footer-spacer { flex:1; }
+.footer-sep { width:1px; height:12px; background:#222; }
+.footer .rec { color:#ff4500; }
+
+/* Utility */
+.hidden { display:none !important; }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══════════════════ MENU BAR ══════════════════ -->
+  <div class="menu-bar">
+    <div class="mb-brand">Audio-DNA</div>
+    <div class="mb-item">File</div>
+    <div class="mb-item">Composition</div>
+    <div class="mb-item">Deck</div>
+    <div class="mb-item">Layer</div>
+    <div class="mb-item">Column</div>
+    <div class="mb-item">Clip</div>
+    <div class="mb-item">Output</div>
+    <div class="mb-item">Shortcuts</div>
+    <div class="mb-item">View</div>
+    <div class="mb-right">
+      <span>Session <b>ROOM_02</b></span>
+      <span>Mode <b>Live</b></span>
+    </div>
+  </div>
+
+  <!-- ══════════════════ TOP BAR ══════════════════ -->
+  <div class="top-bar">
+    <div class="tb-logo">AUDIO-DNA <span>/ VJ</span></div>
+    <div class="tb-sep"></div>
+    <div class="tb-bpm-wrap">
+      <div class="tb-bpm-val">128.0</div>
+      <div class="tb-bpm-lbl">BPM</div>
+    </div>
+    <button class="tb-tap">TAP</button>
+    <div class="tb-sep"></div>
+    <div class="tb-bar-info">BAR <b>4/8</b></div>
+    <div class="beat-wheel">
+      <div class="bw-cell lit"></div>
+      <div class="bw-cell dim"></div>
+      <div class="bw-cell dim"></div>
+      <div class="bw-cell dim"></div>
+    </div>
+    <div class="tb-bar-info">BEAT <b>1.1</b></div>
+    <div class="tb-sep"></div>
+    <div class="tb-quantize">
+      <span class="tb-quantize-lbl">Quant</span>
+      <span class="tb-quantize-val">1 BAR</span>
+    </div>
+    <div class="tb-fade">
+      <span class="tb-fade-lbl">Fade</span>
+      <span class="tb-fade-val">0.5 SEC</span>
+    </div>
+    <div class="tb-master">
+      <span class="tb-master-lbl">MASTER</span>
+      <div class="tb-master-meter" id="masterMeter"></div>
+    </div>
+    <div class="tb-rec"><span class="tb-rec-dot"></span>REC</div>
+  </div>
+
+  <!-- ══════════════════ SIGNAL BAR ══════════════════ -->
+  <div class="signal-bar">
+    <div class="sig-meter selected">
+      <div class="sig-label">RMS</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:65%;"></div></div>
+      <div class="sig-val just-changed">0.65</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">PEAK</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:82%;"></div></div>
+      <div class="sig-val">0.82</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">BASS</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:78%;"></div></div>
+      <div class="sig-val">0.78</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">LOW MID</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:55%;"></div></div>
+      <div class="sig-val">0.55</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">MID</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:45%;"></div></div>
+      <div class="sig-val">0.45</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">HIGH MID</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:38%;"></div></div>
+      <div class="sig-val">0.38</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">HIGH</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:30%;"></div></div>
+      <div class="sig-val">0.30</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">BEAT</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:25%;"></div></div>
+      <div class="sig-val">0.25</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">BAR</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:50%;"></div></div>
+      <div class="sig-val">0.50</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">PHRASE</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:62%;"></div></div>
+      <div class="sig-val">0.62</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">CENTROID</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:55%;"></div></div>
+      <div class="sig-val">2.4k</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">FLUX</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:38%;"></div></div>
+      <div class="sig-val">0.38</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">ONSET</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:90%;"></div></div>
+      <div class="sig-val">0.90</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">PITCH</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:42%;"></div></div>
+      <div class="sig-val">440</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">KEY</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:67%;"></div></div>
+      <div class="sig-val">F MIN</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">GENRE</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:70%;"></div></div>
+      <div class="sig-val">HOUSE</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">ENERGY</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:60%;"></div></div>
+      <div class="sig-val">HI</div>
+    </div>
+    <div class="sig-meter">
+      <div class="sig-label">LUFS</div>
+      <div class="sig-bar"><div class="sig-fill" style="width:72%;"></div></div>
+      <div class="sig-val">-12</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ DECK TABS ══════════════════ -->
+  <div class="deck-tabs">
+    <div class="deck-tab active">DECK 1</div>
+    <div class="deck-tab">DECK 2</div>
+    <div class="deck-tab">DECK 3</div>
+    <div class="deck-tab-add">+ NEW</div>
+    <div class="deck-tabs-spacer"></div>
+    <div class="scene-row">
+      <button class="scene-btn">SCENE 1</button>
+      <button class="scene-btn active">SCENE 2</button>
+      <button class="scene-btn">SCENE 3</button>
+      <button class="scene-btn">SCENE 4</button>
+      <button class="scene-btn">SCENE 5</button>
+      <button class="scene-btn">SCENE 6</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════ MAIN AREA ══════════════════ -->
+  <div class="main-area">
+
+    <!-- LEFT: LAYERS + CLIP GRID -->
+    <div class="left-panel">
+
+      <!-- Column headers -->
+      <div class="col-hdr-row">
+        <div class="col-hdr-layer">LAYER</div>
+        <div class="col-hdr-cols">
+          <div class="col-hdr">COL 01</div>
+          <div class="col-hdr">COL 02</div>
+          <div class="col-hdr active">COL 03</div>
+          <div class="col-hdr">COL 04</div>
+          <div class="col-hdr">COL 05</div>
+          <div class="col-hdr">COL 06</div>
+          <div class="col-hdr">COL 07</div>
+          <div class="col-hdr">COL 08</div>
+          <div class="col-hdr">COL 09</div>
+          <div class="col-hdr">COL 10</div>
+        </div>
+      </div>
+
+      <!-- Layer strips -->
+      <div class="layer-strips">
+
+        <!-- ─── LAYER 1 — Opaque ─── -->
+        <div class="layer-strip">
+          <div class="layer-header">
+            <div class="layer-top-row">
+              <input type="checkbox" class="layer-check" checked>
+              <div class="layer-ms-btn">M</div>
+              <div class="layer-ms-btn">S</div>
+              <div class="layer-name">L1 / BASE</div>
+              <div class="layer-fold-btn">[-]</div>
+              <div class="layer-lock-btn">[O]</div>
+            </div>
+            <div class="layer-top-row" style="gap:4px;">
+              <div class="layer-type-badge opaque">OPAQUE</div>
+              <span class="layer-clip-info" style="flex:1;">CLIP: <b>ABSTRACT_01</b> . VIDEO</span>
+            </div>
+            <canvas id="meter1" width="210" height="14" class="layer-mini-meter"></canvas>
+            <div class="layer-params">
+              <span><span class="signal-tri mapped"></span>POS <span class="val">0.50</span></span>
+              <span><span class="signal-tri unmapped"></span>SCL <span class="val">1.00</span></span>
+              <span><span class="signal-tri unmapped"></span>ROT <span class="val">0°</span></span>
+              <span><span class="signal-tri mapped"></span>SPD <span class="val">1.6x</span></span>
+            </div>
+            <div class="layer-opacity-row">
+              <span class="opacity-lbl">OPACITY</span>
+              <div style="flex:1;height:5px;background:#222;border:1px solid #333;position:relative;">
+                <div class="opacity-fill-bar" style="width:100%;"></div>
+              </div>
+              <span class="opacity-val">100</span>
+            </div>
+            <div class="layer-blend-row">
+              <span class="blend-mode-pill">SCREEN</span>
+              <span class="auto-badge">AUTO · 8B</span>
+            </div>
+          </div>
+          <div class="clip-grid" id="cg1"></div>
+        </div>
+
+        <!-- ─── LAYER 2 — Transparent — PLAYING L2.C3 ─── -->
+        <div class="layer-strip">
+          <div class="layer-header">
+            <div class="layer-top-row">
+              <input type="checkbox" class="layer-check" checked>
+              <div class="layer-ms-btn">M</div>
+              <div class="layer-ms-btn">S</div>
+              <div class="layer-name">L2 / FRACTAL</div>
+              <div class="layer-fold-btn">[-]</div>
+              <div class="layer-lock-btn locked">[X]</div>
+            </div>
+            <div class="layer-top-row" style="gap:4px;">
+              <div class="layer-type-badge transparent">TRANSPARENT</div>
+              <span class="layer-clip-info" style="flex:1;">CLIP: <b>JULIA.07</b> . VIDEO</span>
+            </div>
+            <canvas id="meter2" width="210" height="14" class="layer-mini-meter"></canvas>
+            <div class="layer-params">
+              <span><span class="signal-tri mapped"></span>POS <span class="val">0.50</span></span>
+              <span><span class="signal-tri mapped"></span>SCL <span class="val">1.20</span></span>
+              <span><span class="signal-tri unmapped"></span>ROT <span class="val">15°</span></span>
+              <span><span class="signal-tri mapped"></span>SPD <span class="val">1.0x</span></span>
+            </div>
+            <div class="layer-opacity-row">
+              <span class="opacity-lbl">OPACITY</span>
+              <div style="flex:1;height:5px;background:#222;border:1px solid #333;position:relative;">
+                <div class="opacity-fill-bar" style="width:85%;"></div>
+              </div>
+              <span class="opacity-val">85</span>
+            </div>
+            <div class="layer-blend-row">
+              <span class="blend-mode-pill">ADD</span>
+              <span class="persist-badge">PERSIST</span>
+            </div>
+          </div>
+          <div class="clip-grid" id="cg2"></div>
+        </div>
+
+        <!-- ─── LAYER 3 — FX Only — muted ─── -->
+        <div class="layer-strip">
+          <div class="layer-header">
+            <div class="layer-top-row">
+              <input type="checkbox" class="layer-check" checked>
+              <div class="layer-ms-btn muted">M</div>
+              <div class="layer-ms-btn">S</div>
+              <div class="layer-name">L3 / 3D</div>
+              <div class="layer-fold-btn">[-]</div>
+              <div class="layer-lock-btn locked">[X]</div>
+            </div>
+            <div class="layer-top-row" style="gap:4px;">
+              <div class="layer-type-badge fxonly">FX ONLY</div>
+              <span class="layer-clip-info" style="flex:1;">SRC: <b>MANDELBULB</b> . PROC</span>
+            </div>
+            <canvas id="meter3" width="210" height="14" class="layer-mini-meter"></canvas>
+            <div class="layer-params">
+              <span><span class="signal-tri mapped"></span>POS <span class="val">0.50</span></span>
+              <span><span class="signal-tri mapped"></span>ZOM <span class="val">0.70</span></span>
+              <span><span class="signal-tri unmapped"></span>ROT <span class="val">0°</span></span>
+              <span><span class="signal-tri mapped"></span>ITR <span class="val">12</span></span>
+            </div>
+            <div class="layer-opacity-row">
+              <span class="opacity-lbl">OPACITY</span>
+              <div style="flex:1;height:5px;background:#222;border:1px solid #333;position:relative;">
+                <div class="opacity-fill-bar" style="width:60%;"></div>
+              </div>
+              <span class="opacity-val">60</span>
+            </div>
+            <div class="layer-blend-row">
+              <span class="blend-mode-pill">MULTIPLY</span>
+              <span class="auto-badge">AUTO · 4B</span>
+            </div>
+          </div>
+          <div class="clip-grid" id="cg3"></div>
+        </div>
+
+        <!-- ─── LAYER 4 — Mask ─── -->
+        <div class="layer-strip">
+          <div class="layer-header">
+            <div class="layer-top-row">
+              <input type="checkbox" class="layer-check" checked>
+              <div class="layer-ms-btn">M</div>
+              <div class="layer-ms-btn solo">S</div>
+              <div class="layer-name">L4 / GRID</div>
+              <div class="layer-fold-btn">[-]</div>
+              <div class="layer-lock-btn">[O]</div>
+            </div>
+            <div class="layer-top-row" style="gap:4px;">
+              <div class="layer-type-badge mask">MASK</div>
+              <span class="layer-clip-info" style="flex:1;">CLIP: <b>NEON_GRID_02</b> . PP</span>
+            </div>
+            <canvas id="meter4" width="210" height="14" class="layer-mini-meter"></canvas>
+            <div class="layer-params">
+              <span><span class="signal-tri unmapped"></span>POS <span class="val">0.50</span></span>
+              <span><span class="signal-tri unmapped"></span>SCL <span class="val">1.00</span></span>
+              <span><span class="signal-tri unmapped"></span>ROT <span class="val">0°</span></span>
+              <span><span class="signal-tri mapped"></span>SPD <span class="val">2.0x</span></span>
+            </div>
+            <div class="layer-opacity-row">
+              <span class="opacity-lbl">OPACITY</span>
+              <div style="flex:1;height:5px;background:#222;border:1px solid #333;position:relative;">
+                <div class="opacity-fill-bar" style="width:45%;"></div>
+              </div>
+              <span class="opacity-val">45</span>
+            </div>
+            <div class="layer-blend-row">
+              <span class="blend-mode-pill">OVERLAY</span>
+            </div>
+          </div>
+          <div class="clip-grid" id="cg4"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════ RIGHT PANEL ══════════════════ -->
+    <div class="right-panel">
+
+      <!-- ─── INSPECTOR COLUMN ─── -->
+      <div class="inspector-col">
+
+        <!-- PREVIEW MONITOR (TOP, 300x170) -->
+        <div class="preview-monitor">
+          <div class="preview-live-tag">LIVE</div>
+          <div class="preview-res-tag">1920x1080</div>
+          <svg viewBox="0 0 300 170" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <defs>
+              <filter id="prevTurb">
+                <feTurbulence type="fractalNoise" baseFrequency="0.015 0.025" numOctaves="3" seed="7"/>
+                <feColorMatrix values="
+                  0.9 0 0 0 0.05
+                  0 0.2 0 0 0.02
+                  0 0 0.05 0 0
+                  0 0 0 1 0"/>
+              </filter>
+              <radialGradient id="prevCore" cx="50%" cy="50%" r="45%">
+                <stop offset="0%" stop-color="#ff4500" stop-opacity="0.6"/>
+                <stop offset="60%" stop-color="#111" stop-opacity="0.4"/>
+                <stop offset="100%" stop-color="#000" stop-opacity="0.9"/>
+              </radialGradient>
+            </defs>
+            <rect width="300" height="170" fill="#000"/>
+            <rect width="300" height="170" filter="url(#prevTurb)" opacity="0.9"/>
+            <rect width="300" height="170" fill="url(#prevCore)"/>
+            <!-- orbits -->
+            <g stroke="#e8e8e8" stroke-width="0.5" fill="none" opacity="0.35">
+              <ellipse cx="150" cy="85" rx="110" ry="32" transform="rotate(18 150 85)"/>
+              <ellipse cx="150" cy="85" rx="82" ry="24" transform="rotate(-28 150 85)"/>
+              <ellipse cx="150" cy="85" rx="55" ry="16" transform="rotate(45 150 85)"/>
+              <ellipse cx="150" cy="85" rx="32" ry="9" transform="rotate(-60 150 85)"/>
+            </g>
+            <circle cx="150" cy="85" r="3" fill="#ff4500"/>
+            <!-- scanlines -->
+            <g fill="#000" opacity="0.18">
+              <rect x="0" y="2" width="300" height="1"/>
+              <rect x="0" y="6" width="300" height="1"/>
+              <rect x="0" y="10" width="300" height="1"/>
+              <rect x="0" y="14" width="300" height="1"/>
+              <rect x="0" y="18" width="300" height="1"/>
+              <rect x="0" y="22" width="300" height="1"/>
+              <rect x="0" y="26" width="300" height="1"/>
+              <rect x="0" y="30" width="300" height="1"/>
+              <rect x="0" y="34" width="300" height="1"/>
+              <rect x="0" y="38" width="300" height="1"/>
+              <rect x="0" y="42" width="300" height="1"/>
+              <rect x="0" y="46" width="300" height="1"/>
+              <rect x="0" y="50" width="300" height="1"/>
+              <rect x="0" y="54" width="300" height="1"/>
+              <rect x="0" y="58" width="300" height="1"/>
+              <rect x="0" y="62" width="300" height="1"/>
+              <rect x="0" y="66" width="300" height="1"/>
+              <rect x="0" y="70" width="300" height="1"/>
+              <rect x="0" y="74" width="300" height="1"/>
+              <rect x="0" y="78" width="300" height="1"/>
+              <rect x="0" y="82" width="300" height="1"/>
+              <rect x="0" y="86" width="300" height="1"/>
+              <rect x="0" y="90" width="300" height="1"/>
+              <rect x="0" y="94" width="300" height="1"/>
+              <rect x="0" y="98" width="300" height="1"/>
+              <rect x="0" y="102" width="300" height="1"/>
+              <rect x="0" y="106" width="300" height="1"/>
+              <rect x="0" y="110" width="300" height="1"/>
+              <rect x="0" y="114" width="300" height="1"/>
+              <rect x="0" y="118" width="300" height="1"/>
+              <rect x="0" y="122" width="300" height="1"/>
+              <rect x="0" y="126" width="300" height="1"/>
+              <rect x="0" y="130" width="300" height="1"/>
+              <rect x="0" y="134" width="300" height="1"/>
+              <rect x="0" y="138" width="300" height="1"/>
+              <rect x="0" y="142" width="300" height="1"/>
+              <rect x="0" y="146" width="300" height="1"/>
+              <rect x="0" y="150" width="300" height="1"/>
+              <rect x="0" y="154" width="300" height="1"/>
+              <rect x="0" y="158" width="300" height="1"/>
+              <rect x="0" y="162" width="300" height="1"/>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Inspector tabs -->
+        <div class="inspector-tabs">
+          <div class="inspector-tab active">CLIP</div>
+          <div class="inspector-tab">LAYER</div>
+          <div class="inspector-tab">COMP</div>
+          <div class="inspector-tab">SIGNALS</div>
+        </div>
+
+        <div class="inspector-content">
+
+          <!-- DASHBOARD -->
+          <div class="insp-section">
+            <div class="insp-section-hdr">
+              <span class="insp-section-title">DASHBOARD</span>
+              <span class="insp-section-arrow">[-]</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="dashboard-grid">
+                <div class="dash-knob"><div class="dash-knob-circle linked"><div class="knob-ind" style="transform:rotate(-120deg);"></div></div><div class="dash-knob-label">M 01</div></div>
+                <div class="dash-knob"><div class="dash-knob-circle linked"><div class="knob-ind" style="transform:rotate(45deg);"></div></div><div class="dash-knob-label">M 02</div></div>
+                <div class="dash-knob"><div class="dash-knob-circle"><div class="knob-ind" style="transform:rotate(0deg);"></div></div><div class="dash-knob-label">M 03</div></div>
+                <div class="dash-knob"><div class="dash-knob-circle"><div class="knob-ind" style="transform:rotate(-30deg);"></div></div><div class="dash-knob-label">M 04</div></div>
+                <div class="dash-knob"><div class="dash-knob-circle linked"><div class="knob-ind" style="transform:rotate(90deg);"></div></div><div class="dash-knob-label">M 05</div></div>
+                <div class="dash-knob"><div class="dash-knob-circle"><div class="knob-ind" style="transform:rotate(15deg);"></div></div><div class="dash-knob-label">M 06</div></div>
+                <div class="dash-knob"><div class="dash-knob-circle"><div class="knob-ind" style="transform:rotate(-60deg);"></div></div><div class="dash-knob-label">M 07</div></div>
+                <div class="dash-knob"><div class="dash-knob-circle linked"><div class="knob-ind" style="transform:rotate(135deg);"></div></div><div class="dash-knob-label">M 08</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- EFFECT STACK -->
+          <div class="insp-section">
+            <div class="insp-section-hdr">
+              <span class="insp-section-title">EFFECT STACK</span>
+              <span class="insp-section-arrow">[-]</span>
+            </div>
+            <div class="insp-section-body">
+
+              <div class="fx-stack-item">
+                <div class="fx-stack-bypass">B</div>
+                <span class="fx-stack-name">RIPPLE</span>
+                <span class="fx-stack-remove">X</span>
+              </div>
+              <div class="fx-params">
+                <div class="insp-param-row">
+                  <span class="signal-tri mapped"></span>
+                  <span class="insp-param-label">INTENSITY</span>
+                  <input type="range" class="insp-param-slider" value="60">
+                  <span class="insp-param-val">0.60</span>
+                </div>
+                <div class="insp-param-row">
+                  <span class="signal-tri unmapped"></span>
+                  <span class="insp-param-label">FREQ</span>
+                  <input type="range" class="insp-param-slider" value="40">
+                  <span class="insp-param-val">0.40</span>
+                </div>
+                <div class="insp-param-row">
+                  <span class="signal-tri unmapped"></span>
+                  <span class="insp-param-label">SPEED</span>
+                  <input type="range" class="insp-param-slider" value="55">
+                  <span class="insp-param-val">0.55</span>
+                </div>
+              </div>
+
+              <div class="fx-stack-item">
+                <div class="fx-stack-bypass">B</div>
+                <span class="fx-stack-name">HUE SHIFT</span>
+                <span class="fx-stack-remove">X</span>
+              </div>
+              <div class="fx-params">
+                <div class="insp-param-row">
+                  <span class="signal-tri mapped"></span>
+                  <span class="insp-param-label">HUE</span>
+                  <input type="range" class="insp-param-slider" value="50">
+                  <span class="insp-param-val">180°</span>
+                </div>
+                <div class="insp-param-row">
+                  <span class="signal-tri unmapped"></span>
+                  <span class="insp-param-label">SAT</span>
+                  <input type="range" class="insp-param-slider" value="75">
+                  <span class="insp-param-val">0.75</span>
+                </div>
+              </div>
+
+              <div class="fx-stack-item">
+                <div class="fx-stack-bypass bypassed">B</div>
+                <span class="fx-stack-name bypassed">ECHO</span>
+                <span class="fx-stack-remove">X</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- CUEPOINTS -->
+          <div class="insp-section">
+            <div class="insp-section-hdr">
+              <span class="insp-section-title">CUEPOINTS</span>
+              <span class="insp-section-arrow">[-]</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="cue-row">
+                <div class="cue-pad set">1</div>
+                <div class="cue-pad current">2</div>
+                <div class="cue-pad set">3</div>
+                <div class="cue-pad set">4</div>
+                <div class="cue-pad">5</div>
+                <div class="cue-pad">6</div>
+                <div class="cue-pad">7</div>
+                <div class="cue-pad">8</div>
+              </div>
+              <div style="height:12px;background:#0a0a0a;border:1px solid #222;margin-top:4px;position:relative;">
+                <div style="position:absolute;left:12%;top:0;width:1px;height:100%;background:#e8e8e8;"></div>
+                <div style="position:absolute;left:32%;top:0;width:1px;height:100%;background:#ff4500;"></div>
+                <div style="position:absolute;left:48%;top:0;width:1px;height:100%;background:#e8e8e8;"></div>
+                <div style="position:absolute;left:68%;top:0;width:1px;height:100%;background:#e8e8e8;"></div>
+                <div style="position:absolute;left:32%;top:-1px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #ff4500;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AUTOPILOT -->
+          <div class="insp-section">
+            <div class="insp-section-hdr">
+              <span class="insp-section-title">AUTOPILOT</span>
+              <span class="insp-section-arrow">[-]</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="ap-row">
+                <div class="ap-toggle on"></div>
+                <span class="ap-label">ENABLED</span>
+              </div>
+              <div class="ap-row">
+                <span class="ap-label">TRIGGER</span>
+                <select class="ap-select">
+                  <option>ON BEAT</option>
+                  <option>END OF VIDEO</option>
+                </select>
+              </div>
+              <div class="ap-row">
+                <span class="ap-label">BEATS</span>
+                <select class="ap-select">
+                  <option>8 BEATS</option>
+                  <option>4 BEATS</option>
+                  <option>16 BEATS</option>
+                </select>
+              </div>
+              <div class="ap-row">
+                <span class="ap-label">ACTION</span>
+                <select class="ap-select">
+                  <option>PLAY NEXT</option>
+                  <option>PLAY RANDOM</option>
+                  <option>PLAY PREV</option>
+                </select>
+              </div>
+              <div class="ap-row">
+                <span class="ap-label">LOOPS</span>
+                <select class="ap-select">
+                  <option>2</option>
+                  <option>1</option>
+                  <option>4</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ─── BROWSER COLUMN ─── -->
+      <div class="browser-col">
+        <div class="browser-tabs">
+          <div class="browser-tab">FILES</div>
+          <div class="browser-tab active">FX</div>
+          <div class="browser-tab">SRC</div>
+          <div class="browser-tab">COMP</div>
+          <div class="browser-tab">DECKS</div>
+          <div class="browser-tab">REC</div>
+        </div>
+        <div class="browser-search">
+          <input type="text" placeholder="SEARCH FX..."/>
+        </div>
+        <div class="browser-content">
+
+          <div class="fx-category">
+            WARP <span class="fx-category-count">27</span>
+            <span class="fx-category-arrow">[-]</span>
+          </div>
+          <div class="fx-item"><span class="fx-item-name">RIPPLE</span><span class="fx-item-cat">WARP</span></div>
+          <div class="fx-item"><span class="fx-item-name">BULGE</span><span class="fx-item-cat">WARP</span></div>
+          <div class="fx-item"><span class="fx-item-name">WAVE</span><span class="fx-item-cat">WARP</span></div>
+          <div class="fx-item"><span class="fx-item-name">LIQUID</span><span class="fx-item-cat">WARP</span></div>
+          <div class="fx-item"><span class="fx-item-name">KALEIDO</span><span class="fx-item-cat">WARP</span></div>
+          <div class="fx-item"><span class="fx-item-name">FISHEYE</span><span class="fx-item-cat">WARP</span></div>
+          <div class="fx-item"><span class="fx-item-name">SWIRL</span><span class="fx-item-cat">WARP</span></div>
+
+          <div class="fx-category">
+            COLOR <span class="fx-category-count">31</span>
+            <span class="fx-category-arrow">[-]</span>
+          </div>
+          <div class="fx-item"><span class="fx-item-name">HUE SHIFT</span><span class="fx-item-cat">COLOR</span></div>
+          <div class="fx-item"><span class="fx-item-name">SATURATION</span><span class="fx-item-cat">COLOR</span></div>
+          <div class="fx-item"><span class="fx-item-name">CHROMA AB</span><span class="fx-item-cat">COLOR</span></div>
+          <div class="fx-item"><span class="fx-item-name">DUOTONE</span><span class="fx-item-cat">COLOR</span></div>
+
+          <div class="fx-category">
+            GLITCH <span class="fx-category-count">16</span>
+            <span class="fx-category-arrow">[-]</span>
+          </div>
+          <div class="fx-item"><span class="fx-item-name">BLOCK GLITCH</span><span class="fx-item-cat">GLITCH</span></div>
+          <div class="fx-item"><span class="fx-item-name">RGB SPLIT</span><span class="fx-item-cat">GLITCH</span></div>
+          <div class="fx-item"><span class="fx-item-name">PIXEL SCATTER</span><span class="fx-item-cat">GLITCH</span></div>
+
+          <div class="fx-category">
+            TIME <span class="fx-category-count">6</span>
+            <span class="fx-category-arrow">[-]</span>
+          </div>
+          <div class="fx-item"><span class="fx-item-name">ECHO</span><span class="fx-item-cat">TIME</span></div>
+          <div class="fx-item"><span class="fx-item-name">FREEZE</span><span class="fx-item-cat">TIME</span></div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ══════════════════ FOOTER ══════════════════ -->
+  <div class="footer">
+    <span>AUDIO-DNA V9.0</span>
+    <div class="footer-sep"></div>
+    <span>BRUTALIST VJ16A</span>
+    <div class="footer-sep"></div>
+    <span><b>60.0</b> FPS</span>
+    <div class="footer-sep"></div>
+    <span>CPU <b>22%</b></span>
+    <div class="footer-sep"></div>
+    <span><b>1920x1080</b></span>
+    <div class="footer-spacer"></div>
+    <span class="rec">REC <b>00:12:34</b></span>
+  </div>
+
+</div>
+
+<script>
+// ─── MASTER METER (horizontal multi-bar) ───
+(function(){
+  const wrap = document.getElementById('masterMeter');
+  const levels = [95,90,88,82,78,72,65,60,55,48,40,30,18,8,3];
+  levels.forEach((pct, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'tb-master-bar';
+    const fill = document.createElement('div');
+    fill.className = 'fill ' + (i < 10 ? 'fill-lo' : i < 13 ? 'fill-md' : 'fill-hi');
+    fill.style.height = pct + '%';
+    bar.appendChild(fill);
+    wrap.appendChild(bar);
+  });
+})();
+
+// ─── LAYER MINI METERS ───
+function drawMiniMeter(id, density, phase) {
+  const c = document.getElementById(id);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, w, h);
+  const bars = 70;
+  for (let i = 0; i < bars; i++) {
+    const t = i / bars;
+    const val = 0.2 + 0.55 * Math.abs(Math.sin(t * Math.PI * density + phase));
+    const bh = val * h;
+    // peak bar in orange
+    ctx.fillStyle = val > 0.65 ? '#ff4500' : '#e8e8e8';
+    ctx.fillRect(i * (w / bars) + 0.5, h - bh, (w / bars) - 1.2, bh);
+  }
+}
+drawMiniMeter('meter1', 6, 0);
+drawMiniMeter('meter2', 4, 1.2);
+drawMiniMeter('meter3', 3, 0.4);
+drawMiniMeter('meter4', 5, 2.1);
+
+// ─── CLIP THUMBNAILS — unique SVG per clip ───
+// 12 generators for variety
+const clipGenerators = {
+  abstract: (hue) => `
+    <defs>
+      <linearGradient id="g${hue}a" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="hsl(${hue},55%,18%)"/>
+        <stop offset="1" stop-color="hsl(${(hue+40)%360},40%,6%)"/>
+      </linearGradient>
+    </defs>
+    <rect width="100" height="100" fill="url(#g${hue}a)"/>
+    <circle cx="22" cy="30" r="14" fill="hsl(${hue},60%,45%)" opacity="0.45"/>
+    <circle cx="55" cy="55" r="20" fill="hsl(${(hue+50)%360},55%,50%)" opacity="0.4"/>
+    <circle cx="78" cy="35" r="10" fill="hsl(${(hue+80)%360},70%,55%)" opacity="0.5"/>
+    <circle cx="75" cy="78" r="12" fill="hsl(${(hue+30)%360},50%,40%)" opacity="0.35"/>`,
+  wave: (hue) => `
+    <rect width="100" height="100" fill="hsl(${hue},40%,10%)"/>
+    <path d="M0 50 Q 12 25, 25 50 T 50 50 T 75 50 T 100 50" stroke="hsl(${hue},70%,55%)" stroke-width="1.4" fill="none" opacity="0.85"/>
+    <path d="M0 60 Q 12 38, 25 60 T 50 60 T 75 60 T 100 60" stroke="hsl(${(hue+25)%360},65%,50%)" stroke-width="1.2" fill="none" opacity="0.7"/>
+    <path d="M0 40 Q 12 62, 25 40 T 50 40 T 75 40 T 100 40" stroke="hsl(${(hue+50)%360},60%,55%)" stroke-width="1" fill="none" opacity="0.55"/>`,
+  fire: (hue) => `
+    <defs>
+      <radialGradient id="g${hue}f" cx="50%" cy="85%" r="70%">
+        <stop offset="0" stop-color="hsl(${hue},95%,55%)" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="hsl(${hue},40%,8%)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="100" height="100" fill="hsl(${hue},30%,6%)"/>
+    <rect width="100" height="100" fill="url(#g${hue}f)"/>
+    <path d="M20 90 Q 28 50, 35 85 Q 40 55, 48 85 Q 55 60, 62 85 Q 70 45, 78 85 Z" fill="hsl(${(hue+12)%360},85%,55%)" opacity="0.55"/>`,
+  glitch: (hue) => `
+    <rect width="100" height="100" fill="hsl(${hue},40%,8%)"/>
+    <rect x="0" y="18" width="62" height="4" fill="hsl(${hue},85%,55%)" opacity="0.55"/>
+    <rect x="22" y="33" width="78" height="3" fill="hsl(${(hue+30)%360},80%,50%)" opacity="0.5"/>
+    <rect x="5" y="50" width="48" height="5" fill="hsl(${(hue+60)%360},90%,55%)" opacity="0.6"/>
+    <rect x="45" y="66" width="55" height="3" fill="hsl(${(hue+90)%360},75%,50%)" opacity="0.45"/>
+    <rect x="10" y="78" width="72" height="4" fill="hsl(${(hue+45)%360},85%,55%)" opacity="0.5"/>`,
+  fade: (hue) => `
+    <defs>
+      <radialGradient id="g${hue}d" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="hsl(${hue},70%,60%)" stop-opacity="0.7"/>
+        <stop offset="1" stop-color="hsl(${hue},70%,10%)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="100" height="100" fill="hsl(${hue},25%,5%)"/>
+    <rect width="100" height="100" fill="url(#g${hue}d)"/>`,
+  fractal: (hue) => {
+    let points = '';
+    for (let i = 0; i < 35; i++) {
+      const x = 50 + Math.cos(i * 0.7) * (i * 1.4);
+      const y = 50 + Math.sin(i * 0.7) * (i * 1.1);
+      points += `<rect x="${x-1.5}" y="${y-1.5}" width="3" height="3" fill="hsl(${(hue+i*8)%360},75%,50%)" opacity="0.45"/>`;
+    }
+    return `<rect width="100" height="100" fill="hsl(${hue},45%,7%)"/>${points}`;
+  },
+  spiral: (hue) => {
+    let path = 'M50 50 ';
+    for (let a = 0; a < Math.PI * 6; a += 0.15) {
+      const r = a * 2.5;
+      path += `L ${50 + Math.cos(a)*r} ${50 + Math.sin(a)*r} `;
+    }
+    return `<rect width="100" height="100" fill="hsl(${hue},40%,8%)"/><path d="${path}" stroke="hsl(${hue},75%,55%)" stroke-width="1" fill="none" opacity="0.65"/>`;
+  },
+  organic: (hue) => {
+    let ells = '';
+    for (let i = 0; i < 5; i++) {
+      ells += `<ellipse cx="${50+Math.cos(i)*12}" cy="${50+Math.sin(i)*8}" rx="${16+i*3}" ry="${10+i*2}" transform="rotate(${i*36} 50 50)" fill="hsl(${(hue+i*20)%360},55%,40%)" opacity="0.3"/>`;
+    }
+    return `<rect width="100" height="100" fill="hsl(${hue},30%,8%)"/>${ells}`;
+  },
+  mandel: (hue) => {
+    let rects = '';
+    for (let px = 0; px < 100; px += 4) {
+      for (let py = 0; py < 100; py += 4) {
+        const cx = (px/100 - 0.7) * 3;
+        const cy = (py/100 - 0.5) * 2;
+        let x = 0, y = 0, i = 0;
+        while (x*x + y*y < 4 && i < 16) { const t = x*x - y*y + cx; y = 2*x*y + cy; x = t; i++; }
+        if (i < 16) rects += `<rect x="${px}" y="${py}" width="4" height="4" fill="hsl(${(hue+i*15)%360},75%,${28+i*3}%)" opacity="0.75"/>`;
+      }
+    }
+    return `<rect width="100" height="100" fill="hsl(${hue},30%,6%)"/>${rects}`;
+  },
+  tunnel: (hue) => {
+    let rects = '';
+    for (let i = 10; i > 0; i--) {
+      rects += `<rect x="${50-i*4.5}" y="${50-i*3}" width="${i*9}" height="${i*6}" fill="none" stroke="hsl(${(hue+i*18)%360},65%,48%)" stroke-width="0.8" opacity="0.55"/>`;
+    }
+    return `<rect width="100" height="100" fill="hsl(${hue},30%,6%)"/>${rects}`;
+  },
+  neon: (hue) => `
+    <rect width="100" height="100" fill="hsl(${hue},35%,6%)"/>
+    <path d="M10 50 L 35 20 L 60 70 L 90 30" stroke="hsl(${hue},95%,60%)" stroke-width="1.5" fill="none" opacity="0.85"/>
+    <path d="M10 50 L 35 20 L 60 70 L 90 30" stroke="hsl(${hue},95%,75%)" stroke-width="0.5" fill="none" opacity="1"/>
+    <circle cx="35" cy="20" r="2.5" fill="hsl(${hue},95%,70%)"/>
+    <circle cx="60" cy="70" r="2" fill="hsl(${(hue+20)%360},95%,65%)"/>`,
+  grid: (hue) => {
+    let lines = '';
+    for (let i = 0; i <= 10; i++) {
+      lines += `<line x1="${i*10}" y1="0" x2="${i*10}" y2="100" stroke="hsl(${hue},70%,45%)" stroke-width="0.4" opacity="0.45"/>`;
+      lines += `<line x1="0" y1="${i*10}" x2="100" y2="${i*10}" stroke="hsl(${hue},70%,45%)" stroke-width="0.4" opacity="0.45"/>`;
+    }
+    return `<rect width="100" height="100" fill="hsl(${hue},35%,7%)"/>${lines}<circle cx="50" cy="50" r="18" fill="none" stroke="hsl(${hue},90%,60%)" stroke-width="1" opacity="0.7"/>`;
+  },
+  particles: (hue) => {
+    let pts = '';
+    for (let i = 0; i < 40; i++) {
+      const x = Math.sin(i * 1.7) * 40 + 50;
+      const y = Math.cos(i * 1.3) * 40 + 50;
+      const r = 0.8 + (i % 4) * 0.6;
+      pts += `<circle cx="${x}" cy="${y}" r="${r}" fill="hsl(${(hue+i*6)%360},70%,60%)" opacity="0.6"/>`;
+    }
+    return `<rect width="100" height="100" fill="hsl(${hue},30%,6%)"/>${pts}`;
+  }
+};
+
+function makeClipSvg(type, hue) {
+  const gen = clipGenerators[type] || clipGenerators.abstract;
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">${gen(hue)}</svg>`;
+}
+
+function makeClipCell(type, hue, name, state, fxCount) {
+  let cls = 'clip-cell';
+  if (state === 'playing') cls += ' playing';
+  if (state === 'queued') cls += ' queued';
+  const thumb = `<div class="clip-thumb">${makeClipSvg(type, hue)}</div>`;
+  const fxDots = fxCount ? `<div class="clip-fx-dots">${Array(fxCount).fill('<span class="clip-fx-dot"></span>').join('')}</div>` : '';
+  return `<div class="${cls}">${thumb}${fxDots}<div class="clip-name-bar">${name}</div></div>`;
+}
+
+function makeEmpty() {
+  return `<div class="clip-cell clip-empty"></div>`;
+}
+
+// Layer 1 — 10 cols
+document.getElementById('cg1').innerHTML = [
+  `<div class="clip-column">${makeClipCell('abstract', 200, 'ABS.01', null, 2)}</div>`,
+  `<div class="clip-column">${makeClipCell('wave', 180, 'WAV.02', null, 1)}</div>`,
+  `<div class="clip-column">${makeClipCell('fire', 30, 'FIRE.03', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('glitch', 0, 'GLT.04', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('fade', 260, 'FADE.05', null, 0)}</div>`,
+  `<div class="clip-column">${makeEmpty()}</div>`,
+  `<div class="clip-column">${makeClipCell('abstract', 160, 'ABS.07', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('wave', 320, 'WAV.08', null, 0)}</div>`,
+  `<div class="clip-column">${makeEmpty()}</div>`,
+  `<div class="clip-column">${makeClipCell('fade', 90, 'FADE.10', null, 0)}</div>`
+].join('');
+
+// Layer 2 — L2.C3 PLAYING (orange fill)
+document.getElementById('cg2').innerHTML = [
+  `<div class="clip-column">${makeClipCell('fractal', 220, 'FRC.01', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('spiral', 280, 'SPR.02', null, 2)}</div>`,
+  `<div class="clip-column">${makeClipCell('organic', 120, 'JULIA.07', 'playing', 3)}</div>`,
+  `<div class="clip-column">${makeEmpty()}</div>`,
+  `<div class="clip-column">${makeClipCell('abstract', 300, 'ABS.05', null, 0)}</div>`,
+  `<div class="clip-column">${makeEmpty()}</div>`,
+  `<div class="clip-column">${makeClipCell('fractal', 140, 'FRC.07', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('spiral', 60, 'SPR.08', null, 1)}</div>`,
+  `<div class="clip-column">${makeClipCell('organic', 330, 'ORG.09', null, 0)}</div>`,
+  `<div class="clip-column">${makeEmpty()}</div>`
+].join('');
+
+// Layer 3 — L3.C5 QUEUED (dashed white)
+document.getElementById('cg3').innerHTML = [
+  `<div class="clip-column">${makeClipCell('mandel', 45, 'MAN.01', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('tunnel', 160, 'TUN.02', null, 1)}</div>`,
+  `<div class="clip-column">${makeClipCell('wave', 90, 'WAV.03', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('fire', 340, 'FIRE.04', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('mandel', 200, 'MAN.05', 'queued', 0)}</div>`,
+  `<div class="clip-column">${makeEmpty()}</div>`,
+  `<div class="clip-column">${makeClipCell('tunnel', 270, 'TUN.07', null, 0)}</div>`,
+  `<div class="clip-column">${makeEmpty()}</div>`,
+  `<div class="clip-column">${makeClipCell('mandel', 120, 'MAN.09', null, 1)}</div>`,
+  `<div class="clip-column">${makeClipCell('tunnel', 20, 'TUN.10', null, 0)}</div>`
+].join('');
+
+// Layer 4 — Mask
+document.getElementById('cg4').innerHTML = [
+  `<div class="clip-column">${makeClipCell('neon', 300, 'NEON.01', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('grid', 190, 'GRID.02', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('particles', 60, 'PRT.03', null, 1)}</div>`,
+  `<div class="clip-column">${makeClipCell('glitch', 15, 'GLT.04', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('fade', 240, 'FADE.05', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('organic', 110, 'ORG.06', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('neon', 40, 'NEON.07', null, 0)}</div>`,
+  `<div class="clip-column">${makeClipCell('grid', 290, 'GRID.08', null, 0)}</div>`,
+  `<div class="clip-column">${makeEmpty()}</div>`,
+  `<div class="clip-column">${makeClipCell('particles', 175, 'PRT.10', null, 0)}</div>`
+].join('');
+
+</script>
+</body>
+</html>

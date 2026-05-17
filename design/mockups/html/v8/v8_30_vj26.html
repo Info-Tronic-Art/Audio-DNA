@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 26 — Feature-Complete Layout</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+.app { width: 1920px; height: 1080px; background: #0d0d0d; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ===== TOP BAR ===== */
+.top-bar { height: 36px; background: linear-gradient(180deg, #1a1a1a 0%, #111 100%); border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 10px; gap: 10px; flex-shrink: 0; }
+.logo { display: flex; align-items: center; gap: 6px; }
+.logo-icon { width: 22px; height: 22px; background: linear-gradient(135deg, #00ccff, #0066ff); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #fff; }
+.logo-text { font-size: 14px; font-weight: 700; color: #e0e0e0; letter-spacing: 0.5px; }
+.logo-text span { color: #666; font-weight: 400; font-size: 12px; margin-left: 4px; }
+.top-sep { width: 1px; height: 20px; background: #333; }
+.bpm-group { display: flex; align-items: center; gap: 8px; }
+.bpm-label { font-size: 10px; color: #888; font-weight: 600; text-transform: uppercase; }
+.bpm-value { font-size: 18px; font-weight: 700; color: #00ff88; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.top-btn { background: #222; border: 1px solid #444; color: #bbb; padding: 3px 10px; font-size: 10px; cursor: pointer; border-radius: 2px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+.top-btn:hover { background: #333; }
+.top-btn.tap { background: #1a2a1a; border-color: #336633; color: #66cc66; }
+.top-btn.resync { background: #1a1a2a; border-color: #334488; color: #6688cc; }
+.room-delay { color: #888; font-size: 11px; display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.room-delay-val { color: #ffcc00; font-weight: 600; background: #1a1a00; border: 1px solid #333300; padding: 1px 8px; border-radius: 2px; font-size: 11px; }
+.level-meters { display: flex; gap: 2px; align-items: flex-end; height: 20px; margin-left: 12px; }
+.level-bar { width: 3px; border-radius: 1px; }
+
+/* ===== MAIN CONTENT ===== */
+.main-content { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+/* ===== LEFT: SCENE FLOW ===== */
+.scene-flow { width: 310px; background: #0a0a0a; border-right: 1px solid #222; display: flex; flex-direction: column; flex-shrink: 0; }
+.panel-header { height: 26px; background: #151515; border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 10px; font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+.panel-header .arrow { color: #555; margin-right: 6px; font-size: 8px; }
+
+.scene-grid { padding: 6px; flex: 1; overflow-y: auto; }
+.scene-type-row { display: flex; gap: 4px; margin-bottom: 4px; align-items: stretch; }
+.scene-type-label { width: 60px; font-size: 10px; color: #888; padding: 5px 6px; text-align: right; display: flex; align-items: center; justify-content: flex-end; }
+.scene-cell { flex: 1; padding: 4px 8px; font-size: 10px; color: #ccc; border-radius: 2px; cursor: pointer; border-left: 3px solid transparent; background: #161616; display: flex; align-items: center; min-height: 24px; }
+.scene-cell:hover { background: #1e1e1e; }
+.scene-cell.red { border-left-color: #ff3333; }
+.scene-cell.blue { border-left-color: #3388ff; }
+.scene-cell.green { border-left-color: #33cc66; }
+.scene-cell.amber { border-left-color: #ff9933; }
+.scene-cell.purple { border-left-color: #aa55ff; }
+.scene-cell.cyan { border-left-color: #00cccc; }
+.scene-cell.active { background: #1a2a1a; border: 1px solid #33aa55; border-left: 3px solid #33cc66; }
+.scene-cell .bars { color: #666; font-size: 9px; margin-left: auto; }
+
+.layer-change-section { border-top: 1px solid #222; padding: 6px 8px; }
+.layer-change-header { font-size: 10px; color: #66cc66; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+.layer-change-header::before { content: '+'; font-size: 12px; }
+
+.scene-list { border-top: 1px solid #222; padding: 6px; flex: 1; overflow-y: auto; }
+.scene-list-item { display: flex; align-items: center; padding: 4px 8px; font-size: 10px; color: #aaa; border-radius: 2px; margin-bottom: 2px; gap: 6px; }
+.scene-list-item:hover { background: #1a1a1a; }
+.scene-list-item.active { background: #1a2a1a; color: #66ff88; }
+.scene-list-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.scene-list-name { flex: 1; }
+.scene-list-bars { color: #555; font-size: 9px; }
+
+.scene-footer { border-top: 1px solid #222; padding: 6px 8px; display: flex; gap: 4px; align-items: center; }
+.scene-footer-btn { background: #1a1a1a; border: 1px solid #333; color: #888; padding: 3px 10px; font-size: 10px; cursor: pointer; border-radius: 2px; font-weight: 600; }
+.scene-footer-btn.add { background: #112211; border-color: #336633; color: #66cc66; }
+.scene-footer-btn.trigger { background: #221111; border-color: #663333; color: #cc6666; }
+
+.scene-res-info { border-top: 1px solid #222; padding: 4px 8px; font-size: 9px; color: #555; display: flex; justify-content: space-between; }
+
+/* ===== CENTER: LIVE OUTPUT ===== */
+.center-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.preview-header { height: 26px; background: #151515; border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 10px; font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; justify-content: center; }
+.preview-container { flex: 1; position: relative; background: #080808; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.preview-viewport { width: 100%; height: 100%; position: relative; overflow: hidden; }
+.preview-canvas { width: 100%; height: 100%; position: relative; }
+/* Geometric test card pattern */
+.preview-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #0a0a1a 0%, #1a0a1a 25%, #0a1a1a 50%, #1a1a0a 75%, #0a0a1a 100%); }
+.preview-geo { position: absolute; }
+.safe-area { position: absolute; inset: 30px; border: 1px dashed rgba(255,255,255,0.15); pointer-events: none; }
+.safe-area::after { content: 'Safe Title'; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 8px; color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 1px; }
+.res-overlay { position: absolute; top: 6px; left: 8px; font-size: 9px; color: rgba(255,255,255,0.35); }
+.res-overlay-bottom { position: absolute; bottom: 6px; left: 8px; font-size: 9px; color: rgba(255,255,255,0.35); }
+
+/* Transport bar */
+.transport-bar { height: 36px; background: #111; border-top: 1px solid #222; display: flex; align-items: center; padding: 0 10px; gap: 8px; flex-shrink: 0; }
+.transport-btn { background: #1a1a1a; border: 1px solid #333; color: #aaa; width: 26px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; border-radius: 2px; }
+.transport-btn:hover { background: #252525; }
+.transport-btn.play { color: #00ff88; border-color: #336633; }
+.transport-timeline { flex: 1; height: 4px; background: #222; border-radius: 2px; position: relative; margin: 0 4px; }
+.transport-progress { position: absolute; left: 0; top: 0; height: 100%; width: 62%; background: linear-gradient(90deg, #00ccff, #0088ff); border-radius: 2px; }
+.transport-playhead { position: absolute; top: -4px; width: 2px; height: 12px; background: #fff; left: 62%; }
+.timecode { font-size: 13px; font-weight: 600; color: #00ccff; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+.transport-right { display: flex; gap: 6px; align-items: center; margin-left: 8px; }
+.transport-select { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 2px 8px; font-size: 10px; border-radius: 2px; cursor: pointer; }
+
+/* ===== RIGHT: SOURCES ===== */
+.sources-panel { width: 240px; background: #0a0a0a; border-left: 1px solid #222; display: flex; flex-direction: column; flex-shrink: 0; }
+.sources-tabs { height: 26px; background: #151515; border-bottom: 1px solid #222; display: flex; align-items: stretch; }
+.source-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; border-bottom: 2px solid transparent; }
+.source-tab:hover { color: #888; }
+.source-tab.active { color: #00ccff; border-bottom-color: #00ccff; }
+.sources-content { flex: 1; overflow-y: auto; padding: 6px; }
+
+.source-item { background: #141414; border: 1px solid #222; border-radius: 3px; margin-bottom: 6px; overflow: hidden; }
+.source-item-header { display: flex; align-items: center; padding: 5px 8px; gap: 6px; }
+.source-icon { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.source-name { font-size: 11px; color: #ccc; font-weight: 600; flex: 1; }
+.source-gain { font-size: 9px; color: #888; }
+.source-viz { height: 36px; padding: 2px 8px; position: relative; }
+
+/* Spectrum bars for master audio */
+.spectrum-bars { display: flex; gap: 2px; align-items: flex-end; height: 32px; padding: 0 4px; }
+.spec-bar { flex: 1; border-radius: 1px 1px 0 0; min-width: 4px; }
+
+/* Gain reduction meter */
+.gain-reduction { height: 14px; padding: 2px 8px; display: flex; align-items: center; gap: 6px; }
+.gain-label { font-size: 8px; color: #666; text-transform: uppercase; white-space: nowrap; }
+.gain-meter { flex: 1; height: 4px; background: #222; border-radius: 2px; position: relative; overflow: hidden; }
+.gain-fill { position: absolute; right: 0; top: 0; height: 100%; background: linear-gradient(90deg, #ff3333, #ffcc00); border-radius: 2px; }
+
+/* Waveform display */
+.waveform-container { height: 28px; padding: 2px 8px; position: relative; }
+.waveform { width: 100%; height: 100%; position: relative; }
+.waveform-svg { width: 100%; height: 100%; }
+
+/* LFO displays */
+.lfo-container { height: 28px; padding: 2px 8px; position: relative; }
+.lfo-info { font-size: 8px; color: #555; position: absolute; right: 10px; top: 4px; }
+
+.source-add { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px; color: #336633; font-size: 10px; cursor: pointer; border: 1px dashed #333; border-radius: 3px; margin-top: 4px; }
+.source-add:hover { color: #66cc66; border-color: #336633; }
+.source-instruction { text-align: center; font-size: 9px; color: #444; padding: 8px 4px; font-style: italic; }
+
+/* ===== BOTTOM: LAYER STRIP ===== */
+.layer-strip-area { height: 290px; border-top: 1px solid #333; background: #0c0c0c; display: flex; flex-direction: column; flex-shrink: 0; }
+.layer-strip-header { height: 20px; background: #111; border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 10px; font-size: 10px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+.layer-strip-scroll { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; padding: 4px; gap: 4px; }
+
+.layer-card { width: 230px; min-width: 230px; background: #111; border: 1px solid #222; border-radius: 3px; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+.layer-card:hover { border-color: #333; }
+
+/* Layer card top badge */
+.layer-badge { height: 18px; display: flex; align-items: center; padding: 0 6px; gap: 4px; }
+.engine-tag { font-size: 8px; font-weight: 700; padding: 1px 6px; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.engine-tag.video { background: #331111; color: #ff4444; border: 1px solid #552222; }
+.engine-tag.image { background: #111133; color: #4488ff; border: 1px solid #222255; }
+.engine-tag.synth { background: #113311; color: #44cc44; border: 1px solid #225522; }
+
+/* Tally light */
+.tally-section { padding: 2px 6px; display: flex; align-items: center; gap: 4px; }
+.tally-light { width: 6px; height: 6px; border-radius: 50%; }
+.tally-light.on { background: #ff0000; box-shadow: 0 0 4px #ff0000; }
+.tally-light.standby { background: #444; }
+.tally-label { font-size: 9px; color: #777; }
+
+/* Layer thumbnail / preview */
+.layer-thumb { height: 54px; margin: 0 6px; background: #0a0a0a; border-radius: 2px; position: relative; overflow: hidden; }
+.layer-thumb-visual { position: absolute; inset: 0; }
+
+/* Layer info section */
+.layer-info { padding: 2px 6px; }
+.layer-info-row { display: flex; justify-content: space-between; align-items: center; }
+.layer-name-label { font-size: 8px; color: #555; }
+.layer-name-value { font-size: 9px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Knob row */
+.knob-row { display: flex; justify-content: space-around; padding: 2px 4px; }
+.knob-group { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.knob { width: 24px; height: 24px; border-radius: 50%; background: #1a1a1a; border: 2px solid #333; position: relative; cursor: pointer; }
+.knob::after { content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 8px; background: #888; transform: translateX(-50%); border-radius: 1px; }
+.knob.hue::after { transform: translateX(-50%) rotate(-30deg); transform-origin: bottom center; }
+.knob.sat::after { transform: translateX(-50%) rotate(15deg); transform-origin: bottom center; }
+.knob.bri::after { transform: translateX(-50%) rotate(45deg); transform-origin: bottom center; }
+.knob.spd::after { transform: translateX(-50%) rotate(-60deg); transform-origin: bottom center; }
+.knob-label { font-size: 7px; color: #555; text-transform: uppercase; }
+
+/* DNA Modulation */
+.dna-mod { padding: 1px 6px; font-size: 8px; color: #00ccff; text-align: center; opacity: 0.6; }
+
+/* Opacity slider */
+.opacity-section { padding: 2px 6px; }
+.opacity-label { font-size: 7px; color: #555; text-transform: uppercase; margin-bottom: 1px; }
+.opacity-track { height: 6px; background: #1a1a1a; border-radius: 3px; position: relative; overflow: hidden; }
+.opacity-fill { height: 100%; border-radius: 3px; }
+
+/* Layer card bottom controls */
+.layer-controls { display: flex; align-items: center; padding: 2px 4px; gap: 2px; margin-top: auto; }
+.layer-ctrl-btn { font-size: 8px; padding: 2px 6px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #666; border-radius: 2px; cursor: pointer; font-weight: 600; }
+.layer-ctrl-btn:hover { background: #252525; color: #aaa; }
+.layer-ctrl-btn.power { color: #444; }
+.layer-ctrl-btn.power.on { color: #00ff88; border-color: #336633; }
+.layer-ctrl-btn.fx { color: #00ccff; }
+.layer-ctrl-btn.macro { color: #ffaa00; }
+.layer-ctrl-btn.strobe { color: #ff3366; }
+.layer-expand { font-size: 8px; color: #555; cursor: pointer; margin-left: auto; padding: 2px 4px; }
+
+/* ===== FOOTER ===== */
+.footer-bar { height: 22px; background: #0a0a0a; border-top: 1px solid #222; display: flex; align-items: center; padding: 0 10px; gap: 20px; flex-shrink: 0; }
+.footer-item { font-size: 9px; color: #444; cursor: pointer; }
+.footer-item:hover { color: #888; }
+.footer-item.active { color: #888; }
+
+/* ===== CANVAS GEOMETRIC SHAPES ===== */
+.geo-diamond { position: absolute; width: 60px; height: 60px; background: linear-gradient(135deg, rgba(0,204,255,0.3), rgba(0,204,255,0.05)); transform: rotate(45deg); border: 1px solid rgba(0,204,255,0.2); }
+.geo-triangle { position: absolute; width: 0; height: 0; }
+.geo-circle { position: absolute; border-radius: 50%; }
+.geo-rect { position: absolute; }
+.geo-line { position: absolute; height: 1px; transform-origin: left center; }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ===== TOP BAR ===== -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div class="logo-text">Audio-DNA VJ</div>
+  </div>
+  <div class="top-sep"></div>
+  <div class="bpm-group">
+    <span class="bpm-label">BPM:</span>
+    <span class="bpm-value">128.00</span>
+  </div>
+  <button class="top-btn tap">TAP</button>
+  <button class="top-btn resync">RESYNC</button>
+  <div class="top-sep"></div>
+  <div class="room-delay">
+    Room Delay: <span class="room-delay-val">+20ms</span>
+  </div>
+  <!-- Level meters -->
+  <div class="level-meters">
+    <div class="level-bar" style="height:8px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:12px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:16px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:18px; background:#66ff88;"></div>
+    <div class="level-bar" style="height:14px; background:#66ff88;"></div>
+    <div class="level-bar" style="height:10px; background:#ffcc00;"></div>
+    <div class="level-bar" style="height:6px; background:#ffcc00;"></div>
+    <div class="level-bar" style="height:3px; background:#ff6633;"></div>
+    <div style="width:3px;"></div>
+    <div class="level-bar" style="height:7px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:11px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:15px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:17px; background:#66ff88;"></div>
+    <div class="level-bar" style="height:13px; background:#66ff88;"></div>
+    <div class="level-bar" style="height:9px; background:#ffcc00;"></div>
+    <div class="level-bar" style="height:5px; background:#ffcc00;"></div>
+    <div class="level-bar" style="height:2px; background:#ff6633;"></div>
+  </div>
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="main-content">
+
+  <!-- LEFT: SCENE FLOW -->
+  <div class="scene-flow">
+    <div class="panel-header"><span class="arrow">&#9660;</span> Scene Flow</div>
+
+    <div class="scene-grid">
+      <!-- Scene type rows: label | cells -->
+      <div class="scene-type-row">
+        <div class="scene-type-label">Video</div>
+        <div class="scene-cell red">Intro <span class="bars">(16 bars)</span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Image</div>
+        <div class="scene-cell blue">Verse 1 <span class="bars">(22 bars)</span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Chorus</div>
+        <div class="scene-cell green active">Chorus <span class="bars">(16 bars)</span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Bridge</div>
+        <div class="scene-cell amber">Bridge <span class="bars">(16 bars)</span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Verse 2</div>
+        <div class="scene-cell purple">Verse 2 <span class="bars"></span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Outro</div>
+        <div class="scene-cell cyan">Outro <span class="bars">(14 bars)</span></div>
+      </div>
+    </div>
+
+    <!-- + Layer Change section -->
+    <div class="layer-change-section">
+      <div class="layer-change-header">Layer Change</div>
+    </div>
+
+    <!-- Detailed scene list -->
+    <div class="scene-list">
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#ff3333;"></div>
+        <span class="scene-list-name">Intro</span>
+        <span class="scene-list-bars">12 bars</span>
+      </div>
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#3388ff;"></div>
+        <span class="scene-list-name">Verse 1</span>
+        <span class="scene-list-bars">22 bars</span>
+      </div>
+      <div class="scene-list-item active">
+        <div class="scene-list-dot" style="background:#33cc66;"></div>
+        <span class="scene-list-name">Chorus</span>
+        <span class="scene-list-bars">16 bars</span>
+      </div>
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#ff9933;"></div>
+        <span class="scene-list-name">Bridge</span>
+        <span class="scene-list-bars">16 bars</span>
+      </div>
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#aa55ff;"></div>
+        <span class="scene-list-name">Verse 2</span>
+        <span class="scene-list-bars"></span>
+      </div>
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#00cccc;"></div>
+        <span class="scene-list-name">Outro</span>
+        <span class="scene-list-bars">14 bars</span>
+      </div>
+    </div>
+
+    <div class="scene-res-info">
+      <span>RES: 1920x1080 / FPS: 60</span>
+      <span>Safe Title</span>
+    </div>
+
+    <div class="scene-footer">
+      <button class="scene-footer-btn add">+ Add Scene</button>
+      <button class="scene-footer-btn trigger">Trigger</button>
+      <button class="scene-footer-btn trigger">Trigger</button>
+    </div>
+  </div>
+
+  <!-- CENTER: LIVE OUTPUT PREVIEW -->
+  <div class="center-area">
+    <div class="preview-header">Live Output Preview</div>
+    <div class="preview-container">
+      <div class="preview-viewport">
+        <div class="preview-canvas">
+          <div class="preview-bg"></div>
+          <!-- Geometric visual content -->
+          <div class="geo-diamond" style="top:25%; left:20%;"></div>
+          <div class="geo-diamond" style="top:15%; left:55%; width:40px; height:40px; background:linear-gradient(135deg, rgba(255,51,102,0.3), rgba(255,51,102,0.05)); border-color:rgba(255,51,102,0.2);"></div>
+          <div class="geo-circle" style="top:30%; left:40%; width:80px; height:80px; border:1px solid rgba(0,255,136,0.2); background:radial-gradient(circle, rgba(0,255,136,0.1) 0%, transparent 70%);"></div>
+          <div class="geo-circle" style="top:50%; left:60%; width:50px; height:50px; border:1px solid rgba(255,153,0,0.3); background:radial-gradient(circle, rgba(255,153,0,0.15) 0%, transparent 70%);"></div>
+          <div class="geo-rect" style="top:20%; left:35%; width:120px; height:2px; background:linear-gradient(90deg, transparent, rgba(0,204,255,0.4), transparent);"></div>
+          <div class="geo-rect" style="top:60%; left:15%; width:180px; height:1px; background:linear-gradient(90deg, transparent, rgba(255,51,102,0.3), transparent);"></div>
+          <div class="geo-rect" style="top:45%; left:50%; width:100px; height:100px; border:1px solid rgba(255,255,255,0.08); transform:rotate(15deg);"></div>
+          <!-- Scattered particles / dots -->
+          <div class="geo-circle" style="top:35%; left:70%; width:4px; height:4px; background:#00ccff; box-shadow:0 0 6px #00ccff;"></div>
+          <div class="geo-circle" style="top:55%; left:25%; width:3px; height:3px; background:#ff3366; box-shadow:0 0 4px #ff3366;"></div>
+          <div class="geo-circle" style="top:20%; left:75%; width:5px; height:5px; background:#00ff88; box-shadow:0 0 8px #00ff88;"></div>
+          <div class="geo-circle" style="top:70%; left:45%; width:3px; height:3px; background:#ffcc00; box-shadow:0 0 5px #ffcc00;"></div>
+          <div class="geo-circle" style="top:40%; left:85%; width:4px; height:4px; background:#aa55ff; box-shadow:0 0 6px #aa55ff;"></div>
+          <!-- Multi-panel grid lines suggesting CCTV / multi-source -->
+          <div class="geo-rect" style="top:0; left:33.3%; width:1px; height:100%; background:rgba(255,255,255,0.04);"></div>
+          <div class="geo-rect" style="top:0; left:66.6%; width:1px; height:100%; background:rgba(255,255,255,0.04);"></div>
+          <div class="geo-rect" style="top:50%; left:0; width:100%; height:1px; background:rgba(255,255,255,0.04);"></div>
+          <!-- Triangular shape -->
+          <svg style="position:absolute; top:55%; left:65%; width:80px; height:70px; opacity:0.3;">
+            <polygon points="40,5 75,65 5,65" fill="none" stroke="rgba(0,204,255,0.4)" stroke-width="1"/>
+          </svg>
+          <svg style="position:absolute; top:15%; left:10%; width:60px; height:52px; opacity:0.25;">
+            <polygon points="30,4 56,48 4,48" fill="none" stroke="rgba(255,153,0,0.4)" stroke-width="1"/>
+          </svg>
+          <!-- Safe area -->
+          <div class="safe-area"></div>
+          <div class="res-overlay">RES: 1920x1080 / FPS: 60</div>
+          <div class="res-overlay-bottom">RES: 1920x1080 / FPS: 60</div>
+        </div>
+      </div>
+    </div>
+    <!-- Transport bar -->
+    <div class="transport-bar">
+      <div class="transport-btn" title="Previous">&#9664;&#9664;</div>
+      <div class="transport-btn" title="Stop">&#9632;</div>
+      <div class="transport-btn play" title="Play">&#9654;</div>
+      <div class="transport-btn" title="Pause">&#10074;&#10074;</div>
+      <div class="transport-btn" title="Next">&#9654;&#9654;</div>
+      <div class="transport-timeline">
+        <div class="transport-progress"></div>
+        <div class="transport-playhead"></div>
+      </div>
+      <div class="timecode">02:45:30:15</div>
+      <div class="transport-right">
+        <select class="transport-select"><option>Fullscreen</option></select>
+        <select class="transport-select"><option>Detach / External Display 2</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SOURCES -->
+  <div class="sources-panel">
+    <div class="sources-tabs">
+      <div class="source-tab active">Sources</div>
+      <div class="source-tab">Layer</div>
+      <div class="source-tab">Clip</div>
+    </div>
+    <div class="sources-content">
+      <!-- Master Audio -->
+      <div class="source-item">
+        <div class="source-item-header">
+          <div class="source-icon" style="background:#00ff88;"></div>
+          <span class="source-name">Master Audio</span>
+        </div>
+        <div class="spectrum-bars">
+          <div class="spec-bar" style="height:60%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:85%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:95%; background:linear-gradient(0deg, #00ff88, #ffcc00);"></div>
+          <div class="spec-bar" style="height:75%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:55%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:40%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:70%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:90%; background:linear-gradient(0deg, #00ff88, #ffcc00);"></div>
+          <div class="spec-bar" style="height:65%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:45%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:80%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:50%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:35%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:25%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:20%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+          <div class="spec-bar" style="height:15%; background:linear-gradient(0deg, #00ff88, #00cc66);"></div>
+        </div>
+        <div class="gain-reduction">
+          <span class="gain-label">Gain Reduction</span>
+          <div class="gain-meter">
+            <div class="gain-fill" style="width:35%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grape Drum -->
+      <div class="source-item">
+        <div class="source-item-header">
+          <div class="source-icon" style="background:#ff6633;"></div>
+          <span class="source-name">Grape Drum</span>
+        </div>
+        <div class="waveform-container">
+          <svg class="waveform-svg" viewBox="0 0 200 24" preserveAspectRatio="none">
+            <polyline points="0,12 5,12 8,4 10,18 12,8 15,16 18,6 20,14 25,12 30,12 35,3 37,20 39,6 41,18 43,4 46,14 50,12 55,12 60,12 65,5 67,19 69,7 71,17 73,5 76,15 80,12 85,12 90,12 95,12 100,4 102,20 104,6 106,18 108,4 111,16 115,12 120,12 125,12 130,6 132,18 134,4 136,20 138,8 141,14 145,12 150,12 155,12 160,12 165,5 167,19 169,7 171,17 173,5 176,14 180,12 185,12 190,12 195,12 200,12" fill="none" stroke="#ff6633" stroke-width="1.5" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Hi-Hat -->
+      <div class="source-item">
+        <div class="source-item-header">
+          <div class="source-icon" style="background:#ffcc00;"></div>
+          <span class="source-name">Hi-Hat</span>
+        </div>
+        <div class="waveform-container">
+          <svg class="waveform-svg" viewBox="0 0 200 24" preserveAspectRatio="none">
+            <polyline points="0,12 10,12 12,3 14,21 16,12 26,12 28,4 30,20 32,12 42,12 44,5 46,19 48,12 58,12 60,3 62,21 64,12 74,12 76,4 78,20 80,12 90,12 92,3 94,21 96,12 106,12 108,5 110,19 112,12 122,12 124,3 126,21 128,12 138,12 140,4 142,20 144,12 154,12 156,3 158,21 160,12 170,12 172,5 174,19 176,12 186,12 188,3 190,21 192,12 200,12" fill="none" stroke="#ffcc00" stroke-width="1.2" opacity="0.7"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- LFO Saw -->
+      <div class="source-item">
+        <div class="source-item-header">
+          <div class="source-icon" style="background:#00ccff;"></div>
+          <span class="source-name">LFO - Saw</span>
+          <span class="source-gain" style="color:#00ccff;">(0.5 Hz)</span>
+        </div>
+        <div class="lfo-container">
+          <svg class="waveform-svg" viewBox="0 0 200 24" preserveAspectRatio="none">
+            <!-- Sawtooth wave -->
+            <polyline points="0,22 40,2 40,22 80,2 80,22 120,2 120,22 160,2 160,22 200,2" fill="none" stroke="#00ccff" stroke-width="1.5" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- LFO Custom -->
+      <div class="source-item">
+        <div class="source-item-header">
+          <div class="source-icon" style="background:#aa55ff;"></div>
+          <span class="source-name">LFO - Custom</span>
+        </div>
+        <div class="lfo-container">
+          <svg class="waveform-svg" viewBox="0 0 200 24" preserveAspectRatio="none">
+            <!-- Custom wave shape -->
+            <polyline points="0,18 10,18 15,4 25,4 30,12 40,22 50,8 55,8 65,18 75,4 80,4 90,14 100,22 110,6 115,6 125,16 130,2 140,20 150,10 155,10 165,20 175,4 180,4 190,16 200,18" fill="none" stroke="#aa55ff" stroke-width="1.5" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Add source button -->
+      <div class="source-add">+ Add Audio Source</div>
+      <div class="source-instruction">Drag a source into a parameter</div>
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- ===== BOTTOM: LAYER STRIP ===== -->
+<div class="layer-strip-area">
+  <div class="layer-strip-header">Layer Strip</div>
+  <div class="layer-strip-scroll">
+
+    <!-- Layer 1: VIDEO -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag video">VIDEO</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light on"></div>
+          <span class="tally-label">Tally Light</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(135deg, #1a0522 0%, #2a1144 30%, #0a1133 60%, #000 100%);"></div>
+        <!-- Triangle shape -->
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <polygon points="60,8 110,46 10,46" fill="none" stroke="rgba(0,204,255,0.4)" stroke-width="1"/>
+          <polygon points="70,12 100,42 40,42" fill="rgba(0,204,255,0.08)"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row">
+          <span class="layer-name-label">Video Name</span>
+        </div>
+        <div class="layer-info-row">
+          <span class="layer-name-value">Layer Name: Image</span>
+        </div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group"><div class="knob hue"></div><span class="knob-label">Hue</span></div>
+        <div class="knob-group"><div class="knob sat"></div><span class="knob-label">Saturation</span></div>
+        <div class="knob-group"><div class="knob bri"></div><span class="knob-label">Brightness</span></div>
+        <div class="knob-group"><div class="knob spd"></div><span class="knob-label">Speed</span></div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:100%; background:linear-gradient(90deg, #333, #00ff88);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" title="Power">&#9679;</button>
+        <button class="layer-ctrl-btn fx">FX 1</button>
+        <button class="layer-ctrl-btn macro">Macro A</button>
+        <button class="layer-ctrl-btn strobe">Strobe</button>
+        <span class="layer-expand">Expand</span>
+      </div>
+    </div>
+
+    <!-- Layer 2: VIDEO -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag video">VIDEO</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(180deg, #0a0a2a 0%, #1a0a3a 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <rect x="30" y="10" width="50" height="34" rx="2" fill="none" stroke="rgba(255,51,102,0.3)" stroke-width="1"/>
+          <line x1="55" y1="10" x2="55" y2="44" stroke="rgba(255,51,102,0.15)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-label">Engine</span></div>
+        <div class="layer-info-row"><span class="layer-name-value">Layer Name: Image</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group"><div class="knob hue"></div><span class="knob-label">Hue</span></div>
+        <div class="knob-group"><div class="knob sat"></div><span class="knob-label">Saturation</span></div>
+        <div class="knob-group"><div class="knob bri"></div><span class="knob-label">Brightness</span></div>
+        <div class="knob-group"><div class="knob spd"></div><span class="knob-label">Speed</span></div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:85%; background:linear-gradient(90deg, #333, #00ccff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on">&#9679;</button>
+        <button class="layer-ctrl-btn fx">FX 1</button>
+        <button class="layer-ctrl-btn macro">Macro A</button>
+        <button class="layer-ctrl-btn strobe">Strobe</button>
+        <span class="layer-expand">Expand</span>
+      </div>
+    </div>
+
+    <!-- Layer 3: IMAGE -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag image">IMAGE</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(135deg, #0a1a0a 0%, #1a3a1a 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <circle cx="55" cy="27" r="18" fill="none" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+          <circle cx="55" cy="27" r="8" fill="rgba(0,255,136,0.1)"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-label">Clip Name</span></div>
+        <div class="layer-info-row"><span class="layer-name-value">Layer Name: Synth</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group"><div class="knob hue"></div><span class="knob-label">Hue</span></div>
+        <div class="knob-group"><div class="knob sat"></div><span class="knob-label">Saturation</span></div>
+        <div class="knob-group"><div class="knob bri"></div><span class="knob-label">Brightness</span></div>
+        <div class="knob-group"><div class="knob spd"></div><span class="knob-label">Speed</span></div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:70%; background:linear-gradient(90deg, #333, #4488ff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on">&#9679;</button>
+        <button class="layer-ctrl-btn fx">FX 1</button>
+        <button class="layer-ctrl-btn macro">Macro A</button>
+        <button class="layer-ctrl-btn strobe">Strobe</button>
+        <span class="layer-expand">Expand</span>
+      </div>
+    </div>
+
+    <!-- Layer 4: SYNTH -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag synth">SYNTH</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light on"></div>
+          <span class="tally-label">Tally Light</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:radial-gradient(ellipse at center, #1a1a00 0%, #0a0a00 50%, #000 100%);"></div>
+        <!-- Spectrum-like visual -->
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <polyline points="0,50 15,40 30,25 45,15 55,30 65,10 75,20 85,35 95,28 110,45 130,50" fill="none" stroke="rgba(255,204,0,0.4)" stroke-width="1.5"/>
+          <polyline points="0,50 15,42 30,30 45,22 55,35 65,18 75,26 85,38 95,32 110,46 130,50" fill="rgba(255,204,0,0.05)"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-label">Source Drum</span></div>
+        <div class="layer-info-row"><span class="layer-name-value">Layer Name: Drum Drum</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group"><div class="knob hue"></div><span class="knob-label">Hue</span></div>
+        <div class="knob-group"><div class="knob sat"></div><span class="knob-label">Saturation</span></div>
+        <div class="knob-group"><div class="knob bri"></div><span class="knob-label">Brightness</span></div>
+        <div class="knob-group"><div class="knob spd"></div><span class="knob-label">Speed</span></div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:90%; background:linear-gradient(90deg, #333, #ffcc00);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on">&#9679;</button>
+        <button class="layer-ctrl-btn fx">FX 1</button>
+        <button class="layer-ctrl-btn macro">Macro A</button>
+        <button class="layer-ctrl-btn strobe">Strobe</button>
+        <span class="layer-expand">Expand</span>
+      </div>
+    </div>
+
+    <!-- Layer 5: VIDEO -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag video">VIDEO</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(135deg, #1a0a1a 0%, #2a0a2a 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <ellipse cx="55" cy="27" rx="30" ry="15" fill="none" stroke="rgba(170,85,255,0.3)" stroke-width="1"/>
+          <line x1="25" y1="27" x2="85" y2="27" stroke="rgba(170,85,255,0.15)" stroke-width="1"/>
+          <line x1="55" y1="12" x2="55" y2="42" stroke="rgba(170,85,255,0.15)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-label">Video Name</span></div>
+        <div class="layer-info-row"><span class="layer-name-value">Layer Name: LFO - Saw</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group"><div class="knob hue"></div><span class="knob-label">Hue</span></div>
+        <div class="knob-group"><div class="knob sat"></div><span class="knob-label">Saturation</span></div>
+        <div class="knob-group"><div class="knob bri"></div><span class="knob-label">Brightness</span></div>
+        <div class="knob-group"><div class="knob spd"></div><span class="knob-label">Speed</span></div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:60%; background:linear-gradient(90deg, #333, #aa55ff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on">&#9679;</button>
+        <button class="layer-ctrl-btn fx">FX 1</button>
+        <button class="layer-ctrl-btn macro">Macro A</button>
+        <button class="layer-ctrl-btn strobe">Strobe</button>
+        <span class="layer-expand">Expand</span>
+      </div>
+    </div>
+
+    <!-- Layer 6: IMAGE -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag image">IMAGE</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:conic-gradient(from 0deg, #1a0a0a, #0a1a0a, #0a0a1a, #1a1a0a, #1a0a0a);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <polygon points="30,45 55,5 80,45" fill="none" stroke="rgba(0,255,136,0.25)" stroke-width="1"/>
+          <polygon points="40,40 55,12 70,40" fill="rgba(0,255,136,0.06)"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-label">Clip Name</span></div>
+        <div class="layer-info-row"><span class="layer-name-value">Layer Name: LFO - Saw</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group"><div class="knob hue"></div><span class="knob-label">Hue</span></div>
+        <div class="knob-group"><div class="knob sat"></div><span class="knob-label">Saturation</span></div>
+        <div class="knob-group"><div class="knob bri"></div><span class="knob-label">Brightness</span></div>
+        <div class="knob-group"><div class="knob spd"></div><span class="knob-label">Speed</span></div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:75%; background:linear-gradient(90deg, #333, #4488ff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on">&#9679;</button>
+        <button class="layer-ctrl-btn fx">FX 1</button>
+        <button class="layer-ctrl-btn macro">Macro A</button>
+        <button class="layer-ctrl-btn strobe">Strobe</button>
+        <span class="layer-expand">Expand</span>
+      </div>
+    </div>
+
+    <!-- Layer 7: IMAGE -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag image">IMAGE</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light on"></div>
+          <span class="tally-label">Tally Light</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(45deg, #0a0a1a 0%, #1a1a3a 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <rect x="15" y="8" width="80" height="38" rx="0" fill="none" stroke="rgba(0,204,255,0.2)" stroke-width="1"/>
+          <line x1="55" y1="8" x2="55" y2="46" stroke="rgba(0,204,255,0.1)" stroke-width="1"/>
+          <line x1="15" y1="27" x2="95" y2="27" stroke="rgba(0,204,255,0.1)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-label">Clip Name</span></div>
+        <div class="layer-info-row"><span class="layer-name-value">Layer Name: Image</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group"><div class="knob hue"></div><span class="knob-label">Hue</span></div>
+        <div class="knob-group"><div class="knob sat"></div><span class="knob-label">Saturation</span></div>
+        <div class="knob-group"><div class="knob bri"></div><span class="knob-label">Brightness</span></div>
+        <div class="knob-group"><div class="knob spd"></div><span class="knob-label">Speed</span></div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:95%; background:linear-gradient(90deg, #333, #00ccff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on">&#9679;</button>
+        <button class="layer-ctrl-btn fx">FX 1</button>
+        <button class="layer-ctrl-btn macro">Macro A</button>
+        <button class="layer-ctrl-btn strobe">Strobe</button>
+        <span class="layer-expand">Expand</span>
+      </div>
+    </div>
+
+    <!-- Layer 8: SYNTH -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag synth">SYNTH</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:radial-gradient(ellipse at 40% 60%, #1a1a00 0%, #000 80%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <path d="M10,40 Q30,5 55,27 T100,15" fill="none" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+          <circle cx="55" cy="27" r="12" fill="none" stroke="rgba(255,204,0,0.2)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-label">Source</span></div>
+        <div class="layer-info-row"><span class="layer-name-value">Layer Name: Synth</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group"><div class="knob hue"></div><span class="knob-label">Hue</span></div>
+        <div class="knob-group"><div class="knob sat"></div><span class="knob-label">Saturation</span></div>
+        <div class="knob-group"><div class="knob bri"></div><span class="knob-label">Brightness</span></div>
+        <div class="knob-group"><div class="knob spd"></div><span class="knob-label">Speed</span></div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:50%; background:linear-gradient(90deg, #333, #44cc44);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on">&#9679;</button>
+        <button class="layer-ctrl-btn fx">FX 1</button>
+        <button class="layer-ctrl-btn macro">Macro A</button>
+        <button class="layer-ctrl-btn strobe">Strobe</button>
+        <span class="layer-expand">Expand</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<div class="footer-bar">
+  <span class="footer-item active">Master Sources</span>
+  <span class="footer-item">Audio Player</span>
+  <span class="footer-item">Outputs</span>
+</div>
+
+</div><!-- /app -->
+</body>
+</html>

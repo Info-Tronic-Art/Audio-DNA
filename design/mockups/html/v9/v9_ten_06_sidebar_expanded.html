@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v9.06 — Sidebar Expanded (PROGRAM)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #1a1a1a; color: #e0e0e0; font-family: 'IBM Plex Sans', -apple-system, sans-serif; font-size: 11px; }
+  body { width: 1920px; height: 1200px; position: relative; overflow: hidden; }
+  .mono { font-family: 'IBM Plex Mono', 'SF Mono', Menlo, monospace; }
+
+  /* Grain overlay */
+  .grain {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none; opacity: 0.03; z-index: 9999;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* TOP BAR 44px */
+  .topbar { position: absolute; left:0; top:0; width:1920px; height:44px; background:#2a2a2a; border-bottom:1px solid #3a3a3a; display:flex; align-items:center; padding:0 14px; gap:18px; }
+  .logo { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13px; letter-spacing:1px; color:#e0e0e0; }
+  .logo .dot { color:#5fdba7; }
+  .bpm-big { font-family:'IBM Plex Mono',monospace; font-size:28px; color:#5fdba7; font-weight:600; letter-spacing:1px; line-height:1; }
+  .topbar .metric { display:flex; flex-direction:column; gap:2px; min-width:50px; }
+  .topbar .metric .k { font-size:9px; color:#888; letter-spacing:1px; }
+  .topbar .metric .v { font-size:12px; color:#e0e0e0; font-family:'IBM Plex Mono',monospace; }
+  .struct-pill { background:#5fdba7; color:#101010; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; padding:4px 10px; letter-spacing:1.5px; }
+  .tb-btn { width:24px; height:24px; border:1px solid #3a3a3a; background:#222; color:#aaa; font-family:'IBM Plex Mono',monospace; font-size:10px; display:flex; align-items:center; justify-content:center; }
+  .tb-btn.mint { color:#5fdba7; border-color:#5fdba7; }
+  .tb-btn.rec { color:#ff4040; border-color:#ff4040; padding:0 6px; width:auto; }
+  .mode-group { display:flex; border:1px solid #3a3a3a; }
+  .mode-btn { padding:4px 10px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:#888; border-right:1px solid #3a3a3a; position:relative; }
+  .mode-btn:last-child { border-right:none; }
+  .mode-btn.active { color:#e0e0e0; background:#252525; }
+  .mode-btn.active::after { content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#5fdba7; }
+  .spacer { flex:1; }
+
+  /* TRANSPORT STRIP 32px */
+  .transport { position:absolute; left:0; top:44px; width:1920px; height:32px; background:#212121; border-bottom:1px solid #3a3a3a; display:flex; align-items:center; padding:0 14px; gap:6px; }
+  .tr-btn { height:22px; min-width:22px; padding:0 6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#aaa; font-family:'IBM Plex Mono',monospace; font-size:10px; display:flex; align-items:center; justify-content:center; }
+  .tr-btn.mint { color:#5fdba7; border-color:#5fdba7; background:rgba(95,219,167,0.08); }
+  .tr-sep { width:1px; height:18px; background:#3a3a3a; margin:0 4px; }
+  .tr-bpm-box { height:22px; padding:0 8px; border:1px solid #3a3a3a; color:#e0e0e0; font-family:'IBM Plex Mono',monospace; font-size:11px; display:flex; align-items:center; min-width:40px; justify-content:center; }
+
+  /* SIGNAL QUICK-REF BAR 22px */
+  .sigbar { position:absolute; left:0; top:76px; width:1920px; height:22px; background:#1e1e1e; border-bottom:1px solid #3a3a3a; display:flex; align-items:center; padding:0 14px; gap:0; font-family:'IBM Plex Mono',monospace; font-size:10px; }
+  .sigbar .item { padding:0 10px; border-right:1px solid #2a2a2a; color:#888; }
+  .sigbar .item:last-child { border-right:none; }
+  .sigbar .item b { color:#e0e0e0; font-weight:400; margin-left:4px; }
+  .sigbar .item.mint b { color:#5fdba7; }
+
+  /* MAIN GRID starts at top 98 */
+  .main { position:absolute; left:0; top:98px; width:1920px; height:1102px; display:flex; }
+
+  /* LEFT SIDEBAR 220px */
+  .sidebar { width:220px; height:1102px; background:#1e1e1e; border-right:1px solid #3a3a3a; display:flex; flex-direction:column; overflow:hidden; }
+  .sb-section { border-bottom:1px solid #2d2d2d; }
+  .sb-head { height:22px; padding:0 10px; background:#262626; display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#888; letter-spacing:1.2px; border-bottom:1px solid #2a2a2a; }
+  .sb-head .tri { color:#5fdba7; font-size:8px; }
+  .sb-head .name { color:#bbb; }
+  .sb-head .val-right { margin-left:auto; color:#5fdba7; font-size:10px; }
+  .sb-body { padding:8px 10px; }
+
+  /* 7-band bars */
+  .band-row { display:flex; align-items:center; gap:6px; height:14px; margin-bottom:2px; }
+  .band-row .label { width:60px; font-size:9px; color:#888; font-family:'IBM Plex Mono',monospace; }
+  .band-row .bar { flex:1; height:6px; background:#1a1a1a; border:1px solid #303030; position:relative; }
+  .band-row .bar .fill { position:absolute; left:0; top:0; bottom:0; background:#5fdba7; }
+  .band-row .v { width:32px; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#e0e0e0; }
+
+  /* Chroma vertical bars */
+  .chroma { display:flex; gap:2px; align-items:flex-end; height:54px; margin-top:4px; }
+  .chroma .c { width:12px; background:#1a1a1a; border:1px solid #303030; position:relative; display:flex; align-items:flex-end; }
+  .chroma .c .f { width:100%; background:#5fdba7; }
+  .chroma .c .lb { position:absolute; bottom:-14px; left:50%; transform:translateX(-50%); font-size:8px; color:#888; font-family:'IBM Plex Mono',monospace; }
+
+  /* MFCC bars */
+  .mfcc { display:flex; gap:2px; height:22px; align-items:center; }
+  .mfcc .m { width:10px; height:100%; background:#1a1a1a; border:1px solid #303030; position:relative; }
+  .mfcc .m .f { position:absolute; left:0; right:0; background:#5fdba7; }
+
+  /* Dynamics rows */
+  .dyn-row { display:flex; align-items:center; gap:6px; height:14px; }
+  .dyn-row .k { width:62px; font-size:9px; color:#888; font-family:'IBM Plex Mono',monospace; }
+  .dyn-row .meter { flex:1; height:4px; background:#1a1a1a; border:1px solid #303030; position:relative; }
+  .dyn-row .meter .fill { position:absolute; left:0; top:0; bottom:0; background:#5fdba7; }
+  .dyn-row .v { width:44px; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#e0e0e0; }
+
+  /* CENTER */
+  .center { flex:1; display:flex; flex-direction:column; background:#1a1a1a; }
+  .patch { height:440px; background:#1c1c1c; border-bottom:1px solid #3a3a3a; display:flex; flex-direction:column; }
+  .patch-head { height:26px; padding:0 12px; background:#222; border-bottom:1px solid #2a2a2a; display:flex; align-items:center; gap:10px; font-family:'IBM Plex Mono',monospace; font-size:10px; }
+  .patch-head .t { color:#e0e0e0; letter-spacing:1px; }
+  .patch-head .sub { color:#666; }
+  .patch-canvas { flex:1; position:relative; overflow:hidden; }
+  .patch-footer { height:28px; padding:0 14px; background:#202020; border-top:1px solid #2a2a2a; display:flex; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#888; gap:4px; }
+  .patch-footer .v { color:#e0e0e0; }
+  .patch-footer .m { color:#5fdba7; }
+
+  /* DECK bottom */
+  .deck { flex:1; display:flex; flex-direction:column; background:#1a1a1a; }
+  .deck-header { height:28px; display:flex; align-items:center; padding:0 12px; background:#222; border-bottom:1px solid #2a2a2a; gap:14px; }
+  .deck-title { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#bbb; letter-spacing:1px; }
+  .deck-title .num { color:#5fdba7; }
+  .col-headers { display:flex; height:20px; padding-left:110px; border-bottom:1px solid #2a2a2a; background:#1d1d1d; }
+  .col-headers .ch { flex:1; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; border-right:1px solid #2a2a2a; letter-spacing:1px; }
+  .deck-body { flex:1; overflow:hidden; }
+  .layer { display:flex; height:86px; border-bottom:1px solid #2a2a2a; }
+  .layer-strip { width:110px; border-right:1px solid #2a2a2a; background:#1e1e1e; padding:4px 6px; display:flex; flex-direction:column; justify-content:space-between; }
+  .ls-head { display:flex; align-items:center; gap:5px; }
+  .ls-num { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#5fdba7; min-width:16px; }
+  .ls-name { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#ccc; }
+  .ls-icons { display:flex; gap:3px; }
+  .ls-ico { width:14px; height:12px; border:1px solid #3a3a3a; color:#888; font-size:8px; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; }
+  .ls-ico.on { color:#5fdba7; border-color:#5fdba7; }
+  .ls-opacity-row { display:flex; align-items:center; gap:4px; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; }
+  .ls-op-bar { flex:1; height:3px; background:#1a1a1a; border:1px solid #303030; position:relative; }
+  .ls-op-fill { position:absolute; left:0; top:0; bottom:0; background:#5fdba7; }
+  .clips-row { flex:1; display:flex; padding:4px; gap:4px; }
+  .cell { flex:1; min-width:100px; height:78px; border:1px dashed #333; background:#1a1a1a; position:relative; display:flex; flex-direction:column; }
+  .cell.loaded { border:1px solid #3a3a3a; background:linear-gradient(135deg,#2a2a2a,#232323); }
+  .cell.playing { border:2px solid #5fdba7; background:rgba(95,219,167,0.18); }
+  .cell.queued { border:1px dashed #5fdba7; }
+  .cell.selected { box-shadow: inset 0 0 0 1px #5fdba7; }
+  .cell .cn { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#ccc; padding:3px 5px; }
+  .cell.playing .cn { color:#5fdba7; font-weight:600; }
+  .cell .thumb { flex:1; margin:2px 4px 4px; background:#101010; position:relative; overflow:hidden; }
+
+  /* RIGHT PANEL 340px */
+  .right { width:340px; height:1102px; background:#1e1e1e; border-left:1px solid #3a3a3a; display:flex; flex-direction:column; overflow:hidden; }
+  .right-tabs { display:flex; height:28px; border-bottom:1px solid #3a3a3a; background:#222; }
+  .rt-tab { flex:1; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#888; letter-spacing:1.2px; border-right:1px solid #2a2a2a; position:relative; }
+  .rt-tab:last-child { border-right:none; }
+  .rt-tab.active { color:#e0e0e0; background:#1a1a1a; }
+  .rt-tab.active::after { content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#5fdba7; }
+  .right-body { flex:1; overflow:hidden; }
+  .insp-section { border-bottom:1px solid #2d2d2d; position:relative; }
+  .insp-head { height:24px; padding:0 10px; display:flex; align-items:center; background:#252525; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1.2px; color:#bbb; border-bottom:1px solid #2a2a2a; }
+  .insp-head .tri { color:#5fdba7; font-size:8px; }
+  .insp-head .p { margin-left:auto; font-size:9px; color:#888; padding:1px 4px; border:1px solid #3a3a3a; }
+  .insp-section.routed::before { content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:#5fdba7; }
+  .insp-body { padding:8px 10px; }
+
+  /* Inspector row */
+  .ir { display:flex; align-items:center; gap:4px; height:22px; font-family:'IBM Plex Mono',monospace; font-size:10px; }
+  .ir .lbl { width:90px; text-align:right; color:#888; }
+  .ir .val { width:50px; text-align:right; color:#e0e0e0; }
+  .ir .minus, .ir .plus { width:14px; height:14px; border:1px solid #3a3a3a; text-align:center; line-height:12px; color:#888; font-size:10px; }
+  .ir .slider { flex:1; height:4px; background:#1a1a1a; border:1px solid #303030; position:relative; }
+  .ir .slider .fill { position:absolute; left:0; top:0; bottom:0; background:#444; }
+  .ir .slider .ind { position:absolute; top:-3px; width:2px; height:10px; background:#5fdba7; }
+  .ir .pbtn { width:16px; height:14px; border:1px solid #3a3a3a; color:#888; font-size:9px; text-align:center; line-height:12px; }
+  .ir .pbtn.routed { color:#101010; background:#5fdba7; border-color:#5fdba7; }
+
+  /* Dashboard knobs */
+  .dash { display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; }
+  .knob { display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .knob-ring { width:44px; height:44px; background:#222; border:1px solid #3a3a3a; position:relative; border-radius:50%; }
+  .knob .lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; }
+  .knob .v { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#e0e0e0; }
+  .knob.routed .knob-ring { border-color:#5fdba7; }
+  .knob.routed .v { color:#5fdba7; }
+
+  /* Cuepoints */
+  .cp-row { display:flex; gap:4px; }
+  .cp { flex:1; height:22px; border:1px solid #3a3a3a; background:#1a1a1a; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; }
+  .cp.set { color:#5fdba7; border-color:#5fdba7; background:rgba(95,219,167,0.1); }
+
+  /* Effects stack */
+  .eff-row { display:flex; align-items:center; gap:6px; height:22px; border-bottom:1px solid #2a2a2a; padding:0 8px; font-family:'IBM Plex Mono',monospace; font-size:10px; }
+  .eff-row .b { width:14px; height:14px; border:1px solid #3a3a3a; color:#888; text-align:center; line-height:12px; font-size:9px; }
+  .eff-row .n { flex:1; color:#ccc; }
+  .eff-row .x { width:14px; height:14px; border:1px solid #3a3a3a; color:#888; text-align:center; line-height:12px; font-size:9px; }
+  .eff-row.routed .n { color:#5fdba7; }
+
+  /* Curve editor */
+  .curve-wrap { padding:10px; background:#181818; }
+</style>
+</head>
+<body>
+
+<!-- =========== TOP BAR =========== -->
+<div class="topbar">
+  <div class="logo">AUDIO<span class="dot">·</span>DNA</div>
+  <div class="bpm-big">128.0</div>
+  <div class="metric"><span class="k">BAR</span><span class="v">37</span></div>
+  <div class="metric"><span class="k">PHRASE</span><span class="v">4/8</span></div>
+  <div class="struct-pill">DROP</div>
+  <svg width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="12" fill="none" stroke="#333" stroke-width="2"/>
+    <path d="M14 2 A 12 12 0 0 1 26 14" fill="none" stroke="#5fdba7" stroke-width="2"/>
+    <circle cx="14" cy="14" r="3" fill="#5fdba7"/>
+  </svg>
+  <div class="tb-btn mint">&#9654;</div>
+  <div class="tb-btn">&#10073;&#10073;</div>
+  <div class="tb-btn">&#9632;</div>
+  <div class="metric"><span class="k">QUANT</span><span class="v">1/4</span></div>
+  <div class="metric"><span class="k">FADE</span><span class="v">2.0s</span></div>
+  <div class="metric"><span class="k">MASTER</span><span class="v mono" style="color:#5fdba7">0.85</span></div>
+  <div class="tb-btn rec">&#9679; REC</div>
+  <div class="metric"><span class="k">FPS</span><span class="v">60.0</span></div>
+  <div class="spacer"></div>
+  <div class="mode-group">
+    <div class="mode-btn">LIVE</div>
+    <div class="mode-btn active">PROGRAM</div>
+    <div class="mode-btn">SETUP</div>
+  </div>
+</div>
+
+<!-- =========== TRANSPORT STRIP =========== -->
+<div class="transport">
+  <div class="tr-btn mint">&#9654;</div>
+  <div class="tr-btn">&#10073;&#10073;</div>
+  <div class="tr-btn">&#9632;</div>
+  <div class="tr-bpm-box">128</div>
+  <div class="tr-btn">&minus;</div>
+  <div class="tr-btn">+</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn">&#9664;&#10072;</div>
+  <div class="tr-btn">&#10072;&#9654;</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn">/2</div>
+  <div class="tr-btn">&times;2</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn mint">TAP</div>
+  <div class="tr-btn">RESYNC</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn">&#9719;</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn">&#8630;</div>
+  <div class="tr-btn">&#8631;</div>
+  <div class="spacer"></div>
+  <div class="mono" style="color:#888; font-size:10px;">PROGRAM &middot; patching route: <span style="color:#5fdba7">BASS &rarr; Ripple.Intensity</span></div>
+</div>
+
+<!-- =========== SIGNAL QUICK-REF BAR =========== -->
+<div class="sigbar">
+  <span class="item">RMS<b>0.73</b></span>
+  <span class="item">PEAK<b>0.91</b></span>
+  <span class="item">LUFS<b>-12.4</b></span>
+  <span class="item">FLUX<b>0.42</b></span>
+  <span class="item">CENTROID<b>2.8k</b></span>
+  <span class="item mint">BASS<b>0.88</b></span>
+  <span class="item">MID<b>0.45</b></span>
+  <span class="item">HIGH<b>0.31</b></span>
+  <span class="item mint">BPM<b>128</b></span>
+  <span class="item">KEY<b>Am</b></span>
+  <span class="item mint">GENRE<b>TECHNO</b></span>
+  <span class="item">PITCH<b>220Hz</b></span>
+  <span class="item">ONSETS<b>4.2/s</b></span>
+  <span class="item">CREST<b>2.1</b></span>
+  <span class="item">FLAT<b>0.28</b></span>
+</div>
+
+<!-- =========== MAIN =========== -->
+<div class="main">
+
+  <!-- =========== LEFT SIDEBAR =========== -->
+  <div class="sidebar">
+
+    <!-- WAVEFORM -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">WAVEFORM</span><span class="val-right">LIVE</span></div>
+      <div class="sb-body">
+        <svg width="200" height="40" viewBox="0 0 200 40">
+          <rect width="200" height="40" fill="#101010"/>
+          <line x1="0" y1="20" x2="200" y2="20" stroke="#2a2a2a" stroke-width="1"/>
+          <polyline fill="none" stroke="#5fdba7" stroke-width="1" points="0,20 4,18 8,24 12,12 16,30 20,8 24,32 28,10 32,28 36,14 40,26 44,16 48,22 52,8 56,34 60,6 64,36 68,10 72,28 76,14 80,24 84,18 88,22 92,12 96,30 100,14 104,26 108,16 112,24 116,18 120,22 124,14 128,28 132,12 136,30 140,18 144,22 148,16 152,24 156,20 160,20 164,18 168,22 172,14 176,26 180,16 184,24 188,18 192,22 196,20 200,20"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- SPECTRUM -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">SPECTRUM</span><span class="val-right">1025 bins</span></div>
+      <div class="sb-body">
+        <svg width="200" height="80" viewBox="0 0 200 80">
+          <rect width="200" height="80" fill="#101010"/>
+          <g fill="#5fdba7">
+            <rect x="0" y="30" width="3" height="50"/><rect x="4" y="20" width="3" height="60"/>
+            <rect x="8" y="15" width="3" height="65"/><rect x="12" y="10" width="3" height="70"/>
+            <rect x="16" y="18" width="3" height="62"/><rect x="20" y="22" width="3" height="58"/>
+            <rect x="24" y="28" width="3" height="52"/><rect x="28" y="35" width="3" height="45"/>
+            <rect x="32" y="25" width="3" height="55"/><rect x="36" y="32" width="3" height="48"/>
+            <rect x="40" y="40" width="3" height="40"/><rect x="44" y="38" width="3" height="42"/>
+            <rect x="48" y="44" width="3" height="36"/><rect x="52" y="42" width="3" height="38"/>
+            <rect x="56" y="46" width="3" height="34"/><rect x="60" y="48" width="3" height="32"/>
+            <rect x="64" y="50" width="3" height="30"/><rect x="68" y="48" width="3" height="32"/>
+            <rect x="72" y="52" width="3" height="28"/><rect x="76" y="54" width="3" height="26"/>
+            <rect x="80" y="52" width="3" height="28"/><rect x="84" y="55" width="3" height="25"/>
+            <rect x="88" y="58" width="3" height="22"/><rect x="92" y="56" width="3" height="24"/>
+            <rect x="96" y="60" width="3" height="20"/><rect x="100" y="58" width="3" height="22"/>
+            <rect x="104" y="62" width="3" height="18"/><rect x="108" y="60" width="3" height="20"/>
+            <rect x="112" y="64" width="3" height="16"/><rect x="116" y="62" width="3" height="18"/>
+            <rect x="120" y="65" width="3" height="15"/><rect x="124" y="64" width="3" height="16"/>
+            <rect x="128" y="66" width="3" height="14"/><rect x="132" y="68" width="3" height="12"/>
+            <rect x="136" y="66" width="3" height="14"/><rect x="140" y="70" width="3" height="10"/>
+            <rect x="144" y="68" width="3" height="12"/><rect x="148" y="70" width="3" height="10"/>
+            <rect x="152" y="72" width="3" height="8"/><rect x="156" y="70" width="3" height="10"/>
+            <rect x="160" y="72" width="3" height="8"/><rect x="164" y="73" width="3" height="7"/>
+            <rect x="168" y="72" width="3" height="8"/><rect x="172" y="74" width="3" height="6"/>
+            <rect x="176" y="73" width="3" height="7"/><rect x="180" y="74" width="3" height="6"/>
+            <rect x="184" y="75" width="3" height="5"/><rect x="188" y="74" width="3" height="6"/>
+            <rect x="192" y="76" width="3" height="4"/><rect x="196" y="75" width="3" height="5"/>
+          </g>
+          <text x="2" y="78" font-family="IBM Plex Mono" font-size="7" fill="#666">20</text>
+          <text x="60" y="78" font-family="IBM Plex Mono" font-size="7" fill="#666">500</text>
+          <text x="115" y="78" font-family="IBM Plex Mono" font-size="7" fill="#666">2k</text>
+          <text x="175" y="78" font-family="IBM Plex Mono" font-size="7" fill="#666">20k</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 7-BAND ENERGIES -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">7-BAND</span></div>
+      <div class="sb-body">
+        <div class="band-row"><span class="label">Sub</span><div class="bar"><div class="fill" style="width:72%"></div></div><span class="v">0.72</span></div>
+        <div class="band-row"><span class="label">Bass</span><div class="bar"><div class="fill" style="width:88%"></div></div><span class="v">0.88</span></div>
+        <div class="band-row"><span class="label">LowMid</span><div class="bar"><div class="fill" style="width:54%"></div></div><span class="v">0.54</span></div>
+        <div class="band-row"><span class="label">Mid</span><div class="bar"><div class="fill" style="width:45%"></div></div><span class="v">0.45</span></div>
+        <div class="band-row"><span class="label">HighMid</span><div class="bar"><div class="fill" style="width:38%"></div></div><span class="v">0.38</span></div>
+        <div class="band-row"><span class="label">Presence</span><div class="bar"><div class="fill" style="width:31%"></div></div><span class="v">0.31</span></div>
+        <div class="band-row"><span class="label">Brilliance</span><div class="bar"><div class="fill" style="width:22%"></div></div><span class="v">0.22</span></div>
+      </div>
+    </div>
+
+    <!-- CHROMAGRAM -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">CHROMAGRAM</span><span class="val-right">Am</span></div>
+      <div class="sb-body">
+        <div class="chroma">
+          <div class="c"><div class="f" style="height:32%"></div><span class="lb">C</span></div>
+          <div class="c"><div class="f" style="height:18%"></div><span class="lb">C#</span></div>
+          <div class="c"><div class="f" style="height:55%"></div><span class="lb">D</span></div>
+          <div class="c"><div class="f" style="height:22%"></div><span class="lb">D#</span></div>
+          <div class="c"><div class="f" style="height:72%"></div><span class="lb">E</span></div>
+          <div class="c"><div class="f" style="height:28%"></div><span class="lb">F</span></div>
+          <div class="c"><div class="f" style="height:14%"></div><span class="lb">F#</span></div>
+          <div class="c"><div class="f" style="height:58%"></div><span class="lb">G</span></div>
+          <div class="c"><div class="f" style="height:20%"></div><span class="lb">G#</span></div>
+          <div class="c"><div class="f" style="height:92%"></div><span class="lb">A</span></div>
+          <div class="c"><div class="f" style="height:24%"></div><span class="lb">A#</span></div>
+          <div class="c"><div class="f" style="height:38%"></div><span class="lb">B</span></div>
+        </div>
+        <div style="height:18px"></div>
+      </div>
+    </div>
+
+    <!-- MFCC -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">MFCC</span><span class="val-right">13</span></div>
+      <div class="sb-body">
+        <div class="mfcc">
+          <div class="m"><div class="f" style="top:0; height:75%"></div></div>
+          <div class="m"><div class="f" style="top:25%; height:50%"></div></div>
+          <div class="m"><div class="f" style="top:40%; height:20%"></div></div>
+          <div class="m"><div class="f" style="top:20%; height:55%"></div></div>
+          <div class="m"><div class="f" style="top:35%; height:30%"></div></div>
+          <div class="m"><div class="f" style="top:45%; height:20%"></div></div>
+          <div class="m"><div class="f" style="top:30%; height:35%"></div></div>
+          <div class="m"><div class="f" style="top:42%; height:22%"></div></div>
+          <div class="m"><div class="f" style="top:48%; height:15%"></div></div>
+          <div class="m"><div class="f" style="top:44%; height:18%"></div></div>
+          <div class="m"><div class="f" style="top:47%; height:12%"></div></div>
+          <div class="m"><div class="f" style="top:49%; height:8%"></div></div>
+          <div class="m"><div class="f" style="top:48%; height:10%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DYNAMICS -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">DYNAMICS</span></div>
+      <div class="sb-body">
+        <div class="dyn-row"><span class="k">RMS</span><div class="meter"><div class="fill" style="width:73%"></div></div><span class="v">0.73</span></div>
+        <div class="dyn-row"><span class="k">Peak</span><div class="meter"><div class="fill" style="width:91%"></div></div><span class="v">0.91</span></div>
+        <div class="dyn-row"><span class="k">LUFS</span><div class="meter"><div class="fill" style="width:66%"></div></div><span class="v">-12.4</span></div>
+        <div class="dyn-row"><span class="k">Crest</span><div class="meter"><div class="fill" style="width:35%"></div></div><span class="v">2.1</span></div>
+        <div class="dyn-row"><span class="k">Transients</span><div class="meter"><div class="fill" style="width:70%"></div></div><span class="v">4.2/s</span></div>
+      </div>
+    </div>
+
+    <!-- RHYTHM -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">RHYTHM</span></div>
+      <div class="sb-body">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:22px; color:#5fdba7; line-height:1;">128</div>
+          <svg width="32" height="32" viewBox="0 0 32 32">
+            <circle cx="16" cy="16" r="13" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+            <path d="M16 3 A 13 13 0 0 1 28.5 12" fill="none" stroke="#5fdba7" stroke-width="2"/>
+            <circle cx="16" cy="16" r="2" fill="#5fdba7"/>
+          </svg>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; line-height:1.3;">BEAT<br/><span style="color:#e0e0e0;">0.25</span></div>
+        </div>
+        <div class="dyn-row"><span class="k">Bar</span><div class="meter"><div class="fill" style="width:50%"></div></div><span class="v">37</span></div>
+        <div class="dyn-row"><span class="k">Phrase</span><div class="meter"><div class="fill" style="width:50%"></div></div><span class="v">4/8</span></div>
+      </div>
+    </div>
+
+    <!-- PITCH -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">PITCH</span></div>
+      <div class="sb-body">
+        <div class="dyn-row"><span class="k">Dominant</span><div class="meter"><div class="fill" style="width:45%"></div></div><span class="v">220Hz</span></div>
+        <div class="dyn-row"><span class="k">Confidence</span><div class="meter"><div class="fill" style="width:82%"></div></div><span class="v">0.82</span></div>
+        <div class="dyn-row"><span class="k">Key</span><div class="meter"><div class="fill" style="width:40%"></div></div><span class="v">Am</span></div>
+        <div class="dyn-row"><span class="k">HCDF</span><div class="meter"><div class="fill" style="width:22%"></div></div><span class="v">0.22</span></div>
+      </div>
+    </div>
+
+    <!-- ADVANCED -->
+    <div class="sb-section">
+      <div class="sb-head"><span class="tri">&#9660;</span><span class="name">ADVANCED</span></div>
+      <div class="sb-body">
+        <div class="dyn-row"><span class="k">Sidechain</span><div class="meter"><div class="fill" style="width:78%"></div></div><span class="v">0.78</span></div>
+        <div class="dyn-row"><span class="k">Swing</span><div class="meter"><div class="fill" style="width:12%"></div></div><span class="v">0.52</span></div>
+        <div class="dyn-row"><span class="k">Formant</span><div class="meter"><div class="fill" style="width:28%"></div></div><span class="v">0.28</span></div>
+        <div class="dyn-row"><span class="k">Resonance</span><div class="meter"><div class="fill" style="width:62%"></div></div><span class="v">0.62</span></div>
+        <div class="dyn-row"><span class="k">Reese Bass</span><div class="meter"><div class="fill" style="width:18%"></div></div><span class="v">0.18</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== CENTER =========== -->
+  <div class="center">
+
+    <!-- PATCH BAY -->
+    <div class="patch">
+      <div class="patch-head">
+        <span class="t">PATCH BAY</span>
+        <span class="sub">&middot; 7 active routes &middot; selected: BASS &rarr; Ripple.Intensity</span>
+        <div style="margin-left:auto; display:flex; gap:6px;">
+          <div class="tr-btn mint">ADD ROUTE</div>
+          <div class="tr-btn">CLEAR</div>
+        </div>
+      </div>
+      <div class="patch-canvas">
+        <svg width="100%" height="100%" viewBox="0 0 1360 386" preserveAspectRatio="none">
+          <rect width="1360" height="386" fill="#1c1c1c"/>
+          <g stroke="#242424" stroke-width="1">
+            <line x1="0" y1="48" x2="1360" y2="48"/>
+            <line x1="0" y1="96" x2="1360" y2="96"/>
+            <line x1="0" y1="144" x2="1360" y2="144"/>
+            <line x1="0" y1="192" x2="1360" y2="192"/>
+            <line x1="0" y1="240" x2="1360" y2="240"/>
+            <line x1="0" y1="288" x2="1360" y2="288"/>
+            <line x1="0" y1="336" x2="1360" y2="336"/>
+          </g>
+
+          <text x="40" y="24" font-family="IBM Plex Mono" font-size="10" fill="#666" letter-spacing="1">SIGNALS</text>
+          <text x="1200" y="24" font-family="IBM Plex Mono" font-size="10" fill="#666" letter-spacing="1">TARGETS</text>
+
+          <!-- Left source nodes -->
+          <rect x="40" y="54" width="130" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="56" y="73" font-family="IBM Plex Mono" font-size="11" fill="#bbb">RMS</text>
+          <text x="140" y="73" font-family="IBM Plex Mono" font-size="10" fill="#e0e0e0">0.73</text>
+          <circle cx="170" cy="69" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+
+          <rect x="40" y="110" width="130" height="30" fill="#1f2a24" stroke="#5fdba7" stroke-width="1"/>
+          <text x="56" y="129" font-family="IBM Plex Mono" font-size="11" fill="#5fdba7">BASS</text>
+          <text x="140" y="129" font-family="IBM Plex Mono" font-size="10" fill="#5fdba7">0.88</text>
+          <circle cx="170" cy="125" r="6" fill="#5fdba7"/>
+
+          <rect x="40" y="166" width="130" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="56" y="185" font-family="IBM Plex Mono" font-size="11" fill="#bbb">MID</text>
+          <text x="140" y="185" font-family="IBM Plex Mono" font-size="10" fill="#e0e0e0">0.45</text>
+          <circle cx="170" cy="181" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+
+          <rect x="40" y="222" width="130" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="56" y="241" font-family="IBM Plex Mono" font-size="11" fill="#bbb">BEAT PHASE</text>
+          <text x="140" y="241" font-family="IBM Plex Mono" font-size="10" fill="#e0e0e0">0.25</text>
+          <circle cx="170" cy="237" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+
+          <rect x="40" y="278" width="130" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="56" y="297" font-family="IBM Plex Mono" font-size="11" fill="#bbb">CENTROID</text>
+          <text x="140" y="297" font-family="IBM Plex Mono" font-size="10" fill="#e0e0e0">2.8k</text>
+          <circle cx="170" cy="293" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+
+          <rect x="40" y="334" width="130" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="56" y="353" font-family="IBM Plex Mono" font-size="11" fill="#bbb">ONSET</text>
+          <text x="140" y="353" font-family="IBM Plex Mono" font-size="10" fill="#e0e0e0">4.2/s</text>
+          <circle cx="170" cy="349" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+
+          <!-- Right target nodes -->
+          <circle cx="1190" cy="41" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+          <rect x="1200" y="26" width="160" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="1214" y="45" font-family="IBM Plex Mono" font-size="10" fill="#bbb">ChromaAb.Shift</text>
+
+          <circle cx="1190" cy="85" r="6" fill="#5fdba7"/>
+          <rect x="1200" y="70" width="160" height="30" fill="#1f2a24" stroke="#5fdba7"/>
+          <text x="1214" y="89" font-family="IBM Plex Mono" font-size="10" fill="#5fdba7">Ripple.Intensity</text>
+
+          <circle cx="1190" cy="129" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+          <rect x="1200" y="114" width="160" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="1214" y="133" font-family="IBM Plex Mono" font-size="10" fill="#bbb">HueShift.Amount</text>
+
+          <circle cx="1190" cy="173" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+          <rect x="1200" y="158" width="160" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="1214" y="177" font-family="IBM Plex Mono" font-size="10" fill="#bbb">Glow.Strength</text>
+
+          <circle cx="1190" cy="217" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+          <rect x="1200" y="202" width="160" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="1214" y="221" font-family="IBM Plex Mono" font-size="10" fill="#bbb">Kaleido.Slices</text>
+
+          <circle cx="1190" cy="261" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+          <rect x="1200" y="246" width="160" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="1214" y="265" font-family="IBM Plex Mono" font-size="10" fill="#bbb">Transform.Scale</text>
+
+          <circle cx="1190" cy="305" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+          <rect x="1200" y="290" width="160" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="1214" y="309" font-family="IBM Plex Mono" font-size="10" fill="#bbb">Layer2.Opacity</text>
+
+          <circle cx="1190" cy="349" r="6" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1.5"/>
+          <rect x="1200" y="334" width="160" height="30" fill="#252525" stroke="#3a3a3a"/>
+          <text x="1214" y="353" font-family="IBM Plex Mono" font-size="10" fill="#bbb">Strobe.Rate</text>
+
+          <!-- ROUTE LINES -->
+          <!-- Selected: BASS -> Ripple.Intensity -->
+          <path d="M 170 125 C 540 125, 820 85, 1190 85" fill="none" stroke="#5fdba7" stroke-width="2"/>
+          <!-- Unselected solid gray -->
+          <path d="M 170 69 C 540 69, 820 173, 1190 173" fill="none" stroke="#555" stroke-width="1.5"/>
+          <path d="M 170 181 C 540 181, 820 129, 1190 129" fill="none" stroke="#555" stroke-width="1.5"/>
+          <path d="M 170 237 C 540 237, 820 217, 1190 217" fill="none" stroke="#555" stroke-width="1.5"/>
+          <path d="M 170 293 C 540 293, 820 261, 1190 261" fill="none" stroke="#555" stroke-width="1.5"/>
+          <path d="M 170 349 C 540 349, 820 349, 1190 349" fill="none" stroke="#555" stroke-width="1.5"/>
+          <path d="M 170 125 C 540 125, 820 305, 1190 305" fill="none" stroke="#555" stroke-width="1.5"/>
+
+          <!-- Selected route waypoint labels -->
+          <circle cx="540" cy="105" r="3" fill="#5fdba7"/>
+          <circle cx="820" cy="95" r="3" fill="#5fdba7"/>
+          <text x="550" y="100" font-family="IBM Plex Mono" font-size="9" fill="#5fdba7">CURVE: EXP</text>
+          <text x="830" y="86" font-family="IBM Plex Mono" font-size="9" fill="#5fdba7">EMA 0.15</text>
+        </svg>
+      </div>
+      <div class="patch-footer">
+        <span>ROUTE:</span>
+        <span class="m">BASS</span><span>&rarr;</span>
+        <span class="m">Ripple.Intensity</span>
+        <span style="margin:0 10px; color:#555;">&middot;</span>
+        <span>CURVE</span><span class="v">EXP</span>
+        <span style="margin:0 10px; color:#555;">&middot;</span>
+        <span>IN</span><span class="v">0.00&rarr;1.00</span>
+        <span style="margin:0 10px; color:#555;">&middot;</span>
+        <span>OUT</span><span class="v">0.00&rarr;1.00</span>
+        <span style="margin:0 10px; color:#555;">&middot;</span>
+        <span>SMOOTH</span><span class="v">0.15</span>
+        <span style="margin-left:auto; color:#5fdba7;">&#9679; ACTIVE</span>
+      </div>
+    </div>
+
+    <!-- DECK BOTTOM 60% -->
+    <div class="deck">
+      <div class="deck-header">
+        <div class="deck-title">DECK <span class="num">B</span> &middot; 5 layers &times; 6 columns</div>
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:#888;">Selected: L3/C2 (Ripple Field)</div>
+        <div style="margin-left:auto; display:flex; gap:6px;">
+          <div class="tr-btn">A</div>
+          <div class="tr-btn mint">B</div>
+          <div class="tr-btn">C</div>
+          <div class="tr-btn">D</div>
+        </div>
+      </div>
+      <div class="col-headers">
+        <div class="ch">01</div><div class="ch">02</div><div class="ch">03</div>
+        <div class="ch">04</div><div class="ch">05</div><div class="ch">06</div>
+      </div>
+      <div class="deck-body">
+        <!-- layer 1 -->
+        <div class="layer">
+          <div class="layer-strip">
+            <div class="ls-head">
+              <span class="ls-num">L1</span><span class="ls-name">FX Haze</span>
+            </div>
+            <div class="ls-icons">
+              <span class="ls-ico">S</span><span class="ls-ico">M</span><span class="ls-ico on">B</span>
+              <span class="ls-ico">&#9660;</span>
+            </div>
+            <div class="ls-opacity-row"><span>OPA</span><div class="ls-op-bar"><div class="ls-op-fill" style="width:85%"></div></div><span>0.85</span></div>
+          </div>
+          <div class="clips-row">
+            <div class="cell loaded"><div class="cn">Neon Rain</div><div class="thumb" style="background:linear-gradient(135deg,#1a2a3a,#0a0a1a)"></div></div>
+            <div class="cell playing"><div class="cn">Strobe Haze</div><div class="thumb" style="background:linear-gradient(135deg,#1a3a2a,#0a2010)"></div></div>
+            <div class="cell loaded"><div class="cn">Grain Field</div><div class="thumb" style="background:linear-gradient(135deg,#2a2a2a,#0a0a0a)"></div></div>
+            <div class="cell"><div class="cn" style="color:#555">&mdash;</div><div class="thumb"></div></div>
+            <div class="cell loaded"><div class="cn">Dust Trail</div><div class="thumb" style="background:linear-gradient(135deg,#2a1a3a,#0a000a)"></div></div>
+            <div class="cell"><div class="cn" style="color:#555">&mdash;</div><div class="thumb"></div></div>
+          </div>
+        </div>
+        <!-- layer 2 -->
+        <div class="layer">
+          <div class="layer-strip">
+            <div class="ls-head"><span class="ls-num">L2</span><span class="ls-name">Pattern</span></div>
+            <div class="ls-icons">
+              <span class="ls-ico on">S</span><span class="ls-ico">M</span><span class="ls-ico">B</span>
+              <span class="ls-ico">&#9660;</span>
+            </div>
+            <div class="ls-opacity-row"><span>OPA</span><div class="ls-op-bar"><div class="ls-op-fill" style="width:68%"></div></div><span>0.68</span></div>
+          </div>
+          <div class="clips-row">
+            <div class="cell loaded"><div class="cn">Kaleido A</div><div class="thumb" style="background:linear-gradient(135deg,#3a2a1a,#1a0a00)"></div></div>
+            <div class="cell loaded"><div class="cn">Mandelbulb</div><div class="thumb" style="background:linear-gradient(135deg,#2a3a1a,#0a1a00)"></div></div>
+            <div class="cell queued"><div class="cn" style="color:#5fdba7">Torus Spiral</div><div class="thumb" style="background:linear-gradient(135deg,#1a3a3a,#001a1a)"></div></div>
+            <div class="cell loaded"><div class="cn">Apollonian</div><div class="thumb" style="background:linear-gradient(135deg,#3a1a2a,#1a0010)"></div></div>
+            <div class="cell"><div class="cn" style="color:#555">&mdash;</div><div class="thumb"></div></div>
+            <div class="cell loaded"><div class="cn">Sierpinski</div><div class="thumb" style="background:linear-gradient(135deg,#2a2a3a,#0a0a1a)"></div></div>
+          </div>
+        </div>
+        <!-- layer 3 SELECTED -->
+        <div class="layer">
+          <div class="layer-strip">
+            <div class="ls-head"><span class="ls-num" style="color:#fff">L3</span><span class="ls-name" style="color:#5fdba7">Base</span></div>
+            <div class="ls-icons">
+              <span class="ls-ico">S</span><span class="ls-ico">M</span><span class="ls-ico on">B</span>
+              <span class="ls-ico">&#9660;</span>
+            </div>
+            <div class="ls-opacity-row"><span>OPA</span><div class="ls-op-bar"><div class="ls-op-fill" style="width:100%"></div></div><span>1.00</span></div>
+          </div>
+          <div class="clips-row">
+            <div class="cell loaded"><div class="cn">Video A</div><div class="thumb" style="background:linear-gradient(135deg,#5a2a2a,#2a0000)"></div></div>
+            <div class="cell selected playing"><div class="cn">Ripple Field</div><div class="thumb" style="background:linear-gradient(135deg,#2a5a3a,#003020)"></div></div>
+            <div class="cell loaded"><div class="cn">Tunnel 4K</div><div class="thumb" style="background:linear-gradient(135deg,#3a3a5a,#101020)"></div></div>
+            <div class="cell loaded"><div class="cn">Cave Loop</div><div class="thumb" style="background:linear-gradient(135deg,#5a3a1a,#201000)"></div></div>
+            <div class="cell loaded"><div class="cn">Particle</div><div class="thumb" style="background:linear-gradient(135deg,#3a1a5a,#100030)"></div></div>
+            <div class="cell loaded"><div class="cn">Liquid</div><div class="thumb" style="background:linear-gradient(135deg,#2a4a5a,#001020)"></div></div>
+          </div>
+        </div>
+        <!-- layer 4 -->
+        <div class="layer">
+          <div class="layer-strip">
+            <div class="ls-head"><span class="ls-num">L4</span><span class="ls-name">Logo</span></div>
+            <div class="ls-icons">
+              <span class="ls-ico">S</span><span class="ls-ico on">M</span><span class="ls-ico">B</span>
+              <span class="ls-ico">&#9660;</span>
+            </div>
+            <div class="ls-opacity-row"><span>OPA</span><div class="ls-op-bar"><div class="ls-op-fill" style="width:50%"></div></div><span>0.50</span></div>
+          </div>
+          <div class="clips-row">
+            <div class="cell loaded"><div class="cn">Logo PNG</div><div class="thumb" style="background:linear-gradient(135deg,#2a2a2a,#101010)"></div></div>
+            <div class="cell"><div class="cn" style="color:#555">&mdash;</div><div class="thumb"></div></div>
+            <div class="cell loaded"><div class="cn">Text: DROP</div><div class="thumb" style="background:linear-gradient(135deg,#3a3a3a,#1a1a1a)"></div></div>
+            <div class="cell"><div class="cn" style="color:#555">&mdash;</div><div class="thumb"></div></div>
+            <div class="cell loaded"><div class="cn">Frame A</div><div class="thumb" style="background:linear-gradient(135deg,#2a2a3a,#101020)"></div></div>
+            <div class="cell"><div class="cn" style="color:#555">&mdash;</div><div class="thumb"></div></div>
+          </div>
+        </div>
+        <!-- layer 5 -->
+        <div class="layer" style="border-bottom:none">
+          <div class="layer-strip">
+            <div class="ls-head"><span class="ls-num">L5</span><span class="ls-name">Env</span></div>
+            <div class="ls-icons">
+              <span class="ls-ico">S</span><span class="ls-ico">M</span><span class="ls-ico on">B</span>
+              <span class="ls-ico">&#9660;</span>
+            </div>
+            <div class="ls-opacity-row"><span>OPA</span><div class="ls-op-bar"><div class="ls-op-fill" style="width:40%"></div></div><span>0.40</span></div>
+          </div>
+          <div class="clips-row">
+            <div class="cell loaded"><div class="cn">Sky A</div><div class="thumb" style="background:linear-gradient(135deg,#1a2a4a,#001020)"></div></div>
+            <div class="cell loaded"><div class="cn">Forest</div><div class="thumb" style="background:linear-gradient(135deg,#1a3a2a,#002010)"></div></div>
+            <div class="cell playing"><div class="cn">Cityscape</div><div class="thumb" style="background:linear-gradient(135deg,#3a2a4a,#1a0030)"></div></div>
+            <div class="cell loaded"><div class="cn">Ocean</div><div class="thumb" style="background:linear-gradient(135deg,#1a2a3a,#000010)"></div></div>
+            <div class="cell loaded"><div class="cn">Desert</div><div class="thumb" style="background:linear-gradient(135deg,#3a2a1a,#201000)"></div></div>
+            <div class="cell"><div class="cn" style="color:#555">&mdash;</div><div class="thumb"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========== RIGHT PANEL =========== -->
+  <div class="right">
+
+    <div class="right-tabs">
+      <div class="rt-tab">COMPOSITION</div>
+      <div class="rt-tab">LAYER</div>
+      <div class="rt-tab active">CLIP</div>
+    </div>
+
+    <div class="right-body">
+
+      <!-- DASHBOARD -->
+      <div class="insp-section">
+        <div class="insp-head"><span class="tri">&#9660;</span>DASHBOARD<span class="p">P.</span></div>
+        <div class="insp-body">
+          <div class="dash">
+            <div class="knob routed">
+              <div class="knob-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+                  <path d="M22 6 A 16 16 0 0 1 36 22" fill="none" stroke="#5fdba7" stroke-width="2"/>
+                  <line x1="22" y1="22" x2="32" y2="14" stroke="#5fdba7" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="lbl">LINK 1</div><div class="v">0.65</div>
+            </div>
+            <div class="knob">
+              <div class="knob-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+                  <line x1="22" y1="22" x2="30" y2="14" stroke="#888" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="lbl">LINK 2</div><div class="v">0.30</div>
+            </div>
+            <div class="knob routed">
+              <div class="knob-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+                  <path d="M22 6 A 16 16 0 1 1 10 30" fill="none" stroke="#5fdba7" stroke-width="2"/>
+                  <line x1="22" y1="22" x2="12" y2="30" stroke="#5fdba7" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="lbl">LINK 3</div><div class="v">0.88</div>
+            </div>
+            <div class="knob">
+              <div class="knob-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+                  <line x1="22" y1="22" x2="22" y2="8" stroke="#888" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="lbl">LINK 4</div><div class="v">0.50</div>
+            </div>
+            <div class="knob">
+              <div class="knob-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+                  <line x1="22" y1="22" x2="32" y2="17" stroke="#888" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="lbl">LINK 5</div><div class="v">0.42</div>
+            </div>
+            <div class="knob routed">
+              <div class="knob-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+                  <path d="M22 6 A 16 16 0 0 1 36 22" fill="none" stroke="#5fdba7" stroke-width="2"/>
+                  <line x1="22" y1="22" x2="33" y2="20" stroke="#5fdba7" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="lbl">LINK 6</div><div class="v">0.72</div>
+            </div>
+            <div class="knob">
+              <div class="knob-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+                  <line x1="22" y1="22" x2="16" y2="10" stroke="#888" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="lbl">LINK 7</div><div class="v">0.25</div>
+            </div>
+            <div class="knob">
+              <div class="knob-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44">
+                  <circle cx="22" cy="22" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+                  <line x1="22" y1="22" x2="28" y2="12" stroke="#888" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="lbl">LINK 8</div><div class="v">0.38</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSPORT -->
+      <div class="insp-section">
+        <div class="insp-head"><span class="tri">&#9660;</span>TRANSPORT<span class="p">P.</span></div>
+        <div class="insp-body">
+          <div class="ir">
+            <span class="lbl">In</span><span class="val">0.00</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:0%"></div><div class="ind" style="left:0%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Out</span><span class="val">1.00</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="ind" style="left:100%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Speed</span><span class="val">1.00</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Beat Division</span><span class="val">4.0</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:40%"></div><div class="ind" style="left:40%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Loop Mode</span>
+            <div style="flex:1; display:flex; gap:4px; margin-left:4px;">
+              <div style="flex:1; height:14px; border:1px solid #5fdba7; color:#5fdba7; font-family:'IBM Plex Mono',monospace; font-size:9px; text-align:center; line-height:12px;">LOOP</div>
+              <div style="flex:1; height:14px; border:1px solid #3a3a3a; color:#888; font-family:'IBM Plex Mono',monospace; font-size:9px; text-align:center; line-height:12px;">PING PONG</div>
+              <div style="flex:1; height:14px; border:1px solid #3a3a3a; color:#888; font-family:'IBM Plex Mono',monospace; font-size:9px; text-align:center; line-height:12px;">ONE SHOT</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUEPOINTS -->
+      <div class="insp-section">
+        <div class="insp-head"><span class="tri">&#9660;</span>CUEPOINTS<span class="p">P.</span></div>
+        <div class="insp-body">
+          <div class="cp-row">
+            <div class="cp set">0.00</div>
+            <div class="cp set">0.12</div>
+            <div class="cp set">0.25</div>
+            <div class="cp">&mdash;</div>
+            <div class="cp set">0.50</div>
+            <div class="cp">&mdash;</div>
+            <div class="cp set">0.75</div>
+            <div class="cp">&mdash;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIDEO -->
+      <div class="insp-section">
+        <div class="insp-head"><span class="tri">&#9660;</span>VIDEO<span class="p">P.</span></div>
+        <div class="insp-body">
+          <div class="ir">
+            <span class="lbl">Blend Mode</span><span class="val" style="color:#5fdba7">ADD</span>
+            <div style="flex:1; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; margin-left:6px;">&middot; SCREEN &middot; MULTIPLY</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Opacity</span><span class="val">1.00</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="ind" style="left:100%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Width</span><span class="val">1920</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="ind" style="left:100%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Height</span><span class="val">1080</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="ind" style="left:100%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Channels</span>
+            <div style="flex:1; display:flex; gap:4px; margin-left:4px;">
+              <div style="flex:1; height:14px; border:1px solid #5fdba7; color:#5fdba7; font-family:'IBM Plex Mono',monospace; font-size:9px; text-align:center; line-height:12px;">R</div>
+              <div style="flex:1; height:14px; border:1px solid #5fdba7; color:#5fdba7; font-family:'IBM Plex Mono',monospace; font-size:9px; text-align:center; line-height:12px;">G</div>
+              <div style="flex:1; height:14px; border:1px solid #5fdba7; color:#5fdba7; font-family:'IBM Plex Mono',monospace; font-size:9px; text-align:center; line-height:12px;">B</div>
+              <div style="flex:1; height:14px; border:1px solid #3a3a3a; color:#888; font-family:'IBM Plex Mono',monospace; font-size:9px; text-align:center; line-height:12px;">A</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSFORM (routed) -->
+      <div class="insp-section routed">
+        <div class="insp-head"><span class="tri">&#9660;</span>TRANSFORM<span class="p">P.</span></div>
+        <div class="insp-body">
+          <div class="ir">
+            <span class="lbl">Position X</span><span class="val">0.00</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Position Y</span><span class="val">0.00</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Scale</span><span class="val" style="color:#5fdba7">1.24</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:62%; background:#5fdba7"></div><div class="ind" style="left:62%"></div></div>
+            <div class="pbtn routed">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Rotation</span><span class="val">12&deg;</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:55%"></div><div class="ind" style="left:55%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Anchor X</span><span class="val">0.50</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+          <div class="ir">
+            <span class="lbl">Anchor Y</span><span class="val">0.50</span>
+            <span class="minus">&minus;</span><span class="plus">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+            <div class="pbtn">P.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EFFECTS -->
+      <div class="insp-section">
+        <div class="insp-head"><span class="tri">&#9660;</span>EFFECTS<span class="p">+ ADD</span></div>
+        <div class="insp-body" style="padding:0">
+          <div class="eff-row routed">
+            <div class="b">B</div>
+            <div class="n">Ripple</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:9px; color:#5fdba7;">&#9679;&#9679;</div>
+            <div class="x">&times;</div>
+          </div>
+          <div style="background:#232323; padding:6px 10px; border-bottom:1px solid #2a2a2a;">
+            <div class="ir">
+              <span class="lbl">Intensity</span><span class="val" style="color:#5fdba7">0.74</span>
+              <span class="minus">&minus;</span><span class="plus">+</span>
+              <div class="slider"><div class="fill" style="width:74%; background:#5fdba7"></div><div class="ind" style="left:74%"></div></div>
+              <div class="pbtn routed">P.</div>
+            </div>
+            <div class="ir">
+              <span class="lbl">Frequency</span><span class="val">0.42</span>
+              <span class="minus">&minus;</span><span class="plus">+</span>
+              <div class="slider"><div class="fill" style="width:42%"></div><div class="ind" style="left:42%"></div></div>
+              <div class="pbtn">P.</div>
+            </div>
+            <div class="ir">
+              <span class="lbl">Speed</span><span class="val">0.55</span>
+              <span class="minus">&minus;</span><span class="plus">+</span>
+              <div class="slider"><div class="fill" style="width:55%"></div><div class="ind" style="left:55%"></div></div>
+              <div class="pbtn">P.</div>
+            </div>
+            <div class="ir">
+              <span class="lbl">Center X</span><span class="val">0.50</span>
+              <span class="minus">&minus;</span><span class="plus">+</span>
+              <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+              <div class="pbtn">P.</div>
+            </div>
+            <div class="ir">
+              <span class="lbl">Center Y</span><span class="val">0.50</span>
+              <span class="minus">&minus;</span><span class="plus">+</span>
+              <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+              <div class="pbtn">P.</div>
+            </div>
+          </div>
+          <div class="eff-row">
+            <div class="b">B</div><div class="n">Hue Shift</div><div class="x">&times;</div>
+          </div>
+          <div class="eff-row">
+            <div class="b">B</div><div class="n">Glow</div><div class="x">&times;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CURVE EDITOR -->
+      <div class="insp-section">
+        <div class="insp-head"><span class="tri">&#9660;</span>CURVE EDITOR<span style="color:#5fdba7; margin-left:6px;">&middot; EXP</span><span class="p">Ripple.Intensity</span></div>
+        <div class="curve-wrap">
+          <svg width="320" height="120" viewBox="0 0 320 120">
+            <rect width="320" height="120" fill="#141414" stroke="#2a2a2a"/>
+            <g stroke="#242424" stroke-width="1">
+              <line x1="0" y1="24" x2="320" y2="24"/>
+              <line x1="0" y1="48" x2="320" y2="48"/>
+              <line x1="0" y1="72" x2="320" y2="72"/>
+              <line x1="0" y1="96" x2="320" y2="96"/>
+              <line x1="64" y1="0" x2="64" y2="120"/>
+              <line x1="128" y1="0" x2="128" y2="120"/>
+              <line x1="192" y1="0" x2="192" y2="120"/>
+              <line x1="256" y1="0" x2="256" y2="120"/>
+            </g>
+            <path d="M 0 120 Q 200 110 260 60 Q 300 20 320 0" fill="none" stroke="#5fdba7" stroke-width="2"/>
+            <circle cx="0" cy="120" r="4" fill="#5fdba7"/>
+            <circle cx="320" cy="0" r="4" fill="#5fdba7"/>
+            <line x1="281.6" y1="0" x2="281.6" y2="120" stroke="#5fdba7" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>
+            <circle cx="281.6" cy="13" r="4" fill="#101010" stroke="#5fdba7" stroke-width="2"/>
+            <text x="240" y="22" font-family="IBM Plex Mono" font-size="9" fill="#5fdba7">in 0.88</text>
+            <text x="240" y="34" font-family="IBM Plex Mono" font-size="9" fill="#5fdba7">out 0.89</text>
+            <text x="4" y="116" font-family="IBM Plex Mono" font-size="8" fill="#666">0</text>
+            <text x="4" y="10" font-family="IBM Plex Mono" font-size="8" fill="#666">1</text>
+            <text x="308" y="116" font-family="IBM Plex Mono" font-size="8" fill="#666">1</text>
+          </svg>
+          <div style="display:flex; gap:4px; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:10px;">
+            <div style="flex:1; padding:4px 2px; border:1px solid #3a3a3a; color:#888; text-align:center;">LIN</div>
+            <div style="flex:1; padding:4px 2px; border:1px solid #5fdba7; color:#5fdba7; text-align:center; background:rgba(95,219,167,0.08);">EXP</div>
+            <div style="flex:1; padding:4px 2px; border:1px solid #3a3a3a; color:#888; text-align:center;">LOG</div>
+            <div style="flex:1; padding:4px 2px; border:1px solid #3a3a3a; color:#888; text-align:center;">S-CURVE</div>
+            <div style="flex:1; padding:4px 2px; border:1px solid #3a3a3a; color:#888; text-align:center;">STEP</div>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888;">
+            <span>IN <span style="color:#e0e0e0">0.00&rarr;1.00</span></span>
+            <span>OUT <span style="color:#e0e0e0">0.00&rarr;1.00</span></span>
+            <span>SMOOTH <span style="color:#e0e0e0">0.15</span></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div class="grain"></div>
+
+</body>
+</html>

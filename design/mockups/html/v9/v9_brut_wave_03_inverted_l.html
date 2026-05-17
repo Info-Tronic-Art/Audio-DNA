@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v9 Brutalist — Wave 03 Inverted L</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;overflow:hidden;}
+body{
+  background:#0a0a0a;color:#e8e8e8;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;
+  letter-spacing:0.02em;
+  position:relative;
+}
+/* SVG grain overlay */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  opacity:0.03;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.sans{font-family:'IBM Plex Sans',sans-serif;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.dim{color:#6e6e6e;}
+.title{color:#fff;}
+.body-txt{color:#e8e8e8;}
+
+/* ===== TOP BAR ===== */
+.topbar{
+  height:86px;background:#0a0a0a;
+  border-bottom:1px solid #2a2a2a;
+  display:flex;align-items:center;padding:0 16px;gap:20px;
+}
+.bpm-group{display:flex;align-items:baseline;gap:10px;padding-right:20px;border-right:1px solid #2a2a2a;height:100%;padding-top:16px;padding-bottom:16px;}
+.bpm-digit{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:48px;font-weight:700;line-height:1;
+  color:#ff4500;font-variant-numeric:tabular-nums;
+  letter-spacing:-0.02em;
+}
+.bpm-sub{display:flex;flex-direction:column;gap:2px;}
+.bpm-label-sm{font-size:11px;color:#6e6e6e;text-transform:uppercase;letter-spacing:0.12em;}
+.bpm-meta{font-size:11px;color:#e8e8e8;font-variant-numeric:tabular-nums;}
+
+/* Beat wheel — 4 squares */
+.beat-wheel{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:2px;width:44px;height:44px;}
+.beat-sq{background:#1a1a1a;border:1px solid #2a2a2a;}
+.beat-sq.pulse{background:#ff4500;border-color:#ff4500;animation:beat 0.469s infinite;}
+@keyframes beat{
+  0%{background:#ff4500;opacity:1;}
+  50%{background:#ff4500;opacity:0.25;}
+  100%{background:#ff4500;opacity:1;}
+}
+
+/* Transport buttons */
+.tx-group{display:flex;gap:0;border:1px solid #2a2a2a;}
+.tx-btn{
+  height:32px;min-width:52px;padding:0 12px;
+  background:#0a0a0a;border:none;border-right:1px solid #2a2a2a;
+  color:#e8e8e8;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;
+  letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.tx-btn:last-child{border-right:none;}
+.tx-btn.active{background:#1a1a1a;color:#fff;}
+.tx-btn:hover{background:#111;}
+
+/* Master fader */
+.master-block{display:flex;align-items:center;gap:10px;padding:0 18px;border-left:1px solid #2a2a2a;border-right:1px solid #2a2a2a;height:54px;}
+.master-label{font-size:11px;color:#6e6e6e;text-transform:uppercase;letter-spacing:0.18em;}
+.master-fader{width:160px;height:8px;background:#1a1a1a;border:1px solid #2a2a2a;position:relative;}
+.master-fader::after{content:'';position:absolute;inset:0 15% 0 0;background:#2a2a2a;}
+.master-fader-knob{position:absolute;left:85%;top:-3px;width:3px;height:14px;background:#fff;transform:translateX(-50%);}
+.master-val{font-size:14px;color:#fff;font-variant-numeric:tabular-nums;font-weight:500;min-width:38px;}
+
+/* REC + mode state */
+.rec-btn{
+  height:32px;padding:0 14px;background:#0a0a0a;border:1px solid #2a2a2a;
+  color:#e8e8e8;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;
+  letter-spacing:0.14em;text-transform:uppercase;display:flex;align-items:center;gap:8px;cursor:pointer;
+}
+.rec-dot{width:10px;height:10px;background:#ff4500;animation:recpulse 1s infinite;}
+@keyframes recpulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.mode-state{font-size:11px;color:#6e6e6e;text-transform:uppercase;letter-spacing:0.14em;display:flex;align-items:center;gap:8px;}
+.mode-state strong{color:#e8e8e8;font-weight:500;}
+
+.top-spacer{flex:1;}
+
+.genre-tag{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;
+  padding:8px 12px;background:#0a0a0a;border:1px solid #2a2a2a;color:#e8e8e8;
+  letter-spacing:0.18em;text-transform:uppercase;
+}
+.key-tag{font-size:14px;color:#fff;font-weight:500;padding:8px 10px;border:1px solid #2a2a2a;}
+
+/* ===== WAVEFORM STRIP ===== */
+.wavestrip{
+  height:80px;background:#0a0a0a;
+  border-bottom:1px solid #2a2a2a;
+  position:relative;display:flex;flex-direction:column;
+}
+.wavestrip .wave-row{
+  flex:1;position:relative;overflow:hidden;border-bottom:1px solid #111;
+}
+.wavestrip .wave-row:last-child{border-bottom:none;background:#050505;}
+.wave-label{
+  position:absolute;top:4px;left:8px;font-size:11px;color:#6e6e6e;
+  letter-spacing:0.14em;text-transform:uppercase;z-index:5;font-weight:500;
+}
+.wave-bars{position:absolute;inset:0;display:flex;align-items:center;gap:1px;padding:4px 2px;}
+.wave-bar{flex:1;min-width:2px;}
+/* Beat grid */
+.beat-grid{position:absolute;inset:0;pointer-events:none;}
+.bm{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.08);}
+.bm.downbeat{background:rgba(255,255,255,0.18);width:1px;}
+.bm.barstart{background:#ff4500;width:2px;}
+.bar-num{
+  position:absolute;top:2px;font-size:9px;color:#6e6e6e;
+  font-variant-numeric:tabular-nums;font-family:'IBM Plex Mono',monospace;
+}
+.struct-zone{
+  position:absolute;top:0;bottom:0;opacity:0.1;pointer-events:none;
+  display:flex;align-items:flex-start;justify-content:center;padding-top:2px;
+}
+.struct-zone span{font-size:9px;color:#fff;letter-spacing:0.14em;text-transform:uppercase;font-weight:600;opacity:0.9;}
+.struct-normal{background:#6e6e6e;}
+.struct-build{background:#888;}
+.struct-drop{background:#aaa;}
+/* Playhead */
+.playhead{
+  position:absolute;top:0;bottom:0;left:46%;width:2px;background:#fff;z-index:20;
+}
+/* Onset flashes */
+.onset-flash{
+  position:absolute;width:6px;height:6px;background:#fff;z-index:10;
+  top:50%;transform:translate(-50%,-50%);
+}
+
+/* ===== DECK GRID (TOP SECTION — 460px tall) ===== */
+.deck-area{
+  height:460px;
+  display:flex;flex-direction:column;
+  border-bottom:1px solid #2a2a2a;
+  position:relative;
+}
+/* Column triggers */
+.col-triggers{
+  display:flex;height:22px;background:#0a0a0a;border-bottom:1px solid #2a2a2a;
+}
+.col-spacer{
+  width:180px;min-width:180px;
+  border-right:1px solid #2a2a2a;display:flex;align-items:center;padding:0 12px;
+  font-size:11px;color:#6e6e6e;text-transform:uppercase;letter-spacing:0.14em;
+}
+.col-trigger{
+  flex:1;border-right:1px solid #2a2a2a;background:#0a0a0a;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8e8e8;font-weight:500;
+  cursor:pointer;
+}
+.col-trigger:last-child{border-right:none;}
+.col-trigger:hover{background:#111;}
+.col-trigger.active{background:#1a1a1a;color:#fff;}
+
+/* Layer rows */
+.layer-grid{flex:1;display:flex;flex-direction:column;}
+.layer-row{flex:1;display:flex;border-bottom:1px solid #2a2a2a;min-height:0;}
+.layer-row:last-child{border-bottom:none;}
+
+/* Layer header — 180px */
+.layer-header{
+  width:180px;min-width:180px;background:#0a0a0a;
+  border-right:1px solid #2a2a2a;padding:8px 10px;
+  display:flex;flex-direction:column;gap:4px;position:relative;
+}
+.lh-top{display:flex;align-items:center;justify-content:space-between;}
+.lh-name{font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#fff;font-weight:600;letter-spacing:-0.005em;}
+.lh-typebadge{
+  font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;
+  padding:2px 5px;border:1px solid #2a2a2a;color:#e8e8e8;
+  letter-spacing:0.12em;text-transform:uppercase;
+}
+.lh-btns{display:flex;gap:0;margin-top:2px;}
+.lh-btn{
+  width:24px;height:20px;background:#0a0a0a;border:1px solid #2a2a2a;
+  margin-right:-1px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8e8e8;font-weight:600;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.lh-btn.active{color:#fff;border-color:#6e6e6e;background:#1a1a1a;}
+.lh-opacity-row{display:flex;align-items:center;gap:6px;margin-top:2px;}
+.lh-opacity-bar{flex:1;height:6px;background:#1a1a1a;border:1px solid #2a2a2a;position:relative;}
+.lh-opacity-fill{position:absolute;left:0;top:0;bottom:0;background:#2a2a2a;}
+.lh-opacity-val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#fff;min-width:34px;text-align:right;font-variant-numeric:tabular-nums;}
+.lh-meta{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#6e6e6e;margin-top:2px;}
+.lh-meta strong{color:#e8e8e8;font-weight:400;}
+.lh-autopilot{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:1px 5px;border:1px solid #2a2a2a;color:#e8e8e8;text-transform:uppercase;letter-spacing:0.1em;}
+.lh-autopilot.on{color:#fff;border-color:#6e6e6e;background:#1a1a1a;}
+/* Per-layer sparkline signal meter */
+.lh-spark{
+  margin-top:auto;height:16px;background:#050505;border:1px solid #1a1a1a;position:relative;overflow:hidden;
+}
+.lh-spark svg{position:absolute;inset:0;width:100%;height:100%;}
+.lh-spark-label{position:absolute;top:1px;left:3px;font-size:8px;color:#6e6e6e;letter-spacing:0.1em;}
+
+/* Clip grid */
+.clip-grid{display:flex;flex:1;min-width:0;}
+.clip-cell{
+  flex:1;min-width:0;background:#111;border-right:1px solid #2a2a2a;
+  position:relative;cursor:pointer;display:flex;flex-direction:column;overflow:hidden;
+}
+.clip-cell:last-child{border-right:none;}
+.clip-cell:hover{background:#1a1a1a;}
+.clip-cell.empty{background:#0a0a0a;}
+.clip-cell.playing{
+  background:#ff4500;
+}
+.clip-cell.playing .clip-name{color:#fff;background:transparent;font-weight:600;}
+.clip-cell.playing .clip-thumb{opacity:0.25;}
+.clip-cell.queued{border:2px dashed #fff;}
+.clip-cell.selected-row{background:#1a1a1a;}
+/* Progress bar */
+.clip-progress{
+  position:absolute;bottom:0;left:0;right:0;height:4px;background:#ff4500;
+}
+.clip-thumb{flex:1;position:relative;overflow:hidden;background:#0a0a0a;}
+.clip-thumb svg{position:absolute;inset:0;width:100%;height:100%;}
+.clip-name{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:3px 5px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#e8e8e8;font-weight:500;
+  background:rgba(10,10,10,0.85);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.02em;
+}
+.clip-fx{
+  position:absolute;top:3px;right:3px;font-family:'IBM Plex Mono',monospace;font-size:9px;
+  padding:1px 4px;background:rgba(10,10,10,0.8);color:#e8e8e8;border:1px solid #2a2a2a;
+  letter-spacing:0.1em;
+}
+.clip-sig-overlay{position:absolute;top:3px;left:3px;display:flex;gap:2px;}
+.clip-sig-dot{width:5px;height:5px;background:#6e6e6e;}
+
+/* ===== BOTTOM SECTION ===== */
+.bottom{display:flex;height:calc(1080px - 86px - 80px - 460px - 18px);position:relative;}
+
+/* Signal Panel */
+.signal-panel{
+  width:200px;min-width:200px;background:#0a0a0a;border-right:1px solid #2a2a2a;
+  overflow-y:auto;padding:10px 12px;
+}
+.sp-header{font-size:11px;color:#6e6e6e;text-transform:uppercase;letter-spacing:0.18em;font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #2a2a2a;}
+.sp-group{margin-bottom:12px;}
+.sp-group-title{font-size:11px;color:#e8e8e8;text-transform:uppercase;letter-spacing:0.14em;font-weight:500;margin-bottom:5px;}
+.sp-row{
+  display:flex;align-items:center;padding:4px 6px;position:relative;min-height:24px;
+  border-bottom:1px solid #111;
+}
+.sp-row.selected{background:#1a1a1a;padding-left:9px;}
+.sp-row.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#ff4500;}
+.sp-name{font-size:11px;color:#e8e8e8;width:64px;font-weight:400;}
+.sp-bar{flex:1;height:6px;background:#111;border:1px solid #1a1a1a;position:relative;margin-right:6px;}
+.sp-fill{position:absolute;top:0;bottom:0;left:0;background:#6e6e6e;}
+.sp-val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8e8e8;min-width:38px;text-align:right;font-variant-numeric:tabular-nums;}
+
+/* Inspector (center, ~55% of remaining after signal panel) */
+.inspector{
+  flex:none;width:calc((100% - 200px) * 0.55);background:#0a0a0a;
+  border-right:1px solid #2a2a2a;display:flex;flex-direction:column;overflow:hidden;
+  position:relative;
+}
+.insp-header{
+  height:30px;background:#0a0a0a;display:flex;border-bottom:1px solid #2a2a2a;
+}
+.insp-tab{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6e6e6e;font-weight:500;
+  letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;
+  border-right:1px solid #2a2a2a;
+}
+.insp-tab:last-child{border-right:none;}
+.insp-tab.active{color:#fff;background:#1a1a1a;}
+.insp-body{flex:1;display:flex;overflow:hidden;min-height:0;}
+.insp-col{flex:1;padding:10px 12px;border-right:1px solid #2a2a2a;overflow-y:auto;min-width:0;}
+.insp-col:last-child{border-right:none;}
+.insp-section{margin-bottom:14px;}
+.insp-section-title{
+  font-size:11px;color:#e8e8e8;text-transform:uppercase;letter-spacing:0.18em;
+  font-weight:600;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #2a2a2a;
+}
+.insp-clip-title{
+  font-family:'IBM Plex Sans',sans-serif;font-size:16px;color:#fff;font-weight:600;margin-bottom:2px;
+}
+.insp-clip-sub{font-size:11px;color:#6e6e6e;text-transform:uppercase;letter-spacing:0.14em;}
+
+.insp-row{display:flex;align-items:center;min-height:28px;padding:3px 0;border-bottom:1px solid #111;gap:6px;}
+.insp-label{font-size:11px;color:#e8e8e8;width:86px;min-width:86px;}
+.insp-slider{flex:1;height:6px;background:#111;border:1px solid #2a2a2a;position:relative;}
+.insp-slider-fill{position:absolute;left:0;top:0;bottom:0;background:#2a2a2a;}
+.insp-slider-fill.just-changed{animation:justchanged 200ms ease-out;}
+@keyframes justchanged{0%{background:#ff4500;}100%{background:#2a2a2a;}}
+.insp-val{font-family:'IBM Plex Mono',monospace;font-size:14px;color:#fff;min-width:48px;text-align:right;font-variant-numeric:tabular-nums;font-weight:400;}
+.insp-val.just-changed{animation:valflash 200ms ease-out;}
+@keyframes valflash{0%{color:#ff4500;}100%{color:#fff;}}
+.signal-tri{
+  width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:7px solid #6e6e6e;cursor:pointer;
+}
+.signal-tri.mapped{border-top-color:#ff4500;}
+.insp-combo{
+  flex:1;background:#0a0a0a;border:1px solid #2a2a2a;color:#e8e8e8;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 8px;
+  min-height:24px;display:flex;align-items:center;
+}
+.insp-combo::after{content:'\25BE';margin-left:auto;color:#6e6e6e;}
+
+/* Cuepoint pads */
+.cuepoint-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;}
+.cuepoint-pad{
+  height:24px;background:#0a0a0a;border:1px solid #2a2a2a;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8e8e8;font-weight:500;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.cuepoint-pad:hover{background:#111;}
+.cuepoint-pad.set{color:#fff;border-color:#6e6e6e;background:#1a1a1a;}
+.cuepoint-pad.active{background:#ff4500;color:#fff;border-color:#ff4500;}
+
+/* FX stack */
+.fx-slot{
+  display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #111;
+}
+.fx-bypass{
+  width:20px;height:20px;background:#0a0a0a;border:1px solid #2a2a2a;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8e8e8;
+}
+.fx-bypass.checked{color:#fff;background:#1a1a1a;border-color:#6e6e6e;}
+.fx-name{font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#fff;font-weight:500;min-width:80px;}
+.fx-arrow{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6e6e6e;}
+.fx-source{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8e8e8;letter-spacing:0.12em;text-transform:uppercase;}
+.fx-sig-tri{margin-left:auto;}
+
+/* Dashboard knobs */
+.dashboard{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.knob-cell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;}
+.knob-ring{
+  width:44px;height:44px;border:2px solid #2a2a2a;
+  position:relative;
+  background:#0a0a0a;
+}
+.knob-ring::before{
+  content:'';position:absolute;inset:-2px;
+  background:conic-gradient(from 225deg, #2a2a2a 0deg, #2a2a2a var(--angle,180deg), transparent var(--angle,180deg), transparent 270deg);
+  -webkit-mask:linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  padding:0;
+}
+.knob-indicator{
+  position:absolute;top:50%;left:50%;width:2px;height:18px;background:#fff;
+  transform-origin:bottom center;
+  transform:translate(-50%,-100%) rotate(var(--rot,0deg));
+}
+.knob-name{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6e6e6e;text-transform:uppercase;letter-spacing:0.12em;}
+.knob-val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#fff;font-variant-numeric:tabular-nums;}
+
+/* ===== PREVIEW ===== */
+.preview{
+  width:320px;height:180px;
+  background:#050505;border:1px solid #2a2a2a;
+  position:relative;margin-bottom:14px;
+}
+.preview svg{position:absolute;inset:0;width:100%;height:100%;}
+.preview-tag{
+  position:absolute;top:6px;left:6px;
+  font-family:'IBM Plex Mono',monospace;font-size:9px;color:#fff;font-weight:600;
+  background:rgba(10,10,10,0.85);padding:3px 6px;letter-spacing:0.14em;
+}
+.preview-tag .rec-tag{color:#ff4500;animation:recpulse 1s infinite;}
+.preview-bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:#ff4500;}
+
+/* Browser */
+.browser{
+  flex:1;background:#0a0a0a;display:flex;flex-direction:column;overflow:hidden;
+}
+.browser-tabs{display:flex;height:30px;background:#0a0a0a;border-bottom:1px solid #2a2a2a;}
+.browser-tab{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6e6e6e;font-weight:500;
+  letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;
+  border-right:1px solid #2a2a2a;
+}
+.browser-tab:last-child{border-right:none;}
+.browser-tab.active{color:#fff;background:#1a1a1a;}
+
+.browser-search{
+  height:28px;background:#0a0a0a;border-bottom:1px solid #2a2a2a;
+  display:flex;align-items:center;padding:0 12px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6e6e6e;letter-spacing:0.1em;
+}
+.browser-search::before{content:'>';margin-right:8px;color:#e8e8e8;}
+.browser-grid{
+  flex:1;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;padding:8px;
+  overflow-y:auto;
+}
+.browser-cell{
+  aspect-ratio:1;background:#0a0a0a;border:1px solid #2a2a2a;position:relative;cursor:pointer;overflow:hidden;
+  min-height:60px;
+}
+.browser-cell:hover{border-color:#6e6e6e;}
+.browser-cell svg{position:absolute;inset:0;width:100%;height:100%;}
+.browser-cell-name{
+  position:absolute;bottom:0;left:0;right:0;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#fff;
+  background:rgba(10,10,10,0.85);padding:2px 4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+/* ===== FOOTER ===== */
+.footer{
+  position:absolute;left:0;right:0;bottom:0;height:18px;
+  background:#0a0a0a;border-top:1px solid #2a2a2a;
+  display:flex;align-items:center;padding:0 12px;gap:18px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:#6e6e6e;
+  letter-spacing:0.1em;
+}
+.footer strong{color:#e8e8e8;font-weight:500;}
+.footer .spacer{flex:1;}
+
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:#0a0a0a;}
+::-webkit-scrollbar-thumb{background:#2a2a2a;}
+</style>
+</head>
+<body>
+
+<!-- SVG DEFS: reusable clip thumbnail patterns -->
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <!-- Turbulence filter for preview -->
+    <filter id="prev-turb" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.04" numOctaves="3" seed="3"/>
+      <feDisplacementMap in="SourceGraphic" scale="28"/>
+    </filter>
+    <!-- Radial gradient used by the preview -->
+    <radialGradient id="prev-rad" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#ff4500" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#555" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="1"/>
+    </radialGradient>
+
+    <!-- Thumbnail generators (12 patterns) -->
+    <!-- 1: Concentric rings -->
+    <symbol id="th-rings" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <circle cx="50" cy="50" r="40" fill="none" stroke="#6e6e6e" stroke-width="1"/>
+      <circle cx="50" cy="50" r="30" fill="none" stroke="#6e6e6e" stroke-width="1"/>
+      <circle cx="50" cy="50" r="20" fill="none" stroke="#e8e8e8" stroke-width="1"/>
+      <circle cx="50" cy="50" r="10" fill="none" stroke="#fff" stroke-width="1"/>
+    </symbol>
+    <!-- 2: Mandelbulb-esque mass -->
+    <symbol id="th-bulb" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#e8e8e8" stroke-width="0.5">
+        <path d="M20,50 Q35,20 50,50 T80,50"/>
+        <path d="M20,60 Q35,30 50,60 T80,60"/>
+        <path d="M20,40 Q35,10 50,40 T80,40"/>
+      </g>
+      <circle cx="50" cy="50" r="20" fill="none" stroke="#fff" stroke-width="1"/>
+    </symbol>
+    <!-- 3: Perlin-like blobs -->
+    <symbol id="th-perlin" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#111"/>
+      <filter id="n-a"><feTurbulence baseFrequency="0.04" numOctaves="2" seed="1"/></filter>
+      <rect width="100" height="100" filter="url(#n-a)" opacity="0.5"/>
+    </symbol>
+    <!-- 4: Menger grid -->
+    <symbol id="th-menger" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#e8e8e8" stroke-width="1">
+        <rect x="10" y="10" width="80" height="80"/>
+        <rect x="36" y="10" width="28" height="80"/>
+        <rect x="10" y="36" width="80" height="28"/>
+        <rect x="36" y="36" width="28" height="28" fill="#0a0a0a"/>
+      </g>
+    </symbol>
+    <!-- 5: Julia swirl -->
+    <symbol id="th-julia" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#6e6e6e" stroke-width="0.5">
+        <path d="M10,50 Q30,20 50,50 Q70,80 90,50"/>
+        <path d="M50,10 Q80,30 50,50 Q20,70 50,90"/>
+      </g>
+      <circle cx="50" cy="50" r="6" fill="#fff"/>
+    </symbol>
+    <!-- 6: KIFS triangles -->
+    <symbol id="th-kifs" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#e8e8e8" stroke-width="0.8">
+        <polygon points="50,10 90,85 10,85"/>
+        <polygon points="50,30 75,78 25,78"/>
+        <polygon points="50,48 62,72 38,72"/>
+      </g>
+    </symbol>
+    <!-- 7: Voronoi cells -->
+    <symbol id="th-voronoi" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#6e6e6e" stroke-width="1">
+        <polygon points="0,0 30,18 25,50 0,42"/>
+        <polygon points="30,18 60,10 65,35 25,50"/>
+        <polygon points="60,10 100,0 100,40 65,35"/>
+        <polygon points="0,42 25,50 20,80 0,100"/>
+        <polygon points="25,50 65,35 70,70 20,80"/>
+        <polygon points="65,35 100,40 100,75 70,70"/>
+        <polygon points="20,80 70,70 100,75 100,100 0,100"/>
+      </g>
+    </symbol>
+    <!-- 8: Apollonian bubbles -->
+    <symbol id="th-apollo" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#e8e8e8" stroke-width="0.6">
+        <circle cx="50" cy="50" r="45"/>
+        <circle cx="32" cy="40" r="18"/>
+        <circle cx="68" cy="40" r="18"/>
+        <circle cx="50" cy="72" r="18"/>
+        <circle cx="50" cy="45" r="6"/>
+        <circle cx="42" cy="60" r="5"/>
+        <circle cx="58" cy="60" r="5"/>
+      </g>
+    </symbol>
+    <!-- 9: Attractor lines -->
+    <symbol id="th-attract" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#6e6e6e" stroke-width="0.5">
+        <path d="M20,80 C30,60 40,40 50,30 C60,20 70,40 80,20"/>
+        <path d="M15,70 C25,50 45,45 55,55 C65,65 85,50 90,60"/>
+        <path d="M10,40 C30,30 45,70 60,40 C75,20 85,40 95,30"/>
+      </g>
+    </symbol>
+    <!-- 10: Spectrum bars -->
+    <symbol id="th-spectrum" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="#e8e8e8">
+        <rect x="6" y="60" width="6" height="35"/>
+        <rect x="16" y="40" width="6" height="55"/>
+        <rect x="26" y="30" width="6" height="65"/>
+        <rect x="36" y="50" width="6" height="45"/>
+        <rect x="46" y="20" width="6" height="75"/>
+        <rect x="56" y="45" width="6" height="50"/>
+        <rect x="66" y="35" width="6" height="60"/>
+        <rect x="76" y="55" width="6" height="40"/>
+        <rect x="86" y="48" width="6" height="47"/>
+      </g>
+    </symbol>
+    <!-- 11: Cymatics -->
+    <symbol id="th-cymatics" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#e8e8e8" stroke-width="0.4">
+        <path d="M50,10 A40,40 0 1,0 50,90 A40,40 0 1,0 50,10"/>
+        <path d="M50,20 A30,30 0 1,1 50,80 A30,30 0 1,1 50,20"/>
+        <line x1="50" y1="10" x2="50" y2="90"/>
+        <line x1="10" y1="50" x2="90" y2="50"/>
+        <line x1="22" y1="22" x2="78" y2="78"/>
+        <line x1="78" y1="22" x2="22" y2="78"/>
+      </g>
+    </symbol>
+    <!-- 12: Torus stripes -->
+    <symbol id="th-torus" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="none" stroke="#6e6e6e" stroke-width="1.5">
+        <ellipse cx="50" cy="50" rx="38" ry="14"/>
+        <ellipse cx="50" cy="50" rx="30" ry="10"/>
+        <ellipse cx="50" cy="50" rx="22" ry="7"/>
+      </g>
+    </symbol>
+    <!-- 13: Noise/glitch -->
+    <symbol id="th-glitch" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="#e8e8e8">
+        <rect x="0" y="20" width="100" height="3"/>
+        <rect x="15" y="38" width="60" height="2"/>
+        <rect x="40" y="56" width="45" height="4"/>
+        <rect x="5" y="72" width="80" height="2"/>
+        <rect x="30" y="85" width="35" height="3"/>
+      </g>
+    </symbol>
+    <!-- 14: Text wall -->
+    <symbol id="th-text" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#0a0a0a"/>
+      <g fill="#e8e8e8" font-family="monospace" font-size="9">
+        <text x="8" y="20">TEXT</text>
+        <text x="8" y="38">AUDIO</text>
+        <text x="8" y="56">DNA</text>
+        <text x="8" y="74">LIVE</text>
+        <text x="8" y="92">NOW</text>
+      </g>
+    </symbol>
+    <!-- 15: Plasma -->
+    <symbol id="th-plasma" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#111"/>
+      <filter id="n-b"><feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="4" seed="7"/></filter>
+      <rect width="100" height="100" filter="url(#n-b)" opacity="0.6"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- ==== TOP BAR ==== -->
+<div class="topbar">
+  <div class="bpm-group">
+    <div class="bpm-digit">128.0</div>
+    <div class="bpm-sub">
+      <div class="bpm-label-sm">BPM / TECHNO</div>
+      <div class="bpm-meta">BAR 08 / 16 · PHR 04/08</div>
+    </div>
+  </div>
+
+  <div class="beat-wheel">
+    <div class="beat-sq pulse"></div>
+    <div class="beat-sq"></div>
+    <div class="beat-sq"></div>
+    <div class="beat-sq"></div>
+  </div>
+
+  <div class="tx-group">
+    <div class="tx-btn">TAP</div>
+    <div class="tx-btn">NUDGE-</div>
+    <div class="tx-btn">NUDGE+</div>
+    <div class="tx-btn active">RESYNC</div>
+    <div class="tx-btn">MANUAL</div>
+  </div>
+
+  <div class="master-block">
+    <div class="master-label">MASTER</div>
+    <div class="master-fader"><div class="master-fader-knob"></div></div>
+    <div class="master-val">0.85</div>
+  </div>
+
+  <div class="rec-btn"><div class="rec-dot"></div>REC 00:12:34</div>
+
+  <div class="mode-state">MODE · <strong>PERFORM</strong> · DECK A LIVE · SYPHON ON</div>
+
+  <div class="top-spacer"></div>
+
+  <div class="key-tag">Em</div>
+  <div class="genre-tag">TECHNO</div>
+</div>
+
+<!-- ==== WAVEFORM STRIP (80px, dual A/B) ==== -->
+<div class="wavestrip">
+  <div class="wave-row" id="waveA">
+    <div class="wave-label">WAVE A · 48K · STEREO</div>
+    <div class="wave-bars" id="barsA"></div>
+    <div class="beat-grid" id="gridA"></div>
+    <!-- Structural zones -->
+    <div class="struct-zone struct-normal" style="left:0%;width:40%;"><span>NORMAL</span></div>
+    <div class="struct-zone struct-build" style="left:40%;width:25%;"><span>BUILD</span></div>
+    <div class="struct-zone struct-drop" style="left:65%;width:20%;"><span>DROP</span></div>
+    <div class="struct-zone struct-normal" style="left:85%;width:15%;"><span>NORMAL</span></div>
+  </div>
+  <div class="wave-row" id="waveB">
+    <div class="wave-label">WAVE B · MONITOR</div>
+    <div class="wave-bars" id="barsB"></div>
+    <div class="beat-grid" id="gridB"></div>
+  </div>
+  <div class="playhead"></div>
+</div>
+
+<!-- ==== DECK GRID ==== -->
+<div class="deck-area">
+  <div class="col-triggers">
+    <div class="col-spacer">COLUMNS / SCENES</div>
+    <div class="col-trigger active">01</div>
+    <div class="col-trigger">02</div>
+    <div class="col-trigger">03</div>
+    <div class="col-trigger">04</div>
+    <div class="col-trigger">05</div>
+    <div class="col-trigger">06</div>
+    <div class="col-trigger">07</div>
+    <div class="col-trigger">08</div>
+    <div class="col-trigger">09</div>
+    <div class="col-trigger">10</div>
+  </div>
+
+  <div class="layer-grid">
+    <!-- LAYER 1: Background (Opaque) -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-top">
+          <div class="lh-name">Background</div>
+          <div class="lh-typebadge">OPQ</div>
+        </div>
+        <div class="lh-btns">
+          <div class="lh-btn">S</div>
+          <div class="lh-btn">M</div>
+        </div>
+        <div class="lh-opacity-row">
+          <div class="lh-opacity-bar"><div class="lh-opacity-fill" style="width:100%;"></div></div>
+          <div class="lh-opacity-val">100</div>
+        </div>
+        <div class="lh-meta"><span>BLEND</span><strong>NORMAL</strong></div>
+        <div class="lh-meta"><span>AUTOPILOT</span><div class="lh-autopilot on">ON · 16B</div></div>
+        <div class="lh-spark">
+          <div class="lh-spark-label">RMS</div>
+          <svg viewBox="0 0 120 16" preserveAspectRatio="none">
+            <polyline points="0,12 8,9 16,11 24,6 32,10 40,7 48,12 56,5 64,8 72,4 80,9 88,3 96,7 104,6 112,10 120,8" fill="none" stroke="#e8e8e8" stroke-width="1"/>
+          </svg>
+        </div>
+      </div>
+      <div class="clip-grid">
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-bulb"/></svg></div><div class="clip-name">Mandelbulb</div><div class="clip-sig-overlay"><div class="clip-sig-dot"></div><div class="clip-sig-dot"></div></div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-perlin"/></svg></div><div class="clip-name">Perlin Noise</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-menger"/></svg></div><div class="clip-name">Menger Sponge</div><div class="clip-fx">2 FX</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-julia"/></svg></div><div class="clip-name">Julia 3D</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-kifs"/></svg></div><div class="clip-name">KIFS</div><div class="clip-sig-overlay"><div class="clip-sig-dot"></div></div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-voronoi"/></svg></div><div class="clip-name">Voronoi</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-apollo"/></svg></div><div class="clip-name">Apollonian</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-attract"/></svg></div><div class="clip-name">Attractor</div></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+    </div>
+
+    <!-- LAYER 2: Audio Visual (Transparent) -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-top">
+          <div class="lh-name">Audio Visual</div>
+          <div class="lh-typebadge">TRN</div>
+        </div>
+        <div class="lh-btns">
+          <div class="lh-btn active">S</div>
+          <div class="lh-btn">M</div>
+        </div>
+        <div class="lh-opacity-row">
+          <div class="lh-opacity-bar"><div class="lh-opacity-fill" style="width:70%;"></div></div>
+          <div class="lh-opacity-val">70</div>
+        </div>
+        <div class="lh-meta"><span>BLEND</span><strong>ADD</strong></div>
+        <div class="lh-meta"><span>AUTOPILOT</span><div class="lh-autopilot on">ON · 8B</div></div>
+        <div class="lh-spark">
+          <div class="lh-spark-label">BASS</div>
+          <svg viewBox="0 0 120 16" preserveAspectRatio="none">
+            <polyline points="0,10 8,3 16,12 24,5 32,14 40,2 48,10 56,4 64,13 72,3 80,11 88,4 96,12 104,5 112,13 120,3" fill="none" stroke="#e8e8e8" stroke-width="1"/>
+          </svg>
+        </div>
+      </div>
+      <div class="clip-grid">
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-spectrum"/></svg></div><div class="clip-name">Spectrum Ring</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-spectrum"/></svg></div><div class="clip-name">Band Tower</div></div>
+        <!-- PLAYING CLIP L2 C3 -->
+        <div class="clip-cell playing">
+          <div class="clip-thumb"><svg><use href="#th-cymatics"/></svg></div>
+          <div class="clip-name">Cymatics</div>
+          <div class="clip-sig-overlay"><div class="clip-sig-dot" style="background:#fff;"></div><div class="clip-sig-dot" style="background:#fff;"></div><div class="clip-sig-dot" style="background:#fff;"></div></div>
+          <div class="clip-progress"></div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-plasma"/></svg></div><div class="clip-name">Timbral Nebula</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-perlin"/></svg></div><div class="clip-name">Struct Land</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-spectrum"/></svg></div><div class="clip-name">Waterfall</div></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+    </div>
+
+    <!-- LAYER 3: FX Chain (FXO) -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-top">
+          <div class="lh-name">FX Chain</div>
+          <div class="lh-typebadge">FXO</div>
+        </div>
+        <div class="lh-btns">
+          <div class="lh-btn">S</div>
+          <div class="lh-btn">M</div>
+        </div>
+        <div class="lh-opacity-row">
+          <div class="lh-opacity-bar"><div class="lh-opacity-fill" style="width:55%;"></div></div>
+          <div class="lh-opacity-val">55</div>
+        </div>
+        <div class="lh-meta"><span>BLEND</span><strong>SCREEN</strong></div>
+        <div class="lh-meta"><span>AUTOPILOT</span><div class="lh-autopilot">OFF</div></div>
+        <div class="lh-spark">
+          <div class="lh-spark-label">FLUX</div>
+          <svg viewBox="0 0 120 16" preserveAspectRatio="none">
+            <polyline points="0,8 8,6 16,10 24,5 32,9 40,7 48,11 56,6 64,9 72,5 80,8 88,6 96,10 104,7 112,9 120,6" fill="none" stroke="#e8e8e8" stroke-width="1"/>
+          </svg>
+        </div>
+      </div>
+      <div class="clip-grid">
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-glitch"/></svg></div><div class="clip-name">Echo+Kaleido</div><div class="clip-fx">3 FX</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-glitch"/></svg></div><div class="clip-name">Glitch Stack</div><div class="clip-fx">4 FX</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-rings"/></svg></div><div class="clip-name">Color Flash</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-glitch"/></svg></div><div class="clip-name">Strobe Kit</div></div>
+        <!-- QUEUED CLIP L3 C5 -->
+        <div class="clip-cell queued"><div class="clip-thumb"><svg><use href="#th-julia"/></svg></div><div class="clip-name">Warp Combo</div><div class="clip-fx">2 FX</div></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+    </div>
+
+    <!-- LAYER 4: Overlay (Transparent) -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-top">
+          <div class="lh-name">Overlay</div>
+          <div class="lh-typebadge">MSK</div>
+        </div>
+        <div class="lh-btns">
+          <div class="lh-btn">S</div>
+          <div class="lh-btn active">M</div>
+        </div>
+        <div class="lh-opacity-row">
+          <div class="lh-opacity-bar"><div class="lh-opacity-fill" style="width:40%;"></div></div>
+          <div class="lh-opacity-val">40</div>
+        </div>
+        <div class="lh-meta"><span>BLEND</span><strong>NORMAL</strong></div>
+        <div class="lh-meta"><span>AUTOPILOT</span><div class="lh-autopilot">OFF</div></div>
+        <div class="lh-spark">
+          <div class="lh-spark-label">HIGH</div>
+          <svg viewBox="0 0 120 16" preserveAspectRatio="none">
+            <polyline points="0,11 8,10 16,12 24,9 32,11 40,10 48,12 56,8 64,11 72,10 80,13 88,10 96,12 104,9 112,11 120,10" fill="none" stroke="#e8e8e8" stroke-width="1"/>
+          </svg>
+        </div>
+      </div>
+      <div class="clip-grid">
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-text"/></svg></div><div class="clip-name">Text Wall</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-text"/></svg></div><div class="clip-name">Text Animator</div></div>
+        <div class="clip-cell"><div class="clip-thumb"><svg><use href="#th-rings"/></svg></div><div class="clip-name">Layer Router</div></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== BOTTOM SECTION ==== -->
+<div class="bottom">
+
+  <!-- Signal Panel -->
+  <div class="signal-panel">
+    <div class="sp-header">Audio Signals</div>
+
+    <div class="sp-group">
+      <div class="sp-group-title">Amplitude</div>
+      <div class="sp-row selected"><div class="sp-name">RMS</div><div class="sp-bar"><div class="sp-fill" style="width:72%;background:#ff4500;"></div></div><div class="sp-val">0.72</div></div>
+      <div class="sp-row"><div class="sp-name">Peak</div><div class="sp-bar"><div class="sp-fill" style="width:88%;"></div></div><div class="sp-val">0.88</div></div>
+      <div class="sp-row"><div class="sp-name">LUFS</div><div class="sp-bar"><div class="sp-fill" style="width:65%;"></div></div><div class="sp-val">-12.4</div></div>
+      <div class="sp-row"><div class="sp-name">Dyn Range</div><div class="sp-bar"><div class="sp-fill" style="width:44%;"></div></div><div class="sp-val">0.44</div></div>
+    </div>
+
+    <div class="sp-group">
+      <div class="sp-group-title">Bands</div>
+      <div class="sp-row"><div class="sp-name">Sub</div><div class="sp-bar"><div class="sp-fill" style="width:90%;"></div></div><div class="sp-val">0.90</div></div>
+      <div class="sp-row"><div class="sp-name">Bass</div><div class="sp-bar"><div class="sp-fill" style="width:82%;"></div></div><div class="sp-val">0.82</div></div>
+      <div class="sp-row"><div class="sp-name">Low Mid</div><div class="sp-bar"><div class="sp-fill" style="width:55%;"></div></div><div class="sp-val">0.55</div></div>
+      <div class="sp-row"><div class="sp-name">Mid</div><div class="sp-bar"><div class="sp-fill" style="width:48%;"></div></div><div class="sp-val">0.48</div></div>
+      <div class="sp-row"><div class="sp-name">High Mid</div><div class="sp-bar"><div class="sp-fill" style="width:35%;"></div></div><div class="sp-val">0.35</div></div>
+      <div class="sp-row"><div class="sp-name">Presence</div><div class="sp-bar"><div class="sp-fill" style="width:28%;"></div></div><div class="sp-val">0.28</div></div>
+      <div class="sp-row"><div class="sp-name">Brilliance</div><div class="sp-bar"><div class="sp-fill" style="width:15%;"></div></div><div class="sp-val">0.15</div></div>
+    </div>
+
+    <div class="sp-group">
+      <div class="sp-group-title">Rhythm</div>
+      <div class="sp-row"><div class="sp-name">Beat</div><div class="sp-bar"><div class="sp-fill" style="width:78%;"></div></div><div class="sp-val">0.78</div></div>
+      <div class="sp-row"><div class="sp-name">Onset</div><div class="sp-bar"><div class="sp-fill" style="width:25%;"></div></div><div class="sp-val">0.25</div></div>
+      <div class="sp-row"><div class="sp-name">Pump</div><div class="sp-bar"><div class="sp-fill" style="width:60%;"></div></div><div class="sp-val">0.60</div></div>
+      <div class="sp-row"><div class="sp-name">Swing</div><div class="sp-bar"><div class="sp-fill" style="width:50%;"></div></div><div class="sp-val">0.50</div></div>
+    </div>
+
+    <div class="sp-group">
+      <div class="sp-group-title">Spectral</div>
+      <div class="sp-row"><div class="sp-name">Centroid</div><div class="sp-bar"><div class="sp-fill" style="width:42%;"></div></div><div class="sp-val">2.1k</div></div>
+      <div class="sp-row"><div class="sp-name">Flux</div><div class="sp-bar"><div class="sp-fill" style="width:55%;"></div></div><div class="sp-val">0.55</div></div>
+      <div class="sp-row"><div class="sp-name">Flatness</div><div class="sp-bar"><div class="sp-fill" style="width:32%;"></div></div><div class="sp-val">0.32</div></div>
+      <div class="sp-row"><div class="sp-name">Rolloff</div><div class="sp-bar"><div class="sp-fill" style="width:58%;"></div></div><div class="sp-val">5.8k</div></div>
+      <div class="sp-row"><div class="sp-name">Formant</div><div class="sp-bar"><div class="sp-fill" style="width:30%;"></div></div><div class="sp-val">0.30</div></div>
+      <div class="sp-row"><div class="sp-name">Resonance</div><div class="sp-bar"><div class="sp-fill" style="width:40%;"></div></div><div class="sp-val">0.40</div></div>
+      <div class="sp-row"><div class="sp-name">Reese</div><div class="sp-bar"><div class="sp-fill" style="width:20%;"></div></div><div class="sp-val">0.20</div></div>
+    </div>
+  </div>
+
+  <!-- Inspector -->
+  <div class="inspector">
+    <div class="insp-header">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Composition</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+
+    <div class="insp-body">
+      <!-- LEFT COLUMN -->
+      <div class="insp-col">
+        <div class="insp-section">
+          <div class="insp-clip-title">Cymatics</div>
+          <div class="insp-clip-sub">L2 / C3 · PLAYING · 00:00:42</div>
+        </div>
+
+        <div class="insp-section">
+          <div class="insp-section-title">Transport</div>
+          <div class="insp-row"><div class="insp-label">Mode</div><div class="insp-combo">BPM Sync</div></div>
+          <div class="insp-row"><div class="insp-label">Division</div><div class="insp-combo">8 Beats</div></div>
+          <div class="insp-row"><div class="insp-label">Speed</div><div class="insp-slider"><div class="insp-slider-fill" style="width:50%;"></div></div><div class="insp-val">1.00</div><div class="signal-tri"></div></div>
+          <div class="insp-row"><div class="insp-label">Loop</div><div class="insp-combo">Loop</div></div>
+          <div class="insp-row"><div class="insp-label">Beat Snap</div><div class="insp-combo">Bar</div></div>
+        </div>
+
+        <div class="insp-section">
+          <div class="insp-section-title">Cuepoints</div>
+          <div class="cuepoint-grid">
+            <div class="cuepoint-pad set">01</div>
+            <div class="cuepoint-pad set">02</div>
+            <div class="cuepoint-pad active">03</div>
+            <div class="cuepoint-pad set">04</div>
+            <div class="cuepoint-pad">05</div>
+            <div class="cuepoint-pad">06</div>
+            <div class="cuepoint-pad">07</div>
+            <div class="cuepoint-pad">08</div>
+          </div>
+        </div>
+
+        <div class="insp-section">
+          <div class="insp-section-title">Autopilot</div>
+          <div class="insp-row"><div class="insp-label">Enabled</div><div class="insp-combo">On</div></div>
+          <div class="insp-row"><div class="insp-label">Trigger</div><div class="insp-combo">On Beat</div></div>
+          <div class="insp-row"><div class="insp-label">Beats</div><div class="insp-slider"><div class="insp-slider-fill" style="width:25%;"></div></div><div class="insp-val">8</div><div class="signal-tri"></div></div>
+          <div class="insp-row"><div class="insp-label">Action</div><div class="insp-combo">Random</div></div>
+        </div>
+
+        <div class="insp-section">
+          <div class="insp-section-title">Video</div>
+          <div class="insp-row"><div class="insp-label">Opacity</div><div class="insp-slider"><div class="insp-slider-fill" style="width:100%;"></div></div><div class="insp-val">1.00</div><div class="signal-tri mapped"></div></div>
+          <div class="insp-row"><div class="insp-label">Width</div><div class="insp-slider"><div class="insp-slider-fill" style="width:100%;"></div></div><div class="insp-val">1920</div><div class="signal-tri"></div></div>
+          <div class="insp-row"><div class="insp-label">Height</div><div class="insp-slider"><div class="insp-slider-fill" style="width:100%;"></div></div><div class="insp-val">1080</div><div class="signal-tri"></div></div>
+          <div class="insp-row"><div class="insp-label">Blend</div><div class="insp-combo">Add</div></div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="insp-col">
+        <!-- PREVIEW -->
+        <div class="preview">
+          <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <radialGradient id="prev-core" cx="50%" cy="50%" r="55%">
+                <stop offset="0%" stop-color="#ff4500" stop-opacity="1"/>
+                <stop offset="30%" stop-color="#888" stop-opacity="0.7"/>
+                <stop offset="100%" stop-color="#050505" stop-opacity="1"/>
+              </radialGradient>
+              <filter id="p-turb" x="0" y="0" width="100%" height="100%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.015 0.025" numOctaves="3" seed="5"/>
+                <feDisplacementMap in="SourceGraphic" scale="22"/>
+              </filter>
+            </defs>
+            <rect width="320" height="180" fill="#050505"/>
+            <!-- Turbulence-displaced radial -->
+            <rect width="320" height="180" fill="url(#prev-core)" filter="url(#p-turb)"/>
+            <!-- Orbits -->
+            <g fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="0.6">
+              <ellipse cx="160" cy="90" rx="110" ry="38" transform="rotate(-18 160 90)"/>
+              <ellipse cx="160" cy="90" rx="130" ry="48" transform="rotate(22 160 90)"/>
+              <ellipse cx="160" cy="90" rx="90" ry="28" transform="rotate(-45 160 90)"/>
+              <ellipse cx="160" cy="90" rx="60" ry="18"/>
+            </g>
+            <!-- Scanlines -->
+            <g fill="#000" fill-opacity="0.22">
+              <rect y="0" width="320" height="1"/>
+              <rect y="4" width="320" height="1"/>
+              <rect y="8" width="320" height="1"/>
+              <rect y="12" width="320" height="1"/>
+              <rect y="16" width="320" height="1"/>
+              <rect y="20" width="320" height="1"/>
+              <rect y="24" width="320" height="1"/>
+              <rect y="28" width="320" height="1"/>
+              <rect y="32" width="320" height="1"/>
+              <rect y="36" width="320" height="1"/>
+              <rect y="40" width="320" height="1"/>
+              <rect y="44" width="320" height="1"/>
+              <rect y="48" width="320" height="1"/>
+              <rect y="52" width="320" height="1"/>
+              <rect y="56" width="320" height="1"/>
+              <rect y="60" width="320" height="1"/>
+              <rect y="64" width="320" height="1"/>
+              <rect y="68" width="320" height="1"/>
+              <rect y="72" width="320" height="1"/>
+              <rect y="76" width="320" height="1"/>
+              <rect y="80" width="320" height="1"/>
+              <rect y="84" width="320" height="1"/>
+              <rect y="88" width="320" height="1"/>
+              <rect y="92" width="320" height="1"/>
+              <rect y="96" width="320" height="1"/>
+              <rect y="100" width="320" height="1"/>
+              <rect y="104" width="320" height="1"/>
+              <rect y="108" width="320" height="1"/>
+              <rect y="112" width="320" height="1"/>
+              <rect y="116" width="320" height="1"/>
+              <rect y="120" width="320" height="1"/>
+              <rect y="124" width="320" height="1"/>
+              <rect y="128" width="320" height="1"/>
+              <rect y="132" width="320" height="1"/>
+              <rect y="136" width="320" height="1"/>
+              <rect y="140" width="320" height="1"/>
+              <rect y="144" width="320" height="1"/>
+              <rect y="148" width="320" height="1"/>
+              <rect y="152" width="320" height="1"/>
+              <rect y="156" width="320" height="1"/>
+              <rect y="160" width="320" height="1"/>
+              <rect y="164" width="320" height="1"/>
+              <rect y="168" width="320" height="1"/>
+              <rect y="172" width="320" height="1"/>
+              <rect y="176" width="320" height="1"/>
+            </g>
+          </svg>
+          <div class="preview-tag"><span class="rec-tag">LIVE</span> · 60fps · OUTPUT A</div>
+          <div class="preview-bar"></div>
+        </div>
+
+        <div class="insp-section">
+          <div class="insp-section-title">Transform</div>
+          <div class="insp-row"><div class="insp-label">Position X</div><div class="insp-slider"><div class="insp-slider-fill" style="width:50%;"></div></div><div class="insp-val">0.00</div><div class="signal-tri"></div></div>
+          <div class="insp-row"><div class="insp-label">Position Y</div><div class="insp-slider"><div class="insp-slider-fill" style="width:52%;"></div></div><div class="insp-val">0.04</div><div class="signal-tri mapped"></div></div>
+          <div class="insp-row"><div class="insp-label">Scale</div><div class="insp-slider"><div class="insp-slider-fill just-changed" style="width:62%;"></div></div><div class="insp-val just-changed">1.12</div><div class="signal-tri mapped"></div></div>
+          <div class="insp-row"><div class="insp-label">Rotation</div><div class="insp-slider"><div class="insp-slider-fill" style="width:50%;"></div></div><div class="insp-val">0.0</div><div class="signal-tri"></div></div>
+          <div class="insp-row"><div class="insp-label">Anchor X</div><div class="insp-slider"><div class="insp-slider-fill" style="width:50%;"></div></div><div class="insp-val">0.50</div><div class="signal-tri"></div></div>
+          <div class="insp-row"><div class="insp-label">Anchor Y</div><div class="insp-slider"><div class="insp-slider-fill" style="width:50%;"></div></div><div class="insp-val">0.50</div><div class="signal-tri"></div></div>
+        </div>
+
+        <div class="insp-section">
+          <div class="insp-section-title">Effects</div>
+          <div class="fx-slot">
+            <div class="fx-bypass checked">X</div>
+            <div class="fx-name">Ripple</div>
+            <div class="fx-arrow">&lt;</div>
+            <div class="fx-source">BASS</div>
+            <div class="signal-tri mapped fx-sig-tri"></div>
+          </div>
+          <div class="fx-slot">
+            <div class="fx-bypass checked">X</div>
+            <div class="fx-name">Echo</div>
+            <div class="fx-arrow">&lt;</div>
+            <div class="fx-source">BEAT</div>
+            <div class="signal-tri mapped fx-sig-tri"></div>
+          </div>
+          <div class="fx-slot">
+            <div class="fx-bypass">X</div>
+            <div class="fx-name">Kaleido</div>
+            <div class="fx-arrow">&lt;</div>
+            <div class="fx-source">MANUAL</div>
+            <div class="signal-tri fx-sig-tri"></div>
+          </div>
+        </div>
+
+        <div class="insp-section">
+          <div class="insp-section-title">Dashboard</div>
+          <div class="dashboard">
+            <div class="knob-cell"><div class="knob-ring" style="--angle:220deg;"><div class="knob-indicator" style="--rot:40deg;"></div></div><div class="knob-name">ZOOM</div><div class="knob-val">0.61</div></div>
+            <div class="knob-cell"><div class="knob-ring" style="--angle:160deg;"><div class="knob-indicator" style="--rot:-20deg;"></div></div><div class="knob-name">KALEID</div><div class="knob-val">0.44</div></div>
+            <div class="knob-cell"><div class="knob-ring" style="--angle:90deg;"><div class="knob-indicator" style="--rot:-90deg;"></div></div><div class="knob-name">ECHO</div><div class="knob-val">0.25</div></div>
+            <div class="knob-cell"><div class="knob-ring" style="--angle:260deg;"><div class="knob-indicator" style="--rot:80deg;"></div></div><div class="knob-name">GLOW</div><div class="knob-val">0.72</div></div>
+            <div class="knob-cell"><div class="knob-ring" style="--angle:130deg;"><div class="knob-indicator" style="--rot:-50deg;"></div></div><div class="knob-name">SPEED</div><div class="knob-val">0.36</div></div>
+            <div class="knob-cell"><div class="knob-ring" style="--angle:280deg;"><div class="knob-indicator" style="--rot:100deg;"></div></div><div class="knob-name">COLOR</div><div class="knob-val">0.78</div></div>
+            <div class="knob-cell"><div class="knob-ring" style="--angle:50deg;"><div class="knob-indicator" style="--rot:-130deg;"></div></div><div class="knob-name">TRAIL</div><div class="knob-val">0.14</div></div>
+            <div class="knob-cell"><div class="knob-ring" style="--angle:180deg;"><div class="knob-indicator" style="--rot:0deg;"></div></div><div class="knob-name">POWER</div><div class="knob-val">0.50</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Browser -->
+  <div class="browser">
+    <div class="browser-tabs">
+      <div class="browser-tab">Files</div>
+      <div class="browser-tab">FX</div>
+      <div class="browser-tab active">Sources</div>
+      <div class="browser-tab">Comp</div>
+      <div class="browser-tab">Record</div>
+    </div>
+    <div class="browser-search">search sources...</div>
+    <div class="browser-grid">
+      <div class="browser-cell"><svg><use href="#th-bulb"/></svg><div class="browser-cell-name">Mandelbulb</div></div>
+      <div class="browser-cell"><svg><use href="#th-menger"/></svg><div class="browser-cell-name">Menger</div></div>
+      <div class="browser-cell"><svg><use href="#th-kifs"/></svg><div class="browser-cell-name">KIFS</div></div>
+      <div class="browser-cell"><svg><use href="#th-julia"/></svg><div class="browser-cell-name">Julia 3D</div></div>
+      <div class="browser-cell"><svg><use href="#th-attract"/></svg><div class="browser-cell-name">Newton 3D</div></div>
+      <div class="browser-cell"><svg><use href="#th-apollo"/></svg><div class="browser-cell-name">Apollonian</div></div>
+      <div class="browser-cell"><svg><use href="#th-kifs"/></svg><div class="browser-cell-name">Sierpinski</div></div>
+      <div class="browser-cell"><svg><use href="#th-bulb"/></svg><div class="browser-cell-name">Burning</div></div>
+      <div class="browser-cell"><svg><use href="#th-rings"/></svg><div class="browser-cell-name">Mandelbrot</div></div>
+      <div class="browser-cell"><svg><use href="#th-julia"/></svg><div class="browser-cell-name">Julia Set</div></div>
+      <div class="browser-cell"><svg><use href="#th-perlin"/></svg><div class="browser-cell-name">Perlin</div></div>
+      <div class="browser-cell"><svg><use href="#th-perlin"/></svg><div class="browser-cell-name">Simplex</div></div>
+      <div class="browser-cell"><svg><use href="#th-voronoi"/></svg><div class="browser-cell-name">Voronoi</div></div>
+      <div class="browser-cell"><svg><use href="#th-plasma"/></svg><div class="browser-cell-name">Plasma</div></div>
+      <div class="browser-cell"><svg><use href="#th-spectrum"/></svg><div class="browser-cell-name">Spectrum</div></div>
+      <div class="browser-cell"><svg><use href="#th-spectrum"/></svg><div class="browser-cell-name">Band Twr</div></div>
+      <div class="browser-cell"><svg><use href="#th-cymatics"/></svg><div class="browser-cell-name">Cymatics</div></div>
+      <div class="browser-cell"><svg><use href="#th-plasma"/></svg><div class="browser-cell-name">Timbral</div></div>
+      <div class="browser-cell"><svg><use href="#th-torus"/></svg><div class="browser-cell-name">Torus Spir</div></div>
+      <div class="browser-cell"><svg><use href="#th-torus"/></svg><div class="browser-cell-name">Torus Vor</div></div>
+      <div class="browser-cell"><svg><use href="#th-torus"/></svg><div class="browser-cell-name">Torus Knt</div></div>
+      <div class="browser-cell"><svg><use href="#th-torus"/></svg><div class="browser-cell-name">Torus Dsc</div></div>
+      <div class="browser-cell"><svg><use href="#th-attract"/></svg><div class="browser-cell-name">Attractor</div></div>
+      <div class="browser-cell"><svg><use href="#th-rings"/></svg><div class="browser-cell-name">Gravity</div></div>
+      <div class="browser-cell"><svg><use href="#th-text"/></svg><div class="browser-cell-name">Text Wall</div></div>
+      <div class="browser-cell"><svg><use href="#th-text"/></svg><div class="browser-cell-name">Text Anim</div></div>
+      <div class="browser-cell"><svg><use href="#th-glitch"/></svg><div class="browser-cell-name">Glitch</div></div>
+      <div class="browser-cell"><svg><use href="#th-rings"/></svg><div class="browser-cell-name">Router</div></div>
+      <div class="browser-cell"><svg><use href="#th-perlin"/></svg><div class="browser-cell-name">Flow Fld</div></div>
+      <div class="browser-cell"><svg><use href="#th-bulb"/></svg><div class="browser-cell-name">Reaction</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==== FOOTER ==== -->
+<div class="footer">
+  <strong>60.0 FPS</strong> · CPU 22% · GPU 41% · 1920&times;1080 · REC 00:12:34
+  <div class="spacer"></div>
+  <span>AUDIO-DNA V9.0 · BRUTALIST INVERTED L</span>
+</div>
+
+<script>
+// ─── WAVE A: frequency-colored bars (blue/cyan kicks, hats, mids) ───
+(function(){
+  const cont = document.getElementById('barsA');
+  const total = 480;
+  for(let i=0;i<total;i++){
+    const bar = document.createElement('div');
+    bar.className='wave-bar';
+    const beatPos = i % 30;
+    const isKick = beatPos < 5;
+    const isHat = beatPos > 14 && beatPos < 17;
+    const base = isKick ? 30 : (isHat ? 16 : 6 + Math.random()*10);
+    const h = Math.max(2, Math.min(32, base + Math.random()*6));
+    bar.style.height = h + 'px';
+    if(isKick){
+      bar.style.background = 'rgba(60,110,230,'+(0.75 + Math.random()*0.25)+')';
+    } else if(isHat){
+      bar.style.background = 'rgba(180,220,255,'+(0.55 + Math.random()*0.3)+')';
+    } else {
+      bar.style.background = 'rgba(60,180,220,'+(0.35 + Math.random()*0.3)+')';
+    }
+    cont.appendChild(bar);
+  }
+})();
+
+// ─── WAVE B: monitor (all grey) ───
+(function(){
+  const cont = document.getElementById('barsB');
+  const total = 480;
+  for(let i=0;i<total;i++){
+    const bar = document.createElement('div');
+    bar.className='wave-bar';
+    const beatPos = i % 30;
+    const isBeat = beatPos < 4;
+    const h = isBeat ? 6 + Math.random()*12 : 2 + Math.random()*5;
+    bar.style.height = Math.max(2, h) + 'px';
+    bar.style.background = isBeat ? 'rgba(200,200,200,0.7)' : 'rgba(120,120,120,0.35)';
+    cont.appendChild(bar);
+  }
+})();
+
+// ─── Beat grid + bar numbers (16 bars 01-16) for both rows ───
+function buildGrid(id, isTop){
+  const grid = document.getElementById(id);
+  const total = 64; // 16 bars * 4 beats
+  for(let i=0;i<total;i++){
+    const m = document.createElement('div');
+    m.className = 'bm';
+    const left = (i / total) * 100;
+    if(i % 4 === 0){
+      m.classList.add('barstart'); // 2px orange tick
+      if(isTop){
+        const n = document.createElement('div');
+        n.className = 'bar-num';
+        n.style.left = left + '%';
+        n.textContent = String(Math.floor(i/4)+1).padStart(2,'0');
+        grid.appendChild(n);
+      }
+    } else if(i % 2 === 0){
+      m.classList.add('downbeat');
+    }
+    m.style.left = left + '%';
+    grid.appendChild(m);
+  }
+}
+buildGrid('gridA', true);
+buildGrid('gridB', false);
+
+// ─── Onset flashes on wave A ───
+(function(){
+  const row = document.getElementById('waveA');
+  [8,22,36,52,68,82].forEach((pct, idx) => {
+    const f = document.createElement('div');
+    f.className = 'onset-flash';
+    f.style.left = pct + '%';
+    row.appendChild(f);
+  });
+})();
+</script>
+
+</body>
+</html>

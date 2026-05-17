@@ -1,0 +1,585 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          0,
+          "output"
+        ],
+        "to": [
+          3,
+          "geometry"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          3,
+          "material"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          9,
+          "albedo_map"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output0"
+        ],
+        "to": [
+          13,
+          "mesh"
+        ]
+      },
+      {
+        "from": [
+          13,
+          "output0"
+        ],
+        "to": [
+          14,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "2d-wire",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "77697265-E9C4-988B-BE62-F4FB3F2F3CE9 - Equilateral Triangle",
+      "identifier": "d2a3e063-9f98-4500-85de-f0a1f05aa48e",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "2d-wire",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 17,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 307.8690490722656,
+          "y": 417.1092529296875
+        },
+        "class": {
+          "id": "77697265-E9C4-988B-BE62-F4FB3F2F3CE9",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.75
+          },
+          "uv": {
+            "type": "box2d",
+            "value": {
+              "max": [
+                7,
+                7
+              ],
+              "min": [
+                0,
+                0
+              ]
+            }
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Equilateral Triangle"
+      },
+      "12": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "method": {
+            "type": "integer",
+            "value": 0
+          },
+          "mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "type": {
+            "type": "integer",
+            "value": 2
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 81.56734466552734,
+          "y": 547.4007568359375
+        },
+        "class": {
+          "id": "77697265-FCE2-4EBE-8C81-99C578524A24",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color1": {
+            "type": "float4",
+            "value": [
+              0,
+              1,
+              0.9647058844566345,
+              1
+            ]
+          },
+          "color2": {
+            "type": "float4",
+            "value": [
+              0,
+              0.04313725605607033,
+              0.30980393290519714,
+              1
+            ]
+          },
+          "dither": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "bypass",
+          "dither",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "method",
+          "type",
+          "mode"
+        ],
+        "name": "Gradient"
+      },
+      "13": {
+        "attributes": {
+          "aa": {
+            "type": "integer",
+            "value": 2
+          },
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "mesh-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 772.0491333007812,
+          "y": 417.2040100097656
+        },
+        "class": {
+          "id": "77697265-E8EC-7A1G-901A-CFEC174D3B67",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "camera": {
+            "type": "camera2d",
+            "value": {
+              "projection": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ],
+              "view": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ]
+            }
+          },
+          "mesh": {
+            "type": "mesh2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "mesh-dimensions",
+          "resolution-mode",
+          "resolution-absolute"
+        ],
+        "name": "Renderer 2D"
+      },
+      "14": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 984.5562133789062,
+          "y": 416.20404052734375
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "15": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE\n\nIn this example we are using the Equilateral Triangle to create a repeating mesh, uing the Gradient node as our material.\nBy increasing the UV values we get a repeating patttern on our mesh.\nTry playing the the UV values to see what happens."
+          }
+        },
+        "bounds": {
+          "height": 423.257080078125,
+          "width": 1126.4339599609375,
+          "x": 43.69101333618164,
+          "y": 290.78399658203125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "16": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EQUILATERAL TRIANGLE\n\nThe Equilateral Triangle node constructs a triangular geometry with a given size.\n\nThe UV parameters of the node are hidden by default but can be accessed through by right clicking the node and navigating to View.\n\nThe UV inlet takes a Box2D type which can be constructed with the Box2D node or To Box node."
+          }
+        },
+        "bounds": {
+          "height": 190.06500244140625,
+          "width": 529.4004516601562,
+          "x": 43.31010437011719,
+          "y": 81.08668518066406
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "3": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 547.3536376953125,
+          "y": 417.1092529296875
+        },
+        "class": {
+          "id": "77697265-e8c1-11ec-8fea-0242ac120002",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "geometry": {
+            "type": "geometry2d",
+            "value": null
+          },
+          "material": {
+            "type": "material",
+            "value": {
+              "color": [
+                1,
+                1,
+                1,
+                1
+              ],
+              "type": "SolidColor"
+            }
+          },
+          "transformation": {
+            "type": "transformation2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Mesh 2D"
+      },
+      "9": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 307.5831298828125,
+          "y": 534.2347412109375
+        },
+        "class": {
+          "id": "77697265-D822-4ABE-9A4A-5693E1B92151",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "albedo": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "albedo_map": {
+            "type": "texture2d",
+            "value": null
+          },
+          "blend_mode": {
+            "type": "integer",
+            "value": 1
+          },
+          "wrap_mode": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Material"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -2,
+        "y": -83,
+        "zoom": 1
+      },
+      "selection": [
+        "14"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,1852 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					187,
+					"output"
+				],
+				"to": [
+					188,
+					"input"
+				]
+			},
+			{
+				"from": [
+					189,
+					"pattern"
+				],
+				"to": [
+					190,
+					"rho"
+				]
+			},
+			{
+				"from": [
+					190,
+					"output0"
+				],
+				"to": [
+					188,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					191,
+					"pattern"
+				],
+				"to": [
+					190,
+					"theta"
+				]
+			},
+			{
+				"from": [
+					188,
+					"output"
+				],
+				"to": [
+					192,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					192,
+					"output0"
+				],
+				"to": [
+					193,
+					"input"
+				]
+			},
+			{
+				"from": [
+					200,
+					"output"
+				],
+				"to": [
+					206,
+					"input"
+				]
+			},
+			{
+				"from": [
+					208,
+					"output0"
+				],
+				"to": [
+					209,
+					"input"
+				]
+			},
+			{
+				"from": [
+					206,
+					"output"
+				],
+				"to": [
+					208,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					197,
+					"output0"
+				],
+				"to": [
+					206,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					198,
+					"pattern"
+				],
+				"to": [
+					197,
+					"theta"
+				]
+			}
+		],
+		"inputOrder": [],
+		"meta": {
+			"author": "",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "development",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 18,
+					"patch": 0
+				}
+			},
+			"description": "",
+			"displayName": "From Polar",
+			"identifier": "11059e1c-8351-458a-b8e7-d467fc81c5b4",
+			"licenseName": "",
+			"mail": "",
+			"originalTarget": {
+				"branch": "development",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 19,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "20159-longitude-latitude-to-spherical-coordinate-node",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 19,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 231,
+		"nodes": {
+			"186": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "FROM POLAR\n\nThe From Polar node takes a polar coordinate and translates it to a cartesian coordinate.\nSince Wire is cartesian based, this node can be used as a conversion step.\n\nDue to the unique properties of the polar system, this node can also be used to create spiral patterns or place objects within a circle."
+					}
+				},
+				"bounds": {
+					"height": 173.5840911865234375,
+					"width": 556.6590576171875,
+					"x": -1604.2520751953125,
+					"y": 487.27130126953125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"187": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": -1318.894287109375,
+					"y": 836.5238037109375
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.05000000074505806
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle",
+				"thumbnail_visible": true
+			},
+			"188": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": -1063.894287109375,
+					"y": 836.5238037109375
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"input-type",
+					"translation-type",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": true
+			},
+			"189": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"max": {
+						"type": "float",
+						"value": 0.80000001192092896
+					},
+					"min": {
+						"type": "float",
+						"value": 0
+					},
+					"size": {
+						"type": "integer",
+						"value": 50
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": -1573.894287109375,
+					"y": 924.5238037109375
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"type",
+					"flow",
+					"include-max"
+				],
+				"name": "Linear",
+				"thumbnail_visible": true
+			},
+			"190": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"rho": {
+						"type": "float",
+						"value": [
+							0,
+							0.0163265299052,
+							0.03265305981040001,
+							0.04897959157824516,
+							0.06530611962080002,
+							0.08163265883922577,
+							0.09795918315649033,
+							0.11428572237491608,
+							0.13061223924160004,
+							0.14693878591060638,
+							0.16326531767845154,
+							0.1795918345451355,
+							0.19591836631298065,
+							0.21224489808082581,
+							0.22857144474983215,
+							0.24489796161651611,
+							0.26122447848320007,
+							0.27755102515220642,
+							0.29387757182121277,
+							0.31020408868789673,
+							0.32653063535690308,
+							0.34285715222358704,
+							0.359183669090271,
+							0.37551021575927734,
+							0.3918367326259613,
+							0.40816327929496765,
+							0.42448979616165161,
+							0.44081631302833557,
+							0.45714288949966431,
+							0.47346940636634827,
+							0.48979592323303223,
+							0.50612246990203857,
+							0.52244895696640015,
+							0.53877550363540649,
+							0.55510205030441284,
+							0.57142859697341919,
+							0.58775514364242554,
+							0.60408163070678711,
+							0.62040817737579346,
+							0.63673466444015503,
+							0.65306127071380615,
+							0.66938775777816772,
+							0.68571430444717407,
+							0.70204085111618042,
+							0.71836733818054199,
+							0.73469388484954834,
+							0.75102043151855469,
+							0.76734697818756104,
+							0.78367346525192261,
+							0.80000001192092896
+						]
+					},
+					"theta": {
+						"type": "float",
+						"value": [
+							0,
+							0.04081632569432259,
+							0.08163265138864517,
+							0.12244898080825806,
+							0.16326530277729034,
+							0.20408163964748383,
+							0.24489796161651611,
+							0.28571429848670959,
+							0.32653060555458069,
+							0.36734694242477417,
+							0.40816327929496765,
+							0.44897958636283875,
+							0.48979592323303223,
+							0.53061223030090332,
+							0.57142859697341919,
+							0.61224490404129028,
+							0.65306121110916138,
+							0.69387757778167725,
+							0.73469388484954834,
+							0.77551019191741943,
+							0.8163265585899353,
+							0.8571428656578064,
+							0.89795917272567749,
+							0.93877553939819336,
+							0.97959184646606445,
+							1.02040815353393555,
+							1.06122446060180664,
+							1.10204076766967773,
+							1.14285719394683838,
+							1.18367350101470947,
+							1.22448980808258057,
+							1.26530611515045166,
+							1.30612242221832275,
+							1.34693872928619385,
+							1.38775515556335449,
+							1.42857146263122559,
+							1.46938776969909668,
+							1.51020407676696777,
+							1.55102038383483887,
+							1.59183669090270996,
+							1.63265311717987061,
+							1.6734694242477417,
+							1.71428573131561279,
+							1.75510203838348389,
+							1.79591834545135498,
+							1.83673465251922607,
+							1.87755107879638672,
+							1.91836738586425781,
+							1.95918369293212891,
+							2
+						]
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": -1318.894287109375,
+					"y": 924.5238037109375
+				},
+				"class": {
+					"id": "77697265-573F-4EA0-9784-14B18E41D243",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "From Polar",
+				"thumbnail_visible": true
+			},
+			"191": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"max": {
+						"type": "float",
+						"value": 2
+					},
+					"min": {
+						"type": "float",
+						"value": 0
+					},
+					"size": {
+						"type": "integer",
+						"value": 50
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": -1573.894287109375,
+					"y": 1060.5238037109375
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"type",
+					"flow",
+					"include-max"
+				],
+				"name": "Linear",
+				"thumbnail_visible": true
+			},
+			"192": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 50
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": -808.89434814453125,
+					"y": 836.5238037109375
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								-0,
+								-0,
+								-0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"material": {
+						"type": "float4",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"reduce"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"193": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": -553.89434814453125,
+					"y": 836.5238037109375
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"197": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"rho": {
+						"type": "float",
+						"value": [
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104,
+							0.69999998807907104
+						]
+					},
+					"theta": {
+						"type": "float",
+						"value": [
+							0,
+							0.04081632569432259,
+							0.08163265138864517,
+							0.12244898080825806,
+							0.16326530277729034,
+							0.20408163964748383,
+							0.24489796161651611,
+							0.28571429848670959,
+							0.32653060555458069,
+							0.36734694242477417,
+							0.40816327929496765,
+							0.44897958636283875,
+							0.48979592323303223,
+							0.53061223030090332,
+							0.57142859697341919,
+							0.61224490404129028,
+							0.65306121110916138,
+							0.69387757778167725,
+							0.73469388484954834,
+							0.77551019191741943,
+							0.8163265585899353,
+							0.8571428656578064,
+							0.89795917272567749,
+							0.93877553939819336,
+							0.97959184646606445,
+							1.02040815353393555,
+							1.06122446060180664,
+							1.10204076766967773,
+							1.14285719394683838,
+							1.18367350101470947,
+							1.22448980808258057,
+							1.26530611515045166,
+							1.30612242221832275,
+							1.34693872928619385,
+							1.38775515556335449,
+							1.42857146263122559,
+							1.46938776969909668,
+							1.51020407676696777,
+							1.55102038383483887,
+							1.59183669090270996,
+							1.63265311717987061,
+							1.6734694242477417,
+							1.71428573131561279,
+							1.75510203838348389,
+							1.79591834545135498,
+							1.83673465251922607,
+							1.87755107879638672,
+							1.91836738586425781,
+							1.95918369293212891,
+							2
+						]
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": -1318.1668701171875,
+					"y": 1468.671142578125
+				},
+				"class": {
+					"id": "77697265-573F-4EA0-9784-14B18E41D243",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "From Polar",
+				"thumbnail_visible": true
+			},
+			"198": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"max": {
+						"type": "float",
+						"value": 2
+					},
+					"min": {
+						"type": "float",
+						"value": 0
+					},
+					"size": {
+						"type": "integer",
+						"value": 50
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": -1573.1668701171875,
+					"y": 1521.671142578125
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"type",
+					"flow",
+					"include-max"
+				],
+				"name": "Linear",
+				"thumbnail_visible": true
+			},
+			"200": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": -1318.1668701171875,
+					"y": 1332.671142578125
+				},
+				"class": {
+					"id": "77697265-4db6-4573-8aa7-42362bc44931",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"height": {
+						"type": "float",
+						"value": 0.20000000298023224
+					},
+					"round": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"width": {
+						"type": "float",
+						"value": 0.01999999955296516
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Rectangle",
+				"thumbnail_visible": true
+			},
+			"206": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": -1063.1668701171875,
+					"y": 1332.671142578125
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"input-type",
+					"translation-type",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": true
+			},
+			"208": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 50
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": -808.16680908203125,
+					"y": 1332.671142578125
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								-0,
+								-0,
+								-0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"material": {
+						"type": "float4",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"reduce"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"209": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": -553.16680908203125,
+					"y": 1332.671142578125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"210": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 1: SPIRAL\n\nIn this first example we're using the From Polar node to create a spiral pattern.\nThe first Linear creates a radius, making sure that each next instance is further away from the center.\nThe second Linear node is used to set the azimuth(angle)."
+					}
+				},
+				"bounds": {
+					"height": 503.19720458984375,
+					"width": 1212,
+					"x": -1603.894287109375,
+					"y": 693.32659912109375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"214": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 2: CIRCLE PATTERN\n\nIn this second example we use the From Polar node to create a circle pattern by giving it a single radius."
+					}
+				},
+				"bounds": {
+					"height": 440.750640869140625,
+					"width": 1212,
+					"x": -1603.894287109375,
+					"y": 1225.9171142578125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": -1734.4471435546875,
+				"y": 501.99700927734375,
+				"zoom": 0.58172231912612915
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null
+				}
+			}
+		}
+	}
+}

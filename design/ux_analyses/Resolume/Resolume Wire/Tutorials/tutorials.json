@@ -1,0 +1,42 @@
+{
+	"categories":
+	[
+		{
+			"name": "Fundamentals",
+			"projects":
+			[
+				"./Fundamentals/Navigation/Navigation.wire",
+				"./Fundamentals/Nodes/Nodes.wire",
+				"./Fundamentals/Input & Output/Input & Output.wire",
+				"./Fundamentals/Collections/Collections.wire"
+			]
+		},
+		{
+			"name": "Basics",
+			"projects":
+			[
+				"./Basics/Shapes/Shapes.wire",
+				"./Basics/Textures/Textures.wire",
+				"./Basics/Transform/Transform.wire",
+				"./Basics/Collections/Collections.wire",
+				"./Basics/Oscillators/Oscillators.wire",
+				"./Basics/Randomness/Randomness.wire",
+				"./Basics/Feedback/Feedback.wire",
+				"./Basics/Color/Color.wire",
+				"./Basics/Text/Text.wire",
+				"./Basics/Triggers/Triggers.wire",
+				"./Basics/Math/Math.wire",
+				"./Basics/BPM Sync/BPM Sync.wire"
+			]
+		},
+		{
+			"name": "Advanced",
+			"projects":
+			[
+				"./Advanced/Textures/Textures.wire",
+				"./Advanced/Mesh2D/Mesh2D.wire",
+				"./Advanced/Collections/Collections.wire"
+			]
+		}
+	]
+}

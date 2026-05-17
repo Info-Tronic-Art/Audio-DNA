@@ -1,0 +1,505 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          6,
+          "output"
+        ],
+        "to": [
+          4,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          6,
+          "output"
+        ],
+        "to": [
+          5,
+          "frequency"
+        ]
+      },
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          7,
+          "radius"
+        ]
+      },
+      {
+        "from": [
+          7,
+          "output"
+        ],
+        "to": [
+          8,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          4,
+          "output0"
+        ],
+        "to": [
+          10,
+          "parameter1"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "osc"
+        ],
+        "to": [
+          9,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          6,
+          "output"
+        ],
+        "to": [
+          11,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output0"
+        ],
+        "to": [
+          10,
+          "write"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "Frequency to BPM Example",
+      "identifier": "71fe300f-a123-44d6-b2c5-3a01cdef2386",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 12,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "FREQUENCY TO BPM\n\nThis node translates a frequency into a BPM where 1hz equald 60 bpm.\n\nIn this example we control the frequency of the Sine with a Float In node. This frequency is also converted to BPM and send over OSC to another application every time there is a change to the Float In. This is a simple way to sync an oscillator to something in another application."
+          }
+        },
+        "bounds": {
+          "height": 164.24685668945312,
+          "width": 661.3009033203125,
+          "x": 397.7047119140625,
+          "y": -15.724777221679686
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a float."
+          }
+        },
+        "bounds": {
+          "height": 125,
+          "width": 334,
+          "x": 744.041015625,
+          "y": 509.7247314453125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "10": {
+        "attributes": {
+          "parameter-number": {
+            "type": "number",
+            "value": 1
+          },
+          "parameter-type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 733,
+          "y": 211
+        },
+        "class": {
+          "id": "77697265-8B96-4D66-BF59-C726226F8F9C",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "address": {
+            "type": "string",
+            "value": "/SyncToOscillator"
+          },
+          "parameter1": {
+            "type": "float",
+            "value": 0
+          },
+          "write": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Write OSC"
+      },
+      "11": {
+        "attributes": {
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 507,
+          "y": 211
+        },
+        "class": {
+          "id": "77697265-E6B2-4921-9FF4-CB3A0A78697D",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "On Change"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Main\nInput a float."
+          }
+        },
+        "bounds": {
+          "height": 123,
+          "width": 312,
+          "x": 406.958984375,
+          "y": 510.0997314453125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "4": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 507,
+          "y": 287
+        },
+        "class": {
+          "id": "77697265-3134-4762-B142-7E5A06A0D579",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Frequency to Bpm"
+      },
+      "5": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 507,
+          "y": 335
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "6": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "max": {
+            "type": "number",
+            "value": 1
+          },
+          "min": {
+            "type": "number",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 307,
+          "y": 287
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Float In"
+      },
+      "7": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 733,
+          "y": 407
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Circle"
+      },
+      "8": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 954,
+          "y": 383
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      },
+      "9": {
+        "attributes": {},
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 950,
+          "y": 211
+        },
+        "class": {
+          "id": "77697265-5b59-4fd5-b374-c7ca941ce21e",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "osc",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "OSC Out"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 189,
+        "y": -60,
+        "zoom": 1
+      },
+      "selection": [
+        "4"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 8,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

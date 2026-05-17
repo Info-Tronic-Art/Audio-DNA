@@ -1,0 +1,406 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					92,
+					"trigger"
+				],
+				"to": [
+					93,
+					"input"
+				]
+			},
+			{
+				"from": [
+					96,
+					"output"
+				],
+				"to": [
+					98,
+					"input"
+				]
+			},
+			{
+				"from": [
+					93,
+					"output"
+				],
+				"to": [
+					98,
+					"bypass"
+				]
+			},
+			{
+				"from": [
+					98,
+					"output"
+				],
+				"to": [
+					99,
+					"input"
+				]
+			}
+		],
+		"inputOrder": [
+			96
+		],
+		"meta": {
+			"author": "Mark Buitenwerf",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"description": "Explains what this node does",
+			"displayName": "Default Example",
+			"identifier": "027417f2-73c8-4320-8bcb-182275c39577",
+			"licenseName": "",
+			"mail": "mail@resolume.com",
+			"originalTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 11,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "7.14.0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "www.resolume.com",
+			"vendor": "Resolume"
+		},
+		"nextNodeId": 100,
+		"nodes": {
+			"88": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "TOGGLE\n\nThe Toggle node toggles between TRUE and FALSE with each trigger, like a light switch. This node can be used to convert triggers into Booleans"
+					}
+				},
+				"bounds": {
+					"height": 123.71176910400390625,
+					"width": 472.512603759765625,
+					"x": 61.389129638671875,
+					"y": 832.2108154296875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"91": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE: TOGGLING\n\nIn this example we are using a Metronome to generate triggers.\nNext, we use a Toggle to convert this into a boolean, so we can use it to bypass the Pixelate effect."
+					}
+				},
+				"bounds": {
+					"height": 399.601043701171875,
+					"width": 962.6451416015625,
+					"x": 61.536834716796875,
+					"y": 978.32305908203125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"92": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 84.97353363037109375,
+					"y": 1214.451171875
+				},
+				"class": {
+					"id": "77697265-FD65-470F-9F75-ED878267980E",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"enabled": {
+						"type": "bool",
+						"value": true
+					},
+					"frequency": {
+						"type": "float",
+						"value": 7
+					},
+					"reset": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"count"
+				],
+				"name": "Metronome"
+			},
+			"93": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 339.973541259765625,
+					"y": 1214.451171875
+				},
+				"class": {
+					"id": "77697265-4de6-4e40-979b-b2617a6bae4a",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "trigger",
+						"value": null
+					},
+					"setFalse": {
+						"type": "trigger",
+						"value": null
+					},
+					"setTrue": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"setTrue",
+					"setFalse",
+					"instances"
+				],
+				"name": "Toggle"
+			},
+			"96": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 404.973541259765625,
+					"y": 1102.451171875
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"flow"
+				],
+				"name": "Texture In"
+			},
+			"98": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 594.9735107421875,
+					"y": 1102.451171875
+				},
+				"class": {
+					"id": "77697265-ACD2-4541-B139-88756DC29CA7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"columns": {
+						"type": "float",
+						"value": 64
+					},
+					"input": {
+						"type": "texture2d",
+						"value": null
+					},
+					"rows": {
+						"type": "float",
+						"value": 64
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Pixelate"
+			},
+			"99": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 849.9735107421875,
+					"y": 1102.451171875
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out"
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": 10.47767257690429688,
+				"y": 759.7947998046875,
+				"zoom": 0.99457687139511108
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {
+				"96": "Test Card"
+			}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null
+				}
+			}
+		}
+	}
+}

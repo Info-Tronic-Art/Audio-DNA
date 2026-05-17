@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v4-03: Spreadsheet</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #111; color: #e0e0e0; font-family: 'Consolas', 'Courier New', monospace; overflow: hidden; width: 1920px; height: 1080px; font-size: 10px; }
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  grid-template-rows: 34px 20px auto 1fr 280px;
+  grid-template-areas:
+    "topbar   topbar"
+    "signals  signals"
+    "layers   inspect"
+    "clips    inspect"
+    "browser  inspect";
+  width: 1920px;
+  height: 1080px;
+}
+
+/* --- Top Bar --- */
+.topbar {
+  grid-area: topbar;
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 8px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 10px;
+}
+.topbar .brand { font-size: 13px; font-weight: 800; color: #00d9ff; letter-spacing: 2px; }
+.topbar .sep { width: 1px; height: 18px; background: #333; margin: 0 4px; }
+.topbar select { background: #222; color: #e0e0e0; border: 1px solid #333; padding: 2px 6px; font-size: 10px; height: 22px; }
+.topbar .btn { background: #222; color: #aaa; border: 1px solid #333; padding: 2px 8px; height: 22px; cursor: pointer; font-size: 10px; }
+.topbar .btn.active { background: #00d9ff; color: #111; }
+.bpm-big { font-size: 18px; font-weight: 900; color: #4caf50; }
+.bpm-st { font-size: 8px; color: #4caf50; text-transform: uppercase; letter-spacing: 1px; }
+.perf { font-family: 'Consolas', monospace; font-size: 10px; color: #666; }
+
+/* Preview thumb in top-right */
+.preview-corner {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.preview-thumb {
+  width: 200px;
+  height: 28px;
+  background: linear-gradient(135deg, #0a1530, #1a0a40, #300a20);
+  border: 1px solid #333;
+  position: relative;
+}
+.preview-thumb .live { position: absolute; top: 2px; right: 2px; background: #c00; color: #fff; font-size: 7px; padding: 0 3px; }
+
+/* --- Signal Strip --- */
+.signals {
+  grid-area: signals;
+  background: #161616;
+  border-bottom: 1px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+  font-size: 9px;
+}
+.sig { display: flex; align-items: center; gap: 2px; }
+.sig .sl { color: #666; width: 26px; text-align: right; }
+.sig .sb { width: 40px; height: 6px; background: #1a1a1a; position: relative; }
+.sig .sf { height: 100%; position: absolute; left: 0; top: 0; }
+.sig .sv { color: #888; width: 24px; font-size: 8px; }
+
+/* --- Layer Table --- */
+.layer-table-area {
+  grid-area: layers;
+  background: #111;
+  border-bottom: 1px solid #333;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+table { border-collapse: collapse; width: 100%; }
+th {
+  background: #1a1a1a;
+  color: #888;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 6px;
+  text-align: left;
+  border-bottom: 2px solid #333;
+  border-right: 1px solid #222;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #1e1e1e;
+  border-right: 1px solid #1a1a1a;
+  white-space: nowrap;
+  font-size: 10px;
+}
+tr:hover td { background: rgba(0,217,255,0.03); }
+tr.active-row td { background: rgba(0,217,255,0.06); }
+
+/* Cell types */
+.cell-name { color: #e0e0e0; font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.cell-type { padding: 1px 4px; font-size: 8px; border: 1px solid; display: inline-block; }
+.cell-type.opaque { border-color: #4466aa; color: #6688cc; }
+.cell-type.transparent { border-color: #44aa66; color: #66cc88; }
+.cell-type.fx { border-color: #aa6644; color: #cc8866; }
+.cell-blend { color: #aaa; }
+.cell-num { color: #00d9ff; text-align: right; font-family: 'Consolas', monospace; }
+.cell-bar { display: flex; align-items: center; gap: 4px; }
+.cell-bar .bar { width: 60px; height: 8px; background: #1a1a1a; position: relative; }
+.cell-bar .fill { height: 100%; position: absolute; left: 0; top: 0; background: #00d9ff; }
+.cell-bar .val { font-size: 9px; color: #aaa; width: 30px; }
+.cell-clip { color: #ccc; max-width: 100px; overflow: hidden; text-overflow: ellipsis; }
+.cell-toggle { width: 16px; height: 14px; background: #1a1a1a; border: 1px solid #333; color: #555; text-align: center; line-height: 12px; font-size: 8px; cursor: pointer; display: inline-block; }
+.cell-toggle.on { background: #00d9ff; color: #111; border-color: #00d9ff; }
+.cell-toggle.solo { background: #cccc44; color: #111; border-color: #cccc44; }
+.cell-toggle.bypass { background: #cc4444; color: #fff; border-color: #cc4444; }
+.cell-fx-count { background: rgba(0,217,255,0.15); color: #00d9ff; padding: 0 4px; font-size: 9px; }
+
+/* --- Clip Table (below layers) --- */
+.clip-table-area {
+  grid-area: clips;
+  background: #111;
+  overflow: auto;
+  border-bottom: 1px solid #333;
+}
+.clip-table-area th { background: #181818; }
+
+/* Clip thumbnails in table */
+.clip-thumb-cell { width: 36px; height: 24px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+
+/* --- Inspector (right column) --- */
+.inspect {
+  grid-area: inspect;
+  background: #1a1a1a;
+  border-left: 1px solid #333;
+  overflow-y: auto;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 10px;
+}
+.insp-tabs { display: flex; border-bottom: 1px solid #333; }
+.insp-tab { flex: 1; text-align: center; padding: 6px 0; color: #666; cursor: pointer; font-size: 10px; }
+.insp-tab.active { color: #00d9ff; border-bottom: 2px solid #00d9ff; }
+.insp-head { padding: 8px 10px; font-weight: 600; font-size: 12px; color: #e0e0e0; border-bottom: 1px solid #222; }
+.sec-title { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1.5px; padding: 8px 10px 3px; border-bottom: 1px solid #1e1e1e; }
+
+/* Tabular inspector params */
+.param-table { width: 100%; }
+.param-table td { padding: 3px 10px; border-bottom: 1px solid #161616; font-size: 10px; }
+.param-table .ptri { color: #333; font-size: 8px; width: 14px; cursor: pointer; }
+.param-table .ptri.on { color: #00d9ff; }
+.param-table .plabel { color: #aaa; width: 90px; }
+.param-table .pval { color: #e0e0e0; width: 40px; text-align: right; font-family: 'Consolas', monospace; }
+.param-table .pbar { position: relative; }
+.param-table .pbar .track { width: 100%; height: 4px; background: #222; }
+.param-table .pbar .fill { height: 100%; background: #00d9ff; position: absolute; left: 0; top: 0; }
+
+/* Knobs row */
+.knobs { display: flex; padding: 6px 10px; gap: 6px; }
+.kn { width: 32px; display: flex; flex-direction: column; align-items: center; }
+.kn-circle { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #333; background: #161616; position: relative; }
+.kn-circle .dot { position: absolute; width: 2px; height: 9px; background: #00d9ff; top: 2px; left: 50%; transform-origin: bottom center; }
+.kn-label { font-size: 7px; color: #555; margin-top: 1px; }
+
+/* FX list */
+.fx-list { padding: 0 10px; }
+.fx-row { display: flex; align-items: center; gap: 4px; padding: 3px 0; border-bottom: 1px solid #161616; }
+.fx-row .fx-b { width: 14px; height: 12px; background: #1a1a1a; border: 1px solid #2a2a2a; font-size: 7px; color: #555; text-align: center; line-height: 10px; }
+.fx-row .fx-n { flex: 1; color: #ccc; font-size: 10px; }
+.fx-row .fx-v { color: #888; font-family: 'Consolas', monospace; font-size: 9px; }
+
+/* --- Browser (bottom-left) --- */
+.browser {
+  grid-area: browser;
+  background: #141414;
+  border-top: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+}
+.br-tabs { display: flex; border-bottom: 1px solid #222; }
+.br-tab { flex: 1; text-align: center; padding: 5px 0; font-size: 9px; color: #666; cursor: pointer; font-family: 'Segoe UI', Arial, sans-serif; }
+.br-tab.active { color: #00d9ff; border-bottom: 2px solid #00d9ff; }
+.br-content { flex: 1; overflow-y: auto; display: flex; }
+.br-categories { width: 160px; border-right: 1px solid #1e1e1e; overflow-y: auto; }
+.br-categories .cat { padding: 4px 8px; font-size: 9px; color: #888; cursor: pointer; border-bottom: 1px solid #161616; font-family: 'Segoe UI', Arial, sans-serif; }
+.br-categories .cat:hover { background: #1a1a1a; color: #00d9ff; }
+.br-categories .cat.active { color: #00d9ff; background: rgba(0,217,255,0.06); }
+.br-items { flex: 1; overflow-y: auto; }
+.br-items .item { padding: 3px 12px; font-size: 10px; color: #ccc; cursor: pointer; border-bottom: 1px solid #141414; font-family: 'Segoe UI', Arial, sans-serif; }
+.br-items .item:hover { background: #1a1a1a; color: #00d9ff; }
+.br-search { margin: 4px 8px; padding: 3px 8px; background: #1a1a1a; border: 1px solid #222; color: #e0e0e0; font-size: 10px; width: calc(100% - 16px); font-family: 'Segoe UI', Arial, sans-serif; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="brand">AUDIO-DNA</span>
+    <span class="sep"></span>
+    <select><option>Mic Input</option></select>
+    <span style="color:#666;">Gain</span><input type="range" style="width:50px;height:3px;">
+    <span class="btn active">&#9654;</span><span class="btn">||</span><span class="btn">&#9632;</span>
+    <span class="sep"></span>
+    <span class="bpm-big">128.0</span><span class="bpm-st">LOCKED</span>
+    <span style="color:#555;font-size:9px;">Bar 7 Phr 0.42</span>
+    <span class="btn">Tap</span><span class="btn">Resync</span>
+    <span class="sep"></span>
+    <span class="btn">/4</span><span class="btn">/2</span><span class="btn active">x1</span><span class="btn">x2</span><span class="btn">x4</span>
+    <span class="sep"></span>
+    <span style="color:#666;">Quantize</span><select><option>Next Beat</option></select>
+    <span style="color:#666;">Fade</span><input type="range" style="width:40px;height:3px;">
+    <span style="color:#666;">Master</span><input type="range" style="width:50px;height:3px;">
+    <select><option>Fullscreen: LG</option></select>
+    <div class="preview-corner">
+      <span class="perf">60 FPS | 2.1% DSP</span>
+      <div class="preview-thumb"><div class="live">LIVE</div></div>
+    </div>
+  </div>
+
+  <!-- SIGNAL STRIP -->
+  <div class="signals">
+    <div class="sig"><span class="sl">RMS</span><div class="sb"><div class="sf" style="width:62%;background:#00d9ff;"></div></div><span class="sv">0.62</span></div>
+    <div class="sig"><span class="sl">Peak</span><div class="sb"><div class="sf" style="width:81%;background:#00d9ff;"></div></div><span class="sv">0.81</span></div>
+    <div class="sig"><span class="sl">Bass</span><div class="sb"><div class="sf" style="width:74%;background:#ff6644;"></div></div><span class="sv">0.74</span></div>
+    <div class="sig"><span class="sl">Mid</span><div class="sb"><div class="sf" style="width:45%;background:#ffaa22;"></div></div><span class="sv">0.45</span></div>
+    <div class="sig"><span class="sl">High</span><div class="sb"><div class="sf" style="width:33%;background:#44cc88;"></div></div><span class="sv">0.33</span></div>
+    <div class="sig"><span class="sl">Beat</span><div class="sb"><div class="sf" style="width:25%;background:#aa66ff;"></div></div><span class="sv">0.25</span></div>
+    <div class="sig"><span class="sl">Onset</span><div class="sb"><div class="sf" style="width:15%;background:#ff4488;"></div></div><span class="sv">0.15</span></div>
+    <div class="sig"><span class="sl">Key</span><div class="sb"><div class="sf" style="width:80%;background:#66ff88;"></div></div><span class="sv">Am</span></div>
+    <div class="sig"><span class="sl">Genre</span><div class="sb"><div class="sf" style="width:68%;background:#cc66ff;"></div></div><span class="sv">Tech</span></div>
+    <div class="sig"><span class="sl">Pump</span><div class="sb"><div class="sf" style="width:45%;background:#ff4488;"></div></div><span class="sv">0.45</span></div>
+    <div class="sig"><span class="sl">Formnt</span><div class="sb"><div class="sf" style="width:30%;background:#88ff44;"></div></div><span class="sv">0.30</span></div>
+  </div>
+
+  <!-- LAYER TABLE -->
+  <div class="layer-table-area">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30px;">#</th>
+          <th style="width:120px;">Name</th>
+          <th style="width:80px;">Type</th>
+          <th style="width:90px;">Blend Mode</th>
+          <th style="width:100px;">Opacity</th>
+          <th style="width:80px;">Speed</th>
+          <th style="width:80px;">Key Thresh</th>
+          <th style="width:80px;">Fade</th>
+          <th style="width:100px;">Active Clip</th>
+          <th style="width:50px;">FX</th>
+          <th style="width:30px;">S</th>
+          <th style="width:30px;">M</th>
+          <th style="width:30px;">B</th>
+          <th style="width:80px;">Transition</th>
+          <th style="width:60px;">Autopilot</th>
+          <th style="width:60px;">Persistent</th>
+          <th style="width:80px;">Feedback</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="active-row">
+          <td style="color:#555;">3</td>
+          <td class="cell-name">FX Overlay</td>
+          <td><span class="cell-type fx">FX Only</span></td>
+          <td class="cell-blend">Additive</td>
+          <td><div class="cell-bar"><div class="bar"><div class="fill" style="width:70%;"></div></div><span class="val">0.70</span></div></td>
+          <td class="cell-num">1.0x</td>
+          <td class="cell-num">--</td>
+          <td class="cell-num">0.3s</td>
+          <td class="cell-clip">FX - Glow Chain</td>
+          <td><span class="cell-fx-count">3</span></td>
+          <td><span class="cell-toggle">S</span></td>
+          <td><span class="cell-toggle">M</span></td>
+          <td><span class="cell-toggle">B</span></td>
+          <td style="color:#888;">Dissolve</td>
+          <td style="color:#888;">On Beat 8</td>
+          <td style="color:#555;">No</td>
+          <td style="color:#555;">Off</td>
+        </tr>
+        <tr>
+          <td style="color:#555;">2</td>
+          <td class="cell-name">Fractals</td>
+          <td><span class="cell-type transparent">Transparent</span></td>
+          <td class="cell-blend">Screen</td>
+          <td><div class="cell-bar"><div class="bar"><div class="fill" style="width:85%;"></div></div><span class="val">0.85</span></div></td>
+          <td class="cell-num">1.0x</td>
+          <td class="cell-num">0.30</td>
+          <td class="cell-num">0.5s</td>
+          <td class="cell-clip">Mandelbrot</td>
+          <td><span class="cell-fx-count">2</span></td>
+          <td><span class="cell-toggle">S</span></td>
+          <td><span class="cell-toggle">M</span></td>
+          <td><span class="cell-toggle">B</span></td>
+          <td style="color:#888;">Wipe Left</td>
+          <td style="color:#888;">On Beat 16</td>
+          <td style="color:#555;">No</td>
+          <td style="color:#00d9ff;">Zoom In 0.4</td>
+        </tr>
+        <tr>
+          <td style="color:#555;">1</td>
+          <td class="cell-name">Background</td>
+          <td><span class="cell-type opaque">Opaque</span></td>
+          <td class="cell-blend">Normal</td>
+          <td><div class="cell-bar"><div class="bar"><div class="fill" style="width:100%;"></div></div><span class="val">1.00</span></div></td>
+          <td class="cell-num">2.0x</td>
+          <td class="cell-num">0.10</td>
+          <td class="cell-num">0.3s</td>
+          <td class="cell-clip">city_night.jpg</td>
+          <td><span class="cell-fx-count">1</span></td>
+          <td><span class="cell-toggle">S</span></td>
+          <td><span class="cell-toggle">M</span></td>
+          <td><span class="cell-toggle">B</span></td>
+          <td style="color:#888;">Cut</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#555;">No</td>
+          <td style="color:#555;">Off</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CLIP TABLE -->
+  <div class="clip-table-area">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30px;">Col</th>
+          <th style="width:30px;">Lyr</th>
+          <th style="width:120px;">Clip Name</th>
+          <th style="width:70px;">Type</th>
+          <th style="width:60px;">Status</th>
+          <th style="width:80px;">Speed</th>
+          <th style="width:80px;">Loop Mode</th>
+          <th style="width:70px;">In Point</th>
+          <th style="width:70px;">Out Point</th>
+          <th style="width:50px;">FX</th>
+          <th style="width:80px;">Autopilot</th>
+          <th style="width:80px;">Beat Snap</th>
+          <th style="width:80px;">Transport</th>
+          <th style="width:80px;">Opacity</th>
+          <th style="width:80px;">Blend</th>
+          <th style="width:60px;">Lock</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Layer 3 clips -->
+        <tr class="active-row">
+          <td class="cell-num">1</td>
+          <td style="color:#cc8866;">3</td>
+          <td class="cell-clip">FX - Glow Chain</td>
+          <td style="color:#888;">FX Only</td>
+          <td style="color:#00d9ff;">Playing</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">3</span></td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">Timeline</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">No</td>
+        </tr>
+        <tr>
+          <td class="cell-num">2</td>
+          <td style="color:#cc8866;">3</td>
+          <td class="cell-clip">FX - Echo Trail</td>
+          <td style="color:#888;">FX Only</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">2</span></td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">Timeline</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">No</td>
+        </tr>
+        <tr>
+          <td class="cell-num">3</td>
+          <td style="color:#cc8866;">3</td>
+          <td class="cell-clip">FX - Data Corrupt</td>
+          <td style="color:#888;">FX Only</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">4</span></td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">Timeline</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">No</td>
+        </tr>
+
+        <!-- Layer 2 clips -->
+        <tr>
+          <td class="cell-num">1</td>
+          <td style="color:#66cc88;">2</td>
+          <td class="cell-clip">Mandelbrot</td>
+          <td style="color:#888;">Source</td>
+          <td style="color:#00d9ff;">Playing</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">2</span></td>
+          <td style="color:#888;">On Beat 16</td>
+          <td style="color:#888;">Bar</td>
+          <td style="color:#888;">BPM Sync</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">No</td>
+        </tr>
+        <tr>
+          <td class="cell-num">2</td>
+          <td style="color:#66cc88;">2</td>
+          <td class="cell-clip">Julia Set</td>
+          <td style="color:#888;">Source</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">1</span></td>
+          <td style="color:#888;">On Beat 16</td>
+          <td style="color:#888;">Bar</td>
+          <td style="color:#888;">BPM Sync</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">No</td>
+        </tr>
+        <tr>
+          <td class="cell-num">3</td>
+          <td style="color:#66cc88;">2</td>
+          <td class="cell-clip">Mandelbulb</td>
+          <td style="color:#888;">Source</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">0</span></td>
+          <td style="color:#888;">On Beat 16</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">BPM Sync</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Layer</td>
+          <td style="color:#555;">No</td>
+        </tr>
+
+        <!-- Layer 1 clips -->
+        <tr>
+          <td class="cell-num">1</td>
+          <td style="color:#6688cc;">1</td>
+          <td class="cell-clip">city_night.jpg</td>
+          <td style="color:#888;">Image</td>
+          <td style="color:#00d9ff;">Playing</td>
+          <td class="cell-num">2.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">1</span></td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">Timeline</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Normal</td>
+          <td style="color:#555;">No</td>
+        </tr>
+        <tr>
+          <td class="cell-num">2</td>
+          <td style="color:#6688cc;">1</td>
+          <td class="cell-clip">abstract_01.jpg</td>
+          <td style="color:#888;">Image</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">0</span></td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">Timeline</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Normal</td>
+          <td style="color:#555;">No</td>
+        </tr>
+        <tr>
+          <td class="cell-num">3</td>
+          <td style="color:#6688cc;">1</td>
+          <td class="cell-clip">nature_loop.mp4</td>
+          <td style="color:#888;">Video</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.10</td>
+          <td class="cell-num">0.90</td>
+          <td><span class="cell-fx-count">0</span></td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">Timeline</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Normal</td>
+          <td style="color:#555;">No</td>
+        </tr>
+        <tr>
+          <td class="cell-num">4</td>
+          <td style="color:#6688cc;">1</td>
+          <td class="cell-clip">particles.mov</td>
+          <td style="color:#888;">Video</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">PingPong</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">2</span></td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">BPM Sync</td>
+          <td class="cell-num">0.80</td>
+          <td style="color:#888;">Additive</td>
+          <td style="color:#00d9ff;">Yes</td>
+        </tr>
+        <tr>
+          <td class="cell-num">5</td>
+          <td style="color:#6688cc;">1</td>
+          <td class="cell-clip">tunnel.mp4</td>
+          <td style="color:#888;">Video</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.5x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.00</td>
+          <td class="cell-num">1.00</td>
+          <td><span class="cell-fx-count">0</span></td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">Timeline</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Normal</td>
+          <td style="color:#555;">No</td>
+        </tr>
+        <tr>
+          <td class="cell-num">6</td>
+          <td style="color:#6688cc;">1</td>
+          <td class="cell-clip">fire_loop.mov</td>
+          <td style="color:#888;">Video</td>
+          <td style="color:#555;">Loaded</td>
+          <td class="cell-num">1.0x</td>
+          <td style="color:#888;">Loop</td>
+          <td class="cell-num">0.05</td>
+          <td class="cell-num">0.95</td>
+          <td><span class="cell-fx-count">1</span></td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#555;">Off</td>
+          <td style="color:#888;">Timeline</td>
+          <td class="cell-num">1.00</td>
+          <td style="color:#888;">Screen</td>
+          <td style="color:#555;">No</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="inspect">
+    <div class="insp-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Comp</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+    <div class="insp-head">Mandelbrot</div>
+
+    <div class="sec-title">Dashboard</div>
+    <div class="knobs">
+      <div class="kn"><div class="kn-circle"><div class="dot" style="transform:rotate(-60deg);"></div></div><div class="kn-label">Zoom</div></div>
+      <div class="kn"><div class="kn-circle"><div class="dot" style="transform:rotate(20deg);"></div></div><div class="kn-label">Dive</div></div>
+      <div class="kn"><div class="kn-circle"><div class="dot" style="transform:rotate(-30deg);"></div></div><div class="kn-label">Color</div></div>
+      <div class="kn"><div class="kn-circle"><div class="dot" style="transform:rotate(45deg);"></div></div><div class="kn-label">Power</div></div>
+      <div class="kn"><div class="kn-circle"><div class="dot" style="transform:rotate(0deg);"></div></div><div class="kn-label">Iter</div></div>
+      <div class="kn"><div class="kn-circle"><div class="dot" style="transform:rotate(-90deg);"></div></div><div class="kn-label">Macro 6</div></div>
+      <div class="kn"><div class="kn-circle"><div class="dot" style="transform:rotate(-90deg);"></div></div><div class="kn-label">Macro 7</div></div>
+      <div class="kn"><div class="kn-circle"><div class="dot" style="transform:rotate(-90deg);"></div></div><div class="kn-label">Macro 8</div></div>
+    </div>
+
+    <div class="sec-title">Source Parameters</div>
+    <table class="param-table">
+      <tr><td class="ptri on">&#9654;</td><td class="plabel">Dive Speed</td><td class="pval">0.35</td><td class="pbar"><div class="track"><div class="fill" style="width:35%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Location</td><td class="pval">3</td><td class="pbar"><div class="track"><div class="fill" style="width:30%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Zoom</td><td class="pval">0.60</td><td class="pbar"><div class="track"><div class="fill" style="width:60%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Center X</td><td class="pval">0.50</td><td class="pbar"><div class="track"><div class="fill" style="width:50%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Center Y</td><td class="pval">0.50</td><td class="pbar"><div class="track"><div class="fill" style="width:50%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Julia Mix</td><td class="pval">0.00</td><td class="pbar"><div class="track"><div class="fill" style="width:0%;"></div></div></td></tr>
+      <tr><td class="ptri on">&#9654;</td><td class="plabel">Max Iterations</td><td class="pval">0.50</td><td class="pbar"><div class="track"><div class="fill" style="width:50%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Power</td><td class="pval">0.25</td><td class="pbar"><div class="track"><div class="fill" style="width:25%;"></div></div></td></tr>
+      <tr><td class="ptri on">&#9654;</td><td class="plabel">Color Speed</td><td class="pval">0.40</td><td class="pbar"><div class="track"><div class="fill" style="width:40%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Palette</td><td class="pval">0.60</td><td class="pbar"><div class="track"><div class="fill" style="width:60%;"></div></div></td></tr>
+    </table>
+
+    <div class="sec-title">Video</div>
+    <table class="param-table">
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Opacity</td><td class="pval">1.00</td><td class="pbar"><div class="track"><div class="fill" style="width:100%;"></div></div></td></tr>
+    </table>
+
+    <div class="sec-title">Transform</div>
+    <table class="param-table">
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Position X</td><td class="pval">0.00</td><td class="pbar"><div class="track"><div class="fill" style="width:50%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Position Y</td><td class="pval">0.00</td><td class="pbar"><div class="track"><div class="fill" style="width:50%;"></div></div></td></tr>
+      <tr><td class="ptri">&#9654;</td><td class="plabel">Scale</td><td class="pval">1.00</td><td class="pbar"><div class="track"><div class="fill" style="width:50%;"></div></div></td></tr>
+      <tr><td class="ptri on">&#9654;</td><td class="plabel">Rotation</td><td class="pval">0.00</td><td class="pbar"><div class="track"><div class="fill" style="width:0%;"></div></div></td></tr>
+    </table>
+
+    <div class="sec-title">Effects</div>
+    <div class="fx-list">
+      <div class="fx-row"><div class="fx-b">B</div><span class="fx-n">Hue Shift</span><span class="fx-v">0.72</span></div>
+      <table class="param-table" style="margin-left:16px;">
+        <tr><td class="ptri on">&#9654;</td><td class="plabel">Dry/Wet</td><td class="pval">1.00</td><td class="pbar"><div class="track"><div class="fill" style="width:100%;"></div></div></td></tr>
+        <tr><td class="ptri on">&#9654;</td><td class="plabel">Shift Amount</td><td class="pval">0.72</td><td class="pbar"><div class="track"><div class="fill" style="width:72%;"></div></div></td></tr>
+      </table>
+      <div class="fx-row"><div class="fx-b">B</div><span class="fx-n">Glow</span><span class="fx-v">0.45</span></div>
+      <table class="param-table" style="margin-left:16px;">
+        <tr><td class="ptri">&#9654;</td><td class="plabel">Intensity</td><td class="pval">0.45</td><td class="pbar"><div class="track"><div class="fill" style="width:45%;"></div></div></td></tr>
+        <tr><td class="ptri">&#9654;</td><td class="plabel">Radius</td><td class="pval">0.30</td><td class="pbar"><div class="track"><div class="fill" style="width:30%;"></div></div></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- BROWSER -->
+  <div class="browser">
+    <div class="br-tabs">
+      <div class="br-tab">Files</div>
+      <div class="br-tab active">FX</div>
+      <div class="br-tab">Sources</div>
+      <div class="br-tab">Comp</div>
+      <div class="br-tab">Rec</div>
+      <div class="br-tab">MilkDrop</div>
+    </div>
+    <input type="text" class="br-search" placeholder="Search 135 effects...">
+    <div class="br-content">
+      <div class="br-categories">
+        <div class="cat active">Warp (28)</div>
+        <div class="cat">Color (31)</div>
+        <div class="cat">Glitch (16)</div>
+        <div class="cat">Blur/Post (10)</div>
+        <div class="cat">3D/Depth (10)</div>
+        <div class="cat">Pattern (15)</div>
+        <div class="cat">Animation (4)</div>
+        <div class="cat">Time (6)</div>
+        <div class="cat">Audio (7)</div>
+        <div class="cat">Blend (5)</div>
+        <div class="cat">Composite (3)</div>
+      </div>
+      <div class="br-items">
+        <div class="item">Ripple</div>
+        <div class="item">Bulge</div>
+        <div class="item">Wave</div>
+        <div class="item">Liquid</div>
+        <div class="item">Kaleidoscope</div>
+        <div class="item">Fisheye</div>
+        <div class="item">Swirl</div>
+        <div class="item">Polar Coords</div>
+        <div class="item">Twirl</div>
+        <div class="item">Shear</div>
+        <div class="item">Elastic Bounce</div>
+        <div class="item">Ripple Pond</div>
+        <div class="item">Diamond Distort</div>
+        <div class="item">Barrel Distort</div>
+        <div class="item">Sine Grid</div>
+        <div class="item">Glitch Displace</div>
+        <div class="item">Quad Mirror</div>
+        <div class="item">Flip</div>
+        <div class="item">Warp Field</div>
+        <div class="item">Slide Wrap</div>
+        <div class="item">Tile Grid</div>
+        <div class="item">Spot Zoom</div>
+        <div class="item">Bendoscope</div>
+        <div class="item">UV Remap</div>
+        <div class="item">Liquid Morph</div>
+        <div class="item">Infinite Zoom</div>
+        <div class="item">Density Wave</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

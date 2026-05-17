@@ -1,0 +1,382 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          1,
+          "output"
+        ],
+        "to": [
+          2,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output"
+        ],
+        "to": [
+          1,
+          "vibrance"
+        ]
+      },
+      {
+        "from": [
+          0,
+          "output"
+        ],
+        "to": [
+          1,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "14171-vibrance-saturation-effect",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 18,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "77697265-3683-409B-8C89-43AFAEA9A2B0 - Vibrance",
+      "identifier": "da1ca865-8892-43fd-9c96-629f4a0b480b",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "14171-vibrance-saturation-effect",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 18,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 18,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 6,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "image": {
+            "type": "resource",
+            "value": "2a0cd90a962010025ca0ec4002157abc"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 445.5,
+          "y": 593.1563720703125
+        },
+        "class": {
+          "id": "77697265-3683-409B-8C89-43AFAEA9A2B0",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "straight": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "hidden": [
+          "image",
+          "straight",
+          "instances"
+        ],
+        "name": "Vibrance_Test_image",
+        "thumbnail_visible": true
+      },
+      "1": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 700.5,
+          "y": 593.1563720703125
+        },
+        "class": {
+          "id": "77697265-CD95-4980-A405-432B71D79D35",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "vibrance": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "bypass",
+          "instances"
+        ],
+        "name": "Vibrance",
+        "thumbnail_visible": true
+      },
+      "2": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 948.5,
+          "y": 593.1563720703125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "3": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 445.5,
+          "y": 763.1563720703125
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "instances"
+        ],
+        "name": "Sine",
+        "thumbnail_visible": true
+      },
+      "4": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "VIBRANCE\n\nThe Vibrance effect allows you to increase and decrease the amount of \"vibrance\" in your image.\nThe effect amplifies less saturated colors while maintaining saturated colors.\nIn contrast to the Saturation effect, the Vibrance effect will be less destructive to skin tones and is therefore frequently used in TV and photography production."
+          }
+        },
+        "bounds": {
+          "height": 136,
+          "width": 678,
+          "x": 415.70263671875,
+          "y": 298.84356689453125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "5": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE\n\nIn this example we're using a Sine oscillator to move between -1 and 1 vibrance."
+          }
+        },
+        "bounds": {
+          "height": 453.6432189941406,
+          "width": 702,
+          "x": 415.5,
+          "y": 469.51315307617193
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Group",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -39.5,
+        "y": -30.5,
+        "zoom": 1
+      },
+      "selection": [
+        "0"
+      ]
+    }
+  },
+  "resources": {
+    "image": {
+      "2a0cd90a962010025ca0ec4002157abc": {
+        "local": true,
+        "name": "Vibrance_Test_image",
+        "path": "Vibrance_Test_image.JPG"
+      },
+      "4665bf972e07565551cf5c128b813a1c": {
+        "local": true,
+        "name": "Vibrance_Test_image",
+        "path": "Vibrance_Test_image.JPG"
+      }
+    }
+  },
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null
+        }
+      }
+    }
+  }
+}

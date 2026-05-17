@@ -1,0 +1,212 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          7,
+          "output"
+        ],
+        "to": [
+          46,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          46,
+          "output"
+        ],
+        "to": [
+          13,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "",
+      "identifier": "94c9f5a2-fa0d-4fb8-8972-7d0d8a22d3f0",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 47,
+    "nodes": {
+      "13": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 328.97906494140625,
+          "y": 313.2578430175781
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "14": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "POSTERIZE\n\nThis node applies a posterize effect (reduction of color variety) to the incomming texture."
+          }
+        },
+        "bounds": {
+          "height": 137,
+          "width": 513,
+          "x": -60,
+          "y": 134
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "46": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 105.76885986328124,
+          "y": 313.71136474609375
+        },
+        "class": {
+          "id": "77697265-55DA-4477-8768-27D1655F9738",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "posterize": {
+            "type": "float",
+            "value": 0.6029999852180481
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Posterize"
+      },
+      "7": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -60.23114013671875,
+          "y": 313.2578430175781
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -264.23114013671875,
+        "y": -44.28863525390625,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 13,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "1": null,
+          "7": "Wire Logo"
+        },
+        "out": {}
+      }
+    }
+  }
+}

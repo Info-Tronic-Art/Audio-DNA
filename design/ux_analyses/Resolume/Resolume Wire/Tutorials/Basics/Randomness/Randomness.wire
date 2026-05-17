@@ -1,0 +1,10215 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					1,
+					"trigger"
+				],
+				"to": [
+					0,
+					"input"
+				]
+			},
+			{
+				"from": [
+					1,
+					"trigger"
+				],
+				"to": [
+					3,
+					"input"
+				]
+			},
+			{
+				"from": [
+					7,
+					"output"
+				],
+				"to": [
+					6,
+					"input"
+				]
+			},
+			{
+				"from": [
+					6,
+					"output0"
+				],
+				"to": [
+					8,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					0,
+					"output"
+				],
+				"to": [
+					9,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					9,
+					"output0"
+				],
+				"to": [
+					6,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					3,
+					"output"
+				],
+				"to": [
+					10,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					10,
+					"output0"
+				],
+				"to": [
+					6,
+					"rotation"
+				]
+			},
+			{
+				"from": [
+					2,
+					"output"
+				],
+				"to": [
+					11,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					11,
+					"output0"
+				],
+				"to": [
+					8,
+					"material"
+				]
+			},
+			{
+				"from": [
+					1,
+					"trigger"
+				],
+				"to": [
+					12,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					12,
+					"output0"
+				],
+				"to": [
+					2,
+					"input"
+				]
+			},
+			{
+				"from": [
+					16,
+					"pattern"
+				],
+				"to": [
+					18,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					13,
+					"output"
+				],
+				"to": [
+					18,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					18,
+					"output"
+				],
+				"to": [
+					19,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					20,
+					"output"
+				],
+				"to": [
+					19,
+					"input"
+				]
+			},
+			{
+				"from": [
+					19,
+					"output"
+				],
+				"to": [
+					22,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					23,
+					"pattern"
+				],
+				"to": [
+					22,
+					"material"
+				]
+			},
+			{
+				"from": [
+					27,
+					"output"
+				],
+				"to": [
+					28,
+					"input"
+				]
+			},
+			{
+				"from": [
+					26,
+					"pattern"
+				],
+				"to": [
+					28,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					28,
+					"output"
+				],
+				"to": [
+					29,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					30,
+					"pattern"
+				],
+				"to": [
+					31,
+					"container"
+				]
+			},
+			{
+				"from": [
+					31,
+					"output0"
+				],
+				"to": [
+					29,
+					"material"
+				]
+			},
+			{
+				"from": [
+					32,
+					"trigger"
+				],
+				"to": [
+					31,
+					"reshuffle"
+				]
+			},
+			{
+				"from": [
+					8,
+					"output0"
+				],
+				"to": [
+					34,
+					"input"
+				]
+			},
+			{
+				"from": [
+					29,
+					"output0"
+				],
+				"to": [
+					35,
+					"input"
+				]
+			},
+			{
+				"from": [
+					22,
+					"output0"
+				],
+				"to": [
+					33,
+					"input"
+				]
+			},
+			{
+				"from": [
+					67,
+					"output"
+				],
+				"to": [
+					68,
+					"input2"
+				]
+			},
+			{
+				"from": [
+					51,
+					"output"
+				],
+				"to": [
+					67,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					52,
+					"pattern"
+				],
+				"to": [
+					68,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					70,
+					"output"
+				],
+				"to": [
+					67,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					53,
+					"output"
+				],
+				"to": [
+					68,
+					"mix"
+				]
+			},
+			{
+				"from": [
+					69,
+					"output0"
+				],
+				"to": [
+					58,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					65,
+					"output"
+				],
+				"to": [
+					62,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					68,
+					"output0"
+				],
+				"to": [
+					69,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					83,
+					"output"
+				],
+				"to": [
+					85,
+					"input"
+				]
+			},
+			{
+				"from": [
+					85,
+					"output"
+				],
+				"to": [
+					69,
+					"input"
+				]
+			},
+			{
+				"from": [
+					86,
+					"output0"
+				],
+				"to": [
+					87,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					88,
+					"output"
+				],
+				"to": [
+					87,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					87,
+					"output0"
+				],
+				"to": [
+					58,
+					"material"
+				]
+			},
+			{
+				"from": [
+					62,
+					"output"
+				],
+				"to": [
+					63,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					63,
+					"output0"
+				],
+				"to": [
+					64,
+					"input"
+				]
+			},
+			{
+				"from": [
+					58,
+					"output0"
+				],
+				"to": [
+					62,
+					"input3"
+				]
+			},
+			{
+				"from": [
+					64,
+					"output"
+				],
+				"to": [
+					62,
+					"input2"
+				]
+			},
+			{
+				"from": [
+					64,
+					"output"
+				],
+				"to": [
+					66,
+					"input"
+				]
+			},
+			{
+				"from": [
+					90,
+					"output"
+				],
+				"to": [
+					69,
+					"rotation"
+				]
+			},
+			{
+				"from": [
+					91,
+					"output"
+				],
+				"to": [
+					69,
+					"scale"
+				]
+			},
+			{
+				"from": [
+					98,
+					"output0"
+				],
+				"to": [
+					103,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					102,
+					"output0"
+				],
+				"to": [
+					103,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					104,
+					"output"
+				],
+				"to": [
+					105,
+					"input"
+				]
+			},
+			{
+				"from": [
+					103,
+					"output"
+				],
+				"to": [
+					105,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					105,
+					"output"
+				],
+				"to": [
+					101,
+					"input"
+				]
+			},
+			{
+				"from": [
+					108,
+					"output"
+				],
+				"to": [
+					107,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					109,
+					"output"
+				],
+				"to": [
+					110,
+					"input"
+				]
+			},
+			{
+				"from": [
+					107,
+					"output0"
+				],
+				"to": [
+					111,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					111,
+					"output"
+				],
+				"to": [
+					110,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					110,
+					"output"
+				],
+				"to": [
+					112,
+					"input"
+				]
+			}
+		],
+		"inputOrder": {
+			"groups": {},
+			"roots": []
+		},
+		"meta": {
+			"author": "",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "19802-wire-does-not-save-node-thumbnails-to-disk-on-7-16-0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 21,
+					"patch": 0
+				}
+			},
+			"description": "Learn how to generate random values use Perlin Noise and shuffle collections.",
+			"displayName": "Randomness",
+			"identifier": "30eb37ff-4a4f-4d9f-b898-3654976a2626",
+			"licenseName": "",
+			"mail": "",
+			"originalTarget": {
+				"branch": "19802-wire-does-not-save-node-thumbnails-to-disk-on-7-16-0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 18,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "7.21.0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 21,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 113,
+		"nodes": {
+			"0": {
+				"attributes": {
+					"distribution": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					},
+					"type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 377.5,
+					"y": 508.91607666015625
+				},
+				"class": {
+					"id": "77697265-5581-4721-8519-0b8fa3d68b4d",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"argument1": {
+						"type": "float2",
+						"value": [
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							],
+							[
+								-1.5,
+								-0.80000001192092896
+							]
+						]
+					},
+					"argument2": {
+						"type": "float2",
+						"value": [
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							],
+							[
+								1.5,
+								0.80000001192092896
+							]
+						]
+					},
+					"input": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"precision": {
+						"type": "float2",
+						"value": [
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							]
+						]
+					},
+					"seed": {
+						"type": "integer",
+						"value": [
+							1992936413,
+							1921981165,
+							1457296028,
+							1152236585,
+							832851814,
+							838767269,
+							1147097363,
+							1113126507,
+							205499902,
+							332300412
+						]
+					}
+				},
+				"hidden": [
+					"distribution",
+					"seed",
+					"precision",
+					"type"
+				],
+				"name": "Random",
+				"thumbnail_visible": true
+			},
+			"1": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 122.5,
+					"y": 508.91607666015625
+				},
+				"class": {
+					"id": "77697265-FD65-470F-9F75-ED878267980E",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"enabled": {
+						"type": "bool",
+						"value": true
+					},
+					"frequency": {
+						"type": "float",
+						"value": 1
+					},
+					"reset": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"count"
+				],
+				"name": "Metronome",
+				"thumbnail_visible": true
+			},
+			"10": {
+				"attributes": {
+					"input0-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 632.5,
+					"y": 644.91607666015625
+				},
+				"class": {
+					"id": "77697265-86ce-4e85-a02d-34f915fca74e",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"duration": {
+						"type": "float",
+						"value": [
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2
+						]
+					},
+					"input0": {
+						"type": "float",
+						"value": [
+							0.40999999642372131,
+							0.00999999977648258,
+							0.4699999988079071,
+							0.96999996900558472,
+							0.68999999761581421,
+							0.5,
+							0.17999999225139618,
+							0.65999996662139893,
+							0.68000000715255737,
+							0.38999998569488525
+						]
+					}
+				},
+				"hidden": [
+					"input0-type",
+					"instances"
+				],
+				"name": "Smooth",
+				"thumbnail_visible": true
+			},
+			"101": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 12
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 2502.657958984375,
+					"y": 2072.9619140625
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"102": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 12
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": [
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false
+						]
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 1737.657958984375,
+					"y": 2270.685546875
+				},
+				"class": {
+					"id": "77697265-c95a-4a63-a7ad-97c8c09c73cb",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"seed": {
+						"type": "integer",
+						"value": [
+							705877130,
+							818548149,
+							1090516665,
+							1829199139,
+							872298535,
+							1968002351,
+							1501498649,
+							1172806203,
+							2051833100,
+							428269356,
+							2144270736,
+							60712266
+						]
+					}
+				},
+				"hidden": [
+					"instances",
+					"unipolar",
+					"seed"
+				],
+				"name": "Noise Generator",
+				"thumbnail_visible": true
+			},
+			"103": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 12
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 1992.657958984375,
+					"y": 2209.9833984375
+				},
+				"class": {
+					"id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"input1": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Float2",
+				"thumbnail_visible": true
+			},
+			"104": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 1992.657958984375,
+					"y": 2072.9619140625
+				},
+				"class": {
+					"id": "77697265-4db6-4573-8aa7-42362bc44931",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"height": {
+						"type": "float",
+						"value": 0.10000000149011612
+					},
+					"round": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"width": {
+						"type": "float",
+						"value": 0.10000000149011612
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Rectangle",
+				"thumbnail_visible": true
+			},
+			"105": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 12
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 2247.657958984375,
+					"y": 2072.9619140625
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input-type",
+					"translation-type",
+					"flow",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": true
+			},
+			"106": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "PERLIN\n\nThe Perlin node takes any float type, runs it through a perlin noise algorithm, and outputs a float within a -1 to 1 range. \nThe output value will always be the same with a given input value, there is no adjustable seed.\n\nThe Perlin node is a useful tool for generative images as its output can be replicated infinitely.\nThis allows you to scroll forwards and backwards and jump through the noise hash.\n\nIn the example we feed the Perlin node a Sine Oscillator signal.\nThis signal is \"Perlinfied\" and used for the movement of the Circle.\nAs you might notice, the movement pattern is continuous due to the lack of a seed.\nIn essence the Sine Oscillator is \"scrolling through\" the Perlin Noise hash."
+					}
+				},
+				"bounds": {
+					"height": 563.3170166015625,
+					"width": 1445.150146484375,
+					"x": 93.2999420166015625,
+					"y": 1842.4337158203125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"107": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 427.2318115234375,
+					"y": 2219.964599609375
+				},
+				"class": {
+					"id": "77697265-527A-4310-A05E-3499B2A0BFF1",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": 0
+					}
+				},
+				"hidden": [
+					"input0-type",
+					"flow",
+					"instances"
+				],
+				"name": "Perlin",
+				"thumbnail_visible": true
+			},
+			"108": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": false
+					}
+				},
+				"bounds": {
+					"height": 133.3323822021484375,
+					"width": 195,
+					"x": 172.2318267822265625,
+					"y": 2219.964599609375
+				},
+				"class": {
+					"id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": 1
+					},
+					"frequency": {
+						"type": "float",
+						"value": 0.25
+					},
+					"offset": {
+						"type": "float",
+						"value": 0
+					},
+					"phase-offset": {
+						"type": "float",
+						"value": 0
+					},
+					"reset-phase": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"reset-phase",
+					"unipolar"
+				],
+				"name": "Sine Oscillator",
+				"thumbnail_visible": true
+			},
+			"109": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 59.41986465454101562,
+					"width": 195,
+					"x": 682.2318115234375,
+					"y": 2130.544677734375
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.10000000149011612
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle",
+				"thumbnail_visible": true
+			},
+			"11": {
+				"attributes": {
+					"input0-type": {
+						"type": "type",
+						"value": "float4"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 887.5,
+					"y": 780.91607666015625
+				},
+				"class": {
+					"id": "77697265-86ce-4e85-a02d-34f915fca74e",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"duration": {
+						"type": "float",
+						"value": [
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5
+						]
+					},
+					"input0": {
+						"type": "float4",
+						"value": [
+							[
+								0.38999998569488525,
+								0.53999996185302734,
+								0.37999999523162842,
+								0.75
+							],
+							[
+								0.69999998807907104,
+								0.85999995470046997,
+								0.53999996185302734,
+								0.75
+							],
+							[
+								0.88999998569488525,
+								0.96999996900558472,
+								0.95999997854232788,
+								0.75
+							],
+							[
+								0.48999997973442078,
+								0.25,
+								0.65999996662139893,
+								0.75
+							],
+							[
+								0.8399999737739563,
+								0.94999998807907104,
+								0.94999998807907104,
+								0.75
+							],
+							[
+								0.55000001192092896,
+								0.76999998092651367,
+								0.93000000715255737,
+								0.75
+							],
+							[
+								0.25999999046325684,
+								0.39999997615814209,
+								0.66999995708465576,
+								0.75
+							],
+							[
+								0.81999999284744263,
+								0.31999999284744263,
+								0.50999999046325684,
+								0.75
+							],
+							[
+								0.8399999737739563,
+								0.4699999988079071,
+								0.71999996900558472,
+								0.75
+							],
+							[
+								0.37000000476837158,
+								0.71999996900558472,
+								0.74000000953674316,
+								0.75
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input0-type",
+					"instances"
+				],
+				"name": "Smooth",
+				"thumbnail_visible": true
+			},
+			"110": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 59.41986465454101562,
+					"width": 195,
+					"x": 937.2318115234375,
+					"y": 2130.544677734375
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": null
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"input-type",
+					"translation-type",
+					"flow",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": false
+			},
+			"111": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 84.05736541748046875,
+					"width": 195,
+					"x": 682.2318115234375,
+					"y": 2219.964599609375
+				},
+				"class": {
+					"id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": 0
+					},
+					"input1": {
+						"type": "float",
+						"value": 0
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Float2",
+				"thumbnail_visible": true
+			},
+			"112": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1192.2318115234375,
+					"y": 2130.544677734375
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"12": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "event"
+					},
+					"input0-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "trigger"
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 377.5,
+					"y": 780.91607666015625
+				},
+				"class": {
+					"id": "77697265-AEE3-4B9D-BBD5-6Ae4CCD5aB30",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input0": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"input0-type",
+					"flow",
+					"input0-dimensions"
+				],
+				"name": "Hub",
+				"thumbnail_visible": true
+			},
+			"13": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 20
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": [
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false
+						]
+					}
+				},
+				"bounds": {
+					"height": 154,
+					"width": 195,
+					"x": 266.606903076171875,
+					"y": 1570.01220703125
+				},
+				"class": {
+					"id": "77697265-A2EF-44DA-9A81-BB0385C1948C",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"frequency": {
+						"type": "float",
+						"value": [
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896
+						]
+					},
+					"offset": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"reset": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"seed": {
+						"type": "float",
+						"value": [
+							1394.643798828125,
+							849.4337158203125,
+							3013.459228515625,
+							2691.2255859375,
+							8159.1103515625,
+							8439.96484375,
+							5571.44775390625,
+							9343.478515625,
+							9027.1875,
+							1368.60693359375,
+							4030.032958984375,
+							3719.248291015625,
+							1834.3885498046875,
+							7766.69921875,
+							6336.5625,
+							2205.134521484375,
+							4048.16455078125,
+							8954.5556640625,
+							5373.88671875,
+							2876.824462890625
+						]
+					}
+				},
+				"hidden": [
+					"instances",
+					"unipolar"
+				],
+				"name": "Perlin Generator",
+				"thumbnail_visible": true
+			},
+			"16": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"max": {
+						"type": "float",
+						"value": 1.5
+					},
+					"max-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"min": {
+						"type": "float",
+						"value": -1.5
+					},
+					"min-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"size": {
+						"type": "integer",
+						"value": 20
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 266.606903076171875,
+					"y": 1434.01220703125
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"include-max",
+					"min-type",
+					"max-type",
+					"pattern-type",
+					"flow"
+				],
+				"name": "Linear",
+				"thumbnail_visible": true
+			},
+			"18": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 20
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 521.60693359375,
+					"y": 1434.01220703125
+				},
+				"class": {
+					"id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"input1": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Float2",
+				"thumbnail_visible": true
+			},
+			"19": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 20
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 776.60693359375,
+					"y": 1346.01220703125
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input-type",
+					"translation-type",
+					"flow",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": true
+			},
+			"2": {
+				"attributes": {
+					"distribution": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					},
+					"type": {
+						"type": "type",
+						"value": "float4"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 632.5,
+					"y": 780.91607666015625
+				},
+				"class": {
+					"id": "77697265-5581-4721-8519-0b8fa3d68b4d",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"argument1": {
+						"type": "float4",
+						"value": [
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.75
+							]
+						]
+					},
+					"argument2": {
+						"type": "float4",
+						"value": [
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							],
+							[
+								1,
+								1,
+								1,
+								0.75
+							]
+						]
+					},
+					"input": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"precision": {
+						"type": "float4",
+						"value": [
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							]
+						]
+					},
+					"seed": {
+						"type": "integer",
+						"value": [
+							412339290,
+							59065106,
+							1751424821,
+							559126081,
+							1818228615,
+							1773997092,
+							2145347475,
+							1082231309,
+							459311602,
+							193170467
+						]
+					}
+				},
+				"hidden": [
+					"distribution",
+					"seed",
+					"precision",
+					"type"
+				],
+				"name": "Random",
+				"thumbnail_visible": true
+			},
+			"20": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 521.60693359375,
+					"y": 1346.01220703125
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.05000000074505806
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle",
+				"thumbnail_visible": true
+			},
+			"22": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 20
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 20
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 1031.60693359375,
+					"y": 1346.01220703125
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 4
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"viewport": {
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									-1,
+									-1
+								]
+							}
+						}
+					},
+					"material": {
+						"type": "color",
+						"value": [
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							]
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"23": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"max-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"min-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"size": {
+						"type": "integer",
+						"value": 5
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 776.60693359375,
+					"y": 1434.01220703125
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"max": {
+						"type": "color",
+						"value": [
+							1,
+							0.74901962280273438,
+							0.06666666269302368,
+							1
+						]
+					},
+					"min": {
+						"type": "color",
+						"value": [
+							1,
+							0.14509804546833038,
+							0.11764705181121826,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"include-max",
+					"min-type",
+					"max-type",
+					"pattern-type",
+					"flow"
+				],
+				"name": "Linear",
+				"thumbnail_visible": true
+			},
+			"24": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "RANDOM\n\nThe first and most obvious node to create randomness is the Random node.\nThe Random node will generate a random float, int or bool upon receiving a trigger.\nThe data type can be selected in the node panel.\n\nIn this example we are using multiple Random nodes, triggered by a Metronome node to create Float, Float2 and Float4 types. These values are used for random positions, rotation and color.\nThe Smooth node is used to smooth between two values.\n\nAssignment: In the empty space to the right of the example, create a small patch that randomly moves a shape over the X-axis without leaving the screen.\n"
+					}
+				},
+				"bounds": {
+					"height": 810.34869384765625,
+					"width": 1446.0067138671875,
+					"x": 92.5,
+					"y": 171.5285491943359375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"25": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "PERLIN NOISE\n\nThe Perlin Generator can be used to create a constant stream of smoothed random values.\nThis node is often used to add variation or organic motion to an existing pattern, color or position.\n\nIn this patch we've manually increased the instance count to 20 in the node panel.\nNote that each instance has its own phase offset.\nThis is to make sure that we don't use the same noise multiple times.\nAlso note that when opening the multi-editor (ctrl\/cmd + click the value box) there is an option to randomize all values at the right top corner of the multi-editor.\n\nAssignment: This is a bit of a challenge! In the empty space to the right of this example, create a small patch and create a shape of choice. \nPlace the shapes in either a Circle Pattern or Grid Pattern using the Move node. \nNext, use two Perlin Generator nodes, a Float2 node and the Add node to add some randomization to your pattern."
+					}
+				},
+				"bounds": {
+					"height": 768.3658447265625,
+					"width": 1446.0067138671875,
+					"x": 92.5,
+					"y": 1018.9200439453125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"26": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 4
+					},
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 4
+					},
+					"size": {
+						"type": "float2",
+						"value": [
+							0.5,
+							0.5
+						]
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 318.09527587890625,
+					"y": 2788.692626953125
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [
+					"pattern-type",
+					"flow"
+				],
+				"name": "Grid Pattern",
+				"thumbnail_visible": true
+			},
+			"27": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 318.09527587890625,
+					"y": 2651.692626953125
+				},
+				"class": {
+					"id": "77697265-4db6-4573-8aa7-42362bc44931",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"height": {
+						"type": "float",
+						"value": 0.20000000298023224
+					},
+					"round": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"width": {
+						"type": "float",
+						"value": 0.20000000298023224
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Rectangle",
+				"thumbnail_visible": true
+			},
+			"28": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 16
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 573.09527587890625,
+					"y": 2651.692626953125
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input-type",
+					"translation-type",
+					"flow",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": true
+			},
+			"29": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 16
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 16
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 828.09527587890625,
+					"y": 2651.692626953125
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 4
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"viewport": {
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									-1,
+									-1
+								]
+							}
+						}
+					},
+					"material": {
+						"type": "color",
+						"value": [
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							]
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"3": {
+				"attributes": {
+					"distribution": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 377.5,
+					"y": 644.91607666015625
+				},
+				"class": {
+					"id": "77697265-5581-4721-8519-0b8fa3d68b4d",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"argument1": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"argument2": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"input": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"precision": {
+						"type": "float",
+						"value": [
+							0.00999999977648258,
+							0.00999999977648258,
+							0.00999999977648258,
+							0.00999999977648258,
+							0.00999999977648258,
+							0.00999999977648258,
+							0.00999999977648258,
+							0.00999999977648258,
+							0.00999999977648258,
+							0.00999999977648258
+						]
+					},
+					"seed": {
+						"type": "integer",
+						"value": [
+							112679893,
+							1648299844,
+							558060873,
+							678860217,
+							1097867134,
+							231489124,
+							1171553333,
+							1476342361,
+							816388671,
+							1219397469
+						]
+					}
+				},
+				"hidden": [
+					"distribution",
+					"seed",
+					"precision",
+					"type"
+				],
+				"name": "Random",
+				"thumbnail_visible": true
+			},
+			"30": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"max": {
+						"type": "color",
+						"value": [
+							0.46666669845581055,
+							0.83137255907058716,
+							0,
+							1
+						]
+					},
+					"max-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"min": {
+						"type": "color",
+						"value": [
+							1,
+							0.39607846736907959,
+							0.34901964664459229,
+							1
+						]
+					},
+					"min-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"size": {
+						"type": "integer",
+						"value": 16
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 318.09527587890625,
+					"y": 2925.692626953125
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [
+					"include-max",
+					"min-type",
+					"max-type",
+					"pattern-type",
+					"flow"
+				],
+				"name": "Linear",
+				"thumbnail_visible": true
+			},
+			"31": {
+				"attributes": {
+					"container-dimensions": {
+						"type": "integer",
+						"value": 16
+					},
+					"container-type": {
+						"type": "type",
+						"value": "float4"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 573.09527587890625,
+					"y": 2925.692626953125
+				},
+				"class": {
+					"id": "77697265-A7DD-4C94-96ED-33AE3756EA6A",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"container": {
+						"type": "float4",
+						"value": [
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							]
+						]
+					},
+					"mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"reshuffle": {
+						"type": "trigger",
+						"value": null
+					},
+					"seed": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"seed",
+					"container-type",
+					"flow",
+					"container-dimensions"
+				],
+				"name": "Shuffle",
+				"thumbnail_visible": true
+			},
+			"32": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 318.09527587890625,
+					"y": 3062.692626953125
+				},
+				"class": {
+					"id": "77697265-FD65-470F-9F75-ED878267980E",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"enabled": {
+						"type": "bool",
+						"value": true
+					},
+					"frequency": {
+						"type": "float",
+						"value": 4
+					},
+					"reset": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"count"
+				],
+				"name": "Metronome",
+				"thumbnail_visible": true
+			},
+			"33": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1255.9951171875,
+					"y": 1345.99951171875
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"34": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1389.4185791015625,
+					"y": 421.331298828125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"35": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1081.117919921875,
+					"y": 2651.692626953125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"41": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "SHUFFLE\n\nThe Shuffle node lets you randomize collections with a trigger.\nThis can be really useful to randomize the distribution of colors like in this example patch.\nThe node has a couple of different modes like \"No Repeat\" and \"No Duplicates\" that change the behavior of how the collection is shuffled. "
+					}
+				},
+				"bounds": {
+					"height": 772.96209716796875,
+					"width": 1445.150146484375,
+					"x": 95.09618377685546875,
+					"y": 2486.3779296875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"42": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "SEED\n\nLet's talk a little bit about the theory behind randomness.\nRandom values generated by computers are by definition not truly random.\nComputers use algorithms called pseudorandom number generators to generate values that to humans look random. They are often derived from data like the current time and date.\n\nYou might have seen the word \"seed\" pop up on some of the nodes in this tutorial.\nThe seed is a user-defined number that is used to generate the random value.\nIf you change the seed, the results of the random node will always be the same.\n\nFor example: having 10 instances of a Random node with the same seed will all produce the same random value (unless the seed is 0).\n\nBy default the seed is set to 0 which means that each instance has a different randomized seed every time it is triggered. This is the closest you will get to true randomness in Wire."
+					}
+				},
+				"bounds": {
+					"height": 773.5362548828125,
+					"width": 914.0411376953125,
+					"x": 1607.2052001953125,
+					"y": 2485.22705078125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"43": {
+				"attributes": {
+					"distribution": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 1715.75830078125,
+					"y": 2923.214599609375
+				},
+				"class": {
+					"id": "77697265-5581-4721-8519-0b8fa3d68b4d",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"argument1": {
+						"type": "float",
+						"value": 0
+					},
+					"argument2": {
+						"type": "float",
+						"value": 1
+					},
+					"input": {
+						"type": "trigger",
+						"value": null
+					},
+					"precision": {
+						"type": "float",
+						"value": 0.00999999977648258
+					},
+					"seed": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"distribution",
+					"precision",
+					"type"
+				],
+				"name": "Random",
+				"thumbnail_visible": true
+			},
+			"45": {
+				"attributes": {
+					"container-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"container-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "event"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 1991.6849365234375,
+					"y": 2923.214599609375
+				},
+				"class": {
+					"id": "77697265-A7DD-4C94-96ED-33AE3756EA6A",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"container": {
+						"type": "float",
+						"value": 0
+					},
+					"mode": {
+						"type": "integer",
+						"value": 1
+					},
+					"reshuffle": {
+						"type": "trigger",
+						"value": null
+					},
+					"seed": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"container-type",
+					"flow",
+					"container-dimensions"
+				],
+				"name": "Shuffle",
+				"thumbnail_visible": true
+			},
+			"46": {
+				"attributes": {
+					"no-duplicates": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 2259.781982421875,
+					"y": 2923.214599609375
+				},
+				"class": {
+					"id": "77697265-DD11-4AFA-849E-4CBA176B3049",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"max": {
+						"type": "integer",
+						"value": 10
+					},
+					"min": {
+						"type": "integer",
+						"value": 0
+					},
+					"reset": {
+						"type": "trigger",
+						"value": null
+					},
+					"seed": {
+						"type": "integer",
+						"value": 1
+					},
+					"trigger": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"no-duplicates",
+					"empty"
+				],
+				"name": "Bag",
+				"thumbnail_visible": true
+			},
+			"49": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "RANDOMNESS\n\nRandomization will be a very powerful tool in your patching toolbox.\nYou will rarely create random patches, but randomness can be very useful to create variation or organic motion."
+					}
+				},
+				"bounds": {
+					"height": 105.892059326171875,
+					"width": 800.67803955078125,
+					"x": 94.80962371826171875,
+					"y": 26.85050582885742188
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"50": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE\n\nIn this example we use both Random and Perlin Noise to generate the visual.\nWe use a Crossfader to fade between random float2 values generated by the Perlin Noise nodes and the Circle Pattern. Which results in a smooth transition from chaos to order.\nRandom is used to create color variations by adding\/subtracting from the main color."
+					}
+				},
+				"bounds": {
+					"height": 982.66650390625,
+					"width": 2426.51220703125,
+					"x": 94.5506134033203125,
+					"y": 3306.22021484375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"51": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": [
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false
+						]
+					}
+				},
+				"bounds": {
+					"height": 154,
+					"width": 195,
+					"x": 171.7152557373046875,
+					"y": 3851.11328125
+				},
+				"class": {
+					"id": "77697265-A2EF-44DA-9A81-BB0385C1948C",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"frequency": {
+						"type": "float",
+						"value": [
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896
+						]
+					},
+					"offset": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"reset": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"seed": {
+						"type": "float",
+						"value": [
+							2642.756103515625,
+							8473.009765625,
+							669.6241455078125,
+							3426.85546875,
+							7741.91064453125,
+							9765.8974609375,
+							9635.9853515625,
+							8646.990234375,
+							8848.6533203125,
+							3336.257568359375,
+							4490.42578125,
+							7341.01416015625,
+							8099.8896484375,
+							9775.1865234375,
+							8003.599609375,
+							1760.3795166015625,
+							5280.44580078125,
+							2396.19140625,
+							6557.1689453125,
+							1116.5299072265625,
+							6014.31689453125,
+							7074.4326171875,
+							9914.8984375,
+							2066.158447265625,
+							5537.6083984375,
+							5900.1904296875,
+							8088.81640625,
+							5244.47314453125,
+							5955.1796875,
+							2481.30615234375,
+							5124.88818359375,
+							3493.9873046875,
+							8257.595703125,
+							2423.62939453125,
+							1021.2210693359375,
+							5362.5439453125,
+							5374.54345703125,
+							4611.8486328125,
+							8548.6953125,
+							4038.010009765625,
+							8778.6552734375,
+							4456.0634765625,
+							8639.7197265625,
+							7899.06494140625,
+							5755.50927734375,
+							4168.92236328125,
+							8059.24853515625,
+							7968.14013671875,
+							89.37897491455078125,
+							4412.5654296875
+						]
+					}
+				},
+				"hidden": [
+					"instances",
+					"unipolar"
+				],
+				"name": "Perlin Noise",
+				"thumbnail_visible": true
+			},
+			"52": {
+				"attributes": {
+					"angle": {
+						"type": "float",
+						"value": 1
+					},
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"points": {
+						"type": "integer",
+						"value": 50
+					},
+					"radius": {
+						"type": "float",
+						"value": 0.75
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 426.715240478515625,
+					"y": 3555.11328125
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73E0D30337C7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {},
+				"hidden": [
+					"flow",
+					"points"
+				],
+				"name": "Circle Pattern",
+				"thumbnail_visible": true
+			},
+			"53": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 426.715240478515625,
+					"y": 3779.11328125
+				},
+				"class": {
+					"id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": 1
+					},
+					"frequency": {
+						"type": "float",
+						"value": 0.125
+					},
+					"offset": {
+						"type": "float",
+						"value": 0
+					},
+					"phase-offset": {
+						"type": "float",
+						"value": 0
+					},
+					"reset-phase": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"reset-phase",
+					"unipolar"
+				],
+				"name": "Sine",
+				"thumbnail_visible": true
+			},
+			"58": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 50
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 50
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 1191.7152099609375,
+					"y": 3467.11328125
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 4
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"viewport": {
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									-1,
+									-1
+								]
+							}
+						}
+					},
+					"material": {
+						"type": "color",
+						"value": [
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							]
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"6": {
+				"attributes": {
+					"anchor-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					},
+					"rotation-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"scale-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 887.5,
+					"y": 420.91607666015625
+				},
+				"class": {
+					"id": "77697265-9225-4009-9D2D-5F898E94CC33",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"anchor": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"rotation": {
+						"type": "float",
+						"value": [
+							0.41999998688697815,
+							0.37000000476837158,
+							0.87999999523162842,
+							0.63999998569488525,
+							0.02999999932944775,
+							0.17000000178813934,
+							0.39999997615814209,
+							0.07000000029802322,
+							0.2800000011920929,
+							0.18999999761581421
+						]
+					},
+					"scale": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0.15999999642372131,
+								-0.93999999761581421
+							],
+							[
+								0.66999995708465576,
+								-0.48999997973442078
+							],
+							[
+								0.56000000238418579,
+								0.35999998450279236
+							],
+							[
+								0.02999999932944775,
+								-0.5899999737739563
+							],
+							[
+								0.28999999165534973,
+								-0.87999999523162842
+							],
+							[
+								-0.28999999165534973,
+								0.57999998331069946
+							],
+							[
+								0.59999996423721313,
+								0.77999997138977051
+							],
+							[
+								0.48999997973442078,
+								0.62999999523162842
+							],
+							[
+								-0.28999999165534973,
+								0.39999997615814209
+							],
+							[
+								-0.95999997854232788,
+								-0.48999997973442078
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input-type",
+					"translation-type",
+					"rotation-type",
+					"scale-type",
+					"anchor-type",
+					"flow",
+					"instances"
+				],
+				"name": "Transform",
+				"thumbnail_visible": true
+			},
+			"62": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"input-count": {
+						"type": "integer",
+						"value": 3
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 178,
+					"width": 195,
+					"x": 1446.7152099609375,
+					"y": 3467.11328125
+				},
+				"class": {
+					"id": "77697265-A270-4D60-911C-A88B1BE6369A",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"input1": {
+						"type": "texture2d",
+						"value": null
+					},
+					"input2": {
+						"type": "texture2d",
+						"value": null
+					},
+					"input3": {
+						"type": "texture2d",
+						"value": null
+					},
+					"mode": {
+						"type": "integer",
+						"value": 11
+					},
+					"opacity1": {
+						"type": "float",
+						"value": 0.94999998807907104
+					},
+					"opacity2": {
+						"type": "float",
+						"value": 0.94999998807907104
+					},
+					"opacity3": {
+						"type": "float",
+						"value": 0.88499999046325684
+					}
+				},
+				"hidden": [
+					"bypass",
+					"input-count",
+					"mode",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Video Mixer",
+				"thumbnail_visible": true
+			},
+			"63": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "texture2d"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"interpolation": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 1715.5450439453125,
+					"y": 3466.52783203125
+				},
+				"class": {
+					"id": "77697265-4BEE-483F-9F28-1BA5F21193DB",
+					"version": 4
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"input0": {
+						"type": "texture2d",
+						"value": null
+					},
+					"reset": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"interpolation",
+					"input0-type",
+					"flow",
+					"instances"
+				],
+				"name": "Delay",
+				"thumbnail_visible": true
+			},
+			"64": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 1942.8331298828125,
+					"y": 3466.52734375
+				},
+				"class": {
+					"id": "77697265-5F11-465D-9E83-A3CF5A50D8E8",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"blur": {
+						"type": "float",
+						"value": 1
+					},
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"distance": {
+						"type": "float2",
+						"value": [
+							0.10000000149011612,
+							0.10000000149011612
+						]
+					},
+					"gaussian": {
+						"type": "float",
+						"value": 1
+					},
+					"input": {
+						"type": "texture2d",
+						"value": null
+					},
+					"quality": {
+						"type": "float",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"bypass",
+					"instances"
+				],
+				"name": "Blur",
+				"thumbnail_visible": true
+			},
+			"65": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 1191.7152099609375,
+					"y": 3603.11328125
+				},
+				"class": {
+					"id": "77697265-E8EC-4F1B-901A-CFFC104D3B07",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"color": {
+						"type": "color",
+						"value": [
+							0,
+							0,
+							0,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"bypass",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Solid Color",
+				"thumbnail_visible": true
+			},
+			"66": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 2185.956787109375,
+					"y": 3466.52783203125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"67": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 50
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 426.715240478515625,
+					"y": 3667.11328125
+				},
+				"class": {
+					"id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"input1": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Float2",
+				"thumbnail_visible": true
+			},
+			"68": {
+				"attributes": {
+					"input1-dimensions": {
+						"type": "integer",
+						"value": 50
+					},
+					"input1-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"input2-dimensions": {
+						"type": "integer",
+						"value": 50
+					},
+					"input2-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"mix-dimensions": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 681.7152099609375,
+					"y": 3555.11328125
+				},
+				"class": {
+					"id": "77697265-7BAA-481B-8F7C-A32F6DBE1518",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"input1": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"input2": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"mix": {
+						"type": "float",
+						"value": 0.3793100118637085
+					}
+				},
+				"hidden": [
+					"input1-type",
+					"input2-type",
+					"input1-dimensions",
+					"input2-dimensions",
+					"mix-dimensions"
+				],
+				"name": "Cross Fader",
+				"thumbnail_visible": true
+			},
+			"69": {
+				"attributes": {
+					"anchor-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"rotation-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"scale-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 936.7152099609375,
+					"y": 3467.11328125
+				},
+				"class": {
+					"id": "77697265-9225-4009-9D2D-5F898E94CC33",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"anchor": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"rotation": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"scale": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input-type",
+					"translation-type",
+					"rotation-type",
+					"scale-type",
+					"anchor-type",
+					"flow",
+					"instances"
+				],
+				"name": "Transform",
+				"thumbnail_visible": true
+			},
+			"7": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 632.5,
+					"y": 420.91607666015625
+				},
+				"class": {
+					"id": "77697265-6928-4CE0-A145-5ED69D347DD0",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"size": {
+						"type": "float",
+						"value": 0.25
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Pentagon",
+				"thumbnail_visible": true
+			},
+			"70": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": [
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false
+						]
+					}
+				},
+				"bounds": {
+					"height": 154,
+					"width": 195,
+					"x": 171.7152557373046875,
+					"y": 3667.11328125
+				},
+				"class": {
+					"id": "77697265-A2EF-44DA-9A81-BB0385C1948C",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": [
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2,
+							2
+						]
+					},
+					"frequency": {
+						"type": "float",
+						"value": [
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896
+						]
+					},
+					"offset": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"reset": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"seed": {
+						"type": "float",
+						"value": [
+							9170.623046875,
+							5126.080078125,
+							1014.8006591796875,
+							5444.6298828125,
+							7727.11083984375,
+							5363.14404296875,
+							4324.32763671875,
+							9603.75,
+							2596.13525390625,
+							8033.98095703125,
+							8286.3359375,
+							9706.994140625,
+							6303.18115234375,
+							862.37835693359375,
+							7864.11572265625,
+							8725.49609375,
+							8422.7666015625,
+							5364.615234375,
+							5357.07763671875,
+							1496.6124267578125,
+							2977.724609375,
+							7746.779296875,
+							4779.6865234375,
+							251.8397216796875,
+							6554.89111328125,
+							1149.9713134765625,
+							266.61676025390625,
+							9858.6982421875,
+							9225.1904296875,
+							9180.9833984375,
+							5235.8798828125,
+							1173.1982421875,
+							1452.1285400390625,
+							5701.857421875,
+							4339.80810546875,
+							6882.50732421875,
+							5517.5859375,
+							9384.232421875,
+							6276.59130859375,
+							7339.41455078125,
+							870.64666748046875,
+							6987.06787109375,
+							2749.302001953125,
+							1566.8297119140625,
+							2438.73291015625,
+							71.94629669189453125,
+							2920.010986328125,
+							1856.5654296875,
+							8269.185546875,
+							1863.716796875
+						]
+					}
+				},
+				"hidden": [
+					"instances",
+					"unipolar"
+				],
+				"name": "Perlin Noise",
+				"thumbnail_visible": true
+			},
+			"8": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 10
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 10
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 1142.5,
+					"y": 420.91607666015625
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 4
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"viewport": {
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									-1,
+									-1
+								]
+							}
+						}
+					},
+					"material": {
+						"type": "color",
+						"value": [
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							],
+							[
+								0.5,
+								0.66999995708465576,
+								0.31000000238418579,
+								0.75
+							]
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"83": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 426.715240478515625,
+					"y": 3467.11328125
+				},
+				"class": {
+					"id": "77697265-b7d0-445b-831a-da787ea65a54",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"size": {
+						"type": "float",
+						"value": 0.05000000074505806
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Equilateral Triangle",
+				"thumbnail_visible": true
+			},
+			"85": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 681.7152099609375,
+					"y": 3467.11328125
+				},
+				"class": {
+					"id": "77697265-b836-49f0-bb1e-f5d3f4ff5680",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": null
+					},
+					"smoothing": {
+						"type": "float",
+						"value": 0.08620700240135193
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Round",
+				"thumbnail_visible": true
+			},
+			"86": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "attribute"
+					},
+					"input0": {
+						"type": "color",
+						"value": [
+							0.10588230937719345,
+							0.59607845544815063,
+							0,
+							0.55686277151107788
+						]
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"input1-type": {
+						"type": "type",
+						"value": "null"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 681.7152099609375,
+					"y": 4059.113037109375
+				},
+				"class": {
+					"id": "77697265-8035-4fab-a688-52338c6b4748",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {},
+				"hidden": [
+					"input0-type",
+					"input1-type",
+					"flow",
+					"instances"
+				],
+				"name": "Color",
+				"thumbnail_visible": true
+			},
+			"87": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input1-dimensions": {
+						"type": "integer",
+						"value": 50
+					},
+					"size": {
+						"type": "integer",
+						"value": 2
+					},
+					"type0": {
+						"type": "type",
+						"value": "float4"
+					},
+					"type1": {
+						"type": "type",
+						"value": "float4"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 936.7152099609375,
+					"y": 4059.113037109375
+				},
+				"class": {
+					"id": "77697265-A9AF-4CB4-B10F-3968B36BB63B",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"input0": {
+						"type": "float4",
+						"value": [
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							]
+						]
+					},
+					"input1": {
+						"type": "float4",
+						"value": [
+							[
+								-0.18999999761581421,
+								-0.11999999731779099,
+								-0.10999999940395355,
+								-0.14000000059604645
+							],
+							[
+								-0.14000000059604645,
+								0.05999999865889549,
+								-0.15999999642372131,
+								-0.00999999977648258
+							],
+							[
+								-0.17999999225139618,
+								-0.12999999523162842,
+								-0.01999999955296516,
+								0.05999999865889549
+							],
+							[
+								-0.03999999910593033,
+								-0.14999999105930328,
+								-0.04999999701976776,
+								-0.02999999932944775
+							],
+							[
+								-0.00999999977648258,
+								0.07999999821186066,
+								-0.18999999761581421,
+								-0.07000000029802322
+							],
+							[
+								0.00999999977648258,
+								0.11999999731779099,
+								-0.00999999977648258,
+								-0.14000000059604645
+							],
+							[
+								-0.04999999701976776,
+								-0.17999999225139618,
+								-0.14999999105930328,
+								0.15999999642372131
+							],
+							[
+								-0.01999999955296516,
+								0.03999999910593033,
+								-0.05999999865889549,
+								-0.17999999225139618
+							],
+							[
+								-0.08999999612569809,
+								0.04999999701976776,
+								0.00999999977648258,
+								0.04999999701976776
+							],
+							[
+								0.08999999612569809,
+								-0.01999999955296516,
+								0.14000000059604645,
+								0.17999999225139618
+							],
+							[
+								0.14999999105930328,
+								-0.07000000029802322,
+								0.07999999821186066,
+								-0.10999999940395355
+							],
+							[
+								0.09999999403953552,
+								-0.10999999940395355,
+								0.17000000178813934,
+								-0.00999999977648258
+							],
+							[
+								0.08999999612569809,
+								0.02999999932944775,
+								-0.08999999612569809,
+								0
+							],
+							[
+								0.17999999225139618,
+								0.07999999821186066,
+								0.11999999731779099,
+								-0.17999999225139618
+							],
+							[
+								-0.11999999731779099,
+								0.17000000178813934,
+								0.09999999403953552,
+								-0.07999999821186066
+							],
+							[
+								-0.09999999403953552,
+								-0.09999999403953552,
+								-0.18999999761581421,
+								-0.15999999642372131
+							],
+							[
+								-0.12999999523162842,
+								-0.03999999910593033,
+								-0.05999999865889549,
+								-0.17999999225139618
+							],
+							[
+								0.05999999865889549,
+								0.05999999865889549,
+								-0.18999999761581421,
+								-0.08999999612569809
+							],
+							[
+								0.01999999955296516,
+								0.15999999642372131,
+								0.11999999731779099,
+								0.05999999865889549
+							],
+							[
+								0.00999999977648258,
+								-0.12999999523162842,
+								-0.17999999225139618,
+								-0.07999999821186066
+							],
+							[
+								0.18999999761581421,
+								0.14000000059604645,
+								0.14999999105930328,
+								0
+							],
+							[
+								0.10999999940395355,
+								0.15999999642372131,
+								-0.05999999865889549,
+								-0.08999999612569809
+							],
+							[
+								0.17999999225139618,
+								0.04999999701976776,
+								-0.02999999932944775,
+								-0.18999999761581421
+							],
+							[
+								-0.02999999932944775,
+								0.00999999977648258,
+								0.09999999403953552,
+								-0.03999999910593033
+							],
+							[
+								0.18999999761581421,
+								-0.18999999761581421,
+								-0.14999999105930328,
+								-0.17999999225139618
+							],
+							[
+								-0.02999999932944775,
+								0.09999999403953552,
+								-0.07000000029802322,
+								0.08999999612569809
+							],
+							[
+								-0.07000000029802322,
+								0.04999999701976776,
+								0.05999999865889549,
+								0.01999999955296516
+							],
+							[
+								0.14999999105930328,
+								0.01999999955296516,
+								0.17000000178813934,
+								0.10999999940395355
+							],
+							[
+								0.19999998807907104,
+								0.04999999701976776,
+								-0.04999999701976776,
+								0.17999999225139618
+							],
+							[
+								-0.09999999403953552,
+								0.17000000178813934,
+								0.07000000029802322,
+								-0.10999999940395355
+							],
+							[
+								0.14000000059604645,
+								0.10999999940395355,
+								-0.14000000059604645,
+								-0.00999999977648258
+							],
+							[
+								0.17999999225139618,
+								-0.15999999642372131,
+								-0.11999999731779099,
+								0.07999999821186066
+							],
+							[
+								-0.17000000178813934,
+								-0.08999999612569809,
+								0.04999999701976776,
+								-0.07000000029802322
+							],
+							[
+								0.11999999731779099,
+								-0.15999999642372131,
+								-0.12999999523162842,
+								-0.14999999105930328
+							],
+							[
+								0.15999999642372131,
+								0.01999999955296516,
+								0,
+								0.04999999701976776
+							],
+							[
+								0.12999999523162842,
+								0.07999999821186066,
+								0.08999999612569809,
+								0.10999999940395355
+							],
+							[
+								0.11999999731779099,
+								-0.04999999701976776,
+								0.07000000029802322,
+								-0.07000000029802322
+							],
+							[
+								-0.12999999523162842,
+								-0.17000000178813934,
+								-0.02999999932944775,
+								0.14000000059604645
+							],
+							[
+								-0.03999999910593033,
+								0.17999999225139618,
+								0.01999999955296516,
+								0.07999999821186066
+							],
+							[
+								-0.09999999403953552,
+								0.07999999821186066,
+								-0.03999999910593033,
+								0.05999999865889549
+							],
+							[
+								0,
+								0,
+								0,
+								0.17999999225139618
+							],
+							[
+								-0.04999999701976776,
+								0.07000000029802322,
+								0.12999999523162842,
+								-0.08999999612569809
+							],
+							[
+								-0.01999999955296516,
+								-0.19999998807907104,
+								-0.10999999940395355,
+								-0.15999999642372131
+							],
+							[
+								0.18999999761581421,
+								0.17999999225139618,
+								-0.11999999731779099,
+								0.03999999910593033
+							],
+							[
+								0.07000000029802322,
+								-0.14000000059604645,
+								0.17000000178813934,
+								-0.18999999761581421
+							],
+							[
+								-0.01999999955296516,
+								-0.00999999977648258,
+								-0.01999999955296516,
+								-0.03999999910593033
+							],
+							[
+								-0.07999999821186066,
+								-0.08999999612569809,
+								-0.02999999932944775,
+								-0.05999999865889549
+							],
+							[
+								0.12999999523162842,
+								-0.04999999701976776,
+								-0.17000000178813934,
+								-0.15999999642372131
+							],
+							[
+								0.17999999225139618,
+								-0.11999999731779099,
+								-0.14000000059604645,
+								-0.11999999731779099
+							],
+							[
+								0.00999999977648258,
+								0.12999999523162842,
+								0.18999999761581421,
+								-0.07000000029802322
+							]
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"size",
+					"type0",
+					"input0-dimensions",
+					"type1",
+					"input1-dimensions"
+				],
+				"name": "Add",
+				"thumbnail_visible": true
+			},
+			"88": {
+				"attributes": {
+					"distribution": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"type": {
+						"type": "type",
+						"value": "float4"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 681.7152099609375,
+					"y": 4147.11279296875
+				},
+				"class": {
+					"id": "77697265-5581-4721-8519-0b8fa3d68b4d",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"argument1": {
+						"type": "float4",
+						"value": [
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							],
+							[
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224,
+								-0.20000000298023224
+							]
+						]
+					},
+					"argument2": {
+						"type": "float4",
+						"value": [
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224,
+								0.20000000298023224
+							]
+						]
+					},
+					"input": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"precision": {
+						"type": "float4",
+						"value": [
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258,
+								0.00999999977648258
+							]
+						]
+					},
+					"seed": {
+						"type": "integer",
+						"value": [
+							391520648,
+							780584915,
+							809180196,
+							1881198725,
+							587244316,
+							486842386,
+							757422396,
+							890925296,
+							1570977478,
+							709606155,
+							1967076267,
+							1305360021,
+							255480196,
+							1731932282,
+							973698804,
+							1213319918,
+							280262724,
+							2029433189,
+							1558048035,
+							1328866973,
+							980042112,
+							1442855378,
+							338069673,
+							2042323219,
+							1081382827,
+							2048771931,
+							548721168,
+							22071640,
+							1927852342,
+							389838360,
+							430344526,
+							2049205789,
+							1231305077,
+							539791200,
+							121845700,
+							560409716,
+							1957279815,
+							760766850,
+							1424113077,
+							1397460287,
+							1544763524,
+							786417188,
+							672153660,
+							1368347053,
+							565343606,
+							1719670836,
+							1086877631,
+							883769005,
+							1264347759,
+							1215872123
+						]
+					}
+				},
+				"hidden": [
+					"distribution",
+					"seed",
+					"precision",
+					"type"
+				],
+				"name": "Random",
+				"thumbnail_visible": true
+			},
+			"9": {
+				"attributes": {
+					"input0-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 10
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 632.5,
+					"y": 508.91607666015625
+				},
+				"class": {
+					"id": "77697265-86ce-4e85-a02d-34f915fca74e",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"duration": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"input0": {
+						"type": "float2",
+						"value": [
+							[
+								0.70999997854232788,
+								-0.68000000715255737
+							],
+							[
+								-1.36000001430511475,
+								0.42999997735023499
+							],
+							[
+								-0.62999999523162842,
+								0.56000000238418579
+							],
+							[
+								0.90999996662139893,
+								-0.70999997854232788
+							],
+							[
+								1.44999992847442627,
+								0.75999999046325684
+							],
+							[
+								-0.19999998807907104,
+								-0.07000000029802322
+							],
+							[
+								1.31999993324279785,
+								0.23999999463558197
+							],
+							[
+								-1.39999997615814209,
+								-0.17999999225139618
+							],
+							[
+								-0.23999999463558197,
+								-0.37000000476837158
+							],
+							[
+								-1.29999995231628418,
+								-0.29999998211860657
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input0-type",
+					"instances"
+				],
+				"name": "Smooth",
+				"thumbnail_visible": true
+			},
+			"90": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": [
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false
+						]
+					}
+				},
+				"bounds": {
+					"height": 154,
+					"width": 195,
+					"x": 681.7152099609375,
+					"y": 3691.11328125
+				},
+				"class": {
+					"id": "77697265-A2EF-44DA-9A81-BB0385C1948C",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"frequency": {
+						"type": "float",
+						"value": [
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612
+						]
+					},
+					"offset": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"reset": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"seed": {
+						"type": "float",
+						"value": [
+							7242.35302734375,
+							5613.046875,
+							7400.22607421875,
+							6307.4677734375,
+							7783.0185546875,
+							4074.7060546875,
+							133.7455902099609375,
+							6033.88330078125,
+							1579.09619140625,
+							4551.6240234375,
+							1445.986083984375,
+							9195.177734375,
+							452.83197021484375,
+							8652.2392578125,
+							2245.57275390625,
+							6039.9951171875,
+							6599.53369140625,
+							6093.06298828125,
+							8241.9912109375,
+							9129.55078125,
+							2566.05517578125,
+							6041.583984375,
+							3290.429931640625,
+							2354.024169921875,
+							1101.3907470703125,
+							5233.0146484375,
+							2868.705810546875,
+							5295.79345703125,
+							3256.599609375,
+							9313.091796875,
+							2243.859130859375,
+							3320.51611328125,
+							4635.71240234375,
+							464.91668701171875,
+							1994.01513671875,
+							3107.632080078125,
+							8515.041015625,
+							9559.373046875,
+							481.65106201171875,
+							9777.982421875,
+							2974.389404296875,
+							6754.18212890625,
+							1120.80859375,
+							2554.405029296875,
+							3685.65869140625,
+							423.53997802734375,
+							4698.3544921875,
+							4262.0546875,
+							3646.899658203125,
+							9497.4873046875
+						]
+					}
+				},
+				"hidden": [
+					"instances",
+					"unipolar"
+				],
+				"name": "Perlin Noise",
+				"thumbnail_visible": true
+			},
+			"91": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 50
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": [
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false
+						]
+					}
+				},
+				"bounds": {
+					"height": 154,
+					"width": 195,
+					"x": 681.7152099609375,
+					"y": 3875.11328125
+				},
+				"class": {
+					"id": "77697265-A2EF-44DA-9A81-BB0385C1948C",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": [
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5
+						]
+					},
+					"frequency": {
+						"type": "float",
+						"value": [
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612,
+							0.10000000149011612
+						]
+					},
+					"offset": {
+						"type": "float",
+						"value": [
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5
+						]
+					},
+					"reset": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"seed": {
+						"type": "float",
+						"value": [
+							9695.544921875,
+							3658.848388671875,
+							6265.140625,
+							4601.5732421875,
+							2538.420654296875,
+							2097.687255859375,
+							7459.31396484375,
+							8546.0302734375,
+							5423.98046875,
+							961.47027587890625,
+							1132.4842529296875,
+							6150.6630859375,
+							8643.0927734375,
+							715.97119140625,
+							647.9593505859375,
+							7643.8046875,
+							4099.72802734375,
+							7979.34375,
+							879.52288818359375,
+							5447.09814453125,
+							6874.10791015625,
+							63.72295761108398438,
+							5971.125,
+							2171.240478515625,
+							7949.10888671875,
+							1432.318359375,
+							9439.4345703125,
+							929.58465576171875,
+							1981.8905029296875,
+							7833.20361328125,
+							6563.00439453125,
+							2787.3212890625,
+							6784.208984375,
+							558.138671875,
+							1911.8162841796875,
+							5287.9814453125,
+							6171.46533203125,
+							2803.07470703125,
+							7221.10107421875,
+							9774.6689453125,
+							3050.16845703125,
+							4687.61181640625,
+							5712.70458984375,
+							7969.171875,
+							9893.7412109375,
+							810.13238525390625,
+							5902.6337890625,
+							6022.45458984375,
+							9893.447265625,
+							6588.34228515625
+						]
+					}
+				},
+				"hidden": [
+					"instances",
+					"unipolar"
+				],
+				"name": "Perlin Noise",
+				"thumbnail_visible": true
+			},
+			"92": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "RANDOM ASSIGNMENT\n\nCeate a small patch that randomly moves a shape over the X-axis without leaving the screen.\nBonus points if you manage to smooth the movement."
+					}
+				},
+				"bounds": {
+					"height": 800.89996337890625,
+					"width": 1446.0067138671875,
+					"x": 1605.6922607421875,
+					"y": 171.216522216796875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"94": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "PERLIN NOISE ASSIGNMENT\n\nAssignment: This is a bit of a challenge!\n\n- Create a shape of choice. \n- Place the shape  in either a Circle Pattern or Grid Pattern using the Move node. \n- Use two Perlin Generator nodes, a Float2 node and the Add node to add some randomization to your pattern."
+					}
+				},
+				"bounds": {
+					"height": 768.3658447265625,
+					"width": 1446.0067138671875,
+					"x": 1606.436767578125,
+					"y": 1018.92010498046875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"97": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "NOISE GENERATOR\n\nThe Noise Generator node can be used to generate white noise, which is represented as a value between -1 and 1.\n\nIn this example we use the Noise Generator to move the Rectangle shapes around."
+					}
+				},
+				"bounds": {
+					"height": 563.3170166015625,
+					"width": 1445.150146484375,
+					"x": 1606.8192138671875,
+					"y": 1842.4337158203125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Group",
+				"thumbnail_visible": true
+			},
+			"98": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 12
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": [
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false,
+							false
+						]
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 1737.657958984375,
+					"y": 2209.9833984375
+				},
+				"class": {
+					"id": "77697265-c95a-4a63-a7ad-97c8c09c73cb",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"seed": {
+						"type": "integer",
+						"value": [
+							791525939,
+							856254571,
+							1863204152,
+							612229345,
+							704005847,
+							900048498,
+							1652281918,
+							1091808779,
+							1739751577,
+							350886679,
+							621108923,
+							1543068158
+						]
+					}
+				},
+				"hidden": [
+					"instances",
+					"unipolar",
+					"seed"
+				],
+				"name": "Noise Generator",
+				"thumbnail_visible": true
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": -1707.5142822265625,
+				"y": -185.060394287109375,
+				"zoom": 0.18683286011219025
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {
+				"0": "Test Card",
+				"11": "Test Card",
+				"13": "Test Card",
+				"136": "Test Card",
+				"15": "Test Card",
+				"19": "Wire Logo",
+				"21": "Test Card",
+				"22": "Wire Logo",
+				"29": "Test Card",
+				"31": "Test Card",
+				"34": "Test Card",
+				"42": "Test Card",
+				"44": "slice_stage_droid",
+				"45": "Test Card",
+				"49": "Test Card"
+			}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null,
+					"Syphon": null
+				}
+			}
+		}
+	}
+}

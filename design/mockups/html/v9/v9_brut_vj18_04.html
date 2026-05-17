@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VJ18 Brutalist 04 — Broadcast Focus</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:1920px; height:1080px; overflow:hidden; }
+body {
+  background:#0a0a0a;
+  color:#e8e8e8;
+  font-family:'IBM Plex Sans', system-ui, sans-serif;
+  font-size:11px;
+  font-weight:400;
+  letter-spacing:0.02em;
+  position:relative;
+}
+
+/* 3% SVG grain overlay */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:100;
+  opacity:0.03;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.mono { font-family:'IBM Plex Mono', monospace; }
+.sans { font-family:'IBM Plex Sans', sans-serif; }
+
+/* ============ MENU BAR 24px ============ */
+.menu-bar {
+  height:24px;
+  background:#0a0a0a;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+  border-bottom:1px solid #222;
+  gap:20px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:#6e6e6e;
+}
+.menu-bar .mb-brand { color:#e8e8e8; font-weight:700; letter-spacing:0.15em; }
+.menu-bar .mb-item { cursor:pointer; }
+.menu-bar .mb-item:hover { color:#e8e8e8; }
+.menu-bar .mb-right { margin-left:auto; display:flex; gap:20px; }
+.menu-bar .mb-status { color:#6e6e6e; }
+.menu-bar .mb-status b { color:#e8e8e8; font-weight:500; }
+
+/* ============ TOP BAR 40px (BPM overflows) ============ */
+.top-bar {
+  height:40px;
+  background:#0a0a0a;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+  border-bottom:1px solid #222;
+  gap:18px;
+  position:relative;
+  overflow:visible;
+  z-index:10;
+}
+.tb-bpm {
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  margin-top:-8px; /* let BPM peek out above */
+  margin-bottom:-8px;
+}
+.tb-bpm-val {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:48px;
+  font-weight:700;
+  color:#ff4500;
+  line-height:1;
+  letter-spacing:-0.02em;
+}
+.tb-bpm-lbl {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  color:#6e6e6e;
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+}
+
+.beat-wheel {
+  width:22px;
+  height:22px;
+  border:1px solid #333;
+  position:relative;
+}
+.beat-wheel::before {
+  content:'';
+  position:absolute;
+  inset:3px;
+  background:#ff4500;
+  animation:beat 0.469s linear infinite;
+}
+.beat-wheel .bw-q {
+  position:absolute;
+  background:#222;
+}
+.beat-wheel .bw-h { left:50%; top:0; bottom:0; width:1px; }
+.beat-wheel .bw-v { top:50%; left:0; right:0; height:1px; }
+
+@keyframes beat {
+  0%   { opacity:1; transform:scale(1); }
+  30%  { opacity:0.9; transform:scale(0.85); }
+  100% { opacity:0.2; transform:scale(0.7); }
+}
+
+.tb-meta {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  color:#6e6e6e;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.tb-meta b { color:#e8e8e8; font-weight:500; }
+
+.tb-transport { display:flex; gap:0; border:1px solid #2a2a2a; }
+.tb-btn {
+  height:24px;
+  min-width:42px;
+  padding:0 10px;
+  background:#111;
+  border:none;
+  border-right:1px solid #2a2a2a;
+  color:#e8e8e8;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.tb-btn:last-child { border-right:none; }
+.tb-btn.on { background:#1a1a1a; color:#fff; }
+.tb-btn:hover { background:#1a1a1a; }
+
+.tb-master {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.tb-master-lbl {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  color:#6e6e6e;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+}
+.tb-master-fader {
+  width:140px;
+  height:4px;
+  background:#222;
+  position:relative;
+}
+.tb-master-fader .fill {
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:85%;
+  background:#e8e8e8;
+}
+.tb-master-fader .knob {
+  position:absolute;
+  left:85%;
+  top:-4px;
+  width:2px;
+  height:12px;
+  background:#fff;
+  transform:translateX(-1px);
+}
+.tb-master-val {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  color:#e8e8e8;
+  min-width:32px;
+}
+
+.tb-rec {
+  height:24px;
+  padding:0 12px;
+  background:#0a0a0a;
+  border:1px solid #ff4500;
+  color:#ff4500;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  cursor:pointer;
+}
+.tb-rec::before {
+  content:'';
+  width:6px; height:6px;
+  background:#ff4500;
+  display:block;
+}
+
+.tb-spacer { flex:1; }
+
+.tb-tags {
+  display:flex;
+  gap:6px;
+}
+.tb-tag {
+  height:20px;
+  padding:0 8px;
+  border:1px solid #2a2a2a;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:#e8e8e8;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.tb-tag .lbl { color:#6e6e6e; }
+
+/* ============ SIGNAL BAR 44px ============ */
+.signal-bar {
+  height:44px;
+  background:#0a0a0a;
+  border-bottom:1px solid #222;
+  display:grid;
+  grid-template-columns:repeat(16, 1fr);
+  padding:0;
+}
+.sig {
+  border-right:1px solid #1a1a1a;
+  padding:4px 8px 4px 10px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+  position:relative;
+}
+.sig:last-child { border-right:none; }
+.sig.selected {
+  background:#111;
+}
+.sig.selected::before {
+  content:'';
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:2px;
+  background:#ff4500;
+}
+.sig-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  font-family:'IBM Plex Mono', monospace;
+}
+.sig-name {
+  font-size:10px;
+  color:#e8e8e8;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  font-weight:500;
+}
+.sig-val {
+  font-size:11px;
+  color:#e8e8e8;
+  font-weight:500;
+  font-variant-numeric:tabular-nums;
+}
+.sig.flash .sig-val { color:#ff4500; animation:justchanged 200ms ease-out; }
+@keyframes justchanged {
+  0%   { color:#ff4500; }
+  100% { color:#e8e8e8; }
+}
+.sig-meter {
+  height:1px;
+  background:#222;
+  position:relative;
+}
+.sig-meter .fill {
+  position:absolute;
+  left:0; top:0; bottom:0;
+  background:#e8e8e8;
+}
+.sig.selected .sig-meter .fill { background:#ff4500; }
+
+/* ============ DECK TABS 24px ============ */
+.deck-strip {
+  height:24px;
+  background:#0a0a0a;
+  display:flex;
+  align-items:center;
+  padding:0 0 0 0;
+  border-bottom:1px solid #222;
+}
+.deck-tab {
+  height:24px;
+  width:120px;
+  border-right:1px solid #222;
+  background:#0a0a0a;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  font-weight:500;
+  color:#6e6e6e;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  cursor:pointer;
+  position:relative;
+}
+.deck-tab.active {
+  color:#fff;
+  background:#111;
+}
+.deck-tab.active::after {
+  content:'';
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:2px;
+  background:#ff4500;
+}
+.deck-strip .ds-right {
+  margin-left:auto;
+  padding:0 14px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  color:#6e6e6e;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+}
+
+/* ============ SCENE ROW 22px ============ */
+.scene-row {
+  height:22px;
+  background:#0a0a0a;
+  display:grid;
+  grid-template-columns:repeat(12, 1fr);
+  border-bottom:1px solid #222;
+}
+.scene {
+  border-right:1px solid #1a1a1a;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  font-weight:500;
+  color:#6e6e6e;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  cursor:pointer;
+}
+.scene:last-child { border-right:none; }
+.scene.active {
+  color:#ff4500;
+  background:#111;
+  position:relative;
+}
+.scene.active::after {
+  content:'';
+  position:absolute;
+  left:0; right:0; bottom:-1px;
+  height:1px;
+  background:#ff4500;
+}
+
+/* ============ MAIN GRID ============ */
+/* totals: 24+40+44+24+22 = 154. footer 24. grid height = 1080 - 154 - 24 = 902 */
+.main-grid {
+  height:902px;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+  background:#0a0a0a;
+}
+
+.layer-row {
+  flex:1;
+  min-height:0;
+  display:flex;
+  border-bottom:1px solid #1a1a1a;
+}
+.layer-row:last-child { border-bottom:none; }
+
+.lr-hdr {
+  width:100px;
+  min-width:100px;
+  background:#0a0a0a;
+  border-right:1px solid #222;
+  padding:6px 8px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.lr-name {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  font-weight:600;
+  color:#e8e8e8;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  line-height:1.1;
+}
+.lr-name.off { color:#6e6e6e; }
+.lr-type {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:9px;
+  color:#6e6e6e;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  margin-top:2px;
+  padding:1px 4px;
+  border:1px solid #222;
+  display:inline-block;
+  align-self:flex-start;
+}
+.lr-controls {
+  display:flex;
+  gap:2px;
+}
+.lr-ctl {
+  width:18px;
+  height:16px;
+  background:#0a0a0a;
+  border:1px solid #222;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:9px;
+  font-weight:600;
+  color:#6e6e6e;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+.lr-ctl.on { color:#fff; border-color:#444; background:#1a1a1a; }
+.lr-fader-row {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.lr-fader {
+  width:70px;
+  height:5px;
+  background:#1a1a1a;
+  position:relative;
+  border:1px solid #222;
+}
+.lr-fader .fill {
+  position:absolute;
+  left:0; top:0; bottom:0;
+  background:#333;
+}
+.lr-fader .knob {
+  position:absolute;
+  top:-3px;
+  width:2px;
+  height:9px;
+  background:#e8e8e8;
+}
+.lr-val {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  color:#e8e8e8;
+  font-variant-numeric:tabular-nums;
+}
+
+.lr-clips {
+  flex:1;
+  display:flex;
+  gap:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  background:#0a0a0a;
+}
+
+.clip {
+  flex:1;
+  min-width:150px;
+  height:100%;
+  background:#0a0a0a;
+  border-right:1px solid #1a1a1a;
+  position:relative;
+  cursor:pointer;
+  overflow:hidden;
+}
+.clip:last-child { border-right:none; }
+.clip .thumb {
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+}
+.clip .thumb svg {
+  display:block;
+  width:100%;
+  height:100%;
+}
+.clip .nm {
+  position:absolute;
+  left:0; right:0; bottom:0;
+  padding:4px 8px;
+  background:#0a0a0aee;
+  border-top:1px solid #222;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:13px;
+  font-weight:500;
+  color:#e8e8e8;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.clip .fx-tag {
+  position:absolute;
+  top:6px;
+  right:6px;
+  padding:2px 6px;
+  background:#0a0a0acc;
+  border:1px solid #333;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  font-weight:600;
+  color:#e8e8e8;
+  letter-spacing:0.05em;
+}
+
+/* playing clip: orange fill */
+.clip.playing {
+  background:#ff4500;
+}
+.clip.playing .thumb { opacity:0.25; mix-blend-mode:multiply; }
+.clip.playing .nm {
+  background:#ff4500;
+  border-top:1px solid #0a0a0a;
+  color:#fff;
+}
+.clip.playing .progress {
+  position:absolute;
+  left:0; right:0; top:0;
+  height:4px;
+  background:#0a0a0a55;
+}
+.clip.playing .progress .pf {
+  position:absolute;
+  left:0; top:0; bottom:0;
+  width:34%;
+  background:#fff;
+}
+.clip.playing .fx-tag { background:#0a0a0aee; color:#fff; border-color:#fff; }
+
+/* queued clip: 2px dashed white border */
+.clip.queued {
+  outline:2px dashed #fff;
+  outline-offset:-2px;
+  z-index:2;
+}
+
+/* ============ PREVIEW MONITOR (top-right floating) ============ */
+.preview {
+  position:fixed;
+  top:30px; /* below menu bar at 24, offset for BPM overflow */
+  right:18px;
+  width:320px;
+  height:180px;
+  background:#0a0a0a;
+  border:1px solid #fff;
+  z-index:50;
+}
+.preview svg { display:block; width:100%; height:100%; }
+.preview .pv-tag {
+  position:absolute;
+  top:6px; left:8px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  font-weight:600;
+  color:#fff;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.preview .pv-tag::before {
+  content:'';
+  width:6px; height:6px;
+  background:#ff4500;
+  display:block;
+}
+.preview .pv-fps {
+  position:absolute;
+  top:6px; right:8px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  color:#e8e8e8;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+}
+.preview .pv-bar {
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:2px;
+  background:#ff4500;
+}
+
+/* ============ QUICK REFERENCE (floating top-right under preview) ============ */
+.quick-ref {
+  position:fixed;
+  top:222px; /* under preview */
+  right:18px;
+  width:200px;
+  background:#0a0a0a;
+  border:1px solid #fff;
+  padding:12px 12px 10px;
+  z-index:50;
+}
+.qr-title {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  font-weight:700;
+  color:#fff;
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+  padding-bottom:8px;
+  border-bottom:1px solid #222;
+  margin-bottom:8px;
+}
+.qr-row {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:5px;
+}
+.qr-key {
+  width:28px;
+  height:18px;
+  border:1px solid #333;
+  background:#0a0a0a;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  font-weight:600;
+  color:#e8e8e8;
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  letter-spacing:0.05em;
+  flex-shrink:0;
+}
+.qr-lbl {
+  font-family:'IBM Plex Sans', sans-serif;
+  font-size:11px;
+  color:#e8e8e8;
+  letter-spacing:0.03em;
+}
+.qr-sep {
+  height:1px;
+  background:#222;
+  margin:8px 0 8px;
+}
+
+/* ============ FOOTER 24px ============ */
+.footer {
+  height:24px;
+  background:#0a0a0a;
+  border-top:1px solid #222;
+  display:flex;
+  align-items:center;
+  padding:0 14px;
+  gap:16px;
+}
+.footer-brand {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  color:#6e6e6e;
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+}
+.footer-tabs {
+  display:flex;
+  gap:0;
+  margin-left:auto;
+}
+.ftab {
+  width:100px;
+  height:20px;
+  border:1px solid #2a2a2a;
+  background:#0a0a0a;
+  color:#6e6e6e;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  margin-right:-1px;
+  position:relative;
+}
+.ftab:hover { color:#e8e8e8; }
+.ftab.active {
+  background:#1a1a1a;
+  color:#fff;
+  border-color:#444;
+}
+.ftab.active::after {
+  content:'';
+  position:absolute;
+  left:0; right:0; bottom:-1px;
+  height:2px;
+  background:#ff4500;
+}
+.footer-state {
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.fs-label {
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  color:#6e6e6e;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+}
+.fs-label b { color:#e8e8e8; font-weight:500; }
+.fs-tag {
+  height:18px;
+  padding:0 7px;
+  border:1px solid #2a2a2a;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10px;
+  color:#e8e8e8;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  display:flex;
+  align-items:center;
+}
+
+</style>
+</head>
+<body>
+
+<!-- MENU BAR 24 -->
+<div class="menu-bar">
+  <div class="mb-brand">AUDIO-DNA</div>
+  <div class="mb-item">File</div>
+  <div class="mb-item">Edit</div>
+  <div class="mb-item">View</div>
+  <div class="mb-item">Output</div>
+  <div class="mb-item">Record</div>
+  <div class="mb-item">Help</div>
+  <div class="mb-right">
+    <div class="mb-status">Deck <b>01</b></div>
+    <div class="mb-status">Scene <b>05</b></div>
+    <div class="mb-status">Uptime <b>02:14:09</b></div>
+  </div>
+</div>
+
+<!-- TOP BAR 40 (BPM peeks out) -->
+<div class="top-bar">
+  <div class="tb-bpm">
+    <div class="tb-bpm-val">128.0</div>
+    <div>
+      <div class="tb-bpm-lbl">BPM</div>
+      <div class="tb-bpm-lbl" style="color:#e8e8e8;font-size:10px;">Locked</div>
+    </div>
+  </div>
+  <div class="beat-wheel">
+    <div class="bw-q bw-h"></div>
+    <div class="bw-q bw-v"></div>
+  </div>
+  <div class="tb-meta">
+    <div>BAR <b>05 / 08</b></div>
+    <div>PHRASE <b>02</b></div>
+  </div>
+  <div class="tb-transport">
+    <div class="tb-btn on">PLAY</div>
+    <div class="tb-btn">TAP</div>
+    <div class="tb-btn">MANUAL</div>
+    <div class="tb-btn">LINK</div>
+  </div>
+  <div class="tb-master">
+    <div class="tb-master-lbl">MASTER</div>
+    <div class="tb-master-fader">
+      <div class="fill"></div>
+      <div class="knob"></div>
+    </div>
+    <div class="tb-master-val">0.85</div>
+  </div>
+  <div class="tb-rec">REC <span class="mono" style="font-weight:500;letter-spacing:0.05em;">00:04:12</span></div>
+  <div class="tb-spacer"></div>
+  <div class="tb-tags">
+    <div class="tb-tag"><span class="lbl">GENRE</span> TECHNO</div>
+    <div class="tb-tag"><span class="lbl">ENERGY</span> HIGH</div>
+    <div class="tb-tag"><span class="lbl">STATE</span> BUILDUP</div>
+  </div>
+</div>
+
+<!-- SIGNAL BAR 44px -->
+<div class="signal-bar">
+  <script>
+    const sigs=[
+      {n:'RMS',v:0.70, sel:true},
+      {n:'PEAK',v:0.88},
+      {n:'BASS',v:0.93, flash:true},
+      {n:'LOMID',v:0.56},
+      {n:'MID',v:0.44},
+      {n:'HIMID',v:0.31},
+      {n:'BRIL',v:0.16},
+      {n:'CENT',v:0.62},
+      {n:'FLUX',v:0.50},
+      {n:'ONSET',v:0.00},
+      {n:'BEAT',v:0.80},
+      {n:'BAR',v:0.60},
+      {n:'SIDECH',v:0.72},
+      {n:'FORM',v:0.22},
+      {n:'RES',v:0.55},
+      {n:'REESE',v:0.80}
+    ];
+    document.write(sigs.map(s=>`
+      <div class="sig ${s.sel?'selected':''} ${s.flash?'flash':''}">
+        <div class="sig-row">
+          <div class="sig-name">${s.n}</div>
+          <div class="sig-val">${s.v.toFixed(2)}</div>
+        </div>
+        <div class="sig-meter"><div class="fill" style="width:${s.v*100}%"></div></div>
+      </div>
+    `).join(''));
+  </script>
+</div>
+
+<!-- DECK TABS 24 -->
+<div class="deck-strip">
+  <div class="deck-tab active">DECK 01</div>
+  <div class="deck-tab">DECK 02</div>
+  <div class="deck-tab">DECK 03</div>
+  <div class="deck-tab">DECK 04</div>
+  <div class="ds-right">BROADCAST · FULL WIDTH · 1920 × 1080 · 60.0 FPS · GPU 38%</div>
+</div>
+
+<!-- SCENE ROW 22 -->
+<div class="scene-row">
+  <script>
+    for(let i=1;i<=12;i++){
+      const n=String(i).padStart(2,'0');
+      document.write(`<div class="scene ${i===5?'active':''}">SCENE ${n}</div>`);
+    }
+  </script>
+</div>
+
+<!-- MAIN GRID (full-width) -->
+<div class="main-grid">
+  <script>
+    // 12 distinct SVG thumbnail generators
+    function thumb(idx, seed){
+      const s = (seed|0) + 1;
+      switch(idx){
+        case 0: // FX layer — concentric rings with noise warp
+          return `<svg viewBox="0 0 150 90" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs><filter id="n${s}"><feTurbulence baseFrequency="0.08" numOctaves="2" seed="${s}"/><feDisplacementMap in="SourceGraphic" scale="8"/></filter></defs>
+            <rect width="150" height="90" fill="#0f0f0f"/>
+            <g filter="url(#n${s})" fill="none" stroke="#555" stroke-width="0.8">
+              <circle cx="75" cy="45" r="10"/><circle cx="75" cy="45" r="20"/><circle cx="75" cy="45" r="30"/><circle cx="75" cy="45" r="40"/>
+            </g>
+          </svg>`;
+        case 1: // diagonal hatch
+          return `<svg viewBox="0 0 150 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#111"/>
+            ${Array.from({length:30},(_,i)=>`<line x1="${-90+i*7}" y1="0" x2="${-30+i*7}" y2="90" stroke="#3a3a3a" stroke-width="0.7"/>`).join('')}
+          </svg>`;
+        case 2: // orbit dots
+          return `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#0e0e0e"/>
+            <g fill="#888">
+              ${Array.from({length:14},(_,i)=>{const a=i*2*Math.PI/14; const r=25+8*Math.sin(i+s); return `<circle cx="${75+r*Math.cos(a)}" cy="${45+r*Math.sin(a)*0.65}" r="1.6"/>`}).join('')}
+            </g>
+            <circle cx="75" cy="45" r="2" fill="#bbb"/>
+          </svg>`;
+        case 3: // scan lines w/ bars
+          return `<svg viewBox="0 0 150 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#0d0d0d"/>
+            ${Array.from({length:18},(_,i)=>`<rect x="0" y="${i*5}" width="150" height="1" fill="#2a2a2a"/>`).join('')}
+            <rect x="${10+(s*17)%100}" y="22" width="48" height="18" fill="#3a3a3a"/>
+            <rect x="${40+(s*11)%80}" y="50" width="70" height="6" fill="#555"/>
+          </svg>`;
+        case 4: // waveform
+          return `<svg viewBox="0 0 150 90" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#0f0f0f"/>
+            <path d="M 0 45 ${Array.from({length:60},(_,i)=>`L ${i*2.5} ${45+28*Math.sin(i*0.6+s)*Math.cos(i*0.2)}`).join(' ')}" stroke="#aaa" stroke-width="1" fill="none"/>
+          </svg>`;
+        case 5: // 3D grid perspective
+          return `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#0c0c0c"/>
+            <g stroke="#3a3a3a" stroke-width="0.6" fill="none">
+              ${Array.from({length:10},(_,i)=>`<line x1="${i*15}" y1="90" x2="${75}" y2="30"/>`).join('')}
+              ${Array.from({length:6},(_,i)=>`<line x1="0" y1="${30+i*10}" x2="150" y2="${30+i*10}"/>`).join('')}
+            </g>
+          </svg>`;
+        case 6: // mandelbulb-ish radial
+          return `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg">
+            <defs><radialGradient id="rg${s}" cx="50%" cy="50%"><stop offset="0" stop-color="#888"/><stop offset="0.5" stop-color="#333"/><stop offset="1" stop-color="#0a0a0a"/></radialGradient></defs>
+            <rect width="150" height="90" fill="#0a0a0a"/>
+            <circle cx="75" cy="45" r="35" fill="url(#rg${s})"/>
+            <g fill="none" stroke="#555" stroke-width="0.4">
+              ${Array.from({length:12},(_,i)=>`<ellipse cx="75" cy="45" rx="${30+i}" ry="${8+i*1.5}" transform="rotate(${i*15} 75 45)"/>`).join('')}
+            </g>
+          </svg>`;
+        case 7: // voronoi
+          return `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#111"/>
+            <g fill="none" stroke="#3a3a3a" stroke-width="0.8">
+              ${Array.from({length:10},(_,i)=>{const x=(i*37+s*11)%150; const y=(i*23+s*7)%90; return `<polygon points="${x-10},${y} ${x},${y-14} ${x+14},${y-4} ${x+10},${y+10} ${x-6},${y+12}"/>`}).join('')}
+            </g>
+          </svg>`;
+        case 8: // torus stripe
+          return `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#0d0d0d"/>
+            <g fill="none" stroke="#777" stroke-width="0.9">
+              ${Array.from({length:12},(_,i)=>`<ellipse cx="75" cy="45" rx="${38-i*2.5}" ry="${20-i*1.3}"/>`).join('')}
+            </g>
+          </svg>`;
+        case 9: // particle field
+          return `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#0b0b0b"/>
+            <g fill="#aaa">
+              ${Array.from({length:50},(_,i)=>{const x=((i*79+s*11)%150); const y=((i*37+s*23)%90); const r=((i%4)+1)*0.4; return `<circle cx="${x}" cy="${y}" r="${r}"/>`}).join('')}
+            </g>
+          </svg>`;
+        case 10: // type / text wall
+          return `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="90" fill="#0f0f0f"/>
+            <text x="8" y="22" font-family="IBM Plex Mono" font-size="10" fill="#555" letter-spacing="1">AUDIO-DNA</text>
+            <text x="8" y="40" font-family="IBM Plex Mono" font-size="14" fill="#ccc" font-weight="700" letter-spacing="2">LIVE 128</text>
+            <text x="8" y="56" font-family="IBM Plex Mono" font-size="8" fill="#666">FRAME ${s.toString().padStart(4,'0')}</text>
+            <text x="8" y="72" font-family="IBM Plex Mono" font-size="8" fill="#666">CH ${s%8}</text>
+            <rect x="8" y="78" width="130" height="1" fill="#333"/>
+          </svg>`;
+        case 11: // gradient swatch
+          return `<svg viewBox="0 0 150 90" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="lg${s}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2a2a"/><stop offset="1" stop-color="#080808"/></linearGradient></defs>
+            <rect width="150" height="90" fill="url(#lg${s})"/>
+            <rect x="0" y="44" width="150" height="1" fill="#444"/>
+            <rect x="74" y="0" width="1" height="90" fill="#333"/>
+          </svg>`;
+        default: return `<svg viewBox="0 0 150 90"><rect width="150" height="90" fill="#111"/></svg>`;
+      }
+    }
+
+    const layers=[
+      {name:'MASTER FX',  type:'GLOBAL',    on:true,  opacity:0.85, clips:['COMP XFORM','GLOW','VIGNETTE','SHARPEN','MOTION BLUR','LIFT GAMMA','FILM GRAIN','EDGE BLUR','DROP SHADOW','COLOR GRADE']},
+      {name:'FX A',       type:'FX ONLY',   on:true,  opacity:0.80, clips:['ECHO','RGB SPLIT','GLITCH SORT','STROBE','DATA CORRUPT','SCANLINES','FRAME STUTTER','CH DELAY','POSTERIZE T','FREEZE']},
+      {name:'FX B',       type:'FX ONLY',   on:false, opacity:0.50, clips:['SCREEN SPLIT','FREEZE 2','SLIT SCAN','POINT ZOOM','TUNNEL','KALEIDO','LIQUID','SWIRL','SHAKE','FISHEYE']},
+      {name:'OVERLAY',    type:'TRANSP',    on:true,  opacity:0.70, clips:['NEON EDGE','TEXT WALL','PARTICLE RAIN','DOT MATRIX','POP RASTER','CRT SIM','ASCII ART','CROSS STITCH','NIGHT VIS','CARTOON INK']},
+      {name:'VISUAL A',   type:'OPAQUE',    on:true,  opacity:1.00, clips:['MANDELBULB','JULIA 3D','MENGER','KIFS','SPIRAL TORUS','HELIX TORUS','KNOT TORUS','TREFOIL','SPEC RING','BAND TOWER']},
+      {name:'VISUAL B',   type:'OPAQUE',    on:false, opacity:0.40, clips:['PERLIN','VORONOI','SIMPLEX','DIAMOND','PLASMA','FIRE','GRAVITY WELL','CYMATICS','FLUID SIM','ATTRACTOR']},
+      {name:'BACKGROUND', type:'OPAQUE',    on:true,  opacity:1.00, clips:['GRAD A','GRAD B','SOLID DARK','OCEAN','NIGHT SKY','NEBULA','AURORA','LAVA','FROST','CARBON']},
+    ];
+
+    // FX counts per clip (sparse)
+    const fxMap={
+      0:{1:1,2:2,6:1},
+      1:{1:1,3:2,4:1,6:1},
+      3:{2:1,5:2,9:1},
+      4:{0:3,1:1,2:2,4:1,8:2},
+      6:{0:0}
+    };
+
+    // playing clip = layer 4 col 0.  queued = layer 1 col 3 (per spec: L3·C3 with 0-index L2·C2 OR per spec language).
+    // Spec says: PLAYING L5·C1 (1-indexed => layerIdx 4, colIdx 0). QUEUED L3·C3 (1-indexed => layerIdx 2, colIdx 2).
+    const PLAYING = {row:4, col:0};
+    const QUEUED  = {row:2, col:2};
+
+    // thumb generator index mapping (pick variety per layer+clip)
+    const genMap = [
+      // Master FX
+      [11,0,0,0,7,11,9,0,3,11],
+      // FX A
+      [0,1,7,4,4,3,5,3,3,0],
+      // FX B
+      [3,5,5,6,5,6,0,0,4,6],
+      // Overlay
+      [2,10,9,1,3,3,10,1,2,1],
+      // Visual A
+      [6,6,5,5,8,8,8,8,2,1],
+      // Visual B
+      [7,7,7,5,6,6,2,2,9,2],
+      // Background
+      [11,11,11,11,11,11,11,11,11,11],
+    ];
+
+    layers.forEach((ly,li)=>{
+      let h='';
+      h+=`<div class="layer-row">`;
+      h+=`<div class="lr-hdr">`;
+      h+=`<div>`;
+      h+=`<div class="lr-name ${ly.on?'':'off'}">${ly.name}</div>`;
+      h+=`<div class="lr-type">${ly.type}</div>`;
+      h+=`</div>`;
+      h+=`<div class="lr-controls">`;
+      h+=`<div class="lr-ctl ${ly.on?'on':''}">V</div>`;
+      h+=`<div class="lr-ctl">S</div>`;
+      h+=`<div class="lr-ctl">M</div>`;
+      h+=`</div>`;
+      h+=`<div class="lr-fader-row">`;
+      h+=`<div class="lr-fader"><div class="fill" style="width:${ly.opacity*100}%"></div><div class="knob" style="left:calc(${ly.opacity*100}% - 1px)"></div></div>`;
+      h+=`<div class="lr-val">${(ly.opacity*100).toFixed(0)}%</div>`;
+      h+=`</div>`;
+      h+=`</div>`;
+      h+=`<div class="lr-clips">`;
+
+      ly.clips.forEach((c,ci)=>{
+        const isPlaying = (li===PLAYING.row && ci===PLAYING.col);
+        const isQueued  = (li===QUEUED.row  && ci===QUEUED.col);
+        const fxCount = (fxMap[li] && fxMap[li][ci]) ? fxMap[li][ci] : 0;
+        const cls = ['clip'];
+        if(isPlaying) cls.push('playing');
+        if(isQueued)  cls.push('queued');
+        const gen = genMap[li][ci];
+        h+=`<div class="${cls.join(' ')}">`;
+        h+=`<div class="thumb">${thumb(gen, li*10+ci)}</div>`;
+        if(isPlaying){
+          h+=`<div class="progress"><div class="pf"></div></div>`;
+        }
+        if(fxCount>0){
+          h+=`<div class="fx-tag">${fxCount} FX</div>`;
+        }
+        h+=`<div class="nm">${c}</div>`;
+        h+=`</div>`;
+      });
+      h+=`</div></div>`;
+      document.write(h);
+    });
+  </script>
+</div>
+
+<!-- PREVIEW MONITOR (floating top-right) -->
+<div class="preview">
+  <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="pvdisp">
+        <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="7"/>
+        <feDisplacementMap in="SourceGraphic" scale="26"/>
+      </filter>
+      <radialGradient id="pvrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="#ff4500"/>
+        <stop offset="0.35" stop-color="#882200"/>
+        <stop offset="0.7" stop-color="#220800"/>
+        <stop offset="1" stop-color="#0a0a0a"/>
+      </radialGradient>
+    </defs>
+    <rect width="320" height="180" fill="#0a0a0a"/>
+    <g filter="url(#pvdisp)">
+      <circle cx="160" cy="90" r="80" fill="url(#pvrad)"/>
+    </g>
+    <!-- orbits -->
+    <g fill="none" stroke="#ffffff" stroke-opacity="0.15" stroke-width="0.6">
+      <ellipse cx="160" cy="90" rx="110" ry="40"/>
+      <ellipse cx="160" cy="90" rx="90"  ry="34" transform="rotate(20 160 90)"/>
+      <ellipse cx="160" cy="90" rx="70"  ry="26" transform="rotate(-30 160 90)"/>
+      <ellipse cx="160" cy="90" rx="130" ry="48" transform="rotate(50 160 90)"/>
+    </g>
+    <!-- scanlines -->
+    <g fill="#000" fill-opacity="0.28">
+      <script>
+        for(let y=0;y<180;y+=3){ document.write(`<rect x="0" y="${y}" width="320" height="1"/>`); }
+      </script>
+    </g>
+  </svg>
+  <div class="pv-tag">LIVE · 60FPS</div>
+  <div class="pv-fps mono">1920 × 1080</div>
+  <div class="pv-bar"></div>
+</div>
+
+<!-- QUICK REFERENCE (floating, under preview) -->
+<div class="quick-ref">
+  <div class="qr-title">QUICK REFERENCE</div>
+  <div class="qr-row"><div class="qr-key">1–0</div><div class="qr-lbl">Trigger Scene</div></div>
+  <div class="qr-row"><div class="qr-key">Q–P</div><div class="qr-lbl">Layer 1 Clips</div></div>
+  <div class="qr-row"><div class="qr-key">A–;</div><div class="qr-lbl">Layer 2 Clips</div></div>
+  <div class="qr-row"><div class="qr-key">Z–/</div><div class="qr-lbl">Layer 3 Clips</div></div>
+  <div class="qr-sep"></div>
+  <div class="qr-row"><div class="qr-key">SPC</div><div class="qr-lbl">Tap Tempo</div></div>
+  <div class="qr-row"><div class="qr-key">ESC</div><div class="qr-lbl">Blackout</div></div>
+  <div class="qr-row"><div class="qr-key">F11</div><div class="qr-lbl">Fullscreen</div></div>
+  <div class="qr-row"><div class="qr-key">TAB</div><div class="qr-lbl">Next Deck</div></div>
+  <div class="qr-sep"></div>
+  <div class="qr-row"><div class="qr-key">SHF</div><div class="qr-lbl">Momentary</div></div>
+  <div class="qr-row"><div class="qr-key">CMD</div><div class="qr-lbl">Solo Layer</div></div>
+</div>
+
+<!-- FOOTER 24 -->
+<div class="footer">
+  <div class="footer-brand">AUDIO-DNA V2.0</div>
+  <div class="fs-label">LAYOUT <b>BROADCAST</b></div>
+  <div class="footer-tabs">
+    <div class="ftab">INSPECTOR</div>
+    <div class="ftab">BROWSER</div>
+    <div class="ftab active">SIGNALS</div>
+    <div class="ftab">RECORD</div>
+  </div>
+  <div class="footer-state">
+    <div class="fs-label">CPU <b>14%</b></div>
+    <div class="fs-label">GPU <b>38%</b></div>
+    <div class="fs-tag">TECHNO</div>
+    <div class="fs-tag">HIGH</div>
+    <div class="fs-tag">BUILDUP</div>
+  </div>
+</div>
+
+</body>
+</html>

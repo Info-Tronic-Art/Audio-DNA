@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 24a - Scene Flow + Layer Strips</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+  background: #0a0a0e;
+  color: #e0e0e0;
+  display: flex; flex-direction: column;
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  height: 44px; min-height: 44px;
+  background: linear-gradient(180deg, #1a1a22 0%, #12121a 100%);
+  border-bottom: 1px solid #2a2a35;
+  display: flex; align-items: center;
+  padding: 0 12px; gap: 14px;
+}
+.logo {
+  font-size: 15px; font-weight: 700; color: #00ccff;
+  letter-spacing: 1.5px; white-space: nowrap;
+}
+.logo span { color: #0088cc; font-weight: 400; }
+.top-sep { width: 1px; height: 24px; background: #2a2a35; }
+.top-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.bpm-value {
+  font-size: 22px; font-weight: 700; color: #00ff88;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.5px;
+}
+.top-btn {
+  padding: 4px 10px; font-size: 10px; font-weight: 600;
+  background: #222230; color: #aaa; border: 1px solid #333;
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.top-btn:hover { background: #2a2a3a; color: #ddd; }
+.top-btn.resync { background: #1a3a2a; color: #00ff88; border-color: #00ff8844; }
+.room-delay { font-size: 11px; color: #777; }
+.room-delay span { color: #aaa; }
+.spacer { flex: 1; }
+.master-input-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.level-meter-container { display: flex; gap: 2px; align-items: center; }
+.level-meter {
+  width: 180px; height: 10px;
+  background: #111; border: 1px solid #222;
+  position: relative; overflow: hidden;
+}
+.level-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, #00cc44 0%, #00cc44 50%, #cccc00 70%, #ff4400 90%, #ff0000 100%);
+}
+.level-fill.l { width: 72%; }
+.level-fill.r { width: 65%; }
+.meter-label { font-size: 9px; color: #666; }
+
+/* ── MAIN AREA ── */
+.main-area {
+  flex: 1; display: flex; overflow: hidden;
+}
+
+/* ── LEFT PANEL: SCENE FLOW ── */
+.left-panel {
+  width: 240px; min-width: 240px;
+  background: linear-gradient(180deg, #111118 0%, #0d0d14 100%);
+  border-right: 1px solid #222230;
+  display: flex; flex-direction: column;
+}
+.panel-label {
+  font-size: 9px; font-weight: 700; color: #00ccff;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  padding: 10px 12px 6px;
+  background: #0a0a12;
+  border-bottom: 1px solid #1a1a25;
+}
+.scene-list {
+  padding: 8px; display: flex; flex-direction: column; gap: 4px;
+}
+.scene-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px;
+  background: #16161e;
+  border: 1px solid #222230;
+  cursor: pointer;
+}
+.scene-item:hover { background: #1a1a28; }
+.scene-item.active {
+  background: linear-gradient(135deg, #0a2a3a 0%, #0a1a2a 100%);
+  border-color: #00ccff55;
+}
+.scene-name { font-size: 12px; font-weight: 600; }
+.scene-item.active .scene-name { color: #00ccff; }
+.scene-trigger {
+  font-size: 9px; padding: 3px 8px;
+  background: #222230; color: #888;
+  border: 1px solid #333;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.scene-item.active .scene-trigger {
+  background: #00ccff22; color: #00ccff; border-color: #00ccff44;
+}
+.add-scene-btn {
+  margin: 4px 8px 0;
+  padding: 7px; text-align: center;
+  font-size: 11px; color: #555;
+  border: 1px dashed #333;
+  cursor: pointer;
+}
+.add-scene-btn:hover { color: #888; border-color: #555; }
+
+/* Parameter Table */
+.param-table-section {
+  flex: 1; padding: 8px; overflow-y: auto;
+  border-top: 1px solid #1a1a25;
+  margin-top: 8px;
+}
+.param-table-header {
+  font-size: 9px; color: #666; text-transform: uppercase;
+  letter-spacing: 0.8px; margin-bottom: 6px;
+}
+.param-table {
+  width: 100%; border-collapse: collapse;
+}
+.param-table th {
+  font-size: 9px; color: #555; text-transform: uppercase;
+  letter-spacing: 0.5px; text-align: left; padding: 4px 6px;
+  border-bottom: 1px solid #1a1a25;
+  font-weight: 600;
+}
+.param-table td {
+  font-size: 11px; padding: 5px 6px;
+  border-bottom: 1px solid #111118;
+}
+.param-table td:first-child { color: #888; }
+.param-table td:nth-child(2) { color: #aaa; }
+.param-table td:last-child {
+  color: #00ff88; font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ── CENTER PANEL: PREVIEW ── */
+.center-panel {
+  flex: 1; display: flex; flex-direction: column;
+  background: #0c0c14;
+}
+.preview-area {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 16px;
+}
+.preview-canvas {
+  width: 640px; height: 400px;
+  background: #000;
+  border: 1px solid #222;
+  position: relative;
+  overflow: hidden;
+}
+.preview-visual {
+  width: 100%; height: 100%;
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(0,180,255,0.5) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(255,0,180,0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 30%, rgba(0,255,120,0.3) 0%, transparent 40%),
+    radial-gradient(ellipse at 60% 70%, rgba(255,180,0,0.3) 0%, transparent 45%),
+    radial-gradient(circle at 45% 50%, rgba(100,0,255,0.4) 0%, transparent 35%),
+    linear-gradient(135deg, #0a0014 0%, #000a1a 50%, #0a0014 100%);
+  position: relative;
+}
+.preview-visual::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,200,255,0.03) 3px, rgba(0,200,255,0.03) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,0,200,0.02) 3px, rgba(255,0,200,0.02) 4px);
+}
+.preview-visual::after {
+  content: '';
+  position: absolute;
+  width: 80px; height: 80px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  border: 2px solid rgba(0,255,200,0.4);
+  box-shadow: 0 0 30px rgba(0,255,200,0.2), inset 0 0 30px rgba(0,255,200,0.1);
+}
+/* Particles */
+.particle {
+  position: absolute; border-radius: 50%;
+  background: rgba(0,200,255,0.6);
+  box-shadow: 0 0 8px rgba(0,200,255,0.4);
+}
+.p1 { width: 4px; height: 4px; top: 25%; left: 20%; }
+.p2 { width: 3px; height: 3px; top: 40%; left: 65%; background: rgba(255,0,180,0.6); box-shadow: 0 0 8px rgba(255,0,180,0.4); }
+.p3 { width: 5px; height: 5px; top: 60%; left: 35%; background: rgba(0,255,120,0.5); box-shadow: 0 0 10px rgba(0,255,120,0.3); }
+.p4 { width: 3px; height: 3px; top: 30%; left: 75%; background: rgba(255,200,0,0.5); }
+.p5 { width: 4px; height: 4px; top: 70%; left: 55%; }
+.p6 { width: 2px; height: 2px; top: 15%; left: 50%; background: rgba(255,100,255,0.6); }
+.p7 { width: 3px; height: 3px; top: 80%; left: 25%; background: rgba(100,255,200,0.5); }
+.p8 { width: 4px; height: 4px; top: 45%; left: 85%; background: rgba(255,80,80,0.5); }
+
+/* Transport */
+.transport-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+}
+.transport-btn {
+  width: 32px; height: 28px;
+  background: #1a1a25; border: 1px solid #2a2a35;
+  color: #aaa; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.transport-btn:hover { background: #222235; color: #fff; }
+.transport-btn.active { color: #00ff88; border-color: #00ff8844; }
+.timeline-track {
+  flex: 1; height: 6px;
+  background: #1a1a25; border: 1px solid #222;
+  position: relative;
+}
+.timeline-progress {
+  width: 38%; height: 100%;
+  background: linear-gradient(90deg, #00ccff66 0%, #00ccff 100%);
+}
+.timeline-head {
+  position: absolute; top: -5px;
+  left: 38%; transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid #00ccff;
+}
+.time-display {
+  font-size: 11px; color: #777;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── RIGHT PANEL: SOURCES ── */
+.right-panel {
+  width: 220px; min-width: 220px;
+  background: linear-gradient(180deg, #111118 0%, #0d0d14 100%);
+  border-left: 1px solid #222230;
+  display: flex; flex-direction: column;
+}
+.source-list {
+  flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 6px;
+  overflow-y: auto;
+}
+.source-card {
+  background: #16161e;
+  border: 1px solid #222230;
+  padding: 8px 10px;
+}
+.source-name {
+  font-size: 11px; font-weight: 600; color: #ccc;
+  margin-bottom: 6px;
+}
+.source-viz {
+  height: 36px; background: #0a0a12;
+  border: 1px solid #1a1a25;
+  position: relative; overflow: hidden;
+}
+/* Spectrum bars */
+.spectrum-bars {
+  display: flex; align-items: flex-end;
+  height: 100%; padding: 2px;
+  gap: 2px;
+}
+.spec-bar {
+  flex: 1; background: linear-gradient(180deg, #00ff88 0%, #00cc66 60%, #008844 100%);
+  min-width: 3px;
+}
+.sb1 { height: 90%; } .sb2 { height: 70%; } .sb3 { height: 55%; }
+.sb4 { height: 80%; } .sb5 { height: 45%; } .sb6 { height: 65%; }
+.sb7 { height: 35%; } .sb8 { height: 75%; } .sb9 { height: 50%; }
+.sb10 { height: 60%; } .sb11 { height: 40%; } .sb12 { height: 85%; }
+.sb13 { height: 30%; } .sb14 { height: 55%; } .sb15 { height: 70%; }
+.sb16 { height: 25%; }
+
+/* Waveform via SVG inline */
+.waveform-container {
+  width: 100%; height: 100%;
+}
+.waveform-container svg { width: 100%; height: 100%; }
+
+/* Sine wave */
+.sine-container, .custom-container {
+  width: 100%; height: 100%;
+}
+
+.source-drag-hint {
+  padding: 12px 10px; text-align: center;
+  font-size: 10px; color: #444;
+  font-style: italic;
+  border-top: 1px solid #1a1a25;
+}
+.add-source-btn {
+  margin: 0 8px 8px;
+  padding: 7px; text-align: center;
+  font-size: 11px; color: #555;
+  border: 1px dashed #333;
+  cursor: pointer;
+}
+.add-source-btn:hover { color: #888; border-color: #555; }
+
+/* ── BOTTOM PANEL: LAYER STRIPS ── */
+.bottom-panel {
+  height: 220px; min-height: 220px;
+  background: linear-gradient(180deg, #111118 0%, #0e0e16 100%);
+  border-top: 1px solid #2a2a35;
+  display: flex; flex-direction: column;
+}
+.layer-tabs {
+  display: flex; padding: 0 8px;
+  border-bottom: 1px solid #1a1a25;
+  background: #0c0c14;
+}
+.layer-tab {
+  padding: 6px 16px;
+  font-size: 10px; color: #666;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.layer-tab:hover { color: #aaa; }
+.layer-tab.active { color: #00ccff; border-bottom-color: #00ccff; }
+.layer-strip-row {
+  flex: 1; display: flex;
+  padding: 8px; gap: 6px;
+  overflow-x: auto;
+}
+.layer-card {
+  min-width: 180px; flex: 1;
+  background: #14141c;
+  border: 1px solid #222230;
+  display: flex; flex-direction: column;
+  padding: 8px;
+}
+.layer-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.engine-badge {
+  font-size: 8px; font-weight: 700;
+  padding: 2px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.engine-badge.video { background: #3a1a1a; color: #ff5555; border: 1px solid #552222; }
+.engine-badge.image { background: #1a1a3a; color: #5588ff; border: 1px solid #222255; }
+.engine-badge.synth { background: #1a3a1a; color: #55ff88; border: 1px solid #225522; }
+.engine-badge.fx { background: #3a2a1a; color: #ffaa44; border: 1px solid #553322; }
+
+.layer-num { font-size: 9px; color: #555; }
+.clip-name {
+  font-size: 10px; color: #999;
+  margin-bottom: 8px;
+  white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis;
+}
+.knob-row {
+  display: flex; gap: 12px; align-items: center;
+  margin-bottom: 6px;
+}
+.knob-group {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 2px;
+}
+.knob {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: conic-gradient(from 220deg, #00ccff 0%, #00ccff var(--knob-val, 60%), #222 var(--knob-val, 60%), #222 280deg, transparent 280deg);
+  position: relative;
+}
+.knob::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: #1a1a25;
+}
+.knob::after {
+  content: '';
+  position: absolute;
+  width: 2px; height: 10px;
+  background: #ccc;
+  top: 5px; left: 50%;
+  transform: translateX(-50%) rotate(var(--knob-rot, 0deg));
+  transform-origin: bottom center;
+  border-radius: 1px;
+}
+.knob-label { font-size: 8px; color: #555; text-transform: uppercase; }
+.card-buttons {
+  display: flex; gap: 4px; margin-top: auto;
+}
+.card-btn {
+  flex: 1; padding: 3px 0;
+  font-size: 9px; text-align: center;
+  background: #1a1a25; color: #666;
+  border: 1px solid #252530;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.card-btn:hover { color: #aaa; background: #222235; }
+.card-btn.fx-active { color: #00ccff; border-color: #00ccff44; }
+.expand-btn {
+  font-size: 9px; color: #444;
+  text-align: center;
+  padding: 2px 0;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.expand-btn:hover { color: #888; }
+
+/* ── FOOTER BAR ── */
+.footer-bar {
+  height: 32px; min-height: 32px;
+  background: linear-gradient(180deg, #141420 0%, #0e0e18 100%);
+  border-top: 1px solid #222230;
+  display: flex; align-items: center;
+  padding: 0 12px; gap: 6px;
+}
+.footer-item {
+  font-size: 10px; color: #555;
+  padding: 4px 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.footer-item:hover { color: #888; }
+.footer-sep { width: 1px; height: 16px; background: #222; }
+.footer-label {
+  font-size: 9px; color: #333;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: auto;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="top-bar">
+  <div class="logo">AUDIO-DNA <span>VJ</span></div>
+  <div class="top-sep"></div>
+  <div class="top-label">BPM</div>
+  <div class="bpm-value">128.00</div>
+  <div class="top-btn">TAP</div>
+  <div class="top-btn">Nudge-</div>
+  <div class="top-btn">Nudge+</div>
+  <div class="top-btn resync">RESYNC</div>
+  <div class="top-sep"></div>
+  <div class="room-delay">Room Delay: <span>+0ms</span></div>
+  <div class="spacer"></div>
+  <div class="master-input-label">Master Audio Input</div>
+  <div class="level-meter-container">
+    <div class="meter-label">L</div>
+    <div class="level-meter"><div class="level-fill l"></div></div>
+  </div>
+  <div class="level-meter-container">
+    <div class="meter-label">R</div>
+    <div class="level-meter"><div class="level-fill r"></div></div>
+  </div>
+</div>
+
+<!-- ═══ MAIN AREA ═══ -->
+<div class="main-area">
+
+  <!-- LEFT: SCENE FLOW -->
+  <div class="left-panel">
+    <div class="panel-label">Left Panel - Scene Flow</div>
+    <div class="scene-list">
+      <div class="scene-item">
+        <span class="scene-name">Intro</span>
+        <span class="scene-trigger">Trigger</span>
+      </div>
+      <div class="scene-item">
+        <span class="scene-name">Verse</span>
+        <span class="scene-trigger">Trigger</span>
+      </div>
+      <div class="scene-item active">
+        <span class="scene-name">Chorus</span>
+        <span class="scene-trigger">Trigger</span>
+      </div>
+      <div class="scene-item">
+        <span class="scene-name">Drop</span>
+        <span class="scene-trigger">Trigger</span>
+      </div>
+    </div>
+    <div class="add-scene-btn">+ Add Scene</div>
+
+    <div class="param-table-section">
+      <div class="param-table-header">Layer Parameters</div>
+      <table class="param-table">
+        <thead>
+          <tr><th>Layer</th><th>Parameter</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Layer 1</td><td>Opacity</td><td>80%</td></tr>
+          <tr><td>Layer 2</td><td>Hue</td><td>35&deg;</td></tr>
+          <tr><td>Layer 3</td><td>FX</td><td>0.7</td></tr>
+          <tr><td>Layer 4</td><td>Speed</td><td>12%</td></tr>
+          <tr><td>Layer 5</td><td>Engine</td><td>Synth</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CENTER: LIVE OUTPUT PREVIEW -->
+  <div class="center-panel">
+    <div class="panel-label">Center Panel - Live Output Preview</div>
+    <div class="preview-area">
+      <div class="preview-canvas">
+        <div class="preview-visual">
+          <div class="particle p1"></div>
+          <div class="particle p2"></div>
+          <div class="particle p3"></div>
+          <div class="particle p4"></div>
+          <div class="particle p5"></div>
+          <div class="particle p6"></div>
+          <div class="particle p7"></div>
+          <div class="particle p8"></div>
+        </div>
+      </div>
+    </div>
+    <div class="transport-bar">
+      <div class="transport-btn">&#9664;&#9664;</div>
+      <div class="transport-btn active">&#9654;</div>
+      <div class="transport-btn">&#9646;&#9646;</div>
+      <div class="transport-btn">&#9632;</div>
+      <div class="timeline-track">
+        <div class="timeline-progress"></div>
+        <div class="timeline-head"></div>
+      </div>
+      <div class="time-display">01:42 / 04:28</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SOURCES -->
+  <div class="right-panel">
+    <div class="panel-label">Right Panel - Sources</div>
+    <div class="source-list">
+      <!-- Master Audio -->
+      <div class="source-card">
+        <div class="source-name">Master Audio</div>
+        <div class="source-viz">
+          <div class="spectrum-bars">
+            <div class="spec-bar sb1"></div><div class="spec-bar sb2"></div>
+            <div class="spec-bar sb3"></div><div class="spec-bar sb4"></div>
+            <div class="spec-bar sb5"></div><div class="spec-bar sb6"></div>
+            <div class="spec-bar sb7"></div><div class="spec-bar sb8"></div>
+            <div class="spec-bar sb9"></div><div class="spec-bar sb10"></div>
+            <div class="spec-bar sb11"></div><div class="spec-bar sb12"></div>
+            <div class="spec-bar sb13"></div><div class="spec-bar sb14"></div>
+            <div class="spec-bar sb15"></div><div class="spec-bar sb16"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Kick Drum -->
+      <div class="source-card">
+        <div class="source-name">Kick Drum</div>
+        <div class="source-viz">
+          <svg viewBox="0 0 200 36" preserveAspectRatio="none" style="width:100%;height:100%">
+            <polyline points="0,18 8,18 12,4 16,32 20,10 24,26 28,18 40,18 44,6 48,30 52,12 56,24 60,18 80,18 84,4 88,34 92,8 96,28 100,18 120,18 124,6 128,30 132,14 136,22 140,18 160,18 164,4 168,32 172,10 176,26 180,18 200,18"
+              fill="none" stroke="#ff6644" stroke-width="1.5" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
+      <!-- LFO Sine -->
+      <div class="source-card">
+        <div class="source-name">LFO - Sine</div>
+        <div class="source-viz">
+          <svg viewBox="0 0 200 36" preserveAspectRatio="none" style="width:100%;height:100%">
+            <path d="M0,18 C10,4 20,4 30,18 C40,32 50,32 60,18 C70,4 80,4 90,18 C100,32 110,32 120,18 C130,4 140,4 150,18 C160,32 170,32 180,18 C190,4 200,4 200,18"
+              fill="none" stroke="#00ccff" stroke-width="1.5" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
+      <!-- LFO Custom -->
+      <div class="source-card">
+        <div class="source-name">LFO - Custom</div>
+        <div class="source-viz">
+          <svg viewBox="0 0 200 36" preserveAspectRatio="none" style="width:100%;height:100%">
+            <polyline points="0,18 15,18 20,4 30,4 35,28 50,28 55,10 65,10 70,34 80,34 85,6 100,6 105,24 115,24 120,4 135,4 140,30 150,30 155,8 170,8 175,32 185,32 190,18 200,18"
+              fill="none" stroke="#cc44ff" stroke-width="1.5" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
+      <div class="add-source-btn">+ Add Audio Source</div>
+    </div>
+    <div class="source-drag-hint">Drag a source onto a parameter</div>
+  </div>
+</div>
+
+<!-- ═══ BOTTOM PANEL: LAYER STRIPS ═══ -->
+<div class="bottom-panel">
+  <div class="panel-label" style="padding: 6px 12px 4px;">Bottom Panel - Layer Strips</div>
+  <div class="layer-tabs">
+    <div class="layer-tab active">Layer 1</div>
+    <div class="layer-tab">Layer 2</div>
+    <div class="layer-tab">Layer 3</div>
+    <div class="layer-tab">Layer 4</div>
+    <div class="layer-tab">Layer 5</div>
+    <div class="layer-tab">Layer 6</div>
+    <div class="layer-tab">Layer 7</div>
+    <div class="layer-tab">Layer 8</div>
+  </div>
+  <div class="layer-strip-row">
+    <!-- Layer Card 1 -->
+    <div class="layer-card">
+      <div class="layer-card-header">
+        <span class="engine-badge video">Video</span>
+        <span class="layer-num">#1</span>
+      </div>
+      <div class="clip-name">Clip: Geo-Pulse A</div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:70%;--knob-rot:-30deg"></div>
+          <div class="knob-label">Bright</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:50%;--knob-rot:0deg"></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div class="card-buttons">
+        <div class="card-btn fx-active">FX 1</div>
+        <div class="card-btn">Macro</div>
+      </div>
+      <div class="expand-btn">&#9660;</div>
+    </div>
+    <!-- Layer Card 2 -->
+    <div class="layer-card">
+      <div class="layer-card-header">
+        <span class="engine-badge image">Image</span>
+        <span class="layer-num">#2</span>
+      </div>
+      <div class="clip-name">Clip: Texture B</div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:85%;--knob-rot:-60deg"></div>
+          <div class="knob-label">Bright</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:40%;--knob-rot:20deg"></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div class="card-buttons">
+        <div class="card-btn">FX 1</div>
+        <div class="card-btn">Macro</div>
+      </div>
+      <div class="expand-btn">&#9660;</div>
+    </div>
+    <!-- Layer Card 3 -->
+    <div class="layer-card">
+      <div class="layer-card-header">
+        <span class="engine-badge synth">Synth</span>
+        <span class="layer-num">#3</span>
+      </div>
+      <div class="clip-name">Content: Generator C</div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:55%;--knob-rot:10deg"></div>
+          <div class="knob-label">Bright</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:90%;--knob-rot:-70deg"></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div class="card-buttons">
+        <div class="card-btn fx-active">FX 1</div>
+        <div class="card-btn">Macro</div>
+      </div>
+      <div class="expand-btn">&#9660;</div>
+    </div>
+    <!-- Layer Card 4 -->
+    <div class="layer-card">
+      <div class="layer-card-header">
+        <span class="engine-badge video">Video</span>
+        <span class="layer-num">#4</span>
+      </div>
+      <div class="clip-name">Clip: Retro Loop D</div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:60%;--knob-rot:-15deg"></div>
+          <div class="knob-label">Bright</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:75%;--knob-rot:-45deg"></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div class="card-buttons">
+        <div class="card-btn">FX 1</div>
+        <div class="card-btn">Macro</div>
+      </div>
+      <div class="expand-btn">&#9660;</div>
+    </div>
+    <!-- Layer Card 5 -->
+    <div class="layer-card">
+      <div class="layer-card-header">
+        <span class="engine-badge fx">FX</span>
+        <span class="layer-num">#5</span>
+      </div>
+      <div class="clip-name">Clip: Glow Pass E</div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:45%;--knob-rot:25deg"></div>
+          <div class="knob-label">Bright</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:30%;--knob-rot:40deg"></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div class="card-buttons">
+        <div class="card-btn fx-active">FX 1</div>
+        <div class="card-btn">Macro</div>
+      </div>
+      <div class="expand-btn">&#9660;</div>
+    </div>
+    <!-- Layer Card 6 -->
+    <div class="layer-card">
+      <div class="layer-card-header">
+        <span class="engine-badge image">Image</span>
+        <span class="layer-num">#6</span>
+      </div>
+      <div class="clip-name">Clip: Particle Grid F</div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:80%;--knob-rot:-55deg"></div>
+          <div class="knob-label">Bright</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:65%;--knob-rot:-25deg"></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div class="card-buttons">
+        <div class="card-btn">FX 1</div>
+        <div class="card-btn">Macro</div>
+      </div>
+      <div class="expand-btn">&#9660;</div>
+    </div>
+    <!-- Layer Card 7 -->
+    <div class="layer-card">
+      <div class="layer-card-header">
+        <span class="engine-badge synth">Synth</span>
+        <span class="layer-num">#7</span>
+      </div>
+      <div class="clip-name">Content: Fractal G</div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:50%;--knob-rot:5deg"></div>
+          <div class="knob-label">Bright</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:95%;--knob-rot:-80deg"></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div class="card-buttons">
+        <div class="card-btn">FX 1</div>
+        <div class="card-btn">Macro</div>
+      </div>
+      <div class="expand-btn">&#9660;</div>
+    </div>
+    <!-- Layer Card 8 -->
+    <div class="layer-card">
+      <div class="layer-card-header">
+        <span class="engine-badge video">Video</span>
+        <span class="layer-num">#8</span>
+      </div>
+      <div class="clip-name">Clip: Neon Drift H</div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:72%;--knob-rot:-35deg"></div>
+          <div class="knob-label">Bright</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--knob-val:58%;--knob-rot:-10deg"></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div class="card-buttons">
+        <div class="card-btn fx-active">FX 1</div>
+        <div class="card-btn">Macro</div>
+      </div>
+      <div class="expand-btn">&#9660;</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FOOTER BAR ═══ -->
+<div class="footer-bar">
+  <div class="footer-label">Footer Bar</div>
+  <div class="footer-item">Master Sources</div>
+  <div class="footer-sep"></div>
+  <div class="footer-item">Audio Player</div>
+  <div class="footer-sep"></div>
+  <div class="footer-item">Outputs</div>
+  <div class="footer-sep"></div>
+  <div class="footer-item">Save</div>
+  <div class="footer-sep"></div>
+  <div class="footer-item">Load</div>
+  <div class="footer-sep"></div>
+  <div class="footer-item">Help</div>
+</div>
+
+</body>
+</html>

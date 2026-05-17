@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 20 Var A (V8 Update — Cyberpunk Teal)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(180deg, #0c1018 0%, #0a0e14 50%, #080c10 100%); color: #b0d0d8; font-size: 11px; }
+.glow { text-shadow: 0 0 6px rgba(0,200,220,0.3); }
+.top-bar { height: 36px; background: linear-gradient(180deg, #141a22, #0e1218); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid #1a3038; gap: 6px; }
+.star { font-size: 14px; color: #00c8dc; }
+.logo { font-size: 14px; font-weight: 700; color: #e0f0f4; letter-spacing: 1px; }
+.sep { width: 1px; height: 18px; background: #1a3038; }
+.dd { background: #0e1a22; border: 1px solid #1a3038; color: #80b0b8; padding: 2px 6px; font-size: 9px; cursor: pointer; border-radius: 2px; }
+.btn { background: #0e1a22; border: 1px solid #1a3038; color: #80b0b8; padding: 2px 7px; font-size: 9px; cursor: pointer; border-radius: 2px; }
+.btn:hover { border-color: #00c8dc; color: #00e5ff; }
+.btn.act { background: #00c8dc; color: #0a0e14; }
+.sp { flex: 1; }
+.bpm { font-size: 18px; font-weight: 700; color: #00e5ff; font-family: monospace; }
+.bpm-st { font-size: 7px; color: #00e5ff; background: #0a2028; padding: 1px 4px; border-radius: 2px; border: 1px solid #1a4048; }
+.dots { display: flex; gap: 3px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; border: 1px solid #1a4048; background: #0a1418; }
+.dot.on { background: #00e5ff; border-color: #00e5ff; box-shadow: 0 0 4px #00e5ff; }
+.bar-i { font-size: 10px; color: #507078; font-family: monospace; }
+.mult { display: flex; gap: 1px; } .mult .btn { padding: 2px 4px; font-size: 8px; }
+.sl-sm { width: 40px; height: 3px; background: #0a1418; border-radius: 2px; } .sl-f { height: 100%; border-radius: 2px; }
+.fps { font-size: 9px; color: #00e5ff; font-family: monospace; }
+.dsp-l { font-size: 9px; color: #507078; font-family: monospace; }
+.signal-bar { height: 3px; background: linear-gradient(90deg, #006878, #00c8dc, #00e5ff, #006878); opacity: 0.5; }
+
+.main { display: flex; height: calc(1080px - 36px - 3px - 28px); }
+.center { flex: 1; display: flex; flex-direction: column; }
+.scene-row { display: flex; height: 24px; align-items: center; padding: 0 8px; background: #0c1218; border-bottom: 1px solid #162028; gap: 3px; }
+.scene-tab { flex: 1; text-align: center; font-size: 10px; color: #507078; padding: 2px; cursor: pointer; border-bottom: 2px solid transparent; }
+.scene-tab.active { color: #00e5ff; border-bottom-color: #00e5ff; }
+
+/* GRID with dots (preserved from V7) */
+.grid { display: flex; flex-direction: column; flex: 1; padding: 4px; gap: 3px; }
+.layer-row { display: flex; align-items: center; gap: 4px; height: 44px; }
+.layer-lbl { width: 70px; font-size: 10px; color: #608088; font-weight: 600; text-align: right; padding-right: 4px; }
+.layer-type { font-size: 7px; color: #405058; }
+.dot-strip { display: flex; gap: 3px; flex: 1; }
+.dot-c { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #1a3038; background: #0c1418; cursor: pointer; }
+.dot-c.filled { background: #00c8dc; border-color: #00e5ff; box-shadow: 0 0 3px rgba(0,200,220,0.4); }
+.dot-c.active { background: #00e5ff; border-color: #fff; box-shadow: 0 0 6px #00e5ff; }
+.col-trig { display: flex; gap: 3px; padding-left: 74px; margin-top: 2px; }
+.cn { width: 14px; height: 12px; background: #0e1a22; border: 1px solid #1a3038; text-align: center; line-height: 10px; font-size: 7px; color: #507078; border-radius: 2px; cursor: pointer; }
+.cn.act { background: #00c8dc; color: #0a0e14; }
+
+.preview-area { width: 420px; margin: 4px; }
+.prev-head { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.prev-lbl { font-size: 10px; color: #608088; }
+.pb { padding: 2px 6px; font-size: 8px; background: #0e1a22; border: 1px solid #1a3038; color: #80b0b8; cursor: pointer; }
+.prev-box { width: 100%; height: 200px; background: radial-gradient(ellipse at 50% 50%, rgba(0,200,220,0.15), transparent 70%), linear-gradient(135deg, #081018, #0c1a22, #081018); border: 1px solid #1a3038; border-radius: 4px; box-shadow: 0 0 20px rgba(0,200,220,0.1); }
+
+/* MIXING BOARDS */
+.mix-area { display: flex; border-top: 1px solid #162028; background: linear-gradient(180deg, #0c1218, #0a0e14); height: 280px; }
+.board { flex: 1; border-right: 1px solid #1a2028; padding: 6px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.board:last-of-type { border-right: none; }
+.board-title { font-size: 9px; color: #507078; font-weight: 600; }
+.sm-row { display: flex; gap: 3px; }
+.sm-btn { padding: 2px 6px; font-size: 8px; background: #0e1a22; border: 1px solid #1a3038; color: #80b0b8; cursor: pointer; border-radius: 2px; }
+.engine-badge { padding: 1px 6px; font-size: 7px; background: #1a3038; color: #00c8dc; border: 1px solid #1a4048; border-radius: 2px; }
+.knob-group { display: flex; gap: 8px; margin: 4px 0; }
+.kn { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.kn-c { width: 34px; height: 34px; border-radius: 50%; background: conic-gradient(from 220deg, #00c8dc 0deg, #00c8dc var(--a, 140deg), #1a2028 var(--a, 140deg), #1a2028 280deg); position: relative; cursor: pointer; box-shadow: 0 0 6px rgba(0,200,220,0.15); }
+.kn-i { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #1a2830, #0c1418); position: absolute; top: 5px; left: 5px; }
+.kn-l { font-size: 7px; color: #507078; }
+.op-lbl { font-size: 8px; color: #507078; }
+.op-slider { width: 90%; height: 5px; background: #0a1418; border: 1px solid #1a2028; border-radius: 3px; overflow: hidden; margin: 2px 0; }
+.op-f { height: 100%; background: linear-gradient(90deg, #006878, #00c8dc); border-radius: 3px; }
+.expand-btn { padding: 2px 10px; font-size: 8px; background: #0e1a22; border: 1px solid #1a3038; color: #507078; cursor: pointer; margin-top: auto; }
+
+/* RIGHT INSPECTOR */
+.right { width: 340px; background: linear-gradient(180deg, #0e1418, #0a0e14); border-left: 1px solid #1a3038; display: flex; flex-direction: column; overflow-y: auto; }
+.insp-tabs { display: flex; gap: 1px; padding: 3px 6px; }
+.it { flex: 1; padding: 3px; text-align: center; font-size: 8px; background: #0e1a22; border: 1px solid #1a3038; color: #507078; cursor: pointer; }
+.it.active { background: #0a2028; color: #00e5ff; border-color: #00c8dc; }
+.pin { width: 16px; padding: 3px; text-align: center; font-size: 7px; background: #0e1a22; border: 1px solid #1a3038; color: #507078; }
+.sec { padding: 5px 7px; border-bottom: 1px solid #111820; }
+.st { font-size: 9px; color: #608088; font-weight: 600; margin-bottom: 3px; display: flex; align-items: center; gap: 3px; }
+.st .ar { font-size: 7px; color: #405058; }
+.sig { display: inline-block; width: 0; height: 0; border-top: 3px solid transparent; border-bottom: 3px solid transparent; border-left: 5px solid #1a3038; margin-right: 3px; cursor: pointer; }
+.sig.on { border-left-color: #00e5ff; }
+.pr { display: flex; align-items: center; margin-bottom: 2px; height: 16px; }
+.pl { width: 80px; font-size: 9px; color: #80b0b8; }
+.ps { flex: 1; height: 3px; background: #0a1418; border-radius: 2px; overflow: hidden; margin: 0 4px; }
+.pf { height: 100%; border-radius: 2px; }
+.pv { font-size: 9px; color: #b0d0d8; font-family: monospace; width: 38px; text-align: right; }
+.r-sel { flex: 1; background: #0a1418; border: 1px solid #1a3038; color: #b0d0d8; padding: 2px 4px; font-size: 8px; }
+.fx-i { display: flex; align-items: center; padding: 2px 0; border-bottom: 1px solid #0e1418; }
+.fx-n { flex: 1; font-size: 9px; color: #b0d0d8; }
+.fx-b { width: 13px; height: 13px; background: #0a1418; border: 1px solid #1a3038; color: #00c8dc; font-size: 7px; text-align: center; line-height: 11px; cursor: pointer; margin-left: 3px; }
+.fx-v { font-size: 7px; color: #507078; margin: 0 3px; }
+.fx-e { font-size: 7px; color: #405058; cursor: pointer; }
+.fx-add { font-size: 8px; color: #00c8dc; cursor: pointer; padding: 2px 0; }
+.dash { display: flex; gap: 3px; justify-content: center; }
+.dk { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.dkc { width: 22px; height: 22px; border-radius: 50%; background: conic-gradient(from 220deg, #00c8dc 0deg, #00c8dc var(--a,140deg), #1a2028 var(--a,140deg), #1a2028 280deg); position: relative; cursor: pointer; }
+.dki { width: 14px; height: 14px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #1a2830, #0c1418); position: absolute; top: 4px; left: 4px; }
+.dkl { font-size: 6px; color: #405058; }
+.cue { display: flex; gap: 2px; }
+.cb { width: 18px; height: 13px; background: #0a1418; border: 1px solid #1a3038; color: #507078; font-size: 6px; text-align: center; line-height: 11px; cursor: pointer; }
+.cb.set { background: #0a2028; color: #00e5ff; border-color: #00c8dc; }
+.dk-tabs { height: 18px; display: flex; align-items: center; padding: 0 4px; background: #0a0e14; border-top: 1px solid #162028; gap: 2px; }
+.dkt { padding: 2px 10px; font-size: 7px; background: #0e1a22; border: 1px solid #1a2028; color: #507078; cursor: pointer; }
+.dkt.act { color: #00e5ff; border-color: #00c8dc; }
+
+.footer { height: 28px; background: linear-gradient(180deg, #0e1218, #0a0e14); border-top: 1px solid #1a3038; display: flex; align-items: center; padding: 0 12px; gap: 10px; font-size: 10px; color: #405058; }
+.footer .sp { flex: 1; }
+.fi { cursor: pointer; padding: 2px 6px; border: 1px solid #1a2028; color: #608088; }
+.fi:hover { border-color: #00c8dc; color: #00c8dc; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="star">&#10022;</div>
+  <div class="logo glow">Audio-DNA</div>
+  <div class="sep"></div>
+  <div class="dd">Mic Input &#9662;</div>
+  <div style="font-size:7px;color:#507078;">Gain</div><div class="sl-sm"><div class="sl-f" style="width:75%;background:#00c8dc;"></div></div>
+  <div class="btn">&#9654;</div><div class="btn">||</div><div class="btn">&#9632;</div>
+  <div class="sep"></div>
+  <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="bar-i">Bar 14, Phr 0.72</div>
+  <div class="sep"></div>
+  <div class="bpm">[128.00]</div><div class="bpm-st">LOCKED</div>
+  <div class="btn">[TAP]</div><div class="btn act">[RESYNC]</div><div class="btn">[Manual]</div>
+  <div class="sep"></div>
+  <div class="mult"><div class="btn">/4</div><div class="btn">/2</div><div class="btn act">x1</div><div class="btn">x2</div><div class="btn">x4</div></div>
+  <div class="sep"></div>
+  <div class="dd">Quantize: Off &#9662;</div>
+  <div class="sp"></div>
+  <div style="font-size:7px;color:#507078;">Fade</div><div class="sl-sm"><div class="sl-f" style="width:25%;background:#00c8dc;"></div></div>
+  <div style="font-size:7px;color:#507078;">Master</div><div class="sl-sm" style="width:50px;"><div class="sl-f" style="width:100%;background:linear-gradient(90deg,#006878,#00c8dc);"></div></div>
+  <div class="dd">Output &#9662;</div>
+  <div class="fps">60 FPS</div><div class="dsp-l">DSP 6%</div>
+</div>
+
+<div class="signal-bar"></div>
+
+<div class="main">
+  <div class="center">
+    <div class="scene-row">
+      <div class="scene-tab active">Intro</div><div class="scene-tab">Verse 1</div><div class="scene-tab">Verse 2</div><div class="scene-tab">Verse 3</div><div class="scene-tab">Verse 4</div>
+    </div>
+
+    <div style="display:flex;flex:1;">
+      <div class="grid" style="flex:1;">
+        <div class="col-trig">
+          <div class="cn act">1</div><div class="cn">2</div><div class="cn">3</div><div class="cn">4</div><div class="cn">5</div><div class="cn">6</div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-lbl">Layer 4<div class="layer-type">Transparent</div></div>
+          <div class="dot-strip">
+            <div class="dot-c filled"></div><div class="dot-c filled"></div><div class="dot-c active"></div>
+            <div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div>
+            <div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-lbl">Layer 3<div class="layer-type">FX Only</div></div>
+          <div class="dot-strip">
+            <div class="dot-c filled"></div><div class="dot-c"></div><div class="dot-c filled"></div><div class="dot-c active"></div>
+            <div class="dot-c filled"></div><div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div>
+            <div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-lbl">Layer 2<div class="layer-type">Transparent</div></div>
+          <div class="dot-strip">
+            <div class="dot-c active"></div><div class="dot-c filled"></div><div class="dot-c filled"></div><div class="dot-c filled"></div>
+            <div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div>
+            <div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-lbl">Layer 1<div class="layer-type">Opaque</div></div>
+          <div class="dot-strip">
+            <div class="dot-c filled"></div><div class="dot-c filled"></div><div class="dot-c filled"></div><div class="dot-c filled"></div>
+            <div class="dot-c filled"></div><div class="dot-c active"></div><div class="dot-c"></div><div class="dot-c"></div>
+            <div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div><div class="dot-c"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-area">
+        <div class="prev-head"><div class="prev-lbl glow">Preview</div><div style="display:flex;gap:3px;"><div class="pb">Fullscreen</div><div class="pb">Detach</div></div></div>
+        <div class="prev-box"></div>
+      </div>
+    </div>
+
+    <!-- MIXING BOARDS -->
+    <div class="mix-area">
+      <div class="board">
+        <div class="board-title">mixing board 1</div>
+        <div class="sm-row"><div class="sm-btn">[S]</div><div class="sm-btn">[M]</div></div>
+        <div class="engine-badge">engine</div>
+        <div class="knob-group">
+          <div class="kn"><div class="kn-c" style="--a:160deg;"><div class="kn-i"></div></div><div class="kn-l">H</div></div>
+          <div class="kn"><div class="kn-c" style="--a:120deg;"><div class="kn-i"></div></div><div class="kn-l">S</div></div>
+          <div class="kn"><div class="kn-c" style="--a:200deg;"><div class="kn-i"></div></div><div class="kn-l">B</div></div>
+        </div>
+        <div class="op-lbl">Opacity</div>
+        <div class="op-slider"><div class="op-f" style="width:100%;"></div></div>
+        <div class="expand-btn">[Expand]</div>
+      </div>
+      <div class="board">
+        <div class="board-title">mixing board 2</div>
+        <div class="sm-row"><div class="sm-btn">[S]</div><div class="sm-btn">[M]</div></div>
+        <div class="engine-badge">engine</div>
+        <div class="knob-group">
+          <div class="kn"><div class="kn-c" style="--a:140deg;"><div class="kn-i"></div></div><div class="kn-l">H</div></div>
+          <div class="kn"><div class="kn-c" style="--a:180deg;"><div class="kn-i"></div></div><div class="kn-l">S</div></div>
+          <div class="kn"><div class="kn-c" style="--a:160deg;"><div class="kn-i"></div></div><div class="kn-l">B</div></div>
+        </div>
+        <div class="op-lbl">Opacity</div>
+        <div class="op-slider"><div class="op-f" style="width:85%;"></div></div>
+        <div class="expand-btn">[Expand]</div>
+      </div>
+      <div class="board">
+        <div class="board-title">mixing board 3</div>
+        <div class="sm-row"><div class="sm-btn">[S]</div><div class="sm-btn">[M]</div></div>
+        <div class="engine-badge">engine</div>
+        <div class="knob-group">
+          <div class="kn"><div class="kn-c" style="--a:100deg;"><div class="kn-i"></div></div><div class="kn-l">H</div></div>
+          <div class="kn"><div class="kn-c" style="--a:200deg;"><div class="kn-i"></div></div><div class="kn-l">S</div></div>
+          <div class="kn"><div class="kn-c" style="--a:160deg;"><div class="kn-i"></div></div><div class="kn-l">B</div></div>
+        </div>
+        <div class="op-lbl">Opacity</div>
+        <div class="op-slider"><div class="op-f" style="width:100%;"></div></div>
+        <div class="expand-btn">[Expand]</div>
+      </div>
+      <div class="board" style="border-right:none;">
+        <div class="board-title">mixing board 4</div>
+        <div class="sm-row"><div class="sm-btn">[S]</div><div class="sm-btn">[M]</div></div>
+        <div class="engine-badge">engine</div>
+        <div class="knob-group">
+          <div class="kn"><div class="kn-c" style="--a:180deg;"><div class="kn-i"></div></div><div class="kn-l">H</div></div>
+          <div class="kn"><div class="kn-c" style="--a:120deg;"><div class="kn-i"></div></div><div class="kn-l">S</div></div>
+          <div class="kn"><div class="kn-c" style="--a:180deg;"><div class="kn-i"></div></div><div class="kn-l">B</div></div>
+        </div>
+        <div class="op-lbl">Opacity</div>
+        <div class="op-slider"><div class="op-f" style="width:70%;"></div></div>
+        <div class="expand-btn">[Expand]</div>
+      </div>
+
+      <!-- RIGHT INSPECTOR IN MIX AREA -->
+      <div style="width:340px;border-left:1px solid #1a3038;display:flex;flex-direction:column;overflow-y:auto;">
+        <div class="insp-tabs"><div class="it active">Clip</div><div class="it">Layer</div><div class="it">Comp</div><div class="it">Signal</div><div class="pin">&#128204;</div></div>
+        <div class="sec" style="padding:3px 7px;"><div style="font-size:10px;font-weight:600;color:#b0d0d8;">Layer 1: Base Video</div></div>
+        <div class="sec">
+          <div class="st">Dashboard</div>
+          <div class="dash">
+            <div class="dk"><div class="dkc" style="--a:160deg;"><div class="dki"></div></div><div class="dkl">Bass</div></div>
+            <div class="dk"><div class="dkc" style="--a:120deg;"><div class="dki"></div></div><div class="dkl">BPM</div></div>
+            <div class="dk"><div class="dkc" style="--a:200deg;"><div class="dki"></div></div><div class="dkl">Zoom</div></div>
+            <div class="dk"><div class="dkc" style="--a:140deg;"><div class="dki"></div></div><div class="dkl">Hue</div></div>
+            <div class="dk"><div class="dkc" style="--a:100deg;"><div class="dki"></div></div><div class="dkl">5</div></div>
+            <div class="dk"><div class="dkc" style="--a:80deg;"><div class="dki"></div></div><div class="dkl">6</div></div>
+            <div class="dk"><div class="dkc" style="--a:140deg;"><div class="dki"></div></div><div class="dkl">7</div></div>
+            <div class="dk"><div class="dkc" style="--a:180deg;"><div class="dki"></div></div><div class="dkl">8</div></div>
+          </div>
+        </div>
+        <div class="sec">
+          <div class="st"><span class="ar">&#9662;</span> Transform</div>
+          <div class="pr"><span class="sig on"></span><div class="pl">Position X</div><div class="ps"><div class="pf" style="width:50%;background:#00c8dc;"></div></div><div class="pv">0.00</div></div>
+          <div class="pr"><span class="sig"></span><div class="pl">Position Y</div><div class="ps"><div class="pf" style="width:50%;background:#00c8dc;"></div></div><div class="pv">0.00</div></div>
+          <div class="pr"><span class="sig on"></span><div class="pl">Scale</div><div class="ps"><div class="pf" style="width:65%;background:#00c8dc;"></div></div><div class="pv">2.60</div></div>
+          <div class="pr"><span class="sig"></span><div class="pl">Rotation</div><div class="ps"><div class="pf" style="width:50%;background:#00c8dc;"></div></div><div class="pv">0.00</div></div>
+        </div>
+        <div class="sec">
+          <div class="st"><span class="ar">&#9662;</span> Video</div>
+          <div class="pr"><span class="sig on"></span><div class="pl">Opacity</div><div class="ps"><div class="pf" style="width:100%;background:linear-gradient(90deg,#006878,#00c8dc);"></div></div><div class="pv">1.00</div></div>
+          <div class="pr"><div class="pl">Blend Mode</div><select class="r-sel" style="flex:1;background:#0a1418;border:1px solid #1a3038;color:#80b0b8;padding:2px;font-size:8px;"><option>Additive</option></select></div>
+        </div>
+        <div class="sec">
+          <div class="st">Cuepoints</div>
+          <div class="cue"><div class="cb set">1</div><div class="cb">2</div><div class="cb set">3</div><div class="cb">4</div><div class="cb">5</div><div class="cb">6</div><div class="cb">7</div><div class="cb">8</div></div>
+        </div>
+        <div class="sec" style="border-bottom:none;flex:1;">
+          <div class="st"><span class="ar">&#9662;</span> Effects Stack</div>
+          <div class="fx-i"><div class="fx-b">B</div><div class="fx-n">Blur</div><div class="fx-v">0.40</div><div class="fx-e">&#9662;</div></div>
+          <div style="padding:2px 0 2px 16px;border-bottom:1px solid #0e1418;">
+            <div class="pr"><span class="sig on"></span><div class="pl">Dry/Wet</div><div class="ps"><div class="pf" style="width:100%;background:#00c8dc;"></div></div><div class="pv">1.00</div></div>
+            <div class="pr"><span class="sig"></span><div class="pl">Radius</div><div class="ps"><div class="pf" style="width:40%;background:#00c8dc;"></div></div><div class="pv">0.40</div></div>
+          </div>
+          <div class="fx-i"><div class="fx-b">B</div><div class="fx-n">Kaleidoscope</div><div class="fx-v">0.65</div><div class="fx-e">&#9656;</div></div>
+          <div class="fx-i"><div class="fx-b">B</div><div class="fx-n">RGB Shift</div><div class="fx-v">0.30</div><div class="fx-e">&#9656;</div></div>
+          <div class="fx-add">+ Add Effect</div>
+        </div>
+      </div>
+    </div>
+    <div class="dk-tabs"><div class="dkt act">Deck 1</div><div class="dkt">Deck 2</div><div class="dkt">Deck 3</div></div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="fi">[Master Sources]</div>
+  <div class="fi">[Audio Player &#9654;]</div>
+  <div class="fi">[Outputs &#9660;]</div>
+  <div class="sp"></div>
+  <div class="fi">[Save]</div><div class="fi">[Load]</div><div class="fi">[Help]</div>
+</div>
+
+</body>
+</html>

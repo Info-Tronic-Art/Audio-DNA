@@ -1,0 +1,693 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					100,
+					"output"
+				],
+				"to": [
+					110,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					110,
+					"output0"
+				],
+				"to": [
+					112,
+					"input"
+				]
+			},
+			{
+				"from": [
+					114,
+					"output"
+				],
+				"to": [
+					115,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					116,
+					"output"
+				],
+				"to": [
+					117,
+					"input"
+				]
+			},
+			{
+				"from": [
+					115,
+					"output0"
+				],
+				"to": [
+					117,
+					"mask"
+				]
+			},
+			{
+				"from": [
+					117,
+					"output"
+				],
+				"to": [
+					119,
+					"input"
+				]
+			}
+		],
+		"inputOrder": [
+			116
+		],
+		"meta": {
+			"author": "Mark Buitenwerf",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"description": "Explains what this node does.",
+			"displayName": "77697265-BB9A-4B13-83F3-D0E4DA6CFF86 - Resize",
+			"identifier": "5a0ee049-1580-4cd2-be02-2eef960baf20",
+			"licenseName": "",
+			"mail": "mail@resolume.com",
+			"originalTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 11,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "master",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 16,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "www.resolume.com",
+			"vendor": "Resolume"
+		},
+		"nextNodeId": 120,
+		"nodes": {
+			"100": {
+				"attributes": {
+					"image": {
+						"type": "resource",
+						"value": "247dd5adfa8c58a83b8e2b50263d46bf"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 140,
+					"width": 195,
+					"x": 340.337982177734375,
+					"y": 758.27734375
+				},
+				"class": {
+					"id": "77697265-3683-409B-8C89-43AFAEA9A2B0",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"straight": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"hidden": [
+					"image",
+					"straight",
+					"instances"
+				],
+				"name": "Image",
+				"thumbnail_visible": true
+			},
+			"110": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 5
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "texture2d"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"sampling": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 595.3380126953125,
+					"y": 758.27734375
+				},
+				"class": {
+					"id": "77697265-BB9A-4B13-83F3-D0E4DA6CFF86",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input0": {
+						"type": "texture2d",
+						"value": null
+					},
+					"mode": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"flow",
+					"input0-type",
+					"resolution-mode",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Resize",
+				"thumbnail_visible": true
+			},
+			"111": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 1: RESIZING TO RESOLUTION\n\nIn this example we are resizing the 500x500 image to patch resolution using the fit node and linear sampling.\nTry changing the mode to see the difference between the different ways of resizing."
+					}
+				},
+				"bounds": {
+					"height": 389.32696533203125,
+					"width": 765.7066650390625,
+					"x": 296.09991455078125,
+					"y": 610.467529296875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"112": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 850.3380126953125,
+					"y": 758.27734375
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"113": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 2: SMALL RESOLUTION , BIG NOISE\n\nVideo Generators like Fractal Noise and Static have a resolution parameter.\nIn this patch we are using this to our advantage by rendering the static at 1\/100th of the patch resolution to get big clumps of pixels\nWe are scaling it up with Resize to patch resolution.\nNote that Nearest Sampling is used here to preserve the blocky image, try switching to Linear to see the difference."
+					}
+				},
+				"bounds": {
+					"height": 425.9122314453125,
+					"width": 918.18560791015625,
+					"x": 296.09991455078125,
+					"y": 1025.1214599609375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"114": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							0.00999999977648258,
+							0.00999999977648258
+						]
+					}
+				},
+				"bounds": {
+					"height": 84,
+					"width": 195,
+					"x": 340.049591064453125,
+					"y": 1297.113037109375
+				},
+				"class": {
+					"id": "77697265-53CE-4FDD-BFCE-5F8269AA39DB",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"mode": {
+						"type": "integer",
+						"value": 2
+					},
+					"time": {
+						"type": "float",
+						"value": 10
+					}
+				},
+				"hidden": [
+					"bypass",
+					"mode",
+					"resolution-mode",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Static",
+				"thumbnail_visible": true
+			},
+			"115": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 5
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "texture2d"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"sampling": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"bounds": {
+					"height": 107,
+					"width": 195,
+					"x": 563.603271484375,
+					"y": 1297.113037109375
+				},
+				"class": {
+					"id": "77697265-BB9A-4B13-83F3-D0E4DA6CFF86",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input0": {
+						"type": "texture2d",
+						"value": null
+					},
+					"mode": {
+						"type": "integer",
+						"value": 2
+					}
+				},
+				"hidden": [
+					"flow",
+					"input0-type",
+					"resolution-mode",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Resize",
+				"thumbnail_visible": true
+			},
+			"116": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 628.88885498046875,
+					"y": 1194.6263427734375
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"flow"
+				],
+				"name": "Texture In",
+				"thumbnail_visible": true
+			},
+			"117": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 84,
+					"width": 195,
+					"x": 786.97100830078125,
+					"y": 1193.497314453125
+				},
+				"class": {
+					"id": "77697265-CB86-4A6F-AABA-009C4C8BB5C1",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"channel": {
+						"type": "integer",
+						"value": 0
+					},
+					"input": {
+						"type": "texture2d",
+						"value": null
+					},
+					"invert": {
+						"type": "bool",
+						"value": false
+					},
+					"mask": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"bypass",
+					"channel",
+					"instances"
+				],
+				"name": "Mask",
+				"thumbnail_visible": true
+			},
+			"119": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1010.544189453125,
+					"y": 1194.62646484375
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"39": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "RESIZE\n\nThe Resize node allows you to resize your texture.\nThe node has multiple modes that each resize the texture in their own ways (stretch, fit, fill).\n\nBy default Resize will use linear sampling, but this can be disabled in the node panel.\n\nThe Resolution can be set to either absolute or relative.\n\nIn absolute mode you set exactly how many pixels you want.\nIn relative mode (default) you set a factor to which the texture is scaled in relation patch resolution."
+					}
+				},
+				"bounds": {
+					"height": 254.8045654296875,
+					"width": 765.8665771484375,
+					"x": 295.749420166015625,
+					"y": 327.275115966796875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": 255.157470703125,
+				"y": 428.73309326171875,
+				"zoom": 0.89001929759979248
+			},
+			"selection": []
+		}
+	},
+	"resources": {
+		"image": {
+			"247dd5adfa8c58a83b8e2b50263d46bf": {
+				"local": true,
+				"name": "WireLogo",
+				"path": "WireLogo.png"
+			}
+		}
+	},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": [
+					null,
+					null
+				]
+			}
+		},
+		"deviceConnections": {
+			"input": {
+				"116": "Test Card"
+			}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null,
+					"Syphon": null
+				}
+			}
+		}
+	}
+}

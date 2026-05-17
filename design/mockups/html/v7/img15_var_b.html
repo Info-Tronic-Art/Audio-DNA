@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 15 Var B (Improved)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(165deg, #1a1d24 0%, #12151c 60%, #0e1118 100%); color: #e0e0e0; font-size: 12px; }
+
+.topbar { height: 46px; background: linear-gradient(180deg, #20252e 0%, #181c26 100%); display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #2a3040; gap: 14px; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo .dia { width: 22px; height: 22px; background: linear-gradient(135deg, #6688ff, #4466ee); transform: rotate(45deg); border-radius: 3px; }
+.logo span { font-size: 16px; font-weight: 700; color: #dde0f0; }
+.sp { flex: 1; }
+.bpm-block { display: flex; align-items: center; gap: 8px; }
+.arr-btn { width: 26px; height: 26px; background: #282e3a; border: 1px solid #3a4258; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #778; font-size: 13px; cursor: pointer; }
+.bpm-num { font-size: 28px; font-weight: 800; color: #fff; font-family: 'Consolas', monospace; letter-spacing: 2px; }
+.tap { background: #353c4a; border: 1px solid #4a5468; color: #bbc; padding: 5px 18px; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.beat-row { display: flex; gap: 5px; align-items: center; }
+.bd { width: 10px; height: 10px; border-radius: 50%; background: #252a36; border: 1.5px solid #3a4258; }
+.bd.on { background: #6688ff; border-color: #88aaff; box-shadow: 0 0 8px #6688ff66; }
+.bar-info { font-family: monospace; font-size: 11px; color: #889; }
+.meter-block { display: flex; align-items: center; gap: 6px; }
+.meter-lbl { font-size: 9px; color: #556; text-transform: uppercase; }
+.meter-trk { width: 150px; height: 12px; background: #0e1018; border-radius: 6px; overflow: hidden; border: 1px solid #252a36; }
+.meter-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #4aff7f, #aaff55 50%, #ffdd4a 75%, #ff5533 100%); width: 70%; }
+.fps { font-family: monospace; font-size: 11px; color: #4aff7f; }
+.set-btn { width: 26px; height: 26px; background: #282e3a; border: 1px solid #3a4258; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #778; font-size: 13px; cursor: pointer; }
+
+.main { display: flex; height: calc(1080px - 46px - 80px - 30px); }
+
+/* LEFT */
+.left { width: 310px; background: linear-gradient(180deg, #171a22 0%, #13161e 100%); border-right: 1px solid #252a36; display: flex; flex-direction: column; }
+.ptitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #4a5268; padding: 8px 14px; border-bottom: 1px solid #1e2230; font-weight: 600; }
+.tabs { display: flex; border-bottom: 1px solid #1e2230; }
+.tab { flex: 1; text-align: center; padding: 7px 0; font-size: 10px; color: #4a5268; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; }
+.tab.a { color: #6688ff; border-bottom-color: #6688ff; }
+.mgrid { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; }
+.mthumb { width: 62px; height: 62px; border-radius: 6px; border: 1.5px solid #252a36; overflow: hidden; cursor: pointer; position: relative; transition: border-color 0.15s; }
+.mthumb:hover { border-color: #6688ff; }
+.mth { width: 100%; height: 100%; }
+.mthumb .pi { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 16px; color: #fff8; }
+.t1 { background: linear-gradient(135deg, #1a0a2e, #0a2a3e); }
+.t2 { background: radial-gradient(circle, #aa44ff22, #0a001800); }
+.t3 { background: linear-gradient(135deg, #2a1a0a, #0a2a1a); }
+.t4 { background: radial-gradient(circle, #4488ff22, #00112200); }
+.t5 { background: conic-gradient(from 0deg, #0a1a2a, #2a0a1a, #0a2a0a, #0a1a2a); }
+.t6 { background: linear-gradient(45deg, #1a2a0a, #0a1a2a); }
+
+.asrc-hdr { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: #cc8844; padding: 8px 14px; border-top: 1px solid #1e2230; font-weight: 600; }
+.asrc-list { padding: 4px 10px; flex: 1; overflow-y: auto; }
+.asr { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin-bottom: 4px; background: linear-gradient(180deg, #1c2030 0%, #1a1e2a 100%); border: 1px solid #252a36; border-radius: 5px; cursor: pointer; transition: border-color 0.15s; }
+.asr:hover { border-color: #4a5268; }
+.asr .ico { width: 26px; height: 26px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.ico.k { background: #cc884418; color: #cc8844; }
+.ico.s { background: #44aa8818; color: #44aa88; }
+.ico.b { background: #8844cc18; color: #8844cc; }
+.ico.m { background: #44aacc18; color: #44aacc; }
+.asr .aname { flex: 1; font-size: 10px; color: #aab; }
+.asr .awave { width: 70px; height: 22px; }
+.asr .awave svg { width: 100%; height: 100%; }
+.asr .ameter { width: 50px; height: 6px; background: #0e1018; border-radius: 3px; overflow: hidden; }
+.asr .ameter .af { height: 100%; border-radius: 3px; }
+
+.lfo-area { padding: 4px 10px; border-top: 1px solid #1e2230; }
+.lfor { display: flex; align-items: center; gap: 6px; padding: 5px 8px; margin-bottom: 3px; background: #1a1e2a; border: 1px solid #252a36; border-radius: 5px; }
+.lfor .lic { font-size: 13px; color: #aa66ff; }
+.lfor .ln { font-size: 10px; color: #889; flex: 1; }
+.lfor .lw { width: 65px; height: 20px; }
+.lfor .lw svg { width: 100%; height: 100%; }
+.add-src { font-size: 10px; color: #6688ff88; cursor: pointer; padding: 8px 14px; }
+
+/* CENTER */
+.center { flex: 1; display: flex; flex-direction: column; }
+.ctitle { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #4a5268; padding: 8px 16px; border-bottom: 1px solid #1e2230; text-align: center; font-weight: 600; }
+.ccanvas { flex: 1; display: flex; gap: 14px; padding: 14px 20px; overflow-x: auto; align-items: flex-start; }
+.ccol { width: 210px; min-width: 210px; display: flex; flex-direction: column; gap: 6px; }
+.cclip { width: 100%; height: 110px; border-radius: 7px; border: 1.5px solid #252a36; overflow: hidden; cursor: pointer; position: relative; background: #0e1018; transition: all 0.15s; }
+.cclip:hover { border-color: #4a5268; }
+.cclip.active { border-color: #6688ff; box-shadow: 0 0 14px #6688ff33; }
+.cclip .ct { width: 100%; height: 100%; }
+.cclip .po { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 22px; color: #fff6; }
+.cclip .cbdg { position: absolute; top: 6px; left: 6px; font-size: 7px; font-weight: 700; padding: 2px 7px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+.fxtags { display: flex; gap: 4px; flex-wrap: wrap; }
+.fxt { font-size: 8px; padding: 3px 9px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+.fxt.g { background: #22aa5518; border: 1px solid #22aa5533; color: #44cc77; }
+.fxt.a { background: #cc884418; border: 1px solid #cc884433; color: #ddaa55; }
+.fxt.p { background: #8844cc18; border: 1px solid #8844cc33; color: #aa66dd; }
+.shared { font-size: 9px; color: #4a5268; text-align: center; padding: 3px 0; }
+.clabel { font-size: 10px; color: #889; text-align: center; padding: 2px 0; }
+
+/* Routing */
+.routing { height: 130px; margin: 0 20px; background: linear-gradient(180deg, #0e1018 0%, #0c0e16 100%); border-radius: 7px; border: 1px solid #1e2230; position: relative; display: flex; align-items: center; justify-content: center; }
+.hub { width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #4466ee22, transparent); border: 1.5px solid #4466ee44; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.hub .hn { font-size: 10px; color: #6688ff; font-weight: 600; }
+.hub .hs { font-size: 8px; color: #4a5268; }
+/* Lines from hub to columns */
+.rline { position: absolute; background: linear-gradient(90deg, transparent, #4466ee44, transparent); height: 1px; }
+.rdot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #6688ff; box-shadow: 0 0 6px #6688ff88; }
+.rhint { position: absolute; bottom: 8px; right: 14px; font-size: 8px; color: #2a3040; font-style: italic; }
+
+/* Scene triggers */
+.striggers { display: flex; gap: 8px; padding: 10px 20px; justify-content: center; border-top: 1px solid #1e2230; }
+.strig { padding: 6px 22px; font-size: 10px; color: #667; background: #1c2030; border: 1px solid #252a36; border-radius: 5px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; transition: all 0.15s; }
+.strig:hover { border-color: #4a5268; color: #aab; }
+.strig.a { background: #6688ff14; border-color: #6688ff55; color: #6688ff; }
+
+/* RIGHT */
+.right { width: 330px; background: linear-gradient(180deg, #171a22 0%, #13161e 100%); border-left: 1px solid #252a36; display: flex; flex-direction: column; }
+.rtabs { display: flex; border-bottom: 1px solid #1e2230; }
+.rtab { flex: 1; text-align: center; padding: 8px 0; font-size: 10px; color: #4a5268; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 500; }
+.rtab.a { color: #6688ff; border-bottom-color: #6688ff; }
+.insp-body { flex: 1; overflow-y: auto; padding: 8px 0; }
+
+/* Color wheel */
+.cwheel { width: 110px; height: 110px; border-radius: 50%; margin: 10px auto; background: conic-gradient(from 0deg, #ff4444, #ffaa44, #aaff44, #44ffaa, #44aaff, #aa44ff, #ff44ff, #ff4444); position: relative; }
+.cwheel::after { content: ''; position: absolute; top: 22px; left: 22px; right: 22px; bottom: 22px; border-radius: 50%; background: #171a22; }
+.cwheel .dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: #fff; border: 1.5px solid #333; top: 14px; left: 50%; transform: translateX(-50%); z-index: 1; }
+
+.fx-name-bar { padding: 8px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #1e2230; }
+.fx-name-bar .fdot { width: 10px; height: 10px; border-radius: 50%; }
+.fx-name-bar .fname { font-size: 13px; color: #dde; font-weight: 500; }
+.fx-name-bar .fon { font-size: 8px; color: #4aff7f; background: #4aff7f18; padding: 1px 6px; border-radius: 3px; margin-left: auto; }
+
+.params { padding: 8px 14px; }
+.pr { margin-bottom: 10px; }
+.pr .plbl { font-size: 9px; color: #556; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.pr .plbl .pv { color: #778; font-family: monospace; text-transform: none; letter-spacing: 0; }
+.pr .ptrk { height: 10px; background: #0e1018; border-radius: 5px; overflow: hidden; border: 1px solid #1e2230; cursor: pointer; }
+.pr .pfill { height: 100%; border-radius: 5px; }
+.pfill.hue { background: linear-gradient(90deg, #ff4444, #ffaa44, #44ff44, #44aaff, #4444ff, #ff44ff, #ff4444); width: 100%; opacity: 0.6; }
+.pfill.sat { background: linear-gradient(90deg, #556, #6688ff); }
+.pfill.bri { background: linear-gradient(90deg, #1a1d24, #eee); }
+.pfill.amt { background: linear-gradient(90deg, #1a1d24, #cc8844); }
+
+.modr { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px 0; }
+.modr .ml { font-size: 9px; color: #4a5268; }
+.modr .ms { font-size: 9px; color: #cc8844; background: #cc884411; border: 1px solid #cc884428; padding: 2px 10px; border-radius: 4px; cursor: pointer; }
+.modr .ms:hover { border-color: #cc884455; }
+.modr .ma { font-size: 9px; color: #556; margin-left: auto; }
+.modr .ma-trk { width: 50px; height: 6px; background: #0e1018; border-radius: 3px; overflow: hidden; margin-left: 4px; }
+.modr .ma-fill { height: 100%; background: #cc8844; border-radius: 3px; }
+
+/* Blend mode */
+.blend-sec { padding: 8px 14px; border-top: 1px solid #1e2230; }
+.blend-sec .blbl { font-size: 9px; color: #4a5268; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.blend-sec .bdd { width: 100%; background: #1c2030; border: 1px solid #252a36; color: #889; padding: 4px 10px; border-radius: 4px; font-size: 10px; }
+
+/* PERFORMANCE */
+.perf { height: 80px; background: linear-gradient(180deg, #181c26 0%, #141820 100%); border-top: 1px solid #2a3040; display: flex; align-items: center; padding: 0 24px; gap: 16px; }
+.perf-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #3a4258; font-weight: 600; }
+.perf-knobs { display: flex; gap: 16px; }
+.pk { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.pk .pkn { width: 38px; height: 38px; border-radius: 50%; background: conic-gradient(from 220deg, #6688ff 0%, #6688ff var(--kv, 50%), #222a38 var(--kv, 50%), #222a38 280deg); border: 2px solid #3a4258; position: relative; }
+.pk .pkn::after { content: ''; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border-radius: 50%; background: #181c26; }
+.pk .pkl { font-size: 8px; color: #4a5268; }
+.pk .pkv { font-size: 8px; color: #667; font-family: monospace; }
+.perf-transport { display: flex; gap: 4px; margin-left: 20px; }
+.pt-btn { width: 30px; height: 30px; background: #222a38; border: 1px solid #3a4258; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #778; font-size: 13px; cursor: pointer; }
+.pt-btn:hover { background: #2e3648; }
+.pt-btn.active { border-color: #6688ff; color: #6688ff; }
+.perf-spacer { flex: 1; }
+.perf-action { padding: 8px 22px; font-size: 11px; font-weight: 600; border-radius: 6px; cursor: pointer; border: 1.5px solid; }
+.bo { background: #14080a; border-color: #ff444444; color: #ff7777; }
+.fz { background: #080a14; border-color: #6688ff44; color: #88aaff; }
+
+/* FOOTER */
+.footer { height: 30px; background: linear-gradient(180deg, #181c26 0%, #12151e 100%); border-top: 1px solid #2a3040; display: flex; align-items: center; padding: 0 20px; gap: 14px; }
+.fb { font-size: 10px; color: #4a5268; cursor: pointer; padding: 3px 10px; }
+.fb:hover { color: #889; }
+.fb.sv { color: #6688ff; }
+.footer .sp { flex: 1; }
+.footer .dia { width: 12px; height: 12px; background: linear-gradient(135deg, #6688ff, #4466ee); transform: rotate(45deg); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="dia"></div><span>Audio-DNA</span></div>
+  <div class="sp"></div>
+  <div class="bpm-block">
+    <div class="arr-btn">&#8722;</div>
+    <div class="bpm-num">128.00</div>
+    <div class="arr-btn">+</div>
+  </div>
+  <div class="tap">TAP</div>
+  <div style="width:1px; height:24px; background:#2a3040;"></div>
+  <div class="beat-row">
+    <div class="bd on"></div><div class="bd"></div><div class="bd"></div><div class="bd"></div>
+  </div>
+  <div class="bar-info">Bar 32 &middot; Phr 4.1</div>
+  <div class="sp"></div>
+  <div class="meter-block">
+    <span class="meter-lbl">Master</span>
+    <div class="meter-trk"><div class="meter-fill"></div></div>
+  </div>
+  <div class="fps">60 FPS</div>
+  <div class="set-btn">&#9881;</div>
+</div>
+
+<div class="main">
+  <!-- LEFT -->
+  <div class="left">
+    <div class="ptitle">Library &amp; Sources</div>
+    <div class="tabs">
+      <div class="tab a">Video</div>
+      <div class="tab">Image</div>
+      <div class="tab">Sources</div>
+    </div>
+    <div class="mgrid">
+      <div class="mthumb"><div class="mth t1"></div><span class="pi">&#9654;</span></div>
+      <div class="mthumb"><div class="mth t2"></div><span class="pi">&#9654;</span></div>
+      <div class="mthumb"><div class="mth t3"></div></div>
+      <div class="mthumb"><div class="mth t4"></div><span class="pi">&#9654;</span></div>
+      <div class="mthumb"><div class="mth t5"></div></div>
+      <div class="mthumb"><div class="mth t6"></div></div>
+      <div class="mthumb"><div class="mth t1"></div></div>
+      <div class="mthumb"><div class="mth t3"></div></div>
+    </div>
+    <div class="asrc-hdr">Audio Sources</div>
+    <div class="asrc-list">
+      <div class="asr">
+        <div class="ico k">K</div>
+        <div class="aname">Kick Drum</div>
+        <div class="ameter"><div class="af" style="width:78%; background:#cc8844;"></div></div>
+      </div>
+      <div class="asr">
+        <div class="ico s">S</div>
+        <div class="aname">Snare</div>
+        <div class="ameter"><div class="af" style="width:42%; background:#44aa88;"></div></div>
+      </div>
+      <div class="asr">
+        <div class="ico b">B</div>
+        <div class="aname">Bass</div>
+        <div class="ameter"><div class="af" style="width:65%; background:#8844cc;"></div></div>
+      </div>
+      <div class="asr">
+        <div class="ico m">M</div>
+        <div class="aname">Master Audio</div>
+        <div class="ameter"><div class="af" style="width:55%; background:#44aacc;"></div></div>
+      </div>
+    </div>
+    <div class="lfo-area">
+      <div class="lfor">
+        <span class="lic">&#8767;</span>
+        <span class="ln">LFO 1 &mdash; Sine</span>
+        <div class="lw"><svg viewBox="0 0 65 20"><path d="M0 10 Q8 0 16 10 Q24 20 32 10 Q40 0 48 10 Q56 20 65 10" fill="none" stroke="#aa66ff" stroke-width="1.5"/></svg></div>
+      </div>
+      <div class="lfor">
+        <span class="lic">&#8767;</span>
+        <span class="ln">LFO 2 &mdash; Saw</span>
+        <div class="lw"><svg viewBox="0 0 65 20"><path d="M0 18 L16 2 L16 18 L32 2 L32 18 L48 2 L48 18 L65 2" fill="none" stroke="#aa66ff" stroke-width="1.5"/></svg></div>
+      </div>
+      <div class="lfor">
+        <span class="lic">&#8767;</span>
+        <span class="ln">LFO 3 &mdash; Custom</span>
+        <div class="lw"><svg viewBox="0 0 65 20"><path d="M0 10 L10 2 Q20 18 30 6 L45 14 Q55 2 65 10" fill="none" stroke="#aa66ff" stroke-width="1.5"/></svg></div>
+      </div>
+    </div>
+    <div class="add-src">+ Add Audio Source</div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <div class="ctitle">Composition Canvas</div>
+    <div class="ccanvas">
+      <div class="ccol">
+        <div class="cclip active"><div class="ct t2"></div><span class="po">&#9654;</span><span class="cbdg" style="background:#e8553599; color:#fff;">VIDEO</span></div>
+        <div class="fxtags"><span class="fxt g">Colorize</span><span class="fxt a">Pixelate</span></div>
+        <div class="shared">Shared</div>
+        <div class="clabel">Audio-DNA</div>
+      </div>
+      <div class="ccol">
+        <div class="cclip"><div class="ct t4"></div><span class="po">&#9654;</span><span class="cbdg" style="background:#00d4aa99; color:#111;">SRC</span></div>
+        <div class="fxtags"><span class="fxt g">Colorize</span><span class="fxt p">Blur</span></div>
+        <div class="shared">Shared</div>
+        <div class="clabel">Audio-DNA</div>
+      </div>
+      <div class="ccol">
+        <div class="cclip"><div class="ct t5"></div><span class="cbdg" style="background:#3588e899; color:#fff;">IMAGE</span></div>
+        <div class="fxtags"><span class="fxt g">Colorize</span><span class="fxt a">Pixelate</span></div>
+        <div class="shared">Shared</div>
+        <div class="clabel">Audio-DNA</div>
+      </div>
+      <div class="ccol">
+        <div class="cclip"><div class="ct t1"></div><span class="cbdg" style="background:#aa55dd99; color:#fff;">SRC</span></div>
+        <div class="fxtags"><span class="fxt g">Colorize</span><span class="fxt a">Pixelate</span></div>
+        <div class="shared">Shared</div>
+        <div class="clabel">Audio-DNA</div>
+      </div>
+    </div>
+
+    <div class="routing">
+      <div style="position:absolute; left:60px; top:50%; width:calc(50% - 70px); height:1px; background:linear-gradient(90deg, #4466ee18, #4466ee55);"></div>
+      <div style="position:absolute; right:60px; top:50%; width:calc(50% - 70px); height:1px; background:linear-gradient(270deg, #4466ee18, #4466ee55);"></div>
+      <div style="position:absolute; left:50%; top:15px; width:1px; height:25px; background:linear-gradient(180deg, #4466ee18, #4466ee55);"></div>
+      <div style="position:absolute; left:50%; bottom:15px; width:1px; height:25px; background:linear-gradient(0deg, #4466ee18, #4466ee55);"></div>
+      <div class="hub"><span class="hn">Audio-DNA</span><span class="hs">Kick Drum</span></div>
+      <span class="rhint">Drag Audio Source Here</span>
+    </div>
+
+    <div class="striggers">
+      <div class="strig">Intro</div>
+      <div class="strig a">Verse</div>
+      <div class="strig">Chorus</div>
+      <div class="strig">Build</div>
+      <div class="strig">Drop</div>
+      <div class="strig">Outro</div>
+      <div class="strig">Song</div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="rtabs">
+      <div class="rtab a">Inspector</div>
+      <div class="rtab">Layer</div>
+      <div class="rtab">Clip</div>
+    </div>
+    <div class="insp-body">
+      <div class="cwheel"><div class="dot"></div></div>
+      <div class="fx-name-bar">
+        <div class="fdot" style="background:#44cc77;"></div>
+        <span class="fname">Colorize</span>
+        <span class="fon">ON</span>
+      </div>
+      <div class="params">
+        <div class="pr">
+          <div class="plbl"><span>Hue</span><span class="pv">0.50</span></div>
+          <div class="ptrk"><div class="pfill hue"></div></div>
+        </div>
+        <div class="pr">
+          <div class="plbl"><span>Saturation</span><span class="pv">0.72</span></div>
+          <div class="ptrk"><div class="pfill sat" style="width:72%;"></div></div>
+        </div>
+        <div class="modr">
+          <span class="ml">Modulation</span>
+          <span class="ms">Kick Drum</span>
+          <span class="ma">Amt</span>
+          <div class="ma-trk"><div class="ma-fill" style="width:60%;"></div></div>
+        </div>
+        <div class="pr">
+          <div class="plbl"><span>Brightness</span><span class="pv">0.85</span></div>
+          <div class="ptrk"><div class="pfill bri" style="width:85%;"></div></div>
+        </div>
+        <div class="modr">
+          <span class="ml">Modulation</span>
+          <span class="ms">Bass</span>
+          <span class="ma">Amt</span>
+          <div class="ma-trk"><div class="ma-fill" style="width:40%;"></div></div>
+        </div>
+        <div class="pr">
+          <div class="plbl"><span>Amount</span><span class="pv">0.65</span></div>
+          <div class="ptrk"><div class="pfill amt" style="width:65%;"></div></div>
+        </div>
+      </div>
+      <div class="blend-sec">
+        <div class="blbl">Blend Mode</div>
+        <select class="bdd"><option>Normal</option></select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="perf">
+  <div class="perf-lbl">Performance</div>
+  <div class="perf-knobs">
+    <div class="pk"><div class="pkn" style="--kv:45%;"></div><div class="pkl">Macro 1</div><div class="pkv">0.45</div></div>
+    <div class="pk"><div class="pkn" style="--kv:62%;"></div><div class="pkl">Macro 2</div><div class="pkv">0.62</div></div>
+    <div class="pk"><div class="pkn" style="--kv:78%;"></div><div class="pkl">Macro 3</div><div class="pkv">0.78</div></div>
+    <div class="pk"><div class="pkn" style="--kv:33%;"></div><div class="pkl">Macro 4</div><div class="pkv">0.33</div></div>
+    <div class="pk"><div class="pkn" style="--kv:55%;"></div><div class="pkl">Macro 5</div><div class="pkv">0.55</div></div>
+  </div>
+  <div class="perf-transport">
+    <div class="pt-btn">&#9664;</div>
+    <div class="pt-btn active">&#9654;</div>
+    <div class="pt-btn">&#9632;</div>
+  </div>
+  <div class="perf-spacer"></div>
+  <div class="perf-action bo">Blackout</div>
+  <div class="perf-action fz">Freeze</div>
+</div>
+
+<div class="footer">
+  <div class="fb">Master Sources</div>
+  <div class="fb">Audio Player</div>
+  <div class="fb">Outputs</div>
+  <div class="sp"></div>
+  <div class="fb sv">Save</div>
+  <div class="fb">Load</div>
+  <div class="fb">Help</div>
+  <div class="dia"></div>
+</div>
+
+</body>
+</html>

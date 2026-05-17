@@ -1,0 +1,523 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          74,
+          "bpm"
+        ],
+        "to": [
+          75,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          75,
+          "output0"
+        ],
+        "to": [
+          77,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          77,
+          "output0"
+        ],
+        "to": [
+          76,
+          "frequency"
+        ]
+      },
+      {
+        "from": [
+          76,
+          "output"
+        ],
+        "to": [
+          80,
+          "width"
+        ]
+      },
+      {
+        "from": [
+          79,
+          "output"
+        ],
+        "to": [
+          81,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          81,
+          "output0"
+        ],
+        "to": [
+          80,
+          "height"
+        ]
+      },
+      {
+        "from": [
+          78,
+          "one"
+        ],
+        "to": [
+          79,
+          "trigger"
+        ]
+      },
+      {
+        "from": [
+          80,
+          "output"
+        ],
+        "to": [
+          83,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "BPM to Frequency",
+      "identifier": "e79f733e-6de0-4a02-98c4-b2529e1bbd16",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 84,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "BPM TO FREQUENCY\n\nThis node converts the BPM value to a frequency(Hz). This can be usefull to synchronize values to a beat that are not triggers.\nIn the example we take the BPM from the Transport Settings node and convert it to a frequency. We divide this by 4 to get the frequency to sync up with 1 bar. We use this value for the frequency of our Sine.\n\nThe result is that no matter the BPM speed, the animation will always be in sync with the Transport Beat below.\n\nPress play to start the example."
+          }
+        },
+        "bounds": {
+          "height": 209.33152770996097,
+          "width": 859.350341796875,
+          "x": -178.84896850585935,
+          "y": 224.79885864257812
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "74": {
+        "attributes": {},
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": -179.5361785888672,
+          "y": 507.0865783691406
+        },
+        "class": {
+          "id": "77697265-66B1-4C28-A5A9-1F64026D769B",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Transport Settings"
+      },
+      "75": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 40.882041931152344,
+          "y": 507.0865783691406
+        },
+        "class": {
+          "id": "77697265-D6A0-423F-99F8-608FA5E03E97",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Bpm to Frequency"
+      },
+      "76": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 477.0285949707031,
+          "y": 507.0865783691406
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "77": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 255.0472717285156,
+          "y": 507.0865783691406
+        },
+        "class": {
+          "id": "77697265-0D55-485E-813D-706DD5DFE88D",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 4
+          }
+        },
+        "hidden": [],
+        "name": "Divide"
+      },
+      "78": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          }
+        },
+        "bounds": {
+          "height": 158,
+          "width": 195,
+          "x": 40.882041931152344,
+          "y": 711.8722534179688
+        },
+        "class": {
+          "id": "77697265-6707-4A3C-9DFB-0DF782B8DB95",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [
+          "three",
+          "six",
+          "twelve"
+        ],
+        "name": "Transport Beat"
+      },
+      "79": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 255.0472717285156,
+          "y": 711.8722534179688
+        },
+        "class": {
+          "id": "77697265-D980-43B3-9237-6683B154A5B0",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "attack-time": {
+            "type": "float",
+            "value": 0.4169999957084656
+          },
+          "linear": {
+            "type": "bool",
+            "value": true
+          },
+          "release": {
+            "type": "trigger",
+            "value": null
+          },
+          "release-time": {
+            "type": "float",
+            "value": 1.6670000553131104
+          },
+          "reset": {
+            "type": "trigger",
+            "value": null
+          },
+          "restart-at-zero": {
+            "type": "bool",
+            "value": false
+          },
+          "trigger": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "restart-at-zero",
+          "linear",
+          "is-done"
+        ],
+        "name": "Attack Release"
+      },
+      "80": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 110,
+          "width": 195,
+          "x": 766.2297973632812,
+          "y": 507.0865783691406
+        },
+        "class": {
+          "id": "77697265-4db6-4573-8aa7-42362bc44931",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "height": {
+            "type": "float",
+            "value": 0.5
+          },
+          "round": {
+            "type": "float4",
+            "value": [
+              0.5,
+              0.5,
+              0.5,
+              0.5
+            ]
+          },
+          "width": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Rectangle"
+      },
+      "81": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 477.0285949707031,
+          "y": 711.8722534179688
+        },
+        "class": {
+          "id": "77697265-A9AF-4CB4-B10F-3968B36BB63B",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 0.10000000149011612
+          }
+        },
+        "hidden": [],
+        "name": "Add"
+      },
+      "83": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 996.0274047851564,
+          "y": 507.0865783691406
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -355.84027099609375,
+        "y": 94.28489685058594,
+        "zoom": 0.9999997615814208
+      },
+      "selection": [
+        "75"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "preview-lock": 83,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "75": null
+        },
+        "out": {}
+      }
+    }
+  }
+}

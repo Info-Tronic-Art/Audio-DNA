@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 07 Var B (Enhanced)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(160deg, #1a1e24 0%, #131620 50%, #0e1118 100%); color: #d0d0d0; font-size: 12px; }
+
+.topbar { height: 38px; background: linear-gradient(180deg, #282c34 0%, #1e2228 100%); border-bottom: 1px solid #3a3e44; display: flex; align-items: center; padding: 0 14px; gap: 10px; }
+.logo { font-size: 17px; font-weight: 700; color: #e8e8e8; }
+.logo span { color: #f0a030; }
+.sep { width: 1px; height: 22px; background: #3a3e44; }
+.bpm { font-size: 20px; font-weight: 800; color: #4ae04a; }
+.btn { background: #2a2e34; color: #bbb; border: 1px solid #444; padding: 3px 10px; border-radius: 3px; font-size: 11px; }
+.beat-dots { display: flex; gap: 4px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #2a2e34; border: 1px solid #444; }
+.dot.on { background: #f0a030; border-color: #f0a030; box-shadow: 0 0 6px rgba(240,160,48,0.5); }
+.bar-ct { font-size: 14px; color: #aaa; font-weight: 600; }
+.right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+.scene-tabs { height: 34px; background: #1c2028; border-bottom: 1px solid #2a2e34; display: flex; align-items: center; padding: 0 14px; gap: 6px; }
+.st { padding: 6px 22px; font-size: 13px; color: #666; cursor: pointer; border-radius: 4px 4px 0 0; background: #22262e; }
+.st.active { color: #f0a030; background: #2a2e34; border: 1px solid #3a3e44; border-bottom: none; font-weight: 700; }
+
+.main { display: flex; height: calc(100% - 38px - 34px - 32px); }
+
+/* LEFT */
+.left-panel { width: 240px; background: linear-gradient(180deg, #1c2028 0%, #161a20 100%); border-right: 1px solid #2a2e34; display: flex; flex-direction: column; }
+.section-hdr { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 2px; padding: 12px 14px 8px; display: flex; align-items: center; }
+.section-hdr .count { margin-left: auto; font-size: 9px; color: #444; }
+.lrow { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid #1a1e24; gap: 8px; cursor: pointer; }
+.lrow:hover { background: #252830; }
+.lrow.active { background: #252830; border-left: 3px solid #f0a030; }
+.l-color { width: 4px; height: 28px; border-radius: 2px; }
+.lc-amber { background: #f0a030; }
+.lc-green { background: #40e080; }
+.lc-purple { background: #a040c0; }
+.lc-blue { background: #40a0e0; }
+.lc-red { background: #e04060; }
+.l-route { display: flex; align-items: center; gap: 3px; }
+.l-route-ico { font-size: 9px; color: #e0a040; }
+.l-route-name { font-size: 9px; color: #888; }
+.l-name { flex: 1; font-size: 12px; color: #ccc; }
+.l-btns { display: flex; gap: 3px; }
+.l-b { width: 20px; height: 18px; font-size: 9px; display: flex; align-items: center; justify-content: center; background: #22262e; border: 1px solid #333; border-radius: 3px; color: #666; }
+.l-b.on { color: #f0a030; border-color: #f0a030; }
+.l-opacity { width: 50px; height: 5px; background: #1a1a1a; border-radius: 3px; }
+.l-op-fill { height: 100%; background: linear-gradient(90deg, #306060, #40a0a0); border-radius: 3px; }
+.l-badge { font-size: 7px; font-weight: 700; padding: 2px 6px; border-radius: 10px; }
+.badge-v { background: linear-gradient(90deg,#c04820,#a03010); color: #fff; }
+.badge-s { background: linear-gradient(90deg,#20a0a0,#108080); color: #fff; }
+
+.utility { border-top: 1px solid #2a2e34; }
+.u-row { display: flex; align-items: center; padding: 6px 14px; gap: 8px; }
+.u-ico { width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+.u-audio { background: #1a4a1a; color: #4ae04a; }
+.u-kick { background: #4a3a1a; color: #e0a040; }
+.u-snare { background: #4a1a2a; color: #e04060; }
+.u-mic { background: #3a1a4a; color: #a040e0; }
+.u-name { flex: 1; font-size: 11px; color: #aaa; }
+.u-wave { width: 60px; height: 16px; }
+.u-wave svg { width: 100%; height: 100%; }
+.u-meter { width: 5px; height: 16px; background: #111; border-radius: 2px; overflow: hidden; display: flex; flex-direction: column-reverse; }
+.u-mf { width: 100%; border-radius: 0 0 2px 2px; }
+
+/* CENTER */
+.center { flex: 1; display: flex; flex-direction: column; }
+.grid-sec { display: flex; flex-direction: column; }
+.grid-hdr { display: flex; height: 30px; border-bottom: 1px solid #2a2e34; background: #1e2228; }
+.gh { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666; border-right: 1px solid #1a1e24; }
+.gh.active { color: #f0a030; font-weight: 700; border-bottom: 2px solid #f0a030; }
+.grid-body { display: flex; flex-direction: column; overflow-y: auto; }
+.grow { display: flex; min-height: 110px; border-bottom: 1px solid #1a1e24; }
+.gcell { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; border-right: 1px solid #1a1e24; }
+.thumb { width: 88px; height: 88px; border-radius: 5px; position: relative; border: 1px solid #333; }
+.thumb.act { border-color: #40d0d0; box-shadow: 0 0 8px rgba(64,208,208,0.2); }
+.tname { font-size: 9px; color: #aaa; text-align: center; margin-top: 3px; width: 88px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thumb .tb { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); font-size: 7px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.tb-v { background: linear-gradient(90deg,#c04820,#a03010); color: #fff; }
+.tb-s { background: linear-gradient(90deg,#20a0a0,#108080); color: #fff; }
+.tb-i { background: linear-gradient(90deg,#2060c0,#1040a0); color: #fff; }
+.empty-th { width: 88px; height: 88px; border: 1px dashed #2a2e34; border-radius: 5px; }
+.t1 { background: linear-gradient(135deg, #203060, #102040, #304080); }
+.t2 { background: linear-gradient(135deg, #604020, #402010, #805030); }
+.t3 { background: linear-gradient(135deg, #206040, #104030, #308050); }
+.t4 { background: linear-gradient(135deg, #602040, #401030, #803050); }
+.t5 { background: linear-gradient(135deg, #404060, #202040, #505080); }
+.t6 { background: linear-gradient(135deg, #206060, #104040, #308080); }
+
+.new-clip { display: flex; align-items: center; justify-content: center; padding: 14px; }
+.new-clip-btn { font-size: 12px; color: #40a0a0; padding: 8px 24px; border: 1px dashed #40a0a0; border-radius: 5px; cursor: pointer; }
+
+.macros-sec { padding: 12px 20px; background: #1a1e24; border-top: 1px solid #2a2e34; }
+.macros-title { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 2px; text-align: center; margin-bottom: 10px; }
+.macro-chips { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.mc { display: flex; align-items: center; gap: 6px; padding: 5px 14px; background: linear-gradient(180deg, #282c34, #22262e); border: 1px solid #3a3e44; border-radius: 5px; }
+.mc-n { font-size: 11px; color: #f0a030; font-weight: 700; }
+.mc-t { font-size: 11px; color: #bbb; }
+.mc-ico { width: 8px; height: 8px; border-radius: 50%; }
+
+/* RIGHT */
+.right-panel { width: 300px; background: linear-gradient(180deg, #1c2028 0%, #161a20 100%); border-left: 1px solid #2a2e34; display: flex; flex-direction: column; }
+.rp-sec { padding: 10px 12px; border-bottom: 1px solid #2a2e34; }
+.rp-hdr { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; }
+.rp-hdr .live { margin-left: auto; color: #4ae04a; font-weight: 700; font-size: 11px; }
+.preview { width: 100%; height: 150px; border-radius: 5px; background: linear-gradient(135deg, #201810, #1a1020, #102030); border: 1px solid #333; position: relative; overflow: hidden; }
+.preview::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 55% 40%, rgba(240,180,60,0.18), transparent 60%); }
+.focus { width: 100%; height: 110px; border-radius: 5px; background: linear-gradient(135deg, #102030, #0a1020, #1a1030); border: 1px solid #2a2e34; position: relative; overflow: hidden; }
+.focus::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 40% 50%, rgba(60,120,240,0.1), transparent 60%); }
+
+/* MACROBOT enhanced */
+.macrobot { padding: 12px; }
+.mb-title { font-size: 11px; color: #888; margin-bottom: 10px; display: flex; align-items: center; }
+.mb-title .badge { margin-left: auto; font-size: 8px; color: #40a0a0; border: 1px solid #40a0a0; padding: 1px 6px; border-radius: 8px; }
+.mb-knobs { display: flex; gap: 12px; justify-content: center; }
+.mk-g { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.mk { width: 34px; height: 34px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #404448, #1e2228); border: 2px solid #4a4e54; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.mk .arc { position: absolute; inset: -4px; border-radius: 50%; border: 2.5px solid transparent; }
+.a-a { border-top-color: #f0a030; border-right-color: #f0a030; }
+.a-c { border-top-color: #40c0c0; }
+.a-g { border-top-color: #4ae04a; border-right-color: #4ae04a; }
+.a-p { border-top-color: #a040e0; }
+.mk .ptr { position: absolute; top: 4px; left: 50%; width: 2px; height: 10px; background: #ddd; transform-origin: bottom center; border-radius: 1px; }
+.mk-l { font-size: 8px; color: #777; }
+.add-fx { font-size: 11px; color: #40a0a0; cursor: pointer; padding: 10px 0; text-align: center; border-top: 1px solid #2a2e34; margin-top: 8px; }
+.fx-nums { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+.fn { width: 28px; height: 22px; background: #22262e; border: 1px solid #333; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #666; }
+.fn.active { color: #f0a030; border-color: #f0a030; background: rgba(240,160,48,0.05); }
+
+.footer { height: 32px; background: linear-gradient(180deg, #222630 0%, #1a1e24 100%); border-top: 1px solid #3a3e44; display: flex; align-items: center; padding: 0 14px; gap: 16px; }
+.fi { font-size: 11px; color: #666; }
+.fr { margin-left: auto; display: flex; gap: 10px; }
+.fb { font-size: 11px; color: #888; padding: 3px 14px; background: #2a2e34; border: 1px solid #3a3e44; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span style="font-size:14px;color:#666">&#9776;</span>
+  <div class="logo">Audio-<span>DNA</span> VJ</div>
+  <div class="sep"></div>
+  <span style="font-size:11px;color:#888">BPM:</span>
+  <span class="bpm">128</span>
+  <span class="btn">TAP</span>
+  <span class="btn">NUDGE -</span>
+  <span class="btn">NUDGE +</span>
+  <div class="sep"></div>
+  <div class="beat-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+  <span class="bar-ct">037 / 04.1</span>
+  <div class="right">
+    <span class="btn" style="font-size:10px;color:#f0a030;border-color:#f0a030">Auto 4</span>
+  </div>
+</div>
+
+<div class="scene-tabs">
+  <span class="st">Intro</span>
+  <span class="st">Verse</span>
+  <span class="st">Build</span>
+  <span class="st active">Drop</span>
+  <span class="st">Outro</span>
+</div>
+
+<div class="main">
+  <div class="left-panel">
+    <div class="section-hdr">LAYERS <span class="count">5 layers</span></div>
+    <div style="flex:1;overflow-y:auto">
+      <div class="lrow active">
+        <div class="l-color lc-amber"></div>
+        <div class="l-route"><span class="l-route-ico">&#9835;</span><span class="l-route-name">Kick</span></div>
+        <span class="l-name">Background</span>
+        <div class="l-opacity"><div class="l-op-fill" style="width:100%"></div></div>
+        <div class="l-btns"><span class="l-b on">S</span><span class="l-b">M</span></div>
+      </div>
+      <div class="lrow">
+        <div class="l-color lc-green"></div>
+        <span class="l-name">Pulse Shapes</span>
+        <span class="l-badge badge-v">VIDEO</span>
+        <div class="l-btns"><span class="l-b">S</span><span class="l-b">M</span></div>
+      </div>
+      <div class="lrow">
+        <div class="l-color lc-purple"></div>
+        <span class="l-name">Strobe FX</span>
+        <span class="l-badge badge-s">SYNTH</span>
+        <div class="l-btns"><span class="l-b">S</span><span class="l-b">M</span></div>
+      </div>
+      <div class="lrow">
+        <div class="l-color lc-blue"></div>
+        <span class="l-name">3D Tunnel</span>
+        <span class="l-badge badge-v">VIDEO</span>
+        <div class="l-btns"><span class="l-b">S</span><span class="l-b">M</span></div>
+      </div>
+      <div class="lrow">
+        <div class="l-color lc-red"></div>
+        <span class="l-name">Color Glitch</span>
+        <span class="l-badge badge-v">VIDEO</span>
+        <div class="l-btns"><span class="l-b">S</span><span class="l-b">M</span></div>
+      </div>
+    </div>
+
+    <div class="utility">
+      <div class="section-hdr">UTILITY / AUDIO SOURCES</div>
+      <div class="u-row">
+        <div class="u-ico u-kick">&#9835;</div>
+        <span class="u-name">Kick Drum</span>
+        <div class="u-wave"><svg viewBox="0 0 60 16"><polyline points="0,12 10,2 16,12 26,12 36,3 42,12 52,12 60,5" fill="none" stroke="#e0a040" stroke-width="1.5"/></svg></div>
+        <div class="u-meter"><div class="u-mf" style="height:65%;background:linear-gradient(0deg,#4a3a1a,#e0a040)"></div></div>
+      </div>
+      <div class="u-row">
+        <div class="u-ico u-audio">&#9835;</div>
+        <span class="u-name">Bass</span>
+        <div class="u-wave"><svg viewBox="0 0 60 16"><polyline points="0,10 12,4 24,10 36,6 48,10 60,4" fill="none" stroke="#4ae04a" stroke-width="1.5"/></svg></div>
+        <div class="u-meter"><div class="u-mf" style="height:80%;background:linear-gradient(0deg,#1a4a1a,#4ae04a)"></div></div>
+      </div>
+      <div class="u-row">
+        <div class="u-ico u-snare">&#9835;</div>
+        <span class="u-name">Snare</span>
+        <div class="u-wave"><svg viewBox="0 0 60 16"><polyline points="0,12 8,2 14,12 22,12 30,4 36,12 44,12 52,2 58,12" fill="none" stroke="#e04060" stroke-width="1.5"/></svg></div>
+        <div class="u-meter"><div class="u-mf" style="height:50%;background:linear-gradient(0deg,#4a1a2a,#e04060)"></div></div>
+      </div>
+      <div class="u-row">
+        <div class="u-ico u-mic">&#9835;</div>
+        <span class="u-name">Mic</span>
+        <div class="u-wave"><svg viewBox="0 0 60 16"><polyline points="0,8 6,4 12,11 18,3 24,12 30,8 36,5 42,10 48,6 54,9 60,8" fill="none" stroke="#a040e0" stroke-width="1.5"/></svg></div>
+        <div class="u-meter"><div class="u-mf" style="height:40%;background:linear-gradient(0deg,#3a1a4a,#a040e0)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="grid-sec">
+      <div class="grid-hdr">
+        <div class="gh">Intro</div>
+        <div class="gh">Verse</div>
+        <div class="gh">Build</div>
+        <div class="gh active">Drop</div>
+        <div class="gh">Outro</div>
+      </div>
+      <div class="grid-body">
+        <div class="grow">
+          <div class="gcell"><div><div class="thumb t1 act"><span class="tb tb-i">IMAGE</span></div><div class="tname">City Lights</div></div></div>
+          <div class="gcell"><div><div class="thumb t3"><span class="tb tb-s">SYNTH</span></div><div class="tname">Geometric</div></div></div>
+          <div class="gcell"><div><div class="thumb t4 act"><span class="tb tb-s">SYNTH</span></div><div class="tname">Bass Pulse</div></div></div>
+          <div class="gcell"><div><div class="thumb t6"><span class="tb tb-v">VIDEO</span></div><div class="tname">Tunnel Spin</div></div></div>
+          <div class="gcell"><div class="empty-th"></div></div>
+        </div>
+        <div class="grow">
+          <div class="gcell"><div><div class="thumb t2"><span class="tb tb-v">VIDEO</span></div><div class="tname">Pulse A</div></div></div>
+          <div class="gcell"><div class="empty-th"></div></div>
+          <div class="gcell"><div class="empty-th"></div></div>
+          <div class="gcell"><div><div class="thumb t5"><span class="tb tb-s">SYNTH</span></div><div class="tname">VJ Text</div></div></div>
+          <div class="gcell"><div class="empty-th"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="new-clip"><span class="new-clip-btn">+ New Clip</span></div>
+    <div class="macros-sec">
+      <div class="macros-title">GLOBAL MACROS</div>
+      <div class="macro-chips">
+        <div class="mc"><span class="mc-n">#1</span><div class="mc-ico" style="background:#e0a040"></div><span class="mc-t">Kick Drum</span></div>
+        <div class="mc"><span class="mc-n">#2</span><div class="mc-ico" style="background:#4ae04a"></div><span class="mc-t">Bass</span></div>
+        <div class="mc"><span class="mc-n">#3</span><div class="mc-ico" style="background:#e04060"></div><span class="mc-t">Snare</span></div>
+        <div class="mc"><span class="mc-n">#4</span><div class="mc-ico" style="background:#a040e0"></div><span class="mc-t">Mic</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="rp-sec">
+      <div class="rp-hdr">Program Output <span class="live">LIVE</span></div>
+      <div class="preview"></div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-hdr">Focus Preview</div>
+      <div class="focus"></div>
+    </div>
+    <div class="macrobot">
+      <div class="mb-title">Macrobot <span class="badge">AUTO</span></div>
+      <div class="mb-knobs">
+        <div class="mk-g"><div class="mk"><div class="arc a-a" style="transform:rotate(-30deg)"></div><div class="ptr" style="transform:rotate(-25deg)"></div></div><span class="mk-l">Hue</span></div>
+        <div class="mk-g"><div class="mk"><div class="arc a-a" style="transform:rotate(15deg)"></div><div class="ptr" style="transform:rotate(20deg)"></div></div><span class="mk-l">Sat</span></div>
+        <div class="mk-g"><div class="mk"><div class="arc a-c" style="transform:rotate(-10deg)"></div><div class="ptr" style="transform:rotate(-5deg)"></div></div><span class="mk-l">Sat</span></div>
+        <div class="mk-g"><div class="mk"><div class="arc a-g" style="transform:rotate(30deg)"></div><div class="ptr" style="transform:rotate(35deg)"></div></div><span class="mk-l">Bright</span></div>
+        <div class="mk-g"><div class="mk"><div class="arc a-p" style="transform:rotate(-20deg)"></div><div class="ptr" style="transform:rotate(-15deg)"></div></div><span class="mk-l">Speed</span></div>
+      </div>
+      <div class="add-fx">+ Add Effect</div>
+      <div class="fx-nums">
+        <div class="fn active">1</div>
+        <div class="fn">2</div>
+        <div class="fn">3</div>
+        <div class="fn">4</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="fi">&#9654; Player</span>
+  <span style="font-size:10px;color:#555">Display 01 | FPS: 60 | 1920 x 1080</span>
+  <div class="fr">
+    <span class="fb">SAVE</span>
+    <span class="fb">LOAD</span>
+    <span class="fb">HELP</span>
+  </div>
+</div>
+
+</body>
+</html>

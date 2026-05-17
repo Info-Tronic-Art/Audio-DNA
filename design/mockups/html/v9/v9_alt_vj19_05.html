@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VJ19 Alt 05 — Scene Performer</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0a; color:#e0e0e0; font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; width:1920px; height:1080px; overflow:hidden; }
+
+/* MINIMAL CHROME */
+.top-strip { height:32px; background:#111; display:flex; align-items:center; padding:0 12px; border-bottom:1px solid #222; gap:8px; }
+.logo { font-weight:700; font-size:13px; color:#ff8800; letter-spacing:2px; }
+.bpm-box { background:#1a1a1a; border:1px solid #ff8800; padding:3px 10px; display:flex; align-items:center; gap:6px; }
+.bpm-val { font-size:18px; font-weight:700; color:#ff8800; font-variant-numeric:tabular-nums; }
+.bpm-sub { font-size:9px; color:#666; }
+.beat-wheel { width:26px; height:26px; border-radius:50%; border:2px solid #ff8800; position:relative; }
+.bw-q { position:absolute; width:11px; height:11px; }
+.bw-q:nth-child(1) { top:0; right:0; border-radius:0 11px 0 0; background:#ff8800; }
+.bw-q:nth-child(2) { bottom:0; right:0; border-radius:0 0 11px 0; background:#ff880044; }
+.bw-q:nth-child(3) { bottom:0; left:0; border-radius:0 0 0 11px; background:#ff880022; }
+.bw-q:nth-child(4) { top:0; left:0; border-radius:11px 0 0 0; background:#ff880022; }
+.btn { background:#1a1a1a; border:1px solid #333; color:#ccc; padding:3px 10px; cursor:pointer; font-size:10px; }
+.btn.active { background:#ff8800; color:#0a0a0a; border-color:#ff8800; font-weight:600; }
+.spacer { flex:1; }
+.info { font-size:9px; color:#555; }
+
+/* SIGNAL METERS TOP */
+.signal-strip { height:20px; background:#0d0d0d; display:flex; align-items:center; padding:0 4px; gap:1px; border-bottom:1px solid #1a1a1a; }
+.sm { flex:1; height:12px; background:#111; position:relative; overflow:hidden; }
+.sm .f { position:absolute; left:0; top:0; height:100%; }
+.sm .l { position:absolute; left:3px; top:0; font-size:7px; color:#666; z-index:1; line-height:12px; }
+
+/* MAIN GRID (maximized, minimal borders) */
+.main { height:calc(1080px - 32px - 20px - 160px); display:flex; flex-direction:column; position:relative; }
+.deck-bar { height:24px; background:#111; display:flex; align-items:center; padding:0 8px; gap:4px; border-bottom:1px solid #1a1a1a; }
+.dt { padding:3px 14px; background:#1a1a1a; border:1px solid #222; cursor:pointer; font-size:10px; color:#888; }
+.dt.active { background:#ff8800; color:#0a0a0a; border-color:#ff8800; font-weight:600; }
+.scene-row { height:18px; background:#0d0d0d; display:flex; padding:0 2px 0 32px; gap:1px; }
+.sr { flex:1; display:flex; align-items:center; justify-content:center; font-size:8px; color:#555; }
+.sr.active { color:#ff8800; font-weight:700; }
+
+.perf-grid { flex:1; display:grid; grid-template-columns:30px repeat(8,1fr); grid-template-rows:repeat(5,1fr); gap:2px; padding:3px; }
+.ll { background:#111; display:flex; align-items:center; justify-content:center; font-size:8px; color:#555; border:1px solid #1a1a1a; writing-mode:vertical-lr; }
+.ll.on { color:#ff8800; border-left:2px solid #ff8800; }
+
+/* LARGE CELLS WITH SIGNAL OVERLAYS */
+.pc { background:#141414; border:1px solid #222; position:relative; cursor:pointer; overflow:hidden; }
+.pc:hover { border-color:#ff8800; }
+.pc.active { border:2px solid #ff8800; box-shadow:0 0 12px rgba(255,136,0,0.2); }
+.pc .bg { position:absolute; inset:0; opacity:0.8; }
+.pc .nm { position:absolute; top:4px; left:6px; font-size:10px; color:#fff; text-shadow:0 1px 3px #000; font-weight:600; }
+/* Animated wave overlay */
+.pc .wave-ov { position:absolute; bottom:0; left:0; right:0; height:40%; pointer-events:none; }
+.pc .wave-ov svg { width:100%; height:100%; }
+.pc .wave-ov path { fill:none; stroke-width:1.5; opacity:0.6; }
+/* Signal value badge */
+.pc .sig-badge { position:absolute; top:4px; right:4px; background:#ff880088; padding:1px 4px; font-size:8px; color:#fff; font-weight:600; }
+
+/* PREVIEW PIP (corner) */
+.pip { position:absolute; bottom:12px; right:12px; width:240px; height:135px; background:#000; border:2px solid #ff8800; z-index:20; box-shadow:0 4px 20px rgba(0,0,0,0.8); }
+.pip-canvas { width:100%; height:100%; background:radial-gradient(ellipse at center,#ff8800 0%,#441100 40%,#000 80%); display:flex; align-items:center; justify-content:center; }
+.pip-label { font-size:11px; color:#ff880066; }
+.pip-tag { position:absolute; top:-16px; left:0; font-size:9px; color:#ff8800; background:#111; padding:1px 6px; }
+
+/* FLOATING PALETTE */
+.palette { position:absolute; top:50px; right:12px; width:140px; background:#161616; border:1px solid #333; z-index:15; padding:6px; box-shadow:0 4px 16px rgba(0,0,0,0.6); }
+.pal-title { font-size:9px; color:#ff8800; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.pal-row { display:flex; align-items:center; margin-bottom:2px; }
+.pal-k { width:24px; height:16px; background:#222; border:1px solid #333; display:flex; align-items:center; justify-content:center; font-size:8px; color:#888; margin-right:4px; }
+.pal-v { font-size:9px; color:#ccc; }
+
+/* BOTTOM DRAWER (inspector) */
+.drawer { height:160px; background:#111; border-top:2px solid #333; display:flex; }
+.drawer-tab-col { width:32px; background:#0d0d0d; display:flex; flex-direction:column; align-items:center; padding:4px 0; gap:2px; border-right:1px solid #222; }
+.dti { width:24px; height:24px; background:#1a1a1a; border:1px solid #222; display:flex; align-items:center; justify-content:center; font-size:9px; color:#666; cursor:pointer; }
+.dti.active { background:#ff8800; color:#0a0a0a; border-color:#ff8800; }
+.drawer-body { flex:1; padding:8px; overflow-y:auto; display:flex; gap:16px; }
+.drawer-section { min-width:200px; }
+.ds-title { font-size:9px; color:#ff8800; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; border-bottom:1px solid #222; padding-bottom:3px; }
+.pr { display:flex; align-items:center; margin-bottom:3px; }
+.pl { width:80px; font-size:9px; color:#888; }
+.ps { flex:1; height:3px; background:#222; }
+.ps .t { height:100%; background:#ff8800; }
+.pv { width:30px; text-align:right; font-size:9px; color:#999; }
+</style>
+</head>
+<body>
+
+<div class="top-strip">
+  <div class="logo">AUDIO-DNA</div>
+  <div class="bpm-box">
+    <div><div class="bpm-val">128.0</div><div class="bpm-sub">BPM</div></div>
+    <div class="beat-wheel"><div class="bw-q"></div><div class="bw-q"></div><div class="bw-q"></div><div class="bw-q"></div></div>
+  </div>
+  <span class="info">Bar 4/8 Phrase 2</span>
+  <div class="btn active">PLAY</div><div class="btn">TAP</div><div class="btn">LINK</div>
+  <div class="spacer"></div>
+  <span class="info">60 fps | GPU 31% | House | Drop</span>
+</div>
+
+<div class="signal-strip">
+  <script>
+    const sN2=['RMS','Peak','Bass','LMid','Mid','HMid','Brill','Flux','Onset','Beat','Bar','Side','Form','Rees'];
+    const sV2=[0.72,0.88,0.93,0.55,0.42,0.30,0.14,0.50,0.0,0.75,0.50,0.70,0.25,0.80];
+    const sC2=['#ff8800','#ff8800','#ff4444','#ff6644','#ffaa44','#ffcc44','#ffee44','#44ddff','#ff4488','#ff8800','#ff8800','#ff8800','#88ff88','#ff4444'];
+    document.write(sN2.map((n,i)=>`<div class="sm"><div class="f" style="width:${sV2[i]*100}%;background:${sC2[i]}44"></div><div class="l">${n}</div></div>`).join(''));
+  </script>
+</div>
+
+<div class="main">
+  <div class="deck-bar">
+    <div class="dt active">Deck 1</div><div class="dt">Deck 2</div><div class="dt">Deck 3</div><div class="dt">Deck 4</div>
+    <span style="flex:1"></span><span class="info">Performance Mode</span>
+  </div>
+  <div class="scene-row">
+    <script>for(let i=1;i<=8;i++) document.write(`<div class="sr ${i===4?'active':''}">${i}</div>`);</script>
+  </div>
+  <div class="perf-grid">
+    <script>
+      const pL=['FX','Overlay','Visual A','Visual B','BG'];
+      const pA=[true,true,true,false,true];
+      const pC=[
+        ['Echo','RGB Split','Glitch Sort','Strobe','Data Corrupt','Scanlines','Frame Stutter',''],
+        ['Neon Edge','Text Wall','Particle Rain','Dot Matrix','Pop Raster','','',''],
+        ['Mandelbulb','Julia 3D','Menger','Spiral Torus','Spectrum Ring','Fluid Sim','KIFS','Strange Attr'],
+        ['Perlin','Voronoi','Simplex','Plasma','Fire','Diamond','',''],
+        ['Gradient A','Solid Dark','Ocean','Night Sky','Aurora','Nebula','Lava','Frost'],
+      ];
+      const pG=[
+        ['linear-gradient(135deg,#4466ff,#112244)','linear-gradient(135deg,#ff44ff,#441144)','linear-gradient(135deg,#ff4488,#441122)','linear-gradient(135deg,#fff,#444)','linear-gradient(135deg,#ff4444,#441111)','linear-gradient(135deg,#888,#333)','linear-gradient(135deg,#8844ff,#220044)',''],
+        ['linear-gradient(135deg,#44ffaa,#113322)','linear-gradient(135deg,#88ff88,#113311)','linear-gradient(135deg,#ff88ff,#331133)','linear-gradient(135deg,#aaa,#333)','linear-gradient(135deg,#ff4444,#331111)','','',''],
+        ['linear-gradient(135deg,#ff4444,#441111)','linear-gradient(135deg,#44ff44,#114411)','linear-gradient(135deg,#4444ff,#111144)','linear-gradient(135deg,#ff44ff,#441144)','linear-gradient(135deg,#ff8800,#442200)','linear-gradient(135deg,#44aaff,#112233)','linear-gradient(135deg,#ffff44,#444411)','linear-gradient(135deg,#8844ff,#220044)'],
+        ['linear-gradient(135deg,#667788,#223344)','linear-gradient(135deg,#778866,#334422)','linear-gradient(135deg,#887766,#332211)','linear-gradient(135deg,#884422,#331100)','linear-gradient(135deg,#ff4400,#441100)','linear-gradient(135deg,#886677,#332233)','',''],
+        ['linear-gradient(135deg,#224488,#0a1533)','linear-gradient(135deg,#111,#000)','linear-gradient(135deg,#0066cc,#002244)','linear-gradient(135deg,#112244,#000)','linear-gradient(135deg,#004422,#001100)','linear-gradient(135deg,#220044,#000)','linear-gradient(135deg,#442200,#000)','linear-gradient(135deg,#224466,#001133)'],
+      ];
+      const waveColors=['#ff8800','#4466ff','#44ffaa','#ff44ff','#44aaff','#ff4444','#ffaa44','#88ff88'];
+      for(let r=0;r<5;r++){
+        document.write(`<div class="ll ${pA[r]?'on':''}">${pL[r]}</div>`);
+        for(let c=0;c<8;c++){
+          const nm=pC[r][c],g=pG[r][c],act=r===2&&c===0;
+          const hasSig=nm&&r>=2;
+          const sigVal=hasSig?(0.3+Math.random()*0.7).toFixed(2):'';
+          // SVG wave shape
+          let waveSvg='';
+          if(hasSig){
+            const wc=waveColors[(r+c)%waveColors.length];
+            const pts=[];
+            for(let x=0;x<=100;x+=5){
+              const y=50+Math.sin((x+r*30+c*45)*0.08)*30+Math.sin((x+c*20)*0.15)*15;
+              pts.push(`${x},${y}`);
+            }
+            waveSvg=`<div class="wave-ov"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M${pts.join(' L')}" stroke="${wc}" /></svg></div>`;
+          }
+          document.write(`<div class="pc ${act?'active':''}">${g?`<div class="bg" style="background:${g}"></div>`:''}${nm?`<div class="nm">${nm}</div>`:''}${hasSig?`<div class="sig-badge">${sigVal}</div>`:''} ${waveSvg}</div>`);
+        }
+      }
+    </script>
+  </div>
+
+  <!-- PREVIEW PIP -->
+  <div class="pip">
+    <div class="pip-tag">Preview</div>
+    <div class="pip-canvas"><div class="pip-label">Mandelbulb 3D</div></div>
+  </div>
+
+  <!-- FLOATING PALETTE -->
+  <div class="palette">
+    <div class="pal-title">Quick Reference</div>
+    <div class="pal-row"><div class="pal-k">1-8</div><div class="pal-v">Trigger scene</div></div>
+    <div class="pal-row"><div class="pal-k">Q-I</div><div class="pal-v">Layer 1 clips</div></div>
+    <div class="pal-row"><div class="pal-k">A-K</div><div class="pal-v">Layer 2 clips</div></div>
+    <div class="pal-row"><div class="pal-k">Z-,</div><div class="pal-v">Layer 3 clips</div></div>
+    <div class="pal-row"><div class="pal-k">Spc</div><div class="pal-v">Tap tempo</div></div>
+    <div class="pal-row"><div class="pal-k">Esc</div><div class="pal-v">Blackout</div></div>
+    <div class="pal-row"><div class="pal-k">F11</div><div class="pal-v">Fullscreen</div></div>
+    <div class="pal-row"><div class="pal-k">Tab</div><div class="pal-v">Next deck</div></div>
+  </div>
+</div>
+
+<!-- BOTTOM DRAWER -->
+<div class="drawer">
+  <div class="drawer-tab-col">
+    <div class="dti active">C</div>
+    <div class="dti">L</div>
+    <div class="dti">S</div>
+    <div class="dti">K</div>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-section">
+      <div class="ds-title">Source: Mandelbulb</div>
+      <div class="pr"><span class="pl">Zoom</span><div class="ps"><div class="t" style="width:45%"></div></div><span class="pv">0.45</span></div>
+      <div class="pr"><span class="pl">Power</span><div class="ps"><div class="t" style="width:60%"></div></div><span class="pv">0.60</span></div>
+      <div class="pr"><span class="pl">Iterations</span><div class="ps"><div class="t" style="width:70%"></div></div><span class="pv">0.70</span></div>
+      <div class="pr"><span class="pl">Speed</span><div class="ps"><div class="t" style="width:55%"></div></div><span class="pv">0.55</span></div>
+      <div class="pr"><span class="pl">Color Shift</span><div class="ps"><div class="t" style="width:30%"></div></div><span class="pv">0.30</span></div>
+      <div class="pr"><span class="pl">Glow</span><div class="ps"><div class="t" style="width:40%"></div></div><span class="pv">0.40</span></div>
+    </div>
+    <div class="drawer-section">
+      <div class="ds-title">Effects</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#1a1a1a;border:1px solid #222;margin-bottom:2px;font-size:9px">
+        <span style="color:#ff8800">B</span><span style="flex:1">Echo</span><span style="color:#555">Decay: 0.85</span><span style="color:#444;margin-left:4px">X</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#1a1a1a;border:1px solid #222;margin-bottom:2px;font-size:9px">
+        <span style="color:#ff8800">B</span><span style="flex:1">Glow</span><span style="color:#555">Intensity: 0.50</span><span style="color:#444;margin-left:4px">X</span>
+      </div>
+    </div>
+    <div class="drawer-section">
+      <div class="ds-title">Signals</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#1a1a1a;border:1px solid #222;margin-bottom:2px;font-size:9px">
+        <div style="width:6px;height:6px;background:#ff8800"></div><span style="color:#ff8800">RMS</span><span style="color:#444">-></span><span>Zoom</span><span style="margin-left:auto;color:#ff8800">0.72</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#1a1a1a;border:1px solid #222;margin-bottom:2px;font-size:9px">
+        <div style="width:6px;height:6px;background:#ff4444"></div><span style="color:#ff4444">Bass</span><span style="color:#444">-></span><span>Glow</span><span style="margin-left:auto;color:#ff4444">0.93</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#1a1a1a;border:1px solid #222;margin-bottom:2px;font-size:9px">
+        <div style="width:6px;height:6px;background:#ff8800"></div><span style="color:#ff8800">Beat</span><span style="color:#444">-></span><span>Speed</span><span style="margin-left:auto;color:#ff8800">0.75</span>
+      </div>
+    </div>
+    <div class="drawer-section">
+      <div class="ds-title">Transform</div>
+      <div class="pr"><span class="pl">Position X</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Position Y</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Scale</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">1.00</span></div>
+      <div class="pr"><span class="pl">Rotation</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.0</span></div>
+      <div class="pr"><span class="pl">Opacity</span><div class="ps"><div class="t" style="width:100%"></div></div><span class="pv">1.00</span></div>
+    </div>
+    <div class="drawer-section">
+      <div class="ds-title">Layer</div>
+      <div class="pr"><span class="pl">Opacity</span><div class="ps"><div class="t" style="width:85%"></div></div><span class="pv">0.85</span></div>
+      <div class="pr"><span class="pl">Blend Mode</span><div class="ps"><div class="t" style="width:30%"></div></div><span class="pv">Add</span></div>
+      <div class="pr"><span class="pl">Transition</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">Dissolve</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

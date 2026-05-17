@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA · STATE 4/4 · Waveform Max / Signals Min</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;border-radius:0 !important;}
+  html,body{width:1920px;height:1080px;background:#0a0a0a;color:#e8e8e8;font-family:'IBM Plex Sans',sans-serif;overflow:hidden;}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  .app{position:relative;width:1920px;height:1080px;background:#0a0a0a;}
+
+  /* ------------ GRAIN ------------ */
+  .grain{position:absolute;inset:0;pointer-events:none;z-index:9999;opacity:.03;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");}
+
+  /* ------------ MENU 24 ------------ */
+  .menu{height:24px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;padding:0 12px;gap:18px;font-size:11px;color:#8e8e8e;}
+  .menu .brand{color:#fff;font-weight:600;letter-spacing:0.08em;font-size:11px;}
+  .menu .brand span{color:#ff4500;}
+  .menu .mi{cursor:default;}
+  .menu .mi:hover{color:#e8e8e8;}
+  .menu .right{margin-left:auto;display:flex;gap:14px;font-size:10px;color:#6e6e6e;}
+
+  /* ------------ TOP BAR 56 ------------ */
+  .topbar{height:56px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;padding:0 16px;gap:18px;}
+  .bpm{display:flex;align-items:baseline;gap:8px;}
+  .bpm .num{font-family:'IBM Plex Mono',monospace;font-weight:300;font-size:48px;line-height:1;color:#ff4500;letter-spacing:-0.02em;}
+  .bpm .lbl{font-size:10px;letter-spacing:0.15em;color:#6e6e6e;}
+  .bpm .sub{font-size:10px;color:#8e8e8e;font-family:'IBM Plex Mono',monospace;}
+  .divV{width:1px;height:40px;background:#222;}
+
+  .wheel{width:40px;height:40px;position:relative;}
+  .wheel svg{width:40px;height:40px;}
+  .wheel .seg{fill:#1a1a1a;stroke:#333;stroke-width:1;}
+  .wheel .seg.on{fill:#ff4500;stroke:#ff4500;animation:beat 0.469s infinite;}
+  @keyframes beat{0%{opacity:1;}50%{opacity:0.5;}100%{opacity:1;}}
+
+  .phrase{display:flex;flex-direction:column;gap:2px;font-size:10px;color:#8e8e8e;font-family:'IBM Plex Mono',monospace;}
+  .phrase .row{display:flex;gap:10px;}
+  .phrase .k{color:#6e6e6e;}
+  .phrase .v{color:#e8e8e8;}
+
+  .transport{display:flex;gap:1px;}
+  .tbtn{width:40px;height:32px;background:#1a1a1a;border:1px solid #333;display:flex;align-items:center;justify-content:center;color:#e8e8e8;font-size:11px;font-family:'IBM Plex Mono',monospace;cursor:default;}
+  .tbtn:hover{background:#222;}
+  .tbtn.on{background:#222;border-color:#e8e8e8;color:#fff;}
+
+  .rec{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8e8e8;}
+  .rec .dot{width:8px;height:8px;background:#ff0000;animation:recblink 1s infinite;}
+  @keyframes recblink{0%,100%{opacity:1;}50%{opacity:0.25;}}
+
+  .master{display:flex;flex-direction:column;gap:3px;min-width:140px;}
+  .master .lbl{font-size:9px;letter-spacing:0.14em;color:#6e6e6e;}
+  .master .bar{width:140px;height:12px;background:#1a1a1a;border:1px solid #333;position:relative;}
+  .master .fill{position:absolute;left:0;top:0;bottom:0;width:78%;background:#e8e8e8;}
+  .master .mark{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;left:78%;}
+  .master .val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#e8e8e8;padding:1px 3px;animation:justchanged 3s infinite;align-self:flex-start;}
+  @keyframes justchanged{0%,90%{background:transparent;color:#e8e8e8;}92%{background:#ff4500;color:#0a0a0a;}100%{background:transparent;color:#e8e8e8;}}
+
+  .mode{display:flex;margin-left:auto;border:1px solid #333;}
+  .mcell{width:120px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #333;cursor:default;}
+  .mcell:last-child{border-right:none;}
+  .mcell .n{font-size:9px;color:#6e6e6e;letter-spacing:0.12em;}
+  .mcell .t{font-size:10px;color:#8e8e8e;font-family:'IBM Plex Mono',monospace;letter-spacing:0.08em;}
+  .mcell.on{background:#fff;}
+  .mcell.on .n{color:#0a0a0a;}
+  .mcell.on .t{color:#0a0a0a;font-weight:600;}
+
+  /* ------------ WAVEFORM MAX 280 ------------ */
+  .wfwrap{height:280px;background:#0a0a0a;border-bottom:1px solid #222;position:relative;display:flex;flex-direction:column;}
+  .deck{position:relative;height:132px;border-bottom:1px solid #222;display:flex;flex-direction:column;}
+  .deck:last-of-type{border-bottom:none;}
+  .deckmeta{height:22px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;padding:0 12px;gap:14px;}
+  .deckmeta .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8e8e8e;letter-spacing:0.05em;}
+  .deckmeta .tag .k{color:#6e6e6e;}
+  .deckmeta .tag .v{color:#e8e8e8;}
+  .deckmeta .tag .deckId{color:#fff;font-weight:600;}
+  .deckmeta .cues{margin-left:auto;display:flex;gap:4px;}
+  .deckmeta .cues .cue{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 5px;border:1px solid #333;color:#8e8e8e;letter-spacing:0.08em;}
+  .deckmeta .cues .cue.active{border-color:#e8e8e8;color:#fff;}
+
+  .wave{height:110px;position:relative;background:#0a0a0a;overflow:hidden;}
+  .wave svg{position:absolute;inset:0;width:100%;height:100%;}
+  .wave .playhead{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#fff;transform:translateX(-1px);z-index:5;}
+  .wave .playhead::before{content:'';position:absolute;top:-2px;left:-5px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid #fff;}
+  .wave .dropflag{position:absolute;top:0;bottom:0;width:2px;background:#ff4500;z-index:4;}
+  .wave .droplbl{position:absolute;background:#ff4500;color:#0a0a0a;font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 5px;letter-spacing:0.1em;font-weight:600;z-index:6;}
+
+  .cuemarker{position:absolute;top:0;z-index:3;}
+  .cuemarker svg{width:12px;height:10px;overflow:visible;}
+  .cuemarker .lbl{position:absolute;top:11px;left:-10px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#e8e8e8;letter-spacing:0.08em;background:#111;padding:1px 3px;white-space:nowrap;border:1px solid #333;}
+
+  .zone{position:absolute;top:0;bottom:0;pointer-events:none;z-index:1;}
+  .zone.build{background:rgba(255,230,0,0.10);}
+  .zone.drop{background:rgba(255,0,0,0.10);}
+  .zone.break{background:rgba(0,150,255,0.10);}
+  .zone .zlbl{position:absolute;top:2px;left:4px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.14em;color:#e8e8e8;text-transform:uppercase;}
+
+  .barruler{height:16px;background:#111;border-top:1px solid #222;display:flex;position:relative;}
+  .barruler .bar{flex:1;height:16px;border-right:1px solid #222;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6e6e6e;letter-spacing:0.1em;}
+  .barruler .bar:last-child{border-right:none;}
+  .barruler .bar.cur{background:#ff4500;color:#0a0a0a;font-weight:600;}
+
+  /* ------------ SIGNAL STRIP MIN 24 ------------ */
+  .sig{height:24px;background:#111;border-bottom:1px solid #222;display:flex;align-items:center;padding:0 12px;}
+  .sig .it{display:flex;align-items:center;gap:6px;height:24px;padding:0 14px;border-right:1px solid #222;}
+  .sig .it:last-child{border-right:none;}
+  .sig .k{font-size:10px;letter-spacing:0.1em;color:#6e6e6e;}
+  .sig .v{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8e8e8;}
+  .sig .v.hot{color:#fff;}
+  .sig .v.bass{animation:shake 33ms infinite;}
+  @keyframes shake{0%{transform:translateX(0);}25%{transform:translateX(-0.5px);}75%{transform:translateX(0.5px);}100%{transform:translateX(0);}}
+  .sig .dot{width:8px;height:8px;background:#333;border-radius:50% !important;}
+  .sig .dot.beat{background:#ff4500;animation:beat 0.469s infinite;}
+  .sig .dot.onset{background:#ff4500;animation:onsetflash 2.3s infinite;}
+  @keyframes onsetflash{0%,95%{opacity:0.15;}95.5%{opacity:1;}100%{opacity:0.15;}}
+  .sig .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#e8e8e8;letter-spacing:0.08em;padding:1px 5px;border:1px solid #333;}
+  .sig .tag.sel{background:#ff4500;color:#0a0a0a;border-color:#ff4500;font-weight:600;}
+
+  /* ------------ MAIN 678 ------------ */
+  .main{height:678px;display:flex;border-bottom:1px solid #222;}
+
+  /* left: now-playing + cues */
+  .left{width:380px;background:#0a0a0a;border-right:1px solid #222;display:flex;flex-direction:column;}
+  .nowhdr{padding:14px 16px 10px;border-bottom:1px solid #222;}
+  .nowhdr .row{display:flex;align-items:center;gap:10px;}
+  .nowhdr .pulse{width:10px;height:10px;background:#ff4500;border-radius:50% !important;animation:beat 0.469s infinite;}
+  .nowhdr .name{font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:22px;color:#fff;letter-spacing:0.01em;line-height:1;}
+  .nowhdr .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8e8e8e;margin-top:6px;letter-spacing:0.04em;}
+  .nowhdr .fx{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#8e8e8e;margin-top:4px;letter-spacing:0.04em;}
+  .nowhdr .fx .chip{color:#e8e8e8;}
+
+  .nowtime{padding:14px 16px 12px;border-bottom:1px solid #222;display:flex;align-items:baseline;justify-content:space-between;}
+  .nowtime .t{font-family:'IBM Plex Mono',monospace;font-weight:300;font-size:34px;color:#fff;letter-spacing:-0.01em;line-height:1;}
+  .nowtime .t .sep{color:#6e6e6e;margin:0 6px;}
+  .nowtime .t .rem{color:#8e8e8e;}
+  .nowtime .rb{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+  .nowtime .rb .bpm{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#e8e8e8;border:1px solid #333;padding:2px 6px;letter-spacing:0.08em;}
+  .nowtime .rb .lp{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8e8e8e;letter-spacing:0.05em;}
+
+  .cueshdr{padding:10px 16px 6px;}
+  .cueshdr .h{font-size:11px;letter-spacing:0.18em;color:#e8e8e8;text-transform:uppercase;font-weight:500;}
+  .cueshdr .sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6e6e6e;margin-top:3px;}
+
+  .cuegrid{padding:4px 16px 10px;display:grid;grid-template-columns:repeat(4,1fr);grid-gap:6px;}
+  .cuebtn{height:48px;background:#111;border:1px solid #222;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .cuebtn .n{font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:22px;color:#e8e8e8;line-height:1;}
+  .cuebtn .lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8e8e8e;margin-top:3px;letter-spacing:0.05em;}
+  .cuebtn.filled{border-color:#fff;box-shadow:inset 0 0 0 2px #fff;}
+  .cuebtn.filled .n{color:#fff;}
+  .cuebtn.empty{opacity:0.5;}
+  .cuebtn.empty .n{color:#6e6e6e;}
+  .cuebtn.cur{background:#ff4500;border-color:#ff4500;box-shadow:none;}
+  .cuebtn.cur .n{color:#fff;}
+  .cuebtn.cur .lbl{color:#fff;}
+  .cuebtn .rec{position:absolute;top:3px;right:3px;width:5px;height:5px;background:#ff4500;border-radius:50% !important;}
+
+  .cuefoot{padding:4px 16px 12px;border-bottom:1px solid #222;}
+  .cuefoot .r{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#8e8e8e;margin-bottom:3px;letter-spacing:0.04em;}
+  .cuefoot .r .k{color:#6e6e6e;}
+  .cuefoot .r .v{color:#e8e8e8;}
+
+  .leftbtns{padding:10px 16px;margin-top:auto;display:flex;gap:6px;}
+  .leftbtns .b{height:26px;padding:0 12px;background:#1a1a1a;border:1px solid #333;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#e8e8e8;letter-spacing:0.1em;cursor:default;display:flex;align-items:center;}
+  .leftbtns .b:hover{background:#222;}
+
+  /* middle: deck grid */
+  .mid{flex:1;background:#0a0a0a;border-right:1px solid #222;display:flex;flex-direction:column;}
+  .grid{flex:1;display:flex;padding:10px;gap:1px;overflow:hidden;}
+  .col.lhdr{width:80px;background:#0a0a0a;display:flex;flex-direction:column;gap:1px;}
+  .lheadcell{flex:1;background:#111;border:1px solid #222;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 2px;}
+  .lheadcell .ln{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6e6e6e;letter-spacing:0.12em;}
+  .lheadcell .lt{font-family:'IBM Plex Sans',sans-serif;font-size:11px;color:#e8e8e8;font-weight:500;margin-top:3px;text-align:center;line-height:1.15;}
+  .lheadcell .ly{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8e8e8e;margin-top:4px;letter-spacing:0.08em;}
+  .lheadcell .op{width:46px;height:4px;background:#222;margin-top:6px;position:relative;}
+  .lheadcell .op i{position:absolute;left:0;top:0;bottom:0;background:#e8e8e8;}
+
+  .clipcols{flex:1;display:flex;flex-direction:column;gap:1px;}
+  .clayer{flex:1;display:flex;gap:1px;}
+  .cell{flex:1;background:#111;border:1px solid #222;position:relative;overflow:hidden;display:flex;align-items:flex-end;}
+  .cell svg.thumb{position:absolute;inset:0;width:100%;height:100%;}
+  .cell .cname{position:relative;z-index:2;width:100%;background:rgba(10,10,10,0.85);border-top:1px solid #222;padding:4px 6px;font-size:12px;color:#e8e8e8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.01em;}
+  .cell .meta{position:absolute;top:4px;left:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(232,232,232,0.7);letter-spacing:0.08em;z-index:2;}
+  .cell.playing{background:#ff4500;}
+  .cell.playing svg.thumb{opacity:0.55;mix-blend-mode:luminosity;}
+  .cell.playing .cname{background:rgba(255,69,0,0.9);color:#fff;border-top-color:#fff;}
+  .cell.playing .prog{position:absolute;left:0;bottom:0;height:4px;background:#fff;z-index:3;width:37%;}
+  .cell.queued{border:2px dashed #fff;}
+  .cell.queued .q{position:absolute;top:4px;right:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#fff;background:rgba(0,0,0,0.7);padding:1px 4px;letter-spacing:0.1em;z-index:2;}
+  .cell.sel{outline:2px solid #fff;outline-offset:-2px;}
+  .cell.empty{background:#0a0a0a;border:1px dashed #222;}
+  .cell.empty .plus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#333;}
+
+  /* right: preview + mini browser */
+  .right{width:400px;background:#0a0a0a;display:flex;flex-direction:column;}
+  .prev{width:400px;height:225px;background:#000;position:relative;border-bottom:1px solid #222;overflow:hidden;}
+  .prev svg{width:100%;height:100%;}
+  .prev .livetag{position:absolute;top:8px;right:8px;display:flex;align-items:center;gap:5px;background:rgba(10,10,10,0.85);padding:3px 6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#e8e8e8;letter-spacing:0.1em;border:1px solid #333;z-index:3;}
+  .prev .livetag .dot{width:6px;height:6px;background:#ff4500;border-radius:50% !important;animation:liveflicker 2s infinite;}
+  @keyframes liveflicker{0%,100%{opacity:1;}92%{opacity:0.3;}94%{opacity:1;}96%{opacity:0.4;}}
+  .prev .livetag .t{color:#ff4500;font-weight:600;}
+  .prev .syphon{position:absolute;bottom:10px;right:8px;background:rgba(10,10,10,0.85);padding:3px 6px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#8e8e8e;letter-spacing:0.1em;border:1px solid #333;z-index:3;}
+  .prev .orangebar{position:absolute;left:0;right:0;bottom:0;height:2px;background:#ff4500;z-index:3;}
+
+  .browser{flex:1;display:flex;flex-direction:column;background:#0a0a0a;overflow:hidden;}
+  .btabs{display:flex;border-bottom:1px solid #222;}
+  .btab{flex:1;height:26px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6e6e6e;letter-spacing:0.1em;border-right:1px solid #222;background:#111;cursor:default;}
+  .btab:last-child{border-right:none;}
+  .btab.on{background:#0a0a0a;color:#fff;}
+  .btab:hover{color:#e8e8e8;}
+
+  .bsearch{padding:8px 10px;border-bottom:1px solid #222;}
+  .bsearch input{width:100%;height:24px;background:#111;border:1px solid #333;color:#e8e8e8;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:0 8px;outline:none;}
+  .bsearch input::placeholder{color:#6e6e6e;}
+
+  .blist{flex:1;overflow:hidden;}
+  .bcat{border-bottom:1px solid #222;}
+  .bcath{height:24px;padding:0 10px;display:flex;align-items:center;justify-content:space-between;background:#111;cursor:default;}
+  .bcath .nm{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#e8e8e8;letter-spacing:0.12em;text-transform:uppercase;}
+  .bcath .ct{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6e6e6e;}
+  .bcath .tri{color:#6e6e6e;font-size:9px;margin-right:6px;}
+  .bitems .bi{height:22px;padding:0 10px 0 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #111;cursor:default;}
+  .bitems .bi:hover{background:#111;}
+  .bitems .bi .nm{font-size:11px;color:#e8e8e8;}
+  .bitems .bi .tag{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6e6e6e;letter-spacing:0.08em;}
+
+  /* ------------ FOOTER 18 ------------ */
+  .footer{height:18px;background:#111;display:flex;align-items:center;padding:0 12px;gap:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6e6e6e;letter-spacing:0.08em;}
+  .footer .sep{color:#333;}
+  .footer .ok{color:#e8e8e8;}
+  .footer .state{margin-left:auto;color:#ff4500;font-weight:600;}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ MENU ============ -->
+  <div class="menu">
+    <div class="brand">AUDIO<span>·</span>DNA</div>
+    <div class="mi">File</div>
+    <div class="mi">Edit</div>
+    <div class="mi">View</div>
+    <div class="mi">Composition</div>
+    <div class="mi">Deck</div>
+    <div class="mi">Layer</div>
+    <div class="mi">Clip</div>
+    <div class="mi">Effects</div>
+    <div class="mi">Audio</div>
+    <div class="mi">Signals</div>
+    <div class="mi">Output</div>
+    <div class="mi">Window</div>
+    <div class="mi">Help</div>
+    <div class="right">
+      <span>SESSION · LATE_NIGHT_SET_03</span>
+      <span>OUTPUT · DISPLAY 2 · 1920×1080 · 60Hz</span>
+      <span>2026-04-18 · 23:42</span>
+    </div>
+  </div>
+
+  <!-- ============ TOP BAR ============ -->
+  <div class="topbar">
+    <div class="bpm">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <div class="lbl">BPM · AUTO · STABLE</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <div class="num">128.0</div>
+          <div class="sub">HOLD 2.4s</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divV"></div>
+
+    <div class="wheel">
+      <svg viewBox="0 0 40 40">
+        <circle cx="20" cy="20" r="18" fill="#111" stroke="#333" stroke-width="1"/>
+        <path class="seg on" d="M20 20 L20 2 A18 18 0 0 1 38 20 Z"/>
+        <path class="seg" d="M20 20 L38 20 A18 18 0 0 1 20 38 Z"/>
+        <path class="seg" d="M20 20 L20 38 A18 18 0 0 1 2 20 Z"/>
+        <path class="seg" d="M20 20 L2 20 A18 18 0 0 1 20 2 Z"/>
+        <circle cx="20" cy="20" r="3" fill="#0a0a0a" stroke="#333"/>
+      </svg>
+    </div>
+
+    <div class="phrase">
+      <div class="row"><span class="k">BAR</span><span class="v mono">17 / 32</span></div>
+      <div class="row"><span class="k">PHRASE</span><span class="v mono">2 / 4</span></div>
+      <div class="row"><span class="k">BEAT</span><span class="v mono">3.2</span></div>
+    </div>
+
+    <div class="divV"></div>
+
+    <div class="transport">
+      <div class="tbtn">|◀</div>
+      <div class="tbtn on">▶</div>
+      <div class="tbtn">■</div>
+      <div class="tbtn">●</div>
+      <div class="tbtn">▶|</div>
+    </div>
+
+    <div class="divV"></div>
+
+    <div class="rec">
+      <div class="dot"></div>
+      <span>REC · 00:12:34 · PRORES</span>
+    </div>
+
+    <div class="divV"></div>
+
+    <div class="master">
+      <div class="lbl">MASTER</div>
+      <div class="bar"><div class="fill"></div><div class="mark"></div></div>
+      <div class="val">0.78</div>
+    </div>
+
+    <div class="divV"></div>
+
+    <div class="phrase">
+      <div class="row"><span class="k">GENRE</span><span class="v mono">HOUSE · 0.88</span></div>
+      <div class="row"><span class="k">KEY</span><span class="v mono">A MINOR</span></div>
+      <div class="row"><span class="k">DECK</span><span class="v mono">A · ACTIVE</span></div>
+    </div>
+
+    <div class="mode">
+      <div class="mcell"><div class="n">01</div><div class="t">WF·MIN SIG·MAX</div></div>
+      <div class="mcell"><div class="n">02</div><div class="t">WF·MID SIG·MID</div></div>
+      <div class="mcell"><div class="n">03</div><div class="t">WF·MIN SIG·MIN</div></div>
+      <div class="mcell on"><div class="n">04</div><div class="t">WF·MAX SIG·MIN</div></div>
+    </div>
+  </div>
+
+  <!-- ============ WAVEFORM MAX ============ -->
+  <div class="wfwrap">
+
+    <!-- DECK A -->
+    <div class="deck">
+      <div class="deckmeta">
+        <div class="tag"><span class="deckId">DECK A</span></div>
+        <div class="tag"><span class="k">KEY</span> <span class="v">Am</span></div>
+        <div class="tag"><span class="k">BPM</span> <span class="v">128.0</span></div>
+        <div class="tag"><span class="k">TIME</span> <span class="v">02:14 / 05:47</span></div>
+        <div class="tag"><span class="k">IN</span> <span class="v">00:00:40</span></div>
+        <div class="tag"><span class="k">OUT</span> <span class="v">04:52:30</span></div>
+        <div class="tag"><span class="k">TRACK</span> <span class="v">NOCTURNAL — EVA MADSEN</span></div>
+        <div class="cues">
+          <div class="cue active">CUE 1</div>
+          <div class="cue">CUE 2</div>
+          <div class="cue">CUE 3</div>
+          <div class="cue">CUE 4</div>
+          <div class="cue">CUE 5</div>
+        </div>
+      </div>
+      <div class="wave" id="waveA">
+
+        <!-- zones -->
+        <div class="zone build" style="left:14%;width:12%;"><div class="zlbl">BUILD</div></div>
+        <div class="zone drop" style="left:26%;width:18%;"><div class="zlbl">DROP</div></div>
+        <div class="zone break" style="left:59%;width:14%;"><div class="zlbl">BREAK</div></div>
+        <div class="zone drop" style="left:73%;width:14%;"><div class="zlbl">DROP 2</div></div>
+
+        <!-- beat grid + waveform -->
+        <svg viewBox="0 0 1920 110" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="wfGradA" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#4a8de0"/>
+              <stop offset="35%" stop-color="#6fc0ff"/>
+              <stop offset="65%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#6fc0ff"/>
+            </linearGradient>
+          </defs>
+          <!-- 1/16 grid -->
+          <g stroke="rgba(255,255,255,0.04)" stroke-width="1">
+            <!-- draw 128 lines -->
+          </g>
+          <script/>
+          <!-- quarter grid -->
+          <g id="qgrid"></g>
+          <!-- downbeats orange -->
+          <g id="dbgrid"></g>
+          <!-- waveform top -->
+          <polyline id="wfA" fill="none" stroke="url(#wfGradA)" stroke-width="1"/>
+          <polyline id="wfA2" fill="none" stroke="url(#wfGradA)" stroke-width="1"/>
+          <!-- cue triangles drawn via HTML overlay below -->
+        </svg>
+
+        <!-- cue markers -->
+        <div class="cuemarker" style="left:7%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 1 · INTRO</div>
+        </div>
+        <div class="cuemarker" style="left:26%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 2 · DROP</div>
+        </div>
+        <div class="cuemarker" style="left:44%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 3 · MID</div>
+        </div>
+        <div class="cuemarker" style="left:59%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 4 · BREAK</div>
+        </div>
+        <div class="cuemarker" style="left:73%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 5 · DROP 2</div>
+        </div>
+
+        <!-- upcoming drop flag -->
+        <div class="dropflag" style="left:62%;"></div>
+        <div class="droplbl" style="left:62.5%;top:8px;">▼ DROP IN 04 BARS</div>
+
+        <!-- playhead -->
+        <div class="playhead"></div>
+      </div>
+    </div>
+
+    <!-- DECK B -->
+    <div class="deck">
+      <div class="deckmeta">
+        <div class="tag"><span class="deckId">DECK B</span></div>
+        <div class="tag"><span class="k">KEY</span> <span class="v">F#m</span></div>
+        <div class="tag"><span class="k">BPM</span> <span class="v">128.0 (sync)</span></div>
+        <div class="tag"><span class="k">TIME</span> <span class="v">01:32 / 06:14</span></div>
+        <div class="tag"><span class="k">IN</span> <span class="v">00:00:12</span></div>
+        <div class="tag"><span class="k">OUT</span> <span class="v">05:44:08</span></div>
+        <div class="tag"><span class="k">TRACK</span> <span class="v">PULSE THEORY — KOBE AURELI</span></div>
+        <div class="cues">
+          <div class="cue">CUE 1</div>
+          <div class="cue active">CUE 2</div>
+          <div class="cue">CUE 3</div>
+          <div class="cue">CUE 4</div>
+          <div class="cue">CUE 5</div>
+        </div>
+      </div>
+      <div class="wave" id="waveB">
+
+        <div class="zone build" style="left:8%;width:14%;"><div class="zlbl">BUILD</div></div>
+        <div class="zone drop" style="left:22%;width:20%;"><div class="zlbl">DROP</div></div>
+        <div class="zone break" style="left:52%;width:12%;"><div class="zlbl">BREAK</div></div>
+        <div class="zone drop" style="left:64%;width:18%;"><div class="zlbl">DROP 2</div></div>
+
+        <svg viewBox="0 0 1920 110" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="wfGradB" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#4a4a4a"/>
+              <stop offset="35%" stop-color="#9a9a9a"/>
+              <stop offset="65%" stop-color="#ffffff"/>
+              <stop offset="100%" stop-color="#9a9a9a"/>
+            </linearGradient>
+          </defs>
+          <g id="qgridB"></g>
+          <g id="dbgridB"></g>
+          <polyline id="wfB" fill="none" stroke="url(#wfGradB)" stroke-width="1"/>
+          <polyline id="wfB2" fill="none" stroke="url(#wfGradB)" stroke-width="1"/>
+        </svg>
+
+        <div class="cuemarker" style="left:6%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 1 · INTRO</div>
+        </div>
+        <div class="cuemarker" style="left:22%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 2 · DROP</div>
+        </div>
+        <div class="cuemarker" style="left:42%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 3 · MID</div>
+        </div>
+        <div class="cuemarker" style="left:52%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 4 · BREAK</div>
+        </div>
+        <div class="cuemarker" style="left:82%;">
+          <svg><polygon points="0,0 12,0 6,10" fill="#e8e8e8"/></svg>
+          <div class="lbl">CUE 5 · OUTRO</div>
+        </div>
+
+        <div class="playhead"></div>
+      </div>
+    </div>
+
+    <!-- BAR RULER 16 -->
+    <div class="barruler" id="barruler"></div>
+  </div>
+
+  <!-- ============ SIGNAL STRIP MIN 24 ============ -->
+  <div class="sig">
+    <div class="it"><span class="k">RMS</span> <span class="v mono">0.72</span></div>
+    <div class="it"><span class="k">BASS</span> <span class="v mono bass">0.91</span></div>
+    <div class="it"><span class="k">MID</span> <span class="v mono">0.43</span></div>
+    <div class="it"><span class="k">HIGH</span> <span class="v mono">0.29</span></div>
+    <div class="it"><span class="k">BEAT</span> <span class="dot beat"></span></div>
+    <div class="it"><span class="k">ONSET</span> <span class="dot onset"></span></div>
+    <div class="it"><span class="k">KEY</span> <span class="tag sel">Am</span></div>
+    <div class="it"><span class="k">GENRE</span> <span class="v mono">HOUSE 0.88</span></div>
+    <div class="it"><span class="k">ENERGY</span> <span class="v mono hot">HIGH</span></div>
+    <div class="it"><span class="k">STRUCT</span> <span class="v mono hot">DROP</span></div>
+    <div class="it"><span class="k">PHRASE</span> <span class="v mono">2 / 4</span></div>
+    <div class="it"><span class="k">CENTROID</span> <span class="v mono">3.4 kHz</span></div>
+    <div class="it"><span class="k">LUFS</span> <span class="v mono">-8.2</span></div>
+    <div class="it"><span class="k">FLUX</span> <span class="v mono">0.54</span></div>
+    <div class="it" style="margin-left:auto;"><span class="k">TRANSIENTS</span> <span class="v mono">12 / s</span></div>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+
+    <!-- LEFT: now-playing + cues -->
+    <div class="left">
+      <div class="nowhdr">
+        <div class="row">
+          <div class="pulse"></div>
+          <div class="name">JULIA SET — PLATE VII</div>
+        </div>
+        <div class="sub">LAYER 02 · TRANSPARENT · LUMA-KEY · OPACITY 82%</div>
+        <div class="fx">FX CHAIN: <span class="chip">RIPPLE</span> · <span class="chip">ECHO</span> · <span class="chip">CHROMATIC AB</span> · <span class="chip">GLOW</span></div>
+      </div>
+
+      <div class="nowtime">
+        <div class="t">
+          <span>02:14</span><span class="sep">/</span><span class="rem">04:28</span>
+        </div>
+        <div class="rb">
+          <div class="bpm">BPM 128.0 SYNC</div>
+          <div class="lp">LOOP · ON · 04:28 · ×2 PINGPONG</div>
+        </div>
+      </div>
+
+      <div class="cueshdr">
+        <div class="h">CUEPOINTS</div>
+        <div class="sub">CLIP JULIA SET — PLATE VII · 8 SLOTS</div>
+      </div>
+
+      <div class="cuegrid">
+        <div class="cuebtn cur">
+          <div class="n">01</div>
+          <div class="lbl">CUE 1 · 00:42</div>
+          <div class="rec"></div>
+        </div>
+        <div class="cuebtn filled">
+          <div class="n">02</div>
+          <div class="lbl">CUE 2 · 01:18</div>
+        </div>
+        <div class="cuebtn filled">
+          <div class="n">03</div>
+          <div class="lbl">CUE 3 · 01:54</div>
+        </div>
+        <div class="cuebtn filled">
+          <div class="n">04</div>
+          <div class="lbl">CUE 4 · 02:30</div>
+        </div>
+        <div class="cuebtn filled">
+          <div class="n">05</div>
+          <div class="lbl">CUE 5 · 03:06</div>
+        </div>
+        <div class="cuebtn filled">
+          <div class="n">06</div>
+          <div class="lbl">CUE 6 · 03:42</div>
+        </div>
+        <div class="cuebtn empty">
+          <div class="n">07</div>
+          <div class="lbl">EMPTY</div>
+        </div>
+        <div class="cuebtn empty">
+          <div class="n">08</div>
+          <div class="lbl">EMPTY</div>
+        </div>
+      </div>
+
+      <div class="cuefoot">
+        <div class="r"><span class="k">LAST TRIGGERED</span> <span class="v">CUE 01 @ 00:42</span></div>
+        <div class="r"><span class="k">TRIGGER MODE</span> <span class="v">SNAP TO BAR · QUANTIZE 1 BAR</span></div>
+        <div class="r"><span class="k">NEXT FIRE</span> <span class="v">BAR 18 · IN 1 BEAT</span></div>
+      </div>
+
+      <div class="leftbtns">
+        <div class="b">IMPORT SESSION</div>
+        <div class="b">SAVE CUES</div>
+        <div class="b">RECORD CUE</div>
+      </div>
+    </div>
+
+    <!-- MIDDLE: deck grid -->
+    <div class="mid">
+      <div class="grid">
+
+        <!-- layer header column -->
+        <div class="col lhdr">
+          <div class="lheadcell">
+            <div class="ln">L1</div>
+            <div class="lt">BASE<br>IMAGE</div>
+            <div class="ly">OPAQUE</div>
+            <div class="op"><i style="width:100%;"></i></div>
+          </div>
+          <div class="lheadcell">
+            <div class="ln">L2</div>
+            <div class="lt">FRACTAL<br>OVERLAY</div>
+            <div class="ly">TRANSP</div>
+            <div class="op"><i style="width:82%;"></i></div>
+          </div>
+          <div class="lheadcell">
+            <div class="ln">L3</div>
+            <div class="lt">AUDIO<br>DRIVEN</div>
+            <div class="ly">TRANSP</div>
+            <div class="op"><i style="width:68%;"></i></div>
+          </div>
+          <div class="lheadcell">
+            <div class="ln">L4</div>
+            <div class="lt">FX ONLY<br>GLITCH</div>
+            <div class="ly">FX</div>
+            <div class="op"><i style="width:45%;"></i></div>
+          </div>
+        </div>
+
+        <!-- clip columns: 4 layers × 6 columns -->
+        <div class="clipcols" id="clipgrid">
+          <!-- rows generated by JS -->
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: preview + mini browser -->
+    <div class="right">
+
+      <!-- LIVE PREVIEW -->
+      <div class="prev">
+        <svg viewBox="0 0 400 225" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="prevBg" cx="0.5" cy="0.5" r="0.7">
+              <stop offset="0%" stop-color="#3a2768"/>
+              <stop offset="40%" stop-color="#1a1636"/>
+              <stop offset="100%" stop-color="#050510"/>
+            </radialGradient>
+            <filter id="prevTurb" x="0" y="0" width="100%" height="100%">
+              <feTurbulence baseFrequency="0.013" numOctaves="3" seed="9"/>
+              <feColorMatrix values="0 0 0 0 0.4  0 0 0 0 0.25  0 0 0 0 0.9  0 0 0 0.5 0"/>
+              <feComposite in="SourceGraphic" in2="turbulence" operator="in"/>
+            </filter>
+            <radialGradient id="prevOrb1" cx="0.3" cy="0.4" r="0.25">
+              <stop offset="0%" stop-color="#c09cff" stop-opacity="0.95"/>
+              <stop offset="100%" stop-color="#c09cff" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="prevOrb2" cx="0.7" cy="0.6" r="0.3">
+              <stop offset="0%" stop-color="#4ac5ff" stop-opacity="0.85"/>
+              <stop offset="100%" stop-color="#4ac5ff" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
+          <rect width="400" height="225" fill="url(#prevBg)"/>
+
+          <!-- fractal radial rings -->
+          <g opacity="0.6">
+            <circle cx="200" cy="113" r="24" fill="none" stroke="#7a5ef0" stroke-width="1"/>
+            <circle cx="200" cy="113" r="40" fill="none" stroke="#7a5ef0" stroke-width="1" opacity="0.7"/>
+            <circle cx="200" cy="113" r="60" fill="none" stroke="#7a5ef0" stroke-width="1" opacity="0.55"/>
+            <circle cx="200" cy="113" r="84" fill="none" stroke="#7a5ef0" stroke-width="1" opacity="0.4"/>
+            <circle cx="200" cy="113" r="112" fill="none" stroke="#7a5ef0" stroke-width="1" opacity="0.25"/>
+          </g>
+
+          <!-- orbits -->
+          <g opacity="0.8">
+            <ellipse cx="200" cy="113" rx="140" ry="40" fill="none" stroke="#4ac5ff" stroke-width="1" opacity="0.5"/>
+            <ellipse cx="200" cy="113" rx="170" ry="58" fill="none" stroke="#5a9cff" stroke-width="1" opacity="0.4" transform="rotate(25 200 113)"/>
+            <ellipse cx="200" cy="113" rx="110" ry="32" fill="none" stroke="#c09cff" stroke-width="1" opacity="0.55" transform="rotate(-18 200 113)"/>
+          </g>
+
+          <!-- inner julia -->
+          <g transform="translate(200 113)" opacity="0.9">
+            <path d="M -30 0 C -25 -18, -10 -28, 0 -20 C 12 -15, 22 -2, 18 12 C 14 26, -2 32, -14 26 C -28 18, -34 4, -30 0 Z"
+                  fill="#a585ff" opacity="0.8"/>
+            <path d="M -20 -4 C -15 -12, -4 -18, 4 -12 C 12 -8, 16 4, 10 12 C 4 18, -8 18, -14 12 C -20 6, -22 0, -20 -4 Z"
+                  fill="#d8c5ff" opacity="0.7"/>
+            <circle r="4" fill="#ffffff" opacity="0.85"/>
+          </g>
+
+          <!-- glow orbs -->
+          <rect width="400" height="225" fill="url(#prevOrb1)"/>
+          <rect width="400" height="225" fill="url(#prevOrb2)"/>
+
+          <!-- scanlines -->
+          <g opacity="0.25">
+            <rect y="0" width="400" height="1" fill="#ffffff"/>
+            <rect y="4" width="400" height="1" fill="#ffffff"/>
+            <rect y="8" width="400" height="1" fill="#ffffff"/>
+            <rect y="12" width="400" height="1" fill="#ffffff"/>
+            <rect y="16" width="400" height="1" fill="#ffffff"/>
+            <rect y="20" width="400" height="1" fill="#ffffff"/>
+            <rect y="24" width="400" height="1" fill="#ffffff"/>
+            <rect y="28" width="400" height="1" fill="#ffffff"/>
+            <rect y="32" width="400" height="1" fill="#ffffff"/>
+            <rect y="36" width="400" height="1" fill="#ffffff"/>
+            <rect y="40" width="400" height="1" fill="#ffffff"/>
+            <rect y="44" width="400" height="1" fill="#ffffff"/>
+            <rect y="48" width="400" height="1" fill="#ffffff"/>
+            <rect y="52" width="400" height="1" fill="#ffffff"/>
+            <rect y="56" width="400" height="1" fill="#ffffff"/>
+            <rect y="60" width="400" height="1" fill="#ffffff"/>
+            <rect y="64" width="400" height="1" fill="#ffffff"/>
+            <rect y="68" width="400" height="1" fill="#ffffff"/>
+            <rect y="72" width="400" height="1" fill="#ffffff"/>
+            <rect y="76" width="400" height="1" fill="#ffffff"/>
+            <rect y="80" width="400" height="1" fill="#ffffff"/>
+            <rect y="84" width="400" height="1" fill="#ffffff"/>
+            <rect y="88" width="400" height="1" fill="#ffffff"/>
+            <rect y="92" width="400" height="1" fill="#ffffff"/>
+            <rect y="96" width="400" height="1" fill="#ffffff"/>
+            <rect y="100" width="400" height="1" fill="#ffffff"/>
+            <rect y="104" width="400" height="1" fill="#ffffff"/>
+            <rect y="108" width="400" height="1" fill="#ffffff"/>
+            <rect y="112" width="400" height="1" fill="#ffffff"/>
+            <rect y="116" width="400" height="1" fill="#ffffff"/>
+            <rect y="120" width="400" height="1" fill="#ffffff"/>
+            <rect y="124" width="400" height="1" fill="#ffffff"/>
+            <rect y="128" width="400" height="1" fill="#ffffff"/>
+            <rect y="132" width="400" height="1" fill="#ffffff"/>
+            <rect y="136" width="400" height="1" fill="#ffffff"/>
+            <rect y="140" width="400" height="1" fill="#ffffff"/>
+            <rect y="144" width="400" height="1" fill="#ffffff"/>
+            <rect y="148" width="400" height="1" fill="#ffffff"/>
+            <rect y="152" width="400" height="1" fill="#ffffff"/>
+            <rect y="156" width="400" height="1" fill="#ffffff"/>
+            <rect y="160" width="400" height="1" fill="#ffffff"/>
+            <rect y="164" width="400" height="1" fill="#ffffff"/>
+            <rect y="168" width="400" height="1" fill="#ffffff"/>
+            <rect y="172" width="400" height="1" fill="#ffffff"/>
+            <rect y="176" width="400" height="1" fill="#ffffff"/>
+            <rect y="180" width="400" height="1" fill="#ffffff"/>
+            <rect y="184" width="400" height="1" fill="#ffffff"/>
+            <rect y="188" width="400" height="1" fill="#ffffff"/>
+            <rect y="192" width="400" height="1" fill="#ffffff"/>
+            <rect y="196" width="400" height="1" fill="#ffffff"/>
+            <rect y="200" width="400" height="1" fill="#ffffff"/>
+            <rect y="204" width="400" height="1" fill="#ffffff"/>
+            <rect y="208" width="400" height="1" fill="#ffffff"/>
+            <rect y="212" width="400" height="1" fill="#ffffff"/>
+            <rect y="216" width="400" height="1" fill="#ffffff"/>
+            <rect y="220" width="400" height="1" fill="#ffffff"/>
+          </g>
+
+          <!-- vignette -->
+          <radialGradient id="prevVig" cx="0.5" cy="0.5" r="0.7">
+            <stop offset="60%" stop-color="#000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="0.8"/>
+          </radialGradient>
+          <rect width="400" height="225" fill="url(#prevVig)"/>
+        </svg>
+        <div class="livetag">
+          <div class="dot"></div>
+          <span class="t">LIVE</span>
+          <span>· 60fps · OUTPUT A</span>
+        </div>
+        <div class="syphon">SYPHON · 1920×1080</div>
+        <div class="orangebar"></div>
+      </div>
+
+      <!-- MINI BROWSER -->
+      <div class="browser">
+        <div class="btabs">
+          <div class="btab">FILES</div>
+          <div class="btab on">FX</div>
+          <div class="btab">SOURCES</div>
+          <div class="btab">COMP</div>
+          <div class="btab">RECORD</div>
+          <div class="btab">MILKDROP</div>
+        </div>
+        <div class="bsearch">
+          <input type="text" placeholder="Search 135 effects...">
+        </div>
+        <div class="blist">
+
+          <div class="bcat">
+            <div class="bcath"><span><span class="tri">▼</span><span class="nm">Warp</span></span><span class="ct">27</span></div>
+            <div class="bitems">
+              <div class="bi"><span class="nm">Ripple</span><span class="tag">ACTIVE</span></div>
+              <div class="bi"><span class="nm">Bulge</span><span class="tag">WARP</span></div>
+              <div class="bi"><span class="nm">Wave</span><span class="tag">WARP</span></div>
+              <div class="bi"><span class="nm">Liquid</span><span class="tag">WARP</span></div>
+              <div class="bi"><span class="nm">Kaleidoscope</span><span class="tag">WARP</span></div>
+              <div class="bi"><span class="nm">Fisheye</span><span class="tag">WARP</span></div>
+              <div class="bi"><span class="nm">Swirl</span><span class="tag">WARP</span></div>
+              <div class="bi"><span class="nm">Polar Coords</span><span class="tag">WARP</span></div>
+              <div class="bi"><span class="nm">Twirl</span><span class="tag">WARP</span></div>
+            </div>
+          </div>
+
+          <div class="bcat">
+            <div class="bcath"><span><span class="tri">▶</span><span class="nm">Color</span></span><span class="ct">31</span></div>
+          </div>
+          <div class="bcat">
+            <div class="bcath"><span><span class="tri">▶</span><span class="nm">Glitch</span></span><span class="ct">16</span></div>
+          </div>
+          <div class="bcat">
+            <div class="bcath"><span><span class="tri">▶</span><span class="nm">Time</span></span><span class="ct">6</span></div>
+          </div>
+          <div class="bcat">
+            <div class="bcath"><span><span class="tri">▶</span><span class="nm">Blur / Post</span></span><span class="ct">9</span></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ============ FOOTER ============ -->
+  <div class="footer">
+    <span class="ok">60.0 FPS</span>
+    <span class="sep">·</span>
+    <span>CPU 22%</span>
+    <span class="sep">·</span>
+    <span>GPU 41%</span>
+    <span class="sep">·</span>
+    <span>MEM 312MB</span>
+    <span class="sep">·</span>
+    <span>1920×1080</span>
+    <span class="sep">·</span>
+    <span>REC 00:12:34</span>
+    <span class="sep">·</span>
+    <span>LINK · OFF</span>
+    <span class="sep">·</span>
+    <span>MIDI · LAUNCHPAD X</span>
+    <span class="state">STATE 4/4 · WAVEFORM MAX · SIGNALS MIN</span>
+  </div>
+
+  <div class="grain"></div>
+</div>
+
+<script>
+/* ==========================================================
+   Build waveform polylines, beat grid, bar ruler, deck grid
+   ========================================================== */
+
+// ---- waveform generator ----
+function buildWave(topId, botId, seed, peakAt, dropAt, buildStart, buildEnd) {
+  const W = 1920, H = 110, N = 480;
+  const mid = H / 2;
+  let sTop = '', sBot = '';
+  // seeded pseudo-random
+  let s = seed;
+  function rnd(){ s = (s * 9301 + 49297) % 233280; return s / 233280; }
+  for (let i = 0; i < N; i++){
+    const x = (i / (N-1)) * W;
+    const xn = i / (N-1);
+    // envelope: low in intro, rising build, loud drop, dip in break, loud drop 2
+    let env = 0.18;
+    // build ramps up
+    if (xn > buildStart && xn < buildEnd) env = 0.18 + (xn - buildStart) / (buildEnd - buildStart) * 0.55;
+    // drop 1 huge
+    else if (xn > buildEnd && xn < dropAt + 0.15) env = 0.88 + (rnd()-0.5)*0.1;
+    // mid section
+    else if (xn >= dropAt + 0.15 && xn < 0.55) env = 0.55 + (rnd()-0.5)*0.1;
+    // breakdown
+    else if (xn >= 0.55 && xn < 0.72) env = 0.25 + (rnd()-0.5)*0.08;
+    // drop 2
+    else if (xn >= 0.72 && xn < 0.92) env = 0.92 + (rnd()-0.5)*0.08;
+    // outro
+    else if (xn >= 0.92) env = 0.55 - (xn - 0.92)*5;
+    else env = 0.3 + (rnd()-0.5)*0.1;
+    // high-freq detail
+    const detail = Math.sin(xn * 620 + seed) * 0.12 + Math.sin(xn * 180 + seed*2) * 0.18 + (rnd()-0.5)*0.25;
+    const amp = Math.max(0.05, Math.min(1, env + detail * env));
+    const yTop = mid - amp * mid * 0.94;
+    const yBot = mid + amp * mid * 0.94;
+    sTop += x.toFixed(1) + ',' + yTop.toFixed(1) + ' ';
+    sBot += x.toFixed(1) + ',' + yBot.toFixed(1) + ' ';
+  }
+  document.getElementById(topId).setAttribute('points', sTop);
+  document.getElementById(botId).setAttribute('points', sBot);
+}
+
+buildWave('wfA', 'wfA2', 71, 0.3, 0.32, 0.14, 0.26);
+buildWave('wfB', 'wfB2', 137, 0.22, 0.28, 0.08, 0.22);
+
+// ---- beat grid ----
+function buildGrid(svgId, qId, dbId){
+  const svg = document.querySelector('#' + svgId + ' svg');
+  const quarter = document.getElementById(qId);
+  const downb = document.getElementById(dbId);
+  const W = 1920;
+  // 128 sixteenths, 32 quarters, 8 downbeats (across visible range = 32 bars)
+  let s16 = '', sq = '', sdb = '';
+  // sixteenths - light
+  for (let i = 0; i < 128; i++){
+    const x = (i / 128) * W;
+    s16 += `<line x1="${x}" y1="0" x2="${x}" y2="110" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
+  }
+  // quarters
+  for (let i = 0; i < 128; i++){
+    if (i % 4 === 0){
+      const x = (i / 128) * W;
+      sq += `<line x1="${x}" y1="0" x2="${x}" y2="110" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>`;
+    }
+  }
+  // downbeats (every 16th sixteenth = every 4 beats)
+  for (let i = 0; i < 128; i++){
+    if (i % 16 === 0){
+      const x = (i / 128) * W;
+      sdb += `<line x1="${x}" y1="0" x2="${x}" y2="110" stroke="#ff4500" stroke-width="2"/>`;
+    }
+  }
+  quarter.innerHTML = s16 + sq;
+  downb.innerHTML = sdb;
+}
+buildGrid('waveA', 'qgrid', 'dbgrid');
+buildGrid('waveB', 'qgridB', 'dbgridB');
+
+// ---- bar ruler (32 bars, current = 17) ----
+(function(){
+  const el = document.getElementById('barruler');
+  let html = '';
+  for (let i = 1; i <= 32; i++){
+    const n = i.toString().padStart(2, '0');
+    html += `<div class="bar${i === 17 ? ' cur' : ''}">${n}</div>`;
+  }
+  el.innerHTML = html;
+})();
+
+// ---- deck clip grid ----
+(function(){
+  // 12 distinct SVG thumbnail generators
+  const thumbs = [
+    // 0: julia fractal
+    (c1,c2)=>`<defs><radialGradient id="g0_${c1}" cx="0.5" cy="0.5" r="0.7"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></radialGradient></defs><rect width="100" height="100" fill="url(#g0_${c1})"/><path d="M 30 50 C 35 30, 55 25, 60 40 C 65 55, 50 70, 38 62 C 28 56, 26 52, 30 50 Z" fill="white" opacity="0.6"/><circle cx="50" cy="50" r="6" fill="white" opacity="0.5"/>`,
+    // 1: plasma
+    (c1,c2)=>`<defs><linearGradient id="g1_${c1}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="50%" stop-color="${c2}"/><stop offset="100%" stop-color="${c1}"/></linearGradient><filter id="f1_${c1}"><feTurbulence baseFrequency="0.04" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="30"/></filter></defs><rect width="100" height="100" fill="url(#g1_${c1})" filter="url(#f1_${c1})"/>`,
+    // 2: grid
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${Array.from({length:10},(_,i)=>`<line x1="${i*10}" y1="0" x2="${i*10}" y2="100" stroke="${c1}" stroke-width="1"/>`).join('')}${Array.from({length:10},(_,i)=>`<line x1="0" y1="${i*10}" x2="100" y2="${i*10}" stroke="${c1}" stroke-width="1"/>`).join('')}`,
+    // 3: rings
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${[10,22,34,46,58].map(r=>`<circle cx="50" cy="50" r="${r}" fill="none" stroke="${c1}" stroke-width="1.2"/>`).join('')}`,
+    // 4: wave lines
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${Array.from({length:8},(_,i)=>`<path d="M 0 ${15+i*10} Q 25 ${i*10+5}, 50 ${15+i*10} T 100 ${15+i*10}" stroke="${c1}" stroke-width="1" fill="none"/>`).join('')}`,
+    // 5: triangles
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${Array.from({length:16},(_,i)=>{const x=(i%4)*25+12;const y=Math.floor(i/4)*25+12;return `<polygon points="${x},${y-10} ${x-9},${y+8} ${x+9},${y+8}" fill="${c1}" opacity="${0.4+((i*37)%60)/100}"/>`;}).join('')}`,
+    // 6: dots
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${Array.from({length:64},(_,i)=>{const x=(i%8)*12+6;const y=Math.floor(i/8)*12+6;return `<circle cx="${x}" cy="${y}" r="${2+((i*13)%4)}" fill="${c1}" opacity="${0.5+((i*19)%50)/100}"/>`;}).join('')}`,
+    // 7: spiral
+    (c1,c2)=>{let p='';for(let i=0;i<180;i++){const a=i*0.25;const r=i*0.3;const x=50+Math.cos(a)*r;const y=50+Math.sin(a)*r;p+=(i===0?'M ':'L ')+x.toFixed(1)+' '+y.toFixed(1)+' ';}return `<rect width="100" height="100" fill="${c2}"/><path d="${p}" stroke="${c1}" stroke-width="1.2" fill="none"/>`;},
+    // 8: diagonal stripes
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${Array.from({length:20},(_,i)=>`<line x1="${i*8-20}" y1="100" x2="${i*8+40}" y2="0" stroke="${c1}" stroke-width="3" opacity="${0.5+(i%3)*0.15}"/>`).join('')}`,
+    // 9: hex
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${Array.from({length:25},(_,i)=>{const col=i%5;const row=Math.floor(i/5);const x=col*20+(row%2?10:0)+5;const y=row*18+10;return `<polygon points="${x},${y-7} ${x+6},${y-3} ${x+6},${y+4} ${x},${y+8} ${x-6},${y+4} ${x-6},${y-3}" fill="none" stroke="${c1}" stroke-width="1"/>`;}).join('')}`,
+    // 10: noise field
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${Array.from({length:200},(_,i)=>{const x=(i*17)%100;const y=(i*37)%100;const sz=0.5+((i*7)%3);return `<rect x="${x}" y="${y}" width="${sz}" height="${sz}" fill="${c1}" opacity="${((i*13)%80)/100}"/>`;}).join('')}`,
+    // 11: concentric bars
+    (c1,c2)=>`<rect width="100" height="100" fill="${c2}"/>${Array.from({length:14},(_,i)=>`<rect x="${2+i*3.5}" y="${2+i*3.5}" width="${100-4-i*7}" height="${100-4-i*7}" fill="none" stroke="${c1}" stroke-width="0.8" opacity="${0.3+i*0.05}"/>`).join('')}`,
+  ];
+
+  // 4 layers × 6 clips
+  // Each row: [{thumbIdx, palette:[c1,c2], name, state, meta}]
+  const grid = [
+    // L1 BASE
+    [
+      {t:0, p:['#7a5ef0','#1a1636'], n:'DEEP SPACE', s:'idle', m:'VIDEO 04:28'},
+      {t:3, p:['#4ac5ff','#0a1830'], n:'BLUE RIPPLE', s:'idle', m:'VIDEO 03:14'},
+      {t:7, p:['#c09cff','#201038'], n:'GALAXY SPIN', s:'idle', m:'VIDEO 05:02'},
+      {t:2, p:['#5a9cff','#0f1428'], n:'GRID CITY', s:'sel', m:'VIDEO 02:40'},
+      {t:10, p:['#78a0e0','#080c18'], n:'NOISE BED', s:'idle', m:'VIDEO 01:52'},
+      {t:11, p:['#6fa0ff','#10182a'], n:'CONCENTRIC', s:'idle', m:'VIDEO 02:12'},
+    ],
+    // L2 FRACTAL  — PLAYING on col 3 (index 2)
+    [
+      {t:0, p:['#a585ff','#0a0a14'], n:'JULIA I', s:'idle', m:'VIDEO 04:28'},
+      {t:3, p:['#c09cff','#1a0a28'], n:'JULIA IV', s:'idle', m:'VIDEO 03:14'},
+      {t:0, p:['#ffffff','#1a0a28'], n:'JULIA VII', s:'playing', m:'NOW · 02:14'},
+      {t:1, p:['#a585ff','#0a0828'], n:'MANDELBROT', s:'idle', m:'VIDEO 05:02'},
+      {t:7, p:['#d8c5ff','#1a1236'], n:'NEWTON SPIRAL', s:'idle', m:'VIDEO 02:40'},
+      {t:3, p:['#e8e8e8','#111'], n:'APOLLONIAN', s:'idle', m:'VIDEO 01:52'},
+    ],
+    // L3 AUDIO DRIVEN — QUEUED on col 5 (index 4)
+    [
+      {t:4, p:['#4ac5ff','#05101a'], n:'SPECTRUM LAND', s:'idle', m:'SOURCE'},
+      {t:5, p:['#78a0e0','#080c18'], n:'BAND TOWER', s:'idle', m:'SOURCE'},
+      {t:6, p:['#c0a0ff','#10082a'], n:'CYMATICS', s:'idle', m:'SOURCE'},
+      {t:3, p:['#a0c0ff','#080a18'], n:'CHROMA RING', s:'idle', m:'SOURCE'},
+      {t:9, p:['#ffffff','#10182a'], n:'TIMBRE NEBULA', s:'queued', m:'QUEUE · BAR 18'},
+      {t:4, p:['#6fa0ff','#0a1020'], n:'STRUCT LAND', s:'idle', m:'SOURCE'},
+    ],
+    // L4 FX ONLY GLITCH
+    [
+      {t:2, p:['#e0e0e0','#050505'], n:'SCAN LINES', s:'idle', m:'FX CHAIN'},
+      {t:8, p:['#c0c0c0','#0a0a0a'], n:'DIAG BARS', s:'idle', m:'FX CHAIN'},
+      {t:10, p:['#a0a0a0','#050505'], n:'NOISE FIELD', s:'idle', m:'FX CHAIN'},
+      {t:6, p:['#b0b0b0','#080808'], n:'PIXEL DOTS', s:'idle', m:'FX CHAIN'},
+      {t:11, p:['#909090','#0a0a0a'], n:'BOX NEST', s:'idle', m:'FX CHAIN'},
+      {t:5, p:['#808080','#101010'], n:'TRIANGULATE', s:'idle', m:'FX CHAIN'},
+    ],
+  ];
+
+  const root = document.getElementById('clipgrid');
+  let html = '';
+  grid.forEach(row => {
+    html += '<div class="clayer">';
+    row.forEach(c => {
+      const thumb = thumbs[c.t](c.p[0], c.p[1]);
+      const stateCls = c.s === 'playing' ? 'playing' : (c.s === 'queued' ? 'queued' : (c.s === 'sel' ? 'sel' : ''));
+      html += `<div class="cell ${stateCls}">
+        <svg class="thumb" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">${thumb}</svg>
+        <div class="meta">${c.m}</div>
+        ${c.s==='queued' ? '<div class="q">QUEUED</div>' : ''}
+        ${c.s==='playing' ? '<div class="prog"></div>' : ''}
+        <div class="cname">${c.n}</div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  root.innerHTML = html;
+})();
+</script>
+</body>
+</html>

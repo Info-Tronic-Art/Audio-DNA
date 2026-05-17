@@ -1,0 +1,281 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          74,
+          "output"
+        ],
+        "to": [
+          75,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          75,
+          "output0"
+        ],
+        "to": [
+          73,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          73,
+          "output"
+        ],
+        "to": [
+          76,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Default Example",
+      "identifier": "027417f2-73c8-4320-8bcb-182275c39577",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 77,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "BENDOSCOPE\nThis node can be used to bend and twist a texture into weird and unusual shapes.\n"
+          }
+        },
+        "bounds": {
+          "height": 118.7651824951172,
+          "width": 587.42236328125,
+          "x": 39.3953742980957,
+          "y": 286.8454284667969
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "73": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 364.9560546875,
+          "y": 472.8311462402344
+        },
+        "class": {
+          "id": "77697265-BAA4-4624-B7A1-A9F98B245D77",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "divisions": {
+            "type": "float",
+            "value": 2
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Bendoscope"
+      },
+      "74": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -43.30046081542969,
+          "y": 472.67529296875
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture"
+      },
+      "75": {
+        "attributes": {
+          "input-type": {
+            "type": "type",
+            "value": "texture2d"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "scale-type": {
+            "type": "type",
+            "value": "float2"
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 121.76130676269533,
+          "y": 472.6753234863281
+        },
+        "class": {
+          "id": "77697265-9225-4009-9D2D-5F898E94CC33",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "anchor": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "rotation": {
+            "type": "float",
+            "value": 0
+          },
+          "scale": {
+            "type": "float2",
+            "value": [
+              0.5,
+              0.5
+            ]
+          },
+          "translation": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [],
+        "name": "Transform"
+      },
+      "76": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 597.3837280273438,
+          "y": 472.6753234863281
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -221.8466796875,
+        "y": 80.55532836914062,
+        "zoom": 0.8552440404891968
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 76,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "74": "Wire Logo"
+        },
+        "out": {}
+      }
+    }
+  }
+}

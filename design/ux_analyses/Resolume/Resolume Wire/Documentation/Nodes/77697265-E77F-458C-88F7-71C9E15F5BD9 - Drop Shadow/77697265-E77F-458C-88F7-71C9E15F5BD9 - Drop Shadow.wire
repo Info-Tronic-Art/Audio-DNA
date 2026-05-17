@@ -1,0 +1,223 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          0,
+          "output"
+        ],
+        "to": [
+          1,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          1,
+          "output"
+        ],
+        "to": [
+          2,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "",
+      "identifier": "6d287eb4-3627-42a7-9c5f-b4bf7cc2586c",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 4,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 427,
+          "y": 308
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture"
+      },
+      "1": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 596,
+          "y": 308
+        },
+        "class": {
+          "id": "77697265-E77F-458C-88F7-71C9E15F5BD9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color": {
+            "type": "float4",
+            "value": [
+              0.4431372582912445,
+              1,
+              0,
+              1
+            ]
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "offset": {
+            "type": "float2",
+            "value": [
+              30,
+              30
+            ]
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Drop Shadow"
+      },
+      "2": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 813,
+          "y": 308
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "3": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "DROP SHADOW\n\nThe Drop Shadow node lets you create a shadow behind the texture.\nUse the offset values to place the shadow and to color to color it. To achieve a more realistic shadow you should use a color with reduced alpha."
+          }
+        },
+        "bounds": {
+          "height": 147,
+          "width": 518,
+          "x": 427,
+          "y": 112
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -11,
+        "y": -109,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 2,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "0": "Wire Logo"
+        },
+        "out": {}
+      }
+    }
+  }
+}

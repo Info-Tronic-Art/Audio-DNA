@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VJ19 Alt 04 — Scene Dense</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; color:#e0e0e0; font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; width:1920px; height:1080px; overflow:hidden; }
+
+.menu-bar { height:22px; background:#1a1a1a; display:flex; align-items:center; padding:0 12px; border-bottom:1px solid #333; }
+.menu-bar span { margin-right:14px; font-size:10px; color:#aaa; cursor:pointer; }
+
+.top-bar { height:36px; background:#1e1e1e; display:flex; align-items:center; padding:0 10px; border-bottom:1px solid #333; gap:12px; }
+.logo { font-weight:700; font-size:13px; color:#ff8800; letter-spacing:1px; }
+.bpm-box { background:#2a2a2a; border:1px solid #ff8800; padding:3px 10px; display:flex; align-items:center; gap:6px; }
+.bpm-val { font-size:16px; font-weight:700; color:#ff8800; }
+.bpm-sub { font-size:9px; color:#888; }
+.beat-wheel { width:24px; height:24px; border-radius:50%; border:2px solid #ff8800; display:flex; align-items:center; justify-content:center; }
+.bw-inner { width:8px; height:8px; background:#ff8800; border-radius:50%; }
+.btn { background:#2a2a2a; border:1px solid #444; color:#e0e0e0; padding:3px 8px; cursor:pointer; font-size:10px; }
+.btn.active { background:#ff8800; color:#111; border-color:#ff8800; }
+.spacer { flex:1; }
+.info { font-size:9px; color:#777; }
+
+/* SIGNAL METERS IN HEADER ROW */
+.signal-header { height:24px; background:#161616; display:flex; align-items:center; padding:0 6px; border-bottom:1px solid #2a2a2a; gap:1px; }
+.sh-meter { flex:1; height:14px; background:#1a1a1a; border:1px solid #2a2a2a; position:relative; overflow:hidden; }
+.sh-meter .fill { position:absolute; left:0; top:0; height:100%; }
+.sh-meter .lbl { position:absolute; left:3px; top:0; font-size:8px; color:#888; z-index:1; }
+
+/* MAIN: GRID + COLLAPSED INSPECTOR */
+.main { display:flex; height:calc(1080px - 22px - 36px - 24px - 80px - 22px); }
+
+/* DENSE GRID */
+.grid-area { flex:1; display:flex; flex-direction:column; }
+.deck-tabs { height:24px; background:#1a1a1a; display:flex; align-items:center; padding:0 6px; gap:3px; border-bottom:1px solid #333; }
+.dtab { padding:3px 12px; background:#222; border:1px solid #333; cursor:pointer; font-size:10px; }
+.dtab.active { background:#ff8800; color:#111; border-color:#ff8800; font-weight:600; }
+.scene-row { height:20px; background:#1a1a1a; display:flex; padding:0 3px 0 28px; gap:1px; border-bottom:1px solid #2a2a2a; }
+.sr { flex:1; display:flex; align-items:center; justify-content:center; font-size:8px; color:#777; }
+.sr.active { color:#ff8800; font-weight:600; }
+
+.dense-grid { flex:1; display:grid; grid-template-columns:26px repeat(10,1fr); grid-template-rows:repeat(7,1fr); gap:1px; padding:2px; }
+.llbl { background:#1a1a1a; display:flex; align-items:center; justify-content:center; font-size:7px; color:#777; border:1px solid #222; writing-mode:vertical-lr; letter-spacing:0.5px; }
+.llbl.on { color:#ff8800; border-left:2px solid #ff8800; }
+.dc { background:#1e1e1e; border:1px solid #2a2a2a; position:relative; cursor:pointer; overflow:hidden; min-height:0; }
+.dc:hover { border-color:#ff8800; }
+.dc.active { border-color:#ff8800; box-shadow:0 0 4px rgba(255,136,0,0.2); }
+.dc .bg { position:absolute; inset:0; }
+.dc .nm { position:absolute; bottom:1px; left:2px; font-size:7px; color:#bbb; text-shadow:0 1px 1px #000; }
+.dc .sig-ov { position:absolute; bottom:0; left:0; right:0; height:12px; display:flex; align-items:flex-end; gap:0; padding:0 1px; }
+.dc .sig-ov .b { flex:1; background:#ff880066; min-height:1px; }
+
+/* COLLAPSED INSPECTOR SIDEBAR */
+.icon-bar { width:40px; background:#1a1a1a; border-left:1px solid #333; display:flex; flex-direction:column; align-items:center; padding:4px 0; gap:2px; }
+.icon-btn { width:32px; height:32px; background:#222; border:1px solid #333; display:flex; align-items:center; justify-content:center; font-size:11px; color:#888; cursor:pointer; }
+.icon-btn:hover { border-color:#ff8800; color:#ff8800; }
+.icon-btn.active { background:#ff8800; color:#111; border-color:#ff8800; }
+
+/* EXPANDED INSPECTOR (shown as overlay concept) */
+.expanded-insp { width:280px; background:#1a1a1a; border-left:1px solid #ff8800; display:flex; flex-direction:column; }
+.ei-header { height:24px; background:#161616; display:flex; align-items:center; padding:0 8px; justify-content:space-between; border-bottom:1px solid #333; }
+.ei-title { font-size:10px; color:#ff8800; }
+.ei-close { font-size:10px; color:#888; cursor:pointer; }
+.ei-body { flex:1; overflow-y:auto; padding:6px; }
+.sec-t { font-size:9px; color:#ff8800; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px; border-bottom:1px solid #333; padding-bottom:3px; }
+.pr { display:flex; align-items:center; margin-bottom:3px; }
+.pl { width:75px; font-size:9px; color:#aaa; }
+.ps { flex:1; height:3px; background:#333; }
+.ps .t { height:100%; background:#ff8800; }
+.pv { width:30px; text-align:right; font-size:9px; color:#ccc; }
+
+/* PANORAMIC THUMBNAILS */
+.bottom-thumbs { height:80px; background:#161616; border-top:1px solid #333; display:flex; gap:2px; padding:4px 6px; overflow-x:auto; }
+.bt { width:70px; min-width:70px; height:70px; border:1px solid #2a2a2a; position:relative; cursor:pointer; flex-shrink:0; }
+.bt:hover { border-color:#ff8800; }
+.bt .bbg { position:absolute; inset:0; }
+.bt .bnm { position:absolute; bottom:1px; left:2px; font-size:7px; color:#ccc; text-shadow:0 1px 1px #000; }
+
+.footer { height:22px; background:#1a1a1a; border-top:1px solid #333; display:flex; align-items:center; padding:0 10px; justify-content:space-between; }
+.footer span { font-size:9px; color:#666; }
+</style>
+</head>
+<body>
+
+<div class="menu-bar"><span>Audio-DNA</span><span>File</span><span>Edit</span><span>View</span><span>Output</span><span>Help</span></div>
+
+<div class="top-bar">
+  <div class="logo">AUDIO-DNA</div>
+  <div class="bpm-box"><div><div class="bpm-val">140.0</div><div class="bpm-sub">BPM</div></div><div class="beat-wheel"><div class="bw-inner"></div></div></div>
+  <span class="info">Bar 7 / 8</span><span class="info">Phrase 3</span>
+  <div class="btn active">PLAY</div><div class="btn">TAP</div><div class="btn">LINK</div>
+  <div class="spacer"></div>
+  <span class="info">60.0 fps | GPU 28% | Techno | High</span>
+</div>
+
+<div class="signal-header">
+  <script>
+    const hN=['RMS','Peak','Bass','LMid','Mid','HMid','Brill','Cent','Flux','Onset','Beat','Bar','Side','Form'];
+    const hV=[0.70,0.88,0.92,0.55,0.40,0.28,0.12,0.62,0.55,1.0,0.80,0.60,0.75,0.20];
+    const hC=['#ff8800','#ff8800','#ff4444','#ff6644','#ffaa44','#ffcc44','#ffee44','#44aaff','#44ddff','#ff4488','#ff8800','#ff8800','#ff8800','#88ff88'];
+    document.write(hN.map((n,i)=>`<div class="sh-meter"><div class="fill" style="width:${hV[i]*100}%;background:${hC[i]}44"></div><div class="lbl">${n}</div></div>`).join(''));
+  </script>
+</div>
+
+<div class="main">
+  <div class="grid-area">
+    <div class="deck-tabs">
+      <div class="dtab active">Deck 1</div><div class="dtab">Deck 2</div><div class="dtab">Deck 3</div><div class="dtab">Deck 4</div>
+      <span style="flex:1"></span><span class="info">10 x 7 grid</span>
+    </div>
+    <div class="scene-row">
+      <script>for(let i=1;i<=10;i++) document.write(`<div class="sr ${i===6?'active':''}">${i}</div>`);</script>
+    </div>
+    <div class="dense-grid">
+      <script>
+        const dL=['Master','FX A','FX B','Overlay','Visual A','Visual B','BG'];
+        const dA=[true,false,true,true,true,false,true];
+        const dC=[
+          ['Comp Xform','Glow','Vignette','Sharpen','','','','','',''],
+          ['Echo','Glitch Sort','RGB Split','Data Corrupt','Frame Stutter','','','','',''],
+          ['Scanlines','CRT Sim','Posterize Time','Channel Delay','','','','','',''],
+          ['Text Wall','Neon Edge','Particle Rain','Dot Matrix','Pop Raster','Cross Stitch','','','',''],
+          ['Mandelbulb','Julia 3D','Menger','KIFS','Spiral Torus','Helix','Knot','Trefoil','Spectrum Ring','Band Tower'],
+          ['Perlin','Voronoi','Simplex','Diamond','Plasma','Fire','Strange Attr','Fluid Sim','Gravity Well','Cymatics'],
+          ['Gradient A','Gradient B','Solid Dark','Ocean','Night Sky','Nebula','Aurora','Lava','Frost','Carbon'],
+        ];
+        const dG=[
+          ['linear-gradient(135deg,#ff8800,#442200)','linear-gradient(135deg,#ffcc44,#443311)','linear-gradient(135deg,#444,#222)','linear-gradient(135deg,#888,#333)','','','','','',''],
+          ['linear-gradient(135deg,#4466ff,#112244)','linear-gradient(135deg,#ff4488,#441122)','linear-gradient(135deg,#44ffaa,#113322)','linear-gradient(135deg,#ff4444,#441111)','linear-gradient(135deg,#8844ff,#220044)','','','','',''],
+          ['linear-gradient(135deg,#888,#333)','linear-gradient(135deg,#666,#222)','linear-gradient(135deg,#aaa,#444)','linear-gradient(135deg,#4466ff,#112244)','','','','','',''],
+          ['linear-gradient(135deg,#88ff88,#113311)','linear-gradient(135deg,#44ffaa,#113322)','linear-gradient(135deg,#ff88ff,#331133)','linear-gradient(135deg,#aaa,#333)','linear-gradient(135deg,#ff4444,#331111)','linear-gradient(135deg,#ffaa44,#332211)','','','',''],
+          ['linear-gradient(135deg,#ff4444,#441111)','linear-gradient(135deg,#44ff44,#114411)','linear-gradient(135deg,#4444ff,#111144)','linear-gradient(135deg,#ffff44,#444411)','linear-gradient(135deg,#ff44ff,#441144)','linear-gradient(135deg,#44ffff,#114444)','linear-gradient(135deg,#ff8844,#442211)','linear-gradient(135deg,#88ff44,#224411)','linear-gradient(135deg,#ff8800,#442200)','linear-gradient(135deg,#ffcc00,#443300)'],
+          ['linear-gradient(135deg,#667788,#223344)','linear-gradient(135deg,#778866,#334422)','linear-gradient(135deg,#887766,#332211)','linear-gradient(135deg,#886677,#332233)','linear-gradient(135deg,#884422,#331100)','linear-gradient(135deg,#ff4400,#441100)','linear-gradient(135deg,#8844ff,#220044)','linear-gradient(135deg,#44aaff,#112233)','linear-gradient(135deg,#ff88ff,#331133)','linear-gradient(135deg,#ffaa44,#332211)'],
+          ['linear-gradient(135deg,#224488,#0a1533)','linear-gradient(135deg,#334466,#0a1533)','linear-gradient(135deg,#111,#000)','linear-gradient(135deg,#0066cc,#002244)','linear-gradient(135deg,#112244,#000)','linear-gradient(135deg,#220044,#000)','linear-gradient(135deg,#004422,#000)','linear-gradient(135deg,#442200,#000)','linear-gradient(135deg,#224466,#000)','linear-gradient(135deg,#222,#000)'],
+        ];
+        for(let r=0;r<7;r++){
+          document.write(`<div class="llbl ${dA[r]?'on':''}">${dL[r]}</div>`);
+          for(let c=0;c<10;c++){
+            const nm=dC[r][c],g=dG[r][c],act=r===4&&c===0;
+            const hasSig=nm&&Math.random()>0.5;
+            let bars='';
+            if(hasSig) for(let b=0;b<5;b++) bars+=`<div class="b" style="height:${1+Math.random()*10}px"></div>`;
+            document.write(`<div class="dc ${act?'active':''}">${g?`<div class="bg" style="background:${g}"></div>`:''}${nm?`<div class="nm">${nm}</div>`:''}${hasSig?`<div class="sig-ov">${bars}</div>`:''}</div>`);
+          }
+        }
+      </script>
+    </div>
+  </div>
+
+  <!-- ICON SIDEBAR (collapsed inspector) -->
+  <div class="icon-bar">
+    <div class="icon-btn active" title="Clip">C</div>
+    <div class="icon-btn" title="Layer">L</div>
+    <div class="icon-btn" title="Signals">S</div>
+    <div class="icon-btn" title="Composition">K</div>
+    <div class="icon-btn" title="Browser">B</div>
+    <div style="flex:1"></div>
+    <div class="icon-btn" title="Expand">></div>
+  </div>
+
+  <!-- EXPANDED INSPECTOR (visible as if expanded) -->
+  <div class="expanded-insp">
+    <div class="ei-header"><span class="ei-title">Clip: Mandelbulb</span><span class="ei-close">X</span></div>
+    <div class="ei-body">
+      <div class="sec-t">Source Parameters</div>
+      <div class="pr"><span class="pl">Zoom</span><div class="ps"><div class="t" style="width:45%"></div></div><span class="pv">0.45</span></div>
+      <div class="pr"><span class="pl">Power</span><div class="ps"><div class="t" style="width:60%"></div></div><span class="pv">0.60</span></div>
+      <div class="pr"><span class="pl">Iterations</span><div class="ps"><div class="t" style="width:70%"></div></div><span class="pv">0.70</span></div>
+      <div class="pr"><span class="pl">Speed</span><div class="ps"><div class="t" style="width:55%"></div></div><span class="pv">0.55</span></div>
+      <div class="pr"><span class="pl">Color Shift</span><div class="ps"><div class="t" style="width:30%"></div></div><span class="pv">0.30</span></div>
+      <div class="pr"><span class="pl">Glow</span><div class="ps"><div class="t" style="width:40%"></div></div><span class="pv">0.40</span></div>
+      <div class="pr"><span class="pl">Palette</span><div class="ps"><div class="t" style="width:75%"></div></div><span class="pv">Ocean</span></div>
+      <div class="sec-t" style="margin-top:8px">Effects</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px">
+        <span style="color:#ff8800">B</span><span style="flex:1">Echo</span><span style="color:#666">X</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px">
+        <span style="color:#ff8800">B</span><span style="flex:1">Glow</span><span style="color:#666">X</span>
+      </div>
+      <div class="sec-t" style="margin-top:8px">Signals</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px">
+        <div style="width:6px;height:6px;background:#ff8800"></div><span style="color:#ff8800">RMS</span><span style="color:#555">-></span><span>Zoom</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px">
+        <div style="width:6px;height:6px;background:#ff4444"></div><span style="color:#ff4444">Bass</span><span style="color:#555">-></span><span>Glow</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px">
+        <div style="width:6px;height:6px;background:#ff8800"></div><span style="color:#ff8800">Beat</span><span style="color:#555">-></span><span>Speed</span>
+      </div>
+      <div class="sec-t" style="margin-top:8px">Transform</div>
+      <div class="pr"><span class="pl">Position X</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Position Y</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Scale</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">1.00</span></div>
+      <div class="pr"><span class="pl">Opacity</span><div class="ps"><div class="t" style="width:100%"></div></div><span class="pv">1.00</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PANORAMIC THUMBNAILS -->
+<div class="bottom-thumbs">
+  <script>
+    const bT=['Mandelbulb','Julia 3D','Menger','KIFS','Spiral','Helix','Knot','Trefoil','Perlin','Voronoi','Simplex','Plasma','Fire','Ocean','Night','Spectrum','Band Tower','Cymatics','Strange','Fluid','Gravity','Particle','Text','Scrolling','Nebula','Aurora'];
+    const bG=['#ff4444,#441111','#44ff44,#114411','#4444ff,#111144','#ffff44,#444411','#ff44ff,#441144','#44ffff,#114444','#ff8844,#442211','#88ff44,#224411','#667788,#223344','#778866,#334422','#887766,#332211','#884422,#331100','#ff4400,#441100','#0066cc,#002244','#112244,#000','#ff8800,#442200','#ffcc00,#443300','#ffaa44,#332211','#8844ff,#220044','#44aaff,#112233','#ff88ff,#331133','#ff88ff,#441133','#88ff88,#113311','#fff,#555','#220044,#000','#004422,#000'];
+    document.write(bT.map((t,i)=>`<div class="bt"><div class="bbg" style="background:linear-gradient(135deg,${bG[i%bG.length]})"></div><div class="bnm">${t}</div></div>`).join(''));
+  </script>
+</div>
+
+<div class="footer"><span>Audio-DNA v2.0</span><span>Scene Dense Layout</span><span>Techno | Energy: High | Buildup</span><span>60.0 fps</span></div>
+
+</body>
+</html>

@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 26 — Feature-Complete Layout (Enhanced)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+.app { width: 1920px; height: 1080px; background: #0d0d0d; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ===== MENU BAR (24px) ===== */
+.menu-bar { height: 24px; background: #111; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; padding: 0 6px; gap: 0; flex-shrink: 0; }
+.menu-item { font-size: 11px; color: #999; padding: 2px 10px; cursor: pointer; letter-spacing: 0.3px; }
+.menu-item:hover { color: #e0e0e0; background: #2a2a2a; }
+.menu-item.app-name { color: #00ccff; font-weight: 700; }
+
+/* ===== TOP BAR ===== */
+.top-bar { height: 36px; background: linear-gradient(180deg, #1a1a1a 0%, #111 100%); border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 10px; gap: 8px; flex-shrink: 0; }
+.logo { display: flex; align-items: center; gap: 6px; }
+.logo-icon { width: 22px; height: 22px; background: linear-gradient(135deg, #00ccff, #0066ff); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 12px; color: #fff; }
+.logo-text { font-size: 14px; font-weight: 700; color: #e0e0e0; letter-spacing: 0.5px; }
+.top-sep { width: 1px; height: 20px; background: #333; }
+.bpm-group { display: flex; align-items: center; gap: 6px; }
+.bpm-label { font-size: 10px; color: #888; font-weight: 600; text-transform: uppercase; }
+.bpm-value { font-size: 18px; font-weight: 700; color: #00ff88; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.top-btn { background: #222; border: 1px solid #444; color: #bbb; padding: 3px 10px; font-size: 10px; cursor: pointer; border-radius: 2px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+.top-btn:hover { background: #333; }
+.top-btn.tap { background: #1a2a1a; border-color: #336633; color: #66cc66; }
+.top-btn.resync { background: #1a1a2a; border-color: #334488; color: #6688cc; }
+.top-btn.manual { background: #2a1a1a; border-color: #663333; color: #cc8866; }
+
+/* Beat wheel */
+.beat-wheel { width: 28px; height: 28px; position: relative; flex-shrink: 0; }
+.beat-wheel svg { width: 100%; height: 100%; }
+.beat-wheel-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 7px; color: #888; font-weight: 700; }
+
+/* Quantize / Fade */
+.quant-group { display: flex; align-items: center; gap: 4px; }
+.quant-label { font-size: 9px; color: #666; text-transform: uppercase; font-weight: 600; }
+.quant-select { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 2px 6px; font-size: 10px; border-radius: 2px; cursor: pointer; }
+.fade-slider { width: 50px; height: 4px; background: #222; border-radius: 2px; position: relative; overflow: hidden; cursor: pointer; }
+.fade-fill { height: 100%; background: #555; border-radius: 2px; }
+
+.room-delay { color: #888; font-size: 11px; display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.room-delay-val { color: #ffcc00; font-weight: 600; background: #1a1a00; border: 1px solid #333300; padding: 1px 8px; border-radius: 2px; font-size: 11px; }
+.level-meters { display: flex; gap: 2px; align-items: flex-end; height: 20px; margin-left: 8px; }
+.level-bar { width: 3px; border-radius: 1px; }
+
+/* ===== SIGNAL BAR (40px) ===== */
+.signal-bar { height: 40px; background: linear-gradient(180deg, #0f0f0f 0%, #0a0a0a 100%); border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 8px; gap: 0; flex-shrink: 0; }
+.signal-meter { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px 2px; border-right: 1px solid #1a1a1a; min-width: 0; }
+.signal-meter:last-child { border-right: none; }
+.signal-meter-label { font-size: 7px; color: #555; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
+.signal-meter-bar { width: 100%; height: 10px; background: #151515; border-radius: 1px; position: relative; overflow: hidden; }
+.signal-meter-fill { height: 100%; border-radius: 1px; transition: width 0.1s; }
+.signal-meter-value { font-size: 8px; color: #888; font-variant-numeric: tabular-nums; }
+
+/* ===== MAIN CONTENT ===== */
+.main-content { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+/* ===== LEFT: SCENE FLOW ===== */
+.scene-flow { width: 260px; background: #0a0a0a; border-right: 1px solid #222; display: flex; flex-direction: column; flex-shrink: 0; }
+.panel-header { height: 24px; background: #151515; border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 8px; font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; gap: 6px; }
+.panel-header .arrow { color: #555; font-size: 8px; }
+
+.scene-grid { padding: 4px; flex: 1; overflow-y: auto; }
+.scene-type-row { display: flex; gap: 3px; margin-bottom: 3px; align-items: stretch; }
+.scene-type-label { width: 50px; font-size: 9px; color: #888; padding: 4px 4px; text-align: right; display: flex; align-items: center; justify-content: flex-end; }
+.scene-cell { flex: 1; padding: 3px 6px; font-size: 10px; color: #ccc; border-radius: 2px; cursor: pointer; border-left: 3px solid transparent; background: #161616; display: flex; align-items: center; min-height: 22px; }
+.scene-cell:hover { background: #1e1e1e; }
+.scene-cell.red { border-left-color: #ff3333; }
+.scene-cell.blue { border-left-color: #3388ff; }
+.scene-cell.green { border-left-color: #33cc66; }
+.scene-cell.amber { border-left-color: #ff9933; }
+.scene-cell.purple { border-left-color: #aa55ff; }
+.scene-cell.cyan { border-left-color: #00cccc; }
+.scene-cell.active { background: #1a2a1a; border: 1px solid #33aa55; border-left: 3px solid #33cc66; }
+.scene-cell .bars { color: #666; font-size: 9px; margin-left: auto; }
+
+.layer-change-section { border-top: 1px solid #222; padding: 4px 6px; }
+.layer-change-header { font-size: 10px; color: #66cc66; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+.layer-change-header::before { content: '+'; font-size: 12px; }
+
+.scene-list { border-top: 1px solid #222; padding: 4px; flex: 1; overflow-y: auto; }
+.scene-list-item { display: flex; align-items: center; padding: 3px 6px; font-size: 10px; color: #aaa; border-radius: 2px; margin-bottom: 2px; gap: 6px; }
+.scene-list-item:hover { background: #1a1a1a; }
+.scene-list-item.active { background: #1a2a1a; color: #66ff88; }
+.scene-list-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.scene-list-name { flex: 1; }
+.scene-list-bars { color: #555; font-size: 9px; }
+
+.scene-footer { border-top: 1px solid #222; padding: 4px 6px; display: flex; gap: 4px; align-items: center; }
+.scene-footer-btn { background: #1a1a1a; border: 1px solid #333; color: #888; padding: 3px 8px; font-size: 10px; cursor: pointer; border-radius: 2px; font-weight: 600; }
+.scene-footer-btn.add { background: #112211; border-color: #336633; color: #66cc66; }
+.scene-footer-btn.trigger { background: #221111; border-color: #663333; color: #cc6666; }
+
+/* ===== CENTER: LIVE OUTPUT ===== */
+.center-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.preview-header { height: 24px; background: #151515; border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 10px; font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; justify-content: center; }
+.preview-container { flex: 1; position: relative; background: #080808; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.preview-viewport { width: 100%; height: 100%; position: relative; overflow: hidden; }
+.preview-canvas { width: 100%; height: 100%; position: relative; }
+.preview-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #0a0a1a 0%, #1a0a1a 25%, #0a1a1a 50%, #1a1a0a 75%, #0a0a1a 100%); }
+.preview-geo { position: absolute; }
+.safe-area { position: absolute; inset: 30px; border: 1px dashed rgba(255,255,255,0.15); pointer-events: none; }
+.safe-area::after { content: 'Safe Title'; position: absolute; top: -14px; left: 50%; transform: translateX(-50%); font-size: 8px; color: rgba(255,255,255,0.2); text-transform: uppercase; letter-spacing: 1px; }
+.res-overlay { position: absolute; top: 6px; left: 8px; font-size: 9px; color: rgba(255,255,255,0.35); }
+.res-overlay-bottom { position: absolute; bottom: 6px; left: 8px; font-size: 9px; color: rgba(255,255,255,0.35); }
+
+/* Transport bar */
+.transport-bar { height: 32px; background: #111; border-top: 1px solid #222; display: flex; align-items: center; padding: 0 10px; gap: 6px; flex-shrink: 0; }
+.transport-btn { background: #1a1a1a; border: 1px solid #333; color: #aaa; width: 24px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; border-radius: 2px; }
+.transport-btn:hover { background: #252525; }
+.transport-btn.play { color: #00ff88; border-color: #336633; }
+.transport-timeline { flex: 1; height: 4px; background: #222; border-radius: 2px; position: relative; margin: 0 4px; }
+.transport-progress { position: absolute; left: 0; top: 0; height: 100%; width: 62%; background: linear-gradient(90deg, #00ccff, #0088ff); border-radius: 2px; }
+.transport-playhead { position: absolute; top: -4px; width: 2px; height: 12px; background: #fff; left: 62%; }
+.timecode { font-size: 13px; font-weight: 600; color: #00ccff; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+.transport-right { display: flex; gap: 4px; align-items: center; margin-left: 6px; }
+.transport-select { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 2px 6px; font-size: 10px; border-radius: 2px; cursor: pointer; }
+
+/* ===== RIGHT: INSPECTOR + BROWSER ===== */
+.right-panel { width: 280px; background: #0a0a0a; border-left: 1px solid #222; display: flex; flex-direction: column; flex-shrink: 0; }
+
+/* Inspector Tabs */
+.inspector-tabs { height: 24px; background: #151515; border-bottom: 1px solid #222; display: flex; align-items: stretch; }
+.insp-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; border-bottom: 2px solid transparent; }
+.insp-tab:hover { color: #888; }
+.insp-tab.active { color: #00ccff; border-bottom-color: #00ccff; }
+
+/* Inspector content */
+.inspector-content { flex: 1; overflow-y: auto; padding: 0; }
+
+/* Inspector sections */
+.insp-section { border-bottom: 1px solid #1e1e1e; }
+.insp-section-header { height: 22px; background: #131313; display: flex; align-items: center; padding: 0 8px; font-size: 9px; font-weight: 700; color: #666; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; gap: 4px; }
+.insp-section-header .arrow { font-size: 7px; color: #444; }
+.insp-section-body { padding: 4px 8px; }
+
+/* Inspector param row */
+.param-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; height: 18px; }
+.param-triangle { width: 8px; height: 8px; color: #444; font-size: 7px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.param-triangle:hover { color: #00ccff; }
+.param-triangle.connected { color: #00ccff; }
+.param-label { font-size: 9px; color: #888; width: 65px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.param-slider { flex: 1; height: 4px; background: #222; border-radius: 2px; position: relative; cursor: pointer; overflow: hidden; }
+.param-slider-fill { height: 100%; border-radius: 2px; }
+.param-value { font-size: 8px; color: #777; width: 28px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+/* Dashboard knobs */
+.dashboard-knobs { display: flex; flex-wrap: wrap; gap: 2px; padding: 4px 8px; justify-content: space-between; }
+.dash-knob { display: flex; flex-direction: column; align-items: center; gap: 1px; width: 28px; }
+.dash-knob-circle { width: 22px; height: 22px; border-radius: 50%; background: #1a1a1a; border: 2px solid #333; position: relative; cursor: pointer; }
+.dash-knob-circle::after { content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 6px; background: #888; transform: translateX(-50%); border-radius: 1px; }
+.dash-knob-circle.active { border-color: #00ccff; }
+.dash-knob-circle.active::after { background: #00ccff; }
+.dash-knob-label { font-size: 6px; color: #555; text-transform: uppercase; white-space: nowrap; }
+
+/* Cuepoints */
+.cuepoint-row { display: flex; gap: 2px; padding: 4px 8px; }
+.cue-btn { flex: 1; height: 18px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #666; cursor: pointer; font-weight: 600; }
+.cue-btn:hover { background: #252525; color: #aaa; }
+.cue-btn.set { background: #1a2a1a; border-color: #336633; color: #66cc66; }
+
+/* Effect stack */
+.fx-stack { padding: 2px 8px; }
+.fx-stack-item { display: flex; align-items: center; gap: 3px; margin-bottom: 2px; padding: 2px 4px; background: #141414; border: 1px solid #222; border-radius: 2px; }
+.fx-bypass-btn { width: 16px; height: 14px; background: #1a2a1a; border: 1px solid #336633; color: #66cc66; font-size: 7px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 1px; }
+.fx-bypass-btn.bypassed { background: #2a1a1a; border-color: #663333; color: #cc6666; }
+.fx-name { font-size: 9px; color: #ccc; flex: 1; }
+.fx-drywet { width: 40px; height: 3px; background: #222; border-radius: 2px; position: relative; overflow: hidden; cursor: pointer; }
+.fx-drywet-fill { height: 100%; background: #00ccff; border-radius: 2px; }
+.fx-expand-btn { font-size: 8px; color: #555; cursor: pointer; padding: 0 2px; }
+.fx-delete-btn { font-size: 9px; color: #663333; cursor: pointer; padding: 0 2px; font-weight: 700; }
+.fx-param-row { display: flex; align-items: center; gap: 3px; margin: 2px 0 2px 20px; }
+
+/* Autopilot section */
+.autopilot-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.autopilot-label { font-size: 9px; color: #888; width: 55px; flex-shrink: 0; }
+.autopilot-select { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 1px 4px; font-size: 9px; border-radius: 2px; flex: 1; cursor: pointer; }
+
+/* Browser tabs */
+.browser-tabs { height: 22px; background: #131313; border-bottom: 1px solid #222; border-top: 1px solid #222; display: flex; align-items: stretch; }
+.browser-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.3px; cursor: pointer; border-bottom: 2px solid transparent; }
+.browser-tab:hover { color: #888; }
+.browser-tab.active { color: #ffaa00; border-bottom-color: #ffaa00; }
+
+.browser-content { flex: 0 0 auto; max-height: 180px; overflow-y: auto; padding: 4px; background: #0c0c0c; }
+.browser-category { font-size: 8px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 6px; font-weight: 700; }
+.browser-item { padding: 3px 10px; font-size: 10px; color: #aaa; cursor: pointer; border-radius: 2px; display: flex; align-items: center; gap: 6px; }
+.browser-item:hover { background: #1a1a1a; color: #e0e0e0; }
+.browser-item .bi-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+
+/* ===== BOTTOM: LAYER STRIP ===== */
+.layer-strip-area { height: 260px; border-top: 1px solid #333; background: #0c0c0c; display: flex; flex-direction: column; flex-shrink: 0; }
+
+/* Deck tabs */
+.deck-tabs { height: 22px; background: #111; border-bottom: 1px solid #222; display: flex; align-items: stretch; padding: 0 8px; }
+.deck-tab { padding: 0 14px; display: flex; align-items: center; font-size: 10px; font-weight: 700; color: #555; cursor: pointer; border-bottom: 2px solid transparent; }
+.deck-tab:hover { color: #888; }
+.deck-tab.active { color: #00ccff; border-bottom-color: #00ccff; background: #0c1520; }
+.deck-tab.add { color: #336633; font-size: 14px; padding: 0 8px; }
+.deck-tab.add:hover { color: #66cc66; }
+.deck-tab-spacer { flex: 1; }
+
+.layer-strip-scroll { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; padding: 4px; gap: 4px; }
+
+.layer-card { width: 220px; min-width: 220px; background: #111; border: 1px solid #222; border-radius: 3px; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+.layer-card:hover { border-color: #333; }
+
+/* Layer card top badge */
+.layer-badge { height: 18px; display: flex; align-items: center; padding: 0 6px; gap: 4px; }
+.engine-tag { font-size: 8px; font-weight: 700; padding: 1px 6px; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+.engine-tag.video { background: #331111; color: #ff4444; border: 1px solid #552222; }
+.engine-tag.image { background: #111133; color: #4488ff; border: 1px solid #222255; }
+.engine-tag.synth { background: #113311; color: #44cc44; border: 1px solid #225522; }
+.engine-tag.fxonly { background: #332200; color: #ffaa33; border: 1px solid #553311; }
+
+/* Tally light */
+.tally-section { padding: 0; display: flex; align-items: center; gap: 3px; }
+.tally-light { width: 6px; height: 6px; border-radius: 50%; }
+.tally-light.on { background: #ff0000; box-shadow: 0 0 4px #ff0000; }
+.tally-light.standby { background: #444; }
+.tally-label { font-size: 8px; color: #666; }
+
+/* Layer thumbnail */
+.layer-thumb { height: 48px; margin: 0 6px; background: #0a0a0a; border-radius: 2px; position: relative; overflow: hidden; }
+.layer-thumb-visual { position: absolute; inset: 0; }
+
+/* Layer info */
+.layer-info { padding: 1px 6px; }
+.layer-info-row { display: flex; justify-content: space-between; align-items: center; }
+.layer-name-label { font-size: 8px; color: #555; }
+.layer-name-value { font-size: 9px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Knob row with signal triangles */
+.knob-row { display: flex; justify-content: space-around; padding: 2px 4px; }
+.knob-group { display: flex; flex-direction: column; align-items: center; gap: 0; }
+.knob-signal { font-size: 6px; color: #444; cursor: pointer; height: 8px; display: flex; align-items: center; }
+.knob-signal:hover { color: #00ccff; }
+.knob-signal.connected { color: #00ccff; }
+.knob { width: 22px; height: 22px; border-radius: 50%; background: #1a1a1a; border: 2px solid #333; position: relative; cursor: pointer; }
+.knob::after { content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 7px; background: #888; transform: translateX(-50%); border-radius: 1px; }
+.knob.hue::after { transform: translateX(-50%) rotate(-30deg); transform-origin: bottom center; }
+.knob.sat::after { transform: translateX(-50%) rotate(15deg); transform-origin: bottom center; }
+.knob.bri::after { transform: translateX(-50%) rotate(45deg); transform-origin: bottom center; }
+.knob.spd::after { transform: translateX(-50%) rotate(-60deg); transform-origin: bottom center; }
+.knob-label { font-size: 7px; color: #555; text-transform: uppercase; }
+
+/* DNA Modulation */
+.dna-mod { padding: 1px 6px; font-size: 8px; color: #00ccff; text-align: center; opacity: 0.6; }
+
+/* Opacity slider */
+.opacity-section { padding: 1px 6px; }
+.opacity-label { font-size: 7px; color: #555; text-transform: uppercase; margin-bottom: 1px; }
+.opacity-track { height: 5px; background: #1a1a1a; border-radius: 3px; position: relative; overflow: hidden; }
+.opacity-fill { height: 100%; border-radius: 3px; }
+
+/* Layer card bottom controls */
+.layer-controls { display: flex; align-items: center; padding: 2px 4px; gap: 2px; margin-top: auto; }
+.layer-ctrl-btn { font-size: 8px; padding: 2px 6px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #666; border-radius: 2px; cursor: pointer; font-weight: 600; min-height: 22px; display: flex; align-items: center; justify-content: center; }
+.layer-ctrl-btn:hover { background: #252525; color: #aaa; }
+.layer-ctrl-btn.power { color: #444; }
+.layer-ctrl-btn.power.on { color: #00ff88; border-color: #336633; }
+.layer-ctrl-btn.fx { color: #00ccff; }
+.layer-ctrl-btn.solo { color: #ffcc00; }
+.layer-ctrl-btn.mute { color: #ff3333; }
+.layer-expand { font-size: 8px; color: #555; cursor: pointer; margin-left: auto; padding: 2px 4px; }
+
+/* ===== FOOTER ===== */
+.footer-bar { height: 22px; background: #0a0a0a; border-top: 1px solid #222; display: flex; align-items: center; padding: 0 10px; gap: 16px; flex-shrink: 0; }
+.footer-item { font-size: 9px; color: #555; display: flex; align-items: center; gap: 4px; }
+.footer-item .fi-dot { width: 5px; height: 5px; border-radius: 50%; }
+.footer-value { color: #888; font-variant-numeric: tabular-nums; }
+.footer-spacer { flex: 1; }
+.footer-item.recording { color: #ff3333; }
+.footer-item.recording .fi-dot { background: #ff3333; box-shadow: 0 0 4px #ff3333; }
+.footer-item.ok .fi-dot { background: #00ff88; }
+.footer-item.warn .fi-dot { background: #ffcc00; }
+.footer-item.off .fi-dot { background: #444; }
+
+/* ===== CANVAS GEOMETRIC SHAPES ===== */
+.geo-diamond { position: absolute; width: 60px; height: 60px; background: linear-gradient(135deg, rgba(0,204,255,0.3), rgba(0,204,255,0.05)); transform: rotate(45deg); border: 1px solid rgba(0,204,255,0.2); }
+.geo-circle { position: absolute; border-radius: 50%; }
+.geo-rect { position: absolute; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ===== MENU BAR ===== -->
+<div class="menu-bar">
+  <span class="menu-item app-name">Audio-DNA</span>
+  <span class="menu-item">Composition</span>
+  <span class="menu-item">Deck</span>
+  <span class="menu-item">Layer</span>
+  <span class="menu-item">Column</span>
+  <span class="menu-item">Clip</span>
+  <span class="menu-item">Output</span>
+  <span class="menu-item">Shortcuts</span>
+  <span class="menu-item">View</span>
+</div>
+
+<!-- ===== TOP BAR ===== -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div class="logo-text">Audio-DNA</div>
+  </div>
+  <div class="top-sep"></div>
+  <div class="bpm-group">
+    <span class="bpm-label">BPM</span>
+    <span class="bpm-value">128.00</span>
+  </div>
+  <!-- Beat wheel -->
+  <div class="beat-wheel">
+    <svg viewBox="0 0 28 28">
+      <circle cx="14" cy="14" r="11" fill="none" stroke="#333" stroke-width="2"/>
+      <path d="M14 3 A11 11 0 0 1 25 14" fill="none" stroke="#00ff88" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M25 14 A11 11 0 0 1 14 25" fill="none" stroke="#115522" stroke-width="2"/>
+      <path d="M14 25 A11 11 0 0 1 3 14" fill="none" stroke="#115522" stroke-width="2"/>
+      <path d="M3 14 A11 11 0 0 1 14 3" fill="none" stroke="#115522" stroke-width="2"/>
+    </svg>
+    <div class="beat-wheel-text">1.3</div>
+  </div>
+  <button class="top-btn tap">Tap</button>
+  <button class="top-btn resync">Resync</button>
+  <button class="top-btn manual">Manual</button>
+  <div class="top-sep"></div>
+  <div class="quant-group">
+    <span class="quant-label">Quantize</span>
+    <select class="quant-select">
+      <option>1 Bar</option>
+    </select>
+  </div>
+  <div class="quant-group">
+    <span class="quant-label">Fade</span>
+    <div class="fade-slider"><div class="fade-fill" style="width:30%;"></div></div>
+    <span style="font-size:9px; color:#777;">0.5s</span>
+  </div>
+  <div class="top-sep"></div>
+  <div class="room-delay">
+    Room Delay <span class="room-delay-val">+20ms</span>
+  </div>
+  <div class="level-meters">
+    <div class="level-bar" style="height:8px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:12px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:16px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:18px; background:#66ff88;"></div>
+    <div class="level-bar" style="height:14px; background:#66ff88;"></div>
+    <div class="level-bar" style="height:10px; background:#ffcc00;"></div>
+    <div class="level-bar" style="height:6px; background:#ffcc00;"></div>
+    <div class="level-bar" style="height:3px; background:#ff6633;"></div>
+    <div style="width:3px;"></div>
+    <div class="level-bar" style="height:7px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:11px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:15px; background:#00ff88;"></div>
+    <div class="level-bar" style="height:17px; background:#66ff88;"></div>
+    <div class="level-bar" style="height:13px; background:#66ff88;"></div>
+    <div class="level-bar" style="height:9px; background:#ffcc00;"></div>
+    <div class="level-bar" style="height:5px; background:#ffcc00;"></div>
+    <div class="level-bar" style="height:2px; background:#ff6633;"></div>
+  </div>
+</div>
+
+<!-- ===== SIGNAL BAR ===== -->
+<div class="signal-bar">
+  <div class="signal-meter">
+    <span class="signal-meter-label">RMS</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:72%; background:linear-gradient(90deg, #00ff88, #66ff88);"></div></div>
+    <span class="signal-meter-value">0.72</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Peak</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:88%; background:linear-gradient(90deg, #00ff88, #ffcc00);"></div></div>
+    <span class="signal-meter-value">0.88</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Bass</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:85%; background:linear-gradient(90deg, #ff3333, #ff6644);"></div></div>
+    <span class="signal-meter-value">0.85</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Mid</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:55%; background:linear-gradient(90deg, #ffaa00, #ffcc44);"></div></div>
+    <span class="signal-meter-value">0.55</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">High</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:38%; background:linear-gradient(90deg, #00ccff, #44ddff);"></div></div>
+    <span class="signal-meter-value">0.38</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Beat Phase</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:65%; background:#00ff88;"></div></div>
+    <span class="signal-meter-value">0.65</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Bar Phase</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:32%; background:#3388ff;"></div></div>
+    <span class="signal-meter-value">0.32</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">BPM</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:64%; background:#00ff88;"></div></div>
+    <span class="signal-meter-value">128.0</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Onset</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:92%; background:#ff3366;"></div></div>
+    <span class="signal-meter-value">0.92</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Pitch</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:45%; background:#aa55ff;"></div></div>
+    <span class="signal-meter-value">440Hz</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Key</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:100%; background:#336633;"></div></div>
+    <span class="signal-meter-value">Am</span>
+  </div>
+  <div class="signal-meter">
+    <span class="signal-meter-label">Structure</span>
+    <div class="signal-meter-bar"><div class="signal-meter-fill" style="width:75%; background:#ff9933;"></div></div>
+    <span class="signal-meter-value">Drop</span>
+  </div>
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="main-content">
+
+  <!-- LEFT: SCENE FLOW -->
+  <div class="scene-flow">
+    <div class="panel-header"><span class="arrow">&#9660;</span> Scene Flow</div>
+
+    <div class="scene-grid">
+      <div class="scene-type-row">
+        <div class="scene-type-label">Video</div>
+        <div class="scene-cell red">Intro <span class="bars">(16 bars)</span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Image</div>
+        <div class="scene-cell blue">Verse 1 <span class="bars">(22 bars)</span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Chorus</div>
+        <div class="scene-cell green active">Chorus <span class="bars">(16 bars)</span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Bridge</div>
+        <div class="scene-cell amber">Bridge <span class="bars">(16 bars)</span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Verse 2</div>
+        <div class="scene-cell purple">Verse 2 <span class="bars"></span></div>
+      </div>
+      <div class="scene-type-row">
+        <div class="scene-type-label">Outro</div>
+        <div class="scene-cell cyan">Outro <span class="bars">(14 bars)</span></div>
+      </div>
+    </div>
+
+    <div class="layer-change-section">
+      <div class="layer-change-header">Layer Change</div>
+    </div>
+
+    <div class="scene-list">
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#ff3333;"></div>
+        <span class="scene-list-name">Intro</span>
+        <span class="scene-list-bars">12 bars</span>
+      </div>
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#3388ff;"></div>
+        <span class="scene-list-name">Verse 1</span>
+        <span class="scene-list-bars">22 bars</span>
+      </div>
+      <div class="scene-list-item active">
+        <div class="scene-list-dot" style="background:#33cc66;"></div>
+        <span class="scene-list-name">Chorus</span>
+        <span class="scene-list-bars">16 bars</span>
+      </div>
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#ff9933;"></div>
+        <span class="scene-list-name">Bridge</span>
+        <span class="scene-list-bars">16 bars</span>
+      </div>
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#aa55ff;"></div>
+        <span class="scene-list-name">Verse 2</span>
+        <span class="scene-list-bars"></span>
+      </div>
+      <div class="scene-list-item">
+        <div class="scene-list-dot" style="background:#00cccc;"></div>
+        <span class="scene-list-name">Outro</span>
+        <span class="scene-list-bars">14 bars</span>
+      </div>
+    </div>
+
+    <div class="scene-footer">
+      <button class="scene-footer-btn add">+ Add Scene</button>
+      <button class="scene-footer-btn trigger">Trigger</button>
+    </div>
+  </div>
+
+  <!-- CENTER: LIVE OUTPUT PREVIEW -->
+  <div class="center-area">
+    <div class="preview-header">Live Output Preview</div>
+    <div class="preview-container">
+      <div class="preview-viewport">
+        <div class="preview-canvas">
+          <div class="preview-bg"></div>
+          <!-- Geometric visual content -->
+          <div class="geo-diamond" style="top:25%; left:20%;"></div>
+          <div class="geo-diamond" style="top:15%; left:55%; width:40px; height:40px; background:linear-gradient(135deg, rgba(255,51,102,0.3), rgba(255,51,102,0.05)); border-color:rgba(255,51,102,0.2);"></div>
+          <div class="geo-circle" style="top:30%; left:40%; width:80px; height:80px; border:1px solid rgba(0,255,136,0.2); background:radial-gradient(circle, rgba(0,255,136,0.1) 0%, transparent 70%);"></div>
+          <div class="geo-circle" style="top:50%; left:60%; width:50px; height:50px; border:1px solid rgba(255,153,0,0.3); background:radial-gradient(circle, rgba(255,153,0,0.15) 0%, transparent 70%);"></div>
+          <div class="geo-rect" style="top:20%; left:35%; width:120px; height:2px; background:linear-gradient(90deg, transparent, rgba(0,204,255,0.4), transparent);"></div>
+          <div class="geo-rect" style="top:60%; left:15%; width:180px; height:1px; background:linear-gradient(90deg, transparent, rgba(255,51,102,0.3), transparent);"></div>
+          <div class="geo-rect" style="top:45%; left:50%; width:100px; height:100px; border:1px solid rgba(255,255,255,0.08); transform:rotate(15deg);"></div>
+          <div class="geo-circle" style="top:35%; left:70%; width:4px; height:4px; background:#00ccff; box-shadow:0 0 6px #00ccff;"></div>
+          <div class="geo-circle" style="top:55%; left:25%; width:3px; height:3px; background:#ff3366; box-shadow:0 0 4px #ff3366;"></div>
+          <div class="geo-circle" style="top:20%; left:75%; width:5px; height:5px; background:#00ff88; box-shadow:0 0 8px #00ff88;"></div>
+          <div class="geo-circle" style="top:70%; left:45%; width:3px; height:3px; background:#ffcc00; box-shadow:0 0 5px #ffcc00;"></div>
+          <div class="geo-circle" style="top:40%; left:85%; width:4px; height:4px; background:#aa55ff; box-shadow:0 0 6px #aa55ff;"></div>
+          <div class="geo-rect" style="top:0; left:33.3%; width:1px; height:100%; background:rgba(255,255,255,0.04);"></div>
+          <div class="geo-rect" style="top:0; left:66.6%; width:1px; height:100%; background:rgba(255,255,255,0.04);"></div>
+          <div class="geo-rect" style="top:50%; left:0; width:100%; height:1px; background:rgba(255,255,255,0.04);"></div>
+          <svg style="position:absolute; top:55%; left:65%; width:80px; height:70px; opacity:0.3;">
+            <polygon points="40,5 75,65 5,65" fill="none" stroke="rgba(0,204,255,0.4)" stroke-width="1"/>
+          </svg>
+          <svg style="position:absolute; top:15%; left:10%; width:60px; height:52px; opacity:0.25;">
+            <polygon points="30,4 56,48 4,48" fill="none" stroke="rgba(255,153,0,0.4)" stroke-width="1"/>
+          </svg>
+          <div class="safe-area"></div>
+          <div class="res-overlay">1920x1080 / 60fps / OpenGL 4.1</div>
+          <div class="res-overlay-bottom">Output: Display 1 / Syphon: Audio-DNA</div>
+        </div>
+      </div>
+    </div>
+    <!-- Transport bar -->
+    <div class="transport-bar">
+      <div class="transport-btn" title="Previous">&#9664;&#9664;</div>
+      <div class="transport-btn" title="Stop">&#9632;</div>
+      <div class="transport-btn play" title="Play">&#9654;</div>
+      <div class="transport-btn" title="Pause">||</div>
+      <div class="transport-btn" title="Next">&#9654;&#9654;</div>
+      <div class="transport-timeline">
+        <div class="transport-progress"></div>
+        <div class="transport-playhead"></div>
+      </div>
+      <div class="timecode">02:45:30:15</div>
+      <div class="transport-right">
+        <select class="transport-select"><option>Fullscreen</option></select>
+        <select class="transport-select"><option>Display 2</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: INSPECTOR + BROWSER -->
+  <div class="right-panel">
+    <!-- Inspector tabs -->
+    <div class="inspector-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Composition</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+
+    <!-- Inspector content (Clip tab shown) -->
+    <div class="inspector-content">
+
+      <!-- Dashboard Knobs -->
+      <div class="insp-section">
+        <div class="insp-section-header"><span class="arrow">&#9660;</span> Dashboard</div>
+        <div class="dashboard-knobs">
+          <div class="dash-knob"><div class="dash-knob-circle active"></div><span class="dash-knob-label">Link 1</span></div>
+          <div class="dash-knob"><div class="dash-knob-circle active"></div><span class="dash-knob-label">Link 2</span></div>
+          <div class="dash-knob"><div class="dash-knob-circle"></div><span class="dash-knob-label">Link 3</span></div>
+          <div class="dash-knob"><div class="dash-knob-circle"></div><span class="dash-knob-label">Link 4</span></div>
+          <div class="dash-knob"><div class="dash-knob-circle"></div><span class="dash-knob-label">Link 5</span></div>
+          <div class="dash-knob"><div class="dash-knob-circle"></div><span class="dash-knob-label">Link 6</span></div>
+          <div class="dash-knob"><div class="dash-knob-circle"></div><span class="dash-knob-label">Link 7</span></div>
+          <div class="dash-knob"><div class="dash-knob-circle"></div><span class="dash-knob-label">Link 8</span></div>
+        </div>
+      </div>
+
+      <!-- Video Section -->
+      <div class="insp-section">
+        <div class="insp-section-header"><span class="arrow">&#9660;</span> Video</div>
+        <div class="insp-section-body">
+          <div class="param-row">
+            <div class="param-triangle connected">&#9654;</div>
+            <span class="param-label">Opacity</span>
+            <div class="param-slider"><div class="param-slider-fill" style="width:100%; background:#00ccff;"></div></div>
+            <span class="param-value">100%</span>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle">&#9654;</div>
+            <span class="param-label">Blend Mode</span>
+            <select class="autopilot-select" style="width:auto;"><option>Add</option></select>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle">&#9654;</div>
+            <span class="param-label">Alpha Type</span>
+            <select class="autopilot-select" style="width:auto;"><option>Straight</option></select>
+          </div>
+          <div class="param-row" style="gap:6px; margin-left:77px;">
+            <span style="font-size:8px; color:#888; cursor:pointer;">R</span>
+            <span style="font-size:8px; color:#ff4444; cursor:pointer; font-weight:700;">R</span>
+            <span style="font-size:8px; color:#44ff44; cursor:pointer; font-weight:700;">G</span>
+            <span style="font-size:8px; color:#4488ff; cursor:pointer; font-weight:700;">B</span>
+            <span style="font-size:8px; color:#888; cursor:pointer;">A</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transform Section -->
+      <div class="insp-section">
+        <div class="insp-section-header"><span class="arrow">&#9660;</span> Transform</div>
+        <div class="insp-section-body">
+          <div class="param-row">
+            <div class="param-triangle">&#9654;</div>
+            <span class="param-label">Position X</span>
+            <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#555;"></div></div>
+            <span class="param-value">0.0</span>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle">&#9654;</div>
+            <span class="param-label">Position Y</span>
+            <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#555;"></div></div>
+            <span class="param-value">0.0</span>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle connected">&#9654;</div>
+            <span class="param-label">Scale</span>
+            <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#00ccff;"></div></div>
+            <span class="param-value">100%</span>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle">&#9654;</div>
+            <span class="param-label">Rotation</span>
+            <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#555;"></div></div>
+            <span class="param-value">0.0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cuepoints -->
+      <div class="insp-section">
+        <div class="insp-section-header"><span class="arrow">&#9660;</span> Cuepoints</div>
+        <div class="cuepoint-row">
+          <div class="cue-btn set">1</div>
+          <div class="cue-btn set">2</div>
+          <div class="cue-btn">3</div>
+          <div class="cue-btn">4</div>
+          <div class="cue-btn">5</div>
+          <div class="cue-btn">6</div>
+          <div class="cue-btn">7</div>
+          <div class="cue-btn">8</div>
+        </div>
+      </div>
+
+      <!-- Autopilot -->
+      <div class="insp-section">
+        <div class="insp-section-header"><span class="arrow">&#9660;</span> Autopilot</div>
+        <div class="insp-section-body">
+          <div class="autopilot-row">
+            <span class="autopilot-label">Action</span>
+            <select class="autopilot-select"><option>Play Random</option></select>
+          </div>
+          <div class="autopilot-row">
+            <span class="autopilot-label">Duration</span>
+            <select class="autopilot-select"><option>8 Beats</option></select>
+          </div>
+          <div class="autopilot-row">
+            <span class="autopilot-label">Beat Snap</span>
+            <select class="autopilot-select"><option>1 Bar</option></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Effects Stack -->
+      <div class="insp-section">
+        <div class="insp-section-header"><span class="arrow">&#9660;</span> Effects</div>
+        <div class="fx-stack">
+          <!-- Effect 1: Ripple (expanded) -->
+          <div class="fx-stack-item" style="flex-wrap:wrap;">
+            <div class="fx-bypass-btn">B</div>
+            <span class="fx-name">Ripple</span>
+            <div class="fx-drywet"><div class="fx-drywet-fill" style="width:100%;"></div></div>
+            <span class="fx-expand-btn">&#9660;</span>
+            <span class="fx-delete-btn">X</span>
+            <!-- Expanded params -->
+            <div style="width:100%; padding-left:20px; padding-top:2px;">
+              <div class="param-row">
+                <div class="param-triangle connected">&#9654;</div>
+                <span class="param-label">Intensity</span>
+                <div class="param-slider"><div class="param-slider-fill" style="width:65%; background:#00ccff;"></div></div>
+                <span class="param-value">0.65</span>
+              </div>
+              <div class="param-row">
+                <div class="param-triangle">&#9654;</div>
+                <span class="param-label">Frequency</span>
+                <div class="param-slider"><div class="param-slider-fill" style="width:40%; background:#555;"></div></div>
+                <span class="param-value">0.40</span>
+              </div>
+              <div class="param-row">
+                <div class="param-triangle connected">&#9654;</div>
+                <span class="param-label">Speed</span>
+                <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#00ccff;"></div></div>
+                <span class="param-value">0.50</span>
+              </div>
+            </div>
+          </div>
+          <!-- Effect 2: Hue Shift -->
+          <div class="fx-stack-item">
+            <div class="fx-bypass-btn">B</div>
+            <span class="fx-name">Hue Shift</span>
+            <div class="fx-drywet"><div class="fx-drywet-fill" style="width:80%;"></div></div>
+            <span class="fx-expand-btn">&#9654;</span>
+            <span class="fx-delete-btn">X</span>
+          </div>
+          <!-- Effect 3: Echo (bypassed) -->
+          <div class="fx-stack-item">
+            <div class="fx-bypass-btn bypassed">B</div>
+            <span class="fx-name" style="color:#666;">Echo</span>
+            <div class="fx-drywet"><div class="fx-drywet-fill" style="width:60%;"></div></div>
+            <span class="fx-expand-btn">&#9654;</span>
+            <span class="fx-delete-btn">X</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Keying -->
+      <div class="insp-section">
+        <div class="insp-section-header"><span class="arrow">&#9654;</span> Keying</div>
+        <div class="insp-section-body">
+          <div class="param-row">
+            <div class="param-triangle">&#9654;</div>
+            <span class="param-label">Mode</span>
+            <select class="autopilot-select" style="width:auto;"><option>Luma Key</option></select>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle">&#9654;</div>
+            <span class="param-label">Threshold</span>
+            <div class="param-slider"><div class="param-slider-fill" style="width:30%; background:#555;"></div></div>
+            <span class="param-value">0.30</span>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle">&#9654;</div>
+            <span class="param-label">Softness</span>
+            <div class="param-slider"><div class="param-slider-fill" style="width:15%; background:#555;"></div></div>
+            <span class="param-value">0.15</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="insp-section">
+        <div class="insp-section-header"><span class="arrow">&#9654;</span> Feedback</div>
+        <div class="insp-section-body">
+          <div class="autopilot-row">
+            <span class="autopilot-label">Enable</span>
+            <div style="width:14px; height:14px; background:#1a2a1a; border:1px solid #336633; border-radius:2px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:9px; color:#66cc66;">&#10003;</div>
+          </div>
+          <div class="autopilot-row">
+            <span class="autopilot-label">Preset</span>
+            <select class="autopilot-select"><option>Zoom In</option></select>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle connected">&#9654;</div>
+            <span class="param-label">Amount</span>
+            <div class="param-slider"><div class="param-slider-fill" style="width:45%; background:#00ccff;"></div></div>
+            <span class="param-value">0.45</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Browser -->
+    <div class="browser-tabs">
+      <div class="browser-tab">Files</div>
+      <div class="browser-tab active">FX</div>
+      <div class="browser-tab">Sources</div>
+    </div>
+    <div class="browser-content">
+      <div class="browser-category">Warp (27)</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#00ccff;"></div> Ripple</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#00ccff;"></div> Bulge</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#00ccff;"></div> Wave</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#00ccff;"></div> Kaleidoscope</div>
+      <div class="browser-category">Color (31)</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#ff9933;"></div> Hue Shift</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#ff9933;"></div> Duotone</div>
+      <div class="browser-category">Glitch (16)</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#ff3366;"></div> Block Glitch</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#ff3366;"></div> RGB Split</div>
+      <div class="browser-category">Time (6)</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#aa55ff;"></div> Echo</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#aa55ff;"></div> Freeze</div>
+      <div class="browser-category">Audio (3)</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#00ff88;"></div> Beat Ripple</div>
+      <div class="browser-category">Blend (5)</div>
+      <div class="browser-item"><div class="bi-dot" style="background:#ffcc00;"></div> Double Exposure</div>
+    </div>
+  </div>
+
+</div><!-- /main-content -->
+
+<!-- ===== BOTTOM: LAYER STRIP ===== -->
+<div class="layer-strip-area">
+  <!-- Deck Tabs -->
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <div class="deck-tab add">+</div>
+    <div class="deck-tab-spacer"></div>
+  </div>
+
+  <div class="layer-strip-scroll">
+
+    <!-- Layer 1: VIDEO -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag video">Video</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light on"></div>
+          <span class="tally-label">Tally</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(135deg, #1a0522 0%, #2a1144 30%, #0a1133 60%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <polygon points="60,8 110,44 10,44" fill="none" stroke="rgba(0,204,255,0.4)" stroke-width="1"/>
+          <polygon points="70,12 100,40 40,40" fill="rgba(0,204,255,0.08)"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-value">Layer 1: Intro Video</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob hue"></div>
+          <span class="knob-label">Hue</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob sat"></div>
+          <span class="knob-label">Saturation</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob bri"></div>
+          <span class="knob-label">Brightness</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob spd"></div>
+          <span class="knob-label">Speed</span>
+        </div>
+      </div>
+      <div class="dna-mod">DNA Modulation: Bass > Brightness</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:100%; background:linear-gradient(90deg, #333, #00ff88);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" title="Power" style="min-height:22px;">&#9679;</button>
+        <button class="layer-ctrl-btn solo" title="Solo" style="min-height:22px;">S</button>
+        <button class="layer-ctrl-btn mute" title="Mute" style="min-height:22px;">M</button>
+        <button class="layer-ctrl-btn fx" style="min-height:22px;">FX 3</button>
+        <span class="layer-expand">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Layer 2: VIDEO -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag video">Video</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(180deg, #0a0a2a 0%, #1a0a3a 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <rect x="30" y="8" width="50" height="32" rx="2" fill="none" stroke="rgba(255,51,102,0.3)" stroke-width="1"/>
+          <line x1="55" y1="8" x2="55" y2="40" stroke="rgba(255,51,102,0.15)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-value">Layer 2: Loop Reel</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob hue"></div>
+          <span class="knob-label">Hue</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob sat"></div>
+          <span class="knob-label">Saturation</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob bri"></div>
+          <span class="knob-label">Brightness</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob spd"></div>
+          <span class="knob-label">Speed</span>
+        </div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:85%; background:linear-gradient(90deg, #333, #00ccff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" style="min-height:22px;">&#9679;</button>
+        <button class="layer-ctrl-btn solo" style="min-height:22px;">S</button>
+        <button class="layer-ctrl-btn mute" style="min-height:22px;">M</button>
+        <button class="layer-ctrl-btn fx" style="min-height:22px;">FX 1</button>
+        <span class="layer-expand">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Layer 3: IMAGE -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag image">Image</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(135deg, #0a1a0a 0%, #1a3a1a 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <circle cx="55" cy="24" r="16" fill="none" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+          <circle cx="55" cy="24" r="7" fill="rgba(0,255,136,0.1)"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-value">Layer 3: Texture Pack</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob hue"></div>
+          <span class="knob-label">Hue</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob sat"></div>
+          <span class="knob-label">Saturation</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob bri"></div>
+          <span class="knob-label">Brightness</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob spd"></div>
+          <span class="knob-label">Speed</span>
+        </div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:70%; background:linear-gradient(90deg, #333, #4488ff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" style="min-height:22px;">&#9679;</button>
+        <button class="layer-ctrl-btn solo" style="min-height:22px;">S</button>
+        <button class="layer-ctrl-btn mute" style="min-height:22px;">M</button>
+        <button class="layer-ctrl-btn fx" style="min-height:22px;">FX 2</button>
+        <span class="layer-expand">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Layer 4: SYNTH -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag synth">Source</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light on"></div>
+          <span class="tally-label">Tally</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:radial-gradient(ellipse at center, #1a1a00 0%, #0a0a00 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <polyline points="0,46 15,38 30,22 45,12 55,28 65,8 75,18 85,32 95,26 110,42 130,46" fill="none" stroke="rgba(255,204,0,0.4)" stroke-width="1.5"/>
+          <polyline points="0,46 15,40 30,28 45,18 55,32 65,14 75,22 85,36 95,30 110,44 130,46" fill="rgba(255,204,0,0.05)"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-value">Layer 4: Mandelbulb</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob hue"></div>
+          <span class="knob-label">Hue</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob sat"></div>
+          <span class="knob-label">Saturation</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob bri"></div>
+          <span class="knob-label">Brightness</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob spd"></div>
+          <span class="knob-label">Speed</span>
+        </div>
+      </div>
+      <div class="dna-mod">DNA Modulation: RMS > Zoom</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:90%; background:linear-gradient(90deg, #333, #ffcc00);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" style="min-height:22px;">&#9679;</button>
+        <button class="layer-ctrl-btn solo" style="min-height:22px;">S</button>
+        <button class="layer-ctrl-btn mute" style="min-height:22px;">M</button>
+        <button class="layer-ctrl-btn fx" style="min-height:22px;">FX 4</button>
+        <span class="layer-expand">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Layer 5: VIDEO -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag video">Video</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(135deg, #1a0a1a 0%, #2a0a2a 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <ellipse cx="55" cy="24" rx="30" ry="14" fill="none" stroke="rgba(170,85,255,0.3)" stroke-width="1"/>
+          <line x1="25" y1="24" x2="85" y2="24" stroke="rgba(170,85,255,0.15)" stroke-width="1"/>
+          <line x1="55" y1="10" x2="55" y2="38" stroke="rgba(170,85,255,0.15)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-value">Layer 5: Overlay</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob hue"></div>
+          <span class="knob-label">Hue</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob sat"></div>
+          <span class="knob-label">Saturation</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob bri"></div>
+          <span class="knob-label">Brightness</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob spd"></div>
+          <span class="knob-label">Speed</span>
+        </div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:60%; background:linear-gradient(90deg, #333, #aa55ff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" style="min-height:22px;">&#9679;</button>
+        <button class="layer-ctrl-btn solo" style="min-height:22px;">S</button>
+        <button class="layer-ctrl-btn mute" style="min-height:22px;">M</button>
+        <button class="layer-ctrl-btn fx" style="min-height:22px;">FX 1</button>
+        <span class="layer-expand">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Layer 6: IMAGE -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag image">Image</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:conic-gradient(from 0deg, #1a0a0a, #0a1a0a, #0a0a1a, #1a1a0a, #1a0a0a);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <polygon points="30,42 55,4 80,42" fill="none" stroke="rgba(0,255,136,0.25)" stroke-width="1"/>
+          <polygon points="40,38 55,10 70,38" fill="rgba(0,255,136,0.06)"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-value">Layer 6: Photo Set</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob hue"></div>
+          <span class="knob-label">Hue</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob sat"></div>
+          <span class="knob-label">Saturation</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob bri"></div>
+          <span class="knob-label">Brightness</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob spd"></div>
+          <span class="knob-label">Speed</span>
+        </div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:75%; background:linear-gradient(90deg, #333, #4488ff);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" style="min-height:22px;">&#9679;</button>
+        <button class="layer-ctrl-btn solo" style="min-height:22px;">S</button>
+        <button class="layer-ctrl-btn mute" style="min-height:22px;">M</button>
+        <button class="layer-ctrl-btn fx" style="min-height:22px;">FX 0</button>
+        <span class="layer-expand">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Layer 7: FX ONLY -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag fxonly">FX Only</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light on"></div>
+          <span class="tally-label">Tally</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:linear-gradient(45deg, #0a0a1a 0%, #1a1a3a 50%, #000 100%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <rect x="15" y="6" width="80" height="36" rx="0" fill="none" stroke="rgba(255,170,0,0.2)" stroke-width="1"/>
+          <line x1="55" y1="6" x2="55" y2="42" stroke="rgba(255,170,0,0.1)" stroke-width="1"/>
+          <line x1="15" y1="24" x2="95" y2="24" stroke="rgba(255,170,0,0.1)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-value">Layer 7: Global FX</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob hue"></div>
+          <span class="knob-label">Hue</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob sat"></div>
+          <span class="knob-label">Saturation</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob bri"></div>
+          <span class="knob-label">Brightness</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob spd"></div>
+          <span class="knob-label">Speed</span>
+        </div>
+      </div>
+      <div class="dna-mod">DNA Modulation: Onset > Strobe</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:95%; background:linear-gradient(90deg, #333, #ffaa33);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" style="min-height:22px;">&#9679;</button>
+        <button class="layer-ctrl-btn solo" style="min-height:22px;">S</button>
+        <button class="layer-ctrl-btn mute" style="min-height:22px;">M</button>
+        <button class="layer-ctrl-btn fx" style="min-height:22px;">FX 5</button>
+        <span class="layer-expand">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Layer 8: SOURCE -->
+    <div class="layer-card">
+      <div class="layer-badge">
+        <span class="engine-tag synth">Source</span>
+        <div class="tally-section" style="margin-left:auto;">
+          <div class="tally-light standby"></div>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <div class="layer-thumb-visual" style="background:radial-gradient(ellipse at 40% 60%, #1a1a00 0%, #000 80%);"></div>
+        <svg style="position:absolute; inset:0; width:100%; height:100%;">
+          <path d="M10,38 Q30,4 55,24 T100,12" fill="none" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+          <circle cx="55" cy="24" r="10" fill="none" stroke="rgba(255,204,0,0.2)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="layer-info">
+        <div class="layer-info-row"><span class="layer-name-value">Layer 8: Perlin Noise</span></div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob hue"></div>
+          <span class="knob-label">Hue</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob sat"></div>
+          <span class="knob-label">Saturation</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal connected">&#9654;</div>
+          <div class="knob bri"></div>
+          <span class="knob-label">Brightness</span>
+        </div>
+        <div class="knob-group">
+          <div class="knob-signal">&#9654;</div>
+          <div class="knob spd"></div>
+          <span class="knob-label">Speed</span>
+        </div>
+      </div>
+      <div class="dna-mod">DNA Modulation</div>
+      <div class="opacity-section">
+        <div class="opacity-label">Opacity</div>
+        <div class="opacity-track"><div class="opacity-fill" style="width:50%; background:linear-gradient(90deg, #333, #44cc44);"></div></div>
+      </div>
+      <div class="layer-controls">
+        <button class="layer-ctrl-btn power on" style="min-height:22px;">&#9679;</button>
+        <button class="layer-ctrl-btn solo" style="min-height:22px;">S</button>
+        <button class="layer-ctrl-btn mute" style="min-height:22px;">M</button>
+        <button class="layer-ctrl-btn fx" style="min-height:22px;">FX 2</button>
+        <span class="layer-expand">&#9660;</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<div class="footer-bar">
+  <div class="footer-item ok">
+    <div class="fi-dot"></div>
+    <span>FPS</span>
+    <span class="footer-value">60.0</span>
+  </div>
+  <div class="footer-item ok">
+    <div class="fi-dot"></div>
+    <span>DSP</span>
+    <span class="footer-value">4.2%</span>
+  </div>
+  <div class="footer-item ok">
+    <div class="fi-dot"></div>
+    <span>GPU</span>
+    <span class="footer-value">28%</span>
+  </div>
+  <div class="footer-item recording">
+    <div class="fi-dot"></div>
+    <span>Recording</span>
+    <span class="footer-value">02:45</span>
+  </div>
+  <div class="footer-item ok">
+    <div class="fi-dot"></div>
+    <span>Syphon</span>
+    <span class="footer-value">Active</span>
+  </div>
+  <div class="footer-item off">
+    <div class="fi-dot"></div>
+    <span>OSC</span>
+    <span class="footer-value">Port 9000</span>
+  </div>
+  <div class="footer-item off">
+    <div class="fi-dot"></div>
+    <span>MIDI</span>
+    <span class="footer-value">None</span>
+  </div>
+  <div class="footer-spacer"></div>
+  <div class="footer-item">
+    <span>API</span>
+    <span class="footer-value">:7070</span>
+  </div>
+  <div class="footer-item">
+    <span>Genre</span>
+    <span class="footer-value" style="color:#00ff88;">Techno</span>
+  </div>
+  <div class="footer-item">
+    <span>Energy</span>
+    <span class="footer-value" style="color:#ff9933;">High</span>
+  </div>
+  <div class="footer-item">
+    <span>135 Effects</span>
+    <span class="footer-value">81 Sources</span>
+  </div>
+</div>
+
+</div><!-- /app -->
+</body>
+</html>

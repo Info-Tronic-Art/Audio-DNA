@@ -1,0 +1,383 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          105,
+          "output"
+        ],
+        "to": [
+          78,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          105,
+          "output"
+        ],
+        "to": [
+          79,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          105,
+          "output"
+        ],
+        "to": [
+          77,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          78,
+          "output"
+        ],
+        "to": [
+          106,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          79,
+          "output"
+        ],
+        "to": [
+          107,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          77,
+          "output"
+        ],
+        "to": [
+          108,
+          "input0"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Midi Logic Example",
+      "identifier": "f5c25bf5-20e4-46e0-b502-bb6fde3239d6",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 109,
+    "nodes": {
+      "105": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": -28.1920166015625,
+          "y": 566.2484130859375
+        },
+        "class": {
+          "id": "77697265-5275-4BB0-97B0-DBEEFD85997B",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "midi",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "MIDI In"
+      },
+      "106": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "bool"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 405.8888549804687,
+          "y": 502.3009643554687
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-e61a24ca2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [],
+        "name": "Bool"
+      },
+      "107": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "bool"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 405.8888549804687,
+          "y": 581.9895629882812
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-e61a24ca2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [],
+        "name": "Bool"
+      },
+      "108": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "bool"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 405.8888549804687,
+          "y": 667.2703857421875
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-e61a24ca2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [],
+        "name": "Bool"
+      },
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "MIDI LOGIC\n\nThese are three simple midi logic nodes that output booleans based on the input."
+          }
+        },
+        "bounds": {
+          "height": 119.593505859375,
+          "width": 626.128662109375,
+          "x": -28.52088928222656,
+          "y": 344.6603698730469
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "77": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 139.2166748046875,
+          "y": 661.637451171875
+        },
+        "class": {
+          "id": "77697265-322C-4965-83AE-E73BC6E4069C",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "midi",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Is CC"
+      },
+      "78": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "zero-is-off": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 138.816650390625,
+          "y": 502.6375732421875
+        },
+        "class": {
+          "id": "77697265-179A-4261-9A86-5924ADCB97E2",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "midi",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Is On/Off"
+      },
+      "79": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 138.816650390625,
+          "y": 582.637451171875
+        },
+        "class": {
+          "id": "77697265-3DD1-42A6-BBC6-E51EDF805FC5",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "midi",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Is Pitch Bend"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -366.69244384765625,
+        "y": 5.438117980957031,
+        "zoom": 0.9999997615814208
+      },
+      "selection": [
+        "79"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

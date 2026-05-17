@@ -1,0 +1,826 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          105,
+          "output0"
+        ],
+        "to": [
+          106,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          106,
+          "output0"
+        ],
+        "to": [
+          107,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          107,
+          "output0"
+        ],
+        "to": [
+          108,
+          "condition"
+        ]
+      },
+      {
+        "from": [
+          108,
+          "true"
+        ],
+        "to": [
+          109,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          109,
+          "output0"
+        ],
+        "to": [
+          105,
+          "reset"
+        ]
+      },
+      {
+        "from": [
+          105,
+          "output0"
+        ],
+        "to": [
+          110,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          110,
+          "output0"
+        ],
+        "to": [
+          111,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          111,
+          "output"
+        ],
+        "to": [
+          112,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          104,
+          "output"
+        ],
+        "to": [
+          113,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          113,
+          "output0"
+        ],
+        "to": [
+          105,
+          "input0"
+        ]
+      }
+    ],
+    "inputOrder": [
+      104
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "unknown",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 15,
+          "patch": 0
+        }
+      },
+      "description": "Explains what this node does",
+      "displayName": "77697265-1047-431E-9384-811BD3EA9DDD - Is Inf",
+      "identifier": "b4a3654a-f114-4076-8fc5-7d5f80368b79",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "originalTarget": {
+        "branch": "unknown",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 11,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "master",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 16,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 114,
+    "nodes": {
+      "103": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE: FIXING INFINITY\n\nIn this patch we are accumulating an infinitely large value by using Accumulate.\nAccumulate takes this input and accumulates the input every frame (+= operation).\nEventually we'll get to  a number that exceeds the 32 bit float range.\nIf that happens we detect it with Is Inf and reset the Accumulate node to 0."
+          }
+        },
+        "bounds": {
+          "height": 414.84027099609375,
+          "width": 1346.6256103515625,
+          "x": -225.44419860839844,
+          "y": 290.16876220703125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "104": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 10000
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -178.6913299560547,
+          "y": 480.980224609375
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 14
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Float In",
+        "thumbnail_visible": true
+      },
+      "105": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 194.41961669921875,
+          "y": 480.6126098632813
+        },
+        "class": {
+          "id": "77697265-270B-46DD-B8E0-8A823CF161BC",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "reset": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "flow",
+          "input0-type",
+          "input0-dimensions"
+        ],
+        "name": "Accumulate",
+        "thumbnail_visible": true
+      },
+      "106": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 425.5754699707031,
+          "y": 563.6461791992188
+        },
+        "class": {
+          "id": "77697265-1047-431E-9384-811BD3EA9DDD",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "input0-dimensions"
+        ],
+        "name": "Is Inf",
+        "thumbnail_visible": true
+      },
+      "107": {
+        "attributes": {
+          "input0-type": {
+            "type": "type",
+            "value": "bool"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 649.3538818359375,
+          "y": 563.6461791992188
+        },
+        "class": {
+          "id": "77697265-E6B2-4921-9FF4-CB3A0A78697D",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [
+          "input0-type",
+          "instances"
+        ],
+        "name": "On Change",
+        "thumbnail_visible": true
+      },
+      "108": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 889.9155883789062,
+          "y": 571.586181640625
+        },
+        "class": {
+          "id": "77697265-4b9a-a7f6-922d96685f6c",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "condition": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "If",
+        "thumbnail_visible": true
+      },
+      "109": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "trigger"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "interpolation": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": -16.620285034179688,
+          "y": 578.7183837890625
+        },
+        "class": {
+          "id": "77697265-4BEE-483F-9F28-1BA5F21193DB",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "trigger",
+            "value": null
+          },
+          "time": {
+            "type": "float",
+            "value": 0.00100000004749745
+          }
+        },
+        "hidden": [
+          "interpolation",
+          "flow",
+          "input0-type",
+          "instances"
+        ],
+        "name": "Delay",
+        "thumbnail_visible": true
+      },
+      "110": {
+        "attributes": {
+          "decimals-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "trimZeroes-type": {
+            "type": "type",
+            "value": "bool"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 425.11862182617193,
+          "y": 482.35540771484375
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "decimals": {
+            "type": "integer",
+            "value": 0
+          },
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "trimZeroes": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input0-type",
+          "decimals-type",
+          "trimZeroes-type",
+          "decimals",
+          "trimZeroes"
+        ],
+        "name": "String",
+        "thumbnail_visible": true
+      },
+      "111": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "font": {
+            "type": "string",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "style": {
+            "type": "string",
+            "value": "Regular"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 633.7301025390625,
+          "y": 482.94973754882807
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "glowin": {
+            "type": "float",
+            "value": 0
+          },
+          "glowout": {
+            "type": "float",
+            "value": 0
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "outlinecolor": {
+            "type": "float4",
+            "value": [
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          "outlinewidth": {
+            "type": "float",
+            "value": 0
+          },
+          "scale": {
+            "type": "float",
+            "value": 0.6000000238418579
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "font",
+          "style",
+          "instances",
+          "bypass",
+          "linewidth",
+          "alignment",
+          "material",
+          "spacing",
+          "scale",
+          "outlinecolor",
+          "outlinewidth",
+          "glowin",
+          "glowout",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Text Render",
+        "thumbnail_visible": true
+      },
+      "112": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 889.5587768554688,
+          "y": 482.3554382324219
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "113": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -16.6400146484375,
+          "y": 479.83978271484375
+        },
+        "class": {
+          "id": "77697265-3595-4107-A14B-9348570DB50B",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 32
+          }
+        },
+        "hidden": [
+          "flow",
+          "input0-type",
+          "input0-dimensions",
+          "input1-type",
+          "input1-dimensions"
+        ],
+        "name": "Power",
+        "thumbnail_visible": true
+      },
+      "71": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "IS INF\n\nThe Is Inf node tells you whether the given input is infinite.\nValues exceeding the 32 bit float range are considered infinite in Wire.\nThe Inf can be either positive or negative."
+          }
+        },
+        "bounds": {
+          "height": 137.09735107421875,
+          "width": 513.27392578125,
+          "x": -225.3898468017578,
+          "y": 127.2833480834961
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -260.4473876953125,
+        "y": -276.4949951171875,
+        "zoom": 0.6685968637466431
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null
+        }
+      }
+    }
+  }
+}

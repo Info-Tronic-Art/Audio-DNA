@@ -1,0 +1,1057 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					61,
+					"output"
+				],
+				"to": [
+					59,
+					"input"
+				]
+			},
+			{
+				"from": [
+					59,
+					"output"
+				],
+				"to": [
+					60,
+					"input"
+				]
+			},
+			{
+				"from": [
+					71,
+					"output"
+				],
+				"to": [
+					59,
+					"offset"
+				]
+			},
+			{
+				"from": [
+					72,
+					"output"
+				],
+				"to": [
+					59,
+					"gain"
+				]
+			},
+			{
+				"from": [
+					82,
+					"output"
+				],
+				"to": [
+					83,
+					"input"
+				]
+			},
+			{
+				"from": [
+					83,
+					"output2"
+				],
+				"to": [
+					84,
+					"input"
+				]
+			},
+			{
+				"from": [
+					84,
+					"output"
+				],
+				"to": [
+					85,
+					"input2"
+				]
+			},
+			{
+				"from": [
+					83,
+					"output1"
+				],
+				"to": [
+					85,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					83,
+					"output3"
+				],
+				"to": [
+					85,
+					"input3"
+				]
+			},
+			{
+				"from": [
+					87,
+					"output"
+				],
+				"to": [
+					84,
+					"offset"
+				]
+			},
+			{
+				"from": [
+					83,
+					"output0"
+				],
+				"to": [
+					88,
+					"input"
+				]
+			},
+			{
+				"from": [
+					87,
+					"output"
+				],
+				"to": [
+					88,
+					"offset"
+				]
+			},
+			{
+				"from": [
+					88,
+					"output"
+				],
+				"to": [
+					85,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					85,
+					"output"
+				],
+				"to": [
+					89,
+					"input"
+				]
+			}
+		],
+		"inputOrder": [
+			61,
+			82
+		],
+		"meta": {
+			"author": "",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 18,
+					"patch": 0
+				}
+			},
+			"description": "",
+			"displayName": "77697265-BB9A-4B60-83F3-D0E4DA6CFF86 - UV Offset",
+			"identifier": "c47abef6-8788-4dda-82fb-a654a2ae261b",
+			"licenseName": "",
+			"mail": "",
+			"originalTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 11,
+					"patch": 0
+				}
+			},
+			"quality": 34836,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "7.18.0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 18,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 90,
+		"nodes": {
+			"47": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "UV OFFSET\nThe UV Offset node displaces a texture with the UV's of another texture. \nThe texture you want to displace goes into the main inlet. \nThe texture you want to use to displace goes into the offset.\n\nThe multiplier is the amount of displacement that occurs over the X axis and Y axis. \nThe gain acts as a multiplier for both.\nWrap determines whether the texture should wrap.\n\nThe UV offset is a great tool for creating effects that distort or warp the image.\n\nFor optimal quality when working with UV nodes the Texture Bit Depth should be set to either 16-bit(int) or 32-bit(float).\nThe Texture Bit Depth of the patch can be set in the patch panel."
+					}
+				},
+				"bounds": {
+					"height": 296.587158203125,
+					"width": 872.8341064453125,
+					"x": 257.21832275390625,
+					"y": -475.8572998046875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"59": {
+				"attributes": {
+					"input-type": {
+						"type": "type",
+						"value": "texture2d"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 632.50836181640625,
+					"y": -40.49627304077148438
+				},
+				"class": {
+					"id": "77697265-BB9A-4B60-83F3-D0E4DA6CFF86",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"channel-multiplier": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"filtering": {
+						"type": "integer",
+						"value": 1
+					},
+					"gain": {
+						"type": "float",
+						"value": 0.09000000357627869
+					},
+					"input": {
+						"type": "texture2d",
+						"value": null
+					},
+					"offset": {
+						"type": "texture2d",
+						"value": null
+					},
+					"wrap": {
+						"type": "bool",
+						"value": false
+					}
+				},
+				"hidden": [
+					"instances",
+					"input-type",
+					"filtering",
+					"bypass"
+				],
+				"name": "UV Offset",
+				"thumbnail_visible": true
+			},
+			"60": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 887.50836181640625,
+					"y": -40.49627304077148438
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"61": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 442.50836181640625,
+					"y": -40.49627304077148438
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"flow"
+				],
+				"name": "Texture In",
+				"thumbnail_visible": true
+			},
+			"71": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 226,
+					"width": 195,
+					"x": 377.50836181640625,
+					"y": 71.50372314453125
+				},
+				"class": {
+					"id": "77697265-E404-464F-A4C8-FF262AB15588",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"algorithm": {
+						"type": "integer",
+						"value": 0
+					},
+					"amplitude": {
+						"type": "float",
+						"value": 0.5
+					},
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"channels": {
+						"type": "integer",
+						"value": 1
+					},
+					"clamp": {
+						"type": "bool",
+						"value": true
+					},
+					"density": {
+						"type": "float",
+						"value": 8
+					},
+					"frequency": {
+						"type": "float",
+						"value": 2
+					},
+					"gain": {
+						"type": "float",
+						"value": 1
+					},
+					"modifier": {
+						"type": "integer",
+						"value": 0
+					},
+					"octaves": {
+						"type": "integer",
+						"value": 6
+					},
+					"offset": {
+						"type": "float3",
+						"value": [
+							0,
+							0,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"bypass",
+					"algorithm",
+					"clamp",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Fractal Noise",
+				"thumbnail_visible": true
+			},
+			"72": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": false
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 377.50836181640625,
+					"y": 327.50372314453125
+				},
+				"class": {
+					"id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": 0.10000000149011612
+					},
+					"frequency": {
+						"type": "float",
+						"value": 0.25
+					},
+					"offset": {
+						"type": "float",
+						"value": 0
+					},
+					"phase-offset": {
+						"type": "float",
+						"value": 0
+					},
+					"reset-phase": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"reset-phase",
+					"unipolar",
+					"instances"
+				],
+				"name": "Sine",
+				"thumbnail_visible": true
+			},
+			"73": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE: FRACTAL DISTORTION\n\nIn this example we are using a texture from the Fractal Noise node to distort the Wire Logo."
+					}
+				},
+				"bounds": {
+					"height": 663.47857666015625,
+					"width": 872.8341064453125,
+					"x": 256.739501953125,
+					"y": -144.8586883544921875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"75": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 2: CHANNELS\n\nUV-offset is an effect that can operate on Texture2Dchannel level.\nIn this example we are using UV-offset on the blue and red channel."
+					}
+				},
+				"bounds": {
+					"height": 699.3829345703125,
+					"width": 1166.579345703125,
+					"x": 259.431884765625,
+					"y": 550.82733154296875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"82": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 289.093994140625,
+					"y": 725.99859619140625
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"flow"
+				],
+				"name": "Texture In 2",
+				"thumbnail_visible": true
+			},
+			"83": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "texture2d"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 479.093994140625,
+					"y": 725.99859619140625
+				},
+				"class": {
+					"id": "77697265-DB42-47ED-90DB-ACC22DA3EC32",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances",
+					"input-type"
+				],
+				"name": "Unpack",
+				"thumbnail_visible": true
+			},
+			"84": {
+				"attributes": {
+					"input-type": {
+						"type": "type",
+						"value": "texture2dr"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 734.093994140625,
+					"y": 885.99859619140625
+				},
+				"class": {
+					"id": "77697265-BB9A-4B60-83F3-D0E4DA6CFF86",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"channel-multiplier": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"filtering": {
+						"type": "integer",
+						"value": 1
+					},
+					"gain": {
+						"type": "float",
+						"value": 0.10000000149011612
+					},
+					"input": {
+						"type": "texture2dr",
+						"value": null
+					},
+					"offset": {
+						"type": "texture2d",
+						"value": null
+					},
+					"wrap": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"hidden": [
+					"instances",
+					"input-type",
+					"filtering",
+					"bypass"
+				],
+				"name": "UV Offset",
+				"thumbnail_visible": true
+			},
+			"85": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 989.093994140625,
+					"y": 725.99859619140625
+				},
+				"class": {
+					"id": "77697265-919F-4354-88B1-B64E31661470",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input0": {
+						"type": "texture2dr",
+						"value": null
+					},
+					"input1": {
+						"type": "texture2dr",
+						"value": null
+					},
+					"input2": {
+						"type": "texture2dr",
+						"value": null
+					},
+					"input3": {
+						"type": "texture2dr",
+						"value": null
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Texture",
+				"thumbnail_visible": true
+			},
+			"87": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 3
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 274,
+					"width": 195,
+					"x": 479.093994140625,
+					"y": 885.99859619140625
+				},
+				"class": {
+					"id": "77697265-0291-4FC4-BCC1-B1AFD136F507",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"bgColor": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							1
+						]
+					},
+					"blend": {
+						"type": "integer",
+						"value": 0
+					},
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"color": {
+						"type": "float4",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"distance": {
+						"type": "float",
+						"value": 0.43234199285507202
+					},
+					"fuzzyness": {
+						"type": "float",
+						"value": 0.07076100260019302
+					},
+					"grid": {
+						"type": "integer",
+						"value": 20
+					},
+					"position": {
+						"type": "float2",
+						"value": [
+							0,
+							0
+						]
+					},
+					"radius": {
+						"type": "float",
+						"value": 0.48002800345420837
+					},
+					"size": {
+						"type": "float",
+						"value": 0.81694400310516357
+					},
+					"speed": {
+						"type": "float",
+						"value": 1
+					},
+					"time": {
+						"type": "float",
+						"value": 0
+					}
+				},
+				"hidden": [
+					"bypass",
+					"blend",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Metaballs",
+				"thumbnail_visible": true
+			},
+			"88": {
+				"attributes": {
+					"input-type": {
+						"type": "type",
+						"value": "texture2dr"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 734.093994140625,
+					"y": 658.02447509765625
+				},
+				"class": {
+					"id": "77697265-BB9A-4B60-83F3-D0E4DA6CFF86",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"channel-multiplier": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"filtering": {
+						"type": "integer",
+						"value": 1
+					},
+					"gain": {
+						"type": "float",
+						"value": -0.10000000149011612
+					},
+					"input": {
+						"type": "texture2dr",
+						"value": null
+					},
+					"offset": {
+						"type": "texture2d",
+						"value": null
+					},
+					"wrap": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"hidden": [
+					"instances",
+					"input-type",
+					"filtering",
+					"bypass"
+				],
+				"name": "UV Offset",
+				"thumbnail_visible": true
+			},
+			"89": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1244.0938720703125,
+					"y": 725.99859619140625
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": 36.7747955322265625,
+				"y": -475.169586181640625,
+				"zoom": 0.47704291343688965
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {
+				"61": "Wire Logo",
+				"82": "Test Card"
+			}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null,
+					"Syphon": null
+				}
+			}
+		}
+	}
+}

@@ -708,7 +708,7 @@ The command stream also serves as the foundation for **settings recording**.
 | Particle System | Simulation | CPU + texture |
 | Color Gradient | Utility | Yes |
 
-30 of 40 sources are single fragment shaders. 4 need ping-pong FBOs (same as existing EffectChain). 6 need CPU computation.
+108 sources total (as of P25). Most are single fragment shaders; ping-pong FBO sources include Strange Attractor, Gravity Well, Fluid Dynamics; CPU-computation sources include Layer Router.
 
 ---
 
@@ -788,7 +788,7 @@ Default: **Additive** (VJ standard).
 
 ## 24. Video Codec
 
-**Primary**: HAP Alpha (GPU-decoded, VJ industry standard, alpha support)
+**Implemented** (P11/P22): H.264 (default), ProRes, MJPEG via FFmpeg libavcodec. HAP Alpha is not implemented.
 **Fallback**: PNG sequence (excellent random access, universal)
 
 Alpha channel in video clips → layer keying can use "Alpha" mode (source alpha).
@@ -842,7 +842,7 @@ The 4-thread model remains:
 
 ## 27. Effect Icons — Specification for AI Generation
 
-Each of our 76 effects needs a 64×64px icon. Style: monochrome cyan lines/shapes on transparent/dark background, consistent with our VJ dark theme.
+Each of our 135 effects needs a 64×64px icon. Style: monochrome cyan lines/shapes on transparent/dark background, consistent with our VJ dark theme.
 
 ### Warp Effects (16)
 

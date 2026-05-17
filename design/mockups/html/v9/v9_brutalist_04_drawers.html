@@ -1,0 +1,2149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V9 Brutalist 04 — Drawers</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1920px; height: 1080px;
+  background: #0a0a0a;
+  color: #e8e8e8;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/* Grain overlay */
+.grain {
+  position: fixed;
+  top: 0; left: 0;
+  width: 1920px; height: 1080px;
+  pointer-events: none;
+  opacity: 0.04;
+  z-index: 9999;
+  mix-blend-mode: overlay;
+}
+
+/* Frame layout */
+.frame {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  background: #0a0a0a;
+}
+
+.state {
+  position: absolute;
+  top: 0;
+  width: 960px;
+  height: 1080px;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+.state-a { left: 0; border-right: 1px solid #222; }
+.state-b { left: 960px; }
+
+.divider {
+  position: absolute;
+  top: 0; left: 958px;
+  width: 3px; height: 1080px;
+  background: #1a1a1a;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.divider-label {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: #555;
+  background: #0a0a0a;
+  padding: 6px 10px;
+  border: 1px solid #222;
+}
+
+/* Annotation */
+.annotation {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: #ff4500;
+  background: #0a0a0a;
+  padding: 5px 10px;
+  border: 1px solid #ff4500;
+  z-index: 400;
+  white-space: nowrap;
+}
+
+/* ========== MENU BAR ========== */
+.menubar {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 22px;
+  background: #111;
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  z-index: 100;
+}
+.menubar-logo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: #ff4500;
+  margin-right: 24px;
+}
+.menubar-item {
+  font-size: 9.5px;
+  font-weight: 400;
+  color: #aaa;
+  margin-right: 16px;
+  letter-spacing: 0.08em;
+}
+.menubar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 9px;
+  color: #777;
+  letter-spacing: 0.1em;
+}
+.menubar-right .dot {
+  width: 6px; height: 6px;
+  background: #ff4500;
+  display: inline-block;
+  margin-right: 5px;
+  animation: pulseDot 1.5s infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ========== TOP BAR ========== */
+.topbar {
+  position: absolute;
+  top: 22px; left: 0;
+  width: 100%;
+  height: 36px;
+  background: #0d0d0d;
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  z-index: 90;
+  gap: 14px;
+}
+.tb-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+}
+.tb-sep {
+  width: 1px; height: 20px;
+  background: #222;
+}
+.tb-label {
+  font-size: 8px;
+  font-weight: 500;
+  color: #666;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.tb-bpm {
+  font-family: 'IBM Plex Mono';
+  font-size: 20px;
+  font-weight: 300;
+  color: #ff4500;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.tb-btn {
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid #2a2a2a;
+  background: #0a0a0a;
+  color: #aaa;
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.tb-btn.active {
+  background: #ff4500;
+  color: #0a0a0a;
+  border-color: #ff4500;
+}
+.tb-mult {
+  display: flex;
+}
+.tb-mult .tb-btn {
+  border-right: 0;
+  padding: 0 5px;
+  font-size: 8px;
+}
+.tb-mult .tb-btn:last-child { border-right: 1px solid #2a2a2a; }
+.tb-mult .tb-btn.active { border-right: 1px solid #ff4500; }
+
+.tb-beatwheel {
+  position: relative;
+  width: 22px; height: 22px;
+}
+.tb-beatwheel svg { width: 100%; height: 100%; }
+
+.tb-barinfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+}
+.tb-barinfo .tb-v { color: #e8e8e8; font-weight: 500; }
+.tb-barinfo .tb-k { color: #555; }
+
+.tb-master {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tb-fader {
+  width: 120px; height: 4px;
+  background: #1a1a1a;
+  position: relative;
+  border: 1px solid #222;
+}
+.tb-fader-fill {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  background: #e8e8e8;
+  width: 78%;
+}
+.tb-fader-handle {
+  position: absolute;
+  top: -3px;
+  width: 3px; height: 10px;
+  background: #ff4500;
+  left: calc(78% - 2px);
+}
+
+.tb-rec {
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid #ff4500;
+  color: #ff4500;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.tb-rec .rec-dot {
+  width: 6px; height: 6px;
+  background: #ff4500;
+  border-radius: 50%;
+  animation: pulseDot 1s infinite;
+}
+.tb-fps {
+  font-size: 9px;
+  color: #777;
+  letter-spacing: 0.1em;
+}
+.tb-fps b { color: #e8e8e8; font-weight: 500; }
+
+/* ========== WAVEFORM CORE ========== */
+.waveform-core {
+  position: absolute;
+  top: 58px;
+  left: 0;
+  width: 100%;
+  height: 140px;
+  background: #0a0a0a;
+  border-bottom: 1px solid #222;
+  z-index: 20;
+}
+.wf-label-strip {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 14px;
+  background: #0a0a0a;
+  border-bottom: 1px solid #161616;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 7.5px;
+  letter-spacing: 0.24em;
+  color: #555;
+}
+.wf-label-strip b { color: #888; font-weight: 500; }
+.wf-canvas {
+  position: absolute;
+  top: 14px; left: 0;
+  width: 100%; height: 126px;
+}
+
+.wf-playhead {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  width: 1px; height: 126px;
+  background: #ff4500;
+  z-index: 5;
+}
+.wf-playhead::before, .wf-playhead::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  width: 7px; height: 2px;
+  background: #ff4500;
+}
+.wf-playhead::before { top: 0; }
+.wf-playhead::after { bottom: 0; }
+
+/* ========== DRAWER HANDLES ========== */
+.handle {
+  position: absolute;
+  background: #0a0a0a;
+  border: 1px solid #222;
+  color: #777;
+  font-family: 'IBM Plex Mono';
+  z-index: 200;
+  overflow: hidden;
+  cursor: pointer;
+}
+.handle.open-handle {
+  background: #ff4500;
+  border-color: #ff4500;
+  color: #0a0a0a;
+}
+.handle-num {
+  position: absolute;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.handle-label {
+  position: absolute;
+  font-size: 7.5px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+}
+.handle.vertical {
+  width: 24px;
+  height: 80px;
+}
+.handle.horizontal {
+  width: 80px;
+  height: 24px;
+}
+.handle.vertical .handle-num {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.handle.vertical .handle-label {
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-90deg);
+  transform-origin: center;
+  white-space: nowrap;
+}
+.handle.horizontal .handle-num {
+  top: 50%;
+  left: 8px;
+  transform: translateY(-50%);
+}
+.handle.horizontal .handle-label {
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+/* Shimmer animation for closed handles */
+.handle:not(.open-handle)::before {
+  content: '';
+  position: absolute;
+  background: #ff4500;
+  animation: shimmer 4s infinite linear;
+}
+.handle.vertical:not(.open-handle)::before {
+  left: 0;
+  width: 100%;
+  height: 1px;
+  top: -1px;
+  animation-name: shimmerV;
+}
+.handle.horizontal:not(.open-handle)::before {
+  top: 0;
+  height: 100%;
+  width: 1px;
+  left: -1px;
+  animation-name: shimmerH;
+}
+@keyframes shimmerV {
+  0% { top: -1px; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes shimmerH {
+  0% { left: -1px; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* ========== GRID (persistent core) ========== */
+.grid-core {
+  position: absolute;
+  background: #0a0a0a;
+  z-index: 10;
+  overflow: hidden;
+}
+.grid-header {
+  height: 20px;
+  border-bottom: 1px solid #222;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: #666;
+  background: #0d0d0d;
+}
+.grid-header b { color: #e8e8e8; font-weight: 500; }
+
+.grid-col-headers {
+  display: grid;
+  grid-template-columns: 60px repeat(8, 1fr);
+  height: 18px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.grid-col-h {
+  border-right: 1px solid #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #555;
+  letter-spacing: 0.2em;
+}
+.grid-col-h:last-child { border-right: 0; }
+.grid-col-h.trigger { color: #999; background: #0f0f0f; }
+.grid-col-h.active { color: #ff4500; background: #1a0a03; }
+
+.grid-rows {
+  flex: 1;
+}
+.grid-row {
+  display: grid;
+  grid-template-columns: 60px repeat(8, 1fr);
+  height: 70px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.grid-row:last-child { border-bottom: 0; }
+.grid-layer-h {
+  border-right: 1px solid #1a1a1a;
+  background: #0d0d0d;
+  padding: 5px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 7.5px;
+  letter-spacing: 0.15em;
+}
+.grid-layer-h .ln { color: #e8e8e8; font-weight: 500; font-size: 8.5px; }
+.grid-layer-h .lm { color: #666; font-size: 7px; letter-spacing: 0.12em; }
+.grid-layer-h .lv { color: #ff4500; font-weight: 400; font-size: 7.5px; }
+.grid-layer-h.mute { opacity: 0.4; }
+.grid-layer-h.solo .ln { color: #ff4500; }
+
+.grid-cell {
+  border-right: 1px solid #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+.grid-cell:last-child { border-right: 0; }
+.grid-cell.empty {
+  background: #0a0a0a;
+}
+.grid-cell.empty::before {
+  content: '—';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: #222;
+  font-size: 14px;
+}
+.grid-cell.loaded {
+  background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+}
+.grid-cell.loaded.playing {
+  background: linear-gradient(135deg, #ff4500 0%, #1a1a1a 60%);
+}
+.grid-cell.loaded.playing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid #ff4500;
+  pointer-events: none;
+}
+.grid-cell.loaded.active {
+  background: linear-gradient(135deg, #2a1a0f 0%, #1a1008 100%);
+}
+.cell-thumb {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  opacity: 0.5;
+}
+.cell-label {
+  position: absolute;
+  top: 4px; left: 5px;
+  font-size: 7px;
+  letter-spacing: 0.15em;
+  color: #ddd;
+  font-weight: 500;
+}
+.cell-meta {
+  position: absolute;
+  bottom: 4px; left: 5px;
+  font-size: 6.5px;
+  letter-spacing: 0.1em;
+  color: #999;
+}
+.cell-progress {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 1px;
+  background: #ff4500;
+  width: 45%;
+}
+.cell-num {
+  position: absolute;
+  top: 4px; right: 5px;
+  font-size: 7px;
+  color: #555;
+  letter-spacing: 0.1em;
+}
+
+/* ========== DRAWER (generic) ========== */
+.drawer {
+  position: absolute;
+  background: #0d0d0d;
+  border: 1px solid #222;
+  z-index: 150;
+  overflow: hidden;
+}
+.drawer-header {
+  height: 24px;
+  background: #ff4500;
+  color: #0a0a0a;
+  border-bottom: 1px solid #ff4500;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+.drawer-header .dh-close {
+  margin-left: auto;
+  padding: 0 6px;
+  border: 1px solid #0a0a0a;
+  font-size: 8px;
+  font-weight: 500;
+}
+
+/* ========== DRAWER 01: SIGNALS ========== */
+.drawer-signals {
+  top: 198px;
+  left: 0;
+  width: 280px;
+  bottom: 0;
+}
+.signals-list {
+  position: absolute;
+  top: 24px;
+  left: 0; right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  padding-bottom: 12px;
+}
+.signal-group {
+  border-bottom: 1px solid #1a1a1a;
+  padding: 8px 0 6px;
+}
+.signal-group-title {
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: #777;
+  padding: 0 10px 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.signal-group-title .sgc {
+  color: #444;
+  font-weight: 400;
+}
+.signal-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 44px;
+  gap: 6px;
+  align-items: center;
+  padding: 2px 10px;
+  height: 14px;
+  font-size: 8px;
+}
+.signal-row.selected {
+  background: #1a0a03;
+  border-left: 2px solid #ff4500;
+  padding-left: 8px;
+}
+.signal-row.selected .sr-name {
+  color: #ff4500;
+}
+.sr-name {
+  color: #ccc;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sr-meter {
+  height: 3px;
+  background: #1a1a1a;
+  position: relative;
+  border: 1px solid #1a1a1a;
+}
+.sr-meter-fill {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  background: #e8e8e8;
+  transition: width 0.3s;
+}
+.sr-meter-fill.orange { background: #ff4500; }
+.sr-val {
+  font-size: 7.5px;
+  color: #888;
+  text-align: right;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* MFCC spark row */
+.mfcc-row {
+  display: flex;
+  gap: 2px;
+  padding: 4px 10px;
+  align-items: flex-end;
+  height: 24px;
+}
+.mfcc-bar {
+  flex: 1;
+  background: #ccc;
+  min-height: 1px;
+}
+.mfcc-labels {
+  display: flex;
+  padding: 0 10px;
+  font-size: 6px;
+  color: #444;
+  letter-spacing: 0.1em;
+  gap: 2px;
+}
+.mfcc-labels span { flex: 1; text-align: center; }
+
+/* Chroma row */
+.chroma-row {
+  display: flex;
+  gap: 2px;
+  padding: 4px 10px;
+  align-items: flex-end;
+  height: 26px;
+}
+.chroma-bar {
+  flex: 1;
+  background: #ccc;
+  min-height: 1px;
+  position: relative;
+}
+.chroma-labels {
+  display: flex;
+  padding: 0 10px;
+  font-size: 6px;
+  color: #555;
+  gap: 2px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.chroma-labels span { flex: 1; text-align: center; }
+
+/* ========== DRAWER 04: SIGNAL EDITOR ========== */
+.drawer-editor {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 220px;
+}
+.editor-body {
+  position: absolute;
+  top: 24px;
+  left: 0; right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 240px 400px 1fr;
+}
+.editor-col {
+  border-right: 1px solid #1a1a1a;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+.editor-col:last-child { border-right: 0; }
+.editor-col-title {
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+/* Col 1: Big value */
+.ed-name {
+  font-family: 'IBM Plex Sans';
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8e8e8;
+  letter-spacing: 0.18em;
+  margin-bottom: 2px;
+}
+.ed-val {
+  font-family: 'IBM Plex Mono';
+  font-size: 42px;
+  font-weight: 300;
+  color: #ff4500;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.ed-slider-label {
+  font-size: 7.5px;
+  font-weight: 500;
+  color: #888;
+  letter-spacing: 0.2em;
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+}
+.ed-slider-label span:last-child {
+  color: #ff4500;
+  font-family: 'IBM Plex Mono';
+  font-variant-numeric: tabular-nums;
+}
+.ed-slider {
+  height: 4px;
+  background: #1a1a1a;
+  border: 1px solid #222;
+  position: relative;
+  margin-bottom: 12px;
+}
+.ed-slider-fill {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  background: #ff4500;
+}
+.ed-slider-handle {
+  position: absolute;
+  top: -3px;
+  width: 3px; height: 10px;
+  background: #ff4500;
+}
+
+/* Col 2: Oscillator + Envelope */
+.ed-col2 {
+  display: grid;
+  grid-template-columns: 180px 200px;
+  gap: 12px;
+}
+.ed-subpanel {
+  border: 1px solid #1a1a1a;
+  padding: 8px;
+}
+.ed-subtitle {
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: #ff4500;
+  margin-bottom: 8px;
+}
+.osc-shapes {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.osc-shape {
+  height: 34px;
+  border: 1px solid #2a2a2a;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px;
+}
+.osc-shape.active {
+  background: #ff4500;
+  border-color: #ff4500;
+}
+.osc-shape svg {
+  width: 18px;
+  height: 12px;
+  stroke-width: 1.2;
+  fill: none;
+}
+.osc-shape svg { stroke: #888; }
+.osc-shape.active svg { stroke: #0a0a0a; }
+.osc-shape-label {
+  font-family: 'IBM Plex Sans';
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #888;
+}
+.osc-shape.active .osc-shape-label { color: #0a0a0a; }
+
+.osc-beats {
+  display: flex;
+  margin-bottom: 8px;
+}
+.osc-beat {
+  flex: 1;
+  border: 1px solid #2a2a2a;
+  border-right: 0;
+  background: #0a0a0a;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7.5px;
+  font-weight: 500;
+  color: #888;
+  letter-spacing: 0.06em;
+}
+.osc-beat:last-child { border-right: 1px solid #2a2a2a; }
+.osc-beat.active {
+  background: #ff4500;
+  color: #0a0a0a;
+  border-color: #ff4500;
+}
+.osc-beat.active + .osc-beat { border-left: 0; }
+
+/* Envelope */
+.env-panel {
+  background: #0a0a0a;
+  border: 1px solid #1a1a1a;
+  width: 100%;
+  height: 100px;
+  position: relative;
+  margin-bottom: 8px;
+}
+.env-panel svg { width: 100%; height: 100%; }
+
+.env-btns {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.env-btn {
+  flex: 1;
+  height: 18px;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.env-btn.active { background: #ff4500; color: #0a0a0a; border-color: #ff4500; }
+.env-curves {
+  display: flex;
+}
+.env-curves .env-btn {
+  border-right: 0;
+}
+.env-curves .env-btn:last-child { border-right: 1px solid #2a2a2a; }
+.env-curves .env-btn.active + .env-btn { border-left: 0; }
+
+/* Col 3: Routes */
+.routes-header {
+  display: grid;
+  grid-template-columns: 24px 1fr 64px 80px 80px 18px;
+  gap: 6px;
+  padding: 0 0 5px;
+  border-bottom: 1px solid #1a1a1a;
+  margin-bottom: 5px;
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: #555;
+}
+.route-row {
+  display: grid;
+  grid-template-columns: 24px 1fr 64px 80px 80px 18px;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid #111;
+  font-size: 7.5px;
+  align-items: center;
+}
+.route-num {
+  color: #555;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.route-num .rn-dot {
+  width: 5px; height: 5px;
+  background: #ff4500;
+  display: inline-block;
+}
+.route-target {
+  color: #e8e8e8;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.route-curve {
+  color: #ff4500;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+}
+.route-range {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+.route-del {
+  color: #555;
+  text-align: center;
+  border: 1px solid #222;
+  height: 14px;
+  width: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+}
+.add-route-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: 1px solid #ff4500;
+  background: transparent;
+  color: #ff4500;
+  padding: 3px 9px;
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+}
+
+/* parts diagram labels */
+.partlabel {
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  color: #555;
+}
+.partlabel b { color: #888; font-weight: 600; }
+
+/* hairline grid for envelope svg */
+.env-grid line { stroke: #1a1a1a; stroke-width: 0.5; }
+.env-curve { stroke: #ff4500; stroke-width: 1.3; fill: none; }
+.env-curve-fill { fill: #ff4500; fill-opacity: 0.08; }
+.env-point { fill: #ff4500; stroke: #0a0a0a; stroke-width: 1; }
+.env-plus {
+  fill: none;
+  stroke: #ff4500;
+  stroke-width: 0.8;
+  stroke-dasharray: 1.5 1.5;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Grain SVG overlay -->
+<svg class="grain" xmlns="http://www.w3.org/2000/svg">
+  <filter id="grainf">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/>
+    <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0"/>
+  </filter>
+  <rect width="100%" height="100%" filter="url(#grainf)"/>
+</svg>
+
+<div class="frame">
+
+  <!-- =============================== -->
+  <!-- STATE A: DRAWER 01 SIGNALS OPEN -->
+  <!-- =============================== -->
+  <div class="state state-a">
+
+    <!-- Menu bar -->
+    <div class="menubar">
+      <div class="menubar-logo">AUDIO-DNA</div>
+      <div class="menubar-item">FILE</div>
+      <div class="menubar-item">EDIT</div>
+      <div class="menubar-item">COMPOSITION</div>
+      <div class="menubar-item">LAYER</div>
+      <div class="menubar-item">DECK</div>
+      <div class="menubar-item">SIGNAL</div>
+      <div class="menubar-item">OUTPUT</div>
+      <div class="menubar-item">WINDOW</div>
+      <div class="menubar-right">
+        <span><span class="dot"></span>LINK ON</span>
+        <span>CPU 34%</span>
+      </div>
+    </div>
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="tb-group">
+        <span class="tb-label">01/BPM</span>
+        <span class="tb-bpm">128.0</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <div class="tb-btn">TAP</div>
+        <div class="tb-btn">RESYNC</div>
+        <div class="tb-btn">MAN</div>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group tb-mult">
+        <div class="tb-btn">×1/4</div>
+        <div class="tb-btn">×1/2</div>
+        <div class="tb-btn active">×1</div>
+        <div class="tb-btn">×2</div>
+        <div class="tb-btn">×4</div>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <span class="tb-label">02/BEAT</span>
+        <div class="tb-beatwheel">
+          <svg viewBox="0 0 22 22">
+            <circle cx="11" cy="11" r="9" fill="none" stroke="#222" stroke-width="1"/>
+            <path d="M 11 11 L 11 2 A 9 9 0 0 1 19.5 12.5 Z" fill="#ff4500"/>
+            <line x1="11" y1="2" x2="11" y2="20" stroke="#333" stroke-width="0.5"/>
+            <line x1="2" y1="11" x2="20" y2="11" stroke="#333" stroke-width="0.5"/>
+            <circle cx="11" cy="11" r="2" fill="#0a0a0a"/>
+          </svg>
+        </div>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-barinfo">
+        <span><span class="tb-k">BAR</span> <span class="tb-v">03/08</span></span>
+        <span><span class="tb-k">PHR</span> <span class="tb-v">2/4</span></span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-master">
+        <span class="tb-label">03/MASTER</span>
+        <div class="tb-fader">
+          <div class="tb-fader-fill"></div>
+          <div class="tb-fader-handle"></div>
+        </div>
+        <span class="tb-label" style="color:#e8e8e8">0.78</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-rec">
+        <span class="rec-dot"></span>REC
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-fps"><span class="tb-label">FPS</span> <b>60.0</b></div>
+    </div>
+
+    <!-- Waveform core -->
+    <div class="waveform-core">
+      <div class="wf-label-strip">
+        <span>CORE / WAVEFORM · A+B · <b>PEAK 0.85</b> · <b>RMS 0.72</b></span>
+        <span>STRUCT <b>DROP</b> · BARS 24 → 32 · ZOOM 4s</span>
+      </div>
+      <svg class="wf-canvas" viewBox="0 0 960 126" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="wfA" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#ff4500" stop-opacity="0.7"/>
+            <stop offset="1" stop-color="#661800" stop-opacity="0.3"/>
+          </linearGradient>
+          <linearGradient id="wfB" x1="0" x2="0" y1="1" y2="0">
+            <stop offset="0" stop-color="#888888" stop-opacity="0.55"/>
+            <stop offset="1" stop-color="#ffffff" stop-opacity="0.15"/>
+          </linearGradient>
+        </defs>
+        <!-- bar grid -->
+        <g stroke="#1a1a1a" stroke-width="0.5">
+          <line x1="60" y1="0" x2="60" y2="126"/>
+          <line x1="120" y1="0" x2="120" y2="126"/>
+          <line x1="180" y1="0" x2="180" y2="126"/>
+          <line x1="240" y1="0" x2="240" y2="126"/>
+          <line x1="300" y1="0" x2="300" y2="126"/>
+          <line x1="360" y1="0" x2="360" y2="126"/>
+          <line x1="420" y1="0" x2="420" y2="126"/>
+          <line x1="540" y1="0" x2="540" y2="126"/>
+          <line x1="600" y1="0" x2="600" y2="126"/>
+          <line x1="660" y1="0" x2="660" y2="126"/>
+          <line x1="720" y1="0" x2="720" y2="126"/>
+          <line x1="780" y1="0" x2="780" y2="126"/>
+          <line x1="840" y1="0" x2="840" y2="126"/>
+          <line x1="900" y1="0" x2="900" y2="126"/>
+        </g>
+        <!-- Bar numbers -->
+        <g fill="#444" font-family="IBM Plex Mono" font-size="7" font-weight="500" letter-spacing="1">
+          <text x="4" y="10">24</text>
+          <text x="64" y="10">25</text>
+          <text x="124" y="10">26</text>
+          <text x="184" y="10">27</text>
+          <text x="244" y="10">28</text>
+          <text x="304" y="10">29</text>
+          <text x="364" y="10">30</text>
+          <text x="424" y="10">31</text>
+          <text x="484" y="10" fill="#ff4500">32·NOW</text>
+          <text x="544" y="10">33</text>
+          <text x="604" y="10">34</text>
+          <text x="664" y="10">35</text>
+          <text x="724" y="10">36</text>
+          <text x="784" y="10">37</text>
+          <text x="844" y="10">38</text>
+          <text x="904" y="10">39</text>
+        </g>
+        <!-- Structural band -->
+        <rect x="0" y="16" width="480" height="2" fill="#ff4500" opacity="0.35"/>
+        <rect x="480" y="16" width="480" height="2" fill="#ffffff" opacity="0.25"/>
+        <!-- Wave A (top) -->
+        <path fill="url(#wfA)" d="M0,63 L8,54 L16,58 L24,46 L32,52 L40,42 L48,50 L56,38 L64,44 L72,33 L80,40 L88,28 L96,36 L104,22 L112,30 L120,18 L128,25 L136,20 L144,28 L152,15 L160,22 L168,12 L176,20 L184,14 L192,24 L200,10 L208,18 L216,14 L224,22 L232,16 L240,24 L248,18 L256,26 L264,20 L272,28 L280,22 L288,30 L296,24 L304,32 L312,26 L320,34 L328,28 L336,36 L344,30 L352,38 L360,32 L368,40 L376,34 L384,42 L392,36 L400,44 L408,38 L416,46 L424,40 L432,48 L440,42 L448,50 L456,44 L464,52 L472,46 L480,54
+          L488,20 L496,12 L504,18 L512,8 L520,14 L528,6 L536,12 L544,4 L552,10 L560,2 L568,8 L576,4 L584,12 L592,6 L600,14 L608,8 L616,16 L624,10 L632,18 L640,12 L648,20 L656,14 L664,22 L672,16 L680,24 L688,18 L696,26 L704,20 L712,28 L720,22 L728,30 L736,24 L744,32 L752,26 L760,34 L768,28 L776,36 L784,30 L792,38 L800,32 L808,40 L816,34 L824,42 L832,36 L840,44 L848,38 L856,46 L864,40 L872,48 L880,42 L888,50 L896,44 L904,52 L912,46 L920,54 L928,48 L936,56 L944,50 L952,58 L960,54 L960,63 Z"/>
+        <!-- Wave B (bottom) -->
+        <path fill="url(#wfB)" d="M0,63 L8,72 L16,68 L24,78 L32,70 L40,82 L48,72 L56,86 L64,76 L72,90 L80,80 L88,94 L96,82 L104,98 L112,88 L120,102 L128,92 L136,100 L144,90 L152,104 L160,96 L168,108 L176,98 L184,106 L192,94 L200,110 L208,100 L216,106 L224,96 L232,108 L240,98 L248,106 L256,98 L264,108 L272,100 L280,110 L288,100 L296,112 L304,102 L312,110 L320,100 L328,108 L336,98 L344,106 L352,96 L360,104 L368,94 L376,102 L384,92 L392,100 L400,88 L408,98 L416,86 L424,96 L432,84 L440,94 L448,82 L456,92 L464,80 L472,90 L480,78
+          L488,108 L496,118 L504,112 L512,120 L520,114 L528,122 L536,116 L544,124 L552,118 L560,124 L568,118 L576,122 L584,114 L592,120 L600,110 L608,116 L616,106 L624,112 L632,100 L640,108 L648,94 L656,104 L664,88 L672,100 L680,84 L688,96 L696,80 L704,92 L712,76 L720,88 L728,72 L736,84 L744,68 L752,80 L760,64 L768,76 L776,60 L784,72 L792,56 L800,68 L808,52 L816,64 L824,50 L832,62 L840,48 L848,60 L856,46 L864,58 L872,44 L880,56 L888,42 L896,54 L904,40 L912,52 L920,38 L928,50 L936,40 L944,52 L952,44 L960,56 L960,63 Z"/>
+      </svg>
+      <div class="wf-playhead"></div>
+    </div>
+
+    <!-- Drawer handles -->
+    <!-- Left edge: handle 01 (open, orange) -->
+    <!-- This is positioned on the RIGHT edge of the open drawer -->
+    <div class="handle vertical open-handle" style="top: 280px; left: 280px; border-left: 0;">
+      <div class="handle-num">01</div>
+      <div class="handle-label">SIGNALS</div>
+    </div>
+
+    <!-- Right edge: handles 02 and 03 stacked -->
+    <div class="handle vertical" style="top: 280px; right: 0;">
+      <div class="handle-num">02</div>
+      <div class="handle-label">INSPECTR</div>
+    </div>
+    <div class="handle vertical" style="top: 370px; right: 0;">
+      <div class="handle-num">03</div>
+      <div class="handle-label">BROWSER</div>
+    </div>
+
+    <!-- Bottom edge: handles 04 and 05 side-by-side -->
+    <div class="handle horizontal" style="bottom: 0; left: 300px;">
+      <div class="handle-num">04</div>
+      <div class="handle-label">SIG EDIT</div>
+    </div>
+    <div class="handle horizontal" style="bottom: 0; left: 390px;">
+      <div class="handle-num">05</div>
+      <div class="handle-label">ROUTING</div>
+    </div>
+
+    <!-- Grid Core: reduced from left by 280px -->
+    <div class="grid-core" style="top: 198px; left: 280px; right: 0; bottom: 0; border-left: 1px solid #222;">
+      <div class="grid-header">
+        <span><b>CORE / DECK GRID</b> · DECK A · 4×8 · LAYERS OPAQUE/TRANS/FX</span>
+        <span style="margin-left:auto;">NEXT TRIGGER: BAR 04 · QUEUED 1</span>
+      </div>
+      <div class="grid-col-headers">
+        <div class="grid-col-h">LAYER</div>
+        <div class="grid-col-h">01</div>
+        <div class="grid-col-h">02</div>
+        <div class="grid-col-h active">03</div>
+        <div class="grid-col-h">04</div>
+        <div class="grid-col-h">05</div>
+        <div class="grid-col-h">06</div>
+        <div class="grid-col-h">07</div>
+        <div class="grid-col-h">08</div>
+      </div>
+      <div class="grid-rows">
+        <!-- Row 1: FX Only -->
+        <div class="grid-row">
+          <div class="grid-layer-h">
+            <span class="ln">04·FX</span>
+            <span class="lm">FX ONLY</span>
+            <span class="lv">OP 1.00</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#331100,#110500);"></div>
+            <span class="cell-label">RIPPLE.01</span>
+            <span class="cell-num">01</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#112233,#000511);"></div>
+            <span class="cell-label">GLITCH.02</span>
+            <span class="cell-num">02</span>
+          </div>
+          <div class="grid-cell loaded playing">
+            <span class="cell-label">ECHO.03</span>
+            <span class="cell-meta">4 BAR</span>
+            <span class="cell-num">03</span>
+            <div class="cell-progress" style="width: 63%;"></div>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#221133,#000011);"></div>
+            <span class="cell-label">FREEZE.04</span>
+            <span class="cell-num">04</span>
+          </div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+        </div>
+        <!-- Row 2: Transparent -->
+        <div class="grid-row">
+          <div class="grid-layer-h">
+            <span class="ln">03·TRN</span>
+            <span class="lm">TRANSPAR</span>
+            <span class="lv">OP 0.62</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#113322,#001100);"></div>
+            <span class="cell-label">LINES.01</span>
+            <span class="cell-num">01</span>
+          </div>
+          <div class="grid-cell loaded active">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#443311,#111100);"></div>
+            <span class="cell-label">GRID.02</span>
+            <span class="cell-meta">QUEUED</span>
+            <span class="cell-num">02</span>
+          </div>
+          <div class="grid-cell loaded playing">
+            <span class="cell-label">ORB.03</span>
+            <span class="cell-meta">1/4</span>
+            <span class="cell-num">03</span>
+            <div class="cell-progress" style="width: 28%;"></div>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#221133,#110022);"></div>
+            <span class="cell-label">HEX.04</span>
+            <span class="cell-num">04</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#331122,#110011);"></div>
+            <span class="cell-label">DOTS.05</span>
+            <span class="cell-num">05</span>
+          </div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+        </div>
+        <!-- Row 3: Opaque B -->
+        <div class="grid-row">
+          <div class="grid-layer-h solo">
+            <span class="ln">02·OPB</span>
+            <span class="lm">OPAQUE</span>
+            <span class="lv">SOLO</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#332200,#110800);"></div>
+            <span class="cell-label">MOON.01</span>
+            <span class="cell-meta">IMG</span>
+            <span class="cell-num">01</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#224433,#001122);"></div>
+            <span class="cell-label">VID.02</span>
+            <span class="cell-meta">LOOP</span>
+            <span class="cell-num">02</span>
+          </div>
+          <div class="grid-cell loaded playing">
+            <span class="cell-label">JULIA.03</span>
+            <span class="cell-meta">SOURCE</span>
+            <span class="cell-num">03</span>
+            <div class="cell-progress" style="width: 82%;"></div>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#443322,#221100);"></div>
+            <span class="cell-label">BULB.04</span>
+            <span class="cell-num">04</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#223344,#001133);"></div>
+            <span class="cell-label">TORUS.05</span>
+            <span class="cell-num">05</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#332211,#110500);"></div>
+            <span class="cell-label">KIFS.06</span>
+            <span class="cell-num">06</span>
+          </div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+        </div>
+        <!-- Row 4: Opaque A MUTE -->
+        <div class="grid-row">
+          <div class="grid-layer-h mute">
+            <span class="ln">01·OPA</span>
+            <span class="lm">OPAQUE</span>
+            <span class="lv">MUTE</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#112233,#000011);"></div>
+            <span class="cell-label">CAM.01</span>
+            <span class="cell-num">01</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#332233,#110011);"></div>
+            <span class="cell-label">SPHERE.02</span>
+            <span class="cell-num">02</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#223344,#002233);"></div>
+            <span class="cell-label">MNDL.03</span>
+            <span class="cell-num">03</span>
+          </div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer 01: SIGNALS -->
+    <div class="drawer drawer-signals">
+      <div class="drawer-header">
+        01 / SIGNALS · ALL · 60
+        <span class="dh-close">× CLOSE</span>
+      </div>
+      <div class="signals-list">
+        <!-- AMPLITUDE -->
+        <div class="signal-group">
+          <div class="signal-group-title">AMPLITUDE<span class="sgc">05</span></div>
+          <div class="signal-row selected">
+            <span class="sr-name">RMS</span>
+            <div class="sr-meter"><div class="sr-meter-fill orange" style="width:72%"></div></div>
+            <span class="sr-val">0.720</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">PEAK</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:85%"></div></div>
+            <span class="sr-val">0.850</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">RMS-DB</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:66%"></div></div>
+            <span class="sr-val">-18.2</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">LUFS</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:72%"></div></div>
+            <span class="sr-val">-14.3</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">DYN·RANGE</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:51%"></div></div>
+            <span class="sr-val">6.20</span>
+          </div>
+        </div>
+
+        <!-- 7-BAND -->
+        <div class="signal-group">
+          <div class="signal-group-title">7-BAND ENERGY<span class="sgc">07</span></div>
+          <div class="signal-row">
+            <span class="sr-name">SUB</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:66%"></div></div>
+            <span class="sr-val">0.660</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">BASS</span>
+            <div class="sr-meter"><div class="sr-meter-fill orange" style="width:91%"></div></div>
+            <span class="sr-val">0.910</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">LOW-MID</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:55%"></div></div>
+            <span class="sr-val">0.550</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">MID</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:43%"></div></div>
+            <span class="sr-val">0.430</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">HIGH-MID</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:32%"></div></div>
+            <span class="sr-val">0.320</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">PRESENCE</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:18%"></div></div>
+            <span class="sr-val">0.180</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">BRILLIANCE</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:11%"></div></div>
+            <span class="sr-val">0.110</span>
+          </div>
+        </div>
+
+        <!-- SPECTRAL -->
+        <div class="signal-group">
+          <div class="signal-group-title">SPECTRAL<span class="sgc">04</span></div>
+          <div class="signal-row">
+            <span class="sr-name">CENTROID</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:48%"></div></div>
+            <span class="sr-val">2.4k</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">FLUX</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:38%"></div></div>
+            <span class="sr-val">0.380</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">FLATNESS</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:21%"></div></div>
+            <span class="sr-val">0.210</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">ROLLOFF</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:58%"></div></div>
+            <span class="sr-val">5.8k</span>
+          </div>
+        </div>
+
+        <!-- RHYTHM -->
+        <div class="signal-group">
+          <div class="signal-group-title">RHYTHM<span class="sgc">06</span></div>
+          <div class="signal-row">
+            <span class="sr-name">ONSET</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:0%"></div></div>
+            <span class="sr-val">0.000</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">BEAT·PHASE</span>
+            <div class="sr-meter"><div class="sr-meter-fill orange" style="width:37%"></div></div>
+            <span class="sr-val">0.370</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">BAR·PHASE</span>
+            <div class="sr-meter"><div class="sr-meter-fill orange" style="width:62%"></div></div>
+            <span class="sr-val">0.620</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">PHR·PHASE</span>
+            <div class="sr-meter"><div class="sr-meter-fill orange" style="width:18%"></div></div>
+            <span class="sr-val">0.180</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">BAR·COUNT</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:37%"></div></div>
+            <span class="sr-val">03</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">TRANS·DEN</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:42%"></div></div>
+            <span class="sr-val">4.2/s</span>
+          </div>
+        </div>
+
+        <!-- PITCH/KEY -->
+        <div class="signal-group">
+          <div class="signal-group-title">PITCH / KEY<span class="sgc">04</span></div>
+          <div class="signal-row">
+            <span class="sr-name">DOM·PITCH</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:44%"></div></div>
+            <span class="sr-val">440Hz</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">PITCH·CONF</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:84%"></div></div>
+            <span class="sr-val">0.840</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">KEY</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:0%"></div></div>
+            <span class="sr-val" style="color:#ff4500">Am</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">HARM·CHG</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:12%"></div></div>
+            <span class="sr-val">0.120</span>
+          </div>
+        </div>
+
+        <!-- MFCC -->
+        <div class="signal-group">
+          <div class="signal-group-title">MFCC · 13 COEFS<span class="sgc">13</span></div>
+          <div class="mfcc-row">
+            <div class="mfcc-bar" style="height:80%"></div>
+            <div class="mfcc-bar" style="height:55%"></div>
+            <div class="mfcc-bar" style="height:72%; background:#ff4500"></div>
+            <div class="mfcc-bar" style="height:38%"></div>
+            <div class="mfcc-bar" style="height:60%"></div>
+            <div class="mfcc-bar" style="height:45%"></div>
+            <div class="mfcc-bar" style="height:52%; background:#ff4500"></div>
+            <div class="mfcc-bar" style="height:28%"></div>
+            <div class="mfcc-bar" style="height:40%"></div>
+            <div class="mfcc-bar" style="height:18%"></div>
+            <div class="mfcc-bar" style="height:30%"></div>
+            <div class="mfcc-bar" style="height:22%"></div>
+            <div class="mfcc-bar" style="height:15%"></div>
+          </div>
+          <div class="mfcc-labels">
+            <span>00</span><span>01</span><span>02</span><span>03</span>
+            <span>04</span><span>05</span><span>06</span><span>07</span>
+            <span>08</span><span>09</span><span>10</span><span>11</span><span>12</span>
+          </div>
+        </div>
+
+        <!-- CHROMA -->
+        <div class="signal-group">
+          <div class="signal-group-title">CHROMA · 12 CLASS<span class="sgc">12</span></div>
+          <div class="chroma-row">
+            <div class="chroma-bar" style="height:45%"></div>
+            <div class="chroma-bar" style="height:22%"></div>
+            <div class="chroma-bar" style="height:38%"></div>
+            <div class="chroma-bar" style="height:30%"></div>
+            <div class="chroma-bar" style="height:68%"></div>
+            <div class="chroma-bar" style="height:42%"></div>
+            <div class="chroma-bar" style="height:25%"></div>
+            <div class="chroma-bar" style="height:50%"></div>
+            <div class="chroma-bar" style="height:32%"></div>
+            <div class="chroma-bar" style="height:88%; background:#ff4500"></div>
+            <div class="chroma-bar" style="height:28%"></div>
+            <div class="chroma-bar" style="height:40%"></div>
+          </div>
+          <div class="chroma-labels">
+            <span>C</span><span>C#</span><span>D</span><span>D#</span>
+            <span>E</span><span>F</span><span>F#</span><span>G</span>
+            <span>G#</span><span style="color:#ff4500">A</span><span>A#</span><span>B</span>
+          </div>
+        </div>
+
+        <!-- ADVANCED -->
+        <div class="signal-group" style="border-bottom:0;">
+          <div class="signal-group-title">ADVANCED · P25<span class="sgc">05</span></div>
+          <div class="signal-row">
+            <span class="sr-name">SIDECHN·P</span>
+            <div class="sr-meter"><div class="sr-meter-fill orange" style="width:58%"></div></div>
+            <span class="sr-val">0.580</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">SWING·RAT</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:52%"></div></div>
+            <span class="sr-val">0.520</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">FORMANT</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:22%"></div></div>
+            <span class="sr-val">0.220</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">RESONANCE</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:45%"></div></div>
+            <span class="sr-val">0.450</span>
+          </div>
+          <div class="signal-row">
+            <span class="sr-name">REESE·BASS</span>
+            <div class="sr-meter"><div class="sr-meter-fill" style="width:31%"></div></div>
+            <span class="sr-val">0.310</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State A annotation -->
+    <div class="annotation">STATE: DRAWER 01 OPEN · ALL 60 SIGNALS VISIBLE · CLICK SIGNAL TO SELECT FOR EDITOR (04)</div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- DIVIDER                        -->
+  <!-- ============================== -->
+  <div class="divider">
+    <div class="divider-label">│ DRAWER VARIATION · STATE COMPARISON │</div>
+  </div>
+
+  <!-- ============================== -->
+  <!-- STATE B: DRAWER 04 OPEN        -->
+  <!-- ============================== -->
+  <div class="state state-b">
+
+    <!-- Menu bar -->
+    <div class="menubar">
+      <div class="menubar-logo">AUDIO-DNA</div>
+      <div class="menubar-item">FILE</div>
+      <div class="menubar-item">EDIT</div>
+      <div class="menubar-item">COMPOSITION</div>
+      <div class="menubar-item">LAYER</div>
+      <div class="menubar-item">DECK</div>
+      <div class="menubar-item">SIGNAL</div>
+      <div class="menubar-item">OUTPUT</div>
+      <div class="menubar-item">WINDOW</div>
+      <div class="menubar-right">
+        <span><span class="dot"></span>LINK ON</span>
+        <span>CPU 34%</span>
+      </div>
+    </div>
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="tb-group">
+        <span class="tb-label">01/BPM</span>
+        <span class="tb-bpm">128.0</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <div class="tb-btn">TAP</div>
+        <div class="tb-btn">RESYNC</div>
+        <div class="tb-btn">MAN</div>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group tb-mult">
+        <div class="tb-btn">×1/4</div>
+        <div class="tb-btn">×1/2</div>
+        <div class="tb-btn active">×1</div>
+        <div class="tb-btn">×2</div>
+        <div class="tb-btn">×4</div>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-group">
+        <span class="tb-label">02/BEAT</span>
+        <div class="tb-beatwheel">
+          <svg viewBox="0 0 22 22">
+            <circle cx="11" cy="11" r="9" fill="none" stroke="#222" stroke-width="1"/>
+            <path d="M 11 11 L 11 2 A 9 9 0 0 1 19.5 12.5 Z" fill="#ff4500"/>
+            <line x1="11" y1="2" x2="11" y2="20" stroke="#333" stroke-width="0.5"/>
+            <line x1="2" y1="11" x2="20" y2="11" stroke="#333" stroke-width="0.5"/>
+            <circle cx="11" cy="11" r="2" fill="#0a0a0a"/>
+          </svg>
+        </div>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-barinfo">
+        <span><span class="tb-k">BAR</span> <span class="tb-v">03/08</span></span>
+        <span><span class="tb-k">PHR</span> <span class="tb-v">2/4</span></span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-master">
+        <span class="tb-label">03/MASTER</span>
+        <div class="tb-fader">
+          <div class="tb-fader-fill"></div>
+          <div class="tb-fader-handle"></div>
+        </div>
+        <span class="tb-label" style="color:#e8e8e8">0.78</span>
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-rec">
+        <span class="rec-dot"></span>REC
+      </div>
+      <div class="tb-sep"></div>
+      <div class="tb-fps"><span class="tb-label">FPS</span> <b>60.0</b></div>
+    </div>
+
+    <!-- Waveform core (same as state A) -->
+    <div class="waveform-core">
+      <div class="wf-label-strip">
+        <span>CORE / WAVEFORM · A+B · <b>PEAK 0.85</b> · <b>RMS 0.72</b></span>
+        <span>STRUCT <b>DROP</b> · BARS 24 → 32 · ZOOM 4s</span>
+      </div>
+      <svg class="wf-canvas" viewBox="0 0 960 126" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="wfA2" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="#ff4500" stop-opacity="0.7"/>
+            <stop offset="1" stop-color="#661800" stop-opacity="0.3"/>
+          </linearGradient>
+          <linearGradient id="wfB2" x1="0" x2="0" y1="1" y2="0">
+            <stop offset="0" stop-color="#888888" stop-opacity="0.55"/>
+            <stop offset="1" stop-color="#ffffff" stop-opacity="0.15"/>
+          </linearGradient>
+        </defs>
+        <g stroke="#1a1a1a" stroke-width="0.5">
+          <line x1="60" y1="0" x2="60" y2="126"/>
+          <line x1="120" y1="0" x2="120" y2="126"/>
+          <line x1="180" y1="0" x2="180" y2="126"/>
+          <line x1="240" y1="0" x2="240" y2="126"/>
+          <line x1="300" y1="0" x2="300" y2="126"/>
+          <line x1="360" y1="0" x2="360" y2="126"/>
+          <line x1="420" y1="0" x2="420" y2="126"/>
+          <line x1="540" y1="0" x2="540" y2="126"/>
+          <line x1="600" y1="0" x2="600" y2="126"/>
+          <line x1="660" y1="0" x2="660" y2="126"/>
+          <line x1="720" y1="0" x2="720" y2="126"/>
+          <line x1="780" y1="0" x2="780" y2="126"/>
+          <line x1="840" y1="0" x2="840" y2="126"/>
+          <line x1="900" y1="0" x2="900" y2="126"/>
+        </g>
+        <g fill="#444" font-family="IBM Plex Mono" font-size="7" font-weight="500" letter-spacing="1">
+          <text x="4" y="10">24</text>
+          <text x="64" y="10">25</text>
+          <text x="124" y="10">26</text>
+          <text x="184" y="10">27</text>
+          <text x="244" y="10">28</text>
+          <text x="304" y="10">29</text>
+          <text x="364" y="10">30</text>
+          <text x="424" y="10">31</text>
+          <text x="484" y="10" fill="#ff4500">32·NOW</text>
+          <text x="544" y="10">33</text>
+          <text x="604" y="10">34</text>
+          <text x="664" y="10">35</text>
+          <text x="724" y="10">36</text>
+          <text x="784" y="10">37</text>
+          <text x="844" y="10">38</text>
+          <text x="904" y="10">39</text>
+        </g>
+        <rect x="0" y="16" width="480" height="2" fill="#ff4500" opacity="0.35"/>
+        <rect x="480" y="16" width="480" height="2" fill="#ffffff" opacity="0.25"/>
+        <path fill="url(#wfA2)" d="M0,63 L8,54 L16,58 L24,46 L32,52 L40,42 L48,50 L56,38 L64,44 L72,33 L80,40 L88,28 L96,36 L104,22 L112,30 L120,18 L128,25 L136,20 L144,28 L152,15 L160,22 L168,12 L176,20 L184,14 L192,24 L200,10 L208,18 L216,14 L224,22 L232,16 L240,24 L248,18 L256,26 L264,20 L272,28 L280,22 L288,30 L296,24 L304,32 L312,26 L320,34 L328,28 L336,36 L344,30 L352,38 L360,32 L368,40 L376,34 L384,42 L392,36 L400,44 L408,38 L416,46 L424,40 L432,48 L440,42 L448,50 L456,44 L464,52 L472,46 L480,54
+          L488,20 L496,12 L504,18 L512,8 L520,14 L528,6 L536,12 L544,4 L552,10 L560,2 L568,8 L576,4 L584,12 L592,6 L600,14 L608,8 L616,16 L624,10 L632,18 L640,12 L648,20 L656,14 L664,22 L672,16 L680,24 L688,18 L696,26 L704,20 L712,28 L720,22 L728,30 L736,24 L744,32 L752,26 L760,34 L768,28 L776,36 L784,30 L792,38 L800,32 L808,40 L816,34 L824,42 L832,36 L840,44 L848,38 L856,46 L864,40 L872,48 L880,42 L888,50 L896,44 L904,52 L912,46 L920,54 L928,48 L936,56 L944,50 L952,58 L960,54 L960,63 Z"/>
+        <path fill="url(#wfB2)" d="M0,63 L8,72 L16,68 L24,78 L32,70 L40,82 L48,72 L56,86 L64,76 L72,90 L80,80 L88,94 L96,82 L104,98 L112,88 L120,102 L128,92 L136,100 L144,90 L152,104 L160,96 L168,108 L176,98 L184,106 L192,94 L200,110 L208,100 L216,106 L224,96 L232,108 L240,98 L248,106 L256,98 L264,108 L272,100 L280,110 L288,100 L296,112 L304,102 L312,110 L320,100 L328,108 L336,98 L344,106 L352,96 L360,104 L368,94 L376,102 L384,92 L392,100 L400,88 L408,98 L416,86 L424,96 L432,84 L440,94 L448,82 L456,92 L464,80 L472,90 L480,78
+          L488,108 L496,118 L504,112 L512,120 L520,114 L528,122 L536,116 L544,124 L552,118 L560,124 L568,118 L576,122 L584,114 L592,120 L600,110 L608,116 L616,106 L624,112 L632,100 L640,108 L648,94 L656,104 L664,88 L672,100 L680,84 L688,96 L696,80 L704,92 L712,76 L720,88 L728,72 L736,84 L744,68 L752,80 L760,64 L768,76 L776,60 L784,72 L792,56 L800,68 L808,52 L816,64 L824,50 L832,62 L840,48 L848,60 L856,46 L864,58 L872,44 L880,56 L888,42 L896,54 L904,40 L912,52 L920,38 L928,50 L936,40 L944,52 L952,44 L960,56 L960,63 Z"/>
+      </svg>
+      <div class="wf-playhead"></div>
+    </div>
+
+    <!-- Drawer handles: 04 open, others closed -->
+    <!-- Left edge: 01 closed -->
+    <div class="handle vertical" style="top: 280px; left: 0;">
+      <div class="handle-num">01</div>
+      <div class="handle-label">SIGNALS</div>
+    </div>
+
+    <!-- Right edge: 02, 03 closed -->
+    <div class="handle vertical" style="top: 280px; right: 0;">
+      <div class="handle-num">02</div>
+      <div class="handle-label">INSPECTR</div>
+    </div>
+    <div class="handle vertical" style="top: 370px; right: 0;">
+      <div class="handle-num">03</div>
+      <div class="handle-label">BROWSER</div>
+    </div>
+
+    <!-- Bottom edge: 04 open (top of drawer), 05 closed -->
+    <!-- Handle 04 sits on TOP of the drawer (at top edge of drawer) -->
+    <div class="handle horizontal open-handle" style="bottom: 220px; left: 20px; border-bottom: 0;">
+      <div class="handle-num">04</div>
+      <div class="handle-label">SIG EDIT</div>
+    </div>
+    <div class="handle horizontal" style="bottom: 220px; left: 110px;">
+      <div class="handle-num">05</div>
+      <div class="handle-label">ROUTING</div>
+    </div>
+
+    <!-- Grid Core: reduced from bottom by 220px -->
+    <div class="grid-core" style="top: 198px; left: 0; right: 0; bottom: 220px;">
+      <div class="grid-header">
+        <span><b>CORE / DECK GRID</b> · DECK A · 4×8 · LAYERS OPAQUE/TRANS/FX</span>
+        <span style="margin-left:auto;">NEXT TRIGGER: BAR 04 · QUEUED 1</span>
+      </div>
+      <div class="grid-col-headers">
+        <div class="grid-col-h">LAYER</div>
+        <div class="grid-col-h">01</div>
+        <div class="grid-col-h">02</div>
+        <div class="grid-col-h active">03</div>
+        <div class="grid-col-h">04</div>
+        <div class="grid-col-h">05</div>
+        <div class="grid-col-h">06</div>
+        <div class="grid-col-h">07</div>
+        <div class="grid-col-h">08</div>
+      </div>
+      <div class="grid-rows">
+        <!-- Row 1 -->
+        <div class="grid-row" style="height: 68px;">
+          <div class="grid-layer-h">
+            <span class="ln">04·FX</span>
+            <span class="lm">FX ONLY</span>
+            <span class="lv">OP 1.00</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#331100,#110500);"></div>
+            <span class="cell-label">RIPPLE.01</span>
+            <span class="cell-num">01</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#112233,#000511);"></div>
+            <span class="cell-label">GLITCH.02</span>
+            <span class="cell-num">02</span>
+          </div>
+          <div class="grid-cell loaded playing">
+            <span class="cell-label">ECHO.03</span>
+            <span class="cell-meta">4 BAR</span>
+            <span class="cell-num">03</span>
+            <div class="cell-progress" style="width: 63%;"></div>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#221133,#000011);"></div>
+            <span class="cell-label">FREEZE.04</span>
+            <span class="cell-num">04</span>
+          </div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+        </div>
+        <!-- Row 2 -->
+        <div class="grid-row" style="height: 68px;">
+          <div class="grid-layer-h">
+            <span class="ln">03·TRN</span>
+            <span class="lm">TRANSPAR</span>
+            <span class="lv">OP 0.62</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#113322,#001100);"></div>
+            <span class="cell-label">LINES.01</span>
+            <span class="cell-num">01</span>
+          </div>
+          <div class="grid-cell loaded active">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#443311,#111100);"></div>
+            <span class="cell-label">GRID.02</span>
+            <span class="cell-meta">QUEUED</span>
+            <span class="cell-num">02</span>
+          </div>
+          <div class="grid-cell loaded playing">
+            <span class="cell-label">ORB.03</span>
+            <span class="cell-meta">1/4</span>
+            <span class="cell-num">03</span>
+            <div class="cell-progress" style="width: 28%;"></div>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#221133,#110022);"></div>
+            <span class="cell-label">HEX.04</span>
+            <span class="cell-num">04</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#331122,#110011);"></div>
+            <span class="cell-label">DOTS.05</span>
+            <span class="cell-num">05</span>
+          </div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+        </div>
+        <!-- Row 3 -->
+        <div class="grid-row" style="height: 68px;">
+          <div class="grid-layer-h solo">
+            <span class="ln">02·OPB</span>
+            <span class="lm">OPAQUE</span>
+            <span class="lv">SOLO</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#332200,#110800);"></div>
+            <span class="cell-label">MOON.01</span>
+            <span class="cell-meta">IMG</span>
+            <span class="cell-num">01</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#224433,#001122);"></div>
+            <span class="cell-label">VID.02</span>
+            <span class="cell-meta">LOOP</span>
+            <span class="cell-num">02</span>
+          </div>
+          <div class="grid-cell loaded playing">
+            <span class="cell-label">JULIA.03</span>
+            <span class="cell-meta">SOURCE</span>
+            <span class="cell-num">03</span>
+            <div class="cell-progress" style="width: 82%;"></div>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#443322,#221100);"></div>
+            <span class="cell-label">BULB.04</span>
+            <span class="cell-num">04</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#223344,#001133);"></div>
+            <span class="cell-label">TORUS.05</span>
+            <span class="cell-num">05</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#332211,#110500);"></div>
+            <span class="cell-label">KIFS.06</span>
+            <span class="cell-num">06</span>
+          </div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+        </div>
+        <!-- Row 4 -->
+        <div class="grid-row" style="height: 68px;">
+          <div class="grid-layer-h mute">
+            <span class="ln">01·OPA</span>
+            <span class="lm">OPAQUE</span>
+            <span class="lv">MUTE</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#112233,#000011);"></div>
+            <span class="cell-label">CAM.01</span>
+            <span class="cell-num">01</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#332233,#110011);"></div>
+            <span class="cell-label">SPHERE.02</span>
+            <span class="cell-num">02</span>
+          </div>
+          <div class="grid-cell loaded">
+            <div class="cell-thumb" style="background: linear-gradient(45deg,#223344,#002233);"></div>
+            <span class="cell-label">MNDL.03</span>
+            <span class="cell-num">03</span>
+          </div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+          <div class="grid-cell empty"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer 04: SIGNAL EDITOR -->
+    <div class="drawer drawer-editor">
+      <div class="drawer-header">
+        04 / SIGNAL EDITOR · SELECTED: RMS · OSC + ENV + ROUTES
+        <span class="dh-close">× CLOSE</span>
+      </div>
+      <div class="editor-body">
+        <!-- COL 1: Big value -->
+        <div class="editor-col">
+          <div class="editor-col-title">01 / VALUE</div>
+          <div class="ed-name">RMS</div>
+          <div class="ed-val">0.724</div>
+
+          <div class="ed-slider-label"><span>THRESHOLD</span><span>0.10</span></div>
+          <div class="ed-slider">
+            <div class="ed-slider-fill" style="width:10%"></div>
+            <div class="ed-slider-handle" style="left:calc(10% - 1px)"></div>
+          </div>
+
+          <div class="ed-slider-label"><span>GAIN</span><span>1.25</span></div>
+          <div class="ed-slider">
+            <div class="ed-slider-fill" style="width:62%"></div>
+            <div class="ed-slider-handle" style="left:calc(62% - 1px)"></div>
+          </div>
+
+          <div class="ed-slider-label"><span>FALLOFF</span><span>0.38</span></div>
+          <div class="ed-slider">
+            <div class="ed-slider-fill" style="width:38%"></div>
+            <div class="ed-slider-handle" style="left:calc(38% - 1px)"></div>
+          </div>
+        </div>
+
+        <!-- COL 2: Oscillator + Envelope -->
+        <div class="editor-col">
+          <div class="editor-col-title">02 / SHAPE</div>
+          <div class="ed-col2">
+            <div class="ed-subpanel">
+              <div class="ed-subtitle">OSCILLATOR</div>
+              <div class="osc-shapes">
+                <div class="osc-shape active">
+                  <svg viewBox="0 0 18 12">
+                    <path d="M 1 6 Q 4.5 1, 9 6 T 17 6" />
+                  </svg>
+                  <div class="osc-shape-label">SIN</div>
+                </div>
+                <div class="osc-shape">
+                  <svg viewBox="0 0 18 12">
+                    <path d="M 1 11 L 9 1 L 9 11 L 17 1" />
+                  </svg>
+                  <div class="osc-shape-label">SW+</div>
+                </div>
+                <div class="osc-shape">
+                  <svg viewBox="0 0 18 12">
+                    <path d="M 1 1 L 9 11 L 9 1 L 17 11" />
+                  </svg>
+                  <div class="osc-shape-label">SW−</div>
+                </div>
+                <div class="osc-shape">
+                  <svg viewBox="0 0 18 12">
+                    <path d="M 1 11 L 5 1 L 9 11 L 13 1 L 17 11" />
+                  </svg>
+                  <div class="osc-shape-label">TRI</div>
+                </div>
+                <div class="osc-shape">
+                  <svg viewBox="0 0 18 12">
+                    <path d="M 1 11 L 1 1 L 9 1 L 9 11 L 17 11 L 17 1" />
+                  </svg>
+                  <div class="osc-shape-label">SQR</div>
+                </div>
+              </div>
+
+              <div style="font-size:7px; color:#666; letter-spacing:0.22em; margin-bottom:4px;">BEAT DUR</div>
+              <div class="osc-beats">
+                <div class="osc-beat">1/4</div>
+                <div class="osc-beat">1/2</div>
+                <div class="osc-beat active">1</div>
+                <div class="osc-beat">2</div>
+                <div class="osc-beat">4</div>
+                <div class="osc-beat">8</div>
+              </div>
+
+              <div class="ed-slider-label"><span>AMP</span><span>0.82</span></div>
+              <div class="ed-slider" style="margin-bottom:8px;">
+                <div class="ed-slider-fill" style="width:82%"></div>
+                <div class="ed-slider-handle" style="left:calc(82% - 1px)"></div>
+              </div>
+
+              <div class="ed-slider-label"><span>PHASE</span><span>0.00</span></div>
+              <div class="ed-slider" style="margin-bottom:0;">
+                <div class="ed-slider-fill" style="width:0%"></div>
+                <div class="ed-slider-handle" style="left:0"></div>
+              </div>
+            </div>
+
+            <div class="ed-subpanel">
+              <div class="ed-subtitle">ENVELOPE</div>
+              <div class="env-panel">
+                <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+                  <g class="env-grid">
+                    <line x1="0" y1="25" x2="200" y2="25"/>
+                    <line x1="0" y1="50" x2="200" y2="50"/>
+                    <line x1="0" y1="75" x2="200" y2="75"/>
+                    <line x1="50" y1="0" x2="50" y2="100"/>
+                    <line x1="100" y1="0" x2="100" y2="100"/>
+                    <line x1="150" y1="0" x2="150" y2="100"/>
+                  </g>
+                  <!-- Fill -->
+                  <path class="env-curve-fill" d="M 0 50 L 100 0 L 200 100 L 200 100 L 0 100 Z"/>
+                  <!-- Curve -->
+                  <polyline class="env-curve" points="0,50 100,0 200,100"/>
+                  <!-- Points -->
+                  <rect class="env-point" x="-3" y="47" width="6" height="6"/>
+                  <rect class="env-point" x="97" y="-3" width="6" height="6"/>
+                  <rect class="env-point" x="197" y="97" width="6" height="6"/>
+                  <!-- Plus indicator near cursor -->
+                  <g transform="translate(145, 55)">
+                    <rect class="env-plus" x="-5" y="-5" width="10" height="10"/>
+                    <line class="env-plus" x1="-2.5" y1="0" x2="2.5" y2="0" stroke-dasharray="0"/>
+                    <line class="env-plus" x1="0" y1="-2.5" x2="0" y2="2.5" stroke-dasharray="0"/>
+                  </g>
+                  <!-- Labels -->
+                  <text x="4" y="96" fill="#444" font-family="IBM Plex Mono" font-size="6" letter-spacing="0.5">0.00</text>
+                  <text x="180" y="96" fill="#444" font-family="IBM Plex Mono" font-size="6" letter-spacing="0.5">1.00</text>
+                  <text x="4" y="10" fill="#444" font-family="IBM Plex Mono" font-size="6" letter-spacing="0.5">1.00</text>
+                </svg>
+              </div>
+
+              <div class="env-btns">
+                <div class="env-btn active">LOOP ON</div>
+                <div class="env-btn">ONE-SHOT</div>
+              </div>
+
+              <div class="env-curves" style="margin-top:4px;">
+                <div class="env-btn active">LIN</div>
+                <div class="env-btn">EXP</div>
+                <div class="env-btn">S-CURVE</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COL 3: Routes -->
+        <div class="editor-col" style="position: relative;">
+          <div class="editor-col-title">03 / ROUTES · 04 ACTIVE</div>
+          <button class="add-route-btn">+ ADD ROUTE</button>
+
+          <div class="routes-header">
+            <span>#</span>
+            <span>TARGET</span>
+            <span>CURVE</span>
+            <span>IN</span>
+            <span>OUT</span>
+            <span></span>
+          </div>
+
+          <div class="route-row">
+            <span class="route-num"><span class="rn-dot"></span>01</span>
+            <span class="route-target">LAYER.02·OPACITY</span>
+            <span class="route-curve">SCURVE</span>
+            <span class="route-range">0.00→0.90</span>
+            <span class="route-range">0.00→1.00</span>
+            <span class="route-del">×</span>
+          </div>
+
+          <div class="route-row">
+            <span class="route-num"><span class="rn-dot"></span>02</span>
+            <span class="route-target">CLIP.03·BLUR·INT</span>
+            <span class="route-curve">EXP</span>
+            <span class="route-range">0.20→0.95</span>
+            <span class="route-range">0.10→0.90</span>
+            <span class="route-del">×</span>
+          </div>
+
+          <div class="route-row">
+            <span class="route-num"><span class="rn-dot"></span>03</span>
+            <span class="route-target">GLOBAL·GLOW·SIZE</span>
+            <span class="route-curve">LIN</span>
+            <span class="route-range">0.00→1.00</span>
+            <span class="route-range">0.00→1.00</span>
+            <span class="route-del">×</span>
+          </div>
+
+          <div class="route-row">
+            <span class="route-num"><span class="rn-dot"></span>04</span>
+            <span class="route-target">LFO·A·AMP·MOD</span>
+            <span class="route-curve">LOG</span>
+            <span class="route-range">0.30→1.00</span>
+            <span class="route-range">0.00→0.60</span>
+            <span class="route-del">×</span>
+          </div>
+
+          <div style="margin-top: 10px; font-size: 7px; color: #555; letter-spacing: 0.18em; line-height: 1.6;">
+            CURVES: LIN · EXP · LOG · SCURVE · STEP · EASE-IN · EASE-OUT · EASE-IN-OUT · QUAD · CUBIC · QUART · QUINT · SINE · EXPO · CIRC · BACK · ELASTIC · BOUNCE · POWER · SIGMOID · GAMMA  [21 TOTAL]
+          </div>
+
+          <div style="margin-top: 8px; padding: 6px; border: 1px solid #1a1a1a; font-size: 7.5px; color: #888; letter-spacing: 0.12em;">
+            <span style="color:#ff4500; font-weight:600;">SMOOTH</span> · α 0.25 · ONE-EURO β 0.01 · MIN-CUTOFF 1.0
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State B annotation -->
+    <div class="annotation">STATE: DRAWER 04 OPEN · SIGNAL EDITOR FOR CURRENT SELECTION · ALL OTHERS COLLAPSED</div>
+  </div>
+
+</div>
+
+</body>
+</html>

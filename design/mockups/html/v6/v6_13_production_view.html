@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — V6-13 Production View</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+  background: linear-gradient(170deg, #191d24 0%, #12151b 50%, #0d0f14 100%);
+  color: #d0d0d0; font-size: 11px;
+}
+
+/* TOP: MASTER AUDIO CONTROL */
+.master-strip {
+  height: 38px; display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, #22272f, #1a1e26);
+  border-bottom: 1px solid #2a2e38; padding: 0 12px;
+}
+.ms-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+.ms-meters { display: flex; gap: 2px; align-items: flex-end; height: 24px; }
+.ms-meters .mb { width: 6px; border-radius: 1px 1px 0 0; }
+.ms-meters .mb.g { background: #2ecc71; }
+.ms-meters .mb.y { background: #e8c547; }
+.ms-meters .mb.r { background: #e74c3c; }
+.sep { width: 1px; height: 22px; background: #2a2e38; }
+.bpm-big { font-size: 20px; font-weight: 800; color: #4fdc7c; font-family: monospace; }
+.bpm-st { font-size: 8px; color: #4fdc7c88; text-transform: uppercase; margin-left: 2px; }
+.ms-btn {
+  padding: 3px 8px; background: #262a34; border: 1px solid #363a46;
+  border-radius: 2px; color: #888; font-size: 10px; cursor: pointer;
+}
+.ms-btn:hover { background: #363a46; color: #ddd; }
+.ms-btn.on { background: #e8c547; color: #111; }
+.beat-d { display: flex; gap: 3px; }
+.beat-d .d { width: 8px; height: 8px; border-radius: 50%; background: #2a2e38; }
+.beat-d .d.on { background: #e8c547; box-shadow: 0 0 6px #e8c54766; }
+.bar-i { font-family: monospace; font-size: 10px; color: #666; }
+.ms-spacer { flex: 1; }
+.ms-vol { display: flex; align-items: center; gap: 4px; }
+.ms-vol-label { font-size: 9px; color: #666; }
+.ms-vol-bar { width: 80px; height: 4px; background: #2a2e38; border-radius: 2px; position: relative; }
+.ms-vol-fill { width: 72%; height: 100%; background: linear-gradient(90deg, #2ecc71, #e8c547); border-radius: 2px; }
+.ms-out { font-size: 10px; color: #555; }
+.fps-d { font-size: 10px; color: #444; font-family: monospace; }
+
+/* MAIN AREA */
+.main { display: flex; height: calc(100% - 38px); }
+
+/* LEFT: BIG CLIP GRID */
+.grid-area {
+  flex: 1; display: flex; flex-direction: column; min-width: 0;
+  border-right: 1px solid #2a2e38;
+}
+.grid-header {
+  height: 24px; display: flex; align-items: center; gap: 8px;
+  padding: 0 8px; border-bottom: 1px solid #2a2e38; background: #1c2028;
+}
+.grid-header span { font-size: 10px; color: #666; }
+.grid-header .gh-title { color: #e8c547; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+/* COLUMN HEADERS */
+.col-headers {
+  display: flex; height: 20px; border-bottom: 1px solid #222630;
+}
+.col-headers .ch-space { width: 200px; flex-shrink: 0; }
+.col-headers .ch {
+  width: 90px; min-width: 90px; text-align: center; font-size: 8px;
+  text-transform: uppercase; padding: 3px 0; color: #555; letter-spacing: 0.5px;
+  border-right: 1px solid #1a1e24;
+}
+.col-headers .ch.active { color: #4fdbca; border-bottom: 2px solid #4fdbca; }
+
+/* LAYER ROWS */
+.grid-scroll { flex: 1; overflow-y: auto; overflow-x: auto; }
+.layer-row {
+  display: flex; height: 88px; border-bottom: 1px solid #1e222a;
+}
+.layer-row:hover { background: #1a1e2622; }
+
+/* ROW HEADER (controls) */
+.lr-header {
+  width: 200px; min-width: 200px; flex-shrink: 0; padding: 4px 6px;
+  border-right: 1px solid #2a2e38; display: flex; flex-direction: column; gap: 2px;
+  background: linear-gradient(90deg, #1c2028, #1a1e26);
+}
+.lr-name { font-size: 10px; color: #ccc; font-weight: 600; }
+.lr-btns { display: flex; gap: 2px; flex-wrap: wrap; }
+.lr-btn {
+  width: 28px; height: 16px; background: #262a34; border: 1px solid #333;
+  border-radius: 1px; font-size: 7px; color: #666; display: flex;
+  align-items: center; justify-content: center; cursor: pointer;
+}
+.lr-btn:hover { background: #363a46; color: #aaa; }
+.lr-btn.play { color: #4fdbca; }
+.lr-btn.bypass-on { background: #c0392b33; color: #e74c3c; }
+.lr-sliders { display: flex; gap: 4px; margin-top: 2px; }
+.lr-slider { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.lr-slider .ls-bar { width: 4px; height: 32px; background: #2a2e38; border-radius: 2px; position: relative; }
+.lr-slider .ls-fill { position: absolute; bottom: 0; width: 100%; border-radius: 2px; }
+.lr-slider .ls-fill.s { background: #4fdbca; height: 50%; }
+.lr-slider .ls-fill.k { background: #e8c547; height: 10%; }
+.lr-slider .ls-fill.v { background: #2ecc71; height: 80%; }
+.lr-slider .ls-fill.f { background: #3498db; height: 30%; }
+.lr-slider .ls-l { font-size: 7px; color: #555; }
+
+/* CLIP CELLS */
+.lr-cells { display: flex; flex: 1; }
+.clip-cell {
+  width: 90px; min-width: 90px; height: 88px; border-right: 1px solid #1a1e24;
+  padding: 3px; display: flex; flex-direction: column; cursor: pointer;
+}
+.clip-cell:hover { background: #22262e; }
+.clip-cell.active { outline: 2px solid #4fdbca; outline-offset: -2px; }
+.cc-thumb {
+  width: 84px; height: 62px; border-radius: 2px; overflow: hidden;
+  background: #161a22; border: 1px solid #2a2e38;
+}
+.cc-thumb .tg { width: 100%; height: 100%; }
+/* Various visual gradients */
+.tg.v1 { background: linear-gradient(135deg, #2a0530, #5a1540, #1a0520); }
+.tg.v2 { background: linear-gradient(135deg, #0a2530, #1a4540, #0a1520); }
+.tg.v3 { background: linear-gradient(135deg, #302a05, #504a15, #201a05); }
+.tg.v4 { background: linear-gradient(135deg, #05152a, #154045, #050a18); }
+.tg.v5 { background: linear-gradient(135deg, #2a050a, #4a1520, #1a0508); }
+.tg.v6 { background: linear-gradient(180deg, #1a0a30, #3a2060, #0a0518); }
+.tg.v7 { background: linear-gradient(135deg, #0a2a10, #1a4a20, #051a08); }
+.tg.v8 { background: linear-gradient(45deg, #2a2005, #4a3a15, #1a1005); }
+.tg.v9 { background: radial-gradient(circle, #2a1540, #0a0518); }
+.tg.v10 { background: radial-gradient(circle, #1a3040, #050a15); }
+.tg.v11 { background: linear-gradient(135deg, #301a0a, #503520, #1a0a05); }
+.tg.v12 { background: conic-gradient(from 45deg, #1a0530, #301a0a, #0a2530, #1a0530); }
+.tg.empty { background: #111318; }
+.cc-name {
+  font-size: 8px; color: #888; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; margin-top: 2px; padding: 0 2px;
+}
+.cc-badge {
+  font-size: 6px; padding: 0px 3px; border-radius: 1px; display: inline; margin-right: 2px;
+}
+.cc-badge.vid { background: #c0392b44; color: #e74c3c; }
+.cc-badge.img { background: #2980b944; color: #3498db; }
+.cc-badge.syn { background: #27ae6044; color: #2ecc71; }
+
+/* RIGHT PANEL */
+.right-panel {
+  width: 440px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: linear-gradient(180deg, #1c2028, #161a22);
+}
+
+/* PREVIEW + AUDIO VIZ */
+.rp-top { display: flex; border-bottom: 1px solid #2a2e38; }
+.rp-preview {
+  flex: 1; padding: 8px; border-right: 1px solid #2a2e38;
+}
+.rp-preview-label { font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 4px; }
+.rp-preview-frame {
+  width: 100%; height: 140px; background: #000; border: 1px solid #2a2e38;
+  border-radius: 2px; overflow: hidden;
+}
+.rp-preview-frame .rpf-vis {
+  width: 100%; height: 100%;
+  background: radial-gradient(circle at 50% 50%, #331155 0%, #0a0518 60%, #050208 100%);
+}
+
+/* AUDIO VIZ */
+.rp-audioviz { padding: 8px; flex: 1; }
+.rp-audioviz-label { font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 4px; }
+.av-bars { display: flex; gap: 2px; align-items: flex-end; height: 130px; padding: 4px; background: #111318; border-radius: 2px; border: 1px solid #2a2e38; }
+.av-bars .avb { flex: 1; border-radius: 2px 2px 0 0; min-width: 4px; }
+.av-bars .avb.g { background: linear-gradient(180deg, #2ecc71, #1a8a4a); }
+.av-bars .avb.y { background: linear-gradient(180deg, #e8c547, #b89a30); }
+.av-bars .avb.r { background: linear-gradient(180deg, #e74c3c, #a83228); }
+
+/* LAYER PROPERTIES */
+.rp-props {
+  flex: 1; border-top: 1px solid #2a2e38; padding: 8px; overflow-y: auto;
+}
+.rp-props-label { font-size: 9px; color: #e8c547; text-transform: uppercase; margin-bottom: 6px; }
+.prop-table { width: 100%; }
+.prop-table tr { border-bottom: 1px solid #1e222a; }
+.prop-table td { padding: 3px 6px; font-size: 10px; }
+.prop-table td:first-child { color: #666; width: 45%; }
+.prop-table td:last-child { color: #aaa; }
+
+/* PROPERTIES / VIDEO ROUTER */
+.rp-bottom {
+  height: 180px; border-top: 1px solid #2a2e38; display: flex;
+}
+.rp-bottom-left {
+  flex: 1; padding: 8px; border-right: 1px solid #2a2e38;
+}
+.rp-bottom-right {
+  width: 180px; padding: 8px;
+}
+.rpb-label { font-size: 9px; color: #e8c547; text-transform: uppercase; margin-bottom: 6px; }
+.rpb-tabs { display: flex; gap: 0; margin-bottom: 6px; }
+.rpb-tab {
+  padding: 3px 10px; font-size: 9px; color: #555; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.rpb-tab.active { color: #ccc; border-bottom-color: #e8c547; }
+.rpb-row { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 10px; color: #888; }
+.rpb-row .rpb-dot { width: 6px; height: 6px; border-radius: 50%; background: #333; }
+.rpb-row .rpb-dot.active { background: #4fdbca; }
+.rpb-slider {
+  flex: 1; height: 3px; background: #2a2e38; border-radius: 2px; position: relative;
+}
+.rpb-slider .rpb-fill { height: 100%; background: #4fdbca; border-radius: 2px; }
+.rpb-val { font-size: 9px; color: #555; font-family: monospace; min-width: 28px; text-align: right; }
+
+/* ROUTER ITEMS */
+.router-item {
+  display: flex; align-items: center; gap: 6px; padding: 4px 6px;
+  background: #1e222a; border: 1px solid #2a2e38; border-radius: 2px;
+  margin-bottom: 3px; font-size: 10px; color: #888; cursor: pointer;
+}
+.router-item:hover { border-color: #3a3e48; }
+.router-item .ri-num { color: #555; font-family: monospace; width: 16px; }
+.router-item .ri-name { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- MASTER AUDIO CONTROL STRIP -->
+<div class="master-strip">
+  <span class="ms-label">Master Audio Control</span>
+  <div class="ms-meters">
+    <div class="mb g" style="height:12px"></div>
+    <div class="mb g" style="height:18px"></div>
+    <div class="mb g" style="height:15px"></div>
+    <div class="mb y" style="height:22px"></div>
+    <div class="mb g" style="height:14px"></div>
+    <div class="mb g" style="height:10px"></div>
+    <div class="mb g" style="height:17px"></div>
+    <div class="mb g" style="height:8px"></div>
+    <div class="mb g" style="height:20px"></div>
+    <div class="mb y" style="height:24px"></div>
+    <div class="mb g" style="height:16px"></div>
+    <div class="mb g" style="height:11px"></div>
+    <div class="mb g" style="height:7px"></div>
+    <div class="mb g" style="height:19px"></div>
+    <div class="mb g" style="height:13px"></div>
+    <div class="mb g" style="height:6px"></div>
+  </div>
+  <div class="sep"></div>
+  <span class="bpm-big">128.00</span>
+  <span class="bpm-st">Locked</span>
+  <div class="sep"></div>
+  <span class="ms-btn">TAP</span>
+  <span class="ms-btn">-</span>
+  <span class="ms-btn">+</span>
+  <span class="ms-btn">RESYNC</span>
+  <div class="beat-d">
+    <div class="d on"></div><div class="d"></div><div class="d"></div><div class="d"></div>
+  </div>
+  <span class="bar-i">037/04.1</span>
+  <div class="sep"></div>
+  <span class="ms-btn">/2</span>
+  <span class="ms-btn on">x1</span>
+  <span class="ms-btn">x2</span>
+  <span class="ms-spacer"></span>
+  <div class="ms-vol">
+    <span class="ms-vol-label">Master Volume</span>
+    <div class="ms-vol-bar"><div class="ms-vol-fill"></div></div>
+  </div>
+  <div class="sep"></div>
+  <span class="ms-btn">Fullscreen</span>
+  <span class="fps-d">60fps | 3.1%</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- LEFT: CLIP GRID -->
+  <div class="grid-area">
+    <div class="grid-header">
+      <span class="gh-title">Composition Grid</span>
+      <span>Drag and Drop</span>
+      <span>|</span>
+      <span>Add Layer</span>
+      <span>|</span>
+      <span>Solo Mode</span>
+    </div>
+    <div class="col-headers">
+      <div class="ch-space"></div>
+      <div class="ch">Scene 1</div>
+      <div class="ch">Scene 2</div>
+      <div class="ch active">Scene 3</div>
+      <div class="ch">Scene 4</div>
+      <div class="ch">Scene 5</div>
+      <div class="ch">Scene 6</div>
+      <div class="ch">Scene 7</div>
+      <div class="ch">Scene 8</div>
+      <div class="ch">Scene 9</div>
+      <div class="ch">Scene 10</div>
+      <div class="ch">Scene 11</div>
+      <div class="ch">Scene 12</div>
+    </div>
+    <div class="grid-scroll">
+      <!-- LAYER 1 -->
+      <div class="layer-row">
+        <div class="lr-header">
+          <span class="lr-name">Layer 1</span>
+          <div class="lr-btns">
+            <span class="lr-btn play">&#9654;</span>
+            <span class="lr-btn">&#9632;</span>
+            <span class="lr-btn">||</span>
+            <span class="lr-btn">&#8634;</span>
+            <span class="lr-btn">RND</span>
+            <span class="lr-btn">B</span>
+          </div>
+          <div class="lr-sliders">
+            <div class="lr-slider"><div class="ls-bar"><div class="ls-fill s"></div></div><span class="ls-l">S</span></div>
+            <div class="lr-slider"><div class="ls-bar"><div class="ls-fill k"></div></div><span class="ls-l">K</span></div>
+            <div class="lr-slider"><div class="ls-bar"><div class="ls-fill v"></div></div><span class="ls-l">V</span></div>
+            <div class="lr-slider"><div class="ls-bar"><div class="ls-fill f"></div></div><span class="ls-l">F</span></div>
+          </div>
+        </div>
+        <div class="lr-cells">
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v1"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Neon Burst</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v2"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Geo Pattern</div></div>
+          <div class="clip-cell active"><div class="cc-thumb"><div class="tg v3"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Warp Tunnel</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v4"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Mandelbulb</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v5"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Fire Ring</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v6"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Julia Set</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v7"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Organic</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v8"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Spectrum</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v9"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Perlin</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v10"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Laser Grid</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v11"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Abstract</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v12"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Kaleido</div></div>
+        </div>
+      </div>
+      <!-- LAYER 2 -->
+      <div class="layer-row">
+        <div class="lr-header">
+          <span class="lr-name">Layer 2</span>
+          <div class="lr-btns">
+            <span class="lr-btn play">&#9654;</span>
+            <span class="lr-btn">&#9632;</span>
+            <span class="lr-btn">||</span>
+            <span class="lr-btn">&#8634;</span>
+            <span class="lr-btn">RND</span>
+            <span class="lr-btn">B</span>
+          </div>
+          <div class="lr-sliders">
+            <div class="lr-slider"><div class="ls-bar"><div class="ls-fill s"></div></div><span class="ls-l">S</span></div>
+            <div class="lr-slider"><div class="ls-bar"><div class="ls-fill k"></div></div><span class="ls-l">K</span></div>
+            <div class="lr-slider"><div class="ls-bar"><div class="ls-fill v" style="height:100%"></div></div><span class="ls-l">V</span></div>
+            <div class="lr-slider"><div class="ls-bar"><div class="ls-fill f"></div></div><span class="ls-l">F</span></div>
+          </div>
+        </div>
+        <div class="lr-cells">
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v6"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Cymatics</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v9"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Band Tower</div></div>
+          <div class="clip-cell active"><div class="cc-thumb"><div class="tg v12"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Plasma</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v2"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Hexagons</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v8"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Particle</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v4"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Menger</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v1"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Glitch FX</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v5"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Mosaic</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v7"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Fluid</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v11"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Strobe</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v3"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Noise</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v10"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Newton</div></div>
+        </div>
+      </div>
+      <!-- LAYERS 3-10 (abbreviated with varied content) -->
+      <div class="layer-row">
+        <div class="lr-header"><span class="lr-name">Layer 3</span><div class="lr-btns"><span class="lr-btn play">&#9654;</span><span class="lr-btn">&#9632;</span><span class="lr-btn">||</span><span class="lr-btn">&#8634;</span><span class="lr-btn">RND</span><span class="lr-btn">B</span></div><div class="lr-sliders"><div class="lr-slider"><div class="ls-bar"><div class="ls-fill s"></div></div><span class="ls-l">S</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill k"></div></div><span class="ls-l">K</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill v" style="height:60%"></div></div><span class="ls-l">V</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill f"></div></div><span class="ls-l">F</span></div></div></div>
+        <div class="lr-cells">
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v3"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Flow A</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v7"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Tiles</div></div>
+          <div class="clip-cell active"><div class="cc-thumb"><div class="tg v11"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Apollonian</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v5"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Shimmer</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v9"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Attractor</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v1"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Bloom</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v4"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Grid</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v8"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Sierpinski</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v2"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Ripple</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v6"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Torus</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+        </div>
+      </div>
+      <div class="layer-row">
+        <div class="lr-header"><span class="lr-name">Layer 4</span><div class="lr-btns"><span class="lr-btn play">&#9654;</span><span class="lr-btn">&#9632;</span><span class="lr-btn">||</span><span class="lr-btn">&#8634;</span><span class="lr-btn">RND</span><span class="lr-btn bypass-on">B</span></div><div class="lr-sliders"><div class="lr-slider"><div class="ls-bar"><div class="ls-fill s"></div></div><span class="ls-l">S</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill k"></div></div><span class="ls-l">K</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill v" style="height:45%"></div></div><span class="ls-l">V</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill f"></div></div><span class="ls-l">F</span></div></div></div>
+        <div class="lr-cells">
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v10"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Deep Dive</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v2"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Voronoi</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v8"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Texture A</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v4"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Scatter</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v12"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>KIFS</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+        </div>
+      </div>
+      <div class="layer-row">
+        <div class="lr-header"><span class="lr-name">Layer 5</span><div class="lr-btns"><span class="lr-btn play">&#9654;</span><span class="lr-btn">&#9632;</span><span class="lr-btn">||</span><span class="lr-btn">&#8634;</span><span class="lr-btn">RND</span><span class="lr-btn">B</span></div><div class="lr-sliders"><div class="lr-slider"><div class="ls-bar"><div class="ls-fill s" style="height:75%"></div></div><span class="ls-l">S</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill k"></div></div><span class="ls-l">K</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill v" style="height:90%"></div></div><span class="ls-l">V</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill f" style="height:50%"></div></div><span class="ls-l">F</span></div></div></div>
+        <div class="lr-cells">
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v5"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Impact A</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v11"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Impact B</div></div>
+          <div class="clip-cell active"><div class="cc-thumb"><div class="tg v1"></div></div><div class="cc-name"><span class="cc-badge vid">VID</span>Flash</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v7"></div></div><div class="cc-name"><span class="cc-badge img">IMG</span>Overlay</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+        </div>
+      </div>
+      <!-- Layers 6-10 sparse -->
+      <div class="layer-row">
+        <div class="lr-header"><span class="lr-name">Layer 6</span><div class="lr-btns"><span class="lr-btn play">&#9654;</span><span class="lr-btn">&#9632;</span><span class="lr-btn">||</span><span class="lr-btn">&#8634;</span><span class="lr-btn">RND</span><span class="lr-btn">B</span></div><div class="lr-sliders"><div class="lr-slider"><div class="ls-bar"><div class="ls-fill s"></div></div><span class="ls-l">S</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill k"></div></div><span class="ls-l">K</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill v" style="height:70%"></div></div><span class="ls-l">V</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill f"></div></div><span class="ls-l">F</span></div></div></div>
+        <div class="lr-cells">
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v3"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Nebula</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg v9"></div></div><div class="cc-name"><span class="cc-badge syn">SRC</span>Ring</div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+        </div>
+      </div>
+      <div class="layer-row">
+        <div class="lr-header"><span class="lr-name">Layer 7</span><div class="lr-btns"><span class="lr-btn play">&#9654;</span><span class="lr-btn">&#9632;</span><span class="lr-btn">||</span><span class="lr-btn">&#8634;</span><span class="lr-btn">RND</span><span class="lr-btn">B</span></div><div class="lr-sliders"><div class="lr-slider"><div class="ls-bar"><div class="ls-fill s"></div></div><span class="ls-l">S</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill k"></div></div><span class="ls-l">K</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill v"></div></div><span class="ls-l">V</span></div><div class="lr-slider"><div class="ls-bar"><div class="ls-fill f"></div></div><span class="ls-l">F</span></div></div></div>
+        <div class="lr-cells">
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+          <div class="clip-cell"><div class="cc-thumb"><div class="tg empty"></div></div><div class="cc-name"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <!-- PREVIEW + AUDIO VIZ -->
+    <div class="rp-top">
+      <div class="rp-preview">
+        <div class="rp-preview-label">Preview Window</div>
+        <div class="rp-preview-frame"><div class="rpf-vis"></div></div>
+      </div>
+    </div>
+
+    <!-- AUDIO VISUALIZER -->
+    <div style="padding:8px; border-bottom:1px solid #2a2e38;">
+      <div class="rp-audioviz-label">Audio Visualizer</div>
+      <div class="av-bars">
+        <div class="avb g" style="height:45%"></div>
+        <div class="avb g" style="height:68%"></div>
+        <div class="avb g" style="height:55%"></div>
+        <div class="avb y" style="height:85%"></div>
+        <div class="avb g" style="height:72%"></div>
+        <div class="avb g" style="height:48%"></div>
+        <div class="avb g" style="height:62%"></div>
+        <div class="avb g" style="height:38%"></div>
+        <div class="avb g" style="height:78%"></div>
+        <div class="avb y" style="height:92%"></div>
+        <div class="avb g" style="height:58%"></div>
+        <div class="avb g" style="height:42%"></div>
+        <div class="avb g" style="height:30%"></div>
+        <div class="avb g" style="height:65%"></div>
+        <div class="avb g" style="height:50%"></div>
+        <div class="avb g" style="height:35%"></div>
+        <div class="avb g" style="height:22%"></div>
+        <div class="avb g" style="height:15%"></div>
+        <div class="avb g" style="height:55%"></div>
+        <div class="avb g" style="height:40%"></div>
+      </div>
+    </div>
+
+    <!-- LAYER PROPERTIES -->
+    <div class="rp-props">
+      <div class="rp-props-label">Layer Properties</div>
+      <table class="prop-table">
+        <tr><td>Name</td><td>Layer 1</td></tr>
+        <tr><td>Type</td><td>Opaque</td></tr>
+        <tr><td>Blend Mode</td><td>Normal</td></tr>
+        <tr><td>Opacity</td><td>85%</td></tr>
+        <tr><td>Layer Width</td><td>1920</td></tr>
+        <tr><td>Layer Height</td><td>1080</td></tr>
+        <tr><td>Transition</td><td>Dissolve</td></tr>
+        <tr><td>Fade Duration</td><td>0.3s</td></tr>
+        <tr><td>Speed</td><td>1.00x</td></tr>
+        <tr><td>Format Size</td><td>1920x1080</td></tr>
+        <tr><td>Persistent</td><td>No</td></tr>
+      </table>
+    </div>
+
+    <!-- PROPERTIES / VIDEO ROUTER -->
+    <div class="rp-bottom">
+      <div class="rp-bottom-left">
+        <div class="rpb-label">Properties</div>
+        <div class="rpb-tabs">
+          <div class="rpb-tab active">Effects</div>
+          <div class="rpb-tab">Transform</div>
+          <div class="rpb-tab">Feedback</div>
+        </div>
+        <div class="rpb-row"><div class="rpb-dot active"></div> Glow <div class="rpb-slider"><div class="rpb-fill" style="width:60%"></div></div><span class="rpb-val">0.60</span></div>
+        <div class="rpb-row"><div class="rpb-dot active"></div> Ripple <div class="rpb-slider"><div class="rpb-fill" style="width:35%"></div></div><span class="rpb-val">0.35</span></div>
+        <div class="rpb-row"><div class="rpb-dot"></div> Echo <div class="rpb-slider"><div class="rpb-fill" style="width:80%"></div></div><span class="rpb-val">0.80</span></div>
+        <div class="rpb-row"><div class="rpb-dot active"></div> Hue Shift <div class="rpb-slider"><div class="rpb-fill" style="width:45%"></div></div><span class="rpb-val">0.45</span></div>
+      </div>
+      <div class="rp-bottom-right">
+        <div class="rpb-label">Video Router</div>
+        <div class="router-item"><span class="ri-num">1</span><span class="ri-name">Preview Window</span></div>
+        <div class="router-item"><span class="ri-num">2</span><span class="ri-name">Video Router 1</span></div>
+        <div class="router-item"><span class="ri-num">3</span><span class="ri-name">Video Router 2</span></div>
+        <div class="router-item"><span class="ri-num">4</span><span class="ri-name">Syphon Output</span></div>
+        <div class="router-item"><span class="ri-num">5</span><span class="ri-name">Screen Setup</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

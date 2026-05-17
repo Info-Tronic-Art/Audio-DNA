@@ -1,0 +1,1183 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          20,
+          "output"
+        ],
+        "to": [
+          19,
+          "modifier"
+        ]
+      },
+      {
+        "from": [
+          21,
+          "output"
+        ],
+        "to": [
+          19,
+          "octaves"
+        ]
+      },
+      {
+        "from": [
+          29,
+          "output"
+        ],
+        "to": [
+          30,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      20,
+      21,
+      29
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 20,
+          "patch": 0
+        }
+      },
+      "description": "Learn the basics of how to work with nodes.",
+      "displayName": "Nodes",
+      "identifier": "b92f0cb1-0c00-4c84-b007-3501ef158963",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 16,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "master",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 20,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 34,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "NODES\n\nNodes are the building blocks of your patch.\nNodes create textures, hold values, receive user input, generated data, modulate signals and much more.\n\nIn this tutorial we'll teach the fundamentals of working with nodes."
+          }
+        },
+        "bounds": {
+          "height": 154.17527770996094,
+          "width": 758.79248046875,
+          "x": 207.603759765625,
+          "y": 190.94607543945312
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "1": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "INPUT & OUTPUT\n\nNodes have their inputs on the left side and outputs on the right side.\nThese are sometimes referred to as inlets and outlets.\n\nThe inlets and outlets are represented by symbols like circles, rectangles or diamonds.\nThe type of symbol indicates what kind of data flow is used (more on that later).\n\nHovering over an inlet or outlet will preview the value (if any) and type.\nTry hovering over the outlet of the Sine node below.\nYou will see the value moving and the data type (Float).\n\nNow try hovering over the inlets.\nYou will see the value and multiple data types (Float, Integer and Bool).\nThis simply means that the inlet can accept these data types."
+          }
+        },
+        "bounds": {
+          "height": 556.177490234375,
+          "width": 647.7354125976562,
+          "x": 207.3282165527344,
+          "y": 389.7085266113281
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "10": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "INSERTING & EXPOSING\n\nYou can insert a node into an existing connection by double clicking on the cord.\n\nAssignment: insert a Colorize node between the Texture In and Texture Out nodes.\n\nYou can easily create input nodes by exposing a parameter.\nTo expose a parameter right click on the inlet you want to expose and select 'expose'.\n\nAssignment: expose the color parameter on the Colorize node."
+          }
+        },
+        "bounds": {
+          "height": 460.8599853515625,
+          "width": 696.0419921875,
+          "x": 1473.005615234375,
+          "y": 994.7249145507812
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "13": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 423.2621154785156,
+          "y": 740.8486328125
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances",
+          "reset-phase",
+          "unipolar"
+        ],
+        "name": "Sine",
+        "thumbnail_visible": true
+      },
+      "15": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "attribute"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 1472.91845703125,
+          "y": 725.852294921875
+        },
+        "class": {
+          "id": "77697265-7BFA-44F2-A6D4-AE62B9FCC325",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "flow"
+        ],
+        "name": "Pi",
+        "thumbnail_visible": true
+      },
+      "17": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              0.25,
+              0.25
+            ]
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 902.1533813476562,
+          "y": 724.9312133789062
+        },
+        "class": {
+          "id": "77697265-0291-4FC4-BCC1-B1AFD136F507",
+          "version": 4
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "bgColor": {
+            "type": "color",
+            "value": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "blend": {
+            "type": "integer",
+            "value": 0
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color": {
+            "type": "color",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "distance": {
+            "type": "float",
+            "value": 0.5
+          },
+          "fuzzyness": {
+            "type": "float",
+            "value": 0.10000000149011612
+          },
+          "grid": {
+            "type": "integer",
+            "value": 2
+          },
+          "position": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "radius": {
+            "type": "float",
+            "value": 0.5
+          },
+          "size": {
+            "type": "float",
+            "value": 0.6000000238418579
+          },
+          "speed": {
+            "type": "float",
+            "value": 1
+          },
+          "time": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "bypass",
+          "time",
+          "grid",
+          "blend",
+          "size",
+          "distance",
+          "radius",
+          "fuzzyness",
+          "speed",
+          "position",
+          "color",
+          "bgColor",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Metaballs",
+        "thumbnail_visible": true
+      },
+      "18": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 1192.119873046875,
+          "y": 724.9312744140625
+        },
+        "class": {
+          "id": "77697265-FD65-470F-9F75-ED878267980E",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "enabled": {
+            "type": "bool",
+            "value": true
+          },
+          "frequency": {
+            "type": "float",
+            "value": 1
+          },
+          "reset": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances",
+          "count"
+        ],
+        "name": "Metronome",
+        "thumbnail_visible": true
+      },
+      "19": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              0.5,
+              0.5
+            ]
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 2122.798828125,
+          "y": 699.8663940429688
+        },
+        "class": {
+          "id": "77697265-E404-464F-A4C8-FF262AB15588",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "algorithm": {
+            "type": "integer",
+            "value": 0
+          },
+          "amplitude": {
+            "type": "float",
+            "value": 0.5
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "channels": {
+            "type": "integer",
+            "value": 1
+          },
+          "clamp": {
+            "type": "bool",
+            "value": true
+          },
+          "density": {
+            "type": "float",
+            "value": 4
+          },
+          "frequency": {
+            "type": "float",
+            "value": 2
+          },
+          "gain": {
+            "type": "float",
+            "value": 1
+          },
+          "modifier": {
+            "type": "integer",
+            "value": 0
+          },
+          "octaves": {
+            "type": "integer",
+            "value": 6
+          },
+          "offset": {
+            "type": "float3",
+            "value": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass",
+          "algorithm",
+          "channels",
+          "gain",
+          "amplitude",
+          "frequency",
+          "clamp",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Fractal Noise",
+        "thumbnail_visible": true
+      },
+      "2": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "FLOW\n\nEach node has one of three types of data flow: Signal, Event or Attribute.\n\nSignal is the most commonly used and indicates that the data is being outputted at the current framerate.\nFor example: the Metaballs node needs to send its output to the screen every frame for us to see it, so it uses signal flow.\n\nEvent flow is used when something needs to happen upon a change or a trigger. \nFor example: the Metronome node sends out a trigger at a given frequency, so it needs event flow to do this.\n\nAttribute flow is used when a certain value needs to be calculated only once.\nFor example: Pi uses attribute flow as it is a constant value that never changes.\nThere is a lot more to this flow type, but we'll cover that in a separate tutorial."
+          }
+        },
+        "bounds": {
+          "height": 556.385498046875,
+          "width": 849.4119873046875,
+          "x": 883.2402954101562,
+          "y": 389.9025573730469
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "20": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 2
+          },
+          "min": {
+            "type": "integer",
+            "value": 0
+          },
+          "option0-label": {
+            "type": "string",
+            "value": "None"
+          },
+          "option0-value": {
+            "type": "integer",
+            "value": 0
+          },
+          "option1-label": {
+            "type": "string",
+            "value": "Absolute"
+          },
+          "option1-value": {
+            "type": "integer",
+            "value": 1
+          },
+          "option2-label": {
+            "type": "string",
+            "value": "Sin"
+          },
+          "option2-value": {
+            "type": "integer",
+            "value": 2
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 3
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 1932.7991943359375,
+          "y": 699.8663940429688
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "option0-label",
+          "option0-value",
+          "option1-label",
+          "option1-value",
+          "option2-label",
+          "option2-value",
+          "unit"
+        ],
+        "name": "Modifier",
+        "thumbnail_visible": true
+      },
+      "21": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 6
+          },
+          "min": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 1932.7991943359375,
+          "y": 808.2131958007812
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 6
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Octaves",
+        "thumbnail_visible": true
+      },
+      "22": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "CREATING, DESTROYING & DUPLICATING\n\nTo create a node: double click on the canvas and from the pop-up menu select the node that you would like to add.\n\nAssignment: create a Rhombus node and a Star node\n\nTo destroy a node: select the node and use either the delete or backspace keys to destroy the node.\n\nAssignment: destroy the Star\n\nTo duplicate a node: hold the ALT/OPTION key to drag out a copy.\n\nAssignment: duplicate the Rhombus node."
+          }
+        },
+        "bounds": {
+          "height": 461.5909423828125,
+          "width": 648.2343139648438,
+          "x": 207.3145446777344,
+          "y": 993.7074584960938
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "27": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 1204.08447265625,
+          "y": 1289.523193359375
+        },
+        "class": {
+          "id": "77697265-3D51-4B4E-A18D-58E3EF5049C7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "height": {
+            "type": "float",
+            "value": 0.5
+          },
+          "width": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Rhombus",
+        "thumbnail_visible": true
+      },
+      "28": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 929.5215454101562,
+          "y": 1289.523193359375
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 0.8999999761581421
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0.10000000149011612
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances",
+          "reset-phase",
+          "unipolar"
+        ],
+        "name": "Sine",
+        "thumbnail_visible": true
+      },
+      "29": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 1503.370361328125,
+          "y": 1289.728515625
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow"
+        ],
+        "name": "Texture In",
+        "thumbnail_visible": true
+      },
+      "3": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "ADJUSTING VALUES & HIDING PARAMETERS\n\nThe values on nodes can be adjusted by typing in new values, dragging sliders or boxes.\nLife can be made easier by creating input nodes like the drop-down menu and slider in the example below.\n\nAssignment: Set the modifier to Absolute, the octaves to 1 and the density to 22.2 then click and hold the third box of the Phase Offset parameter and drag it up and down.\n\nParameters can be hidden away.\nThis can save a lot of space on your canvas in bigger projects.\nTo hide or unhide a parameter; right click on the node, navigate to the visibility tab and select the parameter.\n\nAssignment: Unhide the Algorithm parameter and change it."
+          }
+        },
+        "bounds": {
+          "height": 556.4229125976562,
+          "width": 917.8504638671876,
+          "x": 1757.7423095703125,
+          "y": 390.7598876953125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "30": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1995.60009765625,
+          "y": 1288.76611328125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "32": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 2357.432861328125,
+          "y": 1289.5693359375
+        },
+        "class": {
+          "id": "77697265-AEE3-4B9D-BBD5-6Ae4CCD5aB30",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff2dc18a",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "input0-dimensions",
+          "input0-type"
+        ],
+        "name": "Hub",
+        "thumbnail_visible": true
+      },
+      "7": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "NAME & COLOR\n\nThe name of a node can be changed by double clicking on its name.\n\nAssignment: rename the Hub node to your favorite food.\n\nYou can change the color of a node by right clicking it and selecting a color from the bottom of the drop down menu.\n\nAssignment: recolor the node below to reflect your mood."
+          }
+        },
+        "bounds": {
+          "height": 462.1902160644531,
+          "width": 471.68798828125,
+          "x": 2203.790771484375,
+          "y": 993.3947143554688
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff2dc18a",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "8": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "CONNECTING & DISCONNECTING\n\nNodes can be connected to each other by clicking on an outlet and then on another node's inlet. Wire will draw a cord between them.\n\nAssignment: connect the output of the Sine to the inlets of the Rhombus node.\n\nNodes can be disconnected by clicking on a cord and hitting either the delete or backspace key.\n\nAssignment: break either connection to the Rhombus node."
+          }
+        },
+        "bounds": {
+          "height": 460.8599853515625,
+          "width": 567.2739868164062,
+          "x": 883.2562255859375,
+          "y": 994.7904663085938
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 1693.135986328125,
+        "y": 699.2818603515625,
+        "zoom": 1.043853521347046
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "deviceConnections": {
+      "input": {
+        "13": "Test Card",
+        "21": "Test Card",
+        "29": "Test Card"
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 21b Var B (Improved Composition Grid)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; color: #c0d0d8; font-size: 11px; position: relative; }
+.bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 25% 35%, rgba(40,20,80,0.3), transparent 50%), radial-gradient(ellipse at 75% 65%, rgba(20,50,80,0.25), transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(10,20,40,0.9), #060a10 85%); z-index: 0; }
+.ui { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+.top { height: 34px; display: flex; align-items: center; padding: 0 12px; gap: 8px; background: rgba(8,12,20,0.8); border-bottom: 1px solid rgba(0,160,200,0.15); }
+.t-lbl { font-size: 10px; color: #507080; }
+.t-play { width: 22px; height: 22px; background: rgba(0,200,220,0.1); border: 1px solid rgba(0,200,220,0.25); border-radius: 50%; color: #00c8dc; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.t-meters { display: flex; gap: 1px; height: 16px; align-items: flex-end; }
+.t-meters div { width: 3px; border-radius: 1px; }
+.sp { flex: 1; }
+.bpm-v { font-size: 16px; font-weight: 700; color: #00e5ff; font-family: monospace; }
+.bpm-st { font-size: 7px; color: #00c8dc; background: rgba(0,40,50,0.5); padding: 1px 4px; border-radius: 2px; border: 1px solid rgba(0,100,130,0.3); }
+.dots { display: flex; gap: 3px; }
+.dt { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,40,60,0.5); border: 1px solid rgba(0,100,130,0.3); }
+.dt.on { background: #00e5ff; border-color: #00e5ff; box-shadow: 0 0 4px rgba(0,229,255,0.4); }
+
+.main { flex: 1; display: flex; overflow: hidden; }
+
+/* LEFT: Compact layers */
+.left { width: 360px; display: flex; flex-direction: column; }
+.scene-bar { padding: 4px 6px; background: rgba(8,12,20,0.6); border-bottom: 1px solid rgba(0,80,100,0.2); display: flex; gap: 3px; align-items: center; }
+.sb-lbl { font-size: 8px; color: #405060; text-transform: uppercase; margin-right: 4px; }
+.sb-btn { padding: 2px 8px; font-size: 8px; background: rgba(0,40,60,0.3); border: 1px solid rgba(0,80,100,0.25); color: #608088; cursor: pointer; border-radius: 2px; }
+.sb-btn.act { border-color: rgba(0,200,220,0.4); color: #00e5ff; }
+.layers { flex: 1; overflow-y: auto; padding: 2px; display: flex; flex-direction: column; gap: 2px; }
+.lr { display: flex; align-items: center; gap: 3px; padding: 3px 4px; background: rgba(8,16,24,0.5); border: 1px solid rgba(0,80,100,0.2); border-radius: 3px; height: 72px; }
+.lr.act { border-color: rgba(0,200,220,0.35); background: rgba(8,16,30,0.6); }
+.lr-lbl { width: 42px; font-size: 8px; color: #507080; font-weight: 600; }
+.lr-ctrls { display: flex; flex-direction: column; gap: 1px; }
+.lr-c { padding: 1px 3px; font-size: 6px; background: rgba(0,60,80,0.2); border: 1px solid rgba(0,80,100,0.25); color: #507080; cursor: pointer; text-align: center; min-width: 18px; }
+.lr-c.on { background: rgba(240,160,48,0.25); border-color: rgba(240,160,48,0.4); color: #f0a030; }
+.lr-clips { display: flex; gap: 2px; }
+.lr-cl { width: 32px; height: 32px; border-radius: 2px; border: 1px solid rgba(0,80,100,0.25); cursor: pointer; }
+.lr-cl.act { border-color: #00e5ff; box-shadow: 0 0 3px rgba(0,229,255,0.2); }
+.lr-params { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+.lr-p { display: flex; align-items: center; gap: 2px; }
+.lr-pl { font-size: 6px; color: #405060; width: 12px; }
+.lr-ps { flex: 1; height: 2px; background: rgba(0,20,30,0.5); border-radius: 1px; overflow: hidden; }
+.lr-pf { height: 100%; border-radius: 1px; background: rgba(0,200,220,0.5); }
+.lr-m { width: 4px; background: rgba(0,20,30,0.5); border-radius: 2px; height: 44px; position: relative; }
+.lr-mf { position: absolute; bottom: 0; width: 100%; border-radius: 2px; background: linear-gradient(0deg,#4ade80,#00c8dc); }
+
+/* CENTER: COMPOSITION GRID (improved) */
+.center { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+.comp-grid { width: 750px; background: rgba(8,16,24,0.9); border: 1px solid rgba(0,160,200,0.25); border-radius: 6px; padding: 14px; box-shadow: 0 0 50px rgba(0,80,130,0.15); }
+.cg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.cg-title { font-size: 14px; color: #80c0d0; font-weight: 600; }
+.cg-tabs { display: flex; gap: 3px; }
+.cg-tab { padding: 3px 10px; font-size: 9px; background: rgba(0,40,60,0.3); border: 1px solid rgba(0,80,100,0.25); color: #608088; cursor: pointer; border-radius: 2px; }
+.cg-tab.act { border-color: #00c8dc; color: #00e5ff; background: rgba(0,60,80,0.3); }
+.cg-actions { display: flex; gap: 3px; }
+.cg-btn { padding: 3px 8px; font-size: 9px; background: rgba(0,60,80,0.2); border: 1px solid rgba(0,80,100,0.25); color: #80a0b0; cursor: pointer; border-radius: 2px; }
+.cg-btn:hover { border-color: #00c8dc; color: #00e5ff; }
+.cg-search { display: flex; align-items: center; margin-bottom: 8px; }
+.cg-search input { flex: 1; background: rgba(0,20,30,0.5); border: 1px solid rgba(0,80,100,0.25); color: #b0d0d8; padding: 4px 8px; font-size: 10px; border-radius: 2px; }
+.cg-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.cg-cell { background: rgba(10,20,30,0.6); border: 1px solid rgba(0,80,100,0.2); border-radius: 4px; overflow: hidden; cursor: pointer; transition: border-color 0.15s; }
+.cg-cell:hover { border-color: rgba(0,200,220,0.4); }
+.cg-cell.sel { border-color: #00e5ff; box-shadow: 0 0 8px rgba(0,229,255,0.2); }
+.cg-th { width: 100%; height: 85px; position: relative; }
+.cg-badge { position: absolute; top: 3px; right: 3px; font-size: 6px; padding: 1px 4px; border-radius: 2px; font-weight: 700; color: #fff; }
+.cg-nm { padding: 4px 6px; font-size: 9px; color: #80a0b0; background: rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; }
+.cg-layers { font-size: 7px; color: #507080; }
+.cg-add { background: rgba(0,30,50,0.3); border: 1px dashed rgba(0,100,130,0.3); border-radius: 4px; display: flex; align-items: center; justify-content: center; height: 108px; font-size: 28px; color: rgba(0,200,220,0.25); cursor: pointer; }
+.cg-add:hover { border-color: #00c8dc; color: #00c8dc; }
+.cg-info { margin-top: 8px; font-size: 9px; color: #507080; display: flex; justify-content: space-between; }
+
+.g1 { background: linear-gradient(135deg, #8020c0, #4060f0, #20a0c0); }
+.g2 { background: linear-gradient(135deg, #c040a0, #6020c0); }
+.g3 { background: linear-gradient(135deg, #20c0a0, #1040a0); }
+.g4 { background: radial-gradient(circle, #60f0a0, #104030); }
+.g5 { background: linear-gradient(45deg, #f04060, #f0a020); }
+.g6 { background: linear-gradient(135deg, #2040a0, #60c0f0); }
+.g7 { background: radial-gradient(circle, #f0c040, #803020); }
+.g8 { background: linear-gradient(135deg, #104020, #40c060); }
+.g9 { background: radial-gradient(circle, #80c0dc, #102030); }
+.g10 { background: linear-gradient(135deg, #604080, #2040a0); }
+.g11 { background: linear-gradient(135deg, #a04060, #f0a030); }
+.g12 { background: radial-gradient(circle, #00e5ff, #0a2040); }
+
+/* RIGHT */
+.right { width: 300px; display: flex; flex-direction: column; gap: 3px; padding: 4px; }
+.rp { background: rgba(8,16,24,0.6); border: 1px solid rgba(0,80,100,0.2); border-radius: 3px; padding: 5px; }
+.rp-t { font-size: 10px; color: #608088; font-weight: 600; margin-bottom: 3px; }
+.rp-prev { width: 100%; height: 95px; background: radial-gradient(ellipse at 50% 50%, rgba(100,40,140,0.25), rgba(10,10,30,0.7)); border: 1px solid rgba(0,80,100,0.2); border-radius: 3px; }
+.rp-viz { width: 100%; height: 70px; background: linear-gradient(0deg, rgba(8,16,24,0.8), rgba(0,30,50,0.2)); border: 1px solid rgba(0,80,100,0.2); border-radius: 3px; overflow: hidden; }
+.vb { display: flex; gap: 1px; height: 100%; align-items: flex-end; padding: 3px; }
+.vb div { flex: 1; border-radius: 1px 1px 0 0; }
+.src-row { display: flex; align-items: center; gap: 3px; padding: 2px 0; }
+.src-d { width: 4px; height: 4px; border-radius: 50%; }
+.src-n { flex: 1; font-size: 8px; color: #80a0b0; }
+.src-bar { width: 40px; height: 3px; background: rgba(0,20,30,0.5); border-radius: 2px; overflow: hidden; }
+.src-bf { height: 100%; border-radius: 2px; }
+.rp-r { display: flex; align-items: center; padding: 2px 0; }
+.rp-l { width: 80px; font-size: 9px; color: #80a0b0; }
+.rp-v { font-size: 9px; color: #c0d0d8; font-family: monospace; }
+.rp-sel { flex: 1; background: rgba(8,16,24,0.5); border: 1px solid rgba(0,80,100,0.25); color: #80a0b0; padding: 2px 4px; font-size: 8px; }
+.rp-s { flex: 1; height: 3px; background: rgba(0,20,30,0.5); border-radius: 2px; overflow: hidden; margin: 0 4px; }
+.rp-sf { height: 100%; border-radius: 2px; background: rgba(0,200,220,0.5); }
+
+.logo-star { position: absolute; bottom: 16px; right: 16px; font-size: 32px; color: rgba(200,210,220,0.12); z-index: 2; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="ui">
+
+<div class="top">
+  <div class="t-lbl">Master Audio</div>
+  <div class="t-play">&#9654;</div>
+  <div class="t-meters">
+    <div style="height:12px;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+    <div style="height:8px;background:#4ade80;"></div>
+    <div style="height:14px;background:linear-gradient(0deg,#4ade80,#c04040);"></div>
+    <div style="height:6px;background:#4ade80;"></div>
+    <div style="height:10px;background:#4ade80;"></div>
+  </div>
+  <div class="sp"></div>
+  <div class="bpm-v">128.00</div>
+  <div class="bpm-st">LOCKED</div>
+  <div class="dots"><div class="dt on"></div><div class="dt"></div><div class="dt"></div><div class="dt"></div></div>
+  <div class="sp"></div>
+  <div class="t-lbl">60 FPS | DSP: 5%</div>
+</div>
+
+<div class="main">
+  <div class="left">
+    <div class="scene-bar">
+      <div class="sb-lbl">Scene:</div>
+      <div class="sb-btn act">Intro</div>
+      <div class="sb-btn">Verse</div>
+      <div class="sb-btn">Build</div>
+      <div class="sb-btn">Drop</div>
+      <div class="sb-btn">Outro</div>
+    </div>
+    <div class="layers">
+      <div class="lr act">
+        <div class="lr-lbl">Layer 1</div>
+        <div class="lr-ctrls"><div class="lr-c">Play</div><div class="lr-c">Stop</div><div class="lr-c on">Loop</div><div class="lr-c">Rev</div></div>
+        <div class="lr-clips"><div class="lr-cl act" style="background:linear-gradient(135deg,#4060a0,#2040c0);"></div><div class="lr-cl" style="background:linear-gradient(135deg,#20a060,#104030);"></div><div class="lr-cl" style="background:linear-gradient(135deg,#c040a0,#6020c0);"></div></div>
+        <div class="lr-params">
+          <div class="lr-p"><div class="lr-pl">H</div><div class="lr-ps"><div class="lr-pf" style="width:60%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">S</div><div class="lr-ps"><div class="lr-pf" style="width:80%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">B</div><div class="lr-ps"><div class="lr-pf" style="width:90%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">Op</div><div class="lr-ps"><div class="lr-pf" style="width:100%;background:linear-gradient(90deg,rgba(0,100,130,0.5),rgba(0,200,220,0.7));"></div></div></div>
+        </div>
+        <div class="lr-m"><div class="lr-mf" style="height:80%;"></div></div>
+      </div>
+      <div class="lr">
+        <div class="lr-lbl">Layer 2</div>
+        <div class="lr-ctrls"><div class="lr-c">Play</div><div class="lr-c">Stop</div><div class="lr-c on">Loop</div><div class="lr-c">Rev</div></div>
+        <div class="lr-clips"><div class="lr-cl act" style="background:linear-gradient(135deg,#c040a0,#6020c0);"></div><div class="lr-cl" style="background:linear-gradient(135deg,#f04060,#f0a020);"></div></div>
+        <div class="lr-params">
+          <div class="lr-p"><div class="lr-pl">H</div><div class="lr-ps"><div class="lr-pf" style="width:40%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">S</div><div class="lr-ps"><div class="lr-pf" style="width:70%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">B</div><div class="lr-ps"><div class="lr-pf" style="width:85%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">Op</div><div class="lr-ps"><div class="lr-pf" style="width:75%;"></div></div></div>
+        </div>
+        <div class="lr-m"><div class="lr-mf" style="height:60%;"></div></div>
+      </div>
+      <div class="lr">
+        <div class="lr-lbl">Layer 3</div>
+        <div class="lr-ctrls"><div class="lr-c">Play</div><div class="lr-c">Stop</div><div class="lr-c">Loop</div><div class="lr-c on">Rev</div></div>
+        <div class="lr-clips"><div class="lr-cl act" style="background:linear-gradient(135deg,#20c0a0,#1040a0);"></div></div>
+        <div class="lr-params">
+          <div class="lr-p"><div class="lr-pl">H</div><div class="lr-ps"><div class="lr-pf" style="width:50%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">S</div><div class="lr-ps"><div class="lr-pf" style="width:60%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">B</div><div class="lr-ps"><div class="lr-pf" style="width:70%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">Op</div><div class="lr-ps"><div class="lr-pf" style="width:90%;"></div></div></div>
+        </div>
+        <div class="lr-m"><div class="lr-mf" style="height:70%;"></div></div>
+      </div>
+      <div class="lr">
+        <div class="lr-lbl">Layer 4</div>
+        <div class="lr-ctrls"><div class="lr-c">Play</div><div class="lr-c">Stop</div><div class="lr-c on">Loop</div><div class="lr-c">Rev</div></div>
+        <div class="lr-clips"><div class="lr-cl" style="background:#1a2030;"></div></div>
+        <div class="lr-params">
+          <div class="lr-p"><div class="lr-pl">H</div><div class="lr-ps"><div class="lr-pf" style="width:50%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">S</div><div class="lr-ps"><div class="lr-pf" style="width:50%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">B</div><div class="lr-ps"><div class="lr-pf" style="width:50%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">Op</div><div class="lr-ps"><div class="lr-pf" style="width:60%;"></div></div></div>
+        </div>
+        <div class="lr-m"><div class="lr-mf" style="height:45%;"></div></div>
+      </div>
+      <div class="lr">
+        <div class="lr-lbl">Layer 5</div>
+        <div class="lr-ctrls"><div class="lr-c">Play</div><div class="lr-c">Stop</div><div class="lr-c">Loop</div><div class="lr-c">Rev</div></div>
+        <div class="lr-clips"><div class="lr-cl" style="background:linear-gradient(135deg,#604080,#2040a0);"></div></div>
+        <div class="lr-params">
+          <div class="lr-p"><div class="lr-pl">H</div><div class="lr-ps"><div class="lr-pf" style="width:30%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">S</div><div class="lr-ps"><div class="lr-pf" style="width:45%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">B</div><div class="lr-ps"><div class="lr-pf" style="width:65%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">Op</div><div class="lr-ps"><div class="lr-pf" style="width:80%;"></div></div></div>
+        </div>
+        <div class="lr-m"><div class="lr-mf" style="height:55%;"></div></div>
+      </div>
+      <div class="lr">
+        <div class="lr-lbl">Layer 6</div>
+        <div class="lr-ctrls"><div class="lr-c">Play</div><div class="lr-c">Stop</div><div class="lr-c on">Loop</div><div class="lr-c">Rev</div></div>
+        <div class="lr-clips"><div class="lr-cl" style="background:linear-gradient(135deg,#a04060,#f0a030);"></div></div>
+        <div class="lr-params">
+          <div class="lr-p"><div class="lr-pl">H</div><div class="lr-ps"><div class="lr-pf" style="width:70%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">S</div><div class="lr-ps"><div class="lr-pf" style="width:80%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">B</div><div class="lr-ps"><div class="lr-pf" style="width:90%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">Op</div><div class="lr-ps"><div class="lr-pf" style="width:70%;"></div></div></div>
+        </div>
+        <div class="lr-m"><div class="lr-mf" style="height:50%;"></div></div>
+      </div>
+      <div class="lr">
+        <div class="lr-lbl">Layer 7</div>
+        <div class="lr-ctrls"><div class="lr-c">Play</div><div class="lr-c">Stop</div><div class="lr-c">Loop</div><div class="lr-c">Rev</div></div>
+        <div class="lr-clips"><div class="lr-cl" style="background:#1a2030;"></div></div>
+        <div class="lr-params">
+          <div class="lr-p"><div class="lr-pl">H</div><div class="lr-ps"><div class="lr-pf" style="width:50%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">S</div><div class="lr-ps"><div class="lr-pf" style="width:50%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">B</div><div class="lr-ps"><div class="lr-pf" style="width:50%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">Op</div><div class="lr-ps"><div class="lr-pf" style="width:50%;"></div></div></div>
+        </div>
+        <div class="lr-m"><div class="lr-mf" style="height:35%;"></div></div>
+      </div>
+      <div class="lr">
+        <div class="lr-lbl">Layer 8</div>
+        <div class="lr-ctrls"><div class="lr-c">Play</div><div class="lr-c">Stop</div><div class="lr-c">Loop</div><div class="lr-c">Rev</div></div>
+        <div class="lr-clips"><div class="lr-cl" style="background:linear-gradient(135deg,#f06040,#f0c040);"></div></div>
+        <div class="lr-params">
+          <div class="lr-p"><div class="lr-pl">H</div><div class="lr-ps"><div class="lr-pf" style="width:60%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">S</div><div class="lr-ps"><div class="lr-pf" style="width:55%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">B</div><div class="lr-ps"><div class="lr-pf" style="width:70%;"></div></div></div>
+          <div class="lr-p"><div class="lr-pl">Op</div><div class="lr-ps"><div class="lr-pf" style="width:85%;"></div></div></div>
+        </div>
+        <div class="lr-m"><div class="lr-mf" style="height:60%;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: COMPOSITION GRID -->
+  <div class="center">
+    <div class="comp-grid">
+      <div class="cg-head">
+        <div class="cg-title">Composition Grid</div>
+        <div class="cg-tabs">
+          <div class="cg-tab act">All</div>
+          <div class="cg-tab">Scenes</div>
+          <div class="cg-tab">Decks</div>
+          <div class="cg-tab">Presets</div>
+        </div>
+        <div class="cg-actions">
+          <div class="cg-btn">Add</div>
+          <div class="cg-btn">Remove</div>
+          <div class="cg-btn">Reset</div>
+        </div>
+      </div>
+      <div class="cg-search"><input type="text" placeholder="Search compositions..." /></div>
+      <div class="cg-grid">
+        <div class="cg-add">+</div>
+        <div class="cg-cell"><div class="cg-th g1"><div class="cg-badge" style="background:#c04040;">VIDEO</div></div><div class="cg-nm">Verse Intro<span class="cg-layers">3L</span></div></div>
+        <div class="cg-cell sel"><div class="cg-th g9"><div class="cg-badge" style="background:#20a060;">SYNTH</div></div><div class="cg-nm">Main Level<span class="cg-layers">4L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g3"><div class="cg-badge" style="background:#20a060;">SYNTH</div></div><div class="cg-nm">Layer Stack<span class="cg-layers">6L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g10"><div class="cg-badge" style="background:#c04040;">VIDEO</div></div><div class="cg-nm">Haze<span class="cg-layers">2L</span></div></div>
+
+        <div class="cg-cell"><div class="cg-th g5"><div class="cg-badge" style="background:#3060c0;">IMAGE</div></div><div class="cg-nm">Basement<span class="cg-layers">3L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g12"><div class="cg-badge" style="background:#20a060;">SYNTH</div></div><div class="cg-nm">Mall Drop<span class="cg-layers">5L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g2"><div class="cg-badge" style="background:#c04040;">VIDEO</div></div><div class="cg-nm">Main Build<span class="cg-layers">4L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g4"><div class="cg-badge" style="background:#20a060;">SYNTH</div></div><div class="cg-nm">Haze Level<span class="cg-layers">2L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g8"><div class="cg-badge" style="background:#3060c0;">IMAGE</div></div><div class="cg-nm">Nature<span class="cg-layers">3L</span></div></div>
+
+        <div class="cg-cell"><div class="cg-th g11"><div class="cg-badge" style="background:#c04040;">VIDEO</div></div><div class="cg-nm">Outro Fire<span class="cg-layers">4L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g6"><div class="cg-badge" style="background:#20a060;">SYNTH</div></div><div class="cg-nm">Layer 1<span class="cg-layers">1L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g7"><div class="cg-badge" style="background:#f0a030;color:#111;">AUDIO</div></div><div class="cg-nm">Layer 2<span class="cg-layers">1L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g1"><div class="cg-badge" style="background:#c04040;">VIDEO</div></div><div class="cg-nm">Layer 3<span class="cg-layers">1L</span></div></div>
+        <div class="cg-cell"><div class="cg-th g9"><div class="cg-badge" style="background:#20a060;">SYNTH</div></div><div class="cg-nm">Layer 4<span class="cg-layers">1L</span></div></div>
+      </div>
+      <div class="cg-info">
+        <span>15 compositions | 48 layers total</span>
+        <span>Selected: Main Level (4 layers, 12 clips)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="rp"><div class="rp-t">Preview</div><div class="rp-prev"></div></div>
+    <div class="rp">
+      <div class="rp-t">Audio Visualizer</div>
+      <div class="rp-viz">
+        <div class="vb">
+          <div style="height:55%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div>
+          <div style="height:75%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+          <div style="height:35%;background:#4ade80;"></div>
+          <div style="height:85%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+          <div style="height:50%;background:#4ade80;"></div>
+          <div style="height:65%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div>
+          <div style="height:40%;background:#4ade80;"></div>
+          <div style="height:80%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+        </div>
+      </div>
+      <div class="src-row"><div class="src-d" style="background:#4ade80;"></div><div class="src-n">RMS: 0.72</div><div class="src-bar"><div class="src-bf" style="width:72%;background:#4ade80;"></div></div></div>
+      <div class="src-row"><div class="src-d" style="background:#f04060;"></div><div class="src-n">Bass: 0.55</div><div class="src-bar"><div class="src-bf" style="width:55%;background:#f04060;"></div></div></div>
+      <div class="src-row"><div class="src-d" style="background:#00c8dc;"></div><div class="src-n">Mid: 0.40</div><div class="src-bar"><div class="src-bf" style="width:40%;background:#00c8dc;"></div></div></div>
+    </div>
+    <div class="rp">
+      <div class="rp-t">Selected Composition</div>
+      <div class="rp-r"><div class="rp-l">Name</div><div class="rp-v">Main Level</div></div>
+      <div class="rp-r"><div class="rp-l">Layers</div><div class="rp-v">4</div></div>
+      <div class="rp-r"><div class="rp-l">Clips</div><div class="rp-v">12</div></div>
+      <div class="rp-r"><div class="rp-l">Resolution</div><div class="rp-v">1920x1080</div></div>
+      <div class="rp-r"><div class="rp-l">Master</div><div class="rp-s"><div class="rp-sf" style="width:100%;"></div></div><div class="rp-v">1.00</div></div>
+      <div class="rp-r"><div class="rp-l">Speed</div><div class="rp-s"><div class="rp-sf" style="width:50%;"></div></div><div class="rp-v">1.00x</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="logo-star">&#10022;</div>
+</body>
+</html>

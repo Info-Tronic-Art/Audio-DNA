@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 21a Var A (Faithful — Space Command)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; color: #c0d0d8; font-size: 11px; position: relative; }
+
+/* Space background */
+.bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 40%, rgba(40,20,80,0.4), transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(20,40,80,0.3), transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(10,20,40,0.8), #080c14 80%); z-index: 0; }
+.bg::before { content: ''; position: absolute; inset: 0; background: radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.3), transparent), radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.2), transparent), radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.4), transparent), radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.15), transparent), radial-gradient(1px 1px at 80% 80%, rgba(255,255,255,0.3), transparent), radial-gradient(1px 1px at 20% 90%, rgba(255,255,255,0.2), transparent), radial-gradient(1px 1px at 90% 20%, rgba(255,255,255,0.35), transparent), radial-gradient(1px 1px at 40% 75%, rgba(255,255,255,0.15), transparent); }
+
+.ui { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+/* TOP BAR */
+.top { height: 32px; display: flex; align-items: center; padding: 0 12px; gap: 8px; background: rgba(10,16,24,0.7); border-bottom: 1px solid rgba(0,160,200,0.2); }
+.t-lbl { font-size: 10px; color: #608088; }
+.t-play { width: 24px; height: 24px; background: rgba(0,200,220,0.15); border: 1px solid rgba(0,200,220,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #00e5ff; font-size: 10px; cursor: pointer; }
+.t-meters { display: flex; gap: 1px; height: 18px; align-items: flex-end; }
+.t-meters div { width: 3px; border-radius: 1px; }
+.sp { flex: 1; }
+.master-sphere { font-size: 10px; color: #80a0b0; text-align: center; }
+
+/* MAIN */
+.main { flex: 1; display: flex; overflow: hidden; }
+
+/* LEFT: CURVED LAYER STRIPS */
+.left-panel { width: 380px; display: flex; flex-direction: column; gap: 2px; padding: 4px; overflow-y: auto; }
+.layer-strip { display: flex; align-items: center; gap: 3px; padding: 4px 6px; background: rgba(10,20,30,0.6); border: 1px solid rgba(0,100,130,0.25); border-radius: 4px; height: 88px; }
+.layer-strip.active { border-color: rgba(0,200,220,0.4); background: rgba(10,20,40,0.7); }
+.ls-label { width: 50px; font-size: 9px; color: #608088; font-weight: 600; }
+.ls-btns { display: flex; flex-direction: column; gap: 1px; }
+.ls-btn { padding: 1px 3px; font-size: 7px; background: rgba(0,100,130,0.2); border: 1px solid rgba(0,100,130,0.3); color: #608088; cursor: pointer; border-radius: 1px; text-align: center; min-width: 22px; }
+.ls-btn.on { background: rgba(240,160,48,0.3); border-color: #f0a030; color: #f0a030; }
+.ls-btn:hover { border-color: #00c8dc; color: #00c8dc; }
+.ls-thumbs { display: flex; gap: 2px; }
+.ls-thumb { width: 40px; height: 40px; border-radius: 3px; border: 1px solid rgba(0,100,130,0.3); overflow: hidden; cursor: pointer; }
+.ls-thumb.active { border-color: #00e5ff; box-shadow: 0 0 4px rgba(0,229,255,0.3); }
+.ls-sliders { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.ls-slider-row { display: flex; align-items: center; gap: 3px; }
+.ls-s-lbl { font-size: 7px; color: #507078; width: 16px; }
+.ls-slider { flex: 1; height: 3px; background: rgba(0,20,30,0.5); border-radius: 2px; overflow: hidden; }
+.ls-slider-f { height: 100%; border-radius: 2px; }
+.ls-meter { width: 6px; background: rgba(0,20,30,0.5); border-radius: 3px; position: relative; height: 60px; }
+.ls-meter-f { position: absolute; bottom: 0; width: 100%; border-radius: 3px; }
+
+/* CENTER: NAV HUB */
+.center { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+.nav-hub { width: 260px; height: 260px; border-radius: 50%; border: 2px solid rgba(0,160,200,0.3); background: radial-gradient(circle, rgba(10,20,40,0.8), rgba(10,20,40,0.4)); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 40px rgba(0,100,160,0.15), inset 0 0 30px rgba(0,100,160,0.1); }
+.hub-center { width: 100px; height: 100px; border-radius: 50%; border: 1px solid rgba(0,160,200,0.4); background: radial-gradient(circle, rgba(10,30,50,0.9), rgba(10,20,40,0.7)); display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.hub-label { font-size: 12px; color: #80c0d0; font-weight: 600; }
+.hub-sublabel { font-size: 8px; color: #507080; }
+.hub-item { position: absolute; font-size: 9px; color: #80a0b0; cursor: pointer; }
+.hub-item:hover { color: #00e5ff; }
+
+/* Floating nodes around hub */
+.node { position: absolute; width: 50px; height: 50px; border: 1px solid rgba(0,100,130,0.3); border-radius: 4px; background: rgba(10,20,30,0.6); display: flex; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; font-size: 8px; color: #80a0b0; }
+.node:hover { border-color: #00c8dc; }
+.node .n-icon { font-size: 14px; color: #00c8dc; margin-bottom: 2px; }
+
+/* Connection lines (decorative) */
+.conn-line { position: absolute; height: 1px; background: linear-gradient(90deg, transparent, rgba(0,160,200,0.2), transparent); transform-origin: left center; }
+
+/* RIGHT PANEL */
+.right { width: 300px; display: flex; flex-direction: column; gap: 4px; padding: 6px; }
+.r-panel { background: rgba(10,20,30,0.6); border: 1px solid rgba(0,100,130,0.25); border-radius: 4px; padding: 6px; }
+.r-title { font-size: 10px; color: #608088; font-weight: 600; margin-bottom: 4px; }
+.r-preview { width: 100%; height: 110px; background: radial-gradient(ellipse at 50% 50%, rgba(100,40,140,0.3), rgba(10,10,30,0.8)); border: 1px solid rgba(0,100,130,0.3); border-radius: 3px; margin-bottom: 4px; }
+.r-viz { width: 100%; height: 90px; background: linear-gradient(0deg, rgba(10,20,30,0.8), rgba(0,40,60,0.3)); border: 1px solid rgba(0,100,130,0.3); border-radius: 3px; position: relative; overflow: hidden; margin-bottom: 4px; }
+.viz-bars { display: flex; gap: 1px; height: 100%; align-items: flex-end; padding: 4px; }
+.viz-bar { flex: 1; border-radius: 1px 1px 0 0; }
+.r-row { display: flex; align-items: center; padding: 2px 0; }
+.r-lbl { width: 80px; font-size: 9px; color: #80a0b0; }
+.r-val { font-size: 9px; color: #c0d0d8; font-family: monospace; }
+.r-select { flex: 1; background: rgba(10,20,30,0.5); border: 1px solid rgba(0,100,130,0.3); color: #80a0b0; padding: 2px 4px; font-size: 9px; }
+.r-slider { flex: 1; height: 3px; background: rgba(0,20,30,0.5); border-radius: 2px; overflow: hidden; margin: 0 4px; }
+.r-slider-f { height: 100%; border-radius: 2px; background: rgba(0,200,220,0.5); }
+
+/* Logo */
+.logo-star { position: absolute; bottom: 20px; right: 20px; font-size: 36px; color: rgba(200,210,220,0.15); z-index: 2; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="ui">
+
+<div class="top">
+  <div class="t-lbl">Master Audio Control</div>
+  <div class="t-play">&#9654;</div>
+  <div class="t-meters">
+    <div style="height:14px;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+    <div style="height:10px;background:#4ade80;"></div>
+    <div style="height:16px;background:linear-gradient(0deg,#4ade80,#c04040);"></div>
+    <div style="height:8px;background:#4ade80;"></div>
+    <div style="height:12px;background:#4ade80;"></div>
+    <div style="height:6px;background:#4ade80;"></div>
+  </div>
+  <div class="sp"></div>
+  <div class="master-sphere">Master Audio Sphere</div>
+  <div class="sp"></div>
+</div>
+
+<div class="main">
+  <!-- LEFT: LAYER STRIPS -->
+  <div class="left-panel">
+    <div class="layer-strip active">
+      <div class="ls-label">Layer 1</div>
+      <div class="ls-btns">
+        <div class="ls-btn">Play</div><div class="ls-btn">Stop</div><div class="ls-btn on">Loop</div><div class="ls-btn">Rev</div><div class="ls-btn">Speed</div>
+      </div>
+      <div class="ls-thumbs">
+        <div class="ls-thumb active" style="background:linear-gradient(135deg,#4060a0,#2040c0);"></div>
+        <div class="ls-thumb" style="background:linear-gradient(135deg,#20a060,#104030);"></div>
+      </div>
+      <div class="ls-sliders">
+        <div class="ls-slider-row"><div class="ls-s-lbl">Hue</div><div class="ls-slider"><div class="ls-slider-f" style="width:60%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Sat</div><div class="ls-slider"><div class="ls-slider-f" style="width:80%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Bri</div><div class="ls-slider"><div class="ls-slider-f" style="width:90%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Opa</div><div class="ls-slider"><div class="ls-slider-f" style="width:100%;background:linear-gradient(90deg,rgba(0,100,130,0.6),rgba(0,200,220,0.8));"></div></div></div>
+      </div>
+      <div class="ls-meter"><div class="ls-meter-f" style="height:80%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div></div>
+    </div>
+    <div class="layer-strip">
+      <div class="ls-label">Layer 2</div>
+      <div class="ls-btns"><div class="ls-btn">Play</div><div class="ls-btn">Stop</div><div class="ls-btn on">Loop</div><div class="ls-btn">Rev</div><div class="ls-btn">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-thumb active" style="background:linear-gradient(135deg,#c040a0,#6020c0);"></div><div class="ls-thumb" style="background:linear-gradient(135deg,#f04060,#f0a020);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-slider-row"><div class="ls-s-lbl">Hue</div><div class="ls-slider"><div class="ls-slider-f" style="width:40%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Sat</div><div class="ls-slider"><div class="ls-slider-f" style="width:70%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Bri</div><div class="ls-slider"><div class="ls-slider-f" style="width:85%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Opa</div><div class="ls-slider"><div class="ls-slider-f" style="width:75%;background:linear-gradient(90deg,rgba(0,100,130,0.6),rgba(0,200,220,0.8));"></div></div></div>
+      </div>
+      <div class="ls-meter"><div class="ls-meter-f" style="height:60%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div></div>
+    </div>
+    <div class="layer-strip">
+      <div class="ls-label">Layer 3</div>
+      <div class="ls-btns"><div class="ls-btn">Play</div><div class="ls-btn">Stop</div><div class="ls-btn">Loop</div><div class="ls-btn on">Rev</div><div class="ls-btn">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-thumb active" style="background:linear-gradient(135deg,#20c0a0,#1040a0);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-slider-row"><div class="ls-s-lbl">Hue</div><div class="ls-slider"><div class="ls-slider-f" style="width:50%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Sat</div><div class="ls-slider"><div class="ls-slider-f" style="width:60%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Bri</div><div class="ls-slider"><div class="ls-slider-f" style="width:70%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Opa</div><div class="ls-slider"><div class="ls-slider-f" style="width:90%;background:linear-gradient(90deg,rgba(0,100,130,0.6),rgba(0,200,220,0.8));"></div></div></div>
+      </div>
+      <div class="ls-meter"><div class="ls-meter-f" style="height:70%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div></div>
+    </div>
+    <div class="layer-strip">
+      <div class="ls-label">Layer 4</div>
+      <div class="ls-btns"><div class="ls-btn">Play</div><div class="ls-btn">Stop</div><div class="ls-btn on">Loop</div><div class="ls-btn">Rev</div><div class="ls-btn">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-thumb" style="background:#1a2030;"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-slider-row"><div class="ls-s-lbl">Hue</div><div class="ls-slider"><div class="ls-slider-f" style="width:50%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Sat</div><div class="ls-slider"><div class="ls-slider-f" style="width:50%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Bri</div><div class="ls-slider"><div class="ls-slider-f" style="width:50%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Opa</div><div class="ls-slider"><div class="ls-slider-f" style="width:60%;background:linear-gradient(90deg,rgba(0,100,130,0.6),rgba(0,200,220,0.8));"></div></div></div>
+      </div>
+      <div class="ls-meter"><div class="ls-meter-f" style="height:45%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div></div>
+    </div>
+    <div class="layer-strip">
+      <div class="ls-label">Layer 5</div>
+      <div class="ls-btns"><div class="ls-btn">Play</div><div class="ls-btn">Stop</div><div class="ls-btn">Loop</div><div class="ls-btn">Rev</div><div class="ls-btn">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-thumb" style="background:linear-gradient(135deg,#604080,#2040a0);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-slider-row"><div class="ls-s-lbl">Hue</div><div class="ls-slider"><div class="ls-slider-f" style="width:30%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Sat</div><div class="ls-slider"><div class="ls-slider-f" style="width:45%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Bri</div><div class="ls-slider"><div class="ls-slider-f" style="width:65%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Opa</div><div class="ls-slider"><div class="ls-slider-f" style="width:80%;background:linear-gradient(90deg,rgba(0,100,130,0.6),rgba(0,200,220,0.8));"></div></div></div>
+      </div>
+      <div class="ls-meter"><div class="ls-meter-f" style="height:55%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div></div>
+    </div>
+    <div class="layer-strip">
+      <div class="ls-label">Layer 6</div>
+      <div class="ls-btns"><div class="ls-btn">Play</div><div class="ls-btn">Stop</div><div class="ls-btn on">Loop</div><div class="ls-btn">Rev</div><div class="ls-btn">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-thumb" style="background:linear-gradient(135deg,#a04060,#f0a030);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-slider-row"><div class="ls-s-lbl">Hue</div><div class="ls-slider"><div class="ls-slider-f" style="width:70%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Sat</div><div class="ls-slider"><div class="ls-slider-f" style="width:80%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Bri</div><div class="ls-slider"><div class="ls-slider-f" style="width:90%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Opa</div><div class="ls-slider"><div class="ls-slider-f" style="width:70%;background:linear-gradient(90deg,rgba(0,100,130,0.6),rgba(0,200,220,0.8));"></div></div></div>
+      </div>
+      <div class="ls-meter"><div class="ls-meter-f" style="height:50%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div></div>
+    </div>
+    <div class="layer-strip">
+      <div class="ls-label">Layer 7</div>
+      <div class="ls-btns"><div class="ls-btn">Play</div><div class="ls-btn">Stop</div><div class="ls-btn">Loop</div><div class="ls-btn">Rev</div><div class="ls-btn">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-thumb" style="background:#1a2030;"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-slider-row"><div class="ls-s-lbl">Hue</div><div class="ls-slider"><div class="ls-slider-f" style="width:50%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Sat</div><div class="ls-slider"><div class="ls-slider-f" style="width:50%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Bri</div><div class="ls-slider"><div class="ls-slider-f" style="width:50%;background:rgba(0,200,220,0.6);"></div></div></div>
+        <div class="ls-slider-row"><div class="ls-s-lbl">Opa</div><div class="ls-slider"><div class="ls-slider-f" style="width:50%;background:linear-gradient(90deg,rgba(0,100,130,0.6),rgba(0,200,220,0.8));"></div></div></div>
+      </div>
+      <div class="ls-meter"><div class="ls-meter-f" style="height:35%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div></div>
+    </div>
+  </div>
+
+  <!-- CENTER: NAVIGATION HUB -->
+  <div class="center">
+    <!-- Decorative connection lines -->
+    <div class="conn-line" style="top:200px;left:400px;width:200px;transform:rotate(-15deg);"></div>
+    <div class="conn-line" style="top:500px;left:400px;width:200px;transform:rotate(15deg);"></div>
+    <div class="conn-line" style="top:350px;right:350px;width:200px;transform:rotate(10deg);"></div>
+    <div class="conn-line" style="top:600px;right:350px;width:200px;transform:rotate(-10deg);"></div>
+
+    <div class="nav-hub">
+      <div class="hub-center">
+        <div class="hub-label">Navigation</div>
+        <div class="hub-sublabel">Hub</div>
+      </div>
+      <div class="hub-item" style="top:30px;left:60px;">Composition</div>
+      <div class="hub-item" style="top:60px;left:20px;">Layer</div>
+      <div class="hub-item" style="top:110px;left:5px;">Audio</div>
+      <div class="hub-item" style="bottom:60px;left:20px;">Quality</div>
+      <div class="hub-item" style="bottom:30px;left:60px;">Output</div>
+      <div class="hub-item" style="top:30px;right:60px;">Menu</div>
+      <div class="hub-item" style="top:60px;right:20px;">Composition</div>
+      <div class="hub-item" style="top:110px;right:5px;">Layers</div>
+      <div class="hub-item" style="bottom:60px;right:20px;">Audio</div>
+      <div class="hub-item" style="bottom:30px;right:60px;">Normal</div>
+    </div>
+
+    <!-- Floating nodes -->
+    <div class="node" style="top:100px;left:480px;"><div class="n-icon">&#9670;</div>Clips</div>
+    <div class="node" style="top:100px;right:480px;"><div class="n-icon">&#9670;</div>Menu</div>
+    <div class="node" style="top:300px;left:450px;"><div class="n-icon">&#9670;</div>Layer</div>
+    <div class="node" style="top:300px;right:450px;"><div class="n-icon">&#9670;</div>Comp</div>
+    <div class="node" style="bottom:200px;left:480px;"><div class="n-icon">&#9670;</div>Audio</div>
+    <div class="node" style="bottom:200px;right:480px;"><div class="n-icon">&#9670;</div>Output</div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right">
+    <div class="r-panel">
+      <div class="r-title">Preview</div>
+      <div class="r-preview"></div>
+    </div>
+    <div class="r-panel">
+      <div class="r-title">Main Output</div>
+      <div style="display:flex;gap:4px;margin-bottom:4px;">
+        <div style="padding:2px 8px;font-size:8px;background:rgba(0,100,130,0.2);border:1px solid rgba(0,100,130,0.3);color:#80a0b0;cursor:pointer;">Home</div>
+        <div style="padding:2px 8px;font-size:8px;background:rgba(0,100,130,0.2);border:1px solid rgba(0,100,130,0.3);color:#80a0b0;cursor:pointer;">Detach</div>
+      </div>
+    </div>
+    <div class="r-panel">
+      <div class="r-title">Audio Visualizer</div>
+      <div class="r-viz">
+        <div class="viz-bars">
+          <div class="viz-bar" style="height:60%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div>
+          <div class="viz-bar" style="height:80%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+          <div class="viz-bar" style="height:40%;background:#4ade80;"></div>
+          <div class="viz-bar" style="height:90%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+          <div class="viz-bar" style="height:55%;background:#4ade80;"></div>
+          <div class="viz-bar" style="height:70%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div>
+          <div class="viz-bar" style="height:45%;background:#4ade80;"></div>
+          <div class="viz-bar" style="height:85%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+          <div class="viz-bar" style="height:35%;background:#4ade80;"></div>
+          <div class="viz-bar" style="height:65%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div>
+          <div class="viz-bar" style="height:50%;background:#4ade80;"></div>
+          <div class="viz-bar" style="height:75%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;margin-top:2px;">
+        <div style="padding:1px 6px;font-size:8px;background:rgba(0,100,130,0.2);border:1px solid rgba(0,100,130,0.3);color:#80a0b0;">Mode</div>
+        <div style="padding:1px 6px;font-size:8px;background:rgba(0,100,130,0.2);border:1px solid rgba(0,100,130,0.3);color:#80a0b0;">Pause</div>
+      </div>
+    </div>
+    <div class="r-panel">
+      <div class="r-title">Properties / Video Router</div>
+      <div class="r-row"><div class="r-lbl">Blend Mode</div><select class="r-select"><option>Normal</option></select></div>
+      <div class="r-row"><div class="r-lbl">Layer Type</div><select class="r-select"><option>Opaque</option></select></div>
+      <div class="r-row"><div class="r-lbl">Resolution</div><div class="r-val">1920x1080</div></div>
+      <div class="r-row"><div class="r-lbl">Video Source</div><select class="r-select"><option>Default</option></select></div>
+      <div class="r-row"><div class="r-lbl">Loop Time</div><div class="r-slider"><div class="r-slider-f" style="width:50%;"></div></div><div class="r-val">4.0s</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="logo-star">&#10022;</div>
+</body>
+</html>

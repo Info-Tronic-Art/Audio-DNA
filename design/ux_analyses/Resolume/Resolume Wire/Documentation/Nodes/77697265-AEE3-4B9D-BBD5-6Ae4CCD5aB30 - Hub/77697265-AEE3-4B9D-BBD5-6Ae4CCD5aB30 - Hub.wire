@@ -1,0 +1,312 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          6,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          4,
+          "output"
+        ],
+        "to": [
+          3,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output0"
+        ],
+        "to": [
+          5,
+          "radius"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "Hub Example",
+      "identifier": "ef7f0318-cbb2-4b53-aafa-5951fad04bf9",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 12,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "HUB\n\nThe Hub node (also known as a Null in other languages) simply functions as an extension cord to tidy up your patch. What comes in comes out the same.\n\nIn this example we've used the Hub nodes to make sure that the wire from the Sine to the Circle node doesn't pass through the comment node. There is nothing wrong with passing through a comment node (they kinda like it), but we like to keep things nice, clean and PG13."
+          }
+        },
+        "bounds": {
+          "height": 195.2468414306641,
+          "width": 661.3009033203125,
+          "x": 320.3768615722656,
+          "y": 157.95677185058594
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nAny signal, unaltered."
+          }
+        },
+        "bounds": {
+          "height": 133.99993896484375,
+          "width": 334,
+          "x": 662.041015625,
+          "y": 544.0372314453125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Main\nAny signal\n"
+          }
+        },
+        "bounds": {
+          "height": 136.99993896484375,
+          "width": 312,
+          "x": 319.958984375,
+          "y": 544.4122314453125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "3": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 791.4163818359375,
+          "y": 397
+        },
+        "class": {
+          "id": "77697265-AEE3-4B9D-BBD5-6Ae4CCD5aB30",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Hub"
+      },
+      "4": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 320,
+          "y": 397
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "5": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 1024.3712158203125,
+          "y": 545.182373046875
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Circle"
+      },
+      "6": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1254.3712158203125,
+          "y": 545.182373046875
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 208.4105529785156,
+        "y": 66.1263656616211,
+        "zoom": 0.9999997615814208
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 6,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

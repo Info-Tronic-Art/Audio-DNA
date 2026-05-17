@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 24a Variation A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: linear-gradient(180deg, #141820 0%, #101418 100%); font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; color: #c8ccd4; overflow: hidden; }
+
+/* TOP BAR */
+.top-bar { height: 36px; background: linear-gradient(180deg, #1c2028 0%, #161a20 100%); border-bottom: 1px solid #2a2e38; display: flex; align-items: center; padding: 0 14px; gap: 10px; }
+.logo { display: flex; align-items: center; gap: 6px; }
+.logo-icon { width: 22px; height: 22px; border-radius: 4px; background: linear-gradient(135deg, #4088d0, #6848b0); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: #fff; }
+.logo-text { font-size: 15px; font-weight: 800; color: #e0e4ea; }
+.logo-text .vj { color: #50b0e0; }
+.sep { width: 1px; height: 20px; background: #2a2e38; }
+.lbl { font-size: 9px; color: #50586a; text-transform: uppercase; letter-spacing: 0.5px; }
+.bpm-big { font-size: 20px; color: #48e088; font-weight: 800; font-variant-numeric: tabular-nums; }
+.btn { background: #1e2430; border: 1px solid #323a48; border-radius: 3px; color: #8898b0; font-size: 10px; padding: 3px 10px; cursor: pointer; }
+.btn.gold { background: #c89828; color: #111; border-color: #c89828; font-weight: 600; }
+.btn.cyan { border-color: #3898c8; color: #50b0e0; }
+.beat-dots { display: flex; gap: 4px; }
+.b-dot { width: 9px; height: 9px; border-radius: 50%; background: #1e2430; border: 1px solid #323a48; }
+.b-dot.on { background: #48e088; border-color: #48e088; box-shadow: 0 0 8px rgba(72,224,136,0.5); }
+.spacer { flex: 1; }
+.val { font-size: 11px; color: #b0b8c8; }
+
+/* MAIN 3-COLUMN LAYOUT */
+.main { display: flex; height: calc(1080px - 36px - 28px); }
+
+/* LEFT PANEL: SCENE FLOW */
+.left-panel { width: 260px; background: linear-gradient(180deg, #141820 0%, #101418 100%); border-right: 1px solid #242830; display: flex; flex-direction: column; }
+.panel-title { height: 28px; background: #181c24; border-bottom: 1px solid #242830; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: #6878a0; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.scene-flow { padding: 8px; flex: 1; }
+.scene-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin-bottom: 3px; border-radius: 3px; cursor: pointer; transition: background 0.12s; }
+.scene-item:hover { background: #1a2028; }
+.scene-item.active { background: #1e2838; border: 1px solid #3898c8; }
+.scene-item .s-name { flex: 1; font-size: 11px; color: #b0b8c8; font-weight: 500; }
+.scene-item .s-trigger { font-size: 9px; padding: 3px 10px; background: #1e2430; border: 1px solid #323a48; border-radius: 3px; color: #8898b0; cursor: pointer; }
+.scene-item .s-trigger:hover { border-color: #50b0e0; color: #50b0e0; }
+.scene-add { font-size: 10px; color: #48e088; padding: 6px 8px; cursor: pointer; }
+
+/* LAYER LIST */
+.layer-list { border-top: 1px solid #242830; padding: 8px; }
+.layer-list .ll-title { font-size: 9px; color: #50586a; text-transform: uppercase; margin-bottom: 6px; }
+.ll-row { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 9px; color: #7888a0; }
+.ll-row .ll-name { width: 50px; }
+.ll-row .ll-label { font-size: 8px; color: #50586a; }
+.ll-row .ll-val { font-size: 8px; color: #8898b0; }
+
+/* CENTER: PREVIEW */
+.center-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #242830; }
+.preview-label { height: 28px; background: #181c24; border-bottom: 1px solid #242830; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #6878a0; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.preview-area { flex: 1; background: #050810; display: flex; align-items: center; justify-content: center; position: relative; }
+.preview-frame { width: 90%; height: 85%; background: linear-gradient(135deg, #0a0520 0%, #150840 20%, #0a2030 50%, #0d0820 80%, #080510 100%); border-radius: 4px; position: relative; overflow: hidden; border: 1px solid #1a1e28; }
+.preview-frame svg { width: 100%; height: 100%; }
+.transport-bar { height: 40px; background: #141820; border-top: 1px solid #242830; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 20px; }
+.t-btn { width: 28px; height: 28px; border-radius: 4px; background: #1e2430; border: 1px solid #323a48; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #8898b0; cursor: pointer; }
+.t-btn:hover { border-color: #50b0e0; color: #50b0e0; }
+.timeline { flex: 1; max-width: 500px; height: 4px; background: #1e2430; border-radius: 2px; position: relative; }
+.timeline .played { height: 100%; width: 35%; background: linear-gradient(90deg, #2858a0, #50b0e0); border-radius: 2px; }
+.timeline .playhead { width: 10px; height: 10px; border-radius: 50%; background: #50b0e0; position: absolute; top: -3px; left: 35%; }
+
+/* GLOBAL MACROS */
+.macro-bar { height: 70px; background: #141820; border-top: 1px solid #242830; display: flex; align-items: center; padding: 0 20px; gap: 4px; }
+.macro-title { font-size: 9px; color: #50586a; text-transform: uppercase; margin-right: 12px; writing-mode: vertical-lr; letter-spacing: 0.5px; }
+.macro-knob { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 52px; }
+.mk-circle { width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #282e3c, #181c28); border: 2px solid #323a48; position: relative; cursor: pointer; }
+.mk-circle .dot { width: 3px; height: 3px; border-radius: 50%; background: #50b0e0; position: absolute; }
+.mk-circle::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid transparent; }
+.mk-arc { position: absolute; inset: -5px; border-radius: 50%; border: 2.5px solid #1e2430; }
+.mk-arc-fill { position: absolute; inset: -5px; border-radius: 50%; border: 2.5px solid transparent; border-top-color: #50b0e0; border-right-color: #50b0e0; }
+.mk-label { font-size: 7px; color: #50586a; }
+.mk-num { font-size: 8px; color: #8898b0; font-weight: 600; }
+
+/* RIGHT PANEL: SOURCES */
+.right-panel { width: 280px; background: linear-gradient(180deg, #141820 0%, #101418 100%); display: flex; flex-direction: column; }
+.sources-header { height: 28px; background: #181c24; border-bottom: 1px solid #242830; display: flex; align-items: center; padding: 0 10px; }
+.sources-header .title { font-size: 10px; color: #6878a0; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+.source-list { flex: 1; padding: 8px; overflow-y: auto; }
+.source-item { margin-bottom: 12px; }
+.source-item .si-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.source-item .si-icon { font-size: 12px; }
+.source-item .si-name { font-size: 10px; color: #b0b8c8; font-weight: 500; }
+.source-item .si-viz { height: 36px; background: #0c1018; border: 1px solid #1e2430; border-radius: 3px; overflow: hidden; position: relative; }
+.source-item .si-meter { position: absolute; right: 4px; top: 4px; bottom: 4px; width: 8px; background: #141820; border-radius: 2px; overflow: hidden; }
+.source-item .si-meter-fill { position: absolute; bottom: 0; width: 100%; }
+
+.source-add { font-size: 10px; color: #48e088; padding: 8px; cursor: pointer; }
+.source-hint { font-size: 9px; color: #404858; padding: 8px; font-style: italic; }
+
+/* LAYER CONTROLS */
+.layer-controls { border-top: 1px solid #242830; padding: 10px; }
+.lc-title { font-size: 9px; color: #50586a; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+.lc-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.lc-row .lc-label { font-size: 9px; color: #7888a0; width: 80px; }
+.lc-row .lc-dropdown { background: #1e2430; border: 1px solid #323a48; border-radius: 3px; color: #8898b0; font-size: 9px; padding: 3px 8px; }
+.lc-knobs { display: flex; gap: 10px; margin-top: 8px; }
+.lc-knob { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.lck-circle { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #282e3c, #181c28); border: 1.5px solid #323a48; }
+.lck-label { font-size: 7px; color: #50586a; }
+
+/* BOTTOM: LAYER STRIPS */
+.bottom-area { height: 280px; background: linear-gradient(180deg, #141820 0%, #101418 100%); border-top: 1px solid #2a2e38; display: flex; flex-direction: column; position: absolute; bottom: 28px; left: 0; right: 0; }
+.layer-tabs { height: 28px; background: #181c24; border-bottom: 1px solid #242830; display: flex; align-items: center; padding: 0 10px; gap: 3px; }
+.l-tab { font-size: 9px; padding: 4px 12px; border-radius: 3px; cursor: pointer; color: #50586a; font-weight: 600; }
+.l-tab.active { background: #1e2430; color: #50b0e0; }
+.l-tab:hover:not(.active) { color: #7888a0; }
+.sm-btns { display: flex; gap: 2px; margin-left: 4px; }
+.sm-btn { width: 18px; height: 18px; border-radius: 2px; font-size: 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.sm-btn.solo { background: #1e2430; color: #50586a; border: 1px solid #323a48; }
+.sm-btn.mute { background: #1e2430; color: #50586a; border: 1px solid #323a48; }
+
+.strip-scroll { flex: 1; display: flex; padding: 8px; gap: 6px; overflow-x: auto; }
+.clip-strip { width: 130px; flex-shrink: 0; background: #161a22; border: 1px solid #242830; border-radius: 4px; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.cs-badge { font-size: 7px; padding: 1px 5px; border-radius: 2px; font-weight: 700; display: inline-block; align-self: flex-start; }
+.bv { background: #a83020; color: #f0d0c8; }
+.bi { background: #2050a8; color: #c8d8f0; }
+.bs { background: #189050; color: #c8f0d8; }
+.bp { background: #6030a8; color: #d0c8f0; }
+.cs-name { font-size: 9px; color: #8898b0; font-weight: 500; }
+.cs-sub { font-size: 8px; color: #50586a; }
+.cs-knobs { display: flex; gap: 6px; margin: 4px 0; }
+.cs-knob { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.csk-circle { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #252c38, #181c28); border: 1.5px solid #323a48; }
+.csk-label { font-size: 6px; color: #404858; }
+.cs-opacity { width: 100%; height: 4px; background: #1e2430; border-radius: 2px; }
+.cs-opacity .fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #2050a8, #50b0e0); }
+.cs-actions { display: flex; gap: 3px; flex-wrap: wrap; }
+.cs-action { font-size: 7px; padding: 2px 6px; background: #1e2430; border: 1px solid #282c38; border-radius: 2px; color: #50586a; cursor: pointer; }
+.cs-action:hover { color: #8898b0; border-color: #404858; }
+.cs-expand { font-size: 8px; color: #50586a; text-align: center; cursor: pointer; margin-top: auto; }
+.cs-expand:hover { color: #50b0e0; }
+
+/* FOOTER */
+.footer { height: 28px; background: linear-gradient(180deg, #1c2028 0%, #161a20 100%); border-top: 1px solid #2a2e38; display: flex; align-items: center; padding: 0 14px; gap: 18px; position: absolute; bottom: 0; left: 0; right: 0; }
+.f-lbl { font-size: 9px; color: #404858; cursor: pointer; }
+.f-lbl:hover { color: #7888a0; }
+.f-val { font-size: 9px; color: #7888a0; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #101418; }
+::-webkit-scrollbar-thumb { background: #242830; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo"><div class="logo-icon">A</div><div class="logo-text">Audio-DNA <span class="vj">VJ</span></div></div>
+  <div class="sep"></div>
+  <div class="lbl">BPM</div>
+  <div class="bpm-big">128.00</div>
+  <div class="btn gold">TAP</div>
+  <div class="btn">Nudge -</div>
+  <div class="btn">Nudge +</div>
+  <div class="btn cyan">RESYNC</div>
+  <div class="sep"></div>
+  <div class="beat-dots"><div class="b-dot on"></div><div class="b-dot"></div><div class="b-dot"></div><div class="b-dot"></div></div>
+  <div class="val" style="font-variant-numeric:tabular-nums;">037 / 04.1</div>
+  <div class="spacer"></div>
+  <div class="lbl">Room Delay</div>
+  <div class="val">+0ms</div>
+  <div class="sep"></div>
+  <div class="lbl">Master</div>
+  <div style="width:80px;height:4px;background:#1e2430;border-radius:2px;"><div style="width:80%;height:100%;background:linear-gradient(90deg,#2858a0,#50b0e0);border-radius:2px;"></div></div>
+  <div class="sep"></div>
+  <div class="lbl">FPS</div><div class="val">60</div>
+  <div class="lbl">DSP</div><div class="val">10%</div>
+</div>
+
+<!-- MAIN 3 COLUMNS -->
+<div class="main" style="height:calc(1080px - 36px - 280px - 28px);">
+  <!-- LEFT: SCENE FLOW -->
+  <div class="left-panel">
+    <div class="panel-title">Left Panel - Scene Flow</div>
+    <div class="scene-flow">
+      <div class="scene-item"><div class="s-name">Intro</div><div class="s-trigger">Trigger</div></div>
+      <div class="scene-item"><div class="s-name">Verse</div><div class="s-trigger">Trigger</div></div>
+      <div class="scene-item active"><div class="s-name">Chorus</div><div class="s-trigger">Trigger</div></div>
+      <div class="scene-item"><div class="s-name">Drop</div><div class="s-trigger">Trigger</div></div>
+      <div class="scene-add">+ Add Scene</div>
+    </div>
+    <div class="layer-list">
+      <div class="ll-title">Layers</div>
+      <div class="ll-row"><span class="ll-name">Layer 1</span><span class="ll-label">Opacity</span><span class="ll-val">80%</span></div>
+      <div class="ll-row"><span class="ll-name">Layer 2</span><span class="ll-label">FX</span><span class="ll-val">Ripple</span></div>
+      <div class="ll-row"><span class="ll-name">Layer 3</span><span class="ll-label">Hue</span><span class="ll-val">0.2</span></div>
+      <div class="ll-row"><span class="ll-name">Layer 4</span><span class="ll-label">Speed</span><span class="ll-val">12%</span></div>
+      <div class="ll-row"><span class="ll-name">Layer 5</span><span class="ll-label">Engine</span><span class="ll-val">Synth</span></div>
+    </div>
+  </div>
+
+  <!-- CENTER: PREVIEW -->
+  <div class="center-panel">
+    <div class="preview-label">Center Panel - Live Output Preview</div>
+    <div class="preview-area">
+      <div class="preview-frame">
+        <svg viewBox="0 0 800 400">
+          <defs>
+            <radialGradient id="pg" cx="50%" cy="45%"><stop offset="0%" stop-color="#4020a0" stop-opacity="0.8"/><stop offset="50%" stop-color="#102040" stop-opacity="0.5"/><stop offset="100%" stop-color="#050510"/></radialGradient>
+          </defs>
+          <rect width="800" height="400" fill="url(#pg)"/>
+          <!-- Geometric particles -->
+          <polygon points="400,80 440,160 360,160" fill="none" stroke="#60cfff" stroke-width="1" opacity="0.6"/>
+          <polygon points="350,120 410,120 380,70" fill="none" stroke="#a070f0" stroke-width="0.8" opacity="0.5"/>
+          <circle cx="300" cy="200" r="30" fill="none" stroke="#50e890" stroke-width="0.8" opacity="0.4"/>
+          <circle cx="500" cy="180" r="20" fill="none" stroke="#e8d050" stroke-width="0.6" opacity="0.3"/>
+          <line x1="200" y1="300" x2="600" y2="100" stroke="#60cfff" stroke-width="0.5" opacity="0.2"/>
+          <line x1="100" y1="200" x2="700" y2="300" stroke="#a070f0" stroke-width="0.5" opacity="0.2"/>
+          <!-- Scatter dots -->
+          <circle cx="250" cy="150" r="2" fill="#50e890" opacity="0.6"/>
+          <circle cx="450" cy="250" r="3" fill="#60cfff" opacity="0.5"/>
+          <circle cx="550" cy="130" r="2" fill="#a070f0" opacity="0.4"/>
+          <circle cx="180" cy="280" r="2" fill="#e8d050" opacity="0.3"/>
+          <circle cx="620" cy="220" r="3" fill="#50e890" opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="transport-bar">
+      <div class="t-btn">&#9664;</div>
+      <div class="t-btn" style="font-size:14px;">&#9654;</div>
+      <div class="t-btn">||</div>
+      <div class="t-btn">&#9632;</div>
+      <div class="timeline"><div class="played"></div><div class="playhead"></div></div>
+    </div>
+    <div class="macro-bar">
+      <div class="macro-title">GLOBAL MACROS</div>
+      <div class="macro-knob"><div class="mk-circle"><div class="dot" style="top:4px;left:13px;"></div></div><div class="mk-label">Hue</div><div class="mk-num">1</div></div>
+      <div class="macro-knob"><div class="mk-circle"><div class="dot" style="top:6px;left:18px;"></div></div><div class="mk-label">Sat</div><div class="mk-num">2</div></div>
+      <div class="macro-knob"><div class="mk-circle"><div class="dot" style="top:3px;left:14px;"></div></div><div class="mk-label">Bri</div><div class="mk-num">3</div></div>
+      <div class="macro-knob"><div class="mk-circle"><div class="dot" style="top:5px;left:20px;"></div></div><div class="mk-label">Scale</div><div class="mk-num">4</div></div>
+      <div class="macro-knob"><div class="mk-circle"><div class="dot" style="top:8px;left:16px;"></div></div><div class="mk-label">Speed</div><div class="mk-num">5</div></div>
+      <div class="macro-knob"><div class="mk-circle"><div class="dot" style="top:4px;left:22px;"></div></div><div class="mk-label">FX</div><div class="mk-num">6</div></div>
+      <div class="macro-knob"><div class="mk-circle"><div class="dot" style="top:6px;left:12px;"></div></div><div class="mk-label">Mix</div><div class="mk-num">7</div></div>
+      <div class="macro-knob"><div class="mk-circle"><div class="dot" style="top:4px;left:15px;"></div></div><div class="mk-label">Mod</div><div class="mk-num">8</div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SOURCES -->
+  <div class="right-panel">
+    <div class="sources-header"><div class="title">Right Panel - Sources</div></div>
+    <div class="source-list">
+      <div class="source-item">
+        <div class="si-header"><span class="si-icon">&#9836;</span><span class="si-name">Master Audio</span></div>
+        <div class="si-viz">
+          <svg viewBox="0 0 250 36" style="width:100%;height:100%;">
+            <path fill="none" stroke="#48e088" stroke-width="1.2" d="M0,18 Q15,4 30,18 T60,18 T90,18 Q105,6 120,18 T150,18 T180,18 Q195,8 210,18 T240,18"/>
+            <path fill="rgba(72,224,136,0.15)" d="M0,18 Q15,4 30,18 T60,18 T90,18 Q105,6 120,18 T150,18 T180,18 Q195,8 210,18 T240,18 V36 H0 Z"/>
+          </svg>
+          <div class="si-meter"><div class="si-meter-fill" style="height:72%;background:linear-gradient(180deg,#48e088,#188838);"></div></div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="si-header"><span class="si-icon">&#9835;</span><span class="si-name">Kick Drum</span></div>
+        <div class="si-viz">
+          <svg viewBox="0 0 250 36" style="width:100%;height:100%;">
+            <rect x="10" y="8" width="8" height="22" rx="1" fill="#d4a020" opacity="0.8"/>
+            <rect x="22" y="12" width="8" height="16" rx="1" fill="#d4a020" opacity="0.6"/>
+            <rect x="34" y="6" width="8" height="24" rx="1" fill="#d4a020" opacity="0.9"/>
+            <rect x="46" y="14" width="8" height="14" rx="1" fill="#d4a020" opacity="0.5"/>
+            <rect x="58" y="4" width="8" height="28" rx="1" fill="#d4a020" opacity="1"/>
+            <rect x="70" y="10" width="8" height="18" rx="1" fill="#d4a020" opacity="0.7"/>
+            <rect x="82" y="8" width="8" height="22" rx="1" fill="#d4a020" opacity="0.8"/>
+          </svg>
+          <div class="si-meter"><div class="si-meter-fill" style="height:85%;background:linear-gradient(180deg,#d4a020,#886010);"></div></div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="si-header"><span class="si-icon">&#8767;</span><span class="si-name">LFO - Sine</span></div>
+        <div class="si-viz">
+          <svg viewBox="0 0 250 36" style="width:100%;height:100%;">
+            <path fill="none" stroke="#50b0e0" stroke-width="1.5" d="M0,18 C30,4 60,32 90,18 C120,4 150,32 180,18 C210,4 240,32 250,18"/>
+          </svg>
+          <div class="si-meter"><div class="si-meter-fill" style="height:60%;background:linear-gradient(180deg,#50b0e0,#1868a0);"></div></div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="si-header"><span class="si-icon">&#8767;</span><span class="si-name">LFO - Custom</span></div>
+        <div class="si-viz">
+          <svg viewBox="0 0 250 36" style="width:100%;height:100%;">
+            <path fill="none" stroke="#a070f0" stroke-width="1.5" d="M0,28 L30,8 L60,28 L90,8 L120,18 L150,28 L180,4 L210,28 L240,12 L250,18"/>
+          </svg>
+          <div class="si-meter"><div class="si-meter-fill" style="height:45%;background:linear-gradient(180deg,#a070f0,#5030a0);"></div></div>
+        </div>
+      </div>
+      <div class="source-add">+ Add Audio Source</div>
+      <div class="source-hint">Drag a source onto a parameter.</div>
+    </div>
+    <div class="layer-controls">
+      <div class="lc-title">Layer Controls</div>
+      <div class="lc-row"><span class="lc-label">Blend Mode</span><span class="lc-dropdown">Normal</span></div>
+      <div class="lc-knobs">
+        <div class="lc-knob"><div class="lck-circle"></div><div class="lck-label">H</div></div>
+        <div class="lc-knob"><div class="lck-circle"></div><div class="lck-label">S</div></div>
+        <div class="lc-knob"><div class="lck-circle"></div><div class="lck-label">B</div></div>
+        <div class="lc-knob"><div class="lck-circle"></div><div class="lck-label">Spd</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM: LAYER STRIPS -->
+<div class="bottom-area">
+  <div class="panel-title" style="justify-content:center;">Bottom Panel - Layer Strips</div>
+  <div class="layer-tabs">
+    <div class="l-tab active">Layer 1</div>
+    <div class="l-tab">Layer 2</div>
+    <div class="l-tab">Layer 3</div>
+    <div class="l-tab">Layer 4</div>
+    <div class="l-tab">Layer 5</div>
+    <div class="l-tab">Layer 6</div>
+    <div class="l-tab">Layer 7</div>
+    <div class="l-tab">Layer 8</div>
+    <div class="spacer"></div>
+    <div class="sm-btns"><div class="sm-btn solo">S</div><div class="sm-btn mute">M</div></div>
+  </div>
+  <div class="strip-scroll">
+    <div class="clip-strip"><span class="cs-badge bv">VIDEO</span><div class="cs-name">Clip: Geo-Pulse A</div><div class="cs-sub">Clip: Texture B</div><div class="cs-knobs"><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Bri</div></div><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Spd</div></div></div><div class="cs-opacity"><div class="fill" style="width:78%;"></div></div><div class="cs-actions"><div class="cs-action">FX 1</div><div class="cs-action">Macro</div><div class="cs-action">Strobe</div></div><div class="cs-expand">Expand</div></div>
+    <div class="clip-strip"><span class="cs-badge bi">IMAGE</span><div class="cs-name">Clip: Texture B</div><div class="cs-knobs"><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Bri</div></div><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Spd</div></div></div><div class="cs-opacity"><div class="fill" style="width:65%;"></div></div><div class="cs-actions"><div class="cs-action">FX 1</div><div class="cs-action">Macro</div><div class="cs-action">Strobe</div></div><div class="cs-expand">Expand</div></div>
+    <div class="clip-strip"><span class="cs-badge bs">SYNTH</span><div class="cs-name">Content: Generator C</div><div class="cs-knobs"><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Bri</div></div><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Spd</div></div></div><div class="cs-opacity"><div class="fill" style="width:90%;"></div></div><div class="cs-actions"><div class="cs-action">FX 1</div><div class="cs-action">Macro</div><div class="cs-action">Strobe</div></div><div class="cs-expand">Expand</div></div>
+    <div class="clip-strip"><span class="cs-badge bp">SRC</span><div class="cs-name">Clip: Geo-Pulse A</div><div class="cs-knobs"><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Bri</div></div><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Spd</div></div></div><div class="cs-opacity"><div class="fill" style="width:55%;"></div></div><div class="cs-actions"><div class="cs-action">FX 1</div><div class="cs-action">Macro</div><div class="cs-action">Strobe</div></div><div class="cs-expand">Expand</div></div>
+    <div class="clip-strip"><span class="cs-badge bv">VIDEO</span><div class="cs-name">Clip: Geo-Pulse A</div><div class="cs-knobs"><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Bri</div></div><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Spd</div></div></div><div class="cs-opacity"><div class="fill" style="width:70%;"></div></div><div class="cs-actions"><div class="cs-action">FX 1</div><div class="cs-action">Macro</div><div class="cs-action">Strobe</div></div><div class="cs-expand">Expand</div></div>
+    <div class="clip-strip"><span class="cs-badge bv">VIDEO</span><div class="cs-name">Clip: Geo-Pulse A</div><div class="cs-knobs"><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Bri</div></div><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Spd</div></div></div><div class="cs-opacity"><div class="fill" style="width:82%;"></div></div><div class="cs-actions"><div class="cs-action">FX 1</div><div class="cs-action">Macro</div><div class="cs-action">Strobe</div></div><div class="cs-expand">Expand</div></div>
+    <div class="clip-strip"><span class="cs-badge bv">VIDEO</span><div class="cs-name">Clip: Geo-Pulse A</div><div class="cs-knobs"><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Bri</div></div><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Spd</div></div></div><div class="cs-opacity"><div class="fill" style="width:60%;"></div></div><div class="cs-actions"><div class="cs-action">FX 1</div><div class="cs-action">Macro</div><div class="cs-action">Strobe</div></div><div class="cs-expand">Expand</div></div>
+    <div class="clip-strip"><span class="cs-badge bp">SRC</span><div class="cs-name">Clip: Geo-Pulse A</div><div class="cs-knobs"><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Bri</div></div><div class="cs-knob"><div class="csk-circle"></div><div class="csk-label">Spd</div></div></div><div class="cs-opacity"><div class="fill" style="width:45%;"></div></div><div class="cs-actions"><div class="cs-action">FX 1</div><div class="cs-action">Macro</div><div class="cs-action">Strobe</div></div><div class="cs-expand">Expand</div></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="f-lbl">Master Sources</div><div class="sep" style="height:14px;"></div>
+  <div class="f-lbl">Audio Player</div>
+  <div style="width:120px;height:3px;background:#1e2430;border-radius:2px;"><div style="width:35%;height:100%;background:linear-gradient(90deg,#2858a0,#50b0e0);border-radius:2px;"></div></div>
+  <div class="sep" style="height:14px;"></div>
+  <div class="f-lbl">Outputs</div><div class="f-val">Fullscreen</div>
+  <div class="spacer"></div>
+  <div class="f-lbl">Save</div><div class="f-lbl">Load</div><div class="f-lbl">Help</div>
+  <div style="font-size:16px;color:#242830;">&#9670;</div>
+</div>
+
+</body>
+</html>

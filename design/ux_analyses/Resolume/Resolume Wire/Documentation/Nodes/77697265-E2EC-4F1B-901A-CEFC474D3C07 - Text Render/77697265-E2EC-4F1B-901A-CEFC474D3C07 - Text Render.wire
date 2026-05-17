@@ -1,0 +1,1945 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          19,
+          "output"
+        ],
+        "to": [
+          21,
+          "channel1"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "channel0"
+        ],
+        "to": [
+          25,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "channel1"
+        ],
+        "to": [
+          26,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          20,
+          "output"
+        ],
+        "to": [
+          21,
+          "channel2"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output"
+        ],
+        "to": [
+          21,
+          "channel0"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "channel2"
+        ],
+        "to": [
+          29,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          25,
+          "output"
+        ],
+        "to": [
+          30,
+          "input3"
+        ]
+      },
+      {
+        "from": [
+          26,
+          "output"
+        ],
+        "to": [
+          30,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          29,
+          "output"
+        ],
+        "to": [
+          30,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          30,
+          "output"
+        ],
+        "to": [
+          31,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          15,
+          "output"
+        ],
+        "to": [
+          33,
+          "glowin"
+        ]
+      },
+      {
+        "from": [
+          15,
+          "output"
+        ],
+        "to": [
+          33,
+          "glowout"
+        ]
+      },
+      {
+        "from": [
+          33,
+          "output"
+        ],
+        "to": [
+          16,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          21,
+          "output"
+        ],
+        "to": [
+          34,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          22,
+          "pattern"
+        ],
+        "to": [
+          34,
+          "position"
+        ]
+      },
+      {
+        "from": [
+          34,
+          "output"
+        ],
+        "to": [
+          23,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          2,
+          "output"
+        ],
+        "to": [
+          35,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          35,
+          "alignment"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output"
+        ],
+        "to": [
+          35,
+          "alignmentvert"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          35,
+          "material"
+        ]
+      },
+      {
+        "from": [
+          35,
+          "output"
+        ],
+        "to": [
+          3,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      2,
+      9,
+      10,
+      12,
+      18,
+      19,
+      20
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "unknown",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 18,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "Text Render Example",
+      "identifier": "3bdaab62-3eec-443f-9f74-6398a2aa1555",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "unknown",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 11,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 18,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 36,
+    "nodes": {
+      "10": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": false
+          },
+          "has-min": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "option0-label": {
+            "type": "string",
+            "value": "Top"
+          },
+          "option0-value": {
+            "type": "integer",
+            "value": 0
+          },
+          "option1-label": {
+            "type": "string",
+            "value": "Center"
+          },
+          "option1-value": {
+            "type": "integer",
+            "value": 1
+          },
+          "option2-label": {
+            "type": "string",
+            "value": "Bottom"
+          },
+          "option2-value": {
+            "type": "integer",
+            "value": 2
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 3
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 317.3302001953125,
+          "y": 631.2354125976562
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "has-min",
+          "has-max",
+          "options-count",
+          "widget",
+          "option0-label",
+          "option0-value",
+          "option1-label",
+          "option1-value",
+          "option2-label",
+          "option2-value",
+          "unit"
+        ],
+        "name": "Align Vert.",
+        "thumbnail_visible": true
+      },
+      "11": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 1 - RENDERING TEXT\n\nIn this basic example we've exposed the input string, alignment and color to render a basic string to texture."
+          }
+        },
+        "bounds": {
+          "height": 508.0499877929687,
+          "width": 827.7587890625,
+          "x": 259.7945251464844,
+          "y": 325.92852783203125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Group",
+        "thumbnail_visible": true
+      },
+      "12": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 317.3302001953125,
+          "y": 743.2354125976564
+        },
+        "class": {
+          "id": "77697265-4C9E-4F75-B4F0-5415B713EA1B",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "options-count",
+          "widget"
+        ],
+        "name": "Color",
+        "thumbnail_visible": true
+      },
+      "13": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 2 : GLOW\n\nIn this example we've made the glow in and glow out parameters visible and use a Perlin Generator node to make the glow random. The color of the text is set to be fully transparent to get an outline feel."
+          }
+        },
+        "bounds": {
+          "height": 508.0499877929687,
+          "width": 866.8250122070312,
+          "x": 1130.91455078125,
+          "y": 325.92852783203125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Group",
+        "thumbnail_visible": true
+      },
+      "15": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 154,
+          "width": 195,
+          "x": 1296.2625732421875,
+          "y": 660.876220703125
+        },
+        "class": {
+          "id": "77697265-A2EF-44DA-9A81-BB0385C1948C",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 0.8999999761581421
+          },
+          "frequency": {
+            "type": "float",
+            "value": 2
+          },
+          "offset": {
+            "type": "float",
+            "value": 0.10000000149011612
+          },
+          "reset": {
+            "type": "trigger",
+            "value": null
+          },
+          "seed": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "unipolar",
+          "instances"
+        ],
+        "name": "Perlin Generator",
+        "thumbnail_visible": true
+      },
+      "16": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1806.2625732421875,
+          "y": 439.8762512207031
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "18": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 315.2747802734375,
+          "y": 1049.1221923828125
+        },
+        "class": {
+          "id": "77697265-F29F-45E9-A833-21E09C750BA7",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": "PIXEL"
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "options-count",
+          "widget"
+        ],
+        "name": "Pixel String",
+        "thumbnail_visible": true
+      },
+      "19": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 315.2747802734375,
+          "y": 1161.1221923828125
+        },
+        "class": {
+          "id": "77697265-F29F-45E9-A833-21E09C750BA7",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": "BLUR"
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "options-count",
+          "widget"
+        ],
+        "name": "Blur String",
+        "thumbnail_visible": true
+      },
+      "2": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 317.3302001953125,
+          "y": 407.23541259765625
+        },
+        "class": {
+          "id": "77697265-F29F-45E9-A833-21E09C750BA7",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": "Hey Wire!"
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "options-count",
+          "widget"
+        ],
+        "name": "String In",
+        "thumbnail_visible": true
+      },
+      "20": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 315.2747802734375,
+          "y": 1273.1221923828125
+        },
+        "class": {
+          "id": "77697265-F29F-45E9-A833-21E09C750BA7",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": "FISHEYE"
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "options-count",
+          "widget"
+        ],
+        "name": "Fish String",
+        "thumbnail_visible": true
+      },
+      "21": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input2-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "num-channels": {
+            "type": "integer",
+            "value": 3
+          },
+          "type": {
+            "type": "type",
+            "value": "string"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 505.2747802734375,
+          "y": 1049.1221923828125
+        },
+        "class": {
+          "id": "77697265-3732-42da-653e-b641d4a49224",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "channel0": {
+            "type": "string",
+            "value": ""
+          },
+          "channel1": {
+            "type": "string",
+            "value": ""
+          },
+          "channel2": {
+            "type": "string",
+            "value": ""
+          }
+        },
+        "hidden": [
+          "type",
+          "flow",
+          "num-channels",
+          "input0-dimensions",
+          "input1-dimensions",
+          "input2-dimensions"
+        ],
+        "name": "Join",
+        "thumbnail_visible": true
+      },
+      "22": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "attribute"
+          },
+          "include-max": {
+            "type": "bool",
+            "value": true
+          },
+          "max": {
+            "type": "float2",
+            "value": [
+              0,
+              150
+            ]
+          },
+          "min": {
+            "type": "float2",
+            "value": [
+              0,
+              -250
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "value": 3
+          },
+          "type": {
+            "type": "type",
+            "value": "float2"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 505.2747802734375,
+          "y": 1185.1221923828125
+        },
+        "class": {
+          "id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "type",
+          "flow",
+          "include-max"
+        ],
+        "name": "Linear",
+        "thumbnail_visible": true
+      },
+      "23": {
+        "attributes": {
+          "dimensions": {
+            "type": "integer",
+            "value": 3
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "type": {
+            "type": "type",
+            "value": "texture2d"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 1015.2747802734376,
+          "y": 1049.1221923828125
+        },
+        "class": {
+          "id": "77697265-3732-42da-883e-b641d4a49224",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": [
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "type",
+          "flow",
+          "dimensions"
+        ],
+        "name": "Split",
+        "thumbnail_visible": true
+      },
+      "25": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 1270.2747802734375,
+          "y": 1052.77392578125
+        },
+        "class": {
+          "id": "77697265-ACD2-4541-B139-88756DC29CA7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "columns": {
+            "type": "float",
+            "value": 200
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "rows": {
+            "type": "float",
+            "value": 200
+          },
+          "sample-from": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "bypass",
+          "sample-from",
+          "instances"
+        ],
+        "name": "Pixelate",
+        "thumbnail_visible": true
+      },
+      "26": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 1270.2747802734375,
+          "y": 1164.77392578125
+        },
+        "class": {
+          "id": "77697265-5F11-465D-9E83-A3CF5A50D8E8",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "blur": {
+            "type": "float",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "distance": {
+            "type": "float2",
+            "value": [
+              0.15000000596046448,
+              0
+            ]
+          },
+          "gaussian": {
+            "type": "float",
+            "value": 0.1303499937057495
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "quality": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "bypass",
+          "instances"
+        ],
+        "name": "Blur",
+        "thumbnail_visible": true
+      },
+      "29": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 1270.2747802734375,
+          "y": 1325.77392578125
+        },
+        "class": {
+          "id": "77697265-F20A-4E52-B34F-6BC85D544470",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "fishEye": {
+            "type": "float",
+            "value": 1
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "bypass",
+          "instances"
+        ],
+        "name": "Fish Eye",
+        "thumbnail_visible": true
+      },
+      "3": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 762.3302001953125,
+          "y": 407.23541259765625
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "30": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "input-count": {
+            "type": "integer",
+            "value": 3
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          }
+        },
+        "bounds": {
+          "height": 178,
+          "width": 195,
+          "x": 1525.2747802734375,
+          "y": 1052.77392578125
+        },
+        "class": {
+          "id": "77697265-A270-4D60-911C-A88B1BE6369A",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input1": {
+            "type": "texture2d",
+            "value": null
+          },
+          "input2": {
+            "type": "texture2d",
+            "value": null
+          },
+          "input3": {
+            "type": "texture2d",
+            "value": null
+          },
+          "mode": {
+            "type": "integer",
+            "value": 11
+          },
+          "opacity1": {
+            "type": "float",
+            "value": 1
+          },
+          "opacity2": {
+            "type": "float",
+            "value": 1
+          },
+          "opacity3": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "bypass",
+          "input-count",
+          "mode",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Video Mixer",
+        "thumbnail_visible": true
+      },
+      "31": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1780.2747802734375,
+          "y": 1052.77392578125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "32": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 3 - MULTI MODE\n\nIn this example we feed the Text Render node a collection of strings.\nWe've set the  Text Render node to output seperate instances.\nIn this mode the node will render out each string as a separate texture.\nThis allows for creative uses of text at the expense of performance.\n"
+          }
+        },
+        "bounds": {
+          "height": 588.0684204101562,
+          "width": 1733.6298828125,
+          "x": 264.2391357421875,
+          "y": 865.0523681640625
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Group",
+        "thumbnail_visible": true
+      },
+      "33": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "font": {
+            "type": "string",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "reduce": {
+            "type": "bool",
+            "value": true
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "style": {
+            "type": "string",
+            "value": "Regular"
+          }
+        },
+        "bounds": {
+          "height": 274,
+          "width": 195,
+          "x": 1551.2625732421875,
+          "y": 439.8762512207031
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "alignmentvert": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "glowin": {
+            "type": "float",
+            "value": 0
+          },
+          "glowout": {
+            "type": "float",
+            "value": 0
+          },
+          "input": {
+            "type": "string",
+            "value": "GLOW"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              0
+            ]
+          },
+          "outlinecolor": {
+            "type": "float4",
+            "value": [
+              0.8588232994079591,
+              0.19607841968536377,
+              1,
+              1
+            ]
+          },
+          "outlinewidth": {
+            "type": "float",
+            "value": 0
+          },
+          "position": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 4.300000190734863
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "font",
+          "style",
+          "instances",
+          "bypass",
+          "outlinecolor",
+          "outlinewidth",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "reduce"
+        ],
+        "name": "Text Render",
+        "thumbnail_visible": true
+      },
+      "34": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "font": {
+            "type": "string",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 3
+          },
+          "reduce": {
+            "type": "bool",
+            "value": true
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "style": {
+            "type": "string",
+            "value": "Regular"
+          }
+        },
+        "bounds": {
+          "height": 250,
+          "width": 195,
+          "x": 760.2747802734375,
+          "y": 1049.1221923828125
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": [
+              1,
+              1,
+              1
+            ]
+          },
+          "alignmentvert": {
+            "type": "integer",
+            "value": [
+              1,
+              1,
+              1
+            ]
+          },
+          "bypass": {
+            "type": "bool",
+            "value": [
+              false,
+              false,
+              false
+            ]
+          },
+          "glowin": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0
+            ]
+          },
+          "glowout": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0
+            ]
+          },
+          "input": {
+            "type": "string",
+            "value": [
+              "Text",
+              "Text",
+              "Text"
+            ]
+          },
+          "linewidth": {
+            "type": "float",
+            "value": [
+              1920,
+              1920,
+              1920
+            ]
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                1,
+                1,
+                1,
+                1
+              ],
+              [
+                1,
+                1,
+                1,
+                1
+              ]
+            ]
+          },
+          "outlinecolor": {
+            "type": "float4",
+            "value": [
+              [
+                1,
+                0,
+                0,
+                1
+              ],
+              [
+                1,
+                0,
+                0,
+                1
+              ],
+              [
+                1,
+                0,
+                0,
+                1
+              ]
+            ]
+          },
+          "outlinewidth": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0
+            ]
+          },
+          "position": {
+            "type": "float2",
+            "value": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": [
+              1,
+              1,
+              1
+            ]
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          }
+        },
+        "hidden": [
+          "font",
+          "style",
+          "instances",
+          "bypass",
+          "outlinecolor",
+          "outlinewidth",
+          "glowin",
+          "glowout",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Text Render",
+        "thumbnail_visible": true
+      },
+      "35": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "font": {
+            "type": "string",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "reduce": {
+            "type": "bool",
+            "value": true
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "style": {
+            "type": "string",
+            "value": "Regular"
+          }
+        },
+        "bounds": {
+          "height": 225,
+          "width": 195,
+          "x": 507.3302001953125,
+          "y": 407.23541259765625
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "alignmentvert": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "glowin": {
+            "type": "float",
+            "value": 0
+          },
+          "glowout": {
+            "type": "float",
+            "value": 0
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "outlinecolor": {
+            "type": "float4",
+            "value": [
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          "outlinewidth": {
+            "type": "float",
+            "value": 0
+          },
+          "position": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "font",
+          "style",
+          "instances",
+          "bypass",
+          "outlinecolor",
+          "outlinewidth",
+          "glowin",
+          "glowout",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "reduce"
+        ],
+        "name": "Text Render",
+        "thumbnail_visible": true
+      },
+      "6": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "TEXT RENDER\n\nThe Text Render node takes a string type or a collection of strings and renders it to a Texture2Drgba type using a given size, font and orientation. There are additional options to add an outline or glow to your text.\n\nNote that this node has a lot of hidden parameters by default that might be worth exploring."
+          }
+        },
+        "bounds": {
+          "height": 155.89373779296875,
+          "width": 742.985595703125,
+          "x": 259.816162109375,
+          "y": 141.87603759765625
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "9": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": false
+          },
+          "has-min": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "option0-label": {
+            "type": "string",
+            "value": "Left"
+          },
+          "option0-value": {
+            "type": "integer",
+            "value": 0
+          },
+          "option1-label": {
+            "type": "string",
+            "value": "Center"
+          },
+          "option1-value": {
+            "type": "integer",
+            "value": 1
+          },
+          "option2-label": {
+            "type": "string",
+            "value": "Right"
+          },
+          "option2-value": {
+            "type": "integer",
+            "value": 2
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 3
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 317.3302001953125,
+          "y": 519.2354125976562
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "instances",
+          "flow",
+          "has-min",
+          "has-max",
+          "options-count",
+          "widget",
+          "option0-label",
+          "option0-value",
+          "option1-label",
+          "option1-value",
+          "option2-label",
+          "option2-value",
+          "unit"
+        ],
+        "name": "Align Hor.",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 151.73126220703125,
+        "y": 77.59272003173828,
+        "zoom": 0.9556915163993835
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null,
+          "Syphon": null
+        }
+      }
+    }
+  }
+}

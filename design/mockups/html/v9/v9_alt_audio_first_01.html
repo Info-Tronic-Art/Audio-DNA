@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>v9_alt_audio_first_01 — Audio Immersive</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #111; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 11px; overflow: hidden; }
+
+/* TOP BAR */
+.topbar { height: 30px; background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; padding: 0 10px; gap: 12px; }
+.topbar .section { display: flex; align-items: center; gap: 6px; padding: 0 8px; border-right: 1px solid #333; height: 100%; }
+.topbar .section:last-child { border-right: none; }
+.topbar .label { color: #888; font-size: 9px; text-transform: uppercase; }
+.topbar .value { color: #ff8800; font-weight: 600; font-size: 13px; }
+.topbar .btn { background: #2a2a2a; border: 1px solid #444; color: #ccc; padding: 2px 8px; font-size: 10px; cursor: pointer; }
+.topbar .btn.active { background: #ff8800; color: #111; border-color: #ff8800; }
+.beat-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+.beat-dot.on { background: #ff8800; }
+
+/* LAYOUT */
+.main { display: flex; height: 1050px; }
+
+/* LEFT: AUDIO IMMERSIVE PANEL — 300px wide */
+.audio-panel { width: 300px; background: #141414; border-right: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; }
+.audio-panel .panel-header { height: 24px; background: #1a1a1a; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: #ff8800; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; flex-shrink: 0; }
+
+/* Waveform */
+.waveform-area { height: 60px; background: #0d0d0d; border-bottom: 1px solid #282828; position: relative; flex-shrink: 0; }
+.waveform-canvas { width: 100%; height: 100%; }
+.waveform-svg { width: 100%; height: 100%; }
+
+/* Spectrum Analyzer */
+.spectrum-area { height: 80px; background: #0d0d0d; border-bottom: 1px solid #282828; position: relative; flex-shrink: 0; display: flex; align-items: flex-end; padding: 4px 8px; gap: 2px; }
+.spec-bar { flex: 1; background: linear-gradient(to top, #ff8800, #ffaa44); min-width: 4px; border-radius: 1px 1px 0 0; }
+
+/* VU Meters */
+.vu-section { padding: 6px 8px; flex-shrink: 0; border-bottom: 1px solid #282828; }
+.vu-section .section-title { font-size: 9px; color: #666; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; }
+.vu-meter-row { display: flex; align-items: center; margin-bottom: 4px; height: 20px; }
+.vu-label { width: 60px; font-size: 10px; color: #aaa; }
+.vu-track { flex: 1; height: 14px; background: #1a1a1a; border: 1px solid #282828; position: relative; overflow: hidden; }
+.vu-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.vu-value { width: 36px; text-align: right; font-size: 10px; color: #888; font-family: monospace; }
+.route-dot { width: 10px; height: 10px; border-radius: 50%; margin-left: 4px; cursor: pointer; flex-shrink: 0; }
+.route-dot.connected { box-shadow: 0 0 4px currentColor; }
+
+/* Signal Meters */
+.signals-scroll { flex: 1; overflow-y: auto; padding: 0; }
+.signal-group { border-bottom: 1px solid #222; padding: 6px 8px; }
+.signal-group .group-title { font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 1px; }
+.signal-row { display: flex; align-items: center; height: 18px; margin-bottom: 2px; }
+.signal-name { width: 70px; font-size: 10px; color: #aaa; white-space: nowrap; overflow: hidden; }
+.signal-bar-track { flex: 1; height: 8px; background: #1a1a1a; overflow: hidden; }
+.signal-bar-fill { height: 100%; }
+.signal-val { width: 30px; text-align: right; font-size: 9px; color: #666; font-family: monospace; }
+
+/* CENTER */
+.center { flex: 1; display: flex; flex-direction: column; }
+
+/* Deck Tabs */
+.deck-tabs { height: 24px; background: #1a1a1a; display: flex; border-bottom: 1px solid #333; flex-shrink: 0; }
+.deck-tab { padding: 0 16px; display: flex; align-items: center; font-size: 10px; color: #888; cursor: pointer; border-right: 1px solid #282828; }
+.deck-tab.active { color: #ff8800; background: #222; }
+
+/* Deck Grid */
+.deck-area { flex: 1; display: flex; flex-direction: column; padding: 4px; gap: 2px; }
+.layer-row { display: flex; gap: 2px; flex: 1; min-height: 0; }
+.layer-strip { width: 90px; background: #1a1a1a; display: flex; flex-direction: column; justify-content: center; padding: 4px 6px; border: 1px solid #282828; flex-shrink: 0; }
+.layer-strip .layer-name { font-size: 9px; color: #ff8800; font-weight: 600; margin-bottom: 2px; }
+.layer-strip .layer-type { font-size: 8px; color: #666; }
+.layer-strip .opacity-bar { height: 4px; background: #282828; margin-top: 4px; position: relative; }
+.layer-strip .opacity-fill { height: 100%; background: #ff8800; position: absolute; }
+
+.clip-cell { flex: 1; background: #1e1e1e; border: 1px solid #282828; position: relative; overflow: hidden; cursor: pointer; min-width: 0; }
+.clip-cell.active { border-color: #ff8800; }
+.clip-cell .clip-thumb { width: 100%; height: 100%; }
+.clip-cell .clip-name { position: absolute; bottom: 2px; left: 4px; font-size: 8px; color: #ccc; text-shadow: 0 1px 2px #000; }
+.clip-cell .signal-overlay { position: absolute; top: 2px; right: 2px; display: flex; gap: 2px; }
+.clip-cell .signal-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Preview */
+.preview-area { height: 260px; background: #0a0a0a; border-top: 1px solid #333; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
+.preview-label { position: absolute; top: 4px; left: 8px; font-size: 9px; color: #555; text-transform: uppercase; }
+.preview-box { width: 440px; height: 248px; background: linear-gradient(135deg, #1a0a00, #331800, #1a0a00); border: 1px solid #333; }
+
+/* RIGHT PANEL */
+.right-panel { width: 280px; background: #141414; border-left: 1px solid #333; display: flex; flex-direction: column; }
+.inspector-tabs { height: 24px; display: flex; background: #1a1a1a; border-bottom: 1px solid #333; flex-shrink: 0; }
+.inspector-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #888; cursor: pointer; border-right: 1px solid #282828; }
+.inspector-tab.active { color: #ff8800; background: #1e1e1e; }
+.inspector-content { flex: 1; overflow-y: auto; padding: 8px; }
+.insp-section { margin-bottom: 10px; }
+.insp-section .section-title { font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 1px; padding-bottom: 4px; border-bottom: 1px solid #222; }
+.insp-row { display: flex; align-items: center; justify-content: space-between; height: 22px; padding: 0 4px; }
+.insp-row .label { font-size: 10px; color: #aaa; }
+.insp-slider { width: 100px; height: 4px; background: #333; position: relative; }
+.insp-slider .fill { height: 100%; background: #ff8800; position: absolute; }
+.insp-slider .thumb { width: 8px; height: 12px; background: #ddd; position: absolute; top: -4px; }
+.fx-row { display: flex; align-items: center; height: 24px; padding: 0 4px; background: #1a1a1a; margin-bottom: 2px; border: 1px solid #282828; }
+.fx-row .fx-bypass { width: 8px; height: 8px; background: #ff8800; margin-right: 6px; }
+.fx-row .fx-bypass.off { background: #444; }
+.fx-row .fx-name { flex: 1; font-size: 10px; color: #ccc; }
+.fx-row .fx-remove { font-size: 10px; color: #666; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="section">
+    <span class="label">BPM</span>
+    <span class="value">128.0</span>
+    <span class="btn active">TAP</span>
+    <span class="btn">MANUAL</span>
+  </div>
+  <div class="section">
+    <div class="beat-dot on"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+    <span style="color:#888; font-size:9px; margin-left:4px;">BAR 3 / 8</span>
+  </div>
+  <div class="section">
+    <span class="label">Quantize</span>
+    <span class="btn active">1 BAR</span>
+  </div>
+  <div class="section" style="flex:1;">
+    <span class="label">Master</span>
+    <div style="width:80px; height:6px; background:#282828; position:relative;"><div style="width:75%; height:100%; background:#ff8800;"></div></div>
+  </div>
+  <div class="section">
+    <span class="label">Fade</span>
+    <div style="width:60px; height:6px; background:#282828; position:relative;"><div style="width:50%; height:100%; background:#ff8800;"></div></div>
+  </div>
+  <div class="section">
+    <span class="btn">REC</span>
+    <span class="btn">SNAP</span>
+    <span class="btn">FULL</span>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main">
+
+  <!-- LEFT: AUDIO IMMERSIVE PANEL (300px) -->
+  <div class="audio-panel">
+    <div class="panel-header">Audio Analysis</div>
+
+    <!-- Waveform -->
+    <div class="waveform-area">
+      <svg class="waveform-svg" viewBox="0 0 300 60" preserveAspectRatio="none">
+        <polyline fill="none" stroke="#ff8800" stroke-width="1" opacity="0.8"
+          points="0,30 5,28 10,22 15,35 20,18 25,40 30,15 35,42 40,20 45,38 50,12 55,45 60,25 65,32 70,10 75,48 80,22 85,35 90,15 95,42 100,28 105,30 110,18 115,40 120,22 125,35 130,12 135,45 140,20 145,38 150,30 155,25 160,35 165,18 170,42 175,15 180,40 185,22 190,35 195,28 200,32 205,15 210,42 215,20 220,38 225,25 230,30 235,18 240,40 245,22 250,35 255,28 260,32 265,15 270,42 275,20 280,38 285,25 290,30 295,28 300,30" />
+      </svg>
+    </div>
+
+    <!-- Spectrum Analyzer -->
+    <div class="spectrum-area">
+      <div class="spec-bar" style="height:65%"></div>
+      <div class="spec-bar" style="height:80%"></div>
+      <div class="spec-bar" style="height:72%"></div>
+      <div class="spec-bar" style="height:55%"></div>
+      <div class="spec-bar" style="height:90%"></div>
+      <div class="spec-bar" style="height:68%"></div>
+      <div class="spec-bar" style="height:45%"></div>
+      <div class="spec-bar" style="height:78%"></div>
+      <div class="spec-bar" style="height:60%"></div>
+      <div class="spec-bar" style="height:35%"></div>
+      <div class="spec-bar" style="height:82%"></div>
+      <div class="spec-bar" style="height:50%"></div>
+      <div class="spec-bar" style="height:70%"></div>
+      <div class="spec-bar" style="height:40%"></div>
+      <div class="spec-bar" style="height:25%"></div>
+      <div class="spec-bar" style="height:55%"></div>
+      <div class="spec-bar" style="height:30%"></div>
+      <div class="spec-bar" style="height:45%"></div>
+      <div class="spec-bar" style="height:20%"></div>
+      <div class="spec-bar" style="height:35%"></div>
+      <div class="spec-bar" style="height:15%"></div>
+      <div class="spec-bar" style="height:28%"></div>
+      <div class="spec-bar" style="height:12%"></div>
+      <div class="spec-bar" style="height:18%"></div>
+    </div>
+
+    <!-- VU Meters (large) -->
+    <div class="vu-section">
+      <div class="section-title">Amplitude</div>
+      <div class="vu-meter-row">
+        <span class="vu-label">RMS</span>
+        <div class="vu-track"><div class="vu-fill" style="width:72%; background:linear-gradient(to right, #ff8800, #ffaa44);"></div></div>
+        <span class="vu-value">-8.2</span>
+        <div class="route-dot connected" style="color:#ff8800; background:#ff8800;"></div>
+      </div>
+      <div class="vu-meter-row">
+        <span class="vu-label">Peak</span>
+        <div class="vu-track"><div class="vu-fill" style="width:85%; background:linear-gradient(to right, #ff8800, #ff4444);"></div></div>
+        <span class="vu-value">-3.1</span>
+        <div class="route-dot connected" style="color:#ff4444; background:#ff4444;"></div>
+      </div>
+      <div class="vu-meter-row">
+        <span class="vu-label">LUFS</span>
+        <div class="vu-track"><div class="vu-fill" style="width:60%; background:linear-gradient(to right, #888, #ff8800);"></div></div>
+        <span class="vu-value">-14.2</span>
+        <div class="route-dot" style="color:#555; background:#333;"></div>
+      </div>
+    </div>
+
+    <!-- Scrollable signal meters -->
+    <div class="signals-scroll">
+
+      <div class="signal-group">
+        <div class="group-title">Spectral Bands</div>
+        <div class="signal-row">
+          <span class="signal-name">Sub</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:45%; background:#ff4400;"></div></div>
+          <span class="signal-val">0.45</span>
+          <div class="route-dot connected" style="color:#ff4400; background:#ff4400;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Bass</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:78%; background:#ff6600;"></div></div>
+          <span class="signal-val">0.78</span>
+          <div class="route-dot connected" style="color:#ff6600; background:#ff6600;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Low Mid</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:55%; background:#ff8800;"></div></div>
+          <span class="signal-val">0.55</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Mid</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:62%; background:#ffaa00;"></div></div>
+          <span class="signal-val">0.62</span>
+          <div class="route-dot connected" style="color:#ffaa00; background:#ffaa00;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">High Mid</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:40%; background:#ffcc00;"></div></div>
+          <span class="signal-val">0.40</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Presence</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:35%; background:#ffdd44;"></div></div>
+          <span class="signal-val">0.35</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Brilliance</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:22%; background:#ffee88;"></div></div>
+          <span class="signal-val">0.22</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+      </div>
+
+      <div class="signal-group">
+        <div class="group-title">Rhythm</div>
+        <div class="signal-row">
+          <span class="signal-name">Beat Phase</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:35%; background:#ff8800;"></div></div>
+          <span class="signal-val">0.35</span>
+          <div class="route-dot connected" style="color:#ff8800; background:#ff8800;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Bar Phase</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:58%; background:#ff8800;"></div></div>
+          <span class="signal-val">0.58</span>
+          <div class="route-dot connected" style="color:#ff8800; background:#ff8800;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Phrase Phase</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:25%; background:#cc6600;"></div></div>
+          <span class="signal-val">0.25</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Onset</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:90%; background:#ff4400;"></div></div>
+          <span class="signal-val">0.90</span>
+          <div class="route-dot connected" style="color:#ff4400; background:#ff4400;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Transient Dens.</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:48%; background:#cc6600;"></div></div>
+          <span class="signal-val">4.2</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+      </div>
+
+      <div class="signal-group">
+        <div class="group-title">Spectral</div>
+        <div class="signal-row">
+          <span class="signal-name">Centroid</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:42%; background:#ffaa44;"></div></div>
+          <span class="signal-val">2.4k</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Flux</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:65%; background:#ffaa44;"></div></div>
+          <span class="signal-val">0.65</span>
+          <div class="route-dot connected" style="color:#ffaa44; background:#ffaa44;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Flatness</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:30%; background:#cc8844;"></div></div>
+          <span class="signal-val">0.30</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+      </div>
+
+      <div class="signal-group">
+        <div class="group-title">Pitch / Harmony</div>
+        <div class="signal-row">
+          <span class="signal-name">Pitch</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:55%; background:#ffcc44;"></div></div>
+          <span class="signal-val">440Hz</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Confidence</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:82%; background:#88cc44;"></div></div>
+          <span class="signal-val">0.82</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Key</span>
+          <div class="signal-bar-track" style="background:transparent;"><span style="color:#ffcc44; font-size:10px;">A minor</span></div>
+          <span class="signal-val"></span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">HCDF</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:38%; background:#aa8844;"></div></div>
+          <span class="signal-val">0.38</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+      </div>
+
+      <div class="signal-group">
+        <div class="group-title">Structure / Genre</div>
+        <div class="signal-row">
+          <span class="signal-name">Structure</span>
+          <div class="signal-bar-track" style="background:transparent;"><span style="color:#ff8800; font-size:10px; font-weight:600;">DROP</span></div>
+          <span class="signal-val"></span>
+          <div class="route-dot connected" style="color:#ff8800; background:#ff8800;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Genre</span>
+          <div class="signal-bar-track" style="background:transparent;"><span style="color:#ffaa44; font-size:10px;">Techno (0.85)</span></div>
+          <span class="signal-val"></span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Energy</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:80%; background:#ff6600;"></div></div>
+          <span class="signal-val">HIGH</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Sidechain</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:72%; background:#ff4400;"></div></div>
+          <span class="signal-val">0.72</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+        <div class="signal-row">
+          <span class="signal-name">Swing</span>
+          <div class="signal-bar-track"><div class="signal-bar-fill" style="width:10%; background:#aa6644;"></div></div>
+          <span class="signal-val">0.50</span>
+          <div class="route-dot" style="color:#555; background:#333;"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <!-- Deck Tabs -->
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck 1</div>
+      <div class="deck-tab">Deck 2</div>
+      <div class="deck-tab">Deck 3</div>
+      <div class="deck-tab">Deck 4</div>
+    </div>
+
+    <!-- Deck Grid -->
+    <div class="deck-area">
+      <!-- Layer 1 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-name">Layer 1</div>
+          <div class="layer-type">Opaque</div>
+          <div class="opacity-bar"><div class="opacity-fill" style="width:100%"></div></div>
+        </div>
+        <div class="clip-cell active" style="background: linear-gradient(135deg, #2a1500, #441a00, #2a1500);">
+          <div class="signal-overlay">
+            <div class="signal-dot" style="background:#ff8800;"></div>
+            <div class="signal-dot" style="background:#ff4400;"></div>
+          </div>
+          <div class="clip-name">Mandelbulb</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #1a0a22, #2a1444, #1a0a22);">
+          <div class="clip-name">Tunnel</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #0a1a22, #142a44, #0a1a22);">
+          <div class="clip-name">Perlin Noise</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #1a1a0a, #2a2a14, #1a1a0a);">
+          <div class="clip-name">Voronoi</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #220a0a, #441414, #220a0a);">
+          <div class="clip-name">Julia Set</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #0a220a, #144414, #0a220a);">
+          <div class="signal-overlay">
+            <div class="signal-dot" style="background:#ff6600;"></div>
+          </div>
+          <div class="clip-name">Spectrum Ring</div>
+        </div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+      </div>
+
+      <!-- Layer 2 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-name">Layer 2</div>
+          <div class="layer-type">Transparent</div>
+          <div class="opacity-bar"><div class="opacity-fill" style="width:70%"></div></div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #1a1400, #332800, #1a1400);">
+          <div class="clip-name">Kaleidoscope</div>
+        </div>
+        <div class="clip-cell active" style="background: linear-gradient(135deg, #0a0a1a, #141444, #0a0a1a);">
+          <div class="signal-overlay">
+            <div class="signal-dot" style="background:#ff8800;"></div>
+          </div>
+          <div class="clip-name">Cymatics</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #1a0a1a, #2a142a, #1a0a1a);">
+          <div class="clip-name">Strange Attractor</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #0a1a0a, #142a14, #0a1a0a);">
+          <div class="clip-name">Menger Sponge</div>
+        </div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+      </div>
+
+      <!-- Layer 3 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-name">Layer 3</div>
+          <div class="layer-type">FX Only</div>
+          <div class="opacity-bar"><div class="opacity-fill" style="width:50%"></div></div>
+        </div>
+        <div class="clip-cell active" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a, #1a1a1a);">
+          <div class="signal-overlay">
+            <div class="signal-dot" style="background:#ff8800;"></div>
+            <div class="signal-dot" style="background:#ffaa00;"></div>
+            <div class="signal-dot" style="background:#ff4400;"></div>
+          </div>
+          <div class="clip-name">Ripple + Bloom</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a, #1a1a1a);">
+          <div class="clip-name">Glitch Pack</div>
+        </div>
+        <div class="clip-cell" style="background: linear-gradient(135deg, #1a1a1a, #2a2a2a, #1a1a1a);">
+          <div class="clip-name">Color Flash</div>
+        </div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+        <div class="clip-cell" style="background: #1e1e1e;"><div class="clip-name" style="color:#555;">Empty</div></div>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-area">
+      <span class="preview-label">Output Preview</span>
+      <div class="preview-box"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="inspector-tabs">
+      <div class="inspector-tab active">Clip</div>
+      <div class="inspector-tab">Layer</div>
+      <div class="inspector-tab" style="color:#ff8800; font-weight:600;">Signals</div>
+      <div class="inspector-tab">Comp</div>
+    </div>
+    <div class="inspector-content">
+      <div class="insp-section">
+        <div class="section-title">Clip: Mandelbulb</div>
+        <div class="insp-row">
+          <span class="label">Source</span>
+          <span style="color:#ff8800; font-size:10px;">Mandelbulb</span>
+        </div>
+        <div class="insp-row">
+          <span class="label">Opacity</span>
+          <div class="insp-slider"><div class="fill" style="width:100%;"></div><div class="thumb" style="left:96px;"></div></div>
+        </div>
+      </div>
+      <div class="insp-section">
+        <div class="section-title">Source Parameters</div>
+        <div class="insp-row"><span class="label">Zoom</span><div class="insp-slider"><div class="fill" style="width:30%;"></div><div class="thumb" style="left:26px;"></div></div></div>
+        <div class="insp-row"><span class="label">Speed</span><div class="insp-slider"><div class="fill" style="width:55%;"></div><div class="thumb" style="left:51px;"></div></div></div>
+        <div class="insp-row"><span class="label">Power</span><div class="insp-slider"><div class="fill" style="width:40%;"></div><div class="thumb" style="left:36px;"></div></div></div>
+        <div class="insp-row"><span class="label">Iterations</span><div class="insp-slider"><div class="fill" style="width:60%;"></div><div class="thumb" style="left:56px;"></div></div></div>
+        <div class="insp-row"><span class="label">Palette</span><div class="insp-slider"><div class="fill" style="width:65%;"></div><div class="thumb" style="left:61px;"></div></div></div>
+        <div class="insp-row"><span class="label">Glow</span><div class="insp-slider"><div class="fill" style="width:20%;"></div><div class="thumb" style="left:16px;"></div></div></div>
+      </div>
+      <div class="insp-section">
+        <div class="section-title">Effects</div>
+        <div class="fx-row"><div class="fx-bypass"></div><span class="fx-name">Ripple</span><span class="fx-remove">x</span></div>
+        <div class="fx-row"><div class="fx-bypass"></div><span class="fx-name">Glow</span><span class="fx-remove">x</span></div>
+        <div class="fx-row"><div class="fx-bypass off"></div><span class="fx-name">Chromatic Aberration</span><span class="fx-remove">x</span></div>
+      </div>
+      <div class="insp-section">
+        <div class="section-title">Transform</div>
+        <div class="insp-row"><span class="label">Position X</span><div class="insp-slider"><div class="fill" style="width:50%;"></div><div class="thumb" style="left:46px;"></div></div></div>
+        <div class="insp-row"><span class="label">Position Y</span><div class="insp-slider"><div class="fill" style="width:50%;"></div><div class="thumb" style="left:46px;"></div></div></div>
+        <div class="insp-row"><span class="label">Scale</span><div class="insp-slider"><div class="fill" style="width:50%;"></div><div class="thumb" style="left:46px;"></div></div></div>
+        <div class="insp-row"><span class="label">Rotation</span><div class="insp-slider"><div class="fill" style="width:50%;"></div><div class="thumb" style="left:46px;"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

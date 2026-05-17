@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 4 - Mockup v8_05 (Updated)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0a;
+  color: #d0d0d0;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11px;
+  overflow: hidden;
+  width: 1920px;
+  height: 1080px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== MENU BAR (24px topmost) ===== */
+.menu-bar {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  background: #1a1a1a;
+  border-bottom: 1px solid #2a2a2a;
+  padding: 0 8px;
+  gap: 0;
+  flex-shrink: 0;
+}
+.menu-item {
+  padding: 3px 12px;
+  font-size: 11px;
+  color: #bbb;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.menu-item:first-child { font-weight: 700; color: #d4a843; }
+.menu-item:hover { background: #2a2a2a; color: #eee; }
+
+/* ===== TOP BAR (transport / BPM) ===== */
+.top-bar {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: #141414;
+  border-bottom: 1px solid #2a2a2a;
+  padding: 0 12px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.logo {
+  font-size: 14px;
+  font-weight: 700;
+  color: #d4a843;
+  letter-spacing: 1px;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+.logo span { color: #888; font-weight: 400; }
+.top-bar .divider {
+  width: 1px;
+  height: 20px;
+  background: #333;
+  margin: 0 2px;
+}
+.bpm-section {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.bpm-label { color: #888; font-size: 10px; }
+.bpm-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #d4a843;
+  font-variant-numeric: tabular-nums;
+  min-width: 48px;
+}
+.top-btn {
+  background: #222;
+  border: 1px solid #3a3a3a;
+  color: #aaa;
+  padding: 3px 7px;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.top-btn:hover { background: #2a2a2a; color: #ddd; }
+.top-btn.active { background: #d4a843; color: #111; border-color: #d4a843; }
+.beat-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.beat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #333;
+  border: 1px solid #555;
+}
+.beat-dot.active { background: #d4a843; border-color: #d4a843; box-shadow: 0 0 4px #d4a84380; }
+.beat-dot.dim { background: #5a4a20; border-color: #5a4a20; }
+.bar-counter {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: #888;
+  margin-left: 2px;
+}
+.bar-counter b { color: #d4a843; }
+.top-spacer { flex: 1; }
+.quantize-section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #888;
+  font-size: 10px;
+}
+.quantize-select {
+  background: #222;
+  border: 1px solid #3a3a3a;
+  color: #ccc;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: inherit;
+}
+.fade-section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #888;
+  font-size: 10px;
+}
+.fade-input {
+  background: #222;
+  border: 1px solid #3a3a3a;
+  color: #ccc;
+  width: 36px;
+  padding: 2px 4px;
+  font-size: 10px;
+  text-align: center;
+  font-family: inherit;
+}
+.master-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #888;
+  font-size: 10px;
+}
+.master-slider {
+  width: 60px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  outline: none;
+  border-radius: 2px;
+}
+.master-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px; height: 10px;
+  background: #d4a843;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ===== SIGNAL BAR (40px) ===== */
+.signal-bar {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  background: #101010;
+  border-bottom: 1px solid #222;
+  padding: 4px 12px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.signal-meter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 44px;
+  min-width: 44px;
+}
+.signal-meter-label {
+  font-size: 8px;
+  color: #666;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
+}
+.signal-meter-bar-wrap {
+  flex: 1;
+  width: 100%;
+  background: #181818;
+  border: 1px solid #252525;
+  position: relative;
+  overflow: hidden;
+}
+.signal-meter-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transition: height 0.1s;
+}
+.signal-meter-fill.green { background: linear-gradient(to top, #1a5a1a, #4dbd7a); }
+.signal-meter-fill.amber { background: linear-gradient(to top, #5a4a1a, #d4a843); }
+.signal-meter-fill.blue { background: linear-gradient(to top, #1a2a5a, #4488dd); }
+.signal-meter-fill.purple { background: linear-gradient(to top, #2a1a3a, #8866cc); }
+.signal-meter-fill.red { background: linear-gradient(to top, #3a1a1a, #c44444); }
+.signal-meter-fill.cyan { background: linear-gradient(to top, #1a3a3a, #44bbbb); }
+.signal-bar-divider {
+  width: 1px;
+  background: #2a2a2a;
+  margin: 0 4px;
+  align-self: stretch;
+}
+
+/* ===== DECK TABS ===== */
+.deck-tab-row {
+  display: flex;
+  align-items: center;
+  height: 26px;
+  background: #111;
+  border-bottom: 1px solid #222;
+  padding: 0 12px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.deck-tab {
+  padding: 4px 16px;
+  font-size: 11px;
+  color: #888;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+.deck-tab:hover { color: #ccc; }
+.deck-tab.active {
+  color: #d4a843;
+  font-weight: 700;
+  background: #161616;
+  border: 1px solid #333;
+  border-bottom: 1px solid #161616;
+  margin-bottom: -1px;
+}
+.deck-tab.add {
+  color: #555;
+  font-size: 13px;
+  padding: 4px 10px;
+}
+.deck-tab.add:hover { color: #d4a843; }
+.deck-spacer { flex: 1; }
+
+/* ===== MAIN LAYOUT ===== */
+.main-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ===== LEFT LAYERS PANEL ===== */
+.layers-panel {
+  width: 620px;
+  background: #0e0e0e;
+  border-right: 1px solid #222;
+  display: flex;
+  flex-direction: column;
+}
+.layers-header {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  background: #161616;
+  padding: 0 8px;
+  font-size: 10px;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #222;
+}
+.layers-header span { margin-right: auto; }
+
+/* Column headers */
+.col-headers {
+  display: flex;
+  height: 22px;
+  background: #111;
+  border-bottom: 1px solid #1e1e1e;
+}
+.col-header-label {
+  width: 152px;
+  min-width: 152px;
+}
+.col-header {
+  flex: 1;
+  text-align: center;
+  font-size: 9px;
+  color: #555;
+  line-height: 22px;
+  text-transform: uppercase;
+}
+.col-header.active {
+  color: #d4a843;
+  font-weight: 700;
+  background: rgba(212, 168, 67, 0.05);
+}
+
+/* Layer rows */
+.layer-row {
+  display: flex;
+  height: 68px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.layer-row:hover { background: #131313; }
+.layer-row.folded { height: 24px; }
+.layer-info {
+  width: 152px;
+  min-width: 152px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3px 6px;
+  border-right: 1px solid #1a1a1a;
+  gap: 2px;
+}
+.layer-top-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.layer-fold-btn {
+  width: 14px;
+  height: 14px;
+  font-size: 8px;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.layer-name {
+  font-size: 11px;
+  color: #ccc;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.layer-lock-btn {
+  width: 14px;
+  height: 14px;
+  font-size: 9px;
+  color: #555;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.layer-lock-btn.locked { color: #d4a843; }
+.layer-badges {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.layer-badge {
+  display: inline-block;
+  font-size: 8px;
+  padding: 1px 5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.badge-opaque { background: #1a2a3a; color: #5599cc; }
+.badge-transparent { background: #1a3a2a; color: #4dbd7a; }
+.badge-fx { background: #3a2a1a; color: #d4a843; }
+.badge-mask { background: #2a2a2a; color: #aaa; }
+.badge-video { background: #1a3a2a; color: #4dbd7a; }
+.badge-synth { background: #2a1a3a; color: #9b6dd7; }
+.badge-persistent { background: #2a1a1a; color: #c44; font-size: 7px; }
+.layer-controls {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.sm-btn {
+  width: 22px;
+  height: 16px;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 16px;
+  cursor: pointer;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #666;
+}
+.sm-btn.solo-active { background: #d4a843; color: #111; border-color: #d4a843; }
+.sm-btn.mute-active { background: #c44; color: #fff; border-color: #c44; }
+.sm-btn.bypass-active { background: #4488dd; color: #fff; border-color: #4488dd; }
+.layer-opacity {
+  width: 38px;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  outline: none;
+  margin-left: 4px;
+}
+.layer-opacity::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 8px; height: 8px;
+  background: #d4a843;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Clip cells */
+.clip-cells {
+  display: flex;
+  flex: 1;
+}
+.clip-cell {
+  flex: 1;
+  margin: 3px 2px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+.clip-cell:hover { border-color: #444; }
+.clip-cell.active {
+  border-color: #d4a843;
+  box-shadow: 0 0 6px rgba(212, 168, 67, 0.3);
+}
+.clip-cell.active-col {
+  background: rgba(212, 168, 67, 0.04);
+}
+.clip-thumb {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0; left: 0;
+}
+.thumb-city {
+  background: linear-gradient(180deg, #0a0a1e 0%, #1a1040 40%, #2a1555 60%, #d4a843 85%, #ff8800 100%);
+}
+.thumb-geo {
+  background: conic-gradient(from 0deg, #d4a843, #1a3a5a, #d44, #1a5a3a, #d4a843);
+}
+.thumb-bass {
+  background: repeating-linear-gradient(90deg, #1a1a2a 0px, #2a1a4a 4px, #4a2a6a 8px, #1a1a2a 12px);
+}
+.thumb-tunnel {
+  background: radial-gradient(ellipse at center, #000 0%, #2a1a1a 20%, #5a2020 40%, #2a0a0a 60%, #000 100%);
+}
+.thumb-text {
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #d4a843;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.thumb-empty { background: #111; }
+.thumb-strobe {
+  background: linear-gradient(45deg, #fff 0%, #aaa 10%, #111 20%, #fff 30%, #111 40%, #ddd 50%, #111 100%);
+}
+.thumb-color {
+  background: linear-gradient(135deg, #ff0066 0%, #00ffcc 33%, #ff6600 66%, #0066ff 100%);
+}
+.thumb-pattern {
+  background: repeating-conic-gradient(#222 0% 25%, #333 25% 50%) 0 0 / 16px 16px;
+}
+.thumb-fractal {
+  background: radial-gradient(circle at 40% 40%, #d4a843 0%, #5a3010 20%, #1a1040 50%, #000 100%);
+}
+.clip-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.75);
+  color: #ccc;
+  font-size: 8px;
+  text-align: center;
+  padding: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 2;
+}
+.clip-play {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  font-size: 9px;
+  color: #4dbd7a;
+  z-index: 2;
+  text-shadow: 0 0 3px #000;
+}
+.clip-beat-nums {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  color: rgba(212, 168, 67, 0.5);
+  letter-spacing: 3px;
+  font-weight: 700;
+  z-index: 2;
+}
+.clip-fx-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4a843;
+  z-index: 2;
+}
+
+/* ===== RIGHT PANEL ===== */
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #0c0c0c;
+}
+
+/* Dual Preview */
+.dual-preview {
+  display: flex;
+  height: 320px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #222;
+}
+.preview-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.preview-pane + .preview-pane { border-left: 1px solid #222; }
+.preview-header {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  background: #141414;
+  padding: 0 10px;
+  font-size: 10px;
+  color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #1e1e1e;
+}
+.preview-header .active-label { color: #d4a843; margin-left: auto; font-size: 9px; font-weight: 400; }
+.preview-content {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+.output-visual {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: radial-gradient(ellipse at 52% 48%, #d4a843 0%, #a07020 15%, #5a3010 30%, #2a1808 50%, #0a0500 75%, #000 100%);
+}
+.output-visual::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(circle at 48% 45%, rgba(255, 200, 50, 0.4) 0%, transparent 25%),
+    radial-gradient(circle at 55% 50%, rgba(255, 150, 30, 0.3) 0%, transparent 30%),
+    radial-gradient(circle at 50% 42%, rgba(255, 255, 200, 0.5) 0%, transparent 10%);
+}
+.output-visual::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(2px 2px at 30% 25%, #ffd700 0%, transparent 100%),
+    radial-gradient(2px 2px at 60% 30%, #ffaa00 0%, transparent 100%),
+    radial-gradient(1px 1px at 45% 55%, #fff 0%, transparent 100%),
+    radial-gradient(3px 3px at 70% 40%, #ff8800 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 60%, #ffd700 0%, transparent 100%),
+    radial-gradient(2px 2px at 55% 35%, #fff 0%, transparent 100%);
+}
+.live-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: #c44;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  letter-spacing: 1px;
+  z-index: 5;
+}
+.layer-visual {
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, #1a0000 0%, #4a0808 20%, #8a1515 40%, #4a0808 60%, #1a0000 80%, #000 100%);
+}
+.layer-visual::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse at center, transparent 0%, transparent 15%, rgba(200, 30, 30, 0.15) 16%, transparent 17%,
+      transparent 30%, rgba(180, 20, 20, 0.12) 31%, transparent 32%,
+      transparent 45%, rgba(150, 15, 15, 0.1) 46%, transparent 47%);
+}
+
+/* ===== INSPECTOR + BROWSER (bottom right) ===== */
+.bottom-panels {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Inspector */
+.inspector-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #222;
+  min-width: 0;
+}
+.inspector-tabs {
+  display: flex;
+  height: 24px;
+  background: #141414;
+  border-bottom: 1px solid #222;
+  flex-shrink: 0;
+}
+.insp-tab {
+  padding: 0 12px;
+  font-size: 10px;
+  color: #666;
+  line-height: 24px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.insp-tab.active { color: #d4a843; border-bottom-color: #d4a843; }
+.insp-tab:hover { color: #aaa; }
+.inspector-content {
+  flex: 1;
+  padding: 6px 8px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.insp-section {
+  border: 1px solid #222;
+  background: #131313;
+}
+.insp-section-header {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  background: #181818;
+  font-size: 10px;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-bottom: 1px solid #222;
+}
+.insp-section-header .collapse-arrow { margin-right: 6px; font-size: 8px; color: #555; }
+.insp-section-header .section-label { flex: 1; }
+.insp-section-body {
+  padding: 6px 8px;
+}
+
+/* Dashboard knobs */
+.dashboard-knobs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dash-knob {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 48px;
+}
+.knob-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #3a3a3a;
+  background: #1a1a1a;
+  position: relative;
+  cursor: pointer;
+}
+.knob-circle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 8px;
+  background: #d4a843;
+  border-radius: 1px;
+}
+.knob-circle.linked { border-color: #d4a843; }
+.knob-label {
+  font-size: 8px;
+  color: #666;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Param rows */
+.param-row {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  gap: 6px;
+}
+.param-triangle {
+  width: 0;
+  height: 0;
+  border-left: 5px solid #555;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.param-triangle.connected { border-left-color: #4dbd7a; }
+.param-name {
+  font-size: 10px;
+  color: #aaa;
+  width: 80px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.param-slider {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  outline: none;
+}
+.param-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 8px; height: 8px;
+  background: #999;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.param-value {
+  font-size: 9px;
+  color: #888;
+  width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Effect stack rows */
+.fx-stack-row {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 6px;
+  gap: 4px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.fx-stack-row:hover { background: #1a1a1a; }
+.fx-bypass-btn {
+  width: 16px;
+  height: 14px;
+  font-size: 8px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 14px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #666;
+  cursor: pointer;
+}
+.fx-bypass-btn.active { background: #4488dd; color: #fff; border-color: #4488dd; }
+.fx-stack-name {
+  flex: 1;
+  font-size: 10px;
+  color: #ccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fx-stack-remove {
+  font-size: 10px;
+  color: #555;
+  cursor: pointer;
+  width: 14px;
+  text-align: center;
+}
+.fx-stack-remove:hover { color: #c44; }
+
+/* Cuepoints */
+.cuepoint-row {
+  display: flex;
+  gap: 4px;
+}
+.cuepoint-btn {
+  width: 24px;
+  height: 18px;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 18px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #666;
+  cursor: pointer;
+}
+.cuepoint-btn.set { background: #d4a843; color: #111; border-color: #d4a843; }
+.cuepoint-btn.set2 { background: #44aa88; color: #111; border-color: #44aa88; }
+
+/* Autopilot row */
+.autopilot-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #888;
+}
+.autopilot-row select {
+  background: #222;
+  border: 1px solid #3a3a3a;
+  color: #ccc;
+  padding: 1px 4px;
+  font-size: 10px;
+  font-family: inherit;
+}
+.autopilot-toggle {
+  width: 28px;
+  height: 14px;
+  background: #333;
+  border-radius: 7px;
+  position: relative;
+  cursor: pointer;
+}
+.autopilot-toggle.on { background: #4dbd7a; }
+.autopilot-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 10px;
+  height: 10px;
+  background: #ddd;
+  border-radius: 50%;
+}
+.autopilot-toggle.on::after { left: 16px; }
+
+/* Keying section */
+.keying-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #888;
+}
+.keying-row select {
+  background: #222;
+  border: 1px solid #3a3a3a;
+  color: #ccc;
+  padding: 1px 4px;
+  font-size: 10px;
+  font-family: inherit;
+}
+
+/* Feedback */
+.feedback-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Transform grid */
+.transform-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+/* ===== BROWSER PANEL ===== */
+.browser-panel {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: #0e0e0e;
+}
+.browser-tabs {
+  display: flex;
+  height: 24px;
+  background: #141414;
+  border-bottom: 1px solid #222;
+  flex-shrink: 0;
+}
+.browser-tab {
+  padding: 0 14px;
+  font-size: 10px;
+  color: #666;
+  line-height: 24px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.browser-tab.active { color: #d4a843; border-bottom-color: #d4a843; }
+.browser-tab:hover { color: #aaa; }
+.browser-search {
+  display: flex;
+  height: 24px;
+  padding: 3px 8px;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+}
+.browser-search input {
+  width: 100%;
+  background: #181818;
+  border: 1px solid #2a2a2a;
+  color: #ccc;
+  padding: 0 8px;
+  font-size: 10px;
+  font-family: inherit;
+  outline: none;
+}
+.browser-search input::placeholder { color: #555; }
+.browser-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+}
+.browser-category {
+  margin-bottom: 2px;
+}
+.browser-cat-header {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 10px;
+  color: #888;
+  font-weight: 600;
+  cursor: pointer;
+}
+.browser-cat-header .cat-arrow { margin-right: 5px; font-size: 8px; color: #555; }
+.browser-cat-header .cat-count { margin-left: auto; font-size: 9px; color: #555; font-weight: 400; }
+.browser-item {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px 0 20px;
+  font-size: 10px;
+  color: #aaa;
+  cursor: pointer;
+}
+.browser-item:hover { background: #1a1a1a; color: #ddd; }
+.browser-item .item-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.browser-item .dot-warp { background: #4488dd; }
+.browser-item .dot-color { background: #dd8844; }
+.browser-item .dot-glitch { background: #dd4444; }
+.browser-item .dot-blur { background: #44aa88; }
+.browser-item .dot-time { background: #9966cc; }
+.browser-item .dot-pattern { background: #88aa44; }
+.browser-item .dot-fractal { background: #cc66aa; }
+.browser-item .dot-anim { background: #d4a843; }
+.browser-item .dot-source { background: #44bbbb; }
+
+/* ===== FOOTER ===== */
+.footer {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  background: #111;
+  border-top: 1px solid #222;
+  padding: 0 12px;
+  gap: 10px;
+  font-size: 10px;
+  color: #555;
+  flex-shrink: 0;
+}
+.footer-section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.footer-section.active { color: #888; }
+.footer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #333;
+}
+.footer-dot.green { background: #4dbd7a; }
+.footer-dot.red { background: #c44; }
+.footer-spacer { flex: 1; }
+.footer-btn {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #888;
+  padding: 2px 10px;
+  font-size: 9px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.footer-btn:hover { background: #222; color: #ccc; }
+.footer-btn.recording { background: #c44; color: #fff; border-color: #c44; }
+.fps-badge {
+  color: #4dbd7a;
+  font-weight: 600;
+}
+.dsp-badge {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
+.resolution {
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #c44;
+  font-weight: 600;
+}
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c44;
+  animation: recblink 1s ease infinite;
+}
+@keyframes recblink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div class="menu-bar">
+  <div class="menu-item">Audio-DNA</div>
+  <div class="menu-item">Composition</div>
+  <div class="menu-item">Deck</div>
+  <div class="menu-item">Layer</div>
+  <div class="menu-item">Column</div>
+  <div class="menu-item">Clip</div>
+  <div class="menu-item">Output</div>
+  <div class="menu-item">Shortcuts</div>
+  <div class="menu-item">View</div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="bpm-section">
+    <span class="bpm-label">BPM</span>
+    <span class="bpm-value">128</span>
+  </div>
+  <button class="top-btn">Tap</button>
+  <button class="top-btn">Nudge -</button>
+  <button class="top-btn">Nudge +</button>
+  <button class="top-btn">Resync</button>
+  <button class="top-btn active">Manual</button>
+  <div class="divider"></div>
+  <div class="beat-dots">
+    <div class="beat-dot active"></div>
+    <div class="beat-dot dim"></div>
+    <div class="beat-dot dim"></div>
+    <div class="beat-dot dim"></div>
+  </div>
+  <div class="bar-counter"><b>036</b> / 01.2</div>
+  <div class="divider"></div>
+  <div class="quantize-section">
+    <span>Quantize</span>
+    <select class="quantize-select">
+      <option>1 Bar</option>
+      <option>Beat</option>
+      <option>2 Bar</option>
+      <option>None</option>
+    </select>
+  </div>
+  <div class="divider"></div>
+  <div class="fade-section">
+    <span>Fade</span>
+    <input class="fade-input" value="0.5s">
+  </div>
+  <div class="top-spacer"></div>
+  <div class="master-slider-wrap">
+    <span>Master</span>
+    <input type="range" class="master-slider" value="85" min="0" max="100">
+    <span style="color:#ccc;">85%</span>
+  </div>
+</div>
+
+<!-- SIGNAL BAR -->
+<div class="signal-bar">
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill green" style="height:78%;"></div></div>
+    <div class="signal-meter-label">RMS</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill green" style="height:92%;"></div></div>
+    <div class="signal-meter-label">Peak</div>
+  </div>
+  <div class="signal-bar-divider"></div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill amber" style="height:90%;"></div></div>
+    <div class="signal-meter-label">Sub</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill amber" style="height:75%;"></div></div>
+    <div class="signal-meter-label">Bass</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill amber" style="height:55%;"></div></div>
+    <div class="signal-meter-label">Low Mid</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill amber" style="height:62%;"></div></div>
+    <div class="signal-meter-label">Mid</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill amber" style="height:48%;"></div></div>
+    <div class="signal-meter-label">High Mid</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill amber" style="height:35%;"></div></div>
+    <div class="signal-meter-label">Presence</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill amber" style="height:22%;"></div></div>
+    <div class="signal-meter-label">Brilliance</div>
+  </div>
+  <div class="signal-bar-divider"></div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill blue" style="height:40%;"></div></div>
+    <div class="signal-meter-label">Centroid</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill purple" style="height:65%;"></div></div>
+    <div class="signal-meter-label">Flux</div>
+  </div>
+  <div class="signal-meter">
+    <div class="signal-meter-bar-wrap"><div class="signal-meter-fill cyan" style="height:82%;"></div></div>
+    <div class="signal-meter-label">Onset</div>
+  </div>
+</div>
+
+<!-- DECK TABS -->
+<div class="deck-tab-row">
+  <div class="deck-tab active">Deck 1</div>
+  <div class="deck-tab">Deck 2</div>
+  <div class="deck-tab">Deck 3</div>
+  <div class="deck-tab add">+</div>
+  <div class="deck-spacer"></div>
+  <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#777;">
+    <input type="checkbox" id="retrig" checked style="accent-color:#d4a843;">
+    <label for="retrig">Re-Trigger</label>
+    <span style="margin-left:8px;color:#555;">Autopilot</span>
+    <div class="autopilot-toggle on"></div>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+
+  <!-- LEFT: LAYERS + CLIP GRID -->
+  <div class="layers-panel">
+    <div class="layers-header">
+      <span>Layers</span>
+    </div>
+    <!-- Column headers -->
+    <div class="col-headers">
+      <div class="col-header-label"></div>
+      <div class="col-header">1</div>
+      <div class="col-header">2</div>
+      <div class="col-header">3</div>
+      <div class="col-header active">4</div>
+      <div class="col-header">5</div>
+    </div>
+
+    <!-- Layer 1: Background -->
+    <div class="layer-row">
+      <div class="layer-info">
+        <div class="layer-top-row">
+          <div class="layer-fold-btn">v</div>
+          <div class="layer-name">Background</div>
+          <div class="layer-lock-btn">&#x1f513;</div>
+        </div>
+        <div class="layer-badges">
+          <span class="layer-badge badge-opaque">Opaque</span>
+        </div>
+        <div class="layer-controls">
+          <div class="sm-btn">S</div>
+          <div class="sm-btn">M</div>
+          <div class="sm-btn">B</div>
+          <input type="range" class="layer-opacity" value="100" min="0" max="100">
+        </div>
+      </div>
+      <div class="clip-cells">
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div><div class="clip-label">Ambient</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-pattern"></div><div class="clip-label">Grid</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-color"></div><div class="clip-label">Gradient</div></div>
+        <div class="clip-cell active active-col"><div class="clip-thumb thumb-city"></div><div class="clip-play">&#9654;</div><div class="clip-fx-dot"></div><div class="clip-label">City Lights</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div><div class="clip-label">Fade</div></div>
+      </div>
+    </div>
+
+    <!-- Layer 2: Pulse Shapes -->
+    <div class="layer-row">
+      <div class="layer-info">
+        <div class="layer-top-row">
+          <div class="layer-fold-btn">v</div>
+          <div class="layer-name">Pulse Shapes</div>
+          <div class="layer-lock-btn">&#x1f513;</div>
+        </div>
+        <div class="layer-badges">
+          <span class="layer-badge badge-transparent">Transparent</span>
+          <span class="layer-badge badge-video">Video</span>
+        </div>
+        <div class="layer-controls">
+          <div class="sm-btn">S</div>
+          <div class="sm-btn">M</div>
+          <div class="sm-btn">B</div>
+          <input type="range" class="layer-opacity" value="80" min="0" max="100">
+        </div>
+      </div>
+      <div class="clip-cells">
+        <div class="clip-cell"><div class="clip-thumb thumb-pattern"></div><div class="clip-label">Circles</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-geo"></div><div class="clip-label">Shapes</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-geo"></div><div class="clip-beat-nums">1 2 3 4</div><div class="clip-label">Burst</div></div>
+        <div class="clip-cell active active-col"><div class="clip-thumb thumb-geo"></div><div class="clip-play">&#9654;</div><div class="clip-label">Geometric</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 3: Strobe FX -->
+    <div class="layer-row">
+      <div class="layer-info">
+        <div class="layer-top-row">
+          <div class="layer-fold-btn">v</div>
+          <div class="layer-name">Strobe FX</div>
+          <div class="layer-lock-btn locked">&#x1f512;</div>
+        </div>
+        <div class="layer-badges">
+          <span class="layer-badge badge-fx">Effects Only</span>
+          <span class="layer-badge badge-persistent">Persistent</span>
+        </div>
+        <div class="layer-controls">
+          <div class="sm-btn">S</div>
+          <div class="sm-btn">M</div>
+          <div class="sm-btn">B</div>
+          <input type="range" class="layer-opacity" value="60" min="0" max="100">
+        </div>
+      </div>
+      <div class="clip-cells">
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-strobe"></div><div class="clip-label">Flash</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-strobe"></div><div class="clip-label">Pulse</div></div>
+        <div class="clip-cell active-col"><div class="clip-thumb thumb-strobe"></div><div class="clip-play">&#9654;</div><div class="clip-label">Bass Pulse</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 4: 3D Tunnel -->
+    <div class="layer-row">
+      <div class="layer-info">
+        <div class="layer-top-row">
+          <div class="layer-fold-btn">v</div>
+          <div class="layer-name">3D Tunnel</div>
+          <div class="layer-lock-btn">&#x1f513;</div>
+        </div>
+        <div class="layer-badges">
+          <span class="layer-badge badge-transparent">Transparent</span>
+          <span class="layer-badge badge-synth">Source</span>
+        </div>
+        <div class="layer-controls">
+          <div class="sm-btn">S</div>
+          <div class="sm-btn">M</div>
+          <div class="sm-btn">B</div>
+          <input type="range" class="layer-opacity" value="90" min="0" max="100">
+        </div>
+      </div>
+      <div class="clip-cells">
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-tunnel"></div><div class="clip-label">Warp</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-tunnel"></div><div class="clip-beat-nums">1 2 3 4</div><div class="clip-label">Spiral</div></div>
+        <div class="clip-cell active active-col"><div class="clip-thumb thumb-tunnel"></div><div class="clip-play">&#9654;</div><div class="clip-fx-dot"></div><div class="clip-label">Tunnel Spin</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 5: Text Overlay -->
+    <div class="layer-row">
+      <div class="layer-info">
+        <div class="layer-top-row">
+          <div class="layer-fold-btn">v</div>
+          <div class="layer-name">Text Overlay</div>
+          <div class="layer-lock-btn">&#x1f513;</div>
+        </div>
+        <div class="layer-badges">
+          <span class="layer-badge badge-transparent">Transparent</span>
+          <span class="layer-badge badge-synth">Source</span>
+        </div>
+        <div class="layer-controls">
+          <div class="sm-btn">S</div>
+          <div class="sm-btn">M</div>
+          <div class="sm-btn">B</div>
+          <input type="range" class="layer-opacity" value="100" min="0" max="100">
+        </div>
+      </div>
+      <div class="clip-cells">
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-text"><span>TEXT</span></div><div class="clip-label">Title</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-text"><span>DROP</span></div><div class="clip-label">Hype</div></div>
+        <div class="clip-cell active-col"><div class="clip-thumb thumb-text"><span>VJ</span></div><div class="clip-play">&#9654;</div><div class="clip-label">VJ Text</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 6: Color Glitch -->
+    <div class="layer-row">
+      <div class="layer-info">
+        <div class="layer-top-row">
+          <div class="layer-fold-btn">v</div>
+          <div class="layer-name">Color Glitch</div>
+          <div class="layer-lock-btn">&#x1f513;</div>
+        </div>
+        <div class="layer-badges">
+          <span class="layer-badge badge-fx">Effects Only</span>
+        </div>
+        <div class="layer-controls">
+          <div class="sm-btn solo-active">S</div>
+          <div class="sm-btn">M</div>
+          <div class="sm-btn">B</div>
+          <input type="range" class="layer-opacity" value="100" min="0" max="100">
+        </div>
+      </div>
+      <div class="clip-cells">
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-color"></div><div class="clip-label">Shift</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-color"></div><div class="clip-label">Noise</div></div>
+        <div class="clip-cell active-col"><div class="clip-thumb thumb-color"></div><div class="clip-play">&#9654;</div><div class="clip-label">RGB Split</div></div>
+        <div class="clip-cell"><div class="clip-thumb thumb-empty"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 7: Fractal (folded) -->
+    <div class="layer-row folded" style="height:24px;">
+      <div class="layer-info" style="flex-direction:row;align-items:center;gap:6px;padding:0 6px;">
+        <div class="layer-fold-btn" style="color:#888;">></div>
+        <div class="layer-name" style="font-size:10px;color:#666;">Fractal Background</div>
+        <span class="layer-badge badge-mask" style="font-size:7px;">Mask</span>
+      </div>
+      <div class="clip-cells" style="opacity:0;"></div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: PREVIEW + INSPECTOR + BROWSER -->
+  <div class="right-panel">
+
+    <!-- Dual Preview -->
+    <div class="dual-preview">
+      <div class="preview-pane">
+        <div class="preview-header">
+          Output Preview
+          <span class="active-label">1920 x 1080</span>
+        </div>
+        <div class="preview-content">
+          <div class="output-visual"></div>
+          <div class="live-badge">LIVE</div>
+        </div>
+      </div>
+      <div class="preview-pane">
+        <div class="preview-header">
+          Layer Preview
+          <span class="active-label">3D Tunnel</span>
+        </div>
+        <div class="preview-content">
+          <div class="layer-visual"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom: Inspector + Browser -->
+    <div class="bottom-panels">
+
+      <!-- INSPECTOR -->
+      <div class="inspector-panel">
+        <div class="inspector-tabs">
+          <div class="insp-tab active">Clip</div>
+          <div class="insp-tab">Layer</div>
+          <div class="insp-tab">Composition</div>
+          <div class="insp-tab">Signal</div>
+        </div>
+        <div class="inspector-content">
+
+          <!-- Dashboard Section -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span class="collapse-arrow">v</span>
+              <span class="section-label">Dashboard</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="dashboard-knobs">
+                <div class="dash-knob"><div class="knob-circle linked"></div><div class="knob-label">Intensity</div></div>
+                <div class="dash-knob"><div class="knob-circle linked"></div><div class="knob-label">Speed</div></div>
+                <div class="dash-knob"><div class="knob-circle"></div><div class="knob-label">Offset X</div></div>
+                <div class="dash-knob"><div class="knob-circle"></div><div class="knob-label">Offset Y</div></div>
+                <div class="dash-knob"><div class="knob-circle linked"></div><div class="knob-label">Color</div></div>
+                <div class="dash-knob"><div class="knob-circle"></div><div class="knob-label">Depth</div></div>
+                <div class="dash-knob"><div class="knob-circle"></div><div class="knob-label">Macro 7</div></div>
+                <div class="dash-knob"><div class="knob-circle"></div><div class="knob-label">Macro 8</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Effects Stack -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span class="collapse-arrow">v</span>
+              <span class="section-label">Effects</span>
+            </div>
+            <div style="padding:0;">
+              <div class="fx-stack-row">
+                <div class="fx-bypass-btn active">B</div>
+                <div class="param-triangle connected"></div>
+                <div class="fx-stack-name">Ripple</div>
+                <div class="fx-stack-remove">x</div>
+              </div>
+              <div style="padding:2px 8px 4px 28px;">
+                <div class="param-row">
+                  <div class="param-triangle connected"></div>
+                  <div class="param-name">Intensity</div>
+                  <input type="range" class="param-slider" value="65" min="0" max="100">
+                  <div class="param-value">0.65</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-triangle"></div>
+                  <div class="param-name">Frequency</div>
+                  <input type="range" class="param-slider" value="40" min="0" max="100">
+                  <div class="param-value">0.40</div>
+                </div>
+              </div>
+              <div class="fx-stack-row">
+                <div class="fx-bypass-btn active">B</div>
+                <div class="param-triangle"></div>
+                <div class="fx-stack-name">Hue Shift</div>
+                <div class="fx-stack-remove">x</div>
+              </div>
+              <div class="fx-stack-row">
+                <div class="fx-bypass-btn">B</div>
+                <div class="param-triangle connected"></div>
+                <div class="fx-stack-name">Echo</div>
+                <div class="fx-stack-remove">x</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transport / Cuepoints -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span class="collapse-arrow">v</span>
+              <span class="section-label">Transport</span>
+            </div>
+            <div class="insp-section-body" style="display:flex;flex-direction:column;gap:6px;">
+              <div class="autopilot-row">
+                <span>Autopilot</span>
+                <div class="autopilot-toggle on"></div>
+                <span style="margin-left:8px;">Every</span>
+                <select><option>4 Beats</option></select>
+                <select><option>Random</option></select>
+              </div>
+              <div style="font-size:10px;color:#888;margin-top:2px;">Cuepoints</div>
+              <div class="cuepoint-row">
+                <div class="cuepoint-btn set">1</div>
+                <div class="cuepoint-btn set2">2</div>
+                <div class="cuepoint-btn">3</div>
+                <div class="cuepoint-btn">4</div>
+                <div class="cuepoint-btn">5</div>
+                <div class="cuepoint-btn">6</div>
+                <div class="cuepoint-btn">7</div>
+                <div class="cuepoint-btn">8</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Keying -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span class="collapse-arrow">v</span>
+              <span class="section-label">Keying</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="keying-row">
+                <span>Alpha Type</span>
+                <select><option>Additive</option><option>Luma is Alpha</option><option>Chroma Key</option></select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feedback -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span class="collapse-arrow">v</span>
+              <span class="section-label">Feedback</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="feedback-row">
+                <div class="autopilot-toggle"></div>
+                <span style="font-size:10px;color:#888;margin-left:4px;">Preset:</span>
+                <select style="background:#222;border:1px solid #3a3a3a;color:#ccc;padding:1px 4px;font-size:10px;font-family:inherit;">
+                  <option>Zoom In</option>
+                  <option>Spiral</option>
+                  <option>Kaleidoscope</option>
+                </select>
+              </div>
+              <div class="param-row" style="margin-top:4px;">
+                <div class="param-triangle"></div>
+                <div class="param-name">Amount</div>
+                <input type="range" class="param-slider" value="30" min="0" max="100">
+                <div class="param-value">0.30</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Transform -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span class="collapse-arrow">v</span>
+              <span class="section-label">Transform</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="transform-grid">
+                <div class="param-row">
+                  <div class="param-triangle"></div>
+                  <div class="param-name">Position X</div>
+                  <input type="range" class="param-slider" value="50" min="0" max="100">
+                  <div class="param-value">0.00</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-triangle"></div>
+                  <div class="param-name">Position Y</div>
+                  <input type="range" class="param-slider" value="50" min="0" max="100">
+                  <div class="param-value">0.00</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-triangle connected"></div>
+                  <div class="param-name">Scale</div>
+                  <input type="range" class="param-slider" value="50" min="0" max="100">
+                  <div class="param-value">1.00</div>
+                </div>
+                <div class="param-row">
+                  <div class="param-triangle"></div>
+                  <div class="param-name">Rotation</div>
+                  <input type="range" class="param-slider" value="50" min="0" max="100">
+                  <div class="param-value">0.0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- BROWSER -->
+      <div class="browser-panel">
+        <div class="browser-tabs">
+          <div class="browser-tab">Files</div>
+          <div class="browser-tab active">Effects</div>
+          <div class="browser-tab">Sources</div>
+        </div>
+        <div class="browser-search">
+          <input type="text" placeholder="Search effects...">
+        </div>
+        <div class="browser-content">
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">v</span> Warp <span class="cat-count">27</span></div>
+            <div class="browser-item"><div class="item-dot dot-warp"></div> Ripple</div>
+            <div class="browser-item"><div class="item-dot dot-warp"></div> Bulge</div>
+            <div class="browser-item"><div class="item-dot dot-warp"></div> Wave</div>
+            <div class="browser-item"><div class="item-dot dot-warp"></div> Liquid</div>
+            <div class="browser-item"><div class="item-dot dot-warp"></div> Kaleidoscope</div>
+            <div class="browser-item"><div class="item-dot dot-warp"></div> Fisheye</div>
+            <div class="browser-item"><div class="item-dot dot-warp"></div> Swirl</div>
+            <div class="browser-item"><div class="item-dot dot-warp"></div> Infinite Zoom</div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Color <span class="cat-count">31</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Glitch <span class="cat-count">16</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Time <span class="cat-count">6</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Pattern <span class="cat-count">19</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Blur / Post <span class="cat-count">9</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Animation <span class="cat-count">6</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Audio <span class="cat-count">3</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> 3D / Depth <span class="cat-count">9</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Blend <span class="cat-count">5</span></div>
+          </div>
+          <div class="browser-category">
+            <div class="browser-cat-header"><span class="cat-arrow">></span> Composite <span class="cat-count">3</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-section active">
+    <div class="footer-dot green"></div>
+    Audio Engine
+  </div>
+  <div class="footer-section active">
+    <div class="footer-dot green"></div>
+    Output Display 01
+  </div>
+  <div class="footer-section">
+    <div class="footer-dot green"></div>
+    Syphon Server
+  </div>
+  <div class="footer-spacer"></div>
+  <div class="recording-indicator">
+    <div class="rec-dot"></div>
+    Recording 00:42
+  </div>
+  <div style="width:1px;height:14px;background:#333;margin:0 4px;"></div>
+  <span class="dsp-badge">DSP 12%</span>
+  <div style="width:1px;height:14px;background:#333;margin:0 4px;"></div>
+  <span class="fps-badge">60 FPS</span>
+  <span class="resolution">1920 x 1080</span>
+  <div style="width:1px;height:14px;background:#333;margin:0 4px;"></div>
+  <button class="footer-btn">Snapshot</button>
+  <button class="footer-btn recording">Stop Recording</button>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          2,
+          "output"
+        ],
+        "to": [
+          1,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          1,
+          "output0"
+        ],
+        "to": [
+          3,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "Cross Product example",
+      "identifier": "64a7cef0-96ca-4d2c-83cc-1f02222f0161",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 5,
+    "nodes": {
+      "1": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float3"
+          },
+          "input1-type": {
+            "type": "type",
+            "value": "texture2d"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 623,
+          "y": 298
+        },
+        "class": {
+          "id": "77697265-BBCE-4A91-AA48-52A04B0AD059",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float3",
+            "value": [
+              4.769999980926514,
+              3,
+              1.399999976158142
+            ]
+          },
+          "input1": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Cross Product"
+      },
+      "2": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 464,
+          "y": 298
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture In"
+      },
+      "3": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 849,
+          "y": 298
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      },
+      "4": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "CROSS PRODUCT\n\nThe Cross Product is a mathematical function normally used for 3D operations. While Wire doesn't support 3D yet, we will give you acces to this node as you can do some weird color and texture operations with it."
+          }
+        },
+        "bounds": {
+          "height": 117,
+          "width": 511,
+          "x": 466,
+          "y": 153
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -55,
+        "y": -129,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 3,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "2": "Wire Logo"
+        },
+        "out": {}
+      }
+    }
+  }
+}

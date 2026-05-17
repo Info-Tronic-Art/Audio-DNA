@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v9 Alt 04 — Broadcast Wide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #111; color: #e0e0e0; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 11px; overflow: hidden; }
+
+/* ── Menu Bar ── */
+.menu-bar { height: 24px; background: #0a0a0a; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #222; }
+.mi { padding: 0 10px; color: #999; font-size: 11px; cursor: pointer; }
+.mi:hover { color: #e0e0e0; }
+.mi.app { color: #00ccff; font-weight: 600; }
+
+/* ── Top Bar ── */
+.top-bar { height: 38px; background: #141414; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #1a1a1a; gap: 14px; }
+.bpm { font-size: 22px; font-weight: 700; color: #00ff88; font-variant-numeric: tabular-nums; }
+.bpm-u { font-size: 9px; color: #666; margin-left: 3px; }
+.beat-dots { display: flex; gap: 4px; }
+.bd { width: 8px; height: 8px; background: #222; border: 1px solid #333; }
+.bd.on { background: #00ff88; border-color: #00ff88; }
+.bar-info { font-size: 10px; color: #777; font-variant-numeric: tabular-nums; }
+.flex1 { flex: 1; }
+.tag { padding: 2px 8px; background: #1a1a1a; border: 1px solid #222; color: #555; font-size: 9px; text-transform: uppercase; }
+.tag.on { color: #00ff88; border-color: #00ff8844; }
+.tag.rec { color: #ff4444; border-color: #ff444444; }
+.mvol { display: flex; align-items: center; gap: 6px; }
+.mvol-lbl { font-size: 9px; color: #555; }
+.mvol-track { width: 80px; height: 4px; background: #333; }
+.mvol-fill { height: 100%; width: 75%; background: #00ccff; }
+
+/* ── LEFT SIDEBAR: Signal Meters ── */
+.layout { display: flex; height: calc(1080px - 24px - 38px - 80px - 24px); }
+
+.signal-sidebar { width: 48px; min-width: 48px; background: #0a0a0a; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; padding: 4px 0; }
+.sig-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 2px; }
+.sig-label { font-size: 6px; color: #444; text-transform: uppercase; writing-mode: horizontal-tb; margin-bottom: 2px; }
+.sig-vbar { width: 12px; background: #1a1a1a; flex: 1; position: relative; display: flex; align-items: flex-end; }
+.sig-vfill { width: 100%; }
+.sig-vfill.v1 { height: 65%; background: linear-gradient(to top, #003311, #00ff88); }
+.sig-vfill.v2 { height: 82%; background: linear-gradient(to top, #330000, #ff4444); }
+.sig-vfill.v3 { height: 48%; background: linear-gradient(to top, #332200, #ffaa00); }
+.sig-vfill.v4 { height: 30%; background: linear-gradient(to top, #002233, #00ccff); }
+.sig-vfill.v5 { height: 55%; background: linear-gradient(to top, #220033, #cc44ff); }
+.sig-vfill.v6 { height: 72%; background: linear-gradient(to top, #003311, #00ff88); }
+.sig-vfill.v7 { height: 20%; background: linear-gradient(to top, #331100, #ff6644); }
+.sig-vfill.v8 { height: 40%; background: linear-gradient(to top, #001122, #4488ff); }
+
+/* ── CENTER: Layer Area (wide cells) ── */
+.center-area { flex: 1; display: flex; flex-direction: column; }
+
+/* Deck + Scene Row */
+.deck-row { height: 26px; background: #111; display: flex; align-items: center; border-bottom: 1px solid #1a1a1a; }
+.deck-tabs { display: flex; height: 100%; }
+.dtab { padding: 0 14px; display: flex; align-items: center; color: #555; cursor: pointer; border-right: 1px solid #1a1a1a; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.dtab.active { color: #00ccff; background: #1a1a1a; border-bottom: 2px solid #00ccff; }
+.scene-area { flex: 1; display: flex; align-items: center; padding: 0 8px; gap: 3px; }
+.sc-lbl { font-size: 8px; color: #444; margin-right: 4px; }
+.sc { padding: 1px 8px; background: #1a1a1a; border: 1px solid #222; color: #666; font-size: 8px; cursor: pointer; }
+.sc.on { background: #00ccff22; border-color: #00ccff; color: #00ccff; }
+
+/* Layer rows */
+.layer-rows { flex: 1; display: flex; flex-direction: column; }
+.lrow { display: flex; flex: 1; border-bottom: 1px solid #1a1a1a; }
+.lhdr { width: 90px; min-width: 90px; background: #141414; border-right: 1px solid #1a1a1a; padding: 4px 6px; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.lname { font-size: 10px; font-weight: 600; color: #e0e0e0; }
+.ltype { font-size: 8px; color: #444; text-transform: uppercase; }
+.lbtns { display: flex; gap: 2px; margin-top: 2px; }
+.lb { width: 15px; height: 12px; background: #1a1a1a; border: 1px solid #252525; color: #444; font-size: 7px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.lb.on { color: #00ccff; border-color: #00ccff66; }
+.lb.solo { color: #ffaa00; border-color: #ffaa0066; }
+.lb.mute { color: #ff4444; border-color: #ff444466; }
+.lfader { width: 100%; height: 5px; background: #1a1a1a; margin-top: 3px; }
+.lf-fill { height: 100%; background: #00ccff; }
+
+/* Wide clip cells with embedded detail */
+.clip-grid { display: flex; flex: 1; }
+.cell { flex: 1; min-width: 140px; border-right: 1px solid #1a1a1a; background: #111; cursor: pointer; display: flex; flex-direction: column; position: relative; }
+.cell.active { background: #1a1a1a; }
+.cell.playing { box-shadow: inset 0 -2px 0 #00ff88; }
+.cell-thumb { flex: 1; position: relative; overflow: hidden; min-height: 60px; }
+.cg { position: absolute; inset: 0; }
+.g1 { background: linear-gradient(135deg, #1a0033, #003366, #001a11); }
+.g2 { background: linear-gradient(135deg, #330011, #0a0a0a, #003322); }
+.g3 { background: linear-gradient(135deg, #002244, #001133, #220044); }
+.g4 { background: linear-gradient(135deg, #112200, #001100, #002200); }
+.g5 { background: linear-gradient(135deg, #220022, #110033, #003344); }
+.g6 { background: linear-gradient(45deg, #003311, #001122, #110022); }
+.g7 { background: linear-gradient(45deg, #221100, #111100, #002211); }
+.g8 { background: linear-gradient(135deg, #001133, #220011, #003300); }
+/* Mini-timeline overlay */
+.cell-timeline { position: absolute; bottom: 20px; left: 4px; right: 4px; height: 8px; background: #00000066; display: flex; align-items: center; }
+.cell-tl-bar { height: 2px; background: #333; flex: 1; position: relative; margin: 0 2px; }
+.cell-tl-fill { height: 100%; background: #00ccff; position: absolute; left: 0; }
+.cell-tl-playhead { width: 2px; height: 6px; background: #00ff88; position: absolute; top: -2px; }
+/* Signal indicators on cell */
+.cell-signals { position: absolute; top: 4px; right: 4px; display: flex; gap: 2px; }
+.cell-sig-dot { width: 4px; height: 4px; }
+.cell-sig-dot.bass { background: #ff4444; }
+.cell-sig-dot.mid { background: #ffaa00; }
+.cell-sig-dot.high { background: #00ccff; }
+/* Cell info with more detail */
+.cell-info { height: 20px; padding: 0 4px; display: flex; align-items: center; justify-content: space-between; background: #0e0e0e; }
+.cell-name { font-size: 9px; color: #ccc; white-space: nowrap; overflow: hidden; }
+.cell-fx { font-size: 7px; color: #00ccff; }
+.cell.empty .cell-thumb { background: #090909; }
+.cell.empty .cell-info { background: #090909; }
+.cell.empty .cell-name { color: #222; }
+.cell.empty .cell-timeline { display: none; }
+.cell.empty .cell-signals { display: none; }
+
+/* ── RIGHT: Inspector (full height, 320px) ── */
+.inspector { width: 320px; min-width: 320px; background: #0e0e0e; border-left: 1px solid #1a1a1a; display: flex; flex-direction: column; overflow-y: auto; }
+.insp-tabs { height: 26px; display: flex; border-bottom: 1px solid #1a1a1a; flex-shrink: 0; }
+.itab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; text-transform: uppercase; color: #444; cursor: pointer; }
+.itab.active { color: #00ccff; border-bottom: 2px solid #00ccff; }
+.isec { padding: 8px 10px; border-bottom: 1px solid #1a1a1a; }
+.isec-title { font-size: 8px; color: #444; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.5px; }
+.pr { display: flex; align-items: center; margin-bottom: 3px; }
+.pl { width: 82px; font-size: 9px; color: #777; }
+.pt { flex: 1; height: 3px; background: #1a1a1a; }
+.pf { height: 100%; background: #00ccff; }
+.pv { width: 34px; text-align: right; font-size: 9px; color: #999; font-variant-numeric: tabular-nums; }
+.fxi { display: flex; align-items: center; padding: 2px 0; gap: 4px; }
+.fxb { width: 12px; height: 12px; background: #141414; border: 1px solid #282828; font-size: 7px; color: #00ff88; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.fxb.off { color: #282828; }
+.fxn { font-size: 9px; color: #ccc; flex: 1; }
+.fxd { font-size: 8px; color: #282828; cursor: pointer; }
+.fxd:hover { color: #ff4444; }
+
+/* ── Bottom: FX/Source Thumbnails ── */
+.bottom-strip { height: 80px; background: #0a0a0a; border-top: 1px solid #1a1a1a; display: flex; flex-direction: column; }
+.bottom-tabs { height: 22px; display: flex; border-bottom: 1px solid #1a1a1a; }
+.btab { padding: 0 12px; display: flex; align-items: center; font-size: 8px; text-transform: uppercase; color: #444; cursor: pointer; border-right: 1px solid #1a1a1a; }
+.btab.active { color: #00ccff; border-bottom: 2px solid #00ccff; }
+.bottom-thumbs { flex: 1; display: flex; align-items: center; padding: 0 8px; gap: 5px; overflow-x: auto; }
+.bthumb { width: 65px; height: 46px; background: #111; border: 1px solid #1a1a1a; flex-shrink: 0; cursor: pointer; display: flex; flex-direction: column; }
+.bthumb:hover { border-color: #00ccff44; }
+.bthumb-img { flex: 1; }
+.bthumb-img.i1 { background: linear-gradient(135deg, #110022, #002244); }
+.bthumb-img.i2 { background: linear-gradient(135deg, #001100, #001133); }
+.bthumb-img.i3 { background: linear-gradient(135deg, #220011, #003322); }
+.bthumb-img.i4 { background: linear-gradient(135deg, #0a1100, #110022); }
+.bthumb-img.i5 { background: linear-gradient(135deg, #001122, #220008); }
+.bthumb-img.i6 { background: linear-gradient(135deg, #002200, #080011); }
+.bthumb-img.i7 { background: linear-gradient(135deg, #110011, #001108); }
+.bthumb-img.i8 { background: linear-gradient(135deg, #000a1a, #110800); }
+.bthumb-name { height: 12px; background: #0a0a0a; font-size: 7px; color: #555; padding: 0 2px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; }
+
+/* ── Footer ── */
+.footer { height: 24px; background: #0a0a0a; display: flex; align-items: center; padding: 0 12px; border-top: 1px solid #1a1a1a; justify-content: space-between; }
+.ft { font-size: 9px; color: #444; }
+.ft.hl { color: #00ff88; }
+</style>
+</head>
+<body>
+
+<!-- Menu Bar -->
+<div class="menu-bar">
+  <span class="mi app">Audio-DNA</span>
+  <span class="mi">File</span>
+  <span class="mi">Edit</span>
+  <span class="mi">View</span>
+  <span class="mi">Output</span>
+  <span class="mi">Help</span>
+</div>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <div class="bpm">128.0</div>
+  <span class="bpm-u">BPM</span>
+  <div class="beat-dots">
+    <div class="bd on"></div><div class="bd"></div><div class="bd on"></div><div class="bd"></div>
+  </div>
+  <span class="bar-info">Bar 3 / 8</span>
+  <div class="flex1"></div>
+  <div class="tag on">LINK</div>
+  <div class="tag">REC</div>
+  <div class="tag">MIDI</div>
+  <div class="tag on">OSC</div>
+  <div class="mvol">
+    <span class="mvol-lbl">Master</span>
+    <div class="mvol-track"><div class="mvol-fill"></div></div>
+  </div>
+</div>
+
+<!-- Main Layout -->
+<div class="layout">
+  <!-- Signal Sidebar -->
+  <div class="signal-sidebar">
+    <div class="sig-item"><div class="sig-vbar"><div class="sig-vfill v1"></div></div><span class="sig-label">RMS</span></div>
+    <div class="sig-item"><div class="sig-vbar"><div class="sig-vfill v2"></div></div><span class="sig-label">Bass</span></div>
+    <div class="sig-item"><div class="sig-vbar"><div class="sig-vfill v3"></div></div><span class="sig-label">Mid</span></div>
+    <div class="sig-item"><div class="sig-vbar"><div class="sig-vfill v4"></div></div><span class="sig-label">High</span></div>
+    <div class="sig-item"><div class="sig-vbar"><div class="sig-vfill v5"></div></div><span class="sig-label">Flux</span></div>
+    <div class="sig-item"><div class="sig-vbar"><div class="sig-vfill v6"></div></div><span class="sig-label">Beat</span></div>
+    <div class="sig-item"><div class="sig-vbar"><div class="sig-vfill v7"></div></div><span class="sig-label">Onset</span></div>
+    <div class="sig-item"><div class="sig-vbar"><div class="sig-vfill v8"></div></div><span class="sig-label">Cent</span></div>
+  </div>
+
+  <!-- Center Area -->
+  <div class="center-area">
+    <!-- Deck + Scene -->
+    <div class="deck-row">
+      <div class="deck-tabs">
+        <div class="dtab active">Deck 1</div>
+        <div class="dtab">Deck 2</div>
+        <div class="dtab">Deck 3</div>
+        <div class="dtab">Deck 4</div>
+      </div>
+      <div class="scene-area">
+        <span class="sc-lbl">Scene</span>
+        <div class="sc on">1</div><div class="sc">2</div><div class="sc">3</div><div class="sc">4</div>
+        <div class="sc">5</div><div class="sc">6</div><div class="sc">7</div><div class="sc">8</div>
+        <div class="sc">9</div><div class="sc">10</div>
+      </div>
+    </div>
+
+    <!-- Layer Rows -->
+    <div class="layer-rows">
+      <!-- Layer 1 -->
+      <div class="lrow">
+        <div class="lhdr">
+          <div class="lname">Background</div>
+          <div class="ltype">Opaque</div>
+          <div class="lbtns"><div class="lb on">B</div><div class="lb">S</div><div class="lb">M</div></div>
+          <div class="lfader"><div class="lf-fill" style="width:85%"></div></div>
+        </div>
+        <div class="clip-grid">
+          <div class="cell active playing">
+            <div class="cell-thumb"><div class="cg g1"></div>
+              <div class="cell-signals"><div class="cell-sig-dot bass"></div><div class="cell-sig-dot mid"></div><div class="cell-sig-dot high"></div></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:45%"></div><div class="cell-tl-playhead" style="left:45%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Mandelbrot</span><span class="cell-fx">FX:2</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g2"></div>
+              <div class="cell-signals"><div class="cell-sig-dot bass"></div><div class="cell-sig-dot high"></div></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Perlin Noise</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g3"></div>
+              <div class="cell-signals"><div class="cell-sig-dot mid"></div></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Julia Set</span><span class="cell-fx">FX:3</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g4"></div>
+              <div class="cell-signals"><div class="cell-sig-dot bass"></div></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Voronoi Glass</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g5"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Menger Sponge</span><span class="cell-fx"></span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g6"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">KIFS</span><span class="cell-fx">FX:2</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g7"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Simplex Flow</span><span class="cell-fx"></span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g8"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Apollonian 3D</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+        </div>
+      </div>
+
+      <!-- Layer 2 -->
+      <div class="lrow">
+        <div class="lhdr">
+          <div class="lname">Textures</div>
+          <div class="ltype">Transparent</div>
+          <div class="lbtns"><div class="lb on">B</div><div class="lb">S</div><div class="lb">M</div></div>
+          <div class="lfader"><div class="lf-fill" style="width:60%"></div></div>
+        </div>
+        <div class="clip-grid">
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g8"></div>
+              <div class="cell-signals"><div class="cell-sig-dot bass"></div><div class="cell-sig-dot mid"></div></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">city_night.jpg</span><span class="cell-fx">FX:2</span></div>
+          </div>
+          <div class="cell active playing">
+            <div class="cell-thumb"><div class="cg g1"></div>
+              <div class="cell-signals"><div class="cell-sig-dot bass"></div><div class="cell-sig-dot mid"></div><div class="cell-sig-dot high"></div></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:62%"></div><div class="cell-tl-playhead" style="left:62%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">abstract_01.mp4</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g3"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">glitch_loop.mp4</span><span class="cell-fx">FX:3</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g5"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">smoke.mp4</span><span class="cell-fx"></span></div>
+          </div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+        </div>
+      </div>
+
+      <!-- Layer 3 -->
+      <div class="lrow">
+        <div class="lhdr">
+          <div class="lname">FX Layer</div>
+          <div class="ltype">FX Only</div>
+          <div class="lbtns"><div class="lb on">B</div><div class="lb solo">S</div><div class="lb">M</div></div>
+          <div class="lfader"><div class="lf-fill" style="width:100%"></div></div>
+        </div>
+        <div class="clip-grid">
+          <div class="cell active playing">
+            <div class="cell-thumb"><div class="cg g5"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Ripple + Echo</span><span class="cell-fx">FX:2</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g7"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Kaleidoscope</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g2"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">RGB Split</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g4"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Scanlines</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+        </div>
+      </div>
+
+      <!-- Layer 4 -->
+      <div class="lrow">
+        <div class="lhdr">
+          <div class="lname">Overlay</div>
+          <div class="ltype">Transparent</div>
+          <div class="lbtns"><div class="lb on">B</div><div class="lb">S</div><div class="lb mute">M</div></div>
+          <div class="lfader"><div class="lf-fill" style="width:45%"></div></div>
+        </div>
+        <div class="clip-grid">
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g6"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Text Wall</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb"><div class="cg g4"></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Spectrum Ring</span><span class="cell-fx"></span></div>
+          </div>
+          <div class="cell active">
+            <div class="cell-thumb"><div class="cg g8"></div>
+              <div class="cell-signals"><div class="cell-sig-dot bass"></div><div class="cell-sig-dot mid"></div></div>
+              <div class="cell-timeline"><div class="cell-tl-bar"><div class="cell-tl-fill" style="width:0%"></div></div></div>
+            </div>
+            <div class="cell-info"><span class="cell-name">Cymatics</span><span class="cell-fx">FX:1</span></div>
+          </div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+          <div class="cell empty"><div class="cell-thumb"></div><div class="cell-info"><span class="cell-name">Empty</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inspector -->
+  <div class="inspector">
+    <div class="insp-tabs">
+      <div class="itab active">Clip</div>
+      <div class="itab">Layer</div>
+      <div class="itab">Comp</div>
+      <div class="itab">Signal</div>
+    </div>
+
+    <div class="isec">
+      <div class="isec-title">Source: Mandelbrot</div>
+      <div class="pr"><span class="pl">Dive Speed</span><div class="pt"><div class="pf" style="width:35%"></div></div><span class="pv">0.35</span></div>
+      <div class="pr"><span class="pl">Zoom</span><div class="pt"><div class="pf" style="width:60%"></div></div><span class="pv">0.60</span></div>
+      <div class="pr"><span class="pl">Max Iterations</span><div class="pt"><div class="pf" style="width:45%"></div></div><span class="pv">0.45</span></div>
+      <div class="pr"><span class="pl">Color Shift</span><div class="pt"><div class="pf" style="width:70%"></div></div><span class="pv">0.70</span></div>
+      <div class="pr"><span class="pl">Palette</span><div class="pt"><div class="pf" style="width:25%"></div></div><span class="pv">Ocean</span></div>
+      <div class="pr"><span class="pl">Power</span><div class="pt"><div class="pf" style="width:33%"></div></div><span class="pv">2.5</span></div>
+    </div>
+
+    <div class="isec">
+      <div class="isec-title">Effects</div>
+      <div class="fxi"><div class="fxb">B</div><span class="fxn">Ripple</span><span class="fxd">x</span></div>
+      <div style="padding-left: 16px; margin-bottom: 4px;">
+        <div class="pr"><span class="pl">Intensity</span><div class="pt"><div class="pf" style="width:55%"></div></div><span class="pv">0.55</span></div>
+        <div class="pr"><span class="pl">Frequency</span><div class="pt"><div class="pf" style="width:40%"></div></div><span class="pv">0.40</span></div>
+      </div>
+      <div class="fxi"><div class="fxb">B</div><span class="fxn">Echo</span><span class="fxd">x</span></div>
+      <div style="padding-left: 16px; margin-bottom: 4px;">
+        <div class="pr"><span class="pl">Trail Length</span><div class="pt"><div class="pf" style="width:70%"></div></div><span class="pv">0.70</span></div>
+      </div>
+    </div>
+
+    <div class="isec">
+      <div class="isec-title">Transform</div>
+      <div class="pr"><span class="pl">Position X</span><div class="pt"><div class="pf" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Position Y</span><div class="pt"><div class="pf" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Scale</span><div class="pt"><div class="pf" style="width:50%"></div></div><span class="pv">1.00</span></div>
+      <div class="pr"><span class="pl">Rotation</span><div class="pt"><div class="pf" style="width:50%"></div></div><span class="pv">0.0</span></div>
+    </div>
+
+    <div class="isec">
+      <div class="isec-title">Video</div>
+      <div class="pr"><span class="pl">Opacity</span><div class="pt"><div class="pf" style="width:100%"></div></div><span class="pv">1.00</span></div>
+      <div class="pr"><span class="pl">Blend Mode</span><span class="pv" style="flex:1;text-align:left;color:#ccc;">Normal</span></div>
+    </div>
+
+    <div class="isec">
+      <div class="isec-title">Feedback</div>
+      <div class="pr"><span class="pl">Enabled</span><span class="pv" style="flex:1;text-align:left;color:#555;">Off</span></div>
+    </div>
+
+    <div class="isec">
+      <div class="isec-title">Transport</div>
+      <div class="pr"><span class="pl">Mode</span><span class="pv" style="flex:1;text-align:left;color:#ccc;">Timeline</span></div>
+      <div class="pr"><span class="pl">Loop</span><span class="pv" style="flex:1;text-align:left;color:#ccc;">Loop</span></div>
+      <div class="pr"><span class="pl">Speed</span><div class="pt"><div class="pf" style="width:50%"></div></div><span class="pv">1.00x</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom: FX/Source Thumbnails -->
+<div class="bottom-strip">
+  <div class="bottom-tabs">
+    <div class="btab">Files</div>
+    <div class="btab active">FX</div>
+    <div class="btab">Sources</div>
+    <div class="btab">Comp</div>
+    <div class="btab">Record</div>
+  </div>
+  <div class="bottom-thumbs">
+    <div class="bthumb"><div class="bthumb-img i1"></div><div class="bthumb-name">Ripple</div></div>
+    <div class="bthumb"><div class="bthumb-img i2"></div><div class="bthumb-name">Echo</div></div>
+    <div class="bthumb"><div class="bthumb-img i3"></div><div class="bthumb-name">Kaleidoscope</div></div>
+    <div class="bthumb"><div class="bthumb-img i4"></div><div class="bthumb-name">RGB Split</div></div>
+    <div class="bthumb"><div class="bthumb-img i5"></div><div class="bthumb-name">Chromatic</div></div>
+    <div class="bthumb"><div class="bthumb-img i6"></div><div class="bthumb-name">Block Glitch</div></div>
+    <div class="bthumb"><div class="bthumb-img i7"></div><div class="bthumb-name">Pixel Scatter</div></div>
+    <div class="bthumb"><div class="bthumb-img i8"></div><div class="bthumb-name">Hue Shift</div></div>
+    <div class="bthumb"><div class="bthumb-img i1"></div><div class="bthumb-name">Gaussian Blur</div></div>
+    <div class="bthumb"><div class="bthumb-img i2"></div><div class="bthumb-name">Zoom Blur</div></div>
+    <div class="bthumb"><div class="bthumb-img i3"></div><div class="bthumb-name">Glow</div></div>
+    <div class="bthumb"><div class="bthumb-img i4"></div><div class="bthumb-name">Scanlines</div></div>
+    <div class="bthumb"><div class="bthumb-img i5"></div><div class="bthumb-name">Posterize</div></div>
+    <div class="bthumb"><div class="bthumb-img i6"></div><div class="bthumb-name">Freeze</div></div>
+    <div class="bthumb"><div class="bthumb-img i7"></div><div class="bthumb-name">Slit Scan</div></div>
+    <div class="bthumb"><div class="bthumb-img i8"></div><div class="bthumb-name">Motion Blur</div></div>
+    <div class="bthumb"><div class="bthumb-img i1"></div><div class="bthumb-name">Vignette</div></div>
+    <div class="bthumb"><div class="bthumb-img i2"></div><div class="bthumb-name">Edge Detect</div></div>
+    <div class="bthumb"><div class="bthumb-img i3"></div><div class="bthumb-name">Sharpen</div></div>
+    <div class="bthumb"><div class="bthumb-img i4"></div><div class="bthumb-name">Strobe</div></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span class="ft">Audio-DNA v2.0</span>
+  <span class="ft">Deck 1 / 4 Layers / 16 Clips</span>
+  <span class="ft hl">60.0 FPS</span>
+  <span class="ft">Genre: Techno (88%)</span>
+  <span class="ft">Output: 1920x1080</span>
+</div>
+
+</body>
+</html>

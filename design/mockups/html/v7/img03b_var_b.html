@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 03b Variation B (Improved)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; color: #e0e0e0; background: linear-gradient(145deg, #1a1e22, #151820); }
+.top-bar { display: flex; align-items: center; height: 34px; background: linear-gradient(180deg, #23282e, #1c2026); border-bottom: 1px solid #333; padding: 0 12px; gap: 8px; }
+.logo { font-weight: 700; font-size: 14px; color: #ff9f43; }
+.sep { width: 1px; height: 20px; background: #444; }
+.bpm { font-size: 18px; font-weight: 700; color: #4ade80; }
+.btn { background: #2a2e34; border: 1px solid #444; color: #ccc; font-size: 10px; padding: 3px 8px; cursor: pointer; }
+.btn.act { background: #ff9f43; color: #111; }
+.dots { display: flex; gap: 3px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.on { background: #ff9f43; }
+.dot.off { background: #333; }
+.sp { flex: 1; }
+
+.main { display: grid; grid-template-columns: 220px 1fr 280px; grid-template-rows: 1fr auto; height: calc(1080px - 34px - 28px); }
+
+/* LEFT: SCENE + SIGNALS */
+.left { background: linear-gradient(180deg, #1e2228, #181c22); border-right: 1px solid #2a2e34; display: flex; flex-direction: column; overflow-y: auto; padding: 6px; }
+.stitle { font-size: 9px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.scene-chain { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 6px; }
+.sp-pill { padding: 2px 8px; font-size: 9px; background: #22262c; color: #888; cursor: pointer; }
+.sp-pill.act { background: #ff9f43; color: #111; }
+.sp-arrow { color: #555; font-size: 9px; align-self: center; }
+.hr { border-top: 1px solid #2a2e34; margin: 5px 0; }
+.li { font-size: 9px; padding: 2px 0; color: #aaa; display: flex; gap: 3px; align-items: center; }
+.lb { font-size: 7px; font-weight: 700; padding: 1px 3px; }
+.lbv { background: #e67e22; color: #fff; }
+.lbs { background: #00bcd4; color: #fff; }
+.lbi { background: #3498db; color: #fff; }
+.ls { font-size: 8px; color: #666; padding-left: 12px; }
+
+/* Signals */
+.signals { margin-top: 4px; }
+.sig { margin-bottom: 3px; }
+.sig-r { display: flex; justify-content: space-between; font-size: 7px; color: #777; }
+.sig-b { height: 4px; background: #1a1e22; margin-top: 1px; }
+.sf { height: 100%; }
+.sfg { background: linear-gradient(90deg, #2d6e4a, #4ade80); }
+.sfa { background: linear-gradient(90deg, #6e4a1a, #ff9f43); }
+.sfc { background: linear-gradient(90deg, #1a5a6e, #4aeaff); }
+.sfp { background: linear-gradient(90deg, #4a1a6e, #b366ff); }
+.genre-row { margin-top: 4px; padding: 3px 4px; background: #22262c; font-size: 8px; display: flex; justify-content: space-between; }
+
+/* CENTER: PREVIEW + MACROS */
+.center { display: flex; flex-direction: column; padding: 8px; }
+.preview { flex: 1; background: radial-gradient(ellipse at center, #2a1a0a, #150c04, #080402); border: 1px solid #2a2e34; position: relative; }
+.preview::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 45% 45%, rgba(255,160,60,0.25), transparent 40%), radial-gradient(circle at 55% 55%, rgba(255,100,40,0.15), transparent 30%); }
+.pbar { height: 4px; background: #1a1e22; margin-top: 3px; }
+.pfill { height: 100%; background: linear-gradient(90deg, #ff9f43, #4aeaff); width: 42%; }
+/* Macros */
+.macros { padding: 4px 0; }
+.mac-t { font-size: 8px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+.mac-row { display: flex; gap: 8px; justify-content: center; }
+.mac { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.knob { width: 28px; height: 28px; border-radius: 50%; position: relative; }
+.kc { position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 50%; background: #22262c; }
+.kl { font-size: 7px; color: #888; }
+
+/* RIGHT: SOURCES + MINI INSPECTOR */
+.right { background: linear-gradient(180deg, #1e2228, #181c22); border-left: 1px solid #2a2e34; display: flex; flex-direction: column; }
+.src-tabs { display: flex; }
+.stab { flex: 1; text-align: center; padding: 4px 0; font-size: 10px; color: #888; background: #1e2228; border-bottom: 1px solid #2a2e34; cursor: pointer; }
+.stab.act { color: #4aeaff; border-bottom-color: #4aeaff; }
+.slist { padding: 4px 6px; overflow-y: auto; }
+.si { display: flex; align-items: center; gap: 5px; padding: 4px; margin-bottom: 2px; background: #22262c; cursor: pointer; font-size: 10px; }
+.si:hover { background: #2a2e34; }
+.si-icon { font-size: 10px; width: 16px; text-align: center; }
+.si-name { flex: 1; font-size: 10px; }
+.si-viz { width: 45px; height: 16px; display: flex; align-items: flex-end; gap: 1px; }
+.si-vb { width: 3px; border-radius: 1px 1px 0 0; }
+.src-add { font-size: 9px; color: #4aeaff; padding: 4px 6px; text-align: center; cursor: pointer; }
+
+/* Mini clip inspector */
+.mini-insp { border-top: 1px solid #2a2e34; padding: 6px; flex: 1; overflow-y: auto; }
+.mi-title { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.mi-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; font-size: 9px; }
+.mi-lbl { width: 60px; color: #777; }
+.mi-val { flex: 1; color: #ccc; }
+.mi-sel { background: #2a2e34; border: 1px solid #444; color: #ccc; font-size: 9px; padding: 1px 3px; flex: 1; }
+.mi-slider { flex: 1; height: 3px; background: #333; }
+.mi-sf { height: 100%; }
+.mi-fx { margin-top: 4px; }
+.mi-fx-item { display: flex; align-items: center; gap: 3px; padding: 2px 3px; margin-bottom: 2px; background: #22262c; font-size: 8px; }
+.mi-fx-bp { width: 12px; height: 12px; background: #333; color: #4ade80; text-align: center; line-height: 12px; font-size: 6px; }
+.mi-fx-name { flex: 1; }
+.mi-fx-val { color: #4aeaff; font-size: 7px; }
+.mi-fx-add { font-size: 8px; color: #4aeaff; padding: 3px; cursor: pointer; }
+/* Signal routing preview */
+.route-preview { border-top: 1px solid #2a2e34; padding: 6px; }
+.rp-title { font-size: 8px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+.rp-item { display: flex; align-items: center; gap: 3px; font-size: 8px; margin-bottom: 2px; }
+.rp-src { color: #4ade80; }
+.rp-arrow { color: #555; }
+.rp-tgt { color: #4aeaff; }
+.rp-curve { color: #888; font-size: 7px; }
+
+/* BOTTOM: CLIP CARDS */
+.layer-strip { grid-column: 1/4; background: linear-gradient(180deg, #1e2228, #181c22); border-top: 1px solid #333; }
+.lt-tabs { display: flex; height: 24px; background: #1a1e22; border-bottom: 1px solid #2a2e34; padding: 0 8px; align-items: center; gap: 2px; }
+.lt { padding: 3px 10px; font-size: 10px; color: #888; cursor: pointer; }
+.lt.act { color: #4aeaff; border-bottom: 2px solid #4aeaff; }
+.lt-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.lt-add { font-size: 10px; color: #555; cursor: pointer; }
+.clips { display: flex; padding: 6px 8px; gap: 8px; overflow-x: auto; }
+.clip { flex: 1; min-width: 190px; background: #22262c; border: 1px solid #2a2e34; padding: 5px; }
+.clip.act { border-color: #4aeaff; box-shadow: 0 0 6px rgba(74,234,255,0.1); }
+.ch { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+.ch-badge { font-size: 7px; font-weight: 700; padding: 1px 4px; }
+.chv { background: #e67e22; color: #fff; }
+.chs { background: #00bcd4; color: #fff; }
+.ch-name { font-size: 10px; font-weight: 500; flex: 1; }
+.ct { width: 100%; height: 75px; border: 1px solid #333; margin-bottom: 3px; }
+.ck-row { display: flex; gap: 6px; margin-bottom: 3px; }
+.ckw { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.ck { width: 20px; height: 20px; border-radius: 50%; position: relative; }
+.ckc { position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 50%; background: #2a2e34; }
+.ckl { font-size: 6px; color: #777; }
+.cfx { display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: 3px; }
+.fp { font-size: 6px; padding: 1px 4px; }
+.fpg { background: #1a3a2a; color: #4ade80; border: 1px solid #2a5a3a; }
+.fpp { background: #2a1a3a; color: #b366ff; border: 1px solid #4a2a6a; }
+.fpc { background: #1a2a3a; color: #4aeaff; border: 1px solid #2a4a6a; }
+.cop { display: flex; align-items: center; gap: 3px; }
+.cop-bar { flex: 1; height: 3px; background: #1a1e22; }
+.cop-fill { height: 100%; background: linear-gradient(90deg, #0a6e5c, #4aeaff); }
+.cop-val { font-size: 7px; color: #888; }
+
+.footer { display: flex; align-items: center; height: 28px; background: linear-gradient(180deg, #1c2026, #16181c); border-top: 1px solid #333; padding: 0 12px; gap: 10px; font-size: 10px; color: #888; }
+.footer .sp { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span style="font-size:16px;color:#ff9f43;">&#9671;</span>
+  <span class="logo">AUDIO-DNA VJ</span><div class="sep"></div>
+  <span class="bpm">128.0</span>
+  <span style="font-size:8px;color:#4ade80;background:#1a3a2a;padding:1px 4px;">LOCKED</span>
+  <div class="btn">TAP</div><div class="btn">RESYNC</div>
+  <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot off"></div><div class="dot off"></div></div>
+  <span style="font-size:10px;color:#aaa;">Bar 8 | Phr 0.62</span>
+  <div class="sep"></div>
+  <div class="btn">/2</div><div class="btn act">x1</div><div class="btn">x2</div>
+  <div class="sp"></div>
+  <span style="font-size:10px;color:#888;">Quantize: Beat</span>
+  <span style="font-size:10px;color:#4ade80;">60 FPS</span>
+  <span style="font-size:10px;color:#888;">11:56 AM</span>
+</div>
+
+<div class="main">
+  <!-- LEFT -->
+  <div class="left">
+    <div class="stitle">Scene Flow</div>
+    <div class="scene-chain">
+      <span class="sp-pill act">Verse</span><span class="sp-arrow">&#8594;</span>
+      <span class="sp-pill">Chorus</span><span class="sp-arrow">&#8594;</span>
+      <span class="sp-pill">Drop</span>
+    </div>
+    <div class="hr"></div>
+    <div class="li"><span class="lb lbv">III</span> Layer 1 <span class="lb lbv">VIDEO</span></div>
+    <div class="ls">MASTER &#8594; Opacity</div>
+    <div class="li"><span class="lb lbi">IMAGE</span> Zoom Pulse ON</div>
+    <div class="li"><span class="lb lbs">SYNTH</span> Color Shift</div>
+    <div style="font-size:9px;color:#555;padding:4px 0;cursor:pointer;">+ Add Scene</div>
+    <div class="hr"></div>
+
+    <div class="stitle">Audio Signals</div>
+    <div class="signals">
+      <div class="sig"><div class="sig-r"><span>RMS</span><span>0.72</span></div><div class="sig-b"><div class="sf sfg" style="width:72%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>Peak</span><span>0.91</span></div><div class="sig-b"><div class="sf sfg" style="width:91%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>Bass</span><span>0.85</span></div><div class="sig-b"><div class="sf sfa" style="width:85%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>Mid</span><span>0.54</span></div><div class="sig-b"><div class="sf sfa" style="width:54%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>High</span><span>0.38</span></div><div class="sig-b"><div class="sf sfa" style="width:38%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>Beat Phase</span><span>0.72</span></div><div class="sig-b"><div class="sf sfc" style="width:72%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>Onset</span><span>0.62</span></div><div class="sig-b"><div class="sf sfp" style="width:62%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>Sidechain</span><span>0.65</span></div><div class="sig-b"><div class="sf sfa" style="width:65%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>Formant</span><span>0.22</span></div><div class="sig-b"><div class="sf sfp" style="width:22%;"></div></div></div>
+      <div class="sig"><div class="sig-r"><span>Resonance</span><span>0.48</span></div><div class="sig-b"><div class="sf sfp" style="width:48%;"></div></div></div>
+    </div>
+    <div class="genre-row">
+      <span>Genre: <span style="color:#ff9f43;">Techno</span></span>
+      <span>Energy: <span style="color:#4ade80;">High</span></span>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <div class="preview"></div>
+    <div class="pbar"><div class="pfill"></div></div>
+    <div class="macros">
+      <div class="mac-t">Global Macros</div>
+      <div class="mac-row">
+        <div class="mac"><div class="knob" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 200deg,#333 200deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Hue</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 140deg,#333 140deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Sat</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 220deg,#333 220deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Bright</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 180deg,#333 180deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Scale</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 160deg,#333 160deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Speed</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 100deg,#333 100deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">FX</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#b366ff 0deg,#b366ff 240deg,#333 240deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Zoom</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#b366ff 0deg,#b366ff 80deg,#333 80deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Trail</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="src-tabs"><div class="stab act">Sources</div><div class="stab">Layer</div><div class="stab">Clip</div></div>
+    <div class="slist">
+      <div class="si"><div class="si-icon">&#9835;</div><span class="si-name">Audio 1</span><div class="si-viz"><div class="si-vb" style="height:12px;background:#4ade80;"></div><div class="si-vb" style="height:16px;background:#4ade80;"></div><div class="si-vb" style="height:14px;background:#ffaa00;"></div></div></div>
+      <div class="si"><div class="si-icon">&#9776;</div><span class="si-name">Kick Drum</span><div style="width:45px;height:14px;background:linear-gradient(90deg,#4ade80,#4ade80 65%,#333 65%);"></div></div>
+      <div class="si"><div class="si-icon">~</div><span class="si-name">LFO - Sine</span><div style="width:45px;height:14px;border-bottom:1px solid #4aeaff;"></div></div>
+      <div class="si"><div class="si-icon">~</div><span class="si-name">LFO - Custom</span><div style="width:45px;height:14px;border-bottom:1px solid #ff9f43;"></div></div>
+      <div class="si"><div class="si-icon">&#9651;</div><span class="si-name">Envelope 1</span><div style="width:45px;height:14px;border-bottom:1px solid #b366ff;"></div></div>
+      <div class="src-add">+ Add Audio</div>
+    </div>
+    <div class="mini-insp">
+      <div class="mi-title">Clip: Master Bass</div>
+      <div class="mi-row"><span class="mi-lbl">Transport</span><select class="mi-sel"><option>BPM Sync</option></select></div>
+      <div class="mi-row"><span class="mi-lbl">Opacity</span><div class="mi-slider"><div class="mi-sf" style="width:100%;background:#4aeaff;"></div></div></div>
+      <div class="mi-row"><span class="mi-lbl">Blend</span><select class="mi-sel"><option>Additive</option></select></div>
+      <div class="mi-fx">
+        <div class="mi-fx-item"><div class="mi-fx-bp">B</div><span class="mi-fx-name">Feedback</span><span class="mi-fx-val">0.65</span></div>
+        <div class="mi-fx-item"><div class="mi-fx-bp">B</div><span class="mi-fx-name">Glow</span><span class="mi-fx-val">0.45</span></div>
+        <div class="mi-fx-item"><div class="mi-fx-bp">B</div><span class="mi-fx-name">Fluid Warp</span><span class="mi-fx-val">0.30</span></div>
+        <div class="mi-fx-item"><div class="mi-fx-bp">B</div><span class="mi-fx-name">Chromatic Aberration</span><span class="mi-fx-val">0.20</span></div>
+        <div class="mi-fx-add">+ Add Effect</div>
+      </div>
+    </div>
+    <div class="route-preview">
+      <div class="rp-title">Active Signal Routes</div>
+      <div class="rp-item"><span class="rp-src">Bass</span><span class="rp-arrow">&#8594;</span><span class="rp-tgt">Ripple Intensity</span><span class="rp-curve">(Exp)</span></div>
+      <div class="rp-item"><span class="rp-src">Beat Phase</span><span class="rp-arrow">&#8594;</span><span class="rp-tgt">Hue Shift</span><span class="rp-curve">(Linear)</span></div>
+      <div class="rp-item"><span class="rp-src">Onset</span><span class="rp-arrow">&#8594;</span><span class="rp-tgt">Flash Intensity</span><span class="rp-curve">(S-Curve)</span></div>
+      <div class="rp-item"><span class="rp-src">RMS</span><span class="rp-arrow">&#8594;</span><span class="rp-tgt">Zoom Scale</span><span class="rp-curve">(Log)</span></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="layer-strip">
+    <div class="lt-tabs">
+      <div class="lt act">Layer 1</div><div class="lt">IMAGE</div><div class="lt">SYNTH</div><div class="lt">FX Only</div>
+      <div class="lt-right"><div class="lt-add">+ Add Layer</div></div>
+    </div>
+    <div class="clips">
+      <div class="clip act">
+        <div class="ch"><span class="ch-badge chv">VIDEO</span><span class="ch-name">Master Bass</span></div>
+        <div class="ct" style="background:radial-gradient(circle,#ff6b2b,#8b2500,#1a0800);"></div>
+        <div class="ck-row">
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 180deg,#333 180deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">H</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 150deg,#333 150deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">S</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 200deg,#333 200deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">B</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 160deg,#333 160deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">Spd</span></div>
+        </div>
+        <div class="cfx"><span class="fp fpg">Feedback</span><span class="fp fpp">Glow</span><span class="fp fpc">Fluid Warp</span></div>
+        <div class="cop"><div class="cop-bar"><div class="cop-fill" style="width:100%;"></div></div><span class="cop-val">100%</span></div>
+      </div>
+      <div class="clip">
+        <div class="ch"><span class="ch-badge chs">SYNTH</span><span class="ch-name">Kick Drum</span></div>
+        <div class="ct" style="background:radial-gradient(circle,#00bcd4,#004d56,#001a1e);"></div>
+        <div class="ck-row">
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 120deg,#333 120deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">H</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 200deg,#333 200deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">S</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 160deg,#333 160deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">B</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 180deg,#333 180deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">Spd</span></div>
+        </div>
+        <div class="cfx"><span class="fp fpp">Pulse</span><span class="fp fpg">Zoom</span><span class="fp fpc">Glitch</span></div>
+        <div class="cop"><div class="cop-bar"><div class="cop-fill" style="width:85%;"></div></div><span class="cop-val">85%</span></div>
+      </div>
+      <div class="clip">
+        <div class="ch"><span class="ch-badge chs">SYNTH</span><span class="ch-name">LFO Custom</span></div>
+        <div class="ct" style="background:conic-gradient(from 90deg,#9b59b6,#3498db,#1abc9c,#f39c12,#9b59b6);"></div>
+        <div class="ck-row">
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 200deg,#333 200deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">H</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 140deg,#333 140deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">S</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 180deg,#333 180deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">B</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 120deg,#333 120deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">Spd</span></div>
+        </div>
+        <div class="cfx"><span class="fp fpp">Pulse</span><span class="fp fpg">Kaleido</span><span class="fp fpc">Trail</span></div>
+        <div class="cop"><div class="cop-bar"><div class="cop-fill" style="width:70%;"></div></div><span class="cop-val">70%</span></div>
+      </div>
+      <div class="clip">
+        <div class="ch"><span class="ch-badge chs">SYNTH</span><span class="ch-name">Custom Envlp</span></div>
+        <div class="ct" style="background:radial-gradient(circle,#b366ff,#4a1a6e,#0d0015);"></div>
+        <div class="ck-row">
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#b366ff 0deg,#b366ff 160deg,#333 160deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">H</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#b366ff 0deg,#b366ff 180deg,#333 180deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">S</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#b366ff 0deg,#b366ff 220deg,#333 220deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">B</span></div>
+          <div class="ckw"><div class="ck" style="background:conic-gradient(#b366ff 0deg,#b366ff 200deg,#333 200deg,#333 300deg,transparent 300deg);"><div class="ckc"></div></div><span class="ckl">Spd</span></div>
+        </div>
+        <div class="cfx"><span class="fp fpp">Pulse</span><span class="fp fpg">Kaleido</span><span class="fp fpc">Trail</span></div>
+        <div class="cop"><div class="cop-bar"><div class="cop-fill" style="width:100%;"></div></div><span class="cop-val">100%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span style="cursor:pointer;">Master Sources</span><div class="sep" style="height:16px;"></div>
+  <span style="cursor:pointer;">Audio Player</span><div class="sep" style="height:16px;"></div>
+  <span style="cursor:pointer;">Outputs</span>
+  <div class="sp"></div>
+  <span>Save</span> <span>Load</span> <span>Help</span>
+</div>
+
+</body>
+</html>

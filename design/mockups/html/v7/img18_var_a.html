@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 18 Var A (Faithful)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(180deg, #1a1e24 0%, #14171c 50%, #101318 100%); color: #e0e0e0; font-size: 11px; }
+
+/* TOP BAR */
+.top-bar { height: 38px; background: linear-gradient(180deg, #222830, #1a1e24); display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #333; gap: 10px; }
+.logo { font-size: 16px; font-weight: 700; color: #fff; letter-spacing: 1px; white-space: nowrap; }
+.logo span { color: #f0a030; }
+.bpm-display { font-size: 24px; font-weight: 700; color: #4ade80; font-family: 'Courier New', monospace; margin: 0 8px; }
+.top-btn { background: #2a2f38; border: 1px solid #444; color: #ccc; padding: 3px 10px; font-size: 10px; cursor: pointer; border-radius: 2px; }
+.top-btn:hover { background: #3a3f48; }
+.top-btn.active { background: #f0a030; color: #111; border-color: #f0a030; }
+.nudge-group { display: flex; gap: 2px; }
+.beat-dots { display: flex; gap: 3px; margin: 0 6px; }
+.beat-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+.beat-dot.active { background: #4ade80; box-shadow: 0 0 4px #4ade80; }
+.bar-counter { font-family: 'Courier New', monospace; color: #aaa; font-size: 11px; white-space: nowrap; }
+.room-delay { color: #888; font-size: 10px; white-space: nowrap; }
+.top-spacer { flex: 1; }
+.lock-btn { background: #2a2f38; border: 1px solid #555; color: #f0a030; padding: 3px 8px; font-size: 10px; cursor: pointer; border-radius: 2px; }
+
+/* SCENE BUTTONS */
+.scene-bar { height: 34px; background: linear-gradient(180deg, #1e2228, #181c22); display: flex; align-items: center; padding: 0 12px; gap: 6px; border-bottom: 1px solid #2a2a2a; }
+.scene-btn { background: #1a1e24; border: 1px solid #444; color: #ccc; padding: 4px 14px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.scene-btn .play-icon { color: #4ade80; font-size: 9px; }
+.scene-btn.active { border-color: #f0a030; color: #f0a030; background: #2a2520; }
+.scene-spacer { flex: 1; }
+.scene-nav { display: flex; gap: 4px; }
+
+/* MAIN LAYOUT */
+.main-area { display: flex; height: calc(1080px - 38px - 34px - 28px); }
+.grid-area { flex: 1; display: flex; flex-direction: column; }
+.right-panel { width: 260px; background: linear-gradient(180deg, #1c2028, #161a20); border-left: 1px solid #333; padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+
+/* COLUMN HEADERS */
+.col-headers { display: flex; padding: 0 220px 0 0; height: 20px; align-items: center; }
+.col-header { flex: 1; text-align: center; font-size: 9px; color: #666; text-transform: uppercase; }
+
+/* LAYER ROWS */
+.layers-container { flex: 1; overflow: hidden; }
+.layer-row { display: flex; height: 120px; border-bottom: 1px solid #222; }
+.layer-strip { width: 220px; background: linear-gradient(90deg, #1e2228, #1a1e24); padding: 4px 6px; border-right: 1px solid #2a2a2a; display: flex; flex-direction: column; gap: 2px; }
+.layer-name { font-size: 10px; font-weight: 600; color: #e0e0e0; }
+.layer-engine { font-size: 9px; color: #888; }
+.layer-engine span { color: #f0a030; }
+.layer-controls { display: flex; gap: 3px; margin-top: 2px; }
+.layer-ctrl-btn { width: 18px; height: 16px; background: #2a2f38; border: 1px solid #444; color: #999; font-size: 8px; text-align: center; line-height: 14px; cursor: pointer; }
+.layer-ctrl-btn.on { background: #c04040; color: #fff; border-color: #c04040; }
+.layer-toggles { display: flex; gap: 3px; margin-top: 2px; }
+.toggle-btn { padding: 1px 5px; font-size: 8px; background: #222; border: 1px solid #444; color: #777; cursor: pointer; text-transform: uppercase; }
+.toggle-btn.active { background: #f0a030; color: #111; border-color: #f0a030; }
+
+/* CLIP CELLS */
+.clips-row { display: flex; flex: 1; gap: 4px; padding: 4px; align-items: flex-start; }
+.clip-cell { width: 90px; height: 90px; background: linear-gradient(135deg, #1a1e24, #222830); border: 1px solid #333; border-radius: 3px; position: relative; overflow: hidden; cursor: pointer; flex-shrink: 0; }
+.clip-cell.active { border-color: #00e5ff; box-shadow: 0 0 6px rgba(0,229,255,0.3); }
+.clip-cell .thumb { width: 100%; height: 70px; }
+.clip-cell .name { height: 20px; background: #111; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; }
+.clip-badge { position: absolute; top: 2px; right: 2px; font-size: 7px; padding: 1px 4px; border-radius: 2px; font-weight: 700; }
+.badge-video { background: #c04040; color: #fff; }
+.badge-image { background: #3060c0; color: #fff; }
+.badge-synth { background: #20a060; color: #fff; }
+.badge-audio { background: #f0a030; color: #111; }
+.retrigger-btn { position: absolute; bottom: 22px; right: 2px; font-size: 7px; color: #aaa; background: #222; padding: 1px 3px; border-radius: 2px; }
+
+/* Gradient thumbs */
+.thumb-1 { background: linear-gradient(135deg, #c040a0, #4060f0); }
+.thumb-2 { background: linear-gradient(135deg, #20c0a0, #1040a0); }
+.thumb-3 { background: linear-gradient(45deg, #f04060, #f0a020); }
+.thumb-4 { background: linear-gradient(135deg, #6020c0, #2080f0); }
+.thumb-5 { background: linear-gradient(180deg, #104030, #20a060); }
+.thumb-6 { background: linear-gradient(135deg, #303840, #505860); }
+.thumb-7 { background: linear-gradient(135deg, #f06040, #f0c040); }
+.thumb-8 { background: linear-gradient(45deg, #2060c0, #60c0f0); }
+
+/* FADER AREA */
+.fader-area { height: 180px; display: flex; padding: 0 220px 0 0; border-top: 1px solid #333; background: linear-gradient(180deg, #181c22, #14171c); }
+.fader-col { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 6px 0; gap: 4px; }
+.fader-label { font-size: 9px; color: #777; }
+.fader-track { width: 8px; height: 80px; background: #111; border: 1px solid #333; border-radius: 4px; position: relative; }
+.fader-knob { width: 20px; height: 10px; background: linear-gradient(180deg, #ddd, #999); border-radius: 2px; position: absolute; bottom: 0; left: -6px; cursor: pointer; }
+.fader-value { font-size: 10px; color: #e0e0e0; font-family: 'Courier New', monospace; }
+.flash-btn { padding: 4px 16px; background: #2a2f38; border: 1px solid #555; color: #ccc; font-size: 10px; font-weight: 600; cursor: pointer; }
+.flash-btn:hover { background: #fff; color: #111; }
+
+/* RIGHT PANEL */
+.panel-title { font-size: 10px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.master-knobs { display: flex; gap: 16px; justify-content: center; }
+.knob-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.knob { width: 48px; height: 48px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a4050, #1a1e28); border: 2px solid #444; position: relative; cursor: pointer; }
+.knob::after { content: ''; position: absolute; top: 6px; left: 50%; width: 2px; height: 14px; background: #e0e0e0; transform-origin: bottom center; transform: rotate(var(--rot, 0deg)); }
+.knob-label { font-size: 9px; color: #999; }
+.knob-value { font-size: 10px; color: #e0e0e0; font-family: 'Courier New', monospace; }
+
+/* XY PAD */
+.xy-pad { width: 140px; height: 140px; background: #111; border: 1px solid #333; border-radius: 4px; position: relative; margin: 0 auto; }
+.xy-pad::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #2a2a2a; }
+.xy-pad::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #2a2a2a; }
+.xy-dot { width: 10px; height: 10px; border-radius: 50%; background: #f0a030; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 6px #f0a030; }
+
+/* COLOR OVERRIDE */
+.color-override { display: flex; gap: 6px; align-items: center; justify-content: center; }
+.color-swatch { width: 24px; height: 24px; border-radius: 3px; border: 1px solid #555; cursor: pointer; }
+
+/* TAB BUTTONS */
+.right-tabs { display: flex; gap: 2px; margin-bottom: 6px; }
+.right-tab { flex: 1; padding: 4px; text-align: center; font-size: 9px; background: #222; border: 1px solid #333; color: #888; cursor: pointer; }
+.right-tab.active { background: #2a3040; color: #00e5ff; border-color: #00e5ff; }
+
+/* FOOTER */
+.footer { height: 28px; background: linear-gradient(180deg, #1e2228, #14171c); border-top: 1px solid #333; display: flex; align-items: center; padding: 0 12px; gap: 12px; font-size: 10px; color: #888; }
+.footer-spacer { flex: 1; }
+.footer-btn { color: #999; cursor: pointer; padding: 2px 8px; }
+.footer-btn:hover { color: #e0e0e0; }
+.footer .play-indicator { color: #4ade80; }
+.footer .track-name { color: #ccc; }
+
+/* Meter bars */
+.meter-bar { display: flex; gap: 1px; height: 14px; align-items: flex-end; }
+.meter-bar .bar { width: 3px; background: linear-gradient(0deg, #4ade80, #f0a030, #c04040); border-radius: 1px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo"><span>&#9670;</span> Audio-DNA VJ</div>
+  <div class="bpm-display">128.00</div>
+  <div class="top-btn">TAP</div>
+  <div class="nudge-group">
+    <div class="top-btn">Nudge -</div>
+    <div class="top-btn">Nudge +</div>
+  </div>
+  <div class="top-btn active">RESYNC</div>
+  <div class="beat-dots">
+    <div class="beat-dot active"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+  </div>
+  <div class="bar-counter">Bar: 32 / 1.1</div>
+  <div style="display:flex;gap:1px;align-items:flex-end;height:16px;">
+    <div style="width:2px;height:12px;background:linear-gradient(0deg,#4ade80,#f0a030);border-radius:1px;"></div>
+    <div style="width:2px;height:8px;background:linear-gradient(0deg,#4ade80,#80c040);border-radius:1px;"></div>
+    <div style="width:2px;height:14px;background:linear-gradient(0deg,#4ade80,#f0a030,#c04040);border-radius:1px;"></div>
+    <div style="width:2px;height:6px;background:#4ade80;border-radius:1px;"></div>
+    <div style="width:2px;height:10px;background:linear-gradient(0deg,#4ade80,#f0a030);border-radius:1px;"></div>
+    <div style="width:2px;height:4px;background:#4ade80;border-radius:1px;"></div>
+    <div style="width:2px;height:11px;background:linear-gradient(0deg,#4ade80,#f0a030);border-radius:1px;"></div>
+    <div style="width:2px;height:7px;background:#4ade80;border-radius:1px;"></div>
+  </div>
+  <div class="bar-counter">4-Beat Indicator</div>
+  <div class="room-delay">Room Delay: 15ms</div>
+  <div class="top-spacer"></div>
+  <div class="lock-btn">LOCK UI</div>
+  <div class="top-btn">LIVE PALETTE</div>
+  <div class="right-tabs" style="margin:0;gap:2px;">
+    <div class="right-tab active" style="padding:2px 8px;">SOURCES/SETUP</div>
+  </div>
+</div>
+
+<!-- SCENE BAR -->
+<div class="scene-bar">
+  <div class="scene-btn active"><span class="play-icon">&#9654;</span> INTRO</div>
+  <div class="scene-btn"><span class="play-icon">&#9654;</span> VERSE 1</div>
+  <div class="scene-btn"><span class="play-icon">&#9654;</span> BUILD</div>
+  <div class="scene-btn"><span class="play-icon">&#9654;</span> DROP</div>
+  <div class="scene-btn"><span class="play-icon">&#9654;</span> OUTRO</div>
+  <div class="scene-spacer"></div>
+  <div class="scene-nav">
+    <div class="top-btn">PREV</div>
+    <div class="top-btn">NEXT</div>
+    <div class="top-btn" style="color:#4ade80;">+ SCENE</div>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+  <div class="grid-area">
+    <!-- COLUMN HEADERS -->
+    <div class="col-headers" style="padding-left:220px;">
+      <div class="col-header">CLIP GRP1</div>
+      <div class="col-header">CLIP GRP2</div>
+      <div class="col-header">CLIP GRP3</div>
+      <div class="col-header">CLIP GRP4</div>
+      <div class="col-header">CLIP GRP5</div>
+      <div class="col-header">EMPTY</div>
+    </div>
+
+    <div class="layers-container">
+      <!-- LAYER 1 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-name">LYR 1: KICK-REACTIVE</div>
+          <div class="layer-engine">Audio: <span>Kick Bass</span></div>
+          <div class="layer-controls">
+            <div class="layer-ctrl-btn">S</div>
+            <div class="layer-ctrl-btn">M</div>
+            <div class="layer-ctrl-btn">&#9654;</div>
+            <div class="layer-ctrl-btn">||</div>
+            <div class="layer-ctrl-btn">&#9632;</div>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn active">FLASH</div>
+            <div class="toggle-btn">STROBE</div>
+            <div class="toggle-btn">INVERT</div>
+            <div class="toggle-btn">FREEZE</div>
+          </div>
+        </div>
+        <div class="clips-row">
+          <div class="clip-cell active"><div class="thumb thumb-1"></div><div class="name">Clip Name</div><div class="clip-badge badge-video">VIDEO</div><div class="retrigger-btn">Re-trigger</div></div>
+          <div class="clip-cell"><div class="thumb thumb-2"></div><div class="name">Clip Name</div><div class="clip-badge badge-synth">SYNTH</div><div class="retrigger-btn">Re-trigger</div></div>
+          <div class="clip-cell"><div class="thumb thumb-3"></div><div class="name">Clip Name</div><div class="clip-badge badge-image">IMAGE</div><div class="retrigger-btn">Re-trigger</div></div>
+          <div class="clip-cell"><div class="thumb thumb-4"></div><div class="name">Clip Name</div><div class="clip-badge badge-audio">AUDIO</div></div>
+          <div class="clip-cell"><div class="thumb thumb-5"></div><div class="name">Clip Name</div><div class="clip-badge badge-video">VIDEO</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+        </div>
+      </div>
+
+      <!-- LAYER 2 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-name">LYR 2: BEATS-REACTIVE</div>
+          <div class="layer-engine">Audio: <span>Paint Sat</span></div>
+          <div class="layer-controls">
+            <div class="layer-ctrl-btn">S</div>
+            <div class="layer-ctrl-btn">M</div>
+            <div class="layer-ctrl-btn">&#9654;</div>
+            <div class="layer-ctrl-btn">||</div>
+            <div class="layer-ctrl-btn">&#9632;</div>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn">FLASH</div>
+            <div class="toggle-btn active">STROBE</div>
+            <div class="toggle-btn">INVERT</div>
+            <div class="toggle-btn">FREEZE</div>
+          </div>
+        </div>
+        <div class="clips-row">
+          <div class="clip-cell"><div class="thumb thumb-8"></div><div class="name">Clip Name</div><div class="clip-badge badge-synth">SYNTH</div></div>
+          <div class="clip-cell active"><div class="thumb thumb-7"></div><div class="name">Clip Name</div><div class="clip-badge badge-video">VIDEO</div><div class="retrigger-btn">Re-trigger</div></div>
+          <div class="clip-cell"><div class="thumb thumb-6"></div><div class="name">Clip Name</div><div class="clip-badge badge-audio">AUDIO</div></div>
+          <div class="clip-cell"><div class="thumb thumb-1"></div><div class="name">Clip Name</div><div class="clip-badge badge-image">IMAGE</div></div>
+          <div class="clip-cell"><div class="thumb thumb-3"></div><div class="name">Clip Name</div><div class="clip-badge badge-video">VIDEO</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+        </div>
+      </div>
+
+      <!-- LAYER 3 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-name">LYR 3: AUTO METER</div>
+          <div class="layer-engine">Audio: <span>Master Bass</span></div>
+          <div class="layer-controls">
+            <div class="layer-ctrl-btn">S</div>
+            <div class="layer-ctrl-btn">M</div>
+            <div class="layer-ctrl-btn">&#9654;</div>
+            <div class="layer-ctrl-btn">||</div>
+            <div class="layer-ctrl-btn">&#9632;</div>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn">FLASH</div>
+            <div class="toggle-btn">STROBE</div>
+            <div class="toggle-btn active">INVERT</div>
+            <div class="toggle-btn">FREEZE</div>
+          </div>
+        </div>
+        <div class="clips-row">
+          <div class="clip-cell"><div class="thumb thumb-5"></div><div class="name">Noisep 1: Clip Name</div><div class="clip-badge badge-synth">SYNTH</div></div>
+          <div class="clip-cell"><div class="thumb thumb-2"></div><div class="name">Noisep 2: Clip Name</div><div class="clip-badge badge-synth">SYNTH</div></div>
+          <div class="clip-cell active"><div class="thumb thumb-4"></div><div class="name">Noisep 3: Clip Name</div><div class="clip-badge badge-synth">SYNTH</div><div class="retrigger-btn">Re-trigger</div></div>
+          <div class="clip-cell"><div class="thumb thumb-8"></div><div class="name">Clip Name</div><div class="clip-badge badge-video">VIDEO</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+        </div>
+      </div>
+
+      <!-- LAYER 4 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-name">LYR 4: CLOCK METER</div>
+          <div class="layer-engine">Audio: <span>Caution Daily</span></div>
+          <div class="layer-controls">
+            <div class="layer-ctrl-btn">S</div>
+            <div class="layer-ctrl-btn">M</div>
+            <div class="layer-ctrl-btn">&#9654;</div>
+            <div class="layer-ctrl-btn">||</div>
+            <div class="layer-ctrl-btn">&#9632;</div>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn active">FLASH</div>
+            <div class="toggle-btn">STROBE</div>
+            <div class="toggle-btn">INVERT</div>
+            <div class="toggle-btn">FREEZE</div>
+          </div>
+        </div>
+        <div class="clips-row">
+          <div class="clip-cell"><div class="thumb thumb-6"></div><div class="name">Noisep: Clip Name</div><div class="clip-badge badge-audio">AUDIO</div><div class="retrigger-btn">Re-trigger</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+          <div class="clip-cell"><div class="thumb" style="background:#1a1e24;"></div><div class="name">Empty</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FADER AREA -->
+    <div class="fader-area" style="padding-left:220px;">
+      <div class="fader-col">
+        <div class="fader-label">Opacity Fader</div>
+        <div class="fader-track"><div class="fader-knob" style="bottom:75%;"></div></div>
+        <div class="fader-value">100%</div>
+        <div class="flash-btn">FLASH</div>
+      </div>
+      <div class="fader-col">
+        <div class="fader-label">Opacity Fader</div>
+        <div class="fader-track"><div class="fader-knob" style="bottom:75%;"></div></div>
+        <div class="fader-value">100%</div>
+        <div class="flash-btn">FLASH</div>
+      </div>
+      <div class="fader-col">
+        <div class="fader-label">Opacity Fader</div>
+        <div class="fader-track"><div class="fader-knob" style="bottom:75%;"></div></div>
+        <div class="fader-value">100%</div>
+        <div class="flash-btn">FLASH</div>
+      </div>
+      <div class="fader-col">
+        <div class="fader-label">Opacity Fader</div>
+        <div class="fader-track"><div class="fader-knob" style="bottom:55%;"></div></div>
+        <div class="fader-value">100%</div>
+        <div class="flash-btn">FLASH</div>
+      </div>
+      <div class="fader-col">
+        <div class="fader-label">Opacity Fader</div>
+        <div class="fader-track"><div class="fader-knob" style="bottom:75%;"></div></div>
+        <div class="fader-value">100%</div>
+        <div class="flash-btn">FLASH</div>
+      </div>
+      <div class="fader-col">
+        <div class="fader-label">Opacity Fader</div>
+        <div class="fader-track"><div class="fader-knob" style="bottom:75%;"></div></div>
+        <div class="fader-value">100%</div>
+        <div class="flash-btn">FLASH</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div>
+      <div class="panel-title">Master Speed / Master Dimmer</div>
+      <div class="master-knobs">
+        <div class="knob-group">
+          <div class="knob" style="--rot: 45deg;"></div>
+          <div class="knob-label">MASTER SPEED</div>
+          <div class="knob-value">1.00x</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob" style="--rot: 90deg;"></div>
+          <div class="knob-label">MASTER DIMMER</div>
+          <div class="knob-value">100%</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel-title">Global Position Offset (XY Pad)</div>
+      <div class="xy-pad"><div class="xy-dot"></div></div>
+    </div>
+    <div>
+      <div class="panel-title">Color Override</div>
+      <div class="color-override">
+        <div class="color-swatch" style="background:#c04040;"></div>
+        <div style="padding:2px 8px;background:#3060c0;color:#fff;font-size:9px;border-radius:2px;font-weight:600;">BLUE</div>
+        <div style="padding:2px 8px;background:#20a060;color:#fff;font-size:9px;border-radius:2px;font-weight:600;">GREEN</div>
+        <div style="padding:2px 8px;background:#e0e0e0;color:#111;font-size:9px;border-radius:2px;font-weight:600;">WHITE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>Audio Player</span>
+  <span class="play-indicator">&#9654;</span>
+  <span class="track-name">Track: Nexus_Break.wav</span>
+  <div class="footer-spacer"></div>
+  <span>Output Status: Display 1 (1080p)</span>
+  <div class="footer-spacer"></div>
+  <div class="footer-btn">MIDI Map</div>
+  <div class="footer-btn">Keyboard Shortcuts</div>
+  <div class="footer-btn">Save</div>
+  <div class="footer-btn">Load</div>
+</div>
+
+</body>
+</html>

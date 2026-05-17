@@ -1,0 +1,1572 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          26,
+          "output"
+        ],
+        "to": [
+          27,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          25,
+          "output"
+        ],
+        "to": [
+          28,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          27,
+          "output0"
+        ],
+        "to": [
+          28,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          28,
+          "output0"
+        ],
+        "to": [
+          3,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          28,
+          "output0"
+        ],
+        "to": [
+          4,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          28,
+          "output0"
+        ],
+        "to": [
+          5,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output0"
+        ],
+        "to": [
+          1,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          4,
+          "output0"
+        ],
+        "to": [
+          0,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          5,
+          "output0"
+        ],
+        "to": [
+          10,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "output"
+        ],
+        "to": [
+          9,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "output0"
+        ],
+        "to": [
+          7,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output0"
+        ],
+        "to": [
+          12,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          1,
+          "output0"
+        ],
+        "to": [
+          13,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          0,
+          "output0"
+        ],
+        "to": [
+          13,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output0"
+        ],
+        "to": [
+          13,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          13,
+          "output"
+        ],
+        "to": [
+          7,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output"
+        ],
+        "to": [
+          13,
+          "selection"
+        ]
+      },
+      {
+        "from": [
+          7,
+          "output0"
+        ],
+        "to": [
+          15,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          15,
+          "output0"
+        ],
+        "to": [
+          11,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          16,
+          "output0"
+        ],
+        "to": [
+          21,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          17,
+          "output0"
+        ],
+        "to": [
+          21,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output0"
+        ],
+        "to": [
+          21,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output"
+        ],
+        "to": [
+          21,
+          "selection"
+        ]
+      },
+      {
+        "from": [
+          21,
+          "output"
+        ],
+        "to": [
+          19,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          22,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          19,
+          "output"
+        ],
+        "to": [
+          23,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "output0"
+        ],
+        "to": [
+          22,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          22,
+          "output"
+        ],
+        "to": [
+          24,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "Inverse Trigonometric Functions",
+      "identifier": "eb6240e3-1429-4623-925b-dcd0266b8d8f",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 29,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 430.1412963867187,
+          "y": 610.2758178710938
+        },
+        "class": {
+          "id": "77697265-871E-4CA0-AD94-ACBED0C09F9D",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Acos"
+      },
+      "1": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 430.1412963867187,
+          "y": 549.22265625
+        },
+        "class": {
+          "id": "77697265-0B02-4616-BA51-E019536D979B",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Asin"
+      },
+      "10": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 430.1412963867187,
+          "y": 677.0736083984375
+        },
+        "class": {
+          "id": "77697265-8E6D-44EC-90F7-7E7D7B577D64",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Atan"
+      },
+      "11": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 1425.3424072265625,
+          "y": 433.162353515625
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "decimals": {
+            "type": "integer",
+            "value": 2
+          },
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "String"
+      },
+      "12": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "font": {
+            "type": "choice",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "style": {
+            "type": "choice",
+            "value": "Bold"
+          }
+        },
+        "bounds": {
+          "height": 154,
+          "width": 195,
+          "x": 1645.6214599609375,
+          "y": 433.162353515625
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Text Render"
+      },
+      "13": {
+        "attributes": {
+          "case-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "selection-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "size": {
+            "type": "number",
+            "value": 3
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 671.485595703125,
+          "y": 554.6494140625
+        },
+        "class": {
+          "id": "77697265-6899-4A9C-82AB-949346033440",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 0
+          },
+          "input2": {
+            "type": "float",
+            "value": 0
+          },
+          "selection": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Switch"
+      },
+      "14": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "options": {
+            "type": "text",
+            "value": "asin \nacos\natan\n\n"
+          },
+          "options-offset": {
+            "type": "number",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 427.406982421875,
+          "y": 233.72189331054688
+        },
+        "class": {
+          "id": "77697265-5ad3-4a35-93d5-e6fe5c242750",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 2
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Function"
+      },
+      "15": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 1203.9169921875,
+          "y": 433.162353515625
+        },
+        "class": {
+          "id": "77697265-3C98-46C4-A916-70A46CF25308",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Round"
+      },
+      "16": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "string"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 671.664306640625,
+          "y": 269.47283935546875
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": "asin"
+          }
+        },
+        "hidden": [],
+        "name": "String"
+      },
+      "17": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "string"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 671.0657958984375,
+          "y": 347.01654052734375
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": "acos"
+          }
+        },
+        "hidden": [],
+        "name": "String"
+      },
+      "18": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "string"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 671.80419921875,
+          "y": 420.54937744140625
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": "atan"
+          }
+        },
+        "hidden": [],
+        "name": "String"
+      },
+      "19": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "font": {
+            "type": "choice",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "style": {
+            "type": "choice",
+            "value": "Bold"
+          }
+        },
+        "bounds": {
+          "height": 154,
+          "width": 195,
+          "x": 1426.0806884765625,
+          "y": 233.78695678710935
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Text Render"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "Convert degrees to radians"
+          }
+        },
+        "bounds": {
+          "height": 69.63587951660156,
+          "width": 195,
+          "x": -78.24371337890625,
+          "y": 494.1724548339844
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "20": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INVERSE TRIGONOMETRIC FUNTIONS\n\nThe known functions: sine, cosin and tangent have corresponding inverse functions, namely asin, acos and atan (arcsine, arcosine and arctangent). They are used to obtain an angle from any of the angle's trigonometric functions. Let us see an example of these by recovering the input angle. For the sake of simplicity we will use degrees as our input. Notice that a conversion to radians is performed since sin, cos and tan expect that.\n\nAlso note that there are some further constrains for asin, acos and atan, namely that:\n\nasin(y) = x for -90 <= x <= 90\nacos(y) = x for 0 <= x <= 180\natan(y) = x for -90 <= x <= 90\n\nTo fully understand this, let's think what does it then mean to perform asin(y) = x? Well, it simply means the following question: what angle x is equal to y when taking its sine? Or sin(x) = y\n\nThis gives us a clue as well of what are valid inputs for asin() acos() and atan(). Since sin(x) will always give us values from -1 to 1, then possible values for asin() are only in that range. The same reasoning applies to the other inverse functions. This is the reason for example why the possible output values for our inverse functions are those described above, since sin(x) = -1 is true when x = -90 degrees and sin(x) = 1 is true when x = 90 degrees.\n\nFurthermore, this constrain is the case because otherwise there will be an infinite number of solutions for this functions, given that 0, 360, 720, etc degrees represent in essence the same angle. The constrain makes sure that there's always one single result, consistent with the equation."
+          }
+        },
+        "bounds": {
+          "height": 552.14453125,
+          "width": 711.5283203125,
+          "x": -314.84368896484375,
+          "y": -77.46417236328125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "21": {
+        "attributes": {
+          "case-type": {
+            "type": "type",
+            "value": "string"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "selection-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "size": {
+            "type": "number",
+            "value": 3
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 978.7752685546876,
+          "y": 233.51075744628903
+        },
+        "class": {
+          "id": "77697265-6899-4A9C-82AB-949346033440",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": ""
+          },
+          "input1": {
+            "type": "string",
+            "value": ""
+          },
+          "input2": {
+            "type": "string",
+            "value": ""
+          },
+          "selection": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Switch"
+      },
+      "22": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "input-count": {
+            "type": "number",
+            "value": 2
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 1928.716064453125,
+          "y": 235.12904357910153
+        },
+        "class": {
+          "id": "77697265-A270-4D60-911C-A88B1BE6369A",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input1": {
+            "type": "texture2d",
+            "value": null
+          },
+          "input2": {
+            "type": "texture2d",
+            "value": null
+          },
+          "mode": {
+            "type": "integer",
+            "value": 11
+          },
+          "opacity1": {
+            "type": "float",
+            "value": 1
+          },
+          "opacity2": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "bypass",
+          "mode"
+        ],
+        "name": "Video Mixer"
+      },
+      "23": {
+        "attributes": {
+          "input-type": {
+            "type": "type",
+            "value": "texture2d"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "scale-type": {
+            "type": "type",
+            "value": "float2"
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 1645.8399658203125,
+          "y": 233.91215515136716
+        },
+        "class": {
+          "id": "77697265-9225-4009-9D2D-5F898E94CC33",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "anchor": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "rotation": {
+            "type": "float",
+            "value": 0
+          },
+          "scale": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "translation": {
+            "type": "float2",
+            "value": [
+              0,
+              -166
+            ]
+          }
+        },
+        "hidden": [],
+        "name": "Transform"
+      },
+      "24": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 2156.89892578125,
+          "y": 233.54902648925784
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      },
+      "25": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "max": {
+            "type": "number",
+            "value": 360
+          },
+          "min": {
+            "type": "number",
+            "value": -360
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -239.449951171875,
+          "y": 540.26171875
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 120
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Degrees"
+      },
+      "26": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": -526.4500122070312,
+          "y": 637.5611572265625
+        },
+        "class": {
+          "id": "77697265-7BFA-44F2-A6D4-AE62B9FCC325",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Pi"
+      },
+      "27": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -304.45001220703125,
+          "y": 634.4896240234375
+        },
+        "class": {
+          "id": "77697265-0D55-485E-813D-706DD5DFE88D",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 180
+          }
+        },
+        "hidden": [],
+        "name": "Divide"
+      },
+      "28": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -79.02581787109375,
+          "y": 576.297119140625
+        },
+        "class": {
+          "id": "77697265-A0D8-429A-A558-69BC58D0D425",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [],
+        "name": "Multiply"
+      },
+      "3": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "normalized-input": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 206.455322265625,
+          "y": 549.7044067382812
+        },
+        "class": {
+          "id": "77697265-377A-4BCA-B170-B551F980F7BE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Sin"
+      },
+      "4": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "normalized-input": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 206.45526123046875,
+          "y": 609.9291381835938
+        },
+        "class": {
+          "id": "77697265-F1BB-4A7E-BF04-7D544E0E2D62",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Cos"
+      },
+      "5": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 206.455322265625,
+          "y": 677.1932373046875
+        },
+        "class": {
+          "id": "77697265-8E6D-44EC-90F7-1P7D7B577D64",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Tan"
+      },
+      "6": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "Convert radians to degrees"
+          }
+        },
+        "bounds": {
+          "height": 69.63587951660156,
+          "width": 195,
+          "x": 718.869384765625,
+          "y": 711.122314453125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "7": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 978.7010498046876,
+          "y": 433.162353515625
+        },
+        "class": {
+          "id": "77697265-A0D8-429A-A558-69BC58D0D425",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [],
+        "name": "Multiply"
+      },
+      "8": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 498.930908203125,
+          "y": 818.1505126953125
+        },
+        "class": {
+          "id": "77697265-7BFA-44F2-A6D4-AE62B9FCC325",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Pi"
+      },
+      "9": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 722.930908203125,
+          "y": 817.9608154296875
+        },
+        "class": {
+          "id": "77697265-0D55-485E-813D-706DD5DFE88D",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 180
+          },
+          "input1": {
+            "type": "float",
+            "value": 180
+          }
+        },
+        "hidden": [],
+        "name": "Divide"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -544.3265991210938,
+        "y": -101.1014404296875,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 24,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

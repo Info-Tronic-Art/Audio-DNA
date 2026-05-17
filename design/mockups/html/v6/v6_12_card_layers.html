@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — V6-12 Card Layers</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+  background: linear-gradient(160deg, #1b1f26 0%, #131620 50%, #0e1018 100%);
+  color: #d0d0d0; font-size: 11px;
+}
+
+/* TOP BAR */
+.topbar {
+  height: 36px; display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(180deg, #22272f 0%, #1a1e26 100%);
+  border-bottom: 1px solid #2c3040; padding: 0 14px;
+}
+.logo { font-weight: 800; font-size: 14px; color: #e8c547; letter-spacing: 2px; }
+.logo-sub { font-size: 9px; color: #666; margin-left: 4px; }
+.sep { width: 1px; height: 20px; background: #2c3040; }
+.bpm-box { display: flex; align-items: baseline; gap: 4px; }
+.bpm-num { font-size: 20px; font-weight: 800; color: #4fdc7c; font-family: 'Courier New', monospace; letter-spacing: -1px; }
+.bpm-label { font-size: 8px; color: #4fdc7c66; text-transform: uppercase; }
+.tbtn {
+  padding: 4px 10px; background: #262a34; border: 1px solid #363a46;
+  border-radius: 2px; color: #999; font-size: 10px; cursor: pointer;
+}
+.tbtn:hover { background: #363a46; color: #ddd; }
+.tbtn.on { background: #e8c547; color: #111; border-color: #e8c547; }
+.beat-ind { display: flex; gap: 3px; }
+.beat-ind .bd { width: 9px; height: 9px; border-radius: 50%; background: #2c3040; border: 1px solid #3a3e48; }
+.beat-ind .bd.lit { background: #e8c547; border-color: #e8c547; box-shadow: 0 0 8px #e8c54766; }
+.bar-ph { font-family: monospace; font-size: 10px; color: #777; }
+.spacer { flex: 1; }
+.master-knob {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid #4fdc7c44;
+  background: radial-gradient(circle, #262a34, #1a1e26); position: relative;
+}
+.master-knob::after {
+  content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 8px;
+  background: #4fdc7c; transform: translateX(-50%) rotate(-30deg); transform-origin: bottom center;
+  border-radius: 1px;
+}
+.fps-lbl { font-size: 10px; color: #555; font-family: monospace; }
+
+/* MAIN LAYOUT */
+.main { display: flex; height: calc(100% - 36px - 26px); }
+
+/* LEFT: SCENE FLOW */
+.scene-panel {
+  width: 180px; flex-shrink: 0; border-right: 1px solid #2c3040;
+  background: linear-gradient(180deg, #1c2028, #161a22); padding: 10px;
+}
+.sp-title { font-size: 10px; color: #e8c547; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+.sp-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 4px;
+  background: #1e222c; border: 1px solid #2c3040; border-radius: 3px; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.sp-item:hover { border-color: #4a4e58; }
+.sp-item.active { border-left: 3px solid #e8c547; background: #24221c; }
+.sp-item .sp-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.sp-item.active .sp-dot { background: #e8c547; box-shadow: 0 0 6px #e8c54788; }
+.sp-item .sp-dot.idle { background: #3a3e48; }
+.sp-name { flex: 1; font-size: 11px; }
+.sp-time { font-size: 9px; color: #555; font-family: monospace; }
+.sp-layers {
+  margin-top: 14px; padding-top: 10px; border-top: 1px solid #2c3040;
+}
+.sp-layers .spl-title { font-size: 9px; color: #555; text-transform: uppercase; margin-bottom: 6px; }
+.sp-layers .spl-row {
+  display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 10px; color: #888;
+}
+.spl-badge { font-size: 7px; padding: 1px 5px; border-radius: 2px; font-weight: 600; }
+.spl-badge.vid { background: #c0392b33; color: #e74c3c; }
+.spl-badge.img { background: #2980b933; color: #3498db; }
+.spl-badge.syn { background: #27ae6033; color: #2ecc71; }
+.spl-badge.fx { background: #e8c54733; color: #e8c547; }
+.sp-add { margin-top: 8px; padding: 6px; text-align: center; border: 1px dashed #2c3040; border-radius: 3px; color: #444; font-size: 10px; cursor: pointer; }
+
+/* CENTER: PREVIEW */
+.center { flex: 1; display: flex; flex-direction: column; }
+.preview-area {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  position: relative; min-height: 0;
+}
+.pv-frame {
+  width: 620px; height: 349px; background: #000; border: 1px solid #2c3040;
+  border-radius: 3px; overflow: hidden; position: relative;
+  box-shadow: 0 4px 20px #00000066;
+}
+.pv-visual {
+  width: 100%; height: 100%;
+  background:
+    radial-gradient(ellipse at 40% 35%, #ff880022 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 65%, #8844ff18 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, #442200 0%, #1a0a00 25%, #0a0515 55%, #050208 100%);
+}
+.pv-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 40px;
+  background: linear-gradient(transparent, #000000aa); display: flex;
+  align-items: flex-end; padding: 8px 12px; gap: 8px;
+}
+.pv-overlay .pv-btn {
+  width: 24px; height: 20px; background: #ffffff11; border: 1px solid #ffffff22;
+  border-radius: 2px; color: #bbb; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; cursor: pointer;
+}
+.pv-overlay .pv-timeline {
+  flex: 1; height: 3px; background: #ffffff22; border-radius: 2px; position: relative;
+}
+.pv-overlay .pv-progress { width: 42%; height: 100%; background: #e8c547; border-radius: 2px; }
+.pv-overlay .pv-time { font-size: 9px; color: #888; font-family: monospace; }
+
+/* RIGHT: SOURCES */
+.right-panel {
+  width: 240px; flex-shrink: 0; border-left: 1px solid #2c3040;
+  background: linear-gradient(180deg, #1c2028, #161a22);
+  display: flex; flex-direction: column;
+}
+.rp-tabs { display: flex; border-bottom: 1px solid #2c3040; }
+.rp-tab {
+  flex: 1; padding: 7px; text-align: center; font-size: 10px; color: #555;
+  cursor: pointer; border-bottom: 2px solid transparent;
+}
+.rp-tab.active { color: #e8c547; border-bottom-color: #e8c547; }
+.rp-content { flex: 1; overflow-y: auto; padding: 8px; }
+.src-card {
+  background: #1e222c; border: 1px solid #2c3040; border-radius: 3px;
+  padding: 8px; margin-bottom: 6px;
+}
+.src-card .sc-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.src-card .sc-icon {
+  width: 24px; height: 24px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-size: 12px;
+}
+.sc-icon.audio { background: #27ae6033; color: #2ecc71; }
+.sc-icon.kick { background: #e74c3c33; color: #e74c3c; }
+.sc-icon.lfo { background: #9b59b633; color: #9b59b6; }
+.sc-icon.env { background: #e67e2233; color: #e67e22; }
+.src-card .sc-name { font-size: 11px; color: #ccc; flex: 1; }
+.src-card .sc-val { font-size: 9px; color: #555; font-family: monospace; }
+.src-card .sc-viz {
+  height: 22px; background: #161a22; border-radius: 2px; overflow: hidden;
+  position: relative; margin-top: 4px;
+}
+.sc-viz .sc-bars { display: flex; gap: 1px; align-items: flex-end; height: 100%; padding: 0 2px; }
+.sc-viz .sc-bars .sb { width: 4px; border-radius: 1px 1px 0 0; }
+.sc-viz .sc-bars .sb.g { background: #2ecc71; }
+.sc-viz .sc-bars .sb.y { background: #e8c547; }
+.sc-viz .sc-bars .sb.r { background: #e74c3c; }
+.sc-viz svg { width: 100%; height: 100%; }
+.src-hint {
+  margin-top: 8px; padding: 10px; text-align: center; color: #3a3e48;
+  font-size: 9px; border: 1px dashed #2c3040; border-radius: 3px;
+}
+
+/* BOTTOM: LAYER CARDS */
+.cards-area {
+  height: 310px; flex-shrink: 0; border-top: 1px solid #2c3040;
+  background: linear-gradient(180deg, #1a1e26, #14171e);
+  display: flex; gap: 0; overflow-x: auto; padding: 10px 12px;
+}
+.layer-card {
+  min-width: 280px; width: 280px; background: linear-gradient(180deg, #1e222c, #1a1e26);
+  border: 1px solid #2c3040; border-radius: 4px; flex-shrink: 0;
+  margin-right: 10px; display: flex; flex-direction: column; padding: 10px;
+  position: relative;
+}
+.layer-card.active { border-color: #4fdbca55; box-shadow: 0 0 12px #4fdbca11; }
+.lc-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.lc-name { font-size: 12px; font-weight: 600; color: #ddd; flex: 1; }
+.lc-type-badge {
+  font-size: 8px; padding: 2px 8px; border-radius: 2px; font-weight: 600;
+  text-transform: uppercase;
+}
+.lc-type-badge.vid { background: #c0392b33; color: #e74c3c; border: 1px solid #c0392b44; }
+.lc-type-badge.syn { background: #27ae6033; color: #2ecc71; border: 1px solid #27ae6044; }
+.lc-type-badge.img { background: #2980b933; color: #3498db; border: 1px solid #2980b944; }
+.lc-type-badge.fx { background: #e8c54733; color: #e8c547; border: 1px solid #e8c54744; }
+.lc-source {
+  display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+  background: #161a22; border-radius: 3px; margin-bottom: 8px; font-size: 10px; color: #888;
+}
+.lc-source .lcs-dot { width: 6px; height: 6px; border-radius: 50%; }
+.lc-source .lcs-dot.audio { background: #2ecc71; }
+.lc-source .lcs-dot.kick { background: #e74c3c; }
+.lc-source .lcs-dot.lfo { background: #9b59b6; }
+.lc-source .lcs-dot.env { background: #e67e22; }
+.lc-source .lcs-name { flex: 1; color: #aaa; }
+.lc-source .lcs-val { font-family: monospace; color: #555; }
+
+/* KNOBS ROW */
+.lc-knobs { display: flex; gap: 12px; justify-content: center; margin-bottom: 8px; }
+.lck { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.lck .lck-ring {
+  width: 36px; height: 36px; border-radius: 50%; position: relative;
+  background: radial-gradient(circle, #262a34, #1a1e26);
+}
+.lck .lck-track {
+  position: absolute; top: 0; left: 0; width: 36px; height: 36px;
+  border-radius: 50%; border: 3px solid #2c3040;
+}
+.lck .lck-arc {
+  position: absolute; top: -1px; left: -1px; width: 38px; height: 38px;
+  border-radius: 50%; border: 3px solid transparent;
+}
+.lck:nth-child(1) .lck-arc { border-top-color: #3498db; border-right-color: #3498db; transform: rotate(-45deg); }
+.lck:nth-child(2) .lck-arc { border-top-color: #2ecc71; transform: rotate(-45deg); }
+.lck:nth-child(3) .lck-arc { border-top-color: #e74c3c; border-right-color: #e74c3c; border-bottom-color: #e74c3c; transform: rotate(-45deg); }
+.lck:nth-child(4) .lck-arc { border-top-color: #e8c547; border-right-color: #e8c547; transform: rotate(-45deg); }
+.lck .lck-dot {
+  position: absolute; width: 4px; height: 4px; border-radius: 50%;
+  background: #ddd; top: 4px; left: 50%; transform: translateX(-50%);
+}
+.lck .lck-label { font-size: 8px; color: #666; }
+.lck .lck-val { font-size: 8px; color: #444; font-family: monospace; }
+
+/* FX PILLS */
+.lc-fx { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+.lc-pill {
+  padding: 3px 10px; border-radius: 12px; font-size: 9px;
+}
+.lc-pill.feedback { background: #e8c54722; color: #e8c547; border: 1px solid #e8c54744; }
+.lc-pill.glow { background: #2ecc7122; color: #2ecc71; border: 1px solid #2ecc7144; }
+.lc-pill.warp { background: #9b59b622; color: #9b59b6; border: 1px solid #9b59b644; }
+.lc-pill.glitch { background: #e74c3c22; color: #e74c3c; border: 1px solid #e74c3c44; }
+.lc-pill.blur { background: #3498db22; color: #3498db; border: 1px solid #3498db44; }
+.lc-pill.time { background: #1abc9c22; color: #1abc9c; border: 1px solid #1abc9c44; }
+
+/* OPACITY */
+.lc-opacity { display: flex; align-items: center; gap: 8px; margin-top: auto; }
+.lc-opacity .lo-bar {
+  flex: 1; height: 4px; background: #2c3040; border-radius: 2px; position: relative;
+}
+.lc-opacity .lo-fill { height: 100%; border-radius: 2px; }
+.lc-opacity .lo-fill.f1 { width: 85%; background: linear-gradient(90deg, #2a7a5a, #4fdbca); }
+.lc-opacity .lo-fill.f2 { width: 100%; background: linear-gradient(90deg, #2a7a5a, #4fdbca); }
+.lc-opacity .lo-fill.f3 { width: 65%; background: linear-gradient(90deg, #2a7a5a, #4fdbca); }
+.lc-opacity .lo-fill.f4 { width: 40%; background: linear-gradient(90deg, #2a7a5a, #4fdbca); }
+.lc-opacity .lo-pct { font-size: 10px; color: #4fdbca; font-weight: 600; min-width: 32px; text-align: right; }
+
+/* FOOTER */
+.footer {
+  height: 26px; display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(180deg, #1a1e26, #14171e);
+  border-top: 1px solid #2c3040; padding: 0 14px; font-size: 10px; color: #444;
+}
+.footer .fi { cursor: pointer; }
+.footer .fi:hover { color: #aaa; }
+.footer .f-spacer { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <span class="logo">AUDIO-DNA</span>
+  <span class="logo-sub">VJ</span>
+  <div class="sep"></div>
+  <div class="bpm-box">
+    <span class="bpm-num">128.0</span>
+    <span class="bpm-label">bpm</span>
+  </div>
+  <span class="tbtn">TAP</span>
+  <span class="tbtn">RESYNC</span>
+  <div class="sep"></div>
+  <div class="beat-ind">
+    <div class="bd lit"></div><div class="bd"></div><div class="bd"></div><div class="bd"></div>
+  </div>
+  <span class="bar-ph">Bar 37 | Phr 0.41</span>
+  <div class="sep"></div>
+  <span class="tbtn">/2</span>
+  <span class="tbtn on">x1</span>
+  <span class="tbtn">x2</span>
+  <div class="sep"></div>
+  <span style="color:#666; font-size:10px;">Quantize</span>
+  <span class="tbtn">Beat</span>
+  <span style="color:#666; font-size:10px; margin-left:8px;">Fade</span>
+  <span class="tbtn">0.3s</span>
+  <span class="spacer"></span>
+  <span style="color:#666; font-size:10px;">Master</span>
+  <div class="master-knob"></div>
+  <div class="sep"></div>
+  <span class="tbtn">Fullscreen</span>
+  <span class="fps-lbl">60fps | 2.8%</span>
+</div>
+
+<div class="main">
+  <!-- LEFT: SCENE FLOW -->
+  <div class="scene-panel">
+    <div class="sp-title">Scene Flow</div>
+    <div class="sp-item"><div class="sp-dot idle"></div><span class="sp-name">Intro</span><span class="sp-time">0:00</span></div>
+    <div class="sp-item active"><div class="sp-dot"></div><span class="sp-name">Verse</span><span class="sp-time">0:32</span></div>
+    <div class="sp-item"><div class="sp-dot idle"></div><span class="sp-name">Chorus</span><span class="sp-time">1:04</span></div>
+    <div class="sp-item"><div class="sp-dot idle"></div><span class="sp-name">Drop</span><span class="sp-time">1:36</span></div>
+    <div class="sp-item"><div class="sp-dot idle"></div><span class="sp-name">Outro</span><span class="sp-time">2:40</span></div>
+    <div class="sp-add">+ Add Scene</div>
+    <div class="sp-layers">
+      <div class="spl-title">Active Layers</div>
+      <div class="spl-row"><span class="spl-badge vid">VID</span> Layer 1</div>
+      <div class="spl-row"><span class="spl-badge syn">SRC</span> Layer 2</div>
+      <div class="spl-row"><span class="spl-badge img">IMG</span> Layer 3</div>
+      <div class="spl-row"><span class="spl-badge fx">FX</span> Layer 4</div>
+    </div>
+  </div>
+
+  <!-- CENTER: PREVIEW -->
+  <div class="center">
+    <div class="preview-area">
+      <div class="pv-frame">
+        <div class="pv-visual"></div>
+        <div class="pv-overlay">
+          <div class="pv-btn">&#9654;</div>
+          <div class="pv-btn">||</div>
+          <div class="pv-btn">&#9632;</div>
+          <div class="pv-timeline"><div class="pv-progress"></div></div>
+          <span class="pv-time">01:18 / 03:22</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SOURCES -->
+  <div class="right-panel">
+    <div class="rp-tabs">
+      <div class="rp-tab active">Sources</div>
+      <div class="rp-tab">Layer</div>
+      <div class="rp-tab">Clip</div>
+    </div>
+    <div class="rp-content">
+      <div class="src-card">
+        <div class="sc-head">
+          <div class="sc-icon audio">&#9835;</div>
+          <span class="sc-name">Master Audio</span>
+          <span class="sc-val">0.72</span>
+        </div>
+        <div class="sc-viz">
+          <div class="sc-bars">
+            <div class="sb g" style="height:55%"></div>
+            <div class="sb g" style="height:80%"></div>
+            <div class="sb g" style="height:68%"></div>
+            <div class="sb y" style="height:92%"></div>
+            <div class="sb g" style="height:50%"></div>
+            <div class="sb g" style="height:38%"></div>
+            <div class="sb g" style="height:72%"></div>
+            <div class="sb g" style="height:45%"></div>
+            <div class="sb g" style="height:28%"></div>
+            <div class="sb g" style="height:60%"></div>
+            <div class="sb g" style="height:42%"></div>
+            <div class="sb g" style="height:18%"></div>
+            <div class="sb g" style="height:55%"></div>
+            <div class="sb g" style="height:35%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="src-card">
+        <div class="sc-head">
+          <div class="sc-icon kick">&#9679;</div>
+          <span class="sc-name">Kick Drum</span>
+          <span class="sc-val">0.91</span>
+        </div>
+        <div class="sc-viz">
+          <svg viewBox="0 0 220 22" style="stroke:#e74c3c; fill:none; stroke-width:1.5;">
+            <polyline points="0,20 10,20 14,3 20,18 26,20 40,20 44,3 50,18 56,20 70,20 74,3 80,18 86,20 100,20 104,3 110,18 116,20 140,20 144,3 150,18 156,20 180,20 184,3 190,18 196,20 220,20"/>
+          </svg>
+        </div>
+      </div>
+      <div class="src-card">
+        <div class="sc-head">
+          <div class="sc-icon lfo">&#8767;</div>
+          <span class="sc-name">LFO &#8212; Sine</span>
+          <span class="sc-val">0.68</span>
+        </div>
+        <div class="sc-viz">
+          <svg viewBox="0 0 220 22" style="stroke:#9b59b6; fill:none; stroke-width:1.5;">
+            <polyline points="0,11 11,5 22,3 33,5 44,11 55,17 66,19 77,17 88,11 99,5 110,3 121,5 132,11 143,17 154,19 165,17 176,11 187,5 198,3 209,5 220,11"/>
+          </svg>
+        </div>
+      </div>
+      <div class="src-card">
+        <div class="sc-head">
+          <div class="sc-icon env">&#9651;</div>
+          <span class="sc-name">LFO &#8212; Custom</span>
+          <span class="sc-val">0.33</span>
+        </div>
+        <div class="sc-viz">
+          <svg viewBox="0 0 220 22" style="stroke:#e67e22; fill:none; stroke-width:1.5;">
+            <polyline points="0,20 20,20 30,3 50,3 60,20 80,20 90,3 110,3 120,20 140,20 150,3 170,3 180,20 200,20 210,3 220,3"/>
+          </svg>
+        </div>
+      </div>
+      <div class="src-hint">Drag a source chip onto any parameter</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM: LAYER CARDS -->
+<div class="cards-area">
+  <!-- CARD 1 -->
+  <div class="layer-card active">
+    <div class="lc-header">
+      <span class="lc-name">Layer 1</span>
+      <span class="lc-type-badge vid">VIDEO</span>
+    </div>
+    <div class="lc-source">
+      <div class="lcs-dot audio"></div>
+      <span class="lcs-name">Master Bass</span>
+      <span class="lcs-val">0.84</span>
+    </div>
+    <div class="lc-knobs">
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Hue</span><span class="lck-val">0.32</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Sat</span><span class="lck-val">0.78</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Bri</span><span class="lck-val">0.91</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Speed</span><span class="lck-val">1.00</span></div>
+    </div>
+    <div class="lc-fx">
+      <span class="lc-pill feedback">Feedback</span>
+      <span class="lc-pill glow">Glow</span>
+      <span class="lc-pill warp">Fluid Warp</span>
+    </div>
+    <div class="lc-opacity">
+      <div class="lo-bar"><div class="lo-fill f1"></div></div>
+      <span class="lo-pct">85%</span>
+    </div>
+  </div>
+
+  <!-- CARD 2 -->
+  <div class="layer-card">
+    <div class="lc-header">
+      <span class="lc-name">Layer 2</span>
+      <span class="lc-type-badge syn">SYNTH</span>
+    </div>
+    <div class="lc-source">
+      <div class="lcs-dot kick"></div>
+      <span class="lcs-name">Kick Drum</span>
+      <span class="lcs-val">0.91</span>
+    </div>
+    <div class="lc-knobs">
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Hue</span><span class="lck-val">0.00</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Sat</span><span class="lck-val">1.00</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Bri</span><span class="lck-val">0.65</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Speed</span><span class="lck-val">2.00</span></div>
+    </div>
+    <div class="lc-fx">
+      <span class="lc-pill glitch">Pixel Scatter</span>
+      <span class="lc-pill blur">Zoom Blur</span>
+      <span class="lc-pill time">Echo</span>
+    </div>
+    <div class="lc-opacity">
+      <div class="lo-bar"><div class="lo-fill f2"></div></div>
+      <span class="lo-pct">100%</span>
+    </div>
+  </div>
+
+  <!-- CARD 3 -->
+  <div class="layer-card">
+    <div class="lc-header">
+      <span class="lc-name">Layer 3</span>
+      <span class="lc-type-badge img">IMAGE</span>
+    </div>
+    <div class="lc-source">
+      <div class="lcs-dot lfo"></div>
+      <span class="lcs-name">LFO &#8212; Sine</span>
+      <span class="lcs-val">0.68</span>
+    </div>
+    <div class="lc-knobs">
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Hue</span><span class="lck-val">0.55</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Sat</span><span class="lck-val">0.50</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Bri</span><span class="lck-val">0.80</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Speed</span><span class="lck-val">0.50</span></div>
+    </div>
+    <div class="lc-fx">
+      <span class="lc-pill warp">Kaleidoscope</span>
+      <span class="lc-pill glow">Glow</span>
+    </div>
+    <div class="lc-opacity">
+      <div class="lo-bar"><div class="lo-fill f3"></div></div>
+      <span class="lo-pct">65%</span>
+    </div>
+  </div>
+
+  <!-- CARD 4 -->
+  <div class="layer-card">
+    <div class="lc-header">
+      <span class="lc-name">Layer 4</span>
+      <span class="lc-type-badge fx">FX ONLY</span>
+    </div>
+    <div class="lc-source">
+      <div class="lcs-dot env"></div>
+      <span class="lcs-name">Custom Envelope</span>
+      <span class="lcs-val">0.33</span>
+    </div>
+    <div class="lc-knobs">
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Hue</span><span class="lck-val">0.10</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Sat</span><span class="lck-val">0.50</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Bri</span><span class="lck-val">0.70</span></div>
+      <div class="lck"><div class="lck-ring"><div class="lck-track"></div><div class="lck-arc"></div><div class="lck-dot"></div></div><span class="lck-label">Speed</span><span class="lck-val">1.50</span></div>
+    </div>
+    <div class="lc-fx">
+      <span class="lc-pill glitch">RGB Split</span>
+      <span class="lc-pill warp">Ripple</span>
+      <span class="lc-pill feedback">Feedback</span>
+      <span class="lc-pill time">Frame Stutter</span>
+    </div>
+    <div class="lc-opacity">
+      <div class="lo-bar"><div class="lo-fill f4"></div></div>
+      <span class="lo-pct">40%</span>
+    </div>
+  </div>
+
+  <!-- ADD LAYER CARD -->
+  <div class="layer-card" style="border-style:dashed; border-color:#2c304066; justify-content:center; align-items:center; min-width:120px; width:120px;">
+    <span style="font-size:24px; color:#2c3040;">+</span>
+    <span style="font-size:10px; color:#3a3e48; margin-top:4px;">Add Layer</span>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span class="fi">Master Sources &#9662;</span>
+  <div class="sep" style="height:14px;"></div>
+  <span class="fi">&#9654; Audio Player</span>
+  <div class="sep" style="height:14px;"></div>
+  <span class="fi">Outputs &#9662;</span>
+  <span class="f-spacer"></span>
+  <span class="fi">Save</span>
+  <span class="fi">Load</span>
+  <span class="fi">Help</span>
+</div>
+
+</body>
+</html>

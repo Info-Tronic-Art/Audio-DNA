@@ -1,0 +1,629 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          7,
+          "output"
+        ],
+        "to": [
+          23,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output"
+        ],
+        "to": [
+          23,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output"
+        ],
+        "to": [
+          23,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output"
+        ],
+        "to": [
+          23,
+          "input3"
+        ]
+      },
+      {
+        "from": [
+          13,
+          "output"
+        ],
+        "to": [
+          23,
+          "input4"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          23,
+          "input5"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          7,
+          "radius"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          10,
+          "size"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          14,
+          "size"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          11,
+          "size"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          13,
+          "size"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          12,
+          "size"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "output"
+        ],
+        "to": [
+          25,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          26,
+          "output"
+        ],
+        "to": [
+          23,
+          "selection"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "This patch explains what this node does.",
+      "displayName": "Size Based Shapes",
+      "identifier": "d0e4eeb5-77e3-4635-b622-4cd346ed64af",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 27,
+    "nodes": {
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "Size Based Shapes\nThis example demonstrates all shapes that have only one parameter: size.\nWhen modulating size, make sure that you use positive values otherwise the shape is not visible.\n\nPatch Explained -\n\n• The Sine runs values from 0.1 to 1 and affects the size of the shapes.\n• All shapes go into a Switch that is controlled by the Int(signal) node.\n• Use the slider of the Int(signal) to switch between the shapes.\n"
+          }
+        },
+        "bounds": {
+          "height": 237.20774841308597,
+          "width": 610.6082763671875,
+          "x": 107.79207611083984,
+          "y": -371.1897583007813
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "10": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 392.3051452636719,
+          "y": 88.99177551269531
+        },
+        "class": {
+          "id": "77697265-b7d0-445b-831a-da787ea65a54",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Equilateral Triangle"
+      },
+      "11": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 392.30520629882807,
+          "y": 286.55609130859375
+        },
+        "class": {
+          "id": "77697265-7945-45E5-AF4D-E138F8DC377E",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Hexagon"
+      },
+      "12": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 393.3277893066406,
+          "y": 472.6673889160156
+        },
+        "class": {
+          "id": "77697265-05D4-4EFB-AC04-C85C73FD09F7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Hexagram"
+      },
+      "13": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 392.30520629882807,
+          "y": 381.6569213867187
+        },
+        "class": {
+          "id": "77697265-7A3D-4390-812E-11DE31E7A433",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Octogon"
+      },
+      "14": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 392.30520629882807,
+          "y": 187.3649139404297
+        },
+        "class": {
+          "id": "77697265-6928-4CE0-A145-5ED69D347DD0",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Pentagon"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a shape2D.\n\n"
+          }
+        },
+        "bounds": {
+          "height": 380,
+          "width": 334,
+          "x": 462.08984375,
+          "y": 582.8348388671875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "23": {
+        "attributes": {
+          "case-type": {
+            "type": "type",
+            "value": "procedural"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "selection-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "size": {
+            "type": "number",
+            "value": 6
+          }
+        },
+        "bounds": {
+          "height": 182,
+          "width": 195,
+          "x": 706.240234375,
+          "y": 155.66461181640625
+        },
+        "class": {
+          "id": "77697265-6899-4A9C-82AB-949346033440",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "procedural",
+            "value": null
+          },
+          "input1": {
+            "type": "procedural",
+            "value": null
+          },
+          "input2": {
+            "type": "procedural",
+            "value": null
+          },
+          "input3": {
+            "type": "procedural",
+            "value": null
+          },
+          "input4": {
+            "type": "procedural",
+            "value": null
+          },
+          "input5": {
+            "type": "procedural",
+            "value": null
+          },
+          "selection": {
+            "type": "integer",
+            "value": 3
+          }
+        },
+        "hidden": [],
+        "name": "Switch"
+      },
+      "24": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 108.02522277832033,
+          "y": 214.9748077392578
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 0.8999999761581421
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0.10000000149011612
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "25": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 128,
+          "x": 937.3455200195312,
+          "y": 155.66461181640625
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "26": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "options": {
+            "type": "text",
+            "value": "Circle\nTriangle\nPentagon\nHexagon\nOctogon\nHexagram"
+          },
+          "options-offset": {
+            "type": "number",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 459.4281005859375,
+          "y": -101.71839141845705
+        },
+        "class": {
+          "id": "77697265-5ad3-4a35-93d5-e6fe5c242750",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 3
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Choice In"
+      },
+      "3": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Size\nAdjusts the size of the shape.\n"
+          }
+        },
+        "bounds": {
+          "height": 384,
+          "width": 312,
+          "x": 108.00780487060548,
+          "y": 583.2098388671875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "7": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 392.30520629882807,
+          "y": -3.859424591064453
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Circle"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 81.42803955078125,
+        "y": -393.7184143066406,
+        "zoom": 0.9999999403953552
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 25,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

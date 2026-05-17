@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audio-DNA v9 — Brutalist v2c · PLAY Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================
+   AUDIO-DNA v9 — BRUTALIST v2c (PLAY MODE, eyes-down)
+   1920×1080 · Plex Mono/Sans · #ff4500 strict
+   ========================================================= */
+
+:root{
+  --bg0:#0a0a0a;
+  --bg1:#111;
+  --bg2:#1a1a1a;
+  --bg3:#222;
+  --line:#333;
+  --dim:#6e6e6e;
+  --body:#e8e8e8;
+  --title:#ffffff;
+  --orange:#ff4500;
+  --green:#7ecf74;
+  --red:#e64b3c;
+  --yellow:#e8c24b;
+  --blue:#5db6e6;
+
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --sans:'IBM Plex Sans', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#000;color:var(--body);font-family:var(--sans);font-size:12px;line-height:1.35;}
+button{all:unset;cursor:default;}
+
+/* ----- Stage ----- */
+.stage{
+  width:1920px;height:1080px;
+  background:var(--bg0);
+  color:var(--body);
+  position:relative;
+  overflow:hidden;
+  margin:0 auto;
+  border:1px solid #000;
+  /* grain */
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.008) 0 1px, transparent 1px 3px);
+}
+.grain{
+  position:absolute;inset:0;pointer-events:none;z-index:80;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.03 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  opacity:.6;mix-blend-mode:overlay;
+}
+
+/* ----- Menu 24px ----- */
+.menu{
+  position:absolute;top:0;left:0;right:0;height:24px;
+  display:flex;align-items:center;gap:18px;
+  padding:0 14px;
+  border-bottom:1px solid var(--line);
+  background:var(--bg1);
+  font-family:var(--mono);font-size:11px;color:var(--body);
+  letter-spacing:.04em;
+}
+.menu .brand{color:var(--title);font-family:var(--sans);font-weight:600;font-size:11px;letter-spacing:.06em;}
+.menu .m{color:var(--dim);}
+.menu .m:hover{color:var(--body);}
+.menu .spacer{flex:1;}
+.menu .right{color:var(--dim);font-size:11px;letter-spacing:.04em;}
+
+/* ----- Top bar 68px ----- */
+.topbar{
+  position:absolute;top:24px;left:0;right:0;height:68px;
+  background:var(--bg1);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:stretch;
+}
+.tb-cell{
+  display:flex;align-items:center;
+  padding:0 16px;
+  border-right:1px solid var(--line);
+  height:100%;
+}
+.tb-logo{
+  font-family:var(--sans);font-weight:600;font-size:16px;letter-spacing:.02em;
+  color:var(--title);
+  min-width:140px;
+}
+.tb-bpm{
+  display:flex;align-items:baseline;gap:10px;
+  min-width:220px;
+}
+.tb-bpm .val{
+  font-family:var(--mono);font-weight:300;
+  font-size:64px;line-height:1;
+  color:var(--orange);
+  letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+}
+.tb-bpm .lbl{
+  font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.tb-counts{
+  font-family:var(--mono);font-size:14px;color:var(--body);
+  display:flex;flex-direction:column;gap:6px;
+  min-width:180px;
+  letter-spacing:.02em;
+}
+.tb-counts .row{display:flex;gap:10px;}
+.tb-counts .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.08em;}
+.tb-counts .v{color:var(--title);font-variant-numeric:tabular-nums;}
+
+.tb-wheel{
+  display:flex;gap:4px;align-items:center;
+}
+.tb-wheel .sq{
+  width:18px;height:18px;
+  border:1px solid var(--line);
+  background:var(--bg2);
+}
+.tb-wheel .sq.on{
+  background:var(--orange);
+  border-color:var(--orange);
+  animation:beatpulse .469s steps(2,end) infinite;
+}
+@keyframes beatpulse{
+  0%{opacity:1;}50%{opacity:.45;}100%{opacity:1;}
+}
+
+.tb-btns{display:flex;gap:0;}
+.tb-btn{
+  width:64px;height:28px;
+  border:1px solid var(--line);
+  background:var(--bg2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:11px;color:var(--body);
+  letter-spacing:.1em;text-transform:uppercase;
+  margin-right:-1px;
+}
+.tb-btn.primary{background:var(--bg3);color:var(--title);}
+
+.tb-fader{
+  display:flex;flex-direction:column;gap:4px;justify-content:center;
+  min-width:200px;
+}
+.tb-fader .hd{display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.tb-fader .hd .v{color:var(--title);font-variant-numeric:tabular-nums;}
+.tb-fader .track{
+  width:180px;height:10px;background:var(--bg3);border:1px solid var(--line);
+  position:relative;
+}
+.tb-fader .fill{position:absolute;top:0;bottom:0;left:0;background:#444;width:82%;}
+.tb-fader .thumb{position:absolute;top:-2px;bottom:-2px;left:calc(82% - 2px);width:4px;background:var(--title);}
+
+.tb-rec{
+  display:flex;align-items:center;gap:10px;
+  min-width:140px;
+}
+.tb-rec .dot{
+  width:12px;height:12px;background:#e6443b;
+  animation:recpulse 2s ease-in-out infinite;
+}
+@keyframes recpulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.tb-rec .label{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase;}
+.tb-rec .time{font-family:var(--mono);font-size:14px;color:var(--title);font-variant-numeric:tabular-nums;}
+
+/* MODE TOGGLE — hero affordance */
+.tb-mode{
+  margin-left:auto;
+  display:flex;align-items:center;gap:0;
+  padding:0 18px;
+  border-left:1px solid var(--line);
+  height:100%;
+}
+.tb-mode-lbl{
+  font-family:var(--mono);font-size:11px;color:var(--dim);
+  letter-spacing:.1em;text-transform:uppercase;
+  margin-right:12px;
+}
+.mode-cells{display:flex;position:relative;}
+.mode-cell{
+  width:90px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-weight:600;font-size:16px;
+  letter-spacing:.08em;
+  border:1px solid var(--line);
+  background:var(--bg2);
+  color:var(--dim);
+  margin-right:-1px;
+  position:relative;
+}
+.mode-cell.on{
+  background:var(--title);
+  color:#000;
+  border-color:var(--title);
+  z-index:2;
+}
+.mode-cell.on::after{
+  content:"";
+  position:absolute;left:0;right:0;bottom:-1px;height:3px;
+  background:var(--orange);
+}
+
+/* ----- Center live monitor area ----- */
+.center{
+  position:absolute;top:92px;left:0;right:0;bottom:316px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg0);
+}
+.monitor{
+  position:relative;
+  width:1100px;height:620px;
+  border:1px solid var(--bg3);
+  background:#050505;
+}
+.monitor svg{display:block;}
+.mon-tagtr{
+  position:absolute;top:10px;right:12px;
+  font-family:var(--mono);font-size:11px;color:#ccc;
+  letter-spacing:.08em;
+  background:rgba(0,0,0,.45);
+  padding:4px 8px;border:1px solid rgba(255,255,255,.08);
+}
+.mon-tagtr .dot{display:inline-block;width:7px;height:7px;background:var(--red);margin-right:8px;vertical-align:baseline;}
+.mon-tagbr{
+  position:absolute;bottom:10px;right:12px;
+  font-family:var(--mono);font-size:11px;color:#aaa;
+  letter-spacing:.08em;
+  display:flex;gap:8px;
+}
+.mon-tagbr .tag{
+  padding:3px 8px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(0,0,0,.45);
+}
+.mon-tagbl{
+  position:absolute;bottom:10px;left:12px;
+  font-family:var(--mono);font-size:11px;color:#999;letter-spacing:.08em;
+  background:rgba(0,0,0,.45);padding:3px 8px;border:1px solid rgba(255,255,255,.08);
+}
+
+/* ----- Now playing banner 72px ----- */
+.banner{
+  position:absolute;left:0;right:0;bottom:244px;height:72px;
+  background:var(--bg1);
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;
+  padding:0 22px;
+}
+.banner-left{display:flex;align-items:center;gap:14px;flex:1;min-width:0;}
+.banner-dot{
+  width:12px;height:12px;background:var(--orange);
+  animation:beatpulse .469s steps(2,end) infinite;
+  flex-shrink:0;
+}
+.banner-text{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.banner-title{
+  font-family:var(--sans);font-weight:600;font-size:26px;
+  color:var(--title);letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.banner-sub{
+  font-family:var(--mono);font-size:12px;color:var(--dim);
+  letter-spacing:.04em;
+}
+.banner-sub .accent{color:var(--body);}
+
+.banner-right{
+  display:flex;gap:26px;align-items:center;
+  font-family:var(--mono);font-size:14px;color:var(--body);
+  letter-spacing:.04em;
+}
+.banner-right .item{display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
+.banner-right .k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;}
+.banner-right .v{color:var(--title);font-variant-numeric:tabular-nums;}
+
+/* ----- Bottom zone (waveform | deck grid | signals) ----- */
+.bottom{
+  position:absolute;left:0;right:0;bottom:18px;height:226px;
+  display:flex;
+  background:var(--bg0);
+  border-top:1px solid var(--line);
+}
+.wave{
+  width:80px;border-right:1px solid var(--line);
+  background:var(--bg1);
+  position:relative;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.wave-hd{
+  height:24px;display:flex;align-items:center;justify-content:space-around;
+  border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.wave-hd span.a{color:var(--blue);}
+.wave-hd span.b{color:#d07a7a;}
+.wave-body{flex:1;position:relative;}
+.wave-body svg{position:absolute;inset:0;width:100%;height:100%;}
+.wave-scroll{animation:scrollwave 8s linear infinite;}
+@keyframes scrollwave{
+  0%{transform:translateY(0);}
+  100%{transform:translateY(-60px);}
+}
+.wave-playhead{
+  position:absolute;left:0;right:0;top:50%;height:2px;background:var(--title);
+  transform:translateY(-1px);z-index:3;pointer-events:none;
+}
+.wave-mid{
+  position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line);z-index:2;
+}
+.wave-barlabels{
+  position:absolute;left:3px;top:0;bottom:0;width:14px;
+  font-family:var(--mono);font-size:9px;color:var(--dim);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:10px 0;
+  z-index:4;letter-spacing:.04em;
+}
+
+/* Deck grid */
+.deck{
+  flex:1;
+  display:flex;flex-direction:column;
+  background:var(--bg1);
+  border-right:1px solid var(--line);
+  padding:0;
+  position:relative;
+}
+.deck-hd{
+  height:24px;
+  display:flex;align-items:center;
+  border-bottom:1px solid var(--line);
+  padding:0 10px;
+  font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.1em;
+  text-transform:uppercase;
+  gap:12px;
+}
+.deck-hd .title{color:var(--title);}
+.deck-hd .sep{color:var(--line);}
+.deck-hd .columns{margin-left:auto;display:flex;gap:0;}
+.deck-hd .col-n{
+  width:160px;text-align:center;
+  border-left:1px solid var(--line);
+  font-size:10px;letter-spacing:.1em;
+  color:var(--dim);
+  padding:4px 0;
+}
+.deck-body{flex:1;display:flex;flex-direction:column;}
+.layer-row{
+  display:flex;
+  height:50px;
+  border-bottom:1px solid var(--line);
+}
+.layer-row:last-child{border-bottom:none;}
+.layer-hd{
+  width:140px;flex-shrink:0;
+  display:flex;align-items:center;gap:8px;
+  padding:0 10px;
+  border-right:1px solid var(--line);
+  background:var(--bg2);
+}
+.layer-name{
+  font-family:var(--sans);font-weight:600;font-size:13px;color:var(--title);
+  letter-spacing:.02em;
+  min-width:38px;
+}
+.layer-badge{
+  font-family:var(--mono);font-size:9px;color:var(--dim);
+  padding:2px 5px;border:1px solid var(--line);
+  letter-spacing:.06em;
+  background:var(--bg1);
+}
+.layer-btns{display:flex;gap:0;margin-left:auto;}
+.layer-btns .b{
+  width:24px;height:20px;
+  border:1px solid var(--line);
+  background:var(--bg1);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;color:var(--dim);
+  margin-right:-1px;
+}
+.layer-btns .b.act{color:var(--title);background:var(--bg3);}
+.layer-op{
+  display:flex;flex-direction:column;gap:2px;width:80px;margin-left:8px;
+}
+.layer-op .bar{height:4px;background:var(--bg3);border:1px solid var(--line);position:relative;}
+.layer-op .bar .f{position:absolute;inset:0 auto 0 0;background:var(--dim);}
+.layer-op .val{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.04em;text-align:right;}
+
+.layer-cells{flex:1;display:flex;}
+.cell{
+  width:160px;height:50px;
+  border-right:1px solid var(--line);
+  position:relative;
+  overflow:hidden;
+  background:var(--bg0);
+}
+.cell:last-child{border-right:none;}
+.cell .thumb{position:absolute;inset:0;display:block;}
+.cell .fxcount{
+  position:absolute;top:2px;right:4px;
+  font-family:var(--mono);font-size:9px;color:#ddd;
+  background:rgba(0,0,0,.55);padding:1px 4px;letter-spacing:.04em;
+}
+.cell .label{
+  position:absolute;left:6px;right:6px;bottom:3px;
+  font-family:var(--sans);font-weight:500;font-size:12px;color:#f0f0f0;
+  letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  z-index:2;
+}
+.cell .gradient{
+  position:absolute;left:0;right:0;bottom:0;height:22px;
+  background:linear-gradient(to top, rgba(0,0,0,.85), transparent);
+  z-index:1;
+}
+.cell.empty{background:repeating-linear-gradient(45deg,var(--bg1) 0 6px,var(--bg0) 6px 12px);}
+.cell.empty .label{color:var(--dim);font-weight:400;font-size:11px;}
+.cell.playing{
+  background:var(--orange);
+}
+.cell.playing .thumb{opacity:.18;mix-blend-mode:multiply;}
+.cell.playing .label{color:#fff;font-weight:600;font-size:14px;}
+.cell.playing .gradient{display:none;}
+.cell.playing .progress{
+  position:absolute;left:0;bottom:0;height:5px;background:#fff;width:37%;z-index:3;
+}
+.cell.playing .ptag{
+  position:absolute;top:3px;left:5px;
+  font-family:var(--mono);font-size:9px;color:#fff;letter-spacing:.12em;
+  text-transform:uppercase;font-weight:600;
+}
+.cell.queued{outline:none;}
+.cell.queued::after{
+  content:"";position:absolute;inset:2px;
+  border:2px dashed var(--orange);
+  pointer-events:none;z-index:4;
+  animation:queuedash 1.2s linear infinite;
+}
+@keyframes queuedash{
+  0%{opacity:.85;}50%{opacity:.45;}100%{opacity:.85;}
+}
+.cell.queued .qtag{
+  position:absolute;top:3px;left:5px;
+  font-family:var(--mono);font-size:9px;color:var(--orange);
+  background:rgba(0,0,0,.7);padding:1px 4px;letter-spacing:.12em;text-transform:uppercase;
+  z-index:5;
+}
+
+/* Signals panel */
+.sigs{
+  width:240px;flex-shrink:0;
+  background:var(--bg1);
+  display:flex;flex-direction:column;
+}
+.sigs-hd{
+  height:24px;
+  display:flex;align-items:center;padding:0 12px;
+  border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.sigs-hd .t{color:var(--title);}
+.sigs-body{flex:1;display:flex;flex-direction:column;}
+.sig-row{
+  height:44px;
+  display:flex;align-items:center;
+  gap:8px;padding:0 12px;
+  border-bottom:1px solid var(--line);
+  position:relative;
+}
+.sig-row:last-child{border-bottom:none;}
+.sig-lbl{
+  font-family:var(--sans);font-weight:600;font-size:11px;
+  color:var(--body);letter-spacing:.08em;text-transform:uppercase;
+  width:52px;
+}
+.sig-meter{
+  flex:1;height:8px;background:var(--bg3);border:1px solid var(--line);
+  position:relative;
+}
+.sig-meter .f{position:absolute;inset:0 auto 0 0;}
+.sig-val{
+  font-family:var(--mono);font-size:14px;color:var(--title);
+  font-variant-numeric:tabular-nums;
+  min-width:52px;text-align:right;letter-spacing:.02em;
+}
+.sig-row.bass.shake{animation:bassshake 33ms steps(2,end) infinite;}
+@keyframes bassshake{
+  0%{transform:translateX(0);}
+  50%{transform:translateX(1px);}
+  100%{transform:translateX(-1px);}
+}
+
+/* Beat pulse in signals */
+.sig-pulse{
+  width:100%;height:8px;background:var(--bg3);border:1px solid var(--line);
+  position:relative;
+}
+.sig-pulse .d{
+  position:absolute;top:50%;left:50%;width:10px;height:10px;
+  background:var(--orange);
+  transform:translate(-50%,-50%);
+  animation:beatpulse .469s steps(2,end) infinite;
+}
+.sig-onset{
+  width:100%;height:8px;background:var(--bg3);border:1px solid var(--line);
+  position:relative;overflow:hidden;
+}
+.sig-onset .sq{
+  position:absolute;top:1px;bottom:1px;width:6px;background:var(--title);
+  left:-6px;animation:onsetflash 2.3s linear infinite;
+}
+@keyframes onsetflash{
+  0%{left:-6px;}10%{left:60%;}12%{left:60%;opacity:1;}
+  20%{opacity:0;}100%{opacity:0;left:100%;}
+}
+.sig-txt{
+  flex:1;font-family:var(--mono);font-size:12px;color:var(--body);letter-spacing:.04em;
+}
+.sig-txt .hi{color:var(--title);}
+
+/* Just-changed flash on a slider value (e.g. HIGH) */
+.justchanged{
+  animation:justchanged 3s steps(20,end) infinite;
+}
+@keyframes justchanged{
+  0%{background:transparent;color:var(--title);}
+  2%{background:var(--orange);color:#000;}
+  8%{background:var(--orange);color:#000;}
+  15%{background:transparent;color:var(--title);}
+  100%{background:transparent;color:var(--title);}
+}
+
+/* ----- Footer 18px ----- */
+.footer{
+  position:absolute;left:0;right:0;bottom:0;height:18px;
+  border-top:1px solid var(--line);background:var(--bg1);
+  display:flex;align-items:center;padding:0 14px;gap:14px;
+  font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.06em;
+}
+.footer .hi{color:var(--body);}
+.footer .spacer{flex:1;}
+.footer .version{color:var(--dim);}
+
+/* utility */
+.dim{color:var(--dim);}
+.t{color:var(--title);}
+.mono{font-family:var(--mono);}
+.sans{font-family:var(--sans);}
+
+</style>
+</head>
+<body>
+
+<div class="stage" role="img" aria-label="Audio-DNA PLAY mode mockup">
+
+  <!-- Menu -->
+  <div class="menu">
+    <span class="brand">AUDIO-DNA</span>
+    <span class="m">FILE</span>
+    <span class="m">EDIT</span>
+    <span class="m">VIEW</span>
+    <span class="m">DECK</span>
+    <span class="m">LAYER</span>
+    <span class="m">CLIP</span>
+    <span class="m">OUTPUT</span>
+    <span class="m">SHORTCUTS</span>
+    <span class="m">HELP</span>
+    <span class="spacer"></span>
+    <span class="right">v9.0 · BRUTALIST v2c · PLAY MODE</span>
+  </div>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="tb-cell tb-logo">audio-dna</div>
+
+    <div class="tb-cell tb-bpm">
+      <div class="val">128.0</div>
+      <div class="lbl">BPM<br><span style="color:var(--body)">SYNC</span></div>
+    </div>
+
+    <div class="tb-cell tb-counts">
+      <div class="row"><span class="k">BAR</span><span class="v">03 / 08</span></div>
+      <div class="row"><span class="k">PHRASE</span><span class="v">2 / 4</span></div>
+      <div class="row"><span class="k">KEY</span><span class="v">A MIN</span></div>
+    </div>
+
+    <div class="tb-cell">
+      <div class="tb-wheel" aria-label="beat wheel">
+        <span class="sq on"></span>
+        <span class="sq"></span>
+        <span class="sq"></span>
+        <span class="sq"></span>
+      </div>
+    </div>
+
+    <div class="tb-cell">
+      <div class="tb-btns">
+        <button class="tb-btn">TAP</button>
+        <button class="tb-btn">RESYNC</button>
+        <button class="tb-btn primary">MANUAL</button>
+      </div>
+    </div>
+
+    <div class="tb-cell tb-fader">
+      <div class="hd"><span>MASTER</span><span class="v">0.82</span></div>
+      <div class="track">
+        <div class="fill"></div>
+        <div class="thumb"></div>
+      </div>
+    </div>
+
+    <div class="tb-cell tb-rec">
+      <span class="dot"></span>
+      <span class="label">REC</span>
+      <span class="time">00:12:34</span>
+    </div>
+
+    <div class="tb-cell tb-mode">
+      <span class="tb-mode-lbl">MODE</span>
+      <div class="mode-cells">
+        <button class="mode-cell on">PLAY</button>
+        <button class="mode-cell">PROGRAM</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center: Live Output Monitor -->
+  <div class="center">
+    <div class="monitor">
+      <!-- Live VJ composite SVG: blues/violets/whites, turbulent fractal -->
+      <svg width="1100" height="620" viewBox="0 0 1100 620" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="core" cx="50%" cy="50%" r="55%">
+            <stop offset="0%" stop-color="#d9e7ff" stop-opacity="1"/>
+            <stop offset="18%" stop-color="#8ea3e0" stop-opacity="1"/>
+            <stop offset="42%" stop-color="#5a4b9c" stop-opacity="1"/>
+            <stop offset="72%" stop-color="#1a1346" stop-opacity="1"/>
+            <stop offset="100%" stop-color="#05040f" stop-opacity="1"/>
+          </radialGradient>
+          <radialGradient id="vign" cx="50%" cy="50%" r="75%">
+            <stop offset="60%" stop-color="#000" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="0.9"/>
+          </radialGradient>
+          <filter id="turb" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.012 0.018" numOctaves="3" seed="7"/>
+            <feDisplacementMap in="SourceGraphic" scale="36"/>
+          </filter>
+          <filter id="turb2" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="3"/>
+            <feDisplacementMap in="SourceGraphic" scale="12"/>
+          </filter>
+          <filter id="softblur"><feGaussianBlur stdDeviation="1.2"/></filter>
+        </defs>
+
+        <!-- base dark -->
+        <rect width="1100" height="620" fill="#05040f"/>
+
+        <!-- concentric ghost rings behind -->
+        <g stroke="#384b80" fill="none" opacity="0.25" filter="url(#turb2)">
+          <circle cx="550" cy="310" r="80"/>
+          <circle cx="550" cy="310" r="130"/>
+          <circle cx="550" cy="310" r="185"/>
+          <circle cx="550" cy="310" r="245"/>
+          <circle cx="550" cy="310" r="310"/>
+          <circle cx="550" cy="310" r="380"/>
+        </g>
+
+        <!-- fractal core with turbulent displacement -->
+        <g filter="url(#turb)">
+          <circle cx="550" cy="310" r="300" fill="url(#core)"/>
+          <circle cx="550" cy="310" r="200" fill="#c3d6ff" opacity="0.35"/>
+          <circle cx="550" cy="310" r="120" fill="#ffffff" opacity="0.55"/>
+          <circle cx="550" cy="310" r="55" fill="#ffffff" opacity="0.85"/>
+        </g>
+
+        <!-- spiral arms (violet) -->
+        <g stroke="#8a7adf" stroke-width="1.3" fill="none" opacity="0.45" filter="url(#turb2)">
+          <path d="M550,310 Q720,220 820,310 T1030,340"/>
+          <path d="M550,310 Q380,400 280,310 T70,280"/>
+          <path d="M550,310 Q560,140 680,60"/>
+          <path d="M550,310 Q540,480 420,560"/>
+        </g>
+
+        <!-- particle specks (cool) -->
+        <g fill="#e0e8ff">
+          <circle cx="310" cy="180" r="1.2"/>
+          <circle cx="820" cy="200" r="1.6" opacity=".8"/>
+          <circle cx="160" cy="420" r="1.2" opacity=".7"/>
+          <circle cx="950" cy="480" r="1.4" opacity=".9"/>
+          <circle cx="480" cy="100" r="1.2" opacity=".6"/>
+          <circle cx="720" cy="520" r="1.3" opacity=".7"/>
+          <circle cx="250" cy="310" r="1" opacity=".6"/>
+          <circle cx="880" cy="320" r="1" opacity=".6"/>
+          <circle cx="400" cy="520" r="1.1" opacity=".7"/>
+          <circle cx="620" cy="170" r="1.1" opacity=".7"/>
+        </g>
+
+        <!-- scanlines -->
+        <g opacity="0.09">
+          <rect x="0" y="0" width="1100" height="620" fill="url(#core)"/>
+        </g>
+        <g opacity="0.22">
+          <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+            <rect width="4" height="1" fill="#000"/>
+          </pattern>
+          <rect width="1100" height="620" fill="url(#scan)"/>
+        </g>
+
+        <!-- vignette -->
+        <rect width="1100" height="620" fill="url(#vign)"/>
+      </svg>
+
+      <div class="mon-tagtr"><span class="dot"></span>LIVE · 60 FPS · 1920×1080</div>
+      <div class="mon-tagbr">
+        <span class="tag">OUTPUT A</span>
+        <span class="tag">SYPHON</span>
+        <span class="tag">HDR OFF</span>
+      </div>
+      <div class="mon-tagbl">SCENE · JULIA · PLATE VII</div>
+    </div>
+  </div>
+
+  <!-- Now Playing Banner -->
+  <div class="banner">
+    <div class="banner-left">
+      <span class="banner-dot"></span>
+      <div class="banner-text">
+        <div class="banner-title">JULIA SET — PLATE VII</div>
+        <div class="banner-sub">LAYER <span class="accent">02</span> · <span class="accent">TRANSPARENT</span> · FX: <span class="accent">RIPPLE</span> · <span class="accent">ECHO</span> · <span class="accent">CHROMATIC AB</span> · TRIGGER <span class="accent">B·3</span></div>
+      </div>
+    </div>
+    <div class="banner-right">
+      <div class="item"><span class="k">BPM</span><span class="v">128.0 · SYNC</span></div>
+      <div class="item"><span class="k">LOOP</span><span class="v">02:14 / 04:28</span></div>
+      <div class="item"><span class="k">OUTPUT</span><span class="v">A · SYPHON</span></div>
+      <div class="item"><span class="k">CPU / GPU</span><span class="v">22% / 41%</span></div>
+    </div>
+  </div>
+
+  <!-- Bottom: waveform | deck grid | signals -->
+  <div class="bottom">
+
+    <!-- Vertical dual waveform -->
+    <div class="wave">
+      <div class="wave-hd"><span class="a">A</span><span class="b">B</span></div>
+      <div class="wave-body">
+        <div class="wave-barlabels">
+          <span>08</span><span>07</span><span>06</span><span>05</span><span>04</span><span>03</span><span>02</span><span>01</span>
+        </div>
+        <svg width="80" height="202" viewBox="0 0 80 202" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="wga" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#3e7cb5"/><stop offset="1" stop-color="#7bd3f2"/>
+            </linearGradient>
+            <linearGradient id="wgb" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#8a2b2b"/><stop offset="1" stop-color="#c95555"/>
+            </linearGradient>
+          </defs>
+          <!-- beat grid -->
+          <g stroke="#2a2a2a" stroke-width="1">
+            <line x1="0" y1="25" x2="80" y2="25"/>
+            <line x1="0" y1="51" x2="80" y2="51"/>
+            <line x1="0" y1="76" x2="80" y2="76"/>
+            <line x1="0" y1="101" x2="80" y2="101"/>
+            <line x1="0" y1="126" x2="80" y2="126"/>
+            <line x1="0" y1="151" x2="80" y2="151"/>
+            <line x1="0" y1="176" x2="80" y2="176"/>
+          </g>
+          <!-- structural zones -->
+          <rect x="0" y="0" width="80" height="50" fill="#2a4a8a" opacity="0.10"/>
+          <rect x="0" y="50" width="80" height="80" fill="#8a2a2a" opacity="0.12"/>
+          <rect x="0" y="130" width="80" height="72" fill="#2a6a2a" opacity="0.08"/>
+
+          <!-- Deck A (left half) -->
+          <g fill="url(#wga)">
+            <rect x="2" y="0" width="9" height="3"/><rect x="14" y="0" width="11" height="5"/>
+            <rect x="2" y="8" width="14" height="4"/><rect x="18" y="6" width="20" height="7"/>
+            <rect x="3" y="16" width="8" height="3"/><rect x="12" y="14" width="17" height="5"/>
+            <rect x="32" y="14" width="6" height="6"/><rect x="2" y="22" width="18" height="5"/>
+            <rect x="22" y="21" width="14" height="7"/><rect x="4" y="30" width="10" height="4"/>
+            <rect x="16" y="28" width="20" height="8"/><rect x="2" y="38" width="14" height="3"/>
+            <rect x="18" y="38" width="22" height="6"/><rect x="6" y="46" width="12" height="4"/>
+            <rect x="20" y="44" width="16" height="7"/><rect x="38" y="45" width="2" height="5"/>
+            <rect x="2" y="54" width="16" height="6"/><rect x="22" y="52" width="18" height="9"/>
+            <rect x="4" y="64" width="14" height="4"/><rect x="20" y="62" width="20" height="8"/>
+            <rect x="2" y="74" width="10" height="3"/><rect x="14" y="72" width="22" height="6"/>
+            <rect x="4" y="82" width="18" height="5"/><rect x="24" y="80" width="16" height="7"/>
+            <rect x="2" y="90" width="14" height="4"/><rect x="18" y="88" width="22" height="8"/>
+            <rect x="4" y="100" width="12" height="3"/><rect x="18" y="98" width="22" height="7"/>
+            <rect x="2" y="108" width="16" height="5"/><rect x="20" y="106" width="20" height="8"/>
+            <rect x="4" y="118" width="10" height="4"/><rect x="16" y="116" width="24" height="7"/>
+            <rect x="2" y="128" width="20" height="6"/><rect x="24" y="126" width="16" height="9"/>
+            <rect x="6" y="140" width="12" height="4"/><rect x="20" y="138" width="20" height="7"/>
+            <rect x="2" y="150" width="16" height="5"/><rect x="20" y="148" width="20" height="8"/>
+            <rect x="4" y="160" width="14" height="3"/><rect x="20" y="158" width="20" height="7"/>
+            <rect x="2" y="168" width="18" height="5"/><rect x="22" y="166" width="18" height="8"/>
+            <rect x="4" y="178" width="12" height="4"/><rect x="18" y="176" width="22" height="7"/>
+            <rect x="2" y="188" width="16" height="5"/><rect x="20" y="186" width="20" height="8"/>
+          </g>
+          <!-- Deck B (right half) -->
+          <g fill="url(#wgb)" opacity="0.85">
+            <rect x="42" y="0" width="12" height="4"/><rect x="56" y="0" width="22" height="6"/>
+            <rect x="42" y="8" width="16" height="5"/><rect x="60" y="8" width="18" height="4"/>
+            <rect x="44" y="16" width="10" height="3"/><rect x="56" y="14" width="22" height="6"/>
+            <rect x="42" y="22" width="14" height="4"/><rect x="58" y="20" width="20" height="6"/>
+            <rect x="44" y="30" width="12" height="3"/><rect x="58" y="28" width="20" height="7"/>
+            <rect x="42" y="38" width="18" height="6"/><rect x="62" y="36" width="16" height="8"/>
+            <rect x="44" y="46" width="14" height="4"/><rect x="60" y="44" width="18" height="7"/>
+            <rect x="42" y="54" width="12" height="5"/><rect x="56" y="52" width="22" height="8"/>
+            <rect x="44" y="64" width="16" height="4"/><rect x="62" y="62" width="16" height="7"/>
+            <rect x="42" y="72" width="14" height="3"/><rect x="58" y="70" width="20" height="8"/>
+            <rect x="44" y="82" width="10" height="5"/><rect x="56" y="80" width="22" height="7"/>
+            <rect x="42" y="90" width="14" height="4"/><rect x="58" y="88" width="20" height="8"/>
+            <rect x="44" y="100" width="12" height="3"/><rect x="58" y="98" width="20" height="7"/>
+            <rect x="42" y="108" width="18" height="5"/><rect x="62" y="106" width="16" height="8"/>
+            <rect x="44" y="118" width="14" height="4"/><rect x="60" y="116" width="18" height="7"/>
+            <rect x="42" y="128" width="16" height="6"/><rect x="60" y="126" width="18" height="9"/>
+            <rect x="44" y="140" width="12" height="4"/><rect x="58" y="138" width="20" height="7"/>
+            <rect x="42" y="150" width="14" height="5"/><rect x="58" y="148" width="20" height="8"/>
+            <rect x="44" y="160" width="10" height="3"/><rect x="56" y="158" width="22" height="7"/>
+            <rect x="42" y="168" width="16" height="5"/><rect x="60" y="166" width="18" height="8"/>
+            <rect x="44" y="178" width="14" height="4"/><rect x="60" y="176" width="18" height="7"/>
+            <rect x="42" y="188" width="12" height="5"/><rect x="56" y="186" width="22" height="8"/>
+          </g>
+        </svg>
+        <div class="wave-mid"></div>
+        <div class="wave-playhead"></div>
+      </div>
+    </div>
+
+    <!-- Deck grid -->
+    <div class="deck">
+      <div class="deck-hd">
+        <span class="title">DECK A</span>
+        <span class="sep">·</span>
+        <span>RESIDENT SET</span>
+        <span class="sep">·</span>
+        <span>4 LAYERS × 6 COLS</span>
+        <div class="columns">
+          <span class="col-n">01</span>
+          <span class="col-n">02</span>
+          <span class="col-n">03</span>
+          <span class="col-n">04</span>
+          <span class="col-n">05</span>
+          <span class="col-n">06</span>
+        </div>
+      </div>
+
+      <div class="deck-body">
+
+        <!-- Layer 01 -->
+        <div class="layer-row">
+          <div class="layer-hd">
+            <span class="layer-name">L1</span>
+            <span class="layer-badge">OPQ</span>
+            <div class="layer-op">
+              <div class="bar"><div class="f" style="width:100%;"></div></div>
+              <div class="val">1.00</div>
+            </div>
+            <div class="layer-btns">
+              <button class="b">S</button>
+              <button class="b">M</button>
+            </div>
+          </div>
+          <div class="layer-cells">
+            <!-- cell 1: perlin field -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <defs>
+                  <filter id="t1"><feTurbulence baseFrequency="0.04 0.08" numOctaves="2" seed="1"/></filter>
+                  <linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a3a5c"/><stop offset="1" stop-color="#0a0a18"/></linearGradient>
+                </defs>
+                <rect width="160" height="50" fill="url(#lg1)"/>
+                <rect width="160" height="50" filter="url(#t1)" opacity="0.55"/>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">PERLIN FIELD</div>
+            </div>
+            <!-- cell 2: voronoi -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#14202a"/>
+                <g fill="none" stroke="#4a7d9e" stroke-width="0.8" opacity="0.85">
+                  <polygon points="0,0 40,14 30,42 0,36"/>
+                  <polygon points="40,14 80,5 92,28 72,46 30,42"/>
+                  <polygon points="80,5 130,9 128,28 92,28"/>
+                  <polygon points="130,9 160,0 160,24 128,28"/>
+                  <polygon points="72,46 92,28 128,28 130,50 80,50"/>
+                  <polygon points="0,36 30,42 80,50 0,50"/>
+                  <polygon points="128,28 160,24 160,50 130,50"/>
+                </g>
+              </svg>
+              <div class="fxcount">×2</div>
+              <div class="gradient"></div>
+              <div class="label">VORONOI GLASS</div>
+            </div>
+            <!-- cell 3: gradient field -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="lg3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#33224a"/><stop offset=".5" stop-color="#66345a"/><stop offset="1" stop-color="#1a1028"/></linearGradient>
+                </defs>
+                <rect width="160" height="50" fill="url(#lg3)"/>
+                <g stroke="#c9a0c0" stroke-width="0.5" fill="none" opacity="0.55">
+                  <path d="M0,25 Q40,5 80,25 T160,25"/>
+                  <path d="M0,35 Q40,15 80,35 T160,35"/>
+                  <path d="M0,15 Q40,35 80,15 T160,15"/>
+                </g>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">GRADIENT WAVE</div>
+            </div>
+            <!-- cell 4: grid scan -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a1820"/>
+                <g stroke="#4a92a8" stroke-width="0.5" opacity="0.8">
+                  <path d="M0,10 H160 M0,20 H160 M0,30 H160 M0,40 H160"/>
+                  <path d="M20,0 V50 M50,0 V50 M80,0 V50 M110,0 V50 M140,0 V50"/>
+                </g>
+                <circle cx="80" cy="25" r="14" fill="none" stroke="#a8e6ff" stroke-width="1"/>
+              </svg>
+              <div class="fxcount">×3</div>
+              <div class="gradient"></div>
+              <div class="label">GRID SCAN</div>
+            </div>
+            <!-- cell 5: empty -->
+            <div class="cell empty">
+              <div class="label">— EMPTY —</div>
+            </div>
+            <!-- cell 6: stripes -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#1a1a22"/>
+                <g fill="#8b96a0" opacity="0.75">
+                  <rect x="0" y="0" width="8" height="50"/>
+                  <rect x="16" y="0" width="3" height="50"/>
+                  <rect x="28" y="0" width="10" height="50"/>
+                  <rect x="46" y="0" width="2" height="50"/>
+                  <rect x="56" y="0" width="6" height="50"/>
+                  <rect x="70" y="0" width="12" height="50"/>
+                  <rect x="92" y="0" width="4" height="50"/>
+                  <rect x="104" y="0" width="8" height="50"/>
+                  <rect x="120" y="0" width="3" height="50"/>
+                  <rect x="130" y="0" width="10" height="50"/>
+                  <rect x="148" y="0" width="6" height="50"/>
+                </g>
+              </svg>
+              <div class="fxcount">×2</div>
+              <div class="gradient"></div>
+              <div class="label">STRIPE CODE</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 02 (has playing clip) -->
+        <div class="layer-row">
+          <div class="layer-hd">
+            <span class="layer-name">L2</span>
+            <span class="layer-badge">TRN</span>
+            <div class="layer-op">
+              <div class="bar"><div class="f" style="width:78%;"></div></div>
+              <div class="val">0.78</div>
+            </div>
+            <div class="layer-btns">
+              <button class="b act">S</button>
+              <button class="b">M</button>
+            </div>
+          </div>
+          <div class="layer-cells">
+            <!-- cell 1: ripple -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <defs>
+                  <radialGradient id="rg1" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#bfe0ff"/><stop offset="1" stop-color="#08152c"/></radialGradient>
+                </defs>
+                <rect width="160" height="50" fill="url(#rg1)"/>
+                <g fill="none" stroke="#7ab0e0" stroke-width="0.5" opacity="0.75">
+                  <circle cx="80" cy="25" r="10"/><circle cx="80" cy="25" r="16"/>
+                  <circle cx="80" cy="25" r="22"/><circle cx="80" cy="25" r="28"/>
+                </g>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">RIPPLE POND</div>
+            </div>
+            <!-- cell 2: bands -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0c1a2a"/>
+                <g opacity="0.85">
+                  <rect x="4"   y="30" width="8" height="18" fill="#3a6abc"/>
+                  <rect x="16"  y="18" width="8" height="30" fill="#4a7cd3"/>
+                  <rect x="28"  y="24" width="8" height="24" fill="#5a8be0"/>
+                  <rect x="40"  y="10" width="8" height="38" fill="#6a98e8"/>
+                  <rect x="52"  y="22" width="8" height="26" fill="#7aa5ed"/>
+                  <rect x="64"  y="14" width="8" height="34" fill="#8ab2f0"/>
+                  <rect x="76"  y="28" width="8" height="20" fill="#7aa5ed"/>
+                  <rect x="88"  y="16" width="8" height="32" fill="#6a98e8"/>
+                  <rect x="100" y="24" width="8" height="24" fill="#5a8be0"/>
+                  <rect x="112" y="12" width="8" height="36" fill="#4a7cd3"/>
+                  <rect x="124" y="20" width="8" height="28" fill="#3a6abc"/>
+                  <rect x="136" y="28" width="8" height="20" fill="#2c5aa0"/>
+                  <rect x="148" y="22" width="8" height="26" fill="#2c5aa0"/>
+                </g>
+              </svg>
+              <div class="fxcount">×2</div>
+              <div class="gradient"></div>
+              <div class="label">BAND TOWER</div>
+            </div>
+            <!-- cell 3: PLAYING — JULIA SET -->
+            <div class="cell playing" title="Playing: Julia Set — Plate VII">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <defs>
+                  <radialGradient id="jp" cx="50%" cy="50%" r="60%"><stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="#b3cbf5"/><stop offset="1" stop-color="#050512"/></radialGradient>
+                </defs>
+                <rect width="160" height="50" fill="#101024"/>
+                <circle cx="80" cy="25" r="22" fill="url(#jp)"/>
+                <g stroke="#ffffff" fill="none" stroke-width="0.4" opacity="0.8">
+                  <path d="M30,10 Q80,0 130,10 Q160,25 130,40 Q80,50 30,40 Q0,25 30,10"/>
+                  <path d="M50,22 Q80,12 110,22 Q120,25 110,28 Q80,38 50,28 Q40,25 50,22"/>
+                </g>
+              </svg>
+              <span class="ptag">◉ PLAYING</span>
+              <div class="fxcount">×3</div>
+              <div class="label">JULIA SET — PLATE VII</div>
+              <div class="progress"></div>
+            </div>
+            <!-- cell 4: mandelbrot -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a0818"/>
+                <g transform="translate(80,25)">
+                  <g fill="#7a5ac9" opacity="0.85">
+                    <circle cx="-8" cy="0" r="14"/>
+                    <circle cx="10" cy="0" r="9"/>
+                    <circle cx="18" cy="0" r="4"/>
+                  </g>
+                  <g fill="#c4a0e8" opacity="0.55">
+                    <circle cx="-8" cy="0" r="9"/>
+                    <circle cx="10" cy="0" r="5"/>
+                  </g>
+                  <circle cx="-8" cy="0" r="3" fill="#000"/>
+                </g>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">MANDELBROT DRIFT</div>
+            </div>
+            <!-- cell 5: spectrum nebula -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <defs>
+                  <radialGradient id="ne1" cx="30%" cy="60%" r="70%"><stop offset="0" stop-color="#e2c0ff"/><stop offset="1" stop-color="#0a0418"/></radialGradient>
+                </defs>
+                <rect width="160" height="50" fill="url(#ne1)"/>
+                <g fill="#fff" opacity="0.85">
+                  <circle cx="40" cy="30" r="0.9"/><circle cx="100" cy="12" r="0.9"/>
+                  <circle cx="120" cy="38" r="0.9"/><circle cx="70" cy="20" r="0.8"/>
+                  <circle cx="20" cy="40" r="0.8"/>
+                </g>
+              </svg>
+              <div class="fxcount">×2</div>
+              <div class="gradient"></div>
+              <div class="label">SPECTRAL NEBULA</div>
+            </div>
+            <!-- cell 6: chromatic ring -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#14141c"/>
+                <g fill="none" stroke-width="2" opacity="0.85">
+                  <circle cx="80" cy="25" r="10" stroke="#4a8ad3"/>
+                  <circle cx="82" cy="25" r="14" stroke="#a36fc4"/>
+                  <circle cx="78" cy="25" r="18" stroke="#c4a06f"/>
+                </g>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">CHROMATIC RING</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 03 (has queued clip) -->
+        <div class="layer-row">
+          <div class="layer-hd">
+            <span class="layer-name">L3</span>
+            <span class="layer-badge">FXO</span>
+            <div class="layer-op">
+              <div class="bar"><div class="f" style="width:46%;"></div></div>
+              <div class="val">0.46</div>
+            </div>
+            <div class="layer-btns">
+              <button class="b">S</button>
+              <button class="b">M</button>
+            </div>
+          </div>
+          <div class="layer-cells">
+            <!-- cell 1: echo trails (fx) -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a0a14"/>
+                <g fill="#9bb4d4">
+                  <rect x="20" y="22" width="3" height="6" opacity="0.25"/>
+                  <rect x="30" y="20" width="3" height="10" opacity="0.35"/>
+                  <rect x="42" y="18" width="3" height="14" opacity="0.5"/>
+                  <rect x="56" y="16" width="3" height="18" opacity="0.7"/>
+                  <rect x="72" y="14" width="3" height="22" opacity="0.85"/>
+                  <rect x="90" y="13" width="3" height="24" opacity="1"/>
+                  <rect x="110" y="15" width="3" height="20" opacity="0.75"/>
+                  <rect x="128" y="18" width="3" height="14" opacity="0.55"/>
+                </g>
+              </svg>
+              <div class="fxcount">FX</div>
+              <div class="gradient"></div>
+              <div class="label">ECHO TRAILS</div>
+            </div>
+            <!-- cell 2: chromatic split -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0c0c14"/>
+                <g opacity="0.85">
+                  <rect x="20" y="18" width="4" height="16" fill="#d3414a"/>
+                  <rect x="30" y="18" width="4" height="16" fill="#41d3b6"/>
+                  <rect x="40" y="18" width="4" height="16" fill="#4a78d3"/>
+                  <rect x="80" y="14" width="4" height="22" fill="#d3414a"/>
+                  <rect x="90" y="14" width="4" height="22" fill="#41d3b6"/>
+                  <rect x="100" y="14" width="4" height="22" fill="#4a78d3"/>
+                </g>
+              </svg>
+              <div class="fxcount">FX</div>
+              <div class="gradient"></div>
+              <div class="label">CHROMATIC SPLIT</div>
+            </div>
+            <!-- cell 3: pixelsort -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#18181e"/>
+                <g>
+                  <rect x="10"  y="10" width="5" height="30" fill="#3a6bbf"/>
+                  <rect x="18"  y="10" width="4" height="30" fill="#4d7bc7"/>
+                  <rect x="25"  y="10" width="6" height="30" fill="#5e8bd0"/>
+                  <rect x="34"  y="10" width="3" height="30" fill="#7099da"/>
+                  <rect x="40"  y="10" width="8" height="30" fill="#84a8e4"/>
+                  <rect x="52"  y="10" width="5" height="30" fill="#8cb0e8"/>
+                  <rect x="60"  y="10" width="4" height="30" fill="#b4cdf0"/>
+                  <rect x="68"  y="10" width="8" height="30" fill="#c8d9f4"/>
+                  <rect x="80"  y="10" width="3" height="30" fill="#dbe6f8"/>
+                  <rect x="86"  y="10" width="5" height="30" fill="#e8eefc"/>
+                  <rect x="94"  y="10" width="6" height="30" fill="#ffffff"/>
+                  <rect x="104" y="10" width="4" height="30" fill="#d8d8dc"/>
+                  <rect x="112" y="10" width="5" height="30" fill="#a8a8ac"/>
+                  <rect x="120" y="10" width="6" height="30" fill="#7c7c80"/>
+                  <rect x="130" y="10" width="4" height="30" fill="#585860"/>
+                  <rect x="138" y="10" width="8" height="30" fill="#383840"/>
+                </g>
+              </svg>
+              <div class="fxcount">FX</div>
+              <div class="gradient"></div>
+              <div class="label">PIXELSORT</div>
+            </div>
+            <!-- cell 4: scan bars -->
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0b141e"/>
+                <g stroke="#6aa6d0" stroke-width="1" opacity="0.85">
+                  <line x1="0" y1="12" x2="160" y2="12"/>
+                  <line x1="0" y1="22" x2="160" y2="22"/>
+                  <line x1="0" y1="32" x2="160" y2="32"/>
+                  <line x1="0" y1="42" x2="160" y2="42"/>
+                </g>
+                <rect x="0" y="20" width="160" height="4" fill="#a2d0e6" opacity="0.4"/>
+              </svg>
+              <div class="fxcount">FX</div>
+              <div class="gradient"></div>
+              <div class="label">SCAN OVERLAY</div>
+            </div>
+            <!-- cell 5: QUEUED — dashed orange -->
+            <div class="cell queued">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a1a28"/>
+                <g stroke="#6a98d0" stroke-width="0.6" fill="none" opacity="0.8">
+                  <path d="M0,35 Q20,20 40,35 T80,35 T120,35 T160,35"/>
+                  <path d="M0,25 Q20,10 40,25 T80,25 T120,25 T160,25" opacity="0.6"/>
+                </g>
+              </svg>
+              <span class="qtag">QUEUED</span>
+              <div class="fxcount">FX</div>
+              <div class="gradient"></div>
+              <div class="label">TIDAL SHIFT</div>
+            </div>
+            <!-- cell 6: empty -->
+            <div class="cell empty">
+              <div class="label">— EMPTY —</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 04 -->
+        <div class="layer-row">
+          <div class="layer-hd">
+            <span class="layer-name">L4</span>
+            <span class="layer-badge">MSK</span>
+            <div class="layer-op">
+              <div class="bar"><div class="f" style="width:62%;"></div></div>
+              <div class="val">0.62</div>
+            </div>
+            <div class="layer-btns">
+              <button class="b">S</button>
+              <button class="b act">M</button>
+            </div>
+          </div>
+          <div class="layer-cells">
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a0a10"/>
+                <g fill="#e8e8e8" opacity="0.9">
+                  <polygon points="80,8 92,22 80,40 68,22"/>
+                </g>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">DIAMOND MASK</div>
+            </div>
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a0a10"/>
+                <circle cx="80" cy="25" r="18" fill="#eee"/>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">CIRCLE MASK</div>
+            </div>
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a0a10"/>
+                <g fill="#eee">
+                  <rect x="20" y="10" width="30" height="30"/>
+                  <rect x="65" y="10" width="30" height="30"/>
+                  <rect x="110" y="10" width="30" height="30"/>
+                </g>
+              </svg>
+              <div class="fxcount">×2</div>
+              <div class="gradient"></div>
+              <div class="label">TRIPLE BLOCK</div>
+            </div>
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a0a10"/>
+                <g stroke="#eee" stroke-width="1" fill="none" opacity="0.95">
+                  <path d="M20,10 L40,40 L60,10 L80,40 L100,10 L120,40 L140,10"/>
+                </g>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">ZIGZAG MASK</div>
+            </div>
+            <div class="cell">
+              <svg class="thumb" width="160" height="50" viewBox="0 0 160 50" preserveAspectRatio="none">
+                <rect width="160" height="50" fill="#0a0a10"/>
+                <g fill="#eee">
+                  <rect x="0" y="20" width="160" height="10"/>
+                </g>
+              </svg>
+              <div class="fxcount">×1</div>
+              <div class="gradient"></div>
+              <div class="label">SLIT MASK</div>
+            </div>
+            <div class="cell empty">
+              <div class="label">— EMPTY —</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Signals -->
+    <div class="sigs">
+      <div class="sigs-hd">
+        <span class="t">KEY SIGNALS</span>
+        <span style="margin-left:auto;">LIVE</span>
+      </div>
+      <div class="sigs-body">
+        <div class="sig-row">
+          <span class="sig-lbl">RMS</span>
+          <div class="sig-meter"><div class="f" style="width:72%;background:var(--green);"></div></div>
+          <span class="sig-val">0.72</span>
+        </div>
+        <div class="sig-row bass shake">
+          <span class="sig-lbl">BASS</span>
+          <div class="sig-meter"><div class="f" style="width:91%;background:var(--red);"></div></div>
+          <span class="sig-val">0.91</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-lbl">MID</span>
+          <div class="sig-meter"><div class="f" style="width:43%;background:var(--yellow);"></div></div>
+          <span class="sig-val">0.43</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-lbl">HIGH</span>
+          <div class="sig-meter"><div class="f" style="width:29%;background:var(--blue);"></div></div>
+          <span class="sig-val justchanged">0.29</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-lbl">BEAT</span>
+          <div class="sig-pulse"><div class="d"></div></div>
+          <span class="sig-val">128</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-lbl">ONSET</span>
+          <div class="sig-onset"><div class="sq"></div></div>
+          <span class="sig-val">0.84</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-lbl">GENRE</span>
+          <div class="sig-txt">HOUSE <span class="hi">0.88</span></div>
+          <span class="sig-val" style="font-size:11px;">CONF</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-lbl">ENERGY</span>
+          <div class="sig-txt"><span class="hi">HIGH</span></div>
+          <span class="sig-val" style="font-size:11px;">STATE</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="hi">60 FPS</span>
+    <span class="dim">·</span>
+    <span>CPU <span class="hi">22%</span></span>
+    <span class="dim">·</span>
+    <span>GPU <span class="hi">41%</span></span>
+    <span class="dim">·</span>
+    <span>MEM <span class="hi">312MB</span></span>
+    <span class="dim">·</span>
+    <span>1920×1080</span>
+    <span class="dim">·</span>
+    <span>REC <span class="hi">00:12:34</span></span>
+    <span class="spacer"></span>
+    <span class="version">AUDIO-DNA V9.0 · BRUTALIST PLAY MODE</span>
+  </div>
+
+  <div class="grain"></div>
+
+</div>
+
+</body>
+</html>

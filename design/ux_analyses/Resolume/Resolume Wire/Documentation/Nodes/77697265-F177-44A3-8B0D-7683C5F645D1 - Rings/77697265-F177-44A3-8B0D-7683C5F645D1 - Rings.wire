@@ -1,0 +1,269 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          74,
+          "output"
+        ],
+        "to": [
+          73,
+          "rotation"
+        ]
+      },
+      {
+        "from": [
+          73,
+          "output"
+        ],
+        "to": [
+          75,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Rings Example",
+      "identifier": "05fd6dae-870c-4ca4-afb0-f0208a175f8c",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 76,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "RINGS\n\nThe Rings source you know and love from Resolume usable in Wire."
+          }
+        },
+        "bounds": {
+          "height": 128.0425567626953,
+          "width": 476.354248046875,
+          "x": 83.77694702148438,
+          "y": 260.75360107421875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "73": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          }
+        },
+        "bounds": {
+          "height": 302,
+          "width": 195,
+          "x": 239.41470336914065,
+          "y": 442.993408203125
+        },
+        "class": {
+          "id": "77697265-F177-44A3-8B0D-7683C5F645D1",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color1": {
+            "type": "float4",
+            "value": [
+              1,
+              0.21960799396038055,
+              0.6313729882240295,
+              1
+            ]
+          },
+          "color2": {
+            "type": "float4",
+            "value": [
+              0,
+              0.9725490212440492,
+              0.9803919792175292,
+              1
+            ]
+          },
+          "gap": {
+            "type": "float",
+            "value": 0.1666666716337204
+          },
+          "lineWidth": {
+            "type": "float",
+            "value": 0.17599999904632568
+          },
+          "numRings": {
+            "type": "integer",
+            "value": 10
+          },
+          "rotation": {
+            "type": "float",
+            "value": 0
+          },
+          "rotationAlternate": {
+            "type": "bool",
+            "value": false
+          },
+          "rotationStep": {
+            "type": "float",
+            "value": 0.25
+          },
+          "size": {
+            "type": "float",
+            "value": 0.6349999904632568
+          },
+          "spacing": {
+            "type": "float",
+            "value": 0.2070000022649765
+          },
+          "style": {
+            "type": "integer",
+            "value": 2
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Rings"
+      },
+      "74": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 12.743545532226562,
+          "y": 611.8243408203125
+        },
+        "class": {
+          "id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.05000000074505806
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Saw"
+      },
+      "75": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 462.9593811035156,
+          "y": 442.993408203125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -420.2765502929687,
+        "y": 69.37675476074219,
+        "zoom": 0.6396931409835815
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "preview-lock": 75,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    }
+  }
+}

@@ -1,0 +1,811 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          26,
+          "output"
+        ],
+        "to": [
+          27,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          27,
+          "output0"
+        ],
+        "to": [
+          29,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          30,
+          "output"
+        ],
+        "to": [
+          31,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          26,
+          "output"
+        ],
+        "to": [
+          32,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          29,
+          "output0"
+        ],
+        "to": [
+          33,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          32,
+          "output0"
+        ],
+        "to": [
+          33,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          33,
+          "output0"
+        ],
+        "to": [
+          30,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          34,
+          "output"
+        ],
+        "to": [
+          35,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          35,
+          "output0"
+        ],
+        "to": [
+          36,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      34
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "2d-wire",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "Explains what this node does.",
+      "displayName": "Round Example",
+      "identifier": "ed3d44d1-33b4-49c5-b619-4af51d1cc921",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "2d-wire",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 41,
+    "nodes": {
+      "19": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "ROUND\nThe Round node rounds the incoming value to the nearest integer.\n\n1.4 becomes 1\n1.6 becomes 2\n-2.1 become -2\n1.5 becomes 2."
+          }
+        },
+        "bounds": {
+          "height": 150.56944274902344,
+          "width": 431.9561462402344,
+          "x": 280.5999755859375,
+          "y": -46.93000793457031
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "25": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 1: ROUNDING A VALUE\n\nIn this example we are rounding down the Sine oscillator.\nThe value at the top of the text render is the rounded value, the bottom the non-rounded value."
+          }
+        },
+        "bounds": {
+          "height": 405.0260925292969,
+          "width": 1343.2296142578125,
+          "x": 280.50665283203125,
+          "y": 143.86521911621094
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "26": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 316.904296875,
+          "y": 275.136962890625
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "instances"
+        ],
+        "name": "Sine"
+      },
+      "27": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 538.1643676757812,
+          "y": 275.136962890625
+        },
+        "class": {
+          "id": "77697265-3C98-46C4-A916-70A46CF25308",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "input0-type",
+          "input0-dimensions"
+        ],
+        "name": "Round"
+      },
+      "29": {
+        "attributes": {
+          "decimals-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "trimZeroes-type": {
+            "type": "type",
+            "value": "bool"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 766.6788330078125,
+          "y": 275.136962890625
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "decimals": {
+            "type": "integer",
+            "value": 2
+          },
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "trimZeroes": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input0-type",
+          "decimals-type",
+          "trimZeroes-type"
+        ],
+        "name": "String"
+      },
+      "30": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "font": {
+            "type": "string",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "style": {
+            "type": "string",
+            "value": "Regular"
+          }
+        },
+        "bounds": {
+          "height": 178,
+          "width": 195,
+          "x": 1209.577880859375,
+          "y": 275.5128173828125
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass",
+          "font",
+          "style",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Text Render"
+      },
+      "31": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1430.838134765625,
+          "y": 275.5128173828125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "32": {
+        "attributes": {
+          "decimals-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "trimZeroes-type": {
+            "type": "type",
+            "value": "bool"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 767.144287109375,
+          "y": 404.1219177246093
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "decimals": {
+            "type": "integer",
+            "value": 2
+          },
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "trimZeroes": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input0-type",
+          "decimals-type",
+          "trimZeroes-type"
+        ],
+        "name": "String"
+      },
+      "33": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 983.0315551757812,
+          "y": 275.2018737792969
+        },
+        "class": {
+          "id": "77697265-5852-33AB-89e5-F52a24ca2d50",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": ""
+          },
+          "input1": {
+            "type": "string",
+            "value": ""
+          },
+          "separator": {
+            "type": "string",
+            "value": "\n"
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "input0-dimensions",
+          "input1-dimensions"
+        ],
+        "name": "Concatenate"
+      },
+      "34": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 316.51123046875,
+          "y": 717.9610595703125
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow"
+        ],
+        "name": "Texture In"
+      },
+      "35": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "texture2d"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 476.7625732421875,
+          "y": 717.9609375
+        },
+        "class": {
+          "id": "77697265-3C98-46C4-A916-70A46CF25308",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input0": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "flow",
+          "input0-type",
+          "input0-dimensions"
+        ],
+        "name": "Round"
+      },
+      "36": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 704.9606323242188,
+          "y": 717.9609375
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "37": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 2: ROUNDING A TEXTURE\n\nIn this example we are rounding the test card texture.\nAs every color channel gets rounded, we end up with a 1bit/channel look."
+          }
+        },
+        "bounds": {
+          "height": 307.02032470703125,
+          "width": 613.4197387695312,
+          "x": 280.50665283203125,
+          "y": 584.4908447265625
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 245.65789794921875,
+        "y": -137.0347900390625,
+        "zoom": 0.8587490916252136
+      },
+      "selection": [
+        "36"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {
+        "34": "Test Card"
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null
+        }
+      }
+    }
+  }
+}

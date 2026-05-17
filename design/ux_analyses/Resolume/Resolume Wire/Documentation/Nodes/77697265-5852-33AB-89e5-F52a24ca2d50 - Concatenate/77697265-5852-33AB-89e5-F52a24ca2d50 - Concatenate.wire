@@ -1,0 +1,349 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          87,
+          "output0"
+        ],
+        "to": [
+          88,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          88,
+          "output"
+        ],
+        "to": [
+          84,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          86,
+          "output0"
+        ],
+        "to": [
+          87,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          85,
+          "output0"
+        ],
+        "to": [
+          87,
+          "input0"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Concatenate",
+      "identifier": "739dc581-105b-448d-a0f0-ead4c48cadba",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 93,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "CONCATENATE \nThe concatenate node combines multiple strings into a one string. The size (the amount of strings you want to combine) can be set in the inspector.\n\nExample:  Here we concatenate two strings into one before rendering it.\n"
+          }
+        },
+        "bounds": {
+          "height": 120.48408508300784,
+          "width": 1145.759521484375,
+          "x": -192.918212890625,
+          "y": -24.926559448242188
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "84": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 668.4077758789062,
+          "y": 136.1632080078125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "85": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "string"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 57,
+          "width": 195,
+          "x": -81.05590057373047,
+          "y": 135.87542724609375
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": "Hey "
+          }
+        },
+        "hidden": [],
+        "name": "String"
+      },
+      "86": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "string"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 57,
+          "width": 195,
+          "x": -81.05590057373047,
+          "y": 236.72772216796875
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": "Wire!"
+          }
+        },
+        "hidden": [],
+        "name": "String"
+      },
+      "87": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          }
+        },
+        "bounds": {
+          "height": 105,
+          "width": 195,
+          "x": 196.0285186767578,
+          "y": 135.10968017578125
+        },
+        "class": {
+          "id": "77697265-5852-33AB-89e5-F52a24ca2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": "Hey "
+          },
+          "input1": {
+            "type": "string",
+            "value": "Wire!"
+          },
+          "separator": {
+            "type": "string",
+            "value": ""
+          }
+        },
+        "hidden": [],
+        "name": "Concatenate"
+      },
+      "88": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "font": {
+            "type": "choice",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "style": {
+            "type": "choice",
+            "value": "Bold"
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 439.1135864257813,
+          "y": 134.895263671875
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "string",
+            "value": "Hey Wire!"
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 2.5
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Text Render"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -250.98521423339844,
+        "y": -185.6272735595703,
+        "zoom": 0.977907657623291
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 84,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

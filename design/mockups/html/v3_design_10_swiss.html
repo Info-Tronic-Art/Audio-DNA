@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>Audio-DNA v3 — Swiss Design</title>
+<style>
+  /* ============================================================
+     SWISS DESIGN / INTERNATIONAL TYPOGRAPHIC STYLE
+     Grid-based. Typographic hierarchy. Mathematical spacing.
+     ALL spacing: multiples of 4px.
+     ONE accent: #00d9ff. Everything else: grayscale.
+     ============================================================ */
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0c0c10;
+    --panel: #111118;
+    --border: #1e1e24;
+    --text-primary: #e0e0e0;
+    --text-secondary: #888;
+    --text-tertiary: #556;
+    --text-header: #667;
+    --accent: #00d9ff;
+    --accent-dim: rgba(0, 217, 255, 0.15);
+    --accent-meter: rgba(0, 217, 255, 0.6);
+    --active-cell: rgba(0, 217, 255, 0.08);
+    --white: #fff;
+    --red: #ff3355;
+    --green: #44cc66;
+    --yellow: #ddaa33;
+  }
+
+  body {
+    width: 1920px;
+    height: 1080px;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Helvetica Neue', 'Arial', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============================================================
+     UTILITY CLASSES
+     ============================================================ */
+  .uppercase {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-header);
+  }
+
+  .section-header {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    color: var(--text-header);
+    padding: 8px 12px 4px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .accent { color: var(--accent); }
+  .dim { color: var(--text-tertiary); font-weight: 300; }
+  .mono { font-family: 'SF Mono', 'Menlo', 'Consolas', monospace; }
+
+  /* ============================================================
+     TOP BAR — 32px, full width
+     ============================================================ */
+  .topbar {
+    height: 32px;
+    width: 1920px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 0;
+    font-size: 10px;
+  }
+
+  .topbar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  .topbar-group + .topbar-group {
+    border-left: 1px solid var(--border);
+  }
+
+  .topbar-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-header);
+  }
+
+  .topbar-value {
+    font-size: 10px;
+    color: var(--text-primary);
+    font-weight: 400;
+  }
+
+  .topbar-btn {
+    height: 20px;
+    padding: 0 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+
+  .topbar-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  .topbar-bpm {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--green);
+    font-family: 'Helvetica Neue', sans-serif;
+    letter-spacing: -0.5px;
+  }
+
+  .topbar-state {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--green);
+  }
+
+  .beat-wheel {
+    width: 20px;
+    height: 20px;
+    position: relative;
+  }
+
+  .beat-wheel svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .topbar-slider {
+    width: 48px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 0;
+    position: relative;
+  }
+
+  .topbar-slider-fill {
+    height: 4px;
+    background: var(--accent);
+    border-radius: 0;
+  }
+
+  .topbar-spacer { flex: 1; }
+
+  .topbar-fps {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Menlo', monospace;
+  }
+
+  /* ============================================================
+     MAIN LAYOUT — 3 columns
+     ============================================================ */
+  .main {
+    display: flex;
+    width: 1920px;
+    height: 1048px; /* 1080 - 32 topbar */
+  }
+
+  /* LEFT COLUMN — 440px */
+  .left-col {
+    width: 440px;
+    min-width: 440px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* CENTER COLUMN — 960px */
+  .center-col {
+    width: 960px;
+    min-width: 960px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* RIGHT COLUMN — 520px */
+  .right-col {
+    width: 520px;
+    min-width: 520px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ============================================================
+     LEFT: PREVIEW — 440 x 248 (exact 16:9)
+     ============================================================ */
+  .preview {
+    width: 440px;
+    height: 248px;
+    background: #000;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .preview-content {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at 40% 45%, #1a0033 0%, #0a001a 40%, #000 80%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* Mandelbrot-like fractal visualization */
+  .preview-fractal {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0; left: 0;
+    background:
+      radial-gradient(ellipse at 35% 48%, #2200aa 0%, transparent 25%),
+      radial-gradient(ellipse at 38% 46%, #4400cc 0%, transparent 18%),
+      radial-gradient(ellipse at 42% 50%, #00d9ff22 0%, transparent 30%),
+      radial-gradient(ellipse at 33% 52%, #220066 0%, transparent 20%),
+      radial-gradient(ellipse at 55% 45%, #110044 0%, transparent 35%),
+      radial-gradient(circle at 36% 48%, #ff006611 0%, transparent 12%),
+      linear-gradient(135deg, #050010 0%, #0a0020 50%, #000 100%);
+  }
+
+  .preview-label {
+    position: absolute;
+    bottom: 8px;
+    left: 12px;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+  }
+
+  .preview-tabs {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+  }
+
+  .preview-tab {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+  }
+
+  .preview-tab.active {
+    color: var(--accent);
+  }
+
+  /* ============================================================
+     LEFT: WAVEFORM — 440 x 24
+     ============================================================ */
+  .waveform {
+    width: 440px;
+    height: 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .waveform-bars {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    padding: 4px 4px;
+    gap: 1px;
+  }
+
+  .waveform-bar {
+    flex: 1;
+    background: var(--accent);
+    opacity: 0.4;
+    min-width: 1px;
+  }
+
+  /* ============================================================
+     LEFT: SIGNAL METERS — 440 x 120, 3x2 grid
+     ============================================================ */
+  .signal-meters {
+    width: 440px;
+    height: 120px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 0;
+  }
+
+  .meter {
+    padding: 8px 12px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .meter:nth-child(3n) { border-right: none; }
+  .meter:nth-child(n+4) { border-bottom: none; }
+
+  .meter-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .meter-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    color: var(--text-header);
+  }
+
+  .meter-value {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-primary);
+    font-family: 'SF Mono', 'Menlo', monospace;
+    text-align: right;
+  }
+
+  .meter-bar-track {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+  }
+
+  .meter-bar-fill {
+    height: 4px;
+    background: var(--accent);
+    transition: width 0.1s;
+  }
+
+  .meter-bar-fill.low { background: var(--accent); opacity: 0.6; }
+  .meter-bar-fill.mid { background: var(--accent); opacity: 0.8; }
+  .meter-bar-fill.high { background: var(--accent); }
+
+  /* ============================================================
+     LEFT: DECK TABS — 440 x 24
+     ============================================================ */
+  .deck-tabs {
+    width: 440px;
+    height: 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 16px;
+  }
+
+  .deck-tab {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px 0;
+  }
+
+  .deck-tab.active {
+    color: var(--accent);
+    border-bottom: 1px solid var(--accent);
+  }
+
+  /* ============================================================
+     LEFT: REMAINING SPACE — Audio features list
+     ============================================================ */
+  .signal-list {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .signal-row {
+    display: flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+
+  .signal-row-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-header);
+    width: 100px;
+  }
+
+  .signal-row-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+  }
+
+  .signal-row-fill {
+    height: 4px;
+    background: var(--accent);
+    opacity: 0.5;
+  }
+
+  .signal-row-value {
+    font-size: 8px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-secondary);
+    width: 40px;
+    text-align: right;
+  }
+
+  /* ============================================================
+     CENTER: COLUMN TRIGGERS — 20px tall
+     ============================================================ */
+  .column-triggers {
+    height: 20px;
+    display: flex;
+    padding: 0 0 0 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .col-trigger {
+    width: 76px;
+    height: 20px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+
+  .col-trigger.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  /* ============================================================
+     CENTER: LAYER ROW (header + cells)
+     ============================================================ */
+  .deck-grid {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .layer-row {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .layer-header {
+    height: 24px;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .layer-header-name {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-primary);
+  }
+
+  .layer-header-sep {
+    color: var(--text-tertiary);
+    font-weight: 300;
+    font-size: 10px;
+  }
+
+  .layer-header-meta {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-header);
+  }
+
+  .layer-header-meta.type-transparent {
+    color: var(--accent);
+    opacity: 0.6;
+  }
+
+  .layer-header-meta.type-fx {
+    color: var(--yellow);
+    opacity: 0.7;
+  }
+
+  .layer-header-btn {
+    font-size: 8px;
+    font-weight: 700;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    color: var(--text-tertiary);
+    cursor: pointer;
+  }
+
+  .layer-header-btn.active-s {
+    background: #3a3a20;
+    color: var(--yellow);
+    border-color: var(--yellow);
+  }
+
+  .layer-header-btn.active-b {
+    color: var(--text-secondary);
+  }
+
+  .layer-header-spacer { flex: 1; }
+
+  .layer-header-vol {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-header);
+  }
+
+  .layer-header-vol-val {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-primary);
+    font-family: 'SF Mono', 'Menlo', monospace;
+  }
+
+  /* CELLS ROW */
+  .layer-cells {
+    display: flex;
+    height: 72px;
+    background: var(--bg);
+  }
+
+  .cell {
+    width: 76px;
+    height: 72px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .cell-thumb {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: var(--text-tertiary);
+    font-weight: 300;
+    overflow: hidden;
+  }
+
+  .cell-thumb.has-content {
+    background: linear-gradient(135deg, #1a1a24 0%, #0e0e16 100%);
+  }
+
+  .cell-thumb.source {
+    background: linear-gradient(135deg, #0a1520 0%, #0c0c14 100%);
+  }
+
+  .cell-thumb.source-fractal {
+    background:
+      radial-gradient(ellipse at 50% 50%, #1a0040 0%, transparent 60%),
+      radial-gradient(ellipse at 45% 48%, #2200aa44 0%, transparent 30%),
+      linear-gradient(135deg, #0a0018 0%, #050010 100%);
+  }
+
+  .cell-thumb.source-geo {
+    background:
+      conic-gradient(from 0deg at 50% 50%, #00d9ff11 0deg, transparent 30deg, #00d9ff11 60deg, transparent 90deg, #00d9ff11 120deg, transparent 150deg, #00d9ff11 180deg, transparent 210deg, #00d9ff11 240deg, transparent 270deg, #00d9ff11 300deg, transparent 330deg, #00d9ff11 360deg),
+      linear-gradient(135deg, #0a1016 0%, #060810 100%);
+  }
+
+  .cell-thumb.source-noise {
+    background:
+      repeating-linear-gradient(45deg, #14141c 0px, #14141c 2px, #0e0e16 2px, #0e0e16 4px),
+      linear-gradient(135deg, #10101a 0%, #080810 100%);
+  }
+
+  .cell-thumb.source-wave {
+    background:
+      repeating-linear-gradient(0deg, transparent 0px, transparent 5px, #00d9ff08 5px, #00d9ff08 6px),
+      radial-gradient(ellipse at 50% 50%, #001824 0%, #0c0c14 100%);
+  }
+
+  .cell-thumb.image {
+    background: linear-gradient(135deg, #1c1420 0%, #101018 100%);
+  }
+
+  .cell-thumb.fx-only {
+    background: linear-gradient(135deg, #1a1810 0%, #0e0e10 100%);
+  }
+
+  .cell-name {
+    height: 16px;
+    padding: 0 4px;
+    font-size: 8px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .cell.active {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .cell.selected {
+    outline: 1px solid #fff;
+    outline-offset: -1px;
+  }
+
+  .cell-src-label {
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    color: var(--accent);
+    opacity: 0.5;
+  }
+
+  .cell-fx-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 7px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    background: var(--panel);
+    padding: 1px 3px;
+    border: 1px solid var(--border);
+  }
+
+  /* ============================================================
+     CENTER: BOTTOM DECK TABS — 24px
+     ============================================================ */
+  .bottom-deck-tabs {
+    height: 24px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 16px;
+  }
+
+  .bottom-deck-tab {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px 0;
+  }
+
+  .bottom-deck-tab.active {
+    color: var(--accent);
+  }
+
+  /* ============================================================
+     RIGHT: INSPECTOR TAB BAR — 24px
+     ============================================================ */
+  .inspector-tabs {
+    height: 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 16px;
+  }
+
+  .inspector-tab {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px 0;
+  }
+
+  .inspector-tab.active {
+    color: var(--accent);
+    border-bottom: 1px solid var(--accent);
+  }
+
+  /* ============================================================
+     RIGHT: INSPECTOR CONTENT
+     ============================================================ */
+  .inspector-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .inspector-name {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .inspector-name-text {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-primary);
+  }
+
+  /* DASHBOARD section */
+  .dashboard-section {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .knob-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0;
+    padding: 8px 12px;
+  }
+
+  .knob {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+  }
+
+  .knob-ring {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .knob-ring.connected {
+    border-color: var(--accent);
+    border-width: 2px;
+  }
+
+  .knob-dot {
+    width: 4px;
+    height: 4px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+  }
+
+  .knob-ring.connected .knob-dot {
+    background: var(--accent);
+  }
+
+  .knob-label {
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-align: center;
+  }
+
+  .knob-value {
+    font-size: 8px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  /* TRANSPORT section */
+  .transport-section {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .transport-btn {
+    width: 24px;
+    height: 20px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    background: transparent;
+  }
+
+  .transport-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .transport-timeline {
+    flex: 1;
+    height: 8px;
+    background: var(--border);
+    position: relative;
+  }
+
+  .transport-playhead {
+    position: absolute;
+    top: 0;
+    left: 35%;
+    width: 1px;
+    height: 8px;
+    background: var(--accent);
+  }
+
+  .transport-in {
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 1px;
+    height: 8px;
+    background: var(--text-tertiary);
+  }
+
+  .transport-out {
+    position: absolute;
+    top: 0;
+    left: 90%;
+    width: 1px;
+    height: 8px;
+    background: var(--text-tertiary);
+  }
+
+  .transport-range {
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 80%;
+    height: 8px;
+    background: rgba(0, 217, 255, 0.06);
+  }
+
+  .transport-mode {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-header);
+  }
+
+  .transport-loop {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+  }
+
+  /* PARAM ROWS */
+  .param-section {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 12px;
+    gap: 8px;
+    border-bottom: 1px solid rgba(30, 30, 36, 0.5);
+  }
+
+  .param-row:last-child { border-bottom: none; }
+
+  .param-triangle {
+    width: 6px;
+    height: 8px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    font-size: 6px;
+    display: flex;
+    align-items: center;
+  }
+
+  .param-triangle.connected {
+    color: var(--accent);
+  }
+
+  .param-label {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .param-slider-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+  }
+
+  .param-slider-fill {
+    height: 4px;
+    background: var(--accent);
+    opacity: 0.6;
+  }
+
+  .param-value {
+    font-size: 8px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-secondary);
+    width: 36px;
+    text-align: right;
+  }
+
+  /* EFFECT ROWS */
+  .effect-row {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 12px;
+    gap: 8px;
+    border-bottom: 1px solid rgba(30, 30, 36, 0.5);
+  }
+
+  .effect-bypass {
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    cursor: pointer;
+  }
+
+  .effect-bypass.active {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .effect-name {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .effect-name.collapsed {
+    color: var(--text-secondary);
+  }
+
+  .effect-value {
+    font-size: 8px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-tertiary);
+  }
+
+  .effect-expand {
+    font-size: 8px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    width: 12px;
+    text-align: center;
+  }
+
+  .effect-delete {
+    font-size: 8px;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    width: 12px;
+    text-align: center;
+  }
+
+  .effect-params {
+    padding: 0 12px 4px 32px;
+    border-bottom: 1px solid rgba(30, 30, 36, 0.5);
+  }
+
+  .effect-param-row {
+    display: flex;
+    align-items: center;
+    height: 20px;
+    gap: 8px;
+  }
+
+  /* Collapsed sections */
+  .collapsed-section {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    gap: 8px;
+  }
+
+  .collapsed-arrow {
+    font-size: 8px;
+    color: var(--text-tertiary);
+  }
+
+  .collapsed-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    color: var(--text-header);
+  }
+
+  /* ============================================================
+     RIGHT: BROWSER — bottom area
+     ============================================================ */
+  .browser-area {
+    height: 264px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .browser-tabs {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .browser-tab {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+  }
+
+  .browser-tab.active {
+    color: var(--accent);
+  }
+
+  .browser-search {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+
+  .browser-search-label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-header);
+  }
+
+  .browser-search-input {
+    flex: 1;
+    height: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 10px;
+    padding: 0 8px;
+    font-family: inherit;
+  }
+
+  .browser-list {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .browser-category {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid rgba(30, 30, 36, 0.5);
+    cursor: pointer;
+    gap: 8px;
+  }
+
+  .browser-cat-arrow {
+    font-size: 7px;
+    color: var(--text-tertiary);
+    width: 8px;
+  }
+
+  .browser-cat-name {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    color: var(--text-header);
+    flex: 1;
+  }
+
+  .browser-cat-count {
+    font-size: 8px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    color: var(--text-tertiary);
+  }
+
+  .browser-item {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px 0 28px;
+    border-bottom: 1px solid rgba(30, 30, 36, 0.3);
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    cursor: pointer;
+  }
+
+  .browser-item:hover {
+    background: var(--accent-dim);
+    color: var(--text-primary);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOP BAR — 32px
+     ============================================================ -->
+<div class="topbar">
+  <div class="topbar-group">
+    <span class="topbar-label">Source</span>
+    <span class="topbar-value">Mic Input</span>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-label">Gain</span>
+    <div class="topbar-slider"><div class="topbar-slider-fill" style="width: 50%;"></div></div>
+    <span class="topbar-value" style="font-family: 'SF Mono', 'Menlo', monospace; font-size: 9px;">1.0</span>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-btn active" style="font-size: 9px;">&#9654;</span>
+    <span class="topbar-btn" style="font-size: 9px;">&#9646;&#9646;</span>
+    <span class="topbar-btn" style="font-size: 9px;">&#9632;</span>
+  </div>
+  <div class="topbar-group">
+    <div class="beat-wheel">
+      <svg viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="8" fill="none" stroke="#1e1e24" stroke-width="1.5"/>
+        <!-- Beat 1 active (top-right) -->
+        <path d="M10 2 A8 8 0 0 1 18 10 L10 10 Z" fill="#00d9ff" opacity="0.8"/>
+        <!-- Beat 2 dim -->
+        <path d="M18 10 A8 8 0 0 1 10 18 L10 10 Z" fill="#1e1e24"/>
+        <!-- Beat 3 dim -->
+        <path d="M10 18 A8 8 0 0 1 2 10 L10 10 Z" fill="#1e1e24"/>
+        <!-- Beat 4 dim -->
+        <path d="M2 10 A8 8 0 0 1 10 2 L10 10 Z" fill="#1e1e24"/>
+      </svg>
+    </div>
+    <span class="topbar-value" style="font-size: 9px; color: var(--text-secondary);">Bar 3</span>
+    <span class="topbar-value" style="font-size: 9px; color: var(--text-tertiary);">Phr 0.38</span>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-bpm">128.0</span>
+    <span class="topbar-state">LOCKED</span>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-btn">Tap</span>
+    <span class="topbar-btn">Resync</span>
+    <span class="topbar-btn">Manual</span>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-btn">/4</span>
+    <span class="topbar-btn">/2</span>
+    <span class="topbar-btn active">x1</span>
+    <span class="topbar-btn">x2</span>
+    <span class="topbar-btn">x4</span>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-label">Quantize</span>
+    <span class="topbar-value">Beat</span>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-label">Fade</span>
+    <div class="topbar-slider"><div class="topbar-slider-fill" style="width: 30%;"></div></div>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-label">Master</span>
+    <div class="topbar-slider"><div class="topbar-slider-fill" style="width: 100%;"></div></div>
+  </div>
+  <div class="topbar-spacer"></div>
+  <div class="topbar-group">
+    <span class="topbar-label">Output</span>
+    <span class="topbar-value">Display 2</span>
+  </div>
+  <div class="topbar-group">
+    <span class="topbar-fps">60 FPS</span>
+    <span class="topbar-fps" style="color: var(--text-tertiary); margin-left: 4px;">2%</span>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN 3-COLUMN LAYOUT
+     ============================================================ -->
+<div class="main">
+
+  <!-- ============================================================
+       LEFT COLUMN — 440px
+       ============================================================ -->
+  <div class="left-col">
+
+    <!-- Preview 440x248 -->
+    <div class="preview">
+      <div class="preview-content">
+        <div class="preview-fractal"></div>
+      </div>
+      <div class="preview-tabs">
+        <span class="preview-tab active">Preview</span>
+        <span class="preview-tab">Output</span>
+      </div>
+      <span class="preview-label">1920 x 1080</span>
+    </div>
+
+    <!-- Waveform 440x24 -->
+    <div class="waveform">
+      <div class="waveform-bars">
+        <!-- 120 bars representing waveform amplitude -->
+        <div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:4px;"></div><div class="waveform-bar" style="height:7px;"></div><div class="waveform-bar" style="height:9px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:8px;"></div>
+        <div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:12px;"></div><div class="waveform-bar" style="height:15px;"></div><div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:7px;"></div><div class="waveform-bar" style="height:4px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:9px;"></div><div class="waveform-bar" style="height:13px;"></div><div class="waveform-bar" style="height:16px;"></div>
+        <div class="waveform-bar" style="height:12px;"></div><div class="waveform-bar" style="height:8px;"></div><div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:7px;"></div><div class="waveform-bar" style="height:4px;"></div>
+        <div class="waveform-bar" style="height:8px;"></div><div class="waveform-bar" style="height:12px;"></div><div class="waveform-bar" style="height:16px;"></div><div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:9px;"></div><div class="waveform-bar" style="height:13px;"></div>
+        <div class="waveform-bar" style="height:15px;"></div><div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:7px;"></div><div class="waveform-bar" style="height:4px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:12px;"></div><div class="waveform-bar" style="height:8px;"></div><div class="waveform-bar" style="height:5px;"></div>
+        <div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:7px;"></div><div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:15px;"></div><div class="waveform-bar" style="height:13px;"></div><div class="waveform-bar" style="height:9px;"></div><div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:10px;"></div>
+        <div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:16px;"></div><div class="waveform-bar" style="height:12px;"></div><div class="waveform-bar" style="height:8px;"></div><div class="waveform-bar" style="height:4px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:13px;"></div><div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:7px;"></div>
+        <div class="waveform-bar" style="height:4px;"></div><div class="waveform-bar" style="height:8px;"></div><div class="waveform-bar" style="height:12px;"></div><div class="waveform-bar" style="height:15px;"></div><div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:7px;"></div><div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:9px;"></div><div class="waveform-bar" style="height:13px;"></div>
+        <div class="waveform-bar" style="height:16px;"></div><div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:8px;"></div><div class="waveform-bar" style="height:12px;"></div><div class="waveform-bar" style="height:15px;"></div><div class="waveform-bar" style="height:11px;"></div>
+        <div class="waveform-bar" style="height:7px;"></div><div class="waveform-bar" style="height:4px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:13px;"></div><div class="waveform-bar" style="height:9px;"></div><div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:7px;"></div>
+        <div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:15px;"></div><div class="waveform-bar" style="height:13px;"></div><div class="waveform-bar" style="height:9px;"></div><div class="waveform-bar" style="height:5px;"></div><div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:16px;"></div>
+        <div class="waveform-bar" style="height:12px;"></div><div class="waveform-bar" style="height:8px;"></div><div class="waveform-bar" style="height:4px;"></div><div class="waveform-bar" style="height:6px;"></div><div class="waveform-bar" style="height:10px;"></div><div class="waveform-bar" style="height:14px;"></div><div class="waveform-bar" style="height:11px;"></div><div class="waveform-bar" style="height:7px;"></div><div class="waveform-bar" style="height:3px;"></div><div class="waveform-bar" style="height:5px;"></div>
+      </div>
+    </div>
+
+    <!-- Signal Meters 440x120, 3x2 grid -->
+    <div class="signal-meters">
+      <div class="meter">
+        <div class="meter-top">
+          <span class="meter-label">RMS</span>
+          <span class="meter-value">0.72</span>
+        </div>
+        <div class="meter-bar-track"><div class="meter-bar-fill high" style="width: 72%;"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-top">
+          <span class="meter-label">Bass</span>
+          <span class="meter-value">0.85</span>
+        </div>
+        <div class="meter-bar-track"><div class="meter-bar-fill high" style="width: 85%;"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-top">
+          <span class="meter-label">Mid</span>
+          <span class="meter-value">0.41</span>
+        </div>
+        <div class="meter-bar-track"><div class="meter-bar-fill mid" style="width: 41%;"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-top">
+          <span class="meter-label">High</span>
+          <span class="meter-value">0.23</span>
+        </div>
+        <div class="meter-bar-track"><div class="meter-bar-fill low" style="width: 23%;"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-top">
+          <span class="meter-label">Beat Phase</span>
+          <span class="meter-value">0.25</span>
+        </div>
+        <div class="meter-bar-track"><div class="meter-bar-fill" style="width: 25%; background: var(--accent);"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-top">
+          <span class="meter-label">BPM</span>
+          <span class="meter-value" style="color: var(--green);">128</span>
+        </div>
+        <div class="meter-bar-track"><div class="meter-bar-fill" style="width: 64%; background: var(--green);"></div></div>
+      </div>
+    </div>
+
+    <!-- Deck Tabs 440x24 -->
+    <div class="deck-tabs">
+      <span class="deck-tab active">Deck 1</span>
+      <span class="deck-tab">Deck 2</span>
+      <span class="deck-tab">Deck 3</span>
+    </div>
+
+    <!-- Extended signal list fills remaining space -->
+    <div class="signal-list">
+      <div class="section-header">AUDIO FEATURES</div>
+      <div class="signal-row">
+        <span class="signal-row-label">Peak</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 88%;"></div></div>
+        <span class="signal-row-value">0.88</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Onset Str</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 62%;"></div></div>
+        <span class="signal-row-value">0.62</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Centroid</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 35%;"></div></div>
+        <span class="signal-row-value">2.4k</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Flux</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 48%;"></div></div>
+        <span class="signal-row-value">0.48</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Flatness</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 15%;"></div></div>
+        <span class="signal-row-value">0.15</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Rolloff</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 42%;"></div></div>
+        <span class="signal-row-value">5.1k</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Low Mid</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 55%;"></div></div>
+        <span class="signal-row-value">0.55</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">High Mid</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 31%;"></div></div>
+        <span class="signal-row-value">0.31</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Presence</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 27%;"></div></div>
+        <span class="signal-row-value">0.27</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Brilliance</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 12%;"></div></div>
+        <span class="signal-row-value">0.12</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Pitch</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 45%;"></div></div>
+        <span class="signal-row-value">440Hz</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Key</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 80%;"></div></div>
+        <span class="signal-row-value">A min</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">LUFS</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 60%;"></div></div>
+        <span class="signal-row-value">-14</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Bar Phase</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 75%;"></div></div>
+        <span class="signal-row-value">0.75</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Phrase</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 38%;"></div></div>
+        <span class="signal-row-value">0.38</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Structure</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 50%; background: var(--yellow);"></div></div>
+        <span class="signal-row-value" style="color: var(--yellow);">DROP</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Dyn Range</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 33%;"></div></div>
+        <span class="signal-row-value">0.33</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Trans Dens</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 56%;"></div></div>
+        <span class="signal-row-value">5.6/s</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">HCDF</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 22%;"></div></div>
+        <span class="signal-row-value">0.22</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">MFCC 0</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 67%;"></div></div>
+        <span class="signal-row-value">0.67</span>
+      </div>
+      <div class="signal-row">
+        <span class="signal-row-label">Chroma C</span>
+        <div class="signal-row-bar"><div class="signal-row-fill" style="width: 40%;"></div></div>
+        <span class="signal-row-value">0.40</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CENTER COLUMN — 960px: Deck Grid
+       ============================================================ -->
+  <div class="center-col">
+
+    <!-- Column Triggers -->
+    <div class="column-triggers">
+      <div class="col-trigger">1</div>
+      <div class="col-trigger">2</div>
+      <div class="col-trigger active">3</div>
+      <div class="col-trigger">4</div>
+      <div class="col-trigger">5</div>
+      <div class="col-trigger">6</div>
+      <div class="col-trigger">7</div>
+      <div class="col-trigger">8</div>
+      <div class="col-trigger">9</div>
+      <div class="col-trigger">10</div>
+      <div class="col-trigger">11</div>
+      <div class="col-trigger">12</div>
+    </div>
+
+    <!-- Deck Grid -->
+    <div class="deck-grid">
+
+      <!-- LAYER 3 — FX Only (top) -->
+      <div class="layer-row">
+        <div class="layer-header">
+          <span class="layer-header-name">Layer 3</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-meta type-fx">FX Only</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-meta">Additive</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-vol">V:</span><span class="layer-header-vol-val">0.80</span>
+          <span class="layer-header-spacer"></span>
+          <span class="layer-header-btn active-b">B</span>
+          <span class="layer-header-btn">S</span>
+        </div>
+        <div class="layer-cells">
+          <div class="cell"><div class="cell-thumb fx-only"><span class="cell-src-label">FX</span></div><div class="cell-name">Echo Trail</div></div>
+          <div class="cell"><div class="cell-thumb fx-only"><span class="cell-src-label">FX</span></div><div class="cell-name">Glitch Out</div></div>
+          <div class="cell active"><div class="cell-thumb fx-only"><span class="cell-src-label">FX</span></div><div class="cell-name">Kaleido FX</div></div>
+          <div class="cell"><div class="cell-thumb fx-only"><span class="cell-src-label">FX</span></div><div class="cell-name">Stutter</div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        </div>
+      </div>
+
+      <!-- LAYER 2 — Transparent -->
+      <div class="layer-row">
+        <div class="layer-header">
+          <span class="layer-header-name">Layer 2</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-meta type-transparent">Transparent</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-meta">Screen</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-vol">V:</span><span class="layer-header-vol-val">1.00</span>
+          <span class="layer-header-spacer"></span>
+          <span class="layer-header-btn">B</span>
+          <span class="layer-header-btn">S</span>
+        </div>
+        <div class="layer-cells">
+          <div class="cell">
+            <div class="cell-thumb source-fractal"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Julia Set</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb source-geo"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Voronoi</div>
+          </div>
+          <div class="cell selected">
+            <div class="cell-thumb source-fractal"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Mandelbrot</div>
+            <span class="cell-fx-badge">2</span>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb source-noise"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Perlin</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb source-wave"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Spectrum</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb source-geo"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Torus Knot</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb source-fractal"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Newton</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb source-wave"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Cymatics</div>
+          </div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        </div>
+      </div>
+
+      <!-- LAYER 1 — Opaque (bottom) -->
+      <div class="layer-row">
+        <div class="layer-header">
+          <span class="layer-header-name">Layer 1</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-meta">Opaque</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-meta">Normal</span>
+          <span class="layer-header-sep">&mdash;</span>
+          <span class="layer-header-vol">V:</span><span class="layer-header-vol-val">1.00</span>
+          <span class="layer-header-spacer"></span>
+          <span class="layer-header-btn">B</span>
+          <span class="layer-header-btn">S</span>
+        </div>
+        <div class="layer-cells">
+          <div class="cell">
+            <div class="cell-thumb image"></div>
+            <div class="cell-name">Skyline.jpg</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb image"></div>
+            <div class="cell-name">Abstract_01</div>
+          </div>
+          <div class="cell active">
+            <div class="cell-thumb image" style="background: linear-gradient(135deg, #18141c 0%, #0c0a10 100%);"></div>
+            <div class="cell-name">Nebula.png</div>
+            <span class="cell-fx-badge">3</span>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb image"></div>
+            <div class="cell-name">Texture_07</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb image"></div>
+            <div class="cell-name">Grid_Dark</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb source-noise"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Fluid Sim</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb image"></div>
+            <div class="cell-name">Corridor.mp4</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb image"></div>
+            <div class="cell-name">Smoke.mov</div>
+          </div>
+          <div class="cell">
+            <div class="cell-thumb source-geo"><span class="cell-src-label">SRC</span></div>
+            <div class="cell-name">Mandelbulb</div>
+          </div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="cell"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        </div>
+      </div>
+
+      <!-- Remaining vertical space — empty grid area -->
+      <div style="flex: 1; background: var(--bg); border-bottom: 1px solid var(--border);"></div>
+
+    </div>
+
+    <!-- Bottom Deck Tabs -->
+    <div class="bottom-deck-tabs">
+      <span class="bottom-deck-tab active">Deck 1</span>
+      <span class="bottom-deck-tab">Deck 2</span>
+      <span class="bottom-deck-tab">Deck 3</span>
+      <span style="flex:1;"></span>
+      <span class="bottom-deck-tab" style="color: var(--text-header);">+ New Deck</span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       RIGHT COLUMN — 520px
+       ============================================================ -->
+  <div class="right-col">
+
+    <!-- Inspector Tabs -->
+    <div class="inspector-tabs">
+      <span class="inspector-tab active">Clip</span>
+      <span class="inspector-tab">Layer</span>
+      <span class="inspector-tab">Comp</span>
+      <span class="inspector-tab">Signal</span>
+    </div>
+
+    <!-- Inspector Content (scrollable area) -->
+    <div class="inspector-content">
+
+      <!-- Name -->
+      <div class="inspector-name">
+        <span class="inspector-name-text">Mandelbrot</span>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="dashboard-section">
+        <div class="section-header">DASHBOARD</div>
+        <div class="knob-grid">
+          <div class="knob">
+            <div class="knob-ring connected"><div class="knob-dot"></div></div>
+            <span class="knob-label">Zoom</span>
+            <span class="knob-value">0.65</span>
+          </div>
+          <div class="knob">
+            <div class="knob-ring connected"><div class="knob-dot"></div></div>
+            <span class="knob-label">Color</span>
+            <span class="knob-value">0.30</span>
+          </div>
+          <div class="knob">
+            <div class="knob-ring"><div class="knob-dot"></div></div>
+            <span class="knob-label">Macro 3</span>
+            <span class="knob-value">0.50</span>
+          </div>
+          <div class="knob">
+            <div class="knob-ring"><div class="knob-dot"></div></div>
+            <span class="knob-label">Macro 4</span>
+            <span class="knob-value">0.50</span>
+          </div>
+          <div class="knob">
+            <div class="knob-ring connected"><div class="knob-dot"></div></div>
+            <span class="knob-label">FX Mix</span>
+            <span class="knob-value">0.80</span>
+          </div>
+          <div class="knob">
+            <div class="knob-ring"><div class="knob-dot"></div></div>
+            <span class="knob-label">Macro 6</span>
+            <span class="knob-value">0.50</span>
+          </div>
+          <div class="knob">
+            <div class="knob-ring"><div class="knob-dot"></div></div>
+            <span class="knob-label">Macro 7</span>
+            <span class="knob-value">0.50</span>
+          </div>
+          <div class="knob">
+            <div class="knob-ring"><div class="knob-dot"></div></div>
+            <span class="knob-label">Macro 8</span>
+            <span class="knob-value">0.50</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transport -->
+      <div class="section-header">TRANSPORT</div>
+      <div class="transport-section">
+        <span class="transport-btn">&lt;</span>
+        <span class="transport-btn">||</span>
+        <span class="transport-btn active">&gt;</span>
+        <div class="transport-timeline">
+          <div class="transport-range"></div>
+          <div class="transport-in"></div>
+          <div class="transport-out"></div>
+          <div class="transport-playhead"></div>
+        </div>
+        <span class="transport-mode">BPM</span>
+        <span class="transport-loop">Loop</span>
+      </div>
+
+      <!-- Source Parameters -->
+      <div class="param-section">
+        <div class="section-header">SOURCE PARAMETERS</div>
+        <div class="param-row">
+          <span class="param-triangle connected">&#9654;</span>
+          <span class="param-label">Dive Speed</span>
+          <div class="param-slider-track"><div class="param-slider-fill" style="width: 35%;"></div></div>
+          <span class="param-value">0.35</span>
+        </div>
+        <div class="param-row">
+          <span class="param-triangle">&#9654;</span>
+          <span class="param-label">Location</span>
+          <div class="param-slider-track"><div class="param-slider-fill" style="width: 30%;"></div></div>
+          <span class="param-value">3</span>
+        </div>
+        <div class="param-row">
+          <span class="param-triangle">&#9654;</span>
+          <span class="param-label">Zoom</span>
+          <div class="param-slider-track"><div class="param-slider-fill" style="width: 65%;"></div></div>
+          <span class="param-value">0.65</span>
+        </div>
+        <div class="param-row">
+          <span class="param-triangle">&#9654;</span>
+          <span class="param-label">Max Iterations</span>
+          <div class="param-slider-track"><div class="param-slider-fill" style="width: 50%;"></div></div>
+          <span class="param-value">0.50</span>
+        </div>
+        <div class="param-row">
+          <span class="param-triangle connected">&#9654;</span>
+          <span class="param-label">Color Speed</span>
+          <div class="param-slider-track"><div class="param-slider-fill" style="width: 72%;"></div></div>
+          <span class="param-value">0.72</span>
+        </div>
+        <div class="param-row">
+          <span class="param-triangle">&#9654;</span>
+          <span class="param-label">Color Shift</span>
+          <div class="param-slider-track"><div class="param-slider-fill" style="width: 20%;"></div></div>
+          <span class="param-value">0.20</span>
+        </div>
+        <div class="param-row">
+          <span class="param-triangle">&#9654;</span>
+          <span class="param-label">Palette</span>
+          <div class="param-slider-track"><div class="param-slider-fill" style="width: 60%;"></div></div>
+          <span class="param-value">5</span>
+        </div>
+      </div>
+
+      <!-- Effects -->
+      <div class="param-section">
+        <div class="section-header">EFFECTS</div>
+
+        <!-- Kaleidoscope — expanded -->
+        <div class="effect-row">
+          <span class="effect-bypass active">B</span>
+          <span class="effect-name">Kaleidoscope</span>
+          <span class="effect-value">0.50</span>
+          <span class="effect-expand" style="transform: rotate(90deg);">&#9654;</span>
+          <span class="effect-delete">x</span>
+        </div>
+        <div class="effect-params">
+          <div class="effect-param-row">
+            <span class="param-triangle connected" style="font-size: 6px;">&#9654;</span>
+            <span class="param-label" style="width: 88px; font-size: 9px;">Dry / Wet</span>
+            <div class="param-slider-track"><div class="param-slider-fill" style="width: 80%;"></div></div>
+            <span class="param-value">0.80</span>
+          </div>
+          <div class="effect-param-row">
+            <span class="param-triangle" style="font-size: 6px;">&#9654;</span>
+            <span class="param-label" style="width: 88px; font-size: 9px;">Segments</span>
+            <div class="param-slider-track"><div class="param-slider-fill" style="width: 50%;"></div></div>
+            <span class="param-value">0.50</span>
+          </div>
+          <div class="effect-param-row">
+            <span class="param-triangle connected" style="font-size: 6px;">&#9654;</span>
+            <span class="param-label" style="width: 88px; font-size: 9px;">Rotation</span>
+            <div class="param-slider-track"><div class="param-slider-fill" style="width: 35%;"></div></div>
+            <span class="param-value">0.35</span>
+          </div>
+          <div class="effect-param-row">
+            <span class="param-triangle" style="font-size: 6px;">&#9654;</span>
+            <span class="param-label" style="width: 88px; font-size: 9px;">Zoom</span>
+            <div class="param-slider-track"><div class="param-slider-fill" style="width: 60%;"></div></div>
+            <span class="param-value">0.60</span>
+          </div>
+        </div>
+
+        <!-- Echo — collapsed -->
+        <div class="effect-row">
+          <span class="effect-bypass active">B</span>
+          <span class="effect-name collapsed">Echo</span>
+          <span class="effect-value">0.70</span>
+          <span class="effect-expand">&#9654;</span>
+          <span class="effect-delete">x</span>
+        </div>
+      </div>
+
+      <!-- Video — collapsed -->
+      <div class="collapsed-section">
+        <span class="collapsed-arrow">&#9654;</span>
+        <span class="collapsed-label">Video</span>
+        <span style="flex:1;"></span>
+        <span style="font-size: 8px; font-family: 'SF Mono','Menlo',monospace; color: var(--text-tertiary);">1.00  Screen  Premul</span>
+      </div>
+
+      <!-- Transform — collapsed -->
+      <div class="collapsed-section">
+        <span class="collapsed-arrow">&#9654;</span>
+        <span class="collapsed-label">Transform</span>
+        <span style="flex:1;"></span>
+        <span style="font-size: 8px; font-family: 'SF Mono','Menlo',monospace; color: var(--text-tertiary);">0, 0  1.0x  0.0deg</span>
+      </div>
+
+    </div>
+
+    <!-- Browser Area — bottom 264px -->
+    <div class="browser-area">
+
+      <!-- Browser Tabs -->
+      <div class="browser-tabs">
+        <span class="browser-tab">Files</span>
+        <span class="browser-tab active">FX</span>
+        <span class="browser-tab">Sources</span>
+        <span class="browser-tab">Comps</span>
+        <span class="browser-tab">Record</span>
+        <span class="browser-tab">MilkDrop</span>
+      </div>
+
+      <!-- Search -->
+      <div class="browser-search">
+        <span class="browser-search-label">Search</span>
+        <input type="text" class="browser-search-input" placeholder="Filter effects..." disabled>
+      </div>
+
+      <!-- Browser List -->
+      <div class="browser-list">
+        <div class="browser-category">
+          <span class="browser-cat-arrow">&#9660;</span>
+          <span class="browser-cat-name">Warp</span>
+          <span class="browser-cat-count">28</span>
+        </div>
+        <div class="browser-item">Ripple</div>
+        <div class="browser-item">Kaleidoscope</div>
+        <div class="browser-item">Liquid</div>
+        <div class="browser-item">Swirl</div>
+        <div class="browser-item">Fisheye</div>
+        <div class="browser-category">
+          <span class="browser-cat-arrow">&#9654;</span>
+          <span class="browser-cat-name">Color</span>
+          <span class="browser-cat-count">31</span>
+        </div>
+        <div class="browser-category">
+          <span class="browser-cat-arrow">&#9654;</span>
+          <span class="browser-cat-name">Glitch</span>
+          <span class="browser-cat-count">16</span>
+        </div>
+        <div class="browser-category">
+          <span class="browser-cat-arrow">&#9654;</span>
+          <span class="browser-cat-name">Blur / Post</span>
+          <span class="browser-cat-count">10</span>
+        </div>
+        <div class="browser-category">
+          <span class="browser-cat-arrow">&#9654;</span>
+          <span class="browser-cat-name">Time</span>
+          <span class="browser-cat-count">6</span>
+        </div>
+        <div class="browser-category">
+          <span class="browser-cat-arrow">&#9654;</span>
+          <span class="browser-cat-name">Audio</span>
+          <span class="browser-cat-count">7</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

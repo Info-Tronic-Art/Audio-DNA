@@ -1,0 +1,24 @@
+/*{
+    "CREDIT": "",
+    "DESCRIPTION": "",
+    "CATEGORIES": [ "generator" ],
+    "INPUTS": [
+        {
+			"TYPE": "float",
+            "NAME": "MR",
+            "LABEL": "Mod Red",
+            "DEFAULT": 1
+        }
+	,
+	    {
+			"TYPE": "float",
+            "NAME": "MB",
+            "LABEL": "Mod Blue",
+            "DEFAULT": 1	
+        }
+    ]
+}*/
+
+void main() {
+    gl_FragColor = vec4(isf_FragNormCoord.x * MR, 0.0 , isf_FragNormCoord.y * MB , 1.0);
+}

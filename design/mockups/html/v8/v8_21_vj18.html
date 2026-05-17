@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 18 — Broadcast Style</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+.app { width: 1920px; height: 1080px; background: #0d0d0d; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+
+/* ===== TOP BAR ===== */
+.top-bar { height: 44px; background: #111; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 12px; gap: 12px; flex-shrink: 0; }
+.logo { font-size: 16px; font-weight: 700; color: #00ccff; letter-spacing: 1px; margin-right: 8px; }
+.logo span { color: #666; font-weight: 400; }
+.bpm-display { background: #1a1a1a; border: 1px solid #333; border-radius: 3px; padding: 4px 14px; display: flex; align-items: baseline; gap: 6px; }
+.bpm-value { font-size: 22px; font-weight: 700; color: #00ff88; font-variant-numeric: tabular-nums; }
+.bpm-label { font-size: 10px; color: #666; text-transform: uppercase; }
+.top-btn { background: #222; border: 1px solid #444; color: #ccc; padding: 4px 10px; font-size: 11px; cursor: pointer; border-radius: 2px; text-transform: uppercase; font-weight: 600; }
+.top-btn:hover { background: #333; }
+.top-btn.active { background: #00ccff; color: #000; border-color: #00ccff; }
+.bar-info { color: #888; font-size: 12px; font-variant-numeric: tabular-nums; }
+.bar-info strong { color: #e0e0e0; }
+.beat-indicator { display: flex; gap: 2px; align-items: center; margin-left: 4px; }
+.beat-dot { width: 28px; height: 10px; border-radius: 2px; }
+.beat-dot.b1 { background: #ff3366; }
+.beat-dot.b2 { background: #ff9900; }
+.beat-dot.b3 { background: #00ccff; }
+.beat-dot.b4 { background: #00ff88; }
+.room-delay { color: #666; font-size: 11px; margin-left: auto; }
+.room-delay span { color: #ffcc00; font-weight: 600; }
+.lock-btn { background: #331a00; border: 1px solid #664400; color: #ffcc00; padding: 4px 12px; font-size: 11px; cursor: pointer; border-radius: 2px; font-weight: 700; text-transform: uppercase; }
+
+/* ===== SCENE ROW ===== */
+.scene-row { height: 38px; background: #0a0a0a; border-bottom: 1px solid #222; display: flex; align-items: center; padding: 0 12px; gap: 6px; flex-shrink: 0; }
+.scene-btn { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 5px 16px; font-size: 11px; cursor: pointer; border-radius: 2px; display: flex; align-items: center; gap: 6px; font-weight: 600; text-transform: uppercase; }
+.scene-btn .play-icon { font-size: 9px; color: #666; }
+.scene-btn.active { background: #1a3322; border-color: #00ff88; color: #00ff88; }
+.scene-btn.active .play-icon { color: #00ff88; }
+.scene-spacer { flex: 1; }
+.scene-nav { background: #1a1a1a; border: 1px solid #333; color: #888; padding: 5px 10px; font-size: 11px; cursor: pointer; border-radius: 2px; font-weight: 600; }
+.scene-add { background: #112211; border: 1px solid #336633; color: #66cc66; padding: 5px 12px; font-size: 11px; cursor: pointer; border-radius: 2px; font-weight: 600; }
+
+/* ===== MAIN CONTENT ===== */
+.main-content { flex: 1; display: flex; overflow: hidden; }
+
+/* ===== LAYER AREA ===== */
+.layer-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.layer-strip { display: flex; align-items: stretch; border-bottom: 1px solid #1a1a1a; flex: 1; }
+.layer-strip:nth-child(odd) { background: #0e0e0e; }
+.layer-strip:nth-child(even) { background: #0b0b0b; }
+
+.layer-header { width: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 6px; border-right: 1px solid #222; flex-shrink: 0; }
+.layer-name { font-size: 12px; font-weight: 700; color: #e0e0e0; }
+.layer-type { font-size: 9px; color: #666; text-transform: uppercase; margin-top: 2px; }
+.layer-solo, .layer-mute { font-size: 9px; padding: 2px 6px; border-radius: 2px; cursor: pointer; margin-top: 4px; border: 1px solid #333; background: #1a1a1a; color: #888; }
+.layer-solo.on { background: #ccaa00; color: #000; border-color: #ccaa00; }
+.layer-mute.on { background: #cc3333; color: #fff; border-color: #cc3333; }
+
+.clip-grid { display: flex; gap: 6px; padding: 8px; flex: 1; overflow-x: auto; }
+
+.clip-cell { width: 150px; min-width: 150px; display: flex; flex-direction: column; background: #141414; border: 1px solid #2a2a2a; border-radius: 3px; cursor: pointer; overflow: hidden; }
+.clip-cell.active { border-color: #00ccff; box-shadow: 0 0 8px rgba(0,204,255,0.3); }
+.clip-thumb { height: 90px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.clip-thumb canvas { width: 100%; height: 100%; }
+.clip-badge { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: #aaa; font-size: 8px; padding: 1px 5px; border-radius: 2px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+.clip-info { padding: 4px 6px; display: flex; flex-direction: column; gap: 2px; }
+.clip-name { font-size: 10px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clip-retrigger { font-size: 9px; color: #666; background: #1a1a1a; border: 1px solid #2a2a2a; padding: 1px 6px; border-radius: 2px; text-align: center; cursor: pointer; margin-top: 2px; }
+.clip-retrigger:hover { color: #00ccff; border-color: #00ccff; }
+
+/* ===== RIGHT PANEL ===== */
+.right-panel { width: 200px; background: #0e0e0e; border-left: 1px solid #222; display: flex; flex-direction: column; padding: 10px; gap: 10px; flex-shrink: 0; }
+.rp-section-title { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; border-bottom: 1px solid #222; padding-bottom: 4px; }
+.rp-btn { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 6px; font-size: 11px; cursor: pointer; border-radius: 2px; text-align: center; font-weight: 600; text-transform: uppercase; }
+.rp-btn:hover { background: #222; color: #ddd; }
+.rp-btn.highlight { background: #1a2233; border-color: #336699; color: #66aadd; }
+
+.knob-container { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.knob-label { font-size: 9px; color: #888; text-transform: uppercase; font-weight: 600; }
+.knob { width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(from 220deg, #333 0deg, #00ccff 0deg, #00ccff 200deg, #333 200deg); position: relative; border: 2px solid #444; }
+.knob::after { content: ''; position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; background: #1a1a1a; border-radius: 50%; transform: translate(-50%,-50%); }
+.knob-value { font-size: 12px; color: #e0e0e0; font-weight: 700; }
+
+.xy-pad { width: 100%; aspect-ratio: 1; background: #111; border: 1px solid #333; border-radius: 3px; position: relative; }
+.xy-pad::after { content: '+'; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #00ccff; font-size: 20px; opacity: 0.5; }
+.xy-label { font-size: 8px; color: #555; text-align: center; margin-top: 2px; }
+
+.color-override { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.color-btn { padding: 8px; border: 1px solid #333; border-radius: 2px; text-align: center; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase; }
+.color-btn.red { background: #331111; color: #ff4444; border-color: #662222; }
+.color-btn.blue { background: #111133; color: #4466ff; border-color: #222266; }
+.color-btn.green { background: #113311; color: #44ff44; border-color: #226622; }
+.color-btn.white { background: #222; color: #fff; border-color: #555; }
+
+/* ===== FADER STRIP ===== */
+.fader-strip { height: 220px; background: #080808; border-top: 1px solid #222; display: flex; align-items: stretch; padding: 8px 80px; gap: 0; flex-shrink: 0; }
+.fader-column { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 8px; border-right: 1px solid #1a1a1a; }
+.fader-column:last-child { border-right: none; }
+.fader-col-label { font-size: 9px; color: #888; text-transform: uppercase; font-weight: 600; }
+.fader-track { width: 8px; flex: 1; background: #1a1a1a; border-radius: 4px; position: relative; border: 1px solid #2a2a2a; }
+.fader-fill { position: absolute; bottom: 0; left: 0; right: 0; border-radius: 0 0 3px 3px; }
+.fader-handle { position: absolute; left: -8px; right: -8px; height: 14px; background: #555; border: 1px solid #888; border-radius: 2px; }
+.fader-value { font-size: 10px; color: #ccc; font-weight: 700; font-variant-numeric: tabular-nums; }
+.flash-btn { background: #331a00; border: 1px solid #664400; color: #ffaa00; padding: 4px 14px; font-size: 10px; cursor: pointer; border-radius: 2px; font-weight: 700; text-transform: uppercase; }
+.flash-btn:hover { background: #553300; }
+
+/* ===== FOOTER ===== */
+.footer { height: 36px; background: #111; border-top: 1px solid #2a2a2a; display: flex; align-items: center; padding: 0 12px; gap: 10px; flex-shrink: 0; }
+.footer-section { display: flex; align-items: center; gap: 6px; }
+.footer-btn { background: none; border: none; color: #666; font-size: 14px; cursor: pointer; padding: 2px 4px; }
+.footer-btn:hover { color: #ccc; }
+.footer-track { color: #aaa; font-size: 11px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.footer-spacer { flex: 1; }
+.footer-label { color: #555; font-size: 10px; }
+.footer-value { color: #888; font-size: 11px; }
+.footer-action { background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 3px 10px; font-size: 10px; cursor: pointer; border-radius: 2px; font-weight: 600; }
+.footer-action:hover { color: #ddd; background: #222; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="logo">AUDIO-DNA <span>VJ</span></div>
+    <div class="bpm-display">
+      <span class="bpm-value">128.00</span>
+      <span class="bpm-label">BPM</span>
+    </div>
+    <button class="top-btn">TAP</button>
+    <button class="top-btn">Nudge -</button>
+    <button class="top-btn">Nudge +</button>
+    <button class="top-btn active">RESYNC</button>
+    <div class="bar-info"><strong>Bar: 32</strong> &nbsp; 1.1</div>
+    <div class="beat-indicator">
+      <div class="beat-dot b1"></div>
+      <div class="beat-dot b2"></div>
+      <div class="beat-dot b3"></div>
+      <div class="beat-dot b4"></div>
+    </div>
+    <div class="room-delay">Room Delay: <span>15ms</span></div>
+    <button class="lock-btn">LOCK UI</button>
+  </div>
+
+  <!-- SCENE ROW -->
+  <div class="scene-row">
+    <button class="scene-btn"><span class="play-icon">&#9654;</span> INTRO</button>
+    <button class="scene-btn active"><span class="play-icon">&#9654;</span> VERSE 1</button>
+    <button class="scene-btn"><span class="play-icon">&#9654;</span> BUILD</button>
+    <button class="scene-btn"><span class="play-icon">&#9654;</span> DROP</button>
+    <button class="scene-btn"><span class="play-icon">&#9654;</span> OUTRO</button>
+    <div class="scene-spacer"></div>
+    <button class="scene-nav">PREV</button>
+    <button class="scene-nav">NEXT</button>
+    <button class="scene-add">+ SCENE</button>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <!-- LAYER AREA -->
+    <div class="layer-area" id="layerArea">
+      <!-- Layers generated by JS -->
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="rp-section-title">Live Palette</div>
+      <button class="rp-btn highlight">Sources / Setup</button>
+
+      <div class="rp-section-title" style="margin-top:6px;">Master Speed</div>
+      <div class="knob-container">
+        <div class="knob" style="background: conic-gradient(from 220deg, #333 0deg, #00ff88 0deg, #00ff88 180deg, #333 180deg);"></div>
+        <div class="knob-value">1.00x</div>
+      </div>
+
+      <div class="rp-section-title">Master Dimmer</div>
+      <div class="knob-container">
+        <div class="knob" style="background: conic-gradient(from 220deg, #333 0deg, #ffcc00 0deg, #ffcc00 260deg, #333 260deg);"></div>
+        <div class="knob-value">100%</div>
+      </div>
+
+      <div class="rp-section-title" style="margin-top:4px;">Global Position Offset</div>
+      <div class="xy-pad"></div>
+      <div class="xy-label">XY Pad</div>
+
+      <div class="rp-section-title">Color Override</div>
+      <div class="color-override">
+        <button class="color-btn red">RED</button>
+        <button class="color-btn blue">BLUE</button>
+        <button class="color-btn green">GREEN</button>
+        <button class="color-btn white">WHITE</button>
+      </div>
+
+      <button class="rp-btn" style="margin-top:auto;">LED WALL</button>
+      <button class="rp-btn">MIDI LEARN</button>
+    </div>
+  </div>
+
+  <!-- FADER STRIP -->
+  <div class="fader-strip" id="faderStrip">
+    <!-- Generated by JS -->
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-section">
+      <button class="footer-btn">&#9664;&#9664;</button>
+      <button class="footer-btn" style="color:#00ff88; font-size:16px;">&#9654;</button>
+      <button class="footer-btn">&#9632;</button>
+      <button class="footer-btn">&#9654;&#9654;</button>
+    </div>
+    <div class="footer-track">Bicep — Glue (Original Mix)</div>
+    <div class="footer-spacer"></div>
+    <div class="footer-label">Output:</div>
+    <div class="footer-value">Display 1 (1080p)</div>
+    <button class="footer-action">MIDI Map</button>
+    <button class="footer-action">Keyboard Shortcuts</button>
+    <button class="footer-action">Save</button>
+    <button class="footer-action">Load</button>
+  </div>
+</div>
+
+<script>
+// Layer data
+const layers = [
+  { name: 'LYR 1', type: 'Opaque', soloOn: false, muteOn: false, clips: [
+    { name: 'Plasma Burst', badge: 'SYNTH', active: true, colors: ['#ff0066','#ff33cc','#cc0099','#ff66aa','#ff0088'] },
+    { name: 'Geo Tunnel', badge: 'SYNTH', active: false, colors: ['#00ffaa','#00cc88','#33ff99','#00ff66','#22dd77'] },
+    { name: 'Crystal Grid', badge: 'IMAGE', active: false, colors: ['#00ccff','#0099dd','#33aaee','#0088cc','#22bbff'] },
+    { name: 'Beat Pulse', badge: 'SYNTH', active: false, colors: ['#ffcc00','#ffaa00','#ff8800','#ffdd33','#ffbb00'] },
+    { name: 'Warp Field', badge: 'SYNTH', active: false, colors: ['#8833ff','#aa55ff','#6622cc','#9944ee','#7733dd'] },
+  ]},
+  { name: 'LYR 2', type: 'Transparent', soloOn: false, muteOn: false, clips: [
+    { name: 'Neon Lines', badge: 'SYNTH', active: false, colors: ['#ff3366','#ff5588','#dd2255','#ff4477','#cc1144'] },
+    { name: 'Wave Form', badge: 'SYNTH', active: true, colors: ['#33ff99','#22dd77','#44ffaa','#00ee66','#55ffbb'] },
+    { name: 'Dot Matrix', badge: 'IMAGE', active: false, colors: ['#ffaa00','#ff8800','#ffcc33','#ff9911','#ffbb22'] },
+    { name: 'Glitch Run', badge: 'SYNTH', active: false, colors: ['#ff0044','#00ffcc','#ff00ff','#00ff00','#ffff00'] },
+    { name: 'Kaleidoscope', badge: 'SYNTH', active: false, colors: ['#ff66cc','#cc33ff','#ff33aa','#aa22ee','#ff55dd'] },
+  ]},
+  { name: 'LYR 3', type: 'FX Only', soloOn: true, muteOn: false, clips: [
+    { name: 'Stripe Scan', badge: 'SYNTH', active: false, colors: ['#00ddff','#0099cc','#33bbee','#0077aa','#22aadd'] },
+    { name: 'Liquid Metal', badge: 'SYNTH', active: false, colors: ['#888888','#aaaaaa','#666666','#999999','#bbbbbb'] },
+    { name: 'RGB Split', badge: 'IMAGE', active: true, colors: ['#ff0000','#00ff00','#0000ff','#ff00ff','#ffff00'] },
+    { name: 'Spiral Void', badge: 'SYNTH', active: false, colors: ['#220044','#440088','#6600cc','#3300aa','#550099'] },
+    { name: 'Fire Dance', badge: 'SYNTH', active: false, colors: ['#ff4400','#ff6622','#ff8844','#ff2200','#ff5511'] },
+  ]},
+  { name: 'LYR 4', type: 'Mask', soloOn: false, muteOn: true, clips: [
+    { name: 'Circle Mask', badge: 'IMAGE', active: true, colors: ['#ffffff','#cccccc','#999999','#eeeeee','#dddddd'] },
+    { name: 'Triangle Cut', badge: 'IMAGE', active: false, colors: ['#aaaaaa','#888888','#cccccc','#777777','#bbbbbb'] },
+    { name: 'Text Layer', badge: 'IMAGE', active: false, colors: ['#e0e0e0','#c0c0c0','#a0a0a0','#d0d0d0','#b0b0b0'] },
+    { name: 'VU Bars', badge: 'SYNTH', active: false, colors: ['#00ff00','#33ff33','#66ff66','#00cc00','#22dd22'] },
+    { name: 'Fractal Mask', badge: 'SYNTH', active: false, colors: ['#ff9900','#cc7700','#ffaa22','#dd8811','#ffbb44'] },
+  ]},
+];
+
+// Render layers
+const layerArea = document.getElementById('layerArea');
+layers.forEach(layer => {
+  const strip = document.createElement('div');
+  strip.className = 'layer-strip';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'layer-header';
+  header.innerHTML = `
+    <div class="layer-name">${layer.name}</div>
+    <div class="layer-type">${layer.type}</div>
+    <button class="layer-solo ${layer.soloOn ? 'on' : ''}" style="font-size:9px;">S</button>
+    <button class="layer-mute ${layer.muteOn ? 'on' : ''}" style="font-size:9px;">M</button>
+  `;
+  strip.appendChild(header);
+
+  // Clip grid
+  const grid = document.createElement('div');
+  grid.className = 'clip-grid';
+
+  layer.clips.forEach(clip => {
+    const cell = document.createElement('div');
+    cell.className = 'clip-cell' + (clip.active ? ' active' : '');
+
+    const thumb = document.createElement('div');
+    thumb.className = 'clip-thumb';
+    const canvas = document.createElement('canvas');
+    canvas.width = 150;
+    canvas.height = 90;
+    thumb.appendChild(canvas);
+
+    const badge = document.createElement('div');
+    badge.className = 'clip-badge';
+    badge.textContent = clip.badge;
+    thumb.appendChild(badge);
+
+    const info = document.createElement('div');
+    info.className = 'clip-info';
+    info.innerHTML = `
+      <div class="clip-name">${clip.name}</div>
+      <button class="clip-retrigger">Re-trigger</button>
+    `;
+
+    cell.appendChild(thumb);
+    cell.appendChild(info);
+    grid.appendChild(cell);
+
+    // Draw colorful visual on canvas
+    drawClipVisual(canvas, clip.colors, clip.name);
+  });
+
+  strip.appendChild(grid);
+  layerArea.appendChild(strip);
+});
+
+function drawClipVisual(canvas, colors, name) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+
+  // Dark background
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, w, h);
+
+  const seed = hashStr(name);
+
+  // Draw based on visual type
+  const type = seed % 5;
+
+  if (type === 0) {
+    // Waveform style
+    for (let c = 0; c < 3; c++) {
+      ctx.beginPath();
+      ctx.strokeStyle = colors[c];
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.8;
+      const freq = 2 + (seed + c) % 4;
+      const amp = 10 + (seed * (c + 1)) % 20;
+      const offset = h / 2 + (c - 1) * 12;
+      for (let x = 0; x < w; x++) {
+        const y = offset + Math.sin(x * freq * 0.03 + c * 1.5) * amp;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  } else if (type === 1) {
+    // Radial burst
+    const cx = w / 2, cy = h / 2;
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2 + seed * 0.1;
+      const r = 40 + (seed * i) % 20;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
+      ctx.strokeStyle = colors[i % colors.length];
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.7;
+      ctx.stroke();
+    }
+    // Center glow
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 25);
+    grad.addColorStop(0, colors[0]);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.5;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalAlpha = 1;
+  } else if (type === 2) {
+    // Grid pattern
+    ctx.globalAlpha = 0.6;
+    const sz = 10 + seed % 8;
+    for (let x = 0; x < w; x += sz) {
+      for (let y = 0; y < h; y += sz) {
+        const ci = ((x / sz | 0) + (y / sz | 0) + seed) % colors.length;
+        const brightness = Math.sin(x * 0.05 + y * 0.07 + seed) * 0.5 + 0.5;
+        if (brightness > 0.3) {
+          ctx.fillStyle = colors[ci];
+          ctx.globalAlpha = brightness * 0.6;
+          ctx.fillRect(x + 1, y + 1, sz - 2, sz - 2);
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+  } else if (type === 3) {
+    // Diagonal stripes
+    ctx.globalAlpha = 0.7;
+    for (let i = -h; i < w + h; i += 8) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i - h, h);
+      ctx.strokeStyle = colors[(i / 8 | 0) % colors.length];
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  } else {
+    // Circles / bubbles
+    for (let i = 0; i < 12; i++) {
+      const cx = ((seed * 7 + i * 31) % w);
+      const cy = ((seed * 13 + i * 17) % h);
+      const r = 5 + (seed + i * 7) % 20;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grad.addColorStop(0, colors[i % colors.length]);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+// Render faders
+const faderStrip = document.getElementById('faderStrip');
+const faderLabels = ['LYR 1', 'LYR 2', 'LYR 3', 'LYR 4', 'MASTER', 'AUX'];
+const faderValues = [100, 85, 72, 100, 100, 60];
+const faderColors = ['#ff3366', '#33ff99', '#00ccff', '#ffcc00', '#ffffff', '#ff9900'];
+
+faderLabels.forEach((label, i) => {
+  const col = document.createElement('div');
+  col.className = 'fader-column';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'fader-col-label';
+  lbl.textContent = label;
+
+  const track = document.createElement('div');
+  track.className = 'fader-track';
+
+  const fill = document.createElement('div');
+  fill.className = 'fader-fill';
+  fill.style.height = faderValues[i] + '%';
+  fill.style.background = `linear-gradient(to top, ${faderColors[i]}44, ${faderColors[i]}aa)`;
+
+  const handle = document.createElement('div');
+  handle.className = 'fader-handle';
+  handle.style.bottom = `calc(${faderValues[i]}% - 7px)`;
+
+  track.appendChild(fill);
+  track.appendChild(handle);
+
+  const val = document.createElement('div');
+  val.className = 'fader-value';
+  val.textContent = faderValues[i] + '%';
+
+  const flash = document.createElement('button');
+  flash.className = 'flash-btn';
+  flash.textContent = 'FLASH';
+
+  col.appendChild(lbl);
+  col.appendChild(track);
+  col.appendChild(val);
+  col.appendChild(flash);
+
+  faderStrip.appendChild(col);
+});
+</script>
+</body>
+</html>

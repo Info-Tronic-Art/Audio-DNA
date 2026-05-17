@@ -1,0 +1,656 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          74,
+          "output"
+        ],
+        "to": [
+          73,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          75,
+          "output"
+        ],
+        "to": [
+          74,
+          "time"
+        ]
+      },
+      {
+        "from": [
+          73,
+          "output"
+        ],
+        "to": [
+          81,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          77,
+          "output"
+        ],
+        "to": [
+          82,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          81,
+          "output"
+        ],
+        "to": [
+          82,
+          "offset"
+        ]
+      },
+      {
+        "from": [
+          73,
+          "output"
+        ],
+        "to": [
+          83,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          82,
+          "output"
+        ],
+        "to": [
+          83,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          83,
+          "output"
+        ],
+        "to": [
+          78,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Pixel Gradient Example",
+      "identifier": "6e82ce03-be54-4aa3-82be-983974a8500c",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 34842,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 85,
+    "nodes": {
+      "68": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a texture similar to a normal map.\n"
+          }
+        },
+        "bounds": {
+          "height": 398.7590026855469,
+          "width": 334,
+          "x": 172.37815856933594,
+          "y": 1055.966796875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "69": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Main\nInput a texture to create a pixel gradient out of.\n\n• Normalize\nInput a boolean to normalize the output of the node."
+          }
+        },
+        "bounds": {
+          "height": 397.98046875,
+          "width": 312,
+          "x": -181.7038726806641,
+          "y": 1055.966796875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "PIXEL GRADIENT\n\nThe Pixel Gradient node creates a texture similar to a normal map that you would encouter in a 3D texturing situation. This map can be used to modulate other nodes that use textures as modulation sources. In the example we use the UV Offset node for that purpouse."
+          }
+        },
+        "bounds": {
+          "height": 135.85879516601562,
+          "width": 693.6458740234375,
+          "x": -496.8489990234375,
+          "y": 519.1477661132812
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "73": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": -67.22532653808594,
+          "y": 698.56884765625
+        },
+        "class": {
+          "id": "77697265-3C24-8BC5-82FE-F67ED1E25252",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "normalize": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Pixel Gradient"
+      },
+      "74": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          }
+        },
+        "bounds": {
+          "height": 274,
+          "width": 195,
+          "x": -278.2253112792969,
+          "y": 698.56884765625
+        },
+        "class": {
+          "id": "77697265-0291-4FC4-BCC1-B1AFD136F507",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bgColor": {
+            "type": "float4",
+            "value": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "blend": {
+            "type": "integer",
+            "value": 0
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "distance": {
+            "type": "float",
+            "value": 0.2300000041723251
+          },
+          "fuzzyness": {
+            "type": "float",
+            "value": 0.1379999965429306
+          },
+          "grid": {
+            "type": "float",
+            "value": 7
+          },
+          "position": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "radius": {
+            "type": "float",
+            "value": 0.5519999861717224
+          },
+          "size": {
+            "type": "float",
+            "value": 0.6690000295639038
+          },
+          "speed": {
+            "type": "float",
+            "value": 1
+          },
+          "time": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "bypass",
+          "blend"
+        ],
+        "name": "Metaballs"
+      },
+      "75": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": -496.2254028320313,
+          "y": 698.56884765625
+        },
+        "class": {
+          "id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 10
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Saw"
+      },
+      "77": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 440.9207153320313,
+          "y": 490.4083251953125
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture In"
+      },
+      "78": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1193.9207763671875,
+          "y": 818.4083251953125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      },
+      "81": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 375.8191223144531,
+          "y": 591.26513671875
+        },
+        "class": {
+          "id": "77697265-BC76-4025-8195-07B2AA065E67",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color1": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "color2": {
+            "type": "float4",
+            "value": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "smoothness": {
+            "type": "float",
+            "value": 0.01700000092387199
+          },
+          "threshold": {
+            "type": "float",
+            "value": 0.5569999814033508
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Threshold"
+      },
+      "82": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "filtering": {
+            "type": "choice",
+            "value": "Linear"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 640.9268798828125,
+          "y": 492.29156494140625
+        },
+        "class": {
+          "id": "77697265-BB9A-4B60-83F3-D0E4DA6CFF86",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "channel-multiplier": {
+            "type": "float2",
+            "value": [
+              5,
+              5
+            ]
+          },
+          "gain": {
+            "type": "float",
+            "value": 0.00999999977648258
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "offset": {
+            "type": "texture2d",
+            "value": null
+          },
+          "wrap": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "UV Offset"
+      },
+      "83": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "input-count": {
+            "type": "number",
+            "value": 2
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 975.62353515625,
+          "y": 818.824951171875
+        },
+        "class": {
+          "id": "77697265-A270-4D60-911C-A88B1BE6369A",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input1": {
+            "type": "texture2d",
+            "value": null
+          },
+          "input2": {
+            "type": "texture2d",
+            "value": null
+          },
+          "mode": {
+            "type": "integer",
+            "value": 11
+          },
+          "opacity1": {
+            "type": "float",
+            "value": 1
+          },
+          "opacity2": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "bypass",
+          "mode"
+        ],
+        "name": "Video Mixer"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -532.3765869140625,
+        "y": 447.8248901367187,
+        "zoom": 0.9999998807907104
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "preview-lock": 78,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "0": null,
+          "13": null,
+          "223": null,
+          "7": "Wire Logo",
+          "74": "Wire Logo",
+          "77": "Wire Logo"
+        },
+        "out": {
+          "Display 2": "78"
+        }
+      }
+    }
+  }
+}

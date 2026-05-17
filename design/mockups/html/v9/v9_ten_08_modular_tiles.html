@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Design 8 — Modular Tiles</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --panel: #2a2a2a;
+    --panel2: #242424;
+    --row: #383838;
+    --hair: #3a3a3a;
+    --label: #888;
+    --value: #e0e0e0;
+    --mint: #5fdba7;
+    --red: #ff4040;
+    --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+  html, body { background: var(--bg); color: var(--value); font-family: var(--mono); font-size: 11px; }
+  body { width: 1920px; height: 1200px; position: relative; overflow: hidden; }
+
+  /* Grain overlay */
+  .grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='1'/></svg>");
+  }
+
+  /* ===== TOP BAR 44px ===== */
+  .topbar {
+    height: 44px; background: var(--panel); border-bottom: 1px solid var(--hair);
+    display: flex; align-items: center; padding: 0 16px; gap: 18px;
+  }
+  .logo { font-family: var(--sans); font-weight: 700; font-size: 13px; color: var(--value); letter-spacing: 1px; }
+  .logo span { color: var(--mint); }
+  .bpm-big { font-size: 28px; color: var(--mint); font-weight: 500; line-height: 1; }
+  .tb-block { display: flex; flex-direction: column; gap: 2px; }
+  .tb-label { color: var(--label); font-size: 9px; letter-spacing: 0.6px; }
+  .tb-value { color: var(--value); font-size: 12px; }
+  .pill-mint {
+    background: transparent; border: 1px solid var(--mint); color: var(--mint);
+    padding: 3px 8px; font-size: 10px; letter-spacing: 0.8px;
+  }
+  .beat-wheel-top { width: 28px; height: 28px; }
+  .tb-btn {
+    width: 26px; height: 26px; background: var(--panel2); border: 1px solid var(--hair);
+    color: var(--value); display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .tb-btn.mint { color: var(--mint); border-color: var(--mint); }
+  .tb-btn.red { color: var(--red); border-color: var(--red); }
+  .tb-sep { width: 1px; height: 28px; background: var(--hair); }
+  .mode-tabs { display: flex; margin-left: auto; }
+  .mode-tab {
+    padding: 6px 14px; color: var(--label); font-size: 11px; letter-spacing: 1px;
+    border-bottom: 2px solid transparent; background: transparent;
+  }
+  .mode-tab.active { color: var(--mint); border-bottom-color: var(--mint); }
+
+  /* ===== Transport strip 32px ===== */
+  .transport {
+    height: 32px; background: var(--panel2); border-bottom: 1px solid var(--hair);
+    display: flex; align-items: center; padding: 0 16px; gap: 6px;
+  }
+  .tp-btn {
+    height: 22px; min-width: 22px; padding: 0 6px; background: var(--panel); border: 1px solid var(--hair);
+    color: var(--value); display: inline-flex; align-items: center; justify-content: center; font-size: 10px;
+  }
+  .tp-btn.mono-big { min-width: 40px; color: var(--mint); font-weight: 500; font-size: 11px; }
+  .tp-btn.mint { color: var(--mint); border-color: var(--mint); }
+
+  /* ===== Signal quick-ref bar 22px ===== */
+  .sig-ref {
+    height: 22px; background: #222; border-bottom: 1px solid var(--hair);
+    display: flex; align-items: center; padding: 0 16px; gap: 10px;
+    font-size: 10px; color: var(--label); letter-spacing: 0.5px;
+  }
+  .sig-ref span b { color: var(--value); font-weight: 400; margin-left: 3px; }
+  .sig-ref .sep { color: #555; }
+  .sig-ref .mint-v { color: var(--mint); }
+
+  /* ===== Tile grid ===== */
+  .tile-grid {
+    position: relative; width: 1920px;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 600px 400px 520px;
+    grid-template-rows: 480px 240px 240px;
+    gap: 12px;
+  }
+  .tile {
+    background: var(--panel); border: 1px solid var(--hair);
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .tile-head {
+    height: 24px; background: #1f1f1f; border-bottom: 1px solid var(--hair);
+    display: flex; align-items: center; padding: 0 8px; gap: 8px;
+    flex-shrink: 0;
+  }
+  .grip { color: #555; letter-spacing: -1px; font-size: 13px; line-height: 1; }
+  .tile-name { color: var(--label); font-size: 10px; letter-spacing: 1px; flex: 1; }
+  .tile-name b { color: var(--value); font-weight: 400; }
+  .tile-head .mint-txt { color: var(--mint); }
+  .tile-btn {
+    width: 14px; height: 14px; background: transparent; border: 1px solid var(--hair);
+    color: var(--label); display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; line-height: 1;
+  }
+  .tile-body { flex: 1; padding: 10px; overflow: hidden; position: relative; }
+
+  /* ===== DECK tile pulse ===== */
+  @keyframes mintpulse {
+    0%   { border-color: var(--mint); box-shadow: inset 0 0 0 0px var(--mint); }
+    50%  { border-color: var(--mint); box-shadow: inset 0 0 0 1px var(--mint); }
+    100% { border-color: var(--mint); box-shadow: inset 0 0 0 0px var(--mint); }
+  }
+  .tile.focused { border: 2px solid var(--mint); animation: mintpulse 2s ease-in-out infinite; }
+  .tile.focused .tile-head { background: #1b2a23; }
+
+  /* ===== DECK inside ===== */
+  .deck-wrap {
+    display: grid;
+    grid-template-columns: 110px repeat(5, 1fr);
+    grid-template-rows: 22px repeat(4, 1fr);
+    gap: 6px;
+    height: 100%;
+  }
+  .col-head {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--label); font-size: 9px; letter-spacing: 1px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .deck-corner { color: var(--label); font-size: 9px; letter-spacing: 1px; display: flex; align-items: center; padding-left: 4px; }
+  .layer-strip {
+    background: #1f1f1f; border: 1px solid var(--hair);
+    padding: 6px; display: flex; flex-direction: column; gap: 4px;
+    font-size: 9px;
+  }
+  .layer-strip .ln { color: var(--value); font-size: 10px; letter-spacing: 0.5px; }
+  .layer-strip .lr { display: flex; gap: 3px; }
+  .lbtn { width: 14px; height: 14px; background: var(--panel); border: 1px solid var(--hair); color: var(--label);
+          display: inline-flex; align-items: center; justify-content: center; font-size: 8px; }
+  .lbtn.mint { color: var(--mint); border-color: var(--mint); }
+  .lbtn.red  { color: var(--red);  border-color: var(--red);  }
+  .lopacity { flex: 1; height: 3px; background: var(--panel2); position: relative; margin-top: 2px; }
+  .lopacity i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--mint); }
+
+  .clip {
+    background: var(--panel2); border: 1px dashed #555;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .clip.loaded  { border: 1px solid var(--hair); }
+  .clip.playing { border: 2px solid var(--mint); background: #173023; }
+  .clip.queued  { border: 1px dashed var(--mint); }
+  .clip.selected { outline: 1px solid var(--mint); outline-offset: -1px; }
+  .clip .label {
+    position: absolute; left: 4px; top: 3px; font-size: 8px; color: var(--label); letter-spacing: 0.5px;
+  }
+  .clip .glyph { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
+  .clip.playing .glyph { color: var(--mint); }
+  .clip.loaded  .glyph { color: #888; }
+  .clip.playing .label { color: var(--mint); }
+  .clip .bignum { font-family: var(--mono); font-size: 18px; letter-spacing: 1px; }
+  .clip .ch { font-family: var(--mono); font-size: 28px; font-weight: 300; }
+
+  /* ===== Inspector tile ===== */
+  .insp-tabs { display: flex; border-bottom: 1px solid var(--hair); margin-bottom: 8px; }
+  .insp-tab {
+    padding: 4px 10px; font-size: 10px; color: var(--label); background: transparent;
+    border-bottom: 2px solid transparent; letter-spacing: 0.8px;
+  }
+  .insp-tab.active { color: var(--mint); border-bottom-color: var(--mint); }
+  .sec {
+    padding: 3px 0;
+  }
+  .sec-head {
+    display: flex; align-items: center; height: 22px; background: #1f1f1f;
+    padding: 0 6px; gap: 6px; position: relative;
+  }
+  .sec-head.routed::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--mint);
+  }
+  .tri { color: var(--label); font-size: 9px; }
+  .sec-name { color: var(--value); letter-spacing: 1px; font-size: 10px; flex: 1; }
+  .p-btn { color: var(--label); font-size: 9px; border: 1px solid var(--hair); padding: 1px 4px; background: transparent; }
+  .row {
+    display: grid; grid-template-columns: 90px 50px 16px 16px 1fr 24px;
+    align-items: center; gap: 6px; height: 20px; padding: 0 6px; font-size: 10px;
+  }
+  .row .lbl { color: var(--label); text-align: right; font-size: 9px; }
+  .row .val { color: var(--value); font-family: var(--mono); font-size: 10px; }
+  .row .minus, .row .plus {
+    width: 14px; height: 14px; border: 1px solid var(--hair); background: var(--panel2); color: var(--label);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 10px;
+  }
+  .bar { height: 4px; background: var(--panel2); position: relative; }
+  .bar i { position: absolute; top: 0; bottom: 0; left: 0; background: #444; }
+  .bar .dot { position: absolute; top: -2px; width: 2px; height: 8px; background: var(--mint); }
+  .row .p { color: var(--label); font-size: 8px; border: 1px solid var(--hair); padding: 1px 3px; text-align: center; }
+  .row.routed .p { color: var(--mint); border-color: var(--mint); }
+
+  /* ===== Dashboard knobs ===== */
+  .knob-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 14px;
+    padding: 4px 8px;
+  }
+  .knob { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .knob svg { display: block; }
+  .knob .kl { color: var(--label); font-size: 8px; letter-spacing: 0.5px; }
+  .knob .kv { color: var(--value); font-size: 9px; font-family: var(--mono); }
+  .knob.routed .kv { color: var(--mint); }
+
+  /* ===== Audio analysis tile ===== */
+  .aa-row { display: flex; gap: 10px; height: 100%; }
+  .aa-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .aa-h { color: var(--label); font-size: 9px; letter-spacing: 1px; border-bottom: 1px solid var(--hair); padding-bottom: 3px; }
+  .aa-row-line { display: flex; justify-content: space-between; font-size: 9px; color: var(--label); }
+  .aa-row-line b { color: var(--value); font-weight: 400; }
+  .aa-row-line b.mint { color: var(--mint); }
+  .band-bar { height: 8px; background: var(--panel2); position: relative; margin-bottom: 2px; }
+  .band-bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--mint); opacity: 0.85; }
+  .band-lbl { display: flex; justify-content: space-between; font-size: 8px; color: var(--label); }
+  .chroma {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; align-items: end; height: 60px;
+  }
+  .chroma div { background: #444; position: relative; }
+  .chroma div.hi { background: var(--mint); }
+  .chroma-lbl {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; font-size: 8px; color: var(--label); text-align: center;
+  }
+
+  /* ===== Beat & Genre tile ===== */
+  .bg-wrap { display: flex; align-items: center; height: 100%; gap: 14px; padding: 0 4px; }
+  .bg-wheel { width: 160px; height: 160px; flex-shrink: 0; }
+  .bg-info { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .genre-big {
+    color: var(--mint); font-size: 30px; letter-spacing: 2px; line-height: 1;
+    font-family: var(--mono); font-weight: 500;
+  }
+  .genre-conf { color: var(--label); font-size: 9px; letter-spacing: 0.5px; }
+  .struct-pill {
+    display: inline-block; padding: 4px 10px; border: 1px solid var(--mint); color: var(--mint);
+    font-size: 11px; letter-spacing: 1.5px; background: #122620; width: max-content;
+  }
+  .bar-phrase { display: flex; gap: 12px; font-family: var(--mono); color: var(--value); }
+  .bar-phrase div { display: flex; flex-direction: column; }
+  .bar-phrase .bl { color: var(--label); font-size: 8px; letter-spacing: 0.8px; }
+  .bar-phrase .bv { color: var(--value); font-size: 22px; }
+  .bar-phrase .bv.mint { color: var(--mint); }
+
+  /* ===== Macros / Scenes tile ===== */
+  .ms-wrap { display: flex; flex-direction: column; gap: 8px; height: 100%; }
+  .scene-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .scene {
+    height: 56px; border: 1px solid var(--hair); background: var(--panel2);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  }
+  .scene .n { color: var(--value); font-size: 12px; letter-spacing: 1.5px; }
+  .scene .k { color: var(--label); font-size: 9px; }
+  .scene.active { border: 1px solid var(--mint); background: #122620; }
+  .scene.active .n { color: var(--mint); }
+  .macro-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  .macro {
+    height: 30px; background: var(--panel2); border: 1px solid var(--hair); color: var(--label);
+    display: flex; align-items: center; justify-content: center; font-size: 10px;
+  }
+  .macro.on { color: var(--mint); border-color: var(--mint); background: #162b22; }
+  .levels { display: flex; gap: 8px; align-items: center; }
+  .level-block { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .level-lbl { color: var(--label); font-size: 9px; letter-spacing: 0.8px; }
+  .level-track { height: 6px; background: var(--panel2); position: relative; border: 1px solid var(--hair); }
+  .level-track i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--mint); }
+
+  /* ===== Live monitor ===== */
+  .monitor { width: 100%; height: 100%; display: block; }
+
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">AUDIO<span>DNA</span></div>
+  <div class="bpm-big">128</div>
+  <div class="tb-block"><div class="tb-label">BAR</div><div class="tb-value">17.3</div></div>
+  <div class="tb-block"><div class="tb-label">PHRASE</div><div class="tb-value">5/8</div></div>
+  <div class="pill-mint">DROP</div>
+  <svg class="beat-wheel-top" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="12" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+    <path d="M14,14 L14,2 A12,12 0 0,1 26,14 Z" fill="#5fdba7"/>
+    <line x1="14" y1="2" x2="14" y2="26" stroke="#3a3a3a" stroke-width="0.5"/>
+    <line x1="2" y1="14" x2="26" y2="14" stroke="#3a3a3a" stroke-width="0.5"/>
+    <circle cx="14" cy="14" r="1.5" fill="#5fdba7"/>
+  </svg>
+  <div class="tb-sep"></div>
+  <button class="tb-btn mint">&#9654;</button>
+  <button class="tb-btn">&#10074;&#10074;</button>
+  <button class="tb-btn">&#9632;</button>
+  <div class="tb-sep"></div>
+  <div class="tb-block"><div class="tb-label">QUANTIZE</div><div class="tb-value">1/4</div></div>
+  <div class="tb-block"><div class="tb-label">FADE</div><div class="tb-value">0.5s</div></div>
+  <div class="tb-block"><div class="tb-label">MASTER</div><div class="tb-value" style="color:var(--mint)">0.85</div></div>
+  <div class="tb-sep"></div>
+  <button class="tb-btn red">REC</button>
+  <div class="tb-block"><div class="tb-label">FPS</div><div class="tb-value">60.0</div></div>
+  <div class="mode-tabs">
+    <button class="mode-tab active">LIVE</button>
+    <button class="mode-tab">PROGRAM</button>
+    <button class="mode-tab">SETUP</button>
+  </div>
+</div>
+
+<!-- TRANSPORT -->
+<div class="transport">
+  <button class="tp-btn mint">&#9654;</button>
+  <button class="tp-btn">&#10074;&#10074;</button>
+  <button class="tp-btn">&#9632;</button>
+  <div class="tp-btn mono-big">128</div>
+  <button class="tp-btn">&minus;</button>
+  <button class="tp-btn">+</button>
+  <button class="tp-btn">|&#9666;</button>
+  <button class="tp-btn">&#9656;|</button>
+  <button class="tp-btn">/2</button>
+  <button class="tp-btn">&times;2</button>
+  <button class="tp-btn mint">TAP</button>
+  <button class="tp-btn">RESYNC</button>
+  <button class="tp-btn">&#9728;</button>
+  <button class="tp-btn">&#8630;</button>
+  <button class="tp-btn">&#8631;</button>
+</div>
+
+<!-- SIGNAL QUICK-REF -->
+<div class="sig-ref">
+  <span>RMS<b>0.73</b></span><span class="sep">&#9474;</span>
+  <span>PEAK<b>0.91</b></span><span class="sep">&#9474;</span>
+  <span>LUFS<b>-12.4</b></span><span class="sep">&#9474;</span>
+  <span>FLUX<b>0.42</b></span><span class="sep">&#9474;</span>
+  <span>CENTROID<b>2.8k</b></span><span class="sep">&#9474;</span>
+  <span>BASS<b class="mint-v">0.88</b></span><span class="sep">&#9474;</span>
+  <span>MID<b>0.45</b></span><span class="sep">&#9474;</span>
+  <span>HIGH<b>0.31</b></span><span class="sep">&#9474;</span>
+  <span>BPM<b class="mint-v">128</b></span><span class="sep">&#9474;</span>
+  <span>KEY<b>Am</b></span><span class="sep">&#9474;</span>
+  <span>GENRE<b class="mint-v">TECHNO</b></span><span class="sep">&#9474;</span>
+  <span>PITCH<b>220Hz</b></span><span class="sep">&#9474;</span>
+  <span>ONSETS<b>4.2/s</b></span><span class="sep">&#9474;</span>
+  <span>CREST<b>2.1</b></span><span class="sep">&#9474;</span>
+  <span>FLAT<b>0.28</b></span>
+</div>
+
+<!-- ===================== TILE GRID ===================== -->
+<div class="tile-grid">
+
+  <!-- ========== DECK TILE (focused) ========== -->
+  <div class="tile focused" style="grid-column: 1; grid-row: 1;">
+    <div class="tile-head">
+      <span class="grip">&#8801;</span>
+      <span class="tile-name"><b class="mint-txt">DECK</b> &middot; <span style="color:var(--mint)">FOCUSED</span></span>
+      <button class="tile-btn">[]</button>
+      <button class="tile-btn">&times;</button>
+    </div>
+    <div class="tile-body">
+      <div class="deck-wrap">
+        <div class="deck-corner">DECK A</div>
+        <div class="col-head">01 INTRO</div>
+        <div class="col-head">02 VERSE</div>
+        <div class="col-head" style="color:var(--mint)">03 DROP</div>
+        <div class="col-head">04 BREAK</div>
+        <div class="col-head">05 OUT</div>
+
+        <!-- L4 (top) -->
+        <div class="layer-strip">
+          <div class="ln">L4 FX</div>
+          <div class="lr"><span class="lbtn">S</span><span class="lbtn mint">M</span><span class="lbtn">B</span></div>
+          <div class="lopacity"><i style="width:42%"></i></div>
+        </div>
+        <div class="clip loaded"><span class="label">CHROMA</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><path d="M8 24 Q16 8 24 24 T40 24" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">FEEDBACK</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="6" fill="none" stroke="currentColor"/><circle cx="24" cy="24" r="12" fill="none" stroke="currentColor"/><circle cx="24" cy="24" r="18" fill="none" stroke="currentColor"/></svg>
+        </div></div>
+        <div class="clip playing selected"><span class="label">STROBE</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><line x1="24" y1="4" x2="24" y2="44" stroke="currentColor" stroke-width="2"/><line x1="4" y1="24" x2="44" y2="24" stroke="currentColor" stroke-width="2"/></svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">ECHO</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><text x="24" y="32" text-anchor="middle" font-family="IBM Plex Mono" font-size="26" fill="currentColor">~</text></svg>
+        </div></div>
+        <div class="clip"><span class="label">&mdash;</span></div>
+
+        <!-- L3 -->
+        <div class="layer-strip">
+          <div class="ln">L3 FG</div>
+          <div class="lr"><span class="lbtn mint">S</span><span class="lbtn">M</span><span class="lbtn">B</span></div>
+          <div class="lopacity"><i style="width:78%"></i></div>
+        </div>
+        <div class="clip loaded"><span class="label">RINGS</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="4" fill="none" stroke="currentColor"/><circle cx="24" cy="24" r="10" fill="none" stroke="currentColor"/><circle cx="24" cy="24" r="16" fill="none" stroke="currentColor"/></svg>
+        </div></div>
+        <div class="clip playing"><span class="label">SPIRAL</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><path d="M24 24 m0,-2 a2,2 0 1,1 4,0 a4,4 0 1,1 -8,0 a6,6 0 1,1 12,0 a8,8 0 1,1 -16,0 a10,10 0 1,1 20,0" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+        </div></div>
+        <div class="clip playing"><span class="label">BEAT 003</span><div class="glyph">
+          <span class="bignum" style="color:var(--mint)">003</span>
+        </div></div>
+        <div class="clip queued"><span class="label" style="color:var(--mint)">QUEUED</span><div class="glyph" style="color:var(--mint)">
+          <svg viewBox="0 0 48 48" width="48" height="48"><polygon points="24,8 40,40 8,40" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">DOT</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="6" fill="currentColor"/></svg>
+        </div></div>
+
+        <!-- L2 -->
+        <div class="layer-strip">
+          <div class="ln">L2 MID</div>
+          <div class="lr"><span class="lbtn">S</span><span class="lbtn">M</span><span class="lbtn">B</span></div>
+          <div class="lopacity"><i style="width:100%"></i></div>
+        </div>
+        <div class="clip playing"><span class="label">MANDALA</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48">
+            <polygon points="24,8 32,22 40,22 34,30 38,44 24,36 10,44 14,30 8,22 16,22" fill="none" stroke="currentColor" stroke-width="1"/>
+          </svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">WAVE</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><path d="M4 24 Q12 12 20 24 T36 24 T52 24" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">PARTICLES</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48">
+            <circle cx="10" cy="14" r="1.5" fill="currentColor"/>
+            <circle cx="20" cy="8"  r="1.5" fill="currentColor"/>
+            <circle cx="32" cy="16" r="1.5" fill="currentColor"/>
+            <circle cx="40" cy="10" r="1.5" fill="currentColor"/>
+            <circle cx="14" cy="24" r="1.5" fill="currentColor"/>
+            <circle cx="24" cy="20" r="1.5" fill="currentColor"/>
+            <circle cx="36" cy="28" r="1.5" fill="currentColor"/>
+            <circle cx="8"  cy="34" r="1.5" fill="currentColor"/>
+            <circle cx="18" cy="38" r="1.5" fill="currentColor"/>
+            <circle cx="28" cy="34" r="1.5" fill="currentColor"/>
+            <circle cx="40" cy="40" r="1.5" fill="currentColor"/>
+          </svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">FRAME</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><rect x="10" y="10" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">ASTER</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><text x="24" y="36" text-anchor="middle" font-family="IBM Plex Mono" font-size="36" fill="currentColor">*</text></svg>
+        </div></div>
+
+        <!-- L1 (bottom) -->
+        <div class="layer-strip">
+          <div class="ln">L1 BG</div>
+          <div class="lr"><span class="lbtn">S</span><span class="lbtn">M</span><span class="lbtn">B</span></div>
+          <div class="lopacity"><i style="width:100%"></i></div>
+        </div>
+        <div class="clip playing"><span class="label">M</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><text x="24" y="36" text-anchor="middle" font-family="IBM Plex Mono" font-size="34" font-weight="500" fill="currentColor">M</text></svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">SPECTRUM</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48">
+            <rect x="14" y="14" width="4" height="22" fill="currentColor"/>
+            <rect x="22" y="8"  width="4" height="28" fill="currentColor"/>
+            <rect x="30" y="18" width="4" height="18" fill="currentColor"/>
+          </svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">HASH</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><text x="24" y="36" text-anchor="middle" font-family="IBM Plex Mono" font-size="32" fill="currentColor">#</text></svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">SLASH</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48"><text x="24" y="38" text-anchor="middle" font-family="IBM Plex Mono" font-size="38" fill="currentColor">/</text></svg>
+        </div></div>
+        <div class="clip loaded"><span class="label">PLUS</span><div class="glyph">
+          <svg viewBox="0 0 48 48" width="48" height="48">
+            <line x1="24" y1="10" x2="24" y2="38" stroke="currentColor" stroke-width="2"/>
+            <line x1="10" y1="24" x2="38" y2="24" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== LIVE MONITOR ========== -->
+  <div class="tile" style="grid-column: 2; grid-row: 1; height: 240px;">
+    <div class="tile-head">
+      <span class="grip">&#8801;</span>
+      <span class="tile-name"><b>LIVE MONITOR</b></span>
+      <button class="tile-btn">[]</button>
+      <button class="tile-btn">&times;</button>
+    </div>
+    <div class="tile-body" style="padding: 4px;">
+      <svg class="monitor" viewBox="0 0 400 205" preserveAspectRatio="none">
+        <defs>
+          <radialGradient id="mbg" cx="50%" cy="50%" r="75%">
+            <stop offset="0%" stop-color="#183028"/>
+            <stop offset="100%" stop-color="#0a0a0a"/>
+          </radialGradient>
+        </defs>
+        <rect width="400" height="205" fill="url(#mbg)"/>
+        <g stroke="#5fdba7" stroke-width="1" fill="none" opacity="0.7">
+          <circle cx="200" cy="102" r="20"/>
+          <circle cx="200" cy="102" r="42"/>
+          <circle cx="200" cy="102" r="64"/>
+          <circle cx="200" cy="102" r="86"/>
+        </g>
+        <g stroke="#5fdba7" stroke-width="1.3" fill="none" opacity="0.85">
+          <path d="M200,102 m0,-4 a4,4 0 1,1 8,0 a8,8 0 1,1 -16,0 a12,12 0 1,1 24,0 a16,16 0 1,1 -32,0 a20,20 0 1,1 40,0"/>
+        </g>
+        <g fill="#5fdba7" opacity="0.7">
+          <circle cx="80"  cy="40"  r="1.5"/>
+          <circle cx="330" cy="50"  r="1.5"/>
+          <circle cx="60"  cy="170" r="1.5"/>
+          <circle cx="340" cy="160" r="1.5"/>
+          <circle cx="140" cy="30"  r="1"/>
+          <circle cx="280" cy="30"  r="1"/>
+        </g>
+        <line x1="0" y1="102" x2="400" y2="102" stroke="#5fdba7" opacity="0.18" stroke-width="0.5"/>
+        <line x1="200" y1="0" x2="200" y2="205" stroke="#5fdba7" opacity="0.18" stroke-width="0.5"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ========== INSPECTOR ========== -->
+  <div class="tile" style="grid-column: 3; grid-row: 1; height: 240px;">
+    <div class="tile-head">
+      <span class="grip">&#8801;</span>
+      <span class="tile-name"><b>INSPECTOR</b></span>
+      <button class="tile-btn">[]</button>
+      <button class="tile-btn">&times;</button>
+    </div>
+    <div class="tile-body" style="padding: 6px;">
+      <div class="insp-tabs">
+        <button class="insp-tab">COMPOSITION</button>
+        <button class="insp-tab">LAYER</button>
+        <button class="insp-tab active">CLIP</button>
+      </div>
+      <div class="sec">
+        <div class="sec-head routed"><span class="tri">&#9660;</span><span class="sec-name">TRANSFORM</span><button class="p-btn">P.</button></div>
+        <div class="row routed"><span class="lbl">Position X</span><span class="val">0.00</span><button class="minus">&minus;</button><button class="plus">+</button>
+          <div class="bar"><i style="width:50%"></i><span class="dot" style="left:50%"></span></div><span class="p">P.</span></div>
+        <div class="row"><span class="lbl">Scale</span><span class="val">1.24</span><button class="minus">&minus;</button><button class="plus">+</button>
+          <div class="bar"><i style="width:62%"></i></div><span class="p"></span></div>
+        <div class="row routed"><span class="lbl">Rotation</span><span class="val">0.28</span><button class="minus">&minus;</button><button class="plus">+</button>
+          <div class="bar"><i style="width:28%"></i><span class="dot" style="left:28%"></span></div><span class="p">P.</span></div>
+      </div>
+      <div class="sec">
+        <div class="sec-head routed"><span class="tri">&#9660;</span><span class="sec-name">VIDEO</span><button class="p-btn">P.</button></div>
+        <div class="row routed"><span class="lbl">Opacity</span><span class="val">0.88</span><button class="minus">&minus;</button><button class="plus">+</button>
+          <div class="bar"><i style="width:88%; background:var(--mint)"></i><span class="dot" style="left:88%"></span></div><span class="p">P.</span></div>
+        <div class="row"><span class="lbl">Blend</span><span class="val">ADD</span><button class="minus">&minus;</button><button class="plus">+</button>
+          <div class="bar"><i style="width:40%"></i></div><span class="p"></span></div>
+      </div>
+      <div class="sec">
+        <div class="sec-head"><span class="tri">&#9660;</span><span class="sec-name">FX &middot; RIPPLE</span><button class="p-btn">P.</button></div>
+        <div class="row routed"><span class="lbl">Intensity</span><span class="val">0.65</span><button class="minus">&minus;</button><button class="plus">+</button>
+          <div class="bar"><i style="width:65%; background:var(--mint)"></i></div><span class="p">P.</span></div>
+        <div class="row"><span class="lbl">Speed</span><span class="val">0.42</span><button class="minus">&minus;</button><button class="plus">+</button>
+          <div class="bar"><i style="width:42%"></i></div><span class="p"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SPECTRUM ========== -->
+  <div class="tile" style="grid-column: 2; grid-row: 2;">
+    <div class="tile-head">
+      <span class="grip">&#8801;</span>
+      <span class="tile-name"><b>SPECTRUM</b> &middot; FFT 2048</span>
+      <button class="tile-btn">[]</button>
+      <button class="tile-btn">&times;</button>
+    </div>
+    <div class="tile-body" style="padding: 4px;">
+      <svg width="380" height="205" viewBox="0 0 380 205" preserveAspectRatio="none">
+        <rect width="380" height="205" fill="#1a1a1a"/>
+        <g stroke="#2a2a2a" stroke-width="0.5">
+          <line x1="0" y1="40"  x2="380" y2="40"/>
+          <line x1="0" y1="80"  x2="380" y2="80"/>
+          <line x1="0" y1="120" x2="380" y2="120"/>
+          <line x1="0" y1="160" x2="380" y2="160"/>
+          <line x1="95"  y1="0" x2="95"  y2="205"/>
+          <line x1="190" y1="0" x2="190" y2="205"/>
+          <line x1="285" y1="0" x2="285" y2="205"/>
+        </g>
+        <g fill="#5fdba7">
+          <rect x="2"   y="70"  width="4" height="135"/>
+          <rect x="8"   y="55"  width="4" height="150"/>
+          <rect x="14"  y="35"  width="4" height="170"/>
+          <rect x="20"  y="30"  width="4" height="175"/>
+          <rect x="26"  y="45"  width="4" height="160"/>
+          <rect x="32"  y="40"  width="4" height="165"/>
+          <rect x="38"  y="60"  width="4" height="145"/>
+          <rect x="44"  y="75"  width="4" height="130"/>
+          <rect x="50"  y="65"  width="4" height="140"/>
+          <rect x="56"  y="50"  width="4" height="155"/>
+          <rect x="62"  y="58"  width="4" height="147"/>
+          <rect x="68"  y="72"  width="4" height="133"/>
+          <rect x="74"  y="85"  width="4" height="120"/>
+          <rect x="80"  y="95"  width="4" height="110"/>
+          <rect x="86"  y="82"  width="4" height="123"/>
+          <rect x="92"  y="78"  width="4" height="127"/>
+          <rect x="98"  y="88"  width="4" height="117"/>
+          <rect x="104" y="100" width="4" height="105"/>
+          <rect x="110" y="92"  width="4" height="113"/>
+          <rect x="116" y="105" width="4" height="100"/>
+          <rect x="122" y="110" width="4" height="95"/>
+          <rect x="128" y="118" width="4" height="87"/>
+          <rect x="134" y="108" width="4" height="97"/>
+          <rect x="140" y="115" width="4" height="90"/>
+          <rect x="146" y="125" width="4" height="80"/>
+          <rect x="152" y="120" width="4" height="85"/>
+          <rect x="158" y="132" width="4" height="73"/>
+          <rect x="164" y="128" width="4" height="77"/>
+          <rect x="170" y="138" width="4" height="67"/>
+          <rect x="176" y="142" width="4" height="63"/>
+          <rect x="182" y="135" width="4" height="70"/>
+          <rect x="188" y="148" width="4" height="57"/>
+          <rect x="194" y="145" width="4" height="60"/>
+          <rect x="200" y="155" width="4" height="50"/>
+          <rect x="206" y="150" width="4" height="55"/>
+          <rect x="212" y="160" width="4" height="45"/>
+          <rect x="218" y="156" width="4" height="49"/>
+          <rect x="224" y="164" width="4" height="41"/>
+          <rect x="230" y="160" width="4" height="45"/>
+          <rect x="236" y="168" width="4" height="37"/>
+          <rect x="242" y="165" width="4" height="40"/>
+          <rect x="248" y="170" width="4" height="35"/>
+          <rect x="254" y="172" width="4" height="33"/>
+          <rect x="260" y="168" width="4" height="37"/>
+          <rect x="266" y="174" width="4" height="31"/>
+          <rect x="272" y="176" width="4" height="29"/>
+          <rect x="278" y="172" width="4" height="33"/>
+          <rect x="284" y="178" width="4" height="27"/>
+          <rect x="290" y="180" width="4" height="25"/>
+          <rect x="296" y="178" width="4" height="27"/>
+          <rect x="302" y="182" width="4" height="23"/>
+          <rect x="308" y="184" width="4" height="21"/>
+          <rect x="314" y="180" width="4" height="25"/>
+          <rect x="320" y="185" width="4" height="20"/>
+          <rect x="326" y="187" width="4" height="18"/>
+          <rect x="332" y="184" width="4" height="21"/>
+          <rect x="338" y="188" width="4" height="17"/>
+          <rect x="344" y="190" width="4" height="15"/>
+          <rect x="350" y="188" width="4" height="17"/>
+          <rect x="356" y="191" width="4" height="14"/>
+          <rect x="362" y="193" width="4" height="12"/>
+          <rect x="368" y="192" width="4" height="13"/>
+          <rect x="374" y="194" width="4" height="11"/>
+        </g>
+        <g fill="#888" font-size="8" font-family="IBM Plex Mono">
+          <text x="2"   y="203">20Hz</text>
+          <text x="95"  y="203">250</text>
+          <text x="190" y="203">2k</text>
+          <text x="285" y="203">8k</text>
+          <text x="355" y="203">20k</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ========== DASHBOARD ========== -->
+  <div class="tile" style="grid-column: 3; grid-row: 2;">
+    <div class="tile-head">
+      <span class="grip">&#8801;</span>
+      <span class="tile-name"><b>DASHBOARD</b> &middot; 16 LINK KNOBS</span>
+      <button class="tile-btn">[]</button>
+      <button class="tile-btn">&times;</button>
+    </div>
+    <div class="tile-body" style="padding: 8px 10px;">
+      <div class="knob-grid">
+        <div class="knob routed">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <path d="M24,24 L24,6 A18,18 0 0,1 39.6,33 Z" fill="none" stroke="#5fdba7" stroke-width="2"/>
+            <line x1="24" y1="24" x2="38" y2="12" stroke="#5fdba7" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M1</span><span class="kv">0.72</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M2</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob routed">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <path d="M24,24 L24,6 A18,18 0 0,1 36.7,9.8 Z" fill="none" stroke="#5fdba7" stroke-width="2"/>
+            <line x1="24" y1="24" x2="33" y2="13" stroke="#5fdba7" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M3</span><span class="kv">0.35</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M4</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob routed">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <path d="M24,24 L24,6 A18,18 0 1,1 12,40 Z" fill="none" stroke="#5fdba7" stroke-width="2"/>
+            <line x1="24" y1="24" x2="12" y2="36" stroke="#5fdba7" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M5</span><span class="kv">0.88</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M6</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob routed">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <path d="M24,24 L24,6 A18,18 0 0,1 41.4,18 Z" fill="none" stroke="#5fdba7" stroke-width="2"/>
+            <line x1="24" y1="24" x2="40" y2="20" stroke="#5fdba7" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M7</span><span class="kv">0.55</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M8</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob routed">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <path d="M24,24 L24,6 A18,18 0 0,1 41.5,22.5 Z" fill="none" stroke="#5fdba7" stroke-width="2"/>
+            <line x1="24" y1="24" x2="41" y2="20" stroke="#5fdba7" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M9</span><span class="kv">0.62</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M10</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M11</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob routed">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <path d="M24,24 L24,6 A18,18 0 0,1 33,8 Z" fill="none" stroke="#5fdba7" stroke-width="2"/>
+            <line x1="24" y1="24" x2="31" y2="9" stroke="#5fdba7" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M12</span><span class="kv">0.22</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M13</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M14</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M15</span><span class="kv">0.00</span>
+        </div>
+        <div class="knob">
+          <svg width="48" height="48"><circle cx="24" cy="24" r="18" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+            <line x1="24" y1="24" x2="24" y2="10" stroke="#888" stroke-width="1.5"/>
+          </svg>
+          <span class="kl">M16</span><span class="kv">0.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== AUDIO ANALYSIS ========== -->
+  <div class="tile" style="grid-column: 1; grid-row: 3;">
+    <div class="tile-head">
+      <span class="grip">&#8801;</span>
+      <span class="tile-name"><b>AUDIO ANALYSIS</b> &middot; 7 BANDS &middot; CHROMA &middot; DYNAMICS</span>
+      <button class="tile-btn">[]</button>
+      <button class="tile-btn">&times;</button>
+    </div>
+    <div class="tile-body" style="padding: 10px;">
+      <div class="aa-row">
+        <div class="aa-col" style="flex: 1.2">
+          <div class="aa-h">7 BANDS</div>
+          <div>
+            <div class="band-lbl"><span>SUB 20-60</span><b style="color:var(--mint)">0.62</b></div>
+            <div class="band-bar"><i style="width:62%"></i></div>
+          </div>
+          <div>
+            <div class="band-lbl"><span>BASS 60-250</span><b style="color:var(--mint)">0.88</b></div>
+            <div class="band-bar"><i style="width:88%"></i></div>
+          </div>
+          <div>
+            <div class="band-lbl"><span>LOWMID 250-500</span><b>0.54</b></div>
+            <div class="band-bar"><i style="width:54%"></i></div>
+          </div>
+          <div>
+            <div class="band-lbl"><span>MID 500-2k</span><b>0.45</b></div>
+            <div class="band-bar"><i style="width:45%"></i></div>
+          </div>
+          <div>
+            <div class="band-lbl"><span>HIGHMID 2-4k</span><b>0.38</b></div>
+            <div class="band-bar"><i style="width:38%"></i></div>
+          </div>
+          <div>
+            <div class="band-lbl"><span>PRESENCE 4-6k</span><b>0.29</b></div>
+            <div class="band-bar"><i style="width:29%"></i></div>
+          </div>
+          <div>
+            <div class="band-lbl"><span>BRILLIANCE 6-20k</span><b>0.21</b></div>
+            <div class="band-bar"><i style="width:21%"></i></div>
+          </div>
+        </div>
+        <div class="aa-col" style="flex: 1.3">
+          <div class="aa-h">CHROMAGRAM &middot; KEY A MINOR</div>
+          <div class="chroma">
+            <div style="height:30%"></div>
+            <div style="height:18%"></div>
+            <div style="height:52%"></div>
+            <div style="height:22%"></div>
+            <div style="height:45%"></div>
+            <div style="height:28%"></div>
+            <div style="height:38%"></div>
+            <div style="height:18%"></div>
+            <div style="height:25%"></div>
+            <div class="hi" style="height:95%"></div>
+            <div style="height:20%"></div>
+            <div style="height:48%"></div>
+          </div>
+          <div class="chroma-lbl">
+            <div>C</div><div>C#</div><div>D</div><div>D#</div><div>E</div><div>F</div>
+            <div>F#</div><div>G</div><div>G#</div><div style="color:var(--mint)">A</div><div>A#</div><div>B</div>
+          </div>
+          <div class="aa-row-line" style="margin-top:4px"><span>HCDF</span><b>0.12</b></div>
+          <div class="aa-row-line"><span>PITCH CONFIDENCE</span><b>0.84</b></div>
+          <div class="aa-row-line"><span>DOMINANT PITCH</span><b>220 Hz</b></div>
+        </div>
+        <div class="aa-col" style="flex: 1">
+          <div class="aa-h">DYNAMICS</div>
+          <div class="aa-row-line"><span>RMS</span><b>0.73</b></div>
+          <div class="aa-row-line"><span>PEAK</span><b>0.91</b></div>
+          <div class="aa-row-line"><span>LUFS</span><b>-12.4</b></div>
+          <div class="aa-row-line"><span>CREST</span><b>2.1</b></div>
+          <div class="aa-row-line"><span>DYNAMIC RANGE</span><b>14.2 dB</b></div>
+          <div class="aa-h" style="margin-top: 6px">TIMBRE</div>
+          <div class="aa-row-line"><span>CENTROID</span><b>2.8 kHz</b></div>
+          <div class="aa-row-line"><span>FLUX</span><b>0.42</b></div>
+          <div class="aa-row-line"><span>FLATNESS</span><b>0.28</b></div>
+          <div class="aa-row-line"><span>ROLLOFF</span><b>6.4 kHz</b></div>
+          <div class="aa-row-line"><span>ONSETS</span><b class="mint">4.2/s</b></div>
+          <div class="aa-h" style="margin-top: 6px">ADVANCED</div>
+          <div class="aa-row-line"><span>SIDECHAIN PUMP</span><b class="mint">0.82</b></div>
+          <div class="aa-row-line"><span>REESE BASS</span><b>0.14</b></div>
+          <div class="aa-row-line"><span>SWING RATIO</span><b>0.50</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== BEAT & GENRE ========== -->
+  <div class="tile" style="grid-column: 2; grid-row: 3;">
+    <div class="tile-head">
+      <span class="grip">&#8801;</span>
+      <span class="tile-name"><b>BEAT &amp; GENRE</b></span>
+      <button class="tile-btn">[]</button>
+      <button class="tile-btn">&times;</button>
+    </div>
+    <div class="tile-body" style="padding: 6px 10px;">
+      <div class="bg-wrap">
+        <svg class="bg-wheel" viewBox="0 0 160 160">
+          <circle cx="80" cy="80" r="72" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+          <circle cx="80" cy="80" r="60" fill="none" stroke="#2a2a2a" stroke-width="1"/>
+          <path d="M80,80 L80,8 A72,72 0 0,1 152,80 Z" fill="#5fdba7" opacity="0.85"/>
+          <path d="M80,80 L152,80 A72,72 0 0,1 80,152 Z" fill="#5fdba7" opacity="0.25"/>
+          <path d="M80,80 L80,152 A72,72 0 0,1 8,80 Z" fill="#5fdba7" opacity="0.15"/>
+          <path d="M80,80 L8,80 A72,72 0 0,1 80,8 Z" fill="#5fdba7" opacity="0.10"/>
+          <line x1="80" y1="8" x2="80" y2="152" stroke="#1a1a1a" stroke-width="1.5"/>
+          <line x1="8" y1="80" x2="152" y2="80" stroke="#1a1a1a" stroke-width="1.5"/>
+          <circle cx="80" cy="80" r="18" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1"/>
+          <text x="80" y="76" text-anchor="middle" font-family="IBM Plex Mono" font-size="9" fill="#888">BEAT</text>
+          <text x="80" y="90" text-anchor="middle" font-family="IBM Plex Mono" font-size="13" fill="#5fdba7">1/4</text>
+        </svg>
+        <div class="bg-info">
+          <div class="genre-big">TECHNO</div>
+          <div class="genre-conf">CONFIDENCE 0.91 &middot; ENERGY HIGH</div>
+          <div class="struct-pill">STRUCTURAL &middot; DROP</div>
+          <div class="bar-phrase">
+            <div><span class="bl">BAR</span><span class="bv mint">17</span></div>
+            <div><span class="bl">PHRASE</span><span class="bv">5/8</span></div>
+            <div><span class="bl">BEAT</span><span class="bv">3</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== MACROS / SCENES ========== -->
+  <div class="tile" style="grid-column: 3; grid-row: 3;">
+    <div class="tile-head">
+      <span class="grip">&#8801;</span>
+      <span class="tile-name"><b>MACROS</b> &middot; SCENES</span>
+      <button class="tile-btn">[]</button>
+      <button class="tile-btn">&times;</button>
+    </div>
+    <div class="tile-body" style="padding: 10px;">
+      <div class="ms-wrap">
+        <div class="scene-row">
+          <div class="scene"><span class="n">INTRO</span><span class="k">F1</span></div>
+          <div class="scene"><span class="n">BUILD</span><span class="k">F2</span></div>
+          <div class="scene active"><span class="n">DROP</span><span class="k">F3</span></div>
+          <div class="scene"><span class="n">BREAK</span><span class="k">F4</span></div>
+        </div>
+        <div class="macro-row">
+          <div class="macro on">M1</div>
+          <div class="macro">M2</div>
+          <div class="macro on">M3</div>
+          <div class="macro">M4</div>
+          <div class="macro on">M5</div>
+          <div class="macro">M6</div>
+          <div class="macro on">M7</div>
+          <div class="macro">M8</div>
+        </div>
+        <div class="levels">
+          <div class="level-block">
+            <div class="level-lbl">MASTER 0.85</div>
+            <div class="level-track"><i style="width:85%"></i></div>
+          </div>
+          <div class="level-block">
+            <div class="level-lbl">CROSSFADE A/B 0.40</div>
+            <div class="level-track"><i style="width:40%; background:#888"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

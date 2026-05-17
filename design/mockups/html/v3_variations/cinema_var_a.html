@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Cinema Variation A (Dense Grid, No Big Preview)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --cyan: #00d9ff;
+  --cyan-dim: rgba(0, 217, 255, 0.5);
+  --cyan-glow: rgba(0, 217, 255, 0.15);
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --text-dark: #555;
+  --bg: #1a1a1a;
+  --bg-panel: rgba(20, 20, 24, 0.94);
+  --bg-glass: rgba(16, 16, 22, 0.88);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.12);
+}
+
+html, body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--text); background: var(--bg);
+}
+
+/* ═══════════════ TOP BAR (30px) ═══════════════ */
+.top-bar {
+  height: 30px; width: 100%; background: #111114; border-bottom: 1px solid #2a2a2e;
+  display: flex; align-items: center; padding: 0 10px; gap: 3px; position: relative; z-index: 100;
+}
+.tb-section { display: flex; align-items: center; gap: 3px; }
+.tb-sep { width: 1px; height: 16px; background: #2a2a30; margin: 0 5px; }
+.tb-btn { height: 20px; padding: 0 7px; background: #222226; border: 1px solid #2a2a30; color: #999; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tb-btn.active { background: #0d1a2a; color: var(--cyan); border-color: #00d9ff44; }
+.tb-btn.transport { width: 24px; font-size: 12px; }
+.tb-dropdown { height: 20px; padding: 0 6px; background: #1e1e22; border: 1px solid #2a2a30; color: #aaa; font-size: 10px; display: flex; align-items: center; }
+.tb-bpm { font-size: 17px; font-weight: 700; color: #44bb44; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.tb-state { font-size: 8px; color: #44bb44; letter-spacing: 0.5px; }
+.tb-beat-wheel { width: 22px; height: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.tb-beat-seg { width: 9px; height: 9px; border-radius: 50%; background: #222230; }
+.tb-beat-seg.on { background: var(--cyan); box-shadow: 0 0 4px #00d9ff88; }
+.tb-mult { font-size: 9px; padding: 0 4px; height: 18px; }
+.tb-spacer { flex: 1; }
+.tb-label { color: #666; font-size: 9px; white-space: nowrap; }
+.tb-bar-phrase { font-size: 8px; color: #667; line-height: 1.3; text-align: center; }
+.tb-slider-wrap { display: flex; align-items: center; gap: 3px; }
+.tb-slider { width: 50px; height: 4px; background: #2a2a30; position: relative; }
+.tb-slider-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.tb-slider-thumb { width: 2px; height: 10px; position: absolute; top: -3px; }
+.tb-stats { font-size: 9px; color: #555; font-variant-numeric: tabular-nums; display: flex; gap: 8px; }
+
+/* Preview thumb at top-right */
+.preview-thumb {
+  width: 200px; height: 112px; background: #080810; border: 1px solid #2a2a30; position: relative; overflow: hidden; flex-shrink: 0;
+}
+.preview-visual {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 40% 50%, #0a1535, #050a18), linear-gradient(135deg, #020210 0%, #0a0520 30%, #051525 60%, #020210 100%);
+}
+.preview-visual::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 35% 45%, rgba(0,100,200,0.2) 0%, transparent 50%), radial-gradient(circle at 65% 55%, rgba(100,0,150,0.15) 0%, transparent 40%); }
+.preview-label { position: absolute; bottom: 2px; right: 4px; font-size: 7px; color: #445; }
+
+/* ═══════════════ MAIN LAYOUT ═══════════════ */
+.main { display: flex; height: calc(100% - 30px); }
+
+/* ═══════════════ LEFT SIDEBAR: BROWSER (frosted glass) ═══════════════ */
+.browser-panel {
+  width: 250px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: var(--bg-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid var(--border-light);
+}
+.browser-tabs { height: 24px; display: flex; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); }
+.browser-tab { padding: 0 10px; height: 100%; display: flex; align-items: center; font-size: 9px; color: var(--text-dark); cursor: pointer; border-bottom: 2px solid transparent; }
+.browser-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+.browser-search { height: 26px; display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid var(--border); }
+.browser-search-input {
+  width: 100%; height: 18px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  color: var(--text-dim); font-size: 9px; padding: 0 6px; font-family: inherit;
+}
+.browser-content { flex: 1; overflow-y: auto; padding: 4px 0; }
+.browser-cat-header {
+  height: 22px; display: flex; align-items: center; padding: 0 8px; gap: 4px;
+  cursor: pointer; color: var(--text-dim); font-size: 9px; font-weight: 600;
+}
+.browser-cat-header:hover { background: rgba(255,255,255,0.03); }
+.browser-cat-arrow { font-size: 7px; color: var(--text-dark); width: 10px; }
+.browser-cat-count { font-size: 7px; color: #445; margin-left: auto; }
+.browser-item {
+  height: 20px; display: flex; align-items: center; padding: 0 8px 0 22px;
+  font-size: 9px; color: #777; cursor: pointer;
+}
+.browser-item:hover { background: rgba(0,217,255,0.05); color: #aaa; }
+
+/* ═══════════════ CENTER: ENORMOUS DECK GRID ═══════════════ */
+.center-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Signal bar mini */
+.signal-bar {
+  height: 24px; background: #111114; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 8px; gap: 6px; overflow: hidden;
+}
+.sig-mini { display: flex; align-items: center; gap: 3px; }
+.sig-mini-label { font-size: 7px; color: #556; }
+.sig-mini-bar { width: 40px; height: 4px; background: #222228; position: relative; }
+.sig-mini-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.sig-mini-val { font-size: 7px; color: #888; font-variant-numeric: tabular-nums; width: 24px; }
+.sig-sep { width: 1px; height: 12px; background: #2a2a30; }
+
+/* Column triggers */
+.col-triggers {
+  height: 20px; display: flex; padding-left: 160px; align-items: center; background: #141416;
+  border-bottom: 1px solid var(--border);
+}
+.col-trigger {
+  width: 120px; height: 18px; flex-shrink: 0; margin-right: 1px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; color: var(--text-dark); cursor: pointer;
+}
+.col-trigger.active { background: var(--cyan-glow); border-color: var(--cyan-dim); color: var(--cyan); }
+
+/* Deck area */
+.deck-area { flex: 1; display: flex; overflow: hidden; }
+
+/* Layer strips (left) */
+.layer-strips { width: 160px; flex-shrink: 0; display: flex; flex-direction: column; }
+.layer-strip {
+  height: 80px; border-bottom: 1px solid var(--border); padding: 4px 6px;
+  display: flex; flex-direction: column; gap: 2px; background: rgba(0,0,0,0.2);
+}
+.ls-row1 { display: flex; align-items: center; gap: 3px; height: 14px; }
+.ls-name { font-size: 10px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-type { font-size: 7px; color: var(--text-dark); text-transform: uppercase; padding: 0 3px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); }
+.ls-row2 { display: flex; align-items: center; gap: 2px; height: 14px; }
+.ls-btn {
+  width: 18px; height: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  font-size: 8px; color: var(--text-dim); display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.ls-btn.bypass-active { background: rgba(180,40,40,0.3); color: #ff4444; border-color: rgba(255,60,60,0.3); }
+.ls-btn.solo-active { background: rgba(140,140,40,0.3); color: #cccc44; border-color: rgba(180,180,40,0.3); }
+.ls-transport { display: flex; gap: 1px; margin-left: 4px; }
+.ls-transport .ls-btn { width: 14px; font-size: 8px; }
+.ls-row3 { display: flex; align-items: center; gap: 4px; flex: 1; }
+.ls-vslider { width: 14px; height: 24px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); position: relative; }
+.ls-vslider .vs-fill { position: absolute; bottom: 0; left: 0; right: 0; }
+.ls-vslider .vs-label { font-size: 6px; color: var(--text-dark); position: absolute; bottom: -8px; white-space: nowrap; }
+.ls-blend-dd { font-size: 7px; color: var(--text-dark); background: rgba(255,255,255,0.04); border: 1px solid var(--border); padding: 0 3px; height: 12px; display: flex; align-items: center; flex: 1; overflow: hidden; }
+.ls-thumb { width: 40px; height: 28px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); overflow: hidden; margin-left: auto; position: relative; }
+.ls-thumb .playhead { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--cyan); }
+
+/* Clip grid */
+.clip-grid { flex: 1; display: flex; flex-direction: column; overflow: auto; }
+.clip-row { display: flex; height: 80px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+.clip-cell {
+  width: 120px; height: 80px; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,0.04);
+  display: flex; flex-direction: column; cursor: pointer; position: relative;
+}
+.clip-cell:hover { background: rgba(255,255,255,0.02); }
+.cell-thumb { flex: 1; position: relative; overflow: hidden; }
+.cell-name {
+  height: 14px; background: rgba(0,0,0,0.5); font-size: 7px; color: var(--text-dim);
+  padding: 0 3px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.clip-cell.active { box-shadow: inset 0 0 0 2px var(--cyan); }
+.clip-cell.active .cell-name { color: var(--cyan); background: rgba(0,217,255,0.1); }
+.clip-cell.selected { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5); }
+.clip-cell.empty .cell-thumb { background: rgba(255,255,255,0.015); }
+.cell-fx-badge { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.7); color: var(--cyan); font-size: 7px; padding: 0 3px; }
+.cell-progress { position: absolute; bottom: 14px; left: 0; height: 2px; background: #00d9ff44; }
+.cell-src-label { font-size: 7px; color: #445; position: absolute; top: 2px; left: 3px; }
+
+/* Deck tabs */
+.deck-tabs {
+  height: 22px; display: flex; background: #111114; border-top: 1px solid var(--border); padding: 0 8px; gap: 4px; align-items: center;
+}
+.deck-tab { padding: 0 12px; height: 18px; display: flex; align-items: center; font-size: 9px; color: var(--text-dark); cursor: pointer; background: rgba(255,255,255,0.03); border: 1px solid var(--border); }
+.deck-tab.active { color: var(--cyan); border-color: #00d9ff44; background: rgba(0,217,255,0.08); }
+
+/* Source gradients */
+.src-mandelbrot { background: linear-gradient(135deg, #0a0a2a, #1a0a3a, #0a1a4a); }
+.src-plasma { background: linear-gradient(45deg, #1a0020, #001a30, #002a10); }
+.src-fire { background: linear-gradient(0deg, #1a0800, #2a1500, #1a0a00); }
+.src-perlin { background: linear-gradient(135deg, #0a0a0a, #1a1a1a, #0a0a0a); }
+.src-torus { background: radial-gradient(circle, #0a1520, #050a10); }
+.src-spectral { background: radial-gradient(circle, #0a0a2a, #1a0a1a); }
+.src-geo { background: linear-gradient(135deg, #0a1a1a, #0a0a1a); }
+.src-wave { background: linear-gradient(90deg, #0a0a1a, #0a1a0a, #1a0a0a); }
+.src-julia { background: linear-gradient(135deg, #0a1a0a, #001a1a); }
+.src-img1 { background: linear-gradient(135deg, #1a1525, #0a1020); }
+.src-img2 { background: linear-gradient(135deg, #201a10, #100a05); }
+.src-vid { background: linear-gradient(135deg, #0a1a10, #051510); }
+.src-newton { background: linear-gradient(135deg, #1a1a0a, #0a1a1a); }
+.src-kifs { background: radial-gradient(circle, #1a0a1a, #0a0a1a); }
+.src-attractor { background: linear-gradient(135deg, #0a0a1a, #1a0510); }
+
+/* ═══════════════ RIGHT SIDEBAR: INSPECTOR (frosted glass) ═══════════════ */
+.inspector-panel {
+  width: 300px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: var(--bg-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-left: 1px solid var(--border-light);
+}
+.insp-tabs { height: 24px; display: flex; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); }
+.insp-tab { padding: 0 12px; height: 100%; display: flex; align-items: center; font-size: 9px; color: var(--text-dark); cursor: pointer; border-bottom: 2px solid transparent; }
+.insp-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+.insp-content { flex: 1; overflow-y: auto; padding: 8px; }
+.insp-section { margin-bottom: 8px; }
+.insp-section-title { font-size: 8px; color: #556; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 3px; margin-bottom: 4px; }
+.param-row { display: flex; align-items: center; gap: 4px; height: 18px; margin-bottom: 1px; }
+.param-triangle { width: 5px; height: 5px; clip-path: polygon(0 0, 100% 50%, 0 100%); background: #334; flex-shrink: 0; }
+.param-triangle.connected { background: var(--cyan); }
+.param-label { font-size: 8px; color: var(--text-dim); width: 64px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.param-value { font-size: 8px; color: #aaa; width: 28px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.param-slider { flex: 1; height: 3px; background: #222228; position: relative; min-width: 30px; }
+.param-slider-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.param-slider-thumb { width: 2px; height: 8px; position: absolute; top: -2.5px; }
+
+/* Dashboard knobs */
+.dashboard { display: flex; gap: 4px; flex-wrap: wrap; padding: 2px 0; }
+.dash-knob { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.dash-knob-circle { width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,0.04); border: 2px solid #2a2a34; position: relative; }
+.dash-knob-indicator { width: 2px; height: 8px; position: absolute; top: 2px; transform-origin: bottom center; }
+.dash-knob-label { font-size: 6px; color: #556; }
+
+/* FX rows */
+.fx-row { display: flex; align-items: center; gap: 3px; height: 18px; padding: 0 4px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 1px; }
+.fx-bypass { width: 14px; height: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #777; font-size: 7px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 600; }
+.fx-bypass.off { color: #aa4444; background: rgba(170,68,68,0.15); }
+.fx-name { font-size: 8px; color: #bbb; flex: 1; }
+.fx-val { font-size: 7px; color: #00d9ff88; }
+.fx-del { width: 14px; height: 14px; color: #444; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<div class="top-bar">
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width: 76px;">Mic Input</div>
+    <div class="tb-label">Gain</div>
+    <div class="tb-slider-wrap">
+      <div class="tb-slider" style="width: 36px;"><div class="tb-slider-fill" style="width: 50%; background: #00d9ff33;"></div><div class="tb-slider-thumb" style="left: 49%; background: #00d9ff;"></div></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn transport">&#9664;</div>
+    <div class="tb-btn transport active" style="color: #44bb88;">&#9654;</div>
+    <div class="tb-btn transport">&#9632;</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-beat-wheel"><div class="tb-beat-seg on"></div><div class="tb-beat-seg"></div><div class="tb-beat-seg"></div><div class="tb-beat-seg"></div></div>
+    <div class="tb-bar-phrase">Bar 3<br>Phr 0.38</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-bpm">128.0</div>
+    <div class="tb-state">LOCKED</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn" style="font-size: 9px;">Tap</div>
+    <div class="tb-btn" style="font-size: 9px;">Resync</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn tb-mult">/4</div>
+    <div class="tb-btn tb-mult">/2</div>
+    <div class="tb-btn tb-mult active">x1</div>
+    <div class="tb-btn tb-mult">x2</div>
+    <div class="tb-btn tb-mult">x4</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Quantize</div>
+    <div class="tb-dropdown" style="width: 68px;">Next Beat</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Fade</div>
+    <div class="tb-slider-wrap"><div class="tb-slider" style="width: 32px;"><div class="tb-slider-fill" style="width: 30%; background: #ffffff22;"></div><div class="tb-slider-thumb" style="left: 29%; background: #aaa;"></div></div></div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Master</div>
+    <div class="tb-slider-wrap"><div class="tb-slider" style="width: 36px;"><div class="tb-slider-fill" style="width: 100%; background: #ffffff22;"></div><div class="tb-slider-thumb" style="left: 98%; background: #ccc;"></div></div></div>
+  </div>
+  <div class="tb-spacer"></div>
+  <!-- Preview thumb inline -->
+  <div class="preview-thumb" style="width: 200px; height: 24px; border: 1px solid #2a2a30;">
+    <div style="width:100%;height:100%;background: radial-gradient(ellipse at 40% 50%, #0a1535, #050a18);"></div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width: 68px;">Fullscreen</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-stats">
+    <span style="color: #44bb44;">60 fps</span>
+    <span>4.2% DSP</span>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN AREA ═══════════════ -->
+<div class="main">
+
+  <!-- LEFT: BROWSER (frosted glass) -->
+  <div class="browser-panel">
+    <div class="browser-tabs">
+      <div class="browser-tab">Files</div>
+      <div class="browser-tab active">FX</div>
+      <div class="browser-tab">Sources</div>
+      <div class="browser-tab">Comp</div>
+      <div class="browser-tab">Rec</div>
+    </div>
+    <div class="browser-search">
+      <input class="browser-search-input" placeholder="Search effects..." />
+    </div>
+    <div class="browser-content">
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9660;</span> Warp <span class="browser-cat-count">28</span></div>
+      <div class="browser-item">Ripple</div>
+      <div class="browser-item">Bulge</div>
+      <div class="browser-item">Wave</div>
+      <div class="browser-item">Liquid</div>
+      <div class="browser-item">Kaleidoscope</div>
+      <div class="browser-item">Fisheye</div>
+      <div class="browser-item">Swirl</div>
+      <div class="browser-item">Polar Coords</div>
+      <div class="browser-item">Twirl</div>
+      <div class="browser-item">Shear</div>
+      <div class="browser-item">Elastic Bounce</div>
+      <div class="browser-item">Ripple Pond</div>
+      <div class="browser-item">Diamond Distort</div>
+      <div class="browser-item">Barrel Distort</div>
+      <div class="browser-item">Sine Grid</div>
+      <div class="browser-item">Bendoscope</div>
+      <div class="browser-item">UV Remap</div>
+      <div class="browser-item">Infinite Zoom</div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9660;</span> Color <span class="browser-cat-count">31</span></div>
+      <div class="browser-item">Hue Shift</div>
+      <div class="browser-item">Saturation</div>
+      <div class="browser-item">Brightness</div>
+      <div class="browser-item">Duotone</div>
+      <div class="browser-item">Chromatic Aberration</div>
+      <div class="browser-item">Invert</div>
+      <div class="browser-item">Posterize</div>
+      <div class="browser-item">Thermal</div>
+      <div class="browser-item">Contrast</div>
+      <div class="browser-item">Sepia</div>
+      <div class="browser-item">Color Grade</div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Glitch <span class="browser-cat-count">16</span></div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Blur/Post <span class="browser-cat-count">10</span></div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> 3D/Depth <span class="browser-cat-count">10</span></div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Pattern <span class="browser-cat-count">19</span></div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Animation <span class="browser-cat-count">6</span></div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Time <span class="browser-cat-count">6</span></div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Audio <span class="browser-cat-count">3</span></div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Blend <span class="browser-cat-count">5</span></div>
+      <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Composite <span class="browser-cat-count">3</span></div>
+    </div>
+  </div>
+
+  <!-- CENTER: DECK GRID -->
+  <div class="center-area">
+    <!-- Signal bar -->
+    <div class="signal-bar">
+      <div class="sig-mini"><div class="sig-mini-label">RMS</div><div class="sig-mini-bar"><div class="sig-mini-fill" style="width:62%;background:#44bb44;"></div></div><div class="sig-mini-val">0.62</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">Bass</div><div class="sig-mini-bar"><div class="sig-mini-fill" style="width:85%;background:#cc5555;"></div></div><div class="sig-mini-val">0.85</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">Mid</div><div class="sig-mini-bar"><div class="sig-mini-fill" style="width:45%;background:#ccaa44;"></div></div><div class="sig-mini-val">0.45</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">High</div><div class="sig-mini-bar"><div class="sig-mini-fill" style="width:32%;background:#44bbaa;"></div></div><div class="sig-mini-val">0.32</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">Beat</div><div class="sig-mini-bar"><div class="sig-mini-fill" style="width:38%;background:#00d9ff;"></div></div><div class="sig-mini-val">0.38</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">Onset</div><div class="sig-mini-bar"><div class="sig-mini-fill" style="width:15%;background:#ff6644;"></div></div><div class="sig-mini-val">0.15</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">Pitch</div><div class="sig-mini-bar"><div class="sig-mini-fill" style="width:55%;background:#aa44cc;"></div></div><div class="sig-mini-val">A4</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">Key</div><div class="sig-mini-val" style="width:auto;color:#8888cc;">Am</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">Genre</div><div class="sig-mini-val" style="width:auto;color:#cc44cc;">Techno</div></div>
+      <div class="sig-sep"></div>
+      <div class="sig-mini"><div class="sig-mini-label">Struct</div><div class="sig-mini-val" style="width:auto;color:#ff8844;">DROP</div></div>
+    </div>
+
+    <!-- Column triggers -->
+    <div class="col-triggers">
+      <div class="col-trigger">1</div>
+      <div class="col-trigger active">2</div>
+      <div class="col-trigger">3</div>
+      <div class="col-trigger">4</div>
+      <div class="col-trigger">5</div>
+      <div class="col-trigger">6</div>
+      <div class="col-trigger">7</div>
+      <div class="col-trigger">8</div>
+      <div class="col-trigger">9</div>
+      <div class="col-trigger">10</div>
+      <div class="col-trigger">11</div>
+      <div class="col-trigger">12</div>
+      <div class="col-trigger">13</div>
+      <div class="col-trigger">14</div>
+    </div>
+
+    <!-- Deck: layers + clips -->
+    <div class="deck-area">
+      <!-- Layer strips -->
+      <div class="layer-strips">
+        <!-- Layer 1 -->
+        <div class="layer-strip">
+          <div class="ls-row1">
+            <div class="ls-name" style="color: #cc5555;">Background</div>
+            <div class="ls-type">Opaque</div>
+          </div>
+          <div class="ls-row2">
+            <div class="ls-btn">X</div>
+            <div class="ls-btn">B</div>
+            <div class="ls-btn">S</div>
+            <div class="ls-transport">
+              <div class="ls-btn">&#9664;</div>
+              <div class="ls-btn">||</div>
+              <div class="ls-btn" style="color:#44bb88;">&#9654;</div>
+            </div>
+          </div>
+          <div class="ls-row3">
+            <div class="ls-vslider"><div class="vs-fill" style="height:100%;background:rgba(0,217,255,0.3);"></div><div class="vs-label">S</div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:10%;background:rgba(255,180,0,0.3);"></div><div class="vs-label">K</div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:100%;background:rgba(0,180,140,0.3);"></div><div class="vs-label">V</div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:15%;background:rgba(80,80,200,0.3);"></div><div class="vs-label">F</div></div>
+            <div class="ls-thumb">
+              <div style="width:100%;height:100%;" class="src-mandelbrot"></div>
+              <div class="playhead" style="left:35%;"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Layer 2 -->
+        <div class="layer-strip">
+          <div class="ls-row1">
+            <div class="ls-name" style="color: #44bbaa;">Textures</div>
+            <div class="ls-type">Trans</div>
+          </div>
+          <div class="ls-row2">
+            <div class="ls-btn">X</div>
+            <div class="ls-btn">B</div>
+            <div class="ls-btn solo-active">S</div>
+            <div class="ls-transport">
+              <div class="ls-btn">&#9664;</div>
+              <div class="ls-btn">||</div>
+              <div class="ls-btn" style="color:#44bb88;">&#9654;</div>
+            </div>
+          </div>
+          <div class="ls-row3">
+            <div class="ls-vslider"><div class="vs-fill" style="height:100%;background:rgba(0,217,255,0.3);"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:10%;background:rgba(255,180,0,0.3);"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:75%;background:rgba(0,180,140,0.3);"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:15%;background:rgba(80,80,200,0.3);"></div></div>
+            <div class="ls-thumb">
+              <div style="width:100%;height:100%;" class="src-torus"></div>
+              <div class="playhead" style="left:60%;"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Layer 3 -->
+        <div class="layer-strip">
+          <div class="ls-row1">
+            <div class="ls-name" style="color: #ccaa44;">FX Layer</div>
+            <div class="ls-type">FX</div>
+          </div>
+          <div class="ls-row2">
+            <div class="ls-btn">X</div>
+            <div class="ls-btn">B</div>
+            <div class="ls-btn">S</div>
+            <div class="ls-transport">
+              <div class="ls-btn">&#9664;</div>
+              <div class="ls-btn">||</div>
+              <div class="ls-btn" style="color:#44bb88;">&#9654;</div>
+            </div>
+          </div>
+          <div class="ls-row3">
+            <div class="ls-vslider"><div class="vs-fill" style="height:100%;background:rgba(0,217,255,0.3);"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:0%;"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:100%;background:rgba(0,180,140,0.3);"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:15%;background:rgba(80,80,200,0.3);"></div></div>
+            <div class="ls-thumb">
+              <div style="width:100%;height:100%;background:#1a1a22;display:flex;align-items:center;justify-content:center;"><span style="font-size:7px;color:#445;">FX</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Layer 4 -->
+        <div class="layer-strip">
+          <div class="ls-row1">
+            <div class="ls-name" style="color: #8888cc;">Overlay</div>
+            <div class="ls-type">Trans</div>
+          </div>
+          <div class="ls-row2">
+            <div class="ls-btn">X</div>
+            <div class="ls-btn bypass-active">B</div>
+            <div class="ls-btn">S</div>
+            <div class="ls-transport">
+              <div class="ls-btn">&#9664;</div>
+              <div class="ls-btn">||</div>
+              <div class="ls-btn">&#9654;</div>
+            </div>
+          </div>
+          <div class="ls-row3">
+            <div class="ls-vslider"><div class="vs-fill" style="height:75%;background:rgba(0,217,255,0.3);"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:10%;background:rgba(255,180,0,0.3);"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:60%;background:rgba(0,180,140,0.3);"></div></div>
+            <div class="ls-vslider"><div class="vs-fill" style="height:25%;background:rgba(80,80,200,0.3);"></div></div>
+            <div class="ls-thumb">
+              <div style="width:100%;height:100%;" class="src-spectral"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clip grid -->
+      <div class="clip-grid">
+        <!-- Row 1: Background -->
+        <div class="clip-row">
+          <div class="clip-cell active"><div class="cell-thumb src-mandelbrot"><div class="cell-src-label">SRC</div></div><div class="cell-name">Mandelbrot</div><div class="cell-fx-badge">3 FX</div><div class="cell-progress" style="width:35%;"></div></div>
+          <div class="clip-cell"><div class="cell-thumb src-julia"><div class="cell-src-label">SRC</div></div><div class="cell-name">Julia Set</div></div>
+          <div class="clip-cell selected"><div class="cell-thumb src-img1"></div><div class="cell-name">nebula.jpg</div><div class="cell-fx-badge">1 FX</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-vid"></div><div class="cell-name">loop_01.mp4</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-fire"><div class="cell-src-label">SRC</div></div><div class="cell-name">Burning Ship</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-perlin"><div class="cell-src-label">SRC</div></div><div class="cell-name">Perlin Noise</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-img2"></div><div class="cell-name">abstract.png</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-wave"><div class="cell-src-label">SRC</div></div><div class="cell-name">Sine Grid</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-geo"><div class="cell-src-label">SRC</div></div><div class="cell-name">Hexagonal</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-newton"><div class="cell-src-label">SRC</div></div><div class="cell-name">Newton</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-kifs"><div class="cell-src-label">SRC</div></div><div class="cell-name">Kaleidoscopic</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-attractor"><div class="cell-src-label">SRC</div></div><div class="cell-name">Attractor</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-plasma"><div class="cell-src-label">SRC</div></div><div class="cell-name">Plasma</div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        </div>
+        <!-- Row 2: Textures -->
+        <div class="clip-row">
+          <div class="clip-cell active"><div class="cell-thumb src-torus"><div class="cell-src-label">SRC</div></div><div class="cell-name">Spiral Torus</div><div class="cell-fx-badge">1 FX</div><div class="cell-progress" style="width:60%;"></div></div>
+          <div class="clip-cell"><div class="cell-thumb src-spectral"><div class="cell-src-label">SRC</div></div><div class="cell-name">Spectral Ring</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-plasma"><div class="cell-src-label">SRC</div></div><div class="cell-name">Plasma Ball</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-img1"></div><div class="cell-name">texture_01.png</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-geo"><div class="cell-src-label">SRC</div></div><div class="cell-name">Voronoi</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-wave"><div class="cell-src-label">SRC</div></div><div class="cell-name">Cymatics</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-perlin"><div class="cell-src-label">SRC</div></div><div class="cell-name">Cloud</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-vid"></div><div class="cell-name">overlay.mp4</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-fire"><div class="cell-src-label">SRC</div></div><div class="cell-name">Fire Burst</div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        </div>
+        <!-- Row 3: FX Layer -->
+        <div class="clip-row">
+          <div class="clip-cell active"><div class="cell-thumb" style="background:#1a1a22;display:flex;align-items:center;justify-content:center;"><span style="font-size:8px;color:#556;">FX</span></div><div class="cell-name">Ripple+Glow</div><div class="cell-fx-badge">2 FX</div></div>
+          <div class="clip-cell"><div class="cell-thumb" style="background:#1a1a22;display:flex;align-items:center;justify-content:center;"><span style="font-size:8px;color:#556;">FX</span></div><div class="cell-name">Glitch Set</div><div class="cell-fx-badge">4 FX</div></div>
+          <div class="clip-cell"><div class="cell-thumb" style="background:#1a1a22;display:flex;align-items:center;justify-content:center;"><span style="font-size:8px;color:#556;">FX</span></div><div class="cell-name">Color Grade</div><div class="cell-fx-badge">2 FX</div></div>
+          <div class="clip-cell"><div class="cell-thumb" style="background:#1a1a22;display:flex;align-items:center;justify-content:center;"><span style="font-size:8px;color:#556;">FX</span></div><div class="cell-name">Strobe</div><div class="cell-fx-badge">1 FX</div></div>
+          <div class="clip-cell"><div class="cell-thumb" style="background:#1a1a22;display:flex;align-items:center;justify-content:center;"><span style="font-size:8px;color:#556;">FX</span></div><div class="cell-name">Echo Trail</div><div class="cell-fx-badge">2 FX</div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        </div>
+        <!-- Row 4: Overlay -->
+        <div class="clip-row">
+          <div class="clip-cell"><div class="cell-thumb src-spectral"><div class="cell-src-label">SRC</div></div><div class="cell-name">Spectral Ring</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-fire"><div class="cell-src-label">SRC</div></div><div class="cell-name">Fire Particle</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-img2"></div><div class="cell-name">overlay_01.png</div></div>
+          <div class="clip-cell"><div class="cell-thumb src-attractor"><div class="cell-src-label">SRC</div></div><div class="cell-name">Attractor</div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+          <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deck tabs -->
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck A</div>
+      <div class="deck-tab">Deck B</div>
+      <div class="deck-tab">Deck C</div>
+      <div style="flex:1;"></div>
+      <div style="font-size:8px;color:#445;">4 Layers x 14 Columns</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: INSPECTOR (frosted glass) -->
+  <div class="inspector-panel">
+    <div class="insp-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Comp</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+    <div class="insp-content">
+      <!-- Clip name -->
+      <div class="insp-section">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px;">Mandelbrot</div>
+        <div style="font-size: 8px; color: #556;">Source / Layer 1: Background</div>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="insp-section">
+        <div class="insp-section-title">Dashboard</div>
+        <div class="dashboard">
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background:var(--cyan);transform:rotate(120deg);"></div></div><div class="dash-knob-label">Zoom</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background:var(--cyan);transform:rotate(60deg);"></div></div><div class="dash-knob-label">Dive</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background:var(--cyan);transform:rotate(90deg);"></div></div><div class="dash-knob-label">Iter</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background:#ccaa44;transform:rotate(144deg);"></div></div><div class="dash-knob-label">Color</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background:#334;transform:rotate(0deg);"></div></div><div class="dash-knob-label">Link 5</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background:#334;transform:rotate(0deg);"></div></div><div class="dash-knob-label">Link 6</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background:#334;transform:rotate(0deg);"></div></div><div class="dash-knob-label">Link 7</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background:#334;transform:rotate(0deg);"></div></div><div class="dash-knob-label">Link 8</div></div>
+        </div>
+      </div>
+
+      <!-- Source Params -->
+      <div class="insp-section">
+        <div class="insp-section-title">Source Parameters</div>
+        <div class="param-row"><div class="param-triangle connected"></div><div class="param-label">Dive Speed</div><div class="param-value">0.30</div><div class="param-slider"><div class="param-slider-fill" style="width:30%;background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:29%;background:var(--cyan);"></div></div></div>
+        <div class="param-row"><div class="param-triangle"></div><div class="param-label">Location</div><div class="param-value">3</div><div class="param-slider"><div class="param-slider-fill" style="width:30%;background:#ffffff22;"></div><div class="param-slider-thumb" style="left:29%;background:#aaa;"></div></div></div>
+        <div class="param-row"><div class="param-triangle"></div><div class="param-label">Zoom</div><div class="param-value">0.45</div><div class="param-slider"><div class="param-slider-fill" style="width:45%;background:#ffffff22;"></div><div class="param-slider-thumb" style="left:44%;background:#aaa;"></div></div></div>
+        <div class="param-row"><div class="param-triangle connected"></div><div class="param-label">Iterations</div><div class="param-value">0.60</div><div class="param-slider"><div class="param-slider-fill" style="width:60%;background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:59%;background:var(--cyan);"></div></div></div>
+        <div class="param-row"><div class="param-triangle"></div><div class="param-label">Power</div><div class="param-value">0.25</div><div class="param-slider"><div class="param-slider-fill" style="width:25%;background:#ffffff22;"></div><div class="param-slider-thumb" style="left:24%;background:#aaa;"></div></div></div>
+        <div class="param-row"><div class="param-triangle connected"></div><div class="param-label">Color Shift</div><div class="param-value">0.70</div><div class="param-slider"><div class="param-slider-fill" style="width:70%;background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:69%;background:var(--cyan);"></div></div></div>
+        <div class="param-row"><div class="param-triangle"></div><div class="param-label">Palette</div><div class="param-value">Fire</div><div class="param-slider"><div class="param-slider-fill" style="width:12%;background:#ffffff22;"></div><div class="param-slider-thumb" style="left:11%;background:#aaa;"></div></div></div>
+      </div>
+
+      <!-- Video -->
+      <div class="insp-section">
+        <div class="insp-section-title">Video</div>
+        <div class="param-row"><div class="param-triangle connected"></div><div class="param-label">Opacity</div><div class="param-value">1.00</div><div class="param-slider"><div class="param-slider-fill" style="width:100%;background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:98%;background:var(--cyan);"></div></div></div>
+        <div class="param-row"><div class="param-label" style="width:64px;">Blend</div><div style="flex:1;height:16px;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:#999;font-size:8px;padding:0 4px;display:flex;align-items:center;">Normal</div></div>
+      </div>
+
+      <!-- Transform -->
+      <div class="insp-section">
+        <div class="insp-section-title">Transform</div>
+        <div class="param-row"><div class="param-triangle"></div><div class="param-label">Position X</div><div class="param-value">0.50</div><div class="param-slider"><div class="param-slider-fill" style="width:50%;background:#ffffff22;"></div><div class="param-slider-thumb" style="left:49%;background:#aaa;"></div></div></div>
+        <div class="param-row"><div class="param-triangle"></div><div class="param-label">Position Y</div><div class="param-value">0.50</div><div class="param-slider"><div class="param-slider-fill" style="width:50%;background:#ffffff22;"></div><div class="param-slider-thumb" style="left:49%;background:#aaa;"></div></div></div>
+        <div class="param-row"><div class="param-triangle connected"></div><div class="param-label">Scale</div><div class="param-value">1.00</div><div class="param-slider"><div class="param-slider-fill" style="width:50%;background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:49%;background:var(--cyan);"></div></div></div>
+        <div class="param-row"><div class="param-triangle connected"></div><div class="param-label">Rotation</div><div class="param-value">0.00</div><div class="param-slider"><div class="param-slider-fill" style="width:50%;background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:49%;background:var(--cyan);"></div></div></div>
+      </div>
+
+      <!-- Effects -->
+      <div class="insp-section">
+        <div class="insp-section-title">Effects</div>
+        <div class="fx-row"><div class="fx-bypass">B</div><div class="fx-name">Ripple</div><div class="fx-val">0.45</div><div class="fx-del">x</div></div>
+        <div class="fx-row"><div class="fx-bypass off">B</div><div class="fx-name" style="color:#666;text-decoration:line-through;">Glow</div><div class="fx-val" style="opacity:0.4;">0.60</div><div class="fx-del">x</div></div>
+        <div class="fx-row"><div class="fx-bypass">B</div><div class="fx-name">Hue Shift</div><div class="fx-val">0.20</div><div class="fx-del">x</div></div>
+        <div style="margin-top:4px;padding:4px;border:1px dashed rgba(255,255,255,0.08);text-align:center;font-size:7px;color:#445;">Drop effects here</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

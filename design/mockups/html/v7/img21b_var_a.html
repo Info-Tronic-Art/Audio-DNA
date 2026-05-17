@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 21b Var A (Faithful — Composition Grid)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; color: #c0d0d8; font-size: 11px; position: relative; }
+.bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 40%, rgba(40,20,80,0.35), transparent 50%), radial-gradient(ellipse at 70% 60%, rgba(20,40,80,0.3), transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(10,20,40,0.8), #080c14 80%); z-index: 0; }
+.ui { position: relative; z-index: 1; width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+.top { height: 32px; display: flex; align-items: center; padding: 0 12px; gap: 8px; background: rgba(10,16,24,0.7); border-bottom: 1px solid rgba(0,160,200,0.2); }
+.t-lbl { font-size: 10px; color: #608088; }
+.t-play { width: 22px; height: 22px; background: rgba(0,200,220,0.15); border: 1px solid rgba(0,200,220,0.3); border-radius: 50%; color: #00e5ff; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.t-meters { display: flex; gap: 1px; height: 16px; align-items: flex-end; }
+.t-meters div { width: 3px; border-radius: 1px; }
+.sp { flex: 1; }
+
+.main { flex: 1; display: flex; overflow: hidden; }
+
+/* LEFT LAYERS */
+.left { width: 380px; display: flex; flex-direction: column; gap: 2px; padding: 4px; overflow-y: auto; }
+.ls { display: flex; align-items: center; gap: 3px; padding: 3px 5px; background: rgba(10,20,30,0.6); border: 1px solid rgba(0,100,130,0.25); border-radius: 4px; height: 76px; }
+.ls.act { border-color: rgba(0,200,220,0.4); background: rgba(10,20,40,0.7); }
+.ls-lbl { width: 48px; font-size: 9px; color: #608088; font-weight: 600; }
+.ls-btns { display: flex; flex-direction: column; gap: 1px; }
+.ls-b { padding: 1px 3px; font-size: 7px; background: rgba(0,100,130,0.2); border: 1px solid rgba(0,100,130,0.3); color: #608088; cursor: pointer; text-align: center; min-width: 22px; }
+.ls-b.on { background: rgba(240,160,48,0.3); border-color: #f0a030; color: #f0a030; }
+.ls-thumbs { display: flex; gap: 2px; }
+.ls-th { width: 36px; height: 36px; border-radius: 2px; border: 1px solid rgba(0,100,130,0.3); cursor: pointer; }
+.ls-th.act { border-color: #00e5ff; box-shadow: 0 0 4px rgba(0,229,255,0.3); }
+.ls-sliders { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+.ls-sr { display: flex; align-items: center; gap: 2px; }
+.ls-sl { font-size: 6px; color: #507078; width: 14px; }
+.ls-s { flex: 1; height: 2px; background: rgba(0,20,30,0.5); border-radius: 1px; overflow: hidden; }
+.ls-sf { height: 100%; border-radius: 1px; background: rgba(0,200,220,0.5); }
+.ls-m { width: 5px; background: rgba(0,20,30,0.5); border-radius: 2px; height: 50px; position: relative; }
+.ls-mf { position: absolute; bottom: 0; width: 100%; border-radius: 2px; background: linear-gradient(0deg,#4ade80,#00c8dc); }
+
+/* CENTER: COMPOSITION GRID OVERLAY */
+.center { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+.comp-grid-overlay { width: 700px; background: rgba(10,20,30,0.85); border: 1px solid rgba(0,160,200,0.3); border-radius: 6px; padding: 12px; box-shadow: 0 0 40px rgba(0,80,130,0.2); }
+.cg-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.cg-title { font-size: 14px; color: #80c0d0; font-weight: 600; }
+.cg-actions { display: flex; gap: 4px; }
+.cg-btn { padding: 3px 10px; font-size: 9px; background: rgba(0,100,130,0.2); border: 1px solid rgba(0,100,130,0.3); color: #80a0b0; cursor: pointer; border-radius: 2px; }
+.cg-btn:hover { border-color: #00c8dc; color: #00e5ff; }
+.cg-btn.active { background: rgba(0,200,220,0.15); border-color: #00c8dc; color: #00e5ff; }
+.cg-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.cg-cell { background: rgba(10,20,30,0.6); border: 1px solid rgba(0,100,130,0.25); border-radius: 4px; overflow: hidden; cursor: pointer; }
+.cg-cell:hover { border-color: rgba(0,200,220,0.4); }
+.cg-cell.selected { border-color: #00e5ff; box-shadow: 0 0 6px rgba(0,229,255,0.2); }
+.cg-thumb { width: 100%; height: 80px; }
+.cg-name { padding: 3px 4px; font-size: 9px; color: #80a0b0; text-align: center; background: rgba(0,0,0,0.3); }
+.cg-add { background: rgba(0,40,60,0.3); border: 1px dashed rgba(0,100,130,0.3); border-radius: 4px; display: flex; align-items: center; justify-content: center; height: 100px; font-size: 24px; color: rgba(0,200,220,0.3); cursor: pointer; }
+.cg-add:hover { border-color: #00c8dc; color: #00c8dc; }
+
+/* RIGHT */
+.right { width: 300px; display: flex; flex-direction: column; gap: 3px; padding: 4px; }
+.rp { background: rgba(10,20,30,0.6); border: 1px solid rgba(0,100,130,0.25); border-radius: 4px; padding: 5px; }
+.rp-t { font-size: 10px; color: #608088; font-weight: 600; margin-bottom: 3px; }
+.rp-prev { width: 100%; height: 100px; background: radial-gradient(ellipse at 50% 50%, rgba(100,40,140,0.3), rgba(10,10,30,0.8)); border: 1px solid rgba(0,100,130,0.3); border-radius: 3px; }
+.rp-viz { width: 100%; height: 80px; background: linear-gradient(0deg, rgba(10,20,30,0.8), rgba(0,40,60,0.3)); border: 1px solid rgba(0,100,130,0.3); border-radius: 3px; position: relative; overflow: hidden; }
+.vb { display: flex; gap: 1px; height: 100%; align-items: flex-end; padding: 3px; }
+.vb div { flex: 1; border-radius: 1px 1px 0 0; }
+.rp-r { display: flex; align-items: center; padding: 2px 0; }
+.rp-l { width: 80px; font-size: 9px; color: #80a0b0; }
+.rp-v { font-size: 9px; color: #c0d0d8; font-family: monospace; }
+.rp-sel { flex: 1; background: rgba(10,20,30,0.5); border: 1px solid rgba(0,100,130,0.3); color: #80a0b0; padding: 2px 4px; font-size: 9px; }
+.rp-s { flex: 1; height: 3px; background: rgba(0,20,30,0.5); border-radius: 2px; overflow: hidden; margin: 0 4px; }
+.rp-sf { height: 100%; border-radius: 2px; background: rgba(0,200,220,0.5); }
+
+.g1 { background: linear-gradient(135deg, #8020c0, #4060f0, #20a0c0); }
+.g2 { background: linear-gradient(135deg, #c040a0, #6020c0); }
+.g3 { background: linear-gradient(135deg, #20c0a0, #1040a0); }
+.g4 { background: radial-gradient(circle, #60f0a0, #104030); }
+.g5 { background: linear-gradient(45deg, #f04060, #f0a020); }
+.g6 { background: linear-gradient(135deg, #2040a0, #60c0f0); }
+.g7 { background: radial-gradient(circle, #f0c040, #803020); }
+.g8 { background: linear-gradient(135deg, #104020, #40c060); }
+.g9 { background: radial-gradient(circle, #80c0dc, #102030); }
+.g10 { background: linear-gradient(135deg, #604080, #2040a0); }
+.g11 { background: linear-gradient(135deg, #a04060, #f0a030); }
+.g12 { background: radial-gradient(circle, #00e5ff, #0a2040); }
+.g13 { background: linear-gradient(135deg, #004060, #00a0c0); }
+
+.logo-star { position: absolute; bottom: 20px; right: 20px; font-size: 36px; color: rgba(200,210,220,0.15); z-index: 2; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="ui">
+
+<div class="top">
+  <div class="t-lbl">Master Audio Control</div>
+  <div class="t-play">&#9654;</div>
+  <div class="t-meters">
+    <div style="height:12px;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+    <div style="height:8px;background:#4ade80;"></div>
+    <div style="height:14px;background:linear-gradient(0deg,#4ade80,#c04040);"></div>
+    <div style="height:6px;background:#4ade80;"></div>
+    <div style="height:10px;background:#4ade80;"></div>
+  </div>
+  <div class="sp"></div>
+  <div class="t-lbl">Master Audio Sphere</div>
+  <div class="sp"></div>
+</div>
+
+<div class="main">
+  <!-- LEFT LAYERS (same as 21a) -->
+  <div class="left">
+    <div class="ls act">
+      <div class="ls-lbl">Layer 1</div>
+      <div class="ls-btns"><div class="ls-b">Play</div><div class="ls-b">Stop</div><div class="ls-b on">Loop</div><div class="ls-b">Rev</div><div class="ls-b">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-th act" style="background:linear-gradient(135deg,#4060a0,#2040c0);"></div><div class="ls-th" style="background:linear-gradient(135deg,#20a060,#104030);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-sr"><div class="ls-sl">Hue</div><div class="ls-s"><div class="ls-sf" style="width:60%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Sat</div><div class="ls-s"><div class="ls-sf" style="width:80%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Bri</div><div class="ls-s"><div class="ls-sf" style="width:90%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Opa</div><div class="ls-s"><div class="ls-sf" style="width:100%;background:linear-gradient(90deg,rgba(0,100,130,0.6),rgba(0,200,220,0.8));"></div></div></div>
+      </div>
+      <div class="ls-m"><div class="ls-mf" style="height:80%;"></div></div>
+    </div>
+    <div class="ls">
+      <div class="ls-lbl">Layer 2</div>
+      <div class="ls-btns"><div class="ls-b">Play</div><div class="ls-b">Stop</div><div class="ls-b on">Loop</div><div class="ls-b">Rev</div><div class="ls-b">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-th act" style="background:linear-gradient(135deg,#c040a0,#6020c0);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-sr"><div class="ls-sl">Hue</div><div class="ls-s"><div class="ls-sf" style="width:40%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Sat</div><div class="ls-s"><div class="ls-sf" style="width:70%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Bri</div><div class="ls-s"><div class="ls-sf" style="width:85%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Opa</div><div class="ls-s"><div class="ls-sf" style="width:75%;"></div></div></div>
+      </div>
+      <div class="ls-m"><div class="ls-mf" style="height:60%;"></div></div>
+    </div>
+    <div class="ls">
+      <div class="ls-lbl">Layer 3</div>
+      <div class="ls-btns"><div class="ls-b">Play</div><div class="ls-b">Stop</div><div class="ls-b">Loop</div><div class="ls-b on">Rev</div><div class="ls-b">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-th act" style="background:linear-gradient(135deg,#20c0a0,#1040a0);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-sr"><div class="ls-sl">Hue</div><div class="ls-s"><div class="ls-sf" style="width:50%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Sat</div><div class="ls-s"><div class="ls-sf" style="width:60%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Bri</div><div class="ls-s"><div class="ls-sf" style="width:70%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Opa</div><div class="ls-s"><div class="ls-sf" style="width:90%;"></div></div></div>
+      </div>
+      <div class="ls-m"><div class="ls-mf" style="height:70%;"></div></div>
+    </div>
+    <div class="ls">
+      <div class="ls-lbl">Layer 4</div>
+      <div class="ls-btns"><div class="ls-b">Play</div><div class="ls-b">Stop</div><div class="ls-b on">Loop</div><div class="ls-b">Rev</div><div class="ls-b">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-th" style="background:#1a2030;"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-sr"><div class="ls-sl">Hue</div><div class="ls-s"><div class="ls-sf" style="width:50%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Sat</div><div class="ls-s"><div class="ls-sf" style="width:50%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Bri</div><div class="ls-s"><div class="ls-sf" style="width:50%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Opa</div><div class="ls-s"><div class="ls-sf" style="width:60%;"></div></div></div>
+      </div>
+      <div class="ls-m"><div class="ls-mf" style="height:45%;"></div></div>
+    </div>
+    <div class="ls">
+      <div class="ls-lbl">Layer 5</div>
+      <div class="ls-btns"><div class="ls-b">Play</div><div class="ls-b">Stop</div><div class="ls-b">Loop</div><div class="ls-b">Rev</div><div class="ls-b">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-th" style="background:linear-gradient(135deg,#604080,#2040a0);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-sr"><div class="ls-sl">Hue</div><div class="ls-s"><div class="ls-sf" style="width:30%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Sat</div><div class="ls-s"><div class="ls-sf" style="width:45%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Bri</div><div class="ls-s"><div class="ls-sf" style="width:65%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Opa</div><div class="ls-s"><div class="ls-sf" style="width:80%;"></div></div></div>
+      </div>
+      <div class="ls-m"><div class="ls-mf" style="height:55%;"></div></div>
+    </div>
+    <div class="ls">
+      <div class="ls-lbl">Layer 6</div>
+      <div class="ls-btns"><div class="ls-b">Play</div><div class="ls-b">Stop</div><div class="ls-b on">Loop</div><div class="ls-b">Rev</div><div class="ls-b">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-th" style="background:linear-gradient(135deg,#a04060,#f0a030);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-sr"><div class="ls-sl">Hue</div><div class="ls-s"><div class="ls-sf" style="width:70%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Sat</div><div class="ls-s"><div class="ls-sf" style="width:80%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Bri</div><div class="ls-s"><div class="ls-sf" style="width:90%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Opa</div><div class="ls-s"><div class="ls-sf" style="width:70%;"></div></div></div>
+      </div>
+      <div class="ls-m"><div class="ls-mf" style="height:50%;"></div></div>
+    </div>
+    <div class="ls">
+      <div class="ls-lbl">Layer 7</div>
+      <div class="ls-btns"><div class="ls-b">Play</div><div class="ls-b">Stop</div><div class="ls-b">Loop</div><div class="ls-b">Rev</div><div class="ls-b">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-th" style="background:#1a2030;"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-sr"><div class="ls-sl">Hue</div><div class="ls-s"><div class="ls-sf" style="width:50%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Sat</div><div class="ls-s"><div class="ls-sf" style="width:50%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Bri</div><div class="ls-s"><div class="ls-sf" style="width:50%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Opa</div><div class="ls-s"><div class="ls-sf" style="width:50%;"></div></div></div>
+      </div>
+      <div class="ls-m"><div class="ls-mf" style="height:35%;"></div></div>
+    </div>
+    <div class="ls">
+      <div class="ls-lbl">Layer 8</div>
+      <div class="ls-btns"><div class="ls-b">Play</div><div class="ls-b">Stop</div><div class="ls-b on">Loop</div><div class="ls-b">Rev</div><div class="ls-b">Speed</div></div>
+      <div class="ls-thumbs"><div class="ls-th" style="background:linear-gradient(135deg,#f06040,#f0c040);"></div></div>
+      <div class="ls-sliders">
+        <div class="ls-sr"><div class="ls-sl">Hue</div><div class="ls-s"><div class="ls-sf" style="width:60%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Sat</div><div class="ls-s"><div class="ls-sf" style="width:55%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Bri</div><div class="ls-s"><div class="ls-sf" style="width:70%;"></div></div></div>
+        <div class="ls-sr"><div class="ls-sl">Opa</div><div class="ls-s"><div class="ls-sf" style="width:85%;"></div></div></div>
+      </div>
+      <div class="ls-m"><div class="ls-mf" style="height:60%;"></div></div>
+    </div>
+  </div>
+
+  <!-- CENTER: COMPOSITION GRID -->
+  <div class="center">
+    <div class="comp-grid-overlay">
+      <div class="cg-header">
+        <div class="cg-title">Composition Grid</div>
+        <div class="cg-actions">
+          <div class="cg-btn active">Add</div>
+          <div class="cg-btn">Remove</div>
+          <div class="cg-btn">Reset</div>
+        </div>
+      </div>
+      <div class="cg-grid">
+        <div class="cg-add">+</div>
+        <div class="cg-cell"><div class="cg-thumb g1"></div><div class="cg-name">Verse</div></div>
+        <div class="cg-cell"><div class="cg-thumb g9"></div><div class="cg-name">Main Level</div></div>
+        <div class="cg-cell"><div class="cg-thumb g3"></div><div class="cg-name">Layer</div></div>
+        <div class="cg-cell"><div class="cg-thumb g10"></div><div class="cg-name">Haze</div></div>
+
+        <div class="cg-cell"><div class="cg-thumb g5"></div><div class="cg-name">Nasement</div></div>
+        <div class="cg-cell selected"><div class="cg-thumb g12"></div><div class="cg-name">Malls</div></div>
+        <div class="cg-cell"><div class="cg-thumb g2"></div><div class="cg-name">Main Level</div></div>
+        <div class="cg-cell"><div class="cg-thumb g4"></div><div class="cg-name">Haze Level</div></div>
+        <div class="cg-cell"><div class="cg-thumb g8"></div><div class="cg-name">Nasement</div></div>
+
+        <div class="cg-cell"><div class="cg-thumb g11"></div><div class="cg-name">Main Level</div></div>
+        <div class="cg-cell"><div class="cg-thumb g6"></div><div class="cg-name">Layer 1</div></div>
+        <div class="cg-cell"><div class="cg-thumb g13"></div><div class="cg-name">Layer 2</div></div>
+        <div class="cg-cell"><div class="cg-thumb g7"></div><div class="cg-name">Layer 3</div></div>
+        <div class="cg-cell"><div class="cg-thumb g1"></div><div class="cg-name">Layer 4</div></div>
+
+        <div class="cg-cell"><div class="cg-thumb g9"></div><div class="cg-name">Layer 5</div></div>
+        <div class="cg-cell"><div class="cg-thumb g3"></div><div class="cg-name">Layer 6</div></div>
+        <div class="cg-cell"><div class="cg-thumb g12"></div><div class="cg-name">Layer 7</div></div>
+        <div class="cg-cell"><div class="cg-thumb g5"></div><div class="cg-name">Layer 8</div></div>
+        <div class="cg-cell"><div class="cg-thumb g10"></div><div class="cg-name">View</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="rp"><div class="rp-t">Preview</div><div class="rp-prev"></div></div>
+    <div class="rp">
+      <div class="rp-t">Audio Visualizer</div>
+      <div class="rp-viz">
+        <div class="vb">
+          <div style="height:55%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div>
+          <div style="height:75%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+          <div style="height:35%;background:#4ade80;"></div>
+          <div style="height:85%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+          <div style="height:50%;background:#4ade80;"></div>
+          <div style="height:65%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div>
+          <div style="height:40%;background:#4ade80;"></div>
+          <div style="height:80%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+          <div style="height:30%;background:#4ade80;"></div>
+          <div style="height:60%;background:linear-gradient(0deg,#4ade80,#00c8dc);"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;margin-top:2px;">
+        <div style="padding:1px 6px;font-size:8px;background:rgba(0,100,130,0.2);border:1px solid rgba(0,100,130,0.3);color:#80a0b0;">Mode</div>
+        <div style="padding:1px 6px;font-size:8px;background:rgba(0,100,130,0.2);border:1px solid rgba(0,100,130,0.3);color:#80a0b0;">Pause</div>
+      </div>
+    </div>
+    <div class="rp">
+      <div class="rp-t">Properties / Video Router</div>
+      <div class="rp-r"><div class="rp-l">Blend Mode</div><select class="rp-sel"><option>Normal</option></select></div>
+      <div class="rp-r"><div class="rp-l">Layer Type</div><select class="rp-sel"><option>Default</option></select></div>
+      <div class="rp-r"><div class="rp-l">Video Source</div><select class="rp-sel"><option>Default</option></select></div>
+      <div class="rp-r"><div class="rp-l">Loop Time</div><div class="rp-s"><div class="rp-sf" style="width:50%;"></div></div><div class="rp-v">4.0s</div></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="logo-star">&#10022;</div>
+</body>
+</html>

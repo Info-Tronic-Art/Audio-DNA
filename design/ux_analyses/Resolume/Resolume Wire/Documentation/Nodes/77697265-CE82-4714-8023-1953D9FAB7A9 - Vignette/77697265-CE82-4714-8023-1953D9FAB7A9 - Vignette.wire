@@ -1,0 +1,347 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          75,
+          "output"
+        ],
+        "to": [
+          95,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          95,
+          "output"
+        ],
+        "to": [
+          97,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          96,
+          "output"
+        ],
+        "to": [
+          97,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          97,
+          "output"
+        ],
+        "to": [
+          74,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Default Example",
+      "identifier": "027417f2-73c8-4320-8bcb-182275c39577",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 98,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "VIGNETTE\n\nThis node allows you to create a vignette around the incomming texture. Anything from a soft vingnette to a hard cut-off can be made. Note tht the vignette is in fact a reduction of the alpha channel. To create the traditional black vignette the signal is to be combined with a black background like done in this example."
+          }
+        },
+        "bounds": {
+          "height": 156.62136840820312,
+          "width": 570.5733642578125,
+          "x": -47.89068603515625,
+          "y": 371.1226501464844
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "74": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 583.4542236328125,
+          "y": 572.9276733398438
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "75": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -47.6298828125,
+          "y": 572.9276733398438
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture"
+      },
+      "95": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 135.94784545898438,
+          "y": 573.0465087890625
+        },
+        "class": {
+          "id": "77697265-CE82-4714-8023-1953D9FAB7A9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "invert": {
+            "type": "bool",
+            "value": false
+          },
+          "roundness": {
+            "type": "float",
+            "value": 0.7528733611106871
+          },
+          "size": {
+            "type": "float",
+            "value": 0
+          },
+          "softness": {
+            "type": "float",
+            "value": 0.9252871870994568
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Vignette"
+      },
+      "96": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 135.94784545898438,
+          "y": 737.3798828125
+        },
+        "class": {
+          "id": "77697265-E8EC-4F1B-901A-CFFC104D3B07",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color": {
+            "type": "float4",
+            "value": [
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Solid Color"
+      },
+      "97": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "input-count": {
+            "type": "number",
+            "value": 2
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 365.9479064941406,
+          "y": 573.3798828125
+        },
+        "class": {
+          "id": "77697265-A270-4D60-911C-A88B1BE6369A",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input1": {
+            "type": "texture2d",
+            "value": null
+          },
+          "input2": {
+            "type": "texture2d",
+            "value": null
+          },
+          "mode": {
+            "type": "integer",
+            "value": 11
+          },
+          "opacity1": {
+            "type": "float",
+            "value": 1
+          },
+          "opacity2": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "bypass",
+          "mode"
+        ],
+        "name": "Video Mixer"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -175.05223083496094,
+        "y": 227.37973022460935,
+        "zoom": 0.9999997615814208
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 74,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "75": "Wire Logo"
+        },
+        "out": {}
+      }
+    }
+  }
+}

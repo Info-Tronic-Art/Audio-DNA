@@ -1,0 +1,2200 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          13,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output"
+        ],
+        "to": [
+          13,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output"
+        ],
+        "to": [
+          13,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          13,
+          "input3"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output0"
+        ],
+        "to": [
+          15,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          13,
+          "output"
+        ],
+        "to": [
+          18,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output0"
+        ],
+        "to": [
+          16,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output0"
+        ],
+        "to": [
+          14,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          21,
+          "output"
+        ],
+        "to": [
+          20,
+          "radius"
+        ]
+      },
+      {
+        "from": [
+          20,
+          "output"
+        ],
+        "to": [
+          22,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          23,
+          "frequency"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "output"
+        ],
+        "to": [
+          25,
+          "width"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "output"
+        ],
+        "to": [
+          25,
+          "height"
+        ]
+      },
+      {
+        "from": [
+          25,
+          "output"
+        ],
+        "to": [
+          26,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          32,
+          "output"
+        ],
+        "to": [
+          33,
+          "max"
+        ]
+      },
+      {
+        "from": [
+          33,
+          "pattern"
+        ],
+        "to": [
+          34,
+          "phase-offset"
+        ]
+      },
+      {
+        "from": [
+          34,
+          "output"
+        ],
+        "to": [
+          35,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          39,
+          "output0"
+        ],
+        "to": [
+          40,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          34,
+          "output"
+        ],
+        "to": [
+          45,
+          "container"
+        ]
+      },
+      {
+        "from": [
+          45,
+          "output0"
+        ],
+        "to": [
+          41,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          35,
+          "output0"
+        ],
+        "to": [
+          90,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          41,
+          "output0"
+        ],
+        "to": [
+          90,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          40,
+          "output0"
+        ],
+        "to": [
+          90,
+          "input3"
+        ]
+      },
+      {
+        "from": [
+          34,
+          "output"
+        ],
+        "to": [
+          91,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          91,
+          "output0"
+        ],
+        "to": [
+          92,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          92,
+          "output0"
+        ],
+        "to": [
+          90,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          90,
+          "output"
+        ],
+        "to": [
+          93,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      9,
+      10,
+      11,
+      12,
+      21,
+      24,
+      32
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "7.14.0",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "77697265-D235-4A6A-B661-02ABE55C72FF - Float In",
+      "identifier": "4ae840e8-1141-471f-9d68-b59a38d58fed",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "7.14.0",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 99,
+    "nodes": {
+      "10": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 100
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 4
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 171.22311401367188,
+          "y": 494.8805541992187
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 50
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Green"
+      },
+      "11": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 100
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 4
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 171.22311401367188,
+          "y": 606.8805541992188
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 75
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Blue"
+      },
+      "12": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 100
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 4
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 171.22311401367188,
+          "y": 718.8805541992188
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 100
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Alpha"
+      },
+      "13": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "input1-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "input2-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "input3-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 361.2231140136719,
+          "y": 382.8805541992187
+        },
+        "class": {
+          "id": "77697265-19E0-4717-BD17-6C7D4A9252C4",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 25
+          },
+          "input1": {
+            "type": "float",
+            "value": 50
+          },
+          "input2": {
+            "type": "float",
+            "value": 75
+          },
+          "input3": {
+            "type": "float",
+            "value": 100
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input0-type",
+          "input1-type",
+          "input2-type",
+          "input3-type"
+        ],
+        "name": "Float4"
+      },
+      "14": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float4"
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "sampling": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 871.2230834960938,
+          "y": 382.8805541992187
+        },
+        "class": {
+          "id": "77697265-A4AE-41FA-8316-8C0D54BC55B7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input0": {
+            "type": "float4",
+            "value": [
+              0.25,
+              0.5,
+              0.75,
+              1
+            ]
+          }
+        },
+        "hidden": [
+          "sampling",
+          "input0-type",
+          "input0-dimensions",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Texture from Data"
+      },
+      "15": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1121.0535888671875,
+          "y": 382.8805541992187
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "16": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 872.1365356445312,
+          "y": 434.9739685058594
+        },
+        "class": {
+          "id": "77697265-8035-4fab-a688-52338c6b4748",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input0": {
+            "type": "float4",
+            "value": [
+              0.25,
+              0.5,
+              0.75,
+              1
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances"
+        ],
+        "name": "Color"
+      },
+      "18": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float4"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float4"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 616.2230834960938,
+          "y": 382.8805541992187
+        },
+        "class": {
+          "id": "77697265-0D55-485E-813D-706DD5DFE88D",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input0": {
+            "type": "float4",
+            "value": [
+              25,
+              50,
+              75,
+              100
+            ]
+          },
+          "input1": {
+            "type": "float4",
+            "value": [
+              100,
+              100,
+              100,
+              100
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Divide"
+      },
+      "20": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 366.7984924316406,
+          "y": -309.9544372558594
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Circle"
+      },
+      "21": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 1
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 176.7985076904297,
+          "y": -309.9544372558594
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Radius"
+      },
+      "22": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 621.7985229492188,
+          "y": -309.9544372558594
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "23": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 365.56842041015625,
+          "y": -4.996181488037109
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "instances"
+        ],
+        "name": "Sine"
+      },
+      "24": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": false
+          },
+          "has-min": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unit": {
+            "type": "integer",
+            "value": 3
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 175.56842041015625,
+          "y": -4.996181488037109
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0.25
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "has-max",
+          "unit"
+        ],
+        "name": "Frequency"
+      },
+      "25": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 620.5684204101562,
+          "y": -4.996181488037109
+        },
+        "class": {
+          "id": "77697265-4db6-4573-8aa7-42362bc44931",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "height": {
+            "type": "float",
+            "value": 1
+          },
+          "round": {
+            "type": "float4",
+            "value": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "width": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Rectangle"
+      },
+      "26": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 875.5684204101564,
+          "y": -4.996181488037109
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "32": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "attribute"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "input": {
+            "type": "float",
+            "value": 8
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 8
+          },
+          "min": {
+            "type": "float",
+            "value": 1
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 171.00997924804688,
+          "y": 1003.8982543945312
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {},
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Pulses"
+      },
+      "33": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "attribute"
+          },
+          "include-max": {
+            "type": "bool",
+            "value": true
+          },
+          "max": {
+            "type": "float",
+            "value": 8
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "size": {
+            "type": "integer",
+            "value": 16
+          },
+          "type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 338.0638122558594,
+          "y": 1005.3982543945312
+        },
+        "class": {
+          "id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {},
+        "hidden": [
+          "type",
+          "flow",
+          "include-max"
+        ],
+        "name": "Linear"
+      },
+      "34": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 16
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 588.2330322265625,
+          "y": 1005.6906127929688
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "frequency": {
+            "type": "float",
+            "value": [
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25
+            ]
+          },
+          "offset": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": [
+              0,
+              0.5333333611488342,
+              1.0666667222976685,
+              1.600000023841858,
+              2.133333444595337,
+              2.6666667461395264,
+              3.200000047683716,
+              3.7333333492279053,
+              4.266666889190674,
+              4.800000190734863,
+              5.333333492279053,
+              5.866666793823242,
+              6.400000095367432,
+              6.933333396911621,
+              7.4666666984558105,
+              8
+            ]
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "instances"
+        ],
+        "name": "Sine"
+      },
+      "35": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 16
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "sampling": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 1098.2330322265625,
+          "y": 1005.6906127929688
+        },
+        "class": {
+          "id": "77697265-A4AE-41FA-8316-8C0D54BC55B7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "sampling",
+          "input0-type",
+          "input0-dimensions",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Texture from Data"
+      },
+      "39": {
+        "attributes": {
+          "defaultValue-type": {
+            "type": "type",
+            "value": "null"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 843.2330322265625,
+          "y": 1241.6905517578125
+        },
+        "class": {
+          "id": "77697265-E9E1-4BAC-9742-265E5207A103",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input0-type",
+          "defaultValue-type"
+        ],
+        "name": "Float"
+      },
+      "40": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "sampling": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 1098.2330322265625,
+          "y": 1241.6905517578125
+        },
+        "class": {
+          "id": "77697265-A4AE-41FA-8316-8C0D54BC55B7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "sampling",
+          "input0-type",
+          "input0-dimensions",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Texture from Data"
+      },
+      "41": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 16
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "sampling": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 1098.2330322265625,
+          "y": 1065.6905517578125
+        },
+        "class": {
+          "id": "77697265-A4AE-41FA-8316-8C0D54BC55B7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "sampling",
+          "input0-type",
+          "input0-dimensions",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Texture from Data"
+      },
+      "45": {
+        "attributes": {
+          "container-dimensions": {
+            "type": "integer",
+            "value": 16
+          },
+          "container-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 843.2330322265625,
+          "y": 1065.6905517578125
+        },
+        "class": {
+          "id": "77697265-A7DD-4C94-96ED-51AE37AZEA6A",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "container": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "offset": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "flow",
+          "container-type",
+          "container-dimensions"
+        ],
+        "name": "Shift"
+      },
+      "9": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 100
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 4
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 171.22311401367188,
+          "y": 382.8805541992187
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 25
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Red"
+      },
+      "90": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 1353.2330322265625,
+          "y": 1005.6906127929688
+        },
+        "class": {
+          "id": "77697265-919F-4354-88B1-B64E31661470",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input0": {
+            "type": "texture2dr",
+            "value": null
+          },
+          "input1": {
+            "type": "texture2dr",
+            "value": null
+          },
+          "input2": {
+            "type": "texture2dr",
+            "value": null
+          },
+          "input3": {
+            "type": "texture2dr",
+            "value": null
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances"
+        ],
+        "name": "Texture"
+      },
+      "91": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 16
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "ordering": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 843.2330322265625,
+          "y": 1152.6905517578125
+        },
+        "class": {
+          "id": "77697265-BBC2-49EC-BDAC-5B38BDB4A6A1",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "ordering",
+          "flow",
+          "input0-type",
+          "input0-dimensions"
+        ],
+        "name": "Sort"
+      },
+      "92": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 16
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "sampling": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 1098.2330322265625,
+          "y": 1152.6905517578125
+        },
+        "class": {
+          "id": "77697265-A4AE-41FA-8316-8C0D54BC55B7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "sampling",
+          "input0-type",
+          "input0-dimensions",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Texture from Data"
+      },
+      "93": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1581.976318359375,
+          "y": 1003.5377807617188
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "94": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 1: RADIUS SLIDER\nIn this example we've created a Float In node to control the radius of the Circle.\nThe min is set to 0 and the max to 1, so we end up with a slider running from 0 to 1."
+          }
+        },
+        "bounds": {
+          "height": 266.89996337890625,
+          "width": 678.318115234375,
+          "x": 133.67489624023438,
+          "y": -424.7564392089844
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "95": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 2: FREQUENCY INPUT\n\nIn this example we've removed the min and max bounds and changed the unit to Hertz."
+          }
+        },
+        "bounds": {
+          "height": 301.1493835449219,
+          "width": 912.1589965820312,
+          "x": 133.67489624023438,
+          "y": -122.41668701171876
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "96": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 3: FLOAT TO TEXTURE\n\nIn this example we have 4 Float In nodes named Red, Green, Blue and Alpha.\nWe've set the unit to percent and set the range from 0 to 100.\nBut to construct a color we need a value from 0 to 1.\nThis is why we divide by 100 again.\nThis is something you will do often, a slider might run from 0 to 100 in the interface, but in the patch it gets converted back to 0 to 1.\nNodes like Map and 1-x are useful for this purpose too."
+          }
+        },
+        "bounds": {
+          "height": 628.2904052734375,
+          "width": 1155.447998046875,
+          "x": 133.67489624023438,
+          "y": 192.91421508789062
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "97": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 4: PULSES\n\nIn this example we are creating a video oscillator from a single Sine oscillator.\nWe use a Float In node, named Pulses, that runs from 1 to 8 at attribute flow.\nThis sets the max of the Linear node up to set the Phase Offset of the Sine."
+          }
+        },
+        "bounds": {
+          "height": 500.7340087890625,
+          "width": 1702.2972412109375,
+          "x": 133.04788208007812,
+          "y": 850.7479248046875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "98": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "FLOAT IN\n\nThe Float Input node creates an input slider that sends out a floating point number.\nIf the Float Input has either its min and max disabled in the node panel, the slider disappears and becomes an input box.\nBecause this is an input node, the slider or box will appear in the Dashboard panel and in the Arena/Avenue interface.\n\nIf you need to construct or convert a float, you should use the Float node instead."
+          }
+        },
+        "bounds": {
+          "height": 163.95333862304688,
+          "width": 678.0775146484375,
+          "x": 132.730224609375,
+          "y": -612.9750366210938
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -325.0465087890625,
+        "y": -664.6842041015625,
+        "zoom": 0.46484214067459106
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null,
+          "Syphon": null
+        }
+      }
+    }
+  }
+}

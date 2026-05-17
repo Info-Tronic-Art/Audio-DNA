@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 15 Var A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(160deg, #1c1e24 0%, #14161c 60%, #101218 100%); color: #e0e0e0; font-size: 12px; }
+
+/* TOP BAR */
+.topbar { height: 44px; background: linear-gradient(180deg, #222630 0%, #1a1e26 100%); display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid #2e3440; gap: 16px; }
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo .dia { width: 24px; height: 24px; background: linear-gradient(135deg, #5577ff, #3355dd); transform: rotate(45deg); border-radius: 3px; }
+.logo span { font-size: 17px; font-weight: 700; color: #e8e8f0; letter-spacing: 0.5px; }
+.spacer { flex: 1; }
+.bpm-center { display: flex; align-items: center; gap: 10px; }
+.bpm-arrows { display: flex; gap: 2px; }
+.bpm-arr { width: 28px; height: 28px; background: #2a2e38; border: 1px solid #3a4050; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #88a; font-size: 14px; cursor: pointer; }
+.bpm-val { font-size: 26px; font-weight: 800; color: #ffffff; font-family: 'Consolas', monospace; letter-spacing: 2px; }
+.tap-btn { background: #3a4050; border: 1px solid #4a5568; color: #ccd; padding: 5px 16px; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.master-meter { width: 160px; height: 14px; background: #111318; border-radius: 7px; overflow: hidden; border: 1px solid #2a2e38; }
+.master-meter .fill { height: 100%; background: linear-gradient(90deg, #4aff7f, #aaff55, #ffdd4a, #ff5533); width: 65%; border-radius: 7px; }
+.settings-btn { width: 28px; height: 28px; background: #2a2e38; border: 1px solid #3a4050; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #88a; font-size: 14px; cursor: pointer; }
+
+/* MAIN 3-COLUMN */
+.main { display: flex; height: calc(1080px - 44px - 70px - 32px); }
+
+/* LEFT: LIBRARY & SOURCES */
+.left-panel { width: 300px; background: linear-gradient(180deg, #181c24 0%, #14181e 100%); border-right: 1px solid #262c38; display: flex; flex-direction: column; }
+.panel-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #556; padding: 8px 12px; border-bottom: 1px solid #222830; }
+.media-tabs { display: flex; border-bottom: 1px solid #222830; }
+.med-tab { flex: 1; text-align: center; padding: 6px 0; font-size: 10px; color: #556; cursor: pointer; border-bottom: 2px solid transparent; }
+.med-tab.a { color: #5588ff; border-bottom-color: #5588ff; }
+.media-grid { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; }
+.media-thumb { width: 64px; height: 64px; border-radius: 5px; border: 1px solid #2a2e38; overflow: hidden; cursor: pointer; position: relative; }
+.media-thumb:hover { border-color: #5588ff; }
+.media-thumb .mg { width: 100%; height: 100%; }
+.media-thumb .play-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; color: #fff8; text-shadow: 0 0 6px #0008; }
+.mt1 { background: linear-gradient(135deg, #1a0a2e, #0a2a3e); }
+.mt2 { background: radial-gradient(circle, #aa44ff33, #0a001800); }
+.mt3 { background: linear-gradient(135deg, #2a1a0a, #0a2a1a); }
+.mt4 { background: radial-gradient(circle, #4488ff33, #00112200); }
+.mt5 { background: linear-gradient(45deg, #1a2a0a, #0a1a2a); }
+.mt6 { background: conic-gradient(from 0deg, #0a1a2a, #2a0a1a, #0a2a0a, #0a1a2a); }
+
+/* Audio Sources section */
+.audio-src-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #cc8844; padding: 8px 12px; border-top: 1px solid #222830; border-bottom: 1px solid #222830; display: flex; justify-content: space-between; }
+.audio-src { padding: 4px 8px; }
+.as-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; margin-bottom: 3px; background: #1e222a; border: 1px solid #262c38; border-radius: 4px; cursor: pointer; }
+.as-row:hover { border-color: #4a5568; }
+.as-icon { width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+.as-icon.kick { background: #cc884422; color: #cc8844; }
+.as-icon.snare { background: #44aa8822; color: #44aa88; }
+.as-icon.bass { background: #8844cc22; color: #8844cc; }
+.as-name { font-size: 10px; color: #bbc; flex: 1; }
+.as-meter { width: 60px; height: 8px; background: #111318; border-radius: 4px; overflow: hidden; }
+.as-meter .amf { height: 100%; border-radius: 4px; }
+
+/* LFO section */
+.lfo-section { padding: 4px 8px; border-top: 1px solid #222830; }
+.lfo-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; margin-bottom: 3px; }
+.lfo-icon { font-size: 14px; color: #aa66ff; }
+.lfo-name { font-size: 10px; color: #99a; flex: 1; }
+.lfo-wave { width: 60px; height: 20px; position: relative; }
+.lfo-wave svg { width: 100%; height: 100%; }
+.lfo-add { font-size: 10px; color: #5588ff88; cursor: pointer; padding: 6px 12px; }
+
+/* CENTER: COMPOSITION CANVAS */
+.center-panel { flex: 1; display: flex; flex-direction: column; }
+.canvas-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #556; padding: 8px 16px; border-bottom: 1px solid #222830; text-align: center; }
+
+/* Clip columns */
+.clip-canvas { flex: 1; display: flex; gap: 12px; padding: 12px 16px; overflow-x: auto; }
+.canvas-col { width: 200px; min-width: 200px; display: flex; flex-direction: column; gap: 6px; }
+.col-clip { width: 100%; height: 100px; border-radius: 6px; border: 1.5px solid #2a2e38; overflow: hidden; cursor: pointer; position: relative; background: #111318; }
+.col-clip:hover { border-color: #4a5568; }
+.col-clip.active { border-color: #5588ff; box-shadow: 0 0 12px #5588ff33; }
+.col-clip .cthumb { width: 100%; height: 100%; }
+.col-clip .play-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: #fff8; }
+.col-clip .badge { position: absolute; top: 6px; left: 6px; font-size: 7px; font-weight: 700; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; }
+
+/* Effect tags under clips */
+.fx-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.fx-tag { font-size: 8px; padding: 3px 8px; border-radius: 3px; cursor: pointer; }
+.fx-tag.green { background: #22aa5522; border: 1px solid #22aa5544; color: #44cc77; }
+.fx-tag.amber { background: #cc884422; border: 1px solid #cc884444; color: #ddaa55; }
+.fx-tag.purple { background: #8844cc22; border: 1px solid #8844cc44; color: #aa66dd; }
+.fx-tag.blue { background: #4488cc22; border: 1px solid #4488cc44; color: #6699dd; }
+
+/* Shared label */
+.shared-label { font-size: 9px; color: #556; text-align: center; padding: 4px 0; }
+.clip-label { font-size: 10px; color: #99a; text-align: center; padding: 4px 0; }
+
+/* Audio routing visualization */
+.routing-area { height: 120px; margin: 0 16px; background: #0e1018; border-radius: 6px; border: 1px solid #222830; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.routing-hub { width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, #3355dd33, #0e101800); border: 1.5px solid #3355dd55; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.routing-hub .hub-name { font-size: 9px; color: #5588ff; font-weight: 600; }
+.routing-hub .hub-src { font-size: 8px; color: #556; }
+.route-line { position: absolute; height: 1px; background: linear-gradient(90deg, #3355dd44, #3355dd88, #3355dd44); }
+.route-dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #5588ff; box-shadow: 0 0 6px #5588ff88; }
+.drag-hint { font-size: 9px; color: #33445566; position: absolute; bottom: 8px; right: 12px; font-style: italic; }
+
+/* Scene triggers */
+.scene-triggers { display: flex; gap: 6px; padding: 8px 16px; justify-content: center; border-top: 1px solid #222830; }
+.scene-trig { padding: 6px 20px; font-size: 10px; color: #778; background: #1e222a; border: 1px solid #2a2e38; border-radius: 4px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+.scene-trig:hover { border-color: #4a5568; color: #bbc; }
+.scene-trig.active { background: #5588ff18; border-color: #5588ff66; color: #5588ff; }
+
+/* RIGHT: INSPECTOR */
+.right-panel { width: 320px; background: linear-gradient(180deg, #181c24 0%, #14181e 100%); border-left: 1px solid #262c38; display: flex; flex-direction: column; }
+.insp-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #556; padding: 8px 12px; border-bottom: 1px solid #222830; }
+.insp-fx-name { font-size: 13px; color: #dde; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+.insp-fx-name .fx-dot { width: 10px; height: 10px; border-radius: 50%; }
+.insp-param { padding: 4px 12px; }
+.ip-row { margin-bottom: 8px; }
+.ip-label { font-size: 9px; color: #667; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+.ip-slider-track { height: 10px; background: #111318; border-radius: 5px; overflow: hidden; border: 1px solid #222830; position: relative; cursor: pointer; }
+.ip-slider-fill { height: 100%; border-radius: 5px; }
+.ip-slider-fill.hue { background: linear-gradient(90deg, #ff4444, #ffaa44, #44ff44, #44aaff, #4444ff, #ff44ff, #ff4444); width: 100%; opacity: 0.7; }
+.ip-slider-fill.sat { background: linear-gradient(90deg, #888, #5588ff); }
+.ip-slider-fill.bri { background: linear-gradient(90deg, #222, #fff); }
+.ip-slider-fill.amt { background: linear-gradient(90deg, #222, #cc8844); }
+.ip-val { font-size: 9px; color: #88a; font-family: monospace; text-align: right; margin-top: 2px; }
+
+/* Modulation source */
+.mod-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; padding: 4px 0; }
+.mod-label { font-size: 9px; color: #667; }
+.mod-src { font-size: 9px; color: #cc8844; background: #cc884411; border: 1px solid #cc884433; padding: 2px 8px; border-radius: 3px; cursor: pointer; }
+
+/* Color wheel placeholder */
+.color-preview { width: 100px; height: 100px; border-radius: 50%; margin: 8px auto; background: conic-gradient(from 0deg, #ff4444, #ffaa44, #aaff44, #44ffaa, #44aaff, #aa44ff, #ff44ff, #ff4444); position: relative; }
+.color-preview::after { content: ''; position: absolute; top: 20px; left: 20px; right: 20px; bottom: 20px; border-radius: 50%; background: #181c24; }
+
+/* PERFORMANCE / MACROS */
+.performance { height: 70px; background: linear-gradient(180deg, #1a1e26 0%, #161a22 100%); border-top: 1px solid #2e3440; display: flex; align-items: center; padding: 0 20px; gap: 16px; }
+.perf-title { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #445; }
+.perf-macros { display: flex; gap: 14px; }
+.pm-knob { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pm-k { width: 36px; height: 36px; border-radius: 50%; background: conic-gradient(from 220deg, #5588ff 0%, #5588ff var(--pv, 50%), #252a34 var(--pv, 50%), #252a34 280deg); border: 2px solid #3a4050; position: relative; }
+.pm-k::after { content: ''; position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px; border-radius: 50%; background: #1a1e26; }
+.pm-lbl { font-size: 8px; color: #556; }
+.perf-spacer { flex: 1; }
+.perf-btn { padding: 8px 20px; font-size: 11px; font-weight: 600; border-radius: 5px; cursor: pointer; border: 1px solid; }
+.blackout { background: #111; border-color: #ff555566; color: #ff8888; }
+.freeze { background: #111; border-color: #5588ff66; color: #88aaff; }
+
+/* FOOTER */
+.footer { height: 32px; background: linear-gradient(180deg, #1a1e26 0%, #14181e 100%); border-top: 1px solid #2e3440; display: flex; align-items: center; padding: 0 20px; gap: 12px; }
+.fb { font-size: 10px; color: #667; padding: 4px 12px; cursor: pointer; }
+.fb:hover { color: #bbc; }
+.footer .spacer { flex: 1; }
+.fb.save { color: #5588ff; }
+.footer .dia-sm { width: 14px; height: 14px; background: linear-gradient(135deg, #5577ff, #3355dd); transform: rotate(45deg); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo"><div class="dia"></div><span>Audio-DNA</span></div>
+  <div class="spacer"></div>
+  <div class="bpm-center">
+    <div class="bpm-arrows"><div class="bpm-arr">&#8722;</div></div>
+    <div class="bpm-val">128.00</div>
+    <div class="bpm-arrows"><div class="bpm-arr">+</div></div>
+  </div>
+  <div class="tap-btn">TAP</div>
+  <div class="spacer"></div>
+  <div class="master-meter"><div class="fill"></div></div>
+  <div class="settings-btn">&#9881;</div>
+</div>
+
+<!-- MAIN 3-COLUMN -->
+<div class="main">
+  <!-- LEFT: LIBRARY & SOURCES -->
+  <div class="left-panel">
+    <div class="panel-title">Library &amp; Sources</div>
+    <div class="media-tabs">
+      <div class="med-tab a">Video</div>
+      <div class="med-tab">Image</div>
+      <div class="med-tab">Audio Sources</div>
+    </div>
+    <div class="media-grid">
+      <div class="media-thumb"><div class="mg mt1"></div><span class="play-icon">&#9654;</span></div>
+      <div class="media-thumb"><div class="mg mt2"></div><span class="play-icon">&#9654;</span></div>
+      <div class="media-thumb"><div class="mg mt3"></div></div>
+      <div class="media-thumb"><div class="mg mt4"></div><span class="play-icon">&#9654;</span></div>
+      <div class="media-thumb"><div class="mg mt5"></div></div>
+      <div class="media-thumb"><div class="mg mt6"></div></div>
+      <div class="media-thumb"><div class="mg mt1"></div></div>
+      <div class="media-thumb"><div class="mg mt3"></div><span class="play-icon">&#9654;</span></div>
+    </div>
+
+    <div class="audio-src-title"><span>Audio Sources</span></div>
+    <div class="audio-src">
+      <div class="as-row">
+        <div class="as-icon kick">K</div>
+        <div class="as-name">Kick</div>
+        <div class="as-meter"><div class="amf" style="width:75%; background:#cc8844;"></div></div>
+      </div>
+      <div class="as-row">
+        <div class="as-icon snare">S</div>
+        <div class="as-name">Snare</div>
+        <div class="as-meter"><div class="amf" style="width:45%; background:#44aa88;"></div></div>
+      </div>
+      <div class="as-row">
+        <div class="as-icon bass">B</div>
+        <div class="as-name">Bass</div>
+        <div class="as-meter"><div class="amf" style="width:60%; background:#8844cc;"></div></div>
+      </div>
+    </div>
+
+    <div class="lfo-section">
+      <div class="lfo-row">
+        <span class="lfo-icon">&#8767;</span>
+        <span class="lfo-name">LFO 1 &mdash; Sine</span>
+        <div class="lfo-wave"><svg viewBox="0 0 60 20"><path d="M0 10 Q7.5 0 15 10 Q22.5 20 30 10 Q37.5 0 45 10 Q52.5 20 60 10" fill="none" stroke="#aa66ff" stroke-width="1.5"/></svg></div>
+      </div>
+      <div class="lfo-row">
+        <span class="lfo-icon">&#8767;</span>
+        <span class="lfo-name">LFO 2 &mdash; Custom</span>
+        <div class="lfo-wave"><svg viewBox="0 0 60 20"><path d="M0 18 L10 2 L20 18 L30 2 L40 18 L50 2 L60 18" fill="none" stroke="#aa66ff" stroke-width="1.5"/></svg></div>
+      </div>
+      <div class="lfo-add">+ Add Source</div>
+    </div>
+  </div>
+
+  <!-- CENTER: COMPOSITION CANVAS -->
+  <div class="center-panel">
+    <div class="canvas-title">Composition Canvas</div>
+    <div class="clip-canvas">
+      <!-- Column 1 -->
+      <div class="canvas-col">
+        <div class="col-clip active"><div class="cthumb mt2"></div><span class="play-overlay">&#9654;</span><span class="badge" style="background:#e8553599; color:#fff;">VIDEO</span></div>
+        <div class="fx-tags">
+          <span class="fx-tag green">Colorize</span>
+          <span class="fx-tag amber">Pixelate</span>
+        </div>
+        <div class="shared-label">Shared</div>
+        <div class="clip-label">Audio-DNA</div>
+      </div>
+      <!-- Column 2 -->
+      <div class="canvas-col">
+        <div class="col-clip"><div class="cthumb mt4"></div><span class="play-overlay">&#9654;</span><span class="badge" style="background:#00d4aa99; color:#111;">SRC</span></div>
+        <div class="fx-tags">
+          <span class="fx-tag green">Colorize</span>
+          <span class="fx-tag amber">Pixelate</span>
+        </div>
+        <div class="shared-label">Shared</div>
+        <div class="clip-label">Audio-DNA</div>
+      </div>
+      <!-- Column 3 -->
+      <div class="canvas-col">
+        <div class="col-clip"><div class="cthumb mt6"></div><span class="badge" style="background:#3588e899; color:#fff;">IMAGE</span></div>
+        <div class="fx-tags">
+          <span class="fx-tag green">Colorize</span>
+          <span class="fx-tag amber">Pixelate</span>
+        </div>
+        <div class="shared-label">Shared</div>
+        <div class="clip-label">Audio-DNA</div>
+      </div>
+      <!-- Column 4 -->
+      <div class="canvas-col">
+        <div class="col-clip"><div class="cthumb mt1"></div><span class="badge" style="background:#aa55dd99; color:#fff;">SRC</span></div>
+        <div class="fx-tags">
+          <span class="fx-tag green">Colorize</span>
+          <span class="fx-tag amber">Pixelate</span>
+        </div>
+        <div class="shared-label">Shared</div>
+        <div class="clip-label">Audio-DNA</div>
+      </div>
+    </div>
+
+    <!-- Audio routing visualization -->
+    <div class="routing-area">
+      <div style="position:absolute; left:80px; top:50%; width:calc(50% - 80px); height:1px; background:linear-gradient(90deg, #3355dd22, #3355dd66);"></div>
+      <div style="position:absolute; right:80px; top:50%; width:calc(50% - 80px); height:1px; background:linear-gradient(270deg, #3355dd22, #3355dd66);"></div>
+      <div style="position:absolute; left:50%; top:20px; width:1px; height:20px; background:linear-gradient(180deg, #3355dd22, #3355dd66);"></div>
+      <div style="position:absolute; left:50%; bottom:20px; width:1px; height:20px; background:linear-gradient(0deg, #3355dd22, #3355dd66);"></div>
+      <div class="routing-hub">
+        <span class="hub-name">Audio-DNA</span>
+        <span class="hub-src">Kick</span>
+      </div>
+      <span class="drag-hint">Drag Audio Source Here</span>
+    </div>
+
+    <!-- Scene triggers -->
+    <div class="scene-triggers">
+      <div class="scene-trig">Intro</div>
+      <div class="scene-trig active">Verse</div>
+      <div class="scene-trig">Chorus</div>
+      <div class="scene-trig">Sheet 2</div>
+      <div class="scene-trig">Life 1</div>
+      <div class="scene-trig">Troo</div>
+      <div class="scene-trig">Perm</div>
+      <div class="scene-trig">Song</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: INSPECTOR -->
+  <div class="right-panel">
+    <div class="insp-title">Inspector</div>
+    <div class="color-preview"></div>
+    <div class="insp-fx-name"><div class="fx-dot" style="background:#44cc77;"></div>Colorize</div>
+    <div class="insp-param">
+      <div class="ip-row">
+        <div class="ip-label">Hue</div>
+        <div class="ip-slider-track"><div class="ip-slider-fill hue"></div></div>
+      </div>
+      <div class="ip-row">
+        <div class="ip-label">Saturation</div>
+        <div class="ip-slider-track"><div class="ip-slider-fill sat" style="width:72%;"></div></div>
+        <div class="ip-val">0.72</div>
+      </div>
+      <div class="mod-row">
+        <span class="mod-label">Modulation Source</span>
+        <span class="mod-src">Kick</span>
+        <span style="font-size:9px; color:#667;">Amount</span>
+      </div>
+      <div class="ip-row">
+        <div class="ip-label">Brightness</div>
+        <div class="ip-slider-track"><div class="ip-slider-fill bri" style="width:85%;"></div></div>
+        <div class="ip-val">0.85</div>
+      </div>
+      <div class="mod-row">
+        <span class="mod-label">Modulation Source</span>
+        <span class="mod-src">Kick</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PERFORMANCE / MACROS -->
+<div class="performance">
+  <div class="perf-title">Performance</div>
+  <div class="perf-macros">
+    <div class="pm-knob"><div class="pm-k" style="--pv:45%;"></div><div class="pm-lbl">Macro</div></div>
+    <div class="pm-knob"><div class="pm-k" style="--pv:60%;"></div><div class="pm-lbl">Macro</div></div>
+    <div class="pm-knob"><div class="pm-k" style="--pv:75%;"></div><div class="pm-lbl">Macro</div></div>
+    <div class="pm-knob"><div class="pm-k" style="--pv:30%;"></div><div class="pm-lbl">Macro</div></div>
+  </div>
+  <div style="flex:1; height:30px; background:#111318; border-radius:4px; border:1px solid #222830; margin:0 20px;"></div>
+  <div class="perf-btn blackout">Blackout</div>
+  <div class="perf-btn freeze">Freeze</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="fb">Master Sources</div>
+  <div class="fb">Audio Player</div>
+  <div class="fb">Outputs</div>
+  <div class="spacer"></div>
+  <div class="fb save">Save</div>
+  <div class="fb">Load</div>
+  <div class="dia-sm"></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 5 - Broadcast/Live Production Layout</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #111; color: #ddd; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12px; display: flex; flex-direction: column;
+}
+
+/* ===== TOP BAR ===== */
+.top-bar {
+  height: 44px; background: #1a1a1a; border-bottom: 1px solid #333;
+  display: flex; align-items: center; padding: 0 12px; gap: 10px; flex-shrink: 0;
+}
+.app-title { font-size: 15px; font-weight: 700; color: #4ae0a0; letter-spacing: 1px; margin-right: 8px; }
+.bpm-display {
+  font-size: 28px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums;
+  background: #0d0d0d; padding: 2px 14px; border: 1px solid #444; border-radius: 3px;
+  min-width: 140px; text-align: center;
+}
+.bpm-label { font-size: 10px; color: #888; margin-left: -4px; }
+.top-btn {
+  background: #2a2a2a; color: #bbb; border: 1px solid #444; padding: 4px 10px;
+  font-size: 11px; cursor: pointer; border-radius: 2px; font-weight: 600;
+}
+.top-btn:hover { background: #3a3a3a; }
+.beat-indicator {
+  width: 200px; height: 22px; background: #0d0d0d; border: 1px solid #444; border-radius: 2px;
+  display: flex; gap: 2px; padding: 2px; margin: 0 6px;
+}
+.beat-seg {
+  flex: 1; border-radius: 1px;
+}
+.beat-seg.active-1 { background: linear-gradient(to right, #2d8040, #4ae0a0); }
+.beat-seg.active-2 { background: linear-gradient(to right, #4ae0a0, #8ae050); }
+.beat-seg.active-3 { background: linear-gradient(to right, #8ae050, #c8e040); }
+.beat-seg.inactive { background: #222; }
+.room-delay { color: #888; font-size: 11px; margin-left: auto; }
+.room-delay span { color: #4ae0a0; font-weight: 600; }
+
+/* ===== SAFETY ROW ===== */
+.safety-row {
+  height: 34px; background: #161616; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 12px; gap: 6px; flex-shrink: 0;
+}
+.safety-btn {
+  padding: 4px 12px; font-size: 11px; font-weight: 700; border: 1px solid #444;
+  cursor: pointer; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.btn-blackout { background: #1a1a1a; color: #888; border-color: #555; }
+.btn-safe { background: #1a1a1a; color: #4ae0a0; border-color: #2d6040; }
+.btn-panic { background: #8b1a1a; color: #ff4444; border-color: #cc2222; font-size: 12px; }
+.btn-panic:hover { background: #aa2222; }
+.btn-kill { background: #2a2a1a; color: #e0c040; border-color: #665520; }
+.btn-resync { background: #1a2a2a; color: #40c0e0; border-color: #206065; }
+.safety-info { color: #4ae0a0; font-size: 11px; font-weight: 600; margin-left: 4px; }
+.safety-label { color: #666; font-size: 10px; }
+.safety-spacer { flex: 1; }
+.btn-audio-in { background: #1a2a1a; color: #4ae0a0; border-color: #2d5040; }
+.btn-led { background: #2a1a2a; color: #c080e0; border-color: #504060; }
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  flex: 1; display: flex; min-height: 0;
+}
+
+/* ===== LEFT: SCENE FLOW ===== */
+.scene-flow {
+  width: 220px; background: #141414; border-right: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.panel-header {
+  height: 28px; background: #1e1e1e; border-bottom: 1px solid #333;
+  display: flex; align-items: center; padding: 0 10px;
+  font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px;
+}
+.scene-list { flex: 1; overflow-y: auto; padding: 4px; }
+.scene-item {
+  background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 3px;
+  padding: 6px 8px; margin-bottom: 3px; cursor: pointer;
+}
+.scene-item.live {
+  border-color: #c8a020; background: #2a2510;
+}
+.scene-item .scene-name {
+  font-size: 12px; font-weight: 600; color: #ddd; margin-bottom: 3px;
+}
+.scene-item .scene-controls {
+  display: flex; gap: 4px; align-items: center;
+}
+.scene-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 2px;
+  text-transform: uppercase;
+}
+.badge-now { background: #2d8040; color: #fff; }
+.badge-next { background: #2060a0; color: #aaccff; }
+.badge-live { background: #c8a020; color: #fff; }
+.badge-trigger {
+  background: #2a2a2a; color: #888; border: 1px solid #444; font-size: 9px;
+  padding: 1px 6px; cursor: pointer;
+}
+.badge-trigger:hover { background: #3a3a3a; }
+.badge-fade { background: #1a2a3a; color: #60a0d0; }
+.scene-arrow { color: #555; font-size: 10px; }
+.scene-add {
+  color: #4ae0a0; font-size: 11px; padding: 6px 8px; cursor: pointer; text-align: center;
+  border: 1px dashed #2d5040; border-radius: 3px; margin: 3px 0;
+}
+.scene-sub-section {
+  margin-top: 6px; padding: 6px 8px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 3px;
+}
+.scene-sub-title { font-size: 10px; color: #888; font-weight: 600; margin-bottom: 4px; }
+.scene-sub-state {
+  display: flex; gap: 4px; align-items: center; font-size: 10px;
+}
+
+/* ===== CENTER AREA ===== */
+.center-area {
+  flex: 1; display: flex; flex-direction: column; min-width: 0;
+}
+
+/* ===== PREVIEW SECTION ===== */
+.preview-section {
+  height: 280px; background: #0d0d0d; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 12px; flex-shrink: 0;
+}
+.preview-box {
+  width: 420px; height: 240px; background: #000; border: 2px solid #333;
+  border-radius: 4px; position: relative; overflow: hidden;
+}
+.preview-box.cue { border-color: #2060a0; }
+.preview-box.live { border-color: #4ae0a0; }
+.preview-label {
+  position: absolute; top: 6px; left: 8px; font-size: 10px; font-weight: 700;
+  padding: 1px 8px; border-radius: 2px; text-transform: uppercase; letter-spacing: 1px;
+}
+.preview-box.cue .preview-label { background: #2060a0; color: #fff; }
+.preview-box.live .preview-label { background: #2d8040; color: #fff; }
+.preview-canvas {
+  width: 100%; height: 100%;
+}
+.take-btn-area {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.take-btn {
+  background: linear-gradient(180deg, #2d8040, #1a5028);
+  color: #fff; border: 2px solid #4ae0a0; padding: 12px 18px;
+  font-size: 13px; font-weight: 700; cursor: pointer; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 1px; text-align: center;
+  line-height: 1.3;
+}
+.take-btn:hover { background: linear-gradient(180deg, #3a9050, #2a6038); }
+.take-arrow { color: #4ae0a0; font-size: 24px; }
+
+/* ===== SAFETY ROW 2 ===== */
+.safety-row-2 {
+  height: 30px; background: #141414; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 8px; gap: 5px; flex-shrink: 0;
+}
+.safety-btn-sm {
+  padding: 2px 8px; font-size: 9px; font-weight: 700; border: 1px solid #333;
+  cursor: pointer; border-radius: 2px; text-transform: uppercase;
+}
+.btn-sm-dark { background: #1a1a1a; color: #666; }
+.btn-sm-panic { background: #5a1010; color: #ff4444; border-color: #882222; }
+.btn-sm-kill { background: #2a2a1a; color: #c0a030; border-color: #554420; }
+.btn-sm-resync { background: #1a2a2a; color: #40a0c0; border-color: #205050; }
+.btn-sm-midi { background: #2a1a2a; color: #a060c0; border-color: #453060; }
+.safety-row-2 .safety-spacer { flex: 1; }
+
+/* ===== LAYER TABS ===== */
+.layer-tabs {
+  height: 28px; background: #1a1a1a; border-bottom: 1px solid #333;
+  display: flex; align-items: stretch; padding: 0 8px; flex-shrink: 0;
+}
+.layer-tab {
+  padding: 0 16px; display: flex; align-items: center;
+  font-size: 11px; font-weight: 600; color: #666; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.layer-tab:hover { color: #aaa; }
+.layer-tab.active { color: #4ae0a0; border-bottom-color: #4ae0a0; }
+
+/* ===== LAYER STRIPS ===== */
+.layer-strips {
+  flex: 1; overflow-y: auto; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;
+}
+.layer-card {
+  background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 3px;
+  padding: 8px 10px; display: flex; align-items: center; gap: 10px;
+  min-height: 68px;
+}
+.layer-card.active { border-color: #3a5a3a; background: #1a2a1a; }
+.layer-on-toggle {
+  width: 32px; height: 20px; border-radius: 10px; cursor: pointer;
+  position: relative;
+}
+.layer-on-toggle.on { background: #2d8040; }
+.layer-on-toggle.off { background: #333; }
+.layer-on-toggle::after {
+  content: ''; position: absolute; width: 16px; height: 16px;
+  border-radius: 50%; top: 2px; background: #ddd;
+}
+.layer-on-toggle.on::after { left: 14px; }
+.layer-on-toggle.off::after { left: 2px; }
+.layer-info { flex: 1; min-width: 0; }
+.layer-clip-name { font-size: 11px; font-weight: 600; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer-meta { display: flex; gap: 6px; align-items: center; margin-top: 3px; }
+.engine-badge {
+  font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 2px;
+  background: #2a3a4a; color: #60a0d0; text-transform: uppercase;
+}
+.fx-btn {
+  font-size: 9px; font-weight: 600; padding: 2px 6px; border: 1px solid #444;
+  background: #222; color: #aaa; cursor: pointer; border-radius: 2px;
+}
+.fx-btn.active { border-color: #4ae0a0; color: #4ae0a0; background: #1a2a1a; }
+.strobe-btn {
+  font-size: 9px; font-weight: 700; padding: 2px 6px; border: 1px solid #553030;
+  background: #2a1a1a; color: #cc6060; cursor: pointer; border-radius: 2px;
+}
+.bpm-type-label { font-size: 9px; color: #666; }
+.expand-btn {
+  font-size: 9px; color: #555; cursor: pointer; padding: 2px 6px;
+  border: 1px solid #333; background: #1a1a1a; border-radius: 2px;
+}
+.layer-knobs {
+  display: flex; gap: 12px; align-items: center; flex-shrink: 0;
+}
+.rotary-knob {
+  width: 52px; height: 52px; position: relative;
+}
+.rotary-knob canvas { width: 52px; height: 52px; }
+.knob-label { font-size: 8px; color: #666; text-align: center; margin-top: 2px; text-transform: uppercase; }
+.knob-value { font-size: 9px; color: #aaa; text-align: center; font-weight: 600; }
+
+/* ===== RIGHT PANEL ===== */
+.right-panel {
+  width: 240px; background: #141414; border-left: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.right-tabs {
+  height: 28px; background: #1a1a1a; border-bottom: 1px solid #333;
+  display: flex; align-items: stretch;
+}
+.right-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; color: #666; cursor: pointer;
+  border-bottom: 2px solid transparent; text-transform: uppercase;
+}
+.right-tab.active { color: #4ae0a0; border-bottom-color: #4ae0a0; }
+.right-content { flex: 1; overflow-y: auto; padding: 8px; }
+.source-section { margin-bottom: 10px; }
+.source-section-title {
+  font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase;
+  margin-bottom: 6px; letter-spacing: 0.5px;
+}
+.source-card {
+  background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 3px;
+  padding: 6px 8px; margin-bottom: 4px;
+}
+.source-name { font-size: 11px; font-weight: 600; color: #ddd; margin-bottom: 4px; }
+.spectrum-bar-container {
+  height: 40px; display: flex; align-items: flex-end; gap: 2px; padding: 2px;
+  background: #111; border-radius: 2px;
+}
+.spectrum-bar {
+  flex: 1; border-radius: 1px 1px 0 0;
+}
+.waveform-display {
+  height: 40px; background: #111; border-radius: 2px; position: relative; overflow: hidden;
+}
+.waveform-display canvas { width: 100%; height: 100%; }
+.lfo-display {
+  height: 36px; background: #111; border-radius: 2px; position: relative; overflow: hidden;
+}
+.lfo-display canvas { width: 100%; height: 100%; }
+
+/* ===== FOOTER ===== */
+.footer {
+  height: 32px; background: #1a1a1a; border-top: 1px solid #333;
+  display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+}
+.footer-btn {
+  font-size: 10px; color: #666; cursor: pointer; padding: 3px 10px;
+  border: 1px solid #333; background: #222; border-radius: 2px;
+}
+.footer-btn:hover { color: #aaa; background: #2a2a2a; }
+.footer-spacer { flex: 1; }
+.footer-status { font-size: 10px; color: #555; }
+
+/* ===== CANVAS VISUALS ===== */
+.preview-visual {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="app-title">Audio-DNA VJ</div>
+  <div class="bpm-display">128.00</div>
+  <div class="bpm-label">BPM</div>
+  <button class="top-btn">TAP</button>
+  <button class="top-btn">Nudge-</button>
+  <button class="top-btn">Nudge+</button>
+  <button class="top-btn" style="color:#40c0e0;">RESYNC</button>
+  <div class="beat-indicator">
+    <div class="beat-seg active-1"></div>
+    <div class="beat-seg active-2"></div>
+    <div class="beat-seg active-3"></div>
+    <div class="beat-seg inactive"></div>
+  </div>
+  <div class="room-delay">Room Delay: <span>+0ms</span></div>
+</div>
+
+<!-- SAFETY ROW -->
+<div class="safety-row">
+  <button class="safety-btn btn-blackout">BLACKOUT</button>
+  <button class="safety-btn btn-safe">SAFE LOOK</button>
+  <button class="safety-btn btn-panic">PANIC</button>
+  <button class="safety-btn btn-kill">KILL FX</button>
+  <button class="safety-btn btn-resync">HARD RESYNC</button>
+  <div class="safety-info">FPS: 58</div>
+  <div class="safety-spacer"></div>
+  <button class="safety-btn btn-audio-in">+ Audio IN</button>
+  <button class="safety-btn btn-led">LED WALL</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- LEFT: SCENE FLOW -->
+  <div class="scene-flow">
+    <div class="panel-header">Scene Flow</div>
+    <div class="scene-list">
+      <div class="scene-item">
+        <div class="scene-name">Intro</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-now">NOW</span>
+          <span class="scene-arrow">&#9660;</span>
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-name">Verse</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-next">NEXT</span>
+          <span class="scene-badge badge-fade">Fade</span>
+        </div>
+      </div>
+      <div class="scene-item live">
+        <div class="scene-name">Chorus</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-live">LIVE</span>
+          <span class="scene-badge badge-trigger">TRIGGER</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-name">Drop</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-trigger">Trigger</span>
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-add">+ Add Scene</div>
+
+      <div class="scene-sub-section">
+        <div class="scene-sub-title">Chorus Lv2</div>
+        <div class="scene-sub-state">
+          <span class="scene-badge badge-live">LIVE</span>
+          <span style="color:#888; font-size:10px;">/ Verse</span>
+        </div>
+      </div>
+
+      <div class="scene-item" style="margin-top:6px;">
+        <div class="scene-name">Bridge</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <div class="scene-name">Outro</div>
+        <div class="scene-controls">
+          <span class="scene-badge badge-trigger">Trigger</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER AREA -->
+  <div class="center-area">
+
+    <!-- PREVIEW SECTION -->
+    <div class="preview-section">
+      <div class="preview-box cue">
+        <div class="preview-label">CUE</div>
+        <canvas class="preview-canvas" id="cueCanvas"></canvas>
+      </div>
+      <div class="take-btn-area">
+        <div class="take-arrow">&#9654;</div>
+        <button class="take-btn">TAKE<br>TO LIVE</button>
+        <div class="take-arrow">&#9654;</div>
+      </div>
+      <div class="preview-box live">
+        <div class="preview-label">LIVE</div>
+        <canvas class="preview-canvas" id="liveCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- SAFETY ROW 2 -->
+    <div class="safety-row-2">
+      <button class="safety-btn-sm btn-sm-dark">BLACKOUT</button>
+      <button class="safety-btn-sm btn-sm-dark">SAFE LOOK</button>
+      <button class="safety-btn-sm btn-sm-panic">PANIC</button>
+      <button class="safety-btn-sm btn-sm-kill">KILL FX</button>
+      <button class="safety-btn-sm btn-sm-resync">HARD RESYNC</button>
+      <span style="color:#4ae0a0; font-size:9px; font-weight:600;">FPS: 58</span>
+      <span style="color:#666; font-size:9px;">Audio IN</span>
+      <span style="color:#805aa0; font-size:9px;">LED WALL</span>
+      <div class="safety-spacer"></div>
+      <button class="safety-btn-sm btn-sm-midi">MIDI Learn</button>
+    </div>
+
+    <!-- LAYER TABS -->
+    <div class="layer-tabs">
+      <div class="layer-tab active">Layer 1</div>
+      <div class="layer-tab">Layer 2</div>
+      <div class="layer-tab">Layer 3</div>
+      <div class="layer-tab">Layer 4</div>
+      <div class="layer-tab">Layer 5</div>
+      <div class="layer-tab">Layer 6</div>
+      <div class="layer-tab">Layer 7</div>
+      <div class="layer-tab">Layer 8</div>
+    </div>
+
+    <!-- LAYER STRIPS -->
+    <div class="layer-strips" id="layerStrips">
+      <!-- Generated by JS -->
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="right-tabs">
+      <div class="right-tab active">CUE</div>
+      <div class="right-tab">Sources</div>
+      <div class="right-tab">Layer</div>
+      <div class="right-tab">Clip</div>
+    </div>
+    <div class="right-content">
+      <div class="source-section">
+        <div class="source-section-title">Master Audio</div>
+        <div class="source-card">
+          <div class="source-name">Spectrum</div>
+          <div class="spectrum-bar-container" id="spectrumBars">
+            <!-- Generated by JS -->
+          </div>
+        </div>
+      </div>
+      <div class="source-section">
+        <div class="source-section-title">Kick Drum</div>
+        <div class="source-card">
+          <div class="source-name">Waveform</div>
+          <div class="waveform-display">
+            <canvas id="kickCanvas" width="220" height="40"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="source-section">
+        <div class="source-section-title">LFO Sources</div>
+        <div class="source-card">
+          <div class="source-name">LFO-Sine</div>
+          <div class="lfo-display">
+            <canvas id="lfoSineCanvas" width="220" height="36"></canvas>
+          </div>
+        </div>
+        <div class="source-card" style="margin-top:4px;">
+          <div class="source-name">LFO-Custom</div>
+          <div class="lfo-display">
+            <canvas id="lfoCustomCanvas" width="220" height="36"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="source-section">
+        <div class="source-section-title">Envelope</div>
+        <div class="source-card">
+          <div class="source-name">ADSR</div>
+          <div class="lfo-display">
+            <canvas id="adsrCanvas" width="220" height="36"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <button class="footer-btn">Master Sources</button>
+  <button class="footer-btn">Audio Player</button>
+  <button class="footer-btn">Outputs</button>
+  <div class="footer-spacer"></div>
+  <div class="footer-status">Session: Untitled &mdash; 00:42:18</div>
+  <div class="footer-spacer"></div>
+  <button class="footer-btn">Save</button>
+  <button class="footer-btn">Load</button>
+  <button class="footer-btn">Help</button>
+</div>
+
+<script>
+// ===== LAYER STRIP DATA =====
+const layers = [
+  { name: "Video Clip Gen-Pulse A", engine: "GPU", on: true, fx1: true, macro: false, strobe: false, bpmType: "BPM-type ML", opacity: 100, speed: 1.0, active: true },
+  { name: "Loop_Kaleidoscope_B", engine: "GPU", on: true, fx1: true, macro: true, strobe: false, bpmType: "BPM-locked", opacity: 85, speed: 0.75, active: false },
+  { name: "Camera Feed 1", engine: "CAM", on: true, fx1: false, macro: false, strobe: false, bpmType: "Free-run", opacity: 60, speed: 1.0, active: false },
+  { name: "Fractal_Mandelbulb_C", engine: "SRC", on: true, fx1: true, macro: true, strobe: true, bpmType: "BPM-type ML", opacity: 45, speed: 1.25, active: false },
+  { name: "Text_Overlay_Title", engine: "TXT", on: false, fx1: false, macro: false, strobe: false, bpmType: "Manual", opacity: 100, speed: 1.0, active: false },
+  { name: "Strobe_Flash_White", engine: "GEN", on: true, fx1: true, macro: false, strobe: true, bpmType: "BPM-locked", opacity: 100, speed: 2.0, active: false },
+  { name: "Gradient_Wash_D", engine: "SRC", on: false, fx1: false, macro: false, strobe: false, bpmType: "Free-run", opacity: 30, speed: 0.5, active: false },
+  { name: "Video_Clip_Dropzone", engine: "GPU", on: true, fx1: true, macro: true, strobe: false, bpmType: "BPM-type ML", opacity: 75, speed: 1.0, active: false },
+];
+
+function drawRotaryKnob(canvas, value, max, color) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 4;
+  ctx.clearRect(0, 0, w, h);
+
+  // Track
+  const startAngle = 0.75 * Math.PI;
+  const endAngle = 2.25 * Math.PI;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle, false);
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Value arc
+  const pct = value / max;
+  const valAngle = startAngle + pct * (endAngle - startAngle);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, valAngle, false);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Pointer
+  const px = cx + (r - 6) * Math.cos(valAngle);
+  const py = cy + (r - 6) * Math.sin(valAngle);
+  ctx.beginPath();
+  ctx.arc(px, py, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  // Center
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 10, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 10, 0, Math.PI * 2);
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+function buildLayerStrips() {
+  const container = document.getElementById('layerStrips');
+  layers.forEach((l, i) => {
+    const card = document.createElement('div');
+    card.className = 'layer-card' + (l.active ? ' active' : '');
+    card.innerHTML = `
+      <div class="layer-on-toggle ${l.on ? 'on' : 'off'}"></div>
+      <div class="layer-info">
+        <div class="layer-clip-name">${l.name}</div>
+        <div class="layer-meta">
+          <span class="engine-badge">${l.engine}</span>
+          <button class="fx-btn ${l.fx1 ? 'active' : ''}">FX1</button>
+          <button class="fx-btn ${l.macro ? 'active' : ''}">Macro</button>
+          ${l.strobe ? '<button class="strobe-btn">Strobe</button>' : ''}
+          <span class="bpm-type-label">${l.bpmType}</span>
+          <button class="expand-btn">Expand</button>
+        </div>
+      </div>
+      <div class="layer-knobs">
+        <div class="rotary-knob">
+          <canvas id="knobOpacity${i}" width="104" height="104"></canvas>
+          <div class="knob-label">Opacity</div>
+          <div class="knob-value">${l.opacity}%</div>
+        </div>
+        <div class="rotary-knob">
+          <canvas id="knobSpeed${i}" width="104" height="104"></canvas>
+          <div class="knob-label">Speed</div>
+          <div class="knob-value">${l.speed.toFixed(2)}x</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  // Draw knobs
+  layers.forEach((l, i) => {
+    const opC = document.getElementById(`knobOpacity${i}`);
+    const spC = document.getElementById(`knobSpeed${i}`);
+    drawRotaryKnob(opC, l.opacity, 100, '#4ae0a0');
+    drawRotaryKnob(spC, l.speed, 3.0, '#40a0e0');
+  });
+}
+
+// ===== SPECTRUM BARS =====
+function buildSpectrumBars() {
+  const container = document.getElementById('spectrumBars');
+  const heights = [22, 30, 36, 28, 18, 24, 32, 26, 14, 20, 34, 28, 16, 22, 30, 24, 12, 18, 26, 20, 10, 14, 8, 6];
+  const colors = ['#4ae0a0', '#4ae0a0', '#60d080', '#80c060', '#a0b040', '#c0a020',
+                  '#4ae0a0', '#4ae0a0', '#60d080', '#80c060', '#a0b040', '#c0a020',
+                  '#4ae0a0', '#4ae0a0', '#60d080', '#80c060', '#a0b040', '#c0a020',
+                  '#4ae0a0', '#60d080', '#80c060', '#a0b040', '#c0a020', '#c0a020'];
+  heights.forEach((h, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'spectrum-bar';
+    bar.style.height = h + 'px';
+    bar.style.background = colors[i % colors.length];
+    container.appendChild(bar);
+  });
+}
+
+// ===== WAVEFORM CANVASES =====
+function drawKickWaveform() {
+  const canvas = document.getElementById('kickCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 220, 40);
+  ctx.strokeStyle = '#4ae0a0';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let x = 0; x < 220; x++) {
+    const t = x / 220;
+    const y = 20 + Math.sin(t * 12 * Math.PI) * 14 * Math.exp(-t * 4) * (1 + 0.3 * Math.sin(t * 60));
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+function drawLFOSine() {
+  const canvas = document.getElementById('lfoSineCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 220, 36);
+  ctx.strokeStyle = '#60a0d0';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let x = 0; x < 220; x++) {
+    const y = 18 + Math.sin(x / 220 * 4 * Math.PI) * 12;
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+}
+
+function drawLFOCustom() {
+  const canvas = document.getElementById('lfoCustomCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 220, 36);
+  ctx.strokeStyle = '#c080e0';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const points = [0, 0.2, 0.8, 1.0, 0.6, 0.3, 0.9, 0.4, 0.1, 0.7, 0.5, 0.0];
+  points.forEach((p, i) => {
+    const x = (i / (points.length - 1)) * 220;
+    const y = 4 + (1 - p) * 28;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+function drawADSR() {
+  const canvas = document.getElementById('adsrCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, 220, 36);
+  ctx.strokeStyle = '#e0c040';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(0, 34);
+  ctx.lineTo(30, 4);   // Attack
+  ctx.lineTo(60, 12);  // Decay
+  ctx.lineTo(150, 12); // Sustain
+  ctx.lineTo(200, 34); // Release
+  ctx.lineTo(220, 34);
+  ctx.stroke();
+  // Fill
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = '#e0c040';
+  ctx.fill();
+  ctx.globalAlpha = 1.0;
+}
+
+// ===== PREVIEW CANVASES =====
+function drawCuePreview() {
+  const canvas = document.getElementById('cueCanvas');
+  canvas.width = 420; canvas.height = 240;
+  const ctx = canvas.getContext('2d');
+
+  // Dark abstract gradient
+  const grad = ctx.createRadialGradient(210, 120, 20, 210, 120, 200);
+  grad.addColorStop(0, '#1a3a5a');
+  grad.addColorStop(0.4, '#0a1a2a');
+  grad.addColorStop(1, '#000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 420, 240);
+
+  // Geometric shapes
+  ctx.strokeStyle = '#2060a0';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.arc(210, 120, 30 + i * 25, 0, Math.PI * 2);
+    ctx.globalAlpha = 0.3 - i * 0.04;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // Grid lines
+  ctx.strokeStyle = '#1a3050';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < 420; x += 30) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 240); ctx.stroke();
+  }
+  for (let y = 0; y < 240; y += 30) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(420, y); ctx.stroke();
+  }
+}
+
+function drawLivePreview() {
+  const canvas = document.getElementById('liveCanvas');
+  canvas.width = 420; canvas.height = 240;
+  const ctx = canvas.getContext('2d');
+
+  // Energetic gradient
+  const grad = ctx.createRadialGradient(210, 120, 10, 210, 120, 200);
+  grad.addColorStop(0, '#4ae0a0');
+  grad.addColorStop(0.3, '#1a5040');
+  grad.addColorStop(0.6, '#0a2a1a');
+  grad.addColorStop(1, '#000');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 420, 240);
+
+  // Radiating lines
+  ctx.strokeStyle = '#4ae0a0';
+  ctx.lineWidth = 1;
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 12) {
+    ctx.globalAlpha = 0.2 + Math.random() * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(210, 120);
+    ctx.lineTo(210 + Math.cos(a) * 200, 120 + Math.sin(a) * 200);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // Pulsing center
+  for (let i = 4; i >= 0; i--) {
+    ctx.beginPath();
+    ctx.arc(210, 120, 10 + i * 15, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(74, 224, 160, ${0.1 + (4 - i) * 0.05})`;
+    ctx.fill();
+  }
+
+  // Particle dots
+  for (let i = 0; i < 30; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 40 + Math.random() * 140;
+    const px = 210 + Math.cos(angle) * dist;
+    const py = 120 + Math.sin(angle) * dist;
+    ctx.beginPath();
+    ctx.arc(px, py, 1 + Math.random() * 2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(74, 224, 160, ${0.3 + Math.random() * 0.5})`;
+    ctx.fill();
+  }
+}
+
+// ===== INIT =====
+buildLayerStrips();
+buildSpectrumBars();
+drawKickWaveform();
+drawLFOSine();
+drawLFOCustom();
+drawADSR();
+drawCuePreview();
+drawLivePreview();
+</script>
+</body>
+</html>

@@ -1,0 +1,832 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          5,
+          "selection"
+        ]
+      },
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          10,
+          "radius"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "output"
+        ],
+        "to": [
+          5,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          13,
+          "output"
+        ],
+        "to": [
+          5,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          5,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output"
+        ],
+        "to": [
+          5,
+          "input3"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output"
+        ],
+        "to": [
+          14,
+          "shape"
+        ]
+      },
+      {
+        "from": [
+          17,
+          "output"
+        ],
+        "to": [
+          16,
+          "selection"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "output"
+        ],
+        "to": [
+          16,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output"
+        ],
+        "to": [
+          16,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output0"
+        ],
+        "to": [
+          20,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          20,
+          "output"
+        ],
+        "to": [
+          15,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "This patch explains what this node does.",
+      "displayName": "Gate Example",
+      "identifier": "0b66ea19-8089-4812-aaae-80f7af23f239",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 26,
+    "nodes": {
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "GATE\n\nThe Gate has a cases that you can open an close by changing the value on the inlet. If one case is open, the others will be closed. Cases can be selected by inputing Bool's, Float's or Int's. The Gate node is meant to be used with signals although it will accept events. When working with events it's better to use the Switch node instead.\n\n- Patch Explained -\n• We have 4 sines runnning at different speeds.\n• In the top part of the patch we're using an Int node to function as a selector for the gate.\n• The selected case opens and the signal flows through, affecting the radius of the circle.\n• In this example the Gate functions as a speed regulator with different speeds at every case.\n• In the bottom part of the patch we see another Gate. This gate is controlled by a Bool.\n• This gate will let through either the sine with a frequency of 1 or the sine with a frequency of 0.25, modulating the Fish Eye effect."
+          }
+        },
+        "bounds": {
+          "height": 293.384033203125,
+          "width": 833,
+          "x": 57.18053436279297,
+          "y": -41.83314895629883
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "10": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 576,
+          "y": 288
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Circle"
+      },
+      "11": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 57.5,
+          "y": 639
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 1
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "amplitude",
+          "phase-offset",
+          "offset",
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "12": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 57.5,
+          "y": 551
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.75
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "amplitude",
+          "phase-offset",
+          "offset",
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "13": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 57.5,
+          "y": 463
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.5
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "amplitude",
+          "phase-offset",
+          "offset",
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "14": {
+        "attributes": {
+          "antialising-direction": {
+            "type": "choice",
+            "value": "In"
+          },
+          "material-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "shape-dimensions": {
+            "type": "dimensions",
+            "value": []
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 795,
+          "y": 288
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "antialiasing": {
+            "type": "float",
+            "value": 4
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              0.10588235408067705,
+              0.5882353186607361,
+              0.05098039284348488,
+              1
+            ]
+          },
+          "shape": {
+            "type": "procedural",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Shape Render"
+      },
+      "15": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 128,
+          "x": 1247.706298828125,
+          "y": 288
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "16": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "selection-type": {
+            "type": "type",
+            "value": "bool"
+          },
+          "type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 355,
+          "y": 506
+        },
+        "class": {
+          "id": "77697265-6899-4A9C-82AB-949716033440",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 0
+          },
+          "selection": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "hidden": [],
+        "name": "Gate"
+      },
+      "17": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 132,
+          "y": 726
+        },
+        "class": {
+          "id": "77697265-999C-4F8B-8B9D-3646DC68AA69",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Bool (Event)"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs the value of the case that is currently open.\n\n"
+          }
+        },
+        "bounds": {
+          "height": 380,
+          "width": 334,
+          "x": 411.5476989746093,
+          "y": 848.0189819335938
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "20": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 1021.4385986328124,
+          "y": 288
+        },
+        "class": {
+          "id": "77697265-F20A-4E52-B34F-6BC85D544470",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "fishEye": {
+            "type": "float",
+            "value": 0.5
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Fish Eye"
+      },
+      "3": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Selection\nThe input to select which case will open.\n\n• Case\nThe input for the case signal."
+          }
+        },
+        "bounds": {
+          "height": 384,
+          "width": 312,
+          "x": 57.46566009521485,
+          "y": 848.3939819335938
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "4": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "ATTRIBUTES\n\n• Size\nThe size of the gate can be adjusted to add additional cases. This only works if the selection input is a float or int."
+          }
+        },
+        "bounds": {
+          "height": 376,
+          "width": 308,
+          "x": 792.4656372070312,
+          "y": 848.3939819335938
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "5": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "selection-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "size": {
+            "type": "number",
+            "value": 4
+          },
+          "type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 343,
+          "y": 319
+        },
+        "class": {
+          "id": "77697265-6899-4A9C-82AB-949716033440",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 0
+          },
+          "input2": {
+            "type": "float",
+            "value": 0
+          },
+          "input3": {
+            "type": "float",
+            "value": 0
+          },
+          "selection": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Gate"
+      },
+      "8": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 58,
+          "y": 379
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "amplitude",
+          "phase-offset",
+          "offset",
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "9": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "max": {
+            "type": "number",
+            "value": 3
+          },
+          "min": {
+            "type": "number",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 158,
+          "y": 268
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Int (Event)"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 34.3206787109375,
+        "y": -52.314697265625,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 15,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

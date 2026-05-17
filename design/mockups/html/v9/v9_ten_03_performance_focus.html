@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Performance Focus (LIVE)</title>
+<style>
+  :root{
+    --bg:#1a1a1a;
+    --panel:#2a2a2a;
+    --row:#383838;
+    --line:#3a3a3a;
+    --label:#888;
+    --val:#e0e0e0;
+    --mint:#5fdba7;
+    --red:#ff4040;
+    --mono:'IBM Plex Mono','SF Mono',Menlo,monospace;
+    --sans:'IBM Plex Sans',-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{background:var(--bg);color:var(--val);font-family:var(--sans);font-size:11px;}
+  body{width:1920px;height:1200px;position:relative;overflow:hidden;}
+
+  /* 3% grain overlay */
+  .grain{position:fixed;inset:0;pointer-events:none;z-index:1000;opacity:0.03;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");}
+
+  .mono{font-family:var(--mono);}
+  .lbl{color:var(--label);text-transform:uppercase;letter-spacing:0.08em;font-size:10px;font-family:var(--mono);}
+  .val{color:var(--val);font-family:var(--mono);}
+  .mint{color:var(--mint);}
+
+  /* TOP BAR */
+  .topbar{height:44px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 12px;gap:18px;position:relative;}
+  .logo{font-family:var(--mono);font-size:13px;letter-spacing:0.2em;color:var(--val);font-weight:600;}
+  .logo .dna{color:var(--mint);}
+  .bpm-big{font-family:var(--mono);font-size:32px;line-height:1;color:var(--mint);font-weight:600;letter-spacing:-0.02em;}
+  .bpm-big .unit{font-size:10px;color:var(--label);font-weight:400;letter-spacing:0.1em;margin-left:4px;}
+  .topitem{display:flex;flex-direction:column;gap:2px;}
+  .topitem .k{font-size:9px;color:var(--label);letter-spacing:0.1em;font-family:var(--mono);text-transform:uppercase;}
+  .topitem .v{font-size:13px;color:var(--val);font-family:var(--mono);}
+  .topitem .v.mint{color:var(--mint);}
+  .struct-pill{display:inline-flex;align-items:center;padding:3px 10px;background:rgba(95,219,167,0.15);color:var(--mint);font-family:var(--mono);font-size:11px;letter-spacing:0.15em;border:1px solid var(--mint);}
+  .beat-wheel-small{width:28px;height:28px;}
+  .xport{display:flex;gap:4px;align-items:center;}
+  .xbtn{width:26px;height:26px;border:1px solid var(--line);background:transparent;color:var(--val);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;cursor:pointer;}
+  .xbtn.active{background:var(--mint);color:#0a0a0a;border-color:var(--mint);}
+  .slider-h{display:flex;align-items:center;gap:6px;}
+  .slider-track{width:100px;height:4px;background:var(--row);position:relative;}
+  .slider-fill{height:100%;background:var(--mint);}
+  .slider-thumb{position:absolute;top:-3px;width:2px;height:10px;background:var(--mint);}
+  .rec-dot{width:10px;height:10px;background:var(--red);display:inline-block;margin-right:4px;}
+  .mode-tabs{display:flex;gap:0;margin-left:auto;}
+  .mode-tab{padding:8px 14px;font-family:var(--mono);font-size:11px;letter-spacing:0.15em;color:var(--label);border-bottom:2px solid transparent;cursor:pointer;}
+  .mode-tab.active{color:var(--mint);border-bottom-color:var(--mint);}
+
+  /* TRANSPORT STRIP */
+  .xstrip{height:32px;background:#222;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 12px;gap:6px;}
+  .xstrip .xb{width:24px;height:20px;border:1px solid var(--line);background:transparent;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--val);}
+  .xstrip .xtxt{font-family:var(--mono);font-size:11px;padding:0 6px;color:var(--val);}
+  .xstrip .xb.mint{color:var(--mint);}
+  .xstrip .sep{width:1px;height:16px;background:var(--line);margin:0 4px;}
+
+  /* SIGNAL BAR */
+  .sigbar{height:22px;background:#202020;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 12px;font-family:var(--mono);font-size:10px;color:var(--label);gap:10px;overflow:hidden;}
+  .sigitem{display:flex;gap:4px;white-space:nowrap;}
+  .sigitem .sk{color:var(--label);}
+  .sigitem .sv{color:var(--val);}
+  .sigitem.hot .sv{color:var(--mint);}
+  .sigsep{color:var(--row);}
+
+  /* ROW 1 — MAIN STAGE */
+  .row1{height:500px;display:flex;border-bottom:1px solid var(--line);}
+  .layer-strip{width:400px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;}
+  .layer-strip .sh{height:24px;background:#222;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid var(--line);}
+  .layer-strip .sh span{font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.15em;}
+  .layer-box{height:120px;border-bottom:1px solid var(--line);display:flex;padding:10px;gap:10px;position:relative;}
+  .layer-box.active{border-left:2px solid var(--mint);padding-left:8px;}
+  .layer-head{flex:1;display:flex;flex-direction:column;gap:6px;}
+  .layer-name{display:flex;justify-content:space-between;align-items:center;}
+  .layer-name .nm{font-family:var(--mono);font-size:11px;color:var(--val);letter-spacing:0.05em;}
+  .layer-name .ix{color:var(--label);font-family:var(--mono);font-size:10px;}
+  .msv{display:flex;gap:3px;}
+  .msv button{width:20px;height:16px;border:1px solid var(--line);background:transparent;color:var(--label);font-family:var(--mono);font-size:9px;font-weight:600;cursor:pointer;}
+  .msv button.on{background:var(--mint);color:#0a0a0a;border-color:var(--mint);}
+  .msv button.red{background:var(--red);color:#fff;border-color:var(--red);}
+  .layer-thumb{width:60px;height:40px;border:1px solid var(--line);background:#111;position:relative;}
+  .vu-strip{display:flex;gap:2px;width:16px;align-self:stretch;}
+  .vu-col{width:7px;flex:1;background:#111;position:relative;overflow:hidden;display:flex;flex-direction:column-reverse;}
+  .vu-fill{width:100%;background:linear-gradient(to top,var(--mint) 60%,#ffcc5f 80%,#ff6060 100%);}
+  .layer-opac{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--label);}
+  .layer-opac .slider-track{width:180px;}
+  .layer-opac .pct{color:var(--val);width:36px;text-align:right;}
+
+  /* MONITOR */
+  .monitor-wrap{width:640px;margin:auto 40px;display:flex;flex-direction:column;align-self:center;}
+  .monitor{width:640px;height:360px;border:1px solid var(--mint);position:relative;background:#0a0a0a;overflow:hidden;}
+  .mon-overlay{position:absolute;inset:0;pointer-events:none;padding:10px;display:flex;flex-direction:column;justify-content:space-between;}
+  .mon-tl{font-family:var(--mono);font-size:11px;color:var(--mint);letter-spacing:0.2em;display:flex;align-items:center;gap:6px;}
+  .mon-tl .dot{width:6px;height:6px;background:var(--mint);display:inline-block;animation:pulse 1s infinite;}
+  .mon-br{font-family:var(--mono);font-size:10px;color:var(--val);align-self:flex-end;letter-spacing:0.1em;opacity:0.7;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  .mon-meta{margin-top:10px;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--label);}
+
+  /* RIGHT STACK */
+  .right-stack{flex:1;background:var(--panel);display:flex;flex-direction:column;border-left:1px solid var(--line);}
+  .rs-panel{border-bottom:1px solid var(--line);padding:14px;}
+  .rs-head{font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.15em;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .rs-head .bar{width:3px;height:12px;background:var(--mint);display:inline-block;}
+  .beat-wheel-big{width:120px;height:120px;display:block;margin:0 auto;}
+  .bw-read{text-align:center;margin-top:8px;font-family:var(--mono);}
+  .bw-read .r{display:flex;justify-content:space-around;margin-top:4px;}
+  .bw-read .r span{font-size:11px;color:var(--label);letter-spacing:0.1em;}
+  .bw-read .r strong{color:var(--mint);font-weight:600;}
+  .bands{display:flex;flex-direction:column;gap:4px;}
+  .band-row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;}
+  .band-row .bl{width:76px;color:var(--label);letter-spacing:0.1em;text-align:right;}
+  .band-row .bt{flex:1;height:10px;background:#111;position:relative;}
+  .band-row .bf{height:100%;background:var(--mint);}
+  .band-row .bv{width:40px;text-align:right;color:var(--val);}
+  .genre-box{display:flex;flex-direction:column;gap:10px;}
+  .genre-label{font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.15em;}
+  .genre-val{font-family:var(--mono);font-size:24px;color:var(--val);letter-spacing:0.05em;}
+  .struct-big{display:inline-flex;padding:6px 14px;background:rgba(95,219,167,0.15);color:var(--mint);font-family:var(--mono);font-size:14px;letter-spacing:0.2em;border:1px solid var(--mint);align-self:flex-start;}
+
+  /* ROW 2 — CUE PAD */
+  .row2{height:400px;display:flex;background:var(--bg);border-bottom:1px solid var(--line);}
+  .scene-col{width:110px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;}
+  .scene-col .sh{height:24px;background:#222;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid var(--line);}
+  .scene-col .sh span{font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.15em;}
+  .scenes{display:flex;flex-direction:column;gap:6px;padding:12px 8px;}
+  .scene-btn{width:84px;height:74px;border:1px solid var(--line);background:#1f1f1f;color:var(--val);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--mono);cursor:pointer;}
+  .scene-btn .num{font-size:20px;color:var(--label);letter-spacing:0.1em;font-weight:600;}
+  .scene-btn .nm{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;}
+  .scene-btn.playing{background:var(--mint);color:#0a0a0a;border-color:var(--mint);}
+  .scene-btn.playing .num{color:#0a0a0a;}
+  .scene-btn.queued{border:1px dashed var(--mint);color:var(--mint);}
+
+  .cue-area{flex:1;padding:16px 24px;display:flex;justify-content:center;gap:24px;}
+  .cue-grid-wrap{display:flex;flex-direction:column;gap:10px;}
+  .cue-grid{display:grid;grid-template-columns:repeat(4,84px);grid-template-rows:repeat(4,52px);gap:6px;}
+  .cue-pad{width:84px;height:52px;border:1px solid var(--line);background:#1d1d1d;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+  .cue-pad.playing{background:var(--mint);border:2px solid var(--mint);}
+  .cue-pad.playing .cue-name{color:#0a0a0a;}
+  .cue-pad.queued{border:1px dashed var(--mint);}
+  .cue-pad.empty{border:1px dashed #444;background:transparent;}
+  .cue-pad.loaded{border:1px solid #555;}
+  .cue-pad.selected{border:1px solid var(--mint);}
+  .cue-thumb{height:38px;width:100%;position:relative;overflow:hidden;border-bottom:1px solid var(--line);}
+  .cue-pad.playing .cue-thumb{border-bottom-color:rgba(0,0,0,0.3);}
+  .cue-name{height:14px;font-family:var(--mono);font-size:9px;color:var(--val);display:flex;align-items:center;padding:0 6px;letter-spacing:0.08em;}
+  .cue-wav{position:absolute;left:0;top:0;width:4px;height:38px;background:rgba(95,219,167,0.3);}
+  .cue-pad.playing .cue-wav{background:rgba(0,0,0,0.4);}
+  .cue-pad.empty .cue-thumb{opacity:0;}
+  .cue-pad.empty .cue-wav{display:none;}
+
+  .cols-row{display:grid;grid-template-columns:repeat(8,84px);gap:6px;margin-top:4px;}
+  .col-btn{height:28px;border:1px solid var(--line);background:#1d1d1d;color:var(--label);font-family:var(--mono);font-size:9px;letter-spacing:0.12em;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;}
+  .col-btn.active{background:var(--mint);color:#0a0a0a;border-color:var(--mint);}
+
+  /* COMPACT INSPECTOR */
+  .inspector-mini{width:280px;background:var(--panel);border-left:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:12px;}
+  .insp-sh{font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.15em;display:flex;align-items:center;gap:8px;}
+  .insp-sh .bar{width:3px;height:12px;background:var(--mint);display:inline-block;}
+  .insp-clip{display:flex;gap:10px;}
+  .insp-thumb{width:76px;height:54px;border:1px solid var(--mint);background:#111;}
+  .insp-meta{flex:1;display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;}
+  .insp-meta .r{display:flex;justify-content:space-between;}
+  .insp-meta .k{color:var(--label);letter-spacing:0.1em;}
+  .insp-meta .v{color:var(--val);}
+  .insp-meta .v.mint{color:var(--mint);}
+  .insp-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;}
+  .act-btn{height:32px;border:1px solid var(--line);background:#1d1d1d;color:var(--val);font-family:var(--mono);font-size:10px;letter-spacing:0.12em;cursor:pointer;}
+  .act-btn.mint{background:var(--mint);color:#0a0a0a;border-color:var(--mint);}
+  .act-btn.warn{border-color:var(--red);color:var(--red);}
+  .insp-slider{display:flex;flex-direction:column;gap:5px;}
+  .insp-slider .sh{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;}
+  .insp-slider .sh .k{color:var(--label);letter-spacing:0.1em;}
+  .insp-slider .sh .v{color:var(--val);}
+  .insp-slider .t{height:4px;background:#111;position:relative;}
+  .insp-slider .f{height:100%;background:var(--mint);}
+  .crossfader{display:flex;flex-direction:column;gap:6px;}
+  .cx-track{height:10px;background:#111;position:relative;border:1px solid var(--line);}
+  .cx-thumb{position:absolute;top:-3px;width:16px;height:14px;background:var(--mint);}
+  .cx-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--label);letter-spacing:0.15em;}
+
+  /* BOTTOM DASHBOARD */
+  .dash-row{height:100px;background:var(--panel);display:flex;align-items:center;padding:0 24px;gap:14px;border-top:1px solid var(--line);}
+  .dash-sh{font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.15em;writing-mode:vertical-rl;transform:rotate(180deg);}
+  .knob-group{display:flex;gap:10px;align-items:center;}
+  .knob-group.sep{padding-left:16px;margin-left:8px;border-left:1px solid var(--line);}
+  .knob{width:62px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .knob-face{width:52px;height:52px;position:relative;}
+  .knob-label{font-family:var(--mono);font-size:9px;color:var(--label);letter-spacing:0.12em;text-align:center;}
+  .knob-val{font-family:var(--mono);font-size:9px;color:var(--val);}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<!-- ================ TOP BAR ================ -->
+<div class="topbar">
+  <div class="logo">AUDIO<span class="dna">DNA</span></div>
+  <div class="bpm-big">128<span class="unit">BPM</span></div>
+  <div class="topitem"><span class="k">BAR</span><span class="v mono">017</span></div>
+  <div class="topitem"><span class="k">PHRASE</span><span class="v mono">3/8</span></div>
+  <div class="struct-pill">DROP</div>
+  <svg class="beat-wheel-small" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="12" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+    <path d="M14 2 A12 12 0 0 1 26 14 L14 14 Z" fill="#5fdba7" opacity="0.9"/>
+    <line x1="14" y1="14" x2="14" y2="2" stroke="#5fdba7" stroke-width="1.5"/>
+    <circle cx="14" cy="14" r="2" fill="#5fdba7"/>
+  </svg>
+  <div class="xport">
+    <button class="xbtn active">&#9654;</button>
+    <button class="xbtn">&#9208;</button>
+    <button class="xbtn">&#9632;</button>
+  </div>
+  <div class="topitem"><span class="k">QUANT</span><span class="v mono">1 BAR</span></div>
+  <div class="slider-h"><span class="lbl">FADE</span><div class="slider-track"><div class="slider-fill" style="width:40%"></div><div class="slider-thumb" style="left:40%"></div></div></div>
+  <div class="slider-h"><span class="lbl">MASTER</span><div class="slider-track"><div class="slider-fill" style="width:85%"></div><div class="slider-thumb" style="left:85%"></div></div></div>
+  <div class="topitem" style="flex-direction:row;align-items:center;gap:6px;"><span class="rec-dot"></span><span class="v mono" style="color:var(--red);">REC</span></div>
+  <div class="topitem"><span class="k">FPS</span><span class="v mono">60.0</span></div>
+  <div class="mode-tabs">
+    <div class="mode-tab active">LIVE</div>
+    <div class="mode-tab">PROGRAM</div>
+    <div class="mode-tab">SETUP</div>
+  </div>
+</div>
+
+<!-- ================ TRANSPORT STRIP ================ -->
+<div class="xstrip">
+  <button class="xb">&#9654;</button>
+  <button class="xb">&#9208;</button>
+  <button class="xb">&#9632;</button>
+  <span class="sep"></span>
+  <span class="xtxt mono">128</span>
+  <button class="xb">&minus;</button>
+  <button class="xb">+</button>
+  <span class="sep"></span>
+  <button class="xb">|&#9666;</button>
+  <button class="xb">&#9656;|</button>
+  <span class="sep"></span>
+  <button class="xb">/2</button>
+  <button class="xb">&times;2</button>
+  <span class="sep"></span>
+  <button class="xb mint">TAP</button>
+  <button class="xb">RESYNC</button>
+  <span class="sep"></span>
+  <button class="xb">&#9834;</button>
+  <span class="sep"></span>
+  <button class="xb">&#8634;</button>
+  <button class="xb">&#8635;</button>
+  <div style="flex:1"></div>
+  <span class="xtxt" style="color:var(--label);letter-spacing:0.15em;">DECK A</span>
+  <span class="sep"></span>
+  <span class="xtxt mint">LINK &#9656; ON</span>
+</div>
+
+<!-- ================ SIGNAL BAR ================ -->
+<div class="sigbar">
+  <div class="sigitem hot"><span class="sk">RMS</span><span class="sv">0.73</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">PEAK</span><span class="sv">0.91</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">LUFS</span><span class="sv">-12.4</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">FLUX</span><span class="sv">0.42</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">CENTROID</span><span class="sv">2.8k</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem hot"><span class="sk">BASS</span><span class="sv">0.88</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">MID</span><span class="sv">0.45</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">HIGH</span><span class="sv">0.31</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem hot"><span class="sk">BPM</span><span class="sv">128</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">KEY</span><span class="sv">Am</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem hot"><span class="sk">GENRE</span><span class="sv">TECHNO</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">PITCH</span><span class="sv">220Hz</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">ONSETS</span><span class="sv">4.2/s</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">CREST</span><span class="sv">2.1</span></div><span class="sigsep">&#9474;</span>
+  <div class="sigitem"><span class="sk">FLAT</span><span class="sv">0.28</span></div>
+</div>
+
+<!-- ================ ROW 1 — MAIN STAGE ================ -->
+<div class="row1">
+
+  <!-- LAYER STRIP -->
+  <div class="layer-strip">
+    <div class="sh"><span>LAYERS &middot; FRONT TO BACK</span></div>
+
+    <!-- Layer 4 -->
+    <div class="layer-box active">
+      <div class="layer-head">
+        <div class="layer-name"><span class="nm">PARTICLES</span><span class="ix">L4</span></div>
+        <div class="msv">
+          <button>M</button><button class="on">S</button><button>V</button>
+        </div>
+        <div class="layer-opac">
+          <span class="lbl">OPAC</span>
+          <div class="slider-track"><div class="slider-fill" style="width:78%;background:var(--mint);"></div><div class="slider-thumb" style="left:78%;"></div></div>
+          <span class="pct mint">78%</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <svg viewBox="0 0 60 40" width="60" height="40">
+          <rect width="60" height="40" fill="#0a0a0a"/>
+          <circle cx="14" cy="12" r="1.2" fill="#5fdba7"/>
+          <circle cx="28" cy="22" r="1.6" fill="#5fdba7"/>
+          <circle cx="42" cy="16" r="1.1" fill="#5fdba7"/>
+          <circle cx="20" cy="30" r="1" fill="#5fdba7" opacity="0.7"/>
+          <circle cx="50" cy="28" r="1.3" fill="#5fdba7" opacity="0.8"/>
+          <circle cx="36" cy="8" r="0.9" fill="#5fdba7" opacity="0.6"/>
+          <circle cx="10" cy="26" r="1" fill="#5fdba7" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="vu-strip">
+        <div class="vu-col"><div class="vu-fill" style="height:72%;"></div></div>
+        <div class="vu-col"><div class="vu-fill" style="height:68%;"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 3 -->
+    <div class="layer-box">
+      <div class="layer-head">
+        <div class="layer-name"><span class="nm">GEOMETRY</span><span class="ix">L3</span></div>
+        <div class="msv">
+          <button>M</button><button>S</button><button>V</button>
+        </div>
+        <div class="layer-opac">
+          <span class="lbl">OPAC</span>
+          <div class="slider-track"><div class="slider-fill" style="width:100%;background:var(--mint);"></div><div class="slider-thumb" style="left:100%;"></div></div>
+          <span class="pct mint">100%</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <svg viewBox="0 0 60 40" width="60" height="40">
+          <rect width="60" height="40" fill="#0a0a0a"/>
+          <polygon points="30,6 48,20 30,34 12,20" fill="none" stroke="#5fdba7" stroke-width="1"/>
+          <polygon points="30,12 42,20 30,28 18,20" fill="none" stroke="#5fdba7" stroke-width="0.7" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="vu-strip">
+        <div class="vu-col"><div class="vu-fill" style="height:88%;"></div></div>
+        <div class="vu-col"><div class="vu-fill" style="height:84%;"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 2 -->
+    <div class="layer-box">
+      <div class="layer-head">
+        <div class="layer-name"><span class="nm">FRACTAL</span><span class="ix">L2</span></div>
+        <div class="msv">
+          <button>M</button><button>S</button><button>V</button>
+        </div>
+        <div class="layer-opac">
+          <span class="lbl">OPAC</span>
+          <div class="slider-track"><div class="slider-fill" style="width:55%;background:var(--mint);"></div><div class="slider-thumb" style="left:55%;"></div></div>
+          <span class="pct mint">55%</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <svg viewBox="0 0 60 40" width="60" height="40">
+          <rect width="60" height="40" fill="#0a0a0a"/>
+          <g transform="translate(30 20)">
+            <circle r="15" fill="none" stroke="#5fdba7" stroke-width="0.5" opacity="0.9"/>
+            <circle r="10" fill="none" stroke="#5fdba7" stroke-width="0.5" opacity="0.7"/>
+            <circle r="6" fill="none" stroke="#5fdba7" stroke-width="0.5" opacity="0.5"/>
+            <circle r="3" fill="#5fdba7" opacity="0.8"/>
+          </g>
+        </svg>
+      </div>
+      <div class="vu-strip">
+        <div class="vu-col"><div class="vu-fill" style="height:42%;"></div></div>
+        <div class="vu-col"><div class="vu-fill" style="height:38%;"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 1 -->
+    <div class="layer-box">
+      <div class="layer-head">
+        <div class="layer-name"><span class="nm">BACKGROUND</span><span class="ix">L1</span></div>
+        <div class="msv">
+          <button class="red">M</button><button>S</button><button>V</button>
+        </div>
+        <div class="layer-opac">
+          <span class="lbl">OPAC</span>
+          <div class="slider-track"><div class="slider-fill" style="width:30%;background:var(--mint);"></div><div class="slider-thumb" style="left:30%;"></div></div>
+          <span class="pct mint">30%</span>
+        </div>
+      </div>
+      <div class="layer-thumb">
+        <svg viewBox="0 0 60 40" width="60" height="40">
+          <defs><radialGradient id="lbg" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#5fdba7" stop-opacity="0.4"/><stop offset="100%" stop-color="#0a0a0a"/></radialGradient></defs>
+          <rect width="60" height="40" fill="url(#lbg)"/>
+        </svg>
+      </div>
+      <div class="vu-strip">
+        <div class="vu-col"><div class="vu-fill" style="height:18%;"></div></div>
+        <div class="vu-col"><div class="vu-fill" style="height:14%;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MONITOR (CENTER) -->
+  <div class="monitor-wrap">
+    <div class="monitor">
+      <svg viewBox="0 0 640 360" width="640" height="360" preserveAspectRatio="none">
+        <defs>
+          <radialGradient id="monbg" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#0d2a1e"/>
+            <stop offset="50%" stop-color="#071510"/>
+            <stop offset="100%" stop-color="#020606"/>
+          </radialGradient>
+          <filter id="glow"><feGaussianBlur stdDeviation="2"/></filter>
+          <filter id="glowS"><feGaussianBlur stdDeviation="1"/></filter>
+        </defs>
+        <rect width="640" height="360" fill="url(#monbg)"/>
+
+        <!-- Radial lines from center -->
+        <g transform="translate(320 180)" opacity="0.55">
+          <g stroke="#5fdba7" stroke-width="0.6" fill="none">
+            <line x1="0" y1="0" x2="300" y2="0"/>
+            <line x1="0" y1="0" x2="259.8" y2="150"/>
+            <line x1="0" y1="0" x2="150" y2="259.8"/>
+            <line x1="0" y1="0" x2="0" y2="300"/>
+            <line x1="0" y1="0" x2="-150" y2="259.8"/>
+            <line x1="0" y1="0" x2="-259.8" y2="150"/>
+            <line x1="0" y1="0" x2="-300" y2="0"/>
+            <line x1="0" y1="0" x2="-259.8" y2="-150"/>
+            <line x1="0" y1="0" x2="-150" y2="-259.8"/>
+            <line x1="0" y1="0" x2="0" y2="-300"/>
+            <line x1="0" y1="0" x2="150" y2="-259.8"/>
+            <line x1="0" y1="0" x2="259.8" y2="-150"/>
+          </g>
+        </g>
+
+        <!-- Concentric rings -->
+        <g transform="translate(320 180)" fill="none" stroke="#5fdba7">
+          <circle r="40" stroke-width="1.2" opacity="0.85" filter="url(#glowS)"/>
+          <circle r="70" stroke-width="1" opacity="0.7"/>
+          <circle r="110" stroke-width="0.8" opacity="0.55"/>
+          <circle r="160" stroke-width="0.6" opacity="0.4"/>
+          <circle r="220" stroke-width="0.5" opacity="0.25"/>
+          <circle r="290" stroke-width="0.5" opacity="0.15"/>
+        </g>
+
+        <!-- Spiral curves -->
+        <g transform="translate(320 180)" fill="none" stroke="#5fdba7" stroke-width="1.4" filter="url(#glow)">
+          <path d="M 0 0 Q 50 -30 100 -20 T 200 20 T 280 80" opacity="0.9"/>
+          <path d="M 0 0 Q -50 30 -100 20 T -200 -20 T -280 -80" opacity="0.9"/>
+          <path d="M 0 0 Q 30 -50 20 -100 T -20 -200 T -80 -280" opacity="0.75"/>
+          <path d="M 0 0 Q -30 50 -20 100 T 20 200 T 80 280" opacity="0.75"/>
+        </g>
+
+        <!-- Audio-reactive particle scatter -->
+        <g fill="#5fdba7">
+          <circle cx="80" cy="60" r="1.4" opacity="0.9"/>
+          <circle cx="140" cy="100" r="1.1" opacity="0.8"/>
+          <circle cx="210" cy="70" r="2.0" opacity="0.95"/>
+          <circle cx="280" cy="40" r="1.3" opacity="0.85"/>
+          <circle cx="360" cy="80" r="1.6" opacity="0.9"/>
+          <circle cx="420" cy="50" r="1.2" opacity="0.8"/>
+          <circle cx="500" cy="90" r="1.9" opacity="0.92"/>
+          <circle cx="560" cy="60" r="1.4" opacity="0.85"/>
+          <circle cx="90" cy="280" r="1.5" opacity="0.85"/>
+          <circle cx="170" cy="310" r="2.2" opacity="0.95"/>
+          <circle cx="240" cy="280" r="1.3" opacity="0.8"/>
+          <circle cx="310" cy="320" r="1.7" opacity="0.9"/>
+          <circle cx="390" cy="290" r="1.1" opacity="0.75"/>
+          <circle cx="470" cy="310" r="2.0" opacity="0.92"/>
+          <circle cx="540" cy="280" r="1.4" opacity="0.85"/>
+          <circle cx="580" cy="320" r="1.2" opacity="0.8"/>
+          <circle cx="40" cy="180" r="1.0" opacity="0.7"/>
+          <circle cx="110" cy="200" r="1.3" opacity="0.8"/>
+          <circle cx="600" cy="170" r="1.5" opacity="0.85"/>
+          <circle cx="560" cy="200" r="1.1" opacity="0.75"/>
+        </g>
+
+        <!-- Spectrum at bottom -->
+        <g transform="translate(40 320)">
+          <rect x="0" y="-18" width="8" height="18" fill="#5fdba7" opacity="0.5"/>
+          <rect x="12" y="-28" width="8" height="28" fill="#5fdba7" opacity="0.6"/>
+          <rect x="24" y="-44" width="8" height="44" fill="#5fdba7" opacity="0.8"/>
+          <rect x="36" y="-36" width="8" height="36" fill="#5fdba7" opacity="0.7"/>
+          <rect x="48" y="-52" width="8" height="52" fill="#5fdba7" opacity="0.9"/>
+          <rect x="60" y="-30" width="8" height="30" fill="#5fdba7" opacity="0.65"/>
+          <rect x="72" y="-24" width="8" height="24" fill="#5fdba7" opacity="0.55"/>
+          <rect x="84" y="-38" width="8" height="38" fill="#5fdba7" opacity="0.7"/>
+          <rect x="96" y="-20" width="8" height="20" fill="#5fdba7" opacity="0.5"/>
+          <rect x="108" y="-14" width="8" height="14" fill="#5fdba7" opacity="0.45"/>
+          <rect x="120" y="-26" width="8" height="26" fill="#5fdba7" opacity="0.6"/>
+          <rect x="132" y="-18" width="8" height="18" fill="#5fdba7" opacity="0.5"/>
+          <rect x="144" y="-12" width="8" height="12" fill="#5fdba7" opacity="0.4"/>
+          <rect x="156" y="-22" width="8" height="22" fill="#5fdba7" opacity="0.55"/>
+          <rect x="476" y="-22" width="8" height="22" fill="#5fdba7" opacity="0.55"/>
+          <rect x="488" y="-12" width="8" height="12" fill="#5fdba7" opacity="0.4"/>
+          <rect x="500" y="-18" width="8" height="18" fill="#5fdba7" opacity="0.5"/>
+          <rect x="512" y="-26" width="8" height="26" fill="#5fdba7" opacity="0.6"/>
+          <rect x="524" y="-14" width="8" height="14" fill="#5fdba7" opacity="0.45"/>
+          <rect x="536" y="-20" width="8" height="20" fill="#5fdba7" opacity="0.5"/>
+          <rect x="548" y="-38" width="8" height="38" fill="#5fdba7" opacity="0.7"/>
+        </g>
+
+        <!-- Center pulse -->
+        <circle cx="320" cy="180" r="6" fill="#5fdba7" filter="url(#glow)"/>
+        <circle cx="320" cy="180" r="12" fill="none" stroke="#5fdba7" stroke-width="0.5" opacity="0.6"/>
+      </svg>
+      <div class="mon-overlay">
+        <div class="mon-tl"><span class="dot"></span>LIVE</div>
+        <div class="mon-br">1280 &times; 720  &middot;  30 FPS  &middot;  H.264</div>
+      </div>
+    </div>
+    <div class="mon-meta">
+      <span><span class="lbl">OUTPUT</span> <span class="val" style="margin-left:6px;">MAIN SCREEN 01</span></span>
+      <span><span class="lbl">TRANSITION</span> <span class="val mint" style="margin-left:6px;">CROSSFADE 1.2s</span></span>
+      <span><span class="lbl">LATENCY</span> <span class="val" style="margin-left:6px;">18.4ms</span></span>
+    </div>
+  </div>
+
+  <!-- RIGHT STACK -->
+  <div class="right-stack">
+
+    <!-- BEAT WHEEL BIG -->
+    <div class="rs-panel">
+      <div class="rs-head"><span class="bar"></span>BEAT &middot; BAR &middot; PHRASE</div>
+      <svg class="beat-wheel-big" viewBox="0 0 120 120">
+        <circle cx="60" cy="60" r="54" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+        <g stroke="#3a3a3a" stroke-width="1">
+          <line x1="60" y1="6" x2="60" y2="18"/>
+          <line x1="114" y1="60" x2="102" y2="60"/>
+          <line x1="60" y1="114" x2="60" y2="102"/>
+          <line x1="6" y1="60" x2="18" y2="60"/>
+        </g>
+        <path d="M 60 60 L 60 6 A 54 54 0 0 1 114 60 Z" fill="#5fdba7" opacity="0.25"/>
+        <line x1="60" y1="60" x2="110" y2="40" stroke="#5fdba7" stroke-width="2"/>
+        <circle cx="60" cy="60" r="4" fill="#5fdba7"/>
+        <circle cx="60" cy="60" r="30" fill="none" stroke="#5fdba7" stroke-width="1" opacity="0.4" stroke-dasharray="150 38"/>
+        <text x="60" y="92" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="10" fill="#5fdba7" font-weight="600">2/4</text>
+      </svg>
+      <div class="bw-read">
+        <div class="r">
+          <span>BAR <strong class="mint">017</strong></span>
+          <span>BEAT <strong class="mint">2/4</strong></span>
+          <span>PHRASE <strong class="mint">3/8</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7 BAND ENERGY -->
+    <div class="rs-panel">
+      <div class="rs-head"><span class="bar"></span>7 BAND ENERGY</div>
+      <div class="bands">
+        <div class="band-row"><span class="bl">SUB</span><div class="bt"><div class="bf" style="width:92%;"></div></div><span class="bv">0.92</span></div>
+        <div class="band-row"><span class="bl">BASS</span><div class="bt"><div class="bf" style="width:88%;"></div></div><span class="bv">0.88</span></div>
+        <div class="band-row"><span class="bl">LOW MID</span><div class="bt"><div class="bf" style="width:62%;"></div></div><span class="bv">0.62</span></div>
+        <div class="band-row"><span class="bl">MID</span><div class="bt"><div class="bf" style="width:45%;"></div></div><span class="bv">0.45</span></div>
+        <div class="band-row"><span class="bl">HIGH MID</span><div class="bt"><div class="bf" style="width:38%;"></div></div><span class="bv">0.38</span></div>
+        <div class="band-row"><span class="bl">PRESENCE</span><div class="bt"><div class="bf" style="width:31%;"></div></div><span class="bv">0.31</span></div>
+        <div class="band-row"><span class="bl">BRILLIANCE</span><div class="bt"><div class="bf" style="width:22%;"></div></div><span class="bv">0.22</span></div>
+      </div>
+    </div>
+
+    <!-- GENRE + STRUCTURAL -->
+    <div class="rs-panel genre-box">
+      <div>
+        <div class="rs-head"><span class="bar"></span>GENRE &middot; STRUCTURE</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div class="genre-label">GENRE  &middot; CONF 0.91</div>
+          <div class="genre-val">TECHNO</div>
+        </div>
+        <div>
+          <div class="genre-label" style="text-align:right;">STATE</div>
+          <div class="struct-big">DROP</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.1em;">
+        <span>KEY <span class="val" style="color:#e0e0e0;">A MINOR</span></span>
+        <span>ENERGY <span class="val mint">HIGH</span></span>
+        <span>DENSITY <span class="val">4.2/s</span></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================ ROW 2 — CUE PAD GRID ================ -->
+<div class="row2">
+
+  <!-- SCENE COLUMN -->
+  <div class="scene-col">
+    <div class="sh"><span>SCENES</span></div>
+    <div class="scenes">
+      <div class="scene-btn"><span class="num">01</span><span class="nm">INTRO</span></div>
+      <div class="scene-btn queued"><span class="num">02</span><span class="nm">BUILD</span></div>
+      <div class="scene-btn playing"><span class="num">03</span><span class="nm">DROP</span></div>
+      <div class="scene-btn"><span class="num">04</span><span class="nm">BREAK</span></div>
+    </div>
+  </div>
+
+  <!-- CUE GRID AREA -->
+  <div class="cue-area">
+    <div class="cue-grid-wrap">
+      <div class="cue-grid">
+        <!-- ROW A -->
+        <div class="cue-pad playing">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#3fa47a"/>
+              <g stroke="#0a0a0a" stroke-width="0.5" fill="none" opacity="0.6">
+                <line x1="0" y1="8" x2="84" y2="8"/>
+                <line x1="0" y1="16" x2="84" y2="16"/>
+                <line x1="0" y1="24" x2="84" y2="24"/>
+                <line x1="0" y1="32" x2="84" y2="32"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 01 &#9654;</div>
+        </div>
+        <div class="cue-pad loaded">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g fill="#5fdba7">
+                <circle cx="12" cy="10" r="1"/><circle cx="24" cy="20" r="1.2"/><circle cx="36" cy="8" r="0.9"/>
+                <circle cx="48" cy="22" r="1.3"/><circle cx="60" cy="12" r="1"/><circle cx="72" cy="28" r="1.2"/>
+                <circle cx="18" cy="30" r="0.8"/><circle cx="42" cy="32" r="1"/><circle cx="66" cy="18" r="1.1"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 02</div>
+        </div>
+        <div class="cue-pad queued">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g stroke="#5fdba7" stroke-width="0.6" fill="none">
+                <path d="M 42 4 L 42 34"/>
+                <path d="M 42 4 Q 56 12 62 19 Q 56 26 42 34"/>
+                <path d="M 42 4 Q 28 12 22 19 Q 28 26 42 34"/>
+                <path d="M 10 19 L 74 19"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 03 &bull;</div>
+        </div>
+        <div class="cue-pad loaded">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g stroke="#5fdba7" stroke-width="0.6" fill="none">
+                <path d="M 42 19 m -14 0 a 14 14 0 1 0 28 0 a 14 14 0 1 0 -28 0"/>
+                <path d="M 42 19 m -10 0 a 10 10 0 1 0 20 0 a 10 10 0 1 0 -20 0"/>
+                <path d="M 42 19 m -6 0 a 6 6 0 1 0 12 0 a 6 6 0 1 0 -12 0"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 04</div>
+        </div>
+
+        <!-- ROW B -->
+        <div class="cue-pad loaded selected">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g stroke="#5fdba7" stroke-width="0.5" fill="none">
+                <path d="M 0 19 Q 10 5 20 19 T 40 19 T 60 19 T 84 19"/>
+                <path d="M 0 10 Q 10 -4 20 10 T 40 10 T 60 10 T 84 10" opacity="0.6"/>
+                <path d="M 0 28 Q 10 14 20 28 T 40 28 T 60 28 T 84 28" opacity="0.7"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 05 &#9670;</div>
+        </div>
+        <div class="cue-pad playing">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#3fa47a"/>
+              <g stroke="#0a0a0a" stroke-width="0.7" fill="none" opacity="0.7">
+                <polygon points="42,4 62,19 42,34 22,19"/>
+                <polygon points="42,10 54,19 42,28 30,19"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 06 &#9654;</div>
+        </div>
+        <div class="cue-pad loaded">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g stroke="#5fdba7" stroke-width="0.4" fill="none">
+                <line x1="0" y1="4" x2="84" y2="4"/>
+                <line x1="0" y1="10" x2="84" y2="10"/>
+                <line x1="0" y1="16" x2="84" y2="16"/>
+                <line x1="0" y1="22" x2="84" y2="22"/>
+                <line x1="0" y1="28" x2="84" y2="28"/>
+                <line x1="0" y1="34" x2="84" y2="34"/>
+                <line x1="10" y1="0" x2="10" y2="38"/>
+                <line x1="30" y1="0" x2="30" y2="38"/>
+                <line x1="50" y1="0" x2="50" y2="38"/>
+                <line x1="70" y1="0" x2="70" y2="38"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 07</div>
+        </div>
+        <div class="cue-pad queued">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g fill="none" stroke="#5fdba7" stroke-width="0.5">
+                <polygon points="14,10 28,4 38,12 30,24 16,22"/>
+                <polygon points="38,12 52,6 62,18 50,28 30,24"/>
+                <polygon points="52,6 68,12 72,22 62,18"/>
+                <polygon points="16,22 30,24 26,34 12,32"/>
+                <polygon points="30,24 50,28 46,34 26,34"/>
+                <polygon points="50,28 62,18 70,26 68,34 46,34"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 08 &bull;</div>
+        </div>
+
+        <!-- ROW C -->
+        <div class="cue-pad loaded">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g transform="translate(42 19)" stroke="#5fdba7" stroke-width="0.5" fill="none">
+                <path d="M 0 0 Q 4 -8 12 -6 Q 18 0 14 8 Q 6 12 -2 8 Q -10 2 -8 -6 Q -4 -14 4 -14 Q 14 -12 18 -2 Q 20 10 10 16"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 09</div>
+        </div>
+        <div class="cue-pad empty">
+          <div class="cue-thumb"></div>
+          <div class="cue-name" style="color:#555;">&mdash;</div>
+        </div>
+        <div class="cue-pad loaded">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g stroke="#5fdba7" stroke-width="0.4" fill="none">
+                <circle cx="14" cy="12" r="4"/>
+                <circle cx="32" cy="22" r="5"/>
+                <circle cx="52" cy="10" r="3"/>
+                <circle cx="66" cy="24" r="4"/>
+                <circle cx="76" cy="14" r="2"/>
+                <circle cx="20" cy="30" r="2"/>
+                <circle cx="44" cy="32" r="3"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 11</div>
+        </div>
+        <div class="cue-pad loaded">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g stroke="#5fdba7" stroke-width="0.5" fill="none">
+                <path d="M 0 19 L 84 19"/>
+                <path d="M 14 4 L 14 34"/>
+                <path d="M 28 4 L 28 34"/>
+                <path d="M 42 4 L 42 34"/>
+                <path d="M 56 4 L 56 34"/>
+                <path d="M 70 4 L 70 34"/>
+                <path d="M 7 19 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"/>
+                <path d="M 35 19 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"/>
+                <path d="M 63 19 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 12</div>
+        </div>
+
+        <!-- ROW D -->
+        <div class="cue-pad queued">
+          <div class="cue-wav"></div>
+          <div class="cue-thumb">
+            <svg viewBox="0 0 84 38" width="84" height="38">
+              <rect width="84" height="38" fill="#111"/>
+              <g stroke="#5fdba7" stroke-width="0.4" fill="none">
+                <path d="M 42 19 m -16 0 a 16 16 0 1 0 32 0 a 16 16 0 1 0 -32 0"/>
+                <path d="M 42 19 L 58 19"/>
+                <path d="M 42 19 L 54 11"/>
+                <path d="M 42 19 L 42 7"/>
+                <path d="M 42 19 L 30 11"/>
+                <path d="M 42 19 L 26 19"/>
+                <path d="M 42 19 L 30 27"/>
+                <path d="M 42 19 L 42 31"/>
+                <path d="M 42 19 L 54 27"/>
+              </g>
+            </svg>
+          </div>
+          <div class="cue-name">CLIP 13 &bull;</div>
+        </div>
+        <div class="cue-pad empty">
+          <div class="cue-thumb"></div>
+          <div class="cue-name" style="color:#555;">&mdash;</div>
+        </div>
+        <div class="cue-pad empty">
+          <div class="cue-thumb"></div>
+          <div class="cue-name" style="color:#555;">&mdash;</div>
+        </div>
+        <div class="cue-pad empty">
+          <div class="cue-thumb"></div>
+          <div class="cue-name" style="color:#555;">&mdash;</div>
+        </div>
+      </div>
+
+      <!-- COLUMN TRIGGERS -->
+      <div class="cols-row">
+        <div class="col-btn"><span>&#9654;</span><span>COL 1</span></div>
+        <div class="col-btn active"><span>&#9654;</span><span>COL 2</span></div>
+        <div class="col-btn"><span>&#9654;</span><span>COL 3</span></div>
+        <div class="col-btn"><span>&#9654;</span><span>COL 4</span></div>
+        <div class="col-btn"><span>&#9654;</span><span>COL 5</span></div>
+        <div class="col-btn"><span>&#9654;</span><span>COL 6</span></div>
+        <div class="col-btn"><span>&#9654;</span><span>COL 7</span></div>
+        <div class="col-btn"><span>&#9654;</span><span>COL 8</span></div>
+      </div>
+    </div>
+
+    <!-- COMPACT INSPECTOR -->
+    <div class="inspector-mini">
+      <div class="insp-sh"><span class="bar"></span>SELECTED CLIP</div>
+      <div class="insp-clip">
+        <div class="insp-thumb">
+          <svg viewBox="0 0 76 54" width="76" height="54">
+            <rect width="76" height="54" fill="#111"/>
+            <g stroke="#5fdba7" stroke-width="0.5" fill="none">
+              <path d="M 0 27 Q 10 8 20 27 T 40 27 T 60 27 T 76 27"/>
+              <path d="M 0 16 Q 10 -2 20 16 T 40 16 T 60 16 T 76 16" opacity="0.6"/>
+              <path d="M 0 38 Q 10 20 20 38 T 40 38 T 60 38 T 76 38" opacity="0.7"/>
+            </g>
+          </svg>
+        </div>
+        <div class="insp-meta">
+          <div class="r"><span class="k">NAME</span><span class="v">CLIP 05</span></div>
+          <div class="r"><span class="k">BEATS</span><span class="v mint">32</span></div>
+          <div class="r"><span class="k">KEY</span><span class="v">Am</span></div>
+          <div class="r"><span class="k">BPM</span><span class="v mint">128</span></div>
+          <div class="r"><span class="k">LOOP</span><span class="v">ON</span></div>
+          <div class="r"><span class="k">MODE</span><span class="v">TIMELINE</span></div>
+        </div>
+      </div>
+
+      <div class="insp-actions">
+        <button class="act-btn mint">TRIGGER</button>
+        <button class="act-btn">QUEUE</button>
+        <button class="act-btn">CUE</button>
+        <button class="act-btn">LOOP</button>
+        <button class="act-btn">ONESHOT</button>
+        <button class="act-btn warn">STOP</button>
+      </div>
+
+      <div class="insp-slider">
+        <div class="sh"><span class="k">MASTER OPACITY</span><span class="v">88%</span></div>
+        <div class="t"><div class="f" style="width:88%;"></div></div>
+      </div>
+
+      <div class="crossfader">
+        <div class="cx-label"><span>DECK A</span><span>CROSSFADER</span><span>DECK B</span></div>
+        <div class="cx-track">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:35%;background:rgba(95,219,167,0.2);"></div>
+          <div class="cx-thumb" style="left:33%;"></div>
+        </div>
+      </div>
+
+      <div class="insp-slider">
+        <div class="sh"><span class="k">CLIP OPACITY</span><span class="v">100%</span></div>
+        <div class="t"><div class="f" style="width:100%;"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================ BOTTOM DASHBOARD ================ -->
+<div class="dash-row">
+  <div class="dash-sh">DASHBOARD</div>
+  <div class="knob-group">
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 L 26 8" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 13.4 32.4" stroke="#5fdba7" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="3" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="38" y2="38" stroke="#5fdba7" stroke-width="2"/>
+      </svg>
+      <div class="knob-label">LINK 1</div>
+      <div class="knob-val">0.72</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 18.3 13.6" stroke="#5fdba7" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="3" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="42" y2="32" stroke="#5fdba7" stroke-width="2"/>
+      </svg>
+      <div class="knob-label">LINK 2</div>
+      <div class="knob-val">0.45</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 1 1 -11.3 34.2" stroke="#5fdba7" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="3" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="14" y2="40" stroke="#5fdba7" stroke-width="2"/>
+      </svg>
+      <div class="knob-label">LINK 3</div>
+      <div class="knob-val">0.91</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 7.4 2" stroke="#5fdba7" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="3" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="32" y2="10" stroke="#5fdba7" stroke-width="2"/>
+      </svg>
+      <div class="knob-label">LINK 4</div>
+      <div class="knob-val">0.18</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 17.2 24.8" stroke="#5fdba7" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="3" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="41" y2="37" stroke="#5fdba7" stroke-width="2"/>
+      </svg>
+      <div class="knob-label">LINK 5</div>
+      <div class="knob-val">0.60</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 2.5 37.8" stroke="#5fdba7" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="3" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="28" y2="44" stroke="#5fdba7" stroke-width="2"/>
+      </svg>
+      <div class="knob-label">LINK 6</div>
+      <div class="knob-val">0.80</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 10 3.4" stroke="#5fdba7" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="3" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="36" y2="14" stroke="#5fdba7" stroke-width="2"/>
+      </svg>
+      <div class="knob-label">LINK 7</div>
+      <div class="knob-val">0.28</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 18.8 11" stroke="#5fdba7" stroke-width="1.5" fill="none"/>
+        <circle cx="26" cy="26" r="3" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="42" y2="30" stroke="#5fdba7" stroke-width="2"/>
+      </svg>
+      <div class="knob-label">LINK 8</div>
+      <div class="knob-val">0.52</div>
+    </div>
+  </div>
+
+  <div class="knob-group sep">
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 16.2 27.9" stroke="#5fdba7" stroke-width="1.8" fill="none"/>
+        <circle cx="26" cy="26" r="4" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="40" y2="38" stroke="#5fdba7" stroke-width="2.5"/>
+      </svg>
+      <div class="knob-label mint">GLOBAL</div>
+      <div class="knob-val mint">0.75</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 1 1 -10.2 34.6" stroke="#5fdba7" stroke-width="1.8" fill="none"/>
+        <circle cx="26" cy="26" r="4" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="16" y2="41" stroke="#5fdba7" stroke-width="2.5"/>
+      </svg>
+      <div class="knob-label mint">AUDIO</div>
+      <div class="knob-val mint">0.94</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 17.8 9.4" stroke="#5fdba7" stroke-width="1.8" fill="none"/>
+        <circle cx="26" cy="26" r="4" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="42" y2="28" stroke="#5fdba7" stroke-width="2.5"/>
+      </svg>
+      <div class="knob-label mint">FX</div>
+      <div class="knob-val mint">0.50</div>
+    </div>
+    <div class="knob">
+      <svg class="knob-face" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="22" fill="#1a1a1a" stroke="#5fdba7" stroke-width="1"/>
+        <path d="M 26 26 m 0 -19 a 19 19 0 0 1 12.8 5" stroke="#5fdba7" stroke-width="1.8" fill="none"/>
+        <circle cx="26" cy="26" r="4" fill="#5fdba7"/>
+        <line x1="26" y1="26" x2="38" y2="18" stroke="#5fdba7" stroke-width="2.5"/>
+      </svg>
+      <div class="knob-label mint">SCENE</div>
+      <div class="knob-val mint">0.33</div>
+    </div>
+  </div>
+
+  <div style="flex:1"></div>
+
+  <div style="display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.1em;">
+    <div style="display:flex;gap:10px;"><span>MIDI &#9656;</span><span class="val mint">LAUNCHPAD X</span></div>
+    <div style="display:flex;gap:10px;"><span>OSC &#9656;</span><span class="val mint">:8000 CONNECTED</span></div>
+    <div style="display:flex;gap:10px;"><span>SYPHON &#9656;</span><span class="val">AUDIODNA-OUT</span></div>
+    <div style="display:flex;gap:10px;"><span>CPU</span><span class="val">24%</span> <span>GPU</span><span class="val mint">41%</span></div>
+  </div>
+</div>
+
+</body>
+</html>

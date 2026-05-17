@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v9 Brutalist — Inverted L (from V4)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { background:#0a0a0a; color:#e8e8e8; font-family:'IBM Plex Sans',sans-serif; font-size:11px; width:1920px; height:1080px; overflow:hidden; -webkit-font-smoothing:antialiased; }
+.mono { font-family:'IBM Plex Mono',monospace; }
+
+/* ====== GRAIN ====== */
+body::after {
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:9999; opacity:0.03;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>");
+}
+
+/* ====== ANIMATIONS ====== */
+@keyframes beat { 0%{opacity:1;transform:scaleY(1);} 30%{opacity:0.55;transform:scaleY(0.7);} 100%{opacity:1;transform:scaleY(1);} }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+@keyframes justchanged { 0%{background:#ff4500;color:#000;} 100%{background:transparent;color:inherit;} }
+@keyframes meterflick { 0%{opacity:1;} 48%{opacity:0.78;} 52%{opacity:0.86;} 100%{opacity:1;} }
+.flash { animation: justchanged 200ms ease-out; }
+.meter-anim { animation: meterflick 80ms steps(2) infinite; }
+
+/* ====== TOP BAR ====== */
+.top-bar { height:30px; background:#0a0a0a; border-bottom:1px solid #222; display:flex; align-items:center; padding:0 10px; gap:8px; position:relative; z-index:20; }
+.tb-sep { width:1px; height:18px; background:#222; }
+.tb-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#6e6e6e; letter-spacing:1.2px; text-transform:uppercase; font-weight:500; }
+.tb-dd { height:20px; padding:0 8px 0 8px; background:#111; border:1px solid #222; color:#e8e8e8; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.6px; display:flex; align-items:center; min-width:92px; text-transform:uppercase; cursor:pointer; position:relative; }
+.tb-dd::after { content:"▾"; margin-left:auto; color:#6e6e6e; font-size:9px; padding-left:10px; }
+.tb-slider { width:60px; height:4px; background:#111; border:1px solid #222; position:relative; }
+.tb-slider .sf { position:absolute; left:0; top:0; bottom:0; background:#e8e8e8; }
+.tb-slider .sk { position:absolute; top:-3px; width:2px; height:10px; background:#e8e8e8; }
+.tb-btn { height:22px; min-width:28px; padding:0 8px; background:#111; border:1px solid #222; color:#e8e8e8; font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:500; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-transform:uppercase; }
+.tb-btn:hover { background:#1a1a1a; }
+.tb-btn.active { color:#ff4500; border-color:#ff4500; }
+.tb-btn.transport { min-width:22px; padding:0; font-size:11px; }
+
+/* Beat wheel */
+.bw { width:22px; height:22px; display:grid; grid-template-columns:10px 10px; grid-template-rows:10px 10px; gap:2px; }
+.bw i { background:#111; border:1px solid #222; display:block; }
+.bw i.on { background:#ff4500; border-color:#ff4500; animation:beat 0.469s ease-out infinite; }
+
+.bar-info { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#e8e8e8; letter-spacing:0.6px; }
+.bar-info .k { color:#6e6e6e; margin-right:4px; }
+
+/* BPM big peeking */
+.bpm-block { display:flex; align-items:baseline; gap:6px; }
+.bpm-val { font-family:'IBM Plex Mono',monospace; font-size:48px; line-height:1; font-weight:500; color:#ff4500; letter-spacing:-2px; margin-top:-18px; }
+.bpm-state { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1.4px; text-transform:uppercase; }
+
+.fps-label { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; letter-spacing:1px; }
+.dsp-label { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1px; }
+
+/* ====== MAIN ====== */
+.main { position:relative; width:1920px; height:1032px; display:flex; flex-direction:column; }
+
+/* ===== TOP SECTION (deck grid) ===== */
+.deck-top { height:450px; display:flex; flex-direction:column; border-bottom:1px solid #222; position:relative; }
+
+/* Column triggers row */
+.col-triggers { height:22px; display:flex; margin-left:250px; background:#0a0a0a; border-bottom:1px solid #222; }
+.col-trigger { width:105px; min-width:105px; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1.2px; border-right:1px solid #1a1a1a; cursor:pointer; text-transform:uppercase; position:relative; }
+.col-trigger.active { color:#fff; }
+.col-trigger.active::after { content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:#ff4500; }
+.col-trigger:last-child { border-right:none; }
+
+/* Deck rows */
+.deck-rows { flex:1; display:flex; flex-direction:column; }
+.deck-row { display:flex; flex:1; border-bottom:1px solid #1a1a1a; min-height:0; }
+.deck-row:last-child { border-bottom:none; }
+
+/* ----- LAYER STRIP (left 250px) ----- */
+.layer-strip { width:250px; min-width:250px; background:#0a0a0a; border-right:1px solid #222; display:flex; flex-direction:column; padding:4px 6px; gap:3px; position:relative; }
+.ls-top { display:flex; align-items:center; gap:4px; }
+.ls-name { font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:600; color:#fff; letter-spacing:0.2px; flex:1; }
+.ls-type { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#6e6e6e; letter-spacing:1.2px; text-transform:uppercase; border:1px solid #222; padding:0 4px; height:14px; display:flex; align-items:center; }
+.ls-btns { display:flex; gap:1px; }
+.ls-btn { width:22px; height:20px; background:#111; border:1px solid #222; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; display:flex; align-items:center; justify-content:center; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; }
+.ls-btn:hover { background:#1a1a1a; }
+.ls-btn.solo.on { color:#ff4500; border-color:#ff4500; }
+.ls-btn.mute.on { color:#ff4500; border-color:#ff4500; }
+.ls-btn.lock.on { color:#e8e8e8; border-color:#333; background:#1a1a1a; }
+.ls-btn.bypass.on { color:#ff4500; border-color:#ff4500; }
+
+/* layer body: sliders + thumb + transport */
+.ls-body { display:flex; gap:4px; flex:1; align-items:stretch; min-height:0; }
+.ls-vslider-group { display:flex; gap:1px; align-items:stretch; padding-top:2px; }
+.ls-vslider { width:20px; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.ls-vslider-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#6e6e6e; letter-spacing:0.4px; text-transform:uppercase; }
+.ls-vslider-track { flex:1; width:10px; background:#111; border:1px solid #222; position:relative; min-height:36px; }
+.ls-vslider-fill { position:absolute; bottom:0; left:0; right:0; }
+.ls-vslider-fill.white { background:#e8e8e8; }
+.ls-vslider-fill.orange { background:#ff4500; }
+.ls-vslider-val { font-family:'IBM Plex Mono',monospace; font-size:8px; color:#6e6e6e; letter-spacing:0.2px; }
+
+/* mini spectrum */
+.ls-mini-spec { display:flex; gap:1px; align-items:flex-end; height:24px; padding:0 2px; background:#080808; border:1px solid #1a1a1a; flex:1; min-width:0; }
+.ls-spec-bar { flex:1; background:#e8e8e8; min-width:2px; }
+
+.ls-thumb { width:44px; height:26px; background:#111; border:1px solid #222; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#6e6e6e; letter-spacing:0.6px; overflow:hidden; }
+
+.ls-right { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.ls-transport { display:flex; gap:1px; }
+.ls-t-btn { width:20px; height:18px; background:#111; border:1px solid #222; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#6e6e6e; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.ls-t-btn.play.on { color:#ff4500; border-color:#ff4500; }
+
+.ls-blend { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#e8e8e8; letter-spacing:1.2px; text-transform:uppercase; border:1px solid #222; padding:1px 4px; display:inline-block; align-self:flex-start; }
+
+/* ----- CLIP CELLS ----- */
+.clip-cells { display:flex; flex:1; overflow:hidden; }
+.clip-cell { width:105px; min-width:105px; height:100%; border-right:1px solid #1a1a1a; display:flex; flex-direction:column; background:#0a0a0a; cursor:pointer; position:relative; }
+.clip-cell:last-child { border-right:none; }
+.clip-cell:hover { background:#111; }
+.clip-cell.queued { outline:2px dashed #e8e8e8; outline-offset:-2px; }
+.clip-cell.playing { background:#ff4500; }
+.clip-cell.playing .clip-name { color:#000; background:#ff4500; border-top:1px solid rgba(0,0,0,0.25); }
+.clip-cell.playing .clip-name-text { color:#000; font-weight:700; }
+.clip-cell.playing .clip-thumb { outline:2px solid #ff4500; outline-offset:-2px; }
+.clip-cell.playing::before { content:"PLAY"; position:absolute; top:3px; right:3px; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#000; background:#fff; padding:1px 4px; letter-spacing:1.2px; z-index:3; }
+.clip-cell.selected .clip-thumb { outline:1px solid #fff; outline-offset:-1px; }
+
+.clip-thumb { flex:1; background:#050505; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; border:1px solid #1a1a1a; border-bottom:none; }
+.clip-thumb svg { width:100%; height:100%; display:block; }
+.clip-thumb .src-label { position:absolute; top:2px; left:2px; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#fff; background:#000; padding:1px 4px; letter-spacing:1px; z-index:2; }
+.clip-thumb .fx-badge { position:absolute; top:2px; right:2px; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#000; background:#e8e8e8; padding:1px 4px; letter-spacing:1px; z-index:2; }
+.clip-cell.playing .clip-thumb .fx-badge { background:#000; color:#ff4500; }
+.clip-name { height:16px; background:#0a0a0a; display:flex; align-items:center; padding:0 4px; border-top:1px solid #1a1a1a; overflow:hidden; white-space:nowrap; }
+.clip-name-text { font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:#e8e8e8; font-weight:500; letter-spacing:0.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:14px; }
+
+.clip-cell.empty { background:#070707; }
+.clip-cell.empty .clip-thumb { background:#070707; border:1px dashed #1a1a1a; }
+
+/* Deck tabs */
+.deck-tabs { height:22px; display:flex; background:#0a0a0a; border-top:1px solid #222; margin-left:250px; }
+.deck-tab { min-width:100px; padding:0 14px; display:flex; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1.4px; text-transform:uppercase; border-right:1px solid #222; cursor:pointer; }
+.deck-tab.active { color:#fff; background:#111; }
+.deck-tab:hover { background:#151515; }
+
+/* ----- FLOATING PREVIEW ----- */
+.preview-float { position:absolute; top:248px; right:12px; width:320px; height:180px; background:#000; border:1px solid #222; z-index:50; display:flex; flex-direction:column; box-shadow:0 0 0 1px #000; }
+.preview-label-top { position:absolute; top:4px; left:4px; display:flex; align-items:center; gap:4px; z-index:3; }
+.preview-live { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#000; background:#ff4500; padding:2px 5px; letter-spacing:1.4px; font-weight:700; animation:pulse 1.3s ease-in-out infinite; }
+.preview-res { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#e8e8e8; background:rgba(0,0,0,0.6); padding:2px 4px; letter-spacing:0.8px; }
+.preview-img { flex:1; position:relative; overflow:hidden; }
+.preview-img svg { width:100%; height:100%; display:block; }
+.preview-bar { height:2px; background:#ff4500; }
+.preview-meta { position:absolute; bottom:4px; right:4px; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#e8e8e8; background:rgba(0,0,0,0.6); padding:2px 4px; letter-spacing:0.8px; z-index:3; }
+
+/* ===== BOTTOM SECTION ===== */
+.bottom-section { flex:1; display:flex; min-height:0; }
+
+/* Left strip (signals) */
+.left-strip { width:250px; background:#0a0a0a; border-right:1px solid #222; display:flex; flex-direction:column; overflow:hidden; }
+.ls-header { height:22px; padding:0 10px; display:flex; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#fff; letter-spacing:1.8px; text-transform:uppercase; background:#111; border-bottom:1px solid #222; justify-content:space-between; }
+.ls-header .ls-count { color:#6e6e6e; font-weight:500; }
+.signal-list { flex:1; overflow-y:auto; padding:2px 0; }
+.signal-row { display:grid; grid-template-columns:80px 1fr 40px; align-items:center; gap:6px; height:22px; padding:0 10px 0 12px; border-bottom:1px solid #101010; position:relative; cursor:pointer; }
+.signal-row:hover { background:#111; }
+.signal-row .sr-bar-left { content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:transparent; }
+.signal-row.selected .sr-bar-left { background:#ff4500; }
+.signal-row.selected .sr-lbl { color:#ff4500; }
+.signal-row.selected .sr-val { color:#ff4500; }
+.sr-lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; letter-spacing:1.2px; text-transform:uppercase; font-weight:500; }
+.sr-track { height:1px; background:#222; position:relative; }
+.sr-fill { position:absolute; left:0; top:-2px; height:5px; background:#e8e8e8; }
+.sr-val { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; text-align:right; letter-spacing:0.4px; }
+
+/* Bottom right */
+.bottom-right { flex:1; display:flex; min-width:0; }
+
+/* Panel tabs */
+.panel-tabs { height:26px; background:#0a0a0a; border-bottom:1px solid #222; display:flex; padding:0 4px; gap:1px; align-items:stretch; }
+.panel-tab { min-width:72px; padding:0 14px; background:transparent; display:flex; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1.4px; text-transform:uppercase; cursor:pointer; border-right:1px solid transparent; }
+.panel-tab:hover { background:#111; color:#e8e8e8; }
+.panel-tab.active { color:#fff; border-bottom:2px solid #ff4500; }
+.panel-tabs .spacer { flex:1; }
+.panel-tab.pin { min-width:44px; padding:0 10px; font-size:9px; color:#555; }
+
+/* Inspector */
+.inspector-panel { flex:55; display:flex; flex-direction:column; border-right:1px solid #222; min-width:0; }
+.inspector-content { flex:1; overflow-y:auto; padding:6px 10px; }
+.insp-section { margin-bottom:10px; border:1px solid #1a1a1a; background:#080808; }
+.insp-section-header { height:22px; padding:0 10px; display:flex; align-items:center; justify-content:space-between; background:#111; border-bottom:1px solid #1a1a1a; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#fff; letter-spacing:1.6px; text-transform:uppercase; }
+.insp-section-header .sec-meta { color:#6e6e6e; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:1px; }
+.insp-section-body { padding:6px 10px; }
+.insp-row { display:flex; align-items:center; gap:8px; height:22px; margin-bottom:2px; }
+.insp-label { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1.2px; text-transform:uppercase; min-width:86px; }
+.insp-tri { width:12px; text-align:center; font-size:9px; color:#6e6e6e; cursor:pointer; font-family:'IBM Plex Mono',monospace; }
+.insp-tri.on { color:#ff4500; }
+.insp-slider { flex:1; height:4px; background:#111; border:1px solid #222; position:relative; }
+.insp-slider .sf { position:absolute; left:0; top:0; bottom:0; background:#e8e8e8; }
+.insp-slider .sk { position:absolute; top:-3px; width:2px; height:10px; background:#e8e8e8; }
+.insp-value { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; width:44px; text-align:right; letter-spacing:0.4px; }
+.insp-dd { height:20px; padding:0 8px; background:#111; border:1px solid #222; color:#e8e8e8; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.6px; display:flex; align-items:center; text-transform:uppercase; flex:1; position:relative; cursor:pointer; }
+.insp-dd::after { content:"▾"; margin-left:auto; color:#6e6e6e; font-size:9px; padding-left:8px; }
+
+/* knobs */
+.knob-row { display:flex; gap:4px; flex-wrap:wrap; padding:6px 0 2px 0; }
+.knob { width:62px; height:74px; border:1px solid #1a1a1a; background:#0a0a0a; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:4px 0 2px 0; gap:2px; }
+.knob.assigned { border-color:#ff4500; }
+.knob-circle { width:38px; height:38px; border:2px solid #333; border-radius:0; position:relative; background:#111; }
+.knob-circle.assigned { border-color:#ff4500; }
+.knob-ind { position:absolute; width:2px; height:14px; background:#e8e8e8; top:3px; left:50%; transform-origin:50% 16px; transform:translateX(-50%) rotate(-120deg); }
+.knob-ind.orange { background:#ff4500; }
+.knob-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#6e6e6e; letter-spacing:0.8px; text-transform:uppercase; }
+.knob-val { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#e8e8e8; letter-spacing:0.2px; }
+
+/* fx stack rows */
+.fx-stack { display:flex; flex-direction:column; gap:1px; }
+.fx-row { display:flex; align-items:center; gap:6px; height:22px; padding:0 6px; background:#111; border:1px solid #1a1a1a; }
+.fx-row .fx-tri { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#ff4500; width:12px; text-align:center; cursor:pointer; }
+.fx-row .fx-bypass { width:18px; height:16px; background:#0a0a0a; border:1px solid #222; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#6e6e6e; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.fx-row .fx-bypass.on { color:#ff4500; border-color:#ff4500; }
+.fx-row .fx-name { font-family:'IBM Plex Sans',sans-serif; font-size:11px; color:#fff; font-weight:500; flex:1; letter-spacing:0.2px; }
+.fx-row .fx-val { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; }
+.fx-row .fx-del { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; cursor:pointer; padding:0 2px; }
+.fx-row .fx-del:hover { color:#ff4500; }
+.fx-sub { padding:4px 10px 6px 28px; background:#0c0c0c; border:1px solid #1a1a1a; border-top:none; }
+.fx-sub .insp-row { height:20px; }
+.fx-sub .insp-label { min-width:70px; font-size:9px; }
+
+/* Browser */
+.browser-panel { flex:45; display:flex; flex-direction:column; min-width:0; }
+.browser-search { height:28px; background:#0a0a0a; border-bottom:1px solid #222; padding:3px 8px; display:flex; gap:4px; align-items:center; }
+.browser-search input { flex:1; height:22px; background:#111; border:1px solid #222; color:#e8e8e8; padding:0 8px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.6px; outline:none; text-transform:uppercase; }
+.browser-search input:focus { border-color:#ff4500; }
+.browser-search input::placeholder { color:#555; }
+.browser-search .bs-sort { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#6e6e6e; letter-spacing:1.2px; padding:0 6px; text-transform:uppercase; }
+.browser-content { flex:1; overflow-y:auto; }
+.browser-cat { border-bottom:1px solid #1a1a1a; }
+.browser-cat-header { height:22px; padding:0 10px; display:flex; align-items:center; justify-content:space-between; background:#111; cursor:pointer; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#fff; letter-spacing:1.6px; text-transform:uppercase; }
+.browser-cat-header .cat-count { color:#6e6e6e; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:1px; }
+.browser-cat-header .cat-arrow { color:#6e6e6e; font-family:'IBM Plex Mono',monospace; font-size:10px; margin-right:6px; }
+.browser-item { height:20px; padding:0 12px 0 28px; display:flex; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#e8e8e8; letter-spacing:0.2px; cursor:pointer; border-bottom:1px solid #0d0d0d; position:relative; text-transform:uppercase; }
+.browser-item:hover { background:#151515; color:#fff; }
+.browser-item::before { content:"·"; position:absolute; left:14px; color:#333; }
+.browser-item.hot { color:#ff4500; }
+
+/* Footer */
+.footer { height:18px; background:#0a0a0a; border-top:1px solid #222; display:flex; align-items:center; padding:0 10px; gap:18px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1.4px; text-transform:uppercase; position:relative; z-index:20; }
+.footer .f-brand { color:#fff; font-weight:600; }
+.footer .f-hot { color:#ff4500; display:flex; align-items:center; gap:6px; }
+.footer .f-rec-dot { width:8px; height:8px; background:#ff4500; animation:pulse 0.9s ease-in-out infinite; }
+.footer .spacer { flex:1; }
+
+</style>
+</head>
+<body>
+
+<!-- ============== TOP BAR ============== -->
+<div class="top-bar">
+  <span class="tb-lbl">Audio</span>
+  <div class="tb-dd">Mic Input</div>
+  <span class="tb-lbl">Gain</span>
+  <div class="tb-slider"><div class="sf" style="width:50%"></div><div class="sk" style="left:50%"></div></div>
+  <span class="mono" style="font-size:9px;color:#6e6e6e;letter-spacing:1px;">-6.0 DB</span>
+  <div class="tb-sep"></div>
+
+  <button class="tb-btn transport">&#9654;</button>
+  <button class="tb-btn transport">||</button>
+  <button class="tb-btn transport">&#9632;</button>
+  <div class="tb-sep"></div>
+
+  <div class="bw">
+    <i class="on"></i><i></i><i></i><i></i>
+  </div>
+  <div class="bar-info mono"><span class="k">BAR</span>3<span class="k" style="margin-left:10px;">PHR</span>0.37</div>
+  <div class="tb-sep"></div>
+
+  <div class="bpm-block">
+    <div class="bpm-val mono">128.0</div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-left:-4px;">
+      <span class="bpm-state">Locked</span>
+      <span class="mono" style="font-size:9px;color:#6e6e6e;letter-spacing:1px;">Tracker</span>
+    </div>
+  </div>
+  <button class="tb-btn">Tap</button>
+  <button class="tb-btn">Resync</button>
+  <button class="tb-btn">Manual</button>
+  <div class="tb-sep"></div>
+
+  <button class="tb-btn">/4</button>
+  <button class="tb-btn">/2</button>
+  <button class="tb-btn active">x1</button>
+  <button class="tb-btn">x2</button>
+  <button class="tb-btn">x4</button>
+  <div class="tb-sep"></div>
+
+  <span class="tb-lbl">Quantize</span>
+  <div class="tb-dd" style="min-width:96px;">Next Beat</div>
+  <span class="tb-lbl">Fade</span>
+  <div class="tb-slider" style="width:48px;"><div class="sf" style="width:30%"></div><div class="sk" style="left:30%"></div></div>
+  <div class="tb-sep"></div>
+
+  <span class="tb-lbl">Master</span>
+  <div class="tb-slider" style="width:96px;"><div class="sf" style="width:85%"></div><div class="sk" style="left:85%"></div></div>
+  <span class="mono" style="font-size:10px;color:#fff;letter-spacing:0.4px;">0.85</span>
+  <div class="tb-sep"></div>
+
+  <span class="tb-lbl">Output</span>
+  <div class="tb-dd" style="min-width:130px;">Fullscreen · LG 4K</div>
+  <div style="flex:1"></div>
+
+  <span class="fps-label mono">60.0 FPS</span>
+  <span class="tb-sep"></span>
+  <span class="dsp-label mono">DSP 22%</span>
+</div>
+
+<!-- ============== MAIN ============== -->
+<div class="main">
+
+  <!-- ===== DECK TOP ===== -->
+  <div class="deck-top">
+
+    <!-- Column triggers -->
+    <div class="col-triggers">
+      <div class="col-trigger active">01 · Intro</div>
+      <div class="col-trigger">02 · Build</div>
+      <div class="col-trigger">03 · Drop</div>
+      <div class="col-trigger">04 · Break</div>
+      <div class="col-trigger">05 · Drop II</div>
+      <div class="col-trigger">06 · Strip</div>
+      <div class="col-trigger">07 · Outro</div>
+      <div class="col-trigger">08</div>
+      <div class="col-trigger">09</div>
+      <div class="col-trigger">10</div>
+      <div class="col-trigger">11</div>
+      <div class="col-trigger">12</div>
+      <div class="col-trigger">13</div>
+      <div class="col-trigger">14</div>
+    </div>
+
+    <!-- Deck rows -->
+    <div class="deck-rows">
+
+      <!-- ===== LAYER 1 — OPAQUE ===== -->
+      <div class="deck-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <span class="ls-name">Layer 1</span>
+            <span class="ls-type">Opaque</span>
+          </div>
+          <div class="ls-top">
+            <div class="ls-btns">
+              <div class="ls-btn solo">S</div>
+              <div class="ls-btn mute">M</div>
+              <div class="ls-btn bypass">BYP</div>
+              <div class="ls-btn lock">LCK</div>
+            </div>
+            <div style="flex:1"></div>
+            <span class="ls-blend">Normal</span>
+          </div>
+          <div class="ls-body">
+            <div class="ls-vslider-group">
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">SPD</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:50%"></div></div>
+                <span class="ls-vslider-val">1.0</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">KEY</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:10%"></div></div>
+                <span class="ls-vslider-val">0.10</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">OPC</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill orange" style="height:100%"></div></div>
+                <span class="ls-vslider-val">1.00</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">FAD</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:15%"></div></div>
+                <span class="ls-vslider-val">0.15</span>
+              </div>
+            </div>
+            <div class="ls-right">
+              <div class="ls-transport">
+                <div class="ls-t-btn">&lt;</div>
+                <div class="ls-t-btn">||</div>
+                <div class="ls-t-btn play on">&#9654;</div>
+                <div class="ls-t-btn">&gt;|</div>
+              </div>
+              <div class="ls-mini-spec">
+                <div class="ls-spec-bar" style="height:72%"></div>
+                <div class="ls-spec-bar" style="height:90%"></div>
+                <div class="ls-spec-bar" style="height:60%"></div>
+                <div class="ls-spec-bar" style="height:40%"></div>
+                <div class="ls-spec-bar" style="height:25%"></div>
+                <div class="ls-spec-bar" style="height:15%"></div>
+                <div class="ls-spec-bar" style="height:10%"></div>
+              </div>
+              <div class="ls-thumb">CITY_NIGHT</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="clip-cells">
+          <!-- L1C1 PLAYING -->
+          <div class="clip-cell playing">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#0a0a1f"/>
+                <rect x="10" y="20" width="4" height="40" fill="#2a1a40"/>
+                <rect x="18" y="14" width="5" height="46" fill="#3d2160"/>
+                <rect x="27" y="8" width="6" height="52" fill="#4a1f7a"/>
+                <rect x="37" y="12" width="5" height="48" fill="#322060"/>
+                <rect x="46" y="5" width="7" height="55" fill="#551a8b"/>
+                <rect x="57" y="16" width="5" height="44" fill="#2a1852"/>
+                <rect x="66" y="10" width="6" height="50" fill="#451980"/>
+                <rect x="76" y="18" width="5" height="42" fill="#291752"/>
+                <rect x="85" y="7" width="6" height="53" fill="#542098"/>
+                <circle cx="22" cy="26" r="0.9" fill="#ffcc44"/>
+                <circle cx="31" cy="20" r="0.9" fill="#ff8844"/>
+                <circle cx="40" cy="24" r="0.9" fill="#44ddff"/>
+                <circle cx="50" cy="18" r="0.9" fill="#ffcc44"/>
+                <circle cx="60" cy="30" r="0.9" fill="#ff8844"/>
+                <circle cx="69" cy="22" r="0.9" fill="#ffcc44"/>
+                <circle cx="79" cy="29" r="0.9" fill="#44ddff"/>
+                <circle cx="88" cy="19" r="0.9" fill="#ffcc44"/>
+                <line x1="0" y1="46" x2="100" y2="46" stroke="#ff44aa" stroke-width="0.4" opacity="0.5"/>
+              </svg>
+              <span class="fx-badge">FX 2</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">city_night.jpg</span></div>
+          </div>
+          <!-- L1C2 -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <defs><linearGradient id="g_l1c2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b1a"/><stop offset="0.5" stop-color="#c23a6d"/><stop offset="1" stop-color="#1a0e2a"/></linearGradient></defs>
+                <rect width="100" height="60" fill="url(#g_l1c2)"/>
+                <circle cx="75" cy="18" r="9" fill="#ffe0a0" opacity="0.9"/>
+                <rect y="42" width="100" height="1" fill="#000" opacity="0.6"/>
+                <rect y="50" width="100" height="10" fill="#070208"/>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">sunset_haze.mp4</span></div>
+          </div>
+          <!-- L1C3 source -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#04020a"/>
+                <g stroke="#9ae" stroke-width="0.3" fill="none">
+                  <circle cx="50" cy="30" r="6"/><circle cx="50" cy="30" r="12"/><circle cx="50" cy="30" r="18"/><circle cx="50" cy="30" r="24"/><circle cx="50" cy="30" r="30"/>
+                </g>
+                <g fill="#4af">
+                  <circle cx="50" cy="30" r="3" opacity="0.8"/>
+                  <circle cx="40" cy="24" r="1.2" opacity="0.6"/>
+                  <circle cx="58" cy="35" r="1" opacity="0.7"/>
+                  <circle cx="62" cy="26" r="1.5" opacity="0.8"/>
+                  <circle cx="38" cy="36" r="1.3" opacity="0.7"/>
+                </g>
+              </svg>
+              <span class="src-label">SRC</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">Mandelbrot</span></div>
+          </div>
+          <!-- L1C4 -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#062030"/>
+                <path d="M0 30 Q25 22 50 30 T100 30 V60 H0 Z" fill="#0a3d58"/>
+                <path d="M0 36 Q25 28 50 36 T100 36 V60 H0 Z" fill="#12557a" opacity="0.9"/>
+                <path d="M0 44 Q25 38 50 44 T100 44 V60 H0 Z" fill="#1b6a92"/>
+                <path d="M0 52 Q25 46 50 52 T100 52 V60 H0 Z" fill="#2b85ad"/>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">waves_loop.mov</span></div>
+          </div>
+          <!-- L1C5 -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#0a0014"/>
+                <g stroke="#ff1e7a" stroke-width="0.4" opacity="0.85">
+                  <line x1="0" y1="10" x2="100" y2="10"/>
+                  <line x1="0" y1="20" x2="100" y2="20"/>
+                  <line x1="0" y1="30" x2="100" y2="30"/>
+                  <line x1="0" y1="40" x2="100" y2="40"/>
+                  <line x1="0" y1="50" x2="100" y2="50"/>
+                </g>
+                <g stroke="#1effc4" stroke-width="0.3" opacity="0.8">
+                  <line x1="10" y1="0" x2="10" y2="60"/>
+                  <line x1="25" y1="0" x2="25" y2="60"/>
+                  <line x1="40" y1="0" x2="40" y2="60"/>
+                  <line x1="55" y1="0" x2="55" y2="60"/>
+                  <line x1="70" y1="0" x2="70" y2="60"/>
+                  <line x1="85" y1="0" x2="85" y2="60"/>
+                </g>
+              </svg>
+              <span class="fx-badge">FX 3</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">neon_grid.jpg</span></div>
+          </div>
+          <!-- L1C6 source -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#1a1a1a"/>
+                <g>
+                  <rect x="0" y="0" width="10" height="10" fill="#2a2a2a"/><rect x="10" y="0" width="10" height="10" fill="#3a3a3a"/><rect x="20" y="0" width="10" height="10" fill="#1a1a1a"/><rect x="30" y="0" width="10" height="10" fill="#333"/><rect x="40" y="0" width="10" height="10" fill="#222"/><rect x="50" y="0" width="10" height="10" fill="#2a2a2a"/><rect x="60" y="0" width="10" height="10" fill="#444"/><rect x="70" y="0" width="10" height="10" fill="#1a1a1a"/><rect x="80" y="0" width="10" height="10" fill="#3a3a3a"/><rect x="90" y="0" width="10" height="10" fill="#272727"/>
+                  <rect x="0" y="10" width="10" height="10" fill="#3a3a3a"/><rect x="10" y="10" width="10" height="10" fill="#555"/><rect x="20" y="10" width="10" height="10" fill="#2e2e2e"/><rect x="30" y="10" width="10" height="10" fill="#444"/><rect x="40" y="10" width="10" height="10" fill="#2a2a2a"/><rect x="50" y="10" width="10" height="10" fill="#383838"/><rect x="60" y="10" width="10" height="10" fill="#2a2a2a"/><rect x="70" y="10" width="10" height="10" fill="#333"/><rect x="80" y="10" width="10" height="10" fill="#444"/><rect x="90" y="10" width="10" height="10" fill="#2c2c2c"/>
+                  <rect x="0" y="20" width="10" height="10" fill="#222"/><rect x="10" y="20" width="10" height="10" fill="#2a2a2a"/><rect x="20" y="20" width="10" height="10" fill="#333"/><rect x="30" y="20" width="10" height="10" fill="#1a1a1a"/><rect x="40" y="20" width="10" height="10" fill="#3a3a3a"/><rect x="50" y="20" width="10" height="10" fill="#555"/><rect x="60" y="20" width="10" height="10" fill="#444"/><rect x="70" y="20" width="10" height="10" fill="#2e2e2e"/><rect x="80" y="20" width="10" height="10" fill="#222"/><rect x="90" y="20" width="10" height="10" fill="#3a3a3a"/>
+                  <rect x="0" y="30" width="10" height="10" fill="#333"/><rect x="10" y="30" width="10" height="10" fill="#2c2c2c"/><rect x="20" y="30" width="10" height="10" fill="#3a3a3a"/><rect x="30" y="30" width="10" height="10" fill="#444"/><rect x="40" y="30" width="10" height="10" fill="#2a2a2a"/><rect x="50" y="30" width="10" height="10" fill="#222"/><rect x="60" y="30" width="10" height="10" fill="#3a3a3a"/><rect x="70" y="30" width="10" height="10" fill="#555"/><rect x="80" y="30" width="10" height="10" fill="#2e2e2e"/><rect x="90" y="30" width="10" height="10" fill="#1a1a1a"/>
+                  <rect x="0" y="40" width="10" height="10" fill="#2e2e2e"/><rect x="10" y="40" width="10" height="10" fill="#1a1a1a"/><rect x="20" y="40" width="10" height="10" fill="#222"/><rect x="30" y="40" width="10" height="10" fill="#333"/><rect x="40" y="40" width="10" height="10" fill="#444"/><rect x="50" y="40" width="10" height="10" fill="#2a2a2a"/><rect x="60" y="40" width="10" height="10" fill="#2e2e2e"/><rect x="70" y="40" width="10" height="10" fill="#1a1a1a"/><rect x="80" y="40" width="10" height="10" fill="#444"/><rect x="90" y="40" width="10" height="10" fill="#333"/>
+                  <rect x="0" y="50" width="10" height="10" fill="#222"/><rect x="10" y="50" width="10" height="10" fill="#3a3a3a"/><rect x="20" y="50" width="10" height="10" fill="#555"/><rect x="30" y="50" width="10" height="10" fill="#2e2e2e"/><rect x="40" y="50" width="10" height="10" fill="#333"/><rect x="50" y="50" width="10" height="10" fill="#1a1a1a"/><rect x="60" y="50" width="10" height="10" fill="#2a2a2a"/><rect x="70" y="50" width="10" height="10" fill="#444"/><rect x="80" y="50" width="10" height="10" fill="#2e2e2e"/><rect x="90" y="50" width="10" height="10" fill="#333"/>
+                </g>
+              </svg>
+              <span class="src-label">SRC</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">Perlin Noise</span></div>
+          </div>
+          <!-- L1C7 -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#1a0033"/>
+                <polygon points="0,0 100,20 80,60 0,50" fill="#441a99" opacity="0.8"/>
+                <polygon points="30,0 100,10 100,60 60,60" fill="#6a2bc4" opacity="0.7"/>
+                <polygon points="0,30 40,10 70,40 10,60" fill="#2e1466" opacity="0.9"/>
+                <circle cx="60" cy="30" r="8" fill="#ffcc44" opacity="0.6"/>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">abstract_01.jpg</span></div>
+          </div>
+          <!-- L1C8 fire -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#0a0200"/>
+                <ellipse cx="50" cy="60" rx="55" ry="45" fill="#ff6a00"/>
+                <ellipse cx="50" cy="58" rx="40" ry="35" fill="#ffc800"/>
+                <ellipse cx="50" cy="58" rx="25" ry="22" fill="#fff0c0"/>
+                <ellipse cx="50" cy="60" rx="12" ry="12" fill="#ffffff"/>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">fire_loop.mp4</span></div>
+          </div>
+          <!-- L1C9 tunnel -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#000"/>
+                <g fill="none" stroke="#00ffcc" stroke-width="0.4">
+                  <rect x="40" y="20" width="20" height="20"/>
+                  <rect x="36" y="18" width="28" height="24"/>
+                  <rect x="30" y="15" width="40" height="30"/>
+                  <rect x="22" y="11" width="56" height="38"/>
+                  <rect x="12" y="6" width="76" height="48"/>
+                  <rect x="2" y="1" width="96" height="58"/>
+                </g>
+                <circle cx="50" cy="30" r="2" fill="#ffffff"/>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">tunnel.jpg</span></div>
+          </div>
+          <!-- L1C10 source Julia -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#0a0014"/>
+                <g>
+                  <path d="M20 30 Q30 10 50 30 Q70 50 80 30 Q70 10 50 30 Q30 50 20 30 Z" fill="none" stroke="#ff1e99" stroke-width="0.6"/>
+                  <path d="M30 30 Q40 18 50 30 Q60 42 70 30 Q60 18 50 30 Q40 42 30 30 Z" fill="none" stroke="#ff66c4" stroke-width="0.4"/>
+                  <path d="M36 30 Q43 22 50 30 Q57 38 64 30 Q57 22 50 30 Q43 38 36 30 Z" fill="none" stroke="#ffc4e4" stroke-width="0.3"/>
+                </g>
+              </svg>
+              <span class="src-label">SRC</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">Julia Set</span></div>
+          </div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <!-- L1C13 glitch -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#0f0a14"/>
+                <g fill="#ff00aa">
+                  <rect x="0" y="8" width="35" height="3"/>
+                  <rect x="40" y="18" width="40" height="2"/>
+                  <rect x="5" y="30" width="50" height="5"/>
+                  <rect x="60" y="38" width="35" height="2"/>
+                  <rect x="10" y="48" width="60" height="3"/>
+                </g>
+                <g fill="#00aaff">
+                  <rect x="38" y="9" width="30" height="2"/>
+                  <rect x="0" y="19" width="35" height="2"/>
+                  <rect x="58" y="31" width="40" height="4"/>
+                  <rect x="0" y="40" width="55" height="2"/>
+                  <rect x="75" y="49" width="25" height="3"/>
+                </g>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">glitch_seq</span></div>
+          </div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+        </div>
+      </div>
+
+      <!-- ===== LAYER 2 — TRANSPARENT (playing L2·C3 is orange, selected is smoke_loop) ===== -->
+      <div class="deck-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <span class="ls-name">Layer 2</span>
+            <span class="ls-type">Transparent</span>
+          </div>
+          <div class="ls-top">
+            <div class="ls-btns">
+              <div class="ls-btn solo">S</div>
+              <div class="ls-btn mute on">M</div>
+              <div class="ls-btn bypass">BYP</div>
+              <div class="ls-btn lock">LCK</div>
+            </div>
+            <div style="flex:1"></div>
+            <span class="ls-blend">Screen</span>
+          </div>
+          <div class="ls-body">
+            <div class="ls-vslider-group">
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">SPD</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:50%"></div></div>
+                <span class="ls-vslider-val">1.0</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">KEY</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:30%"></div></div>
+                <span class="ls-vslider-val">0.30</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">OPC</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill orange" style="height:70%"></div></div>
+                <span class="ls-vslider-val">0.70</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">FAD</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:20%"></div></div>
+                <span class="ls-vslider-val">0.20</span>
+              </div>
+            </div>
+            <div class="ls-right">
+              <div class="ls-transport">
+                <div class="ls-t-btn">&lt;</div>
+                <div class="ls-t-btn">||</div>
+                <div class="ls-t-btn play on">&#9654;</div>
+                <div class="ls-t-btn">&gt;|</div>
+              </div>
+              <div class="ls-mini-spec">
+                <div class="ls-spec-bar" style="height:42%"></div>
+                <div class="ls-spec-bar" style="height:58%"></div>
+                <div class="ls-spec-bar" style="height:33%"></div>
+                <div class="ls-spec-bar" style="height:24%"></div>
+                <div class="ls-spec-bar" style="height:18%"></div>
+                <div class="ls-spec-bar" style="height:10%"></div>
+                <div class="ls-spec-bar" style="height:6%"></div>
+              </div>
+              <div class="ls-thumb">VORONOI</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="clip-cells">
+          <!-- L2C1 -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#080010"/>
+                <g fill="#ffffff">
+                  <circle cx="10" cy="8" r="0.6"/><circle cx="25" cy="15" r="0.4"/><circle cx="40" cy="7" r="0.5"/><circle cx="55" cy="12" r="0.7"/><circle cx="70" cy="5" r="0.4"/><circle cx="85" cy="18" r="0.6"/>
+                  <circle cx="15" cy="25" r="0.5"/><circle cx="30" cy="32" r="0.8"/><circle cx="45" cy="28" r="0.4"/><circle cx="60" cy="35" r="0.6"/><circle cx="75" cy="22" r="0.5"/><circle cx="90" cy="30" r="0.6"/>
+                  <circle cx="20" cy="42" r="0.8"/><circle cx="35" cy="48" r="0.5"/><circle cx="50" cy="52" r="0.4"/><circle cx="65" cy="45" r="0.6"/><circle cx="80" cy="50" r="0.5"/><circle cx="95" cy="42" r="0.4"/>
+                </g>
+              </svg>
+              <span class="fx-badge">FX 1</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">particles.mp4</span></div>
+          </div>
+          <!-- L2C2 SELECTED -->
+          <div class="clip-cell selected">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#0a0014"/>
+                <g fill="#5a3380" opacity="0.8">
+                  <ellipse cx="30" cy="30" rx="20" ry="12"/>
+                  <ellipse cx="50" cy="20" rx="25" ry="10"/>
+                  <ellipse cx="70" cy="40" rx="22" ry="14"/>
+                </g>
+                <g fill="#9966cc" opacity="0.5">
+                  <ellipse cx="40" cy="35" rx="15" ry="8"/>
+                  <ellipse cx="60" cy="25" rx="18" ry="7"/>
+                </g>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">smoke_loop.mov</span></div>
+          </div>
+          <!-- L2C3 PLAYING (Voronoi) -->
+          <div class="clip-cell playing">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#000"/>
+                <g stroke="#ffffff" stroke-width="0.4" fill="none">
+                  <polygon points="0,0 20,5 15,25 0,22"/>
+                  <polygon points="20,5 42,0 48,18 30,28 15,25"/>
+                  <polygon points="42,0 70,3 68,22 48,18"/>
+                  <polygon points="70,3 100,0 100,25 85,22 68,22"/>
+                  <polygon points="0,22 15,25 20,45 5,50 0,40"/>
+                  <polygon points="15,25 30,28 40,50 25,58 20,45"/>
+                  <polygon points="30,28 48,18 58,38 45,55 40,50"/>
+                  <polygon points="48,18 68,22 72,40 60,50 58,38"/>
+                  <polygon points="68,22 85,22 90,45 72,48 72,40"/>
+                  <polygon points="85,22 100,25 100,60 90,55 90,45"/>
+                  <polygon points="0,40 5,50 0,60"/>
+                  <polygon points="5,50 25,58 18,60 0,60"/>
+                  <polygon points="25,58 40,50 45,55 50,60 18,60"/>
+                  <polygon points="45,55 60,50 72,48 68,60 50,60"/>
+                  <polygon points="72,48 90,55 88,60 68,60"/>
+                </g>
+              </svg>
+              <span class="src-label">SRC</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">Voronoi</span></div>
+          </div>
+          <!-- L2C4 dust -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#100806"/>
+                <g fill="#ffddaa" opacity="0.6">
+                  <circle cx="12" cy="10" r="0.3"/><circle cx="25" cy="18" r="0.4"/><circle cx="38" cy="9" r="0.3"/><circle cx="50" cy="15" r="0.35"/><circle cx="62" cy="7" r="0.3"/>
+                  <circle cx="75" cy="18" r="0.3"/><circle cx="88" cy="12" r="0.35"/>
+                  <circle cx="8" cy="28" r="0.4"/><circle cx="22" cy="35" r="0.3"/><circle cx="44" cy="30" r="0.4"/><circle cx="58" cy="38" r="0.3"/>
+                  <circle cx="72" cy="26" r="0.3"/><circle cx="85" cy="33" r="0.4"/>
+                  <circle cx="10" cy="48" r="0.3"/><circle cx="28" cy="52" r="0.4"/><circle cx="48" cy="55" r="0.3"/><circle cx="68" cy="48" r="0.4"/>
+                  <circle cx="82" cy="54" r="0.3"/><circle cx="95" cy="46" r="0.35"/>
+                </g>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">dust_overlay</span></div>
+          </div>
+          <!-- L2C5 queued -->
+          <div class="clip-cell queued">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#0a0f14"/>
+                <g fill="none" stroke="#00ccff" stroke-width="0.4" opacity="0.7">
+                  <path d="M0 30 Q20 10 40 30 T80 30 T100 30"/>
+                  <path d="M0 40 Q20 20 40 40 T80 40 T100 40"/>
+                  <path d="M0 50 Q20 30 40 50 T80 50 T100 50"/>
+                </g>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">ripple_lines</span></div>
+          </div>
+          <!-- L2C6 light leak -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <defs><radialGradient id="g_l2c6" cx="30%" cy="30%" r="70%"><stop offset="0" stop-color="#ffbb33"/><stop offset="0.4" stop-color="#ff4422"/><stop offset="1" stop-color="#120000"/></radialGradient></defs>
+                <rect width="100" height="60" fill="url(#g_l2c6)"/>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">light_leak.mov</span></div>
+          </div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <!-- L2C8 bokeh -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#0a0010"/>
+                <g fill="#ffddbb" opacity="0.7">
+                  <circle cx="18" cy="20" r="6" opacity="0.5"/>
+                  <circle cx="35" cy="40" r="8" opacity="0.6"/>
+                  <circle cx="60" cy="18" r="5" opacity="0.5"/>
+                  <circle cx="78" cy="42" r="7" opacity="0.55"/>
+                  <circle cx="88" cy="22" r="4" opacity="0.5"/>
+                </g>
+              </svg>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">bokeh.mp4</span></div>
+          </div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+        </div>
+      </div>
+
+      <!-- ===== LAYER 3 — FX ONLY ===== -->
+      <div class="deck-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <span class="ls-name">Layer 3</span>
+            <span class="ls-type">FX Only</span>
+          </div>
+          <div class="ls-top">
+            <div class="ls-btns">
+              <div class="ls-btn solo">S</div>
+              <div class="ls-btn mute">M</div>
+              <div class="ls-btn bypass">BYP</div>
+              <div class="ls-btn lock">LCK</div>
+            </div>
+            <div style="flex:1"></div>
+            <span class="ls-blend">Add</span>
+          </div>
+          <div class="ls-body">
+            <div class="ls-vslider-group">
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">SPD</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:50%"></div></div>
+                <span class="ls-vslider-val">1.0</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">KEY</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:5%"></div></div>
+                <span class="ls-vslider-val">0.05</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">OPC</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:80%"></div></div>
+                <span class="ls-vslider-val">0.80</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">FAD</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:10%"></div></div>
+                <span class="ls-vslider-val">0.10</span>
+              </div>
+            </div>
+            <div class="ls-right">
+              <div class="ls-transport">
+                <div class="ls-t-btn">&lt;</div>
+                <div class="ls-t-btn">||</div>
+                <div class="ls-t-btn play on">&#9654;</div>
+                <div class="ls-t-btn">&gt;|</div>
+              </div>
+              <div class="ls-mini-spec">
+                <div class="ls-spec-bar" style="height:32%"></div>
+                <div class="ls-spec-bar" style="height:48%"></div>
+                <div class="ls-spec-bar" style="height:22%"></div>
+                <div class="ls-spec-bar" style="height:16%"></div>
+                <div class="ls-spec-bar" style="height:10%"></div>
+                <div class="ls-spec-bar" style="height:6%"></div>
+                <div class="ls-spec-bar" style="height:4%"></div>
+              </div>
+              <div class="ls-thumb">FX · GLITCH</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="clip-cells">
+          <!-- L3C1 FX echo -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#050508"/>
+                <g fill="none" stroke="#ffffff" stroke-width="0.3" opacity="0.5">
+                  <rect x="30" y="18" width="40" height="24"/>
+                  <rect x="34" y="20" width="36" height="22" opacity="0.7"/>
+                  <rect x="38" y="22" width="32" height="20" opacity="0.5"/>
+                  <rect x="42" y="24" width="28" height="18" opacity="0.3"/>
+                </g>
+                <text x="50" y="33" text-anchor="middle" font-family="IBM Plex Mono" font-size="4" fill="#fff">ECHO</text>
+              </svg>
+              <span class="fx-badge">FX</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">Echo Chain</span></div>
+          </div>
+          <!-- L3C2 PLAYING FX Digital Rain -->
+          <div class="clip-cell playing">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#000"/>
+                <g font-family="IBM Plex Mono" font-size="3" fill="#00ff66">
+                  <text x="5" y="8">01</text><text x="5" y="15">10</text><text x="5" y="22">1</text><text x="5" y="30">0</text><text x="5" y="38">1</text><text x="5" y="46">1</text><text x="5" y="54">0</text>
+                  <text x="18" y="6">1</text><text x="18" y="13">0</text><text x="18" y="21">1</text><text x="18" y="28">01</text><text x="18" y="36">1</text><text x="18" y="44">0</text><text x="18" y="52">1</text>
+                  <text x="32" y="10">10</text><text x="32" y="18">1</text><text x="32" y="26">1</text><text x="32" y="34">0</text><text x="32" y="42">10</text><text x="32" y="50">1</text>
+                  <text x="48" y="8">0</text><text x="48" y="16">11</text><text x="48" y="24">0</text><text x="48" y="32">10</text><text x="48" y="40">1</text><text x="48" y="48">0</text>
+                  <text x="62" y="12">1</text><text x="62" y="20">0</text><text x="62" y="28">1</text><text x="62" y="36">11</text><text x="62" y="44">0</text><text x="62" y="52">1</text>
+                  <text x="78" y="6">0</text><text x="78" y="14">1</text><text x="78" y="22">10</text><text x="78" y="30">1</text><text x="78" y="38">0</text><text x="78" y="46">1</text><text x="78" y="54">1</text>
+                  <text x="92" y="10">1</text><text x="92" y="18">0</text><text x="92" y="26">1</text><text x="92" y="34">0</text><text x="92" y="42">1</text><text x="92" y="50">10</text>
+                </g>
+              </svg>
+              <span class="fx-badge">FX</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">Digital Rain</span></div>
+          </div>
+          <!-- L3C3 FX thermal -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <defs><linearGradient id="g_l3c3" x1="0" x2="1"><stop offset="0" stop-color="#4400ff"/><stop offset="0.3" stop-color="#00aaff"/><stop offset="0.55" stop-color="#00ff66"/><stop offset="0.8" stop-color="#ffff00"/><stop offset="1" stop-color="#ff0000"/></linearGradient></defs>
+                <rect width="100" height="60" fill="url(#g_l3c3)"/>
+              </svg>
+              <span class="fx-badge">FX</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">Thermal</span></div>
+          </div>
+          <!-- Fill rest empty -->
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+        </div>
+      </div>
+
+      <!-- ===== LAYER 4 — MASK ===== -->
+      <div class="deck-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <span class="ls-name">Layer 4</span>
+            <span class="ls-type">Mask</span>
+          </div>
+          <div class="ls-top">
+            <div class="ls-btns">
+              <div class="ls-btn solo">S</div>
+              <div class="ls-btn mute">M</div>
+              <div class="ls-btn bypass on">BYP</div>
+              <div class="ls-btn lock">LCK</div>
+            </div>
+            <div style="flex:1"></div>
+            <span class="ls-blend">Luma</span>
+          </div>
+          <div class="ls-body">
+            <div class="ls-vslider-group">
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">SPD</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:50%"></div></div>
+                <span class="ls-vslider-val">1.0</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">KEY</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:50%"></div></div>
+                <span class="ls-vslider-val">0.50</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">OPC</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:100%"></div></div>
+                <span class="ls-vslider-val">1.00</span>
+              </div>
+              <div class="ls-vslider">
+                <span class="ls-vslider-lbl">FAD</span>
+                <div class="ls-vslider-track"><div class="ls-vslider-fill white" style="height:0%"></div></div>
+                <span class="ls-vslider-val">0.00</span>
+              </div>
+            </div>
+            <div class="ls-right">
+              <div class="ls-transport">
+                <div class="ls-t-btn">&lt;</div>
+                <div class="ls-t-btn">||</div>
+                <div class="ls-t-btn play">&#9654;</div>
+                <div class="ls-t-btn">&gt;|</div>
+              </div>
+              <div class="ls-mini-spec">
+                <div class="ls-spec-bar" style="height:12%"></div>
+                <div class="ls-spec-bar" style="height:8%"></div>
+                <div class="ls-spec-bar" style="height:14%"></div>
+                <div class="ls-spec-bar" style="height:20%"></div>
+                <div class="ls-spec-bar" style="height:10%"></div>
+                <div class="ls-spec-bar" style="height:6%"></div>
+                <div class="ls-spec-bar" style="height:4%"></div>
+              </div>
+              <div class="ls-thumb">MASK · BYP</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="clip-cells">
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <!-- L4C3 mask circle -->
+          <div class="clip-cell">
+            <div class="clip-thumb">
+              <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid slice">
+                <rect width="100" height="60" fill="#000"/>
+                <circle cx="50" cy="30" r="22" fill="#fff"/>
+              </svg>
+              <span class="src-label">MSK</span>
+            </div>
+            <div class="clip-name"><span class="clip-name-text">circle_mask</span></div>
+          </div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+          <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name"><span class="clip-name-text" style="color:#333;">—</span></div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Deck tabs -->
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck 1 · Main</div>
+      <div class="deck-tab">Deck 2 · Drop</div>
+      <div class="deck-tab">Deck 3 · Outro</div>
+      <div class="deck-tab">+</div>
+    </div>
+
+    <!-- Preview floating -->
+    <div class="preview-float">
+      <div class="preview-label-top">
+        <span class="preview-live">LIVE</span>
+        <span class="preview-res">1920 x 1080 · 60 FPS</span>
+      </div>
+      <div class="preview-img">
+        <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+          <!-- Backdrop: city night deep blue -->
+          <defs>
+            <linearGradient id="pvBg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#0a0530"/>
+              <stop offset="0.6" stop-color="#1a0040"/>
+              <stop offset="1" stop-color="#050010"/>
+            </linearGradient>
+            <radialGradient id="pvVoro" cx="50%" cy="50%" r="60%">
+              <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+              <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.06"/>
+              <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <rect width="320" height="180" fill="url(#pvBg)"/>
+          <!-- City silhouette (base layer) -->
+          <g>
+            <rect x="10" y="80" width="18" height="100" fill="#1a1040"/>
+            <rect x="30" y="60" width="20" height="120" fill="#2a1650"/>
+            <rect x="52" y="40" width="22" height="140" fill="#3d1e70"/>
+            <rect x="78" y="70" width="18" height="110" fill="#2a1450"/>
+            <rect x="100" y="30" width="28" height="150" fill="#4a2090"/>
+            <rect x="132" y="55" width="20" height="125" fill="#341866"/>
+            <rect x="156" y="45" width="26" height="135" fill="#551aa0"/>
+            <rect x="186" y="70" width="20" height="110" fill="#2e1460"/>
+            <rect x="210" y="35" width="26" height="145" fill="#481e96"/>
+            <rect x="240" y="62" width="22" height="118" fill="#361866"/>
+            <rect x="266" y="48" width="24" height="132" fill="#502098"/>
+            <rect x="294" y="70" width="20" height="110" fill="#2a1450"/>
+            <!-- windows -->
+            <g fill="#ffcc44" opacity="0.85">
+              <rect x="16" y="90" width="2" height="2"/><rect x="22" y="96" width="2" height="2"/><rect x="16" y="110" width="2" height="2"/><rect x="22" y="130" width="2" height="2"/>
+              <rect x="35" y="74" width="2" height="2"/><rect x="42" y="78" width="2" height="2"/><rect x="35" y="100" width="2" height="2"/><rect x="42" y="120" width="2" height="2"/>
+              <rect x="58" y="50" width="2" height="2"/><rect x="66" y="58" width="2" height="2"/><rect x="58" y="80" width="2" height="2"/><rect x="66" y="102" width="2" height="2"/><rect x="58" y="130" width="2" height="2"/>
+              <rect x="82" y="85" width="2" height="2"/><rect x="90" y="95" width="2" height="2"/><rect x="82" y="120" width="2" height="2"/>
+              <rect x="106" y="40" width="2" height="2"/><rect x="116" y="50" width="2" height="2"/><rect x="106" y="68" width="2" height="2"/><rect x="116" y="88" width="2" height="2"/><rect x="106" y="110" width="2" height="2"/><rect x="116" y="140" width="2" height="2"/>
+              <rect x="138" y="68" width="2" height="2"/><rect x="145" y="78" width="2" height="2"/><rect x="138" y="110" width="2" height="2"/><rect x="145" y="140" width="2" height="2"/>
+              <rect x="162" y="55" width="2" height="2"/><rect x="172" y="68" width="2" height="2"/><rect x="162" y="92" width="2" height="2"/><rect x="172" y="112" width="2" height="2"/><rect x="162" y="140" width="2" height="2"/>
+              <rect x="192" y="80" width="2" height="2"/><rect x="200" y="94" width="2" height="2"/><rect x="192" y="128" width="2" height="2"/>
+              <rect x="216" y="44" width="2" height="2"/><rect x="226" y="56" width="2" height="2"/><rect x="216" y="80" width="2" height="2"/><rect x="226" y="100" width="2" height="2"/><rect x="216" y="130" width="2" height="2"/>
+              <rect x="246" y="72" width="2" height="2"/><rect x="254" y="84" width="2" height="2"/><rect x="246" y="118" width="2" height="2"/>
+              <rect x="272" y="56" width="2" height="2"/><rect x="280" y="70" width="2" height="2"/><rect x="272" y="100" width="2" height="2"/><rect x="280" y="130" width="2" height="2"/>
+              <rect x="300" y="82" width="2" height="2"/><rect x="308" y="100" width="2" height="2"/>
+            </g>
+            <!-- ripple FX highlights -->
+            <g stroke="#ff44aa" stroke-width="0.7" fill="none" opacity="0.55">
+              <path d="M0 126 Q80 118 160 126 T320 126"/>
+              <path d="M0 138 Q80 130 160 138 T320 138"/>
+              <path d="M0 150 Q80 144 160 150 T320 150"/>
+            </g>
+          </g>
+          <!-- Voronoi overlay (L2 screen blended) -->
+          <g stroke="#ffffff" stroke-width="0.5" fill="none" opacity="0.35">
+            <polygon points="0,0 70,10 55,70 0,55"/>
+            <polygon points="70,10 150,0 170,55 110,80 55,70"/>
+            <polygon points="150,0 240,5 250,60 170,55"/>
+            <polygon points="240,5 320,0 320,70 280,65 250,60"/>
+            <polygon points="0,55 55,70 45,130 10,140 0,120"/>
+            <polygon points="55,70 110,80 140,150 80,170 45,130"/>
+            <polygon points="110,80 170,55 195,115 160,165 140,150"/>
+            <polygon points="170,55 250,60 260,120 215,150 195,115"/>
+            <polygon points="250,60 280,65 300,140 260,155 260,120"/>
+            <polygon points="280,65 320,70 320,180 300,170 300,140"/>
+            <polygon points="0,120 10,140 0,180"/>
+            <polygon points="10,140 80,170 60,180 0,180"/>
+            <polygon points="80,170 140,150 160,180 60,180"/>
+            <polygon points="140,150 195,115 215,150 200,180 160,180"/>
+            <polygon points="215,150 260,155 240,180 200,180"/>
+            <polygon points="260,155 300,170 280,180 240,180"/>
+          </g>
+          <!-- Soft overlay -->
+          <rect width="320" height="180" fill="url(#pvVoro)"/>
+          <!-- Scan line -->
+          <rect y="88" width="320" height="1" fill="#ff4500" opacity="0.35"/>
+        </svg>
+      </div>
+      <span class="preview-meta">OUT · DECK 1</span>
+      <div class="preview-bar"></div>
+    </div>
+
+  </div>
+
+  <!-- ===== BOTTOM SECTION ===== -->
+  <div class="bottom-section">
+
+    <!-- ===== LEFT STRIP · SIGNALS ===== -->
+    <div class="left-strip">
+      <div class="ls-header">
+        <span>Signals</span>
+        <span class="ls-count">18 ACTIVE</span>
+      </div>
+      <div class="signal-list">
+
+        <div class="signal-row selected">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">RMS</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:65%"></div></div>
+          <span class="sr-val">0.65</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Peak</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:82%"></div></div>
+          <span class="sr-val">0.82</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Bass</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:78%"></div></div>
+          <span class="sr-val">0.78</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Low Mid</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:52%"></div></div>
+          <span class="sr-val">0.52</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Mid</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:45%"></div></div>
+          <span class="sr-val">0.45</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">High Mid</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:36%"></div></div>
+          <span class="sr-val">0.36</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">High</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:30%"></div></div>
+          <span class="sr-val">0.30</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Brilliance</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:18%"></div></div>
+          <span class="sr-val">0.18</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Beat Phase</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:37%"></div></div>
+          <span class="sr-val">0.37</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Bar Phase</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:62%"></div></div>
+          <span class="sr-val">0.62</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Phrase</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:37%"></div></div>
+          <span class="sr-val">0.37</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Onset</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:15%"></div></div>
+          <span class="sr-val">0.15</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Centroid</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:55%"></div></div>
+          <span class="sr-val">2.4K</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Flux</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:43%"></div></div>
+          <span class="sr-val">0.43</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Flatness</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:22%"></div></div>
+          <span class="sr-val">0.22</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Pitch</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:40%"></div></div>
+          <span class="sr-val">A4</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Key</span>
+          <div class="sr-track"><div class="sr-fill" style="width:80%"></div></div>
+          <span class="sr-val">A MIN</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Structure</span>
+          <div class="sr-track"><div class="sr-fill" style="width:100%"></div></div>
+          <span class="sr-val">DROP</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Genre</span>
+          <div class="sr-track"><div class="sr-fill" style="width:72%"></div></div>
+          <span class="sr-val">HOUSE</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Sidechain</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:58%"></div></div>
+          <span class="sr-val">0.58</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Swing</span>
+          <div class="sr-track"><div class="sr-fill" style="width:14%"></div></div>
+          <span class="sr-val">0.54</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Formant</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:22%"></div></div>
+          <span class="sr-val">0.22</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Resonance</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:31%"></div></div>
+          <span class="sr-val">0.31</span>
+        </div>
+        <div class="signal-row">
+          <div class="sr-bar-left"></div>
+          <span class="sr-lbl">Reese</span>
+          <div class="sr-track"><div class="sr-fill meter-anim" style="width:12%"></div></div>
+          <span class="sr-val">0.12</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BOTTOM RIGHT ===== -->
+    <div class="bottom-right">
+
+      <!-- ===== INSPECTOR (55%) ===== -->
+      <div class="inspector-panel">
+        <div class="panel-tabs">
+          <div class="panel-tab active">Clip</div>
+          <div class="panel-tab">Layer</div>
+          <div class="panel-tab">Composition</div>
+          <div class="panel-tab">Signals</div>
+          <div class="spacer"></div>
+          <div class="panel-tab pin">Pin</div>
+        </div>
+
+        <div class="inspector-content">
+
+          <!-- HEADER BANNER -->
+          <div class="insp-section" style="border-color:#ff4500;">
+            <div class="insp-section-header" style="background:#1a0800;color:#ff4500;">
+              <span style="font-size:14px;letter-spacing:2px;">City Night · Layer 1 · Col 1</span>
+              <span class="sec-meta" style="color:#ff4500;">PLAYING · 00:04:17</span>
+            </div>
+            <div class="insp-section-body" style="padding:8px 10px;display:flex;gap:14px;align-items:center;">
+              <div style="width:72px;height:40px;border:1px solid #333;background:#050010;">
+                <svg viewBox="0 0 72 40" preserveAspectRatio="xMidYMid slice">
+                  <rect width="72" height="40" fill="#0a0a1f"/>
+                  <rect x="6" y="15" width="4" height="25" fill="#3d2160"/>
+                  <rect x="14" y="10" width="5" height="30" fill="#4a1f7a"/>
+                  <rect x="22" y="8" width="4" height="32" fill="#551a8b"/>
+                  <rect x="30" y="14" width="5" height="26" fill="#322060"/>
+                  <rect x="40" y="6" width="6" height="34" fill="#542098"/>
+                  <rect x="50" y="14" width="4" height="26" fill="#2a1852"/>
+                  <rect x="58" y="8" width="6" height="32" fill="#451980"/>
+                  <circle cx="15" cy="18" r="0.7" fill="#ffcc44"/><circle cx="24" cy="14" r="0.7" fill="#ffcc44"/><circle cx="42" cy="12" r="0.7" fill="#ff8844"/><circle cx="60" cy="14" r="0.7" fill="#ffcc44"/>
+                </svg>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+                <span class="mono" style="font-size:11px;color:#6e6e6e;letter-spacing:1.2px;text-transform:uppercase;">Image · 1920 x 1080 · PNG</span>
+                <span class="mono" style="font-size:11px;color:#e8e8e8;letter-spacing:0.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">/MEDIA/CITY/city_night.jpg</span>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="tb-btn active" style="height:24px;">Play</button>
+                <button class="tb-btn" style="height:24px;">Reload</button>
+                <button class="tb-btn" style="height:24px;">Reveal</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRANSFORM -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span>Transform</span>
+              <span class="sec-meta">Position · Scale · Rotation</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="knob-row">
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(0deg);"></div></div>
+                  <span class="knob-lbl">Pos X</span>
+                  <span class="knob-val">0.00</span>
+                </div>
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(-15deg);"></div></div>
+                  <span class="knob-lbl">Pos Y</span>
+                  <span class="knob-val">-0.08</span>
+                </div>
+                <div class="knob assigned">
+                  <div class="knob-circle assigned"><div class="knob-ind orange" style="transform:translateX(-50%) rotate(40deg);"></div></div>
+                  <span class="knob-lbl">Scale</span>
+                  <span class="knob-val">1.14</span>
+                </div>
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(-90deg);"></div></div>
+                  <span class="knob-lbl">Rotation</span>
+                  <span class="knob-val">-12°</span>
+                </div>
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(0deg);"></div></div>
+                  <span class="knob-lbl">Anchor X</span>
+                  <span class="knob-val">0.50</span>
+                </div>
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(0deg);"></div></div>
+                  <span class="knob-lbl">Anchor Y</span>
+                  <span class="knob-val">0.50</span>
+                </div>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Position X</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-slider"><div class="sf" style="width:50%"></div><div class="sk" style="left:50%"></div></div>
+                <span class="insp-value">0.00</span>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Position Y</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-slider"><div class="sf" style="width:46%"></div><div class="sk" style="left:46%"></div></div>
+                <span class="insp-value">-0.08</span>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Scale</span>
+                <span class="insp-tri on">▾</span>
+                <div class="insp-slider"><div class="sf" style="width:57%;background:#ff4500;"></div><div class="sk" style="left:57%;background:#ff4500;"></div></div>
+                <span class="insp-value" style="color:#ff4500;">1.14</span>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Rotation</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-slider"><div class="sf" style="width:47%"></div><div class="sk" style="left:47%"></div></div>
+                <span class="insp-value">-12.0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- VIDEO -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span>Video</span>
+              <span class="sec-meta">Opacity · Blend · Channels</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="insp-row">
+                <span class="insp-label">Opacity</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-slider"><div class="sf" style="width:100%"></div><div class="sk" style="left:100%"></div></div>
+                <span class="insp-value">1.00</span>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Blend Mode</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-dd">Layer Determined</div>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Alpha Type</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-dd">Inverted Luma is Alpha</div>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Channels</span>
+                <button class="tb-btn active" style="min-width:26px;">R</button>
+                <button class="tb-btn active" style="min-width:26px;">G</button>
+                <button class="tb-btn active" style="min-width:26px;">B</button>
+                <button class="tb-btn active" style="min-width:26px;">A</button>
+                <div style="flex:1"></div>
+                <span class="insp-value" style="width:auto;color:#6e6e6e;">All On</span>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Width</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-slider"><div class="sf" style="width:100%"></div><div class="sk" style="left:100%"></div></div>
+                <span class="insp-value">1.00</span>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Height</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-slider"><div class="sf" style="width:100%"></div><div class="sk" style="left:100%"></div></div>
+                <span class="insp-value">1.00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRANSPORT -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span>Transport</span>
+              <span class="sec-meta">BPM Sync · 4 Beats · Loop</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="insp-row">
+                <span class="insp-label">Mode</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-dd">BPM Sync</div>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Loop</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-dd">Loop</div>
+                <span class="insp-label" style="min-width:56px;padding-left:8px;">Speed</span>
+                <div class="insp-slider" style="flex:0.6"><div class="sf" style="width:50%"></div><div class="sk" style="left:50%"></div></div>
+                <span class="insp-value">1.00</span>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Beats / Cycle</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-dd">4 Beats</div>
+              </div>
+              <div class="insp-row">
+                <span class="insp-label">Beat Snap</span>
+                <span class="insp-tri">▾</span>
+                <div class="insp-dd">On Bar</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- EFFECTS STACK -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span>Effects</span>
+              <span class="sec-meta">2 Active · Drop Zone Below</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="fx-stack">
+                <!-- RIPPLE (expanded) -->
+                <div class="fx-row">
+                  <span class="fx-tri">▾</span>
+                  <div class="fx-bypass on">B</div>
+                  <span class="fx-name">Ripple</span>
+                  <span class="mono" style="font-size:9px;color:#6e6e6e;letter-spacing:1px;text-transform:uppercase;">Warp</span>
+                  <span class="fx-val">0.65</span>
+                  <span class="fx-del">X</span>
+                </div>
+                <div class="fx-sub">
+                  <div class="insp-row">
+                    <span class="insp-label">Dry / Wet</span>
+                    <span class="insp-tri">▾</span>
+                    <div class="insp-slider"><div class="sf" style="width:100%"></div><div class="sk" style="left:100%"></div></div>
+                    <span class="insp-value">1.00</span>
+                  </div>
+                  <div class="insp-row">
+                    <span class="insp-label">Intensity</span>
+                    <span class="insp-tri on">▾</span>
+                    <div class="insp-slider"><div class="sf" style="width:65%;background:#ff4500;"></div><div class="sk" style="left:65%;background:#ff4500;"></div></div>
+                    <span class="insp-value" style="color:#ff4500;">0.65</span>
+                  </div>
+                  <div class="insp-row">
+                    <span class="insp-label">Frequency</span>
+                    <span class="insp-tri">▾</span>
+                    <div class="insp-slider"><div class="sf" style="width:40%"></div><div class="sk" style="left:40%"></div></div>
+                    <span class="insp-value">0.40</span>
+                  </div>
+                  <div class="insp-row">
+                    <span class="insp-label">Speed</span>
+                    <span class="insp-tri">▾</span>
+                    <div class="insp-slider"><div class="sf" style="width:33%"></div><div class="sk" style="left:33%"></div></div>
+                    <span class="insp-value">0.33</span>
+                  </div>
+                </div>
+                <!-- HUE SHIFT -->
+                <div class="fx-row">
+                  <span class="fx-tri">▸</span>
+                  <div class="fx-bypass on">B</div>
+                  <span class="fx-name">Hue Shift</span>
+                  <span class="mono" style="font-size:9px;color:#6e6e6e;letter-spacing:1px;text-transform:uppercase;">Color</span>
+                  <span class="fx-val">0.30</span>
+                  <span class="fx-del">X</span>
+                </div>
+                <!-- GLOW -->
+                <div class="fx-row">
+                  <span class="fx-tri">▸</span>
+                  <div class="fx-bypass">B</div>
+                  <span class="fx-name">Glow</span>
+                  <span class="mono" style="font-size:9px;color:#6e6e6e;letter-spacing:1px;text-transform:uppercase;">Blur/Post</span>
+                  <span class="fx-val">0.22</span>
+                  <span class="fx-del">X</span>
+                </div>
+              </div>
+              <div style="margin-top:4px;border:1px dashed #333;padding:8px 10px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6e6e6e;letter-spacing:1.4px;text-transform:uppercase;">
+                Drop Effect Here
+              </div>
+            </div>
+          </div>
+
+          <!-- DASHBOARD -->
+          <div class="insp-section">
+            <div class="insp-section-header">
+              <span>Dashboard</span>
+              <span class="sec-meta">8 Link Knobs · Clip Scope</span>
+            </div>
+            <div class="insp-section-body">
+              <div class="knob-row">
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(-40deg);"></div></div>
+                  <span class="knob-lbl">Macro 1</span>
+                  <span class="knob-val">0.42</span>
+                </div>
+                <div class="knob assigned">
+                  <div class="knob-circle assigned"><div class="knob-ind orange" style="transform:translateX(-50%) rotate(30deg);"></div></div>
+                  <span class="knob-lbl">Macro 2</span>
+                  <span class="knob-val">0.67</span>
+                </div>
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(-120deg);"></div></div>
+                  <span class="knob-lbl">Macro 3</span>
+                  <span class="knob-val">0.00</span>
+                </div>
+                <div class="knob assigned">
+                  <div class="knob-circle assigned"><div class="knob-ind orange" style="transform:translateX(-50%) rotate(75deg);"></div></div>
+                  <span class="knob-lbl">Macro 4</span>
+                  <span class="knob-val">0.85</span>
+                </div>
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(-70deg);"></div></div>
+                  <span class="knob-lbl">Macro 5</span>
+                  <span class="knob-val">0.25</span>
+                </div>
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(10deg);"></div></div>
+                  <span class="knob-lbl">Macro 6</span>
+                  <span class="knob-val">0.55</span>
+                </div>
+                <div class="knob">
+                  <div class="knob-circle"><div class="knob-ind" style="transform:translateX(-50%) rotate(-100deg);"></div></div>
+                  <span class="knob-lbl">Macro 7</span>
+                  <span class="knob-val">0.10</span>
+                </div>
+                <div class="knob assigned">
+                  <div class="knob-circle assigned"><div class="knob-ind orange" style="transform:translateX(-50%) rotate(85deg);"></div></div>
+                  <span class="knob-lbl">Macro 8</span>
+                  <span class="knob-val">0.92</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ===== BROWSER (45%) ===== -->
+      <div class="browser-panel">
+        <div class="panel-tabs">
+          <div class="panel-tab">Files</div>
+          <div class="panel-tab active">FX</div>
+          <div class="panel-tab">Sources</div>
+          <div class="panel-tab">Comp</div>
+          <div class="panel-tab">Decks</div>
+          <div class="panel-tab">Record</div>
+        </div>
+        <div class="browser-search">
+          <input placeholder="Search 135 Effects · 81 Sources">
+          <span class="bs-sort">A-Z</span>
+          <button class="tb-btn" style="height:22px;min-width:22px;">⋮</button>
+        </div>
+        <div class="browser-content">
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▾</span>Warp</span><span class="cat-count">27</span></div>
+            <div class="browser-item hot">Ripple</div>
+            <div class="browser-item">Bulge</div>
+            <div class="browser-item">Wave</div>
+            <div class="browser-item">Liquid</div>
+            <div class="browser-item">Kaleidoscope</div>
+            <div class="browser-item">Fisheye</div>
+            <div class="browser-item">Swirl</div>
+            <div class="browser-item">Polar Coords</div>
+            <div class="browser-item">Twirl</div>
+            <div class="browser-item">Shear</div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▾</span>Color</span><span class="cat-count">31</span></div>
+            <div class="browser-item hot">Hue Shift</div>
+            <div class="browser-item">Saturation</div>
+            <div class="browser-item">Brightness</div>
+            <div class="browser-item">Duotone</div>
+            <div class="browser-item">Chromatic Aberration</div>
+            <div class="browser-item">Invert</div>
+            <div class="browser-item">Posterize</div>
+            <div class="browser-item">Thermal</div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▸</span>Glitch</span><span class="cat-count">16</span></div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▾</span>Blur / Post</span><span class="cat-count">9</span></div>
+            <div class="browser-item hot">Glow</div>
+            <div class="browser-item">Gaussian Blur</div>
+            <div class="browser-item">Zoom Blur</div>
+            <div class="browser-item">Motion Blur</div>
+            <div class="browser-item">Edge Detect</div>
+            <div class="browser-item">Sharpen</div>
+            <div class="browser-item">Vignette</div>
+            <div class="browser-item">Drop Shadow</div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▾</span>Time</span><span class="cat-count">6</span></div>
+            <div class="browser-item">Echo</div>
+            <div class="browser-item">Posterize Time</div>
+            <div class="browser-item">Freeze</div>
+            <div class="browser-item">Screen Split</div>
+            <div class="browser-item">Frame Stutter</div>
+            <div class="browser-item">Channel Delay</div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▾</span>Audio</span><span class="cat-count">3</span></div>
+            <div class="browser-item">Harmonic Displacement</div>
+            <div class="browser-item">Timbral Mosaic</div>
+            <div class="browser-item">Structural Morph</div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▸</span>Pattern</span><span class="cat-count">19</span></div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▸</span>Animation</span><span class="cat-count">6</span></div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▸</span>Blend</span><span class="cat-count">5</span></div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▸</span>Composite</span><span class="cat-count">3</span></div>
+          </div>
+
+          <div class="browser-cat">
+            <div class="browser-cat-header"><span><span class="cat-arrow">▸</span>3D / Depth</span><span class="cat-count">9</span></div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============== FOOTER ============== -->
+<div class="footer">
+  <span class="f-brand">AUDIO-DNA V9.0</span>
+  <span>Brutalist Inverted-L V4</span>
+  <span>60.0 FPS</span>
+  <span>CPU 22%</span>
+  <span>GPU 34%</span>
+  <span>1920 x 1080</span>
+  <span class="f-hot"><span class="f-rec-dot"></span>REC 00:12:34</span>
+  <div class="spacer"></div>
+  <span>DECK 1 · MAIN</span>
+  <span>MIDI · LAUNCHPAD X</span>
+  <span>OSC · UDP 9000</span>
+  <span>API · 7070</span>
+  <span style="color:#e8e8e8;">SYPHON · OUT</span>
+</div>
+
+</body>
+</html>

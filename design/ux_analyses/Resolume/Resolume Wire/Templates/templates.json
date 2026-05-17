@@ -1,0 +1,22 @@
+{
+	"categories":
+	[
+		{
+			"name": "Video",
+			"projects":
+			[
+				"./Video/Video Source.wire",
+				"./Video/Video Effect.wire",
+				"./Video/Video Mixer.wire"
+			]
+		},
+		{
+			"name": "2D",
+			"projects":
+			[
+				"./2D/Basic 2D.wire",
+				"./2D/Minimal 2D Cloner.wire"
+			]
+		}
+	]
+}

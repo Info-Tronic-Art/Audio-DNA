@@ -1,0 +1,1261 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          0,
+          "output"
+        ],
+        "to": [
+          1,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          1,
+          "output0"
+        ],
+        "to": [
+          2,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          8,
+          "duration"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output0"
+        ],
+        "to": [
+          1,
+          "scale"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output"
+        ],
+        "to": [
+          12,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output0"
+        ],
+        "to": [
+          10,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          10,
+          "duration"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output"
+        ],
+        "to": [
+          15,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          15,
+          "output0"
+        ],
+        "to": [
+          16,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          16,
+          "duration"
+        ]
+      },
+      {
+        "from": [
+          16,
+          "output0"
+        ],
+        "to": [
+          1,
+          "rotation"
+        ]
+      },
+      {
+        "from": [
+          17,
+          "output"
+        ],
+        "to": [
+          3,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output"
+        ],
+        "to": [
+          8,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output"
+        ],
+        "to": [
+          3,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "output0"
+        ],
+        "to": [
+          1,
+          "translation"
+        ]
+      }
+    ],
+    "inputOrder": [
+      0,
+      9,
+      11,
+      14,
+      17,
+      18
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": "effect",
+      "deploymentTarget": {
+        "branch": "2d-wire",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 15,
+          "patch": 0
+        }
+      },
+      "description": "Move, rotate and scale... but smooooth. You'll learn about using suffixes too!",
+      "displayName": "Smooth Transform",
+      "identifier": "40b2ff69-28f2-46b3-8bd3-376e4e12b29e",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "originalTarget": {
+        "branch": "2d-wire",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "master",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 17,
+          "patch": 0
+        }
+      },
+      "thumbnail": "10267.IBkSG0fBZn....PCIgDQRA..C.L..H.GHX....PNcc7d....DLmPIQEBHf.B7g.YHB..f.PRDEDU3wY6c+Fhbeeem.+y7mU6eztq7H6UdcirjqbZuKQMob8H0zFc9JGNPBzmjKg1h3f9j.twAt6IGALANNNp4.SeRZAami9DSCAtBooOnsbD61i33Pp4tlzKA6jlDoJakDsIqkVIsqzpY2Ym4dvZIKMR6tyL6Lyu+780KHf89u4aBJZm2y62+9MUN4IOYm.....Jw5zoS6pY8g.....FGD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F.XLax5UhIqWIqOF..IGAfA.Fy9Dmbl3SbxYx5iA.PxodVe...RIm3v0iO8iMWDQD+8muYb1K0JiOQ..oCM.C.LlLY8Jwm8wOTzX5pQioqFe1G+PlBM.vXj.v..iIehSNS7gO9j25e+Ce7IMEZ.fwHAfA.FCt4zmu89dqDQ7oer4hSbXWQR..iCB.C.Lhc6SetalBM.v3i.v..iXcO84tYJz..iGB.C.LBcul9b2LEZ.fwCAfA.FQ1soO2MSgF.XzS.X.fQj8Z5ycyTnA.FsD.F.XDnWl9b2LEZ.fQKAfA.Fx5moO2MSgF.XzQ.X.fgr9c5ycyTnA.FMD.F.XHZPl9b2LEZ.fQCAfA.FR1OSeta6zTn6zoSzoSm88Oe.fTj.v..CI62oO2s60TnWYkUhUVYkg1iA.PJQ.X.fgfgwzm6V2SgtYylwxKubr7xKGMa1bH9HA.jFD.F.XeZXN84tcyoPefpQrzRKEsZ0JZ0pUrzRKYJz..8IAfA.1mF1Setae3iOY7XGYiXs0V6Ver0VaMSgF.nOI.L.v9vnX5ycqRDw+4+cOXzXlItiOtoPC.zeD.F.X.MJm9b2dzElNdlO9iFUtsj1lBM.P+Q.X.fAznd5yc6Ie7GN9Hu+6+N9XlBM.PuS.X.fAv3X5ycqZkHdtS+9LEZ.fAj.v..8ow4zm6loPC.L3D.F.nOMtm9b2LEZ.fAi.v..8grX5ycyTnA.FLB.C.zixxoO2MSgF.n+k8+Fb.fBhrd5ycyTnA.5OB.C.zCxCSetalBM.P+Q.X.f8PdZ5ycyTnA.5c4ueSN.PNSda5ycyTnA.5MB.C.rKxiSetalBM.PuQ.X.fcPdd5ycyTnA.1a4+eiN.PFIuO84tYJz..6NAfA.tGJBSetalBM.vtS.X.ftTjl9b2LEZ.fcVw62rC.LhUzl9b2LEZ.f6MAfA.tMEwoO2MSgF.3dS.X.f2QQd5ycyTnA.taE+eCO.vPRQe5ycyTnA.tSB.C.DkioO2MSgF.3NI.L.j7JSSetalBM.v6p78a5A.5SksoO2MSgF.XaB.C.Isx3zm6loPC.rMAfAfjUYd5ycyTnA.D.F.RXk8oO2MSgF.RcB.C.IoTX5ycyTnAfTm.v.PxIkl9b2LEZ.Hkkd+le.H4kZSetalBM.jpD.F.RJo3zm6loPC.oJAfAfjQJO84tYJz.PJxy...RFo9zm6loPC.oFAfAfjfoOe2LEZ.H0H.L.T5Y5y6LSgF.RIdl..PomoOu6LEZ.HUH.L.TpY5y6MSgF.REB.C.kVl9buyTnAfTfmQ..TZY5y8GSgF.J6D.F.JkL849moPC.kcB.C.kNl97fyTnAfxLOy..nzwzm2eLEZ.nrR.X.nTwzm2+LEZ.nrR.X.nzvzmGdLEZ.nLxyP..JML84gKSgF.JaD.F.JEL84gOSgF.JaD.F.J7L84QGSgF.JS7LE.fBOSedzxTnAfxBAfAfBMSedzyTnAfxBAfAfBKSed7wTnAfx.OiA.nvxzmGudxG+giOx66v2wGyTnAfhDAfAfBISed7qZkHdte2SDMl5N+3lBM.TTH.L.T3X5yYmG8HyFOySbelBM.TH4YN..ENl9bFp1DwS9XGJ9HG+N+vlBM.TDH.L.TnX5yYupUh34dhvTnAfBGAfAfBCSeNmXtiDO5gh3YNUXJz.PghmAA.TXX5y4KO4GLLEZ.nPQ.X.nPvzmyeLEZ.nnQ.X.H2yzmyYl99hnw1U+ZJz.PQhmIA.j6Y5y4alBM.TTH.L.jqY5y4elBM.TTH.L.jaY5y4XK7KEwAN3s9WMEZ.nHvyn..xsL84hESgF.x6D.F.xkL84Bf4dv63e0TnAf7NAfAfbGSet.nRk6J.bDlBM.ju4YV..4Nl9bwloPC.4UB.C.4Jl9bARsCDwLMtqOroPC.4UB.C.4Fl9bAS8CDwLG9d9oLEZ.HOxyv..xML84xESgF.xaD.F.xEL84Bp6+DQL4b2yOkoPC.4MB.C.YNSet7xTnAf7DOSC.HyY5ykalBM.jWH.L.joL84RfegO3t9oMEZ.HuP.X.HyX5yoCSgF.xC7LN.fLioOmVLEZ.HqI.L.jIL84RjCLSD0mZO+xLEZ.HqI.L.L1Y5yoKSgF.xRdlG.vXmoOWBM6B87WpoPC.YEAfAfwJSetjZtizyeolBM.jUD.F.FaL8YtISgF.xB0y5C..jN927HSFUqDw27sFcs7c92d03pWuY7u+e0QhCevIFYONkYW5ZaF+Ee6ed+8Msw5Qb4ZQzdqd9aoVkHNwgh3LW9c+X2bJzG9vGt+d7A.5AB.C.iMu7O5FwK+itwH6meylMiyctyEcZuU7u8Wtg.vCnKdsMi+fu32K1pc1zD6xKubbvCdvXxIcchC.CW1fF.TJzoSmXokVJZ0pUVeTXexTnAfQEAfAfRgUVYkXs0VKqOFLj3tBM.LJH.L.T30rYyX4kWNqOFLj4tBM.LrI.L.TnY5ykWlBM.LrI.L.TnY5ykalBM.LLI.L.TXY5yoASgF.FVD.F.JjL84zgoPC.CKB.C.ERl9bZwTnAfgAAfAfBGSeNMYJz.v9k.v.PghoOmtLEZ.X+R.X.nPwzmSalBM.reH.L.TXX5yDgoPC.CNAfAfBASelaxTnAfAU8r9...zKVc0UiHhX1YmcO+ZqUMhIp603MKTsZ0XlYlYr7Xs5pqFyO+7ikGK.nbP.X.nPX94mumC6zX5pw8MyAFwmHtWpVsZbzidznVsZY8QA.3t3kGG...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.F...fjf.v....jDD.FfbrIqWIdh26TY8w.nG7DO3UiIq1IqOF.vtP.X.xoNwgqGe9e6CG+NefCl0GEfdvuyCuR74+0dq3Dy1LqOJ.vNP.X.xYlrdk3z+pGLdwO4CDm53SFUx5CDPOoRkHN0CrV7hO14hSerKoMX.xgpm0G..3cchCWO9rO9ghOrfuPgUiIZEO86+BwiejUim86uXb10lLqOR.v6P.X.xAlrdk3SbxYhO8iMWzXZiyAJ5pDa2F7IeryEO+Obg3K+iaDMa6k0Bfrl.v.jwz5KTdoMX.xWD.FfLhVegzf1fAH+P.X.x.Z8EROZCFfrm.v.LFo0WHsoMX.xVB.CvXhVeAtIsACP1P.X.Fwz5Kv8h1fAX7S.X.Fgz5KvdQav.L9H.L.i.Z8EnenMX.FOD.FfgLs9BLnzFL.iVB.CvPhVeAFFzFL.iNB.CvPPdr02Nc5Dqt5pw7yOeVeT.F.ZCFfgOAfAXeHu15aylMikVZoHhP.Xn.Sav.LbI.L.Cn7ZquqrxJwxKubzpUqX1YmMqOR.CAZCFfgCAfAnOk2a8cs0VKqOJ.i.ZCFf8OAfAnOTDZ8EnbSav.L3D.FfdfVeAxSzFL.CFAfAXOn0Wf7JsACP+Q.X.1AZ8EnHPav.z6D.Ff6As9BTznMX.1aB.CvsQqu.EYZCFfcm.v.7Nxis9FQDm+sWMN24NmVeA5YZCFf6MAfARd40Veuoqd8lQm1aE0p1+wxqUMxk+2oQsCMU0X.9et3cLQsJwD0pFQztu+dqUIhYOPkXpCL.+4tNsin8V8+2G2SZCFf6VkSdxS1IqOD.jUxqs9d6tz01Lt301bf9dmnd039l4.C4ST9W0JQL+joWv+goycw0iM2p+eJBUqTIZbvCDUGjWAhqbgHV9Gz+ee4DSUscLUs9+EMXbnSDw23smUav.IsNc5zV.XfjTdu0WHY8O8RY8InTakMqqMXfjUmNcZaBz.ImhPqu.LJ3ZCFH0o1Cfjwj0qDm9W8fwK9Ief3TB+B4SSNWVeBJ8t40F7K9XmKN8wtTLYUiADHcXBz.IAs9BEDK85QbkeZVeJRFt1fARIl.MPomq0W.1YtSQCjZpcjibj+qY8g.fQgSLay3O72Xy3z+5OXL8DB+BEBsaGw0uXDcLPswooq0NN0BqEm7PqGuwUmNVYCcj.TJ0wyHDnzYxpchSerKEu3ict3Ty+yiJdhzPwwAu+HpVKqOEIIWav.o.u7d.kJmX1lwm8e4RwG9AVy05K.C.2onAJyLAZfRgIq1I9ce3Uhm4C9Si+Eyci2M76VaDw5qDwgdOY4wCnWUsVD0mJh094Y8IIoUIh3XyrQ7QenqFM2pZ7CVcpXqNdYEAJ75nAXfBOs9Bvng1fAJabM.CTXcGWquB+BvHgqMXfxDSfFnP5Dy1L9C+.+j3zG+Rwz0Zu6ewstQDMWMh4Wb7b3.1elb1HtwUiXyqm0mDtMtSQCTB3t.MPwhVeAH6nMXfhNuzc.EFtVeAHev0FLPQkIPCj6si2gm6Gab8Hl6Ain9AF1GOfQgoaDwk+IQDZXLuxcJZfBH2EnAx2z5K.4a2Qav+viGm8JY8IBfclqAXfboQx056UuPDa0ZX7SBXTqV8HloQVeJnGcqqM3O5Vwo+UOXLYcujk.4SB.Cj6bhYaFe9es2Jd52+EhFSLDCrd0KDQ6MGd+7.FcpVOhYNbVeJnO0XhMim925Pwm+29vwINrgFBj+H.LPtg6vy.T7UIh3TGex3E+jOf1fAxcbSvBHWnude8cfUIhp0hXp4inhW+OnP3ZucDs2JqOEzqpNQDy+fQDUhomnRbpGYp3jO3Ah23muYrx5ip+tc.5Yde.FHaMVa8scqsmAcGOYZnPX56KhZd60oPo4p2wMtasACj23hy.Hy3N7L.ogFSWMd5eqCEO9u3Twy9JWIN6kbCIDHaXBz.icCk2WeGTasYDW6RQL+CYFzPQvVaDw0WIqOEzqZ2JhJ0hXl66t9TUhHN18UO9n+xSGMa0I9AWrUrkUQCLd48AXfwKs9BPZSav.YI0e.LV3N7L.bSt1fAxJl.MvH234N7beXqMhX8Uh3Pumr9j.rWNvLQbkeRDcxA+cGzaZd0s+6WqVaO+RcmhFXLycAZfQGs9B.6EsACLN4Z.FXjv05K.zObsACLNXBz.CUY5c349Qqar8cA5YZj0mDfcS05a+et1am0mD5UcZGQ61QL6Cz2eqtSQCLh4t.MvviVeAfgg6nM3u1kiytxVY8QBnjv0.Lv9Vg8Z8c8Ku8MDKf7somOh5Sk0mB5G23pQr09aBy25ZC9iOWb5SrVLY0NCmyFPRSCv.6KE5Veuwkin0lQT6.Y8IAX2L0ghXhI29RWfhglWMh1aFQs8+S0rwbyDO8G7xwie3KFO62ew3rqM4P3.Bjpz.Lv.ov15K.T3TIh3TOvZwK9XmKN8wtj1fAFXtIXAz2xcuu9teTsZDSensugXAjes0lQb8Kk0mB5GGX1HlZ9gyOqVqGw5WNltV63TKrVbxCsd7FWc5XkMLlQf9h2GfA5cktVe6zNhqdgseh0.4aytPVeBneMLeAKl49u0+n1fA1O7xlAzSJzWqu.PoSiIZEO86+BwiejUcsACzyLAZfcUg4802AU6s198Wz4WLhp0x5SCvNo1AhnSmsu6sSwvFqscy80GBASmX5Ht3YuqObkHhiMyFwG8gtZzbqpwOX0ohs5T59MU.COde.FXmo0W.nHPav.8JWCv.2kR205K.T54ZCFnWH.L.ab8HN+2Z64PCje8.OZDSLSVeJner7Ob38yZ1iL79YAjrLAZf6Ry1Uhuzac33u+RGzDnAfBgNQDei2dVSfFXWI.LvN5rqMY7e5acr3SbzUhO8uzxQiIZk0GI.f6xYtRD+Qem4hW65GM1v6xm.6B2EnA1Ua0oR7cuxzwWa44hGdlMhGdlMJmsAu0FQTsZDyzHqOI.6jJUhXx4h3p+zr9jPuZy02d55CCSMeDW972wGpcmHdguSD+d+UQ7pu4FwZW+FwzSOcTutNd.tm7RjAzatYav+2eiGJVYSOwB.HaclqDwG6uHhOyeaDqbis+Xqs1Zw4N24hKcoKEc53lfEvcSCv.8rxeavUh3f2eDUEvGx05pEPx4lewseebdX3ZWLZ2Zia056q+128WR61si0VasX80WWav.cSCv.8uRaavqe4HZ0LqOE.6lIlNhR1K8VoWyqMb94Tah3LqO2c056NQav.2KB.CLPt4cJ5e+W6QhW8smM7TK.fQk1ch34+ZmO9PuvOK9pmKhdMOaqVshKbgKDu0a8VQyldANALAZf8oU1nd7RKcn3hMqG+J22Mhoq0NqORCtJQDUpt8MZkp0x5SCvN45Wd6atRTLTahHlcgA9a+LKudb5+zua7m72c9X8MGrWt0M1Xi3pW8pQ0pUiolZpnREqH.RTcD.FXeqTcsAu40GtWuZ.CestQDW+RY8ofdU6Minww5+usNQ7Bux4ieu+Ge230+oqs+OFt1fAbM.CLLUZu1fAfwpyr75wG6O9aEeluz2OV45aNT+Y6ZCFRaZ.FXnpv2Fbm1Qr1xQL2CFQMg3gboYtuHV8mEwVC2fQLhrUqHpO41WdI6ggcqu63ii1fgTkFfAFMN6ZSF+G+Gd33o95yEm4JY8oA.x6Fks9tSzFLjd7xcALRzrYy3MWZo3au1Zw+yuSDOyoh3I+fQTsPUGL.Lp0tSDegW47wm6qblwVv2a2MuSQu5pqFKt3hwjSN4X+L.L9T4jm7jd4t.FZ5zoSrxJqDKu7xQqVst0GuRkH9HGOhm6Ih3QOTFd.6UGXlHN1GxMCKHuZ8KGwa8+IqOEzqpOYD+he365Nr+YVd83o9Reu3kdiK1yu0FMJUud8XgEVHZzng6TzPITmNcZaBz.iEc5DwW8bQ7g9hQ77++19U7G.RS25802m40hu5qmOB+BjFLAZfgpJUpDG9vGNN3AOXrzRKEqs1cdSLYkaDwm4uMh+xeTApMX.XnIu056MM6ryZBzPBvcAZfQh50qGG5PGJpWudbiabinc612wm+LWNh+r2Hh4mLh+0O31SjNWYqMi3ZWJh4enHpXrLPtyDSs86GvMWMqOIzKZuUzNpFuv+20F42gm6W0qWOdvG7AiEWbQ2MngxuN9+kCLxnMX.HhHNyUh3o9KOe7RmcCs9Bjoz.LvHWgsM3JU198sxCLSVeR.tWZuUDW6hQD4nDUbGZ2IhW36Dwu2eUDu9xak0GmaQquPxx6Cv.iG2rM3G4QdjX1Ym8t972rM3O1eQjedeCtUyHtQd4v.bWN38GQUOUl7pybks+6z+L+sa+2wmWL6ryFOxi7HwgO7gcmdFRP9sF.iUSN4jwwN1whG5gdn65Uc2cJZ.J9Z2Y6+N7OzWb6+N87xjmqWud7POzCEG6XGyjmgDlIPCL1UoRkX5omNlat4hM1XiXiM13N972nUD+M+yQ7MuPD+lumHN7TYzAMhHhJuSKSlHGjK07ZQrQ94FpTp6LWIhS+WGwex2Nh0as2e8iKyN6rwQO5Qi4laNs9BosNB.CjYJDWavsZFwbOXD00V.j6ToZDsaEwZKm0mjj2cbs991Y8o4c4Z8EnKtFfAxVExqMX.3Vbs9BTjnAXfbg7aavchXsedDytPD0Nv35AEnWM07Qb8Ks86IvLVo0WfBHM.CjenMX.JFz5KPQk.v.4NtSQCP9j6vy.EcUN4IOYN4u5Bf6VylMikVZoXs0t66xqUpDwG43Q7bOQDO5gFwGj5SEww9PQLQldKoF3d4hmMh29LY8onz6LWIhm5ki3kdy7Sv2H1t02EWbQAeA1Sc5zosFfAx0zFL.YKs9BTlH.LPtmqMX.xFtVeAJabWfFnvHSuSQ2tUDW6hQL+hQTs1P7GLv91AlIhq7ShnS689qkdh6vy.kTtKPCTrnMX.Fsz5KPYlFfAJjxr1fqUOhouugzOLfgiJQzb0H13ZY8AoPSqu.IfNB.CTXUoRkX5omNlat4hM1XiXiM13N972nUD+M+yQ7MuPD+lumHN798F3bm1Qr0FQbeGce9CBXnpR0H1ZyHtVNJ0VAyYtRDm9uNh+jucDq2JqOMuqYmc13nG8nwbyMmVeAFFLAZfhO2onAXv3N7LPpQCv.kBiu1fqDwbGIhZSruOy.CQUhsa.t8VY8IovPqu.IHSfFnbYjesA2dqHl8HQLwzCuCMv9W8ohX0KDQqM16u1Dmq0WfDlIPCT93NEM.2atCOCj5pbxSdxbxU6A.Cec5zIVYkUhkWd4nUq6dieMlJhm4TQ7jevHp1qOmqJUi33+5QL4bC2C6N3RWay3hWaywxiUYwD0pDOx8qk98iycw0iM2pf8TD13ZQ7S9GyrG96epgvMauQj1ch3K7ch3y8p4qfu0qWOVXgEhFMZH3KvHWmNcZK.LPRnYylwRKsTr1ZqcWetJUh3ib7HdtmHhG8P8vOrwb.3+zW8mD+Aewu2X4wprXhZUiu2+seCgfGPm6hqGuu+KeyXysZu2ew4NY2Sq4EdhH9TefL6geGclqDwS8xQ7RuY94lbUDa256hKtnaxU.iMc5zosKvBfjvMuSQeuZC91uSQ22sAOlrkae08o1Eu1KyQ1bqNwla01etqfSqu.b2bM.CjLFZWavcZGwO9aEwlqO5Nr.rO3Z8Ef6MAfARNdeCFnrx6qu.r6D.FHI4NEMPYiVeAXuI.LPRafaCt0FaOC5sb2YFHao0W.5cB.Cj7zFLPQkVeAn+H.L.ui9tM3s1LhqdgL4rBj1z5K.CFAfA31zWsAeIAfAF+z5K.CNAfA3dnmaC9ask6Tz.iEZ8Ef8OAfAXGzSsA++5ZwG6O9aEmYYum.CL5n0W.FND.Ff8vd1F7qew3C8LuV77esyqMXfgJs9Bvvk.v.zC1y1fu9lwm4K880FLvPiVeAX3S.X.5CZCFXTSqu.L5Teu+R.fa2MaC9fG7fwRKsTr1ZqcGe9a1F7e4+3xwyc52W7nKLcFcRinZ0pQ0po2q0YsJQTUyTYlZ0pkjMCVsxVQD6uzpm4JQ7TubDuzaleB9Fw1s9t3hKJ3KPgm.v.LftYavqrxJwxKubzpUqa84t81felO9iFO4i+vQ0LHOvLyLSbzidzw+CbFa1CTIZbvCj0GijTsZ0hSbhSD0pUKqOJicu2ib9HhqMPeus6DwW36Dwm6UyWyctd85wBKrPznQij7E0.n7Q.X.1GJBsAmhAQl5.UipYwq3.QkJUhZ0pkj+4tIpMX+YtU1rd7o9pUhux+zlZ8EfQrzaWb.LB3ZCFne0Ih3Ue6Yie+W6Qhu5OdxbS3WWqu.kYZ.FfgjhPav.4CqrY834+gKDe4ebinY67yZEz5KPYmFfAXHSav.6jau02uzac3bS3Ws9BjJz.L.i.ZCFnaZ8EfrmFfAXDRav.Z8Ef7CM.CvHl1fgzkVeAHeQCv.LlnMXHcn0W.xmz.L.iQZCFJ+z5K.4WB.CPF3lsAuxJqDKu7xQqVst0m61aC9Y93OZTqhw5.EAc5rcquO62ew3rqkeBYVud8XgEVHZznQToR9IPN.YAAfAHizqsAehGXlL5DBzO9yOei3qu7bZ8EfbLAfAHisWsAelkudFd5.5Uu7Oa9r9HbKZ8Ef6MAfAHGXuZCFfdkVeAXmI.L.4H6Vav.raz5K.6MAfAHmQav.8Ks9BPuQ.X.xozFLvdQqu.zeD.FfbLsACrSz5K.8OAfAn.Pav.2jVeAXvI.L.EDZCFPqu.r+H.L.ELZCFROZ8EfgCAfAn.RavP5Pqu.L7H.L.EXZCFJuz5K.CeB.CPAm1fgxGs9Bvng.v.TRnMXn3Squ.LZI.L.kHc2FLPwgVeAXzS.X.JgtYavqt5pY8QAnGznQiXt4lSqu.LhI.L.kTUpTIle94y5iAPOv+eU.FOpl0G.....XbP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RB0y5C..jNdh26TwuyG3fQkwvi0T0GGOJkS2+AmHdg+CuuA56sZkJw68WnQLQs890XuSDwe928ZwK+itw.8XA.zuD.F.Fa95mqY7IeO2Isz..vAFmDQAQ0UNXbpiOYVeTXWb3CNQ7oN06Yj+37puYy3qetli7GG.faxDnAfwlls5DO6qbkXk0am0GExXqrd63YekqDMa0IqOJ.PBQ.X.Xr5rWpU77u1pgXOoqNQDO+qsZb1K0JqOJ.PhQ.X.Xr6K+5WO9Fuooulp9FuYy3K+5WOqOF.PBR.X.XryTnSWl9L.jkD.F.xDlBc5wzmAfrl.v.PlwTnSKl9L.j0D.F.xLlBc5vzmAf7.AfAfLkoPW9Y5y.Pdg.v.PlyTnK2L8Y.HuP.X.HyYJzkWl9L.jmH.L.jKXJzkOl9L.j2H.L.jaXJzkKl9L.j2H.L.jaXJzkGl9L.jGUOqO...2taNE5m925PQkr9vv.ocmH9T+Yeu3+82+pizGmFMZDyO+7izGC.nbQ.X.H24K+5WOd7ewohSc7Iy5iBCfuvqb93q7O7SiNivxemc1Yi4latQ2C..TJYBz.PtioPWbclkWO9bekyLRC+Vud8XwEWLpTwFA.f9i.v.Ptj6JzEOs6DwS8k9dwJWeyQ5iyBKrPL4jVG..z+D.F.xsbWgtX4K7JmOdo23hizGiYmc1nQiFizGC.n7R.X.H2xTnKNL8Y.nHP.X.HWyTny+L8Y.nnP.X.H2yTny2L8Y.nnP.X.H2yTnyuL8Y.nHQ.X.nPvTnyeL8Y.nnQ.X.nvvTnyWL8Y.nnQ.X.nvvTnyOL8Y.nHR.X.nPwTnydl9L.TTI.L.T3XJzYKSeF.JpD.F.JbLE5rioOC.EYB.C.ERlB83moOC.EcB.C.EVlB83koOC.EcB.C.EVlB83ioOC.kAB.C.EZlB8nmoOC.kEB.C.EdlB8nkoOC.kEB.C.EdlB8nioOC.kIB.C.kBlB8vmoOC.kMB.C.kFlB8vkoOC.kMB.C.kFlB8vioOC.kQB.C.kJlB89moOC.kUB.C.kNlB89ioOC.kUB.C.kNlB8fyzmAfxLAfAfRISgt+Y5y.PYm.v.PokoP2eL8Y.nrS.X.nzxTn6cl9L.jBD.F.J0LE58loOC.oBAfAfROSgd2Y5y.PpP.X.nzyTn2Yl9L.jRD.F.RBlB8cyzmAfTi.v.PxvTnuSl9L.jZD.F.RFlB86xzmAfTj.v.PRwTnM8Y.HcI.L.jbR8oPa5y.PpR.X.H4jxSg1zmAfTl.v.PRJEmBsoOC.oNAfAfjUpMEZSeF.RcB.C.IqTZJzl9L.f.v.PhKElBsoOC.rMAfAfjWYeJzl9L.v1D.F.Rdk4oPa5y..uKAfA.hx4TnM8Y.f6j.v..uix1TnM8Y.f6j.v..uixzTnM8Y.f6l.v..2lxvTnM8Y.f6MAfA.5RQeJzl9L.v8l.v..coHOEZSeF.XmI.L.v8PQbJzl9L.vtS.X.fcPQaJzl9L.vtS.X.fcPQZJzl9L.vdS.X.fcQQXJzl9L.PuQ.X.f8PdeJzl9L.PuQ.X.f8PddJzl9L.PuS.X.fdPdbJzl9L.P+Q.X.fdTdaJzl9L.P+Q.X.fdTdZJzl9L.P+S.X.f9PdXJzl9L.vfQ.X.f9TVOEZSeF.XvH.L.PeJKmBsoOC.L3D.F.X.jESg1zmA.1eD.F.X.MtmBsoOC.r+H.L.v.ZbNEZSeF.X+S.X.f8gwwTnM8Y.fgCAfA.1mF0Sg1zmA.FND.F.XeZTNEZSeF.X3Q.X.fgfQwTnM8Y.fgKAfA.FRF1Sg1zmA.FtD.F.XHYXNEZSeF.X3S.X.fgngwTnM8Y.fQCAfA.Fx1uSg1zmA.FMD.F.XHa+LEZSeF.XzQ.X.fQfAYJzl9L.vnk.v..iH86TnM8Y.fQKAfA.FQ5moPa5y..idB.C.LB0KSg1zmA.FOD.F.XDaulBsoOC.LdH.L.vH1tMEZSeF.X7Q.X.fwf60Tn6DQ7G828yL8Y.fwDAfA.FS5dJzei2rY7Z+7CDyN6rirGSSeF.3cI.L.vXxsOE5UVuc7ruxUhMZGwhKtXTud8g9imoOC.bmF9+1V..1Q2bJz27eNhHlbxIiEVXg3BW3BC0GKSeF.3NI.L.vX1W90u9c8wZznQr5pqFqs1ZCkGCSeF.3tYBz..iYMa0IZ15NusOWoRkg1TnM8Y.f6MAfA.xIt4Tn2uL8Y.f6MAfA.xQZznw95tBsoOC.ryD.F.HGY+LEZSeF.X2I.L.PNyfNEZSeF.X2I.L.PNT+NEZSeF.XuI.L.PNT+LEZSeF.n2H.L.PNUuNEZSeF.n2H.L.PN1dMEZSeF.n2I.L.PN1tMEZSeF.n+H.L.PN2NMEZSeF.n+H.L.PAP2Sg1zmA.5eB.C.T.b6Sg1zmA.FL686sB..jKb6Sg1zmA.5eB.C.TfX1y..CNAfA.JPL6Y.fAmqAX....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PRP.X....RBB.C...PR3+OPaj9vP8YjyuB....PRE4DQtJDXBB",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 50,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 641.8712158203125,
+          "y": 240.5843505859375
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow"
+        ],
+        "name": "Texture In",
+        "thumbnail_visible": true
+      },
+      "1": {
+        "attributes": {
+          "anchor-type": {
+            "type": "type",
+            "value": "float2"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input-type": {
+            "type": "type",
+            "value": "texture2d"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "rotation-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "scale-type": {
+            "type": "type",
+            "value": "float2"
+          },
+          "translation-type": {
+            "type": "type",
+            "value": "float2"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 828.64599609375,
+          "y": 373.8938598632813
+        },
+        "class": {
+          "id": "77697265-9225-4009-9D2D-5F898E94CC33",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "anchor": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "rotation": {
+            "type": "float",
+            "value": 0
+          },
+          "scale": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "translation": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input-type",
+          "translation-type",
+          "rotation-type",
+          "scale-type",
+          "anchor-type",
+          "anchor"
+        ],
+        "name": "Transform",
+        "thumbnail_visible": true
+      },
+      "10": {
+        "attributes": {
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 325.28851318359375,
+          "y": 457.0838317871094
+        },
+        "class": {
+          "id": "77697265-86ce-4e85-a02d-34f915fca74e",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "duration": {
+            "type": "float",
+            "value": 1
+          },
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input0-type",
+          "instances"
+        ],
+        "name": "Smooth",
+        "thumbnail_visible": true
+      },
+      "11": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 200
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 4
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -406.3834228515625,
+          "y": 804.2724609375
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 100
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Scale",
+        "thumbnail_visible": true
+      },
+      "12": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -216.3834228515625,
+          "y": 804.2724609375
+        },
+        "class": {
+          "id": "77697265-0D55-485E-813D-706DD5DFE88D",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 100
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Divide",
+        "thumbnail_visible": true
+      },
+      "14": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 360
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 5
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -406.3834228515625,
+          "y": 692.2724609375
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Rotation",
+        "thumbnail_visible": true
+      },
+      "15": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -216.3834228515625,
+          "y": 692.2724609375
+        },
+        "class": {
+          "id": "77697265-0D55-485E-813D-706DD5DFE88D",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 360
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Divide",
+        "thumbnail_visible": true
+      },
+      "16": {
+        "attributes": {
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 325.28851318359375,
+          "y": 369.0838317871094
+        },
+        "class": {
+          "id": "77697265-86ce-4e85-a02d-34f915fca74e",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "duration": {
+            "type": "float",
+            "value": 1
+          },
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input0-type",
+          "instances"
+        ],
+        "name": "Smooth",
+        "thumbnail_visible": true
+      },
+      "17": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 7680
+          },
+          "min": {
+            "type": "integer",
+            "value": -7680
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 7
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -400.2039489746093,
+          "y": 286.33673095703125
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "X",
+        "thumbnail_visible": true
+      },
+      "18": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 4320
+          },
+          "min": {
+            "type": "integer",
+            "value": -4320
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 7
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -400.2039489746093,
+          "y": 398.3367309570313
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Y",
+        "thumbnail_visible": true
+      },
+      "19": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "SMOOTHING THE TRANSITION\n\nThe translation, rotation and scale are all sent to their own Smooth nodes.\nThe Smooth node will smooth out the changes from the first to second value over a given time. For this we created a Transition Time slider (a Float In node). Here we see another suffix: seconds."
+          }
+        },
+        "bounds": {
+          "height": 403.29934692382807,
+          "width": 488.83880615234375,
+          "x": 92.12831115722656,
+          "y": 131.10372924804688
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "2": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1083.64599609375,
+          "y": 373.8938598632813
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "20": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "X/Y TRANSLATION\n\nWe start off by creating translation parameters for the X and Y Axis.\nThe range of the sliders are set to 7680x4320 pixels (8k resolution).\nNote that the suffix of the input nodes are set to pixels. \nThis can be done in the node panel under the \"unit\" attribute."
+          }
+        },
+        "bounds": {
+          "height": 376.42242431640625,
+          "width": 488.83880615234375,
+          "x": -433.8536376953125,
+          "y": 131.10372924804688
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "21": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "ROTATION & SCALING\n\nMore suffixes! Two Float In nodes are renamed to Rotation and Scale.\nThe degree and percent suffixes are used for readability.\nNote that this is only a visual upgrade, we still need to convert the 0-360 and 0-100 ranges back to 0 to 1. This can easily be done by using the Divide node."
+          }
+        },
+        "bounds": {
+          "height": 376.42242431640625,
+          "width": 488.83880615234375,
+          "x": -433.8536376953125,
+          "y": 534.739990234375
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "22": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "TRANSFORMATION\n\nIn the final part of the patch, we'll be taking the original texture and applying the transform before sending it back out again."
+          }
+        },
+        "bounds": {
+          "height": 376.6287536621094,
+          "width": 641.509521484375,
+          "x": 601.397705078125,
+          "y": 131.00074768066406
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "23": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "SMOOTH TRANSFORM\n\nIn this example we are creating an effect that can smoothly move, scale and rotate the texture. For this we'll be using the Smooth node a lot. This example also uses a lot of suffixes in the input node, so you get to learn about that too!\n\nThe patch could be expanded by making the X/Y Translation resolution independent (using the Patch Info node). You could add the anchor point too. The biggest upgrade would be the introduction of Curve nodes, giving you more control over how the transition is animated."
+          }
+        },
+        "bounds": {
+          "height": 247.01089477539062,
+          "width": 488.8388366699219,
+          "x": -433.853515625,
+          "y": -139.166015625
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "3": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -210.20394897460938,
+          "y": 286.33673095703125
+        },
+        "class": {
+          "id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances"
+        ],
+        "name": "Float2",
+        "thumbnail_visible": true
+      },
+      "8": {
+        "attributes": {
+          "input0-type": {
+            "type": "type",
+            "value": "float2"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 325.28851318359375,
+          "y": 281.0838317871094
+        },
+        "class": {
+          "id": "77697265-86ce-4e85-a02d-34f915fca74e",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "duration": {
+            "type": "float",
+            "value": 1
+          },
+          "input0": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "input0-type",
+          "instances"
+        ],
+        "name": "Smooth",
+        "thumbnail_visible": true
+      },
+      "9": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 5
+          },
+          "min": {
+            "type": "float",
+            "value": 0.00100000004749745
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 2
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 113.78697967529295,
+          "y": 328.38720703125
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Transition Time",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 11.724536895751953,
+        "y": -200.64886474609375,
+        "zoom": 0.9301663041114806
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {
+        "0": "Test Card"
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null
+        }
+      }
+    }
+  }
+}

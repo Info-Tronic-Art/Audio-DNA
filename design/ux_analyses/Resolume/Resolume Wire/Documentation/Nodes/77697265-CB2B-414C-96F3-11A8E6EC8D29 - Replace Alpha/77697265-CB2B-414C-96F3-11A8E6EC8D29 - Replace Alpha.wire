@@ -1,0 +1,265 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          3,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output"
+        ],
+        "to": [
+          4,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "Replace Alpha Example",
+      "identifier": "fcb6e41e-ec36-469c-9916-8543543b7c68",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 6,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "REPLACE ALPHA\n\nReplaces the alpha with a constant value."
+          }
+        },
+        "bounds": {
+          "height": 91.24685668945312,
+          "width": 661.3009033203125,
+          "x": 244.83184814453125,
+          "y": 347.77520751953125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a texture."
+          }
+        },
+        "bounds": {
+          "height": 173,
+          "width": 334,
+          "x": 572.1681518554688,
+          "y": 606.2247314453125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Main\nInput a texture\n\n• Alpha\nInpuit a float value between 0 and 1 to replace the current alpha value with."
+          }
+        },
+        "bounds": {
+          "height": 172,
+          "width": 312,
+          "x": 235.08612060546875,
+          "y": 606.5997314453125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "3": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 503,
+          "y": 472
+        },
+        "class": {
+          "id": "77697265-CB2B-414C-96F3-11A8E6EC8D29",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "alpha": {
+            "type": "float",
+            "value": 0.5
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Replace Alpha"
+      },
+      "4": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 721,
+          "y": 472
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      },
+      "5": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 346,
+          "y": 472
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture In"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -5,
+        "y": 76,
+        "zoom": 1
+      },
+      "selection": [
+        "3"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 4,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "5": "Test Card"
+        },
+        "out": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 15 — Card-Based Composition Canvas</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1920px; height: 1080px; overflow: hidden;
+    background: #111114; color: #e0e0e0;
+    font-family: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
+    font-size: 12px;
+  }
+
+  /* ─── TOP BAR ─── */
+  .topbar {
+    height: 48px; background: #18181c;
+    display: flex; align-items: center;
+    padding: 0 16px; gap: 16px;
+    border-bottom: 1px solid #2a2a30;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; }
+  .logo-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: linear-gradient(135deg, #e8872a, #d45a1a);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 11px; color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .logo-text { font-size: 14px; font-weight: 700; color: #e0e0e0; letter-spacing: 0.5px; }
+
+  .bpm-section {
+    display: flex; align-items: center; gap: 8px;
+    margin-left: 24px;
+  }
+  .bpm-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .bpm-value {
+    font-size: 32px; font-weight: 700; color: #e8872a;
+    font-variant-numeric: tabular-nums; letter-spacing: -1px;
+    line-height: 1;
+  }
+  .bpm-buttons { display: flex; gap: 4px; margin-left: 4px; }
+  .bpm-btn {
+    width: 24px; height: 24px; border-radius: 4px;
+    background: #2a2a30; border: 1px solid #3a3a42;
+    color: #aaa; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600;
+  }
+  .tap-btn {
+    padding: 4px 14px; border-radius: 4px;
+    background: #2a2a30; border: 1px solid #3a3a42;
+    color: #ccc; font-size: 11px; font-weight: 600;
+    cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  .volume-meter {
+    width: 260px; height: 10px; background: #1e1e22;
+    border-radius: 5px; overflow: hidden; margin-left: auto;
+    position: relative;
+  }
+  .volume-fill {
+    height: 100%; width: 72%;
+    background: linear-gradient(90deg, #2ecc71, #5dde5d, #a8e063, #f1c40f);
+    border-radius: 5px;
+  }
+  .volume-peak {
+    position: absolute; top: 0; right: 24%; width: 2px; height: 100%;
+    background: #fff; opacity: 0.6;
+  }
+
+  .settings-icon {
+    width: 32px; height: 32px; border-radius: 6px;
+    background: #2a2a30; border: 1px solid #3a3a42;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; margin-left: 16px;
+  }
+  .settings-icon svg { width: 16px; height: 16px; fill: #888; }
+
+  /* ─── MAIN LAYOUT ─── */
+  .main {
+    display: flex; height: calc(1080px - 48px);
+  }
+
+  /* ─── LEFT PANEL ─── */
+  .left-panel {
+    width: 260px; background: #16161a;
+    border-right: 1px solid #2a2a30;
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .panel-header {
+    padding: 12px 14px 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    color: #888; text-transform: uppercase;
+    border-bottom: 1px solid #222228;
+  }
+
+  .media-tabs {
+    display: flex; gap: 2px; padding: 8px 10px;
+  }
+  .media-tab {
+    flex: 1; padding: 6px 4px; text-align: center;
+    background: #1e1e24; border-radius: 4px;
+    font-size: 10px; color: #777; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .media-tab.active {
+    background: #2a2a32; color: #e8872a;
+    border-color: #e8872a44;
+  }
+  .media-tab-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+
+  .media-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px; padding: 8px 10px;
+  }
+  .media-thumb {
+    aspect-ratio: 16/10; border-radius: 6px;
+    position: relative; overflow: hidden; cursor: pointer;
+    border: 1px solid #2a2a30;
+  }
+  .media-thumb-bg {
+    width: 100%; height: 100%;
+  }
+  .media-thumb:nth-child(1) .media-thumb-bg { background: linear-gradient(135deg, #1a3a5c, #2a1a4a); }
+  .media-thumb:nth-child(2) .media-thumb-bg { background: linear-gradient(135deg, #3a2a1a, #5a3a1a); }
+  .media-thumb:nth-child(3) .media-thumb-bg { background: linear-gradient(135deg, #1a4a3a, #0a2a2a); }
+  .media-thumb:nth-child(4) .media-thumb-bg { background: linear-gradient(135deg, #4a1a3a, #2a1a3a); }
+  .media-thumb-label {
+    position: absolute; bottom: 3px; left: 5px;
+    font-size: 9px; color: #aaa; background: #00000088;
+    padding: 1px 5px; border-radius: 3px;
+  }
+
+  .sub-header {
+    padding: 10px 14px 6px;
+    font-size: 9px; font-weight: 700; letter-spacing: 1.2px;
+    color: #666; text-transform: uppercase;
+  }
+
+  .source-cards {
+    display: flex; flex-direction: column;
+    gap: 5px; padding: 0 10px 8px;
+  }
+  .source-card {
+    background: #1c1c22; border-radius: 6px;
+    padding: 8px 10px; display: flex; align-items: center; gap: 8px;
+    border: 1px solid #2a2a30; cursor: pointer;
+  }
+  .source-card:hover { border-color: #3a3a44; }
+  .source-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .source-card-name { font-size: 11px; font-weight: 600; color: #ccc; flex-shrink: 0; min-width: 40px; }
+  .source-card-wave {
+    flex: 1; height: 22px; position: relative; overflow: hidden;
+  }
+  .wave-svg { width: 100%; height: 100%; }
+
+  .lfo-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 5px; padding: 0 10px 12px;
+  }
+  .lfo-card {
+    background: #1c1c22; border-radius: 6px;
+    padding: 6px 8px; border: 1px solid #2a2a30;
+    cursor: pointer; text-align: center;
+  }
+  .lfo-card:hover { border-color: #3a3a44; }
+  .lfo-label { font-size: 9px; color: #888; font-weight: 600; margin-bottom: 4px; }
+  .lfo-wave-container { height: 24px; position: relative; }
+  .lfo-wave-svg { width: 100%; height: 100%; }
+
+  /* ─── CENTER PANEL ─── */
+  .center-panel {
+    flex: 1; display: flex; flex-direction: column;
+    background: #111114;
+  }
+
+  .canvas-header {
+    padding: 12px 20px 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    color: #888; text-transform: uppercase;
+  }
+
+  .clip-cards-row {
+    display: flex; gap: 14px; padding: 0 20px;
+    height: 320px;
+  }
+  .clip-card {
+    flex: 1; background: #1a1a20; border-radius: 12px;
+    border: 1px solid #2a2a32; overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative; cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .clip-card:hover { border-color: #e8872a66; }
+  .clip-card.active { border-color: #e8872a; }
+
+  .clip-thumb {
+    flex: 1; position: relative; overflow: hidden;
+    min-height: 0;
+  }
+  .clip-thumb-bg { width: 100%; height: 100%; }
+  .clip-card:nth-child(1) .clip-thumb-bg {
+    background: radial-gradient(ellipse at 40% 40%, #3a2a6a, #1a0a3a 50%, #0a0a14 80%);
+  }
+  .clip-card:nth-child(2) .clip-thumb-bg {
+    background: radial-gradient(circle at 50% 50%, #4a3a2a, #2a1a0a 40%, #0e0c08 75%);
+  }
+  .clip-card:nth-child(3) .clip-thumb-bg {
+    background: radial-gradient(ellipse at 60% 30%, #2a3a5a, #1a2a4a 40%, #0a0a1a 80%);
+  }
+  .clip-card:nth-child(4) .clip-thumb-bg {
+    background: radial-gradient(circle at 50% 60%, #5a1a3a, #3a0a2a 40%, #140a10 75%);
+  }
+
+  /* Stars / particles */
+  .clip-card:nth-child(1) .clip-thumb::after,
+  .clip-card:nth-child(2) .clip-thumb::after {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+      radial-gradient(1px 1px at 60% 15%, #fff6, transparent),
+      radial-gradient(1px 1px at 80% 50%, #fff4, transparent),
+      radial-gradient(2px 2px at 35% 70%, #fff3, transparent),
+      radial-gradient(1px 1px at 50% 85%, #fff5, transparent),
+      radial-gradient(1px 1px at 15% 55%, #fff4, transparent),
+      radial-gradient(1px 1px at 70% 40%, #fff3, transparent),
+      radial-gradient(1px 1px at 90% 75%, #fff4, transparent),
+      radial-gradient(2px 2px at 45% 20%, #fff6, transparent),
+      radial-gradient(1px 1px at 25% 90%, #fff3, transparent);
+  }
+
+  .play-overlay {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #00000066; border: 2px solid #ffffff66;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .clip-card:hover .play-overlay { opacity: 1; }
+  .play-tri {
+    width: 0; height: 0;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 16px solid #ffffffcc;
+    margin-left: 3px;
+  }
+
+  .clip-badges {
+    position: absolute; top: 10px; left: 10px;
+    display: flex; gap: 5px;
+  }
+  .badge {
+    padding: 3px 8px; border-radius: 4px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-green { background: #2ecc7133; color: #5dde5d; border: 1px solid #2ecc7155; }
+  .badge-teal { background: #1abc9c33; color: #48d1b5; border: 1px solid #1abc9c55; }
+  .badge-orange { background: #e8872a33; color: #e8a04a; border: 1px solid #e8872a55; }
+  .badge-blue { background: #3498db33; color: #5dade2; border: 1px solid #3498db55; }
+
+  .clip-footer {
+    padding: 10px 12px;
+    background: #16161c;
+    border-top: 1px solid #2a2a30;
+  }
+  .clip-footer-label {
+    font-size: 10px; color: #e8872a; font-weight: 600;
+    letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+  .clip-footer-drag {
+    font-size: 9px; color: #555; font-style: italic;
+    border: 1px dashed #333; border-radius: 4px;
+    padding: 6px; text-align: center;
+  }
+
+  /* ─── AUDIO ROUTING DIAGRAM ─── */
+  .routing-section {
+    position: relative;
+    padding: 16px 20px;
+    height: 110px;
+  }
+  .routing-canvas {
+    width: 100%; height: 100%;
+    position: relative;
+  }
+  .routing-svg {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
+
+  .routing-source-label {
+    position: absolute; left: 20px; top: 30px;
+    background: #e8872a22; border: 1px solid #e8872a55;
+    border-radius: 6px; padding: 5px 12px;
+    font-size: 10px; font-weight: 700; color: #e8a04a;
+  }
+  .routing-source-label .dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: #e8872a;
+    margin-right: 6px; vertical-align: middle;
+  }
+
+  /* ─── SCENE TRIGGERS ─── */
+  .scene-trigger-section {
+    padding: 0 20px 12px;
+  }
+  .scene-trigger-label {
+    font-size: 9px; font-weight: 700; color: #666;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    margin-bottom: 8px;
+  }
+  .scene-buttons {
+    display: flex; gap: 6px;
+  }
+  .scene-btn {
+    flex: 1; padding: 8px 4px; text-align: center;
+    background: #1c1c22; border: 1px solid #2a2a30;
+    border-radius: 6px; font-size: 10px; font-weight: 600;
+    color: #999; cursor: pointer; transition: all 0.15s;
+  }
+  .scene-btn:hover { border-color: #e8872a66; color: #ccc; }
+  .scene-btn.active {
+    background: #e8872a22; border-color: #e8872a;
+    color: #e8a04a;
+  }
+
+  /* ─── BOTTOM PERFORMANCE BAR ─── */
+  .performance-bar {
+    background: #16161a;
+    border-top: 1px solid #2a2a30;
+    padding: 10px 20px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .perf-label {
+    font-size: 9px; font-weight: 700; color: #666;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    writing-mode: vertical-lr; transform: rotate(180deg);
+    margin-right: 4px;
+  }
+
+  .macro-knobs {
+    display: flex; gap: 20px; flex: 1;
+    justify-content: center;
+  }
+  .macro-knob-group {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .macro-knob {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: conic-gradient(
+      from 225deg,
+      #e8872a 0deg,
+      #e8872a calc(var(--knob-val, 0.5) * 270deg),
+      #2a2a30 calc(var(--knob-val, 0.5) * 270deg),
+      #2a2a30 270deg,
+      transparent 270deg
+    );
+    position: relative; cursor: pointer;
+  }
+  .macro-knob::after {
+    content: ''; position: absolute;
+    inset: 5px; border-radius: 50%;
+    background: #1e1e24;
+  }
+  .macro-knob-label { font-size: 9px; color: #888; font-weight: 600; }
+
+  .perf-btn {
+    padding: 10px 22px; border-radius: 6px;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    text-transform: uppercase; letter-spacing: 1px;
+    border: 1px solid;
+  }
+  .btn-blackout {
+    background: #e74c3c22; border-color: #e74c3c66; color: #e74c3c;
+  }
+  .btn-freeze {
+    background: #3498db22; border-color: #3498db66; color: #5dade2;
+  }
+
+  /* ─── RIGHT INSPECTOR ─── */
+  .right-panel {
+    width: 280px; background: #16161a;
+    border-left: 1px solid #2a2a30;
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .inspector-header {
+    padding: 12px 14px 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    color: #888; text-transform: uppercase;
+    border-bottom: 1px solid #222228;
+  }
+  .inspector-preview {
+    margin: 10px 12px; border-radius: 8px; overflow: hidden;
+    aspect-ratio: 16/10; position: relative;
+    background: radial-gradient(ellipse at 40% 40%, #3a2a6a, #1a0a3a 50%, #0a0a14 80%);
+    border: 1px solid #2a2a30;
+  }
+  .inspector-preview::after {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+      radial-gradient(1px 1px at 60% 15%, #fff6, transparent),
+      radial-gradient(1px 1px at 80% 50%, #fff4, transparent),
+      radial-gradient(1px 1px at 35% 70%, #fff3, transparent);
+  }
+
+  .inspector-effect-name {
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .effect-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #2ecc71;
+  }
+  .effect-name {
+    font-size: 13px; font-weight: 700; color: #e0e0e0;
+  }
+
+  .inspector-section {
+    padding: 8px 14px;
+  }
+  .param-row {
+    margin-bottom: 12px;
+  }
+  .param-label {
+    font-size: 10px; color: #888; font-weight: 600;
+    margin-bottom: 5px; display: flex; justify-content: space-between;
+  }
+  .param-value { color: #aaa; }
+  .param-slider-track {
+    width: 100%; height: 8px; border-radius: 4px;
+    position: relative; cursor: pointer;
+  }
+  .param-slider-track.hue-track {
+    background: linear-gradient(90deg,
+      #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%,
+      #00f 67%, #f0f 83%, #f00 100%);
+  }
+  .param-slider-track.sat-track {
+    background: linear-gradient(90deg, #666, #2ecc71);
+  }
+  .param-slider-track.bright-track {
+    background: linear-gradient(90deg, #222, #fff);
+  }
+  .param-slider-track.amount-track {
+    background: #2a2a30;
+  }
+  .param-slider-fill {
+    height: 100%; border-radius: 4px;
+    background: #e8872a;
+    position: absolute; top: 0; left: 0;
+  }
+  .param-slider-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; border: 2px solid #e8872a;
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    box-shadow: 0 1px 4px #0008;
+  }
+
+  .mod-source {
+    background: #1c1c22; border: 1px solid #2a2a30;
+    border-radius: 6px; padding: 8px 10px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .mod-source-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #e8872a; flex-shrink: 0;
+  }
+  .mod-source-label {
+    font-size: 10px; color: #e8a04a; font-weight: 600;
+  }
+  .mod-amount-container { flex: 1; }
+  .mod-amount-label {
+    font-size: 9px; color: #666; margin-bottom: 3px;
+  }
+  .mod-amount-track {
+    height: 4px; background: #2a2a30; border-radius: 2px;
+    position: relative;
+  }
+  .mod-amount-fill {
+    height: 100%; border-radius: 2px;
+    background: #e8872a;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">DNA</div>
+    <div class="logo-text">Audio-DNA</div>
+  </div>
+  <div class="bpm-section">
+    <div>
+      <div class="bpm-label">BPM</div>
+      <div class="bpm-value">128.00</div>
+    </div>
+    <div class="bpm-buttons">
+      <div class="bpm-btn">-</div>
+      <div class="bpm-btn">+</div>
+    </div>
+    <div class="tap-btn">TAP</div>
+  </div>
+  <div class="volume-meter">
+    <div class="volume-fill"></div>
+    <div class="volume-peak"></div>
+  </div>
+  <div class="settings-icon">
+    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1112 8.4a3.6 3.6 0 010 7.2z"/></svg>
+  </div>
+</div>
+
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div class="main">
+
+  <!-- ─── LEFT: LIBRARY & SOURCES ─── -->
+  <div class="left-panel">
+    <div class="panel-header">Library &amp; Sources</div>
+
+    <div class="media-tabs">
+      <div class="media-tab active">
+        <span class="media-tab-icon">&#127909;</span>Video
+      </div>
+      <div class="media-tab">
+        <span class="media-tab-icon">&#128247;</span>Image
+      </div>
+      <div class="media-tab">
+        <span class="media-tab-icon">&#127925;</span>Audio
+      </div>
+    </div>
+
+    <div class="media-grid">
+      <div class="media-thumb">
+        <div class="media-thumb-bg"></div>
+        <div class="media-thumb-label">Video</div>
+      </div>
+      <div class="media-thumb">
+        <div class="media-thumb-bg"></div>
+        <div class="media-thumb-label">Image</div>
+      </div>
+      <div class="media-thumb">
+        <div class="media-thumb-bg"></div>
+        <div class="media-thumb-label">Video</div>
+      </div>
+      <div class="media-thumb">
+        <div class="media-thumb-bg"></div>
+        <div class="media-thumb-label">Images</div>
+      </div>
+    </div>
+
+    <div class="sub-header">Avail. Sets</div>
+    <div style="padding: 0 10px 8px;">
+      <div style="background:#1c1c22; border:1px solid #2a2a30; border-radius:6px; padding:8px; font-size:10px; color:#555; text-align:center;">No sets loaded</div>
+    </div>
+
+    <div class="sub-header">Audio Sources</div>
+    <div class="source-cards">
+      <!-- Kick -->
+      <div class="source-card">
+        <div class="source-dot" style="background:#e8872a;"></div>
+        <div class="source-card-name">Kick</div>
+        <div class="source-card-wave">
+          <svg class="wave-svg" viewBox="0 0 120 22" preserveAspectRatio="none">
+            <path d="M0,11 Q4,11 6,2 Q8,-2 10,11 Q14,18 20,11 Q26,8 32,11 Q38,14 44,11 Q50,9 56,11 Q62,13 68,11 Q74,10 80,11 Q86,12 92,11 Q98,10 104,11 Q110,12 116,11 L120,11"
+              fill="none" stroke="#e8872a" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+      <!-- Snare -->
+      <div class="source-card">
+        <div class="source-dot" style="background:#2ecc71;"></div>
+        <div class="source-card-name">Snare</div>
+        <div class="source-card-wave">
+          <svg class="wave-svg" viewBox="0 0 120 22" preserveAspectRatio="none">
+            <path d="M0,11 L20,11 Q22,11 24,3 Q26,-1 28,11 Q30,19 32,11 L50,11 Q52,11 54,4 Q56,0 58,11 Q60,18 62,11 L80,11 Q82,11 84,5 Q86,1 88,11 Q90,17 92,11 L120,11"
+              fill="none" stroke="#2ecc71" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+      <!-- Bass -->
+      <div class="source-card">
+        <div class="source-dot" style="background:#3498db;"></div>
+        <div class="source-card-name">Bass</div>
+        <div class="source-card-wave">
+          <svg class="wave-svg" viewBox="0 0 120 22" preserveAspectRatio="none">
+            <path d="M0,11 Q10,4 20,11 Q30,18 40,11 Q50,4 60,11 Q70,18 80,11 Q90,4 100,11 Q110,18 120,11"
+              fill="none" stroke="#3498db" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-header">LFO Sources</div>
+    <div class="lfo-grid">
+      <!-- LFO 1 -->
+      <div class="lfo-card">
+        <div class="lfo-label">LFO 1</div>
+        <div class="lfo-wave-container">
+          <svg class="lfo-wave-svg" viewBox="0 0 100 24" preserveAspectRatio="none">
+            <path d="M0,12 Q12.5,0 25,12 Q37.5,24 50,12 Q62.5,0 75,12 Q87.5,24 100,12"
+              fill="none" stroke="#9b59b6" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+      <!-- LFO 2 -->
+      <div class="lfo-card">
+        <div class="lfo-label">LFO 2</div>
+        <div class="lfo-wave-container">
+          <svg class="lfo-wave-svg" viewBox="0 0 100 24" preserveAspectRatio="none">
+            <path d="M0,20 L10,4 L10,20 L20,20 L30,4 L30,20 L40,20 L50,4 L50,20 L60,20 L70,4 L70,20 L80,20 L90,4 L90,20 L100,20"
+              fill="none" stroke="#9b59b6" stroke-width="1.5"/>
+            <polygon points="8,4 12,4 10,8" fill="#9b59b6"/>
+            <polygon points="28,4 32,4 30,8" fill="#9b59b6"/>
+            <polygon points="48,4 52,4 50,8" fill="#9b59b6"/>
+          </svg>
+        </div>
+      </div>
+      <!-- LFO 3 -->
+      <div class="lfo-card">
+        <div class="lfo-label">LFO 3</div>
+        <div class="lfo-wave-container">
+          <svg class="lfo-wave-svg" viewBox="0 0 100 24" preserveAspectRatio="none">
+            <path d="M0,20 L16.6,4 L33.3,20 L50,4 L66.6,20 L83.3,4 L100,20"
+              fill="none" stroke="#e67e22" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+      <!-- LFO 4 -->
+      <div class="lfo-card">
+        <div class="lfo-label">LFO 4</div>
+        <div class="lfo-wave-container">
+          <svg class="lfo-wave-svg" viewBox="0 0 100 24" preserveAspectRatio="none">
+            <path d="M0,20 L0,4 L25,4 L25,20 L25,20 L50,20 L50,4 L75,4 L75,20 L100,20"
+              fill="none" stroke="#1abc9c" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+      <!-- LFO 5 -->
+      <div class="lfo-card">
+        <div class="lfo-label">LFO 5</div>
+        <div class="lfo-wave-container">
+          <svg class="lfo-wave-svg" viewBox="0 0 100 24" preserveAspectRatio="none">
+            <path d="M0,20 L25,4 L50,20 L75,4 L100,20"
+              fill="none" stroke="#e74c3c" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+      <!-- LFO 6 -->
+      <div class="lfo-card">
+        <div class="lfo-label">LFO 6</div>
+        <div class="lfo-wave-container">
+          <svg class="lfo-wave-svg" viewBox="0 0 100 24" preserveAspectRatio="none">
+            <path d="M0,4 L20,4 Q25,4 25,12 L25,12 Q25,20 30,20 L50,20 L50,4 L70,4 Q75,4 75,12 Q75,20 80,20 L100,20"
+              fill="none" stroke="#f1c40f" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CENTER: COMPOSITION CANVAS ─── -->
+  <div class="center-panel">
+    <div class="canvas-header">Composition Canvas</div>
+
+    <!-- Clip Cards -->
+    <div class="clip-cards-row">
+      <!-- Clip 1: Galaxy -->
+      <div class="clip-card active">
+        <div class="clip-thumb">
+          <div class="clip-thumb-bg"></div>
+          <div class="clip-badges">
+            <div class="badge badge-green">Colorize</div>
+            <div class="badge badge-orange">Shared</div>
+          </div>
+          <div class="play-overlay"><div class="play-tri"></div></div>
+        </div>
+        <div class="clip-footer">
+          <div class="clip-footer-label">Audio-DNA</div>
+          <div class="clip-footer-drag">Drag Audio Source Here</div>
+        </div>
+      </div>
+
+      <!-- Clip 2: Particles -->
+      <div class="clip-card">
+        <div class="clip-thumb">
+          <div class="clip-thumb-bg"></div>
+          <div class="clip-badges">
+            <div class="badge badge-teal">Pixelate</div>
+          </div>
+          <div class="play-overlay"><div class="play-tri"></div></div>
+        </div>
+        <div class="clip-footer">
+          <div class="clip-footer-label">Audio-DNA</div>
+          <div class="clip-footer-drag">Drag Audio Source Here</div>
+        </div>
+      </div>
+
+      <!-- Clip 3: Clouds -->
+      <div class="clip-card">
+        <div class="clip-thumb">
+          <div class="clip-thumb-bg"></div>
+          <div class="clip-badges">
+            <div class="badge badge-green">Colorize</div>
+            <div class="badge badge-blue">Shared</div>
+          </div>
+          <div class="play-overlay"><div class="play-tri"></div></div>
+        </div>
+        <div class="clip-footer">
+          <div class="clip-footer-label">Audio-DNA</div>
+          <div class="clip-footer-drag">Drag Audio Source Here</div>
+        </div>
+      </div>
+
+      <!-- Clip 4: Abstract -->
+      <div class="clip-card">
+        <div class="clip-thumb">
+          <div class="clip-thumb-bg"></div>
+          <div class="clip-badges">
+            <div class="badge badge-teal">Pixelate</div>
+            <div class="badge badge-orange">Shared</div>
+          </div>
+          <div class="play-overlay"><div class="play-tri"></div></div>
+        </div>
+        <div class="clip-footer">
+          <div class="clip-footer-label">Audio-DNA</div>
+          <div class="clip-footer-drag">Drag Audio Source Here</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Routing Diagram -->
+    <div class="routing-section">
+      <div class="routing-source-label">
+        <span class="dot"></span>Kick
+      </div>
+      <svg class="routing-svg" viewBox="0 0 1380 90" preserveAspectRatio="none">
+        <!-- Connection lines from "Kick" source to each clip -->
+        <defs>
+          <linearGradient id="routeGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#e8872a" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#9b59b6" stop-opacity="0.6"/>
+          </linearGradient>
+        </defs>
+        <!-- Line to clip 1 -->
+        <path d="M100,40 C200,40 180,20 345,20" fill="none" stroke="url(#routeGrad)" stroke-width="2" stroke-dasharray="4,3" opacity="0.7"/>
+        <!-- Line to clip 2 -->
+        <path d="M100,40 C250,40 400,25 690,25" fill="none" stroke="url(#routeGrad)" stroke-width="2" stroke-dasharray="4,3" opacity="0.7"/>
+        <!-- Line to clip 3 -->
+        <path d="M100,40 C300,40 600,30 1035,30" fill="none" stroke="url(#routeGrad)" stroke-width="2" stroke-dasharray="4,3" opacity="0.7"/>
+        <!-- Line to clip 4 -->
+        <path d="M100,40 C400,45 800,35 1380,35" fill="none" stroke="url(#routeGrad)" stroke-width="2" stroke-dasharray="4,3" opacity="0.5"/>
+
+        <!-- Connection dots at each clip -->
+        <circle cx="345" cy="20" r="4" fill="#e8872a"/>
+        <circle cx="690" cy="25" r="4" fill="#9b59b6"/>
+        <circle cx="1035" cy="30" r="4" fill="#9b59b6"/>
+        <circle cx="1380" cy="35" r="3" fill="#9b59b6" opacity="0.5"/>
+
+        <!-- Source dot -->
+        <circle cx="100" cy="40" r="5" fill="#e8872a"/>
+      </svg>
+    </div>
+
+    <!-- Scene Triggers -->
+    <div class="scene-trigger-section">
+      <div class="scene-trigger-label">Scene Trigger</div>
+      <div class="scene-buttons">
+        <div class="scene-btn">Intro</div>
+        <div class="scene-btn active">Verse</div>
+        <div class="scene-btn">Chorus</div>
+        <div class="scene-btn">Street 2</div>
+        <div class="scene-btn">Life 1</div>
+        <div class="scene-btn">Trap</div>
+        <div class="scene-btn">Perm</div>
+        <div class="scene-btn">Song</div>
+      </div>
+    </div>
+
+    <!-- Performance Bar -->
+    <div class="performance-bar" style="margin-top: auto;">
+      <div class="perf-label">Performance</div>
+      <div class="macro-knobs">
+        <div class="macro-knob-group">
+          <div class="macro-knob" style="--knob-val: 0.35;"></div>
+          <div class="macro-knob-label">Macro 1</div>
+        </div>
+        <div class="macro-knob-group">
+          <div class="macro-knob" style="--knob-val: 0.60;"></div>
+          <div class="macro-knob-label">Macro 2</div>
+        </div>
+        <div class="macro-knob-group">
+          <div class="macro-knob" style="--knob-val: 0.20;"></div>
+          <div class="macro-knob-label">Macro 3</div>
+        </div>
+        <div class="macro-knob-group">
+          <div class="macro-knob" style="--knob-val: 0.75;"></div>
+          <div class="macro-knob-label">Macro 4</div>
+        </div>
+        <div class="macro-knob-group">
+          <div class="macro-knob" style="--knob-val: 0.50;"></div>
+          <div class="macro-knob-label">Macro 5</div>
+        </div>
+      </div>
+      <div class="perf-btn btn-blackout">Blackout</div>
+      <div class="perf-btn btn-freeze">Freeze</div>
+    </div>
+  </div>
+
+  <!-- ─── RIGHT: INSPECTOR ─── -->
+  <div class="right-panel">
+    <div class="inspector-header">Inspector</div>
+
+    <div class="inspector-preview"></div>
+
+    <div class="inspector-effect-name">
+      <div class="effect-dot"></div>
+      <div class="effect-name">Colorize</div>
+    </div>
+
+    <div class="inspector-section">
+      <!-- Hue -->
+      <div class="param-row">
+        <div class="param-label">
+          <span>Hue</span>
+          <span class="param-value">182&deg;</span>
+        </div>
+        <div class="param-slider-track hue-track" style="position:relative;">
+          <div class="param-slider-thumb" style="left: 50%;"></div>
+        </div>
+      </div>
+
+      <!-- Saturation -->
+      <div class="param-row">
+        <div class="param-label">
+          <span>Saturation</span>
+          <span class="param-value">72%</span>
+        </div>
+        <div class="param-slider-track sat-track" style="position:relative;">
+          <div class="param-slider-thumb" style="left: 72%;"></div>
+        </div>
+      </div>
+
+      <!-- Modulation Source: Kick for Hue -->
+      <div class="mod-source">
+        <div class="mod-source-dot"></div>
+        <div>
+          <div class="mod-source-label">Modulation Source: Kick</div>
+        </div>
+        <div class="mod-amount-container">
+          <div class="mod-amount-label">Amount</div>
+          <div class="mod-amount-track">
+            <div class="mod-amount-fill" style="width: 65%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brightness -->
+      <div class="param-row">
+        <div class="param-label">
+          <span>Brightness</span>
+          <span class="param-value">85%</span>
+        </div>
+        <div class="param-slider-track bright-track" style="position:relative;">
+          <div class="param-slider-thumb" style="left: 85%;"></div>
+        </div>
+      </div>
+
+      <!-- Modulation Source: Kick for Brightness -->
+      <div class="mod-source">
+        <div class="mod-source-dot"></div>
+        <div>
+          <div class="mod-source-label">Modulation Source: Kick</div>
+        </div>
+        <div class="mod-amount-container">
+          <div class="mod-amount-label">Amount</div>
+          <div class="mod-amount-track">
+            <div class="mod-amount-fill" style="width: 40%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional controls -->
+      <div style="margin-top: 16px; border-top: 1px solid #222228; padding-top: 12px;">
+        <div class="param-row">
+          <div class="param-label">
+            <span>Opacity</span>
+            <span class="param-value">100%</span>
+          </div>
+          <div class="param-slider-track amount-track" style="position:relative;">
+            <div class="param-slider-fill" style="width: 100%; background: #e8872a44; border-radius: 4px;"></div>
+            <div class="param-slider-thumb" style="left: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span>Blend Mode</span>
+            <span class="param-value" style="color: #e8872a;">Normal</span>
+          </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label">
+            <span>Speed</span>
+            <span class="param-value">1.0x</span>
+          </div>
+          <div class="param-slider-track amount-track" style="position:relative;">
+            <div class="param-slider-fill" style="width: 50%; background: #e8872a44; border-radius: 4px;"></div>
+            <div class="param-slider-thumb" style="left: 50%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

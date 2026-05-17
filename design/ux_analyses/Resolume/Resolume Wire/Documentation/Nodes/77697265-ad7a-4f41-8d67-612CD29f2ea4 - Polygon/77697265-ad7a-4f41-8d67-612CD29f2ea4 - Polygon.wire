@@ -1,0 +1,767 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					33,
+					"pattern"
+				],
+				"to": [
+					34,
+					"points"
+				]
+			},
+			{
+				"from": [
+					34,
+					"output0"
+				],
+				"to": [
+					35,
+					"input"
+				]
+			},
+			{
+				"from": [
+					38,
+					"output"
+				],
+				"to": [
+					37,
+					"input"
+				]
+			},
+			{
+				"from": [
+					37,
+					"output"
+				],
+				"to": [
+					39,
+					"points"
+				]
+			},
+			{
+				"from": [
+					39,
+					"output0"
+				],
+				"to": [
+					40,
+					"input"
+				]
+			}
+		],
+		"inputOrder": [
+			38
+		],
+		"meta": {
+			"author": "",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"description": "",
+			"displayName": "77697265-ad7a-4f41-8d67-612CD29f2ea4 - Polygon",
+			"identifier": "8149b56e-0747-457d-b652-14d4ee8921b1",
+			"licenseName": "",
+			"mail": "",
+			"originalTarget": {
+				"branch": "unknown",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 11,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "master",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 16,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 46,
+		"nodes": {
+			"28": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "POLYGON\n\nThe Polygon node converts a Float 2 collection into a polygon shape.\n\nNote that to actually see anything this collection needs to have at least 3 values.\n\nThe first element of the Float 2 sets the X-position of the points and the second element the Y-position."
+					}
+				},
+				"bounds": {
+					"height": 190.3826751708984375,
+					"width": 613,
+					"x": 614.62255859375,
+					"y": 59.96525955200195312
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"32": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 1: CIRCLE PATTERN TO POLYGON\n\nIn this example we've set the size of the Circle Pattern to 3.\nThis gives us a collection of 3 float2 values.\nThese are used to construct the Polygon."
+					}
+				},
+				"bounds": {
+					"height": 312.02471923828125,
+					"width": 771.6044921875,
+					"x": 614.26068115234375,
+					"y": 287.099212646484375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"33": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"points": {
+						"type": "integer",
+						"value": 3
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 691.7857666015625,
+					"y": 451.0330810546875
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73E0D30337C7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"angle": {
+						"type": "float",
+						"value": 0.5
+					},
+					"radius": {
+						"type": "float",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"flow"
+				],
+				"name": "Circle Pattern",
+				"thumbnail_visible": true
+			},
+			"34": {
+				"attributes": {
+					"points-dimensions": {
+						"type": "integer",
+						"value": 3
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 923.37274169921875,
+					"y": 451.0330810546875
+				},
+				"class": {
+					"id": "77697265-ad7a-4f41-8d67-612CD29f2ea4",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"points": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"points-dimensions"
+				],
+				"name": "Polygon",
+				"thumbnail_visible": true
+			},
+			"35": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1162.521728515625,
+					"y": 451.033111572265625
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"36": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 2: MODERN ART\n\nIn this example we're letting out our inner-artist by generating 12 random points and constructing a polygon out of it."
+					}
+				},
+				"bounds": {
+					"height": 289.641510009765625,
+					"width": 867.587158203125,
+					"x": 615.49560546875,
+					"y": 638.72381591796875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"37": {
+				"attributes": {
+					"distribution": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 12
+					},
+					"type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 813.6480712890625,
+					"y": 774.69061279296875
+				},
+				"class": {
+					"id": "77697265-5581-4721-8519-0b8fa3d68b4d",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"argument1": {
+						"type": "float2",
+						"value": [
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							],
+							[
+								-1,
+								-1
+							]
+						]
+					},
+					"argument2": {
+						"type": "float2",
+						"value": [
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							]
+						]
+					},
+					"input": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"precision": {
+						"type": "float2",
+						"value": [
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							]
+						]
+					},
+					"seed": {
+						"type": "integer",
+						"value": [
+							585986432,
+							1580407424,
+							595714496,
+							1084378624,
+							323230624,
+							1146099712,
+							103538432,
+							1317956992,
+							1193628032,
+							1868872960,
+							1418924032,
+							1662194432
+						]
+					}
+				},
+				"hidden": [
+					"distribution",
+					"seed",
+					"precision",
+					"type"
+				],
+				"name": "Random",
+				"thumbnail_visible": true
+			},
+			"38": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "event"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 663.6480712890625,
+					"y": 774.69061279296875
+				},
+				"class": {
+					"id": "77697265-e61f-42c0-862a-0dca04e14569",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"flow"
+				],
+				"name": "Input",
+				"thumbnail_visible": true
+			},
+			"39": {
+				"attributes": {
+					"points-dimensions": {
+						"type": "integer",
+						"value": 12
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 1046.81298828125,
+					"y": 774.69061279296875
+				},
+				"class": {
+					"id": "77697265-ad7a-4f41-8d67-612CD29f2ea4",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"points": {
+						"type": "float2",
+						"value": [
+							[
+								-0.44999998807907104,
+								0.84999996423721313
+							],
+							[
+								0.53999996185302734,
+								0.50999999046325684
+							],
+							[
+								0.98999994993209839,
+								-0.91999995708465576
+							],
+							[
+								0.71999996900558472,
+								0.70999997854232788
+							],
+							[
+								-0.14000000059604645,
+								-0.78999996185302734
+							],
+							[
+								0.68000000715255737,
+								-0.40999999642372131
+							],
+							[
+								-0.09999999403953552,
+								-0.62000000476837158
+							],
+							[
+								0.03999999910593033,
+								0.17000000178813934
+							],
+							[
+								-0.47999998927116394,
+								0.55000001192092896
+							],
+							[
+								-0.29999998211860657,
+								-0.78999996185302734
+							],
+							[
+								0.08999999612569809,
+								0.88999998569488525
+							],
+							[
+								0.69999998807907104,
+								-0.76999998092651367
+							]
+						]
+					}
+				},
+				"hidden": [
+					"points-dimensions"
+				],
+				"name": "Polygon",
+				"thumbnail_visible": true
+			},
+			"40": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1276.408935546875,
+					"y": 774.6905517578125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": 512.8101806640625,
+				"y": -76.041168212890625,
+				"zoom": 0.86835730075836182
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": [
+					null,
+					null
+				]
+			}
+		},
+		"deviceConnections": {
+			"input": {}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null,
+					"Syphon": null
+				}
+			}
+		}
+	}
+}

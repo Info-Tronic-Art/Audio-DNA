@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VJ19 Alt 03 — Scene Columns (Orange/Amber)</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; color:#e0e0e0; font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; width:1920px; height:1080px; overflow:hidden; }
+
+.menu-bar { height:24px; background:#1a1a1a; display:flex; align-items:center; padding:0 12px; border-bottom:1px solid #333; }
+.menu-bar span { margin-right:16px; font-size:11px; color:#aaa; cursor:pointer; }
+.menu-bar span:hover { color:#ff9900; }
+
+.top-bar { height:40px; background:#1e1e1e; display:flex; align-items:center; padding:0 12px; border-bottom:1px solid #333; gap:16px; }
+.logo { font-weight:700; font-size:14px; color:#ffaa00; letter-spacing:1px; }
+.bpm-box { background:#2a2a2a; border:1px solid #ffaa00; padding:4px 12px; display:flex; align-items:center; gap:8px; }
+.bpm-val { font-size:18px; font-weight:700; color:#ffaa00; }
+.bpm-sub { font-size:10px; color:#888; }
+.beat-dots { display:flex; gap:4px; }
+.beat-dot { width:8px; height:8px; background:#333; border:1px solid #555; }
+.beat-dot.on { background:#ffaa00; border-color:#ffaa00; }
+.btn { background:#2a2a2a; border:1px solid #444; color:#e0e0e0; padding:4px 10px; cursor:pointer; font-size:11px; }
+.btn.active { background:#ffaa00; color:#111; border-color:#ffaa00; }
+.spacer { flex:1; }
+.info { font-size:10px; color:#777; }
+
+.signal-bar { height:28px; background:#161616; display:flex; align-items:center; padding:0 8px; border-bottom:1px solid #2a2a2a; gap:2px; }
+.sig-m { flex:1; height:16px; background:#1a1a1a; border:1px solid #333; position:relative; overflow:hidden; }
+.sig-m .fill { position:absolute; left:0; top:0; height:100%; }
+.sig-m .lbl { position:absolute; left:4px; top:1px; font-size:9px; color:#999; z-index:1; }
+
+/* 4-COLUMN LAYOUT */
+.main { display:flex; height:calc(1080px - 24px - 40px - 28px - 80px - 24px); }
+
+/* COL 1: Signal Meters */
+.col-signals { width:60px; background:#161616; border-right:1px solid #333; display:flex; flex-direction:column; padding:4px 2px; gap:2px; }
+.vm { flex:1; background:#1a1a1a; border:1px solid #2a2a2a; position:relative; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; min-height:0; }
+.vm .vf { width:80%; }
+.vm .vl { position:absolute; top:2px; font-size:7px; color:#777; writing-mode:vertical-lr; }
+
+/* COL 2: Browser */
+.col-browser { width:180px; background:#161616; border-right:1px solid #333; display:flex; flex-direction:column; }
+.br-tabs { height:24px; display:flex; background:#1a1a1a; border-bottom:1px solid #333; }
+.br-tab { flex:1; display:flex; align-items:center; justify-content:center; font-size:9px; color:#888; cursor:pointer; border-bottom:2px solid transparent; }
+.br-tab.active { color:#ffaa00; border-bottom-color:#ffaa00; }
+.br-search { height:24px; background:#222; border-bottom:1px solid #333; display:flex; align-items:center; padding:0 6px; }
+.br-search input { background:transparent; border:none; color:#ccc; font-size:10px; width:100%; outline:none; }
+.br-list { flex:1; overflow-y:auto; padding:4px; }
+.br-cat { font-size:9px; color:#ffaa00; padding:4px 6px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.br-item { padding:3px 6px 3px 14px; font-size:10px; color:#ccc; cursor:pointer; }
+.br-item:hover { background:#222; }
+.br-item.sel { background:#2a2a2a; color:#ffaa00; border-left:2px solid #ffaa00; }
+
+/* COL 3: Scene Grid */
+.col-grid { flex:1; display:flex; flex-direction:column; }
+.deck-tabs { height:28px; background:#1a1a1a; display:flex; align-items:center; padding:0 8px; gap:4px; border-bottom:1px solid #333; }
+.deck-tab { padding:4px 14px; background:#222; border:1px solid #333; cursor:pointer; font-size:11px; }
+.deck-tab.active { background:#ffaa00; color:#111; border-color:#ffaa00; font-weight:600; }
+.scene-hdrs { height:22px; background:#1a1a1a; display:flex; padding:0 4px 0 44px; gap:2px; border-bottom:1px solid #2a2a2a; }
+.sh { flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; color:#888; }
+.sh.active { color:#ffaa00; border-bottom:2px solid #ffaa00; }
+.grid { flex:1; display:grid; grid-template-columns:40px repeat(8,1fr); grid-template-rows:repeat(6,1fr); gap:2px; padding:4px; }
+.ll { background:#1a1a1a; display:flex; align-items:center; justify-content:center; font-size:9px; color:#888; border:1px solid #2a2a2a; writing-mode:vertical-lr; }
+.ll.on { color:#ffaa00; border-color:#ffaa00; }
+.gc { background:#1e1e1e; border:1px solid #333; position:relative; cursor:pointer; overflow:hidden; }
+.gc:hover { border-color:#ffaa00; }
+.gc.active { border-color:#ffaa00; box-shadow:0 0 6px rgba(255,170,0,0.3); }
+.gc .bg { position:absolute; inset:0; }
+.gc .nm { position:absolute; bottom:2px; left:3px; font-size:8px; color:#ccc; text-shadow:0 1px 2px #000; }
+
+/* COL 4: Inspector with Signals Tab */
+.col-insp { width:300px; background:#1a1a1a; border-left:1px solid #333; display:flex; flex-direction:column; }
+.insp-tabs { height:28px; display:flex; background:#161616; border-bottom:1px solid #333; }
+.it { flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; color:#888; cursor:pointer; border-bottom:2px solid transparent; }
+.it.active { color:#ffaa00; border-bottom-color:#ffaa00; }
+.insp-body { flex:1; overflow-y:auto; padding:8px; }
+.sec-title { font-size:10px; color:#ffaa00; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; border-bottom:1px solid #333; padding-bottom:4px; }
+.pr { display:flex; align-items:center; margin-bottom:4px; }
+.pl { width:85px; font-size:10px; color:#aaa; }
+.ps { flex:1; height:4px; background:#333; }
+.ps .t { height:100%; background:#ffaa00; }
+.pv { width:34px; text-align:right; font-size:10px; color:#ccc; }
+.sig-route { display:flex; align-items:center; gap:6px; padding:4px 6px; background:#222; border:1px solid #333; margin-bottom:3px; }
+.sig-dot { width:8px; height:8px; }
+
+/* BOTTOM THUMBNAIL STRIP */
+.bottom-strip { height:80px; background:#161616; border-top:1px solid #333; display:flex; }
+.strip-label { width:60px; display:flex; align-items:center; justify-content:center; font-size:9px; color:#ffaa00; writing-mode:vertical-lr; border-right:1px solid #333; }
+.strip-scroll { flex:1; display:flex; gap:3px; padding:4px 6px; overflow-x:auto; }
+.st { width:64px; min-width:64px; height:64px; border:1px solid #333; position:relative; cursor:pointer; flex-shrink:0; }
+.st:hover { border-color:#ffaa00; }
+.st .sbg { position:absolute; inset:0; }
+.st .snm { position:absolute; bottom:1px; left:2px; font-size:7px; color:#ccc; text-shadow:0 1px 1px #000; }
+
+.footer { height:24px; background:#1a1a1a; border-top:1px solid #333; display:flex; align-items:center; padding:0 12px; justify-content:space-between; }
+.footer span { font-size:10px; color:#666; }
+</style>
+</head>
+<body>
+
+<div class="menu-bar"><span>Audio-DNA</span><span>File</span><span>Edit</span><span>View</span><span>Output</span><span>Help</span></div>
+
+<div class="top-bar">
+  <div class="logo">AUDIO-DNA</div>
+  <div class="bpm-box">
+    <div><div class="bpm-val">120.0</div><div class="bpm-sub">BPM</div></div>
+    <div class="beat-dots"><div class="beat-dot on"></div><div class="beat-dot"></div><div class="beat-dot"></div><div class="beat-dot"></div></div>
+  </div>
+  <span class="info">Bar 3 / 8</span>
+  <span class="info">Phrase 1</span>
+  <div class="btn active">PLAY</div>
+  <div class="btn">TAP</div>
+  <div class="btn">MANUAL</div>
+  <div class="spacer"></div>
+  <span class="info">60.0 fps</span>
+  <span class="info">House</span>
+  <span class="info">1920x1080</span>
+</div>
+
+<div class="signal-bar">
+  <script>
+    const sN=['RMS','Peak','Bass','Low Mid','Mid','High Mid','Brilliance','Centroid','Flux','Onset','Beat','Bar'];
+    const sV=[0.65,0.80,0.88,0.52,0.45,0.30,0.15,0.58,0.42,0.0,0.60,0.38];
+    const sC=['#ffaa00','#ffaa00','#ff4444','#ff6644','#ffaa44','#ffcc44','#ffee44','#44aaff','#44ddff','#ff4488','#ffaa00','#ffaa00'];
+    document.write(sN.map((n,i)=>`<div class="sig-m"><div class="fill" style="width:${sV[i]*100}%;background:${sC[i]}55"></div><div class="lbl">${n}</div></div>`).join(''));
+  </script>
+</div>
+
+<div class="main">
+  <!-- SIGNAL METERS -->
+  <div class="col-signals">
+    <script>
+      const vL=['RMS','Bas','Mid','Hi','Ons','BPh','BPM','Flux'];
+      const vV=[65,88,45,30,0,60,50,42];
+      const vC=['#ffaa00','#ff4444','#ffaa44','#ffcc44','#ff4488','#ffaa00','#ffaa00','#44ddff'];
+      document.write(vL.map((l,i)=>`<div class="vm"><div class="vl">${l}</div><div class="vf" style="height:${vV[i]}%;background:${vC[i]}"></div></div>`).join(''));
+    </script>
+  </div>
+
+  <!-- BROWSER -->
+  <div class="col-browser">
+    <div class="br-tabs">
+      <div class="br-tab">Files</div>
+      <div class="br-tab active">FX</div>
+      <div class="br-tab">Sources</div>
+    </div>
+    <div class="br-search"><input placeholder="Search effects..." /></div>
+    <div class="br-list">
+      <div class="br-cat">Warp</div>
+      <div class="br-item">Ripple</div><div class="br-item">Bulge</div><div class="br-item">Wave</div><div class="br-item">Liquid</div><div class="br-item">Kaleidoscope</div><div class="br-item">Swirl</div><div class="br-item">Fisheye</div><div class="br-item">Twirl</div>
+      <div class="br-cat">Color</div>
+      <div class="br-item sel">Hue Shift</div><div class="br-item">Saturation</div><div class="br-item">Duotone</div><div class="br-item">Thermal</div><div class="br-item">Chromatic Aberration</div><div class="br-item">Invert</div><div class="br-item">Posterize</div>
+      <div class="br-cat">Glitch</div>
+      <div class="br-item">RGB Split</div><div class="br-item">Block Glitch</div><div class="br-item">Scanlines</div><div class="br-item">Digital Rain</div><div class="br-item">Pixel Scatter</div>
+      <div class="br-cat">Time</div>
+      <div class="br-item">Echo</div><div class="br-item">Freeze</div><div class="br-item">Frame Stutter</div><div class="br-item">Screen Split</div>
+      <div class="br-cat">Pattern</div>
+      <div class="br-item">ASCII Art</div><div class="br-item">Dot Matrix</div><div class="br-item">CRT Simulation</div><div class="br-item">VHS Effect</div>
+      <div class="br-cat">Blur / Post</div>
+      <div class="br-item">Gaussian Blur</div><div class="br-item">Glow</div><div class="br-item">Edge Detect</div><div class="br-item">Sharpen</div>
+    </div>
+  </div>
+
+  <!-- SCENE GRID -->
+  <div class="col-grid">
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck 1</div><div class="deck-tab">Deck 2</div><div class="deck-tab">Deck 3</div><div class="deck-tab">Deck 4</div>
+    </div>
+    <div class="scene-hdrs">
+      <script>for(let i=1;i<=8;i++) document.write(`<div class="sh ${i===4?'active':''}">${i}</div>`);</script>
+    </div>
+    <div class="grid">
+      <script>
+        const layers=['Master','FX A','FX B','Overlay','Visual','BG'];
+        const layerOn=[true,false,true,true,true,true];
+        const cells=[
+          ['Transform','Glow','Vignette','','','','',''],
+          ['Echo','Glitch Sort','','','','','',''],
+          ['RGB Split','Scanlines','Strobe','','','','',''],
+          ['Text Wall','Neon Edge','Particle Rain','CRT Sim','Dot Matrix','','',''],
+          ['Mandelbulb','Julia 3D','Menger','Spiral Torus','Spectrum Ring','Fluid Sim','KIFS','Burning Ship'],
+          ['Perlin','Gradient','Plasma','Fire','Ocean','Night','Voronoi','Solid'],
+        ];
+        const grds=[
+          ['linear-gradient(135deg,#ffaa00,#443300)','linear-gradient(135deg,#ffcc44,#443311)','linear-gradient(135deg,#444,#222)','','','','',''],
+          ['linear-gradient(135deg,#4466ff,#112244)','linear-gradient(135deg,#ff4488,#441122)','','','','','',''],
+          ['linear-gradient(135deg,#44ffaa,#113322)','linear-gradient(135deg,#888,#333)','linear-gradient(135deg,#fff,#444)','','','','',''],
+          ['linear-gradient(135deg,#88ff88,#113311)','linear-gradient(135deg,#44ffaa,#113322)','linear-gradient(135deg,#ff88ff,#331133)','linear-gradient(135deg,#666,#222)','linear-gradient(135deg,#aaa,#333)','','',''],
+          ['linear-gradient(135deg,#ff4444,#441111)','linear-gradient(135deg,#44ff44,#114411)','linear-gradient(135deg,#4444ff,#111144)','linear-gradient(135deg,#ff44ff,#441144)','linear-gradient(135deg,#ff8800,#442200)','linear-gradient(135deg,#44aaff,#112233)','linear-gradient(135deg,#ffff44,#444411)','linear-gradient(135deg,#ff8844,#332211)'],
+          ['linear-gradient(135deg,#667788,#223344)','linear-gradient(135deg,#224488,#0a1533)','linear-gradient(135deg,#884422,#331100)','linear-gradient(135deg,#ff4400,#441100)','linear-gradient(135deg,#0066cc,#002244)','linear-gradient(135deg,#112244,#000)','linear-gradient(135deg,#778866,#334422)','linear-gradient(135deg,#111,#000)'],
+        ];
+        for(let r=0;r<6;r++){
+          document.write(`<div class="ll ${layerOn[r]?'on':''}">${layers[r]}</div>`);
+          for(let c=0;c<8;c++){
+            const nm=cells[r][c],g=grds[r][c],act=r===4&&c===0;
+            document.write(`<div class="gc ${act?'active':''}">${g?`<div class="bg" style="background:${g}"></div>`:''}${nm?`<div class="nm">${nm}</div>`:''}</div>`);
+          }
+        }
+      </script>
+    </div>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="col-insp">
+    <div class="insp-tabs">
+      <div class="it active">Clip</div><div class="it">Layer</div><div class="it">Signals</div><div class="it">Comp</div>
+    </div>
+    <div class="insp-body">
+      <div style="margin-bottom:10px"><span class="sec-title">Mandelbulb</span></div>
+      <div class="pr"><span class="pl">Zoom</span><div class="ps"><div class="t" style="width:45%"></div></div><span class="pv">0.45</span></div>
+      <div class="pr"><span class="pl">Power</span><div class="ps"><div class="t" style="width:60%"></div></div><span class="pv">0.60</span></div>
+      <div class="pr"><span class="pl">Iterations</span><div class="ps"><div class="t" style="width:70%"></div></div><span class="pv">0.70</span></div>
+      <div class="pr"><span class="pl">Speed</span><div class="ps"><div class="t" style="width:55%"></div></div><span class="pv">0.55</span></div>
+      <div class="pr"><span class="pl">Color Shift</span><div class="ps"><div class="t" style="width:30%"></div></div><span class="pv">0.30</span></div>
+      <div class="pr"><span class="pl">Glow</span><div class="ps"><div class="t" style="width:40%"></div></div><span class="pv">0.40</span></div>
+      <div class="pr"><span class="pl">Palette</span><div class="ps"><div class="t" style="width:75%"></div></div><span class="pv">Ocean</span></div>
+      <div class="pr"><span class="pl">Trail Distance</span><div class="ps"><div class="t" style="width:35%"></div></div><span class="pv">0.35</span></div>
+      <div class="pr"><span class="pl">Feedback</span><div class="ps"><div class="t" style="width:20%"></div></div><span class="pv">0.20</span></div>
+      <div style="margin-top:12px"><span class="sec-title">Signal Routes</span></div>
+      <div class="sig-route"><div class="sig-dot" style="background:#ffaa00"></div><span style="font-size:10px;color:#ffaa00">RMS</span><span style="font-size:10px;color:#555">-></span><span style="font-size:10px;color:#ccc">Zoom</span></div>
+      <div class="sig-route"><div class="sig-dot" style="background:#ff4444"></div><span style="font-size:10px;color:#ff4444">Bass</span><span style="font-size:10px;color:#555">-></span><span style="font-size:10px;color:#ccc">Glow</span></div>
+      <div class="sig-route"><div class="sig-dot" style="background:#ffaa00"></div><span style="font-size:10px;color:#ffaa00">Beat Phase</span><span style="font-size:10px;color:#555">-></span><span style="font-size:10px;color:#ccc">Speed</span></div>
+      <div style="margin-top:12px"><span class="sec-title">Effects</span></div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px;background:#222;border:1px solid #333;margin-bottom:3px">
+        <span style="color:#ffaa00;font-size:10px">B</span><span style="flex:1;font-size:10px">Echo</span><span style="font-size:10px;color:#666">X</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px;background:#222;border:1px solid #333;margin-bottom:3px">
+        <span style="color:#ffaa00;font-size:10px">B</span><span style="flex:1;font-size:10px">Hue Shift</span><span style="font-size:10px;color:#666">X</span>
+      </div>
+      <div style="margin-top:12px"><span class="sec-title">Transform</span></div>
+      <div class="pr"><span class="pl">Position X</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Position Y</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Scale</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">1.00</span></div>
+      <div class="pr"><span class="pl">Rotation</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.0</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM THUMBNAIL STRIP -->
+<div class="bottom-strip">
+  <div class="strip-label">Sources / FX</div>
+  <div class="strip-scroll">
+    <script>
+      const thumbs=['Mandelbulb','Julia 3D','Menger','KIFS','Spiral','Helix','Knot','Trefoil','Perlin','Voronoi','Plasma','Fire','Spectrum Ring','Band Tower','Cymatics','Strange Attr','Fluid Sim','Gravity Well','Particle Rain','Text Wall','Scrolling Text'];
+      const tGrads=['#ff4444,#441111','#44ff44,#114411','#4444ff,#111144','#ffff44,#444411','#ff44ff,#441144','#44ffff,#114444','#ff8844,#442211','#88ff44,#224411','#667788,#223344','#778866,#334422','#884422,#331100','#ff4400,#441100','#0066cc,#002244','#ff8800,#442200','#ffcc00,#443300','#8844ff,#220044','#44aaff,#112233','#ff88ff,#331133','#ff88ff,#441133','#88ff88,#113311','#fff,#555'];
+      document.write(thumbs.map((t,i)=>`<div class="st"><div class="sbg" style="background:linear-gradient(135deg,${tGrads[i%tGrads.length]})"></div><div class="snm">${t}</div></div>`).join(''));
+    </script>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Audio-DNA v2.0</span><span>Scene Columns Layout</span><span>House | Energy: Medium | Normal</span><span>Recording: Off</span>
+</div>
+
+</body>
+</html>

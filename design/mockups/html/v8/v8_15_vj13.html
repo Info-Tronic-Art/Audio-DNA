@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA V.2 - VJ13 DAW-Style Layout</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #1a1a1a; color: #e0e0e0;
+  font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
+  font-size: 12px;
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 48px; background: #111; border-bottom: 1px solid #333;
+  padding: 0 12px;
+}
+.top-left { display: flex; align-items: center; gap: 20px; }
+.bpm-display {
+  font-size: 22px; font-weight: 700; color: #4cff4c;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+.bpm-label { font-size: 10px; color: #888; margin-right: 4px; }
+.title {
+  font-size: 16px; font-weight: 700; color: #ccc;
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.master-meter { display: flex; align-items: center; gap: 6px; }
+.master-meter-label { font-size: 9px; color: #888; text-transform: uppercase; }
+.meter-bars { display: flex; gap: 2px; align-items: flex-end; height: 28px; }
+.meter-bar {
+  width: 6px; background: #4cff4c; border-radius: 1px;
+}
+.load-indicator { text-align: center; }
+.load-label { font-size: 9px; color: #666; text-transform: uppercase; }
+.load-value { font-size: 11px; color: #aaa; font-family: monospace; }
+.load-bar-bg { width: 50px; height: 4px; background: #333; border-radius: 2px; margin-top: 2px; }
+.load-bar-fill { height: 100%; border-radius: 2px; }
+
+.top-right { display: flex; align-items: center; gap: 6px; }
+.scene-btn {
+  padding: 6px 14px; background: #2a2a2a; border: 1px solid #444;
+  color: #ccc; font-size: 11px; cursor: pointer; text-transform: uppercase;
+}
+.scene-btn.active { background: #3a6a3a; border-color: #5a9a5a; color: #fff; }
+.scene-btn:hover { background: #3a3a3a; }
+
+/* ── MAIN AREA: LAYERS ── */
+.main-area {
+  height: calc(1080px - 48px - 220px - 36px);
+  overflow: hidden;
+}
+
+.layer-section {
+  border-bottom: 1px solid #333;
+  height: calc(100% / 3);
+  display: flex; flex-direction: column;
+}
+.layer-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 10px; background: #222; border-bottom: 1px solid #2a2a2a;
+  height: 28px; flex-shrink: 0;
+}
+.layer-name {
+  font-size: 12px; font-weight: 700; color: #ddd;
+  text-transform: uppercase; min-width: 100px;
+}
+.layer-source-dropdown {
+  background: #1a1a1a; border: 1px solid #444; color: #aaa;
+  padding: 2px 8px; font-size: 10px; border-radius: 0;
+}
+
+.layer-actions {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; background: #1e1e1e; flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.action-btn {
+  padding: 3px 10px; font-size: 9px; text-transform: uppercase;
+  border: 1px solid #555; background: #2a2a2a; color: #bbb; cursor: pointer;
+  font-weight: 600;
+}
+.action-btn.flash { background: #4a2a2a; border-color: #8a4a4a; color: #ff8888; }
+.action-btn.strobe { background: #4a4a2a; border-color: #8a8a4a; color: #ffff88; }
+.action-btn.invert { background: #2a2a4a; border-color: #4a4a8a; color: #8888ff; }
+.action-btn.freeze { background: #2a4a4a; border-color: #4a8a8a; color: #88ffff; }
+.action-btn.fx { background: #3a2a3a; border-color: #6a4a6a; color: #cc88cc; }
+.action-btn.randomize { background: #2a3a2a; border-color: #4a6a4a; color: #88cc88; }
+
+.clip-row-container {
+  flex: 1; display: flex; align-items: stretch; padding: 4px 10px;
+  gap: 6px; overflow: hidden; background: #191919;
+}
+
+.clip-thumb {
+  flex: 1; min-width: 0;
+  background: #111; border: 1px solid #333; border-radius: 2px;
+  display: flex; flex-direction: column;
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.clip-thumb:hover { border-color: #666; }
+.clip-thumb.active { border-color: #4cff4c; box-shadow: 0 0 6px rgba(76,255,76,0.3); }
+.clip-waveform {
+  flex: 1; position: relative; overflow: hidden;
+}
+.clip-waveform canvas { width: 100%; height: 100%; }
+.clip-label {
+  font-size: 8px; color: #999; text-align: center;
+  padding: 2px 0; background: #111; border-top: 1px solid #2a2a2a;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.clip-sub {
+  font-size: 7px; color: #666; text-align: center; padding: 1px 0;
+  background: #111;
+}
+
+/* ── BOTTOM: FADERS ── */
+.fader-section {
+  height: 220px; background: #151515; border-top: 2px solid #333;
+  display: flex; padding: 8px 20px; gap: 0;
+}
+.fader-column {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  border-right: 1px solid #252525; padding: 0 8px;
+}
+.fader-column:last-child { border-right: none; }
+.fader-label { font-size: 9px; color: #888; text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+.fader-track {
+  width: 28px; height: 120px; background: #0a0a0a;
+  border: 1px solid #333; border-radius: 2px;
+  position: relative; margin: 4px 0;
+}
+.fader-fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, #2a6a2a, #4cff4c);
+  border-radius: 0 0 1px 1px;
+}
+.fader-handle {
+  position: absolute; left: -4px; right: -4px; height: 10px;
+  background: #ddd; border: 1px solid #999; border-radius: 2px;
+  cursor: ns-resize;
+}
+.trim-section { display: flex; flex-direction: column; align-items: center; margin-top: 4px; }
+.trim-label { font-size: 8px; color: #666; text-transform: uppercase; }
+.trim-knob {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: conic-gradient(from 210deg, #4a4a4a 0%, #888 50%, #4a4a4a 100%);
+  border: 2px solid #555; margin: 2px 0;
+  position: relative;
+}
+.trim-knob::after {
+  content: ''; position: absolute;
+  width: 2px; height: 8px; background: #ddd;
+  top: 2px; left: 50%; transform: translateX(-50%) rotate(30deg);
+  border-radius: 1px;
+}
+.flash-btn {
+  margin-top: 4px; padding: 3px 12px;
+  font-size: 8px; text-transform: uppercase; font-weight: 700;
+  background: #3a1a1a; border: 1px solid #6a3a3a; color: #ff6666;
+  cursor: pointer;
+}
+.flash-btn:hover { background: #5a2a2a; }
+
+/* ── FOOTER ── */
+.footer-bar {
+  height: 36px; background: #111; border-top: 1px solid #333;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; font-size: 10px;
+}
+.footer-left { color: #666; text-transform: uppercase; }
+.audio-player {
+  display: flex; align-items: center; gap: 8px;
+}
+.player-btn {
+  width: 24px; height: 24px; background: #2a2a2a; border: 1px solid #444;
+  color: #ccc; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 10px;
+}
+.player-btn:hover { background: #3a3a3a; }
+.player-waveform {
+  width: 400px; height: 22px; background: #0a0a0a; border: 1px solid #333;
+  position: relative; overflow: hidden;
+}
+.player-waveform canvas { width: 100%; height: 100%; }
+.player-time { font-family: monospace; color: #4cff4c; font-size: 11px; }
+.footer-right { color: #777; font-size: 10px; }
+.output-status { color: #888; }
+.output-dot { display: inline-block; width: 6px; height: 6px; background: #4cff4c; border-radius: 50%; margin-right: 4px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="top-left">
+    <div style="display:flex;align-items:baseline;gap:4px;">
+      <span class="bpm-label">BPM</span>
+      <span class="bpm-display">128.000</span>
+    </div>
+    <div class="title">Audio-DNA V.2</div>
+    <div class="master-meter">
+      <span class="master-meter-label">Master<br>Audio Meter</span>
+      <div class="meter-bars" id="masterMeter"></div>
+    </div>
+    <div class="load-indicator">
+      <div class="load-label">CPU Load</div>
+      <div class="load-value">12%</div>
+      <div class="load-bar-bg"><div class="load-bar-fill" style="width:12%;background:#4cff4c;"></div></div>
+    </div>
+    <div class="load-indicator">
+      <div class="load-label">GPU Load</div>
+      <div class="load-value">34%</div>
+      <div class="load-bar-bg"><div class="load-bar-fill" style="width:34%;background:#66ccff;"></div></div>
+    </div>
+  </div>
+  <div class="top-right">
+    <button class="scene-btn active">Scene 1</button>
+    <button class="scene-btn">Scene 2</button>
+    <button class="scene-btn">Scene 3</button>
+    <button class="scene-btn">Scene 4</button>
+    <button class="scene-btn">Scene 5</button>
+    <button class="scene-btn" style="background:#2a2a3a;border-color:#4a4a7a;color:#aaaaff;">Scene A</button>
+  </div>
+</div>
+
+<!-- MAIN AREA: 3 LAYERS -->
+<div class="main-area" id="mainArea"></div>
+
+<!-- FADER SECTION -->
+<div class="fader-section" id="faderSection"></div>
+
+<!-- FOOTER -->
+<div class="footer-bar">
+  <div class="footer-left">Footer</div>
+  <div class="audio-player">
+    <button class="player-btn">|&lt;</button>
+    <button class="player-btn" style="background:#3a5a3a;border-color:#4a8a4a;">&#9654;</button>
+    <button class="player-btn">&#9632;</button>
+    <button class="player-btn">&gt;|</button>
+    <div class="player-waveform"><canvas id="playerWaveform"></canvas></div>
+    <span class="player-time">02:34.12 / 05:12.00</span>
+  </div>
+  <div class="footer-right">
+    <span class="output-status">
+      <span class="output-dot"></span>Output Status: Display 1 (1080p @ 60Hz) | Display 2 (Preview)
+    </span>
+    &nbsp;&nbsp;
+    <span style="font-family:monospace;color:#4cff4c;">00:02:34:07</span>
+  </div>
+</div>
+
+<script>
+// ── Master meter bars ──
+const meterContainer = document.getElementById('masterMeter');
+const meterHeights = [18, 22, 26, 24, 20, 28, 25, 22, 19, 16, 14, 20, 24, 26, 22, 18];
+meterHeights.forEach((h, i) => {
+  const bar = document.createElement('div');
+  bar.className = 'meter-bar';
+  bar.style.height = h + 'px';
+  if (h > 24) bar.style.background = '#ffcc00';
+  if (h > 27) bar.style.background = '#ff4444';
+  meterContainer.appendChild(bar);
+});
+
+// ── Layer data ──
+const layers = [
+  {
+    name: 'Layer 1 - Main Visuals',
+    source: 'Image Sequence',
+    clips: [
+      { name: 'Neon Grid', color: '#00ff88', active: true },
+      { name: 'Tunnel VHS', color: '#00ccff' },
+      { name: 'Fractal Dive', color: '#4444ff' },
+      { name: 'Plasma Wave', color: '#cc44ff' },
+      { name: 'Glitch Burst', color: '#ff4444' },
+      { name: 'Sun Flare', color: '#ffcc00' },
+      { name: 'Particle Storm', color: '#ffffff' },
+      { name: 'Warp Field', color: '#44ffcc' }
+    ]
+  },
+  {
+    name: 'Layer 2 - Overlays',
+    source: 'Procedural Source',
+    clips: [
+      { name: 'Scan Lines', color: '#44ff44' },
+      { name: 'Rain Drops', color: '#00aaff', active: true },
+      { name: 'Bokeh Float', color: '#6666ff' },
+      { name: 'Smoke Trail', color: '#aa44cc' },
+      { name: 'Fire Embers', color: '#ff6644' },
+      { name: 'Star Field', color: '#ffee44' },
+      { name: 'Light Leak', color: '#ff88cc' }
+    ]
+  },
+  {
+    name: 'Layer 3 - Background',
+    source: 'Video File',
+    clips: [
+      { name: 'Gradient Flow', color: '#22cc66' },
+      { name: 'Deep Ocean', color: '#22aadd' },
+      { name: 'Cosmos', color: '#5555ee' },
+      { name: 'Magenta Fog', color: '#dd44aa', active: true },
+      { name: 'Lava Pulse', color: '#ee5522' },
+      { name: 'Aurora', color: '#44ddaa' },
+      { name: 'Noise Static', color: '#cccccc' },
+      { name: 'Dark Matter', color: '#666699' }
+    ]
+  }
+];
+
+const actionSets = [
+  ['FLASH', 'STROBE', 'INVERT', 'FREEZE'],
+  ['FX SND A1', 'FX SND A2', 'Randomize', 'S.ATCH.E']
+];
+
+const mainArea = document.getElementById('mainArea');
+
+layers.forEach((layer, li) => {
+  const section = document.createElement('div');
+  section.className = 'layer-section';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'layer-header';
+  header.innerHTML = `
+    <span class="layer-name">${layer.name}</span>
+    <select class="layer-source-dropdown">
+      <option>${layer.source}</option>
+      <option>Image</option>
+      <option>Camera</option>
+    </select>
+  `;
+  section.appendChild(header);
+
+  // Actions
+  const actions = document.createElement('div');
+  actions.className = 'layer-actions';
+  const classes = ['flash', 'strobe', 'invert', 'freeze', 'fx', 'fx', 'randomize', 'action-btn'];
+  const allBtns = [...actionSets[0], ...actionSets[1]];
+  allBtns.forEach((label, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'action-btn ' + (classes[i] || '');
+    btn.textContent = label;
+    actions.appendChild(btn);
+  });
+  section.appendChild(actions);
+
+  // Clip row
+  const clipRow = document.createElement('div');
+  clipRow.className = 'clip-row-container';
+
+  layer.clips.forEach((clip, ci) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'clip-thumb' + (clip.active ? ' active' : '');
+
+    const wf = document.createElement('div');
+    wf.className = 'clip-waveform';
+    const canvas = document.createElement('canvas');
+    canvas.width = 200; canvas.height = 80;
+    wf.appendChild(canvas);
+    thumb.appendChild(wf);
+
+    const label = document.createElement('div');
+    label.className = 'clip-label';
+    label.textContent = clip.name;
+    thumb.appendChild(label);
+
+    const sub = document.createElement('div');
+    sub.className = 'clip-sub';
+    sub.textContent = 'CL LOOP \u2195  CL FX +  CL FX -';
+    thumb.appendChild(sub);
+
+    clipRow.appendChild(thumb);
+
+    // Draw waveform
+    drawWaveform(canvas, clip.color, ci + li * 8);
+  });
+
+  section.appendChild(clipRow);
+  mainArea.appendChild(section);
+});
+
+function drawWaveform(canvas, color, seed) {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, w, h);
+
+  // Create gradient from color
+  const grad = ctx.createLinearGradient(0, 0, w, 0);
+  grad.addColorStop(0, color);
+  grad.addColorStop(0.5, shiftHue(color, 30));
+  grad.addColorStop(1, shiftHue(color, 60));
+
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.8;
+
+  // Draw multiple waveform lines
+  for (let line = 0; line < 3; line++) {
+    ctx.beginPath();
+    for (let x = 0; x < w; x++) {
+      const n = pseudoNoise(x * 0.05 + seed * 7.3 + line * 2.1);
+      const amp = (h * 0.35) * (1 - line * 0.25);
+      const y = h / 2 + n * amp;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Fill area
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const n = Math.abs(pseudoNoise(x * 0.05 + seed * 7.3));
+    const y = h / 2 - n * h * 0.35;
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  for (let x = w - 1; x >= 0; x--) {
+    const n = Math.abs(pseudoNoise(x * 0.05 + seed * 7.3));
+    const y = h / 2 + n * h * 0.35;
+    ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function pseudoNoise(x) {
+  return Math.sin(x * 12.9898 + 78.233) * Math.sin(x * 4.1414 + 13.71) * 0.8 +
+         Math.sin(x * 3.14159 + 1.618) * 0.3;
+}
+
+function shiftHue(hex, deg) {
+  let r = parseInt(hex.slice(1,3),16)/255;
+  let g = parseInt(hex.slice(3,5),16)/255;
+  let b = parseInt(hex.slice(5,7),16)/255;
+  let max = Math.max(r,g,b), min = Math.min(r,g,b);
+  let h, s, l = (max+min)/2;
+  if (max === min) { h = s = 0; }
+  else {
+    let d = max - min;
+    s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+    if (max === r) h = ((g-b)/d + (g<b?6:0))/6;
+    else if (max === g) h = ((b-r)/d+2)/6;
+    else h = ((r-g)/d+4)/6;
+  }
+  h = (h + deg/360) % 1;
+  function hue2rgb(p,q,t) { if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; }
+  let q = l < 0.5 ? l*(1+s) : l+s-l*s;
+  let p = 2*l - q;
+  let rr = Math.round(hue2rgb(p,q,h+1/3)*255);
+  let gg = Math.round(hue2rgb(p,q,h)*255);
+  let bb = Math.round(hue2rgb(p,q,h-1/3)*255);
+  return `#${rr.toString(16).padStart(2,'0')}${gg.toString(16).padStart(2,'0')}${bb.toString(16).padStart(2,'0')}`;
+}
+
+// ── Faders ──
+const faderSection = document.getElementById('faderSection');
+const faderData = [
+  { label: 'Layer 1', opacity: 0.85 },
+  { label: 'Layer 2', opacity: 0.60 },
+  { label: 'Layer 3', opacity: 0.70 },
+  { label: 'Master', opacity: 0.95 },
+  { label: 'FX Send A', opacity: 0.45 },
+  { label: 'FX Send B', opacity: 0.30 },
+  { label: 'Aux 1', opacity: 0.55 },
+  { label: 'Aux 2', opacity: 0.40 }
+];
+
+faderData.forEach(f => {
+  const col = document.createElement('div');
+  col.className = 'fader-column';
+
+  const pct = Math.round(f.opacity * 100);
+  const fillH = f.opacity * 118;
+  const handleY = 118 - fillH;
+
+  col.innerHTML = `
+    <div class="fader-label">${f.label}</div>
+    <div style="font-size:9px;color:#4cff4c;font-family:monospace;margin-bottom:2px;">${pct}%</div>
+    <div class="fader-label" style="font-size:8px;color:#666;">Opacity</div>
+    <div class="fader-track">
+      <div class="fader-fill" style="height:${fillH}px;"></div>
+      <div class="fader-handle" style="bottom:${fillH - 5}px;"></div>
+    </div>
+    <div class="trim-section">
+      <div class="trim-label">Layer Trim</div>
+      <div class="trim-knob"></div>
+    </div>
+    <button class="flash-btn">Flash</button>
+  `;
+
+  faderSection.appendChild(col);
+});
+
+// ── Player waveform ──
+const playerCanvas = document.getElementById('playerWaveform');
+playerCanvas.width = 400; playerCanvas.height = 22;
+const pctx = playerCanvas.getContext('2d');
+pctx.fillStyle = '#0a0a0a';
+pctx.fillRect(0, 0, 400, 22);
+
+// Draw full waveform
+for (let x = 0; x < 400; x++) {
+  const amp = Math.abs(pseudoNoise(x * 0.03 + 5.5)) * 9;
+  const played = x < 195;
+  pctx.fillStyle = played ? '#4cff4c' : '#2a5a2a';
+  pctx.fillRect(x, 11 - amp, 1, amp * 2);
+}
+
+// Playhead
+pctx.fillStyle = '#ffffff';
+pctx.fillRect(195, 0, 1, 22);
+</script>
+</body>
+</html>

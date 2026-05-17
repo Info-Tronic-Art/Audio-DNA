@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — V6-08 Channel Strips</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(180deg, #1a1e22 0%, #151820 100%); color: #e0e0e0; font-size: 12px; }
+
+/* TOP BAR */
+.top-bar { height: 36px; background: linear-gradient(180deg, #2a2e34 0%, #1e2228 100%); display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #333; gap: 8px; }
+.logo { font-weight: 700; font-size: 14px; color: #fff; letter-spacing: 1px; }
+.logo span { color: #d4a853; }
+.sep { width: 1px; height: 22px; background: #444; }
+.bpm { font-size: 18px; font-weight: 700; color: #6fdb6f; }
+.bpm-lbl { color: #888; font-size: 10px; }
+.btn { background: #2a2e34; border: 1px solid #555; color: #ccc; padding: 3px 10px; border-radius: 2px; font-size: 11px; cursor: pointer; }
+.btn:hover { background: #3a3e44; }
+.btn.active { background: #d4a853; color: #111; border-color: #d4a853; }
+.btn.danger { color: #ff6060; border-color: #662020; }
+.btn.danger:hover { background: #442020; }
+.dots { display: flex; gap: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #444; }
+.dot.on { background: #d4a853; box-shadow: 0 0 6px #d4a853; }
+.bar-info { color: #999; font-size: 11px; font-family: monospace; }
+.spacer { flex: 1; }
+.sl-w { display: flex; align-items: center; gap: 4px; }
+.sl-w label { color: #888; font-size: 10px; }
+.sl { height: 4px; background: #333; border-radius: 2px; }
+.sl-f { height: 100%; border-radius: 2px; }
+.fps { color: #6fdb6f; font-family: monospace; font-size: 11px; }
+
+/* MAIN LAYOUT: top half + bottom half */
+.main { display: flex; flex-direction: column; height: calc(100% - 36px - 28px); }
+
+/* TOP HALF */
+.top-half { height: 460px; display: flex; }
+
+/* SCENE FLOW */
+.scene-flow { width: 180px; background: linear-gradient(180deg, #1c2026, #16191e); border-right: 1px solid #2a2e32; display: flex; flex-direction: column; overflow-y: auto; }
+.pnl-hdr { padding: 8px 10px; font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #2a2e32; }
+.sc-item { padding: 7px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #1e2228; cursor: pointer; border-left: 3px solid transparent; }
+.sc-item:hover { background: #22262c; }
+.sc-item.active { background: linear-gradient(90deg, rgba(212,168,83,0.15), transparent); border-left-color: #d4a853; }
+.sc-dot { width: 8px; height: 8px; border-radius: 50%; }
+.sc-name { flex: 1; font-size: 12px; }
+.sc-trig { font-size: 10px; color: #666; padding: 2px 6px; border: 1px solid #444; border-radius: 2px; }
+.sc-item.active .sc-trig { color: #d4a853; border-color: #d4a853; }
+
+/* CENTER: LIVE PREVIEW */
+.center-top { flex: 1; display: flex; flex-direction: column; }
+.preview-wrap { flex: 1; padding: 10px; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #181c20, #151820); }
+.preview-box { width: 600px; height: 100%; border: 1px solid #2a2e32; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; }
+.pv-label { height: 22px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; background: #1e2228; font-size: 10px; color: #888; }
+.pv-live { color: #6fdb6f; font-weight: 600; font-size: 9px; padding: 1px 6px; background: rgba(111,219,111,0.1); border-radius: 2px; }
+.pv-canvas { flex: 1; background: linear-gradient(135deg, #0a0a20, #1a0a30, #0a1a20); position: relative; }
+.pv-canvas::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 55% 40%, rgba(255,180,50,0.4), rgba(255,100,20,0.2) 30%, transparent 70%); }
+.pv-canvas::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 65%, rgba(80,200,255,0.15), transparent 50%); }
+.pv-transport { height: 22px; display: flex; align-items: center; gap: 6px; padding: 0 8px; background: #1a1e22; border-top: 1px solid #2a2e32; }
+.t-btn { color: #888; font-size: 10px; cursor: pointer; }
+.t-bar { flex: 1; height: 3px; background: #333; border-radius: 2px; }
+.t-bar-f { height: 100%; width: 38%; background: #4ecdc4; border-radius: 2px; }
+.t-time { font-size: 10px; color: #666; font-family: monospace; }
+
+/* SOURCES PANEL */
+.sources { width: 200px; background: linear-gradient(180deg, #1c2026, #16191e); border-left: 1px solid #2a2e32; display: flex; flex-direction: column; overflow-y: auto; }
+.src-tabs { display: flex; border-bottom: 1px solid #2a2e32; }
+.src-tab { flex: 1; text-align: center; padding: 5px 0; font-size: 10px; color: #666; cursor: pointer; }
+.src-tab.active { color: #4ecdc4; border-bottom: 2px solid #4ecdc4; }
+.src-section { padding: 5px 10px; font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; background: #1a1e22; border-bottom: 1px solid #2a2e32; }
+.src-item { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-bottom: 1px solid #1e2228; cursor: pointer; font-size: 11px; }
+.src-item:hover { background: #22262c; }
+.src-ico { width: 8px; height: 8px; border-radius: 2px; }
+.src-meter { width: 50px; height: 6px; background: #222; border-radius: 3px; overflow: hidden; }
+.src-meter-f { height: 100%; border-radius: 3px; }
+.src-add { padding: 6px 10px; color: #555; font-size: 11px; cursor: pointer; }
+.src-add:hover { color: #4ecdc4; }
+
+/* BOTTOM HALF: CHANNEL STRIPS */
+.bottom-half { flex: 1; border-top: 2px solid #333; background: linear-gradient(180deg, #1c2026, #181c20); overflow-y: auto; }
+.strips-header { display: flex; align-items: center; height: 24px; padding: 0 12px; border-bottom: 1px solid #2a2e32; }
+.strips-title { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+.strips-spacer { flex: 1; }
+.strips-collapse { font-size: 10px; color: #555; cursor: pointer; }
+
+.strip-container { display: flex; flex-direction: column; }
+
+/* CHANNEL STRIP */
+.ch-strip { display: flex; align-items: center; gap: 0; height: 62px; border-bottom: 1px solid #222; padding: 0; }
+.ch-strip:hover { background: rgba(78,205,196,0.03); }
+.ch-strip.active { background: rgba(78,205,196,0.06); }
+
+.ch-name { width: 110px; padding: 0 10px; display: flex; flex-direction: column; gap: 2px; }
+.ch-name-text { font-size: 11px; color: #ccc; font-weight: 500; }
+.ch-name-sub { font-size: 9px; color: #666; }
+
+.ch-psm { width: 70px; display: flex; gap: 4px; align-items: center; justify-content: center; }
+.psm-dot { width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; cursor: pointer; }
+.psm-dot.p { background: #1a3a3a; color: #4ecdc4; border: 1px solid #2a4a4a; }
+.psm-dot.p.on { background: #4ecdc4; color: #111; }
+.psm-dot.s { background: #2a3a1a; color: #6fdb6f; border: 1px solid #3a4a2a; }
+.psm-dot.m { background: #3a1a2a; color: #e06090; border: 1px solid #4a2a3a; }
+
+.ch-engine { width: 100px; padding: 0 4px; }
+.ch-dropdown { width: 100%; background: #1a1e22; border: 1px solid #333; color: #aaa; padding: 2px 4px; border-radius: 2px; font-size: 9px; }
+
+.ch-content { width: 120px; padding: 0 6px; font-size: 10px; color: #999; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.ch-knobs { display: flex; gap: 6px; padding: 0 6px; align-items: center; }
+.ch-knob-col { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.ch-knob { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #3a3e44, #222); border: 1.5px solid #444; position: relative; cursor: pointer; }
+.ch-knob::after { content: ''; position: absolute; top: 3px; left: 50%; width: 1.5px; height: 8px; background: #ccc; transform-origin: bottom center; border-radius: 1px; transform: translateX(-50%) rotate(var(--rot, 0deg)); }
+.ch-knob-arc { position: absolute; inset: -2px; border-radius: 50%; border: 2px solid transparent; }
+.ch-knob-arc.hue { border-left-color: #e06090; border-bottom-color: #e06090; }
+.ch-knob-arc.sat { border-left-color: #4ecdc4; }
+.ch-knob-arc.bri { border-left-color: #d4a853; border-bottom-color: #d4a853; }
+.ch-knob-arc.spd { border-bottom-color: #6fa8db; }
+.ch-knob-lbl { font-size: 7px; color: #666; }
+
+.ch-opacity { width: 120px; padding: 0 6px; display: flex; flex-direction: column; gap: 2px; }
+.ch-opacity label { font-size: 8px; color: #666; }
+.ch-opacity-bar { height: 6px; background: #222; border-radius: 3px; overflow: hidden; }
+.ch-opacity-f { height: 100%; border-radius: 3px; }
+
+.ch-actions { display: flex; gap: 4px; padding: 0 8px; align-items: center; }
+.ch-act-btn { padding: 3px 8px; background: #222; border: 1px solid #333; color: #888; border-radius: 2px; font-size: 9px; cursor: pointer; white-space: nowrap; }
+.ch-act-btn:hover { color: #fff; border-color: #555; }
+.ch-act-btn.slow { color: #d4a853; border-color: #4a3a1a; }
+.ch-act-btn.slow.on { background: #d4a853; color: #111; }
+.ch-act-btn.reset { color: #db6f6f; border-color: #4a2a2a; }
+.ch-act-btn.fx-send { color: #c084fc; border-color: #3a2a4a; }
+
+.ch-expand { width: 30px; display: flex; align-items: center; justify-content: center; color: #555; font-size: 14px; cursor: pointer; }
+.ch-expand:hover { color: #fff; }
+
+/* FOOTER */
+.footer { height: 28px; background: linear-gradient(180deg, #1e2228, #1a1e22); border-top: 1px solid #333; display: flex; align-items: center; padding: 0 12px; gap: 16px; }
+.f-item { font-size: 11px; color: #777; cursor: pointer; }
+.f-item:hover { color: #ccc; }
+.f-sep { width: 1px; height: 16px; background: #333; }
+.f-spacer { flex: 1; }
+.f-btn { padding: 2px 12px; background: #2a2e34; border: 1px solid #444; color: #aaa; border-radius: 2px; font-size: 11px; cursor: pointer; }
+.f-btn:hover { background: #3a3e44; color: #fff; }
+.f-green { color: #6fdb6f; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">Audio-<span>DNA</span> VJ</div>
+  <div class="sep"></div>
+  <span class="bpm-lbl">BPM:</span>
+  <span class="bpm">128.00</span>
+  <button class="btn">TAP</button>
+  <button class="btn">NUDGE</button>
+  <button class="btn">+</button>
+  <button class="btn">-</button>
+  <button class="btn active">RESYNC</button>
+  <div class="sep"></div>
+  <div class="dots">
+    <div class="dot on"></div>
+    <div class="dot"></div>
+    <div class="dot on"></div>
+    <div class="dot"></div>
+  </div>
+  <div class="bar-info">042 / 02.3</div>
+  <div class="sep"></div>
+  <div class="sl-w">
+    <label>Room Delay</label>
+    <div class="sl" style="width:50px"><div class="sl-f" style="width:10%;background:#4ecdc4"></div></div>
+    <span style="color:#888;font-size:10px">+1ms</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn danger">BLACKOUT</button>
+  <div class="sep"></div>
+  <div class="sl-w">
+    <label>MASTER</label>
+    <div class="sl" style="width:80px"><div class="sl-f" style="width:90%;background:linear-gradient(90deg,#d4a853,#e0c070)"></div></div>
+  </div>
+  <div class="sep"></div>
+  <span class="fps">60 FPS</span>
+  <span style="color:#888;font-size:10px">DSP 3%</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- TOP HALF -->
+  <div class="top-half">
+    <!-- SCENE FLOW -->
+    <div class="scene-flow">
+      <div class="pnl-hdr">Scene Flow</div>
+      <div class="sc-item"><div class="sc-dot" style="background:#4ecdc4"></div><span class="sc-name">Intro</span><span class="sc-trig">T</span></div>
+      <div class="sc-item"><div class="sc-dot" style="background:#6fa8db"></div><span class="sc-name">Verse 1</span><span class="sc-trig">T</span></div>
+      <div class="sc-item"><div class="sc-dot" style="background:#c084fc"></div><span class="sc-name">Chorus</span><span class="sc-trig">T</span></div>
+      <div class="sc-item active"><div class="sc-dot" style="background:#d4a853"></div><span class="sc-name">Drop</span><span class="sc-trig">T</span></div>
+      <div class="sc-item"><div class="sc-dot" style="background:#6fdb6f"></div><span class="sc-name">Bridge</span><span class="sc-trig">T</span></div>
+      <div class="sc-item"><div class="sc-dot" style="background:#e06090"></div><span class="sc-name">Outro</span><span class="sc-trig">T</span></div>
+      <div style="padding:6px 10px;color:#555;font-size:11px;cursor:pointer">+ Add Scene</div>
+    </div>
+
+    <!-- CENTER: PREVIEW -->
+    <div class="center-top">
+      <div class="preview-wrap">
+        <div class="preview-box">
+          <div class="pv-label"><span>Live Preview</span><span class="pv-live">LIVE</span></div>
+          <div class="pv-canvas"></div>
+          <div class="pv-transport">
+            <span class="t-btn">&#9654;</span>
+            <span class="t-btn">&#10074;&#10074;</span>
+            <span class="t-btn">&#9632;</span>
+            <div class="t-bar"><div class="t-bar-f"></div></div>
+            <span class="t-time">02:18.4</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOURCES -->
+    <div class="sources">
+      <div class="pnl-hdr">Sources</div>
+      <div class="src-tabs">
+        <div class="src-tab active">Sources</div>
+        <div class="src-tab">Layer</div>
+        <div class="src-tab">Clip</div>
+      </div>
+      <div class="src-section">Audio</div>
+      <div class="src-item"><div class="src-ico" style="background:#6fdb6f"></div><span style="flex:1;color:#ccc">Master Audio</span><div class="src-meter"><div class="src-meter-f" style="width:75%;background:linear-gradient(90deg,#2a6a2a,#6fdb6f)"></div></div></div>
+      <div class="src-item"><div class="src-ico" style="background:#6fdb6f"></div><span style="flex:1;color:#ccc">Kick Drum</span><div class="src-meter"><div class="src-meter-f" style="width:85%;background:linear-gradient(90deg,#2a6a2a,#6fdb6f)"></div></div></div>
+      <div class="src-item"><div class="src-ico" style="background:#6fdb6f"></div><span style="flex:1;color:#ccc">Bass</span><div class="src-meter"><div class="src-meter-f" style="width:50%;background:linear-gradient(90deg,#2a6a2a,#6fdb6f)"></div></div></div>
+      <div class="src-item"><div class="src-ico" style="background:#6fdb6f"></div><span style="flex:1;color:#ccc">Snare</span><div class="src-meter"><div class="src-meter-f" style="width:30%;background:linear-gradient(90deg,#2a6a2a,#6fdb6f)"></div></div></div>
+      <div class="src-item"><div class="src-ico" style="background:#6fdb6f"></div><span style="flex:1;color:#ccc">Mic</span><div class="src-meter"><div class="src-meter-f" style="width:8%;background:linear-gradient(90deg,#2a6a2a,#6fdb6f)"></div></div></div>
+      <div class="src-section">Oscillators</div>
+      <div class="src-item"><div class="src-ico" style="background:#4ecdc4"></div><span style="flex:1;color:#ccc">LFO Sine</span><div class="src-meter"><div class="src-meter-f" style="width:60%;background:linear-gradient(90deg,#1a4a4a,#4ecdc4)"></div></div></div>
+      <div class="src-item"><div class="src-ico" style="background:#4ecdc4"></div><span style="flex:1;color:#ccc">LFO Saw</span><div class="src-meter"><div class="src-meter-f" style="width:40%;background:linear-gradient(90deg,#1a4a4a,#4ecdc4)"></div></div></div>
+      <div class="src-section">Envelopes</div>
+      <div class="src-item"><div class="src-ico" style="background:#d4a853"></div><span style="flex:1;color:#ccc">Attack Env</span><div class="src-meter"><div class="src-meter-f" style="width:45%;background:linear-gradient(90deg,#4a3a1a,#d4a853)"></div></div></div>
+      <div class="src-add">+ Add Source</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM HALF: CHANNEL STRIPS -->
+  <div class="bottom-half">
+    <div class="strips-header">
+      <span class="strips-title">Channel Strips</span>
+      <div class="strips-spacer"></div>
+      <span class="strips-collapse">Collapse All</span>
+    </div>
+    <div class="strip-container">
+
+      <!-- Strip 1: Background -->
+      <div class="ch-strip active">
+        <div class="ch-name"><span class="ch-name-text">Background</span><span class="ch-name-sub">Layer 1 - Opaque</span></div>
+        <div class="ch-psm">
+          <div class="psm-dot p on">P</div>
+          <div class="psm-dot s">S</div>
+          <div class="psm-dot m">M</div>
+        </div>
+        <div class="ch-engine"><select class="ch-dropdown"><option>Video</option></select></div>
+        <div class="ch-content">City Lights Loop</div>
+        <div class="ch-knobs">
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:-40deg"><div class="ch-knob-arc hue"></div></div><span class="ch-knob-lbl">Hue</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:20deg"><div class="ch-knob-arc sat"></div></div><span class="ch-knob-lbl">Sat</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:45deg"><div class="ch-knob-arc bri"></div></div><span class="ch-knob-lbl">Bri</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:0deg"><div class="ch-knob-arc spd"></div></div><span class="ch-knob-lbl">Speed</span></div>
+        </div>
+        <div class="ch-opacity">
+          <label>Opacity</label>
+          <div class="ch-opacity-bar"><div class="ch-opacity-f" style="width:90%;background:linear-gradient(90deg,#2a4a4a,#4ecdc4)"></div></div>
+        </div>
+        <div class="ch-actions">
+          <div class="ch-act-btn slow">SLOW-MO</div>
+          <div class="ch-act-btn reset">RESET</div>
+          <div class="ch-act-btn fx-send">FX SEND</div>
+        </div>
+        <div class="ch-expand">&#9662;</div>
+      </div>
+
+      <!-- Strip 2: Pulse Shapes -->
+      <div class="ch-strip">
+        <div class="ch-name"><span class="ch-name-text">Pulse Shapes</span><span class="ch-name-sub">Layer 2 - Transparent</span></div>
+        <div class="ch-psm">
+          <div class="psm-dot p on">P</div>
+          <div class="psm-dot s">S</div>
+          <div class="psm-dot m">M</div>
+        </div>
+        <div class="ch-engine"><select class="ch-dropdown"><option>Synth</option></select></div>
+        <div class="ch-content">Spectrum Ring</div>
+        <div class="ch-knobs">
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:-60deg"><div class="ch-knob-arc hue"></div></div><span class="ch-knob-lbl">Hue</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:30deg"><div class="ch-knob-arc sat"></div></div><span class="ch-knob-lbl">Sat</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:50deg"><div class="ch-knob-arc bri"></div></div><span class="ch-knob-lbl">Bri</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:20deg"><div class="ch-knob-arc spd"></div></div><span class="ch-knob-lbl">Speed</span></div>
+        </div>
+        <div class="ch-opacity">
+          <label>Opacity</label>
+          <div class="ch-opacity-bar"><div class="ch-opacity-f" style="width:70%;background:linear-gradient(90deg,#2a2a4a,#6fa8db)"></div></div>
+        </div>
+        <div class="ch-actions">
+          <div class="ch-act-btn slow">SLOW-MO</div>
+          <div class="ch-act-btn reset">RESET</div>
+          <div class="ch-act-btn fx-send">FX SEND</div>
+        </div>
+        <div class="ch-expand">&#9656;</div>
+      </div>
+
+      <!-- Strip 3: Strobe FX -->
+      <div class="ch-strip">
+        <div class="ch-name"><span class="ch-name-text">Strobe FX</span><span class="ch-name-sub">Layer 3 - FX Only</span></div>
+        <div class="ch-psm">
+          <div class="psm-dot p on">P</div>
+          <div class="psm-dot s">S</div>
+          <div class="psm-dot m">M</div>
+        </div>
+        <div class="ch-engine"><select class="ch-dropdown"><option>Video</option></select></div>
+        <div class="ch-content">Tunnel Spin</div>
+        <div class="ch-knobs">
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:10deg"><div class="ch-knob-arc hue"></div></div><span class="ch-knob-lbl">Hue</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:-10deg"><div class="ch-knob-arc sat"></div></div><span class="ch-knob-lbl">Sat</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:60deg"><div class="ch-knob-arc bri"></div></div><span class="ch-knob-lbl">Bri</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:45deg"><div class="ch-knob-arc spd"></div></div><span class="ch-knob-lbl">Speed</span></div>
+        </div>
+        <div class="ch-opacity">
+          <label>Opacity</label>
+          <div class="ch-opacity-bar"><div class="ch-opacity-f" style="width:100%;background:linear-gradient(90deg,#2a4a2a,#6fdb6f)"></div></div>
+        </div>
+        <div class="ch-actions">
+          <div class="ch-act-btn slow on">SLOW-MO</div>
+          <div class="ch-act-btn reset">RESET</div>
+          <div class="ch-act-btn fx-send">FX SEND</div>
+        </div>
+        <div class="ch-expand">&#9656;</div>
+      </div>
+
+      <!-- Strip 4: 3D Tunnel -->
+      <div class="ch-strip">
+        <div class="ch-name"><span class="ch-name-text">3D Tunnel</span><span class="ch-name-sub">Layer 4 - Transparent</span></div>
+        <div class="ch-psm">
+          <div class="psm-dot p on">P</div>
+          <div class="psm-dot s">S</div>
+          <div class="psm-dot m">M</div>
+        </div>
+        <div class="ch-engine"><select class="ch-dropdown"><option>Synth</option></select></div>
+        <div class="ch-content">Menger Sponge</div>
+        <div class="ch-knobs">
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:35deg"><div class="ch-knob-arc hue"></div></div><span class="ch-knob-lbl">Hue</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:-25deg"><div class="ch-knob-arc sat"></div></div><span class="ch-knob-lbl">Sat</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:40deg"><div class="ch-knob-arc bri"></div></div><span class="ch-knob-lbl">Bri</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:55deg"><div class="ch-knob-arc spd"></div></div><span class="ch-knob-lbl">Speed</span></div>
+        </div>
+        <div class="ch-opacity">
+          <label>Opacity</label>
+          <div class="ch-opacity-bar"><div class="ch-opacity-f" style="width:55%;background:linear-gradient(90deg,#3a2a4a,#c084fc)"></div></div>
+        </div>
+        <div class="ch-actions">
+          <div class="ch-act-btn slow">SLOW-MO</div>
+          <div class="ch-act-btn reset">RESET</div>
+          <div class="ch-act-btn fx-send">FX SEND</div>
+        </div>
+        <div class="ch-expand">&#9656;</div>
+      </div>
+
+      <!-- Strip 5: Text Overlay -->
+      <div class="ch-strip">
+        <div class="ch-name"><span class="ch-name-text">Text Overlay</span><span class="ch-name-sub">Layer 5 - Transparent</span></div>
+        <div class="ch-psm">
+          <div class="psm-dot p on">P</div>
+          <div class="psm-dot s">S</div>
+          <div class="psm-dot m">M</div>
+        </div>
+        <div class="ch-engine"><select class="ch-dropdown"><option>Video</option></select></div>
+        <div class="ch-content">Scrolling Text</div>
+        <div class="ch-knobs">
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:0deg"><div class="ch-knob-arc hue"></div></div><span class="ch-knob-lbl">Hue</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:15deg"><div class="ch-knob-arc sat"></div></div><span class="ch-knob-lbl">Sat</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:30deg"><div class="ch-knob-arc bri"></div></div><span class="ch-knob-lbl">Bri</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:-15deg"><div class="ch-knob-arc spd"></div></div><span class="ch-knob-lbl">Speed</span></div>
+        </div>
+        <div class="ch-opacity">
+          <label>Opacity</label>
+          <div class="ch-opacity-bar"><div class="ch-opacity-f" style="width:40%;background:linear-gradient(90deg,#4a3a1a,#d4a853)"></div></div>
+        </div>
+        <div class="ch-actions">
+          <div class="ch-act-btn slow">SLOW-MO</div>
+          <div class="ch-act-btn reset">RESET</div>
+          <div class="ch-act-btn fx-send">FX SEND</div>
+        </div>
+        <div class="ch-expand">&#9656;</div>
+      </div>
+
+      <!-- Strip 6: Color Glitch -->
+      <div class="ch-strip">
+        <div class="ch-name"><span class="ch-name-text">Color Glitch</span><span class="ch-name-sub">Layer 6 - FX Only</span></div>
+        <div class="ch-psm">
+          <div class="psm-dot p on">P</div>
+          <div class="psm-dot s">S</div>
+          <div class="psm-dot m">M</div>
+        </div>
+        <div class="ch-engine"><select class="ch-dropdown"><option>Video</option></select></div>
+        <div class="ch-content">Block Shift</div>
+        <div class="ch-knobs">
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:-55deg"><div class="ch-knob-arc hue"></div></div><span class="ch-knob-lbl">Hue</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:25deg"><div class="ch-knob-arc sat"></div></div><span class="ch-knob-lbl">Sat</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:50deg"><div class="ch-knob-arc bri"></div></div><span class="ch-knob-lbl">Bri</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:10deg"><div class="ch-knob-arc spd"></div></div><span class="ch-knob-lbl">Speed</span></div>
+        </div>
+        <div class="ch-opacity">
+          <label>Opacity</label>
+          <div class="ch-opacity-bar"><div class="ch-opacity-f" style="width:80%;background:linear-gradient(90deg,#4a2a2a,#db6f6f)"></div></div>
+        </div>
+        <div class="ch-actions">
+          <div class="ch-act-btn slow">SLOW-MO</div>
+          <div class="ch-act-btn reset">RESET</div>
+          <div class="ch-act-btn fx-send">FX SEND</div>
+        </div>
+        <div class="ch-expand">&#9656;</div>
+      </div>
+
+      <!-- Strip 7: Particle FX -->
+      <div class="ch-strip">
+        <div class="ch-name"><span class="ch-name-text">Particle FX</span><span class="ch-name-sub">Layer 7 - Transparent</span></div>
+        <div class="ch-psm">
+          <div class="psm-dot p">P</div>
+          <div class="psm-dot s">S</div>
+          <div class="psm-dot m">M</div>
+        </div>
+        <div class="ch-engine"><select class="ch-dropdown"><option>Synth</option></select></div>
+        <div class="ch-content">Gravity Well</div>
+        <div class="ch-knobs">
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:20deg"><div class="ch-knob-arc hue"></div></div><span class="ch-knob-lbl">Hue</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:40deg"><div class="ch-knob-arc sat"></div></div><span class="ch-knob-lbl">Sat</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:30deg"><div class="ch-knob-arc bri"></div></div><span class="ch-knob-lbl">Bri</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:-30deg"><div class="ch-knob-arc spd"></div></div><span class="ch-knob-lbl">Speed</span></div>
+        </div>
+        <div class="ch-opacity">
+          <label>Opacity</label>
+          <div class="ch-opacity-bar"><div class="ch-opacity-f" style="width:65%;background:linear-gradient(90deg,#1a3a4a,#4ecdc4)"></div></div>
+        </div>
+        <div class="ch-actions">
+          <div class="ch-act-btn slow">SLOW-MO</div>
+          <div class="ch-act-btn reset">RESET</div>
+          <div class="ch-act-btn fx-send">FX SEND</div>
+        </div>
+        <div class="ch-expand">&#9656;</div>
+      </div>
+
+      <!-- Strip 8: Master FX -->
+      <div class="ch-strip">
+        <div class="ch-name"><span class="ch-name-text">Master FX</span><span class="ch-name-sub">Layer 8 - FX Only</span></div>
+        <div class="ch-psm">
+          <div class="psm-dot p on">P</div>
+          <div class="psm-dot s">S</div>
+          <div class="psm-dot m">M</div>
+        </div>
+        <div class="ch-engine"><select class="ch-dropdown"><option>FX Only</option></select></div>
+        <div class="ch-content">Bloom + Echo</div>
+        <div class="ch-knobs">
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:-20deg"><div class="ch-knob-arc hue"></div></div><span class="ch-knob-lbl">Hue</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:0deg"><div class="ch-knob-arc sat"></div></div><span class="ch-knob-lbl">Sat</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:60deg"><div class="ch-knob-arc bri"></div></div><span class="ch-knob-lbl">Bri</span></div>
+          <div class="ch-knob-col"><div class="ch-knob" style="--rot:35deg"><div class="ch-knob-arc spd"></div></div><span class="ch-knob-lbl">Speed</span></div>
+        </div>
+        <div class="ch-opacity">
+          <label>Opacity</label>
+          <div class="ch-opacity-bar"><div class="ch-opacity-f" style="width:100%;background:linear-gradient(90deg,#3a3a1a,#d4a853)"></div></div>
+        </div>
+        <div class="ch-actions">
+          <div class="ch-act-btn slow">SLOW-MO</div>
+          <div class="ch-act-btn reset">RESET</div>
+          <div class="ch-act-btn fx-send">FX SEND</div>
+        </div>
+        <div class="ch-expand">&#9656;</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span class="f-item">Master Sources</span>
+  <div class="f-sep"></div>
+  <span class="f-item">Audio Player &#9654;</span>
+  <div class="f-sep"></div>
+  <span class="f-item">Outputs</span>
+  <div class="f-sep"></div>
+  <span class="f-item f-green">Display 01</span>
+  <span class="f-item" style="color:#888">1920 x 1080</span>
+  <div class="f-spacer"></div>
+  <button class="f-btn">SAVE</button>
+  <button class="f-btn">LOAD</button>
+  <button class="f-btn">HELP</button>
+</div>
+
+</body>
+</html>

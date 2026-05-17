@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v9 Brutalist 02 — Performance State Comparison</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+html,body{
+  width:1920px;height:1080px;
+  background:#0a0a0a;
+  color:#e8e8e8;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  font-weight:400;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ============ GRAIN OVERLAY ============ */
+.grain{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;opacity:0.04;z-index:9999;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+}
+
+/* ============ LAYOUT ============ */
+.stage{
+  position:absolute;top:0;left:0;
+  width:1920px;height:1080px;
+  background:#0a0a0a;
+}
+
+.half{
+  position:absolute;top:0;
+  width:958px;height:1080px;
+}
+.half.left{left:0;border-right:1px solid #1f1f1f;}
+.half.right{left:962px;}
+
+/* Center rotated label divider */
+.divider{
+  position:absolute;top:0;left:958px;
+  width:4px;height:1080px;
+  background:#0a0a0a;
+  border-left:1px solid #ff4500;
+  border-right:1px solid #ff4500;
+  z-index:500;
+}
+.divider-label{
+  position:absolute;
+  top:540px;left:958px;
+  transform:rotate(-90deg);transform-origin:2px 2px;
+  font-size:9px;font-weight:600;
+  color:#ff4500;
+  letter-spacing:3px;
+  white-space:nowrap;
+  width:800px;
+  text-align:center;
+  margin-left:-400px;
+}
+
+/* ============ MENU BAR (22px) ============ */
+.menubar{
+  position:absolute;top:0;left:0;
+  width:100%;height:22px;
+  background:#0a0a0a;
+  border-bottom:1px solid #1f1f1f;
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  font-size:10px;
+  font-weight:500;
+  color:#8a8a8a;
+  letter-spacing:0.5px;
+}
+.menubar .brand{
+  color:#ff4500;font-weight:700;margin-right:18px;
+  letter-spacing:2px;
+}
+.menubar .menu{margin-right:14px;cursor:default;}
+.menubar .menu:hover{color:#e8e8e8;}
+.menubar .spacer{flex:1;}
+.menubar .meta{color:#555;margin-left:10px;}
+.menubar .meta.orange{color:#ff4500;}
+
+/* ============ TOP BAR (28px) ============ */
+.topbar{
+  position:absolute;top:22px;left:0;
+  width:100%;height:28px;
+  background:#0a0a0a;
+  border-bottom:1px solid #1f1f1f;
+  display:flex;align-items:center;
+  padding:0 12px;
+  font-size:10px;
+  color:#8a8a8a;
+}
+.topbar .bpm{
+  color:#ff4500;font-weight:700;font-size:14px;
+  letter-spacing:1px;margin-right:10px;
+}
+.topbar .bpm-label{
+  font-size:8px;color:#555;margin-right:14px;letter-spacing:1.5px;
+}
+.topbar .beatwheel{
+  display:flex;gap:3px;margin-right:12px;
+}
+.topbar .beatwheel .sq{
+  width:8px;height:8px;background:#222;border:1px solid #333;
+}
+.topbar .beatwheel .sq.active{background:#ff4500;border-color:#ff4500;animation:pulse 0.5s ease-out infinite;}
+.topbar .bar{
+  font-size:9px;color:#bbb;font-weight:600;letter-spacing:1px;margin-right:16px;
+}
+.topbar .bar span{color:#555;}
+.topbar .divider-v{width:1px;height:16px;background:#1f1f1f;margin:0 10px;}
+.topbar .master{
+  display:flex;align-items:center;gap:6px;margin-right:16px;
+}
+.topbar .master-label{font-size:8px;color:#555;letter-spacing:1.5px;}
+.topbar .master-track{
+  width:80px;height:3px;background:#1f1f1f;position:relative;
+}
+.topbar .master-fill{height:100%;background:#e8e8e8;width:82%;}
+.topbar .master-val{font-size:9px;color:#e8e8e8;font-weight:600;}
+.topbar .spacer{flex:1;}
+.topbar .rec{
+  display:flex;align-items:center;gap:6px;color:#ff4500;
+  font-size:10px;font-weight:700;letter-spacing:1px;
+}
+.topbar .rec-dot{
+  width:7px;height:7px;background:#ff4500;border-radius:50%;
+  animation:recblink 1s ease-in-out infinite;
+}
+.topbar .rec-time{font-family:'IBM Plex Mono';font-weight:600;color:#ff4500;}
+
+@keyframes pulse{
+  0%{opacity:1;}50%{opacity:0.5;}100%{opacity:1;}
+}
+@keyframes recblink{
+  0%,100%{opacity:1;}50%{opacity:0.2;}
+}
+
+/* ============ PANEL LABELS ============ */
+.panel-label{
+  display:flex;align-items:center;
+  font-size:9px;font-weight:600;
+  color:#666;letter-spacing:2.5px;
+  padding:0 10px;
+  height:16px;
+  background:#0a0a0a;
+  border-bottom:1px solid #1f1f1f;
+}
+.panel-label .num{color:#ff4500;margin-right:8px;font-weight:700;}
+.panel-label .slash{color:#333;margin-right:8px;}
+.panel-label .meta{margin-left:auto;color:#444;font-weight:400;letter-spacing:1.5px;font-size:8px;}
+
+/* ============ WAVEFORM (40px) ============ */
+.wave{
+  position:absolute;
+  left:0;right:0;
+  top:66px;height:56px;
+  background:#0a0a0a;
+  border-bottom:1px solid #1f1f1f;
+}
+.wave-body{
+  position:absolute;top:16px;left:0;right:0;height:40px;
+  padding:0 12px;
+  display:flex;align-items:center;
+}
+.wave-line{
+  flex:1;height:36px;position:relative;
+  background:linear-gradient(180deg,transparent 0%,transparent 45%,#0a0a0a 45%,#0a0a0a 55%,transparent 55%,transparent 100%);
+}
+.wave-bars{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:center;gap:1px;
+}
+.wave-bars .b{
+  flex:1;background:#555;min-height:2px;
+}
+.wave-bars .b.hot{background:#ff4500;}
+.wave-bars .b.mid{background:#888;}
+.wave-playhead{
+  position:absolute;top:-4px;bottom:-4px;
+  width:1px;background:#ff4500;
+  left:38%;
+}
+.wave-playhead::before{
+  content:'';position:absolute;top:-3px;left:-3px;
+  width:7px;height:3px;background:#ff4500;
+}
+
+/* ============ SIGNALS (60x60 pulse dots) ============ */
+.signals{
+  position:absolute;left:0;right:0;
+  top:122px;height:90px;
+  border-bottom:1px solid #1f1f1f;
+}
+.signals-body{
+  position:absolute;top:16px;left:0;right:0;
+  padding:4px 12px;
+  display:flex;gap:8px;
+}
+.sig-dot{
+  width:140px;height:60px;
+  background:#0e0e0e;
+  border:1px solid #1f1f1f;
+  position:relative;
+  display:flex;flex-direction:column;
+  justify-content:space-between;
+  padding:6px 8px;
+}
+.sig-dot .sig-name{
+  font-size:9px;font-weight:700;color:#8a8a8a;letter-spacing:2px;
+}
+.sig-dot .sig-pulse{
+  width:100%;height:24px;
+  background:#1a1a1a;
+  position:relative;
+}
+.sig-dot .sig-fill{
+  position:absolute;left:0;top:0;bottom:0;
+  background:#e8e8e8;
+}
+.sig-dot.kick .sig-fill{background:#ff4500;width:88%;animation:sigpulse 0.47s ease-out infinite;}
+.sig-dot.bass .sig-fill{background:#e8e8e8;width:72%;}
+.sig-dot.mid .sig-fill{background:#e8e8e8;width:44%;}
+.sig-dot.hi .sig-fill{background:#e8e8e8;width:28%;}
+.sig-dot.beat .sig-fill{background:#ff4500;width:100%;animation:sigpulse 0.47s ease-out infinite;animation-delay:0.23s;}
+.sig-dot.drop .sig-fill{background:#1a1a1a;width:12%;}
+
+@keyframes sigpulse{
+  0%{opacity:1;}100%{opacity:0.3;}
+}
+
+/* ============ DECK GRID ============ */
+.deck{
+  position:absolute;left:0;right:0;
+  top:212px;bottom:16px;
+  border-bottom:1px solid #1f1f1f;
+}
+.deck-grid{
+  position:absolute;top:16px;left:0;right:0;bottom:0;
+  padding:6px 12px;
+  display:flex;flex-direction:column;gap:3px;
+}
+.layer-row{
+  display:flex;gap:3px;height:120px;
+  align-items:stretch;
+}
+.layer-head{
+  width:50px;
+  background:#0e0e0e;
+  border:1px solid #1f1f1f;
+  display:flex;flex-direction:column;
+  justify-content:space-between;
+  padding:6px 5px;
+}
+.layer-head .l-num{
+  font-size:10px;font-weight:700;color:#e8e8e8;letter-spacing:1px;
+}
+.layer-head .l-type{
+  font-size:8px;font-weight:700;color:#ff4500;letter-spacing:1.5px;
+}
+.layer-head .l-opacity{
+  font-size:10px;font-weight:500;color:#bbb;font-family:'IBM Plex Mono';
+}
+.clip-cell{
+  flex:1;height:120px;
+  background:#0e0e0e;
+  border:1px solid #1f1f1f;
+  position:relative;
+  overflow:hidden;
+}
+.clip-cell.active{
+  border:1px solid #ff4500;
+}
+.clip-thumb{
+  position:absolute;top:0;left:0;right:0;bottom:14px;
+}
+.clip-name{
+  position:absolute;bottom:0;left:0;right:0;
+  height:14px;
+  background:#050505;
+  border-top:1px solid #1f1f1f;
+  font-size:9px;font-weight:500;
+  color:#8a8a8a;
+  padding:0 5px;
+  display:flex;align-items:center;
+  letter-spacing:0.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.clip-cell.active .clip-name{color:#ff4500;font-weight:700;}
+.clip-cell.empty .clip-thumb{
+  background:
+    repeating-linear-gradient(45deg,
+      transparent 0px,transparent 5px,
+      #0a0a0a 5px,#0a0a0a 6px);
+}
+.clip-cell.empty .clip-name{color:#333;}
+
+/* Gradient thumb variants */
+.t1{background:linear-gradient(135deg,#1a2838 0%,#0a1a2a 100%);}
+.t2{background:linear-gradient(135deg,#2a1a2e 0%,#1e0a1c 100%);}
+.t3{background:linear-gradient(135deg,#2e2a1a 0%,#1c1a0a 100%);}
+.t4{background:linear-gradient(180deg,#0a1f2e 0%,#0a0a1c 100%);}
+.t5{background:linear-gradient(45deg,#2e1a1a 0%,#1c0a0a 100%);}
+.t6{background:linear-gradient(90deg,#1a2e2e 0%,#0a1c1c 100%);}
+.t7{background:linear-gradient(225deg,#2a2e1a 0%,#1a1c0a 100%);}
+.t8{background:linear-gradient(315deg,#1a1a2e 0%,#0a0a1c 100%);}
+.t9{background:radial-gradient(circle,#2e1a2e 0%,#0a0a1a 100%);}
+.t10{background:radial-gradient(ellipse,#1a2e1a 0%,#0a1c0a 100%);}
+
+/* ============ STATUS LINE (16px) ============ */
+.status{
+  position:absolute;left:0;right:0;
+  bottom:0;height:16px;
+  background:#0a0a0a;
+  border-top:1px solid #1f1f1f;
+  display:flex;align-items:center;
+  padding:0 12px;
+  font-size:9px;font-weight:500;
+  color:#555;letter-spacing:1.5px;gap:14px;
+}
+.status .ready{color:#ff4500;font-weight:700;}
+.status .fps{color:#8a8a8a;}
+.status .key{color:#444;}
+.status .key b{color:#8a8a8a;font-weight:600;}
+
+/* ============ ANNOTATIONS ============ */
+.annotation{
+  position:absolute;
+  border:1px solid #ff4500;
+  color:#ff4500;
+  font-size:8px;font-weight:600;
+  letter-spacing:1.5px;
+  padding:4px 8px;
+  background:#0a0a0a;
+  z-index:200;
+}
+
+/* ============ COMMAND PALETTE ============ */
+.palette{
+  position:absolute;
+  width:560px;height:600px;
+  left:962px;top:240px;
+  margin-left:199px;
+  background:#0a0a0a;
+  border:1px solid #ff4500;
+  z-index:800;
+}
+.palette-hdr{
+  height:24px;
+  border-bottom:1px solid #ff4500;
+  display:flex;align-items:center;
+  padding:0 12px;
+  font-size:10px;font-weight:700;
+  color:#ff4500;letter-spacing:2px;
+}
+.palette-hdr .bracket{color:#ff4500;margin:0 3px;}
+.palette-hdr .shortcut{
+  margin-left:auto;
+  color:#ff4500;font-size:9px;font-weight:600;
+  border:1px solid #ff4500;padding:1px 6px;
+}
+.palette-input{
+  height:40px;
+  border-bottom:1px solid #1f1f1f;
+  display:flex;align-items:center;
+  padding:0 14px;
+  background:#050505;
+}
+.palette-prompt{
+  color:#ff4500;font-size:14px;font-weight:700;margin-right:8px;
+}
+.palette-query{
+  color:#e8e8e8;font-size:13px;font-weight:500;
+  letter-spacing:0.5px;
+  font-family:'IBM Plex Mono';
+}
+.palette-cursor{
+  display:inline-block;
+  width:8px;height:14px;background:#ff4500;
+  margin-left:3px;vertical-align:middle;
+  animation:blink 0.8s step-end infinite;
+}
+@keyframes blink{
+  0%,50%{opacity:1;}51%,100%{opacity:0;}
+}
+.palette-section{
+  height:18px;
+  display:flex;align-items:center;
+  padding:0 14px;
+  font-size:8px;font-weight:600;
+  color:#666;letter-spacing:2px;
+  background:#0a0a0a;
+  border-bottom:1px solid #1f1f1f;
+}
+.palette-section .count{margin-left:auto;color:#333;}
+.palette-results{
+  padding:4px 0;
+}
+.pr-row{
+  display:flex;align-items:center;
+  height:44px;
+  padding:0 14px;
+  border-bottom:1px solid #1a1a1a;
+  position:relative;
+  font-size:10px;
+}
+.pr-row.selected{
+  background:#14100e;
+}
+.pr-row.selected::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:2px;background:#ff4500;
+}
+.pr-row .pr-short{
+  width:72px;
+  font-size:9px;font-weight:600;
+  color:#ff4500;letter-spacing:1px;
+  font-family:'IBM Plex Mono';
+}
+.pr-row.selected .pr-short{color:#ff4500;}
+.pr-row .pr-short.dim{color:#444;}
+.pr-row .pr-cmd{
+  flex:1;
+  font-size:11px;font-weight:600;
+  color:#e8e8e8;letter-spacing:1px;
+  font-family:'IBM Plex Sans';
+}
+.pr-row.selected .pr-cmd{color:#ff4500;}
+.pr-row .pr-breadcrumb{
+  font-size:8px;font-weight:500;
+  color:#555;letter-spacing:2px;
+  font-family:'IBM Plex Mono';
+}
+.palette-footer{
+  position:absolute;left:0;right:0;bottom:0;
+  height:22px;
+  border-top:1px solid #1f1f1f;
+  background:#050505;
+  display:flex;align-items:center;
+  padding:0 14px;
+  font-size:8px;font-weight:500;
+  color:#555;letter-spacing:2px;gap:14px;
+}
+.palette-footer b{color:#ff4500;font-weight:700;}
+
+/* ============ CONTEXT RING MENU ============ */
+.context{
+  position:absolute;
+  width:246px;height:172px;
+  left:962px;top:700px;
+  margin-left:330px;
+  background:#0a0a0a;
+  border:1px solid #ff4500;
+  z-index:700;
+  display:grid;
+  grid-template-columns:120px 120px;
+  grid-template-rows:40px 40px 40px 40px;
+  grid-gap:1px;
+  padding:1px;
+  background:#ff4500;
+}
+.ctx-cell{
+  background:#0a0a0a;
+  display:flex;align-items:center;
+  padding:0 8px;gap:6px;
+  font-size:9px;font-weight:600;
+  color:#e8e8e8;letter-spacing:1.5px;
+}
+.ctx-cell .n{color:#ff4500;font-weight:700;font-size:9px;}
+.ctx-cell:hover{background:#14100e;color:#ff4500;}
+.ctx-cell.hover{background:#14100e;color:#ff4500;}
+
+/* Target cell outline thick */
+.target-marker{
+  position:absolute;
+  border:2px solid #ff4500;
+  z-index:650;
+  pointer-events:none;
+}
+.target-arrow{
+  position:absolute;
+  color:#ff4500;
+  font-size:9px;font-weight:700;
+  letter-spacing:1.5px;
+  z-index:660;
+  background:#0a0a0a;
+  padding:3px 6px;
+  border:1px solid #ff4500;
+}
+
+/* ============ CORNER MARKS ============ */
+.corner{
+  position:absolute;
+  font-size:8px;color:#ff4500;
+  font-weight:600;letter-spacing:2px;
+  z-index:400;
+}
+
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<div class="stage">
+
+<!-- ================================================================ -->
+<!-- LEFT HALF: RESTING PERFORMANCE MODE                              -->
+<!-- ================================================================ -->
+<div class="half left">
+
+  <!-- MENU BAR -->
+  <div class="menubar">
+    <span class="brand">◼ AUDIO-DNA</span>
+    <span class="menu">FILE</span>
+    <span class="menu">EDIT</span>
+    <span class="menu">COMPOSITION</span>
+    <span class="menu">DECK</span>
+    <span class="menu">LAYER</span>
+    <span class="menu">CLIP</span>
+    <span class="menu">OUTPUT</span>
+    <span class="menu">WINDOW</span>
+    <span class="spacer"></span>
+    <span class="meta">COMP.LIVE_SET_04.ADNA</span>
+    <span class="meta orange">·</span>
+    <span class="meta">SAVED 00:14</span>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="bpm-label">BPM</span>
+    <span class="bpm">128.0</span>
+    <div class="beatwheel">
+      <div class="sq active"></div>
+      <div class="sq"></div>
+      <div class="sq"></div>
+      <div class="sq"></div>
+    </div>
+    <span class="bar">BAR <span>/</span> 03<span>·</span>08</span>
+    <div class="divider-v"></div>
+    <div class="master">
+      <span class="master-label">MASTER</span>
+      <div class="master-track"><div class="master-fill"></div></div>
+      <span class="master-val">0.82</span>
+    </div>
+    <span class="spacer"></span>
+    <div class="rec">
+      <div class="rec-dot"></div>
+      <span>REC</span>
+      <span class="rec-time">00:12:34</span>
+    </div>
+  </div>
+
+  <!-- WAVEFORM -->
+  <div class="wave">
+    <div class="panel-label">
+      <span class="num">01</span><span class="slash">/</span>WAVEFORM
+      <span class="meta">DECK.A · MONO · 40PX</span>
+    </div>
+    <div class="wave-body">
+      <div class="wave-line">
+        <div class="wave-bars">
+          <div class="b" style="height:8%"></div>
+          <div class="b" style="height:12%"></div>
+          <div class="b mid" style="height:30%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b hot" style="height:60%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:42%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:80%"></div>
+          <div class="b" style="height:34%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:48%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b hot" style="height:72%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:38%"></div>
+          <div class="b" style="height:20%"></div>
+          <div class="b hot" style="height:66%"></div>
+          <div class="b" style="height:32%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:44%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:74%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:40%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:62%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:46%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b hot" style="height:70%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:36%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:58%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:12%"></div>
+          <div class="b mid" style="height:42%"></div>
+          <div class="b" style="height:20%"></div>
+          <div class="b hot" style="height:64%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:38%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:76%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:44%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:68%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:40%"></div>
+          <div class="b" style="height:20%"></div>
+          <div class="b hot" style="height:54%"></div>
+          <div class="b" style="height:32%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:46%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:60%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:38%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:66%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:12%"></div>
+          <div class="b mid" style="height:42%"></div>
+          <div class="b" style="height:20%"></div>
+          <div class="b hot" style="height:56%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:40%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:70%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:36%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:62%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:44%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:58%"></div>
+          <div class="b" style="height:32%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:40%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b hot" style="height:64%"></div>
+        </div>
+        <div class="wave-playhead"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNALS -->
+  <div class="signals">
+    <div class="panel-label">
+      <span class="num">02</span><span class="slash">/</span>SIGNALS
+      <span class="meta">6 CORE · PULSE ONLY · NO METERS</span>
+    </div>
+    <div class="signals-body">
+      <div class="sig-dot kick">
+        <span class="sig-name">KICK</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot bass">
+        <span class="sig-name">BASS</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot mid">
+        <span class="sig-name">MID</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot hi">
+        <span class="sig-name">HI</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot beat">
+        <span class="sig-name">BEAT</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot drop">
+        <span class="sig-name">DROP</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DECK GRID -->
+  <div class="deck">
+    <div class="panel-label">
+      <span class="num">03</span><span class="slash">/</span>DECK GRID
+      <span class="meta">5 LAYERS · 10 CLIPS · DECK.A · ACTIVE</span>
+    </div>
+    <div class="deck-grid">
+
+      <!-- Layer 01 - OPAQUE -->
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·01</div>
+          <div class="l-type">OPQ</div>
+          <div class="l-opacity">1.00</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t1"></div><div class="clip-name">VOID.01</div></div>
+        <div class="clip-cell"><div class="clip-thumb t2"></div><div class="clip-name">NEON.02</div></div>
+        <div class="clip-cell active"><div class="clip-thumb t3"></div><div class="clip-name">FIRE.03</div></div>
+        <div class="clip-cell"><div class="clip-thumb t4"></div><div class="clip-name">WAVE.04</div></div>
+        <div class="clip-cell"><div class="clip-thumb t5"></div><div class="clip-name">DRIFT.05</div></div>
+        <div class="clip-cell"><div class="clip-thumb t6"></div><div class="clip-name">CYAN.06</div></div>
+        <div class="clip-cell"><div class="clip-thumb t7"></div><div class="clip-name">GRID.07</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell"><div class="clip-thumb t8"></div><div class="clip-name">BLUR.09</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+      <!-- Layer 02 - TRANSPARENT -->
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·02</div>
+          <div class="l-type">TRN</div>
+          <div class="l-opacity">0.84</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t9"></div><div class="clip-name">MESH.01</div></div>
+        <div class="clip-cell"><div class="clip-thumb t10"></div><div class="clip-name">ORB.02</div></div>
+        <div class="clip-cell"><div class="clip-thumb t1"></div><div class="clip-name">TORUS.03</div></div>
+        <div class="clip-cell"><div class="clip-thumb t2"></div><div class="clip-name">WIRE.04</div></div>
+        <div class="clip-cell"><div class="clip-thumb t3"></div><div class="clip-name">PLASMA.05</div></div>
+        <div class="clip-cell active"><div class="clip-thumb t4"></div><div class="clip-name">FRACT.06</div></div>
+        <div class="clip-cell"><div class="clip-thumb t5"></div><div class="clip-name">JULIA.07</div></div>
+        <div class="clip-cell"><div class="clip-thumb t6"></div><div class="clip-name">BULB.08</div></div>
+        <div class="clip-cell"><div class="clip-thumb t7"></div><div class="clip-name">IFS.09</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+      <!-- Layer 03 - FX ONLY -->
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·03</div>
+          <div class="l-type">FXO</div>
+          <div class="l-opacity">0.62</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t8"></div><div class="clip-name">ECHO.01</div></div>
+        <div class="clip-cell active"><div class="clip-thumb t9"></div><div class="clip-name">RIPPLE.02</div></div>
+        <div class="clip-cell"><div class="clip-thumb t10"></div><div class="clip-name">BLUR.03</div></div>
+        <div class="clip-cell"><div class="clip-thumb t1"></div><div class="clip-name">GLITCH.04</div></div>
+        <div class="clip-cell"><div class="clip-thumb t2"></div><div class="clip-name">CHROMA.05</div></div>
+        <div class="clip-cell"><div class="clip-thumb t3"></div><div class="clip-name">FEEDBK.06</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell"><div class="clip-thumb t4"></div><div class="clip-name">SCAN.08</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+      <!-- Layer 04 - MASK -->
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·04</div>
+          <div class="l-type">MSK</div>
+          <div class="l-opacity">0.50</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t5"></div><div class="clip-name">LUMA.01</div></div>
+        <div class="clip-cell"><div class="clip-thumb t6"></div><div class="clip-name">ALPHA.02</div></div>
+        <div class="clip-cell"><div class="clip-thumb t7"></div><div class="clip-name">CIRCLE.03</div></div>
+        <div class="clip-cell"><div class="clip-thumb t8"></div><div class="clip-name">DIAMOND</div></div>
+        <div class="clip-cell active"><div class="clip-thumb t9"></div><div class="clip-name">STRIPE.05</div></div>
+        <div class="clip-cell"><div class="clip-thumb t10"></div><div class="clip-name">GRAD.06</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+      <!-- Layer 05 - OPAQUE -->
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·05</div>
+          <div class="l-type">OPQ</div>
+          <div class="l-opacity">0.35</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t1"></div><div class="clip-name">TEXT.01</div></div>
+        <div class="clip-cell"><div class="clip-thumb t2"></div><div class="clip-name">LOGO.02</div></div>
+        <div class="clip-cell"><div class="clip-thumb t3"></div><div class="clip-name">SCROLL.03</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell"><div class="clip-thumb t4"></div><div class="clip-name">MATRIX.05</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell"><div class="clip-thumb t5"></div><div class="clip-name">ASCII.07</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STATUS LINE -->
+  <div class="status">
+    <span class="ready">◼ READY</span>
+    <span class="fps">60FPS</span>
+    <span class="key"><b>[CMD+K]</b> COMMAND PALETTE</span>
+    <span class="key"><b>[E]</b> EDITOR</span>
+    <span class="key"><b>[B]</b> BROWSER</span>
+    <span class="key"><b>[I]</b> INSPECTOR</span>
+    <span class="key"><b>[ESC]</b> BLACKOUT</span>
+  </div>
+
+  <!-- ANNOTATION -->
+  <div class="annotation" style="top:72px;right:18px;">STATE · PERFORMANCE · RESTING · 3 SURFACES VISIBLE ONLY</div>
+
+  <!-- CORNERS -->
+  <div class="corner" style="top:26px;left:12px;">┌ L</div>
+  <div class="corner" style="bottom:20px;left:12px;">└ L</div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- RIGHT HALF: PERFORMANCE + PALETTE + CONTEXT RING                 -->
+<!-- ================================================================ -->
+<div class="half right">
+
+  <!-- MENU BAR -->
+  <div class="menubar">
+    <span class="brand">◼ AUDIO-DNA</span>
+    <span class="menu">FILE</span>
+    <span class="menu">EDIT</span>
+    <span class="menu">COMPOSITION</span>
+    <span class="menu">DECK</span>
+    <span class="menu">LAYER</span>
+    <span class="menu">CLIP</span>
+    <span class="menu">OUTPUT</span>
+    <span class="menu">WINDOW</span>
+    <span class="spacer"></span>
+    <span class="meta">COMP.LIVE_SET_04.ADNA</span>
+    <span class="meta orange">·</span>
+    <span class="meta">SAVED 00:14</span>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="bpm-label">BPM</span>
+    <span class="bpm">128.0</span>
+    <div class="beatwheel">
+      <div class="sq active"></div>
+      <div class="sq"></div>
+      <div class="sq"></div>
+      <div class="sq"></div>
+    </div>
+    <span class="bar">BAR <span>/</span> 03<span>·</span>08</span>
+    <div class="divider-v"></div>
+    <div class="master">
+      <span class="master-label">MASTER</span>
+      <div class="master-track"><div class="master-fill"></div></div>
+      <span class="master-val">0.82</span>
+    </div>
+    <span class="spacer"></span>
+    <div class="rec">
+      <div class="rec-dot"></div>
+      <span>REC</span>
+      <span class="rec-time">00:12:34</span>
+    </div>
+  </div>
+
+  <!-- WAVEFORM -->
+  <div class="wave">
+    <div class="panel-label">
+      <span class="num">01</span><span class="slash">/</span>WAVEFORM
+      <span class="meta">DECK.A · MONO · 40PX</span>
+    </div>
+    <div class="wave-body">
+      <div class="wave-line">
+        <div class="wave-bars">
+          <div class="b" style="height:8%"></div>
+          <div class="b" style="height:12%"></div>
+          <div class="b mid" style="height:30%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b hot" style="height:60%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:42%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:80%"></div>
+          <div class="b" style="height:34%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:48%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b hot" style="height:72%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:38%"></div>
+          <div class="b" style="height:20%"></div>
+          <div class="b hot" style="height:66%"></div>
+          <div class="b" style="height:32%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:44%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:74%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:40%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:62%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:46%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b hot" style="height:70%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:36%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:58%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:12%"></div>
+          <div class="b mid" style="height:42%"></div>
+          <div class="b" style="height:20%"></div>
+          <div class="b hot" style="height:64%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:38%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:76%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:44%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:68%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:40%"></div>
+          <div class="b" style="height:20%"></div>
+          <div class="b hot" style="height:54%"></div>
+          <div class="b" style="height:32%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:46%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:60%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:38%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:66%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:12%"></div>
+          <div class="b mid" style="height:42%"></div>
+          <div class="b" style="height:20%"></div>
+          <div class="b hot" style="height:56%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:40%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:70%"></div>
+          <div class="b" style="height:28%"></div>
+          <div class="b" style="height:16%"></div>
+          <div class="b mid" style="height:36%"></div>
+          <div class="b" style="height:24%"></div>
+          <div class="b hot" style="height:62%"></div>
+          <div class="b" style="height:30%"></div>
+          <div class="b" style="height:18%"></div>
+          <div class="b mid" style="height:44%"></div>
+          <div class="b" style="height:22%"></div>
+          <div class="b hot" style="height:58%"></div>
+          <div class="b" style="height:32%"></div>
+          <div class="b" style="height:14%"></div>
+          <div class="b mid" style="height:40%"></div>
+          <div class="b" style="height:26%"></div>
+          <div class="b hot" style="height:64%"></div>
+        </div>
+        <div class="wave-playhead"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNALS -->
+  <div class="signals">
+    <div class="panel-label">
+      <span class="num">02</span><span class="slash">/</span>SIGNALS
+      <span class="meta">6 CORE · PULSE ONLY · NO METERS</span>
+    </div>
+    <div class="signals-body">
+      <div class="sig-dot kick">
+        <span class="sig-name">KICK</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot bass">
+        <span class="sig-name">BASS</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot mid">
+        <span class="sig-name">MID</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot hi">
+        <span class="sig-name">HI</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot beat">
+        <span class="sig-name">BEAT</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+      <div class="sig-dot drop">
+        <span class="sig-name">DROP</span>
+        <div class="sig-pulse"><div class="sig-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DECK GRID (dimmer under overlay) -->
+  <div class="deck">
+    <div class="panel-label">
+      <span class="num">03</span><span class="slash">/</span>DECK GRID
+      <span class="meta">5 LAYERS · 10 CLIPS · DECK.A · ACTIVE</span>
+    </div>
+    <div class="deck-grid" style="opacity:0.55">
+
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·01</div>
+          <div class="l-type">OPQ</div>
+          <div class="l-opacity">1.00</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t1"></div><div class="clip-name">VOID.01</div></div>
+        <div class="clip-cell"><div class="clip-thumb t2"></div><div class="clip-name">NEON.02</div></div>
+        <div class="clip-cell active"><div class="clip-thumb t3"></div><div class="clip-name">FIRE.03</div></div>
+        <div class="clip-cell"><div class="clip-thumb t4"></div><div class="clip-name">WAVE.04</div></div>
+        <div class="clip-cell"><div class="clip-thumb t5"></div><div class="clip-name">DRIFT.05</div></div>
+        <div class="clip-cell"><div class="clip-thumb t6"></div><div class="clip-name">CYAN.06</div></div>
+        <div class="clip-cell"><div class="clip-thumb t7"></div><div class="clip-name">GRID.07</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell"><div class="clip-thumb t8"></div><div class="clip-name">BLUR.09</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·02</div>
+          <div class="l-type">TRN</div>
+          <div class="l-opacity">0.84</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t9"></div><div class="clip-name">MESH.01</div></div>
+        <div class="clip-cell"><div class="clip-thumb t10"></div><div class="clip-name">ORB.02</div></div>
+        <div class="clip-cell"><div class="clip-thumb t1"></div><div class="clip-name">TORUS.03</div></div>
+        <div class="clip-cell"><div class="clip-thumb t2"></div><div class="clip-name">WIRE.04</div></div>
+        <div class="clip-cell"><div class="clip-thumb t3"></div><div class="clip-name">PLASMA.05</div></div>
+        <div class="clip-cell active"><div class="clip-thumb t4"></div><div class="clip-name">FRACT.06</div></div>
+        <div class="clip-cell" id="target-clip"><div class="clip-thumb t5"></div><div class="clip-name">JULIA.07</div></div>
+        <div class="clip-cell"><div class="clip-thumb t6"></div><div class="clip-name">BULB.08</div></div>
+        <div class="clip-cell"><div class="clip-thumb t7"></div><div class="clip-name">IFS.09</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·03</div>
+          <div class="l-type">FXO</div>
+          <div class="l-opacity">0.62</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t8"></div><div class="clip-name">ECHO.01</div></div>
+        <div class="clip-cell active"><div class="clip-thumb t9"></div><div class="clip-name">RIPPLE.02</div></div>
+        <div class="clip-cell"><div class="clip-thumb t10"></div><div class="clip-name">BLUR.03</div></div>
+        <div class="clip-cell"><div class="clip-thumb t1"></div><div class="clip-name">GLITCH.04</div></div>
+        <div class="clip-cell"><div class="clip-thumb t2"></div><div class="clip-name">CHROMA.05</div></div>
+        <div class="clip-cell"><div class="clip-thumb t3"></div><div class="clip-name">FEEDBK.06</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell"><div class="clip-thumb t4"></div><div class="clip-name">SCAN.08</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·04</div>
+          <div class="l-type">MSK</div>
+          <div class="l-opacity">0.50</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t5"></div><div class="clip-name">LUMA.01</div></div>
+        <div class="clip-cell"><div class="clip-thumb t6"></div><div class="clip-name">ALPHA.02</div></div>
+        <div class="clip-cell"><div class="clip-thumb t7"></div><div class="clip-name">CIRCLE.03</div></div>
+        <div class="clip-cell"><div class="clip-thumb t8"></div><div class="clip-name">DIAMOND</div></div>
+        <div class="clip-cell active"><div class="clip-thumb t9"></div><div class="clip-name">STRIPE.05</div></div>
+        <div class="clip-cell"><div class="clip-thumb t10"></div><div class="clip-name">GRAD.06</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+      <div class="layer-row">
+        <div class="layer-head">
+          <div class="l-num">L·05</div>
+          <div class="l-type">OPQ</div>
+          <div class="l-opacity">0.35</div>
+        </div>
+        <div class="clip-cell"><div class="clip-thumb t1"></div><div class="clip-name">TEXT.01</div></div>
+        <div class="clip-cell"><div class="clip-thumb t2"></div><div class="clip-name">LOGO.02</div></div>
+        <div class="clip-cell"><div class="clip-thumb t3"></div><div class="clip-name">SCROLL.03</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell"><div class="clip-thumb t4"></div><div class="clip-name">MATRIX.05</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell"><div class="clip-thumb t5"></div><div class="clip-name">ASCII.07</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+        <div class="clip-cell empty"><div class="clip-thumb"></div><div class="clip-name">—</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STATUS LINE -->
+  <div class="status">
+    <span class="ready">◼ READY</span>
+    <span class="fps">60FPS</span>
+    <span class="key"><b>[CMD+K]</b> COMMAND PALETTE</span>
+    <span class="key"><b>[E]</b> EDITOR</span>
+    <span class="key"><b>[B]</b> BROWSER</span>
+    <span class="key"><b>[I]</b> INSPECTOR</span>
+    <span class="key"><b>[ESC]</b> BLACKOUT</span>
+  </div>
+
+  <!-- TARGET CLIP MARKER for right-click ring menu -->
+  <!-- Layer 02 row starts approx y=212+16+6+1*(120+3) = 358, cell 7 (JULIA.07 col7). x = 12+50+3 + 6*(cell_width+3) -->
+  <!-- Grid is inside 958px-24px = 934px, minus 50px layer head minus 3px gap = 881px, /10 cells = ~85px cell width. Col 7 index=6 -->
+  <!-- left = 12 + 50 + 3 + 6*(85+3) = 593. top = 212 + 16 + 6 + 120+3 = 357 -->
+  <div class="target-marker" style="left:594px;top:358px;width:85px;height:120px;"></div>
+  <div class="target-arrow" style="left:594px;top:332px;">→ CLIP.07 · LAYER.02</div>
+
+  <!-- COMMAND PALETTE OVERLAY -->
+  <div class="palette">
+    <div class="palette-hdr">
+      <span class="bracket">┤</span> COMMAND PALETTE <span class="bracket">├</span>
+      <span class="shortcut">[CMD+K]</span>
+    </div>
+    <div class="palette-input">
+      <span class="palette-prompt">&gt;</span>
+      <span class="palette-query">rename layer</span>
+      <span class="palette-cursor"></span>
+    </div>
+    <div class="palette-section">
+      <span>RESULTS · FUZZY MATCH</span>
+      <span class="count">8 FOUND</span>
+    </div>
+    <div class="palette-results">
+
+      <div class="pr-row selected">
+        <span class="pr-short">[⇧⌘R]</span>
+        <span class="pr-cmd">RENAME LAYER</span>
+        <span class="pr-breadcrumb">LAYER / RENAME</span>
+      </div>
+      <div class="pr-row">
+        <span class="pr-short dim">[—]</span>
+        <span class="pr-cmd">RENAME DECK</span>
+        <span class="pr-breadcrumb">DECK / RENAME</span>
+      </div>
+      <div class="pr-row">
+        <span class="pr-short dim">[—]</span>
+        <span class="pr-cmd">RENAME CLIP</span>
+        <span class="pr-breadcrumb">CLIP / RENAME</span>
+      </div>
+      <div class="pr-row">
+        <span class="pr-short dim">[—]</span>
+        <span class="pr-cmd">REPLACE CONTENT...</span>
+        <span class="pr-breadcrumb">CLIP / REPLACE</span>
+      </div>
+      <div class="pr-row">
+        <span class="pr-short dim">[—]</span>
+        <span class="pr-cmd">NEW PROCEDURAL SOURCE</span>
+        <span class="pr-breadcrumb">CLIP / NEW SRC</span>
+      </div>
+      <div class="pr-row">
+        <span class="pr-short dim">[—]</span>
+        <span class="pr-cmd">NEW EFFECT CLIP</span>
+        <span class="pr-breadcrumb">CLIP / NEW FX</span>
+      </div>
+      <div class="pr-row">
+        <span class="pr-short dim">[—]</span>
+        <span class="pr-cmd">IMPORT ISF SHADER...</span>
+        <span class="pr-breadcrumb">AUDIO-DNA / IMPORT</span>
+      </div>
+      <div class="pr-row">
+        <span class="pr-short dim">[—]</span>
+        <span class="pr-cmd">COLLECT MEDIA...</span>
+        <span class="pr-breadcrumb">COMPOSITION / COLLECT</span>
+      </div>
+
+    </div>
+    <div class="palette-footer">
+      <span><b>↑↓</b> NAVIGATE</span>
+      <span><b>ENTER</b> INVOKE</span>
+      <span><b>ESC</b> DISMISS</span>
+    </div>
+  </div>
+
+  <!-- CONTEXT RING MENU (square 2x4 grid) -->
+  <div class="context">
+    <div class="ctx-cell hover"><span class="n">01</span><span>TRIGGER</span></div>
+    <div class="ctx-cell"><span class="n">02</span><span>SELECT</span></div>
+    <div class="ctx-cell"><span class="n">03</span><span>RENAME</span></div>
+    <div class="ctx-cell"><span class="n">04</span><span>CLEAR</span></div>
+    <div class="ctx-cell"><span class="n">05</span><span>CUT</span></div>
+    <div class="ctx-cell"><span class="n">06</span><span>COPY</span></div>
+    <div class="ctx-cell"><span class="n">07</span><span>REPLACE</span></div>
+    <div class="ctx-cell"><span class="n">08</span><span>SHOW IN FINDER</span></div>
+  </div>
+
+  <!-- ANNOTATION -->
+  <div class="annotation" style="top:72px;right:18px;">STATE · PERFORMANCE + PALETTE + CONTEXT RING · AUTO-DISMISS ON ACTION OR ESC</div>
+
+  <!-- CORNERS -->
+  <div class="corner" style="top:26px;right:12px;">R ┐</div>
+  <div class="corner" style="bottom:20px;right:12px;">R ┘</div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- CENTER DIVIDER                                                   -->
+<!-- ================================================================ -->
+<div class="divider"></div>
+<div class="divider-label">│ PERFORMANCE VARIATION · STATE COMPARISON · RESTING >> OVERLAID │</div>
+
+</div>
+
+</body>
+</html>

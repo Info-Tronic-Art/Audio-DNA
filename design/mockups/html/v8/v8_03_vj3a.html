@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 3a Mockup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+@font-face {
+  font-family: 'System';
+  src: local('SF Pro Display'), local('Segoe UI'), local('Helvetica Neue');
+}
+
+body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  font-family: 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: #e0e0e0;
+  background: #1a1a1e;
+  font-size: 12px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  width: 1920px;
+  height: 1080px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(165deg, #1e1e24 0%, #16161a 40%, #131316 100%);
+  position: relative;
+}
+
+/* ========== TOP BAR ========== */
+.top-bar {
+  height: 44px;
+  background: linear-gradient(180deg, #252530 0%, #1e1e26 100%);
+  border-bottom: 1px solid #2a2a35;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 24px;
+}
+
+.dna-helix {
+  width: 28px;
+  height: 28px;
+  position: relative;
+}
+
+.dna-helix svg {
+  width: 28px;
+  height: 28px;
+}
+
+.logo-text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #c8a050;
+  text-transform: uppercase;
+}
+
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.status-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #8888a0;
+  text-transform: uppercase;
+}
+
+.beat-wheel {
+  width: 32px;
+  height: 32px;
+  position: relative;
+}
+
+.beat-wheel svg {
+  width: 32px;
+  height: 32px;
+}
+
+.bpm-display {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e8c860;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+
+.resync-btn {
+  background: #2a2a38;
+  border: 1px solid #3a3a48;
+  color: #8888a0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  padding: 4px 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.resync-btn:hover {
+  background: #35354a;
+  color: #aaaacc;
+}
+
+.time-display {
+  margin-left: auto;
+  font-size: 13px;
+  color: #666680;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========== MAIN CONTENT ========== */
+.main-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ========== LEFT PANEL - SCENE FLOW ========== */
+.left-panel {
+  width: 240px;
+  background: linear-gradient(180deg, #1c1c22 0%, #18181e 100%);
+  border-right: 1px solid #2a2a35;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.panel-header {
+  padding: 12px 14px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #7a7a90;
+  text-transform: uppercase;
+  border-bottom: 1px solid #222230;
+}
+
+.scene-tabs {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scene-tab {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 0;
+  cursor: pointer;
+  gap: 8px;
+  position: relative;
+}
+
+.scene-tab.active {
+  background: linear-gradient(90deg, rgba(200, 160, 60, 0.15) 0%, rgba(200, 160, 60, 0.05) 100%);
+  border-left: 3px solid #c8a040;
+}
+
+.scene-tab:not(.active) {
+  padding-left: 15px;
+}
+
+.scene-tab:not(.active):hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.scene-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #d0d0e0;
+}
+
+.scene-tab.active .scene-name {
+  color: #e8c860;
+}
+
+.scene-arrow {
+  margin-left: auto;
+  font-size: 10px;
+  color: #555568;
+}
+
+.scene-tab.active .scene-arrow {
+  color: #c8a050;
+}
+
+.scene-divider {
+  height: 1px;
+  background: #222230;
+  margin: 6px 10px;
+}
+
+.layer-details {
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.layer-detail-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #9090a8;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid transparent;
+}
+
+.layer-detail-row .layer-num {
+  color: #666680;
+  font-weight: 600;
+  min-width: 14px;
+}
+
+.layer-detail-row .layer-label {
+  color: #b0b0c8;
+  font-weight: 500;
+}
+
+.layer-detail-row .arrow-icon {
+  color: #555568;
+  font-size: 10px;
+}
+
+.layer-detail-row .type-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
+.type-badge.video { background: rgba(0, 180, 180, 0.2); color: #40c8c8; }
+.type-badge.image { background: rgba(80, 160, 80, 0.2); color: #60c060; }
+.type-badge.synth { background: rgba(160, 80, 200, 0.2); color: #c060e0; }
+
+.layer-detail-sub {
+  padding: 4px 10px 4px 30px;
+  font-size: 10px;
+  color: #707088;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.layer-detail-sub .mapping-arrow {
+  color: #555568;
+}
+
+.layer-detail-sub .status-on {
+  color: #50b050;
+  font-weight: 600;
+  font-size: 9px;
+}
+
+.layer-detail-sub .status-arrow {
+  color: #555568;
+}
+
+.add-scene-btn {
+  margin: 8px 14px 14px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed #333345;
+  color: #555568;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+
+.add-scene-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #7777a0;
+  border-color: #444460;
+}
+
+/* ========== CENTER AREA ========== */
+.center-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Preview */
+.preview-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  position: relative;
+}
+
+.preview-canvas {
+  width: 680px;
+  height: 400px;
+  background: #000;
+  border: 1px solid #2a2a38;
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-visual {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Fractal orbs visual using CSS */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.orb-1 {
+  width: 220px;
+  height: 220px;
+  left: 180px;
+  top: 80px;
+  background: radial-gradient(circle at 40% 35%, #e8a020 0%, #d06020 30%, #802010 60%, rgba(40, 10, 5, 0.6) 80%, transparent 100%);
+  box-shadow: 0 0 60px rgba(220, 120, 30, 0.5), 0 0 120px rgba(200, 80, 20, 0.2);
+}
+
+.orb-2 {
+  width: 160px;
+  height: 160px;
+  left: 340px;
+  top: 140px;
+  background: radial-gradient(circle at 50% 40%, #30b0b0 0%, #208888 30%, #105050 60%, rgba(10, 30, 30, 0.6) 80%, transparent 100%);
+  box-shadow: 0 0 50px rgba(40, 160, 160, 0.4), 0 0 100px rgba(20, 120, 120, 0.15);
+}
+
+.orb-3 {
+  width: 100px;
+  height: 100px;
+  left: 120px;
+  top: 200px;
+  background: radial-gradient(circle at 45% 40%, #e08830 0%, #b05018 40%, #602810 70%, transparent 100%);
+  box-shadow: 0 0 40px rgba(200, 100, 30, 0.35);
+}
+
+.orb-4 {
+  width: 80px;
+  height: 80px;
+  left: 460px;
+  top: 100px;
+  background: radial-gradient(circle at 50% 45%, #28a0a0 0%, #186868 40%, #0a3838 70%, transparent 100%);
+  box-shadow: 0 0 30px rgba(30, 140, 140, 0.3);
+}
+
+.orb-5 {
+  width: 140px;
+  height: 140px;
+  left: 380px;
+  top: 30px;
+  background: radial-gradient(circle at 55% 50%, #c87818 0%, #904510 35%, #502510 65%, transparent 100%);
+  box-shadow: 0 0 50px rgba(180, 90, 20, 0.3);
+}
+
+.orb-ring-1 {
+  width: 300px;
+  height: 300px;
+  left: 160px;
+  top: 40px;
+  border: 2px solid rgba(220, 140, 40, 0.15);
+  background: transparent;
+  box-shadow: 0 0 20px rgba(200, 120, 30, 0.05);
+}
+
+.orb-ring-2 {
+  width: 240px;
+  height: 240px;
+  left: 290px;
+  top: 90px;
+  border: 2px solid rgba(40, 160, 160, 0.12);
+  background: transparent;
+}
+
+/* Ambient glow overlay */
+.preview-visual::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 45% 50%, rgba(200, 120, 30, 0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 60% 55%, rgba(30, 140, 140, 0.06) 0%, transparent 50%);
+}
+
+/* Layer tabs below preview */
+.layer-tabs-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 36px;
+  background: #1a1a22;
+  border-top: 1px solid #252530;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.layer-tab {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666680;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.layer-tab.active {
+  color: #d0d0e8;
+  border-bottom-color: #5588cc;
+}
+
+.layer-tab .diamond {
+  font-size: 8px;
+  color: #5588cc;
+}
+
+.layer-tab.type-tab {
+  color: #555568;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.layer-tab.type-tab.image-tab { color: #50a050; }
+.layer-tab.type-tab.synth-tab { color: #a050c0; }
+
+.layer-tab-add {
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #444460;
+  cursor: pointer;
+  margin-left: 4px;
+}
+
+.layer-tab-add:hover { color: #6666a0; }
+
+/* ========== CLIP CARDS SECTION ========== */
+.clip-cards-section {
+  height: 260px;
+  background: linear-gradient(180deg, #181820 0%, #151518 100%);
+  border-top: 1px solid #252530;
+  padding: 12px 16px;
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.clip-card {
+  width: 210px;
+  background: linear-gradient(180deg, #1e1e28 0%, #1a1a22 100%);
+  border: 1px solid #2a2a38;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.clip-card:hover {
+  border-color: #3a3a50;
+}
+
+/* Clip thumbnail */
+.clip-thumb {
+  height: 70px;
+  position: relative;
+  overflow: hidden;
+}
+
+.clip-thumb-visual {
+  width: 100%;
+  height: 100%;
+}
+
+.clip-thumb-visual.v1 {
+  background: linear-gradient(135deg, #c06010 0%, #e0a020 30%, #20a0a0 70%, #105050 100%);
+}
+
+.clip-thumb-visual.v2 {
+  background: linear-gradient(220deg, #182848 0%, #3060a0 40%, #50b0e0 70%, #a0e0f0 100%);
+}
+
+.clip-thumb-visual.v3 {
+  background: radial-gradient(circle at 50% 50%, #e04020 0%, #c02010 30%, #600808 60%, #200404 100%);
+}
+
+.clip-thumb-visual.v4 {
+  background: linear-gradient(45deg, #102010 0%, #205020 30%, #40c040 60%, #80ff80 100%);
+}
+
+.clip-type-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 2px 7px;
+  text-transform: uppercase;
+}
+
+.clip-type-badge.video {
+  background: rgba(0, 180, 180, 0.85);
+  color: #fff;
+}
+
+.clip-type-badge.source {
+  background: rgba(160, 80, 200, 0.85);
+  color: #fff;
+}
+
+.clip-type-badge.image {
+  background: rgba(80, 160, 80, 0.85);
+  color: #fff;
+}
+
+/* Source chip */
+.clip-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #222230;
+}
+
+.source-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.source-dot.green { background: #40c040; box-shadow: 0 0 4px rgba(64, 192, 64, 0.4); }
+.source-dot.orange { background: #e0a020; box-shadow: 0 0 4px rgba(224, 160, 32, 0.4); }
+.source-dot.cyan { background: #40c0c0; box-shadow: 0 0 4px rgba(64, 192, 192, 0.4); }
+.source-dot.purple { background: #a060d0; box-shadow: 0 0 4px rgba(160, 96, 208, 0.4); }
+
+.source-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a0a0b8;
+}
+
+/* Knobs row */
+.knobs-row {
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 6px;
+  border-bottom: 1px solid #222230;
+}
+
+.knob-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.knob-ring {
+  width: 30px;
+  height: 30px;
+  position: relative;
+}
+
+.knob-ring svg {
+  width: 30px;
+  height: 30px;
+}
+
+.knob-label {
+  font-size: 8px;
+  font-weight: 600;
+  color: #555568;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Effect tags */
+.effect-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 6px 8px;
+  flex: 1;
+}
+
+.effect-tag {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #8080a0;
+  letter-spacing: 0.3px;
+}
+
+.effect-tag.active {
+  background: rgba(80, 140, 220, 0.15);
+  color: #6090c0;
+}
+
+/* Opacity slider */
+.clip-opacity {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  gap: 6px;
+  border-top: 1px solid #222230;
+}
+
+.opacity-track {
+  flex: 1;
+  height: 4px;
+  background: #252530;
+  position: relative;
+}
+
+.opacity-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3060a0, #5090d0);
+}
+
+.opacity-label {
+  font-size: 9px;
+  color: #666680;
+  font-weight: 600;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* ========== RIGHT PANEL ========== */
+.right-panel {
+  width: 260px;
+  background: linear-gradient(180deg, #1c1c22 0%, #18181e 100%);
+  border-left: 1px solid #2a2a35;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.right-tabs {
+  display: flex;
+  border-bottom: 1px solid #252530;
+  height: 36px;
+}
+
+.right-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #555568;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid transparent;
+}
+
+.right-tab.active {
+  color: #a0a0c0;
+  border-bottom-color: #5070a0;
+}
+
+.right-tab:hover:not(.active) {
+  color: #7777a0;
+}
+
+/* Sources list */
+.sources-list {
+  flex: 1;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.source-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #252530;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.source-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #333345;
+}
+
+.source-card-icon {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.source-card-icon.audio { background: #40c040; box-shadow: 0 0 5px rgba(64, 192, 64, 0.3); }
+.source-card-icon.kick { background: #e0a020; box-shadow: 0 0 5px rgba(224, 160, 32, 0.3); }
+.source-card-icon.lfo { background: #5090d0; box-shadow: 0 0 5px rgba(80, 144, 208, 0.3); }
+.source-card-icon.custom { background: #a060d0; box-shadow: 0 0 5px rgba(160, 96, 208, 0.3); }
+
+.source-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.source-card-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #c0c0d8;
+}
+
+.source-card-type {
+  font-size: 9px;
+  color: #555568;
+  margin-top: 1px;
+}
+
+/* Mini waveform visualizations */
+.source-waveform {
+  width: 60px;
+  height: 24px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.source-waveform svg {
+  width: 60px;
+  height: 24px;
+}
+
+.add-source-btn {
+  margin: 4px 0;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed #333345;
+  color: #555568;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+
+.add-source-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #7777a0;
+}
+
+.drag-instruction {
+  padding: 12px;
+  font-size: 10px;
+  color: #444460;
+  text-align: center;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* ========== FOOTER ========== */
+.footer-bar {
+  height: 36px;
+  background: #161620;
+  border-top: 1px solid #252530;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.footer-add-btn {
+  font-size: 11px;
+  color: #444460;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.footer-add-btn:hover {
+  color: #6666a0;
+}
+
+.footer-add-btn .plus {
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="logo-section">
+      <div class="dna-helix">
+        <svg viewBox="0 0 28 28" fill="none">
+          <!-- DNA Helix -->
+          <path d="M8 4 C8 4, 14 8, 20 4" stroke="#c8a050" stroke-width="1.8" fill="none" opacity="0.9"/>
+          <path d="M8 9 C8 9, 14 5, 20 9" stroke="#c8a050" stroke-width="1.8" fill="none" opacity="0.7"/>
+          <path d="M8 14 C8 14, 14 18, 20 14" stroke="#c8a050" stroke-width="1.8" fill="none" opacity="0.9"/>
+          <path d="M8 19 C8 19, 14 15, 20 19" stroke="#c8a050" stroke-width="1.8" fill="none" opacity="0.7"/>
+          <path d="M8 24 C8 24, 14 28, 20 24" stroke="#c8a050" stroke-width="1.8" fill="none" opacity="0.5"/>
+          <!-- Rungs -->
+          <line x1="10" y1="6.5" x2="18" y2="6.5" stroke="#c8a050" stroke-width="1" opacity="0.4"/>
+          <line x1="10" y1="11.5" x2="18" y2="11.5" stroke="#c8a050" stroke-width="1" opacity="0.4"/>
+          <line x1="10" y1="16.5" x2="18" y2="16.5" stroke="#c8a050" stroke-width="1" opacity="0.4"/>
+          <line x1="10" y1="21.5" x2="18" y2="21.5" stroke="#c8a050" stroke-width="1" opacity="0.4"/>
+        </svg>
+      </div>
+      <span class="logo-text">Audio-DNA VJ</span>
+    </div>
+
+    <div class="status-section">
+      <span class="status-label">Audio-DNA VJ</span>
+
+      <!-- Beat Wheel -->
+      <div class="beat-wheel">
+        <svg viewBox="0 0 32 32" fill="none">
+          <!-- 4-segment circle -->
+          <circle cx="16" cy="16" r="12" stroke="#333345" stroke-width="3" fill="none"/>
+          <!-- Active segment (top-right quadrant) -->
+          <path d="M16 4 A12 12 0 0 1 28 16" stroke="#e8c860" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- Beat dot -->
+          <circle cx="16" cy="16" r="3" fill="#e8c860"/>
+          <!-- Segment lines -->
+          <line x1="16" y1="4" x2="16" y2="7" stroke="#444460" stroke-width="1"/>
+          <line x1="28" y1="16" x2="25" y2="16" stroke="#444460" stroke-width="1"/>
+          <line x1="16" y1="28" x2="16" y2="25" stroke="#444460" stroke-width="1"/>
+          <line x1="4" y1="16" x2="7" y2="16" stroke="#444460" stroke-width="1"/>
+        </svg>
+      </div>
+
+      <span class="bpm-display">128.0</span>
+      <button class="resync-btn">Resync</button>
+    </div>
+
+    <span class="time-display">11:57 AM</span>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- LEFT PANEL: SCENE FLOW -->
+    <div class="left-panel">
+      <div class="panel-header">Scene Flow</div>
+
+      <div class="scene-tabs">
+        <div class="scene-tab active">
+          <span class="scene-name">Verse</span>
+          <span class="scene-arrow">&#9654;</span>
+        </div>
+        <div class="scene-tab">
+          <span class="scene-name">Chorus</span>
+          <span class="scene-arrow">&#9654;</span>
+        </div>
+        <div class="scene-tab">
+          <span class="scene-name">Drop</span>
+          <span class="scene-arrow">&#9654;</span>
+        </div>
+      </div>
+
+      <div class="scene-divider"></div>
+
+      <div class="layer-details">
+        <div class="layer-detail-row">
+          <span class="layer-num">1.</span>
+          <span class="layer-label">Layer 1</span>
+          <span class="arrow-icon">&#8594;</span>
+          <span class="type-badge video">VIDEO</span>
+        </div>
+        <div class="layer-detail-sub">
+          <span>MASTER</span>
+          <span class="mapping-arrow">&#8594;</span>
+          <span>Opacity</span>
+          <span class="status-arrow">&#8597;</span>
+        </div>
+
+        <div class="layer-detail-row" style="margin-top: 6px;">
+          <span class="layer-num">2.</span>
+          <span class="layer-label">Layer 2</span>
+          <span class="arrow-icon">&#8594;</span>
+          <span class="type-badge image">IMAGE</span>
+        </div>
+        <div class="layer-detail-sub">
+          <span>Zoom Pulse</span>
+          <span class="status-on">ON</span>
+        </div>
+
+        <div class="layer-detail-row" style="margin-top: 6px;">
+          <span class="layer-num">3.</span>
+          <span class="layer-label">Layer 3</span>
+          <span class="arrow-icon">&#8594;</span>
+          <span class="type-badge synth">SYNTH</span>
+        </div>
+        <div class="layer-detail-sub">
+          <span>Color Shift</span>
+          <span class="status-arrow">&#8597;</span>
+        </div>
+      </div>
+
+      <div class="add-scene-btn">+ Add Scene</div>
+    </div>
+
+    <!-- CENTER AREA -->
+    <div class="center-area">
+
+      <!-- Preview -->
+      <div class="preview-section">
+        <div class="preview-canvas">
+          <div class="preview-visual">
+            <div class="orb orb-ring-1"></div>
+            <div class="orb orb-ring-2"></div>
+            <div class="orb orb-5"></div>
+            <div class="orb orb-1"></div>
+            <div class="orb orb-3"></div>
+            <div class="orb orb-2"></div>
+            <div class="orb orb-4"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer Tabs -->
+      <div class="layer-tabs-bar">
+        <div class="layer-tab active">
+          <span class="diamond">&#9670;</span>
+          Layer 1
+        </div>
+        <div class="layer-tab">Layer 2</div>
+        <div class="layer-tab type-tab image-tab">IMAGE</div>
+        <div class="layer-tab type-tab synth-tab">SYNTH</div>
+        <div class="layer-tab-add">+</div>
+      </div>
+
+      <!-- Clip Cards -->
+      <div class="clip-cards-section">
+
+        <!-- Clip 1 -->
+        <div class="clip-card">
+          <div class="clip-thumb">
+            <div class="clip-thumb-visual v1"></div>
+            <span class="clip-type-badge video">VIDEO</span>
+          </div>
+          <div class="clip-source">
+            <span class="source-dot green"></span>
+            <span class="source-name">Master Bass</span>
+          </div>
+          <div class="knobs-row">
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 26.2 19.5" fill="none" stroke="#e8a030" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Hue</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 22 9" fill="none" stroke="#40c0c0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Sat</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 1 1 8 9" fill="none" stroke="#c060e0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Bri</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 15 27" fill="none" stroke="#5090d0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Spd</span>
+            </div>
+          </div>
+          <div class="effect-tags">
+            <span class="effect-tag active">Feedback</span>
+            <span class="effect-tag active">Glow</span>
+            <span class="effect-tag">Fluid Warp</span>
+          </div>
+          <div class="clip-opacity">
+            <div class="opacity-track"><div class="opacity-fill" style="width: 100%"></div></div>
+            <span class="opacity-label">100%</span>
+          </div>
+        </div>
+
+        <!-- Clip 2 -->
+        <div class="clip-card">
+          <div class="clip-thumb">
+            <div class="clip-thumb-visual v2"></div>
+            <span class="clip-type-badge video">VIDEO</span>
+          </div>
+          <div class="clip-source">
+            <span class="source-dot orange"></span>
+            <span class="source-name">Kick Drum</span>
+          </div>
+          <div class="knobs-row">
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 15 27" fill="none" stroke="#e8a030" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Hue</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 26.2 19.5" fill="none" stroke="#40c0c0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Sat</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 22 9" fill="none" stroke="#c060e0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Bri</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 26.2 19.5" fill="none" stroke="#5090d0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Spd</span>
+            </div>
+          </div>
+          <div class="effect-tags">
+            <span class="effect-tag active">Pulse</span>
+            <span class="effect-tag active">Zoom</span>
+            <span class="effect-tag">Glitch</span>
+          </div>
+          <div class="clip-opacity">
+            <div class="opacity-track"><div class="opacity-fill" style="width: 100%"></div></div>
+            <span class="opacity-label">100%</span>
+          </div>
+        </div>
+
+        <!-- Clip 3 -->
+        <div class="clip-card">
+          <div class="clip-thumb">
+            <div class="clip-thumb-visual v3"></div>
+            <span class="clip-type-badge source">SOURCE</span>
+          </div>
+          <div class="clip-source">
+            <span class="source-dot cyan"></span>
+            <span class="source-name">Custom Envlp</span>
+          </div>
+          <div class="knobs-row">
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 22 9" fill="none" stroke="#e8a030" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Hue</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 1 1 8 9" fill="none" stroke="#40c0c0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Sat</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 15 27" fill="none" stroke="#c060e0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Bri</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 26.2 19.5" fill="none" stroke="#5090d0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Spd</span>
+            </div>
+          </div>
+          <div class="effect-tags">
+            <span class="effect-tag active">Pulse</span>
+            <span class="effect-tag active">Kaleido</span>
+            <span class="effect-tag">Trail</span>
+          </div>
+          <div class="clip-opacity">
+            <div class="opacity-track"><div class="opacity-fill" style="width: 85%"></div></div>
+            <span class="opacity-label">85%</span>
+          </div>
+        </div>
+
+        <!-- Clip 4 -->
+        <div class="clip-card">
+          <div class="clip-thumb">
+            <div class="clip-thumb-visual v4"></div>
+            <span class="clip-type-badge image">IMAGE</span>
+          </div>
+          <div class="clip-source">
+            <span class="source-dot purple"></span>
+            <span class="source-name">LFO Sine</span>
+          </div>
+          <div class="knobs-row">
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 1 1 8 9" fill="none" stroke="#e8a030" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Hue</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 22 9" fill="none" stroke="#40c0c0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Sat</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 26.2 19.5" fill="none" stroke="#c060e0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Bri</span>
+            </div>
+            <div class="knob-item">
+              <div class="knob-ring">
+                <svg viewBox="0 0 30 30">
+                  <circle cx="15" cy="15" r="12" fill="none" stroke="#252530" stroke-width="3"/>
+                  <path d="M15 3 A12 12 0 0 1 15 27" fill="none" stroke="#5090d0" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="15" cy="15" r="5" fill="#1a1a24" stroke="#333345" stroke-width="1"/>
+                  <line x1="15" y1="10" x2="15" y2="13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <span class="knob-label">Spd</span>
+            </div>
+          </div>
+          <div class="effect-tags">
+            <span class="effect-tag active">Feedback</span>
+            <span class="effect-tag">Glow</span>
+            <span class="effect-tag">Warp</span>
+          </div>
+          <div class="clip-opacity">
+            <div class="opacity-track"><div class="opacity-fill" style="width: 100%"></div></div>
+            <span class="opacity-label">100%</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab">Master</div>
+        <div class="right-tab active">Layer</div>
+        <div class="right-tab">Clip</div>
+      </div>
+
+      <div class="sources-list">
+
+        <!-- Audio 1 -->
+        <div class="source-card">
+          <span class="source-card-icon audio"></span>
+          <div class="source-card-info">
+            <div class="source-card-name">Audio 1</div>
+            <div class="source-card-type">Audio Input</div>
+          </div>
+          <div class="source-waveform">
+            <svg viewBox="0 0 60 24" preserveAspectRatio="none">
+              <!-- Spectrum bars -->
+              <rect x="2" y="16" width="3" height="8" fill="#40c040" opacity="0.9"/>
+              <rect x="7" y="10" width="3" height="14" fill="#40c040" opacity="0.85"/>
+              <rect x="12" y="6" width="3" height="18" fill="#50d050" opacity="0.8"/>
+              <rect x="17" y="3" width="3" height="21" fill="#60e060" opacity="0.9"/>
+              <rect x="22" y="8" width="3" height="16" fill="#50d050" opacity="0.75"/>
+              <rect x="27" y="5" width="3" height="19" fill="#40c040" opacity="0.85"/>
+              <rect x="32" y="11" width="3" height="13" fill="#40c040" opacity="0.7"/>
+              <rect x="37" y="14" width="3" height="10" fill="#30b030" opacity="0.65"/>
+              <rect x="42" y="17" width="3" height="7" fill="#30b030" opacity="0.55"/>
+              <rect x="47" y="19" width="3" height="5" fill="#20a020" opacity="0.45"/>
+              <rect x="52" y="20" width="3" height="4" fill="#20a020" opacity="0.35"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Kick Drum -->
+        <div class="source-card">
+          <span class="source-card-icon kick"></span>
+          <div class="source-card-info">
+            <div class="source-card-name">Kick Drum</div>
+            <div class="source-card-type">Audio Band</div>
+          </div>
+          <div class="source-waveform">
+            <svg viewBox="0 0 60 24" preserveAspectRatio="none">
+              <!-- Transient waveform -->
+              <polyline points="0,12 4,12 6,3 8,20 10,8 12,15 14,12 18,12 20,4 22,18 24,10 26,13 28,12 32,12 36,12 38,5 40,19 42,9 44,14 46,12 50,12 54,12 58,12 60,12"
+                fill="none" stroke="#e0a020" stroke-width="1.5" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- LFO Sine -->
+        <div class="source-card">
+          <span class="source-card-icon lfo"></span>
+          <div class="source-card-info">
+            <div class="source-card-name">LFO-SINE</div>
+            <div class="source-card-type">Oscillator</div>
+          </div>
+          <div class="source-waveform">
+            <svg viewBox="0 0 60 24" preserveAspectRatio="none">
+              <!-- Sine wave -->
+              <path d="M0,12 C5,2 10,2 15,12 C20,22 25,22 30,12 C35,2 40,2 45,12 C50,22 55,22 60,12"
+                fill="none" stroke="#5090d0" stroke-width="1.5" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- LFO Custom -->
+        <div class="source-card">
+          <span class="source-card-icon custom"></span>
+          <div class="source-card-info">
+            <div class="source-card-name">LFO-CUSTOM</div>
+            <div class="source-card-type">Oscillator</div>
+          </div>
+          <div class="source-waveform">
+            <svg viewBox="0 0 60 24" preserveAspectRatio="none">
+              <!-- Custom wave shape -->
+              <path d="M0,12 L5,4 L10,12 L12,8 L15,18 L20,3 L25,12 L28,6 L30,16 L35,4 L38,12 L42,8 L45,20 L50,5 L55,12 L60,12"
+                fill="none" stroke="#a060d0" stroke-width="1.5" opacity="0.8"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="add-source-btn">+ Add Audio</div>
+
+        <div class="drag-instruction">
+          Drag a source chip into any parameter
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <div class="footer-add-btn">
+      <span class="plus">+</span>
+      <span>Add Layer</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

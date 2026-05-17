@@ -1,0 +1,288 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          75,
+          "output"
+        ],
+        "to": [
+          83,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          83,
+          "output"
+        ],
+        "to": [
+          74,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          85,
+          "output"
+        ],
+        "to": [
+          83,
+          "angle"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Default Example",
+      "identifier": "027417f2-73c8-4320-8bcb-182275c39577",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 86,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "TILE\n\nThis node can be used to tile and skew the incomming texture."
+          }
+        },
+        "bounds": {
+          "height": 113.62135314941406,
+          "width": 597.5733642578125,
+          "x": -47.89068603515625,
+          "y": 409.1226501464844
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "74": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 407.45416259765625,
+          "y": 557.9276733398438
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "75": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -47.6298828125,
+          "y": 557.9276733398438
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture"
+      },
+      "83": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 153.94784545898438,
+          "y": 558.3798828125
+        },
+        "class": {
+          "id": "77697265-BD5B-4CF1-8A09-5CC9E622F691",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "angle": {
+            "type": "float",
+            "value": -1.100000023841858
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "skew": {
+            "type": "float2",
+            "value": [
+              0.5,
+              0.10000000149011612
+            ]
+          },
+          "tile": {
+            "type": "float2",
+            "value": [
+              0.25,
+              0.25
+            ]
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Tile"
+      },
+      "85": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": -48.05221939086915,
+          "y": 690.3798828125
+        },
+        "class": {
+          "id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.05000000074505806
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Saw"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -234.0522613525391,
+        "y": 260.3797607421875,
+        "zoom": 0.9999997615814208
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 74,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "75": "Wire Logo"
+        },
+        "out": {}
+      }
+    }
+  }
+}

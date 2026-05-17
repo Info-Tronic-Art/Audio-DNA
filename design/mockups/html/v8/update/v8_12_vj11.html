@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 11 Updated — Large Clip Grid + Full Inspector</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #1a1a1a; color: #d0d0d0;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11px;
+}
+
+/* ─── MENU BAR (24px) ─── */
+.menu-bar {
+  display: flex; align-items: center; height: 24px;
+  background: linear-gradient(180deg, #222 0%, #1a1a1a 100%);
+  border-bottom: 1px solid #333; padding: 0 8px; gap: 0;
+}
+.menu-item {
+  padding: 3px 10px; font-size: 11px; color: #bbb; cursor: pointer;
+  border-radius: 2px;
+}
+.menu-item:first-child { font-weight: 700; color: #d4a24c; }
+.menu-item:hover { background: #333; color: #e0e0e0; }
+.menu-spacer { flex: 1; }
+.menu-right { font-size: 10px; color: #666; display: flex; gap: 10px; }
+
+/* ─── TOP BAR (40px) ─── */
+.top-bar {
+  display: flex; align-items: center; height: 40px;
+  background: linear-gradient(180deg, #181818 0%, #141414 100%);
+  border-bottom: 1px solid #333; padding: 0 10px; gap: 10px;
+}
+.logo { display: flex; align-items: center; gap: 5px; }
+.logo svg { width: 20px; height: 20px; }
+.logo-text { font-size: 12px; font-weight: 700; color: #e0e0e0; letter-spacing: 0.5px; }
+.bpm-section { display: flex; align-items: center; gap: 6px; }
+.bpm-box {
+  background: #222; border: 1px solid #444; border-radius: 2px;
+  padding: 2px 8px; font-size: 15px; font-weight: 700; color: #d4a24c;
+  font-variant-numeric: tabular-nums; min-width: 52px; text-align: center;
+}
+.bpm-tap {
+  padding: 2px 8px; background: #2a2a2a; border: 1px solid #444;
+  color: #888; font-size: 9px; cursor: pointer; border-radius: 2px;
+}
+.bpm-tap:hover { background: #333; color: #ccc; }
+.beat-wheel {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid #333; position: relative; background: #111;
+}
+.beat-segment {
+  position: absolute; width: 50%; height: 50%;
+  clip-path: polygon(100% 0%, 100% 100%, 0% 100%);
+}
+.beat-s1 { top: 0; left: 0; clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 50%); transform-origin: center; background: #d4a24c; border-radius: 0 14px 0 0; }
+.beat-s2 { top: 0; right: 0; background: #333; border-radius: 0 0 14px 0; clip-path: polygon(0% 50%, 100% 50%, 100% 100%, 0% 100%); }
+.beat-counter {
+  font-size: 10px; color: #888; font-variant-numeric: tabular-nums;
+}
+.top-divider { width: 1px; height: 24px; background: #333; }
+.quantize-section { display: flex; align-items: center; gap: 4px; }
+.quant-label { font-size: 9px; color: #777; text-transform: uppercase; }
+.quant-select {
+  background: #222; border: 1px solid #444; color: #ccc; font-size: 10px;
+  padding: 2px 4px; border-radius: 2px; cursor: pointer;
+}
+.fade-section { display: flex; align-items: center; gap: 4px; }
+.fade-label { font-size: 9px; color: #777; text-transform: uppercase; }
+.fade-slider {
+  width: 60px; height: 4px; background: #333; border-radius: 2px;
+  position: relative;
+}
+.fade-fill { height: 100%; width: 40%; background: #d4a24c; border-radius: 2px; }
+.fade-val { font-size: 9px; color: #aaa; }
+.deck-tabs { display: flex; gap: 2px; margin-left: 8px; }
+.deck-tab {
+  padding: 3px 14px; background: #222; border: 1px solid #333;
+  color: #888; cursor: pointer; font-size: 11px; border-radius: 2px;
+  font-weight: 600;
+}
+.deck-tab.active { background: #d4a24c22; border-color: #d4a24c; color: #d4a24c; }
+.deck-tab:hover { background: #2a2a2a; }
+.deck-tab.add-deck { color: #555; font-weight: 400; }
+.top-spacer { flex: 1; }
+.master-section { display: flex; align-items: center; gap: 6px; }
+.master-label { font-size: 9px; color: #777; text-transform: uppercase; }
+.master-slider {
+  width: 60px; height: 6px; background: #222; border-radius: 3px;
+  position: relative; border: 1px solid #333;
+}
+.master-fill {
+  height: 100%; width: 85%; border-radius: 3px;
+  background: linear-gradient(90deg, #d4a24c88, #d4a24c);
+}
+.master-val { font-size: 10px; color: #d4a24c; font-weight: 600; }
+
+/* ─── SIGNAL BAR (38px) ─── */
+.signal-bar {
+  display: flex; align-items: stretch; height: 38px;
+  background: #111; border-bottom: 1px solid #2a2a2a;
+  padding: 3px 8px; gap: 6px;
+}
+.signal-meter {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 1px; min-width: 0;
+}
+.signal-meter-bar-wrap {
+  flex: 1; width: 100%; background: #1a1a1a; border: 1px solid #2a2a2a;
+  border-radius: 1px; position: relative; overflow: hidden;
+}
+.signal-meter-fill {
+  position: absolute; bottom: 0; width: 100%; border-radius: 1px;
+}
+.signal-meter-label {
+  font-size: 7px; color: #666; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%; text-align: center; line-height: 1;
+}
+
+/* ─── MAIN LAYOUT ─── */
+.main {
+  display: flex;
+  height: calc(1080px - 24px - 40px - 38px - 90px - 22px);
+}
+
+/* ─── LEFT: LAYERS COLUMN ─── */
+.layers-col {
+  width: 186px; min-width: 186px; background: #181818;
+  border-right: 1px solid #333; display: flex; flex-direction: column;
+}
+.layers-header {
+  padding: 5px 8px; font-size: 10px; color: #888;
+  text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.layers-header-right { display: flex; gap: 4px; }
+.layers-header-btn {
+  font-size: 8px; color: #666; cursor: pointer; padding: 1px 4px;
+  background: #222; border: 1px solid #333; border-radius: 2px;
+}
+.layers-header-btn:hover { color: #aaa; background: #2a2a2a; }
+.layers-list { flex: 1; overflow-y: auto; }
+.layer-row {
+  padding: 4px 6px; border-bottom: 1px solid #222;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.layer-row:hover { background: #1f1f1f; }
+.layer-row.selected { background: #1a2010; }
+.layer-top { display: flex; align-items: center; gap: 4px; }
+.layer-num {
+  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  background: #252525; border: 1px solid #444; border-radius: 2px;
+  font-size: 9px; font-weight: 700; color: #aaa;
+}
+.layer-num.active { background: #d4a24c33; border-color: #d4a24c; color: #d4a24c; }
+.layer-type-badge {
+  font-size: 7px; padding: 1px 4px; border-radius: 2px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.badge-opaque { background: #2a3520; color: #8fc96a; border: 1px solid #3a5530; }
+.badge-transparent { background: #1a2a3a; color: #6ab0e0; border: 1px solid #2a4060; }
+.badge-fxonly { background: #3a2a1a; color: #d4a24c; border: 1px solid #5a4020; }
+.badge-mask { background: #2a1a2a; color: #b06ab0; border: 1px solid #4a2a4a; }
+.layer-name {
+  flex: 1; font-size: 10px; color: #ccc; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.layer-fold-btn {
+  width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;
+  color: #666; font-size: 8px; cursor: pointer; border-radius: 2px;
+}
+.layer-fold-btn:hover { background: #333; color: #aaa; }
+.layer-controls { display: flex; gap: 2px; padding: 2px 0 2px 22px; }
+.layer-btn {
+  min-width: 22px; height: 18px; display: flex; align-items: center; justify-content: center;
+  background: #252525; border: 1px solid #3a3a3a; border-radius: 1px;
+  color: #777; font-size: 8px; cursor: pointer; padding: 0 3px;
+}
+.layer-btn:hover { background: #333; color: #bbb; }
+.layer-btn.active-ctrl { background: #2a3520; border-color: #5a8a3a; color: #8fc96a; }
+.layer-btn.solo-active { background: #2a2a10; border-color: #8a8a3a; color: #d4d44c; }
+.layer-btn.mute-active { background: #3a1a1a; border-color: #8a3a3a; color: #d44c4c; }
+.layer-btn.lock-active { background: #1a2a3a; border-color: #3a5a8a; color: #6ab0e0; }
+.layer-opacity {
+  margin: 2px 0 2px 22px; height: 4px; background: #222;
+  border-radius: 2px; position: relative;
+}
+.layer-opacity-fill {
+  height: 100%; border-radius: 2px; background: linear-gradient(90deg, #555, #d4a24c);
+}
+.add-layer-btn {
+  padding: 6px; text-align: center; color: #666;
+  font-size: 10px; cursor: pointer; border-top: 1px solid #2a2a2a;
+}
+.add-layer-btn:hover { color: #aaa; background: #1f1f1f; }
+
+/* ─── CENTER: CLIP GRID ─── */
+.clip-grid-area {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.grid-scene-headers {
+  display: flex; height: 22px; background: #151515;
+  border-bottom: 1px solid #333;
+}
+.grid-scene-col {
+  flex: 1; text-align: center; font-size: 10px; color: #777;
+  line-height: 22px; border-right: 1px solid #2a2a2a;
+}
+.grid-scene-col.active { color: #d4a24c; font-weight: 600; background: #d4a24c0a; }
+.clip-grid {
+  flex: 1; display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 3px; padding: 3px; overflow: hidden;
+}
+.clip-cell {
+  background: #1e1e1e; border: 1px solid #333; border-radius: 2px;
+  display: flex; flex-direction: column; overflow: hidden;
+  cursor: pointer; position: relative;
+}
+.clip-cell:hover { border-color: #555; }
+.clip-cell.active { border-color: #d4a24c; box-shadow: 0 0 6px #d4a24c44; }
+.clip-cell.selected { border-color: #6ab0e0; box-shadow: 0 0 4px #6ab0e044; }
+.clip-thumb { flex: 1; position: relative; overflow: hidden; }
+.clip-progress {
+  position: absolute; bottom: 0; left: 0; height: 2px;
+  background: #d4a24c; opacity: 0.8;
+}
+.clip-fx-dot {
+  position: absolute; top: 2px; right: 2px; width: 5px; height: 5px;
+  border-radius: 50%; background: #6ab0e0;
+}
+.clip-label {
+  padding: 2px 4px; font-size: 8px; color: #aaa;
+  background: #111; text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.clip-cell.active .clip-label { color: #d4a24c; }
+
+/* ─── RIGHT: INSPECTOR + BROWSER ─── */
+.right-panel {
+  width: 290px; min-width: 290px; background: #181818;
+  border-left: 1px solid #333; display: flex; flex-direction: column;
+}
+.inspector-tabs {
+  display: flex; border-bottom: 1px solid #333; background: #151515;
+}
+.inspector-tab {
+  flex: 1; text-align: center; padding: 5px 0; font-size: 10px;
+  color: #666; cursor: pointer; border-bottom: 2px solid transparent;
+}
+.inspector-tab.active { color: #d4a24c; border-bottom-color: #d4a24c; background: #1a1a1a; }
+.inspector-tab:hover { color: #aaa; }
+.inspector-body { flex: 1; overflow-y: auto; padding: 0; }
+.insp-section {
+  border-bottom: 1px solid #2a2a2a;
+}
+.insp-section-header {
+  display: flex; align-items: center; padding: 5px 8px;
+  font-size: 9px; font-weight: 600; color: #999;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  cursor: pointer; background: #161616;
+}
+.insp-section-header:hover { background: #1e1e1e; }
+.insp-section-arrow { margin-right: 6px; font-size: 7px; color: #666; }
+.insp-section-content { padding: 4px 8px 6px; }
+
+/* Dashboard knobs */
+.dashboard-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 6px; padding: 4px 0;
+}
+.dash-knob-group {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.dash-knob {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: conic-gradient(from 220deg, #333 0%, #555 60%, #333 80%, #2a2a2a 100%);
+  border: 2px solid #444; position: relative;
+}
+.dash-knob::after {
+  content: ''; position: absolute;
+  width: 2px; height: 8px; background: #ccc;
+  top: 3px; left: 50%; transform: translateX(-50%);
+  border-radius: 1px;
+}
+.dash-knob.mapped { border-color: #d4a24c; }
+.dash-knob.mapped::after { background: #d4a24c; }
+.dash-knob-label { font-size: 7px; color: #777; text-align: center; }
+
+/* Parameter rows */
+.param-row {
+  display: flex; align-items: center; gap: 4px; margin: 2px 0;
+}
+.param-signal {
+  width: 0; height: 0; border-left: 5px solid #555; border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent; cursor: pointer;
+}
+.param-signal.connected { border-left-color: #d4a24c; }
+.param-label { font-size: 9px; color: #999; width: 58px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.param-slider {
+  flex: 1; height: 3px; background: #333; border-radius: 2px;
+  position: relative;
+}
+.param-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #555, #d4a24c);
+}
+.param-val { font-size: 8px; color: #aaa; width: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Effect stack */
+.fx-stack-item {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 4px; background: #1e1e1e; border: 1px solid #2a2a2a;
+  border-radius: 2px; margin-bottom: 2px;
+}
+.fx-bypass-btn {
+  width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;
+  background: #252525; border: 1px solid #3a3a3a; border-radius: 2px;
+  color: #888; font-size: 7px; cursor: pointer;
+}
+.fx-bypass-btn.active { background: #2a3520; border-color: #5a8a3a; color: #8fc96a; }
+.fx-name { flex: 1; font-size: 9px; color: #ccc; }
+.fx-delete-btn {
+  width: 14px; height: 14px; display: flex; align-items: center; justify-content: center;
+  color: #555; font-size: 9px; cursor: pointer;
+}
+.fx-delete-btn:hover { color: #d44c4c; }
+.fx-params { padding: 2px 0 2px 18px; }
+
+/* Cuepoints */
+.cuepoint-row {
+  display: flex; gap: 3px; padding: 2px 0;
+}
+.cuepoint-btn {
+  width: 24px; height: 16px; display: flex; align-items: center; justify-content: center;
+  background: #252525; border: 1px solid #3a3a3a; border-radius: 2px;
+  font-size: 8px; font-weight: 600; cursor: pointer;
+}
+.cuepoint-btn.set { background: #d4a24c22; border-color: #d4a24c; color: #d4a24c; }
+.cuepoint-btn:not(.set) { color: #555; }
+
+/* Autopilot */
+.autopilot-row {
+  display: flex; align-items: center; gap: 6px;
+}
+.autopilot-toggle {
+  width: 28px; height: 14px; background: #333; border-radius: 7px;
+  position: relative; cursor: pointer; border: 1px solid #444;
+}
+.autopilot-toggle.on { background: #2a3520; border-color: #5a8a3a; }
+.autopilot-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #666;
+  position: absolute; top: 1px; left: 1px; transition: left 0.1s;
+}
+.autopilot-toggle.on .autopilot-dot { left: 15px; background: #8fc96a; }
+.autopilot-label { font-size: 9px; color: #999; }
+
+/* Keying */
+.keying-row {
+  display: flex; align-items: center; gap: 6px;
+}
+.keying-select {
+  background: #222; border: 1px solid #444; color: #ccc;
+  font-size: 9px; padding: 2px 4px; border-radius: 2px; flex: 1;
+}
+
+/* Transform */
+.transform-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+}
+
+/* Browser panel */
+.browser-panel {
+  height: 180px; min-height: 140px; border-top: 1px solid #444;
+  display: flex; flex-direction: column; background: #151515;
+}
+.browser-tabs {
+  display: flex; border-bottom: 1px solid #333; background: #131313;
+}
+.browser-tab {
+  flex: 1; text-align: center; padding: 4px 0; font-size: 9px;
+  color: #666; cursor: pointer; border-bottom: 2px solid transparent;
+}
+.browser-tab.active { color: #d4a24c; border-bottom-color: #d4a24c; }
+.browser-tab:hover { color: #aaa; }
+.browser-body { flex: 1; overflow-y: auto; padding: 4px; }
+.browser-category {
+  font-size: 8px; color: #777; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 3px 4px 2px; margin-top: 2px;
+}
+.browser-item {
+  padding: 3px 6px; font-size: 9px; color: #bbb; cursor: pointer;
+  border-radius: 2px;
+}
+.browser-item:hover { background: #2a2a2a; color: #e0e0e0; }
+.browser-item.draggable { cursor: grab; }
+
+/* ─── BOTTOM: LAYER STRIPS (mixer) ─── */
+.bottom-bar {
+  height: 90px; background: linear-gradient(180deg, #141414 0%, #111 100%);
+  border-top: 1px solid #333;
+  display: flex; gap: 0;
+}
+.bottom-strip {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-right: 1px solid #2a2a2a;
+}
+.strip-label {
+  font-size: 10px; font-weight: 600; color: #d4a24c;
+  writing-mode: vertical-lr; text-orientation: mixed;
+  transform: rotate(180deg); letter-spacing: 1px;
+}
+.strip-knobs { display: flex; gap: 8px; flex-wrap: wrap; }
+.knob-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.knob {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: conic-gradient(from 220deg, #444 0%, #666 60%, #444 80%, #333 100%);
+  border: 2px solid #555; position: relative;
+}
+.knob::after {
+  content: ''; position: absolute;
+  width: 2px; height: 9px; background: #ddd;
+  top: 3px; left: 50%; transform: translateX(-50%);
+  border-radius: 1px;
+}
+.knob.active-knob { border-color: #d4a24c; }
+.knob.active-knob::after { background: #d4a24c; }
+.knob-label { font-size: 7px; color: #888; text-transform: uppercase; }
+.strip-opacity {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; margin-left: auto;
+}
+.opacity-slider-v {
+  width: 6px; height: 52px; background: #222; border-radius: 3px;
+  position: relative; border: 1px solid #3a3a3a;
+}
+.opacity-fill-v {
+  position: absolute; bottom: 0; width: 100%; border-radius: 3px;
+  background: linear-gradient(to top, #d4a24c, #d4a24c88);
+}
+.opacity-label { font-size: 8px; color: #888; }
+
+/* Master strip */
+.master-strip {
+  width: 80px; min-width: 80px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  padding: 4px; border-left: 2px solid #d4a24c44;
+  background: #161616;
+}
+.master-strip-label { font-size: 9px; color: #d4a24c; font-weight: 600; text-transform: uppercase; }
+.master-vu {
+  width: 12px; height: 50px; background: #222; border-radius: 2px;
+  position: relative; border: 1px solid #333; overflow: hidden;
+}
+.master-vu-fill {
+  position: absolute; bottom: 0; width: 100%; border-radius: 2px;
+  background: linear-gradient(to top, #2ecc71, #f1c40f 60%, #e74c3c 90%);
+}
+.master-vu-val { font-size: 8px; color: #aaa; }
+
+/* ─── FOOTER (22px) ─── */
+.footer {
+  display: flex; align-items: center; height: 22px;
+  background: #111; border-top: 1px solid #2a2a2a;
+  padding: 0 10px; gap: 16px;
+}
+.footer-item { font-size: 9px; color: #666; display: flex; align-items: center; gap: 4px; }
+.footer-dot { width: 6px; height: 6px; border-radius: 50%; }
+.footer-dot.green { background: #2ecc71; }
+.footer-dot.amber { background: #d4a24c; }
+.footer-dot.red { background: #e74c3c; }
+.footer-val { color: #aaa; }
+.footer-spacer { flex: 1; }
+.footer-recording {
+  display: flex; align-items: center; gap: 4px;
+  color: #e74c3c; font-size: 9px; font-weight: 600;
+}
+.rec-blink { width: 6px; height: 6px; border-radius: 50%; background: #e74c3c; animation: recBlink 1s infinite; }
+@keyframes recBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ─── WAVE DRAWING ─── */
+.wave-line {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+}
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div class="menu-bar">
+  <div class="menu-item">Audio-DNA</div>
+  <div class="menu-item">Composition</div>
+  <div class="menu-item">Deck</div>
+  <div class="menu-item">Layer</div>
+  <div class="menu-item">Column</div>
+  <div class="menu-item">Clip</div>
+  <div class="menu-item">Output</div>
+  <div class="menu-item">Shortcuts</div>
+  <div class="menu-item">View</div>
+  <div class="menu-spacer"></div>
+  <div class="menu-right">
+    <span>Build 2026.03.28</span>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="none" stroke="#d4a24c" stroke-width="1.5"/>
+      <path d="M8 9c0-1.5 1.5-3 4-3s4 1.5 4 3c0 2-2 3-4 5-2-2-4-3-4-5z" fill="#d4a24c" opacity="0.7"/>
+      <path d="M12 14c1.5 1.5 2 3 2 4.5M12 14c-1.5 1.5-2 3-2 4.5" stroke="#d4a24c" stroke-width="1.2" fill="none"/>
+    </svg>
+  </div>
+
+  <div class="bpm-section">
+    <div class="bpm-box">126</div>
+    <div class="bpm-tap">Tap</div>
+    <div class="beat-wheel">
+      <div style="position:absolute;top:0;left:50%;width:50%;height:50%;background:#d4a24c;border-radius:0 14px 0 0;"></div>
+      <div style="position:absolute;top:50%;left:50%;width:50%;height:50%;background:#444;border-radius:0 0 14px 0;"></div>
+      <div style="position:absolute;top:50%;left:0;width:50%;height:50%;background:#333;border-radius:0 0 0 14px;"></div>
+      <div style="position:absolute;top:0;left:0;width:50%;height:50%;background:#333;border-radius:14px 0 0 0;"></div>
+      <div style="position:absolute;top:50%;left:50%;width:4px;height:4px;background:#111;border-radius:50%;transform:translate(-50%,-50%);"></div>
+    </div>
+    <div class="beat-counter">1.1 / 4</div>
+  </div>
+
+  <div class="top-divider"></div>
+
+  <div class="quantize-section">
+    <span class="quant-label">Quantize</span>
+    <select class="quant-select">
+      <option>Bar</option>
+      <option>Beat</option>
+      <option>Off</option>
+      <option>2 Bar</option>
+      <option>4 Bar</option>
+    </select>
+  </div>
+
+  <div class="fade-section">
+    <span class="fade-label">Crossfade</span>
+    <div class="fade-slider"><div class="fade-fill"></div></div>
+    <span class="fade-val">0.4s</span>
+  </div>
+
+  <div class="top-divider"></div>
+
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <div class="deck-tab add-deck">+</div>
+  </div>
+
+  <div class="top-spacer"></div>
+
+  <div class="master-section">
+    <span class="master-label">Master</span>
+    <div class="master-slider"><div class="master-fill"></div></div>
+    <span class="master-val">85%</span>
+  </div>
+</div>
+
+<!-- SIGNAL BAR -->
+<div class="signal-bar" id="signalBar"></div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: LAYERS -->
+  <div class="layers-col">
+    <div class="layers-header">
+      <span>Layers</span>
+      <div class="layers-header-right">
+        <div class="layers-header-btn" title="Fold All">Fold</div>
+        <div class="layers-header-btn" title="Reorder">Sort</div>
+      </div>
+    </div>
+    <div class="layers-list" id="layersList"></div>
+    <div class="add-layer-btn">+ Add Layer</div>
+  </div>
+
+  <!-- CENTER: CLIP GRID -->
+  <div class="clip-grid-area">
+    <div class="grid-scene-headers">
+      <div class="grid-scene-col">Intro</div>
+      <div class="grid-scene-col">Verse</div>
+      <div class="grid-scene-col">Build</div>
+      <div class="grid-scene-col active">Drop</div>
+      <div class="grid-scene-col">Outro</div>
+    </div>
+    <div class="clip-grid" id="clipGrid"></div>
+  </div>
+
+  <!-- RIGHT: INSPECTOR + BROWSER -->
+  <div class="right-panel">
+    <div class="inspector-tabs">
+      <div class="inspector-tab active">Clip</div>
+      <div class="inspector-tab">Layer</div>
+      <div class="inspector-tab">Composition</div>
+      <div class="inspector-tab">Signal</div>
+    </div>
+    <div class="inspector-body" id="inspectorBody"></div>
+    <div class="browser-panel">
+      <div class="browser-tabs">
+        <div class="browser-tab active">Files</div>
+        <div class="browser-tab">Effects</div>
+        <div class="browser-tab">Sources</div>
+      </div>
+      <div class="browser-body" id="browserBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM: LAYER STRIPS -->
+<div class="bottom-bar" id="bottomBar"></div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-item">
+    <div class="footer-dot green"></div>
+    <span>Frames Per Second: <span class="footer-val">99.94</span></span>
+  </div>
+  <div class="footer-item">
+    <span>DSP Load: <span class="footer-val">2.1%</span></span>
+  </div>
+  <div class="footer-item">
+    <span>GPU: <span class="footer-val">18%</span></span>
+  </div>
+  <div class="footer-item">
+    <span>Resolution: <span class="footer-val">1920 x 1080</span></span>
+  </div>
+  <div class="footer-item">
+    <div class="footer-dot green"></div>
+    <span>Audio: <span class="footer-val">48000 Hz / 128</span></span>
+  </div>
+  <div class="footer-spacer"></div>
+  <div class="footer-recording">
+    <div class="rec-blink"></div>
+    Recording 00:02:34
+  </div>
+  <div class="footer-item">
+    <span>Syphon: <span class="footer-val">Active</span></span>
+  </div>
+  <div class="footer-item">
+    <span style="color:#aaa; font-variant-numeric:tabular-nums;">00:04:12.08</span>
+  </div>
+</div>
+
+<script>
+// ─── SIGNAL BAR ───
+const signalBar = document.getElementById('signalBar');
+const signals = [
+  { name: 'RMS', val: 0.72, color: '#2ecc71' },
+  { name: 'Peak', val: 0.88, color: '#f1c40f' },
+  { name: 'Bass', val: 0.85, color: '#e74c3c' },
+  { name: 'Low Mid', val: 0.55, color: '#f39c12' },
+  { name: 'Mid', val: 0.65, color: '#f1c40f' },
+  { name: 'High Mid', val: 0.50, color: '#2ecc71' },
+  { name: 'Presence', val: 0.40, color: '#3498db' },
+  { name: 'Brilliance', val: 0.30, color: '#9b59b6' },
+  { name: 'Beat', val: 0.60, color: '#d4a24c' },
+  { name: 'Onset', val: 0.90, color: '#e74c3c' },
+  { name: 'Flux', val: 0.45, color: '#27ae60' },
+  { name: 'Centroid', val: 0.35, color: '#3498db' },
+];
+signals.forEach(s => {
+  const m = document.createElement('div');
+  m.className = 'signal-meter';
+  m.innerHTML = `
+    <div class="signal-meter-bar-wrap">
+      <div class="signal-meter-fill" style="height:${s.val*100}%;background:${s.color};"></div>
+    </div>
+    <div class="signal-meter-label">${s.name}</div>
+  `;
+  signalBar.appendChild(m);
+});
+
+// ─── LAYER DATA ───
+const layers = [
+  { num: 1, name: 'Impact', active: true, opacity: 0.85, type: 'opaque', folded: false, solo: false, mute: false, lock: false },
+  { num: 2, name: 'Lasers', active: false, opacity: 0.72, type: 'transparent', folded: false, solo: false, mute: false, lock: false },
+  { num: 3, name: 'Tunnel VFX', active: true, opacity: 1.0, type: 'opaque', folded: true, solo: false, mute: false, lock: false },
+  { num: 4, name: 'Particles', active: false, opacity: 0.60, type: 'transparent', folded: false, solo: false, mute: false, lock: true },
+  { num: 5, name: 'Nebula BG', active: false, opacity: 0.90, type: 'fxonly', folded: false, solo: false, mute: true, lock: false },
+  { num: 6, name: 'Geometry', active: true, opacity: 0.45, type: 'mask', folded: false, solo: true, mute: false, lock: false },
+];
+
+const badgeClass = { opaque: 'badge-opaque', transparent: 'badge-transparent', fxonly: 'badge-fxonly', mask: 'badge-mask' };
+const badgeText = { opaque: 'Opaque', transparent: 'Transparent', fxonly: 'FX Only', mask: 'Mask' };
+
+const layersList = document.getElementById('layersList');
+layers.forEach((l, idx) => {
+  const row = document.createElement('div');
+  row.className = 'layer-row' + (idx === 0 ? ' selected' : '');
+  const foldIcon = l.folded ? '\u25B6' : '\u25BC';
+  const controlsHTML = l.folded ? '' : `
+    <div class="layer-controls">
+      <div class="layer-btn ${l.active ? 'active-ctrl' : ''}" title="Play">\u25B6</div>
+      <div class="layer-btn" title="Stop">\u25A0</div>
+      <div class="layer-btn ${l.solo ? 'solo-active' : ''}" title="Solo">S</div>
+      <div class="layer-btn ${l.mute ? 'mute-active' : ''}" title="Mute">M</div>
+      <div class="layer-btn" title="Bypass">B</div>
+      <div class="layer-btn ${l.lock ? 'lock-active' : ''}" title="Content Lock">\u{1F512}</div>
+    </div>
+    <div class="layer-opacity"><div class="layer-opacity-fill" style="width:${l.opacity*100}%"></div></div>
+  `;
+  row.innerHTML = `
+    <div class="layer-top">
+      <div class="layer-num ${l.active ? 'active' : ''}">${l.num}</div>
+      <div class="layer-type-badge ${badgeClass[l.type]}">${badgeText[l.type]}</div>
+      <span class="layer-name">${l.name}</span>
+      <span class="layer-fold-btn">${foldIcon}</span>
+    </div>
+    ${controlsHTML}
+  `;
+  layersList.appendChild(row);
+});
+
+// ─── CLIP THUMBNAILS ───
+const clipData = [
+  { name:'Impact', grad:'radial-gradient(circle at 40% 40%, #f5a623, #c0392b 60%, #1a0a00)', active:false, hasFx:true, progress:0.65 },
+  { name:'Video', grad:'linear-gradient(135deg, #2c3e50, #3498db 50%, #1abc9c)', active:false, hasFx:false, progress:0.3 },
+  { name:'Lasers', grad:'repeating-linear-gradient(45deg, #000 0px, #000 4px, #39ff14 4px, #39ff14 5px)', active:false, hasFx:true, progress:0 },
+  { name:'Spirit', grad:'radial-gradient(ellipse at 50% 30%, #9b59b6, #2c0845 70%, #0a001a)', active:true, hasFx:true, progress:0.82, selected:true },
+  { name:'Drop', grad:'radial-gradient(circle, #fff 5%, #f39c12 20%, #e74c3c 50%, #000 80%)', active:false, hasFx:false, progress:0 },
+  { name:'Full Spectrum', grad:'linear-gradient(90deg, #e74c3c, #f39c12, #f1c40f, #2ecc71, #3498db, #9b59b6)', active:false, hasFx:false, progress:0 },
+  { name:'Coral Tunnels', grad:'radial-gradient(circle at 50% 50%, #ff6b6b, #c0392b 40%, #641e16 70%, #0a0000)', active:false, hasFx:true, progress:0 },
+  { name:'Stanho', grad:'conic-gradient(from 0deg, #1a1a2e, #16213e, #0f3460, #e94560, #1a1a2e)', active:true, hasFx:false, progress:0.45 },
+  { name:'Tunnel', grad:'repeating-radial-gradient(circle at 50% 50%, #000 0px, #1a1a2e 15px, #000 30px)', active:false, hasFx:false, progress:0 },
+  { name:'Tunnel', grad:'repeating-radial-gradient(circle at 50% 50%, #111 0px, #2c3e50 10px, #111 20px)', active:false, hasFx:false, progress:0 },
+  { name:'Wavy', grad:'repeating-linear-gradient(0deg, #0a0a2e 0px, #1a1a4e 8px, #0a0a2e 16px)', active:false, hasFx:false, progress:0 },
+  { name:'Fluent', grad:'linear-gradient(160deg, #0c2461, #0a3d62, #079992, #38ada9)', active:false, hasFx:true, progress:0 },
+  { name:'Pixel Sorting', grad:'repeating-linear-gradient(90deg, #e74c3c 0px, #f1c40f 3px, #2ecc71 6px, #3498db 9px, #9b59b6 12px)', active:false, hasFx:false, progress:0 },
+  { name:'Solar Tunnels', grad:'radial-gradient(circle at 50% 50%, #f9ca24, #f0932b 30%, #eb4d4b 60%, #130f40)', active:true, hasFx:true, progress:0.7 },
+  { name:'Nebula', grad:'radial-gradient(ellipse at 30% 60%, #6c5ce7 20%, #a29bfe 40%, #0a001a 80%)', active:false, hasFx:false, progress:0 },
+  { name:'Shapes', grad:'conic-gradient(from 45deg, #2d3436, #636e72, #dfe6e9, #636e72, #2d3436)', active:false, hasFx:false, progress:0 },
+  { name:'Telemetry', grad:'linear-gradient(180deg, #0a0a1a 0%, #1a3a4a 40%, #00b894 80%, #0a0a1a 100%)', active:false, hasFx:false, progress:0 },
+  { name:'Brazile', grad:'linear-gradient(135deg, #009432, #f9ca24, #0652DD, #f9ca24, #009432)', active:false, hasFx:false, progress:0 },
+  { name:'Vono', grad:'radial-gradient(circle at 60% 40%, #e056fd, #be2edd 40%, #4a0072 80%)', active:true, hasFx:true, progress:0.55 },
+  { name:'Laser Grid', grad:'repeating-linear-gradient(0deg, transparent 0px, transparent 11px, #00ff88 11px, #00ff88 12px), repeating-linear-gradient(90deg, transparent 0px, transparent 11px, #00ff88 11px, #00ff88 12px)', active:false, hasFx:false, progress:0 },
+  { name:'Bloom', grad:'radial-gradient(circle at 50% 50%, #ffeaa7 10%, #fdcb6e 30%, #e17055 60%, #2d3436 90%)', active:false, hasFx:false, progress:0 },
+  { name:'Particles', grad:'radial-gradient(circle at 30% 30%, #fff 2%, transparent 3%), radial-gradient(circle at 70% 60%, #fff 1%, transparent 2%), radial-gradient(circle at 50% 80%, #fff 1.5%, transparent 2.5%), radial-gradient(circle at 80% 20%, #fff 1%, transparent 2%), radial-gradient(ellipse, #1a1a3e, #000)', active:false, hasFx:false, progress:0 },
+  { name:'Particles', grad:'radial-gradient(circle at 20% 70%, #74b9ff 2%, transparent 3%), radial-gradient(circle at 60% 30%, #a29bfe 1.5%, transparent 2.5%), radial-gradient(circle at 80% 80%, #55efc4 1%, transparent 2%), radial-gradient(ellipse, #0a0a2e, #000)', active:true, hasFx:true, progress:0.38 },
+  { name:'Video', grad:'linear-gradient(140deg, #6c5ce7 0%, #a29bfe 30%, #fd79a8 60%, #e84393 100%)', active:false, hasFx:false, progress:0 },
+  { name:'Fractal Bloom', grad:'conic-gradient(from 0deg at 50% 50%, #e74c3c, #f39c12, #2ecc71, #3498db, #9b59b6, #e74c3c)', active:false, hasFx:true, progress:0 },
+  { name:'Stars', grad:'radial-gradient(circle at 25% 25%, #fff 1px, transparent 1px), radial-gradient(circle at 75% 45%, #fff 1px, transparent 1px), radial-gradient(circle at 50% 75%, #fff 0.5px, transparent 0.5px), radial-gradient(circle at 15% 85%, #fff 1px, transparent 1px), radial-gradient(circle at 85% 15%, #fff 0.5px, transparent 0.5px), linear-gradient(180deg, #000 0%, #0a0a2e 100%)', active:false, hasFx:false, progress:0 },
+  { name:'Fire', grad:'linear-gradient(0deg, #f12711 0%, #f5af19 40%, #f12711 70%, #2d0000 100%)', active:false, hasFx:false, progress:0 },
+  { name:'Geometry', grad:'conic-gradient(from 0deg, #2c3e50 0deg, #3498db 60deg, #2c3e50 120deg, #e74c3c 180deg, #2c3e50 240deg, #2ecc71 300deg, #2c3e50 360deg)', active:true, hasFx:true, progress:0.91 },
+  { name:'Prism', grad:'linear-gradient(45deg, #ff0000 0%, #ff8800 16%, #ffff00 33%, #00ff00 50%, #0088ff 66%, #0000ff 83%, #8800ff 100%)', active:false, hasFx:false, progress:0 },
+  { name:'Video', grad:'linear-gradient(135deg, #2c3e50 0%, #4ca1af 50%, #2c3e50 100%)', active:false, hasFx:false, progress:0 },
+];
+
+const grid = document.getElementById('clipGrid');
+clipData.forEach(c => {
+  const cell = document.createElement('div');
+  let cls = 'clip-cell';
+  if (c.active) cls += ' active';
+  if (c.selected) cls += ' selected';
+  cell.className = cls;
+  const fxDot = c.hasFx ? '<div class="clip-fx-dot"></div>' : '';
+  const progBar = c.active && c.progress > 0 ? `<div class="clip-progress" style="width:${c.progress*100}%"></div>` : '';
+  cell.innerHTML = `
+    <div class="clip-thumb" style="background:${c.grad}">${fxDot}${progBar}</div>
+    <div class="clip-label">${c.name}</div>
+  `;
+  grid.appendChild(cell);
+});
+
+// ─── INSPECTOR ───
+const inspectorBody = document.getElementById('inspectorBody');
+inspectorBody.innerHTML = `
+  <!-- Dashboard -->
+  <div class="insp-section">
+    <div class="insp-section-header">
+      <span class="insp-section-arrow">\u25BC</span>
+      Dashboard
+    </div>
+    <div class="insp-section-content">
+      <div class="dashboard-grid">
+        ${['Blur','Warp','Glow','Echo','Hue','Speed','Scale','Macro'].map((n, i) => `
+          <div class="dash-knob-group">
+            <div class="dash-knob ${i < 3 || i === 7 ? 'mapped' : ''}" style="transform:rotate(${-90 + i * 30}deg)"></div>
+            <span class="dash-knob-label">${n}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Video / Transport -->
+  <div class="insp-section">
+    <div class="insp-section-header">
+      <span class="insp-section-arrow">\u25BC</span>
+      Video
+    </div>
+    <div class="insp-section-content">
+      <div class="param-row">
+        <div class="param-signal connected"></div>
+        <span class="param-label">Opacity</span>
+        <div class="param-slider"><div class="param-fill" style="width:85%"></div></div>
+        <span class="param-val">0.85</span>
+      </div>
+      <div class="param-row">
+        <div class="param-signal"></div>
+        <span class="param-label">Speed</span>
+        <div class="param-slider"><div class="param-fill" style="width:50%"></div></div>
+        <span class="param-val">1.00</span>
+      </div>
+      <div class="param-row">
+        <div class="param-signal"></div>
+        <span class="param-label">Blend Mode</span>
+        <select class="keying-select" style="flex:1"><option>Additive</option></select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cuepoints -->
+  <div class="insp-section">
+    <div class="insp-section-header">
+      <span class="insp-section-arrow">\u25BC</span>
+      Cuepoints
+    </div>
+    <div class="insp-section-content">
+      <div class="cuepoint-row">
+        ${[1,2,3,4,5,6,7,8].map(n => `<div class="cuepoint-btn ${n <= 3 ? 'set' : ''}">${n}</div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Effects Stack -->
+  <div class="insp-section">
+    <div class="insp-section-header">
+      <span class="insp-section-arrow">\u25BC</span>
+      Effects
+      <span style="margin-left:auto;font-size:8px;color:#666;">3 active</span>
+    </div>
+    <div class="insp-section-content">
+      <!-- FX 1 -->
+      <div class="fx-stack-item">
+        <div class="fx-bypass-btn active">B</div>
+        <span class="fx-name">Ripple</span>
+        <span class="fx-delete-btn">x</span>
+      </div>
+      <div class="fx-params">
+        <div class="param-row">
+          <div class="param-signal connected"></div>
+          <span class="param-label">Intensity</span>
+          <div class="param-slider"><div class="param-fill" style="width:65%"></div></div>
+          <span class="param-val">0.65</span>
+        </div>
+        <div class="param-row">
+          <div class="param-signal connected"></div>
+          <span class="param-label">Frequency</span>
+          <div class="param-slider"><div class="param-fill" style="width:45%"></div></div>
+          <span class="param-val">0.45</span>
+        </div>
+      </div>
+      <!-- FX 2 -->
+      <div class="fx-stack-item">
+        <div class="fx-bypass-btn active">B</div>
+        <span class="fx-name">Hue Shift</span>
+        <span class="fx-delete-btn">x</span>
+      </div>
+      <div class="fx-params">
+        <div class="param-row">
+          <div class="param-signal connected"></div>
+          <span class="param-label">Shift</span>
+          <div class="param-slider"><div class="param-fill" style="width:78%"></div></div>
+          <span class="param-val">0.78</span>
+        </div>
+      </div>
+      <!-- FX 3 -->
+      <div class="fx-stack-item">
+        <div class="fx-bypass-btn active">B</div>
+        <span class="fx-name">Echo</span>
+        <span class="fx-delete-btn">x</span>
+      </div>
+      <div class="fx-params">
+        <div class="param-row">
+          <div class="param-signal"></div>
+          <span class="param-label">Decay</span>
+          <div class="param-slider"><div class="param-fill" style="width:55%"></div></div>
+          <span class="param-val">0.55</span>
+        </div>
+        <div class="param-row">
+          <div class="param-signal"></div>
+          <span class="param-label">Operator</span>
+          <div class="param-slider"><div class="param-fill" style="width:25%"></div></div>
+          <span class="param-val">Add</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transform -->
+  <div class="insp-section">
+    <div class="insp-section-header">
+      <span class="insp-section-arrow">\u25BC</span>
+      Transform
+    </div>
+    <div class="insp-section-content">
+      <div class="transform-grid">
+        <div class="param-row">
+          <div class="param-signal"></div>
+          <span class="param-label">Position X</span>
+          <div class="param-slider"><div class="param-fill" style="width:50%"></div></div>
+          <span class="param-val">0.00</span>
+        </div>
+        <div class="param-row">
+          <div class="param-signal"></div>
+          <span class="param-label">Position Y</span>
+          <div class="param-slider"><div class="param-fill" style="width:50%"></div></div>
+          <span class="param-val">0.00</span>
+        </div>
+        <div class="param-row">
+          <div class="param-signal connected"></div>
+          <span class="param-label">Scale</span>
+          <div class="param-slider"><div class="param-fill" style="width:50%"></div></div>
+          <span class="param-val">1.00</span>
+        </div>
+        <div class="param-row">
+          <div class="param-signal"></div>
+          <span class="param-label">Rotation</span>
+          <div class="param-slider"><div class="param-fill" style="width:50%"></div></div>
+          <span class="param-val">0.0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keying -->
+  <div class="insp-section">
+    <div class="insp-section-header">
+      <span class="insp-section-arrow">\u25B6</span>
+      Keying
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="insp-section">
+    <div class="insp-section-header">
+      <span class="insp-section-arrow">\u25B6</span>
+      Feedback
+    </div>
+  </div>
+
+  <!-- Autopilot -->
+  <div class="insp-section">
+    <div class="insp-section-header">
+      <span class="insp-section-arrow">\u25BC</span>
+      Autopilot
+    </div>
+    <div class="insp-section-content">
+      <div class="autopilot-row">
+        <div class="autopilot-toggle on">
+          <div class="autopilot-dot"></div>
+        </div>
+        <span class="autopilot-label">Enabled</span>
+        <span style="margin-left:auto;font-size:9px;color:#888;">On Beat / 4 Beats</span>
+      </div>
+    </div>
+  </div>
+`;
+
+// ─── BROWSER ───
+const browserBody = document.getElementById('browserBody');
+browserBody.innerHTML = `
+  <div class="browser-category">Warp</div>
+  <div class="browser-item draggable">Ripple</div>
+  <div class="browser-item draggable">Bulge</div>
+  <div class="browser-item draggable">Wave</div>
+  <div class="browser-item draggable">Liquid</div>
+  <div class="browser-item draggable">Kaleidoscope</div>
+  <div class="browser-category">Color</div>
+  <div class="browser-item draggable">Hue Shift</div>
+  <div class="browser-item draggable">Chromatic Aberration</div>
+  <div class="browser-item draggable">Duotone</div>
+  <div class="browser-category">Glitch</div>
+  <div class="browser-item draggable">Pixel Scatter</div>
+  <div class="browser-item draggable">RGB Split</div>
+  <div class="browser-item draggable">Block Glitch</div>
+  <div class="browser-category">Time</div>
+  <div class="browser-item draggable">Echo</div>
+  <div class="browser-item draggable">Freeze</div>
+  <div class="browser-item draggable">Frame Stutter</div>
+  <div class="browser-category">Blur / Post</div>
+  <div class="browser-item draggable">Gaussian Blur</div>
+  <div class="browser-item draggable">Glow</div>
+`;
+
+// ─── BOTTOM: LAYER STRIPS ───
+const bottomBar = document.getElementById('bottomBar');
+
+const strips = [
+  { name:'Impact', knobs:['Blur','Warp','Glow','Macro','Echo','Hue'], opacity:0.85 },
+  { name:'Lasers', knobs:['Speed','Scale','Strobe','Macro','Pulse','Sat'], opacity:0.72 },
+  { name:'Tunnel', knobs:['Zoom','Wave','Pulse','Echo','Shake','Glow'], opacity:1.0 },
+  { name:'Particles', knobs:['Size','Speed','Color','Macro','Blur','Sat'], opacity:0.60 },
+];
+
+strips.forEach((s, si) => {
+  const knobsHTML = s.knobs.map((k, ki) => {
+    const isActive = ki === 0 || ki === 3;
+    return `<div class="knob-group">
+      <div class="knob ${isActive ? 'active-knob' : ''}" style="transform:rotate(${-120 + ki * 40}deg)"></div>
+      <span class="knob-label">${k}</span>
+    </div>`;
+  }).join('');
+
+  const strip = document.createElement('div');
+  strip.className = 'bottom-strip';
+  strip.innerHTML = `
+    <div class="strip-label">${s.name}</div>
+    <div class="strip-knobs">${knobsHTML}</div>
+    <div class="strip-opacity">
+      <div class="opacity-slider-v">
+        <div class="opacity-fill-v" style="height:${s.opacity*100}%"></div>
+      </div>
+      <span class="opacity-label">${Math.round(s.opacity*100)}%</span>
+    </div>
+  `;
+  bottomBar.appendChild(strip);
+});
+
+// Master strip
+const masterStrip = document.createElement('div');
+masterStrip.className = 'master-strip';
+masterStrip.innerHTML = `
+  <span class="master-strip-label">Master</span>
+  <div class="master-vu">
+    <div class="master-vu-fill" style="height:72%"></div>
+  </div>
+  <span class="master-vu-val">-3.2 dB</span>
+`;
+bottomBar.appendChild(masterStrip);
+</script>
+</body>
+</html>

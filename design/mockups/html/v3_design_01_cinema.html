@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>Audio-DNA — Cinema Design</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --cyan: #00d9ff;
+    --cyan-dim: rgba(0, 217, 255, 0.5);
+    --cyan-glow: rgba(0, 217, 255, 0.15);
+    --text: #e0e0e0;
+    --text-dim: #888;
+    --text-dark: #555;
+    --bg-overlay-top: rgba(0, 0, 0, 0.75);
+    --bg-overlay-bottom: rgba(0, 0, 0, 0.70);
+    --bg-panel: rgba(12, 12, 18, 0.92);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-light: rgba(255, 255, 255, 0.12);
+    --red: #ff3b3b;
+    --amber: #ffaa00;
+    --green: #44ff44;
+    --magenta: #ff44aa;
+  }
+
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+    background: #000;
+  }
+
+  /* === FULLSCREEN GENERATIVE BACKGROUND === */
+  .fullscreen-preview {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1920px; height: 1080px;
+    background:
+      radial-gradient(ellipse 900px 600px at 55% 40%, rgba(0, 80, 180, 0.6) 0%, transparent 70%),
+      radial-gradient(ellipse 600px 500px at 35% 55%, rgba(120, 0, 200, 0.5) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 400px at 70% 60%, rgba(0, 200, 180, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 300px 300px at 50% 45%, rgba(255, 100, 50, 0.2) 0%, transparent 50%),
+      radial-gradient(circle 180px at 48% 42%, rgba(255, 255, 255, 0.08) 0%, transparent 100%),
+      conic-gradient(from 30deg at 50% 45%,
+        rgba(0, 60, 140, 0.3) 0deg,
+        rgba(80, 0, 160, 0.25) 60deg,
+        rgba(0, 140, 120, 0.2) 120deg,
+        rgba(160, 40, 80, 0.15) 180deg,
+        rgba(0, 80, 180, 0.2) 240deg,
+        rgba(60, 0, 120, 0.25) 300deg,
+        rgba(0, 60, 140, 0.3) 360deg),
+      linear-gradient(135deg, #0a0015 0%, #020810 50%, #080012 100%);
+    z-index: 0;
+  }
+
+  /* Mandelbrot-like fractal pattern overlay */
+  .fractal-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1920px; height: 1080px;
+    z-index: 1;
+    background:
+      radial-gradient(circle 60px at 52% 38%, rgba(0,217,255,0.12) 0%, transparent 100%),
+      radial-gradient(circle 120px at 48% 44%, rgba(120,0,255,0.08) 0%, transparent 100%),
+      radial-gradient(circle 200px at 55% 42%, rgba(0,100,200,0.06) 0%, transparent 100%),
+      radial-gradient(circle 40px at 46% 40%, rgba(255,255,255,0.06) 0%, transparent 100%);
+    mix-blend-mode: screen;
+  }
+
+  /* Signal pulse line between top bar and content */
+  .signal-pulse {
+    position: absolute;
+    top: 28px; left: 0;
+    width: 1920px; height: 2px;
+    z-index: 100;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(0,217,255,0.0) 5%,
+      rgba(0,217,255,0.3) 10%,
+      rgba(0,217,255,0.6) 15%,
+      rgba(0,217,255,0.9) 20%,
+      rgba(0,217,255,0.4) 25%,
+      rgba(0,217,255,0.7) 30%,
+      rgba(0,217,255,0.2) 35%,
+      rgba(0,217,255,0.8) 40%,
+      rgba(0,217,255,0.5) 45%,
+      rgba(0,217,255,1.0) 48%,
+      rgba(0,217,255,0.6) 52%,
+      rgba(0,217,255,0.3) 55%,
+      rgba(0,217,255,0.7) 60%,
+      rgba(0,217,255,0.4) 65%,
+      rgba(0,217,255,0.9) 70%,
+      rgba(0,217,255,0.2) 75%,
+      rgba(0,217,255,0.6) 80%,
+      rgba(0,217,255,0.8) 85%,
+      rgba(0,217,255,0.3) 90%,
+      rgba(0,217,255,0.0) 95%,
+      transparent 100%
+    );
+    box-shadow: 0 0 6px rgba(0,217,255,0.4);
+  }
+
+  /* === TOP OVERLAY BAR === */
+  .top-bar {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1920px; height: 28px;
+    background: var(--bg-overlay-top);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    gap: 2px;
+    font-size: 10px;
+  }
+
+  .top-bar .separator {
+    width: 1px; height: 16px;
+    background: var(--border-light);
+    margin: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .top-bar .group {
+    display: flex; align-items: center; gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .top-bar .label {
+    color: var(--text-dim);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .tb-dropdown {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 1px 6px;
+    font-size: 10px;
+    border-radius: 0;
+    height: 18px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .tb-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0 5px;
+    font-size: 10px;
+    height: 18px;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 18px;
+  }
+  .tb-btn:hover { background: rgba(255,255,255,0.12); }
+  .tb-btn.active { background: rgba(0,217,255,0.2); border-color: var(--cyan); color: var(--cyan); }
+
+  .tb-slider-wrap {
+    display: flex; align-items: center; gap: 2px;
+  }
+  .tb-slider {
+    width: 50px; height: 4px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 0;
+    position: relative;
+    cursor: pointer;
+  }
+  .tb-slider .fill {
+    position: absolute; left: 0; top: 0;
+    height: 100%;
+    background: var(--cyan);
+    border-radius: 0;
+  }
+  .tb-slider .handle {
+    position: absolute; top: -3px;
+    width: 2px; height: 10px;
+    background: #fff;
+  }
+
+  /* Beat wheel */
+  .beat-wheel {
+    width: 20px; height: 20px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .beat-wheel svg { width: 20px; height: 20px; }
+
+  /* BPM display */
+  .bpm-display {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .tracker-state {
+    font-size: 8px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+  .bar-phrase {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .bpm-mult .tb-btn.selected {
+    background: rgba(0,217,255,0.15);
+    color: var(--cyan);
+    border-color: rgba(0,217,255,0.4);
+  }
+
+  .fps-display {
+    font-size: 10px;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .dsp-display {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .blackout-btn {
+    background: rgba(255,0,0,0.15) !important;
+    border-color: rgba(255,60,60,0.4) !important;
+    color: var(--red) !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .spacer { flex: 1; }
+
+  /* === BOTTOM OVERLAY (DECK) === */
+  .bottom-overlay {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 1920px; height: 260px;
+    background: var(--bg-overlay-bottom);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Column triggers row */
+  .col-triggers {
+    display: flex;
+    height: 18px;
+    padding-left: 140px;
+    align-items: center;
+  }
+  .col-trigger {
+    width: 70px;
+    height: 16px;
+    margin-right: 2px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px;
+    color: var(--text-dark);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .col-trigger.active {
+    background: rgba(0,217,255,0.15);
+    border-color: rgba(0,217,255,0.5);
+    color: var(--cyan);
+  }
+
+  /* Deck area */
+  .deck-area {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Layer strips */
+  .layer-strips {
+    width: 140px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .layer-strip {
+    height: 73px;
+    border-bottom: 1px solid var(--border);
+    padding: 3px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: relative;
+  }
+
+  .layer-strip .ls-row1 {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 14px;
+  }
+  .ls-name {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ls-type {
+    font-size: 7px;
+    color: var(--text-dark);
+    text-transform: uppercase;
+    padding: 0 3px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .layer-strip .ls-row2 {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 14px;
+  }
+  .ls-btn {
+    width: 16px; height: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    font-size: 7px;
+    color: var(--text-dim);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .ls-btn.bypass-active { background: rgba(180,40,40,0.3); color: var(--red); border-color: rgba(255,60,60,0.3); }
+  .ls-btn.solo-active { background: rgba(140,140,40,0.3); color: #cccc44; border-color: rgba(180,180,40,0.3); }
+
+  .ls-transport {
+    display: flex; gap: 1px; margin-left: 4px;
+  }
+  .ls-transport .ls-btn { width: 14px; font-size: 8px; }
+
+  .layer-strip .ls-row3 {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    flex: 1;
+    padding-top: 1px;
+  }
+  .ls-vslider {
+    width: 12px;
+    height: 30px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .ls-vslider .vs-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    border-radius: 0;
+  }
+  .ls-vslider .vs-label {
+    font-size: 6px;
+    color: var(--text-dark);
+    position: absolute;
+    bottom: -8px;
+    white-space: nowrap;
+  }
+
+  .ls-thumb {
+    width: 36px; height: 28px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    margin-left: auto;
+  }
+  .ls-thumb .playhead {
+    position: absolute; top: 0; bottom: 0;
+    width: 1px;
+    background: var(--cyan);
+  }
+  .ls-thumb-gradient {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, rgba(0,80,180,0.4), rgba(120,0,200,0.3));
+  }
+
+  .ls-dropdown {
+    font-size: 7px;
+    color: var(--text-dark);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    padding: 0 3px;
+    height: 12px;
+    width: 50px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex; align-items: center;
+  }
+
+  /* Clip grid */
+  .clip-grid {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .clip-row {
+    display: flex;
+    height: 73px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .clip-cell {
+    width: 70px;
+    height: 73px;
+    border-right: 1px solid rgba(255,255,255,0.04);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    position: relative;
+  }
+  .clip-cell:hover { background: rgba(255,255,255,0.03); }
+
+  .cell-thumb {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .cell-thumb-img {
+    width: 100%; height: 100%;
+  }
+  .cell-name {
+    height: 14px;
+    background: rgba(0,0,0,0.5);
+    font-size: 7px;
+    color: var(--text-dim);
+    padding: 0 3px;
+    display: flex; align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .clip-cell.active {
+    box-shadow: inset 0 0 0 2px var(--cyan);
+  }
+  .clip-cell.active .cell-name {
+    color: var(--cyan);
+    background: rgba(0,217,255,0.1);
+  }
+
+  .clip-cell.selected {
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.6);
+  }
+
+  .clip-cell.empty .cell-thumb {
+    background: rgba(255,255,255,0.015);
+  }
+
+  .cell-fx-badge {
+    position: absolute;
+    top: 2px; right: 2px;
+    background: rgba(0,0,0,0.7);
+    color: var(--cyan);
+    font-size: 7px;
+    padding: 0 3px;
+    border: 1px solid rgba(0,217,255,0.3);
+  }
+
+  .cell-src-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Source gradient fills */
+  .src-mandelbrot { background: radial-gradient(ellipse at 40% 45%, #1a0044 0%, #000820 40%, #002244 70%, #000 100%); }
+  .src-julia { background: radial-gradient(ellipse at 55% 50%, #220044 0%, #001133 50%, #000 100%); }
+  .src-perlin { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+  .src-kaleidoscope { background: conic-gradient(from 0deg, #220044, #002244, #004422, #442200, #440022, #220044); }
+  .src-torus { background: radial-gradient(circle at 50% 45%, #002233 0%, #001122 50%, #000811 100%); }
+  .src-spectrum { background: linear-gradient(0deg, #001144 0%, #002266 30%, #003388 60%, #0044aa 100%); }
+  .src-cymatics { background: radial-gradient(circle, #112233 0%, #0a1520 50%, #050a10 100%); }
+  .src-particle { background: radial-gradient(circle at 50% 50%, #0a0020 0%, #000010 100%); }
+  .src-scrolltext { background: linear-gradient(180deg, #0a0a14 0%, #08081a 100%); }
+  .src-sierpinski { background: radial-gradient(circle at 50% 40%, #0a1a0a 0%, #050f05 50%, #000 100%); }
+  .src-fluid { background: linear-gradient(45deg, #0a0020 0%, #001030 50%, #200020 100%); }
+  .src-image { background: linear-gradient(135deg, #1a1a1a 0%, #222 100%); }
+
+  .playing-glow {
+    box-shadow: inset 0 0 0 2px var(--cyan), 0 0 12px rgba(0,217,255,0.25);
+  }
+
+  /* Deck tabs */
+  .deck-tabs {
+    height: 18px;
+    display: flex;
+    padding-left: 140px;
+    border-top: 1px solid var(--border);
+  }
+  .deck-tab {
+    padding: 0 16px;
+    font-size: 9px;
+    color: var(--text-dim);
+    display: flex; align-items: center;
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .deck-tab.active {
+    color: var(--cyan);
+    background: rgba(0,217,255,0.06);
+  }
+
+  /* Browser hint */
+  .browser-hint {
+    position: absolute;
+    bottom: 270px;
+    right: 12px;
+    font-size: 9px;
+    color: var(--text-dark);
+    z-index: 150;
+    display: flex; align-items: center; gap: 4px;
+    opacity: 0.6;
+  }
+  .key-hint {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    font-size: 9px;
+    color: var(--text-dim);
+    font-family: inherit;
+  }
+
+  /* === RIGHT SLIDE-IN INSPECTOR === */
+  .inspector-panel {
+    position: absolute;
+    top: 30px;
+    right: 0;
+    width: 300px;
+    bottom: 262px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-left: 1px solid var(--border);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .insp-tabs {
+    display: flex;
+    height: 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .insp-tab {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-right: 1px solid var(--border);
+  }
+  .insp-tab:last-child { border-right: none; }
+  .insp-tab.active {
+    color: var(--cyan);
+    background: rgba(0,217,255,0.06);
+    border-bottom: 2px solid var(--cyan);
+  }
+  .insp-pin {
+    width: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: var(--text-dark);
+    cursor: pointer;
+    border-left: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .insp-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  /* Inspector sections */
+  .insp-section {
+    border-bottom: 1px solid var(--border);
+  }
+  .insp-section-header {
+    height: 22px;
+    padding: 0 8px;
+    display: flex; align-items: center;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    gap: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .insp-section-header .arrow {
+    font-size: 7px;
+    color: var(--text-dim);
+    width: 10px;
+    text-align: center;
+  }
+  .insp-section-header .section-badge {
+    margin-left: auto;
+    font-size: 7px;
+    color: var(--text-dark);
+    font-weight: 400;
+  }
+
+  .insp-section-body {
+    padding: 4px 8px 6px;
+  }
+
+  /* Clip name bar */
+  .clip-name-bar {
+    height: 26px;
+    padding: 0 8px;
+    display: flex; align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,217,255,0.04);
+  }
+  .clip-name-bar .clip-type-badge {
+    font-size: 7px;
+    color: var(--cyan);
+    background: rgba(0,217,255,0.1);
+    border: 1px solid rgba(0,217,255,0.2);
+    padding: 0 4px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Dashboard knobs */
+  .dashboard-knobs {
+    display: flex;
+    gap: 2px;
+    padding: 2px 0;
+    justify-content: space-between;
+  }
+  .dash-knob {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    width: 30px;
+  }
+  .dash-knob-circle {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-light);
+    background: rgba(255,255,255,0.03);
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dash-knob-circle .knob-indicator {
+    width: 1px; height: 7px;
+    background: var(--text-dim);
+    position: absolute;
+    top: 3px;
+    transform-origin: bottom center;
+  }
+  .dash-knob-circle.connected {
+    border-color: var(--cyan-dim);
+  }
+  .dash-knob-circle.connected .knob-indicator {
+    background: var(--cyan);
+  }
+  .dash-knob-label {
+    font-size: 6px;
+    color: var(--text-dark);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* Parameter row */
+  .param-row {
+    display: flex;
+    align-items: center;
+    height: 18px;
+    gap: 4px;
+  }
+  .param-triangle {
+    width: 6px; height: 8px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .param-triangle.manual {
+    border-left: 6px solid var(--text-dark);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .param-triangle.connected {
+    border-left: 6px solid var(--cyan);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .param-label {
+    font-size: 9px;
+    color: var(--text-dim);
+    width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+  }
+  .param-value {
+    font-size: 9px;
+    color: var(--text);
+    width: 30px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .param-slider {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    position: relative;
+    cursor: pointer;
+    min-width: 40px;
+  }
+  .param-slider .ps-fill {
+    position: absolute; left: 0; top: 0;
+    height: 100%;
+    background: rgba(0,217,255,0.5);
+  }
+  .param-slider .ps-handle {
+    position: absolute; top: -2px;
+    width: 2px; height: 8px;
+    background: var(--cyan);
+  }
+
+  /* Effects in inspector */
+  .fx-row {
+    display: flex;
+    align-items: center;
+    height: 20px;
+    gap: 3px;
+    padding: 0 0 0 2px;
+  }
+  .fx-bypass {
+    width: 14px; height: 14px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    font-size: 7px;
+    color: var(--text-dim);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .fx-bypass.active {
+    background: rgba(0,217,255,0.12);
+    border-color: rgba(0,217,255,0.3);
+    color: var(--cyan);
+  }
+  .fx-name {
+    font-size: 9px;
+    color: var(--text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fx-drywet {
+    font-size: 8px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .fx-expand {
+    width: 14px; height: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px;
+    color: var(--text-dark);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .fx-delete {
+    width: 14px; height: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px;
+    color: var(--text-dark);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Expanded FX params */
+  .fx-params {
+    padding: 2px 0 4px 20px;
+  }
+
+  /* Transport section in inspector */
+  .transport-bar {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+    padding: 2px 0;
+  }
+  .transport-btn {
+    width: 20px; height: 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .transport-btn.active { color: var(--cyan); border-color: rgba(0,217,255,0.3); background: rgba(0,217,255,0.08); }
+
+  .transport-timeline {
+    flex: 1;
+    height: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    position: relative;
+    margin: 0 2px;
+  }
+  .tl-range {
+    position: absolute; top: 0; bottom: 0;
+    background: rgba(0,217,255,0.08);
+  }
+  .tl-playhead {
+    position: absolute; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--cyan);
+  }
+  .tl-in, .tl-out {
+    position: absolute; top: 0; bottom: 0;
+    width: 3px;
+    background: rgba(255,255,255,0.3);
+    cursor: ew-resize;
+  }
+
+  /* scrollbar style */
+  .insp-body::-webkit-scrollbar { width: 4px; }
+  .insp-body::-webkit-scrollbar-track { background: transparent; }
+  .insp-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+</style>
+</head>
+<body>
+
+<!-- FULLSCREEN GENERATIVE BACKGROUND -->
+<div class="fullscreen-preview">
+  <div class="fractal-overlay"></div>
+</div>
+
+<!-- SIGNAL PULSE LINE -->
+<div class="signal-pulse"></div>
+
+<!-- ============ TOP BAR ============ -->
+<div class="top-bar">
+  <!-- Audio Source -->
+  <div class="group">
+    <select class="tb-dropdown" style="width:82px">
+      <option>Mic Input</option>
+    </select>
+  </div>
+
+  <!-- Gain -->
+  <div class="group">
+    <span class="label">Gain</span>
+    <div class="tb-slider" style="width:36px">
+      <div class="fill" style="width:50%"></div>
+      <div class="handle" style="left:49%"></div>
+    </div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- Transport -->
+  <div class="group">
+    <div class="tb-btn" title="Play">&#9654;</div>
+    <div class="tb-btn" title="Pause">| |</div>
+    <div class="tb-btn" title="Stop">&#9632;</div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- Beat Wheel + BPM -->
+  <div class="group">
+    <div class="beat-wheel">
+      <svg viewBox="0 0 20 20">
+        <!-- 4 segments, beat 1 active -->
+        <path d="M10,1 A9,9 0 0,1 19,10 L10,10 Z" fill="rgba(0,217,255,0.6)" stroke="rgba(0,217,255,0.8)" stroke-width="0.5"/>
+        <path d="M19,10 A9,9 0 0,1 10,19 L10,10 Z" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+        <path d="M10,19 A9,9 0 0,1 1,10 L10,10 Z" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+        <path d="M1,10 A9,9 0 0,1 10,1 L10,10 Z" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/>
+        <circle cx="10" cy="10" r="2.5" fill="rgba(0,0,0,0.6)"/>
+      </svg>
+    </div>
+    <div class="bar-phrase">Bar 7</div>
+    <div class="bar-phrase">Phr 0.87</div>
+  </div>
+
+  <div class="separator"></div>
+
+  <div class="group">
+    <span class="bpm-display">128.0</span>
+    <span class="tracker-state">LOCKED</span>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- Tap / Resync / Manual -->
+  <div class="group">
+    <div class="tb-btn" title="Tap Tempo">Tap</div>
+    <div class="tb-btn" title="Resync">Resync</div>
+    <div class="tb-btn" title="Manual BPM">Manual</div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- BPM Multiplier -->
+  <div class="group bpm-mult">
+    <div class="tb-btn">/4</div>
+    <div class="tb-btn">/2</div>
+    <div class="tb-btn selected">x1</div>
+    <div class="tb-btn">x2</div>
+    <div class="tb-btn">x4</div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- Quantize -->
+  <div class="group">
+    <span class="label">Quantize</span>
+    <select class="tb-dropdown" style="width:80px">
+      <option>Next Beat</option>
+    </select>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- Fade -->
+  <div class="group">
+    <span class="label">Fade</span>
+    <div class="tb-slider" style="width:36px">
+      <div class="fill" style="width:20%"></div>
+      <div class="handle" style="left:19%"></div>
+    </div>
+    <span style="font-size:9px;color:var(--text-dim)">0.3s</span>
+  </div>
+
+  <div class="spacer"></div>
+
+  <!-- Master -->
+  <div class="group">
+    <span class="label">Master</span>
+    <div class="tb-slider" style="width:44px">
+      <div class="fill" style="width:100%"></div>
+      <div class="handle" style="left:98%"></div>
+    </div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- Blackout -->
+  <div class="group">
+    <div class="tb-btn blackout-btn">BLACKOUT</div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- Output -->
+  <div class="group">
+    <span class="label">Output</span>
+    <select class="tb-dropdown" style="width:90px">
+      <option>Fullscreen 2</option>
+    </select>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- FPS / DSP -->
+  <div class="group">
+    <span class="fps-display">60 fps</span>
+    <span class="dsp-display">3.2%</span>
+  </div>
+</div>
+
+<!-- ============ BROWSER HINT ============ -->
+<div class="browser-hint">
+  <span class="key-hint">Tab</span>
+  <span>Browser</span>
+</div>
+
+<!-- ============ BOTTOM OVERLAY (DECK) ============ -->
+<div class="bottom-overlay">
+
+  <!-- Column triggers -->
+  <div class="col-triggers">
+    <div class="col-trigger active">1</div>
+    <div class="col-trigger">2</div>
+    <div class="col-trigger">3</div>
+    <div class="col-trigger">4</div>
+    <div class="col-trigger">5</div>
+    <div class="col-trigger">6</div>
+    <div class="col-trigger">7</div>
+    <div class="col-trigger">8</div>
+    <div class="col-trigger">9</div>
+    <div class="col-trigger">10</div>
+    <div class="col-trigger">11</div>
+    <div class="col-trigger">12</div>
+  </div>
+
+  <!-- Deck area: strips + cells -->
+  <div class="deck-area">
+
+    <!-- Layer strips -->
+    <div class="layer-strips">
+
+      <!-- Layer 3 (top = highest priority) -->
+      <div class="layer-strip">
+        <div class="ls-row1">
+          <span class="ls-name">FX Glow</span>
+          <span class="ls-type">FX Only</span>
+        </div>
+        <div class="ls-row2">
+          <div class="ls-btn">X</div>
+          <div class="ls-btn">B</div>
+          <div class="ls-btn">S</div>
+          <div class="ls-transport">
+            <div class="ls-btn">&lt;</div>
+            <div class="ls-btn">||</div>
+            <div class="ls-btn" style="color:var(--cyan)">&gt;</div>
+            <div class="ls-btn">&gt;|</div>
+          </div>
+        </div>
+        <div class="ls-row3">
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:50%;background:rgba(0,217,255,0.4)"></div>
+            <div class="vs-label">S</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:10%;background:rgba(255,170,0,0.4)"></div>
+            <div class="vs-label">K</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:80%;background:rgba(0,180,180,0.4)"></div>
+            <div class="vs-label">V</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:15%;background:rgba(60,120,220,0.4)"></div>
+            <div class="vs-label">F</div>
+          </div>
+          <div class="ls-dropdown">Additive</div>
+        </div>
+      </div>
+
+      <!-- Layer 2 (transparent) -->
+      <div class="layer-strip">
+        <div class="ls-row1">
+          <span class="ls-name">Overlay</span>
+          <span class="ls-type">Transparent</span>
+        </div>
+        <div class="ls-row2">
+          <div class="ls-btn">X</div>
+          <div class="ls-btn">B</div>
+          <div class="ls-btn">S</div>
+          <div class="ls-transport">
+            <div class="ls-btn">&lt;</div>
+            <div class="ls-btn">||</div>
+            <div class="ls-btn" style="color:var(--cyan)">&gt;</div>
+            <div class="ls-btn">&gt;|</div>
+          </div>
+        </div>
+        <div class="ls-row3">
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:50%;background:rgba(0,217,255,0.4)"></div>
+            <div class="vs-label">S</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:30%;background:rgba(255,170,0,0.4)"></div>
+            <div class="vs-label">K</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:70%;background:rgba(0,180,180,0.4)"></div>
+            <div class="vs-label">V</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:15%;background:rgba(60,120,220,0.4)"></div>
+            <div class="vs-label">F</div>
+          </div>
+          <div class="ls-dropdown">Screen</div>
+        </div>
+      </div>
+
+      <!-- Layer 1 (opaque, bottom) -->
+      <div class="layer-strip">
+        <div class="ls-row1">
+          <span class="ls-name">Background</span>
+          <span class="ls-type">Opaque</span>
+        </div>
+        <div class="ls-row2">
+          <div class="ls-btn">X</div>
+          <div class="ls-btn">B</div>
+          <div class="ls-btn">S</div>
+          <div class="ls-transport">
+            <div class="ls-btn">&lt;</div>
+            <div class="ls-btn">||</div>
+            <div class="ls-btn" style="color:var(--cyan)">&gt;</div>
+            <div class="ls-btn">&gt;|</div>
+          </div>
+        </div>
+        <div class="ls-row3">
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:50%;background:rgba(0,217,255,0.4)"></div>
+            <div class="vs-label">S</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:10%;background:rgba(255,170,0,0.4)"></div>
+            <div class="vs-label">K</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:100%;background:rgba(0,180,180,0.4)"></div>
+            <div class="vs-label">V</div>
+          </div>
+          <div class="ls-vslider">
+            <div class="vs-fill" style="height:15%;background:rgba(60,120,220,0.4)"></div>
+            <div class="vs-label">F</div>
+          </div>
+          <div class="ls-dropdown">Normal</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clip grid -->
+    <div class="clip-grid">
+
+      <!-- Layer 3 row (FX Only) -->
+      <div class="clip-row">
+        <div class="clip-cell active playing-glow">
+          <div class="cell-thumb src-kaleidoscope">
+            <span class="cell-src-label">SRC</span>
+            <span class="cell-fx-badge">FX 2</span>
+          </div>
+          <div class="cell-name">Kaleidoscope</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-spectrum">
+            <span class="cell-src-label">SRC</span>
+          </div>
+          <div class="cell-name">Spectrum</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-cymatics">
+            <span class="cell-src-label">SRC</span>
+          </div>
+          <div class="cell-name">Cymatics</div>
+        </div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+      </div>
+
+      <!-- Layer 2 row (Transparent) -->
+      <div class="clip-row">
+        <div class="clip-cell active playing-glow">
+          <div class="cell-thumb src-particle">
+            <span class="cell-src-label">SRC</span>
+            <span class="cell-fx-badge">FX 1</span>
+          </div>
+          <div class="cell-name">Particles</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-torus">
+            <span class="cell-src-label">SRC</span>
+          </div>
+          <div class="cell-name">Spiral Torus</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-scrolltext">
+            <span class="cell-src-label">SRC</span>
+          </div>
+          <div class="cell-name">Text Wall</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-fluid">
+            <span class="cell-src-label">SRC</span>
+          </div>
+          <div class="cell-name">Fluid Sim</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-sierpinski">
+            <span class="cell-src-label">SRC</span>
+            <span class="cell-fx-badge">FX 3</span>
+          </div>
+          <div class="cell-name">Sierpinski</div>
+        </div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+      </div>
+
+      <!-- Layer 1 row (Opaque — Background) -->
+      <div class="clip-row">
+        <div class="clip-cell active playing-glow selected">
+          <div class="cell-thumb src-mandelbrot">
+            <span class="cell-src-label">SRC</span>
+            <span class="cell-fx-badge">FX 2</span>
+          </div>
+          <div class="cell-name">Mandelbrot</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-julia">
+            <span class="cell-src-label">SRC</span>
+          </div>
+          <div class="cell-name">Julia Set</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-perlin">
+            <span class="cell-src-label">SRC</span>
+          </div>
+          <div class="cell-name">Perlin Noise</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-image">
+            <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:16px;opacity:0.2">&#x1F5BC;</span>
+          </div>
+          <div class="cell-name">city_night.jpg</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-image">
+            <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:16px;opacity:0.2">&#x1F3AC;</span>
+          </div>
+          <div class="cell-name">vj_loop_01.mp4</div>
+        </div>
+        <div class="clip-cell">
+          <div class="cell-thumb src-image">
+            <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:16px;opacity:0.2">&#x1F5BC;</span>
+          </div>
+          <div class="cell-name">abstract_02.png</div>
+        </div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+        <div class="clip-cell empty"><div class="cell-thumb"></div><div class="cell-name"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deck tabs -->
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+  </div>
+</div>
+
+<!-- ============ RIGHT INSPECTOR PANEL ============ -->
+<div class="inspector-panel">
+
+  <!-- Inspector tabs -->
+  <div class="insp-tabs">
+    <div class="insp-tab active">Clip</div>
+    <div class="insp-tab">Layer</div>
+    <div class="insp-tab">Composition</div>
+    <div class="insp-tab">Signal</div>
+    <div class="insp-pin" title="Pin inspector">&#x1F4CC;</div>
+  </div>
+
+  <!-- Clip name -->
+  <div class="clip-name-bar">
+    Mandelbrot
+    <span class="clip-type-badge">Source</span>
+  </div>
+
+  <div class="insp-body">
+
+    <!-- Dashboard -->
+    <div class="insp-section">
+      <div class="insp-section-header">
+        <span class="arrow">&#9660;</span>
+        Dashboard
+      </div>
+      <div class="insp-section-body">
+        <div class="dashboard-knobs">
+          <div class="dash-knob">
+            <div class="dash-knob-circle connected"><div class="knob-indicator" style="transform:rotate(45deg)"></div></div>
+            <div class="dash-knob-label">Zoom</div>
+          </div>
+          <div class="dash-knob">
+            <div class="dash-knob-circle connected"><div class="knob-indicator" style="transform:rotate(-30deg)"></div></div>
+            <div class="dash-knob-label">Color</div>
+          </div>
+          <div class="dash-knob">
+            <div class="dash-knob-circle"><div class="knob-indicator" style="transform:rotate(0deg)"></div></div>
+            <div class="dash-knob-label">Iter</div>
+          </div>
+          <div class="dash-knob">
+            <div class="dash-knob-circle"><div class="knob-indicator" style="transform:rotate(20deg)"></div></div>
+            <div class="dash-knob-label">Power</div>
+          </div>
+          <div class="dash-knob">
+            <div class="dash-knob-circle"><div class="knob-indicator" style="transform:rotate(-60deg)"></div></div>
+            <div class="dash-knob-label">Link 5</div>
+          </div>
+          <div class="dash-knob">
+            <div class="dash-knob-circle"><div class="knob-indicator" style="transform:rotate(0deg)"></div></div>
+            <div class="dash-knob-label">Link 6</div>
+          </div>
+          <div class="dash-knob">
+            <div class="dash-knob-circle"><div class="knob-indicator" style="transform:rotate(0deg)"></div></div>
+            <div class="dash-knob-label">Link 7</div>
+          </div>
+          <div class="dash-knob">
+            <div class="dash-knob-circle"><div class="knob-indicator" style="transform:rotate(0deg)"></div></div>
+            <div class="dash-knob-label">Link 8</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transport -->
+    <div class="insp-section">
+      <div class="insp-section-header">
+        <span class="arrow">&#9660;</span>
+        Transport
+      </div>
+      <div class="insp-section-body">
+        <div class="transport-bar">
+          <select class="tb-dropdown" style="width:70px;height:16px;font-size:8px">
+            <option>BPM Sync</option>
+          </select>
+          <div class="transport-timeline">
+            <div class="tl-range" style="left:5%;right:5%"></div>
+            <div class="tl-in" style="left:5%"></div>
+            <div class="tl-out" style="right:5%"></div>
+            <div class="tl-playhead" style="left:38%"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:3px;align-items:center;margin-top:2px">
+          <div class="transport-btn">&lt;</div>
+          <div class="transport-btn">||</div>
+          <div class="transport-btn active">&gt;</div>
+          <div style="flex:1"></div>
+          <select class="tb-dropdown" style="width:50px;height:16px;font-size:8px">
+            <option>Loop</option>
+          </select>
+          <select class="tb-dropdown" style="width:58px;height:16px;font-size:8px">
+            <option>Restart</option>
+          </select>
+        </div>
+        <div style="margin-top:3px">
+          <div class="param-row">
+            <div class="param-triangle manual"></div>
+            <span class="param-label">Speed</span>
+            <span class="param-value">1.00</span>
+            <div class="param-slider">
+              <div class="ps-fill" style="width:25%"></div>
+              <div class="ps-handle" style="left:24%"></div>
+            </div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle manual"></div>
+            <span class="param-label">Beats/Cycle</span>
+            <span class="param-value">4</span>
+            <div class="param-slider">
+              <div class="ps-fill" style="width:35%"></div>
+              <div class="ps-handle" style="left:34%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Autopilot -->
+    <div class="insp-section">
+      <div class="insp-section-header">
+        <span class="arrow">&#9654;</span>
+        Autopilot
+        <span class="section-badge">Layer Determined</span>
+      </div>
+    </div>
+
+    <!-- Source Parameters (Mandelbrot) -->
+    <div class="insp-section">
+      <div class="insp-section-header">
+        <span class="arrow">&#9660;</span>
+        Source Parameters
+        <span class="section-badge">Mandelbrot</span>
+      </div>
+      <div class="insp-section-body">
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <span class="param-label">Dive Speed</span>
+          <span class="param-value">0.35</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:35%"></div>
+            <div class="ps-handle" style="left:34%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Location</span>
+          <span class="param-value">3</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:30%"></div>
+            <div class="ps-handle" style="left:29%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Zoom</span>
+          <span class="param-value">0.62</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:62%"></div>
+            <div class="ps-handle" style="left:61%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Center X</span>
+          <span class="param-value">0.50</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:50%"></div>
+            <div class="ps-handle" style="left:49%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Center Y</span>
+          <span class="param-value">0.50</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:50%"></div>
+            <div class="ps-handle" style="left:49%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Julia Mix</span>
+          <span class="param-value">0.00</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:0%"></div>
+            <div class="ps-handle" style="left:0%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Max Iterations</span>
+          <span class="param-value">0.50</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:50%"></div>
+            <div class="ps-handle" style="left:49%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Power</span>
+          <span class="param-value">0.25</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:25%"></div>
+            <div class="ps-handle" style="left:24%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <span class="param-label">Color Speed</span>
+          <span class="param-value">0.40</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:40%"></div>
+            <div class="ps-handle" style="left:39%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Color Shift</span>
+          <span class="param-value">0.00</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:0%"></div>
+            <div class="ps-handle" style="left:0%"></div>
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle manual"></div>
+          <span class="param-label">Palette</span>
+          <span class="param-value">0.60</span>
+          <div class="param-slider">
+            <div class="ps-fill" style="width:60%"></div>
+            <div class="ps-handle" style="left:59%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Video -->
+    <div class="insp-section">
+      <div class="insp-section-header">
+        <span class="arrow">&#9654;</span>
+        Video
+        <span class="section-badge">Opacity 1.00</span>
+      </div>
+    </div>
+
+    <!-- Transform -->
+    <div class="insp-section">
+      <div class="insp-section-header">
+        <span class="arrow">&#9654;</span>
+        Transform
+        <span class="section-badge">Default</span>
+      </div>
+    </div>
+
+    <!-- Effects Stack -->
+    <div class="insp-section">
+      <div class="insp-section-header">
+        <span class="arrow">&#9660;</span>
+        Effects
+        <span class="section-badge">2 active</span>
+      </div>
+      <div class="insp-section-body" style="padding:2px 4px 6px">
+
+        <!-- Effect 1: Kaleidoscope (expanded) -->
+        <div class="fx-row">
+          <div class="fx-bypass active">B</div>
+          <span class="fx-name">Kaleidoscope</span>
+          <span class="fx-drywet">1.00</span>
+          <div class="fx-expand" style="color:var(--text-dim)">&#9660;</div>
+          <div class="fx-delete">X</div>
+        </div>
+        <div class="fx-params">
+          <div class="param-row">
+            <div class="param-triangle manual"></div>
+            <span class="param-label">Dry/Wet</span>
+            <span class="param-value">1.00</span>
+            <div class="param-slider">
+              <div class="ps-fill" style="width:100%"></div>
+              <div class="ps-handle" style="left:98%"></div>
+            </div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle connected"></div>
+            <span class="param-label">Segments</span>
+            <span class="param-value">0.40</span>
+            <div class="param-slider">
+              <div class="ps-fill" style="width:40%"></div>
+              <div class="ps-handle" style="left:39%"></div>
+            </div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle manual"></div>
+            <span class="param-label">Rotation</span>
+            <span class="param-value">0.25</span>
+            <div class="param-slider">
+              <div class="ps-fill" style="width:25%"></div>
+              <div class="ps-handle" style="left:24%"></div>
+            </div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle manual"></div>
+            <span class="param-label">Zoom</span>
+            <span class="param-value">0.50</span>
+            <div class="param-slider">
+              <div class="ps-fill" style="width:50%"></div>
+              <div class="ps-handle" style="left:49%"></div>
+            </div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle manual"></div>
+            <span class="param-label">Center X</span>
+            <span class="param-value">0.50</span>
+            <div class="param-slider">
+              <div class="ps-fill" style="width:50%"></div>
+              <div class="ps-handle" style="left:49%"></div>
+            </div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle manual"></div>
+            <span class="param-label">Center Y</span>
+            <span class="param-value">0.50</span>
+            <div class="param-slider">
+              <div class="ps-fill" style="width:50%"></div>
+              <div class="ps-handle" style="left:49%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Effect 2: Echo (collapsed) -->
+        <div class="fx-row" style="margin-top:2px">
+          <div class="fx-bypass active">B</div>
+          <span class="fx-name">Echo</span>
+          <span class="fx-drywet">0.75</span>
+          <div class="fx-expand">&#9654;</div>
+          <div class="fx-delete">X</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Cuepoints (collapsed) -->
+    <div class="insp-section">
+      <div class="insp-section-header">
+        <span class="arrow">&#9654;</span>
+        Cuepoints
+        <span class="section-badge">2 set</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

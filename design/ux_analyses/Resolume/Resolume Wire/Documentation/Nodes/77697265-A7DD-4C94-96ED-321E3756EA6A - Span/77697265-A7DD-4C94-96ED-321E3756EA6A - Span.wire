@@ -1,0 +1,1520 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          87,
+          "pattern"
+        ],
+        "to": [
+          86,
+          "phase-offset"
+        ]
+      },
+      {
+        "from": [
+          88,
+          "output"
+        ],
+        "to": [
+          89,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          90,
+          "output"
+        ],
+        "to": [
+          89,
+          "translation"
+        ]
+      },
+      {
+        "from": [
+          91,
+          "pattern"
+        ],
+        "to": [
+          90,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          86,
+          "output"
+        ],
+        "to": [
+          85,
+          "container"
+        ]
+      },
+      {
+        "from": [
+          85,
+          "output"
+        ],
+        "to": [
+          90,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          92,
+          "output"
+        ],
+        "to": [
+          85,
+          "size"
+        ]
+      },
+      {
+        "from": [
+          89,
+          "output"
+        ],
+        "to": [
+          93,
+          "shape"
+        ]
+      },
+      {
+        "from": [
+          93,
+          "output0"
+        ],
+        "to": [
+          94,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      92
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "attribute cords",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "Explains what this node does",
+      "displayName": "Span Example",
+      "identifier": "df7e1fc4-51ad-46ff-a3df-fd0ed3d700b2",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "originalTarget": {
+        "branch": "attribute cords",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 96,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "SPAN\n\nSpan is a node similar to the Read node.\nIt takes a collection and reads a part of the collection.\nYou tell the Span node how much you want to read using the Size inlet.\nYou tell the Span node where to begin reading using the Begin inlet."
+          }
+        },
+        "bounds": {
+          "height": 151.5029296875,
+          "width": 490.0481567382813,
+          "x": -553.492431640625,
+          "y": 350.8042907714844
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "85": {
+        "attributes": {
+          "begin-flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "container-dimensions": {
+            "type": "integer",
+            "value": 50
+          },
+          "container-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "size": {
+            "type": "integer",
+            "value": 25
+          },
+          "wrapping": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -22.534069061279297,
+          "y": 1000.959228515625
+        },
+        "class": {
+          "id": "77697265-A7DD-4C94-96ED-321E3756EA6A",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "begin": {
+            "type": "integer",
+            "value": 0
+          },
+          "container": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "wrapping",
+          "container-type",
+          "container-dimensions",
+          "begin-flow"
+        ],
+        "name": "Span"
+      },
+      "86": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 50
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": -277.5340576171875,
+          "y": 1000.959228515625
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": [
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071,
+              0.699999988079071
+            ]
+          },
+          "frequency": {
+            "type": "float",
+            "value": [
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355,
+              0.3499999940395355
+            ]
+          },
+          "offset": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "instances"
+        ],
+        "name": "Sine"
+      },
+      "87": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "include-max": {
+            "type": "bool",
+            "value": false
+          },
+          "size": {
+            "type": "integer",
+            "value": 50
+          },
+          "type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": -532.5341186523438,
+          "y": 1077.959228515625
+        },
+        "class": {
+          "id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "max": {
+            "type": "float",
+            "value": 1
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "type",
+          "flow",
+          "include-max"
+        ],
+        "name": "Linear"
+      },
+      "88": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 232.4659423828125,
+          "y": 776.959228515625
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.03999999910593033
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Circle"
+      },
+      "89": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input-type": {
+            "type": "type",
+            "value": "procedural"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 50
+          },
+          "translation-type": {
+            "type": "type",
+            "value": "float2"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 487.4659423828125,
+          "y": 776.959228515625
+        },
+        "class": {
+          "id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input": {
+            "type": "procedural",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "translation": {
+            "type": "float2",
+            "value": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "input-type",
+          "translation-type",
+          "instances"
+        ],
+        "name": "Move"
+      },
+      "90": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 50
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 232.4659423828125,
+          "y": 865.959228515625
+        },
+        "class": {
+          "id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "input1": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances"
+        ],
+        "name": "Float2"
+      },
+      "91": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "include-max": {
+            "type": "bool",
+            "value": true
+          },
+          "size": {
+            "type": "integer",
+            "value": 50
+          },
+          "type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": -22.534069061279297,
+          "y": 865.959228515625
+        },
+        "class": {
+          "id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "max": {
+            "type": "float",
+            "value": 1.5
+          },
+          "min": {
+            "type": "float",
+            "value": -1.5
+          }
+        },
+        "hidden": [
+          "type",
+          "flow",
+          "include-max"
+        ],
+        "name": "Linear"
+      },
+      "92": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "attribute"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "input": {
+            "type": "integer",
+            "value": 25
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 50
+          },
+          "min": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -212.5340576171875,
+          "y": 1161.959228515625
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {},
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget"
+        ],
+        "name": "Span Size1"
+      },
+      "93": {
+        "attributes": {
+          "antialising-direction": {
+            "type": "integer",
+            "value": 0
+          },
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "material-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "shape-dimensions": {
+            "type": "integer",
+            "value": 50
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 742.4658813476564,
+          "y": 776.959228515625
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "antialiasing": {
+            "type": "float",
+            "value": 25
+          },
+          "camera": {
+            "type": "camera2d",
+            "value": {
+              "projection": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ],
+              "view": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                -0.0,
+                -0.0,
+                -0.0,
+                1
+              ]
+            }
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              0,
+              0.5529412031173706,
+              0.7254902124404907,
+              1
+            ]
+          },
+          "shape": {
+            "type": "procedural",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "antialising-direction",
+          "shape-dimensions",
+          "material-dimensions",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Shape Render"
+      },
+      "94": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 997.4658813476564,
+          "y": 776.959228515625
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "95": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE: TAKING A SAMPLE FROM A COLLECTION OF SINE WAVES\n\nIn this example we are generating a collection of 50 sine waves by using the Linear node in conjunction with the Sine node.\nNext we take a sample from these 50 values with the Span node.\nThe Span node will always read from position 0, but we can change the size at will.\nTry moving the slider and see what happens.\n\nEven though we might only be reading 5 values from the sine wave collection, we still see 50 circles at all time.\nThis is because the Linear node that goes into the Float2 node is set to 50.\nIf the collection from the Span is smaller than 50, Wire will automatically repeat it."
+          }
+        },
+        "bounds": {
+          "height": 746.8671875,
+          "width": 1708.691650390625,
+          "x": -554.371337890625,
+          "y": 540.6340942382812
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff20c7bb",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -598.9474487304688,
+        "y": 107.89495849609376,
+        "zoom": 0.6752341389656067
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null
+        }
+      }
+    }
+  }
+}

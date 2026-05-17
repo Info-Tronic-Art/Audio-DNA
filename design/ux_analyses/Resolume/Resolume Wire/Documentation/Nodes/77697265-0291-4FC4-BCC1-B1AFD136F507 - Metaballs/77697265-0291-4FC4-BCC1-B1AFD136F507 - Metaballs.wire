@@ -1,0 +1,283 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          78,
+          "output"
+        ],
+        "to": [
+          77,
+          "time"
+        ]
+      },
+      {
+        "from": [
+          77,
+          "output"
+        ],
+        "to": [
+          79,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Default Example",
+      "identifier": "027417f2-73c8-4320-8bcb-182275c39577",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 80,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "METABALLS\n\nThe Metaballs node will create a computer graphic with the simliar name. These Metaballs float around in space and might connect to one another if they are close enough."
+          }
+        },
+        "bounds": {
+          "height": 158.16912841796875,
+          "width": 623.89306640625,
+          "x": -27.376243591308594,
+          "y": 338.9822082519531
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "77": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          }
+        },
+        "bounds": {
+          "height": 274,
+          "width": 195,
+          "x": 219.0924835205078,
+          "y": 543.0305786132812
+        },
+        "class": {
+          "id": "77697265-0291-4FC4-BCC1-B1AFD136F507",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bgColor": {
+            "type": "float4",
+            "value": [
+              0,
+              0,
+              0,
+              1
+            ]
+          },
+          "blend": {
+            "type": "integer",
+            "value": 0
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "distance": {
+            "type": "float",
+            "value": 0.22777757048606873
+          },
+          "fuzzyness": {
+            "type": "float",
+            "value": 0
+          },
+          "grid": {
+            "type": "float",
+            "value": 5
+          },
+          "position": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "radius": {
+            "type": "float",
+            "value": 1
+          },
+          "size": {
+            "type": "float",
+            "value": 0.6769448518753052
+          },
+          "speed": {
+            "type": "float",
+            "value": 1
+          },
+          "time": {
+            "type": "float",
+            "value": 3.900000095367432
+          }
+        },
+        "hidden": [
+          "bypass",
+          "blend"
+        ],
+        "name": "Metaballs"
+      },
+      "78": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 131,
+          "width": 195,
+          "x": -27.135684967041012,
+          "y": 543.0305786132812
+        },
+        "class": {
+          "id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 100
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.01999999955296516
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Saw"
+      },
+      "79": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 472.94036865234375,
+          "y": 543.0305786132812
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -394.63909912109375,
+        "y": 197.01905822753903,
+        "zoom": 0.9999997615814208
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 79,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

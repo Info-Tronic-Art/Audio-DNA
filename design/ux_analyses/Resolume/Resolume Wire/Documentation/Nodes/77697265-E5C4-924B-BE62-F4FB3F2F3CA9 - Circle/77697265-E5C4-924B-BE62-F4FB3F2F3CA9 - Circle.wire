@@ -1,0 +1,1299 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					4,
+					"output0"
+				],
+				"to": [
+					5,
+					"input"
+				]
+			},
+			{
+				"from": [
+					2,
+					"output"
+				],
+				"to": [
+					14,
+					"input"
+				]
+			},
+			{
+				"from": [
+					14,
+					"output"
+				],
+				"to": [
+					1,
+					"material"
+				]
+			},
+			{
+				"from": [
+					1,
+					"output0"
+				],
+				"to": [
+					6,
+					"input"
+				]
+			},
+			{
+				"from": [
+					6,
+					"output0"
+				],
+				"to": [
+					4,
+					"mesh"
+				]
+			},
+			{
+				"from": [
+					15,
+					"pattern"
+				],
+				"to": [
+					6,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					23,
+					"output0"
+				],
+				"to": [
+					6,
+					"scale"
+				]
+			},
+			{
+				"from": [
+					24,
+					"output0"
+				],
+				"to": [
+					1,
+					"geometry"
+				]
+			}
+		],
+		"inputOrder": [
+			2
+		],
+		"meta": {
+			"author": "",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "2d-wire",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"description": "",
+			"displayName": "77697265-E5C4-924B-BE62-F4FB3F2F3CA9 - Circle",
+			"identifier": "0f7e6f51-0f44-4cd7-92b3-3399c9aa5643",
+			"licenseName": "",
+			"mail": "",
+			"originalTarget": {
+				"branch": "2d-wire",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "7.14.0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 25,
+		"nodes": {
+			"1": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 503.31103515625,
+					"y": 260.281036376953125
+				},
+				"class": {
+					"id": "77697265-e8c1-11ec-8fea-0242ac120002",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"geometry": {
+						"type": "geometry2d",
+						"value": null
+					},
+					"material": {
+						"type": "material",
+						"value": {
+							"color": [
+								1,
+								1,
+								1,
+								1
+							],
+							"type": "SolidColor"
+						}
+					},
+					"transformation": {
+						"type": "transformation2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Mesh 2D"
+			},
+			"14": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 248.31103515625,
+					"y": 396.281036376953125
+				},
+				"class": {
+					"id": "77697265-CE82-4714-8023-1953D9FAB7A9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"input": {
+						"type": "texture2d",
+						"value": null
+					},
+					"invert": {
+						"type": "bool",
+						"value": false
+					},
+					"roundness": {
+						"type": "float",
+						"value": 1
+					},
+					"size": {
+						"type": "float",
+						"value": 0.17567600309848785
+					},
+					"softness": {
+						"type": "float",
+						"value": 0.95999997854232788
+					}
+				},
+				"hidden": [
+					"bypass",
+					"invert",
+					"instances"
+				],
+				"name": "Vignette"
+			},
+			"15": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 5
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 5
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 503.3372802734375,
+					"y": 396.096527099609375
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"size": {
+						"type": "float2",
+						"value": [
+							1.39999997615814209,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"flow"
+				],
+				"name": "Grid Pattern"
+			},
+			"16": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution": {
+						"type": "integer",
+						"value": 36
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 58.80067062377929688,
+					"y": -54.47214508056640625
+				},
+				"class": {
+					"id": "77697265-E5C4-924B-BE62-F4FB3F2F3CA9",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.5
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": {
+							"max": [
+								1,
+								1
+							],
+							"min": [
+								0,
+								0
+							]
+						}
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle (36)"
+			},
+			"17": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution": {
+						"type": "integer",
+						"value": 8
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 274.872039794921875,
+					"y": -54.47214508056640625
+				},
+				"class": {
+					"id": "77697265-E5C4-924B-BE62-F4FB3F2F3CA9",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.5
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": {
+							"max": [
+								1,
+								1
+							],
+							"min": [
+								0,
+								0
+							]
+						}
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle (8)"
+			},
+			"18": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution": {
+						"type": "integer",
+						"value": 5
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 508.95819091796875,
+					"y": -54.4721527099609375
+				},
+				"class": {
+					"id": "77697265-E5C4-924B-BE62-F4FB3F2F3CA9",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.5
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": {
+							"max": [
+								1,
+								1
+							],
+							"min": [
+								0,
+								0
+							]
+						}
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle (5)"
+			},
+			"19": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "CIRCLE\n\nThe Circle node constructs circular geometry  with a given radius and resolution.\n\nThe UV parameters of the node are hidden by default but can be accessed through by right clicking the node and navigating to View.\n\nThe UV inlet takes a Box2D type which can be constructed with the Box2D node or Bounding Box node.\n\nBelow you can find two examples that use the Rectangle node and all its parameters."
+					}
+				},
+				"bounds": {
+					"height": 220.790283203125,
+					"width": 667.0755615234375,
+					"x": 37.2946929931640625,
+					"y": -462.8607177734375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"2": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 58.31103515625,
+					"y": 396.281036376953125
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"input",
+					"instances",
+					"flow"
+				],
+				"name": "Texture In"
+			},
+			"20": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 1: RESOLUTION\n\nThe Circle's resolution can also be used to create shapes like pentagons and octagons by lowering the resolution.\nClick on the nodes to preview the different geometries."
+					}
+				},
+				"bounds": {
+					"height": 297.19873046875,
+					"width": 695.55023193359375,
+					"x": 37.289093017578125,
+					"y": -202.72412109375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"21": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 2: GRID CLONER\n\nIn this example we use the Circle geometry node to create a round mesh from our Texture In.\nNext we place it into a grid by using the Grid Pattern node into the Transform node."
+					}
+				},
+				"bounds": {
+					"height": 485.162811279296875,
+					"width": 1322.17041015625,
+					"x": 37.289093017578125,
+					"y": 132.2094573974609375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"23": {
+				"attributes": {
+					"defaultValue-type": {
+						"type": "type",
+						"value": "null"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 503.021209716796875,
+					"y": 520.67022705078125
+				},
+				"class": {
+					"id": "77697265-E9E1-4BAC-9742-265E5207A103",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": 0.80000001192092896
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances",
+					"input0-type",
+					"defaultValue-type"
+				],
+				"name": "Float"
+			},
+			"24": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution": {
+						"type": "integer",
+						"value": 48
+					}
+				},
+				"bounds": {
+					"height": 83,
+					"width": 195,
+					"x": 253.98187255859375,
+					"y": 259.240936279296875
+				},
+				"class": {
+					"id": "77697265-E5C4-924B-BE62-F4FB3F2F3CA9",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.5
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": {
+							"max": [
+								1,
+								1
+							],
+							"min": [
+								0,
+								0
+							]
+						}
+					}
+				},
+				"hidden": [
+					"uvs",
+					"instances"
+				],
+				"name": "Circle"
+			},
+			"4": {
+				"attributes": {
+					"aa": {
+						"type": "integer",
+						"value": 2
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"mesh-dimensions": {
+						"type": "integer",
+						"value": 25
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 979.99822998046875,
+					"y": 260.281036376953125
+				},
+				"class": {
+					"id": "77697265-E8EC-7A1G-901A-CFEC174D3B67",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"mesh": {
+						"type": "mesh2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"mesh-dimensions",
+					"resolution-mode",
+					"resolution-absolute"
+				],
+				"name": "Renderer 2D"
+			},
+			"5": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1199.834716796875,
+					"y": 260.281036376953125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out"
+			},
+			"6": {
+				"attributes": {
+					"anchor-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "mesh2d"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 25
+					},
+					"rotation-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"scale-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 758.31103515625,
+					"y": 260.281036376953125
+				},
+				"class": {
+					"id": "77697265-9225-4009-9D2D-5F898E94CC33",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"anchor": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"input": {
+						"type": "mesh2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"rotation": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"scale": {
+						"type": "float2",
+						"value": [
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								1,
+								0.80000001192092896
+							],
+							[
+								0.80000001192092896,
+								0.80000001192092896
+							],
+							[
+								0.80000001192092896,
+								0.80000001192092896
+							]
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"input-type",
+					"translation-type",
+					"rotation-type",
+					"scale-type",
+					"anchor-type",
+					"anchor",
+					"instances"
+				],
+				"name": "Transform"
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": 466.9696044921875,
+				"y": -124.33884429931640625,
+				"zoom": 0.99066734313964844
+			},
+			"selection": [
+				"5"
+			]
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {
+				"2": "Test Card"
+			}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null,
+					"Syphon": null
+				}
+			}
+		}
+	}
+}

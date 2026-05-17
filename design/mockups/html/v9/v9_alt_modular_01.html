@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Modular Orange (v9_alt_01)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #111; color: #e0e0e0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 12px; overflow: hidden; position: relative; }
+
+/* Panel base */
+.panel {
+  position: absolute;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+}
+.panel-titlebar {
+  height: 24px;
+  background: linear-gradient(180deg, #2a2a2a, #222);
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  cursor: grab;
+  flex-shrink: 0;
+}
+.panel-titlebar .title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #ff8800;
+}
+.panel-titlebar .dots {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.panel-titlebar .dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #444;
+}
+.panel-titlebar .dot.close { background: #ff4444; }
+.panel-titlebar .dot.min { background: #ffaa00; }
+.panel-body {
+  flex: 1;
+  padding: 6px;
+  overflow: hidden;
+}
+
+/* Accent */
+.accent { color: #ff8800; }
+.accent-bg { background: #ff8800; }
+.accent-border { border-color: #ff8800; }
+
+/* Top bar */
+.topbar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 36px;
+  background: #161616;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  z-index: 100;
+  gap: 16px;
+}
+.topbar .logo { font-size: 14px; font-weight: 700; color: #ff8800; letter-spacing: 2px; }
+.topbar .bpm-box {
+  background: #222;
+  border: 1px solid #ff8800;
+  padding: 2px 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ff8800;
+  font-variant-numeric: tabular-nums;
+}
+.topbar .beat-wheel {
+  width: 24px; height: 24px;
+  border: 2px solid #ff8800;
+  border-radius: 50%;
+  position: relative;
+}
+.topbar .beat-wheel .seg {
+  position: absolute;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.topbar .beat-wheel .seg.active { background: #ff8800; }
+.topbar .beat-wheel .seg.s1 { top: 1px; left: 5px; }
+.topbar .beat-wheel .seg.s2 { top: 5px; right: 1px; }
+.topbar .beat-wheel .seg.s3 { bottom: 1px; left: 5px; }
+.topbar .beat-wheel .seg.s4 { top: 5px; left: 1px; }
+.topbar .transport { display: flex; gap: 4px; }
+.topbar .transport button {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #ccc;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.topbar .transport button:hover { border-color: #ff8800; color: #ff8800; }
+.topbar .deck-tabs { display: flex; gap: 2px; margin-left: auto; }
+.topbar .deck-tab {
+  padding: 4px 14px;
+  background: #222;
+  border: 1px solid #333;
+  color: #888;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.topbar .deck-tab.active { background: #ff8800; color: #111; border-color: #ff8800; }
+
+/* Signal panel */
+#signals-panel { top: 42px; left: 6px; width: 200px; height: 520px; }
+.signal-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-bottom: 1px solid #222;
+}
+.signal-label { width: 70px; font-size: 10px; color: #aaa; text-transform: uppercase; }
+.signal-bar-bg {
+  flex: 1; height: 10px; background: #222; position: relative; overflow: hidden;
+}
+.signal-bar {
+  height: 100%; background: linear-gradient(90deg, #ff8800, #ffaa44);
+  transition: width 0.1s;
+}
+.signal-value { width: 30px; font-size: 10px; color: #888; text-align: right; font-variant-numeric: tabular-nums; }
+.mini-waveform {
+  width: 100%;
+  height: 28px;
+  margin-top: 2px;
+}
+.mini-waveform svg { width: 100%; height: 100%; }
+.mini-waveform polyline { fill: none; stroke: #ff8800; stroke-width: 1.2; opacity: 0.7; }
+
+/* Deck grid panel */
+#deck-panel { top: 42px; left: 212px; width: 860px; height: 520px; }
+.deck-grid {
+  display: grid;
+  grid-template-columns: 40px repeat(10, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2px;
+  height: 100%;
+}
+.layer-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #888;
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  background: #1e1e1e;
+}
+.layer-label .badge {
+  display: inline-block;
+  padding: 1px 3px;
+  font-size: 8px;
+  border-radius: 2px;
+  margin-bottom: 4px;
+  writing-mode: horizontal-tb;
+}
+.badge-opaque { background: #ff8800; color: #111; }
+.badge-transparent { background: #44aaff; color: #111; }
+.badge-fx { background: #aa44ff; color: #fff; }
+.badge-mask { background: #44ff88; color: #111; }
+.clip-cell {
+  background: #222;
+  border: 1px solid #333;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+.clip-cell:hover { border-color: #ff8800; }
+.clip-cell.active { border-color: #ff8800; border-width: 2px; }
+.clip-cell .thumb {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+}
+.clip-cell .clip-name {
+  position: relative;
+  z-index: 2;
+  font-size: 9px;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 1px 3px #000;
+  padding: 2px;
+}
+.clip-cell .signal-indicator {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  background: #ff8800;
+  opacity: 0.8;
+  border-radius: 1px;
+}
+.clip-cell .signal-indicator.bass { background: #ff4444; }
+.clip-cell .signal-indicator.mid { background: #ff8800; }
+.clip-cell .signal-indicator.high { background: #ffcc00; }
+
+/* Preview panel */
+#preview-panel { top: 42px; left: 1078px; width: 420px; height: 280px; }
+.preview-viewport {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a0a2e, #0a1a2e, #2e1a0a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.preview-viewport .label {
+  font-size: 24px;
+  color: #ff8800;
+  opacity: 0.3;
+  font-weight: 700;
+}
+.preview-fps {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 10px;
+  color: #ff8800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inspector panel */
+#inspector-panel { top: 328px; left: 1078px; width: 420px; height: 234px; }
+.inspector-tabs {
+  display: flex;
+  gap: 1px;
+  margin-bottom: 6px;
+}
+.inspector-tab {
+  flex: 1;
+  text-align: center;
+  padding: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: #222;
+  color: #888;
+  cursor: pointer;
+  border: 1px solid #333;
+}
+.inspector-tab.active { background: #2a2a2a; color: #ff8800; border-bottom-color: #ff8800; }
+.param-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+.param-label { width: 80px; font-size: 10px; color: #aaa; }
+.param-slider-bg {
+  flex: 1; height: 6px; background: #333; position: relative; cursor: pointer;
+}
+.param-slider-fill { height: 100%; background: #ff8800; }
+.param-value { width: 32px; font-size: 10px; color: #888; text-align: right; }
+
+/* Browser panel */
+#browser-panel { top: 568px; left: 212px; width: 560px; height: 506px; }
+.browser-tabs {
+  display: flex;
+  gap: 1px;
+  margin-bottom: 6px;
+}
+.browser-tab {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: #222;
+  color: #888;
+  cursor: pointer;
+  border: 1px solid #333;
+}
+.browser-tab.active { color: #ff8800; border-bottom-color: #ff8800; }
+.browser-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.browser-item {
+  background: #222;
+  border: 1px solid #333;
+  padding: 6px;
+  text-align: center;
+  font-size: 10px;
+  color: #bbb;
+  cursor: pointer;
+}
+.browser-item:hover { border-color: #ff8800; color: #ff8800; }
+.browser-item .icon { font-size: 18px; margin-bottom: 2px; display: block; color: #ff8800; opacity: 0.5; }
+
+/* Quick Reference panel */
+#quickref-panel { top: 568px; left: 6px; width: 200px; height: 506px; }
+.quickref-section { margin-bottom: 8px; }
+.quickref-title { font-size: 10px; font-weight: 700; color: #ff8800; text-transform: uppercase; margin-bottom: 4px; }
+.quickref-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 1px 0;
+  font-size: 10px;
+}
+.quickref-item .key { color: #888; }
+.quickref-item .desc { color: #bbb; }
+
+/* Signals Quick Reference panel */
+#signals-quick-panel { top: 568px; left: 778px; width: 294px; height: 506px; }
+.signal-source-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-bottom: 1px solid #222;
+}
+.signal-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.signal-source-name { flex: 1; font-size: 10px; color: #ccc; }
+.signal-source-type { font-size: 9px; color: #666; text-transform: uppercase; }
+
+/* Gradient thumbs for clips */
+.grad-1 { background: linear-gradient(135deg, #ff4400, #aa0066); }
+.grad-2 { background: linear-gradient(135deg, #0044ff, #00aaff); }
+.grad-3 { background: linear-gradient(135deg, #00aa44, #aaff00); }
+.grad-4 { background: linear-gradient(135deg, #aa00ff, #ff00aa); }
+.grad-5 { background: linear-gradient(135deg, #ffaa00, #ff4400); }
+.grad-6 { background: linear-gradient(135deg, #004466, #00aacc); }
+.grad-7 { background: linear-gradient(135deg, #660044, #cc0088); }
+.grad-8 { background: linear-gradient(135deg, #224400, #66aa00); }
+.grad-9 { background: linear-gradient(135deg, #442200, #886600); }
+.grad-10 { background: linear-gradient(135deg, #002244, #0066aa); }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="logo">AUDIO-DNA</div>
+  <div class="bpm-box">128.0</div>
+  <div class="beat-wheel">
+    <div class="seg s1 active"></div>
+    <div class="seg s2"></div>
+    <div class="seg s3"></div>
+    <div class="seg s4"></div>
+  </div>
+  <span style="font-size:10px;color:#888;">4 / 8</span>
+  <div class="transport">
+    <button>|&lt;</button>
+    <button style="color:#ff8800;border-color:#ff8800;">&#9654;</button>
+    <button>||</button>
+    <button>&gt;|</button>
+  </div>
+  <span style="font-size:10px;color:#666;">Manual BPM</span>
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <div class="deck-tab">Deck 4</div>
+  </div>
+</div>
+
+<!-- Signals Panel -->
+<div class="panel" id="signals-panel">
+  <div class="panel-titlebar">
+    <span class="title">Signals</span>
+    <div class="dots"><div class="dot min"></div><div class="dot close"></div></div>
+  </div>
+  <div class="panel-body">
+    <div class="signal-row">
+      <span class="signal-label">RMS</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:72%;"></div></div>
+      <span class="signal-value">0.72</span>
+    </div>
+    <div class="mini-waveform">
+      <svg viewBox="0 0 180 28"><polyline points="0,14 10,8 20,18 30,6 40,20 50,10 60,16 70,4 80,22 90,12 100,18 110,6 120,20 130,8 140,16 150,10 160,22 170,14 180,14"/></svg>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Peak</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:88%;"></div></div>
+      <span class="signal-value">0.88</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Bass</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:90%;background:linear-gradient(90deg,#ff4444,#ff6644);"></div></div>
+      <span class="signal-value">0.90</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Mid</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:45%;"></div></div>
+      <span class="signal-value">0.45</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">High</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:62%;background:linear-gradient(90deg,#ffcc00,#ffee44);"></div></div>
+      <span class="signal-value">0.62</span>
+    </div>
+    <div class="mini-waveform">
+      <svg viewBox="0 0 180 28"><polyline points="0,20 12,10 24,22 36,8 48,18 60,6 72,20 84,10 96,16 108,4 120,14 132,22 144,8 156,16 168,12 180,14"/></svg>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Beat Phase</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:35%;background:#ff8800;"></div></div>
+      <span class="signal-value">0.35</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Bar Phase</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:58%;background:#ff8800;"></div></div>
+      <span class="signal-value">0.58</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Phrase</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:22%;background:#ff8800;"></div></div>
+      <span class="signal-value">0.22</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Centroid</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:41%;"></div></div>
+      <span class="signal-value">2.4k</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Flux</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:33%;"></div></div>
+      <span class="signal-value">0.33</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Onset</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:15%;background:#ff4400;"></div></div>
+      <span class="signal-value">0.15</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Genre</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:82%;background:linear-gradient(90deg,#ff8800,#ffaa44);"></div></div>
+      <span class="signal-value" style="color:#ff8800;">HOUSE</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Energy</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:75%;background:#ff8800;"></div></div>
+      <span class="signal-value">HIGH</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Sidechain</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:68%;"></div></div>
+      <span class="signal-value">0.68</span>
+    </div>
+    <div class="signal-row">
+      <span class="signal-label">Formant</span>
+      <div class="signal-bar-bg"><div class="signal-bar" style="width:28%;"></div></div>
+      <span class="signal-value">0.28</span>
+    </div>
+  </div>
+</div>
+
+<!-- Deck Grid Panel -->
+<div class="panel" id="deck-panel">
+  <div class="panel-titlebar">
+    <span class="title">Deck Grid</span>
+    <div class="dots"><div class="dot min"></div><div class="dot close"></div></div>
+  </div>
+  <div class="panel-body">
+    <div class="deck-grid">
+      <!-- Layer 1 -->
+      <div class="layer-label"><span class="badge badge-opaque">O</span>L1</div>
+      <div class="clip-cell active"><div class="thumb grad-1"></div><span class="clip-name">Mandelbulb</span><div class="signal-indicator bass" style="width:90%;"></div></div>
+      <div class="clip-cell"><div class="thumb grad-2"></div><span class="clip-name">Neon Grid</span><div class="signal-indicator mid"></div></div>
+      <div class="clip-cell"><div class="thumb grad-5"></div><span class="clip-name">Menger</span><div class="signal-indicator"></div></div>
+      <div class="clip-cell"><div class="thumb grad-4"></div><span class="clip-name">Julia 3D</span></div>
+      <div class="clip-cell"><div class="thumb grad-3"></div><span class="clip-name">Perlin</span></div>
+      <div class="clip-cell"><div class="thumb grad-6"></div><span class="clip-name">Voronoi</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+
+      <!-- Layer 2 -->
+      <div class="layer-label"><span class="badge badge-transparent">T</span>L2</div>
+      <div class="clip-cell"><div class="thumb grad-7"></div><span class="clip-name">Spectrum Ring</span><div class="signal-indicator high"></div></div>
+      <div class="clip-cell"><div class="thumb grad-8"></div><span class="clip-name">Cymatics</span><div class="signal-indicator bass"></div></div>
+      <div class="clip-cell"><div class="thumb grad-9"></div><span class="clip-name">Band Tower</span></div>
+      <div class="clip-cell"><div class="thumb grad-10"></div><span class="clip-name">Spectral Fall</span></div>
+      <div class="clip-cell"><div class="thumb grad-2"></div><span class="clip-name">Fluid Sim</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+
+      <!-- Layer 3 -->
+      <div class="layer-label"><span class="badge badge-fx">FX</span>L3</div>
+      <div class="clip-cell"><div class="thumb grad-4"></div><span class="clip-name">Echo + Ripple</span><div class="signal-indicator"></div></div>
+      <div class="clip-cell"><div class="thumb grad-1"></div><span class="clip-name">Glitch Stack</span></div>
+      <div class="clip-cell"><div class="thumb grad-6"></div><span class="clip-name">Color Flash</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+
+      <!-- Layer 4 -->
+      <div class="layer-label"><span class="badge badge-mask">M</span>L4</div>
+      <div class="clip-cell"><div class="thumb grad-3"></div><span class="clip-name">Luma Mask</span></div>
+      <div class="clip-cell"><div class="thumb grad-9"></div><span class="clip-name">Radial Wipe</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+      <div class="clip-cell"><span class="clip-name" style="color:#555;">empty</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Preview Panel -->
+<div class="panel" id="preview-panel">
+  <div class="panel-titlebar">
+    <span class="title">Preview</span>
+    <div class="dots"><div class="dot min"></div><div class="dot close"></div></div>
+  </div>
+  <div class="panel-body" style="padding:0;">
+    <div class="preview-viewport">
+      <span class="label">LIVE OUTPUT</span>
+      <span class="preview-fps">60.0 fps</span>
+    </div>
+  </div>
+</div>
+
+<!-- Inspector Panel -->
+<div class="panel" id="inspector-panel">
+  <div class="panel-titlebar">
+    <span class="title">Inspector</span>
+    <div class="dots"><div class="dot min"></div><div class="dot close"></div></div>
+  </div>
+  <div class="panel-body">
+    <div class="inspector-tabs">
+      <div class="inspector-tab active">Clip</div>
+      <div class="inspector-tab">Layer</div>
+      <div class="inspector-tab">Composition</div>
+      <div class="inspector-tab">Signal</div>
+    </div>
+    <div style="padding:4px;">
+      <div style="font-size:11px;color:#ff8800;font-weight:600;margin-bottom:6px;">Mandelbulb — Source Parameters</div>
+      <div class="param-row">
+        <span class="param-label">Zoom</span>
+        <div class="param-slider-bg"><div class="param-slider-fill" style="width:30%;"></div></div>
+        <span class="param-value">0.30</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Power</span>
+        <div class="param-slider-bg"><div class="param-slider-fill" style="width:50%;"></div></div>
+        <span class="param-value">8.0</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Speed</span>
+        <div class="param-slider-bg"><div class="param-slider-fill" style="width:55%;"></div></div>
+        <span class="param-value">0.55</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Glow</span>
+        <div class="param-slider-bg"><div class="param-slider-fill" style="width:40%;"></div></div>
+        <span class="param-value">0.40</span>
+      </div>
+      <div class="param-row">
+        <span class="param-label">Color Shift</span>
+        <div class="param-slider-bg"><div class="param-slider-fill" style="width:20%;"></div></div>
+        <span class="param-value">0.20</span>
+      </div>
+      <div style="font-size:11px;color:#ff8800;font-weight:600;margin:8px 0 4px;">Effects</div>
+      <div style="display:flex;gap:4px;align-items:center;padding:2px 0;">
+        <span style="color:#ff8800;font-size:10px;cursor:pointer;">B</span>
+        <span style="font-size:10px;flex:1;">Ripple</span>
+        <span style="color:#666;font-size:10px;cursor:pointer;">X</span>
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;padding:2px 0;">
+        <span style="color:#ff8800;font-size:10px;cursor:pointer;">B</span>
+        <span style="font-size:10px;flex:1;">Chromatic Aberration</span>
+        <span style="color:#666;font-size:10px;cursor:pointer;">X</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Browser Panel -->
+<div class="panel" id="browser-panel">
+  <div class="panel-titlebar">
+    <span class="title">Browser</span>
+    <div class="dots"><div class="dot min"></div><div class="dot close"></div></div>
+  </div>
+  <div class="panel-body">
+    <div class="browser-tabs">
+      <div class="browser-tab">Files</div>
+      <div class="browser-tab active">FX</div>
+      <div class="browser-tab">Sources</div>
+      <div class="browser-tab">Comp</div>
+      <div class="browser-tab">Record</div>
+    </div>
+    <div style="font-size:10px;color:#888;margin-bottom:4px;">Warp (27)</div>
+    <div class="browser-grid">
+      <div class="browser-item"><span class="icon">~</span>Ripple</div>
+      <div class="browser-item"><span class="icon">O</span>Bulge</div>
+      <div class="browser-item"><span class="icon">S</span>Wave</div>
+      <div class="browser-item"><span class="icon">~</span>Liquid</div>
+      <div class="browser-item"><span class="icon">*</span>Kaleidoscope</div>
+      <div class="browser-item"><span class="icon">O</span>Fisheye</div>
+      <div class="browser-item"><span class="icon">@</span>Swirl</div>
+      <div class="browser-item"><span class="icon">+</span>Polar Coords</div>
+      <div class="browser-item"><span class="icon">@</span>Twirl</div>
+      <div class="browser-item"><span class="icon">/</span>Shear</div>
+    </div>
+    <div style="font-size:10px;color:#888;margin:6px 0 4px;">Color (31)</div>
+    <div class="browser-grid">
+      <div class="browser-item"><span class="icon">H</span>Hue Shift</div>
+      <div class="browser-item"><span class="icon">S</span>Saturation</div>
+      <div class="browser-item"><span class="icon">B</span>Brightness</div>
+      <div class="browser-item"><span class="icon">D</span>Duotone</div>
+      <div class="browser-item"><span class="icon">C</span>Chromatic Ab.</div>
+      <div class="browser-item"><span class="icon">I</span>Invert</div>
+      <div class="browser-item"><span class="icon">P</span>Posterize</div>
+      <div class="browser-item"><span class="icon">T</span>Thermal</div>
+      <div class="browser-item"><span class="icon">X</span>Cross Process</div>
+      <div class="browser-item"><span class="icon">G</span>Film Grain</div>
+    </div>
+    <div style="font-size:10px;color:#888;margin:6px 0 4px;">Glitch (16)</div>
+    <div class="browser-grid">
+      <div class="browser-item"><span class="icon">#</span>Pixel Scatter</div>
+      <div class="browser-item"><span class="icon">|</span>RGB Split</div>
+      <div class="browser-item"><span class="icon">=</span>Block Glitch</div>
+      <div class="browser-item"><span class="icon">-</span>Scanlines</div>
+      <div class="browser-item"><span class="icon">:</span>Digital Rain</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Reference Panel -->
+<div class="panel" id="quickref-panel">
+  <div class="panel-titlebar">
+    <span class="title">Quick Reference</span>
+    <div class="dots"><div class="dot min"></div><div class="dot close"></div></div>
+  </div>
+  <div class="panel-body">
+    <div class="quickref-section">
+      <div class="quickref-title">Keyboard</div>
+      <div class="quickref-item"><span class="key">1-0</span><span class="desc">Trigger column</span></div>
+      <div class="quickref-item"><span class="key">Q-P</span><span class="desc">Layer 1 clips</span></div>
+      <div class="quickref-item"><span class="key">A-;</span><span class="desc">Layer 2 clips</span></div>
+      <div class="quickref-item"><span class="key">Z-/</span><span class="desc">Layer 3 clips</span></div>
+      <div class="quickref-item"><span class="key">Space</span><span class="desc">Master tap BPM</span></div>
+      <div class="quickref-item"><span class="key">Esc</span><span class="desc">Fullscreen toggle</span></div>
+    </div>
+    <div class="quickref-section">
+      <div class="quickref-title">Mouse</div>
+      <div class="quickref-item"><span class="key">Click</span><span class="desc">Select clip</span></div>
+      <div class="quickref-item"><span class="key">Dbl-click</span><span class="desc">Trigger clip</span></div>
+      <div class="quickref-item"><span class="key">Right-click</span><span class="desc">Reset param</span></div>
+      <div class="quickref-item"><span class="key">Drag FX</span><span class="desc">Add effect</span></div>
+    </div>
+    <div class="quickref-section">
+      <div class="quickref-title">Transport</div>
+      <div class="quickref-item"><span class="key">Cmd+S</span><span class="desc">Save preset</span></div>
+      <div class="quickref-item"><span class="key">Cmd+Z</span><span class="desc">Undo</span></div>
+      <div class="quickref-item"><span class="key">Cmd+R</span><span class="desc">Record</span></div>
+      <div class="quickref-item"><span class="key">Cmd+P</span><span class="desc">Snapshot</span></div>
+    </div>
+    <div class="quickref-section">
+      <div class="quickref-title">Layer Types</div>
+      <div class="quickref-item"><span class="key" style="color:#ff8800;">O</span><span class="desc">Opaque</span></div>
+      <div class="quickref-item"><span class="key" style="color:#44aaff;">T</span><span class="desc">Transparent</span></div>
+      <div class="quickref-item"><span class="key" style="color:#aa44ff;">FX</span><span class="desc">FX Only</span></div>
+      <div class="quickref-item"><span class="key" style="color:#44ff88;">M</span><span class="desc">Mask</span></div>
+    </div>
+    <div class="quickref-section">
+      <div class="quickref-title">Signals</div>
+      <div class="quickref-item"><span class="key" style="color:#ff4444;">Red</span><span class="desc">Bass driven</span></div>
+      <div class="quickref-item"><span class="key" style="color:#ff8800;">Orange</span><span class="desc">Mid driven</span></div>
+      <div class="quickref-item"><span class="key" style="color:#ffcc00;">Yellow</span><span class="desc">High driven</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Signals Sources Panel -->
+<div class="panel" id="signals-quick-panel">
+  <div class="panel-titlebar">
+    <span class="title">Active Signals</span>
+    <div class="dots"><div class="dot min"></div><div class="dot close"></div></div>
+  </div>
+  <div class="panel-body">
+    <div class="signal-source-row">
+      <div class="signal-dot" style="background:#ff4444;"></div>
+      <span class="signal-source-name">Bass &rarr; Mandelbulb Zoom</span>
+      <span class="signal-source-type">Audio</span>
+    </div>
+    <div class="signal-source-row">
+      <div class="signal-dot" style="background:#ff8800;"></div>
+      <span class="signal-source-name">Beat Phase &rarr; Ripple Intensity</span>
+      <span class="signal-source-type">BPM Sync</span>
+    </div>
+    <div class="signal-source-row">
+      <div class="signal-dot" style="background:#ffcc00;"></div>
+      <span class="signal-source-name">Spectral Centroid &rarr; Hue Shift</span>
+      <span class="signal-source-type">Audio</span>
+    </div>
+    <div class="signal-source-row">
+      <div class="signal-dot" style="background:#44aaff;"></div>
+      <span class="signal-source-name">Onset Strength &rarr; Chromatic Ab.</span>
+      <span class="signal-source-type">Audio</span>
+    </div>
+    <div class="signal-source-row">
+      <div class="signal-dot" style="background:#ff8800;"></div>
+      <span class="signal-source-name">Bar Phase &rarr; L2 Opacity</span>
+      <span class="signal-source-type">BPM Sync</span>
+    </div>
+    <div class="signal-source-row">
+      <div class="signal-dot" style="background:#aa44ff;"></div>
+      <span class="signal-source-name">Sidechain Pump &rarr; Echo Decay</span>
+      <span class="signal-source-type">Audio</span>
+    </div>
+    <div class="signal-source-row">
+      <div class="signal-dot" style="background:#ff4444;"></div>
+      <span class="signal-source-name">RMS &rarr; Glow Intensity</span>
+      <span class="signal-source-type">Audio</span>
+    </div>
+    <div class="signal-source-row">
+      <div class="signal-dot" style="background:#44ff88;"></div>
+      <span class="signal-source-name">Phrase Phase &rarr; Color Shift</span>
+      <span class="signal-source-type">BPM Sync</span>
+    </div>
+    <div style="margin-top:10px;padding:6px;background:#222;border:1px solid #333;">
+      <div style="font-size:10px;color:#ff8800;font-weight:600;margin-bottom:4px;">Signal Summary</div>
+      <div style="font-size:10px;color:#aaa;">8 active routes</div>
+      <div style="font-size:10px;color:#aaa;">5 audio sources</div>
+      <div style="font-size:10px;color:#aaa;">3 BPM sync sources</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VJ19 Alt 02 — Scene Split (Teal/Orange)</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; color:#e0e0e0; font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; width:1920px; height:1080px; overflow:hidden; }
+
+.menu-bar { height:24px; background:#1a1a1a; display:flex; align-items:center; padding:0 12px; border-bottom:1px solid #333; }
+.menu-bar span { margin-right:16px; font-size:11px; color:#aaa; cursor:pointer; }
+.menu-bar span:hover { color:#4ecdc4; }
+
+.top-bar { height:40px; background:#1e1e1e; display:flex; align-items:center; padding:0 12px; border-bottom:1px solid #333; gap:16px; }
+.logo { font-weight:700; font-size:14px; color:#4ecdc4; letter-spacing:1px; }
+.bpm-box { background:#2a2a2a; border:1px solid #4ecdc4; padding:4px 12px; display:flex; align-items:center; gap:8px; }
+.bpm-value { font-size:18px; font-weight:700; color:#4ecdc4; }
+.bpm-label { font-size:10px; color:#888; }
+.beat-wheel { width:28px; height:28px; border-radius:50%; border:2px solid #4ecdc4; position:relative; display:flex; align-items:center; justify-content:center; }
+.beat-inner { width:10px; height:10px; background:#4ecdc4; border-radius:50%; }
+.btn { background:#2a2a2a; border:1px solid #444; color:#e0e0e0; padding:4px 10px; cursor:pointer; font-size:11px; }
+.btn:hover { border-color:#ff8800; }
+.btn.active { background:#ff8800; color:#111; border-color:#ff8800; }
+.spacer { flex:1; }
+.info { font-size:10px; color:#777; }
+
+.signal-bar { height:28px; background:#161616; display:flex; align-items:center; padding:0 8px; border-bottom:1px solid #2a2a2a; gap:2px; }
+.sig-meter { flex:1; height:16px; background:#1a1a1a; border:1px solid #333; position:relative; overflow:hidden; }
+.sig-meter .fill { position:absolute; left:0; top:0; height:100%; }
+.sig-meter .label { position:absolute; left:4px; top:1px; font-size:9px; color:#999; z-index:1; }
+
+/* TOP HALF — SCENE GRID */
+.top-half { height:calc((1080px - 24px - 40px - 28px - 24px) * 0.55); display:flex; flex-direction:column; position:relative; }
+.deck-tabs { height:28px; background:#1a1a1a; display:flex; align-items:center; padding:0 8px; gap:4px; border-bottom:1px solid #333; }
+.deck-tab { padding:4px 16px; background:#222; border:1px solid #333; cursor:pointer; font-size:11px; }
+.deck-tab.active { background:#4ecdc4; color:#111; border-color:#4ecdc4; font-weight:600; }
+.scene-headers { height:22px; background:#1a1a1a; display:flex; padding:0 4px 0 44px; gap:2px; border-bottom:1px solid #2a2a2a; }
+.scene-hdr { flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; color:#888; }
+.scene-hdr.active { color:#ff8800; border-bottom:2px solid #ff8800; }
+
+.grid { flex:1; display:grid; grid-template-columns:40px repeat(10,1fr); grid-template-rows:repeat(4,1fr); gap:2px; padding:4px; }
+.layer-lbl { background:#1a1a1a; display:flex; align-items:center; justify-content:center; font-size:9px; color:#888; border:1px solid #2a2a2a; writing-mode:vertical-lr; }
+.layer-lbl.on { color:#4ecdc4; border-color:#4ecdc4; }
+.cell { background:#1e1e1e; border:1px solid #333; position:relative; cursor:pointer; overflow:hidden; }
+.cell:hover { border-color:#ff8800; }
+.cell.active { border-color:#ff8800; box-shadow:0 0 6px rgba(255,136,0,0.3); }
+.cell .bg { position:absolute; inset:0; }
+.cell .nm { position:absolute; bottom:2px; left:3px; font-size:9px; color:#ccc; text-shadow:0 1px 2px #000; }
+
+/* SLIDE-OUT BROWSER */
+.slide-browser { position:absolute; left:0; top:28px; width:200px; height:calc(100% - 28px); background:#161616; border-right:2px solid #4ecdc4; z-index:10; display:flex; flex-direction:column; }
+.slide-title { height:24px; background:#1a1a1a; display:flex; align-items:center; padding:0 8px; font-size:10px; color:#4ecdc4; border-bottom:1px solid #333; }
+.slide-list { flex:1; overflow-y:auto; padding:4px; }
+.slide-item { padding:4px 8px; font-size:10px; color:#ccc; cursor:pointer; border:1px solid transparent; margin-bottom:2px; }
+.slide-item:hover { background:#222; border-color:#444; }
+.slide-item.sel { background:#222; border-color:#ff8800; color:#ff8800; }
+
+/* BOTTOM HALF — SPLIT 3 */
+.bottom-half { height:calc((1080px - 24px - 40px - 28px - 24px) * 0.45); display:flex; border-top:2px solid #333; }
+
+/* SIGNALS PANEL */
+.signals-panel { width:420px; background:#161616; border-right:1px solid #333; display:flex; flex-direction:column; }
+.sp-title { height:24px; background:#1a1a1a; display:flex; align-items:center; padding:0 8px; font-size:10px; color:#4ecdc4; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #333; }
+.sp-body { flex:1; padding:8px; overflow-y:auto; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.sp-source { background:#1e1e1e; border:1px solid #333; padding:6px; }
+.sp-source-name { font-size:10px; color:#4ecdc4; margin-bottom:4px; }
+.sp-wave { height:32px; background:#111; border:1px solid #2a2a2a; position:relative; overflow:hidden; }
+.sp-wave canvas { width:100%; height:100%; }
+.sp-bar { height:8px; background:#222; margin-top:4px; }
+.sp-bar-fill { height:100%; }
+
+/* INSPECTOR */
+.insp-panel { flex:1; background:#1a1a1a; border-right:1px solid #333; display:flex; flex-direction:column; }
+.insp-tabs { height:24px; display:flex; background:#161616; border-bottom:1px solid #333; }
+.insp-tab { flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; color:#888; cursor:pointer; border-bottom:2px solid transparent; }
+.insp-tab.active { color:#ff8800; border-bottom-color:#ff8800; }
+.insp-body { flex:1; padding:8px; overflow-y:auto; }
+.section-title { font-size:10px; color:#ff8800; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; border-bottom:1px solid #333; padding-bottom:4px; }
+.param-row { display:flex; align-items:center; margin-bottom:4px; }
+.param-label { width:80px; font-size:10px; color:#aaa; }
+.param-slider { flex:1; height:4px; background:#333; position:relative; }
+.param-slider .track { height:100%; }
+.param-value { width:32px; text-align:right; font-size:10px; color:#ccc; }
+.fx-row { display:flex; align-items:center; gap:6px; padding:4px; background:#222; border:1px solid #333; margin-bottom:3px; }
+
+/* PREVIEW WINDOW */
+.preview-panel { width:360px; background:#000; display:flex; flex-direction:column; }
+.preview-title { height:24px; background:#1a1a1a; display:flex; align-items:center; padding:0 8px; font-size:10px; color:#888; border-bottom:1px solid #333; }
+.preview-canvas { flex:1; background:radial-gradient(ellipse at center,#ff8800 0%,#441100 40%,#000 80%); display:flex; align-items:center; justify-content:center; }
+.preview-label { font-size:14px; color:#ff880066; }
+
+.footer { height:24px; background:#1a1a1a; border-top:1px solid #333; display:flex; align-items:center; padding:0 12px; justify-content:space-between; }
+.footer span { font-size:10px; color:#666; }
+</style>
+</head>
+<body>
+
+<div class="menu-bar">
+  <span>Audio-DNA</span><span>File</span><span>Edit</span><span>View</span><span>Output</span><span>Help</span>
+</div>
+
+<div class="top-bar">
+  <div class="logo">AUDIO-DNA</div>
+  <div class="bpm-box">
+    <div><div class="bpm-value">174.0</div><div class="bpm-label">BPM</div></div>
+    <div class="beat-wheel"><div class="beat-inner"></div></div>
+  </div>
+  <span class="info">Bar 2 / 4</span>
+  <span class="info">Phrase 1</span>
+  <div class="btn active">PLAY</div>
+  <div class="btn">TAP</div>
+  <div class="btn">LINK</div>
+  <div class="spacer"></div>
+  <span class="info">60.0 fps</span>
+  <span class="info">DnB</span>
+  <span class="info">Energy: High</span>
+</div>
+
+<div class="signal-bar">
+  <script>
+    const sn=['RMS','Peak','Bass','Low Mid','Mid','High Mid','Brilliance','Centroid','Flux','Onset','Sidechain','Formant'];
+    const sv=[0.68,0.92,0.95,0.60,0.48,0.35,0.22,0.55,0.71,1.0,0.78,0.30];
+    const sc=['#4ecdc4','#4ecdc4','#ff4444','#ff6644','#ffaa44','#ffcc44','#ffee44','#44aaff','#44ddff','#ff4488','#ff8800','#88ff88'];
+    document.write(sn.map((n,i)=>`<div class="sig-meter"><div class="fill" style="width:${sv[i]*100}%;background:${sc[i]}55"></div><div class="label">${n}</div></div>`).join(''));
+  </script>
+</div>
+
+<!-- TOP HALF — SCENE GRID -->
+<div class="top-half">
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <span style="flex:1"></span>
+    <div class="btn" style="font-size:10px;padding:2px 8px">Browser</div>
+  </div>
+  <div class="scene-headers">
+    <script>for(let i=1;i<=10;i++) document.write(`<div class="scene-hdr ${i===5?'active':''}">${i}</div>`);</script>
+  </div>
+  <div class="grid">
+    <script>
+      const lN=['FX Layer','Overlay','Visual A','Background'];
+      const lA=[false,true,true,true];
+      const cN=[
+        ['Echo','RGB Split','Glitch Sort','Strobe','Data Corrupt','','','','',''],
+        ['Neon Edge','Particle Rain','Text Wall','Dot Matrix','CRT Sim','ASCII Art','','','',''],
+        ['Mandelbulb','Julia 3D','Strange Attract','Spectrum Ring','Fluid Sim','Knot Torus','Menger','KIFS','Burning Ship',''],
+        ['Perlin Flow','Gradient','Plasma','Fire','Ocean','Night Sky','Voronoi','Simplex','Diamond','Solid'],
+      ];
+      const grd=[
+        ['linear-gradient(135deg,#4466ff,#112244)','linear-gradient(135deg,#ff44ff,#441144)','linear-gradient(135deg,#ff4488,#441122)','linear-gradient(135deg,#fff,#333)','linear-gradient(135deg,#ff4444,#222)','','','','',''],
+        ['linear-gradient(135deg,#44ffaa,#113322)','linear-gradient(135deg,#ff88ff,#331133)','linear-gradient(135deg,#88ff88,#113311)','linear-gradient(135deg,#aaa,#333)','linear-gradient(135deg,#666,#222)','linear-gradient(135deg,#888,#333)','','','',''],
+        ['linear-gradient(135deg,#ff4444,#441111)','linear-gradient(135deg,#44ff44,#114411)','linear-gradient(135deg,#8844ff,#220044)','linear-gradient(135deg,#ff8800,#442200)','linear-gradient(135deg,#44aaff,#112233)','linear-gradient(135deg,#ff44ff,#441144)','linear-gradient(135deg,#4444ff,#111144)','linear-gradient(135deg,#ffff44,#444411)','linear-gradient(135deg,#ff8844,#332211)',''],
+        ['linear-gradient(135deg,#667788,#223344)','linear-gradient(135deg,#224488,#0a1533)','linear-gradient(135deg,#884422,#331100)','linear-gradient(135deg,#ff4400,#441100)','linear-gradient(135deg,#0066cc,#002244)','linear-gradient(135deg,#112244,#000)','linear-gradient(135deg,#778866,#334422)','linear-gradient(135deg,#887766,#332211)','linear-gradient(135deg,#886677,#332233)','linear-gradient(135deg,#111,#000)'],
+      ];
+      for(let r=0;r<4;r++){
+        document.write(`<div class="layer-lbl ${lA[r]?'on':''}">${lN[r]}</div>`);
+        for(let c=0;c<10;c++){
+          const nm=cN[r][c], g=grd[r][c], act=r===2&&c===0;
+          document.write(`<div class="cell ${act?'active':''}">${g?`<div class="bg" style="background:${g}"></div>`:''}${nm?`<div class="nm">${nm}</div>`:''}</div>`);
+        }
+      }
+    </script>
+  </div>
+
+  <!-- SLIDE-OUT BROWSER -->
+  <div class="slide-browser">
+    <div class="slide-title">Sources</div>
+    <div class="slide-list">
+      <div class="slide-item" style="color:#4ecdc4;font-weight:600;margin-bottom:4px">3D Fractals</div>
+      <div class="slide-item sel">Mandelbulb</div>
+      <div class="slide-item">Menger Sponge</div>
+      <div class="slide-item">KIFS</div>
+      <div class="slide-item">Julia 3D</div>
+      <div class="slide-item">Burning Ship 3D</div>
+      <div class="slide-item">Newton 3D</div>
+      <div class="slide-item">Sierpinski Tetra</div>
+      <div class="slide-item">Apollonian 3D</div>
+      <div class="slide-item" style="color:#4ecdc4;font-weight:600;margin-top:8px;margin-bottom:4px">Torus</div>
+      <div class="slide-item">Spiral Torus</div>
+      <div class="slide-item">Helix Torus</div>
+      <div class="slide-item">Knot Torus</div>
+      <div class="slide-item">Trefoil Torus</div>
+      <div class="slide-item" style="color:#4ecdc4;font-weight:600;margin-top:8px;margin-bottom:4px">Audio-Visual</div>
+      <div class="slide-item">Spectrum Ring</div>
+      <div class="slide-item">Band Tower</div>
+      <div class="slide-item">Cymatics</div>
+      <div class="slide-item">Timbral Nebula</div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM HALF -->
+<div class="bottom-half">
+  <!-- SIGNALS -->
+  <div class="signals-panel">
+    <div class="sp-title">Signal Sources</div>
+    <div class="sp-body">
+      <script>
+        const sigSources=[
+          {name:'RMS',val:0.68,color:'#4ecdc4'},
+          {name:'Bass',val:0.95,color:'#ff4444'},
+          {name:'Mid',val:0.48,color:'#ffaa44'},
+          {name:'High',val:0.35,color:'#ffcc44'},
+          {name:'Beat Phase',val:0.75,color:'#ff8800'},
+          {name:'Bar Phase',val:0.50,color:'#ff8800'},
+          {name:'Spectral Flux',val:0.71,color:'#44ddff'},
+          {name:'Onset Strength',val:1.0,color:'#ff4488'},
+          {name:'Sidechain Pump',val:0.78,color:'#ff8800'},
+          {name:'Formant',val:0.30,color:'#88ff88'},
+          {name:'Resonance Peak',val:0.55,color:'#ffaa44'},
+          {name:'Reese Bass',val:0.82,color:'#ff4444'},
+        ];
+        document.write(sigSources.map(s=>`<div class="sp-source"><div class="sp-source-name">${s.name}</div><div class="sp-wave" style="background:linear-gradient(90deg,${s.color}22 0%,${s.color}44 ${s.val*100}%,#111 ${s.val*100}%)"></div><div class="sp-bar"><div class="sp-bar-fill" style="width:${s.val*100}%;background:${s.color}"></div></div></div>`).join(''));
+      </script>
+    </div>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="insp-panel">
+    <div class="insp-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Signals</div>
+      <div class="insp-tab">Comp</div>
+    </div>
+    <div class="insp-body">
+      <div style="margin-bottom:10px"><span class="section-title">Mandelbulb</span></div>
+      <div class="param-row"><span class="param-label">Zoom</span><div class="param-slider"><div class="track" style="width:45%;background:#4ecdc4"></div></div><span class="param-value">0.45</span></div>
+      <div class="param-row"><span class="param-label">Power</span><div class="param-slider"><div class="track" style="width:60%;background:#ff8800"></div></div><span class="param-value">0.60</span></div>
+      <div class="param-row"><span class="param-label">Iterations</span><div class="param-slider"><div class="track" style="width:70%;background:#ff8800"></div></div><span class="param-value">0.70</span></div>
+      <div class="param-row"><span class="param-label">Speed</span><div class="param-slider"><div class="track" style="width:55%;background:#4ecdc4"></div></div><span class="param-value">0.55</span></div>
+      <div class="param-row"><span class="param-label">Color Shift</span><div class="param-slider"><div class="track" style="width:30%;background:#ff8800"></div></div><span class="param-value">0.30</span></div>
+      <div class="param-row"><span class="param-label">Glow</span><div class="param-slider"><div class="track" style="width:40%;background:#ff8800"></div></div><span class="param-value">0.40</span></div>
+      <div class="param-row"><span class="param-label">Palette</span><div class="param-slider"><div class="track" style="width:60%;background:#4ecdc4"></div></div><span class="param-value">Fire</span></div>
+      <div style="margin-top:12px"><span class="section-title">Effects</span></div>
+      <div class="fx-row"><span style="color:#4ecdc4;font-size:10px">B</span><span style="flex:1;font-size:10px">Echo</span><span style="font-size:9px;color:#666">Decay: 0.85</span><span style="font-size:10px;color:#666;margin-left:6px">X</span></div>
+      <div class="fx-row"><span style="color:#4ecdc4;font-size:10px">B</span><span style="flex:1;font-size:10px">Glow</span><span style="font-size:9px;color:#666">Intensity: 0.50</span><span style="font-size:10px;color:#666;margin-left:6px">X</span></div>
+      <div class="fx-row"><span style="color:#ff8800;font-size:10px">B</span><span style="flex:1;font-size:10px;color:#666;text-decoration:line-through">Chromatic Aberration</span><span style="font-size:10px;color:#666;margin-left:6px">X</span></div>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <div class="preview-title">Preview</div>
+    <div class="preview-canvas">
+      <div class="preview-label">Mandelbulb 3D</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>Audio-DNA v2.0</span>
+  <span>Scene Split Layout</span>
+  <span>DnB | Energy: High | Drop</span>
+  <span>Syphon: On</span>
+</div>
+
+</body>
+</html>

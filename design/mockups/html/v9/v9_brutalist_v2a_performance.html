@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Brutalist v2a Performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1920px; height: 1080px;
+    background: #0a0a0a;
+    color: #e8e8e8;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='1'/></svg>");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: overlay;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ============ MENU BAR 24px ============ */
+  .menubar {
+    position: absolute; top: 0; left: 0;
+    width: 1920px; height: 24px;
+    background: #0a0a0a;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 20px;
+    font-size: 11px;
+    color: #e8e8e8;
+    letter-spacing: 0.04em;
+  }
+  .menubar .logo { font-family: 'IBM Plex Mono'; font-weight: 600; color: #fff; }
+  .menubar .item { color: #a8a8a8; font-weight: 400; cursor: default; }
+  .menubar .item:hover { color: #e8e8e8; }
+  .menubar .spacer { flex: 1; }
+  .menubar .right { color: #6e6e6e; font-family: 'IBM Plex Mono'; font-size: 11px; }
+
+  /* ============ TOP BAR 56px ============ */
+  .topbar {
+    position: absolute; top: 24px; left: 0;
+    width: 1920px; height: 56px;
+    background: #0f0f0f;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+  }
+  .topbar .applogo {
+    font-family: 'IBM Plex Sans'; font-weight: 600; font-size: 14px;
+    color: #fff; letter-spacing: -0.01em;
+    margin-right: 24px;
+  }
+  .topbar .applogo span { color: #6e6e6e; font-weight: 400; }
+
+  .bpm-block {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    padding-right: 20px;
+    border-right: 1px solid #2a2a2a;
+    margin-right: 20px;
+  }
+  .bpm-main {
+    font-family: 'IBM Plex Mono'; font-weight: 500;
+    font-size: 48px; line-height: 1;
+    color: #ff4500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .bpm-side {
+    display: flex; flex-direction: column;
+    gap: 2px;
+    padding-bottom: 4px;
+  }
+  .bpm-side .lbl { font-family: 'IBM Plex Mono'; font-size: 9px; color: #6e6e6e; letter-spacing: 0.12em; }
+  .bpm-side .val { font-family: 'IBM Plex Mono'; font-size: 11px; color: #a8a8a8; }
+
+  .beat-wheel {
+    display: flex; gap: 4px;
+    margin-right: 20px;
+  }
+  .beat-sq {
+    width: 18px; height: 18px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+  }
+  .beat-sq.on {
+    background: #ff4500;
+    border-color: #ff4500;
+    animation: beat 0.469s ease-in-out infinite;
+  }
+  @keyframes beat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  .btn-group {
+    display: flex; gap: 4px;
+    margin-right: 20px;
+  }
+  .btn {
+    min-width: 44px; height: 24px;
+    padding: 0 10px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    color: #e8e8e8;
+    font-family: 'IBM Plex Mono'; font-size: 10px; font-weight: 500;
+    letter-spacing: 0.08em;
+    cursor: default;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn:hover { background: #222; border-color: #3a3a3a; }
+  .btn.primary { background: #fff; color: #0a0a0a; border-color: #fff; }
+
+  .master-block {
+    display: flex; align-items: center; gap: 10px;
+    margin-right: 20px;
+  }
+  .master-block .lbl { font-family: 'IBM Plex Mono'; font-size: 9px; color: #6e6e6e; letter-spacing: 0.12em; }
+  .master-fader {
+    width: 140px; height: 8px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    position: relative;
+  }
+  .master-fader-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 82%;
+    background: #e8e8e8;
+  }
+  .master-fader-thumb {
+    position: absolute; top: -3px; left: 82%;
+    width: 2px; height: 12px;
+    background: #fff;
+  }
+  .master-block .val { font-family: 'IBM Plex Mono'; font-size: 11px; color: #e8e8e8; min-width: 32px; }
+
+  .rec-block {
+    display: flex; align-items: center; gap: 6px;
+    margin-right: 20px;
+  }
+  .rec-dot {
+    width: 10px; height: 10px;
+    background: #ff4500;
+    border-radius: 50%;
+    animation: beat 1s ease-in-out infinite;
+  }
+  .rec-block .val { font-family: 'IBM Plex Mono'; font-size: 11px; color: #e8e8e8; }
+
+  .mode-toggle {
+    display: flex;
+    margin-left: auto;
+    border: 1px solid #2a2a2a;
+  }
+  .mode-cell {
+    width: 90px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono'; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.14em;
+    cursor: default;
+  }
+  .mode-cell.active { background: #fff; color: #0a0a0a; }
+  .mode-cell.dim { background: #0f0f0f; color: #6e6e6e; }
+
+  /* ============ WAVEFORM 100px ============ */
+  .waveform {
+    position: absolute; top: 80px; left: 0;
+    width: 1920px; height: 100px;
+    background: #0a0a0a;
+    border-bottom: 1px solid #2a2a2a;
+    overflow: hidden;
+  }
+  .waveform-head {
+    position: absolute; top: 6px; left: 12px;
+    font-family: 'IBM Plex Mono'; font-size: 10px;
+    color: #6e6e6e; letter-spacing: 0.1em;
+    display: flex; gap: 18px;
+    z-index: 2;
+  }
+  .waveform-head .deck-a { color: #6aa6ff; }
+  .waveform-head .deck-b { color: #e8e8e8; }
+  .waveform-playhead {
+    position: absolute; top: 0; bottom: 0; left: 960px;
+    width: 1px;
+    background: #fff;
+    z-index: 3;
+  }
+  .waveform-playhead::before,
+  .waveform-playhead::after {
+    content: '';
+    position: absolute; left: -4px;
+    width: 9px; height: 4px;
+    background: #fff;
+  }
+  .waveform-playhead::before { top: 0; }
+  .waveform-playhead::after { bottom: 0; }
+
+  .struct-zone {
+    position: absolute; top: 24px; bottom: 14px;
+    border-top: 1px solid #2a2a2a;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .struct-label {
+    position: absolute; top: 6px;
+    font-family: 'IBM Plex Mono'; font-size: 9px;
+    color: #6e6e6e; letter-spacing: 0.12em;
+    padding: 0 4px;
+    background: #0a0a0a;
+  }
+  .bar-nums {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 14px;
+    display: flex;
+    font-family: 'IBM Plex Mono'; font-size: 9px;
+    color: #6e6e6e;
+    border-top: 1px solid #1a1a1a;
+  }
+  .bar-nums .bn {
+    flex: 1;
+    border-right: 1px solid #1a1a1a;
+    padding: 2px 4px;
+  }
+  .bar-nums .bn.current { color: #ff4500; font-weight: 600; }
+
+  /* ============ MAIN LAYOUT ============ */
+  .main {
+    position: absolute; top: 180px; left: 0;
+    width: 1920px; height: 882px;  /* 1080 - 24 - 56 - 100 - 18 = 882 */
+    display: grid;
+    grid-template-columns: 200px 1fr 240px;
+    grid-template-rows: 450px 60px 1fr;
+    gap: 0;
+  }
+
+  /* ============ LEFT SIGNAL STRIP ============ */
+  .signal-strip {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    background: #0f0f0f;
+    border-right: 1px solid #2a2a2a;
+    padding: 12px 0 0 0;
+    display: flex; flex-direction: column;
+  }
+  .panel-title {
+    font-family: 'IBM Plex Sans'; font-weight: 600; font-size: 11px;
+    color: #fff; letter-spacing: 0.14em;
+    padding: 0 14px 10px 14px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .sig-row {
+    height: 32px;
+    display: flex; align-items: center;
+    padding: 0 12px;
+    border-bottom: 1px solid #1a1a1a;
+    gap: 8px;
+  }
+  .sig-row .lbl {
+    width: 62px;
+    font-family: 'IBM Plex Mono'; font-size: 10px; font-weight: 500;
+    color: #a8a8a8;
+    letter-spacing: 0.08em;
+  }
+  .sig-row .bar {
+    flex: 1;
+    height: 6px;
+    background: #1a1a1a;
+    border: 1px solid #222;
+    position: relative;
+  }
+  .sig-row .bar-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: #e8e8e8;
+  }
+  .sig-row .val {
+    width: 36px;
+    font-family: 'IBM Plex Mono'; font-size: 11px; font-weight: 500;
+    color: #e8e8e8;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============ MONITOR COLUMN ============ */
+  .monitor-wrap {
+    grid-column: 2;
+    grid-row: 1;
+    background: #0a0a0a;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .monitor {
+    width: 800px; height: 450px;
+    background: #000;
+    border: 1px solid #2a2a2a;
+    position: relative;
+    overflow: hidden;
+  }
+  .monitor svg.scene { display: block; width: 800px; height: 450px; }
+  .monitor-status {
+    position: absolute; top: 10px; right: 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'IBM Plex Mono'; font-size: 10px;
+    color: #e8e8e8;
+    letter-spacing: 0.1em;
+    background: rgba(0,0,0,0.55);
+    padding: 4px 8px;
+    border: 1px solid #2a2a2a;
+    z-index: 2;
+  }
+  .monitor-status .dot {
+    width: 7px; height: 7px; background: #ff4500; border-radius: 50%;
+    animation: liveflicker 2s ease-in-out infinite;
+  }
+  @keyframes liveflicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+  .monitor-corner-tl, .monitor-corner-tr, .monitor-corner-bl, .monitor-corner-br {
+    position: absolute; width: 10px; height: 10px;
+    border-color: #e8e8e8;
+    z-index: 2;
+  }
+  .monitor-corner-tl { top: 0; left: 0; border-top: 1px solid; border-left: 1px solid; }
+  .monitor-corner-tr { top: 0; right: 0; border-top: 1px solid; border-right: 1px solid; }
+  .monitor-corner-bl { bottom: 0; left: 0; border-bottom: 1px solid; border-left: 1px solid; }
+  .monitor-corner-br { bottom: 0; right: 0; border-bottom: 1px solid; border-right: 1px solid; }
+  .monitor-meta {
+    position: absolute; bottom: 10px; left: 12px;
+    font-family: 'IBM Plex Mono'; font-size: 10px;
+    color: rgba(232,232,232,0.75);
+    letter-spacing: 0.08em;
+    z-index: 2;
+  }
+  .monitor-timecode {
+    position: absolute; bottom: 10px; right: 12px;
+    font-family: 'IBM Plex Mono'; font-size: 11px; font-weight: 500;
+    color: #fff;
+    letter-spacing: 0.08em;
+    z-index: 2;
+  }
+
+  /* ============ NOW PLAYING BANNER ============ */
+  .nowplaying {
+    grid-column: 2;
+    grid-row: 2;
+    background: #0f0f0f;
+    border-top: 1px solid #2a2a2a;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 24px;
+  }
+  .np-left { flex: 1; }
+  .np-name {
+    font-family: 'IBM Plex Sans'; font-weight: 600; font-size: 22px;
+    color: #fff; letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  .np-name .sep { color: #6e6e6e; font-weight: 400; margin: 0 8px; }
+  .np-sub {
+    font-family: 'IBM Plex Mono'; font-size: 11px;
+    color: #6e6e6e;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+  .np-sub .fx { color: #a8a8a8; }
+  .np-sub .sep { color: #444; margin: 0 6px; }
+  .np-right {
+    display: flex; align-items: center; gap: 20px;
+    border-left: 1px solid #2a2a2a;
+    padding-left: 24px;
+  }
+  .np-stat {
+    display: flex; flex-direction: column;
+    font-family: 'IBM Plex Mono';
+  }
+  .np-stat .k { font-size: 9px; color: #6e6e6e; letter-spacing: 0.14em; }
+  .np-stat .v { font-size: 14px; color: #e8e8e8; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .np-stat .v.orange { color: #ff4500; }
+  .np-stat .v.just-changed { animation: justchanged 0.2s ease-out; }
+  @keyframes justchanged {
+    0% { background: #ff4500; color: #fff; }
+    100% { background: transparent; color: #e8e8e8; }
+  }
+  .loop-ico {
+    width: 14px; height: 14px;
+    border: 1px solid #a8a8a8;
+    display: inline-block;
+    position: relative;
+  }
+  .loop-ico::after {
+    content: '↻';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #a8a8a8;
+  }
+
+  /* ============ KEY SIGNALS (RIGHT) ============ */
+  .key-signals {
+    grid-column: 3;
+    grid-row: 1 / span 3;
+    background: #0f0f0f;
+    border-left: 1px solid #2a2a2a;
+    padding-top: 12px;
+  }
+  .ks-row {
+    height: 56px;
+    padding: 8px 14px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex; flex-direction: column;
+    gap: 6px;
+    position: relative;
+  }
+  .ks-row .ks-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .ks-row .ks-label {
+    font-family: 'IBM Plex Mono'; font-size: 11px; font-weight: 600;
+    color: #e8e8e8;
+    letter-spacing: 0.14em;
+  }
+  .ks-row .ks-value {
+    font-family: 'IBM Plex Mono'; font-size: 16px; font-weight: 500;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .ks-row .ks-bar {
+    height: 8px;
+    background: #1a1a1a;
+    border: 1px solid #222;
+    position: relative;
+  }
+  .ks-row .ks-bar-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: #e8e8e8;
+  }
+  .ks-row .ks-bar-fill.gradient {
+    background: linear-gradient(90deg, #4a9a4a 0%, #c8c85a 60%, #e8763a 100%);
+  }
+  .ks-row .ks-bar-fill.bass {
+    background: linear-gradient(90deg, #aa4040 0%, #e85a3a 100%);
+    animation: shake 0.3s ease-in-out infinite;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(1px); }
+  }
+  .ks-row .ks-peak {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: #fff;
+  }
+  .ks-row .ks-spark {
+    position: absolute;
+    bottom: 6px; right: 14px;
+    width: 48px; height: 16px;
+  }
+
+  .ks-beat-row {
+    display: flex; align-items: center;
+    gap: 10px;
+  }
+  .ks-beat-dot {
+    width: 14px; height: 14px;
+    background: #ff4500;
+    border-radius: 50%;
+    animation: beat 0.469s ease-in-out infinite;
+  }
+  .ks-beat-text {
+    font-family: 'IBM Plex Mono'; font-size: 13px; font-weight: 500;
+    color: #e8e8e8;
+    letter-spacing: 0.08em;
+  }
+  .ks-onset-flash {
+    position: absolute; top: 12px; right: 14px;
+    width: 8px; height: 8px;
+    background: #e8e8e8;
+    opacity: 0.3;
+  }
+  .ks-onset-flash.active { opacity: 1; animation: beat 0.3s ease-out; }
+
+  .ks-kv {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ks-kv .tag {
+    font-family: 'IBM Plex Mono'; font-size: 12px; font-weight: 600;
+    color: #fff;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    padding: 3px 8px;
+    letter-spacing: 0.1em;
+  }
+  .ks-kv .conf {
+    font-family: 'IBM Plex Mono'; font-size: 12px;
+    color: #a8a8a8;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============ DECK GRID ============ */
+  .deck-grid {
+    grid-column: 2;
+    grid-row: 3;
+    background: #0a0a0a;
+    border-top: 1px solid #2a2a2a;
+    padding: 10px 20px 10px 20px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .deck-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .deck-head .title {
+    font-family: 'IBM Plex Sans'; font-weight: 600; font-size: 12px;
+    color: #fff;
+    letter-spacing: 0.14em;
+  }
+  .deck-head .meta {
+    font-family: 'IBM Plex Mono'; font-size: 10px;
+    color: #6e6e6e;
+    letter-spacing: 0.08em;
+  }
+
+  .deck-table {
+    display: grid;
+    grid-template-columns: 120px repeat(6, 1fr);
+    gap: 4px;
+    flex: 1;
+  }
+  .deck-col-head {
+    font-family: 'IBM Plex Mono'; font-size: 10px;
+    color: #6e6e6e;
+    letter-spacing: 0.12em;
+    padding: 4px 2px;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex; justify-content: space-between;
+  }
+  .deck-row {
+    display: contents;
+  }
+  .layer-head {
+    background: #111;
+    border: 1px solid #2a2a2a;
+    padding: 6px 8px;
+    display: flex; flex-direction: column;
+    gap: 4px;
+    height: 80px;
+  }
+  .layer-head .lh-top {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .layer-head .lh-name {
+    font-family: 'IBM Plex Mono'; font-size: 11px; font-weight: 600;
+    color: #e8e8e8; letter-spacing: 0.1em;
+  }
+  .layer-head .lh-type {
+    font-family: 'IBM Plex Mono'; font-size: 9px;
+    color: #6e6e6e; letter-spacing: 0.12em;
+  }
+  .layer-head .lh-btns {
+    display: flex; gap: 3px;
+  }
+  .layer-btn {
+    width: 20px; height: 18px;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    font-family: 'IBM Plex Mono'; font-size: 9px; font-weight: 600;
+    color: #a8a8a8;
+    display: flex; align-items: center; justify-content: center;
+    cursor: default;
+  }
+  .layer-btn.on { background: #e8e8e8; color: #0a0a0a; border-color: #e8e8e8; }
+  .layer-btn.solo.on { background: #e8e8e8; }
+  .layer-btn.mute.on { background: #aa4040; color: #fff; }
+
+  .layer-head .lh-opacity {
+    height: 4px;
+    background: #1a1a1a;
+    border: 1px solid #222;
+    position: relative;
+    margin-top: auto;
+  }
+  .layer-head .lh-opacity-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    background: #a8a8a8;
+  }
+  .layer-head .lh-opacity-text {
+    font-family: 'IBM Plex Mono'; font-size: 9px;
+    color: #6e6e6e;
+    letter-spacing: 0.08em;
+  }
+
+  .clip {
+    height: 80px;
+    background: #0f0f0f;
+    border: 1px solid #1a1a1a;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .clip-thumb {
+    flex: 1;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+  }
+  .clip-thumb svg { display: block; width: 100%; height: 100%; }
+  .clip-name {
+    font-family: 'IBM Plex Mono'; font-size: 10px; font-weight: 500;
+    color: #a8a8a8;
+    letter-spacing: 0.04em;
+    padding: 3px 5px;
+    background: rgba(0,0,0,0.7);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border-top: 1px solid #1a1a1a;
+  }
+
+  .clip.playing {
+    background: #ff4500;
+    border-color: #ff4500;
+  }
+  .clip.playing .clip-name {
+    color: #fff;
+    background: #ff4500;
+    font-weight: 600;
+    border-top: 1px solid rgba(255,255,255,0.3);
+  }
+  .clip.playing .clip-thumb {
+    opacity: 0.92;
+  }
+  .clip-progress {
+    position: absolute; bottom: 0; left: 0;
+    height: 4px;
+    background: #fff;
+    z-index: 3;
+  }
+
+  .clip.queued {
+    border: 1px dashed #ff4500;
+    background: #120a08;
+  }
+  .clip.queued .clip-name {
+    color: #ff8a6a;
+  }
+
+  .clip.empty {
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+  }
+  .clip.empty .clip-thumb {
+    background: #070707;
+  }
+  .clip.empty .clip-name {
+    color: #3a3a3a;
+  }
+
+  /* ============ FOOTER 18px ============ */
+  .footer {
+    position: absolute; bottom: 0; left: 0;
+    width: 1920px; height: 18px;
+    background: #0a0a0a;
+    border-top: 1px solid #2a2a2a;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    gap: 20px;
+    font-family: 'IBM Plex Mono'; font-size: 9px;
+    color: #6e6e6e;
+    letter-spacing: 0.1em;
+  }
+  .footer .sep { color: #2a2a2a; }
+  .footer .ok { color: #4a9a4a; }
+  .footer .rec { color: #ff4500; }
+  .footer .right { margin-left: auto; }
+</style>
+</head>
+<body>
+
+<!-- ===================== MENU BAR ===================== -->
+<div class="menubar">
+  <span class="logo">AUDIO-DNA</span>
+  <span class="item">FILE</span>
+  <span class="item">EDIT</span>
+  <span class="item">VIEW</span>
+  <span class="item">DECK</span>
+  <span class="item">LAYER</span>
+  <span class="item">CLIP</span>
+  <span class="item">OUTPUT</span>
+  <span class="item">HELP</span>
+  <span class="spacer"></span>
+  <span class="right">COMP: NIGHT_SHIFT_03.adna</span>
+</div>
+
+<!-- ===================== TOP BAR ===================== -->
+<div class="topbar">
+  <div class="applogo">audio<span>-</span>dna</div>
+
+  <div class="bpm-block">
+    <div class="bpm-main">128.0</div>
+    <div class="bpm-side">
+      <div class="lbl">BPM</div>
+      <div class="val">BAR 03/08</div>
+      <div class="val">PHRASE 2/4</div>
+    </div>
+  </div>
+
+  <div class="beat-wheel">
+    <div class="beat-sq on"></div>
+    <div class="beat-sq"></div>
+    <div class="beat-sq"></div>
+    <div class="beat-sq"></div>
+  </div>
+
+  <div class="btn-group">
+    <div class="btn">TAP</div>
+    <div class="btn">NUDGE−</div>
+    <div class="btn">NUDGE+</div>
+    <div class="btn">RESYNC</div>
+    <div class="btn">MANUAL</div>
+  </div>
+
+  <div class="master-block">
+    <span class="lbl">MASTER</span>
+    <div class="master-fader">
+      <div class="master-fader-fill"></div>
+      <div class="master-fader-thumb"></div>
+    </div>
+    <span class="val">82%</span>
+  </div>
+
+  <div class="rec-block">
+    <div class="rec-dot"></div>
+    <span class="val">REC 00:12:34</span>
+  </div>
+
+  <div class="mode-toggle">
+    <div class="mode-cell active">PLAY</div>
+    <div class="mode-cell dim">PROGRAM</div>
+  </div>
+</div>
+
+<!-- ===================== WAVEFORM ===================== -->
+<div class="waveform">
+  <div class="waveform-head">
+    <span class="deck-a">A  DECK  A  —  JULIA SET PLATE VII</span>
+    <span class="deck-b">B  DECK  B  —  TURBULENT FLOW #04</span>
+  </div>
+
+  <!-- SVG dual waveform, deck A blue, deck B white, both frequency-colored via multi-line -->
+  <svg width="1920" height="100" style="position:absolute;top:0;left:0;" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="waveA" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6aa6ff" stop-opacity="0.9"/>
+        <stop offset="50%" stop-color="#3a6aaa" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#6aa6ff" stop-opacity="0.9"/>
+      </linearGradient>
+      <linearGradient id="waveB" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e8e8e8" stop-opacity="0.7"/>
+        <stop offset="50%" stop-color="#888" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#e8e8e8" stop-opacity="0.7"/>
+      </linearGradient>
+    </defs>
+
+    <!-- background bar grid -->
+    <g opacity="0.35">
+      <!-- 32 bars across 1920px = 60px per bar -->
+      <line x1="0" y1="24" x2="1920" y2="24" stroke="#1a1a1a" stroke-width="1"/>
+      <line x1="0" y1="86" x2="1920" y2="86" stroke="#1a1a1a" stroke-width="1"/>
+    </g>
+
+    <!-- Deck A — upper half, blue, tall-short-tall pattern -->
+    <g>
+      <path d="M 0 55
+               L 30 48 L 60 35 L 90 52 L 120 40 L 150 28 L 180 50 L 210 42 L 240 32
+               L 270 48 L 300 38 L 330 26 L 360 44 L 390 50 L 420 34 L 450 46 L 480 40
+               L 510 30 L 540 42 L 570 48 L 600 36 L 630 28 L 660 44 L 690 52 L 720 38
+               L 750 30 L 780 46 L 810 42 L 840 34 L 870 50 L 900 38 L 930 28 L 960 20
+               L 990 32 L 1020 44 L 1050 38 L 1080 48 L 1110 34 L 1140 42 L 1170 30 L 1200 46
+               L 1230 38 L 1260 48 L 1290 32 L 1320 42 L 1350 36 L 1380 48 L 1410 40 L 1440 30
+               L 1470 46 L 1500 38 L 1530 44 L 1560 32 L 1590 40 L 1620 48 L 1650 36 L 1680 44
+               L 1710 32 L 1740 42 L 1770 48 L 1800 38 L 1830 44 L 1860 36 L 1890 42 L 1920 48
+               L 1920 55 L 0 55 Z"
+            fill="url(#waveA)"/>
+    </g>
+
+    <!-- Deck B — lower half, white, dense rhythmic pattern -->
+    <g>
+      <path d="M 0 55
+               L 30 64 L 60 78 L 90 62 L 120 72 L 150 80 L 180 68 L 210 76 L 240 82
+               L 270 66 L 300 78 L 330 84 L 360 70 L 390 62 L 420 80 L 450 68 L 480 74
+               L 510 82 L 540 70 L 570 62 L 600 78 L 630 82 L 660 68 L 690 60 L 720 76
+               L 750 82 L 780 66 L 810 72 L 840 80 L 870 62 L 900 74 L 930 84 L 960 90
+               L 990 78 L 1020 64 L 1050 72 L 1080 60 L 1110 76 L 1140 68 L 1170 82 L 1200 66
+               L 1230 74 L 1260 62 L 1290 78 L 1320 68 L 1350 76 L 1380 62 L 1410 70 L 1440 82
+               L 1470 64 L 1500 72 L 1530 66 L 1560 80 L 1590 70 L 1620 62 L 1650 76 L 1680 66
+               L 1710 80 L 1740 68 L 1770 62 L 1800 74 L 1830 66 L 1860 76 L 1890 68 L 1920 60
+               L 1920 55 L 0 55 Z"
+            fill="url(#waveB)"/>
+    </g>
+  </svg>
+
+  <!-- Structural zones -->
+  <div class="struct-zone" style="left: 0; width: 520px;">
+    <span class="struct-label" style="left: 8px;">BUILDUP</span>
+  </div>
+  <div class="struct-zone" style="left: 520px; width: 180px;">
+    <span class="struct-label" style="left: 8px;">DROP</span>
+  </div>
+  <div class="struct-zone" style="left: 700px; width: 600px;">
+    <span class="struct-label" style="left: 8px;">GROOVE</span>
+  </div>
+  <div class="struct-zone" style="left: 1300px; width: 620px;">
+    <span class="struct-label" style="left: 8px;">BREAKDOWN</span>
+  </div>
+
+  <div class="waveform-playhead"></div>
+
+  <!-- Bar numbers -->
+  <div class="bar-nums">
+    <div class="bn">01</div><div class="bn">02</div><div class="bn">03</div><div class="bn">04</div>
+    <div class="bn">05</div><div class="bn">06</div><div class="bn">07</div><div class="bn">08</div>
+    <div class="bn">09</div><div class="bn">10</div><div class="bn">11</div><div class="bn">12</div>
+    <div class="bn">13</div><div class="bn">14</div><div class="bn">15</div><div class="bn">16</div>
+    <div class="bn current">17</div>
+    <div class="bn">18</div><div class="bn">19</div><div class="bn">20</div><div class="bn">21</div>
+    <div class="bn">22</div><div class="bn">23</div><div class="bn">24</div><div class="bn">25</div>
+    <div class="bn">26</div><div class="bn">27</div><div class="bn">28</div><div class="bn">29</div>
+    <div class="bn">30</div><div class="bn">31</div><div class="bn">32</div>
+  </div>
+</div>
+
+<!-- ===================== MAIN LAYOUT ===================== -->
+<div class="main">
+
+  <!-- ===== LEFT SIGNAL STRIP ===== -->
+  <div class="signal-strip">
+    <div class="panel-title">SIGNAL BAR</div>
+    <div class="sig-row">
+      <span class="lbl">SUB</span>
+      <div class="bar"><div class="bar-fill" style="width:62%;background:#6a4aaa;"></div></div>
+      <span class="val">0.62</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">BASS</span>
+      <div class="bar"><div class="bar-fill" style="width:91%;background:#c84a3a;"></div></div>
+      <span class="val">0.91</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">LOWMID</span>
+      <div class="bar"><div class="bar-fill" style="width:58%;background:#c8883a;"></div></div>
+      <span class="val">0.58</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">MID</span>
+      <div class="bar"><div class="bar-fill" style="width:43%;background:#c8c83a;"></div></div>
+      <span class="val">0.43</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">HIGHMID</span>
+      <div class="bar"><div class="bar-fill" style="width:37%;background:#8ac83a;"></div></div>
+      <span class="val">0.37</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">PRES.</span>
+      <div class="bar"><div class="bar-fill" style="width:29%;background:#3ac8a8;"></div></div>
+      <span class="val">0.29</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">BRILL.</span>
+      <div class="bar"><div class="bar-fill" style="width:18%;background:#3a88c8;"></div></div>
+      <span class="val">0.18</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">BEAT Φ</span>
+      <div class="bar"><div class="bar-fill" style="width:25%;background:#a8a8a8;"></div></div>
+      <span class="val">0.25</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">BAR Φ</span>
+      <div class="bar"><div class="bar-fill" style="width:56%;background:#a8a8a8;"></div></div>
+      <span class="val">0.56</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">PHR. Φ</span>
+      <div class="bar"><div class="bar-fill" style="width:37%;background:#a8a8a8;"></div></div>
+      <span class="val">0.37</span>
+    </div>
+
+    <div class="panel-title" style="margin-top: 18px; border-top: 1px solid #2a2a2a; padding-top: 14px;">EXTENDED</div>
+    <div class="sig-row">
+      <span class="lbl">FLUX</span>
+      <div class="bar"><div class="bar-fill" style="width:68%;"></div></div>
+      <span class="val">0.68</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">CENTR.</span>
+      <div class="bar"><div class="bar-fill" style="width:44%;"></div></div>
+      <span class="val">2.1k</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">ROLLOFF</span>
+      <div class="bar"><div class="bar-fill" style="width:52%;"></div></div>
+      <span class="val">5.4k</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">LUFS</span>
+      <div class="bar"><div class="bar-fill" style="width:72%;"></div></div>
+      <span class="val">−8.4</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">TRANS.</span>
+      <div class="bar"><div class="bar-fill" style="width:45%;"></div></div>
+      <span class="val">4.2</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">SIDECHAIN</span>
+      <div class="bar"><div class="bar-fill" style="width:73%;"></div></div>
+      <span class="val">0.73</span>
+    </div>
+    <div class="sig-row">
+      <span class="lbl">SWING</span>
+      <div class="bar"><div class="bar-fill" style="width:10%;"></div></div>
+      <span class="val">0.52</span>
+    </div>
+  </div>
+
+  <!-- ===== MONITOR ===== -->
+  <div class="monitor-wrap">
+    <div class="monitor">
+      <div class="monitor-corner-tl"></div>
+      <div class="monitor-corner-tr"></div>
+      <div class="monitor-corner-bl"></div>
+      <div class="monitor-corner-br"></div>
+
+      <svg class="scene" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <filter id="turb1" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="3" seed="7"/>
+            <feDisplacementMap in="SourceGraphic" scale="120"/>
+          </filter>
+          <filter id="turb2" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="2" seed="13"/>
+            <feColorMatrix values="0 0 0 0 0.95
+                                   0 0 0 0 0.75
+                                   0 0 0 0 0.25
+                                   0 0 0 1.2 0"/>
+          </filter>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="4"/>
+            <feMerge>
+              <feMergeNode/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+
+          <radialGradient id="core" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffb070" stop-opacity="1"/>
+            <stop offset="22%" stop-color="#ff4500" stop-opacity="1"/>
+            <stop offset="45%" stop-color="#aa2a10" stop-opacity="0.9"/>
+            <stop offset="70%" stop-color="#441010" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+          </radialGradient>
+
+          <radialGradient id="corona" cx="50%" cy="50%" r="55%">
+            <stop offset="0%" stop-color="#ff8040" stop-opacity="0"/>
+            <stop offset="70%" stop-color="#c83a20" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+          </radialGradient>
+
+          <radialGradient id="blueSpot" cx="20%" cy="30%" r="30%">
+            <stop offset="0%" stop-color="#4a8aff" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+          </radialGradient>
+
+          <linearGradient id="horiz" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#0a0a0a"/>
+            <stop offset="0.5" stop-color="#110a08"/>
+            <stop offset="1" stop-color="#0a0a0a"/>
+          </linearGradient>
+
+          <pattern id="grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1a1a" stroke-width="0.5" opacity="0.6"/>
+          </pattern>
+        </defs>
+
+        <!-- Base -->
+        <rect width="800" height="450" fill="#000"/>
+        <rect width="800" height="450" fill="url(#horiz)"/>
+        <rect width="800" height="450" fill="url(#grid)" opacity="0.5"/>
+
+        <!-- Blue spot accent -->
+        <rect width="800" height="450" fill="url(#blueSpot)" style="mix-blend-mode: screen;"/>
+
+        <!-- Turbulent plasma layer (displaced radial, like a fractal) -->
+        <g filter="url(#turb1)" opacity="0.9">
+          <rect x="100" y="50" width="600" height="350" fill="url(#core)"/>
+        </g>
+
+        <!-- Corona -->
+        <rect x="0" y="0" width="800" height="450" fill="url(#corona)" style="mix-blend-mode: screen;"/>
+
+        <!-- Julia-set-style orbits (concentric near-circles with slight eccentricity) -->
+        <g opacity="0.7" style="mix-blend-mode: screen;">
+          <ellipse cx="400" cy="225" rx="170" ry="160" fill="none" stroke="#ff6a3a" stroke-width="0.8"/>
+          <ellipse cx="400" cy="225" rx="210" ry="190" fill="none" stroke="#ff4500" stroke-width="0.6"/>
+          <ellipse cx="400" cy="225" rx="260" ry="228" fill="none" stroke="#aa3010" stroke-width="0.5"/>
+          <ellipse cx="400" cy="225" rx="130" ry="124" fill="none" stroke="#ffaa70" stroke-width="0.8"/>
+          <ellipse cx="400" cy="225" rx="90" ry="86" fill="none" stroke="#ffd090" stroke-width="0.7"/>
+          <ellipse cx="400" cy="225" rx="55" ry="52" fill="none" stroke="#ffffff" stroke-width="0.6" opacity="0.5"/>
+        </g>
+
+        <!-- Waveform overlay (oscilloscope style) -->
+        <g opacity="0.5" filter="url(#glow)">
+          <path d="M 0 340
+                   Q 40 320, 80 330 T 160 325
+                   Q 200 310, 240 330 T 320 320
+                   Q 360 295, 400 310 T 480 300
+                   Q 520 285, 560 320 T 640 330
+                   Q 680 315, 720 335 T 800 340"
+                fill="none" stroke="#6aa6ff" stroke-width="1.2"/>
+        </g>
+        <g opacity="0.4" filter="url(#glow)">
+          <path d="M 0 360
+                   Q 45 340, 90 352 T 180 355 Q 220 335, 260 358 T 340 355
+                   Q 380 330, 420 348 T 500 345 Q 540 325, 580 355 T 660 360 Q 700 345, 740 355 T 800 358"
+                fill="none" stroke="#fff" stroke-width="0.8"/>
+        </g>
+
+        <!-- Fine scanline-like striations -->
+        <g opacity="0.12">
+          <line x1="0" y1="90" x2="800" y2="92" stroke="#fff" stroke-width="0.5"/>
+          <line x1="0" y1="150" x2="800" y2="148" stroke="#fff" stroke-width="0.5"/>
+          <line x1="0" y1="210" x2="800" y2="213" stroke="#fff" stroke-width="0.5"/>
+          <line x1="0" y1="270" x2="800" y2="272" stroke="#fff" stroke-width="0.5"/>
+          <line x1="0" y1="385" x2="800" y2="382" stroke="#fff" stroke-width="0.5"/>
+        </g>
+
+        <!-- Vignette -->
+        <radialGradient id="vig" cx="50%" cy="50%" r="70%">
+          <stop offset="60%" stop-color="#000" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#000" stop-opacity="0.7"/>
+        </radialGradient>
+        <rect width="800" height="450" fill="url(#vig)"/>
+      </svg>
+
+      <div class="monitor-status">
+        <div class="dot"></div>
+        LIVE · 60fps · 1920×1080
+      </div>
+      <div class="monitor-meta">OUT → HDMI-2 · DISPLAY 3 · SYPHON: AUDIO-DNA-MAIN</div>
+      <div class="monitor-timecode">02:14 / 04:28</div>
+    </div>
+  </div>
+
+  <!-- ===== KEY SIGNALS RIGHT ===== -->
+  <div class="key-signals">
+    <div class="panel-title">KEY SIGNALS</div>
+
+    <div class="ks-row">
+      <div class="ks-head">
+        <span class="ks-label">RMS</span>
+        <span class="ks-value">0.72</span>
+      </div>
+      <div class="ks-bar">
+        <div class="ks-bar-fill gradient" style="width: 72%;"></div>
+        <div class="ks-peak" style="left: 88%;"></div>
+      </div>
+    </div>
+
+    <div class="ks-row">
+      <div class="ks-head">
+        <span class="ks-label">BASS</span>
+        <span class="ks-value">0.91</span>
+      </div>
+      <div class="ks-bar">
+        <div class="ks-bar-fill bass" style="width: 91%;"></div>
+        <div class="ks-peak" style="left: 95%;"></div>
+      </div>
+    </div>
+
+    <div class="ks-row">
+      <div class="ks-head">
+        <span class="ks-label">MID</span>
+        <span class="ks-value">0.43</span>
+      </div>
+      <div class="ks-bar">
+        <div class="ks-bar-fill" style="width: 43%;"></div>
+        <div class="ks-peak" style="left: 62%;"></div>
+      </div>
+    </div>
+
+    <div class="ks-row">
+      <div class="ks-head">
+        <span class="ks-label">HIGH</span>
+        <span class="ks-value">0.29</span>
+      </div>
+      <div class="ks-bar">
+        <div class="ks-bar-fill" style="width: 29%;"></div>
+        <div class="ks-peak" style="left: 48%;"></div>
+      </div>
+    </div>
+
+    <div class="ks-row">
+      <div class="ks-head">
+        <span class="ks-label">BEAT</span>
+        <span class="ks-value">↓ 01</span>
+      </div>
+      <div class="ks-beat-row">
+        <div class="ks-beat-dot"></div>
+        <span class="ks-beat-text">BAR 17 · 1/4</span>
+      </div>
+    </div>
+
+    <div class="ks-row">
+      <div class="ks-head">
+        <span class="ks-label">ONSET</span>
+        <span class="ks-value">0.68</span>
+      </div>
+      <div class="ks-bar">
+        <div class="ks-bar-fill" style="width: 68%; background: #e8e8e8;"></div>
+      </div>
+      <svg class="ks-spark" viewBox="0 0 48 16" preserveAspectRatio="none">
+        <polyline points="0,14 4,12 8,6 12,14 16,10 20,2 24,14 28,8 32,12 36,4 40,14 44,10 48,14"
+                  fill="none" stroke="#a8a8a8" stroke-width="1"/>
+      </svg>
+    </div>
+
+    <div class="ks-row">
+      <div class="ks-head">
+        <span class="ks-label">GENRE</span>
+      </div>
+      <div class="ks-kv">
+        <span class="tag">HOUSE</span>
+        <span class="conf">0.88 · 128 BPM</span>
+      </div>
+    </div>
+
+    <div class="ks-row">
+      <div class="ks-head">
+        <span class="ks-label">ENERGY</span>
+      </div>
+      <div class="ks-kv">
+        <span class="tag">HIGH</span>
+        <span class="conf">STATE: DROP</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NOW PLAYING BANNER ===== -->
+  <div class="nowplaying">
+    <div class="np-left">
+      <div class="np-name">JULIA SET<span class="sep">—</span>PLATE VII</div>
+      <div class="np-sub">
+        LAYER 02 · TRANSPARENT
+        <span class="sep">·</span>
+        FX CHAIN: <span class="fx">RIPPLE · ECHO · CHROMATIC ABERR · GLOW</span>
+        <span class="sep">·</span>
+        DECK A · COL 03
+      </div>
+    </div>
+    <div class="np-right">
+      <div class="np-stat">
+        <span class="k">BPM</span>
+        <span class="v">128.0</span>
+      </div>
+      <div class="np-stat">
+        <span class="k">SYNC</span>
+        <span class="v">BAR</span>
+      </div>
+      <div class="np-stat">
+        <span class="k">LOOP</span>
+        <span class="v">02:14 / 04:28</span>
+      </div>
+      <div class="np-stat">
+        <span class="k">MODE</span>
+        <span class="v"><span class="loop-ico"></span> LOOP</span>
+      </div>
+      <div class="np-stat">
+        <span class="k">OPACITY</span>
+        <span class="v just-changed">0.87</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DECK GRID ===== -->
+  <div class="deck-grid">
+    <div class="deck-head">
+      <span class="title">DECK A — NIGHT SHIFT</span>
+      <span class="meta">4 LAYERS · 6 COLUMNS · 1 PLAYING · 1 QUEUED</span>
+    </div>
+
+    <div class="deck-table">
+      <!-- Column headers -->
+      <div></div>
+      <div class="deck-col-head"><span>COL 01</span><span>⌥1</span></div>
+      <div class="deck-col-head"><span>COL 02</span><span>⌥2</span></div>
+      <div class="deck-col-head"><span>COL 03</span><span>⌥3</span></div>
+      <div class="deck-col-head"><span>COL 04</span><span>⌥4</span></div>
+      <div class="deck-col-head"><span>COL 05</span><span>⌥5</span></div>
+      <div class="deck-col-head"><span>COL 06</span><span>⌥6</span></div>
+
+      <!-- LAYER 01 -->
+      <div class="layer-head">
+        <div class="lh-top">
+          <span class="lh-name">L01</span>
+          <div class="lh-btns">
+            <div class="layer-btn">S</div>
+            <div class="layer-btn">M</div>
+          </div>
+        </div>
+        <div class="lh-type">OPAQUE · BG</div>
+        <span class="lh-opacity-text">OPACITY 1.00</span>
+        <div class="lh-opacity"><div class="lh-opacity-fill" style="width:100%;"></div></div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <radialGradient id="t1a" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ff8a40"/>
+                <stop offset="40%" stop-color="#aa2a10"/>
+                <stop offset="100%" stop-color="#000"/>
+              </radialGradient>
+            </defs>
+            <rect width="120" height="60" fill="url(#t1a)"/>
+            <circle cx="60" cy="30" r="18" fill="none" stroke="#ff6a20" stroke-width="0.6" opacity="0.7"/>
+            <circle cx="60" cy="30" r="26" fill="none" stroke="#aa3a10" stroke-width="0.5" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="clip-name">SUN FIELD</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <filter id="t1b-n"><feTurbulence baseFrequency="0.06" numOctaves="3" seed="2"/>
+                <feColorMatrix values="0 0 0 0 0.3  0 0 0 0 0.4  0 0 0 0 0.7  0 0 0 1 0"/>
+              </filter>
+            </defs>
+            <rect width="120" height="60" filter="url(#t1b-n)"/>
+          </svg>
+        </div>
+        <div class="clip-name">CLOUD DRIFT</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#0a0a12"/>
+            <g fill="none" stroke="#e04848" stroke-width="0.6" opacity="0.8">
+              <circle cx="60" cy="30" r="6"/>
+              <circle cx="60" cy="30" r="12"/>
+              <circle cx="60" cy="30" r="18"/>
+              <circle cx="60" cy="30" r="24"/>
+              <circle cx="60" cy="30" r="30"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">RED RINGS</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#141414"/>
+            <g stroke="#888" stroke-width="0.6">
+              <line x1="0" y1="5" x2="120" y2="5"/>
+              <line x1="0" y1="13" x2="120" y2="13"/>
+              <line x1="0" y1="21" x2="120" y2="21"/>
+              <line x1="0" y1="29" x2="120" y2="29"/>
+              <line x1="0" y1="37" x2="120" y2="37"/>
+              <line x1="0" y1="45" x2="120" y2="45"/>
+              <line x1="0" y1="53" x2="120" y2="53"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">SCANLINES</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <pattern id="stripe1" x="0" y="0" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                <rect width="5" height="10" fill="#1ac8c8"/>
+                <rect x="5" width="5" height="10" fill="#0a1a1a"/>
+              </pattern>
+            </defs>
+            <rect width="120" height="60" fill="url(#stripe1)"/>
+          </svg>
+        </div>
+        <div class="clip-name">CYAN CUT</div>
+      </div>
+
+      <div class="clip empty">
+        <div class="clip-thumb"></div>
+        <div class="clip-name">— —</div>
+      </div>
+
+      <!-- LAYER 02 -->
+      <div class="layer-head">
+        <div class="lh-top">
+          <span class="lh-name">L02</span>
+          <div class="lh-btns">
+            <div class="layer-btn solo on">S</div>
+            <div class="layer-btn">M</div>
+          </div>
+        </div>
+        <div class="lh-type">TRANSPARENT · FX</div>
+        <span class="lh-opacity-text">OPACITY 0.87</span>
+        <div class="lh-opacity"><div class="lh-opacity-fill" style="width:87%;"></div></div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <radialGradient id="mandel1" cx="45%" cy="50%" r="60%">
+                <stop offset="0%" stop-color="#fff"/>
+                <stop offset="8%" stop-color="#ffaa40"/>
+                <stop offset="22%" stop-color="#ff4500"/>
+                <stop offset="55%" stop-color="#551010"/>
+                <stop offset="100%" stop-color="#000"/>
+              </radialGradient>
+            </defs>
+            <rect width="120" height="60" fill="url(#mandel1)"/>
+            <ellipse cx="54" cy="30" rx="24" ry="18" fill="#000" opacity="0.55"/>
+            <circle cx="42" cy="30" r="6" fill="#000" opacity="0.7"/>
+          </svg>
+        </div>
+        <div class="clip-name">MANDELBROT</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <filter id="t2b"><feTurbulence baseFrequency="0.18" numOctaves="4" seed="9"/>
+                <feColorMatrix values="0 0 0 0 0.95   0 0 0 0 0.95   0 0 0 0 0.95   0 0 0 0.9 0"/>
+              </filter>
+            </defs>
+            <rect width="120" height="60" fill="#000"/>
+            <rect width="120" height="60" filter="url(#t2b)" opacity="0.8"/>
+          </svg>
+        </div>
+        <div class="clip-name">NOISE WHT</div>
+      </div>
+
+      <!-- PLAYING CLIP -->
+      <div class="clip playing">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <radialGradient id="pJul" cx="55%" cy="45%" r="55%">
+                <stop offset="0%" stop-color="#fff"/>
+                <stop offset="20%" stop-color="#ffe0a8"/>
+                <stop offset="55%" stop-color="#ff7a30"/>
+                <stop offset="100%" stop-color="#661010"/>
+              </radialGradient>
+              <filter id="pJulDisp"><feTurbulence baseFrequency="0.08" numOctaves="2" seed="4"/>
+                <feDisplacementMap in="SourceGraphic" scale="12"/>
+              </filter>
+            </defs>
+            <rect width="120" height="60" fill="url(#pJul)" filter="url(#pJulDisp)"/>
+            <g fill="none" stroke="#fff" stroke-width="0.4" opacity="0.55">
+              <ellipse cx="66" cy="27" rx="14" ry="10"/>
+              <ellipse cx="66" cy="27" rx="22" ry="16"/>
+              <ellipse cx="66" cy="27" rx="30" ry="22"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">JULIA PLATE VII</div>
+        <div class="clip-progress" style="width: 37%;"></div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#050508"/>
+            <g stroke="#fff" stroke-width="0.5" fill="none" opacity="0.7">
+              <path d="M 0 30 Q 15 10 30 30 T 60 30 T 90 30 T 120 30"/>
+              <path d="M 0 30 Q 15 50 30 30 T 60 30 T 90 30 T 120 30" opacity="0.5"/>
+            </g>
+            <g stroke="#6aa6ff" stroke-width="0.4" fill="none" opacity="0.6">
+              <path d="M 0 22 Q 20 4 40 22 T 80 22 T 120 22"/>
+              <path d="M 0 38 Q 20 56 40 38 T 80 38 T 120 38"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">OSCILLOSCOPE</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#000"/>
+            <g fill="#00c848">
+              <rect x="0"   y="50" width="4" height="10"/>
+              <rect x="6"   y="38" width="4" height="22"/>
+              <rect x="12"  y="22" width="4" height="38"/>
+              <rect x="18"  y="44" width="4" height="16"/>
+              <rect x="24"  y="30" width="4" height="30"/>
+              <rect x="30"  y="18" width="4" height="42"/>
+              <rect x="36"  y="26" width="4" height="34"/>
+              <rect x="42"  y="40" width="4" height="20"/>
+              <rect x="48"  y="12" width="4" height="48"/>
+              <rect x="54"  y="28" width="4" height="32"/>
+              <rect x="60"  y="22" width="4" height="38"/>
+              <rect x="66"  y="36" width="4" height="24"/>
+              <rect x="72"  y="16" width="4" height="44"/>
+              <rect x="78"  y="30" width="4" height="30"/>
+              <rect x="84"  y="42" width="4" height="18"/>
+              <rect x="90"  y="20" width="4" height="40"/>
+              <rect x="96"  y="34" width="4" height="26"/>
+              <rect x="102" y="44" width="4" height="16"/>
+              <rect x="108" y="26" width="4" height="34"/>
+              <rect x="114" y="38" width="4" height="22"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">SPECTRUM</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#0a0a0a"/>
+            <g stroke="#fff" fill="none" stroke-width="0.4">
+              <path d="M 60 30 m -28,0 a 28,28 0 1,0 56,0 a 28,28 0 1,0 -56,0" opacity="0.6"/>
+              <path d="M 60 30 m -20,0 a 20,20 0 1,0 40,0 a 20,20 0 1,0 -40,0" opacity="0.6"/>
+              <path d="M 60 30 m -12,0 a 12,12 0 1,0 24,0 a 12,12 0 1,0 -24,0" opacity="0.6"/>
+              <line x1="60" y1="2" x2="60" y2="58"/>
+              <line x1="2"  y1="30" x2="118" y2="30"/>
+              <line x1="20" y1="6"  x2="100" y2="54" opacity="0.5"/>
+              <line x1="100" y1="6" x2="20"  y2="54" opacity="0.5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">POLAR GRID</div>
+      </div>
+
+      <!-- LAYER 03 -->
+      <div class="layer-head">
+        <div class="lh-top">
+          <span class="lh-name">L03</span>
+          <div class="lh-btns">
+            <div class="layer-btn">S</div>
+            <div class="layer-btn">M</div>
+          </div>
+        </div>
+        <div class="lh-type">FX ONLY · OVL</div>
+        <span class="lh-opacity-text">OPACITY 0.64</span>
+        <div class="lh-opacity"><div class="lh-opacity-fill" style="width:64%;"></div></div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#080818"/>
+            <g stroke="#1ac8ff" fill="none" stroke-width="0.5" opacity="0.8">
+              <path d="M 60 30 L 60 6"/>
+              <path d="M 60 30 L 78 14"/>
+              <path d="M 60 30 L 90 22"/>
+              <path d="M 60 30 L 90 38"/>
+              <path d="M 60 30 L 78 46"/>
+              <path d="M 60 30 L 60 54"/>
+              <path d="M 60 30 L 42 46"/>
+              <path d="M 60 30 L 30 38"/>
+              <path d="M 60 30 L 30 22"/>
+              <path d="M 60 30 L 42 14"/>
+              <path d="M 78 14 L 78 6 M 78 14 L 96 8"/>
+              <path d="M 42 14 L 42 6 M 42 14 L 24 8"/>
+              <path d="M 90 22 L 108 18"/>
+              <path d="M 30 22 L 12 18"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">FRACTAL TREE</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <pattern id="hex1" x="0" y="0" width="18" height="20" patternUnits="userSpaceOnUse">
+                <polygon points="9,1 17,6 17,14 9,19 1,14 1,6" fill="none" stroke="#ff6a20" stroke-width="0.5"/>
+                <polygon points="9,1 17,6 17,14 9,19 1,14 1,6" fill="#ff4500" opacity="0.22"/>
+              </pattern>
+            </defs>
+            <rect width="120" height="60" fill="#08060c"/>
+            <rect width="120" height="60" fill="url(#hex1)"/>
+          </svg>
+        </div>
+        <div class="clip-name">HEX GRID</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <filter id="plasma1">
+                <feTurbulence baseFrequency="0.03 0.05" numOctaves="3" seed="17"/>
+                <feColorMatrix values="2.0 0 0 0 0   0 0.5 0 0 0.2   0 0 2.0 0 0   0 0 0 0.9 0"/>
+              </filter>
+            </defs>
+            <rect width="120" height="60" fill="#000"/>
+            <rect width="120" height="60" filter="url(#plasma1)"/>
+          </svg>
+        </div>
+        <div class="clip-name">PLASMA</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#0a0a0a"/>
+            <g stroke="#e0c850" fill="none" stroke-width="0.6" opacity="0.85">
+              <path d="M 60 30 m -28,0 a 28,28 0 1,0 56,0 a 28,28 0 1,0 -56,0" transform="rotate(0 60 30)"/>
+              <path d="M 60 30 m -28,0 a 28,28 0 1,0 56,0 a 28,28 0 1,0 -56,0" transform="rotate(30 60 30) scale(0.9) translate(6.6 3.3)"/>
+              <path d="M 60 30 m -28,0 a 28,28 0 1,0 56,0 a 28,28 0 1,0 -56,0" transform="rotate(60 60 30) scale(0.8) translate(15 7.5)"/>
+              <path d="M 60 30 m -28,0 a 28,28 0 1,0 56,0 a 28,28 0 1,0 -56,0" transform="rotate(90 60 30) scale(0.7) translate(25.7 12.8)"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">SPIROGRAPH</div>
+      </div>
+
+      <!-- QUEUED CLIP -->
+      <div class="clip queued">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <radialGradient id="q1" cx="50%" cy="50%" r="55%">
+                <stop offset="0%" stop-color="#fff"/>
+                <stop offset="50%" stop-color="#6adc8a"/>
+                <stop offset="100%" stop-color="#081808"/>
+              </radialGradient>
+              <filter id="q1f"><feTurbulence baseFrequency="0.05" numOctaves="2" seed="5"/>
+                <feDisplacementMap in="SourceGraphic" scale="18"/>
+              </filter>
+            </defs>
+            <rect width="120" height="60" fill="url(#q1)" filter="url(#q1f)"/>
+            <g fill="none" stroke="#fff" stroke-width="0.4" opacity="0.5">
+              <path d="M 60 30 Q 40 10 60 0"/>
+              <path d="M 60 30 Q 80 50 60 60"/>
+              <path d="M 60 30 Q 30 40 0 30"/>
+              <path d="M 60 30 Q 90 20 120 30"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">TURBULENT FLOW ▸ QUEUED</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#0a0006"/>
+            <g stroke="#ff3060" fill="none" stroke-width="0.4" opacity="0.8">
+              <path d="M 60 30 m 0,-26 a 26,26 0 0,1 0,52 a 26,26 0 0,1 0,-52" transform="rotate(0 60 30) scale(1 0.6)"/>
+              <path d="M 60 30 m 0,-22 a 22,22 0 0,1 0,44 a 22,22 0 0,1 0,-44" transform="rotate(30 60 30) scale(1 0.6)"/>
+              <path d="M 60 30 m 0,-18 a 18,18 0 0,1 0,36 a 18,18 0 0,1 0,-36" transform="rotate(60 60 30) scale(1 0.6)"/>
+              <path d="M 60 30 m 0,-14 a 14,14 0 0,1 0,28 a 14,14 0 0,1 0,-28" transform="rotate(90 60 30) scale(1 0.6)"/>
+              <path d="M 60 30 m 0,-10 a 10,10 0 0,1 0,20 a 10,10 0 0,1 0,-20" transform="rotate(120 60 30) scale(1 0.6)"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">ORBIT TRACE</div>
+      </div>
+
+      <!-- LAYER 04 -->
+      <div class="layer-head">
+        <div class="lh-top">
+          <span class="lh-name">L04</span>
+          <div class="lh-btns">
+            <div class="layer-btn">S</div>
+            <div class="layer-btn">M</div>
+          </div>
+        </div>
+        <div class="lh-type">FX ONLY · TOP</div>
+        <span class="lh-opacity-text">OPACITY 0.42</span>
+        <div class="lh-opacity"><div class="lh-opacity-fill" style="width:42%;"></div></div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#000"/>
+            <defs>
+              <filter id="glitch1">
+                <feTurbulence baseFrequency="0.9 0.01" numOctaves="1" seed="3"/>
+                <feDisplacementMap in="SourceGraphic" scale="28"/>
+              </filter>
+            </defs>
+            <g filter="url(#glitch1)">
+              <rect x="0" y="10" width="120" height="6" fill="#ff40a0"/>
+              <rect x="0" y="24" width="120" height="4" fill="#40e0ff"/>
+              <rect x="0" y="36" width="120" height="8" fill="#ffffff"/>
+              <rect x="0" y="48" width="120" height="4" fill="#ffa040"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">RGB GLITCH</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#000"/>
+            <g font-family="IBM Plex Mono" font-size="6" fill="#3ac84a" opacity="0.9">
+              <text x="2" y="8">01001011 10100101</text>
+              <text x="2" y="16">11001101 00110110</text>
+              <text x="2" y="24">10110010 01011010</text>
+              <text x="2" y="32">00110101 11001011</text>
+              <text x="2" y="40">10011010 10110100</text>
+              <text x="2" y="48">11011001 01100101</text>
+              <text x="2" y="56">00101110 10010011</text>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">DIGITAL RAIN</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#0a0a0a"/>
+            <g fill="#fff">
+              <circle cx="12" cy="14" r="0.8"/>
+              <circle cx="24" cy="42" r="0.6"/>
+              <circle cx="38" cy="8" r="1.2"/>
+              <circle cx="48" cy="30" r="0.7"/>
+              <circle cx="60" cy="50" r="0.5"/>
+              <circle cx="72" cy="20" r="1"/>
+              <circle cx="86" cy="36" r="0.8"/>
+              <circle cx="98" cy="12" r="0.6"/>
+              <circle cx="110" cy="48" r="1"/>
+              <circle cx="18" cy="28" r="0.5"/>
+              <circle cx="54" cy="14" r="0.8"/>
+              <circle cx="78" cy="52" r="0.4"/>
+              <circle cx="100" cy="30" r="0.5"/>
+              <circle cx="34" cy="54" r="0.5"/>
+              <circle cx="64" cy="4" r="0.6"/>
+            </g>
+            <g stroke="#fff" stroke-width="0.2" opacity="0.35" fill="none">
+              <line x1="12" y1="14" x2="38" y2="8"/>
+              <line x1="38" y1="8" x2="54" y2="14"/>
+              <line x1="54" y1="14" x2="72" y2="20"/>
+              <line x1="72" y1="20" x2="98" y2="12"/>
+              <line x1="48" y1="30" x2="72" y2="20"/>
+              <line x1="48" y1="30" x2="18" y2="28"/>
+              <line x1="86" y1="36" x2="100" y2="30"/>
+              <line x1="60" y1="50" x2="86" y2="36"/>
+              <line x1="24" y1="42" x2="60" y2="50"/>
+            </g>
+          </svg>
+        </div>
+        <div class="clip-name">PARTICLES</div>
+      </div>
+
+      <div class="clip">
+        <div class="clip-thumb">
+          <svg viewBox="0 0 120 60" preserveAspectRatio="xMidYMid slice">
+            <rect width="120" height="60" fill="#0a0a0a"/>
+            <defs>
+              <linearGradient id="vhsg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#e040b0"/>
+                <stop offset="0.5" stop-color="#40e0c0"/>
+                <stop offset="1" stop-color="#e0c040"/>
+              </linearGradient>
+            </defs>
+            <rect width="120" height="60" fill="url(#vhsg)" opacity="0.5"/>
+            <g stroke="#000" stroke-width="0.3" opacity="0.6">
+              <line x1="0" y1="6" x2="120" y2="6"/>
+              <line x1="0" y1="12" x2="120" y2="12"/>
+              <line x1="0" y1="18" x2="120" y2="18"/>
+              <line x1="0" y1="24" x2="120" y2="24"/>
+              <line x1="0" y1="30" x2="120" y2="30"/>
+              <line x1="0" y1="36" x2="120" y2="36"/>
+              <line x1="0" y1="42" x2="120" y2="42"/>
+              <line x1="0" y1="48" x2="120" y2="48"/>
+              <line x1="0" y1="54" x2="120" y2="54"/>
+            </g>
+            <rect x="0" y="22" width="120" height="2" fill="#fff" opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="clip-name">VHS TEAR</div>
+      </div>
+
+      <div class="clip empty">
+        <div class="clip-thumb"></div>
+        <div class="clip-name">— —</div>
+      </div>
+
+      <div class="clip empty">
+        <div class="clip-thumb"></div>
+        <div class="clip-name">— —</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== FOOTER ===================== -->
+<div class="footer">
+  <span>60.0 FPS</span><span class="sep">│</span>
+  <span>CPU 22%</span><span class="sep">│</span>
+  <span>GPU 41%</span><span class="sep">│</span>
+  <span>MEM 1.4 GB</span><span class="sep">│</span>
+  <span>1920×1080 @ 60Hz</span><span class="sep">│</span>
+  <span>HDMI-2 · DISPLAY 3</span><span class="sep">│</span>
+  <span class="ok">● AUDIO LOCK 128.0 BPM</span><span class="sep">│</span>
+  <span>LATENCY 18ms</span><span class="sep">│</span>
+  <span class="rec">● REC 00:12:34 · H264</span>
+  <span class="right">audio-dna v2.5.0 · comp: night_shift_03.adna</span>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Mixer Variation A (Vertical Channel Strips)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #1a1a1a; color: #e0e0e0; font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif; font-size: 11px; overflow: hidden; }
+
+/* ═══════════════ TOP BAR (32px) ═══════════════ */
+.top-bar {
+  height: 32px; width: 100%; background: #111114; border-bottom: 1px solid #2a2a2e;
+  display: flex; align-items: center; padding: 0 12px; gap: 4px;
+}
+.tb-section { display: flex; align-items: center; gap: 3px; }
+.tb-sep { width: 1px; height: 16px; background: #2a2a30; margin: 0 6px; }
+.tb-btn { height: 20px; padding: 0 7px; background: #222226; border: 1px solid #2a2a30; color: #999; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tb-btn:hover { background: #2a2a34; color: #ddd; }
+.tb-btn.active { background: #0d1a2a; color: #00d9ff; border-color: #00d9ff44; }
+.tb-btn.transport { width: 24px; font-size: 12px; }
+.tb-dropdown { height: 20px; padding: 0 6px; background: #1e1e22; border: 1px solid #2a2a30; color: #aaa; font-size: 10px; display: flex; align-items: center; }
+.tb-bpm { font-size: 18px; font-weight: 700; color: #44bb44; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.tb-state { font-size: 8px; color: #44bb44; letter-spacing: 0.5px; }
+.tb-beat-wheel { width: 22px; height: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.tb-beat-seg { width: 9px; height: 9px; border-radius: 50%; background: #222230; }
+.tb-beat-seg.on { background: #00d9ff; box-shadow: 0 0 4px #00d9ff88; }
+.tb-mult { font-size: 9px; padding: 0 4px; height: 18px; }
+.tb-spacer { flex: 1; }
+.tb-label { color: #666; font-size: 9px; white-space: nowrap; }
+.tb-bar-phrase { font-size: 8px; color: #667; line-height: 1.3; text-align: center; }
+.tb-slider-wrap { display: flex; align-items: center; gap: 3px; }
+.tb-slider { width: 50px; height: 4px; background: #2a2a30; position: relative; }
+.tb-slider-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.tb-slider-thumb { width: 2px; height: 10px; position: absolute; top: -3px; }
+.tb-stats { font-size: 9px; color: #555; font-variant-numeric: tabular-nums; display: flex; gap: 8px; }
+
+/* ═══════════════ MAIN LAYOUT ═══════════════ */
+.main { display: flex; height: calc(100% - 32px); }
+
+/* ═══════════════ LEFT: CHANNEL STRIPS + CROSSFADER ═══════════════ */
+.strips-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Preview bar between deck labels */
+.preview-bar {
+  height: 136px; background: #111114; border-bottom: 1px solid #2a2a2e;
+  display: flex; align-items: center; justify-content: center; gap: 20px; padding: 8px 20px;
+}
+.deck-label { font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.deck-label.a { color: #cc5555; }
+.deck-label.b { color: #44bbaa; }
+.preview-thumb {
+  width: 200px; height: 112px; background: #080810; border: 1px solid #2a2a30; position: relative; overflow: hidden;
+}
+.preview-visual {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 40% 50%, #0a1535, #050a18), linear-gradient(135deg, #020210 0%, #0a0520 30%, #051525 60%, #020210 100%);
+}
+.preview-visual::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 35% 45%, rgba(0,100,200,0.2) 0%, transparent 50%), radial-gradient(circle at 65% 55%, rgba(100,0,150,0.15) 0%, transparent 40%); }
+.preview-label { position: absolute; bottom: 3px; right: 5px; font-size: 7px; color: #445; }
+
+/* Channel strip container */
+.strips-scroll { flex: 1; display: flex; overflow-x: auto; overflow-y: hidden; background: #141416; padding: 0 4px; }
+
+/* Individual channel strip */
+.channel-strip {
+  width: 200px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: #18181c; border-left: 1px solid #222226; border-right: 1px solid #222226;
+  margin: 0 2px;
+}
+
+/* Strip header */
+.cs-header {
+  height: 30px; display: flex; align-items: center; justify-content: center;
+  border-bottom: 1px solid #2a2a2e; padding: 0 8px;
+}
+.cs-name { font-size: 12px; font-weight: 600; letter-spacing: 0.5px; }
+.cs-name.l1 { color: #cc5555; }
+.cs-name.l2 { color: #44bbaa; }
+.cs-name.l3 { color: #ccaa44; }
+.cs-name.l4 { color: #8888cc; }
+.cs-type { font-size: 8px; color: #556; margin-left: 6px; }
+
+/* Clip thumbnail in strip */
+.cs-clip-area { display: flex; align-items: center; justify-content: center; padding: 6px; gap: 6px; border-bottom: 1px solid #222226; }
+.cs-clip-thumb { width: 80px; height: 60px; background: #0c0c10; border: 1px solid #2a2a30; overflow: hidden; position: relative; }
+.cs-clip-info { display: flex; flex-direction: column; gap: 2px; }
+.cs-clip-name { font-size: 9px; color: #999; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-clip-type { font-size: 8px; color: #556; }
+.cs-clip-time { font-size: 8px; color: #00d9ff88; font-variant-numeric: tabular-nums; }
+
+/* BSM buttons */
+.cs-bsm { display: flex; gap: 2px; padding: 4px 8px; justify-content: center; border-bottom: 1px solid #222226; }
+.cs-bsm-btn {
+  width: 36px; height: 22px; background: #1e1e24; border: 1px solid #2a2a30;
+  color: #666; font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cs-bsm-btn.bypass-on { background: #2a1515; color: #cc4444; border-color: #442222; }
+.cs-bsm-btn.solo-on { background: #252518; color: #cccc44; border-color: #444422; }
+.cs-bsm-btn.mute-on { background: #151520; color: #6666aa; border-color: #333344; }
+
+/* Knobs row */
+.cs-knobs { display: flex; padding: 6px 8px; gap: 4px; justify-content: center; border-bottom: 1px solid #222226; }
+.cs-knob { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cs-knob-circle {
+  width: 32px; height: 32px; border-radius: 50%; background: #1a1a20;
+  border: 2px solid #2a2a34; position: relative; display: flex; align-items: center; justify-content: center;
+}
+.cs-knob-indicator {
+  width: 2px; height: 10px; position: absolute; top: 3px;
+  transform-origin: bottom center;
+}
+.cs-knob-label { font-size: 7px; color: #667; text-transform: uppercase; }
+.cs-knob-value { font-size: 8px; color: #999; font-variant-numeric: tabular-nums; }
+
+/* Blend dropdown */
+.cs-blend { padding: 4px 8px; border-bottom: 1px solid #222226; }
+.cs-blend-dd {
+  width: 100%; height: 22px; background: #1e1e24; border: 1px solid #2a2a30;
+  color: #999; font-size: 9px; padding: 0 8px; display: flex; align-items: center; justify-content: space-between;
+}
+.cs-blend-arrow { font-size: 7px; color: #555; }
+
+/* Fader + VU area */
+.cs-fader-area { flex: 1; display: flex; padding: 8px; gap: 8px; justify-content: center; align-items: stretch; min-height: 0; }
+
+.cs-fader-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.cs-fader-label { font-size: 7px; color: #556; text-transform: uppercase; letter-spacing: 0.5px; }
+.cs-fader-track { width: 10px; flex: 1; background: #141418; border: 1px solid #222228; position: relative; }
+.cs-fader-fill { position: absolute; bottom: 0; left: 0; width: 100%; }
+.cs-fader-thumb { position: absolute; left: -4px; width: 18px; height: 6px; background: #d0d0d0; border: 1px solid #888; }
+.cs-fader-value { font-size: 8px; color: #888; font-variant-numeric: tabular-nums; }
+
+/* VU meter */
+.cs-vu-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.cs-vu-label { font-size: 7px; color: #556; }
+.cs-vu-track { width: 8px; flex: 1; background: #0c0c10; border: 1px solid #1e1e24; position: relative; overflow: hidden; }
+.cs-vu-bar { position: absolute; bottom: 0; left: 0; width: 100%; }
+.cs-vu-peak { position: absolute; left: 0; width: 100%; height: 2px; }
+
+/* Speed fader */
+.cs-speed-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.cs-speed-track { width: 6px; flex: 1; background: #141418; border: 1px solid #222228; position: relative; }
+.cs-speed-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: #00d9ff22; }
+.cs-speed-thumb { position: absolute; left: -3px; width: 12px; height: 4px; background: #00d9ff88; border: 1px solid #00d9ff44; }
+
+/* Transport buttons */
+.cs-transport { display: flex; gap: 2px; padding: 4px 8px; justify-content: center; border-top: 1px solid #222226; }
+.cs-transport-btn {
+  width: 30px; height: 22px; background: #1e1e24; border: 1px solid #2a2a30;
+  color: #666; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cs-transport-btn.playing { color: #44bb88; }
+.cs-transport-btn:hover { background: #2a2a34; color: #aaa; }
+
+/* ═══════════════ CROSSFADER ═══════════════ */
+.crossfader-bar {
+  height: 50px; background: #111114; border-top: 1px solid #2a2a2e;
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 40px;
+}
+.cf-label { font-size: 10px; font-weight: 600; }
+.cf-label.a { color: #cc5555; }
+.cf-label.b { color: #44bbaa; }
+.cf-track-wrap { flex: 1; max-width: 600px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.cf-title { font-size: 7px; color: #445; text-transform: uppercase; letter-spacing: 1px; }
+.cf-track { width: 100%; height: 10px; background: #1a1a20; border: 1px solid #2a2a30; position: relative; }
+.cf-fill-l { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(90deg, #cc555533, transparent); }
+.cf-fill-r { position: absolute; right: 0; top: 0; height: 100%; background: linear-gradient(-90deg, #44bbaa33, transparent); }
+.cf-thumb { position: absolute; top: -3px; width: 20px; height: 16px; background: #d0d0d0; border: 1px solid #888; transform: translateX(-50%); }
+
+/* ═══════════════ RIGHT: INSPECTOR ═══════════════ */
+.inspector {
+  width: 350px; background: #141416; border-left: 1px solid #2a2a2e;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.insp-tabs { height: 26px; display: flex; background: #111114; border-bottom: 1px solid #2a2a2e; }
+.insp-tab { padding: 0 14px; height: 100%; display: flex; align-items: center; font-size: 10px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; }
+.insp-tab.active { color: #00d9ff; border-bottom-color: #00d9ff; }
+.insp-content { flex: 1; overflow-y: auto; padding: 8px; }
+
+/* Inspector sections */
+.insp-section { margin-bottom: 10px; }
+.insp-section-title { font-size: 9px; color: #556; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 1px solid #222228; padding-bottom: 3px; margin-bottom: 6px; }
+
+/* Param rows */
+.param-row { display: flex; align-items: center; gap: 4px; height: 20px; margin-bottom: 2px; }
+.param-triangle { width: 6px; height: 6px; clip-path: polygon(0 0, 100% 50%, 0 100%); background: #334; flex-shrink: 0; }
+.param-triangle.connected { background: #00d9ff; }
+.param-label { font-size: 9px; color: #888; width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.param-value { font-size: 9px; color: #aaa; width: 32px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.param-slider { flex: 1; height: 4px; background: #222228; position: relative; min-width: 40px; }
+.param-slider-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.param-slider-thumb { width: 2px; height: 10px; position: absolute; top: -3px; }
+
+/* Dashboard knobs */
+.dashboard { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 0; }
+.dash-knob { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.dash-knob-circle {
+  width: 30px; height: 30px; border-radius: 50%; background: #1a1a20;
+  border: 2px solid #2a2a34; position: relative;
+}
+.dash-knob-indicator { width: 2px; height: 9px; position: absolute; top: 3px; transform-origin: bottom center; }
+.dash-knob-label { font-size: 7px; color: #556; }
+
+/* FX rows */
+.fx-row { display: flex; align-items: center; gap: 4px; height: 22px; padding: 0 6px; background: #1a1a1e; border: 1px solid #222228; margin-bottom: 2px; }
+.fx-bypass { width: 16px; height: 16px; background: #1e1e24; border: 1px solid #2a2a30; color: #777; font-size: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 600; }
+.fx-bypass.off { color: #aa4444; background: #1e1414; }
+.fx-name { font-size: 9px; color: #bbb; flex: 1; }
+.fx-val { font-size: 8px; color: #00d9ff88; }
+.fx-del { width: 16px; height: 16px; color: #444; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* Source gradients */
+.src-mandelbrot { background: linear-gradient(135deg, #0a0a2a, #1a0a3a, #0a1a4a); }
+.src-plasma { background: linear-gradient(45deg, #1a0020, #001a30, #002a10); }
+.src-fire { background: linear-gradient(0deg, #1a0800, #2a1500, #1a0a00); }
+.src-perlin { background: linear-gradient(135deg, #0a0a0a, #1a1a1a, #0a0a0a); }
+.src-torus { background: radial-gradient(circle, #0a1520, #050a10); }
+.src-spectral { background: radial-gradient(circle, #0a0a2a, #1a0a1a); }
+.src-geo { background: linear-gradient(135deg, #0a1a1a, #0a0a1a); }
+.src-wave { background: linear-gradient(90deg, #0a0a1a, #0a1a0a, #1a0a0a); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<div class="top-bar">
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width: 80px;">Mic Input</div>
+    <div class="tb-label">Gain</div>
+    <div class="tb-slider-wrap">
+      <div class="tb-slider" style="width: 40px;">
+        <div class="tb-slider-fill" style="width: 50%; background: #00d9ff33;"></div>
+        <div class="tb-slider-thumb" style="left: 49%; background: #00d9ff;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn transport">&#9664;</div>
+    <div class="tb-btn transport active" style="color: #44bb88;">&#9654;</div>
+    <div class="tb-btn transport">&#9632;</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-beat-wheel">
+      <div class="tb-beat-seg on"></div>
+      <div class="tb-beat-seg"></div>
+      <div class="tb-beat-seg"></div>
+      <div class="tb-beat-seg"></div>
+    </div>
+    <div class="tb-bar-phrase">Bar 3<br>Phr 0.38</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-bpm">128.0</div>
+    <div class="tb-state">LOCKED</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn" style="font-size: 9px;">Tap</div>
+    <div class="tb-btn" style="font-size: 9px;">Resync</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn tb-mult">/4</div>
+    <div class="tb-btn tb-mult">/2</div>
+    <div class="tb-btn tb-mult active">x1</div>
+    <div class="tb-btn tb-mult">x2</div>
+    <div class="tb-btn tb-mult">x4</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Quantize</div>
+    <div class="tb-dropdown" style="width: 72px;">Next Beat</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Fade</div>
+    <div class="tb-slider-wrap">
+      <div class="tb-slider" style="width: 36px;">
+        <div class="tb-slider-fill" style="width: 30%; background: #ffffff22;"></div>
+        <div class="tb-slider-thumb" style="left: 29%; background: #aaa;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Master</div>
+    <div class="tb-slider-wrap">
+      <div class="tb-slider" style="width: 40px;">
+        <div class="tb-slider-fill" style="width: 100%; background: #ffffff22;"></div>
+        <div class="tb-slider-thumb" style="left: 98%; background: #ccc;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width: 72px;">Fullscreen</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-stats">
+    <span style="color: #44bb44;">60 fps</span>
+    <span>4.2% DSP</span>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN AREA ═══════════════ -->
+<div class="main">
+  <!-- LEFT: STRIPS + CROSSFADER -->
+  <div class="strips-area">
+
+    <!-- Preview bar with deck labels -->
+    <div class="preview-bar">
+      <div class="deck-label a">DECK A</div>
+      <div class="preview-thumb">
+        <div class="preview-visual"></div>
+        <div class="preview-label">200x112 OUTPUT</div>
+      </div>
+      <div class="deck-label b">DECK B</div>
+    </div>
+
+    <!-- Channel strips -->
+    <div class="strips-scroll">
+
+      <!-- Layer 1: Opaque -->
+      <div class="channel-strip">
+        <div class="cs-header">
+          <span class="cs-name l1">Background</span>
+          <span class="cs-type">OPAQUE</span>
+        </div>
+        <div class="cs-clip-area">
+          <div class="cs-clip-thumb src-mandelbrot" style="display:flex;align-items:center;justify-content:center;"><span style="font-size:7px;color:#334;">FRACTAL</span></div>
+          <div class="cs-clip-info">
+            <div class="cs-clip-name">Mandelbrot</div>
+            <div class="cs-clip-type">Source</div>
+            <div class="cs-clip-time">00:12.4</div>
+          </div>
+        </div>
+        <div class="cs-bsm">
+          <div class="cs-bsm-btn">B</div>
+          <div class="cs-bsm-btn">S</div>
+          <div class="cs-bsm-btn">M</div>
+        </div>
+        <div class="cs-knobs">
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #44bbaa; transform: rotate(180deg);"></div></div>
+            <div class="cs-knob-label">Opac</div>
+            <div class="cs-knob-value">1.00</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #00d9ff; transform: rotate(90deg);"></div></div>
+            <div class="cs-knob-label">Speed</div>
+            <div class="cs-knob-value">1.0x</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #ccaa44; transform: rotate(0deg);"></div></div>
+            <div class="cs-knob-label">Fbk</div>
+            <div class="cs-knob-value">0.00</div>
+          </div>
+        </div>
+        <div class="cs-blend">
+          <div class="cs-blend-dd">Normal <span class="cs-blend-arrow">&#9660;</span></div>
+        </div>
+        <div class="cs-fader-area">
+          <div class="cs-fader-col">
+            <div class="cs-fader-label">Vol</div>
+            <div class="cs-fader-track">
+              <div class="cs-fader-fill" style="height: 100%; background: linear-gradient(to top, #cc555533, #cc555588);"></div>
+              <div class="cs-fader-thumb" style="bottom: calc(100% - 3px);"></div>
+            </div>
+            <div class="cs-fader-value">1.00</div>
+          </div>
+          <div class="cs-vu-col">
+            <div class="cs-vu-label">VU</div>
+            <div class="cs-vu-track">
+              <div class="cs-vu-bar" style="height: 72%; background: linear-gradient(to top, #33aa55, #33aa55 60%, #aaaa33 80%, #cc4444);"></div>
+              <div class="cs-vu-peak" style="bottom: 72%; background: #55cc77;"></div>
+            </div>
+          </div>
+          <div class="cs-speed-col">
+            <div class="cs-fader-label">Spd</div>
+            <div class="cs-speed-track">
+              <div class="cs-speed-fill" style="height: 50%;"></div>
+              <div class="cs-speed-thumb" style="bottom: calc(50% - 2px);"></div>
+            </div>
+            <div class="cs-fader-value">1.0x</div>
+          </div>
+        </div>
+        <div class="cs-transport">
+          <div class="cs-transport-btn">&#9664;</div>
+          <div class="cs-transport-btn">||</div>
+          <div class="cs-transport-btn playing">&#9654;</div>
+          <div class="cs-transport-btn">&#9654;|</div>
+        </div>
+      </div>
+
+      <!-- Layer 2: Transparent -->
+      <div class="channel-strip">
+        <div class="cs-header">
+          <span class="cs-name l2">Textures</span>
+          <span class="cs-type">TRANSPARENT</span>
+        </div>
+        <div class="cs-clip-area">
+          <div class="cs-clip-thumb src-torus"><span style="font-size:7px;color:#334;">TORUS</span></div>
+          <div class="cs-clip-info">
+            <div class="cs-clip-name">Spiral Torus</div>
+            <div class="cs-clip-type">Source</div>
+            <div class="cs-clip-time">00:08.2</div>
+          </div>
+        </div>
+        <div class="cs-bsm">
+          <div class="cs-bsm-btn">B</div>
+          <div class="cs-bsm-btn solo-on">S</div>
+          <div class="cs-bsm-btn">M</div>
+        </div>
+        <div class="cs-knobs">
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #44bbaa; transform: rotate(135deg);"></div></div>
+            <div class="cs-knob-label">Opac</div>
+            <div class="cs-knob-value">0.75</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #00d9ff; transform: rotate(90deg);"></div></div>
+            <div class="cs-knob-label">Speed</div>
+            <div class="cs-knob-value">1.0x</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #ccaa44; transform: rotate(60deg);"></div></div>
+            <div class="cs-knob-label">Fbk</div>
+            <div class="cs-knob-value">0.35</div>
+          </div>
+        </div>
+        <div class="cs-blend">
+          <div class="cs-blend-dd">Additive <span class="cs-blend-arrow">&#9660;</span></div>
+        </div>
+        <div class="cs-fader-area">
+          <div class="cs-fader-col">
+            <div class="cs-fader-label">Vol</div>
+            <div class="cs-fader-track">
+              <div class="cs-fader-fill" style="height: 75%; background: linear-gradient(to top, #44bbaa33, #44bbaa88);"></div>
+              <div class="cs-fader-thumb" style="bottom: calc(75% - 3px);"></div>
+            </div>
+            <div class="cs-fader-value">0.75</div>
+          </div>
+          <div class="cs-vu-col">
+            <div class="cs-vu-label">VU</div>
+            <div class="cs-vu-track">
+              <div class="cs-vu-bar" style="height: 58%; background: linear-gradient(to top, #33aa55, #33aa55 70%, #aaaa33);"></div>
+              <div class="cs-vu-peak" style="bottom: 58%; background: #55cc77;"></div>
+            </div>
+          </div>
+          <div class="cs-speed-col">
+            <div class="cs-fader-label">Spd</div>
+            <div class="cs-speed-track">
+              <div class="cs-speed-fill" style="height: 50%;"></div>
+              <div class="cs-speed-thumb" style="bottom: calc(50% - 2px);"></div>
+            </div>
+            <div class="cs-fader-value">1.0x</div>
+          </div>
+        </div>
+        <div class="cs-transport">
+          <div class="cs-transport-btn">&#9664;</div>
+          <div class="cs-transport-btn">||</div>
+          <div class="cs-transport-btn playing">&#9654;</div>
+          <div class="cs-transport-btn">&#9654;|</div>
+        </div>
+      </div>
+
+      <!-- Layer 3: FX Only -->
+      <div class="channel-strip">
+        <div class="cs-header">
+          <span class="cs-name l3">FX Layer</span>
+          <span class="cs-type">FX ONLY</span>
+        </div>
+        <div class="cs-clip-area">
+          <div class="cs-clip-thumb" style="background: #1a1a22; display:flex;align-items:center;justify-content:center;"><span style="font-size:9px;color:#556;">FX</span></div>
+          <div class="cs-clip-info">
+            <div class="cs-clip-name">Ripple + Glow</div>
+            <div class="cs-clip-type">Effect Chain</div>
+            <div class="cs-clip-time" style="color:#00d9ff;">2 FX</div>
+          </div>
+        </div>
+        <div class="cs-bsm">
+          <div class="cs-bsm-btn">B</div>
+          <div class="cs-bsm-btn">S</div>
+          <div class="cs-bsm-btn">M</div>
+        </div>
+        <div class="cs-knobs">
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #44bbaa; transform: rotate(180deg);"></div></div>
+            <div class="cs-knob-label">Opac</div>
+            <div class="cs-knob-value">1.00</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #00d9ff; transform: rotate(90deg);"></div></div>
+            <div class="cs-knob-label">Speed</div>
+            <div class="cs-knob-value">1.0x</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #ccaa44; transform: rotate(120deg);"></div></div>
+            <div class="cs-knob-label">Fbk</div>
+            <div class="cs-knob-value">0.65</div>
+          </div>
+        </div>
+        <div class="cs-blend">
+          <div class="cs-blend-dd">Screen <span class="cs-blend-arrow">&#9660;</span></div>
+        </div>
+        <div class="cs-fader-area">
+          <div class="cs-fader-col">
+            <div class="cs-fader-label">Vol</div>
+            <div class="cs-fader-track">
+              <div class="cs-fader-fill" style="height: 100%; background: linear-gradient(to top, #ccaa4433, #ccaa4488);"></div>
+              <div class="cs-fader-thumb" style="bottom: calc(100% - 3px);"></div>
+            </div>
+            <div class="cs-fader-value">1.00</div>
+          </div>
+          <div class="cs-vu-col">
+            <div class="cs-vu-label">VU</div>
+            <div class="cs-vu-track">
+              <div class="cs-vu-bar" style="height: 44%; background: linear-gradient(to top, #33aa55, #aaaa33);"></div>
+              <div class="cs-vu-peak" style="bottom: 44%; background: #55cc77;"></div>
+            </div>
+          </div>
+          <div class="cs-speed-col">
+            <div class="cs-fader-label">Spd</div>
+            <div class="cs-speed-track">
+              <div class="cs-speed-fill" style="height: 50%;"></div>
+              <div class="cs-speed-thumb" style="bottom: calc(50% - 2px);"></div>
+            </div>
+            <div class="cs-fader-value">1.0x</div>
+          </div>
+        </div>
+        <div class="cs-transport">
+          <div class="cs-transport-btn">&#9664;</div>
+          <div class="cs-transport-btn">||</div>
+          <div class="cs-transport-btn playing">&#9654;</div>
+          <div class="cs-transport-btn">&#9654;|</div>
+        </div>
+      </div>
+
+      <!-- Layer 4: Transparent -->
+      <div class="channel-strip">
+        <div class="cs-header">
+          <span class="cs-name l4">Overlay</span>
+          <span class="cs-type">TRANSPARENT</span>
+        </div>
+        <div class="cs-clip-area">
+          <div class="cs-clip-thumb src-spectral"><span style="font-size:7px;color:#334;">SPEC</span></div>
+          <div class="cs-clip-info">
+            <div class="cs-clip-name">Spectral Ring</div>
+            <div class="cs-clip-type">Source</div>
+            <div class="cs-clip-time">00:04.7</div>
+          </div>
+        </div>
+        <div class="cs-bsm">
+          <div class="cs-bsm-btn">B</div>
+          <div class="cs-bsm-btn">S</div>
+          <div class="cs-bsm-btn">M</div>
+        </div>
+        <div class="cs-knobs">
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #44bbaa; transform: rotate(108deg);"></div></div>
+            <div class="cs-knob-label">Opac</div>
+            <div class="cs-knob-value">0.60</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #00d9ff; transform: rotate(130deg);"></div></div>
+            <div class="cs-knob-label">Speed</div>
+            <div class="cs-knob-value">1.5x</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #ccaa44; transform: rotate(0deg);"></div></div>
+            <div class="cs-knob-label">Fbk</div>
+            <div class="cs-knob-value">0.00</div>
+          </div>
+        </div>
+        <div class="cs-blend">
+          <div class="cs-blend-dd">Screen <span class="cs-blend-arrow">&#9660;</span></div>
+        </div>
+        <div class="cs-fader-area">
+          <div class="cs-fader-col">
+            <div class="cs-fader-label">Vol</div>
+            <div class="cs-fader-track">
+              <div class="cs-fader-fill" style="height: 60%; background: linear-gradient(to top, #8888cc33, #8888cc88);"></div>
+              <div class="cs-fader-thumb" style="bottom: calc(60% - 3px);"></div>
+            </div>
+            <div class="cs-fader-value">0.60</div>
+          </div>
+          <div class="cs-vu-col">
+            <div class="cs-vu-label">VU</div>
+            <div class="cs-vu-track">
+              <div class="cs-vu-bar" style="height: 35%; background: linear-gradient(to top, #33aa55, #33aa55);"></div>
+              <div class="cs-vu-peak" style="bottom: 35%; background: #55cc77;"></div>
+            </div>
+          </div>
+          <div class="cs-speed-col">
+            <div class="cs-fader-label">Spd</div>
+            <div class="cs-speed-track">
+              <div class="cs-speed-fill" style="height: 62%;"></div>
+              <div class="cs-speed-thumb" style="bottom: calc(62% - 2px);"></div>
+            </div>
+            <div class="cs-fader-value">1.5x</div>
+          </div>
+        </div>
+        <div class="cs-transport">
+          <div class="cs-transport-btn">&#9664;</div>
+          <div class="cs-transport-btn">||</div>
+          <div class="cs-transport-btn playing">&#9654;</div>
+          <div class="cs-transport-btn">&#9654;|</div>
+        </div>
+      </div>
+
+      <!-- Layer 5: Transparent -->
+      <div class="channel-strip">
+        <div class="cs-header">
+          <span class="cs-name l2">Particles</span>
+          <span class="cs-type">TRANSPARENT</span>
+        </div>
+        <div class="cs-clip-area">
+          <div class="cs-clip-thumb src-fire"><span style="font-size:7px;color:#443;">FIRE</span></div>
+          <div class="cs-clip-info">
+            <div class="cs-clip-name">Fire Particles</div>
+            <div class="cs-clip-type">Source</div>
+            <div class="cs-clip-time">00:15.8</div>
+          </div>
+        </div>
+        <div class="cs-bsm">
+          <div class="cs-bsm-btn bypass-on">B</div>
+          <div class="cs-bsm-btn">S</div>
+          <div class="cs-bsm-btn">M</div>
+        </div>
+        <div class="cs-knobs">
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #44bbaa; transform: rotate(162deg);"></div></div>
+            <div class="cs-knob-label">Opac</div>
+            <div class="cs-knob-value">0.90</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #00d9ff; transform: rotate(45deg);"></div></div>
+            <div class="cs-knob-label">Speed</div>
+            <div class="cs-knob-value">0.5x</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #ccaa44; transform: rotate(36deg);"></div></div>
+            <div class="cs-knob-label">Fbk</div>
+            <div class="cs-knob-value">0.20</div>
+          </div>
+        </div>
+        <div class="cs-blend">
+          <div class="cs-blend-dd">Additive <span class="cs-blend-arrow">&#9660;</span></div>
+        </div>
+        <div class="cs-fader-area">
+          <div class="cs-fader-col">
+            <div class="cs-fader-label">Vol</div>
+            <div class="cs-fader-track">
+              <div class="cs-fader-fill" style="height: 90%; background: linear-gradient(to top, #44bbaa33, #44bbaa88);"></div>
+              <div class="cs-fader-thumb" style="bottom: calc(90% - 3px);"></div>
+            </div>
+            <div class="cs-fader-value">0.90</div>
+          </div>
+          <div class="cs-vu-col">
+            <div class="cs-vu-label">VU</div>
+            <div class="cs-vu-track">
+              <div class="cs-vu-bar" style="height: 25%; background: #33aa55;"></div>
+              <div class="cs-vu-peak" style="bottom: 25%; background: #55cc77;"></div>
+            </div>
+          </div>
+          <div class="cs-speed-col">
+            <div class="cs-fader-label">Spd</div>
+            <div class="cs-speed-track">
+              <div class="cs-speed-fill" style="height: 25%;"></div>
+              <div class="cs-speed-thumb" style="bottom: calc(25% - 2px);"></div>
+            </div>
+            <div class="cs-fader-value">0.5x</div>
+          </div>
+        </div>
+        <div class="cs-transport">
+          <div class="cs-transport-btn">&#9664;</div>
+          <div class="cs-transport-btn">||</div>
+          <div class="cs-transport-btn">&#9654;</div>
+          <div class="cs-transport-btn">&#9654;|</div>
+        </div>
+      </div>
+
+      <!-- Layer 6: Mask -->
+      <div class="channel-strip">
+        <div class="cs-header">
+          <span class="cs-name l1">Mask</span>
+          <span class="cs-type">MASK</span>
+        </div>
+        <div class="cs-clip-area">
+          <div class="cs-clip-thumb src-geo"><span style="font-size:7px;color:#334;">GEO</span></div>
+          <div class="cs-clip-info">
+            <div class="cs-clip-name">Circle Mask</div>
+            <div class="cs-clip-type">Source</div>
+            <div class="cs-clip-time">--:--</div>
+          </div>
+        </div>
+        <div class="cs-bsm">
+          <div class="cs-bsm-btn">B</div>
+          <div class="cs-bsm-btn">S</div>
+          <div class="cs-bsm-btn">M</div>
+        </div>
+        <div class="cs-knobs">
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #44bbaa; transform: rotate(180deg);"></div></div>
+            <div class="cs-knob-label">Opac</div>
+            <div class="cs-knob-value">1.00</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #00d9ff; transform: rotate(90deg);"></div></div>
+            <div class="cs-knob-label">Speed</div>
+            <div class="cs-knob-value">1.0x</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle"><div class="cs-knob-indicator" style="background: #ccaa44; transform: rotate(0deg);"></div></div>
+            <div class="cs-knob-label">Fbk</div>
+            <div class="cs-knob-value">0.00</div>
+          </div>
+        </div>
+        <div class="cs-blend">
+          <div class="cs-blend-dd">Luma Key <span class="cs-blend-arrow">&#9660;</span></div>
+        </div>
+        <div class="cs-fader-area">
+          <div class="cs-fader-col">
+            <div class="cs-fader-label">Vol</div>
+            <div class="cs-fader-track">
+              <div class="cs-fader-fill" style="height: 100%; background: linear-gradient(to top, #cc555533, #cc555588);"></div>
+              <div class="cs-fader-thumb" style="bottom: calc(100% - 3px);"></div>
+            </div>
+            <div class="cs-fader-value">1.00</div>
+          </div>
+          <div class="cs-vu-col">
+            <div class="cs-vu-label">VU</div>
+            <div class="cs-vu-track">
+              <div class="cs-vu-bar" style="height: 50%; background: linear-gradient(to top, #33aa55, #33aa55);"></div>
+              <div class="cs-vu-peak" style="bottom: 50%; background: #55cc77;"></div>
+            </div>
+          </div>
+          <div class="cs-speed-col">
+            <div class="cs-fader-label">Spd</div>
+            <div class="cs-speed-track">
+              <div class="cs-speed-fill" style="height: 50%;"></div>
+              <div class="cs-speed-thumb" style="bottom: calc(50% - 2px);"></div>
+            </div>
+            <div class="cs-fader-value">1.0x</div>
+          </div>
+        </div>
+        <div class="cs-transport">
+          <div class="cs-transport-btn">&#9664;</div>
+          <div class="cs-transport-btn">||</div>
+          <div class="cs-transport-btn playing">&#9654;</div>
+          <div class="cs-transport-btn">&#9654;|</div>
+        </div>
+      </div>
+
+      <!-- Master strip -->
+      <div class="channel-strip" style="background: #141418; border-left: 2px solid #00d9ff33;">
+        <div class="cs-header" style="background: #0d1520;">
+          <span class="cs-name" style="color: #00d9ff;">MASTER</span>
+        </div>
+        <div class="cs-clip-area" style="border-bottom-color: #00d9ff22;">
+          <div class="cs-clip-thumb" style="width: 80px; height: 60px; background: #0a0a14; border-color: #00d9ff33;">
+            <div style="width:100%;height:100%;background: radial-gradient(ellipse at 40% 50%, #0a1535, #050a18);"></div>
+          </div>
+          <div class="cs-clip-info">
+            <div class="cs-clip-name" style="color: #00d9ff;">Final Mix</div>
+            <div class="cs-clip-type">Composition</div>
+            <div class="cs-clip-time">6 Layers</div>
+          </div>
+        </div>
+        <div class="cs-bsm">
+          <div class="cs-bsm-btn" style="background: #1a1520; border-color: #00d9ff33; color: #cc4444; width: 60px;">BLACKOUT</div>
+        </div>
+        <div class="cs-knobs">
+          <div class="cs-knob">
+            <div class="cs-knob-circle" style="border-color: #00d9ff44;"><div class="cs-knob-indicator" style="background: #00d9ff; transform: rotate(180deg);"></div></div>
+            <div class="cs-knob-label">Master</div>
+            <div class="cs-knob-value">1.00</div>
+          </div>
+          <div class="cs-knob">
+            <div class="cs-knob-circle" style="border-color: #00d9ff44;"><div class="cs-knob-indicator" style="background: #00d9ff; transform: rotate(90deg);"></div></div>
+            <div class="cs-knob-label">Speed</div>
+            <div class="cs-knob-value">1.0x</div>
+          </div>
+        </div>
+        <div class="cs-blend">
+          <div class="cs-blend-dd" style="border-color: #00d9ff22;">1920 x 1080 <span class="cs-blend-arrow">&#9660;</span></div>
+        </div>
+        <div class="cs-fader-area">
+          <div class="cs-fader-col">
+            <div class="cs-fader-label" style="color:#00d9ff88;">Mst</div>
+            <div class="cs-fader-track" style="border-color: #00d9ff22;">
+              <div class="cs-fader-fill" style="height: 100%; background: linear-gradient(to top, #00d9ff22, #00d9ff66);"></div>
+              <div class="cs-fader-thumb" style="bottom: calc(100% - 3px);"></div>
+            </div>
+            <div class="cs-fader-value">1.00</div>
+          </div>
+          <div class="cs-vu-col">
+            <div class="cs-vu-label">L</div>
+            <div class="cs-vu-track">
+              <div class="cs-vu-bar" style="height: 65%; background: linear-gradient(to top, #33aa55, #33aa55 60%, #aaaa33 85%, #cc4444);"></div>
+              <div class="cs-vu-peak" style="bottom: 65%; background: #55cc77;"></div>
+            </div>
+          </div>
+          <div class="cs-vu-col">
+            <div class="cs-vu-label">R</div>
+            <div class="cs-vu-track">
+              <div class="cs-vu-bar" style="height: 60%; background: linear-gradient(to top, #33aa55, #33aa55 60%, #aaaa33);"></div>
+              <div class="cs-vu-peak" style="bottom: 60%; background: #55cc77;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="cs-transport">
+          <div class="cs-transport-btn" style="width: 60px; font-size: 8px; color: #cc4444;">STOP ALL</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Crossfader -->
+    <div class="crossfader-bar">
+      <div class="cf-label a">A</div>
+      <div class="cf-track-wrap">
+        <div class="cf-title">CROSSFADER</div>
+        <div class="cf-track">
+          <div class="cf-fill-l" style="width: 50%;"></div>
+          <div class="cf-fill-r" style="width: 50%;"></div>
+          <div class="cf-thumb" style="left: 50%;"></div>
+        </div>
+      </div>
+      <div class="cf-label b">B</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: INSPECTOR -->
+  <div class="inspector">
+    <div class="insp-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Composition</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+    <div class="insp-content">
+
+      <!-- Clip name -->
+      <div class="insp-section">
+        <div style="font-size: 13px; font-weight: 600; color: #e0e0e0; margin-bottom: 4px;">Mandelbrot</div>
+        <div style="font-size: 9px; color: #556;">Procedural Source / Layer 1: Background</div>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="insp-section">
+        <div class="insp-section-title">Dashboard</div>
+        <div class="dashboard">
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background: #00d9ff; transform: rotate(120deg);"></div></div><div class="dash-knob-label">Zoom</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background: #00d9ff; transform: rotate(60deg);"></div></div><div class="dash-knob-label">Dive</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background: #00d9ff; transform: rotate(90deg);"></div></div><div class="dash-knob-label">Iter</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background: #ccaa44; transform: rotate(144deg);"></div></div><div class="dash-knob-label">Color</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background: #334; transform: rotate(0deg);"></div></div><div class="dash-knob-label">Link 5</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background: #334; transform: rotate(0deg);"></div></div><div class="dash-knob-label">Link 6</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background: #334; transform: rotate(0deg);"></div></div><div class="dash-knob-label">Link 7</div></div>
+          <div class="dash-knob"><div class="dash-knob-circle"><div class="dash-knob-indicator" style="background: #334; transform: rotate(0deg);"></div></div><div class="dash-knob-label">Link 8</div></div>
+        </div>
+      </div>
+
+      <!-- Transport -->
+      <div class="insp-section">
+        <div class="insp-section-title">Transport</div>
+        <div class="param-row">
+          <div class="param-label">Mode</div>
+          <div style="flex:1; height:20px; background:#1e1e24; border:1px solid #2a2a30; color:#999; font-size:9px; padding: 0 6px; display:flex; align-items:center;">BPM Sync</div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <div class="param-label">Speed</div>
+          <div class="param-value">1.0x</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:49%; background:#00d9ff;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-label">Loop</div>
+          <div style="flex:1; height:20px; background:#1e1e24; border:1px solid #2a2a30; color:#999; font-size:9px; padding: 0 6px; display:flex; align-items:center;">Loop</div>
+        </div>
+      </div>
+
+      <!-- Source Parameters -->
+      <div class="insp-section">
+        <div class="insp-section-title">Source Parameters</div>
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <div class="param-label">Dive Speed</div>
+          <div class="param-value">0.30</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:30%; background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:29%; background:#00d9ff;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle"></div>
+          <div class="param-label">Location</div>
+          <div class="param-value">3</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:30%; background:#ffffff22;"></div><div class="param-slider-thumb" style="left:29%; background:#aaa;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle"></div>
+          <div class="param-label">Zoom</div>
+          <div class="param-value">0.45</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:45%; background:#ffffff22;"></div><div class="param-slider-thumb" style="left:44%; background:#aaa;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <div class="param-label">Iterations</div>
+          <div class="param-value">0.60</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:60%; background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:59%; background:#00d9ff;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle"></div>
+          <div class="param-label">Power</div>
+          <div class="param-value">0.25</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:25%; background:#ffffff22;"></div><div class="param-slider-thumb" style="left:24%; background:#aaa;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <div class="param-label">Color Shift</div>
+          <div class="param-value">0.70</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:70%; background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:69%; background:#00d9ff;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle"></div>
+          <div class="param-label">Palette</div>
+          <div class="param-value">Fire</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:12%; background:#ffffff22;"></div><div class="param-slider-thumb" style="left:11%; background:#aaa;"></div></div>
+        </div>
+      </div>
+
+      <!-- Video -->
+      <div class="insp-section">
+        <div class="insp-section-title">Video</div>
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <div class="param-label">Opacity</div>
+          <div class="param-value">1.00</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:100%; background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:98%; background:#00d9ff;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-label">Blend</div>
+          <div style="flex:1; height:20px; background:#1e1e24; border:1px solid #2a2a30; color:#999; font-size:9px; padding: 0 6px; display:flex; align-items:center;">Normal</div>
+        </div>
+      </div>
+
+      <!-- Transform -->
+      <div class="insp-section">
+        <div class="insp-section-title">Transform</div>
+        <div class="param-row">
+          <div class="param-triangle"></div>
+          <div class="param-label">Position X</div>
+          <div class="param-value">0.50</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#ffffff22;"></div><div class="param-slider-thumb" style="left:49%; background:#aaa;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle"></div>
+          <div class="param-label">Position Y</div>
+          <div class="param-value">0.50</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#ffffff22;"></div><div class="param-slider-thumb" style="left:49%; background:#aaa;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <div class="param-label">Scale</div>
+          <div class="param-value">1.00</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:49%; background:#00d9ff;"></div></div>
+        </div>
+        <div class="param-row">
+          <div class="param-triangle connected"></div>
+          <div class="param-label">Rotation</div>
+          <div class="param-value">0.00</div>
+          <div class="param-slider"><div class="param-slider-fill" style="width:50%; background:#00d9ff33;"></div><div class="param-slider-thumb" style="left:49%; background:#00d9ff;"></div></div>
+        </div>
+      </div>
+
+      <!-- Effects -->
+      <div class="insp-section">
+        <div class="insp-section-title">Effects</div>
+        <div class="fx-row">
+          <div class="fx-bypass">B</div>
+          <div class="fx-name">Ripple</div>
+          <div class="fx-val">0.45</div>
+          <div class="fx-del">x</div>
+        </div>
+        <div class="fx-row">
+          <div class="fx-bypass off">B</div>
+          <div class="fx-name" style="color: #666; text-decoration: line-through;">Glow</div>
+          <div class="fx-val" style="opacity: 0.4;">0.60</div>
+          <div class="fx-del">x</div>
+        </div>
+        <div class="fx-row">
+          <div class="fx-bypass">B</div>
+          <div class="fx-name">Hue Shift</div>
+          <div class="fx-val">0.20</div>
+          <div class="fx-del">x</div>
+        </div>
+        <div style="margin-top: 4px; padding: 4px; border: 1px dashed #2a2a30; text-align: center; font-size: 8px; color: #445;">Drop effects here</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

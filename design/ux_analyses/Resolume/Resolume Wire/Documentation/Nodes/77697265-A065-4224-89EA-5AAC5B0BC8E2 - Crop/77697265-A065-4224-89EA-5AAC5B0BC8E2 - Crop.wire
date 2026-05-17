@@ -1,0 +1,531 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          1,
+          "output"
+        ],
+        "to": [
+          0,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          0,
+          "output"
+        ],
+        "to": [
+          2,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          0,
+          "left"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          0,
+          "top"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output"
+        ],
+        "to": [
+          13,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          13,
+          "output0"
+        ],
+        "to": [
+          0,
+          "bottom"
+        ]
+      },
+      {
+        "from": [
+          13,
+          "output0"
+        ],
+        "to": [
+          0,
+          "right"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "trigger"
+        ],
+        "to": [
+          19,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          19,
+          "output"
+        ],
+        "to": [
+          0,
+          "invert"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "Crop Example",
+      "identifier": "24c7e169-3054-449a-8552-942e8b324fb3",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 21,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "use-pixel-space": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 153,
+          "width": 195,
+          "x": 718,
+          "y": 424
+        },
+        "class": {
+          "id": "77697265-A065-4224-89EA-5AAC5B0BC8E2",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bottom": {
+            "type": "float",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "invert": {
+            "type": "bool",
+            "value": true
+          },
+          "left": {
+            "type": "float",
+            "value": 0
+          },
+          "right": {
+            "type": "float",
+            "value": 1
+          },
+          "top": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Crop"
+      },
+      "1": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 155.7547607421875,
+          "y": 338.10247802734375
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture In"
+      },
+      "12": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 153,
+          "width": 195,
+          "x": 160.0330810546875,
+          "y": 570.6236572265625
+        },
+        "class": {
+          "id": "77697265-9890-41DC-A93D-9F3913A78FEB",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 0.5
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Triangle"
+      },
+      "13": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 412.6127014160156,
+          "y": 617.6627807617188
+        },
+        "class": {
+          "id": "77697265-326F-4351-83FC-7A7FCFEDAFFC",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "1 - x"
+      },
+      "14": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "CROP\n\nThe Crop node lets you crop the incomming texture.\nBy default the inputs are normalized but you can switch to working in pixels in the inspector by enabling \"Use Pixel Space\"."
+          }
+        },
+        "bounds": {
+          "height": 132.38401794433594,
+          "width": 505.86724853515625,
+          "x": 155.94271850585935,
+          "y": 179.99440002441406
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "15": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a texture.\n\n"
+          }
+        },
+        "bounds": {
+          "height": 380,
+          "width": 334,
+          "x": 499.8194885253907,
+          "y": 743.500732421875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "16": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Input\nThe texture you want to crop.\n\n• Invert (hidden by default)\nSend a boolean to invert the cropping\n\n• Left / Right / Top / Bottom\nSend in a float to change the amount of crop from these four direction.s"
+          }
+        },
+        "bounds": {
+          "height": 384,
+          "width": 312,
+          "x": 160.0537109375,
+          "y": 743.875732421875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "17": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "ATTRIBUTES\n\n• Use Pixel Space\nOff by default. Switches from normalized values to pixels."
+          }
+        },
+        "bounds": {
+          "height": 376,
+          "width": 308,
+          "x": 869.489013671875,
+          "y": 743.875732421875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "18": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 155.94271850585935,
+          "y": 436.6643981933594
+        },
+        "class": {
+          "id": "77697265-FD65-470F-9F75-ED878267980E",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "enabled": {
+            "type": "bool",
+            "value": true
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "reset": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "count"
+        ],
+        "name": "Metronome"
+      },
+      "19": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 376.8220825195313,
+          "y": 436.6643981933594
+        },
+        "class": {
+          "id": "77697265-4de6-4e40-979b-b2617a6bae4a",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Toggle"
+      },
+      "2": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 946.71240234375,
+          "y": 424
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -88.64667510986328,
+        "y": 173.13717651367188,
+        "zoom": 1
+      },
+      "selection": [
+        "2"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 2,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "1": "Wire Logo"
+        },
+        "out": {}
+      }
+    }
+  }
+}

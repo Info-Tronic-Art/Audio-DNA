@@ -1,0 +1,527 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					9,
+					"output"
+				],
+				"to": [
+					10,
+					"write"
+				]
+			},
+			{
+				"from": [
+					9,
+					"output"
+				],
+				"to": [
+					11,
+					"write"
+				]
+			},
+			{
+				"from": [
+					12,
+					"pattern"
+				],
+				"to": [
+					10,
+					"velocity"
+				]
+			},
+			{
+				"from": [
+					13,
+					"pattern"
+				],
+				"to": [
+					11,
+					"velocity"
+				]
+			},
+			{
+				"from": [
+					10,
+					"output"
+				],
+				"to": [
+					14,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					11,
+					"output"
+				],
+				"to": [
+					15,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					14,
+					"output0"
+				],
+				"to": [
+					16,
+					"input"
+				]
+			},
+			{
+				"from": [
+					15,
+					"output0"
+				],
+				"to": [
+					16,
+					"input"
+				]
+			}
+		],
+		"meta": {
+			"author": "",
+			"category": null,
+			"description": "",
+			"displayName": "Converge Example",
+			"identifier": "e5e8dff8-1c72-44a8-b7d5-461fe795599b",
+			"licenseFile": "",
+			"licenseName": "",
+			"mail": "",
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 24,
+		"nodes": {
+			"10": {
+				"attributes": {
+					"instances": {
+						"type": "number",
+						"value": 5
+					},
+					"normalize": {
+						"type": "bool",
+						"value": true
+					},
+					"zero-is-off": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 701.3388671875,
+					"y": 594.4066162109375
+				},
+				"class": {
+					"id": "77697265-8283-4072-8EBE-60BAD8CA9B7A",
+					"version": 0
+				},
+				"clock": "video",
+				"constants": {
+					"channel": {
+						"type": "integer",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"pitch": {
+						"type": "integer",
+						"value": [
+							60,
+							60,
+							60,
+							60,
+							60
+						]
+					},
+					"velocity": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"write": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"channel"
+				],
+				"name": "Write Note On"
+			},
+			"11": {
+				"attributes": {
+					"instances": {
+						"type": "number",
+						"value": 3
+					},
+					"normalize": {
+						"type": "bool",
+						"value": true
+					},
+					"zero-is-off": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 700.3388671875,
+					"y": 781.4066162109375
+				},
+				"class": {
+					"id": "77697265-8283-4072-8EBE-60BAD8CA9B7A",
+					"version": 0
+				},
+				"clock": "video",
+				"constants": {
+					"channel": {
+						"type": "integer",
+						"value": [
+							1,
+							1,
+							1
+						]
+					},
+					"pitch": {
+						"type": "integer",
+						"value": [
+							60,
+							60,
+							60
+						]
+					},
+					"velocity": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0
+						]
+					},
+					"write": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"channel"
+				],
+				"name": "Write Note On"
+			},
+			"12": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"size": {
+						"type": "number",
+						"value": 5
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 372.3388671875,
+					"y": 581.4066162109375
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 1
+				},
+				"clock": "video",
+				"constants": {
+					"max": {
+						"type": "float",
+						"value": 1
+					},
+					"min": {
+						"type": "float",
+						"value": 0
+					}
+				},
+				"hidden": [],
+				"name": "Linear"
+			},
+			"13": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"size": {
+						"type": "number",
+						"value": 3
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 372.3388671875,
+					"y": 768.4066162109375
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 1
+				},
+				"clock": "video",
+				"constants": {
+					"max": {
+						"type": "float",
+						"value": 1
+					},
+					"min": {
+						"type": "float",
+						"value": 0
+					}
+				},
+				"hidden": [],
+				"name": "Linear"
+			},
+			"14": {
+				"attributes": {
+					"input0-dimensions": {
+						"type": "dimensions",
+						"value": [
+							5
+						]
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "midi"
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 922.3388671875,
+					"y": 594.4066162109375
+				},
+				"class": {
+					"id": "77697265-28ed-4edb-a802-d92fa904cbe9",
+					"version": 0
+				},
+				"clock": "video",
+				"constants": {
+					"input0": {
+						"type": "midi",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [],
+				"name": "Converge"
+			},
+			"15": {
+				"attributes": {
+					"input0-dimensions": {
+						"type": "dimensions",
+						"value": [
+							3
+						]
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "midi"
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 922.3388671875,
+					"y": 781.4066162109375
+				},
+				"class": {
+					"id": "77697265-28ed-4edb-a802-d92fa904cbe9",
+					"version": 0
+				},
+				"clock": "video",
+				"constants": {
+					"input0": {
+						"type": "midi",
+						"value": [
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [],
+				"name": "Converge"
+			},
+			"16": {
+				"attributes": {
+					"instances": {
+						"type": "number",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1205.3388671875,
+					"y": 594.4066162109375
+				},
+				"class": {
+					"id": "77697265-5743-430b-b5cd-a1f981ffbebf",
+					"version": 0
+				},
+				"clock": "video",
+				"constants": {
+					"input": {
+						"type": "midi",
+						"value": null
+					}
+				},
+				"hidden": [],
+				"name": "MIDI Out"
+			},
+			"2": {
+				"attributes": {
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "CONVERGE\n\nThe Converge node combines a multi-channel event (instanced event) into a single channel.\n\nThis is useful for situations, where you have two node paths with different instance counts. You want to merge them and you don't care about the instancing.  \n\nIn this example it prevents the MIDI out node from repeating the bottom Write Note On node. That node has 3 instances and the top node has 5.\nWire automatically fixes that for you by repeating the collection, but sometimes  you don't want this behavior. Converge is an excellent choice for those situations."
+					}
+				},
+				"bounds": {
+					"height": 252,
+					"width": 630,
+					"x": 699,
+					"y": 226
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"9": {
+				"attributes": {
+					"instances": {
+						"type": "number",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 437.3388671875,
+					"y": 467.4066162109375
+				},
+				"class": {
+					"id": "77697265-e61f-42c0-862a-0dca04e14569",
+					"version": 0
+				},
+				"clock": "video",
+				"constants": {
+					"input": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"input"
+				],
+				"name": "Trigger"
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": 219.436676025390625,
+				"y": 153.1277618408203125,
+				"zoom": 1
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": [
+					null,
+					null
+				]
+			}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"in": {},
+				"out": {}
+			}
+		}
+	}
+}

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 16b Var A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #12151b; color: #e0e0e0; font-size: 11px; }
+
+.topbar { height: 38px; background: linear-gradient(180deg, #22262e 0%, #1a1e26 100%); display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #2e3338; gap: 10px; }
+.logo { font-size: 14px; font-weight: 700; color: #00d4aa; display: flex; align-items: center; gap: 6px; }
+.logo .d { width: 16px; height: 16px; background: linear-gradient(135deg, #00d4aa, #009880); transform: rotate(45deg); border-radius: 2px; }
+.sep { width: 1px; height: 22px; background: #333; }
+.lbl { font-size: 8px; color: #556; text-transform: uppercase; letter-spacing: 1px; }
+.bpm { font-size: 18px; font-weight: 800; color: #4aff7f; font-family: monospace; background: #0c0e12; padding: 2px 10px; border: 1px solid #2a2e38; border-radius: 3px; }
+.tb { background: #262c34; border: 1px solid #3a4048; color: #aab; padding: 3px 10px; border-radius: 3px; font-size: 10px; cursor: pointer; }
+.tb:hover { background: #333a44; }
+.tb.on { background: #00d4aa; color: #111; border-color: #00d4aa; }
+.bdots { display: flex; gap: 3px; align-items: center; }
+.bd { width: 7px; height: 7px; border-radius: 50%; background: #222; border: 1px solid #444; }
+.bd.on { background: #00d4aa; border-color: #00d4aa; box-shadow: 0 0 4px #00d4aa88; }
+.inf { font-family: monospace; font-size: 10px; color: #889; }
+.sp { flex: 1; }
+.meter { width: 120px; height: 10px; background: #0c0e12; border-radius: 5px; overflow: hidden; border: 1px solid #222; }
+.mf { height: 100%; background: linear-gradient(90deg, #4aff7f, #ffdd4a, #ff4a4a); width: 72%; border-radius: 5px; }
+
+.scene-bar { height: 28px; background: #181c22; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #262c34; gap: 5px; }
+.sb { padding: 4px 16px; font-size: 10px; color: #667; background: #1e222a; border: 1px solid #2a2e38; border-radius: 3px; cursor: pointer; }
+.sb.a { background: #00d4aa14; border-color: #00d4aa55; color: #00d4aa; }
+.af { font-size: 9px; color: #556; display: flex; align-items: center; gap: 4px; margin-left: 8px; }
+.sadd { margin-left: auto; font-size: 10px; color: #00d4aa88; cursor: pointer; }
+
+.main { display: flex; height: calc(1080px - 38px - 28px - 28px); }
+
+/* LAYERS (wider, more detail) */
+.lpanel { width: 480px; background: linear-gradient(180deg, #161a20 0%, #13161c 100%); border-right: 1px solid #262c34; overflow-y: auto; }
+.lstrip { border-bottom: 1px solid #1e2230; padding: 6px 8px; display: flex; gap: 8px; }
+.ls-left { width: 260px; }
+.ls-right { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.lr1 { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.lsm { display: flex; gap: 2px; }
+.lsm span { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; border: 1px solid #3a4048; border-radius: 2px; color: #667; cursor: pointer; }
+.lsm span.mo { background: #cc3333; color: #fff; border-color: #cc3333; }
+.lname { font-size: 10px; color: #bbc; font-weight: 600; flex: 1; }
+.lname small { font-weight: 400; color: #556; }
+.lbadge { font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 2px; text-transform: uppercase; }
+.lr2 { font-size: 9px; color: #556; margin-bottom: 2px; }
+.lr2 .ci { color: #889; }
+.lr3 { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.las { font-size: 8px; color: #cc8844; background: #cc884411; padding: 1px 6px; border-radius: 2px; border: 1px solid #cc884422; }
+.ldd { font-size: 8px; background: #1a1e26; border: 1px solid #2a2e38; color: #778; padding: 1px 4px; border-radius: 2px; }
+
+/* Mini meter + knobs side by side */
+.lmk { display: flex; gap: 8px; align-items: center; margin-bottom: 2px; }
+.lm { display: flex; gap: 1px; align-items: flex-end; height: 26px; }
+.lm .mb { width: 3px; border-radius: 1px 1px 0 0; }
+.lknobs { display: flex; gap: 5px; }
+.lkw { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.lkn { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #3a4048; background: conic-gradient(from 220deg, #00d4aa 0%, #00d4aa var(--v, 50%), #222830 var(--v, 50%), #222830 280deg); position: relative; }
+.lkn::after { content: ''; position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 50%; background: #181c22; }
+.lkw label { font-size: 7px; color: #445; text-transform: uppercase; }
+.lop { display: flex; align-items: center; gap: 4px; }
+.lop label { font-size: 8px; color: #556; width: 40px; }
+.lop .obar { flex: 1; height: 5px; background: #0c0e12; border-radius: 3px; overflow: hidden; }
+.lop .ofill { height: 100%; background: #00d4aa; border-radius: 3px; }
+.lop .ov { font-size: 8px; color: #667; font-family: monospace; width: 28px; text-align: right; }
+
+/* Right side: clip thumbnails row */
+.clip-mini-row { display: flex; gap: 3px; }
+.cmini { width: 58px; height: 50px; border-radius: 3px; border: 1px solid #262c34; overflow: hidden; cursor: pointer; background: #0c0e12; position: relative; }
+.cmini:hover { border-color: #4a5060; }
+.cmini.a { border-color: #00d4aa; box-shadow: 0 0 6px #00d4aa33; }
+.cmini .cth { width: 100%; height: 36px; }
+.cmini .cn { height: 14px; background: #161a20; font-size: 7px; color: #778; display: flex; align-items: center; justify-content: center; }
+.g1 { background: linear-gradient(135deg, #0a1020, #1a0a2e); }
+.g2 { background: radial-gradient(circle, #fff1, transparent); }
+.g3 { background: conic-gradient(from 0deg, #111, #1a1a2a, #111); }
+.g4 { background: radial-gradient(circle, #4488ff11, transparent); }
+.g5 { background: linear-gradient(45deg, #1a1a2a, #0a0a1a); }
+
+/* CENTER GRID */
+.garea { flex: 1; display: flex; flex-direction: column; }
+.ghdr { display: flex; height: 22px; background: #1a1e24; border-bottom: 1px solid #222830; align-items: center; padding-left: 6px; }
+.pb { width: 18px; height: 18px; font-size: 10px; color: #667; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.gh { width: 102px; text-align: center; font-size: 9px; color: #556; text-transform: uppercase; letter-spacing: 1px; }
+.gh.a { color: #00d4aa; }
+.gscr { flex: 1; overflow: auto; padding: 3px; }
+.gr { display: flex; margin-bottom: 3px; }
+.cs { display: flex; gap: 3px; padding: 0 3px; }
+.cc { width: 96px; height: 86px; border-radius: 3px; border: 1.5px solid #262c34; overflow: hidden; cursor: pointer; background: #0c0e12; position: relative; }
+.cc:hover { border-color: #4a5060; }
+.cc.a { border-color: #00d4aa; box-shadow: 0 0 8px #00d4aa33; }
+.cc .th { width: 100%; height: 64px; }
+.cc .nm { height: 22px; background: #161a20; font-size: 8px; color: #889; display: flex; align-items: center; justify-content: center; }
+.cc .bg { position: absolute; top: 3px; left: 3px; font-size: 6px; font-weight: 700; padding: 1px 4px; border-radius: 2px; text-transform: uppercase; }
+.bv { background: #e8553588; color: #ffa; }
+.bi { background: #3588e888; color: #ddf; }
+.bs { background: #00d4aa88; color: #112; }
+.p1 { background: linear-gradient(135deg, #0a1020, #1a0a2e); }
+.p2 { background: radial-gradient(circle, #fff1, transparent); }
+.p3 { background: conic-gradient(from 0deg, #111, #222, #111); }
+.p4 { background: radial-gradient(circle, #4488ff11, transparent); }
+.p5 { background: linear-gradient(45deg, #1a1a2a, #0a0a1a); }
+.p6 { background: radial-gradient(circle, #aa44ff11, transparent); }
+.p7 { background: linear-gradient(135deg, #001a22, #002a1a); }
+.p8 { background: linear-gradient(180deg, #1a0a1a, #0a1a2a); }
+
+/* RIGHT */
+.rpanel { width: 280px; background: linear-gradient(180deg, #181c22 0%, #14181e 100%); border-left: 1px solid #262c34; display: flex; flex-direction: column; }
+.rtabs { display: flex; height: 24px; background: #161a20; border-bottom: 1px solid #222830; }
+.rt { flex: 1; text-align: center; padding: 5px 0; font-size: 9px; color: #556; cursor: pointer; text-transform: uppercase; border-bottom: 2px solid transparent; }
+.rt.a { color: #00d4aa; border-bottom-color: #00d4aa; }
+.rsec { padding: 6px 10px; border-bottom: 1px solid #1e2230; }
+.rsh { font-size: 9px; color: #667; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; font-weight: 600; }
+.sr { display: flex; align-items: center; gap: 6px; padding: 4px 6px; margin-bottom: 3px; background: #1a1e26; border: 1px solid #222830; border-radius: 3px; }
+.sr .sn { font-size: 10px; color: #99a; flex: 1; }
+.sr .smtr { display: flex; gap: 1px; align-items: flex-end; height: 20px; }
+.sr .smtr .mb { width: 3px; border-radius: 1px 1px 0 0; }
+.sr .sw { width: 70px; height: 22px; }
+.sr .sw svg { width: 100%; height: 100%; }
+.skr { display: flex; gap: 8px; margin-top: 4px; }
+.skw { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.skn { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #3a4048; position: relative; }
+.skn::after { content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; border-radius: 50%; background: #1a1e26; }
+.skw label { font-size: 7px; color: #445; }
+.addsr { font-size: 9px; color: #00d4aa88; cursor: pointer; padding: 6px 10px; }
+.dragh { font-size: 9px; color: #334; font-style: italic; padding: 4px 10px; }
+.diamlogo { text-align: center; margin-top: auto; padding: 20px; }
+.diamlogo .dl { display: inline-block; width: 40px; height: 40px; background: linear-gradient(135deg, #00d4aa22, #00d4aa44); transform: rotate(45deg); border-radius: 4px; border: 1px solid #00d4aa44; }
+
+.footer { height: 28px; background: linear-gradient(180deg, #1a1e24 0%, #14181e 100%); border-top: 1px solid #2e3338; display: flex; align-items: center; padding: 0 12px; gap: 10px; }
+.fb { font-size: 10px; color: #667; padding: 2px 10px; cursor: pointer; }
+.fb:hover { color: #aab; }
+.fb.sv { color: #00d4aa; }
+.fmeter { width: 160px; height: 10px; background: #0c0e12; border-radius: 5px; overflow: hidden; border: 1px solid #222; }
+.fmf { height: 100%; background: linear-gradient(90deg, #4aff7f, #aaff55); width: 58%; border-radius: 5px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="d"></div>Audio-DNA VJ</div>
+  <div class="sep"></div>
+  <span class="lbl">Editable BPM</span>
+  <span class="bpm">128.00</span>
+  <button class="tb">TAP</button>
+  <button class="tb">Nudge-</button>
+  <button class="tb">Nudge+</button>
+  <button class="tb on">RESYNC</button>
+  <div class="sep"></div>
+  <div class="bdots"><div class="bd on"></div><div class="bd"></div><div class="bd"></div><div class="bd"></div></div>
+  <div class="sep"></div>
+  <span class="inf">BAR: 32</span><span class="inf">BEAT: 1:1</span>
+  <div class="sep"></div>
+  <span class="lbl">Room Delay</span><span class="inf">15 ms</span>
+  <div class="sp"></div>
+  <div class="meter"><div class="mf"></div></div>
+  <span style="font-family:monospace; font-size:10px; color:#4aff7f;">60 FPS</span>
+  <select style="background:#1a1e26; border:1px solid #3a4048; color:#99a; padding:2px 8px; border-radius:3px; font-size:10px;"><option>Display 1: 1920x1080 @ 60</option></select>
+</div>
+
+<div class="scene-bar">
+  <div class="sb">Intro</div>
+  <div class="sb a">Verse</div>
+  <div class="af"><input type="checkbox" checked><span>Auto-Follow</span></div>
+  <div class="sb">Build</div>
+  <div class="sb">Drop</div>
+  <div class="sb">Outro</div>
+  <div class="sadd">+ Add Scene</div>
+</div>
+
+<div class="main">
+  <div class="lpanel">
+    <!-- Layer 1 — expanded with clip row -->
+    <div class="lstrip">
+      <div class="ls-left">
+        <div class="lr1">
+          <div class="lsm"><span>S</span><span>M</span></div>
+          <div class="lname">LAYER 1 <small>animation</small></div>
+          <span class="lbadge" style="background:#e85535; color:#fff;">VIDEO</span>
+        </div>
+        <div class="lr2">CLIP: <span class="ci">Abstract_01.mov / MODE: Loop</span></div>
+        <div class="lr3"><span style="font-size:8px; color:#556;">AUDIO SOURCE</span><span class="las">MASTER L+R</span><span class="ldd">AUDIO METER</span></div>
+        <div class="lmk">
+          <div class="lm">
+            <div class="mb" style="height:8px; background:#4aff7f;"></div><div class="mb" style="height:14px; background:#4aff7f;"></div>
+            <div class="mb" style="height:20px; background:#aaff55;"></div><div class="mb" style="height:24px; background:#ffdd4a;"></div>
+            <div class="mb" style="height:16px; background:#4aff7f;"></div><div class="mb" style="height:10px; background:#4aff7f;"></div>
+          </div>
+          <div class="lknobs">
+            <div class="lkw"><div class="lkn" style="--v:50%;"></div><label>HUE</label></div>
+            <div class="lkw"><div class="lkn" style="--v:70%;"></div><label>SAT</label></div>
+            <div class="lkw"><div class="lkn" style="--v:85%;"></div><label>BRI</label></div>
+            <div class="lkw"><div class="lkn" style="--v:45%;"></div><label>SPD</label></div>
+          </div>
+        </div>
+        <div class="lop"><label>OPACITY</label><div class="obar"><div class="ofill" style="width:100%;"></div></div><span class="ov">100%</span></div>
+      </div>
+      <div class="ls-right">
+        <div class="clip-mini-row">
+          <div class="cmini a"><div class="cth g1"></div><div class="cn">Clip 1</div></div>
+          <div class="cmini"><div class="cth g2"></div><div class="cn">Clip 2</div></div>
+          <div class="cmini"><div class="cth g3"></div><div class="cn">Clip 3</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Layer 2 -->
+    <div class="lstrip">
+      <div class="ls-left">
+        <div class="lr1">
+          <div class="lsm"><span>S</span><span>M</span></div>
+          <div class="lname">LAYER 2 <small>particles</small></div>
+          <span class="lbadge" style="background:#3588e8; color:#fff;">IMAGE</span>
+        </div>
+        <div class="lr2">CLIP: <span class="ci">Abstract_02.mov / MODE: Loop</span></div>
+        <div class="lr3"><span style="font-size:8px; color:#556;">AUDIO SOURCE</span><span class="las">MASTER L+R</span><span class="ldd">AUDIO METER</span></div>
+        <div class="lmk">
+          <div class="lm">
+            <div class="mb" style="height:6px; background:#4aff7f;"></div><div class="mb" style="height:10px; background:#4aff7f;"></div>
+            <div class="mb" style="height:18px; background:#aaff55;"></div><div class="mb" style="height:14px; background:#4aff7f;"></div>
+            <div class="mb" style="height:8px; background:#4aff7f;"></div><div class="mb" style="height:6px; background:#4aff7f;"></div>
+          </div>
+          <div class="lknobs">
+            <div class="lkw"><div class="lkn" style="--v:60%;"></div><label>HUE</label></div>
+            <div class="lkw"><div class="lkn" style="--v:55%;"></div><label>SAT</label></div>
+            <div class="lkw"><div class="lkn" style="--v:75%;"></div><label>BRI</label></div>
+            <div class="lkw"><div class="lkn" style="--v:50%;"></div><label>SPD</label></div>
+          </div>
+        </div>
+        <div class="lop"><label>OPACITY</label><div class="obar"><div class="ofill" style="width:100%;"></div></div><span class="ov">100%</span></div>
+      </div>
+      <div class="ls-right">
+        <div class="clip-mini-row">
+          <div class="cmini"><div class="cth g4"></div><div class="cn">Clip 1</div></div>
+          <div class="cmini a"><div class="cth g5"></div><div class="cn">Clip 2</div></div>
+          <div class="cmini"><div class="cth g3"></div><div class="cn">Clip 3</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Layer 3 -->
+    <div class="lstrip">
+      <div class="ls-left">
+        <div class="lr1">
+          <div class="lsm"><span>S</span><span>M</span></div>
+          <div class="lname">LAYER 3 <small>generators</small></div>
+          <span class="lbadge" style="background:#00d4aa; color:#111;">SRC</span>
+        </div>
+        <div class="lr2">CLIP: <span class="ci">Abstract_03.mov / MODE: Loop</span></div>
+        <div class="lr3"><span style="font-size:8px; color:#556;">AUDIO SOURCE</span><span class="las">LFO</span><span class="ldd">AUDIO METER</span></div>
+        <div class="lmk">
+          <div class="lm">
+            <div class="mb" style="height:10px; background:#4aff7f;"></div><div class="mb" style="height:16px; background:#aaff55;"></div>
+            <div class="mb" style="height:22px; background:#ffdd4a;"></div><div class="mb" style="height:18px; background:#aaff55;"></div>
+            <div class="mb" style="height:12px; background:#4aff7f;"></div><div class="mb" style="height:8px; background:#4aff7f;"></div>
+          </div>
+          <div class="lknobs">
+            <div class="lkw"><div class="lkn" style="--v:40%;"></div><label>HUE</label></div>
+            <div class="lkw"><div class="lkn" style="--v:80%;"></div><label>SAT</label></div>
+            <div class="lkw"><div class="lkn" style="--v:60%;"></div><label>BRI</label></div>
+            <div class="lkw"><div class="lkn" style="--v:35%;"></div><label>SPD</label></div>
+          </div>
+        </div>
+        <div class="lop"><label>OPACITY</label><div class="obar"><div class="ofill" style="width:80%;"></div></div><span class="ov">80%</span></div>
+      </div>
+      <div class="ls-right">
+        <div class="clip-mini-row">
+          <div class="cmini"><div class="cth g1"></div><div class="cn">Clip 1</div></div>
+          <div class="cmini"><div class="cth g5"></div><div class="cn">Clip 2</div></div>
+          <div class="cmini a"><div class="cth g2"></div><div class="cn">Clip 3</div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Layer 4 -->
+    <div class="lstrip">
+      <div class="ls-left">
+        <div class="lr1">
+          <div class="lsm"><span>S</span><span class="mo">M</span></div>
+          <div class="lname">LAYER 4 <small>overlay</small></div>
+          <span class="lbadge" style="background:#aa55dd; color:#fff;">SRC</span>
+        </div>
+        <div class="lr2">CLIP: <span class="ci">Abstract_04.mov / MODE: Loop</span></div>
+        <div class="lr3"><span style="font-size:8px; color:#556;">AUDIO SOURCE</span><span class="las">MASTER L+R</span><span class="ldd">AUDIO METER</span></div>
+        <div class="lmk">
+          <div class="lm">
+            <div class="mb" style="height:4px; background:#4aff7f;"></div><div class="mb" style="height:8px; background:#4aff7f;"></div>
+            <div class="mb" style="height:14px; background:#4aff7f;"></div><div class="mb" style="height:18px; background:#aaff55;"></div>
+            <div class="mb" style="height:10px; background:#4aff7f;"></div><div class="mb" style="height:6px; background:#4aff7f;"></div>
+          </div>
+          <div class="lknobs">
+            <div class="lkw"><div class="lkn" style="--v:55%;"></div><label>HUE</label></div>
+            <div class="lkw"><div class="lkn" style="--v:65%;"></div><label>SAT</label></div>
+            <div class="lkw"><div class="lkn" style="--v:70%;"></div><label>BRI</label></div>
+            <div class="lkw"><div class="lkn" style="--v:50%;"></div><label>SPD</label></div>
+          </div>
+        </div>
+        <div class="lop"><label>OPACITY</label><div class="obar"><div class="ofill" style="width:60%;"></div></div><span class="ov">60%</span></div>
+      </div>
+      <div class="ls-right">
+        <div class="clip-mini-row">
+          <div class="cmini"><div class="cth g3"></div><div class="cn">Clip 1</div></div>
+          <div class="cmini"><div class="cth g4"></div><div class="cn">Clip 2</div></div>
+          <div class="cmini"><div class="cth g1"></div><div class="cn">Clip 3</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIP GRID -->
+  <div class="garea">
+    <div class="ghdr">
+      <div class="pb">&#9654;</div>
+      <div class="gh">Intro</div>
+      <div class="gh a">Verse</div>
+      <div class="gh">Build</div>
+      <div class="gh">Drop</div>
+      <div class="gh">Outro</div>
+    </div>
+    <div class="gscr">
+      <div class="gr"><div class="cs">
+        <div class="cc"><div class="th p1"></div><div class="nm">Clip 1</div><span class="bg bv">VID</span></div>
+        <div class="cc a"><div class="th p2"></div><div class="nm">Clip 2</div><span class="bg bv">VID</span></div>
+        <div class="cc"><div class="th p3"></div><div class="nm">Clip 3</div><span class="bg bi">IMG</span></div>
+        <div class="cc"><div class="th p4"></div><div class="nm">Clip 4</div><span class="bg bs">SRC</span></div>
+        <div class="cc"><div class="th p5"></div><div class="nm">Clip 5</div></div>
+      </div></div>
+      <div class="gr"><div class="cs">
+        <div class="cc"><div class="th p6"></div><div class="nm">Clip 1</div><span class="bg bi">IMG</span></div>
+        <div class="cc"><div class="th p7"></div><div class="nm">Clip 2</div><span class="bg bs">SRC</span></div>
+        <div class="cc a"><div class="th p8"></div><div class="nm">Clip 3</div><span class="bg bv">VID</span></div>
+        <div class="cc"><div class="th p1"></div><div class="nm">Clip 4</div><span class="bg bs">SRC</span></div>
+        <div class="cc"><div class="th p3"></div><div class="nm">Clip 5</div></div>
+      </div></div>
+      <div class="gr"><div class="cs">
+        <div class="cc"><div class="th p4"></div><div class="nm">Clip 1</div><span class="bg bs">SRC</span></div>
+        <div class="cc"><div class="th p5"></div><div class="nm">Clip 2</div><span class="bg bv">VID</span></div>
+        <div class="cc"><div class="th p6"></div><div class="nm">Clip 3</div><span class="bg bi">IMG</span></div>
+        <div class="cc a"><div class="th p2"></div><div class="nm">Clip 4</div><span class="bg bs">SRC</span></div>
+        <div class="cc"><div class="th p8"></div><div class="nm">Clip 5</div></div>
+      </div></div>
+      <div class="gr"><div class="cs">
+        <div class="cc"><div class="th p7"></div><div class="nm">Clip 1</div><span class="bg bv">VID</span></div>
+        <div class="cc"><div class="th p1"></div><div class="nm">Clip 2</div></div>
+        <div class="cc"><div class="th p3"></div><div class="nm">Clip 3</div></div>
+        <div class="cc"><div class="th p5"></div><div class="nm">Clip 4</div></div>
+        <div class="cc"><div class="th p6"></div><div class="nm">Clip 5</div></div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="rpanel">
+    <div class="rtabs">
+      <div class="rt a">Sources</div>
+      <div class="rt">Layer</div>
+      <div class="rt">Clip</div>
+    </div>
+    <div class="rsec">
+      <div class="rsh">Master</div>
+      <div class="sr"><span style="font-size:10px;">&#9835;</span><span class="sn">Master Audio</span><div class="smtr"><div class="mb" style="height:6px; background:#4aff7f;"></div><div class="mb" style="height:12px; background:#4aff7f;"></div><div class="mb" style="height:18px; background:#aaff55;"></div><div class="mb" style="height:14px; background:#4aff7f;"></div><div class="mb" style="height:8px; background:#4aff7f;"></div></div></div>
+    </div>
+    <div class="rsec">
+      <div class="rsh">Kick Drum</div>
+      <div class="sr"><span class="sn" style="color:#cc8844;">Kick</span><div class="sw"><svg viewBox="0 0 70 22"><rect x="0" y="14" width="3" height="8" fill="#cc884488"/><rect x="5" y="6" width="3" height="16" fill="#cc8844bb"/><rect x="10" y="2" width="3" height="20" fill="#cc8844dd"/><rect x="15" y="10" width="3" height="12" fill="#cc884488"/></svg></div></div>
+      <div class="skr"><div class="skw"><div class="skn" style="background:conic-gradient(from 220deg, #cc8844 0%, #cc8844 60%, #222830 60%, #222830 280deg);"></div><label>Gain</label></div><div class="skw"><div class="skn" style="background:conic-gradient(from 220deg, #cc8844 0%, #cc8844 40%, #222830 40%, #222830 280deg);"></div><label>Depth</label></div></div>
+    </div>
+    <div class="rsec">
+      <div class="rsh">LFO &mdash; Sine</div>
+      <div class="sr"><span class="sn" style="color:#aa66ff;">Sine</span><div class="sw"><svg viewBox="0 0 70 22"><path d="M0 11 Q8 0 17 11 Q26 22 35 11 Q44 0 53 11 Q62 22 70 11" fill="none" stroke="#aa66ff" stroke-width="1.5"/></svg></div></div>
+      <div class="skr"><div class="skw"><div class="skn" style="background:conic-gradient(from 220deg, #aa66ff 0%, #aa66ff 50%, #222830 50%, #222830 280deg);"></div><label>Rate</label></div><div class="skw"><div class="skn" style="background:conic-gradient(from 220deg, #aa66ff 0%, #aa66ff 70%, #222830 70%, #222830 280deg);"></div><label>Depth</label></div></div>
+    </div>
+    <div class="rsec">
+      <div class="rsh">LFO &mdash; Custom</div>
+      <div class="sr"><span class="sn" style="color:#aa66ff;">Custom</span><div class="sw"><svg viewBox="0 0 70 22"><path d="M0 18 L10 2 Q22 18 35 6 L50 14 Q60 2 70 10" fill="none" stroke="#aa66ff" stroke-width="1.5"/></svg></div></div>
+    </div>
+    <div class="addsr">Add Audio Source</div>
+    <div class="dragh">Drag a source onto a parameter.</div>
+    <div class="diamlogo"><div class="dl"></div></div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="fb">MASTER SOURCES</div>
+  <div class="fmeter"><div class="fmf"></div></div>
+  <div class="fb">AUDIO PLAYER</div>
+  <div class="sp"></div>
+  <span class="inf">DISPLAY 1: 1920x1080 @ 60 FPS</span>
+  <div class="sp"></div>
+  <div class="fb sv">SAVE</div>
+  <div class="fb">LOAD</div>
+  <div class="fb">HELP / SHORTCUTS</div>
+</div>
+
+</body>
+</html>

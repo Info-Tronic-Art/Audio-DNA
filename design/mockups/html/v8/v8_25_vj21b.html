@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA V.2 - VJ21b Sci-Fi Composition Grid</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #050510; color: #c8d0e0;
+  font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
+  font-size: 12px;
+}
+
+/* ── NEBULA BACKGROUND ── */
+.nebula-bg {
+  position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+  z-index: 0; overflow: hidden;
+}
+.nebula-bg canvas { width: 100%; height: 100%; }
+
+/* ── ALL UI ON TOP ── */
+.ui-root {
+  position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+  z-index: 1; display: flex; flex-direction: column;
+}
+
+/* ── MASTER AUDIO CONTROL (top-left) ── */
+.master-audio {
+  position: absolute; top: 16px; left: 16px; z-index: 5;
+  width: 280px;
+  background: rgba(8, 12, 30, 0.85);
+  border: 1px solid rgba(80, 120, 200, 0.3);
+  border-radius: 6px;
+  padding: 12px 14px;
+  backdrop-filter: blur(6px);
+}
+.master-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+  color: rgba(120, 160, 255, 0.7); margin-bottom: 8px;
+}
+.master-label {
+  font-size: 9px; color: rgba(100, 140, 200, 0.5); text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 4px;
+}
+.master-meters {
+  display: flex; gap: 3px; align-items: flex-end; height: 40px; margin-bottom: 6px;
+}
+.master-meter-bar {
+  width: 8px; border-radius: 2px 2px 0 0;
+}
+.master-sphere-label {
+  font-size: 10px; color: rgba(140, 180, 255, 0.6); text-align: center;
+  letter-spacing: 3px; text-transform: uppercase; margin-top: 6px;
+}
+.sphere-visual {
+  width: 60px; height: 60px; margin: 8px auto 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(100, 140, 255, 0.6), rgba(40, 20, 120, 0.8), rgba(10, 5, 40, 0.9));
+  box-shadow: 0 0 20px rgba(80, 120, 255, 0.3), 0 0 40px rgba(60, 40, 180, 0.15);
+  border: 1px solid rgba(100, 140, 255, 0.2);
+}
+
+/* ── CURVED LAYER ARRANGEMENT (left side) ── */
+.layers-curved {
+  position: absolute; left: 16px; top: 180px; z-index: 4;
+  width: 260px; height: 700px;
+}
+.curved-layer {
+  position: absolute; width: 240px;
+  background: rgba(10, 14, 35, 0.8);
+  border: 1px solid rgba(60, 90, 160, 0.25);
+  border-radius: 4px;
+  padding: 6px 10px;
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; gap: 8px;
+  transition: transform 0.3s;
+}
+.curved-layer:hover { border-color: rgba(100, 140, 255, 0.5); }
+.layer-num {
+  font-size: 10px; font-weight: 700; color: rgba(100, 140, 255, 0.7);
+  min-width: 14px;
+}
+.layer-name-tag {
+  font-size: 10px; color: #99aac8; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.layer-transport {
+  display: flex; gap: 3px;
+}
+.layer-transport-btn {
+  width: 16px; height: 16px; border-radius: 2px;
+  background: rgba(40, 55, 90, 0.6);
+  border: 1px solid rgba(60, 90, 160, 0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7px; color: rgba(140, 170, 220, 0.7); cursor: pointer;
+}
+.layer-transport-btn.active { background: rgba(60, 120, 200, 0.5); color: #fff; }
+.layer-meter-mini {
+  width: 4px; height: 24px; border-radius: 2px;
+  background: rgba(20, 30, 60, 0.8);
+  position: relative; overflow: hidden;
+}
+.layer-meter-fill {
+  position: absolute; bottom: 0; width: 100%; border-radius: 2px;
+}
+
+/* ── COMPOSITION GRID OVERLAY ── */
+.comp-grid-overlay {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 620px; height: 520px;
+  background: rgba(8, 12, 30, 0.92);
+  border: 1px solid rgba(80, 120, 200, 0.4);
+  border-radius: 8px;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 60px rgba(40, 60, 160, 0.3), 0 0 120px rgba(20, 10, 80, 0.2);
+  display: flex; flex-direction: column;
+}
+.comp-grid-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(60, 90, 160, 0.25);
+}
+.comp-grid-title {
+  font-size: 14px; font-weight: 600; color: rgba(160, 190, 255, 0.9);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.comp-grid-actions {
+  display: flex; gap: 6px; align-items: center;
+}
+.comp-grid-btn {
+  padding: 4px 12px; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 1px; border-radius: 3px; cursor: pointer;
+  border: 1px solid rgba(60, 90, 160, 0.3);
+  background: rgba(30, 45, 80, 0.5);
+  color: rgba(140, 170, 220, 0.8);
+}
+.comp-grid-btn:hover { background: rgba(50, 70, 120, 0.6); }
+.comp-grid-btn.add { border-color: rgba(80, 180, 120, 0.4); color: rgba(120, 220, 160, 0.8); }
+.comp-grid-btn.remove { border-color: rgba(180, 80, 80, 0.4); color: rgba(220, 120, 120, 0.8); }
+.comp-individual {
+  font-size: 9px; color: rgba(100, 140, 200, 0.5); text-transform: uppercase;
+  letter-spacing: 1px; margin-left: 8px;
+}
+
+/* Clip thumbnails grid */
+.clip-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 6px;
+  padding: 12px 16px;
+  flex: 1;
+}
+.clip-thumb {
+  border-radius: 4px;
+  border: 1px solid rgba(60, 90, 160, 0.2);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.clip-thumb:hover { border-color: rgba(100, 160, 255, 0.6); }
+.clip-thumb.selected {
+  border-color: rgba(100, 180, 255, 0.7);
+  box-shadow: 0 0 8px rgba(60, 120, 255, 0.3);
+}
+.clip-thumb canvas {
+  width: 100%; height: 100%; display: block;
+}
+.clip-thumb-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(5, 8, 20, 0.75);
+  padding: 2px 5px;
+  font-size: 8px; color: rgba(140, 170, 220, 0.7);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Bottom controls */
+.comp-grid-bottom {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(60, 90, 160, 0.2);
+}
+.comp-control-group {
+  display: flex; align-items: center; gap: 6px;
+}
+.comp-control-label {
+  font-size: 9px; color: rgba(100, 140, 200, 0.5); text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.comp-slider-track {
+  width: 100px; height: 4px; background: rgba(30, 45, 80, 0.6);
+  border-radius: 2px; position: relative;
+}
+.comp-slider-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, rgba(60, 100, 200, 0.6), rgba(100, 160, 255, 0.8));
+}
+.comp-slider-knob {
+  position: absolute; top: -4px; width: 12px; height: 12px;
+  border-radius: 50%; background: rgba(140, 180, 255, 0.9);
+  border: 2px solid rgba(60, 100, 200, 0.5);
+}
+
+/* ── RIGHT SIDE PANELS ── */
+.right-panels {
+  position: absolute; right: 16px; top: 16px; z-index: 5;
+  width: 320px; height: 1048px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.panel {
+  background: rgba(8, 12, 30, 0.85);
+  border: 1px solid rgba(60, 90, 160, 0.25);
+  border-radius: 6px;
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+}
+.panel-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(60, 90, 160, 0.15);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 2px;
+  color: rgba(120, 160, 255, 0.7);
+}
+.panel-body { padding: 8px 12px; }
+
+/* Preview panel */
+.preview-panel { height: 220px; }
+.preview-canvas-wrap {
+  width: 100%; height: 160px; display: flex;
+  align-items: center; justify-content: center;
+  background: rgba(5, 8, 20, 0.5); border-radius: 4px;
+}
+
+/* Main output */
+.output-panel { height: 140px; }
+.output-canvas-wrap {
+  width: 100%; height: 100px;
+  background: rgba(5, 8, 20, 0.5); border-radius: 4px;
+}
+
+/* Audio visualizer */
+.visualizer-panel { height: 200px; }
+.visualizer-canvas-wrap {
+  width: 100%; height: 150px;
+  background: rgba(5, 8, 20, 0.3); border-radius: 4px;
+}
+
+/* Properties panel */
+.properties-panel { flex: 1; }
+.prop-table {
+  width: 100%;
+}
+.prop-row {
+  display: flex; border-bottom: 1px solid rgba(40, 60, 100, 0.15);
+  padding: 4px 0;
+}
+.prop-key {
+  width: 110px; font-size: 9px; color: rgba(100, 140, 200, 0.5);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 0;
+}
+.prop-val {
+  flex: 1; font-size: 10px; color: rgba(180, 200, 230, 0.8);
+  padding: 2px 0;
+}
+.prop-section-title {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: rgba(100, 160, 255, 0.5); margin: 8px 0 4px;
+  border-bottom: 1px solid rgba(60, 90, 160, 0.15); padding-bottom: 3px;
+}
+
+/* ── STAR LOGO ── */
+.star-logo {
+  position: absolute; bottom: 20px; right: 24px; z-index: 6;
+  width: 48px; height: 48px;
+}
+.star-logo svg { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+
+<!-- Nebula background -->
+<div class="nebula-bg"><canvas id="nebulaBg"></canvas></div>
+
+<div class="ui-root">
+
+  <!-- MASTER AUDIO CONTROL -->
+  <div class="master-audio">
+    <div class="master-title">Master Audio Control</div>
+    <div class="master-meters" id="masterMeters"></div>
+    <div class="master-label">Level</div>
+    <div class="sphere-visual"></div>
+    <div class="master-sphere-label">Master Audio Sphere</div>
+  </div>
+
+  <!-- CURVED LAYERS (left side) -->
+  <div class="layers-curved" id="layersCurved"></div>
+
+  <!-- COMPOSITION GRID OVERLAY -->
+  <div class="comp-grid-overlay">
+    <div class="comp-grid-header">
+      <div class="comp-grid-title">Composition Grid</div>
+      <div class="comp-grid-actions">
+        <button class="comp-grid-btn add">Add</button>
+        <button class="comp-grid-btn remove">Remove</button>
+        <button class="comp-grid-btn">Reset</button>
+        <span class="comp-individual">Individual Layer</span>
+      </div>
+    </div>
+    <div class="clip-grid" id="clipGrid"></div>
+    <div class="comp-grid-bottom">
+      <div class="comp-control-group">
+        <span class="comp-control-label">Opacity</span>
+        <div class="comp-slider-track">
+          <div class="comp-slider-fill" style="width:75%"></div>
+          <div class="comp-slider-knob" style="left:calc(75% - 6px)"></div>
+        </div>
+      </div>
+      <div class="comp-control-group">
+        <span class="comp-control-label">Nudge</span>
+        <div class="comp-slider-track">
+          <div class="comp-slider-fill" style="width:40%"></div>
+          <div class="comp-slider-knob" style="left:calc(40% - 6px)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE PANELS -->
+  <div class="right-panels">
+    <!-- Preview -->
+    <div class="panel preview-panel">
+      <div class="panel-header">Preview</div>
+      <div class="panel-body">
+        <div class="preview-canvas-wrap"><canvas id="previewCanvas" width="296" height="160"></canvas></div>
+      </div>
+    </div>
+    <!-- Main Output -->
+    <div class="panel output-panel">
+      <div class="panel-header">Main Output</div>
+      <div class="panel-body">
+        <div class="output-canvas-wrap"><canvas id="outputCanvas" width="296" height="100"></canvas></div>
+      </div>
+    </div>
+    <!-- Audio Visualizer -->
+    <div class="panel visualizer-panel">
+      <div class="panel-header">Audio Visualizer</div>
+      <div class="panel-body">
+        <div class="visualizer-canvas-wrap"><canvas id="meshCanvas" width="296" height="150"></canvas></div>
+      </div>
+    </div>
+    <!-- Properties / Video Router -->
+    <div class="panel properties-panel">
+      <div class="panel-header">Properties / Video Router</div>
+      <div class="panel-body">
+        <div class="prop-section-title">General</div>
+        <div class="prop-table">
+          <div class="prop-row"><span class="prop-key">Name</span><span class="prop-val">Main Composition</span></div>
+          <div class="prop-row"><span class="prop-key">Position of</span><span class="prop-val">Layer 3 / Column 2</span></div>
+          <div class="prop-row"><span class="prop-key">Layer Type</span><span class="prop-val">Transparent</span></div>
+          <div class="prop-row"><span class="prop-key">Blend Mode</span><span class="prop-val">Screen</span></div>
+          <div class="prop-row"><span class="prop-key">Opacity</span><span class="prop-val">87%</span></div>
+        </div>
+        <div class="prop-section-title">Video Router</div>
+        <div class="prop-table">
+          <div class="prop-row"><span class="prop-key">Source</span><span class="prop-val">Layer 1 Output</span></div>
+          <div class="prop-row"><span class="prop-key">Routing</span><span class="prop-val">Feedback Loop</span></div>
+          <div class="prop-row"><span class="prop-key">Delay</span><span class="prop-val">2 Frames</span></div>
+          <div class="prop-row"><span class="prop-key">Resolution</span><span class="prop-val">1920 x 1080</span></div>
+          <div class="prop-row"><span class="prop-key">FPS</span><span class="prop-val">60.0</span></div>
+        </div>
+        <div class="prop-section-title">Transform</div>
+        <div class="prop-table">
+          <div class="prop-row"><span class="prop-key">Scale</span><span class="prop-val">100%</span></div>
+          <div class="prop-row"><span class="prop-key">Rotation</span><span class="prop-val">0.0 deg</span></div>
+          <div class="prop-row"><span class="prop-key">Position X</span><span class="prop-val">0.0</span></div>
+          <div class="prop-row"><span class="prop-key">Position Y</span><span class="prop-val">0.0</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAR LOGO -->
+  <div class="star-logo">
+    <svg viewBox="0 0 48 48" fill="none">
+      <polygon points="24,2 28,18 44,18 31,28 35,44 24,34 13,44 17,28 4,18 20,18"
+               fill="none" stroke="rgba(120,160,255,0.5)" stroke-width="1.2"/>
+      <polygon points="24,8 27,19 38,19 29,26 32,38 24,31 16,38 19,26 10,19 21,19"
+               fill="rgba(80,120,220,0.15)" stroke="rgba(140,180,255,0.3)" stroke-width="0.6"/>
+      <circle cx="24" cy="24" r="3" fill="rgba(160,200,255,0.4)"/>
+    </svg>
+  </div>
+
+</div>
+
+<script>
+// ── NEBULA BACKGROUND ──
+(function(){
+  const c = document.getElementById('nebulaBg');
+  c.width = 1920; c.height = 1080;
+  const ctx = c.getContext('2d');
+
+  // Deep space gradient
+  const bg = ctx.createRadialGradient(960, 540, 100, 960, 540, 1000);
+  bg.addColorStop(0, '#0c0a25');
+  bg.addColorStop(0.3, '#080618');
+  bg.addColorStop(0.6, '#050412');
+  bg.addColorStop(1, '#020208');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  // Nebula clouds
+  function nebula(cx, cy, r, color, alpha) {
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, color.replace('A', alpha));
+    g.addColorStop(0.4, color.replace('A', alpha * 0.5));
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  }
+  nebula(400, 300, 500, 'rgba(60,20,120,A)', 0.25);
+  nebula(1400, 600, 600, 'rgba(20,40,140,A)', 0.2);
+  nebula(900, 800, 400, 'rgba(80,30,100,A)', 0.15);
+  nebula(200, 700, 350, 'rgba(30,60,160,A)', 0.12);
+  nebula(1600, 200, 300, 'rgba(100,40,120,A)', 0.1);
+  nebula(700, 200, 280, 'rgba(40,80,180,A)', 0.08);
+
+  // Stars
+  for (let i = 0; i < 300; i++) {
+    const x = Math.random() * 1920, y = Math.random() * 1080;
+    const s = Math.random() * 1.8 + 0.3;
+    const a = Math.random() * 0.6 + 0.2;
+    ctx.beginPath();
+    ctx.arc(x, y, s, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${180+Math.random()*75}, ${190+Math.random()*65}, ${220+Math.random()*35}, ${a})`;
+    ctx.fill();
+  }
+})();
+
+// ── MASTER METERS ──
+(function(){
+  const wrap = document.getElementById('masterMeters');
+  const heights = [18, 28, 35, 30, 22, 38, 32, 26, 20, 34, 28, 16, 24, 30, 36, 22];
+  heights.forEach((h, i) => {
+    const bar = document.createElement('div');
+    bar.className = 'master-meter-bar';
+    const hue = h > 30 ? '0, 80%, 55%' : h > 24 ? '45, 90%, 50%' : '210, 70%, 55%';
+    bar.style.cssText = `height:${h}px; background:hsla(${hue}, 0.8);`;
+    wrap.appendChild(bar);
+  });
+})();
+
+// ── CURVED LAYERS ──
+(function(){
+  const wrap = document.getElementById('layersCurved');
+  const layers = [
+    { name: 'Nebula Core', active: true },
+    { name: 'Particle Field', active: true },
+    { name: 'Warp Grid', active: false },
+    { name: 'Crystal Bloom', active: true },
+    { name: 'Pulse Ring', active: true },
+    { name: 'Deep Noise', active: false },
+    { name: 'Laser Mesh', active: true },
+    { name: 'Void Echo', active: false }
+  ];
+  const meterColors = ['#4488ff','#66aaff','#3366cc','#55ccff','#7799ff','#4466aa','#66bbff','#3355aa'];
+  const meterHeights = [70, 55, 30, 80, 60, 20, 45, 15];
+
+  layers.forEach((l, i) => {
+    const el = document.createElement('div');
+    el.className = 'curved-layer';
+    // Curved arrangement: slight arc offset
+    const curve = Math.sin((i / 7) * Math.PI) * 20;
+    const angle = ((i - 3.5) / 7) * 4;
+    el.style.cssText = `top:${i * 82 + 10}px; left:${curve}px; transform:rotate(${angle}deg);`;
+
+    el.innerHTML = `
+      <span class="layer-num">${i + 1}</span>
+      <span class="layer-name-tag">${l.name}</span>
+      <div class="layer-transport">
+        <div class="layer-transport-btn ${l.active ? 'active' : ''}">&#9654;</div>
+        <div class="layer-transport-btn">&#10074;&#10074;</div>
+        <div class="layer-transport-btn">&#9632;</div>
+      </div>
+      <div class="layer-meter-mini">
+        <div class="layer-meter-fill" style="height:${meterHeights[i]}%; background:${meterColors[i]};"></div>
+      </div>
+    `;
+    wrap.appendChild(el);
+  });
+})();
+
+// ── CLIP GRID THUMBNAILS ──
+(function(){
+  const grid = document.getElementById('clipGrid');
+  const clipNames = [
+    'Mote', 'Laser Level', 'Item Layer', 'Nanocrystal', 'Main',
+    'Layer 3', 'Item Level', 'Main Layer', 'Item Layer', 'Layer 1',
+    'Layer 2', 'Layer 4', 'Particle', 'Nebula Ring', 'Layer 8',
+    'Crystal', 'Wave Form', 'Grid Pulse', 'Deep Void', 'Spectrum'
+  ];
+
+  // Visual generators for thumbnails
+  const visuals = [
+    // 0: Nebula swirl
+    (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w*0.4, h*0.5, 5, w*0.5, h*0.5, w*0.5);
+      g.addColorStop(0, '#8844cc'); g.addColorStop(0.5, '#2233aa'); g.addColorStop(1, '#050510');
+      ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+      for (let i = 0; i < 30; i++) { ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 1, 0, 6.28); ctx.fillStyle = 'rgba(200,180,255,0.5)'; ctx.fill(); }
+    },
+    // 1: Laser lines
+    (ctx, w, h) => {
+      ctx.fillStyle = '#060818'; ctx.fillRect(0,0,w,h);
+      for (let i = 0; i < 8; i++) {
+        ctx.strokeStyle = `hsla(${200+i*15}, 80%, 60%, 0.6)`;
+        ctx.lineWidth = 1; ctx.beginPath();
+        ctx.moveTo(0, h*0.2+i*h*0.08); ctx.lineTo(w, h*0.3+i*h*0.06);
+        ctx.stroke();
+      }
+    },
+    // 2: Geometric triangles
+    (ctx, w, h) => {
+      ctx.fillStyle = '#0a0820'; ctx.fillRect(0,0,w,h);
+      for (let i = 0; i < 6; i++) {
+        ctx.beginPath(); ctx.moveTo(w*0.5, h*0.1+i*4);
+        ctx.lineTo(w*0.2+i*6, h*0.8-i*3); ctx.lineTo(w*0.8-i*6, h*0.8-i*3);
+        ctx.closePath(); ctx.strokeStyle = `rgba(100,180,255,${0.3+i*0.1})`; ctx.lineWidth = 0.8; ctx.stroke();
+      }
+    },
+    // 3: Particles scatter
+    (ctx, w, h) => {
+      ctx.fillStyle = '#080614'; ctx.fillRect(0,0,w,h);
+      for (let i = 0; i < 60; i++) {
+        const x = Math.random()*w, y = Math.random()*h, s = Math.random()*2.5+0.5;
+        ctx.beginPath(); ctx.arc(x, y, s, 0, 6.28);
+        ctx.fillStyle = `hsla(${280+Math.random()*60}, 70%, ${50+Math.random()*30}%, ${0.3+Math.random()*0.5})`;
+        ctx.fill();
+      }
+    },
+    // 4: Organic blob
+    (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w*0.5, h*0.5, 5, w*0.5, h*0.5, w*0.4);
+      g.addColorStop(0, '#44aacc'); g.addColorStop(0.6, '#1a4488'); g.addColorStop(1, '#060818');
+      ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+    },
+    // 5: Ring pattern
+    (ctx, w, h) => {
+      ctx.fillStyle = '#0a0618'; ctx.fillRect(0,0,w,h);
+      for (let i = 3; i > 0; i--) {
+        ctx.beginPath(); ctx.arc(w*0.5, h*0.5, i*w*0.13, 0, 6.28);
+        ctx.strokeStyle = `rgba(160,100,255,${0.2+i*0.15})`; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+    },
+    // 6: Grid matrix
+    (ctx, w, h) => {
+      ctx.fillStyle = '#060612'; ctx.fillRect(0,0,w,h);
+      for (let x = 0; x < w; x += 8) for (let y = 0; y < h; y += 8) {
+        if (Math.random() > 0.6) { ctx.fillStyle = `rgba(60,120,200,${Math.random()*0.4})`; ctx.fillRect(x, y, 6, 6); }
+      }
+    },
+    // 7: Wave
+    (ctx, w, h) => {
+      ctx.fillStyle = '#080618'; ctx.fillRect(0,0,w,h);
+      for (let j = 0; j < 4; j++) {
+        ctx.beginPath();
+        for (let x = 0; x < w; x++) { ctx.lineTo(x, h*0.5 + Math.sin(x*0.12+j*1.2)*h*0.15*(1-j*0.15)); }
+        ctx.strokeStyle = `hsla(${210+j*20}, 70%, 55%, ${0.5-j*0.1})`; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
+  ];
+
+  clipNames.forEach((name, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'clip-thumb' + (i === 3 ? ' selected' : '');
+    const canvas = document.createElement('canvas');
+    canvas.width = 100; canvas.height = 80;
+    const ctx = canvas.getContext('2d');
+    visuals[i % visuals.length](ctx, 100, 80);
+    thumb.appendChild(canvas);
+    const label = document.createElement('div');
+    label.className = 'clip-thumb-label';
+    label.textContent = name;
+    thumb.appendChild(label);
+    grid.appendChild(thumb);
+  });
+})();
+
+// ── PREVIEW CANVAS (ring visual) ──
+(function(){
+  const c = document.getElementById('previewCanvas');
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 296, 160);
+
+  const cx = 148, cy = 80;
+  // Outer glow
+  const g1 = ctx.createRadialGradient(cx, cy, 25, cx, cy, 65);
+  g1.addColorStop(0, 'rgba(80,40,180,0.0)');
+  g1.addColorStop(0.5, 'rgba(60,30,160,0.15)');
+  g1.addColorStop(0.8, 'rgba(40,120,200,0.2)');
+  g1.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, 296, 160);
+
+  // Teal/purple ring
+  for (let r = 55; r > 20; r -= 0.5) {
+    const t = (r - 20) / 35;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    const hue = 260 - t * 80;
+    ctx.strokeStyle = `hsla(${hue}, 70%, ${40+t*20}%, ${0.05 + t * 0.15})`;
+    ctx.lineWidth = 2; ctx.stroke();
+  }
+  // Core glow
+  const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, 18);
+  g2.addColorStop(0, 'rgba(160,120,255,0.4)');
+  g2.addColorStop(1, 'rgba(80,40,180,0.0)');
+  ctx.fillStyle = g2;
+  ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2); ctx.fill();
+})();
+
+// ── OUTPUT CANVAS ──
+(function(){
+  const c = document.getElementById('outputCanvas');
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 296, 100);
+  g.addColorStop(0, '#0a0620'); g.addColorStop(0.5, '#14103a'); g.addColorStop(1, '#080418');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 296, 100);
+
+  // Subtle content preview
+  for (let i = 0; i < 40; i++) {
+    ctx.beginPath(); ctx.arc(148 + Math.sin(i*0.5)*80, 50 + Math.cos(i*0.7)*30, 1.5, 0, 6.28);
+    ctx.fillStyle = `hsla(${240+i*3}, 60%, 50%, 0.3)`; ctx.fill();
+  }
+})();
+
+// ── 3D MESH VISUALIZER ──
+(function(){
+  const c = document.getElementById('meshCanvas');
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 296, 150);
+
+  const cols = 20, rows = 12;
+  const cellW = 296 / cols, cellH = 100 / rows;
+  const offsetY = 30;
+
+  // Generate height map
+  const heights = [];
+  for (let r = 0; r < rows; r++) {
+    heights[r] = [];
+    for (let c2 = 0; c2 < cols; c2++) {
+      const dx = (c2 - cols/2) / (cols/2), dy = (r - rows/2) / (rows/2);
+      heights[r][c2] = Math.exp(-(dx*dx + dy*dy) * 2) * 40
+        + Math.sin(c2 * 0.8) * Math.cos(r * 0.6) * 15
+        + Math.random() * 5;
+    }
+  }
+
+  // Perspective projection
+  function project(col, row, h) {
+    const x = col * cellW;
+    const y = row * cellH + offsetY;
+    const perspective = 0.4;
+    const px = x + (x - 148) * perspective * (row / rows) * 0.3;
+    const py = y - h + (y - 75) * perspective * 0.2;
+    return [px, py];
+  }
+
+  // Draw mesh lines
+  ctx.lineWidth = 0.6;
+  for (let r = 0; r < rows - 1; r++) {
+    for (let c2 = 0; c2 < cols - 1; c2++) {
+      const [x1, y1] = project(c2, r, heights[r][c2]);
+      const [x2, y2] = project(c2 + 1, r, heights[r][c2 + 1]);
+      const [x3, y3] = project(c2, r + 1, heights[r + 1][c2]);
+
+      const brightness = heights[r][c2] / 55;
+      const hue = 200 + brightness * 80;
+      const alpha = 0.3 + brightness * 0.4;
+
+      ctx.strokeStyle = `hsla(${hue}, 70%, ${35+brightness*25}%, ${alpha})`;
+
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x3, y3); ctx.stroke();
+    }
+  }
+
+  // Peak highlights
+  for (let r = 0; r < rows; r++) {
+    for (let c2 = 0; c2 < cols; c2++) {
+      if (heights[r][c2] > 30) {
+        const [px, py] = project(c2, r, heights[r][c2]);
+        ctx.beginPath(); ctx.arc(px, py, 1.5, 0, 6.28);
+        ctx.fillStyle = `rgba(140,180,255,${heights[r][c2]/60})`;
+        ctx.fill();
+      }
+    }
+  }
+})();
+</script>
+</body>
+</html>

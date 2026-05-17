@@ -1,0 +1,470 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          2,
+          "output"
+        ],
+        "to": [
+          3,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          2,
+          "output"
+        ],
+        "to": [
+          0,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output0"
+        ],
+        "to": [
+          4,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          0,
+          "output0"
+        ],
+        "to": [
+          6,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          6,
+          "output0"
+        ],
+        "to": [
+          5,
+          "amplitude"
+        ]
+      },
+      {
+        "from": [
+          4,
+          "output"
+        ],
+        "to": [
+          7,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          3,
+          "length"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "",
+      "displayName": "Length Example",
+      "identifier": "8a8e60bb-89db-40b1-88e9-efee1d979c51",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 10,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 84,
+          "y": 498
+        },
+        "class": {
+          "id": "77697265-5f58-4439-9a96-809989a9e66e",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "string",
+            "value": ""
+          }
+        },
+        "hidden": [],
+        "name": "Length"
+      },
+      "2": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -123,
+          "y": 340
+        },
+        "class": {
+          "id": "77697265-F29F-45E9-A833-21E09C750BA7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": "Hey Wire!"
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "String In"
+      },
+      "3": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "length-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "start-dimensions": {
+            "type": "dimensions",
+            "value": []
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 916,
+          "y": 340
+        },
+        "class": {
+          "id": "77697265-5852-3bAB-89e5-F25a24ca2d50",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "string",
+            "value": ""
+          },
+          "length": {
+            "type": "integer",
+            "value": 0
+          },
+          "start": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Substring"
+      },
+      "4": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "font": {
+            "type": "choice",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "style": {
+            "type": "choice",
+            "value": "Bold"
+          }
+        },
+        "bounds": {
+          "height": 154,
+          "width": 195,
+          "x": 1160,
+          "y": 340
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass"
+        ],
+        "name": "Text Render"
+      },
+      "5": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 600,
+          "y": 498
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.5
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "6": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "integer"
+          },
+          "type1": {
+            "type": "type",
+            "value": "integer"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 334,
+          "y": 498
+        },
+        "class": {
+          "id": "77697265-A9AF-4CB4-B10F-3968B36BB63B",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "integer",
+            "value": 0
+          },
+          "input1": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "hidden": [],
+        "name": "Add"
+      },
+      "7": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1394,
+          "y": 340
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture Out"
+      },
+      "9": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "LENGTH\n\nThe Length node gives you the amount of elements in a collection.\nThis is mostly used for strings when you want to know how long the string is, but it also works with integers if you need that.\n\nIn this example we take the length of \"Hey Wire!\" - which is 9.\nWe add 1 because we want to trim away the entire string.\nWe use this value (10) for the amplitude of the unipolar Sine oscillator which makes it run from 0 to 10.\nThis value determines how much of the string gets cut off, giving us an appearing/disappearing act."
+          }
+        },
+        "bounds": {
+          "height": 216.5680999755859,
+          "width": 704.5938110351562,
+          "x": 116.14010620117188,
+          "y": 50.708229064941406
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -173.5,
+        "y": 9.926560401916504,
+        "zoom": 0.9999999403953552
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "preview-lock": 4,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

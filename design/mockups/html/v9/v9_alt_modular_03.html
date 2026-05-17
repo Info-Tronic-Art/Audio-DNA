@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Modular Tiles (v9_alt_03)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 12px; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Amber accent */
+:root { --accent: #e09020; --accent-dim: #a06010; --accent-bright: #ffaa30; --bg-panel: #151515; --bg-darker: #111; --border: #2a2a2a; --text-dim: #777; --text-mid: #aaa; --text-bright: #e0e0e0; }
+
+.topbar {
+  height: 34px;
+  background: #121212;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.topbar .logo { font-size: 14px; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
+.bpm-box {
+  background: #1a1a1a;
+  border: 1px solid var(--accent);
+  padding: 2px 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.beat-indicator {
+  display: flex; gap: 3px; align-items: center;
+}
+.beat-pip { width: 8px; height: 8px; border-radius: 50%; background: #2a2a2a; border: 1px solid #444; }
+.beat-pip.on { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 4px var(--accent); }
+.bar-label { font-size: 10px; color: var(--text-dim); }
+.transport { display: flex; gap: 3px; }
+.transport button {
+  background: #1a1a1a; border: 1px solid #333; color: #bbb; padding: 2px 8px; font-size: 11px; cursor: pointer;
+}
+.transport button.active { color: var(--accent); border-color: var(--accent); }
+.genre-pill { background: rgba(224,144,32,0.15); border: 1px solid var(--accent-dim); color: var(--accent); padding: 2px 8px; font-size: 10px; font-weight: 600; }
+.deck-tabs { display: flex; gap: 2px; margin-left: auto; }
+.deck-tab { padding: 3px 14px; background: #1a1a1a; border: 1px solid #333; color: #666; font-size: 11px; font-weight: 600; cursor: pointer; }
+.deck-tab.active { background: var(--accent); color: #111; border-color: var(--accent); }
+
+/* Tile grid layout */
+.tile-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px 1fr 360px;
+  grid-template-rows: 1fr 1fr;
+  gap: 1px;
+  background: #0a0a0a;
+}
+
+.tile {
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.tile-titlebar {
+  height: 22px;
+  background: linear-gradient(180deg, #1e1e1e, #181818);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+.tile-titlebar .title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+.tile-body { flex: 1; padding: 6px; overflow-y: auto; }
+
+/* Tile 1: Signal Meters */
+.meter-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+.meter-name { width: 80px; font-size: 10px; color: var(--text-mid); }
+.meter-track { flex: 1; height: 10px; background: #1a1a1a; border: 1px solid #222; overflow: hidden; }
+.meter-fill { height: 100%; transition: width 0.1s; }
+.meter-fill-amber { background: linear-gradient(90deg, var(--accent-dim), var(--accent)); }
+.meter-fill-red { background: linear-gradient(90deg, #882200, #ff4400); }
+.meter-fill-yellow { background: linear-gradient(90deg, #886600, #ffcc00); }
+.meter-val { width: 34px; font-size: 10px; color: var(--text-dim); text-align: right; font-variant-numeric: tabular-nums; }
+
+.spectrum-mini {
+  display: flex; gap: 2px; height: 40px; align-items: flex-end; margin: 6px 0;
+}
+.spectrum-mini div { flex: 1; min-height: 2px; }
+
+/* Tile 2: Deck Grid */
+.deck-grid {
+  display: grid;
+  grid-template-columns: 34px repeat(10, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2px;
+  height: 100%;
+}
+.layer-label {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: #181818; font-size: 9px; color: #888; gap: 2px;
+}
+.badge { font-size: 7px; padding: 1px 3px; font-weight: 700; }
+.b-o { background: var(--accent); color: #111; }
+.b-t { background: #44aaff; color: #111; }
+.b-f { background: #aa44ff; color: #fff; }
+.b-m { background: #44ff88; color: #111; }
+.cell {
+  background: #1a1a1a; border: 1px solid #252525; position: relative;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden;
+}
+.cell:hover { border-color: var(--accent); }
+.cell.active { border-color: var(--accent); border-width: 2px; }
+.cell .ct { position: absolute; inset: 0; opacity: 0.5; }
+.cell .cn { position: relative; z-index: 2; font-size: 9px; color: #ddd; text-shadow: 0 1px 3px #000; text-align: center; }
+.cell .sig-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; }
+.sig-bass { background: #ff4400; }
+.sig-mid { background: var(--accent); }
+.sig-high { background: #ffcc00; }
+
+/* Tile 3: Preview */
+.preview-area {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #1a0a20, #0a1a20, #201a0a);
+  display: flex; align-items: center; justify-content: center; position: relative;
+}
+.preview-area .label { font-size: 28px; color: var(--accent); opacity: 0.2; font-weight: 700; }
+.preview-area .fps { position: absolute; top: 4px; right: 8px; font-size: 10px; color: var(--accent); }
+
+/* Tile 4: Quick Reference */
+.qr-section { margin-bottom: 8px; }
+.qr-title { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin-bottom: 3px; }
+.qr-row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 10px; }
+.qr-key { color: #666; }
+.qr-desc { color: #bbb; }
+
+/* Tile 5: Inspector (with Signals tab) */
+.insp-tabs { display: flex; gap: 1px; margin-bottom: 6px; }
+.insp-tab {
+  flex: 1; text-align: center; padding: 4px 0; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; background: #1a1a1a; color: #666; cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.insp-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.insp-section { margin-bottom: 8px; }
+.insp-heading {
+  font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase;
+  margin-bottom: 3px; padding-bottom: 2px; border-bottom: 1px solid var(--border);
+}
+.p-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+.p-name { width: 80px; font-size: 10px; color: var(--text-mid); }
+.p-track { flex: 1; height: 5px; background: #222; cursor: pointer; }
+.p-fill { height: 100%; background: var(--accent); }
+.p-val { width: 30px; font-size: 10px; color: var(--text-dim); text-align: right; }
+.p-sig { width: 7px; height: 7px; border: 1px solid #444; cursor: pointer; }
+.p-sig.on { background: var(--accent); border-color: var(--accent); }
+
+.fx-item {
+  display: flex; align-items: center; gap: 4px; padding: 2px 4px;
+  background: #1a1a1a; margin-bottom: 1px;
+}
+.fx-b { width: 12px; height: 12px; background: var(--accent); font-size: 7px; display: flex; align-items: center; justify-content: center; color: #111; font-weight: 700; cursor: pointer; }
+.fx-n { flex: 1; font-size: 10px; color: #ccc; }
+.fx-x { font-size: 10px; color: #555; cursor: pointer; }
+
+/* Tile 6: Browser */
+.br-tabs { display: flex; gap: 1px; margin-bottom: 6px; }
+.br-tab {
+  padding: 4px 10px; font-size: 9px; font-weight: 600; text-transform: uppercase;
+  background: #1a1a1a; color: #666; cursor: pointer; border-bottom: 2px solid transparent;
+}
+.br-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.br-cat { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin: 6px 0 3px; }
+.br-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+.br-item {
+  background: #1a1a1a; border: 1px solid #252525; padding: 4px; text-align: center;
+  font-size: 9px; color: #bbb; cursor: pointer;
+}
+.br-item:hover { border-color: var(--accent); color: var(--accent); }
+.br-item .ic { font-size: 14px; display: block; color: var(--accent); opacity: 0.4; margin-bottom: 1px; }
+
+/* Gradients */
+.g1 { background: linear-gradient(135deg, #ff4400, #aa0066); }
+.g2 { background: linear-gradient(135deg, #0044ff, #00aaff); }
+.g3 { background: linear-gradient(135deg, #00aa44, #aaff00); }
+.g4 { background: linear-gradient(135deg, #aa00ff, #ff00aa); }
+.g5 { background: linear-gradient(135deg, #ffaa00, #ff4400); }
+.g6 { background: linear-gradient(135deg, #004466, #00aacc); }
+.g7 { background: linear-gradient(135deg, #660044, #cc0088); }
+.g8 { background: linear-gradient(135deg, #224400, #66aa00); }
+.g9 { background: linear-gradient(135deg, #442200, #886600); }
+.g10 { background: linear-gradient(135deg, #002244, #0066aa); }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="logo">AUDIO-DNA</div>
+  <div class="bpm-box">128.0</div>
+  <div class="beat-indicator">
+    <div class="beat-pip on"></div>
+    <div class="beat-pip"></div>
+    <div class="beat-pip"></div>
+    <div class="beat-pip"></div>
+  </div>
+  <span class="bar-label">Bar 4 / 8 &bull; Phrase 2 / 4</span>
+  <div class="transport">
+    <button>|&lt;</button>
+    <button class="active">&#9654;</button>
+    <button>||</button>
+    <button>&gt;|</button>
+  </div>
+  <span class="genre-pill">House</span>
+  <span style="font-size:10px;color:#666;">Energy: HIGH</span>
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <div class="deck-tab">Deck 4</div>
+  </div>
+</div>
+
+<!-- 2x3 Tile Grid -->
+<div class="tile-grid">
+
+  <!-- Row 1, Col 1: Signal Meters -->
+  <div class="tile">
+    <div class="tile-titlebar"><span class="title">Signal Meters</span></div>
+    <div class="tile-body">
+      <div class="meter-row"><span class="meter-name">RMS</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:72%;"></div></div><span class="meter-val">0.72</span></div>
+      <div class="meter-row"><span class="meter-name">Peak</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:91%;"></div></div><span class="meter-val">0.91</span></div>
+      <div class="meter-row"><span class="meter-name">Bass</span><div class="meter-track"><div class="meter-fill meter-fill-red" style="width:92%;"></div></div><span class="meter-val">0.92</span></div>
+      <div class="meter-row"><span class="meter-name">Low Mid</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:58%;"></div></div><span class="meter-val">0.58</span></div>
+      <div class="meter-row"><span class="meter-name">Mid</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:45%;"></div></div><span class="meter-val">0.45</span></div>
+      <div class="meter-row"><span class="meter-name">High Mid</span><div class="meter-track"><div class="meter-fill meter-fill-yellow" style="width:38%;"></div></div><span class="meter-val">0.38</span></div>
+      <div class="meter-row"><span class="meter-name">Presence</span><div class="meter-track"><div class="meter-fill meter-fill-yellow" style="width:52%;"></div></div><span class="meter-val">0.52</span></div>
+      <div class="meter-row"><span class="meter-name">Brilliance</span><div class="meter-track"><div class="meter-fill meter-fill-yellow" style="width:31%;"></div></div><span class="meter-val">0.31</span></div>
+      <div class="spectrum-mini">
+        <div style="height:85%;background:#cc2200;"></div>
+        <div style="height:92%;background:#ff4400;"></div>
+        <div style="height:58%;background:#e07020;"></div>
+        <div style="height:45%;background:#e09020;"></div>
+        <div style="height:38%;background:#ccaa00;"></div>
+        <div style="height:52%;background:#ddbb00;"></div>
+        <div style="height:31%;background:#eecc00;"></div>
+      </div>
+      <div class="meter-row"><span class="meter-name">Beat Phase</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:35%;"></div></div><span class="meter-val">0.35</span></div>
+      <div class="meter-row"><span class="meter-name">Bar Phase</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:58%;"></div></div><span class="meter-val">0.58</span></div>
+      <div class="meter-row"><span class="meter-name">Phrase</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:22%;"></div></div><span class="meter-val">0.22</span></div>
+      <div class="meter-row"><span class="meter-name">Centroid</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:41%;"></div></div><span class="meter-val">2.4k</span></div>
+      <div class="meter-row"><span class="meter-name">Flux</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:33%;"></div></div><span class="meter-val">0.33</span></div>
+      <div class="meter-row"><span class="meter-name">Onset</span><div class="meter-track"><div class="meter-fill meter-fill-red" style="width:15%;"></div></div><span class="meter-val">0.15</span></div>
+      <div class="meter-row"><span class="meter-name">Sidechain</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:68%;"></div></div><span class="meter-val">0.68</span></div>
+      <div class="meter-row"><span class="meter-name">Formant</span><div class="meter-track"><div class="meter-fill meter-fill-amber" style="width:28%;"></div></div><span class="meter-val">0.28</span></div>
+    </div>
+  </div>
+
+  <!-- Row 1, Col 2: Deck Grid (wide) -->
+  <div class="tile">
+    <div class="tile-titlebar"><span class="title">Deck Grid — Deck 1</span></div>
+    <div class="tile-body" style="padding:4px;">
+      <div class="deck-grid">
+        <!-- Layer 1 -->
+        <div class="layer-label"><span class="badge b-o">O</span>L1</div>
+        <div class="cell active"><div class="ct g1"></div><span class="cn">Mandelbulb</span><div class="sig-bar sig-bass" style="opacity:0.9;"></div></div>
+        <div class="cell"><div class="ct g2"></div><span class="cn">Neon Grid</span><div class="sig-bar sig-mid"></div></div>
+        <div class="cell"><div class="ct g5"></div><span class="cn">Menger</span></div>
+        <div class="cell"><div class="ct g4"></div><span class="cn">Julia 3D</span></div>
+        <div class="cell"><div class="ct g3"></div><span class="cn">Perlin</span></div>
+        <div class="cell"><div class="ct g6"></div><span class="cn">Voronoi</span></div>
+        <div class="cell"><div class="ct g9"></div><span class="cn">KIFS</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+
+        <!-- Layer 2 -->
+        <div class="layer-label"><span class="badge b-t">T</span>L2</div>
+        <div class="cell"><div class="ct g7"></div><span class="cn">Spectrum Ring</span><div class="sig-bar sig-high"></div></div>
+        <div class="cell"><div class="ct g8"></div><span class="cn">Cymatics</span><div class="sig-bar sig-bass"></div></div>
+        <div class="cell"><div class="ct g10"></div><span class="cn">Band Tower</span></div>
+        <div class="cell"><div class="ct g2"></div><span class="cn">Timbral Nebula</span></div>
+        <div class="cell"><div class="ct g4"></div><span class="cn">Fluid Sim</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+
+        <!-- Layer 3 -->
+        <div class="layer-label"><span class="badge b-f">FX</span>L3</div>
+        <div class="cell"><div class="ct g4"></div><span class="cn">Echo + Ripple</span><div class="sig-bar sig-mid"></div></div>
+        <div class="cell"><div class="ct g1"></div><span class="cn">Glitch Stack</span></div>
+        <div class="cell"><div class="ct g7"></div><span class="cn">Color Flash</span></div>
+        <div class="cell"><div class="ct g6"></div><span class="cn">Freeze Stutter</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+
+        <!-- Layer 4 -->
+        <div class="layer-label"><span class="badge b-m">M</span>L4</div>
+        <div class="cell"><div class="ct g3"></div><span class="cn">Luma Mask</span></div>
+        <div class="cell"><div class="ct g9"></div><span class="cn">Radial Wipe</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+        <div class="cell"><span class="cn" style="color:#444;">empty</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 1, Col 3: Preview -->
+  <div class="tile">
+    <div class="tile-titlebar"><span class="title">Preview</span></div>
+    <div class="tile-body" style="padding:0;">
+      <div class="preview-area">
+        <span class="label">LIVE OUTPUT</span>
+        <span class="fps">60.0 fps</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2, Col 1: Quick Reference -->
+  <div class="tile">
+    <div class="tile-titlebar"><span class="title">Quick Reference</span></div>
+    <div class="tile-body">
+      <div class="qr-section">
+        <div class="qr-title">Keyboard</div>
+        <div class="qr-row"><span class="qr-key">1-0</span><span class="qr-desc">Trigger column</span></div>
+        <div class="qr-row"><span class="qr-key">Q-P</span><span class="qr-desc">Layer 1 clips</span></div>
+        <div class="qr-row"><span class="qr-key">A-;</span><span class="qr-desc">Layer 2 clips</span></div>
+        <div class="qr-row"><span class="qr-key">Z-/</span><span class="qr-desc">Layer 3 clips</span></div>
+        <div class="qr-row"><span class="qr-key">Space</span><span class="qr-desc">Tap BPM</span></div>
+        <div class="qr-row"><span class="qr-key">Esc</span><span class="qr-desc">Fullscreen</span></div>
+      </div>
+      <div class="qr-section">
+        <div class="qr-title">Mouse</div>
+        <div class="qr-row"><span class="qr-key">Click</span><span class="qr-desc">Select clip</span></div>
+        <div class="qr-row"><span class="qr-key">Double-click</span><span class="qr-desc">Trigger clip</span></div>
+        <div class="qr-row"><span class="qr-key">Right-click</span><span class="qr-desc">Reset parameter</span></div>
+        <div class="qr-row"><span class="qr-key">Drag FX</span><span class="qr-desc">Add to clip/layer</span></div>
+      </div>
+      <div class="qr-section">
+        <div class="qr-title">Commands</div>
+        <div class="qr-row"><span class="qr-key">Cmd+S</span><span class="qr-desc">Save preset</span></div>
+        <div class="qr-row"><span class="qr-key">Cmd+Z</span><span class="qr-desc">Undo</span></div>
+        <div class="qr-row"><span class="qr-key">Cmd+R</span><span class="qr-desc">Record video</span></div>
+        <div class="qr-row"><span class="qr-key">Cmd+P</span><span class="qr-desc">Snapshot PNG</span></div>
+      </div>
+      <div class="qr-section">
+        <div class="qr-title">Layer Types</div>
+        <div class="qr-row"><span class="qr-key" style="color:var(--accent);">Opaque</span><span class="qr-desc">Full coverage base</span></div>
+        <div class="qr-row"><span class="qr-key" style="color:#44aaff;">Transparent</span><span class="qr-desc">Alpha-keyed overlay</span></div>
+        <div class="qr-row"><span class="qr-key" style="color:#aa44ff;">FX Only</span><span class="qr-desc">Effect processing</span></div>
+        <div class="qr-row"><span class="qr-key" style="color:#44ff88;">Mask</span><span class="qr-desc">Luminance mask</span></div>
+      </div>
+      <div class="qr-section">
+        <div class="qr-title">Signal Colors</div>
+        <div class="qr-row"><span class="qr-key" style="color:#ff4400;">Red bar</span><span class="qr-desc">Bass reactive</span></div>
+        <div class="qr-row"><span class="qr-key" style="color:var(--accent);">Amber bar</span><span class="qr-desc">Mid reactive</span></div>
+        <div class="qr-row"><span class="qr-key" style="color:#ffcc00;">Yellow bar</span><span class="qr-desc">High reactive</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2, Col 2: Inspector (with Signals tab) -->
+  <div class="tile">
+    <div class="tile-titlebar"><span class="title">Inspector</span></div>
+    <div class="tile-body">
+      <div class="insp-tabs">
+        <div class="insp-tab active">Clip</div>
+        <div class="insp-tab">Layer</div>
+        <div class="insp-tab">Composition</div>
+        <div class="insp-tab">Signals</div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-heading">Mandelbulb — Source</div>
+        <div class="p-row"><span class="p-name">Zoom</span><div class="p-track"><div class="p-fill" style="width:30%;"></div></div><span class="p-val">0.30</span><div class="p-sig on"></div></div>
+        <div class="p-row"><span class="p-name">Power</span><div class="p-track"><div class="p-fill" style="width:50%;"></div></div><span class="p-val">8.0</span><div class="p-sig"></div></div>
+        <div class="p-row"><span class="p-name">Speed</span><div class="p-track"><div class="p-fill" style="width:55%;"></div></div><span class="p-val">0.55</span><div class="p-sig"></div></div>
+        <div class="p-row"><span class="p-name">Glow</span><div class="p-track"><div class="p-fill" style="width:40%;"></div></div><span class="p-val">0.40</span><div class="p-sig on"></div></div>
+        <div class="p-row"><span class="p-name">Color Shift</span><div class="p-track"><div class="p-fill" style="width:20%;"></div></div><span class="p-val">0.20</span><div class="p-sig"></div></div>
+        <div class="p-row"><span class="p-name">Palette</span><div class="p-track"><div class="p-fill" style="width:60%;"></div></div><span class="p-val">Fire</span><div class="p-sig"></div></div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-heading">Transform</div>
+        <div class="p-row"><span class="p-name">Position X</span><div class="p-track"><div class="p-fill" style="width:50%;"></div></div><span class="p-val">0.00</span><div class="p-sig"></div></div>
+        <div class="p-row"><span class="p-name">Position Y</span><div class="p-track"><div class="p-fill" style="width:50%;"></div></div><span class="p-val">0.00</span><div class="p-sig"></div></div>
+        <div class="p-row"><span class="p-name">Scale</span><div class="p-track"><div class="p-fill" style="width:100%;"></div></div><span class="p-val">1.00</span><div class="p-sig"></div></div>
+        <div class="p-row"><span class="p-name">Rotation</span><div class="p-track"><div class="p-fill" style="width:50%;"></div></div><span class="p-val">0.0</span><div class="p-sig"></div></div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-heading">Effects</div>
+        <div class="fx-item"><div class="fx-b">B</div><span class="fx-n">Ripple</span><span class="fx-x">X</span></div>
+        <div class="fx-item"><div class="fx-b">B</div><span class="fx-n">Chromatic Aberration</span><span class="fx-x">X</span></div>
+        <div class="fx-item"><div class="fx-b" style="background:#444;color:#666;">B</div><span class="fx-n" style="color:#666;">Echo (bypassed)</span><span class="fx-x">X</span></div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-heading">Video</div>
+        <div class="p-row"><span class="p-name">Opacity</span><div class="p-track"><div class="p-fill" style="width:100%;"></div></div><span class="p-val">1.00</span><div class="p-sig"></div></div>
+        <div class="p-row"><span class="p-name">Blend Mode</span><div style="flex:1;font-size:10px;color:#ccc;background:#1a1a1a;padding:2px 6px;">Normal</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2, Col 3: Browser -->
+  <div class="tile">
+    <div class="tile-titlebar"><span class="title">Browser</span></div>
+    <div class="tile-body">
+      <div class="br-tabs">
+        <div class="br-tab">Files</div>
+        <div class="br-tab active">FX</div>
+        <div class="br-tab">Sources</div>
+        <div class="br-tab">Comp</div>
+        <div class="br-tab">Record</div>
+      </div>
+      <div class="br-cat">Warp (27)</div>
+      <div class="br-grid">
+        <div class="br-item"><span class="ic">~</span>Ripple</div>
+        <div class="br-item"><span class="ic">O</span>Bulge</div>
+        <div class="br-item"><span class="ic">S</span>Wave</div>
+        <div class="br-item"><span class="ic">~</span>Liquid</div>
+        <div class="br-item"><span class="ic">*</span>Kaleidoscope</div>
+        <div class="br-item"><span class="ic">O</span>Fisheye</div>
+        <div class="br-item"><span class="ic">@</span>Swirl</div>
+        <div class="br-item"><span class="ic">+</span>Polar</div>
+      </div>
+      <div class="br-cat">Color (31)</div>
+      <div class="br-grid">
+        <div class="br-item"><span class="ic">H</span>Hue Shift</div>
+        <div class="br-item"><span class="ic">S</span>Saturation</div>
+        <div class="br-item"><span class="ic">B</span>Brightness</div>
+        <div class="br-item"><span class="ic">D</span>Duotone</div>
+        <div class="br-item"><span class="ic">C</span>Chromatic</div>
+        <div class="br-item"><span class="ic">I</span>Invert</div>
+        <div class="br-item"><span class="ic">P</span>Posterize</div>
+        <div class="br-item"><span class="ic">T</span>Thermal</div>
+      </div>
+      <div class="br-cat">Glitch (16)</div>
+      <div class="br-grid">
+        <div class="br-item"><span class="ic">#</span>Scatter</div>
+        <div class="br-item"><span class="ic">|</span>RGB Split</div>
+        <div class="br-item"><span class="ic">=</span>Block</div>
+        <div class="br-item"><span class="ic">-</span>Scanlines</div>
+      </div>
+      <div class="br-cat">Time (6)</div>
+      <div class="br-grid">
+        <div class="br-item"><span class="ic">E</span>Echo</div>
+        <div class="br-item"><span class="ic">F</span>Freeze</div>
+        <div class="br-item"><span class="ic">S</span>Stutter</div>
+        <div class="br-item"><span class="ic">D</span>Channel Delay</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA V.2 - VJ21b Sci-Fi Composition Grid (Enhanced)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #050510; color: #c8d0e0;
+  font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
+  font-size: 12px;
+}
+
+/* ── NEBULA BACKGROUND ── */
+.nebula-bg {
+  position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+  z-index: 0; overflow: hidden;
+}
+.nebula-bg canvas { width: 100%; height: 100%; }
+
+/* ── ALL UI ON TOP ── */
+.ui-root {
+  position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+  z-index: 1; display: flex; flex-direction: column;
+}
+
+/* ── MENU BAR (topmost 24px) ── */
+.menu-bar {
+  height: 24px; min-height: 24px;
+  background: rgba(6, 8, 18, 0.95);
+  border-bottom: 1px solid rgba(60, 90, 160, 0.25);
+  display: flex; align-items: center;
+  padding: 0 8px;
+  z-index: 100;
+}
+.menu-item {
+  font-size: 11px; color: rgba(180, 200, 230, 0.85);
+  padding: 2px 12px; cursor: pointer;
+  letter-spacing: 0.3px;
+}
+.menu-item:first-child {
+  font-weight: 700; color: rgba(120, 160, 255, 0.95);
+  letter-spacing: 1px;
+}
+.menu-item:hover { background: rgba(60, 100, 200, 0.25); color: #fff; }
+
+/* ── SIGNAL BAR (40px) ── */
+.signal-bar {
+  height: 40px; min-height: 40px;
+  background: rgba(8, 10, 22, 0.92);
+  border-bottom: 1px solid rgba(50, 80, 140, 0.2);
+  display: flex; align-items: center;
+  padding: 0 12px;
+  gap: 4px;
+  z-index: 99;
+}
+.signal-meter {
+  display: flex; flex-direction: column; align-items: center;
+  width: 56px; gap: 1px;
+}
+.signal-meter-label {
+  font-size: 7px; color: rgba(100, 140, 200, 0.5);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.signal-meter-bar-wrap {
+  width: 40px; height: 16px;
+  background: rgba(15, 20, 40, 0.8);
+  border: 1px solid rgba(40, 60, 100, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.signal-meter-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.1s;
+}
+.signal-meter-value {
+  font-size: 8px; color: rgba(160, 190, 230, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+.signal-divider {
+  width: 1px; height: 26px;
+  background: rgba(60, 90, 160, 0.15);
+  margin: 0 4px;
+}
+/* Beat wheel in signal bar */
+.beat-wheel-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  width: 56px; gap: 1px;
+}
+.beat-wheel {
+  width: 22px; height: 22px;
+  position: relative;
+}
+.beat-wheel canvas { width: 100%; height: 100%; }
+
+/* ── TOP CONTROLS BAR ── */
+.top-bar {
+  height: 32px; min-height: 32px;
+  background: rgba(10, 12, 28, 0.88);
+  border-bottom: 1px solid rgba(50, 80, 140, 0.2);
+  display: flex; align-items: center;
+  padding: 0 12px;
+  gap: 12px;
+  z-index: 98;
+}
+.top-section {
+  display: flex; align-items: center; gap: 6px;
+}
+.top-label {
+  font-size: 9px; color: rgba(100, 140, 200, 0.5);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.top-value {
+  font-size: 12px; color: rgba(180, 210, 255, 0.9);
+  font-weight: 600; font-variant-numeric: tabular-nums;
+  min-width: 36px; text-align: center;
+}
+.top-btn {
+  height: 22px; padding: 0 10px;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px;
+  border: 1px solid rgba(60, 90, 160, 0.3);
+  background: rgba(25, 35, 65, 0.5);
+  color: rgba(140, 170, 220, 0.8);
+  cursor: pointer;
+}
+.top-btn:hover { background: rgba(40, 55, 90, 0.6); }
+.top-btn.active {
+  background: rgba(50, 90, 180, 0.4);
+  border-color: rgba(80, 130, 220, 0.5);
+  color: rgba(180, 210, 255, 0.95);
+}
+.top-divider {
+  width: 1px; height: 20px;
+  background: rgba(60, 90, 160, 0.15);
+}
+.bpm-display {
+  font-size: 18px; font-weight: 700;
+  color: rgba(120, 180, 255, 0.95);
+  letter-spacing: 1px;
+  min-width: 60px; text-align: center;
+}
+.quantize-select {
+  height: 22px; padding: 0 8px;
+  font-size: 9px; text-transform: uppercase;
+  background: rgba(20, 30, 55, 0.6);
+  border: 1px solid rgba(60, 90, 160, 0.3);
+  color: rgba(160, 190, 230, 0.8);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* ── DECK TABS ── */
+.deck-tabs {
+  height: 26px; min-height: 26px;
+  background: rgba(8, 10, 22, 0.9);
+  border-bottom: 1px solid rgba(50, 80, 140, 0.2);
+  display: flex; align-items: stretch;
+  padding: 0 12px;
+  gap: 2px;
+  z-index: 97;
+}
+.deck-tab {
+  padding: 0 16px; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  color: rgba(120, 150, 200, 0.6);
+  border-bottom: 2px solid transparent;
+  display: flex; align-items: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.deck-tab:hover { color: rgba(160, 190, 230, 0.8); }
+.deck-tab.active {
+  color: rgba(140, 180, 255, 0.95);
+  border-bottom-color: rgba(80, 140, 255, 0.7);
+  background: rgba(40, 60, 120, 0.15);
+}
+.deck-tab.add-deck {
+  font-size: 14px; padding: 0 10px;
+  color: rgba(100, 140, 200, 0.4);
+}
+.deck-tab.add-deck:hover { color: rgba(120, 180, 255, 0.7); }
+
+/* ── MAIN CONTENT AREA ── */
+.main-area {
+  flex: 1; display: flex;
+  min-height: 0;
+}
+
+/* ── LEFT: LAYERS + BROWSER ── */
+.left-panel {
+  width: 260px; min-width: 260px;
+  display: flex; flex-direction: column;
+  background: rgba(8, 10, 22, 0.85);
+  border-right: 1px solid rgba(50, 80, 140, 0.2);
+}
+
+/* Layer strips */
+.layers-section {
+  flex: 1; overflow-y: auto; padding: 4px 6px;
+}
+.layer-strip {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid rgba(40, 60, 100, 0.15);
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  position: relative;
+  height: 34px;
+}
+.layer-strip:hover { border-color: rgba(80, 120, 200, 0.4); }
+.layer-strip.selected {
+  border-color: rgba(80, 140, 255, 0.5);
+  background: rgba(40, 60, 120, 0.15);
+}
+.layer-num {
+  font-size: 9px; font-weight: 700;
+  color: rgba(100, 140, 255, 0.7);
+  min-width: 14px; text-align: center;
+}
+.layer-type-badge {
+  font-size: 7px; padding: 1px 4px;
+  border-radius: 2px; text-transform: uppercase;
+  letter-spacing: 0.5px; font-weight: 600;
+}
+.layer-type-badge.opaque {
+  background: rgba(60, 120, 200, 0.25);
+  color: rgba(120, 170, 255, 0.8);
+  border: 1px solid rgba(60, 120, 200, 0.3);
+}
+.layer-type-badge.transparent {
+  background: rgba(100, 60, 200, 0.2);
+  color: rgba(170, 140, 255, 0.8);
+  border: 1px solid rgba(100, 60, 200, 0.3);
+}
+.layer-type-badge.fx-only {
+  background: rgba(200, 120, 40, 0.2);
+  color: rgba(255, 180, 100, 0.8);
+  border: 1px solid rgba(200, 120, 40, 0.3);
+}
+.layer-type-badge.mask {
+  background: rgba(60, 180, 120, 0.2);
+  color: rgba(120, 220, 160, 0.8);
+  border: 1px solid rgba(60, 180, 120, 0.3);
+}
+.layer-name-tag {
+  font-size: 10px; color: #99aac8; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.layer-lock-icon {
+  font-size: 9px; color: rgba(200, 160, 60, 0.6);
+  cursor: pointer;
+}
+.layer-transport {
+  display: flex; gap: 2px;
+}
+.layer-transport-btn {
+  width: 22px; height: 22px;
+  background: rgba(30, 45, 75, 0.6);
+  border: 1px solid rgba(50, 80, 130, 0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; color: rgba(140, 170, 220, 0.7); cursor: pointer;
+}
+.layer-transport-btn:hover { background: rgba(45, 65, 110, 0.6); }
+.layer-transport-btn.active { background: rgba(50, 100, 180, 0.4); color: #fff; }
+.layer-meter-mini {
+  width: 4px; height: 24px;
+  background: rgba(15, 25, 50, 0.8);
+  position: relative; overflow: hidden;
+}
+.layer-meter-fill {
+  position: absolute; bottom: 0; width: 100%;
+}
+
+/* Browser panel (below layers) */
+.browser-panel {
+  height: 260px; min-height: 260px;
+  border-top: 1px solid rgba(50, 80, 140, 0.2);
+  display: flex; flex-direction: column;
+}
+.browser-tabs {
+  display: flex; height: 24px;
+  border-bottom: 1px solid rgba(40, 60, 100, 0.2);
+}
+.browser-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+  color: rgba(100, 140, 200, 0.5);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.browser-tab:hover { color: rgba(140, 170, 220, 0.7); }
+.browser-tab.active {
+  color: rgba(120, 170, 255, 0.9);
+  border-bottom-color: rgba(80, 140, 255, 0.5);
+  background: rgba(30, 50, 90, 0.15);
+}
+.browser-content {
+  flex: 1; overflow-y: auto; padding: 6px 8px;
+}
+.browser-category {
+  font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: rgba(100, 140, 200, 0.4);
+  padding: 4px 0 2px; margin-top: 4px;
+  border-bottom: 1px solid rgba(40, 60, 100, 0.12);
+}
+.browser-item {
+  font-size: 10px; color: rgba(160, 185, 220, 0.7);
+  padding: 3px 6px; cursor: pointer;
+}
+.browser-item:hover {
+  background: rgba(40, 60, 120, 0.2);
+  color: rgba(180, 210, 255, 0.9);
+}
+
+/* ── CENTER: COMPOSITION GRID ── */
+.center-area {
+  flex: 1; display: flex; flex-direction: column;
+  min-width: 0;
+  position: relative;
+}
+
+.comp-grid-overlay {
+  flex: 1;
+  margin: 8px;
+  background: rgba(8, 12, 30, 0.92);
+  border: 1px solid rgba(80, 120, 200, 0.4);
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 60px rgba(40, 60, 160, 0.3), 0 0 120px rgba(20, 10, 80, 0.2);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.comp-grid-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(60, 90, 160, 0.25);
+}
+.comp-grid-title {
+  font-size: 13px; font-weight: 600; color: rgba(160, 190, 255, 0.9);
+  letter-spacing: 2px; text-transform: uppercase;
+}
+.comp-grid-actions {
+  display: flex; gap: 6px; align-items: center;
+}
+.comp-grid-btn {
+  padding: 3px 10px; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 1px; cursor: pointer;
+  border: 1px solid rgba(60, 90, 160, 0.3);
+  background: rgba(30, 45, 80, 0.5);
+  color: rgba(140, 170, 220, 0.8);
+}
+.comp-grid-btn:hover { background: rgba(50, 70, 120, 0.6); }
+.comp-grid-btn.add { border-color: rgba(80, 180, 120, 0.4); color: rgba(120, 220, 160, 0.8); }
+.comp-grid-btn.remove { border-color: rgba(180, 80, 80, 0.4); color: rgba(220, 120, 120, 0.8); }
+
+/* Column headers */
+.column-headers {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  padding: 4px 14px 0;
+}
+.column-header {
+  text-align: center; font-size: 8px;
+  color: rgba(100, 140, 200, 0.4);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* Clip thumbnails grid */
+.clip-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 6px;
+  padding: 6px 14px 10px;
+  flex: 1;
+}
+.clip-thumb {
+  border: 1px solid rgba(60, 90, 160, 0.2);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.clip-thumb:hover { border-color: rgba(100, 160, 255, 0.6); }
+.clip-thumb.selected {
+  border-color: rgba(100, 180, 255, 0.7);
+  box-shadow: 0 0 8px rgba(60, 120, 255, 0.3);
+}
+.clip-thumb.playing::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 0; height: 0;
+  border-left: 6px solid rgba(100, 255, 160, 0.7);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+.clip-thumb canvas {
+  width: 100%; height: 100%; display: block;
+}
+.clip-thumb-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(5, 8, 20, 0.75);
+  padding: 2px 5px;
+  font-size: 8px; color: rgba(140, 170, 220, 0.7);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Bottom controls */
+.comp-grid-bottom {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px;
+  border-top: 1px solid rgba(60, 90, 160, 0.2);
+}
+.comp-control-group {
+  display: flex; align-items: center; gap: 6px;
+}
+.comp-control-label {
+  font-size: 9px; color: rgba(100, 140, 200, 0.5); text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.comp-slider-track {
+  width: 80px; height: 4px; background: rgba(30, 45, 80, 0.6);
+  border-radius: 2px; position: relative;
+}
+.comp-slider-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, rgba(60, 100, 200, 0.6), rgba(100, 160, 255, 0.8));
+}
+.comp-slider-knob {
+  position: absolute; top: -4px; width: 10px; height: 10px;
+  border-radius: 50%; background: rgba(140, 180, 255, 0.9);
+  border: 2px solid rgba(60, 100, 200, 0.5);
+}
+
+/* ── RIGHT PANEL: INSPECTOR ── */
+.right-panel {
+  width: 340px; min-width: 340px;
+  background: rgba(8, 10, 22, 0.88);
+  border-left: 1px solid rgba(50, 80, 140, 0.2);
+  display: flex; flex-direction: column;
+}
+
+/* Inspector tabs */
+.inspector-tabs {
+  display: flex; height: 26px; min-height: 26px;
+  border-bottom: 1px solid rgba(50, 80, 140, 0.2);
+}
+.inspector-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px;
+  color: rgba(100, 140, 200, 0.5);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.inspector-tab:hover { color: rgba(140, 170, 220, 0.7); }
+.inspector-tab.active {
+  color: rgba(120, 170, 255, 0.9);
+  border-bottom-color: rgba(80, 140, 255, 0.5);
+  background: rgba(30, 50, 90, 0.15);
+}
+
+/* Inspector body */
+.inspector-body {
+  flex: 1; overflow-y: auto; padding: 8px 10px;
+}
+
+/* Preview in inspector */
+.insp-preview {
+  width: 100%; height: 140px;
+  background: rgba(5, 8, 20, 0.5);
+  border: 1px solid rgba(40, 60, 100, 0.2);
+  margin-bottom: 8px;
+  position: relative;
+}
+.insp-preview canvas { width: 100%; height: 100%; display: block; }
+
+/* Inspector sections */
+.insp-section {
+  margin-bottom: 6px;
+}
+.insp-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: rgba(100, 140, 200, 0.5);
+  padding: 4px 0 3px;
+  border-bottom: 1px solid rgba(40, 60, 100, 0.15);
+  cursor: pointer;
+}
+.insp-section-header:hover { color: rgba(120, 160, 220, 0.7); }
+.insp-section-toggle {
+  font-size: 7px; color: rgba(100, 140, 200, 0.4);
+}
+
+/* Dashboard knobs */
+.dashboard-knobs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 6px 0;
+}
+.dashboard-knob {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.dashboard-knob canvas { width: 36px; height: 36px; }
+.dashboard-knob-label {
+  font-size: 7px; color: rgba(100, 140, 200, 0.5);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  text-align: center; max-width: 60px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Cuepoints */
+.cuepoint-row {
+  display: flex; gap: 4px; padding: 4px 0;
+}
+.cuepoint-btn {
+  width: 22px; height: 16px;
+  font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(60, 90, 160, 0.3);
+  background: rgba(25, 35, 65, 0.4);
+  color: rgba(140, 170, 220, 0.7);
+  cursor: pointer;
+}
+.cuepoint-btn.set {
+  background: rgba(60, 120, 200, 0.3);
+  border-color: rgba(80, 140, 255, 0.5);
+  color: rgba(160, 200, 255, 0.9);
+}
+
+/* Effects stack */
+.fx-stack-item {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 6px;
+  border: 1px solid rgba(40, 60, 100, 0.15);
+  margin-bottom: 2px;
+}
+.fx-bypass-btn {
+  width: 14px; height: 14px; font-size: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(50, 100, 180, 0.3);
+  border: 1px solid rgba(60, 100, 180, 0.4);
+  color: rgba(140, 180, 255, 0.8);
+  cursor: pointer;
+}
+.fx-bypass-btn.bypassed {
+  background: rgba(30, 30, 40, 0.3);
+  border-color: rgba(60, 60, 80, 0.3);
+  color: rgba(100, 100, 120, 0.5);
+}
+.fx-name {
+  flex: 1; font-size: 10px; color: rgba(170, 195, 230, 0.8);
+}
+.fx-signal-triangle {
+  font-size: 8px; color: rgba(80, 200, 140, 0.6);
+  cursor: pointer;
+}
+.fx-signal-triangle.connected { color: rgba(80, 255, 160, 0.9); }
+.fx-delete-btn {
+  font-size: 9px; color: rgba(200, 100, 100, 0.5);
+  cursor: pointer;
+}
+.fx-delete-btn:hover { color: rgba(255, 120, 120, 0.8); }
+
+/* FX param row with signal triangle */
+.fx-param-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 2px 6px 2px 22px;
+}
+.fx-param-label {
+  font-size: 9px; color: rgba(100, 130, 180, 0.6);
+  min-width: 60px;
+}
+.fx-param-slider-track {
+  flex: 1; height: 3px;
+  background: rgba(25, 35, 60, 0.6);
+  border-radius: 1px;
+  position: relative;
+}
+.fx-param-slider-fill {
+  height: 100%; border-radius: 1px;
+  background: rgba(60, 120, 200, 0.5);
+}
+.fx-param-value {
+  font-size: 8px; color: rgba(140, 170, 210, 0.6);
+  min-width: 24px; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keying section */
+.keying-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0;
+}
+.keying-label {
+  font-size: 9px; color: rgba(100, 140, 200, 0.5);
+  min-width: 70px;
+}
+.keying-value {
+  font-size: 10px; color: rgba(170, 195, 230, 0.7);
+}
+
+/* Feedback section */
+.feedback-preset-row {
+  display: flex; gap: 3px; flex-wrap: wrap; padding: 3px 0;
+}
+.feedback-preset-btn {
+  padding: 2px 8px; font-size: 8px;
+  border: 1px solid rgba(60, 90, 160, 0.25);
+  background: rgba(20, 30, 55, 0.4);
+  color: rgba(130, 160, 210, 0.7);
+  cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.feedback-preset-btn.active {
+  background: rgba(50, 90, 170, 0.35);
+  border-color: rgba(80, 130, 220, 0.5);
+  color: rgba(160, 200, 255, 0.9);
+}
+
+/* Transform section (prop rows) */
+.prop-row {
+  display: flex; border-bottom: 1px solid rgba(40, 60, 100, 0.1);
+  padding: 3px 0;
+}
+.prop-key {
+  width: 80px; font-size: 9px; color: rgba(100, 140, 200, 0.5);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 2px 0;
+}
+.prop-val {
+  flex: 1; font-size: 10px; color: rgba(180, 200, 230, 0.8);
+  padding: 2px 0;
+}
+
+/* Autopilot section */
+.autopilot-row {
+  display: flex; align-items: center; gap: 8px; padding: 3px 0;
+}
+.autopilot-toggle {
+  width: 28px; height: 14px;
+  background: rgba(30, 40, 65, 0.6);
+  border: 1px solid rgba(60, 90, 160, 0.3);
+  border-radius: 7px;
+  position: relative; cursor: pointer;
+}
+.autopilot-toggle.on {
+  background: rgba(50, 120, 200, 0.4);
+  border-color: rgba(80, 150, 255, 0.5);
+}
+.autopilot-toggle-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: rgba(140, 180, 255, 0.8);
+  position: absolute; top: 1px;
+  transition: left 0.15s;
+}
+.autopilot-label {
+  font-size: 9px; color: rgba(120, 155, 210, 0.6);
+}
+
+/* ── FOOTER ── */
+.footer-bar {
+  height: 22px; min-height: 22px;
+  background: rgba(6, 8, 18, 0.95);
+  border-top: 1px solid rgba(50, 80, 140, 0.2);
+  display: flex; align-items: center;
+  padding: 0 12px;
+  gap: 16px;
+  z-index: 96;
+}
+.footer-item {
+  font-size: 9px; color: rgba(100, 140, 200, 0.5);
+  display: flex; align-items: center; gap: 4px;
+}
+.footer-value {
+  color: rgba(160, 190, 230, 0.7);
+  font-variant-numeric: tabular-nums;
+}
+.footer-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.footer-dot.green { background: rgba(60, 200, 100, 0.7); }
+.footer-dot.red { background: rgba(200, 60, 60, 0.7); }
+.footer-dot.amber { background: rgba(200, 160, 40, 0.7); }
+.footer-spacer { flex: 1; }
+
+/* ── STAR LOGO (in footer area) ── */
+.star-logo {
+  width: 16px; height: 16px;
+}
+.star-logo svg { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+
+<!-- Nebula background -->
+<div class="nebula-bg"><canvas id="nebulaBg"></canvas></div>
+
+<div class="ui-root">
+
+  <!-- 1. MENU BAR -->
+  <div class="menu-bar">
+    <span class="menu-item">Audio-DNA</span>
+    <span class="menu-item">Composition</span>
+    <span class="menu-item">Deck</span>
+    <span class="menu-item">Layer</span>
+    <span class="menu-item">Column</span>
+    <span class="menu-item">Clip</span>
+    <span class="menu-item">Output</span>
+    <span class="menu-item">Shortcuts</span>
+    <span class="menu-item">View</span>
+  </div>
+
+  <!-- 2. SIGNAL BAR -->
+  <div class="signal-bar" id="signalBar"></div>
+
+  <!-- 3. TOP CONTROLS BAR (BPM, quantize, fade, master) -->
+  <div class="top-bar">
+    <div class="top-section">
+      <span class="top-label">BPM</span>
+      <span class="bpm-display">128.0</span>
+      <span class="top-btn active">TAP</span>
+      <span class="top-btn">MANUAL</span>
+    </div>
+    <div class="top-divider"></div>
+    <div class="top-section">
+      <span class="top-label">Quantize</span>
+      <select class="quantize-select">
+        <option>BAR</option><option>BEAT</option><option>2 BAR</option><option>4 BAR</option><option>OFF</option>
+      </select>
+    </div>
+    <div class="top-divider"></div>
+    <div class="top-section">
+      <span class="top-label">Fade</span>
+      <div class="comp-slider-track" style="width:60px">
+        <div class="comp-slider-fill" style="width:50%"></div>
+        <div class="comp-slider-knob" style="left:calc(50% - 5px)"></div>
+      </div>
+      <span class="top-value" style="font-size:10px">0.5s</span>
+    </div>
+    <div class="top-divider"></div>
+    <div class="top-section">
+      <span class="top-label">Master</span>
+      <div class="comp-slider-track" style="width:60px">
+        <div class="comp-slider-fill" style="width:100%"></div>
+        <div class="comp-slider-knob" style="left:calc(100% - 5px)"></div>
+      </div>
+      <span class="top-value" style="font-size:10px">100%</span>
+    </div>
+    <div class="top-divider"></div>
+    <div class="top-section">
+      <span class="top-btn">FULLSCREEN</span>
+      <span class="top-btn">RECORD</span>
+      <span class="top-btn">SNAPSHOT</span>
+    </div>
+  </div>
+
+  <!-- 4. DECK TABS -->
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <div class="deck-tab add-deck">+</div>
+  </div>
+
+  <!-- 5. MAIN CONTENT AREA -->
+  <div class="main-area">
+
+    <!-- LEFT PANEL: Layers + Browser -->
+    <div class="left-panel">
+      <div class="layers-section" id="layersSection"></div>
+      <div class="browser-panel">
+        <div class="browser-tabs">
+          <div class="browser-tab active">Files</div>
+          <div class="browser-tab">Effects</div>
+          <div class="browser-tab">Sources</div>
+        </div>
+        <div class="browser-content" id="browserContent"></div>
+      </div>
+    </div>
+
+    <!-- CENTER: Composition Grid -->
+    <div class="center-area">
+      <div class="comp-grid-overlay">
+        <div class="comp-grid-header">
+          <div class="comp-grid-title">Composition Grid</div>
+          <div class="comp-grid-actions">
+            <button class="comp-grid-btn add">Add Layer</button>
+            <button class="comp-grid-btn add">Add Column</button>
+            <button class="comp-grid-btn remove">Remove</button>
+            <button class="comp-grid-btn">Reset</button>
+          </div>
+        </div>
+        <div class="column-headers" id="columnHeaders"></div>
+        <div class="clip-grid" id="clipGrid"></div>
+        <div class="comp-grid-bottom">
+          <div class="comp-control-group">
+            <span class="comp-control-label">Opacity</span>
+            <div class="comp-slider-track">
+              <div class="comp-slider-fill" style="width:75%"></div>
+              <div class="comp-slider-knob" style="left:calc(75% - 5px)"></div>
+            </div>
+          </div>
+          <div class="comp-control-group">
+            <span class="comp-control-label">Blend</span>
+            <select class="quantize-select" style="width:60px"><option>Screen</option></select>
+          </div>
+          <div class="comp-control-group">
+            <span class="comp-control-label">Speed</span>
+            <div class="comp-slider-track" style="width:60px">
+              <div class="comp-slider-fill" style="width:50%"></div>
+              <div class="comp-slider-knob" style="left:calc(50% - 5px)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: Inspector -->
+    <div class="right-panel">
+      <div class="inspector-tabs">
+        <div class="inspector-tab active">Clip</div>
+        <div class="inspector-tab">Layer</div>
+        <div class="inspector-tab">Composition</div>
+        <div class="inspector-tab">Signal</div>
+      </div>
+      <div class="inspector-body" id="inspectorBody"></div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <div class="footer-item">
+      <div class="footer-dot green"></div>
+      <span>FPS</span>
+      <span class="footer-value">60.0</span>
+    </div>
+    <div class="footer-item">
+      <span>DSP</span>
+      <span class="footer-value">1.2ms</span>
+    </div>
+    <div class="footer-item">
+      <span>GPU</span>
+      <span class="footer-value">3.4ms</span>
+    </div>
+    <div class="footer-item">
+      <span>Resolution</span>
+      <span class="footer-value">1920 x 1080</span>
+    </div>
+    <div class="footer-item">
+      <div class="footer-dot red"></div>
+      <span>Recording</span>
+      <span class="footer-value">OFF</span>
+    </div>
+    <div class="footer-item">
+      <span>Syphon</span>
+      <span class="footer-value">OFF</span>
+    </div>
+    <div class="footer-item">
+      <span>OSC</span>
+      <span class="footer-value">OFF</span>
+    </div>
+    <div class="footer-item">
+      <span>MIDI</span>
+      <span class="footer-value">None</span>
+    </div>
+    <div class="footer-spacer"></div>
+    <div class="footer-item">
+      <span class="footer-value">Audio-DNA v2.0</span>
+    </div>
+    <div class="star-logo">
+      <svg viewBox="0 0 48 48" fill="none">
+        <polygon points="24,4 28,18 42,18 31,27 34,42 24,33 14,42 17,27 6,18 20,18"
+                 fill="none" stroke="rgba(120,160,255,0.5)" stroke-width="1.5"/>
+        <circle cx="24" cy="24" r="3" fill="rgba(160,200,255,0.4)"/>
+      </svg>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── NEBULA BACKGROUND ──
+(function(){
+  const c = document.getElementById('nebulaBg');
+  c.width = 1920; c.height = 1080;
+  const ctx = c.getContext('2d');
+
+  // Deep space gradient
+  const bg = ctx.createRadialGradient(960, 540, 100, 960, 540, 1000);
+  bg.addColorStop(0, '#0c0a25');
+  bg.addColorStop(0.3, '#080618');
+  bg.addColorStop(0.6, '#050412');
+  bg.addColorStop(1, '#020208');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  // Nebula clouds
+  function nebula(cx, cy, r, color, alpha) {
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, color.replace('A', alpha));
+    g.addColorStop(0.4, color.replace('A', alpha * 0.5));
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  }
+  nebula(400, 300, 500, 'rgba(60,20,120,A)', 0.25);
+  nebula(1400, 600, 600, 'rgba(20,40,140,A)', 0.2);
+  nebula(900, 800, 400, 'rgba(80,30,100,A)', 0.15);
+  nebula(200, 700, 350, 'rgba(30,60,160,A)', 0.12);
+  nebula(1600, 200, 300, 'rgba(100,40,120,A)', 0.1);
+  nebula(700, 200, 280, 'rgba(40,80,180,A)', 0.08);
+
+  // Stars
+  for (let i = 0; i < 300; i++) {
+    const x = Math.random() * 1920, y = Math.random() * 1080;
+    const s = Math.random() * 1.8 + 0.3;
+    const a = Math.random() * 0.6 + 0.2;
+    ctx.beginPath();
+    ctx.arc(x, y, s, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${180+Math.random()*75}, ${190+Math.random()*65}, ${220+Math.random()*35}, ${a})`;
+    ctx.fill();
+  }
+})();
+
+// ── SIGNAL BAR ──
+(function(){
+  const bar = document.getElementById('signalBar');
+  const meters = [
+    { label: 'RMS', value: 0.65, color: '210, 70%, 55%' },
+    { label: 'Peak', value: 0.82, color: '200, 70%, 55%' },
+    { label: 'Bass', value: 0.78, color: '240, 65%, 55%' },
+    { label: 'Mid', value: 0.52, color: '180, 65%, 50%' },
+    { label: 'High', value: 0.35, color: '160, 60%, 50%' },
+  ];
+  const meters2 = [
+    { label: 'Beat', value: 0.7, color: '120, 60%, 50%' },
+    { label: 'Bar', value: 0.25, color: '100, 55%, 50%' },
+  ];
+  const textMeters = [
+    { label: 'BPM', text: '128.0' },
+    { label: 'Onset', text: '--' },
+    { label: 'Pitch', text: 'A3' },
+    { label: 'Key', text: 'Am' },
+    { label: 'Structure', text: 'DROP' },
+  ];
+
+  meters.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'signal-meter';
+    el.innerHTML = `
+      <div class="signal-meter-label">${m.label}</div>
+      <div class="signal-meter-bar-wrap">
+        <div class="signal-meter-fill" style="width:${m.value*100}%; background:hsla(${m.color}, 0.7);"></div>
+      </div>
+      <div class="signal-meter-value">${m.value.toFixed(2)}</div>
+    `;
+    bar.appendChild(el);
+  });
+
+  // Divider
+  const d1 = document.createElement('div');
+  d1.className = 'signal-divider';
+  bar.appendChild(d1);
+
+  meters2.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'signal-meter';
+    el.innerHTML = `
+      <div class="signal-meter-label">${m.label}</div>
+      <div class="signal-meter-bar-wrap">
+        <div class="signal-meter-fill" style="width:${m.value*100}%; background:hsla(${m.color}, 0.7);"></div>
+      </div>
+      <div class="signal-meter-value">${m.value.toFixed(2)}</div>
+    `;
+    bar.appendChild(el);
+  });
+
+  // Beat wheel
+  const bwWrap = document.createElement('div');
+  bwWrap.className = 'beat-wheel-wrap';
+  bwWrap.innerHTML = `
+    <div class="signal-meter-label">Phase</div>
+    <div class="beat-wheel"><canvas id="beatWheelCanvas" width="22" height="22"></canvas></div>
+    <div class="signal-meter-value">3.2</div>
+  `;
+  bar.appendChild(bwWrap);
+
+  const d2 = document.createElement('div');
+  d2.className = 'signal-divider';
+  bar.appendChild(d2);
+
+  textMeters.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'signal-meter';
+    el.innerHTML = `
+      <div class="signal-meter-label">${m.label}</div>
+      <div class="signal-meter-value" style="font-size:10px; color:rgba(180,210,255,0.85); margin-top:2px;">${m.text}</div>
+    `;
+    bar.appendChild(el);
+  });
+
+  // Draw beat wheel
+  setTimeout(() => {
+    const wc = document.getElementById('beatWheelCanvas');
+    if (!wc) return;
+    const wctx = wc.getContext('2d');
+    const cx = 11, cy = 11, r = 9;
+    wctx.clearRect(0, 0, 22, 22);
+    // 4 segments
+    for (let i = 0; i < 4; i++) {
+      const startAngle = -Math.PI/2 + i * Math.PI/2;
+      const endAngle = startAngle + Math.PI/2;
+      wctx.beginPath();
+      wctx.moveTo(cx, cy);
+      wctx.arc(cx, cy, r, startAngle, endAngle);
+      wctx.closePath();
+      const lit = i < 3;
+      wctx.fillStyle = lit ? `hsla(210, 70%, ${45+i*5}%, 0.6)` : 'rgba(25,35,60,0.4)';
+      wctx.fill();
+      wctx.strokeStyle = 'rgba(80,120,200,0.4)';
+      wctx.lineWidth = 0.5;
+      wctx.stroke();
+    }
+    // Center dot
+    wctx.beginPath(); wctx.arc(cx, cy, 2, 0, Math.PI*2);
+    wctx.fillStyle = 'rgba(140,180,255,0.7)'; wctx.fill();
+  }, 50);
+})();
+
+// ── LAYERS (left panel) ──
+(function(){
+  const wrap = document.getElementById('layersSection');
+  const layers = [
+    { name: 'Nebula Core', type: 'opaque', active: true, locked: false },
+    { name: 'Particle Field', type: 'transparent', active: true, locked: false },
+    { name: 'Warp Grid', type: 'fx-only', active: false, locked: true },
+    { name: 'Crystal Bloom', type: 'transparent', active: true, locked: false },
+    { name: 'Pulse Ring', type: 'transparent', active: true, locked: false },
+    { name: 'Deep Noise', type: 'mask', active: false, locked: false },
+    { name: 'Laser Mesh', type: 'opaque', active: true, locked: false },
+    { name: 'Void Echo', type: 'fx-only', active: false, locked: true },
+  ];
+  const meterColors = ['#4488ff','#8866ff','#ff9944','#8866ff','#8866ff','#44cc88','#4488ff','#ff9944'];
+  const meterHeights = [70, 55, 30, 80, 60, 20, 45, 15];
+  const typeLabels = { opaque: 'Opaque', transparent: 'Transparent', 'fx-only': 'FX Only', mask: 'Mask' };
+
+  layers.forEach((l, i) => {
+    const el = document.createElement('div');
+    el.className = 'layer-strip' + (i === 1 ? ' selected' : '');
+    el.innerHTML = `
+      <span class="layer-num">${i + 1}</span>
+      <span class="layer-type-badge ${l.type}">${typeLabels[l.type]}</span>
+      <span class="layer-name-tag">${l.name}</span>
+      ${l.locked ? '<span class="layer-lock-icon" title="Content Locked">L</span>' : ''}
+      <div class="layer-transport">
+        <div class="layer-transport-btn ${l.active ? 'active' : ''}" title="Play">P</div>
+        <div class="layer-transport-btn" title="Solo">S</div>
+        <div class="layer-transport-btn" title="Mute">M</div>
+      </div>
+      <div class="layer-meter-mini">
+        <div class="layer-meter-fill" style="height:${meterHeights[i]}%; background:${meterColors[i]};"></div>
+      </div>
+    `;
+    wrap.appendChild(el);
+  });
+})();
+
+// ── BROWSER CONTENT ──
+(function(){
+  const wrap = document.getElementById('browserContent');
+  const categories = [
+    { name: 'Warp', items: ['Ripple', 'Bulge', 'Wave', 'Liquid', 'Kaleidoscope', 'Fisheye', 'Swirl'] },
+    { name: 'Color', items: ['Hue Shift', 'Saturation', 'Brightness', 'Duotone', 'Chromatic Aberration'] },
+    { name: 'Glitch', items: ['Pixel Scatter', 'RGB Split', 'Block Glitch', 'Scanlines', 'Digital Rain'] },
+    { name: 'Time', items: ['Echo', 'Freeze', 'Frame Stutter', 'Posterize Time'] },
+    { name: 'Blur', items: ['Gaussian Blur', 'Zoom Blur', 'Motion Blur', 'Glow'] },
+  ];
+  categories.forEach(cat => {
+    const hdr = document.createElement('div');
+    hdr.className = 'browser-category';
+    hdr.textContent = cat.name;
+    wrap.appendChild(hdr);
+    cat.items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'browser-item';
+      el.textContent = item;
+      wrap.appendChild(el);
+    });
+  });
+})();
+
+// ── COLUMN HEADERS ──
+(function(){
+  const wrap = document.getElementById('columnHeaders');
+  for (let i = 1; i <= 5; i++) {
+    const el = document.createElement('div');
+    el.className = 'column-header';
+    el.textContent = 'Column ' + i;
+    wrap.appendChild(el);
+  }
+})();
+
+// ── CLIP GRID THUMBNAILS ──
+(function(){
+  const grid = document.getElementById('clipGrid');
+  const clipNames = [
+    'Mote', 'Laser Level', 'Item Layer', 'Nanocrystal', 'Main',
+    'Layer 3', 'Item Level', 'Main Layer', 'Item Layer', 'Layer 1',
+    'Layer 2', 'Layer 4', 'Particle', 'Nebula Ring', 'Layer 8',
+    'Crystal', 'Wave Form', 'Grid Pulse', 'Deep Void', 'Spectrum'
+  ];
+  const playingIdx = [0, 3, 6, 10, 14];
+
+  const visuals = [
+    (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w*0.4, h*0.5, 5, w*0.5, h*0.5, w*0.5);
+      g.addColorStop(0, '#8844cc'); g.addColorStop(0.5, '#2233aa'); g.addColorStop(1, '#050510');
+      ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+      for (let i = 0; i < 30; i++) { ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 1, 0, 6.28); ctx.fillStyle = 'rgba(200,180,255,0.5)'; ctx.fill(); }
+    },
+    (ctx, w, h) => {
+      ctx.fillStyle = '#060818'; ctx.fillRect(0,0,w,h);
+      for (let i = 0; i < 8; i++) {
+        ctx.strokeStyle = `hsla(${200+i*15}, 80%, 60%, 0.6)`;
+        ctx.lineWidth = 1; ctx.beginPath();
+        ctx.moveTo(0, h*0.2+i*h*0.08); ctx.lineTo(w, h*0.3+i*h*0.06); ctx.stroke();
+      }
+    },
+    (ctx, w, h) => {
+      ctx.fillStyle = '#0a0820'; ctx.fillRect(0,0,w,h);
+      for (let i = 0; i < 6; i++) {
+        ctx.beginPath(); ctx.moveTo(w*0.5, h*0.1+i*4);
+        ctx.lineTo(w*0.2+i*6, h*0.8-i*3); ctx.lineTo(w*0.8-i*6, h*0.8-i*3);
+        ctx.closePath(); ctx.strokeStyle = `rgba(100,180,255,${0.3+i*0.1})`; ctx.lineWidth = 0.8; ctx.stroke();
+      }
+    },
+    (ctx, w, h) => {
+      ctx.fillStyle = '#080614'; ctx.fillRect(0,0,w,h);
+      for (let i = 0; i < 60; i++) {
+        const x = Math.random()*w, y = Math.random()*h, s = Math.random()*2.5+0.5;
+        ctx.beginPath(); ctx.arc(x, y, s, 0, 6.28);
+        ctx.fillStyle = `hsla(${280+Math.random()*60}, 70%, ${50+Math.random()*30}%, ${0.3+Math.random()*0.5})`;
+        ctx.fill();
+      }
+    },
+    (ctx, w, h) => {
+      const g = ctx.createRadialGradient(w*0.5, h*0.5, 5, w*0.5, h*0.5, w*0.4);
+      g.addColorStop(0, '#44aacc'); g.addColorStop(0.6, '#1a4488'); g.addColorStop(1, '#060818');
+      ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+    },
+    (ctx, w, h) => {
+      ctx.fillStyle = '#0a0618'; ctx.fillRect(0,0,w,h);
+      for (let i = 3; i > 0; i--) {
+        ctx.beginPath(); ctx.arc(w*0.5, h*0.5, i*w*0.13, 0, 6.28);
+        ctx.strokeStyle = `rgba(160,100,255,${0.2+i*0.15})`; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+    },
+    (ctx, w, h) => {
+      ctx.fillStyle = '#060612'; ctx.fillRect(0,0,w,h);
+      for (let x = 0; x < w; x += 8) for (let y = 0; y < h; y += 8) {
+        if (Math.random() > 0.6) { ctx.fillStyle = `rgba(60,120,200,${Math.random()*0.4})`; ctx.fillRect(x, y, 6, 6); }
+      }
+    },
+    (ctx, w, h) => {
+      ctx.fillStyle = '#080618'; ctx.fillRect(0,0,w,h);
+      for (let j = 0; j < 4; j++) {
+        ctx.beginPath();
+        for (let x = 0; x < w; x++) { ctx.lineTo(x, h*0.5 + Math.sin(x*0.12+j*1.2)*h*0.15*(1-j*0.15)); }
+        ctx.strokeStyle = `hsla(${210+j*20}, 70%, 55%, ${0.5-j*0.1})`; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
+  ];
+
+  clipNames.forEach((name, i) => {
+    const thumb = document.createElement('div');
+    const isPlaying = playingIdx.includes(i);
+    thumb.className = 'clip-thumb' + (i === 3 ? ' selected' : '') + (isPlaying ? ' playing' : '');
+    const canvas = document.createElement('canvas');
+    canvas.width = 100; canvas.height = 80;
+    const ctx = canvas.getContext('2d');
+    visuals[i % visuals.length](ctx, 100, 80);
+    thumb.appendChild(canvas);
+    const label = document.createElement('div');
+    label.className = 'clip-thumb-label';
+    label.textContent = name;
+    thumb.appendChild(label);
+    grid.appendChild(thumb);
+  });
+})();
+
+// ── INSPECTOR (right panel) ──
+(function(){
+  const body = document.getElementById('inspectorBody');
+
+  // Preview
+  const preview = document.createElement('div');
+  preview.className = 'insp-preview';
+  const pc = document.createElement('canvas');
+  pc.width = 320; pc.height = 140; pc.id = 'inspPreviewCanvas';
+  preview.appendChild(pc);
+  body.appendChild(preview);
+
+  // Draw preview
+  setTimeout(() => {
+    const ctx = pc.getContext('2d');
+    ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 320, 140);
+    const cx = 160, cy = 70;
+    for (let r = 55; r > 20; r -= 0.5) {
+      const t = (r - 20) / 35;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `hsla(${260-t*80}, 70%, ${40+t*20}%, ${0.05+t*0.15})`;
+      ctx.lineWidth = 2; ctx.stroke();
+    }
+    const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, 18);
+    g2.addColorStop(0, 'rgba(160,120,255,0.4)');
+    g2.addColorStop(1, 'rgba(80,40,180,0.0)');
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI * 2); ctx.fill();
+  }, 50);
+
+  // Dashboard knobs section
+  const dashSection = document.createElement('div');
+  dashSection.className = 'insp-section';
+  dashSection.innerHTML = `<div class="insp-section-header">Dashboard <span class="insp-section-toggle">-</span></div>`;
+  const knobGrid = document.createElement('div');
+  knobGrid.className = 'dashboard-knobs';
+  const knobLabels = ['Opacity', 'Position X', 'Position Y', 'Scale', 'Rotation', 'Speed', 'Hue Shift', 'Feedback'];
+  const knobValues = [0.87, 0.5, 0.5, 0.7, 0.0, 0.5, 0.3, 0.0];
+  knobLabels.forEach((label, i) => {
+    const knob = document.createElement('div');
+    knob.className = 'dashboard-knob';
+    const kc = document.createElement('canvas');
+    kc.width = 36; kc.height = 36;
+    knob.appendChild(kc);
+    const kl = document.createElement('div');
+    kl.className = 'dashboard-knob-label';
+    kl.textContent = label;
+    knob.appendChild(kl);
+    knobGrid.appendChild(knob);
+
+    // Draw knob
+    setTimeout(() => {
+      const ctx = kc.getContext('2d');
+      const kcx = 18, kcy = 18, kr = 14;
+      // Background arc
+      ctx.beginPath();
+      ctx.arc(kcx, kcy, kr, Math.PI * 0.75, Math.PI * 2.25);
+      ctx.strokeStyle = 'rgba(30, 45, 70, 0.8)';
+      ctx.lineWidth = 3; ctx.stroke();
+      // Value arc
+      const angle = Math.PI * 0.75 + knobValues[i] * Math.PI * 1.5;
+      ctx.beginPath();
+      ctx.arc(kcx, kcy, kr, Math.PI * 0.75, angle);
+      ctx.strokeStyle = `hsla(${210+i*15}, 70%, 55%, 0.7)`;
+      ctx.lineWidth = 3; ctx.stroke();
+      // Pointer
+      const px = kcx + Math.cos(angle) * (kr - 4);
+      const py = kcy + Math.sin(angle) * (kr - 4);
+      ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(160,200,255,0.8)'; ctx.fill();
+      // Center
+      ctx.beginPath(); ctx.arc(kcx, kcy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(20,30,50,0.9)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(60,90,140,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+    }, 60);
+  });
+  dashSection.appendChild(knobGrid);
+  body.appendChild(dashSection);
+
+  // Cuepoints section
+  const cueSection = document.createElement('div');
+  cueSection.className = 'insp-section';
+  cueSection.innerHTML = `<div class="insp-section-header">Cuepoints <span class="insp-section-toggle">-</span></div>`;
+  const cueRow = document.createElement('div');
+  cueRow.className = 'cuepoint-row';
+  for (let i = 1; i <= 8; i++) {
+    const btn = document.createElement('div');
+    btn.className = 'cuepoint-btn' + (i <= 3 ? ' set' : '');
+    btn.textContent = i;
+    cueRow.appendChild(btn);
+  }
+  cueSection.appendChild(cueRow);
+  body.appendChild(cueSection);
+
+  // Effects stack section
+  const fxSection = document.createElement('div');
+  fxSection.className = 'insp-section';
+  fxSection.innerHTML = `<div class="insp-section-header">Effects <span class="insp-section-toggle">-</span></div>`;
+  const effects = [
+    { name: 'Ripple', bypassed: false, connected: true, params: [{name:'Intensity', val:0.65},{name:'Frequency', val:0.4}] },
+    { name: 'Hue Shift', bypassed: false, connected: false, params: [{name:'Amount', val:0.3}] },
+    { name: 'Echo', bypassed: true, connected: true, params: [{name:'Decay', val:0.8},{name:'Mix', val:0.5}] },
+  ];
+  effects.forEach(fx => {
+    const item = document.createElement('div');
+    item.className = 'fx-stack-item';
+    item.innerHTML = `
+      <div class="fx-bypass-btn ${fx.bypassed ? 'bypassed' : ''}" title="Bypass">B</div>
+      <span class="fx-name">${fx.name}</span>
+      <span class="fx-signal-triangle ${fx.connected ? 'connected' : ''}" title="Signal Route">&#9654;</span>
+      <span class="fx-delete-btn" title="Remove">x</span>
+    `;
+    fxSection.appendChild(item);
+    // Params
+    fx.params.forEach(p => {
+      const prow = document.createElement('div');
+      prow.className = 'fx-param-row';
+      prow.innerHTML = `
+        <span class="fx-signal-triangle" title="Map Parameter">&#9654;</span>
+        <span class="fx-param-label">${p.name}</span>
+        <div class="fx-param-slider-track">
+          <div class="fx-param-slider-fill" style="width:${p.val*100}%"></div>
+        </div>
+        <span class="fx-param-value">${p.val.toFixed(2)}</span>
+      `;
+      fxSection.appendChild(prow);
+    });
+  });
+  body.appendChild(fxSection);
+
+  // Keying section
+  const keySection = document.createElement('div');
+  keySection.className = 'insp-section';
+  keySection.innerHTML = `
+    <div class="insp-section-header">Keying <span class="insp-section-toggle">+</span></div>
+    <div class="keying-row"><span class="keying-label">Alpha Type</span><span class="keying-value">Luma is Alpha</span></div>
+    <div class="keying-row"><span class="keying-label">Blend Mode</span><span class="keying-value">Screen</span></div>
+  `;
+  body.appendChild(keySection);
+
+  // Feedback section
+  const fbSection = document.createElement('div');
+  fbSection.className = 'insp-section';
+  fbSection.innerHTML = `<div class="insp-section-header">Feedback <span class="insp-section-toggle">+</span></div>`;
+  const fbRow = document.createElement('div');
+  fbRow.className = 'feedback-preset-row';
+  ['Zoom In', 'Spiral', 'Drift', 'Kaleidoscope', 'Echo', 'Stretch'].forEach((p, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'feedback-preset-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = p;
+    fbRow.appendChild(btn);
+  });
+  fbSection.appendChild(fbRow);
+  body.appendChild(fbSection);
+
+  // Transform section
+  const transSection = document.createElement('div');
+  transSection.className = 'insp-section';
+  transSection.innerHTML = `
+    <div class="insp-section-header">Transform <span class="insp-section-toggle">+</span></div>
+    <div class="prop-row"><span class="prop-key">Position X</span><span class="prop-val">0.0</span></div>
+    <div class="prop-row"><span class="prop-key">Position Y</span><span class="prop-val">0.0</span></div>
+    <div class="prop-row"><span class="prop-key">Scale</span><span class="prop-val">100%</span></div>
+    <div class="prop-row"><span class="prop-key">Rotation</span><span class="prop-val">0.0 deg</span></div>
+    <div class="prop-row"><span class="prop-key">Anchor</span><span class="prop-val">Center</span></div>
+  `;
+  body.appendChild(transSection);
+
+  // Autopilot section
+  const apSection = document.createElement('div');
+  apSection.className = 'insp-section';
+  apSection.innerHTML = `
+    <div class="insp-section-header">Autopilot <span class="insp-section-toggle">+</span></div>
+    <div class="autopilot-row">
+      <div class="autopilot-toggle on"><div class="autopilot-toggle-dot" style="left:15px"></div></div>
+      <span class="autopilot-label">Enabled</span>
+    </div>
+    <div class="prop-row"><span class="prop-key">Trigger</span><span class="prop-val">On Beat</span></div>
+    <div class="prop-row"><span class="prop-key">Beats</span><span class="prop-val">8</span></div>
+    <div class="prop-row"><span class="prop-key">Action</span><span class="prop-val">Play Random</span></div>
+  `;
+  body.appendChild(apSection);
+
+})();
+</script>
+</body>
+</html>

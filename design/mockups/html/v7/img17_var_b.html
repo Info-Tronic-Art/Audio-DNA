@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 17 Var B (Improved)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #0d1018; color: #e0e0e0; font-size: 11px; }
+
+.topbar { height: 38px; background: linear-gradient(180deg, #1c2028 0%, #141820 100%); display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #262c38; gap: 10px; }
+.logo { font-size: 14px; font-weight: 700; color: #00d4aa; display: flex; align-items: center; gap: 6px; }
+.logo .d { width: 16px; height: 16px; background: linear-gradient(135deg, #00d4aa, #009880); transform: rotate(45deg); border-radius: 2px; }
+.mb-lbl { font-size: 9px; color: #4a5268; text-transform: uppercase; }
+.sep { width: 1px; height: 22px; background: #2a3040; }
+.sp { flex: 1; }
+.transport { display: flex; gap: 3px; }
+.tbtn { width: 26px; height: 26px; background: #1e2430; border: 1px solid #343e4c; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #778; font-size: 11px; cursor: pointer; }
+.tbtn:hover { background: #2a3440; }
+.tbtn.a { color: #00d4aa; border-color: #00d4aa55; }
+.vol-track { width: 110px; height: 8px; background: #0a0c14; border-radius: 4px; overflow: hidden; border: 1px solid #1e2430; }
+.vol-fill { height: 100%; background: linear-gradient(90deg, #4aff7f, #aaff55); border-radius: 4px; }
+.bpm-val { font-size: 18px; font-weight: 800; color: #4aff7f; font-family: monospace; background: #0a0c14; padding: 2px 12px; border: 1px solid #1e2430; border-radius: 4px; }
+.btn { background: #1e2430; border: 1px solid #343e4c; color: #889; padding: 3px 10px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+.btn:hover { background: #2a3440; }
+.btn.on { background: #00d4aa; color: #111; }
+.bdots { display: flex; gap: 4px; }
+.bd { width: 8px; height: 8px; border-radius: 50%; background: #1c2230; border: 1.5px solid #343e4c; }
+.bd.on { background: #00d4aa; border-color: #00ffcc; box-shadow: 0 0 5px #00d4aa88; }
+.bar-info { font-family: monospace; font-size: 10px; color: #667; }
+.fps { font-family: monospace; font-size: 10px; color: #4aff7f; }
+
+.toolbar { height: 26px; background: #131820; display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #1e2430; gap: 8px; }
+.tool-lbl { font-size: 9px; color: #3a4258; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.tool-btn { font-size: 9px; color: #667; cursor: pointer; padding: 2px 10px; background: #1a2030; border: 1px solid #242c3a; border-radius: 3px; }
+.tool-btn:hover { color: #aab; border-color: #4a5268; }
+
+.main { display: flex; height: calc(1080px - 38px - 26px); }
+
+/* GRID */
+.grid { flex: 1; overflow: auto; }
+.lrow { display: flex; border-bottom: 1px solid #181e28; }
+.lhdr { width: 280px; min-width: 280px; background: linear-gradient(90deg, #151a24 0%, #131820 100%); padding: 5px 8px; border-right: 1px solid #1e2430; }
+.lh1 { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.lsm { display: flex; gap: 2px; }
+.lsm span { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; border: 1px solid #343e4c; border-radius: 3px; color: #4a5268; cursor: pointer; }
+.ln { font-size: 10px; color: #bbc; font-weight: 600; flex: 1; }
+.lbg { font-size: 7px; font-weight: 700; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; }
+.lbtns { display: flex; gap: 2px; flex-wrap: wrap; }
+.lb { font-size: 7px; padding: 2px 5px; background: #1a2030; border: 1px solid #242c3a; border-radius: 3px; color: #556; cursor: pointer; }
+.lb:hover { background: #2a3440; color: #aab; }
+.lb.a { background: #00d4aa18; border-color: #00d4aa44; color: #00d4aa; }
+/* Opacity mini */
+.lop { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+.lop label { font-size: 7px; color: #3a4258; text-transform: uppercase; width: 35px; }
+.lop .obar { flex: 1; height: 4px; background: #0a0c14; border-radius: 2px; overflow: hidden; }
+.lop .ofill { height: 100%; background: #00d4aa; border-radius: 2px; }
+.lop .ov { font-size: 7px; color: #4a5268; font-family: monospace; }
+
+.lcells { display: flex; gap: 3px; padding: 3px 4px; flex: 1; overflow-x: auto; }
+.lc { width: 86px; height: 76px; min-width: 86px; border-radius: 4px; border: 1.5px solid #1e2430; overflow: hidden; cursor: pointer; background: #0a0c14; position: relative; transition: all 0.12s; }
+.lc:hover { border-color: #3a4258; }
+.lc.a { border-color: #00d4aa; box-shadow: 0 0 8px #00d4aa33; }
+.lc .t { width: 100%; height: 56px; }
+.lc .n { height: 20px; background: linear-gradient(180deg, #151a24, #111820); font-size: 7px; color: #667; display: flex; align-items: center; justify-content: center; }
+.lc .bg { position: absolute; top: 3px; left: 3px; font-size: 6px; font-weight: 700; padding: 1px 4px; border-radius: 2px; }
+.bv { background: #e8553560; color: #ffc; }
+.bi { background: #3588e860; color: #ddf; }
+.bs { background: #00d4aa60; color: #112; }
+.g1 { background: linear-gradient(135deg, #0a1020, #1a0a30); }
+.g2 { background: radial-gradient(circle, #fff1, transparent); }
+.g3 { background: conic-gradient(from 0deg, #111, #1a1a2a, #111); }
+.g4 { background: radial-gradient(circle, #4488ff11, transparent); }
+.g5 { background: linear-gradient(45deg, #1a1a2a, #0a0a1a); }
+.g6 { background: radial-gradient(circle, #aa44ff11, transparent); }
+.g7 { background: linear-gradient(135deg, #001a22, #002a1a); }
+.g8 { background: linear-gradient(180deg, #1a0a1a, #0a1a2a); }
+.g9 { background: radial-gradient(circle at 30% 40%, #22446622, transparent); }
+.g10 { background: linear-gradient(225deg, #0a2010, #100a20); }
+
+/* RIGHT */
+.right { width: 460px; background: linear-gradient(180deg, #131820 0%, #0d1018 100%); border-left: 1px solid #1e2430; display: flex; flex-direction: column; }
+
+/* Preview */
+.prev-sec { padding: 10px; }
+.prev-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.prev-lbl { font-size: 9px; color: #4a5268; text-transform: uppercase; letter-spacing: 1px; }
+.prev-wins { display: flex; gap: 8px; }
+.pw { flex: 1; height: 150px; background: #080a10; border-radius: 5px; border: 1px solid #1e2430; overflow: hidden; position: relative; }
+.pw .pvis { width: 100%; height: 100%; }
+.pw-main .pvis { background: radial-gradient(circle at 50% 45%, #6633aa33, #22115522, #080a10); }
+.pw-out .pvis { background: radial-gradient(ellipse at 50% 50%, #2244aa18, #080a10); }
+.pw .pl { position: absolute; bottom: 4px; left: 8px; font-size: 7px; color: #3a4258; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Viz */
+.viz { padding: 10px; border-top: 1px solid #1a2030; }
+.viz-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.viz-lbl { font-size: 9px; color: #4a5268; text-transform: uppercase; letter-spacing: 1px; }
+.viz-tabs { display: flex; gap: 4px; }
+.vt { font-size: 8px; padding: 3px 10px; background: #1a2030; border: 1px solid #242c3a; border-radius: 3px; color: #4a5268; cursor: pointer; }
+.vt.a { background: #00d4aa12; border-color: #00d4aa44; color: #00d4aa; }
+.spec { height: 90px; background: #080a10; border-radius: 5px; border: 1px solid #1a2030; display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding: 6px 10px; }
+.spec .sb { width: 7px; border-radius: 2px 2px 0 0; }
+.sg { background: linear-gradient(180deg, #4aff7f, #22aa44); }
+.sy { background: linear-gradient(180deg, #ffdd4a, #cc8800); }
+.sr { background: linear-gradient(180deg, #ff5533, #cc2200); }
+
+/* Props */
+.props { flex: 1; display: flex; gap: 1px; overflow-y: auto; }
+.pcol { flex: 1; background: #111820; padding: 8px 10px; border-top: 1px solid #1a2030; }
+.pch { font-size: 9px; color: #4a5268; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600; padding-bottom: 4px; border-bottom: 1px solid #1a2030; }
+.pr { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+.pr .pl { font-size: 8px; color: #3a4258; width: 75px; }
+.pr .pv { font-size: 9px; color: #889; font-family: monospace; }
+.pr .pdd { font-size: 8px; background: #181e2a; border: 1px solid #242c3a; color: #778; padding: 1px 5px; border-radius: 3px; }
+.pr .psl { flex: 1; height: 5px; background: #0a0c14; border-radius: 3px; overflow: hidden; }
+.pr .psl .pf { height: 100%; border-radius: 3px; }
+
+.dlogo { text-align: center; padding: 14px; }
+.dlogo .dl { display: inline-block; width: 50px; height: 50px; background: linear-gradient(135deg, #00d4aa12, #00d4aa28); transform: rotate(45deg); border-radius: 6px; border: 1.5px solid #00d4aa28; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><div class="d"></div>Audio-DNA VJ</div>
+  <div class="sep"></div>
+  <span class="mb-lbl">Master Audio</span>
+  <div class="transport">
+    <div class="tbtn">&#9664;</div><div class="tbtn a">&#9654;</div><div class="tbtn">&#9632;</div><div class="tbtn">&#9679;</div>
+  </div>
+  <div class="vol-track"><div class="vol-fill" style="width:75%;"></div></div>
+  <div class="sep"></div>
+  <span class="mb-lbl">Master Vol</span>
+  <div class="vol-track" style="width:90px;"><div class="vol-fill" style="width:85%;"></div></div>
+  <div class="sep"></div>
+  <span class="mb-lbl">BPM</span>
+  <span class="bpm-val">128.00</span>
+  <div class="btn">TAP</div>
+  <div class="bdots"><div class="bd on"></div><div class="bd"></div><div class="bd"></div><div class="bd"></div></div>
+  <div class="bar-info">Bar 32 &middot; Beat 1:1</div>
+  <div class="sep"></div>
+  <span class="mb-lbl">Fade</span><span style="font-size:10px; color:#889;">Sim</span>
+  <span class="mb-lbl">Deck</span><span style="font-size:10px; color:#889;">A</span>
+  <div class="sp"></div>
+  <span class="fps">60 FPS</span>
+  <div class="btn">&#9881;</div>
+</div>
+
+<div class="toolbar">
+  <span class="tool-lbl">Composition Grid</span>
+  <div class="tool-btn">Drag and Drop</div>
+  <div class="tool-btn">Add Layer</div>
+  <div class="tool-btn">Add Column</div>
+  <div class="tool-btn">Snap Mode</div>
+  <div class="sp"></div>
+  <div class="tool-btn">Scene Flow</div>
+  <div class="tool-btn">Save</div>
+  <div class="tool-btn">Load</div>
+</div>
+
+<div class="main">
+  <div class="grid">
+    <!-- 8 layers -->
+    <div class="lrow">
+      <div class="lhdr">
+        <div class="lh1"><div class="lsm"><span>S</span><span>M</span></div><div class="ln">Layer 1</div><span class="lbg" style="background:#e85535; color:#fff;">VID</span></div>
+        <div class="lbtns"><span class="lb a">Play</span><span class="lb">Res</span><span class="lb">Pause</span><span class="lb">Load</span><span class="lb">Master</span><span class="lb">Bypass</span></div>
+        <div class="lop"><label>Opacity</label><div class="obar"><div class="ofill" style="width:100%;"></div></div><span class="ov">100%</span></div>
+      </div>
+      <div class="lcells">
+        <div class="lc a"><div class="t g1"></div><div class="n">Tunnel Fly</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g2"></div><div class="n">Nebula</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g3"></div><div class="n">Prism</div><span class="bg bi">IMG</span></div>
+        <div class="lc"><div class="t g4"></div><div class="n">Fractal</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g5"></div><div class="n">Crowd</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g6"></div><div class="n">Laser</div></div>
+        <div class="lc"><div class="t g7"></div><div class="n">Grid</div></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Spiral</div></div>
+        <div class="lc"><div class="t g9"></div><div class="n">Sparkle</div></div>
+        <div class="lc"><div class="t g10"></div><div class="n">Menger</div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="lrow">
+      <div class="lhdr">
+        <div class="lh1"><div class="lsm"><span>S</span><span>M</span></div><div class="ln">Layer 2</div><span class="lbg" style="background:#3588e8; color:#fff;">IMG</span></div>
+        <div class="lbtns"><span class="lb a">Play</span><span class="lb">Res</span><span class="lb">Pause</span><span class="lb">Load</span><span class="lb">Master</span><span class="lb">Bypass</span></div>
+        <div class="lop"><label>Opacity</label><div class="obar"><div class="ofill" style="width:85%;"></div></div><span class="ov">85%</span></div>
+      </div>
+      <div class="lcells">
+        <div class="lc"><div class="t g4"></div><div class="n">Grid Lines</div><span class="bg bi">IMG</span></div>
+        <div class="lc a"><div class="t g5"></div><div class="n">VHS</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g6"></div><div class="n">Pixel Rain</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g7"></div><div class="n">Waveform</div></div>
+        <div class="lc"><div class="t g1"></div><div class="n">Kaleido</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Julia</div></div>
+        <div class="lc"><div class="t g2"></div><div class="n">Newton</div></div>
+        <div class="lc"><div class="t g9"></div><div class="n">Ship</div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="lrow">
+      <div class="lhdr">
+        <div class="lh1"><div class="lsm"><span>S</span><span>M</span></div><div class="ln">Layer 3</div><span class="lbg" style="background:#00d4aa; color:#111;">SRC</span></div>
+        <div class="lbtns"><span class="lb a">Play</span><span class="lb">Res</span><span class="lb">Pause</span><span class="lb">Load</span><span class="lb">Master</span><span class="lb">Bypass</span></div>
+        <div class="lop"><label>Opacity</label><div class="obar"><div class="ofill" style="width:80%;"></div></div><span class="ov">80%</span></div>
+      </div>
+      <div class="lcells">
+        <div class="lc"><div class="t g7"></div><div class="n">Mandelbrot</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Apollon</div></div>
+        <div class="lc a"><div class="t g9"></div><div class="n">Menger</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g10"></div><div class="n">KIFS</div></div>
+        <div class="lc"><div class="t g2"></div><div class="n">Torus</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g3"></div><div class="n">Sierp</div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="lrow">
+      <div class="lhdr">
+        <div class="lh1"><div class="lsm"><span>S</span><span>M</span></div><div class="ln">Layer 4</div><span class="lbg" style="background:#aa55dd; color:#fff;">SRC</span></div>
+        <div class="lbtns"><span class="lb a">Play</span><span class="lb">Res</span><span class="lb">Pause</span><span class="lb">Load</span><span class="lb">Master</span><span class="lb">Bypass</span></div>
+        <div class="lop"><label>Opacity</label><div class="obar"><div class="ofill" style="width:70%;"></div></div><span class="ov">70%</span></div>
+      </div>
+      <div class="lcells">
+        <div class="lc"><div class="t g10"></div><div class="n">Galaxy</div></div>
+        <div class="lc"><div class="t g1"></div><div class="n">Stage</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g3"></div><div class="n">Flash</div></div>
+        <div class="lc a"><div class="t g5"></div><div class="n">Perlin</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g6"></div><div class="n">Voronoi</div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="lrow">
+      <div class="lhdr">
+        <div class="lh1"><div class="lsm"><span>S</span><span>M</span></div><div class="ln">Layer 5</div><span class="lbg" style="background:#e85535; color:#fff;">VID</span></div>
+        <div class="lbtns"><span class="lb a">Play</span><span class="lb">Res</span><span class="lb">Pause</span><span class="lb">Load</span><span class="lb">Master</span><span class="lb">Bypass</span></div>
+        <div class="lop"><label>Opacity</label><div class="obar"><div class="ofill" style="width:100%;"></div></div><span class="ov">100%</span></div>
+      </div>
+      <div class="lcells">
+        <div class="lc"><div class="t g2"></div><div class="n">Beam</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g4"></div><div class="n">Ring</div></div>
+        <div class="lc"><div class="t g6"></div><div class="n">Wave</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Cymatics</div></div>
+        <div class="lc a"><div class="t g10"></div><div class="n">Attractor</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="lrow">
+      <div class="lhdr">
+        <div class="lh1"><div class="lsm"><span>S</span><span>M</span></div><div class="ln">Layer 6</div><span class="lbg" style="background:#3588e8; color:#fff;">IMG</span></div>
+        <div class="lbtns"><span class="lb a">Play</span><span class="lb">Res</span><span class="lb">Pause</span><span class="lb">Load</span><span class="lb">Master</span><span class="lb">Bypass</span></div>
+        <div class="lop"><label>Opacity</label><div class="obar"><div class="ofill" style="width:60%;"></div></div><span class="ov">60%</span></div>
+      </div>
+      <div class="lcells">
+        <div class="lc"><div class="t g3"></div><div class="n">Texture A</div><span class="bg bi">IMG</span></div>
+        <div class="lc a"><div class="t g5"></div><div class="n">Texture B</div><span class="bg bi">IMG</span></div>
+        <div class="lc"><div class="t g7"></div><div class="n">Gradient</div></div>
+        <div class="lc"><div class="t g9"></div><div class="n">Mask</div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="lrow">
+      <div class="lhdr">
+        <div class="lh1"><div class="lsm"><span>S</span><span>M</span></div><div class="ln">Layer 7</div><span class="lbg" style="background:#00d4aa; color:#111;">SRC</span></div>
+        <div class="lbtns"><span class="lb a">Play</span><span class="lb">Res</span><span class="lb">Pause</span><span class="lb">Load</span><span class="lb">Master</span><span class="lb">Bypass</span></div>
+        <div class="lop"><label>Opacity</label><div class="obar"><div class="ofill" style="width:50%;"></div></div><span class="ov">50%</span></div>
+      </div>
+      <div class="lcells">
+        <div class="lc"><div class="t g6"></div><div class="n">Fluid</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Gravity</div></div>
+        <div class="lc"><div class="t g1"></div><div class="n">Particles</div><span class="bg bs">SRC</span></div>
+        <div class="lc a"><div class="t g10"></div><div class="n">Attractor</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="lrow">
+      <div class="lhdr">
+        <div class="lh1"><div class="lsm"><span>S</span><span>M</span></div><div class="ln">Layer 8</div><span class="lbg" style="background:#e85535; color:#fff;">FX</span></div>
+        <div class="lbtns"><span class="lb a">Play</span><span class="lb">Res</span><span class="lb">Pause</span><span class="lb">Load</span><span class="lb">Master</span><span class="lb">Bypass</span></div>
+        <div class="lop"><label>Opacity</label><div class="obar"><div class="ofill" style="width:100%;"></div></div><span class="ov">100%</span></div>
+      </div>
+      <div class="lcells">
+        <div class="lc"><div class="t g9"></div><div class="n">FX - Blur</div></div>
+        <div class="lc"><div class="t g2"></div><div class="n">FX - Echo</div></div>
+        <div class="lc a"><div class="t g4"></div><div class="n">FX - Kaleid</div></div>
+        <div class="lc"><div class="t g7"></div><div class="n">FX - RGB</div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0a0c14;"></div><div class="n"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="prev-sec">
+      <div class="prev-top"><span class="prev-lbl">Preview Window</span><span class="prev-lbl">Main Output</span></div>
+      <div class="prev-wins">
+        <div class="pw pw-main"><div class="pvis"></div><span class="pl">Preview</span></div>
+        <div class="pw pw-out"><div class="pvis"></div><span class="pl">Output</span></div>
+      </div>
+    </div>
+    <div class="viz">
+      <div class="viz-top"><span class="viz-lbl">Audio Visualizer</span><div class="viz-tabs"><div class="vt a">Melody</div><div class="vt">Music</div><div class="vt">Beats</div></div></div>
+      <div class="spec">
+        <div class="sb sg" style="height:15px;"></div><div class="sb sg" style="height:24px;"></div><div class="sb sg" style="height:34px;"></div>
+        <div class="sb sg" style="height:46px;"></div><div class="sb sy" style="height:58px;"></div><div class="sb sy" style="height:52px;"></div>
+        <div class="sb sg" style="height:40px;"></div><div class="sb sg" style="height:48px;"></div><div class="sb sy" style="height:56px;"></div>
+        <div class="sb sg" style="height:42px;"></div><div class="sb sg" style="height:30px;"></div><div class="sb sg" style="height:22px;"></div>
+        <div class="sb sg" style="height:32px;"></div><div class="sb sg" style="height:44px;"></div><div class="sb sy" style="height:54px;"></div>
+        <div class="sb sy" style="height:62px;"></div><div class="sb sr" style="height:70px;"></div><div class="sb sy" style="height:60px;"></div>
+        <div class="sb sg" style="height:46px;"></div><div class="sb sg" style="height:34px;"></div><div class="sb sg" style="height:24px;"></div>
+        <div class="sb sg" style="height:30px;"></div><div class="sb sg" style="height:40px;"></div><div class="sb sg" style="height:48px;"></div>
+        <div class="sb sy" style="height:56px;"></div><div class="sb sy" style="height:50px;"></div><div class="sb sg" style="height:38px;"></div>
+        <div class="sb sg" style="height:26px;"></div><div class="sb sg" style="height:18px;"></div><div class="sb sg" style="height:14px;"></div>
+        <div class="sb sg" style="height:18px;"></div><div class="sb sg" style="height:24px;"></div><div class="sb sg" style="height:16px;"></div>
+        <div class="sb sg" style="height:10px;"></div>
+      </div>
+    </div>
+    <div class="props">
+      <div class="pcol">
+        <div class="pch">Layer Properties</div>
+        <div class="pr"><span class="pl">Name</span><span class="pv">Layer 1</span></div>
+        <div class="pr"><span class="pl">Type</span><span class="pdd">Opaque</span></div>
+        <div class="pr"><span class="pl">Blend</span><span class="pdd">Normal</span></div>
+        <div class="pr"><span class="pl">Opacity</span><div class="psl"><div class="pf" style="width:100%; background:#00d4aa;"></div></div><span class="pv">100%</span></div>
+        <div class="pr"><span class="pl">Layer Size</span><span class="pv">1920x1080</span></div>
+        <div class="pr"><span class="pl">Position</span><span class="pv">0, 0</span></div>
+        <div class="pr"><span class="pl">Rotation</span><span class="pv">0.0</span></div>
+        <div class="pr"><span class="pl">Autopilot</span><span class="pdd">On Beat</span></div>
+        <div class="pr"><span class="pl">Beat Count</span><span class="pv">8</span></div>
+        <div class="pr"><span class="pl">Format</span><span class="pv">RGB 1080p</span></div>
+      </div>
+      <div class="pcol">
+        <div class="pch">Properties / Video</div>
+        <div class="pr"><span class="pl">Name</span><span class="pdd">Preview</span></div>
+        <div class="pr"><span class="pl">Layer Type</span><span class="pv">Default</span></div>
+        <div class="pr"><span class="pl">Opacity</span><div class="psl"><div class="pf" style="width:85%; background:#00d4aa;"></div></div><span class="pv">85%</span></div>
+        <div class="pr"><span class="pl">Width</span><span class="pv">1920</span></div>
+        <div class="pr"><span class="pl">Height</span><span class="pv">1080</span></div>
+        <div class="pr"><span class="pl">Output</span><span class="pdd">Syphon</span></div>
+        <div class="pr"><span class="pl">Recording</span><span class="pdd">Off</span></div>
+        <div class="pr"><span class="pl">Codec</span><span class="pv">H.264</span></div>
+      </div>
+    </div>
+    <div class="dlogo"><div class="dl"></div></div>
+  </div>
+</div>
+
+</body>
+</html>

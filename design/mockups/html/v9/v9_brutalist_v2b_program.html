@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — v9 Brutalist v2b — Program Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1920px; height: 1080px;
+    background: #0a0a0a;
+    color: #e8e8e8;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  /* Grain overlay */
+  .grain {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* Layout cells */
+  .app {
+    width: 1920px; height: 1080px;
+    display: grid;
+    grid-template-rows: 24px 56px 100px 1fr 200px 18px;
+  }
+
+  /* -------- MENU -------- */
+  .menu {
+    background: #0a0a0a;
+    border-bottom: 1px solid #222;
+    display: flex; align-items: center; padding: 0 16px;
+    gap: 22px;
+    font-size: 11px; color: #6e6e6e;
+  }
+  .menu span:hover { color: #e8e8e8; }
+
+  /* -------- TOP BAR -------- */
+  .topbar {
+    background: #111;
+    border-bottom: 1px solid #222;
+    display: grid;
+    grid-template-columns: 160px 210px 180px 120px 200px 1fr 180px 170px 180px;
+    align-items: center;
+    padding: 0 16px;
+    gap: 18px;
+  }
+  .logo {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600; font-size: 14px;
+    color: #fff; letter-spacing: 0.02em;
+  }
+  .logo .dot { color: #ff4500; }
+  .bpm-block { display: flex; align-items: baseline; gap: 10px; }
+  .bpm {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 300;
+    font-size: 48px; line-height: 1;
+    color: #ff4500;
+    letter-spacing: -0.02em;
+  }
+  .bpm-label {
+    font-size: 9px; letter-spacing: 0.15em;
+    color: #6e6e6e; text-transform: uppercase;
+  }
+  .bar-phrase {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: #e8e8e8;
+  }
+  .bar-phrase .dim { color: #6e6e6e; }
+  .beat-wheel { display: flex; gap: 4px; }
+  .beat-cell {
+    width: 18px; height: 18px;
+    border: 1px solid #333;
+    background: #0a0a0a;
+  }
+  .beat-cell.active { background: #ff4500; border-color: #ff4500; animation: beatPulse 500ms ease-out; }
+  @keyframes beatPulse {
+    0% { background: #fff; box-shadow: 0 0 8px #ff4500; }
+    100% { background: #ff4500; box-shadow: 0 0 0 #ff4500; }
+  }
+  .ctrl-btns { display: flex; gap: 1px; }
+  .ctrl-btn {
+    width: 38px; height: 24px;
+    border: 1px solid #333;
+    background: #0a0a0a;
+    color: #e8e8e8;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  .ctrl-btn:hover { background: #1a1a1a; }
+  .ctrl-btn.active { background: #1a1a1a; color: #fff; border-color: #444; }
+  .master-fader { display: flex; align-items: center; gap: 8px; }
+  .master-fader-label { font-size: 9px; letter-spacing: 0.15em; color: #6e6e6e; }
+  .fader-track {
+    width: 140px; height: 8px;
+    background: #1a1a1a;
+    border: 1px solid #222;
+    position: relative;
+  }
+  .fader-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 78%;
+    background: linear-gradient(to right, #333, #e8e8e8);
+  }
+  .fader-value { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #e8e8e8; min-width: 28px; text-align: right; }
+  .rec-block { display: flex; align-items: center; gap: 8px; }
+  .rec-dot {
+    width: 8px; height: 8px;
+    background: #d22;
+    border-radius: 50%;
+    animation: recPulse 1s infinite;
+  }
+  @keyframes recPulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+  .rec-time { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #e8e8e8; letter-spacing: 0.02em; }
+  .mode-toggle { display: flex; justify-self: end; }
+  .mode-cell {
+    width: 84px; height: 32px;
+    border: 1px solid #333;
+    background: #0a0a0a;
+    color: #6e6e6e;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.12em;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .mode-cell.selected {
+    background: #fff;
+    color: #0a0a0a;
+    border-color: #fff;
+  }
+
+  /* -------- WAVEFORM -------- */
+  .waveform-wrap {
+    background: #0a0a0a;
+    border-bottom: 1px solid #222;
+    position: relative;
+    overflow: hidden;
+  }
+  .waveform-wrap svg {
+    display: block;
+    width: 100%; height: 100%;
+  }
+  .wave-meta {
+    position: absolute; top: 6px; left: 16px;
+    display: flex; gap: 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #6e6e6e;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .wave-meta .deck-a { color: #88ccff; }
+  .wave-meta .deck-b { color: #cccccc; }
+  .wave-struct {
+    position: absolute; top: 6px; right: 16px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 10px;
+    color: #6e6e6e;
+    letter-spacing: 0.12em;
+    z-index: 2;
+  }
+
+  /* -------- MAIN ROW (signal list / router / editor) -------- */
+  .main-row {
+    display: grid;
+    grid-template-columns: 320px 1fr 360px;
+    background: #0a0a0a;
+    overflow: hidden;
+  }
+
+  /* -------- SIGNAL LIST -------- */
+  .panel { border-right: 1px solid #222; overflow: hidden; display: flex; flex-direction: column; }
+  .panel:last-child { border-right: 0; }
+  .panel-header {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #222;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .panel-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600; font-size: 22px;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .panel-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #6e6e6e;
+    letter-spacing: 0.12em;
+  }
+  .signal-list { overflow-y: auto; padding-bottom: 8px; }
+  .sig-group {
+    padding: 10px 14px 4px;
+    font-size: 10px; font-weight: 600;
+    color: #6e6e6e;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0a0a0a;
+    display: flex; justify-content: space-between;
+  }
+  .sig-group .count { color: #444; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.05em; }
+  .sig-row {
+    height: 24px;
+    padding: 0 14px 0 17px;
+    display: grid;
+    grid-template-columns: 1fr 50px 120px 26px;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    position: relative;
+    border-bottom: 1px solid #0f0f0f;
+  }
+  .sig-row:hover { background: #111; }
+  .sig-name { font-size: 11px; color: #e8e8e8; }
+  .sig-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6e6e6e; text-align: right; }
+  .sig-meter {
+    height: 2px; background: #1a1a1a; position: relative;
+  }
+  .sig-meter-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #6e6e6e; }
+  .sig-routes {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: #6e6e6e;
+    text-align: right;
+  }
+  .sig-routes.has { color: #e8e8e8; }
+  .sig-row.selected {
+    background: #1a1a1a;
+  }
+  .sig-row.selected::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: #ff4500;
+  }
+  .sig-row.selected .sig-name { color: #fff; font-weight: 500; }
+  .sig-row.selected .sig-val { color: #ff4500; }
+  .sig-row.selected .sig-meter-fill { background: #ff4500; }
+
+  /* -------- SIGNAL ROUTER (hero) -------- */
+  .router { position: relative; overflow: hidden; }
+  .router-canvas {
+    position: absolute; inset: 0;
+  }
+  .router-grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(#14141400 0, #14141400 19px, #141414 20px),
+      linear-gradient(90deg, #14141400 0, #14141400 19px, #141414 20px);
+    background-size: 20px 20px;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  .router-header {
+    padding: 14px 22px 10px;
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 1px solid #222;
+    position: relative;
+    background: #0a0a0a;
+  }
+  .router-legend {
+    display: flex; gap: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #6e6e6e;
+  }
+  .router-legend .sw {
+    display: inline-block; width: 18px; height: 2px; vertical-align: middle; margin-right: 6px;
+  }
+  .router-body {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+  }
+  .source-col, .target-col {
+    position: absolute; top: 0; bottom: 0; width: 200px;
+    padding: 20px 16px;
+    display: flex; flex-direction: column; gap: 14px;
+    z-index: 3;
+  }
+  .source-col { left: 0; }
+  .target-col { right: 0; width: 220px; }
+  .src-chip, .tgt-chip {
+    height: 40px;
+    border: 1px solid #333;
+    background: #0a0a0a;
+    padding: 6px 10px;
+    display: flex; flex-direction: column; justify-content: center;
+    gap: 3px;
+    position: relative;
+  }
+  .src-chip.active, .tgt-chip.active { border-color: #555; background: #111; }
+  .src-chip.selected { border-color: #ff4500; }
+  .src-chip .chip-name, .tgt-chip .chip-name {
+    font-size: 11px; color: #e8e8e8; font-weight: 500; letter-spacing: 0.02em;
+  }
+  .src-chip.selected .chip-name { color: #fff; }
+  .chip-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: #6e6e6e;
+    display: flex; justify-content: space-between;
+  }
+  .chip-meter { height: 2px; background: #1a1a1a; position: relative; margin-top: 2px; }
+  .chip-meter-fill { position: absolute; left: 0; top: 0; bottom: 0; background: #888; }
+  .src-chip.selected .chip-meter-fill { background: #ff4500; }
+
+  .router-svg {
+    position: absolute;
+    left: 200px; right: 220px;
+    top: 0; bottom: 0;
+    width: calc(100% - 420px);
+    height: 100%;
+    z-index: 2;
+  }
+  .route-path { fill: none; stroke: #555; stroke-width: 0.5; stroke-dasharray: 3 3; }
+  .route-path.active { stroke: #e8e8e8; stroke-width: 2; stroke-dasharray: none; }
+  .route-path.selected { stroke: #ff4500; stroke-width: 2; stroke-dasharray: none; animation: flow 6s linear infinite; }
+  .route-path.active.flowing { stroke-dasharray: 6 4; animation: flow 6s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -80; } }
+  .route-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    fill: #6e6e6e;
+    letter-spacing: 0.08em;
+  }
+  .route-label.active { fill: #e8e8e8; }
+  .route-label.selected { fill: #ff4500; font-size: 10px; }
+
+  .router-footer {
+    height: 42px;
+    border-top: 1px solid #222;
+    background: #0a0a0a;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px;
+    position: relative;
+    z-index: 3;
+  }
+  .rf-stat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #6e6e6e;
+    letter-spacing: 0.12em;
+  }
+  .rf-stat .big { color: #e8e8e8; font-size: 12px; }
+  .rf-btn {
+    height: 28px; padding: 0 14px;
+    border: 1px solid #333;
+    background: transparent; color: #e8e8e8;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px; letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+  .rf-btn:hover { background: #1a1a1a; }
+
+  /* -------- SIGNAL EDITOR -------- */
+  .editor { background: #0a0a0a; display: flex; flex-direction: column; overflow: hidden; }
+  .ed-head {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #222;
+    display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .ed-head .ttl {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600; font-size: 22px;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .ed-head .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #6e6e6e;
+    letter-spacing: 0.12em;
+  }
+  .ed-body { flex: 1; overflow-y: auto; padding-bottom: 14px; }
+  .ed-value {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  .ed-value .big {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 300;
+    font-size: 48px;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    padding: 2px 6px;
+    animation: valueChange 2s infinite;
+  }
+  @keyframes valueChange {
+    0%, 88% { background: transparent; color: #fff; }
+    92% { background: #ff4500; color: #fff; }
+    100% { background: transparent; color: #fff; }
+  }
+  .ed-value .rng {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #6e6e6e;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+  }
+  .ed-value .rng b { color: #e8e8e8; font-weight: 400; }
+
+  .ed-sec-head {
+    padding: 14px 16px 8px;
+    font-size: 10px; font-weight: 600;
+    color: #6e6e6e;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    display: flex; justify-content: space-between;
+  }
+  .ed-sliders { padding: 0 16px; display: flex; flex-direction: column; gap: 4px; }
+  .ed-slider {
+    height: 32px;
+    display: grid;
+    grid-template-columns: 90px 1fr 44px;
+    gap: 10px;
+    align-items: center;
+  }
+  .ed-slider .lbl {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px; color: #e8e8e8;
+    letter-spacing: 0.02em;
+  }
+  .ed-slider .track {
+    height: 4px; background: #1a1a1a; position: relative;
+    border: 1px solid #222;
+  }
+  .ed-slider .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: #e8e8e8;
+  }
+  .ed-slider .knob {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    width: 8px; height: 14px;
+    background: #fff;
+  }
+  .ed-slider .v {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; color: #e8e8e8;
+    text-align: right;
+  }
+
+  .wave-btns { padding: 0 16px; display: flex; gap: 1px; }
+  .wave-btn {
+    width: 40px; height: 32px;
+    border: 1px solid #333;
+    background: #0a0a0a;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .wave-btn:hover { background: #1a1a1a; }
+  .wave-btn.selected { background: #1a1a1a; border-color: #555; }
+  .wave-btn.selected svg path, .wave-btn.selected svg polyline, .wave-btn.selected svg polygon {
+    stroke: #fff; fill: none;
+  }
+  .wave-btn svg path, .wave-btn svg polyline, .wave-btn svg polygon {
+    stroke: #6e6e6e; fill: none; stroke-width: 1.4;
+  }
+  .div-btns { padding: 4px 16px 0; display: flex; gap: 1px; flex-wrap: wrap; }
+  .div-btn {
+    width: 40px; height: 28px;
+    border: 1px solid #333;
+    background: #0a0a0a;
+    color: #e8e8e8;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .div-btn:hover { background: #1a1a1a; }
+  .div-btn.selected { background: #1a1a1a; border-color: #555; color: #fff; }
+
+  .env-wrap {
+    margin: 8px 16px 0;
+    padding: 10px;
+    background: #0a0a0a;
+    border: 1px solid #222;
+    height: 150px;
+    position: relative;
+  }
+  .env-wrap svg { display: block; width: 100%; height: 100%; }
+
+  .env-controls { padding: 8px 16px 0; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .env-pill {
+    height: 28px; padding: 0 12px;
+    border: 1px solid #333; background: #0a0a0a;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px; color: #e8e8e8;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .env-pill.on { background: #1a1a1a; color: #fff; border-color: #555; }
+  .env-pill.on::before { content: ''; width: 6px; height: 6px; background: #3c3; display: inline-block; }
+  .env-pill.off::before { content: ''; width: 6px; height: 6px; background: #333; display: inline-block; }
+  .env-curve-select { display: flex; gap: 1px; }
+  .env-curve-select .div-btn { width: 48px; }
+
+  .routes-list { padding: 6px 16px 0; display: flex; flex-direction: column; gap: 0; }
+  .route-row {
+    height: 30px;
+    display: grid;
+    grid-template-columns: 22px 1fr 54px 76px 24px 24px;
+    gap: 8px;
+    align-items: center;
+    padding: 0 6px;
+    cursor: pointer;
+    border-bottom: 1px solid #0f0f0f;
+  }
+  .route-row:hover { background: #1a1a1a; }
+  .route-row .idx {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #6e6e6e;
+  }
+  .route-row .tgt {
+    font-size: 11px; color: #e8e8e8;
+  }
+  .route-row .curve {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #6e6e6e;
+    letter-spacing: 0.08em;
+  }
+  .route-row .rng {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #e8e8e8;
+    text-align: right;
+  }
+  .route-row .dot-on { width: 10px; height: 10px; background: #3c3; justify-self: center; }
+  .route-row .dot-off { width: 10px; height: 10px; background: #333; justify-self: center; }
+  .route-row .kill {
+    width: 20px; height: 20px;
+    border: 1px solid #333;
+    background: transparent;
+    color: #6e6e6e;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; justify-self: center;
+  }
+  .route-row .kill:hover { color: #fff; border-color: #d22; }
+  .add-route {
+    margin: 8px 16px 0;
+    height: 32px;
+    border: 1px dashed #333;
+    background: transparent;
+    color: #e8e8e8;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+  }
+  .add-route:hover { background: #1a1a1a; border-color: #555; }
+
+  /* -------- DECK GRID -------- */
+  .deck-row {
+    background: #0a0a0a;
+    border-top: 1px solid #222;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    overflow: hidden;
+  }
+  .deck-hdr {
+    border-right: 1px solid #222;
+    display: flex; flex-direction: column;
+  }
+  .deck-hdr-top {
+    padding: 10px 14px 8px;
+    border-bottom: 1px solid #222;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .deck-hdr-top .ttl {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600; font-size: 13px;
+    color: #fff;
+    letter-spacing: 0.04em;
+  }
+  .deck-hdr-top .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; color: #6e6e6e;
+    letter-spacing: 0.1em;
+  }
+  .col-labels {
+    flex: 1;
+    display: flex; flex-direction: column;
+    padding: 0 14px 0;
+    justify-content: space-around;
+  }
+  .col-labels div {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #6e6e6e;
+    letter-spacing: 0.1em;
+  }
+  .deck-grid {
+    display: grid;
+    grid-template-rows: repeat(4, 1fr);
+  }
+  .layer-row {
+    display: grid;
+    grid-template-columns: 180px repeat(8, 1fr);
+    border-bottom: 1px solid #1a1a1a;
+    min-height: 0;
+  }
+  .layer-row:last-child { border-bottom: 0; }
+  .layer-meta {
+    border-right: 1px solid #222;
+    padding: 6px 10px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: auto auto auto;
+    align-items: center;
+    gap: 2px 6px;
+    background: #0a0a0a;
+  }
+  .layer-meta .name {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500; font-size: 12px;
+    color: #e8e8e8;
+    grid-column: 1/4;
+  }
+  .layer-meta .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: #6e6e6e;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    grid-column: 1/2;
+  }
+  .layer-meta .sm-btn {
+    width: 20px; height: 20px;
+    border: 1px solid #333;
+    background: transparent;
+    color: #6e6e6e;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 10px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .layer-meta .sm-btn.on { background: #1a1a1a; color: #fff; border-color: #555; }
+  .layer-meta .opacity-row {
+    grid-column: 1/4;
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 2px;
+  }
+  .layer-meta .op-track {
+    width: 72px; height: 3px; background: #1a1a1a;
+    position: relative;
+  }
+  .layer-meta .op-fill { position: absolute; top:0; left:0; bottom:0; background: #e8e8e8; }
+  .layer-meta .op-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px; color: #6e6e6e;
+    min-width: 26px; text-align: right;
+  }
+
+  .clip {
+    border-right: 1px solid #1a1a1a;
+    border-bottom: 0;
+    position: relative;
+    background: #0a0a0a;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .clip:hover { outline: 1px solid #444; outline-offset: -1px; }
+  .clip-thumb {
+    position: absolute; inset: 0;
+  }
+  .clip-thumb svg { display: block; width: 100%; height: 100%; }
+  .clip-meta {
+    position: absolute; left: 4px; right: 4px; top: 3px;
+    display: flex; justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: rgba(255,255,255,0.72);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    letter-spacing: 0.06em;
+  }
+  .clip-name {
+    position: absolute; left: 4px; right: 4px; bottom: 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .clip-progress {
+    position: absolute; left: 0; bottom: 0; height: 2px;
+    background: #e8e8e8; width: 0;
+  }
+  .clip.playing { background: #ff4500; }
+  .clip.playing .clip-thumb { mix-blend-mode: normal; filter: brightness(0.7) saturate(1.3); opacity: 0.7; }
+  .clip.playing .clip-name { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+  .clip.playing .clip-progress { height: 4px; background: #fff; width: 37%; }
+  .clip.queued { outline: 2px dashed #ff4500; outline-offset: -2px; }
+  .clip.empty { background: #0a0a0a; }
+  .clip.empty .clip-name { color: #333; font-weight: 400; }
+
+  /* -------- FOOTER -------- */
+  .footer {
+    background: #0a0a0a;
+    border-top: 1px solid #222;
+    display: flex; align-items: center;
+    padding: 0 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #6e6e6e;
+    gap: 14px;
+    letter-spacing: 0.08em;
+  }
+  .footer .sep { color: #333; }
+  .footer .hi { color: #e8e8e8; }
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<div class="app">
+
+  <!-- MENU -->
+  <div class="menu">
+    <span>FILE</span><span>EDIT</span><span>VIEW</span><span>COMPOSITION</span>
+    <span>DECK</span><span>OUTPUT</span><span>SIGNAL</span><span>WINDOW</span><span>HELP</span>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">audio<span class="dot">·</span>dna</div>
+    <div class="bpm-block">
+      <div class="bpm mono">128.0</div>
+      <div class="bpm-label">BPM</div>
+    </div>
+    <div class="bar-phrase mono">
+      BAR <span>03</span><span class="dim">/08</span> <span class="dim">·</span> PHR <span>2</span><span class="dim">/4</span>
+    </div>
+    <div class="beat-wheel" id="beatWheel">
+      <div class="beat-cell"></div>
+      <div class="beat-cell active"></div>
+      <div class="beat-cell"></div>
+      <div class="beat-cell"></div>
+    </div>
+    <div class="ctrl-btns">
+      <div class="ctrl-btn">TAP</div>
+      <div class="ctrl-btn">NUDGE&minus;</div>
+      <div class="ctrl-btn">NUDGE+</div>
+      <div class="ctrl-btn">RESYNC</div>
+      <div class="ctrl-btn active">MANUAL</div>
+    </div>
+    <div></div>
+    <div class="master-fader">
+      <div class="master-fader-label">MASTER</div>
+      <div class="fader-track"><div class="fader-fill"></div></div>
+      <div class="fader-value">0.78</div>
+    </div>
+    <div class="rec-block">
+      <div class="rec-dot"></div>
+      <div class="rec-time">REC 00:12:34</div>
+    </div>
+    <div class="mode-toggle">
+      <div class="mode-cell">PLAY</div>
+      <div class="mode-cell selected">PROGRAM</div>
+    </div>
+  </div>
+
+  <!-- WAVEFORM -->
+  <div class="waveform-wrap">
+    <div class="wave-meta">
+      <span class="deck-a">DECK A · loop_bass_128.wav</span>
+      <span class="deck-b">DECK B · pad_drift_F.wav</span>
+    </div>
+    <div class="wave-struct">BAR 03 OF 08 · DROP ZONE</div>
+    <svg viewBox="0 0 1920 100" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="gradA" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#4488ff"/>
+          <stop offset="60%" stop-color="#00ccff"/>
+          <stop offset="100%" stop-color="#ffffff"/>
+        </linearGradient>
+        <linearGradient id="gradB" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#bbbbbb"/>
+          <stop offset="60%" stop-color="#777777"/>
+          <stop offset="100%" stop-color="#4a4a4a"/>
+        </linearGradient>
+      </defs>
+
+      <!-- structural zones -->
+      <rect x="0" y="0" width="320" height="100" fill="#ddaa00" opacity="0.06"/>
+      <rect x="320" y="0" width="640" height="100" fill="#d22" opacity="0.08"/>
+      <rect x="960" y="0" width="480" height="100" fill="#2288ff" opacity="0.06"/>
+      <rect x="1440" y="0" width="480" height="100" fill="#ddaa00" opacity="0.05"/>
+
+      <!-- 1/16 grid -->
+      <g stroke="#222" stroke-width="1" id="gridFine"></g>
+      <!-- 1/4 ticks -->
+      <g stroke="#444" stroke-width="1" id="gridQuarter"></g>
+      <!-- downbeats (bar starts) — the ONLY orange in waveform -->
+      <g stroke="#ff4500" stroke-width="2" id="gridBar"></g>
+
+      <!-- deck A polyline (top half, tall) -->
+      <polyline id="waveA" fill="none" stroke="url(#gradA)" stroke-width="1.2"></polyline>
+      <!-- deck B polyline (bottom half, muted) -->
+      <polyline id="waveB" fill="none" stroke="url(#gradB)" stroke-width="1.2"></polyline>
+
+      <!-- bar numbers -->
+      <g id="barNums" font-family="IBM Plex Mono" font-size="9" fill="#555" letter-spacing="1"></g>
+
+      <!-- center playhead -->
+      <line x1="960" y1="0" x2="960" y2="100" stroke="#fff" stroke-width="1" opacity="0.8"/>
+      <polygon points="955,0 965,0 960,6" fill="#fff"/>
+
+      <!-- zone label -->
+      <text x="340" y="16" font-family="IBM Plex Sans" font-size="9" fill="#d22" letter-spacing="1.5">DROP</text>
+      <text x="980" y="16" font-family="IBM Plex Sans" font-size="9" fill="#2288ff" letter-spacing="1.5">BREAKDOWN</text>
+      <text x="20" y="16" font-family="IBM Plex Sans" font-size="9" fill="#aa8800" letter-spacing="1.5">BUILD</text>
+    </svg>
+  </div>
+
+  <!-- MAIN ROW -->
+  <div class="main-row">
+
+    <!-- SIGNAL LIST -->
+    <div class="panel" id="sigListPanel">
+      <div class="panel-header">
+        <div class="panel-title">Signals</div>
+        <div class="panel-sub">60 · 8 ROUTED</div>
+      </div>
+      <div class="signal-list" id="sigList">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- SIGNAL ROUTER -->
+    <div class="panel router">
+      <div class="router-grid-bg"></div>
+      <div class="router-header">
+        <div class="panel-title">Signal Router</div>
+        <div class="router-legend">
+          <span><span class="sw" style="background:#e8e8e8"></span>ACTIVE</span>
+          <span><span class="sw" style="background:#555;border-top:1px dashed;"></span>INACTIVE</span>
+          <span><span class="sw" style="background:#ff4500"></span>EDITING</span>
+        </div>
+      </div>
+
+      <div class="router-body" id="routerBody">
+        <div class="source-col" id="sourceCol">
+          <!-- injected -->
+        </div>
+        <div class="target-col" id="targetCol">
+          <!-- injected -->
+        </div>
+        <svg class="router-svg" id="routerSvg" viewBox="0 0 1000 700" preserveAspectRatio="none"></svg>
+      </div>
+
+      <div class="router-footer">
+        <div class="rf-stat"><span class="big">8</span> ROUTES ACTIVE &nbsp; <span class="big">6</span> SOURCES &nbsp; <span class="big">6</span> TARGETS</div>
+        <div style="display:flex; gap:6px;">
+          <button class="rf-btn">CLEAR</button>
+          <button class="rf-btn">SAVE PATCH</button>
+          <button class="rf-btn">+ NEW ROUTE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGNAL EDITOR -->
+    <div class="panel editor">
+      <div class="ed-head">
+        <div class="ttl">RMS</div>
+        <div class="tag">[ 3 ROUTES ]</div>
+      </div>
+
+      <div class="ed-body">
+
+        <div class="ed-value">
+          <div class="big mono" id="edBig">0.724</div>
+          <div class="rng">
+            MIN <b>0.021</b><br>
+            MAX <b>0.983</b><br>
+            RATE <b>10.7 ms</b>
+          </div>
+        </div>
+
+        <div class="ed-sec-head"><span>INPUT SHAPING</span><span class="mono" style="color:#444">4</span></div>
+        <div class="ed-sliders">
+          <div class="ed-slider">
+            <div class="lbl">Threshold</div>
+            <div class="track"><div class="fill" style="width:18%"></div><div class="knob" style="left:18%"></div></div>
+            <div class="v">0.18</div>
+          </div>
+          <div class="ed-slider">
+            <div class="lbl">Gain</div>
+            <div class="track"><div class="fill" style="width:62%"></div><div class="knob" style="left:62%"></div></div>
+            <div class="v">1.40</div>
+          </div>
+          <div class="ed-slider">
+            <div class="lbl">Falloff</div>
+            <div class="track"><div class="fill" style="width:34%"></div><div class="knob" style="left:34%"></div></div>
+            <div class="v">0.34</div>
+          </div>
+          <div class="ed-slider">
+            <div class="lbl">Smoothing</div>
+            <div class="track"><div class="fill" style="width:44%"></div><div class="knob" style="left:44%"></div></div>
+            <div class="v">44 ms</div>
+          </div>
+        </div>
+
+        <div class="ed-sec-head"><span>OSCILLATOR</span><span class="mono" style="color:#444">SIN · 1/4</span></div>
+        <div class="wave-btns">
+          <!-- SIN -->
+          <div class="wave-btn selected" title="Sine">
+            <svg width="28" height="16" viewBox="0 0 28 16"><path d="M1 8 C 5 1, 9 1, 14 8 S 23 15, 27 8" stroke-linecap="round"/></svg>
+          </div>
+          <!-- SAW UP -->
+          <div class="wave-btn" title="Saw Up">
+            <svg width="28" height="16" viewBox="0 0 28 16"><polyline points="1,14 10,2 10,14 19,2 19,14 27,2" stroke-linejoin="miter"/></svg>
+          </div>
+          <!-- SAW DOWN -->
+          <div class="wave-btn" title="Saw Down">
+            <svg width="28" height="16" viewBox="0 0 28 16"><polyline points="1,2 10,14 10,2 19,14 19,2 27,14" stroke-linejoin="miter"/></svg>
+          </div>
+          <!-- TRI -->
+          <div class="wave-btn" title="Triangle">
+            <svg width="28" height="16" viewBox="0 0 28 16"><polyline points="1,14 7,2 14,14 21,2 27,14" stroke-linejoin="miter"/></svg>
+          </div>
+          <!-- SQR -->
+          <div class="wave-btn" title="Square">
+            <svg width="28" height="16" viewBox="0 0 28 16"><polyline points="1,13 1,3 10,3 10,13 19,13 19,3 27,3" stroke-linejoin="miter"/></svg>
+          </div>
+        </div>
+
+        <div class="div-btns">
+          <div class="div-btn">1/4</div>
+          <div class="div-btn">1/2</div>
+          <div class="div-btn selected">1</div>
+          <div class="div-btn">2</div>
+          <div class="div-btn">4</div>
+          <div class="div-btn">8</div>
+        </div>
+
+        <div class="ed-sliders" style="padding-top: 8px;">
+          <div class="ed-slider">
+            <div class="lbl">Amplitude</div>
+            <div class="track"><div class="fill" style="width:72%"></div><div class="knob" style="left:72%"></div></div>
+            <div class="v">0.72</div>
+          </div>
+          <div class="ed-slider">
+            <div class="lbl">Phase</div>
+            <div class="track"><div class="fill" style="width:25%"></div><div class="knob" style="left:25%"></div></div>
+            <div class="v">90&deg;</div>
+          </div>
+        </div>
+
+        <div class="ed-sec-head"><span>ENVELOPE</span><span class="mono" style="color:#444">3 PTS · LOOP</span></div>
+        <div class="env-wrap">
+          <svg viewBox="0 0 320 130" preserveAspectRatio="none">
+            <!-- grid -->
+            <g stroke="#1a1a1a" stroke-width="1">
+              <line x1="0" y1="32.5" x2="320" y2="32.5"/>
+              <line x1="0" y1="65" x2="320" y2="65"/>
+              <line x1="0" y1="97.5" x2="320" y2="97.5"/>
+              <line x1="80" y1="0" x2="80" y2="130"/>
+              <line x1="160" y1="0" x2="160" y2="130"/>
+              <line x1="240" y1="0" x2="240" y2="130"/>
+            </g>
+            <!-- axis -->
+            <line x1="0" y1="125" x2="320" y2="125" stroke="#333"/>
+            <!-- curve polyline (3 points → shaped) -->
+            <polyline points="6,110 110,18 220,72 314,32"
+              fill="none" stroke="#e8e8e8" stroke-width="1.6" stroke-linejoin="round"/>
+            <!-- filled under curve -->
+            <polyline points="6,110 110,18 220,72 314,32 314,125 6,125"
+              fill="#e8e8e8" opacity="0.07"/>
+            <!-- handles -->
+            <circle cx="6" cy="110" r="4" fill="#0a0a0a" stroke="#e8e8e8" stroke-width="1.4"/>
+            <circle cx="110" cy="18" r="4" fill="#0a0a0a" stroke="#e8e8e8" stroke-width="1.4"/>
+            <circle cx="220" cy="72" r="4" fill="#0a0a0a" stroke="#e8e8e8" stroke-width="1.4"/>
+            <circle cx="314" cy="32" r="4" fill="#0a0a0a" stroke="#e8e8e8" stroke-width="1.4"/>
+            <!-- labels -->
+            <text x="6" y="12" font-family="IBM Plex Mono" font-size="8" fill="#6e6e6e">0.00</text>
+            <text x="292" y="12" font-family="IBM Plex Mono" font-size="8" fill="#6e6e6e">1.00</text>
+            <text x="6" y="123" font-family="IBM Plex Mono" font-size="8" fill="#6e6e6e">t=0</text>
+            <text x="290" y="123" font-family="IBM Plex Mono" font-size="8" fill="#6e6e6e">t=1</text>
+          </svg>
+        </div>
+
+        <div class="env-controls">
+          <div class="env-pill on">LOOP</div>
+          <div class="env-pill off">ONE-SHOT</div>
+          <div class="env-curve-select">
+            <div class="div-btn">LIN</div>
+            <div class="div-btn">EXP</div>
+            <div class="div-btn selected">S-CURVE</div>
+          </div>
+        </div>
+
+        <div class="ed-sec-head"><span>ROUTES</span><span class="mono" style="color:#444">4 / 16</span></div>
+        <div class="routes-list">
+          <div class="route-row">
+            <div class="idx mono">01</div>
+            <div class="tgt">LAYER.02·OPACITY</div>
+            <div class="curve">SCURVE</div>
+            <div class="rng">0.00→0.90</div>
+            <div class="dot-on" title="active"></div>
+            <div class="kill">×</div>
+          </div>
+          <div class="route-row">
+            <div class="idx mono">02</div>
+            <div class="tgt">CLIP.03·BLUR INTENSITY</div>
+            <div class="curve">EXP</div>
+            <div class="rng">0.20→0.95</div>
+            <div class="dot-on"></div>
+            <div class="kill">×</div>
+          </div>
+          <div class="route-row">
+            <div class="idx mono">03</div>
+            <div class="tgt">GLOBAL·GLOW SIZE</div>
+            <div class="curve">LIN</div>
+            <div class="rng">0.00→1.00</div>
+            <div class="dot-on"></div>
+            <div class="kill">×</div>
+          </div>
+          <div class="route-row">
+            <div class="idx mono">04</div>
+            <div class="tgt">LFO·A·AMP MOD</div>
+            <div class="curve">LOG</div>
+            <div class="rng">0.30→1.00</div>
+            <div class="dot-off"></div>
+            <div class="kill">×</div>
+          </div>
+        </div>
+        <button class="add-route">+ ADD ROUTE</button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- DECK GRID -->
+  <div class="deck-row">
+    <div class="deck-hdr">
+      <div class="deck-hdr-top">
+        <div class="ttl">DECK A</div>
+        <div class="sub">4L · 8C · 32 CLIPS</div>
+      </div>
+      <div class="col-labels">
+        <div>COL 01 · COL 02 · COL 03 · COL 04</div>
+        <div>COL 05 · COL 06 · COL 07 · COL 08</div>
+      </div>
+    </div>
+    <div class="deck-grid" id="deckGrid">
+      <!-- injected -->
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="hi">60fps</span><span class="sep">·</span>
+    <span>cpu <span class="hi">22%</span></span><span class="sep">·</span>
+    <span>gpu <span class="hi">41%</span></span><span class="sep">·</span>
+    <span>1920×1080</span><span class="sep">·</span>
+    <span class="hi">60 SIGNALS</span><span class="sep">·</span>
+    <span class="hi">8 ROUTES ACTIVE</span><span class="sep">·</span>
+    <span>AUDIO-DNA V9.0</span><span class="sep">·</span>
+    <span>BRUTALIST PROGRAM</span>
+    <span style="margin-left:auto;">RT · 2.8ms · Analysis · 0.4ms · GL · 3.2ms</span>
+  </div>
+
+</div>
+
+<script>
+/* ================== WAVEFORM ================== */
+(function buildWaveform() {
+  const fine = document.getElementById('gridFine');
+  const quarter = document.getElementById('gridQuarter');
+  const bar = document.getElementById('gridBar');
+  const barNums = document.getElementById('barNums');
+  const waveA = document.getElementById('waveA');
+  const waveB = document.getElementById('waveB');
+
+  const W = 1920, H = 100;
+  const bars = 16; // 16 bars visible
+  const sixteenths = bars * 16;
+  for (let i = 0; i <= sixteenths; i++) {
+    const x = (i / sixteenths) * W;
+    if (i % 16 === 0) {
+      // bar downbeat — orange
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', x); l.setAttribute('x2', x);
+      l.setAttribute('y1', 0); l.setAttribute('y2', H);
+      bar.appendChild(l);
+      // bar number
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x + 4); t.setAttribute('y', 94);
+      t.textContent = String(Math.floor(i/16) + 1).padStart(2, '0');
+      barNums.appendChild(t);
+    } else if (i % 4 === 0) {
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', x); l.setAttribute('x2', x);
+      l.setAttribute('y1', 0); l.setAttribute('y2', H);
+      quarter.appendChild(l);
+    } else {
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', x); l.setAttribute('x2', x);
+      l.setAttribute('y1', 10); l.setAttribute('y2', 90);
+      fine.appendChild(l);
+    }
+  }
+  // deck A wave: tall bass peaks, drop in middle
+  const N = 400;
+  const pointsA = [];
+  const pointsB = [];
+  for (let i = 0; i < N; i++) {
+    const x = (i / (N - 1)) * W;
+    const phase = i / N;
+    // base amplitude shape (build → drop → break → build)
+    let envA = 0.5 + 0.35 * Math.sin(phase * Math.PI * 6);
+    if (phase > 0.18 && phase < 0.48) envA = 0.92 + 0.06 * Math.sin(phase * 60);
+    if (phase > 0.48 && phase < 0.68) envA = 0.22 + 0.08 * Math.sin(phase * 40);
+    const yA = 35 - envA * 33 - Math.sin(i * 1.7) * 4 * envA - Math.sin(i * 0.43) * 6 * envA;
+    pointsA.push(x.toFixed(1) + ',' + Math.max(2, yA).toFixed(1));
+
+    let envB = 0.35 + 0.2 * Math.sin(phase * Math.PI * 4 + 1);
+    if (phase > 0.48 && phase < 0.68) envB = 0.65;
+    const yB = 65 + envB * 32 + Math.sin(i * 2.1) * 3 * envB + Math.sin(i * 0.55) * 5 * envB;
+    pointsB.push(x.toFixed(1) + ',' + Math.min(98, yB).toFixed(1));
+  }
+  waveA.setAttribute('points', pointsA.join(' '));
+  waveB.setAttribute('points', pointsB.join(' '));
+})();
+
+/* ================== SIGNAL LIST ================== */
+(function buildSignalList() {
+  const groups = [
+    { name: 'AMPLITUDE', items: [
+      { n: 'RMS', v: 0.724, m: 0.72, r: 3, selected: true },
+      { n: 'Peak', v: 0.891, m: 0.89, r: 1 },
+      { n: 'RMS dB', v: -12.3, m: 0.62, r: 0 },
+      { n: 'LUFS', v: -14.8, m: 0.58, r: 0 },
+      { n: 'Dynamic Range', v: 1.42, m: 0.40, r: 0 },
+      { n: 'Transient Density', v: 6.1, m: 0.51, r: 2 },
+    ]},
+    { name: '7-BAND', items: [
+      { n: 'Sub (20-60)', v: 0.612, m: 0.61, r: 1 },
+      { n: 'Bass (60-250)', v: 0.844, m: 0.84, r: 2 },
+      { n: 'Low Mid', v: 0.421, m: 0.42, r: 0 },
+      { n: 'Mid', v: 0.388, m: 0.38, r: 0 },
+      { n: 'High Mid', v: 0.522, m: 0.52, r: 0 },
+      { n: 'Presence', v: 0.611, m: 0.61, r: 1 },
+      { n: 'Brilliance', v: 0.302, m: 0.30, r: 0 },
+    ]},
+    { name: 'SPECTRAL', items: [
+      { n: 'Centroid', v: 2342, m: 0.54, r: 0 },
+      { n: 'Flux', v: 0.183, m: 0.18, r: 1 },
+      { n: 'Flatness', v: 0.244, m: 0.24, r: 0 },
+      { n: 'Rolloff 85%', v: 8240, m: 0.72, r: 0 },
+    ]},
+    { name: 'RHYTHM', items: [
+      { n: 'BPM', v: 128.0, m: 0.64, r: 0 },
+      { n: 'Beat Phase', v: 0.320, m: 0.32, r: 1 },
+      { n: 'Bar Phase', v: 0.080, m: 0.08, r: 0 },
+      { n: 'Phrase Phase', v: 0.265, m: 0.27, r: 0 },
+      { n: 'Onset Strength', v: 0.662, m: 0.66, r: 2 },
+    ]},
+    { name: 'PITCH · KEY', items: [
+      { n: 'Dominant Pitch', v: 220.1, m: 0.48, r: 0 },
+      { n: 'Pitch Confidence', v: 0.734, m: 0.73, r: 0 },
+      { n: 'Key', v: 'F MIN', m: 0.0, r: 0, raw:true },
+      { n: 'HCDF', v: 0.111, m: 0.11, r: 0 },
+    ]},
+    { name: 'MFCC', items: [
+      { n: 'MFCC 0', v: -24.1, m: 0.32, r: 0 },
+      { n: 'MFCC 1', v: 12.4, m: 0.51, r: 0 },
+      { n: 'MFCC 2', v: 3.8, m: 0.42, r: 0 },
+      { n: 'MFCC 3', v: -6.2, m: 0.38, r: 0 },
+    ]},
+    { name: 'CHROMA', items: [
+      { n: 'C', v: 0.080, m: 0.08, r: 0 },
+      { n: 'F', v: 0.312, m: 0.31, r: 0 },
+      { n: 'G#', v: 0.220, m: 0.22, r: 0 },
+      { n: 'A#', v: 0.188, m: 0.19, r: 0 },
+    ]},
+    { name: 'ADVANCED', items: [
+      { n: 'Sidechain Pump', v: 0.612, m: 0.61, r: 0 },
+      { n: 'Swing Ratio', v: 0.520, m: 0.20, r: 0 },
+      { n: 'Formant Presence', v: 0.443, m: 0.44, r: 0 },
+      { n: 'Resonance Peak', v: 0.288, m: 0.29, r: 0 },
+      { n: 'Reese Bass', v: 0.710, m: 0.71, r: 0 },
+    ]}
+  ];
+
+  const fmt = (v, raw) => {
+    if (raw) return v;
+    if (Math.abs(v) >= 100) return v.toFixed(1);
+    if (Math.abs(v) >= 10) return v.toFixed(2);
+    return v.toFixed(3);
+  };
+
+  const root = document.getElementById('sigList');
+  let html = '';
+  for (const g of groups) {
+    html += `<div class="sig-group"><span>${g.name}</span><span class="count">${g.items.length}</span></div>`;
+    for (const it of g.items) {
+      const cls = it.selected ? 'sig-row selected' : 'sig-row';
+      const rcls = it.r > 0 ? 'sig-routes has' : 'sig-routes';
+      const rtxt = it.r > 0 ? `[${it.r}]` : '·';
+      const m = Math.max(0, Math.min(1, it.m));
+      html += `<div class="${cls}">
+        <div class="sig-name">${it.n}</div>
+        <div class="sig-val mono">${fmt(it.v, it.raw)}</div>
+        <div class="sig-meter"><div class="sig-meter-fill" style="width:${m*100}%"></div></div>
+        <div class="${rcls}">${rtxt}</div>
+      </div>`;
+    }
+  }
+  root.innerHTML = html;
+})();
+
+/* ================== ROUTER ================== */
+(function buildRouter() {
+  const sources = [
+    { n: 'RMS',         s: 'AMP · 0.72', m: 0.72, sel: true,  active: true },
+    { n: 'BASS',        s: '60-250 · 0.84', m: 0.84, active: true },
+    { n: 'BEAT PHASE',  s: 'RHY · 0.32', m: 0.32, active: true },
+    { n: 'ONSET',       s: 'TRG · 0.66', m: 0.66, active: true },
+    { n: 'LFO · SIN 4B',s: 'OSC · 0.91', m: 0.91, active: true },
+    { n: 'MACRO · 01',  s: 'USR · 0.50', m: 0.50, active: false },
+  ];
+  const targets = [
+    { n: 'LAYER.02 · OPACITY',       s: 'LIVE' },
+    { n: 'CLIP.03 · BLUR INTENSITY', s: 'LIVE' },
+    { n: 'GLOBAL · GLOW SIZE',       s: 'LIVE' },
+    { n: 'LAYER.04 · HUE SHIFT',     s: 'LIVE' },
+    { n: 'CLIP.07 · ROTATION',       s: 'LIVE' },
+    { n: 'FEEDBACK · AMOUNT',        s: '—' },
+  ];
+
+  const sc = document.getElementById('sourceCol');
+  sc.innerHTML = sources.map(s => `
+    <div class="src-chip ${s.sel ? 'selected' : ''} ${s.active ? 'active' : ''}">
+      <div class="chip-name">${s.n}</div>
+      <div class="chip-sub"><span>${s.s.split(' · ')[0]}</span><span class="mono">${s.s.split(' · ')[1]}</span></div>
+      <div class="chip-meter"><div class="chip-meter-fill" style="width:${s.m*100}%"></div></div>
+    </div>
+  `).join('');
+
+  const tc = document.getElementById('targetCol');
+  tc.innerHTML = targets.map(t => `
+    <div class="tgt-chip ${t.s === 'LIVE' ? 'active' : ''}">
+      <div class="chip-name">${t.n}</div>
+      <div class="chip-sub"><span>TARGET</span><span class="mono">${t.s}</span></div>
+    </div>
+  `).join('');
+
+  // Define routes — indices into source/target (0-5 on each side)
+  const routes = [
+    // RMS (0) → layer.02 opacity (0) — SELECTED / EDITING
+    { s: 0, t: 0, label: 'SCURVE  0.00→0.90', state: 'selected' },
+    // RMS (0) → clip.03 blur (1)
+    { s: 0, t: 1, label: 'EXP  0.20→0.95', state: 'active' },
+    // RMS (0) → global glow (2)
+    { s: 0, t: 2, label: 'LIN  0.00→1.00', state: 'active' },
+    // BASS (1) → clip.03 blur (1)
+    { s: 1, t: 1, label: 'EXP  0.30→1.00', state: 'active' },
+    // BEAT PHASE (2) → clip.07 rotation (4)
+    { s: 2, t: 4, label: 'LIN  0→360°', state: 'active' },
+    // ONSET (3) → feedback amount (5)
+    { s: 3, t: 5, label: 'STEP  0→0.80', state: 'active' },
+    // LFO SIN (4) → layer.04 hue (3)
+    { s: 4, t: 3, label: 'LIN  -0.5→0.5', state: 'active' },
+    // LFO SIN (4) → global glow (2)
+    { s: 4, t: 2, label: 'SCURVE  0.10→0.40', state: 'active' },
+    // MACRO 01 (5) → feedback amount (5)  — inactive
+    { s: 5, t: 5, label: 'LIN  0→1', state: 'inactive' },
+    // BASS (1) → layer.02 opacity (0) — inactive
+    { s: 1, t: 0, label: 'LOG  0→1', state: 'inactive' },
+  ];
+
+  // SVG coordinate calculations
+  // SVG viewBox 1000x700, we need source Y and target Y positions
+  const svg = document.getElementById('routerSvg');
+  const body = document.getElementById('routerBody');
+  const bw = body.clientWidth || 1240;
+  const bh = body.clientHeight || 630;
+  svg.setAttribute('viewBox', `0 0 ${bw - 200 - 220} ${bh}`);
+  const W = bw - 200 - 220;
+  const H = bh;
+
+  // chips start at top=20, each 40 tall + 14 gap; col height = 6 * 40 + 5 * 14 + 40 = 310
+  const chipGap = 14;
+  const chipH = 40;
+  const colTop = 20;
+  const chipMid = (i) => colTop + i * (chipH + chipGap) + chipH / 2;
+
+  // Generate each route as path from (0, ySrc) to (W, yTgt) with bezier
+  let html = '';
+  // Active routes first (back), selected last (front)
+  const order = [...routes].sort((a, b) => {
+    const rank = s => s === 'inactive' ? 0 : (s === 'active' ? 1 : 2);
+    return rank(a.state) - rank(b.state);
+  });
+  for (let i = 0; i < order.length; i++) {
+    const r = order[i];
+    const y1 = chipMid(r.s);
+    const y2 = chipMid(r.t);
+    const x1 = 0, x2 = W;
+    const cx1 = W * 0.45, cx2 = W * 0.55;
+    const d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`;
+    const pathId = `route-${i}`;
+    const cls = 'route-path ' + r.state + (r.state === 'active' ? ' flowing' : '');
+    const lblCls = 'route-label ' + (r.state === 'selected' ? 'selected' : (r.state === 'active' ? 'active' : ''));
+    html += `
+      <path id="${pathId}" class="${cls}" d="${d}"/>
+      <text class="${lblCls}">
+        <textPath href="#${pathId}" startOffset="50%" text-anchor="middle">${r.label}</textPath>
+      </text>
+    `;
+  }
+  svg.innerHTML = html;
+})();
+
+/* ================== DECK GRID ================== */
+(function buildDeck() {
+  const layers = [
+    { name: 'L.01 · BACKDROP',   type: 'OPAQUE',     solo: false, mute: false, op: 100,
+      clips: ['Neon Grid', 'Tunnel 3D', 'Smoke', 'Bokeh', 'Prism', 'Horizon', 'Particles', 'Nebula'] },
+    { name: 'L.02 · MID',        type: 'TRANSPARENT',solo: true,  mute: false, op: 84,
+      clips: ['Strobe Chop', 'Glitch Grid', 'Cells·127 [PLAYING]', 'RGB Split', 'Liquid', 'Voronoi', 'Lines', 'Flow'] },
+    { name: 'L.03 · ACCENT',     type: 'TRANSPARENT',solo: false, mute: false, op: 62,
+      clips: ['Triangles', 'Spark', 'Flash', 'Dots', 'Rings·Q', 'Beam', 'Drip', 'Arc'] },
+    { name: 'L.04 · FX',         type: 'FX ONLY',    solo: false, mute: false, op: 48,
+      clips: ['Feedback', 'Zoom Blur', 'Shake Hard', 'Freeze', 'Echo Trails', 'Posterize', 'Pixelate', 'Chromatic'] },
+  ];
+
+  const playingLayer = 1, playingCol = 2;
+  const queuedLayer = 2, queuedCol = 4;
+
+  const grid = document.getElementById('deckGrid');
+  let html = '';
+  layers.forEach((l, li) => {
+    html += `<div class="layer-row">`;
+    html += `
+      <div class="layer-meta">
+        <div class="name">${l.name}</div>
+        <div class="badge">${l.type}</div>
+        <div class="sm-btn ${l.solo?'on':''}" title="Solo">S</div>
+        <div class="sm-btn ${l.mute?'on':''}" title="Mute">M</div>
+        <div class="opacity-row">
+          <div class="op-track" style="flex:1"><div class="op-fill" style="width:${l.op}%"></div></div>
+          <div class="op-val mono">${l.op}%</div>
+        </div>
+      </div>
+    `;
+    l.clips.forEach((c, ci) => {
+      const playing = (li === playingLayer && ci === playingCol);
+      const queued  = (li === queuedLayer  && ci === queuedCol);
+      const empty = !c || c.trim() === '';
+      const cls = ['clip'];
+      if (playing) cls.push('playing');
+      if (queued)  cls.push('queued');
+      if (empty)   cls.push('empty');
+      const thumb = makeThumb(li, ci);
+      const nameClean = c.replace(/\s*\[PLAYING\]/, '');
+      html += `<div class="${cls.join(' ')}">
+        <div class="clip-thumb">${thumb}</div>
+        <div class="clip-meta"><span>${String(ci+1).padStart(2,'0')}</span><span>${playing?'▶':'·'}</span></div>
+        <div class="clip-name">${nameClean}</div>
+        <div class="clip-progress"></div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  grid.innerHTML = html;
+})();
+
+/* ================== SVG THUMBNAIL GENERATORS ================== */
+function makeThumb(layer, col) {
+  // 32 unique thumbs via id = layer*8 + col
+  const id = layer * 8 + col;
+  const gens = [
+    thumbNeonGrid, thumbTunnel, thumbSmoke, thumbBokeh, thumbPrism, thumbHorizon, thumbParticles, thumbNebula,
+    thumbStrobeChop, thumbGlitchGrid, thumbCells, thumbRGBSplit, thumbLiquid, thumbVoronoi, thumbLines, thumbFlow,
+    thumbTriangles, thumbSpark, thumbFlash, thumbDots, thumbRings, thumbBeam, thumbDrip, thumbArc,
+    thumbFeedback, thumbZoomBlur, thumbShake, thumbFreeze, thumbEchoTrails, thumbPosterize, thumbPixelate, thumbChromatic,
+  ];
+  return gens[id % gens.length](id);
+}
+
+// Helper for SVG wrapping
+function svg(content, opts = {}) {
+  const bg = opts.bg || '#0a0a0a';
+  return `<svg viewBox="0 0 120 60" preserveAspectRatio="none" width="100%" height="100%">
+    <rect width="120" height="60" fill="${bg}"/>
+    ${content}
+  </svg>`;
+}
+function turb(id, f, o) {
+  return `<filter id="${id}"><feTurbulence baseFrequency="${f}" numOctaves="${o||2}" seed="${id.charCodeAt(0)+id.charCodeAt(id.length-1)}"/></filter>`;
+}
+
+// 1. Neon Grid — perspective grid lines
+function thumbNeonGrid(i) {
+  let g = '';
+  for (let x = -2; x < 14; x++) {
+    const vp = 60; const fx = 60 + (x*10 - 60) * 2;
+    g += `<line x1="${x*10}" y1="0" x2="${fx}" y2="60" stroke="#1d4ea6" stroke-width="0.6"/>`;
+  }
+  for (let y = 0; y < 8; y++) {
+    const yy = 60 - Math.pow(1 - y/8, 1.3) * 60;
+    g += `<line x1="0" y1="${yy}" x2="120" y2="${yy}" stroke="#1d4ea6" stroke-width="0.6" opacity="${0.3 + y/8 * 0.6}"/>`;
+  }
+  g += `<rect x="0" y="30" width="120" height="30" fill="url(#ng${i})"/>`;
+  g += `<defs><linearGradient id="ng${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2266cc" stop-opacity="0"/><stop offset="1" stop-color="#004488" stop-opacity="0.5"/></linearGradient></defs>`;
+  return svg(g, { bg: '#070b16' });
+}
+// 2. Tunnel — radial lines
+function thumbTunnel(i) {
+  let g = '';
+  for (let a = 0; a < 24; a++) {
+    const ang = (a / 24) * Math.PI * 2;
+    const x = 60 + Math.cos(ang) * 60, y = 30 + Math.sin(ang) * 60;
+    g += `<line x1="60" y1="30" x2="${x}" y2="${y}" stroke="#44aaff" stroke-width="0.6" opacity="0.6"/>`;
+  }
+  for (let r = 4; r < 60; r += 8) {
+    g += `<circle cx="60" cy="30" r="${r}" fill="none" stroke="#88ccff" stroke-width="0.5" opacity="${1 - r/60}"/>`;
+  }
+  g += `<circle cx="60" cy="30" r="3" fill="#fff"/>`;
+  return svg(g, { bg: '#030a14' });
+}
+// 3. Smoke — turbulence
+function thumbSmoke(i) {
+  return svg(`
+    ${turb('smoke'+i, '0.02 0.04', 3)}
+    <rect width="120" height="60" fill="#222" filter="url(#smoke${i})" opacity="0.6"/>
+    <rect width="120" height="60" fill="url(#smokeG${i})" opacity="0.7"/>
+    <defs><radialGradient id="smokeG${i}" cx="0.5" cy="0.6"><stop offset="0" stop-color="#887766"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>
+  `, { bg: '#1a1410' });
+}
+// 4. Bokeh — circles
+function thumbBokeh(i) {
+  let g = '';
+  const seed = i * 17;
+  for (let k = 0; k < 14; k++) {
+    const x = ((seed + k*37) % 120);
+    const y = ((seed + k*53) % 60);
+    const r = 3 + ((seed + k*13) % 10);
+    g += `<circle cx="${x}" cy="${y}" r="${r}" fill="#ffddaa" opacity="${0.15 + (k%5)*0.08}"/>`;
+  }
+  return svg(g, { bg: '#0a0812' });
+}
+// 5. Prism — triangle gradient
+function thumbPrism(i) {
+  return svg(`
+    <defs>
+      <linearGradient id="pr${i}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ff4488"/><stop offset="0.5" stop-color="#4488ff"/><stop offset="1" stop-color="#44ff88"/>
+      </linearGradient>
+    </defs>
+    <polygon points="60,5 110,55 10,55" fill="url(#pr${i})" opacity="0.8"/>
+    <polygon points="60,5 110,55 10,55" fill="none" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+  `, { bg: '#0a0614' });
+}
+// 6. Horizon — gradient + stripe
+function thumbHorizon(i) {
+  return svg(`
+    <defs>
+      <linearGradient id="h${i}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#221144"/>
+        <stop offset="0.5" stop-color="#882255"/>
+        <stop offset="0.55" stop-color="#ff7744"/>
+        <stop offset="1" stop-color="#110833"/>
+      </linearGradient>
+    </defs>
+    <rect width="120" height="60" fill="url(#h${i})"/>
+    <rect x="0" y="30" width="120" height="0.5" fill="#ffcc88" opacity="0.9"/>
+  `);
+}
+// 7. Particles — dots
+function thumbParticles(i) {
+  let g = '';
+  const seed = i * 13 + 7;
+  for (let k = 0; k < 60; k++) {
+    const x = ((seed * (k+1) * 37) % 120);
+    const y = ((seed * (k+1) * 23) % 60);
+    const r = 0.4 + ((k * seed) % 8) * 0.15;
+    const hue = (k + seed) % 360;
+    g += `<circle cx="${x}" cy="${y}" r="${r}" fill="hsl(${200 + (k%80)}, 80%, 70%)" opacity="0.7"/>`;
+  }
+  return svg(g, { bg: '#02050a' });
+}
+// 8. Nebula — radial cloud
+function thumbNebula(i) {
+  return svg(`
+    ${turb('neb'+i, '0.015', 4)}
+    <rect width="120" height="60" fill="url(#neb2${i})" filter="url(#neb${i})" opacity="0.9"/>
+    <defs>
+      <radialGradient id="neb2${i}" cx="0.4" cy="0.5">
+        <stop offset="0" stop-color="#aa44ff"/>
+        <stop offset="0.4" stop-color="#ff4488"/>
+        <stop offset="1" stop-color="#000" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+  `, { bg: '#020014' });
+}
+// 9. Strobe chop — horizontal bars
+function thumbStrobeChop(i) {
+  let g = '';
+  for (let k = 0; k < 8; k++) {
+    const y = k * 7.5;
+    const o = k % 2 === 0 ? 0.95 : 0.1;
+    g += `<rect x="0" y="${y}" width="120" height="7.5" fill="#fff" opacity="${o}"/>`;
+  }
+  return svg(g, { bg: '#000' });
+}
+// 10. Glitch grid
+function thumbGlitchGrid(i) {
+  let g = '';
+  for (let r = 0; r < 6; r++) {
+    for (let c = 0; c < 12; c++) {
+      const offset = ((r * 7 + c * 11 + i) % 13) - 6;
+      const col = (r + c) % 3 === 0 ? '#ff2288' : ((r+c)%3===1 ? '#22ccff' : '#ffee44');
+      const op = 0.2 + ((r*c + i) % 7) * 0.1;
+      g += `<rect x="${c*10 + offset}" y="${r*10}" width="10" height="10" fill="${col}" opacity="${op}"/>`;
+    }
+  }
+  return svg(g, { bg: '#050005' });
+}
+// 11. Cells — cellular/voronoi-esque
+function thumbCells(i) {
+  let g = '';
+  const pts = [];
+  for (let k = 0; k < 14; k++) pts.push([ (k*37 + i) % 120, (k*23 + i*3) % 60 ]);
+  for (let y = 0; y < 60; y += 4) {
+    for (let x = 0; x < 120; x += 4) {
+      let best = 9999, idx = 0;
+      for (let p = 0; p < pts.length; p++) {
+        const dx = x - pts[p][0], dy = y - pts[p][1];
+        const d = dx*dx + dy*dy;
+        if (d < best) { best = d; idx = p; }
+      }
+      const hue = (idx * 37) % 360;
+      g += `<rect x="${x}" y="${y}" width="4" height="4" fill="hsl(${hue}, 70%, 55%)" opacity="0.85"/>`;
+    }
+  }
+  return svg(g);
+}
+// 12. RGB Split
+function thumbRGBSplit(i) {
+  return svg(`
+    <text x="60" y="42" font-family="IBM Plex Mono" font-size="38" font-weight="700" fill="#ff0055" text-anchor="middle" opacity="0.85" transform="translate(-4,0)">DNA</text>
+    <text x="60" y="42" font-family="IBM Plex Mono" font-size="38" font-weight="700" fill="#00ccff" text-anchor="middle" opacity="0.85" transform="translate(4,0)">DNA</text>
+    <text x="60" y="42" font-family="IBM Plex Mono" font-size="38" font-weight="700" fill="#ffffff" text-anchor="middle" opacity="0.6">DNA</text>
+  `, { bg: '#000' });
+}
+// 13. Liquid
+function thumbLiquid(i) {
+  return svg(`
+    ${turb('liq'+i, '0.02 0.06', 3)}
+    <rect width="120" height="60" fill="#00aaff" filter="url(#liq${i})" opacity="0.9"/>
+    <rect width="120" height="60" fill="url(#liqG${i})" opacity="0.6"/>
+    <defs><linearGradient id="liqG${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#88ffee"/><stop offset="1" stop-color="#002266"/></linearGradient></defs>
+  `);
+}
+// 14. Voronoi — polygons
+function thumbVoronoi(i) {
+  return thumbCells(i + 5);
+}
+// 15. Lines
+function thumbLines(i) {
+  let g = '';
+  for (let k = 0; k < 30; k++) {
+    const y = (k * 2) + ((i * 3 + k) % 3 - 1);
+    g += `<line x1="0" y1="${y}" x2="120" y2="${y}" stroke="#88ff66" stroke-width="0.3" opacity="${0.3 + (k%8)*0.08}"/>`;
+  }
+  return svg(g, { bg: '#020a02' });
+}
+// 16. Flow
+function thumbFlow(i) {
+  let g = '';
+  for (let k = 0; k < 7; k++) {
+    const y = k * 9;
+    let d = `M 0 ${y + 4}`;
+    for (let x = 5; x <= 120; x += 10) {
+      const yy = y + 4 + Math.sin((x + i * 5 + k * 8) * 0.15) * 4;
+      d += ` L ${x} ${yy}`;
+    }
+    g += `<path d="${d}" stroke="#aa66ff" stroke-width="0.8" fill="none" opacity="0.6"/>`;
+  }
+  return svg(g, { bg: '#0a0214' });
+}
+// 17. Triangles
+function thumbTriangles(i) {
+  let g = '';
+  for (let k = 0; k < 12; k++) {
+    const cx = ((k*37 + i*5) % 120);
+    const cy = ((k*23 + i*7) % 60);
+    const r = 4 + (k % 6);
+    const hue = (k * 30 + i * 10) % 360;
+    g += `<polygon points="${cx},${cy-r} ${cx+r},${cy+r} ${cx-r},${cy+r}" fill="none" stroke="hsl(${hue},80%,65%)" stroke-width="0.7"/>`;
+  }
+  return svg(g, { bg: '#050208' });
+}
+// 18. Spark
+function thumbSpark(i) {
+  let g = '';
+  const cx = 60, cy = 30;
+  for (let k = 0; k < 24; k++) {
+    const a = (k / 24) * Math.PI * 2;
+    const r2 = 20 + ((k * 7 + i) % 12);
+    g += `<line x1="${cx}" y1="${cy}" x2="${cx + Math.cos(a)*r2}" y2="${cy + Math.sin(a)*r2}" stroke="#ffee88" stroke-width="0.6" opacity="0.7"/>`;
+  }
+  g += `<circle cx="${cx}" cy="${cy}" r="4" fill="#fff"/>`;
+  return svg(g, { bg: '#1a1000' });
+}
+// 19. Flash — white rings
+function thumbFlash(i) {
+  return svg(`
+    <radialGradient id="fl${i}" cx="0.5" cy="0.5"><stop offset="0" stop-color="#fff"/><stop offset="0.3" stop-color="#ffee88"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+    <rect width="120" height="60" fill="url(#fl${i})"/>
+  `, { bg: '#000' });
+}
+// 20. Dots
+function thumbDots(i) {
+  let g = '';
+  for (let y = 4; y < 60; y += 6) {
+    for (let x = 4; x < 120; x += 6) {
+      const r = 1 + ((x + y + i) % 3) * 0.3;
+      g += `<circle cx="${x}" cy="${y}" r="${r}" fill="#ff77cc" opacity="${0.4 + ((x+y)%7)*0.08}"/>`;
+    }
+  }
+  return svg(g, { bg: '#140014' });
+}
+// 21. Rings
+function thumbRings(i) {
+  let g = '';
+  for (let k = 1; k < 10; k++) {
+    g += `<circle cx="60" cy="30" r="${k*4}" fill="none" stroke="#66ddaa" stroke-width="0.6" opacity="${1 - k*0.09}"/>`;
+  }
+  return svg(g, { bg: '#021a10' });
+}
+// 22. Beam
+function thumbBeam(i) {
+  return svg(`
+    <defs><linearGradient id="bm${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000"/><stop offset="0.4" stop-color="#4488ff"/><stop offset="0.5" stop-color="#fff"/><stop offset="0.6" stop-color="#4488ff"/><stop offset="1" stop-color="#000"/></linearGradient></defs>
+    <polygon points="0,28 120,0 120,32 0,60" fill="url(#bm${i})" opacity="0.9"/>
+  `, { bg: '#02040a' });
+}
+// 23. Drip
+function thumbDrip(i) {
+  let g = '';
+  for (let k = 0; k < 8; k++) {
+    const x = 8 + k * 15 + ((i * 3) % 8);
+    const h = 10 + ((k * 7 + i) % 40);
+    g += `<rect x="${x}" y="0" width="2" height="${h}" fill="#cc44ff" opacity="0.7"/>`;
+    g += `<circle cx="${x+1}" cy="${h}" r="2" fill="#ee88ff"/>`;
+  }
+  return svg(g, { bg: '#100014' });
+}
+// 24. Arc
+function thumbArc(i) {
+  let g = '';
+  for (let k = 0; k < 6; k++) {
+    const r = 15 + k * 6;
+    g += `<path d="M ${60-r} 50 A ${r} ${r} 0 0 1 ${60+r} 50" fill="none" stroke="#ffcc44" stroke-width="0.8" opacity="${1 - k*0.13}"/>`;
+  }
+  return svg(g, { bg: '#140a00' });
+}
+// 25. Feedback — concentric squares
+function thumbFeedback(i) {
+  let g = '';
+  for (let k = 0; k < 6; k++) {
+    const m = k * 5;
+    g += `<rect x="${m}" y="${m*0.5}" width="${120-m*2}" height="${60-m}" fill="none" stroke="#ff77ff" stroke-width="0.5" opacity="${1 - k*0.15}"/>`;
+  }
+  return svg(g, { bg: '#140014' });
+}
+// 26. Zoom Blur — radial lines
+function thumbZoomBlur(i) {
+  let g = '';
+  for (let a = 0; a < 40; a++) {
+    const ang = (a / 40) * Math.PI * 2;
+    const x1 = 60 + Math.cos(ang) * 15, y1 = 30 + Math.sin(ang) * 15;
+    const x2 = 60 + Math.cos(ang) * 60, y2 = 30 + Math.sin(ang) * 60;
+    g += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#fff" stroke-width="0.8" opacity="${0.2 + (a%6)*0.08}"/>`;
+  }
+  return svg(g, { bg: '#000' });
+}
+// 27. Shake — offset duplicates
+function thumbShake(i) {
+  return svg(`
+    <text x="60" y="42" font-family="IBM Plex Mono" font-size="36" font-weight="700" fill="#fff" text-anchor="middle" opacity="0.4" transform="translate(-6,-3)">FX</text>
+    <text x="60" y="42" font-family="IBM Plex Mono" font-size="36" font-weight="700" fill="#fff" text-anchor="middle" opacity="0.4" transform="translate(6,3)">FX</text>
+    <text x="60" y="42" font-family="IBM Plex Mono" font-size="36" font-weight="700" fill="#fff" text-anchor="middle" opacity="0.8">FX</text>
+  `, { bg: '#0a0a0a' });
+}
+// 28. Freeze
+function thumbFreeze(i) {
+  let g = '';
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * Math.PI * 2;
+    g += `<line x1="60" y1="30" x2="${60+Math.cos(a)*24}" y2="${30+Math.sin(a)*24}" stroke="#aaeeff" stroke-width="1.2"/>`;
+    g += `<line x1="${60+Math.cos(a)*14}" y1="${30+Math.sin(a)*14}" x2="${60+Math.cos(a+0.3)*20}" y2="${30+Math.sin(a+0.3)*20}" stroke="#aaeeff" stroke-width="0.7"/>`;
+    g += `<line x1="${60+Math.cos(a)*14}" y1="${30+Math.sin(a)*14}" x2="${60+Math.cos(a-0.3)*20}" y2="${30+Math.sin(a-0.3)*20}" stroke="#aaeeff" stroke-width="0.7"/>`;
+  }
+  return svg(g, { bg: '#020814' });
+}
+// 29. Echo trails — offset rectangles
+function thumbEchoTrails(i) {
+  let g = '';
+  for (let k = 0; k < 5; k++) {
+    g += `<rect x="${20 + k*10}" y="${15 + k*3}" width="40" height="20" fill="none" stroke="#88aaff" stroke-width="0.6" opacity="${1 - k*0.18}"/>`;
+  }
+  return svg(g, { bg: '#050a14' });
+}
+// 30. Posterize — step gradient
+function thumbPosterize(i) {
+  let g = '';
+  for (let k = 0; k < 6; k++) {
+    g += `<rect x="${k*20}" y="0" width="20" height="60" fill="hsl(${k*60}, 60%, ${30 + k*8}%)"/>`;
+  }
+  return svg(g);
+}
+// 31. Pixelate — blocks
+function thumbPixelate(i) {
+  let g = '';
+  for (let y = 0; y < 60; y += 8) {
+    for (let x = 0; x < 120; x += 8) {
+      const v = (((x+y+i*13) * 37) % 100) / 100;
+      g += `<rect x="${x}" y="${y}" width="8" height="8" fill="hsl(${200 + (x+y)%100}, 50%, ${20 + v*50}%)"/>`;
+    }
+  }
+  return svg(g);
+}
+// 32. Chromatic — RGB bars
+function thumbChromatic(i) {
+  return svg(`
+    <rect x="0" y="0" width="40" height="60" fill="#ff2255" opacity="0.7"/>
+    <rect x="40" y="0" width="40" height="60" fill="#22ff88" opacity="0.7"/>
+    <rect x="80" y="0" width="40" height="60" fill="#2288ff" opacity="0.7"/>
+    <rect x="0" y="0" width="120" height="60" fill="url(#chG${i})"/>
+    <defs><linearGradient id="chG${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.5"/></linearGradient></defs>
+  `, { bg: '#000' });
+}
+
+/* ================== BEAT WHEEL ANIMATION ================== */
+(function tickBeat() {
+  const cells = document.querySelectorAll('#beatWheel .beat-cell');
+  let idx = 1;
+  setInterval(() => {
+    cells.forEach((c, i) => c.classList.toggle('active', i === idx));
+    idx = (idx + 1) % 4;
+  }, 469); // 128 BPM quarter
+})();
+</script>
+</body>
+</html>

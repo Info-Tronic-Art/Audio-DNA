@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 17 Var A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: #0e1118; color: #e0e0e0; font-size: 11px; }
+
+/* MASTER AUDIO CONTROL BAR */
+.master-bar { height: 36px; background: linear-gradient(180deg, #1e222a 0%, #161a22 100%); display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #2a2e38; gap: 8px; }
+.mb-title { font-size: 10px; color: #889; font-weight: 600; }
+.mb-transport { display: flex; gap: 3px; }
+.mb-btn { width: 24px; height: 24px; background: #222830; border: 1px solid #3a4048; border-radius: 3px; display: flex; align-items: center; justify-content: center; color: #889; font-size: 10px; cursor: pointer; }
+.mb-btn:hover { background: #333a44; }
+.mb-btn.active { color: #00d4aa; border-color: #00d4aa; }
+.mb-vol { display: flex; align-items: center; gap: 4px; }
+.mb-vol-track { width: 100px; height: 6px; background: #0c0e12; border-radius: 3px; overflow: hidden; border: 1px solid #222; }
+.mb-vol-fill { height: 100%; background: linear-gradient(90deg, #4aff7f, #aaff55); border-radius: 3px; width: 75%; }
+.sep { width: 1px; height: 22px; background: #333; }
+.sp { flex: 1; }
+.mb-lbl { font-size: 9px; color: #556; }
+.mb-val { font-size: 10px; color: #aab; font-family: monospace; }
+.bpm-val { font-size: 16px; font-weight: 800; color: #4aff7f; font-family: monospace; }
+.tb { background: #262c34; border: 1px solid #3a4048; color: #aab; padding: 2px 8px; border-radius: 3px; font-size: 9px; cursor: pointer; }
+.tb.on { background: #00d4aa; color: #111; border-color: #00d4aa; }
+.bdots { display: flex; gap: 3px; }
+.bd { width: 7px; height: 7px; border-radius: 50%; background: #222; border: 1px solid #444; }
+.bd.on { background: #00d4aa; border-color: #00d4aa; box-shadow: 0 0 4px #00d4aa88; }
+
+/* GRID TOOLBAR */
+.grid-toolbar { height: 24px; background: #161a22; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #222830; gap: 8px; }
+.gt-lbl { font-size: 9px; color: #667; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.gt-btn { font-size: 9px; color: #889; cursor: pointer; padding: 2px 8px; background: #1e222a; border: 1px solid #2a2e38; border-radius: 2px; }
+
+/* MAIN */
+.main { display: flex; height: calc(1080px - 36px - 24px); }
+
+/* LEFT: 8-LAYER COMPOSITION GRID */
+.grid-panel { flex: 1; overflow: auto; }
+.grid-table { width: 100%; }
+.layer-row { display: flex; border-bottom: 1px solid #1a1e26; }
+.layer-header { width: 260px; min-width: 260px; background: linear-gradient(90deg, #181c24 0%, #161a22 100%); padding: 4px 6px; border-right: 1px solid #222830; display: flex; flex-direction: column; gap: 2px; }
+.lh-row1 { display: flex; align-items: center; gap: 3px; }
+.lh-name { font-size: 10px; color: #bbc; font-weight: 600; flex: 1; }
+.lh-badge { font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 2px; text-transform: uppercase; }
+.lh-sm { display: flex; gap: 2px; }
+.lh-sm span { width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; border: 1px solid #3a4048; border-radius: 2px; color: #667; cursor: pointer; }
+.lh-btns { display: flex; gap: 2px; flex-wrap: wrap; }
+.lh-btn { font-size: 7px; padding: 1px 4px; background: #222830; border: 1px solid #2a2e38; border-radius: 2px; color: #778; cursor: pointer; }
+.lh-btn:hover { background: #333; color: #bbb; }
+.lh-btn.active { background: #00d4aa22; border-color: #00d4aa44; color: #00d4aa; }
+.layer-cells { display: flex; gap: 3px; padding: 3px 4px; flex: 1; overflow-x: auto; }
+.lc { width: 82px; height: 72px; min-width: 82px; border-radius: 3px; border: 1px solid #222830; overflow: hidden; cursor: pointer; background: #0c0e12; position: relative; }
+.lc:hover { border-color: #4a5060; }
+.lc.a { border-color: #00d4aa; box-shadow: 0 0 6px #00d4aa33; }
+.lc .t { width: 100%; height: 54px; }
+.lc .n { height: 18px; background: #141820; font-size: 7px; color: #778; display: flex; align-items: center; justify-content: center; }
+.lc .bg { position: absolute; top: 2px; left: 2px; font-size: 6px; font-weight: 700; padding: 1px 3px; border-radius: 2px; }
+.bv { background: #e8553566; color: #ffa; }
+.bi { background: #3588e866; color: #ddf; }
+.bs { background: #00d4aa66; color: #112; }
+.g1 { background: linear-gradient(135deg, #0a1020, #1a0a30); }
+.g2 { background: radial-gradient(circle, #fff1, transparent); }
+.g3 { background: conic-gradient(from 0deg, #111, #1a1a2a, #111); }
+.g4 { background: radial-gradient(circle, #4488ff11, transparent); }
+.g5 { background: linear-gradient(45deg, #1a1a2a, #0a0a1a); }
+.g6 { background: radial-gradient(circle, #aa44ff11, transparent); }
+.g7 { background: linear-gradient(135deg, #001a22, #002a1a); }
+.g8 { background: linear-gradient(180deg, #1a0a1a, #0a1a2a); }
+.g9 { background: radial-gradient(circle at 30% 40%, #22446622, transparent); }
+.g10 { background: linear-gradient(225deg, #0a2010, #100a20); }
+
+/* RIGHT PANEL */
+.right-panel { width: 440px; background: linear-gradient(180deg, #161a22 0%, #12161e 100%); border-left: 1px solid #262c38; display: flex; flex-direction: column; }
+
+/* Preview Window */
+.preview-section { padding: 8px; }
+.preview-label { font-size: 9px; color: #556; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.preview-windows { display: flex; gap: 6px; }
+.pwin { flex: 1; height: 140px; background: #0a0c10; border-radius: 4px; border: 1px solid #222830; overflow: hidden; position: relative; }
+.pwin .pvis { width: 100%; height: 100%; }
+.pwin-main .pvis { background: radial-gradient(circle at 50% 50%, #6633aa44, #00112244, #0a0c10); }
+.pwin-out .pvis { background: radial-gradient(ellipse at 50% 50%, #2244aa22, #0a0c10); }
+.pwin .plbl { position: absolute; bottom: 4px; left: 6px; font-size: 7px; color: #445; text-transform: uppercase; }
+
+/* Audio Visualizer */
+.viz-section { padding: 8px; border-top: 1px solid #1e2230; }
+.viz-label { font-size: 9px; color: #556; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.viz-tabs { display: flex; gap: 4px; margin-bottom: 6px; }
+.viz-tab { font-size: 8px; padding: 2px 8px; background: #1e222a; border: 1px solid #2a2e38; border-radius: 2px; color: #667; cursor: pointer; }
+.viz-tab.a { background: #00d4aa14; border-color: #00d4aa44; color: #00d4aa; }
+.spectrum { height: 80px; background: #0a0c10; border-radius: 4px; border: 1px solid #1a1e26; display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding: 4px 8px; }
+.spectrum .bar { width: 6px; border-radius: 1px 1px 0 0; }
+.bar-g { background: linear-gradient(180deg, #4aff7f, #22aa44); }
+.bar-y { background: linear-gradient(180deg, #ffdd4a, #cc8800); }
+.bar-r { background: linear-gradient(180deg, #ff5533, #cc2200); }
+
+/* Properties */
+.props-section { flex: 1; overflow-y: auto; padding: 0; display: flex; gap: 1px; }
+.props-col { flex: 1; background: #141820; padding: 6px 8px; border-top: 1px solid #1e2230; overflow-y: auto; }
+.pc-title { font-size: 9px; color: #556; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-weight: 600; border-bottom: 1px solid #1e2230; padding-bottom: 4px; }
+.pc-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.pc-label { font-size: 8px; color: #556; width: 70px; }
+.pc-val { font-size: 9px; color: #aab; font-family: monospace; }
+.pc-dd { font-size: 8px; background: #1a1e26; border: 1px solid #2a2e38; color: #889; padding: 1px 4px; border-radius: 2px; }
+.pc-slider { flex: 1; height: 5px; background: #0c0e12; border-radius: 3px; overflow: hidden; }
+.pc-slider .pf { height: 100%; border-radius: 3px; }
+
+/* Logo */
+.logo-area { text-align: center; padding: 12px; }
+.logo-dia { display: inline-block; width: 48px; height: 48px; background: linear-gradient(135deg, #00d4aa22, #00d4aa44); transform: rotate(45deg); border-radius: 5px; border: 1.5px solid #00d4aa44; }
+</style>
+</head>
+<body>
+
+<!-- MASTER AUDIO CONTROL BAR -->
+<div class="master-bar">
+  <div class="mb-title">Master Audio Control</div>
+  <div class="mb-transport">
+    <div class="mb-btn">&#9664;</div>
+    <div class="mb-btn active">&#9654;</div>
+    <div class="mb-btn">&#9632;</div>
+    <div class="mb-btn">&#9679;</div>
+  </div>
+  <div class="mb-vol">
+    <span class="mb-lbl">Vol</span>
+    <div class="mb-vol-track"><div class="mb-vol-fill"></div></div>
+  </div>
+  <div class="sep"></div>
+  <span class="mb-lbl">Master Volume</span>
+  <div class="mb-vol">
+    <div class="mb-vol-track" style="width:80px;"><div class="mb-vol-fill" style="width:85%;"></div></div>
+  </div>
+  <div class="sep"></div>
+  <span class="mb-lbl">BPM</span>
+  <span class="bpm-val">128.00</span>
+  <div class="tb">TAP</div>
+  <div class="bdots"><div class="bd on"></div><div class="bd"></div><div class="bd"></div><div class="bd"></div></div>
+  <div class="sep"></div>
+  <span class="mb-lbl">Fade</span><span class="mb-val">Sim</span>
+  <span class="mb-lbl">Deck</span><span class="mb-val">A</span>
+  <div class="sp"></div>
+  <span style="font-family:monospace; font-size:10px; color:#4aff7f;">60 FPS</span>
+  <div class="tb">&#9881;</div>
+</div>
+
+<!-- GRID TOOLBAR -->
+<div class="grid-toolbar">
+  <span class="gt-lbl">Composition Grid</span>
+  <div class="gt-btn">Drag and Drop</div>
+  <div class="gt-btn">Add Layer</div>
+  <div class="gt-btn">Snap Mode</div>
+  <div class="sp"></div>
+  <div class="gt-btn">Save</div>
+  <div class="gt-btn">Load</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- GRID -->
+  <div class="grid-panel">
+    <!-- Layer 1 -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-row1">
+          <div class="lh-sm"><span>S</span><span>M</span></div>
+          <div class="lh-name">Layer 1</div>
+          <span class="lh-badge" style="background:#e85535; color:#fff;">VID</span>
+        </div>
+        <div class="lh-btns">
+          <span class="lh-btn active">Play</span><span class="lh-btn">Res</span><span class="lh-btn">Pause</span><span class="lh-btn">Load</span><span class="lh-btn">Master</span><span class="lh-btn">Bypass</span>
+        </div>
+      </div>
+      <div class="layer-cells">
+        <div class="lc a"><div class="t g1"></div><div class="n">Layer 1</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g2"></div><div class="n">Layer 2</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g3"></div><div class="n">Layer 3</div><span class="bg bi">IMG</span></div>
+        <div class="lc"><div class="t g4"></div><div class="n">Layer 4</div></div>
+        <div class="lc"><div class="t g5"></div><div class="n">Layer 5</div></div>
+        <div class="lc"><div class="t g6"></div><div class="n">Layer 6</div></div>
+        <div class="lc"><div class="t g7"></div><div class="n">Layer 7</div></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Layer 8</div></div>
+        <div class="lc"><div class="t g9"></div><div class="n">Layer 9</div></div>
+        <div class="lc"><div class="t g10"></div><div class="n">Layer 10</div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n">Layer 11</div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n">Layer 12</div></div>
+      </div>
+    </div>
+    <!-- Layer 2 -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-row1"><div class="lh-sm"><span>S</span><span>M</span></div><div class="lh-name">Layer 2</div><span class="lh-badge" style="background:#3588e8; color:#fff;">IMG</span></div>
+        <div class="lh-btns"><span class="lh-btn active">Play</span><span class="lh-btn">Res</span><span class="lh-btn">Pause</span><span class="lh-btn">Load</span><span class="lh-btn">Master</span><span class="lh-btn">Bypass</span></div>
+      </div>
+      <div class="layer-cells">
+        <div class="lc"><div class="t g4"></div><div class="n">Layer 1</div><span class="bg bi">IMG</span></div>
+        <div class="lc a"><div class="t g5"></div><div class="n">Layer 2</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g6"></div><div class="n">Layer 3</div></div>
+        <div class="lc"><div class="t g7"></div><div class="n">Layer 4</div></div>
+        <div class="lc"><div class="t g1"></div><div class="n">Layer 5</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Layer 6</div></div>
+        <div class="lc"><div class="t g2"></div><div class="n">Layer 7</div></div>
+        <div class="lc"><div class="t g9"></div><div class="n">Layer 8</div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <!-- Layer 3 -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-row1"><div class="lh-sm"><span>S</span><span>M</span></div><div class="lh-name">Layer 3</div><span class="lh-badge" style="background:#00d4aa; color:#111;">SRC</span></div>
+        <div class="lh-btns"><span class="lh-btn active">Play</span><span class="lh-btn">Res</span><span class="lh-btn">Pause</span><span class="lh-btn">Load</span><span class="lh-btn">Master</span><span class="lh-btn">Bypass</span></div>
+      </div>
+      <div class="layer-cells">
+        <div class="lc"><div class="t g7"></div><div class="n">Layer 1</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Layer 2</div></div>
+        <div class="lc a"><div class="t g9"></div><div class="n">Layer 3</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g10"></div><div class="n">Layer 4</div></div>
+        <div class="lc"><div class="t g2"></div><div class="n">Layer 5</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g3"></div><div class="n">Layer 6</div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <!-- Layer 4 -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-row1"><div class="lh-sm"><span>S</span><span>M</span></div><div class="lh-name">Layer 4</div><span class="lh-badge" style="background:#aa55dd; color:#fff;">SRC</span></div>
+        <div class="lh-btns"><span class="lh-btn active">Play</span><span class="lh-btn">Res</span><span class="lh-btn">Pause</span><span class="lh-btn">Load</span><span class="lh-btn">Master</span><span class="lh-btn">Bypass</span></div>
+      </div>
+      <div class="layer-cells">
+        <div class="lc"><div class="t g10"></div><div class="n">Layer 1</div></div>
+        <div class="lc"><div class="t g1"></div><div class="n">Layer 2</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g3"></div><div class="n">Layer 3</div></div>
+        <div class="lc a"><div class="t g5"></div><div class="n">Layer 4</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g6"></div><div class="n">Layer 5</div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <!-- Layer 5-8 (condensed) -->
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-row1"><div class="lh-sm"><span>S</span><span>M</span></div><div class="lh-name">Layer 5</div><span class="lh-badge" style="background:#e85535; color:#fff;">VID</span></div>
+        <div class="lh-btns"><span class="lh-btn active">Play</span><span class="lh-btn">Res</span><span class="lh-btn">Pause</span><span class="lh-btn">Load</span><span class="lh-btn">Master</span><span class="lh-btn">Bypass</span></div>
+      </div>
+      <div class="layer-cells">
+        <div class="lc"><div class="t g2"></div><div class="n">Layer 1</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g4"></div><div class="n">Layer 2</div></div>
+        <div class="lc"><div class="t g6"></div><div class="n">Layer 3</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Layer 4</div></div>
+        <div class="lc a"><div class="t g10"></div><div class="n">Layer 5</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-row1"><div class="lh-sm"><span>S</span><span>M</span></div><div class="lh-name">Layer 6</div><span class="lh-badge" style="background:#3588e8; color:#fff;">IMG</span></div>
+        <div class="lh-btns"><span class="lh-btn active">Play</span><span class="lh-btn">Res</span><span class="lh-btn">Pause</span><span class="lh-btn">Load</span><span class="lh-btn">Master</span><span class="lh-btn">Bypass</span></div>
+      </div>
+      <div class="layer-cells">
+        <div class="lc"><div class="t g3"></div><div class="n">Layer 1</div><span class="bg bi">IMG</span></div>
+        <div class="lc a"><div class="t g5"></div><div class="n">Layer 2</div><span class="bg bi">IMG</span></div>
+        <div class="lc"><div class="t g7"></div><div class="n">Layer 3</div></div>
+        <div class="lc"><div class="t g9"></div><div class="n">Layer 4</div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-row1"><div class="lh-sm"><span>S</span><span>M</span></div><div class="lh-name">Layer 7</div><span class="lh-badge" style="background:#00d4aa; color:#111;">SRC</span></div>
+        <div class="lh-btns"><span class="lh-btn active">Play</span><span class="lh-btn">Res</span><span class="lh-btn">Pause</span><span class="lh-btn">Load</span><span class="lh-btn">Master</span><span class="lh-btn">Bypass</span></div>
+      </div>
+      <div class="layer-cells">
+        <div class="lc"><div class="t g6"></div><div class="n">Layer 1</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t g8"></div><div class="n">Layer 2</div></div>
+        <div class="lc"><div class="t g1"></div><div class="n">Layer 3</div><span class="bg bv">VID</span></div>
+        <div class="lc a"><div class="t g10"></div><div class="n">Layer 4</div><span class="bg bs">SRC</span></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+      </div>
+    </div>
+    <div class="layer-row">
+      <div class="layer-header">
+        <div class="lh-row1"><div class="lh-sm"><span>S</span><span>M</span></div><div class="lh-name">Layer 8</div><span class="lh-badge" style="background:#e85535; color:#fff;">VID</span></div>
+        <div class="lh-btns"><span class="lh-btn active">Play</span><span class="lh-btn">Res</span><span class="lh-btn">Pause</span><span class="lh-btn">Load</span><span class="lh-btn">Master</span><span class="lh-btn">Bypass</span></div>
+      </div>
+      <div class="layer-cells">
+        <div class="lc"><div class="t g9"></div><div class="n">Layer 1</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g2"></div><div class="n">Layer 2</div></div>
+        <div class="lc a"><div class="t g4"></div><div class="n">Layer 3</div><span class="bg bv">VID</span></div>
+        <div class="lc"><div class="t g7"></div><div class="n">Layer 4</div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+        <div class="lc"><div class="t" style="background:#0c0e12;"></div><div class="n"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="preview-section">
+      <div class="preview-label"><span>Preview Window</span><span>Main Output Window</span></div>
+      <div class="preview-windows">
+        <div class="pwin pwin-main"><div class="pvis"></div><span class="plbl">Preview</span></div>
+        <div class="pwin pwin-out"><div class="pvis"></div><span class="plbl">Output</span></div>
+      </div>
+    </div>
+
+    <div class="viz-section">
+      <div class="viz-label">Audio Visualizer</div>
+      <div class="viz-tabs">
+        <div class="viz-tab a">Melody</div>
+        <div class="viz-tab">Music</div>
+        <div class="viz-tab">Beats</div>
+      </div>
+      <div class="spectrum">
+        <div class="bar bar-g" style="height:15px;"></div><div class="bar bar-g" style="height:22px;"></div><div class="bar bar-g" style="height:30px;"></div>
+        <div class="bar bar-g" style="height:42px;"></div><div class="bar bar-y" style="height:55px;"></div><div class="bar bar-y" style="height:48px;"></div>
+        <div class="bar bar-g" style="height:36px;"></div><div class="bar bar-g" style="height:45px;"></div><div class="bar bar-y" style="height:52px;"></div>
+        <div class="bar bar-g" style="height:38px;"></div><div class="bar bar-g" style="height:28px;"></div><div class="bar bar-g" style="height:20px;"></div>
+        <div class="bar bar-g" style="height:30px;"></div><div class="bar bar-g" style="height:40px;"></div><div class="bar bar-y" style="height:50px;"></div>
+        <div class="bar bar-y" style="height:58px;"></div><div class="bar bar-r" style="height:65px;"></div><div class="bar bar-y" style="height:55px;"></div>
+        <div class="bar bar-g" style="height:42px;"></div><div class="bar bar-g" style="height:32px;"></div><div class="bar bar-g" style="height:22px;"></div>
+        <div class="bar bar-g" style="height:28px;"></div><div class="bar bar-g" style="height:38px;"></div><div class="bar bar-g" style="height:45px;"></div>
+        <div class="bar bar-y" style="height:52px;"></div><div class="bar bar-y" style="height:48px;"></div><div class="bar bar-g" style="height:35px;"></div>
+        <div class="bar bar-g" style="height:25px;"></div><div class="bar bar-g" style="height:18px;"></div><div class="bar bar-g" style="height:12px;"></div>
+        <div class="bar bar-g" style="height:16px;"></div><div class="bar bar-g" style="height:22px;"></div><div class="bar bar-g" style="height:14px;"></div>
+        <div class="bar bar-g" style="height:8px;"></div>
+      </div>
+    </div>
+
+    <div class="props-section">
+      <div class="props-col">
+        <div class="pc-title">Layer Properties</div>
+        <div class="pc-row"><span class="pc-label">Name</span><span class="pc-val">Layer 1</span></div>
+        <div class="pc-row"><span class="pc-label">Type</span><span class="pc-dd">Opaque &#9660;</span></div>
+        <div class="pc-row"><span class="pc-label">Blend</span><span class="pc-dd">Normal &#9660;</span></div>
+        <div class="pc-row"><span class="pc-label">Opacity</span><div class="pc-slider"><div class="pf" style="width:100%; background:#00d4aa;"></div></div><span class="pc-val">100%</span></div>
+        <div class="pc-row"><span class="pc-label">Layer Size</span><span class="pc-val">1920x1080</span></div>
+        <div class="pc-row"><span class="pc-label">Position</span><span class="pc-val">0, 0</span></div>
+        <div class="pc-row"><span class="pc-label">Rotation</span><span class="pc-val">0.0</span></div>
+        <div class="pc-row"><span class="pc-label">Autopilot</span><span class="pc-dd">Off &#9660;</span></div>
+        <div class="pc-row"><span class="pc-label">Priority</span><span class="pc-val">100</span></div>
+        <div class="pc-row"><span class="pc-label">Format Type</span><span class="pc-val">RGB</span></div>
+        <div class="pc-row"><span class="pc-label">Format Res</span><span class="pc-val">1920x1080</span></div>
+      </div>
+      <div class="props-col">
+        <div class="pc-title">Properties / Video / Master</div>
+        <div class="pc-row"><span class="pc-label">Name</span><span class="pc-dd">Preview Window &#9660;</span></div>
+        <div class="pc-row"><span class="pc-label">Layer Type</span><span class="pc-val">Default</span></div>
+        <div class="pc-row"><span class="pc-label">Opacity</span><div class="pc-slider"><div class="pf" style="width:85%; background:#00d4aa;"></div></div><span class="pc-val">85%</span></div>
+        <div class="pc-row"><span class="pc-label">Width</span><span class="pc-val">1920</span></div>
+        <div class="pc-row"><span class="pc-label">Height</span><span class="pc-val">1080</span></div>
+        <div class="pc-row"><span class="pc-label">Property Size</span><span class="pc-val">2000x1200</span></div>
+        <div class="pc-row"><span class="pc-label">Capture</span><span class="pc-dd">Syphon &#9660;</span></div>
+        <div class="pc-row"><span class="pc-label">Collapse</span><span class="pc-dd">Coverage &#9660;</span></div>
+      </div>
+    </div>
+
+    <div class="logo-area"><div class="logo-dia"></div></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ - Image 10 Var A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(170deg, #1a1e24 0%, #12151a 50%, #0e1115 100%); color: #d0d0d0; font-size: 12px; }
+
+/* TOP BAR */
+.top-bar { height: 38px; background: linear-gradient(180deg, #22272e 0%, #1a1e24 100%); border-bottom: 1px solid #333; display: flex; align-items: center; padding: 0 12px; gap: 12px; }
+.logo { font-size: 15px; font-weight: 700; color: #e8e8e8; letter-spacing: 0.5px; }
+.logo span { color: #f0a030; }
+.bpm-display { font-size: 26px; font-weight: 700; color: #4caf50; font-family: 'Consolas', monospace; margin-left: 20px; }
+.top-btn { padding: 4px 12px; background: #2a2f38; border: 1px solid #444; border-radius: 3px; color: #bbb; cursor: pointer; font-size: 11px; }
+.top-btn:hover { background: #3a3f48; }
+.top-btn.active { background: #f0a030; color: #111; border-color: #f0a030; }
+.beat-dots { display: flex; gap: 4px; margin-left: 10px; }
+.beat-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+.beat-dot.active { background: #f0a030; }
+.bar-info { color: #888; font-size: 11px; font-family: monospace; }
+.room-delay { color: #777; font-size: 11px; margin-left: auto; }
+.spacer { flex: 1; }
+
+/* MAIN LAYOUT */
+.main { display: flex; height: calc(100% - 38px - 32px); }
+
+/* SCENE FLOW */
+.scene-flow { width: 180px; background: linear-gradient(180deg, #1c2028 0%, #161a20 100%); border-right: 1px solid #2a2e35; padding: 8px; }
+.scene-flow h3 { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #2a2e35; padding-bottom: 4px; }
+.scene-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin-bottom: 3px; border-radius: 3px; cursor: pointer; }
+.scene-item:hover { background: #252a32; }
+.scene-item.active { background: #2a3040; border-left: 3px solid #f0a030; }
+.scene-item .dot { width: 6px; height: 6px; border-radius: 50%; }
+.scene-trigger { padding: 2px 8px; background: #2a2f38; border: 1px solid #444; border-radius: 2px; color: #aaa; font-size: 10px; margin-left: auto; cursor: pointer; }
+.scene-trigger:hover { background: #f0a030; color: #111; }
+
+/* CENTER */
+.center { flex: 1; display: flex; flex-direction: column; }
+
+/* PREVIEW */
+.preview-area { height: 220px; padding: 8px; display: flex; flex-direction: column; }
+.preview-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.preview-box { flex: 1; background: linear-gradient(135deg, #0a0d12 0%, #141820 50%, #0a0d12 100%); border: 1px solid #2a2e35; border-radius: 4px; position: relative; overflow: hidden; }
+.preview-visual { position: absolute; inset: 0; background: radial-gradient(ellipse at 40% 50%, rgba(20,60,120,0.3) 0%, transparent 60%), radial-gradient(ellipse at 70% 40%, rgba(100,30,80,0.2) 0%, transparent 50%); }
+.preview-transport { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.preview-transport button { width: 24px; height: 20px; background: #2a2f38; border: 1px solid #444; color: #aaa; border-radius: 2px; cursor: pointer; font-size: 10px; }
+.preview-scrubber { flex: 1; height: 4px; background: #2a2e35; border-radius: 2px; position: relative; }
+.preview-scrubber::after { content: ''; position: absolute; left: 0; top: 0; width: 35%; height: 100%; background: #f0a030; border-radius: 2px; }
+
+/* GLOBAL MACROS */
+.global-macros { height: 70px; padding: 4px 12px; border-top: 1px solid #2a2e35; display: flex; align-items: center; gap: 16px; }
+.global-macros-label { font-size: 10px; color: #666; text-transform: uppercase; writing-mode: vertical-lr; transform: rotate(180deg); letter-spacing: 1px; }
+.macro-knob-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.macro-knob { width: 36px; height: 36px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a3f48, #22272e); border: 2px solid #444; position: relative; }
+.macro-knob::after { content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 12px; background: #ccc; transform-origin: bottom center; border-radius: 1px; }
+.macro-knob.k1::after { transform: translateX(-50%) rotate(-60deg); }
+.macro-knob.k2::after { transform: translateX(-50%) rotate(-30deg); }
+.macro-knob.k3::after { transform: translateX(-50%) rotate(15deg); }
+.macro-knob.k4::after { transform: translateX(-50%) rotate(45deg); }
+.macro-knob.k5::after { transform: translateX(-50%) rotate(-10deg); }
+.macro-knob.k6::after { transform: translateX(-50%) rotate(30deg); }
+.macro-arc { position: absolute; inset: -3px; border-radius: 50%; border: 2px solid transparent; }
+.macro-knob-group span { font-size: 9px; color: #777; }
+
+/* SOURCES */
+.sources-panel { width: 240px; background: linear-gradient(180deg, #1c2028 0%, #161a20 100%); border-left: 1px solid #2a2e35; padding: 8px; }
+.sources-panel h3 { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; border-bottom: 1px solid #2a2e35; padding-bottom: 4px; }
+.source-item { padding: 6px 8px; margin-bottom: 4px; background: #1a1e24; border: 1px solid #2a2e35; border-radius: 3px; }
+.source-item .name { font-size: 11px; color: #ccc; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+.source-item .icon { color: #4caf50; font-size: 13px; }
+.source-wave { height: 28px; background: linear-gradient(90deg, #0a0d12, #141820); border-radius: 2px; position: relative; overflow: hidden; }
+.source-wave::after { content: ''; position: absolute; inset: 0; }
+.wave-green::after { background: repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(76,175,80,0.4) 2px, rgba(76,175,80,0.1) 4px); clip-path: polygon(0% 50%, 5% 30%, 10% 60%, 15% 20%, 20% 70%, 25% 25%, 30% 55%, 35% 35%, 40% 65%, 45% 30%, 50% 50%, 55% 25%, 60% 60%, 65% 35%, 70% 55%, 75% 40%, 80% 50%, 85% 45%, 90% 55%, 95% 48%, 100% 50%); }
+.wave-amber::after { background: repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(240,160,48,0.4) 2px, rgba(240,160,48,0.1) 4px); clip-path: polygon(0% 50%, 5% 35%, 10% 55%, 15% 30%, 20% 60%, 25% 40%, 30% 50%, 35% 45%, 40% 55%, 45% 42%, 50% 50%, 55% 38%, 60% 55%, 65% 42%, 70% 48%, 75% 45%, 80% 52%, 85% 47%, 90% 50%, 95% 48%, 100% 50%); }
+.wave-cyan::after { background: repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,188,212,0.4) 2px, rgba(0,188,212,0.1) 4px); clip-path: polygon(0% 50%, 8% 30%, 16% 65%, 24% 25%, 32% 70%, 40% 35%, 48% 55%, 56% 40%, 64% 60%, 72% 30%, 80% 55%, 88% 40%, 100% 50%); }
+.source-item .params { display: flex; gap: 12px; margin-top: 4px; font-size: 9px; color: #666; }
+.add-source { padding: 6px; text-align: center; color: #555; border: 1px dashed #333; border-radius: 3px; margin-top: 8px; cursor: pointer; font-size: 11px; }
+.add-source:hover { color: #f0a030; border-color: #f0a030; }
+
+/* LAYER STRIPS */
+.layer-strips-area { flex: 1; border-top: 1px solid #2a2e35; overflow-x: auto; padding: 6px 8px; }
+.layer-strips-header { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.layer-strips { display: flex; gap: 6px; height: calc(100% - 20px); }
+.layer-strip { width: 200px; min-width: 200px; background: linear-gradient(180deg, #1e2228 0%, #181c22 100%); border: 1px solid #2a2e35; border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.layer-strip.active { border-color: #f0a030; }
+.strip-header { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.strip-name { font-size: 11px; font-weight: 600; color: #ddd; flex: 1; }
+.psm-btn { width: 22px; height: 18px; border-radius: 10px; border: none; font-size: 9px; font-weight: 700; cursor: pointer; }
+.p-btn { background: #2d7a3a; color: #fff; }
+.s-btn { background: #b8a020; color: #111; }
+.m-btn { background: #c0392b; color: #fff; }
+.strip-info { font-size: 9px; color: #666; line-height: 1.4; }
+.strip-info .engine { display: inline-block; padding: 1px 5px; border-radius: 2px; font-size: 8px; font-weight: 600; margin-right: 4px; }
+.engine-video { background: #e67e22; color: #111; }
+.engine-image { background: #3498db; color: #fff; }
+.engine-synth { background: #00bcd4; color: #111; }
+.strip-knobs { display: flex; gap: 8px; justify-content: center; padding: 4px 0; }
+.strip-knob { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.strip-knob .knob { width: 28px; height: 28px; border-radius: 50%; position: relative; }
+.strip-knob .knob::after { content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 9px; background: #ddd; transform-origin: bottom center; border-radius: 1px; }
+.knob-hue { background: radial-gradient(circle at 40% 35%, #3a3248, #261e30); border: 2px solid #9b59b6; }
+.knob-hue::after { transform: translateX(-50%) rotate(-40deg) !important; }
+.knob-sat { background: radial-gradient(circle at 40% 35%, #2a3848, #1a2830); border: 2px solid #2ecc71; }
+.knob-sat::after { transform: translateX(-50%) rotate(20deg) !important; }
+.knob-bri { background: radial-gradient(circle at 40% 35%, #3a3828, #2a2818); border: 2px solid #f1c40f; }
+.knob-bri::after { transform: translateX(-50%) rotate(-10deg) !important; }
+.knob-spd { background: radial-gradient(circle at 40% 35%, #2a3040, #1a2030); border: 2px solid #3498db; }
+.knob-spd::after { transform: translateX(-50%) rotate(35deg) !important; }
+.strip-knob label { font-size: 8px; color: #777; }
+.strip-opacity { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+.strip-opacity label { font-size: 9px; color: #777; width: 40px; }
+.opacity-bar { flex: 1; height: 6px; background: #1a1e24; border-radius: 3px; position: relative; }
+.opacity-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2ecc71, #27ae60); }
+.strip-buttons { display: flex; gap: 3px; flex-wrap: wrap; }
+.strip-btn { padding: 3px 6px; background: #252a32; border: 1px solid #333; border-radius: 2px; font-size: 9px; color: #999; cursor: pointer; }
+.strip-btn.active { background: #f0a030; color: #111; border-color: #f0a030; }
+.strip-btn:hover { background: #333; }
+.strip-expand { text-align: center; font-size: 9px; color: #555; cursor: pointer; padding-top: 2px; }
+.strip-expand:hover { color: #f0a030; }
+
+/* FOOTER */
+.footer { height: 32px; background: linear-gradient(180deg, #1e2228 0%, #161a1e 100%); border-top: 1px solid #333; display: flex; align-items: center; padding: 0 12px; gap: 8px; }
+.footer-btn { padding: 4px 12px; background: #22272e; border: 1px solid #3a3f48; border-radius: 3px; color: #999; font-size: 11px; cursor: pointer; }
+.footer-btn:hover { background: #2a3040; color: #ccc; }
+.footer-btn.danger { background: #c0392b; color: #fff; border-color: #e74c3c; }
+.footer-btn.master { background: #2ecc71; color: #111; border-color: #27ae60; font-weight: 700; }
+.footer-spacer { flex: 1; }
+.footer-sep { width: 1px; height: 18px; background: #333; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo"><span>A</span> Audio-DNA VJ</div>
+  <div class="bpm-display">128.00</div>
+  <div class="top-btn">TAP</div>
+  <div class="top-btn">Nudge -</div>
+  <div class="top-btn">Nudge +</div>
+  <div class="top-btn active">RESYNC</div>
+  <div class="beat-dots">
+    <div class="beat-dot active"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+  </div>
+  <div class="bar-info">037 / 04.1</div>
+  <div class="spacer"></div>
+  <div class="room-delay">Room Delay: +20ms</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- SCENE FLOW -->
+  <div class="scene-flow">
+    <h3>Scene Flow</h3>
+    <div class="scene-item active">
+      <div class="dot" style="background:#4caf50"></div>
+      <span>Intro</span>
+      <div class="scene-trigger">T</div>
+    </div>
+    <div class="scene-item">
+      <div class="dot" style="background:#2196f3"></div>
+      <span>Verse</span>
+      <div class="scene-trigger">T</div>
+    </div>
+    <div class="scene-item">
+      <div class="dot" style="background:#ff9800"></div>
+      <span>Build</span>
+      <div class="scene-trigger">T</div>
+    </div>
+    <div class="scene-item">
+      <div class="dot" style="background:#e91e63"></div>
+      <span>Drop</span>
+      <div class="scene-trigger">T</div>
+    </div>
+    <div class="scene-item">
+      <div class="dot" style="background:#9c27b0"></div>
+      <span>Outro</span>
+      <div class="scene-trigger">T</div>
+    </div>
+    <div class="scene-item" style="color:#555; border: 1px dashed #333; border-radius: 3px; margin-top: 8px; justify-content: center;">
+      + Add Scene
+    </div>
+    <div style="margin-top: 16px; border-top: 1px solid #2a2e35; padding-top: 8px;">
+      <div style="font-size: 10px; color: #666; text-transform: uppercase; margin-bottom: 6px;">Layer Overview</div>
+      <div style="font-size: 10px; color: #aaa; padding: 2px 0;">L1: Kick Reactive</div>
+      <div style="font-size: 10px; color: #aaa; padding: 2px 0;">L2: Patterns</div>
+      <div style="font-size: 10px; color: #aaa; padding: 2px 0;">L3: Waveforms</div>
+      <div style="font-size: 10px; color: #888; padding: 2px 0;">L4: FX Only</div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <!-- PREVIEW -->
+    <div class="preview-area">
+      <div class="preview-label">Live Output Preview</div>
+      <div class="preview-box">
+        <div class="preview-visual"></div>
+      </div>
+      <div class="preview-transport">
+        <button>|&lt;</button>
+        <button>&#9654;</button>
+        <button>||</button>
+        <button>&#9632;</button>
+        <div class="preview-scrubber"></div>
+        <span style="font-size:10px; color:#666;">01:24 / 03:45</span>
+      </div>
+    </div>
+
+    <!-- GLOBAL MACROS -->
+    <div class="global-macros">
+      <div class="global-macros-label">MACROS</div>
+      <div class="macro-knob-group"><div class="macro-knob k1" style="border-color:#9b59b6;"><div class="macro-arc"></div></div><span>Hue</span></div>
+      <div class="macro-knob-group"><div class="macro-knob k2" style="border-color:#2ecc71;"><div class="macro-arc"></div></div><span>Sat</span></div>
+      <div class="macro-knob-group"><div class="macro-knob k3" style="border-color:#f1c40f;"><div class="macro-arc"></div></div><span>Bright</span></div>
+      <div class="macro-knob-group"><div class="macro-knob k4" style="border-color:#3498db;"><div class="macro-arc"></div></div><span>Scale</span></div>
+      <div class="macro-knob-group"><div class="macro-knob k5" style="border-color:#e67e22;"><div class="macro-arc"></div></div><span>Speed</span></div>
+      <div class="macro-knob-group"><div class="macro-knob k6" style="border-color:#e91e63;"><div class="macro-arc"></div></div><span>FX Mix</span></div>
+      <div class="macro-knob-group"><div class="macro-knob k1" style="border-color:#00bcd4;"><div class="macro-arc"></div></div><span>Zoom</span></div>
+    </div>
+
+    <!-- LAYER STRIPS -->
+    <div class="layer-strips-area">
+      <div class="layer-strips-header">Layer Strips</div>
+      <div class="layer-strips">
+        <!-- 8 layer strips -->
+        <div class="layer-strip active">
+          <div class="strip-header">
+            <span class="strip-name">Name 1</span>
+            <button class="psm-btn p-btn">P</button>
+            <button class="psm-btn s-btn">S</button>
+            <button class="psm-btn m-btn">M</button>
+          </div>
+          <div class="strip-info"><span class="engine engine-video">VIDEO</span>Kick Pulse.mp4</div>
+          <div class="strip-info" style="color:#555">Audio: Kick Drum</div>
+          <div class="strip-knobs">
+            <div class="strip-knob"><div class="knob knob-hue"></div><label>Hue</label></div>
+            <div class="strip-knob"><div class="knob knob-sat"></div><label>Sat</label></div>
+            <div class="strip-knob"><div class="knob knob-bri"></div><label>Bri</label></div>
+            <div class="strip-knob"><div class="knob knob-spd"></div><label>Speed</label></div>
+          </div>
+          <div class="strip-opacity"><label>Opacity</label><div class="opacity-bar"><div class="opacity-fill" style="width:85%"></div></div></div>
+          <div class="strip-buttons">
+            <div class="strip-btn active">STROBE</div>
+            <div class="strip-btn">SLOW MO</div>
+            <div class="strip-btn">RESET</div>
+            <div class="strip-btn">FX SEND</div>
+          </div>
+          <div class="strip-expand">&#9660; Expand</div>
+        </div>
+
+        <div class="layer-strip">
+          <div class="strip-header">
+            <span class="strip-name">Name 2</span>
+            <button class="psm-btn p-btn">P</button>
+            <button class="psm-btn s-btn">S</button>
+            <button class="psm-btn m-btn">M</button>
+          </div>
+          <div class="strip-info"><span class="engine engine-image">IMAGE</span>Nebula Field</div>
+          <div class="strip-info" style="color:#555">Audio: Master</div>
+          <div class="strip-knobs">
+            <div class="strip-knob"><div class="knob knob-hue"></div><label>Hue</label></div>
+            <div class="strip-knob"><div class="knob knob-sat"></div><label>Sat</label></div>
+            <div class="strip-knob"><div class="knob knob-bri"></div><label>Bri</label></div>
+            <div class="strip-knob"><div class="knob knob-spd"></div><label>Speed</label></div>
+          </div>
+          <div class="strip-opacity"><label>Opacity</label><div class="opacity-bar"><div class="opacity-fill" style="width:100%"></div></div></div>
+          <div class="strip-buttons">
+            <div class="strip-btn">STROBE</div>
+            <div class="strip-btn">SLOW MO</div>
+            <div class="strip-btn">RESET</div>
+            <div class="strip-btn">FX SEND</div>
+          </div>
+          <div class="strip-expand">&#9660; Expand</div>
+        </div>
+
+        <div class="layer-strip">
+          <div class="strip-header">
+            <span class="strip-name">Name 3</span>
+            <button class="psm-btn p-btn">P</button>
+            <button class="psm-btn s-btn">S</button>
+            <button class="psm-btn m-btn">M</button>
+          </div>
+          <div class="strip-info"><span class="engine engine-synth">SYNTH</span>Perlin Noise</div>
+          <div class="strip-info" style="color:#555">Audio: Bass Band</div>
+          <div class="strip-knobs">
+            <div class="strip-knob"><div class="knob knob-hue"></div><label>Hue</label></div>
+            <div class="strip-knob"><div class="knob knob-sat"></div><label>Sat</label></div>
+            <div class="strip-knob"><div class="knob knob-bri"></div><label>Bri</label></div>
+            <div class="strip-knob"><div class="knob knob-spd"></div><label>Speed</label></div>
+          </div>
+          <div class="strip-opacity"><label>Opacity</label><div class="opacity-bar"><div class="opacity-fill" style="width:70%"></div></div></div>
+          <div class="strip-buttons">
+            <div class="strip-btn">STROBE</div>
+            <div class="strip-btn">SLOW MO</div>
+            <div class="strip-btn">RESET</div>
+            <div class="strip-btn">FX SEND</div>
+          </div>
+          <div class="strip-expand">&#9660; Expand</div>
+        </div>
+
+        <div class="layer-strip">
+          <div class="strip-header">
+            <span class="strip-name">Name 4</span>
+            <button class="psm-btn p-btn">P</button>
+            <button class="psm-btn s-btn">S</button>
+            <button class="psm-btn m-btn">M</button>
+          </div>
+          <div class="strip-info"><span class="engine engine-video">VIDEO</span>Glitch Loop</div>
+          <div class="strip-info" style="color:#555">Audio: Mid Band</div>
+          <div class="strip-knobs">
+            <div class="strip-knob"><div class="knob knob-hue"></div><label>Hue</label></div>
+            <div class="strip-knob"><div class="knob knob-sat"></div><label>Sat</label></div>
+            <div class="strip-knob"><div class="knob knob-bri"></div><label>Bri</label></div>
+            <div class="strip-knob"><div class="knob knob-spd"></div><label>Speed</label></div>
+          </div>
+          <div class="strip-opacity"><label>Opacity</label><div class="opacity-bar"><div class="opacity-fill" style="width:60%"></div></div></div>
+          <div class="strip-buttons">
+            <div class="strip-btn">STROBE</div>
+            <div class="strip-btn active">SLOW MO</div>
+            <div class="strip-btn">RESET</div>
+            <div class="strip-btn">FX SEND</div>
+          </div>
+          <div class="strip-expand">&#9660; Expand</div>
+        </div>
+
+        <div class="layer-strip">
+          <div class="strip-header">
+            <span class="strip-name">Layer 5</span>
+            <button class="psm-btn p-btn">P</button>
+            <button class="psm-btn s-btn">S</button>
+            <button class="psm-btn m-btn">M</button>
+          </div>
+          <div class="strip-info"><span class="engine engine-synth">SYNTH</span>Mandelbrot</div>
+          <div class="strip-info" style="color:#555">Audio: Spectral Flux</div>
+          <div class="strip-knobs">
+            <div class="strip-knob"><div class="knob knob-hue"></div><label>Hue</label></div>
+            <div class="strip-knob"><div class="knob knob-sat"></div><label>Sat</label></div>
+            <div class="strip-knob"><div class="knob knob-bri"></div><label>Bri</label></div>
+            <div class="strip-knob"><div class="knob knob-spd"></div><label>Speed</label></div>
+          </div>
+          <div class="strip-opacity"><label>Opacity</label><div class="opacity-bar"><div class="opacity-fill" style="width:50%"></div></div></div>
+          <div class="strip-buttons">
+            <div class="strip-btn">STROBE</div>
+            <div class="strip-btn">SLOW MO</div>
+            <div class="strip-btn">RESET</div>
+            <div class="strip-btn">FX SEND</div>
+          </div>
+          <div class="strip-expand">&#9660; Expand</div>
+        </div>
+
+        <div class="layer-strip">
+          <div class="strip-header">
+            <span class="strip-name">Layer 6</span>
+            <button class="psm-btn p-btn">P</button>
+            <button class="psm-btn s-btn">S</button>
+            <button class="psm-btn m-btn">M</button>
+          </div>
+          <div class="strip-info"><span class="engine engine-image">IMAGE</span>Crystal Grid</div>
+          <div class="strip-info" style="color:#555">Audio: High Band</div>
+          <div class="strip-knobs">
+            <div class="strip-knob"><div class="knob knob-hue"></div><label>Hue</label></div>
+            <div class="strip-knob"><div class="knob knob-sat"></div><label>Sat</label></div>
+            <div class="strip-knob"><div class="knob knob-bri"></div><label>Bri</label></div>
+            <div class="strip-knob"><div class="knob knob-spd"></div><label>Speed</label></div>
+          </div>
+          <div class="strip-opacity"><label>Opacity</label><div class="opacity-bar"><div class="opacity-fill" style="width:90%"></div></div></div>
+          <div class="strip-buttons">
+            <div class="strip-btn">STROBE</div>
+            <div class="strip-btn">SLOW MO</div>
+            <div class="strip-btn">RESET</div>
+            <div class="strip-btn">FX SEND</div>
+          </div>
+          <div class="strip-expand">&#9660; Expand</div>
+        </div>
+
+        <div class="layer-strip">
+          <div class="strip-header">
+            <span class="strip-name">Layer 7</span>
+            <button class="psm-btn p-btn">P</button>
+            <button class="psm-btn s-btn">S</button>
+            <button class="psm-btn m-btn">M</button>
+          </div>
+          <div class="strip-info"><span class="engine engine-synth">SYNTH</span>Voronoi Glass</div>
+          <div class="strip-info" style="color:#555">Audio: Beat Phase</div>
+          <div class="strip-knobs">
+            <div class="strip-knob"><div class="knob knob-hue"></div><label>Hue</label></div>
+            <div class="strip-knob"><div class="knob knob-sat"></div><label>Sat</label></div>
+            <div class="strip-knob"><div class="knob knob-bri"></div><label>Bri</label></div>
+            <div class="strip-knob"><div class="knob knob-spd"></div><label>Speed</label></div>
+          </div>
+          <div class="strip-opacity"><label>Opacity</label><div class="opacity-bar"><div class="opacity-fill" style="width:75%"></div></div></div>
+          <div class="strip-buttons">
+            <div class="strip-btn">STROBE</div>
+            <div class="strip-btn">SLOW MO</div>
+            <div class="strip-btn">RESET</div>
+            <div class="strip-btn">FX SEND</div>
+          </div>
+          <div class="strip-expand">&#9660; Expand</div>
+        </div>
+
+        <div class="layer-strip">
+          <div class="strip-header">
+            <span class="strip-name">Layer 8</span>
+            <button class="psm-btn p-btn">P</button>
+            <button class="psm-btn s-btn">S</button>
+            <button class="psm-btn m-btn">M</button>
+          </div>
+          <div class="strip-info"><span class="engine engine-video">VIDEO</span>Tunnel Fly</div>
+          <div class="strip-info" style="color:#555">Audio: Phrase Phase</div>
+          <div class="strip-knobs">
+            <div class="strip-knob"><div class="knob knob-hue"></div><label>Hue</label></div>
+            <div class="strip-knob"><div class="knob knob-sat"></div><label>Sat</label></div>
+            <div class="strip-knob"><div class="knob knob-bri"></div><label>Bri</label></div>
+            <div class="strip-knob"><div class="knob knob-spd"></div><label>Speed</label></div>
+          </div>
+          <div class="strip-opacity"><label>Opacity</label><div class="opacity-bar"><div class="opacity-fill" style="width:65%"></div></div></div>
+          <div class="strip-buttons">
+            <div class="strip-btn">STROBE</div>
+            <div class="strip-btn">SLOW MO</div>
+            <div class="strip-btn">RESET</div>
+            <div class="strip-btn">FX SEND</div>
+          </div>
+          <div class="strip-expand">&#9660; Expand</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOURCES -->
+  <div class="sources-panel">
+    <h3>Sources</h3>
+    <div class="source-item">
+      <div class="name"><span class="icon">&#9835;</span> Audio Visualizations</div>
+      <div class="source-wave wave-green"></div>
+      <div class="params"><span>Rate: 1.71 Hz</span><span>Range: 0 - 1</span></div>
+    </div>
+    <div class="source-item">
+      <div class="name"><span class="icon">&#8767;</span> Audio Sensation</div>
+      <div class="source-wave wave-amber"></div>
+      <div class="params"><span>Gain: 1.2x</span><span>Smooth: 0.3</span></div>
+    </div>
+    <div class="source-item">
+      <div class="name"><span class="icon">&#8767;</span> LFO - Sine</div>
+      <div class="source-wave wave-cyan"></div>
+      <div class="params"><span>Rate: 0.25 Hz</span><span>Phase: 0.0</span></div>
+    </div>
+    <div class="source-item">
+      <div class="name"><span class="icon">&#8767;</span> LFO - Custom</div>
+      <div class="source-wave wave-amber"></div>
+      <div class="params"><span>Rate: 0.5 Hz</span><span>Phase: 0.25</span></div>
+    </div>
+    <div class="add-source">+ Add Audio Source</div>
+    <div style="margin-top: 16px; border-top: 1px solid #2a2e35; padding-top: 8px;">
+      <div style="font-size: 10px; color: #666; margin-bottom: 4px;">Layer Controls</div>
+      <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+        <span style="font-size: 10px; color: #888; width: 70px;">Blend Mode</span>
+        <div style="flex: 1; padding: 3px 8px; background: #1a1e24; border: 1px solid #333; border-radius: 2px; font-size: 10px; color: #aaa;">Normal</div>
+      </div>
+      <div style="display: flex; gap: 8px; justify-content: center; margin-top: 8px;">
+        <div class="strip-knob"><div class="knob knob-hue" style="width:24px;height:24px;"></div><label>H</label></div>
+        <div class="strip-knob"><div class="knob knob-sat" style="width:24px;height:24px;"></div><label>S</label></div>
+        <div class="strip-knob"><div class="knob knob-bri" style="width:24px;height:24px;"></div><label>B</label></div>
+        <div class="strip-knob"><div class="knob knob-spd" style="width:24px;height:24px;"></div><label>Spd</label></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-btn">Master Sources</div>
+  <div class="footer-sep"></div>
+  <div class="footer-btn">Audio Player</div>
+  <div class="footer-sep"></div>
+  <div class="footer-btn">Outputs</div>
+  <div class="footer-sep"></div>
+  <div class="footer-btn">Save</div>
+  <div class="footer-btn">Load</div>
+  <div class="footer-btn">Help</div>
+  <div class="footer-spacer"></div>
+  <div class="footer-btn danger">BLACKOUT</div>
+  <div class="footer-btn master">MASTER</div>
+</div>
+
+</body>
+</html>

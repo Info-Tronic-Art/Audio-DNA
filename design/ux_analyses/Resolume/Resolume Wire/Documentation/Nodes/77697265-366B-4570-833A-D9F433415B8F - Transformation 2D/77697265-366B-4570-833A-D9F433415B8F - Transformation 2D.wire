@@ -1,0 +1,1536 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          0,
+          "output0"
+        ],
+        "to": [
+          2,
+          "transformation"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output"
+        ],
+        "to": [
+          2,
+          "material"
+        ]
+      },
+      {
+        "from": [
+          4,
+          "output"
+        ],
+        "to": [
+          3,
+          "albedo_map"
+        ]
+      },
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          2,
+          "geometry"
+        ]
+      },
+      {
+        "from": [
+          6,
+          "pattern"
+        ],
+        "to": [
+          7,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          7,
+          "output"
+        ],
+        "to": [
+          0,
+          "translation"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "pattern"
+        ],
+        "to": [
+          8,
+          "phase-offset"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "output"
+        ],
+        "to": [
+          7,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output"
+        ],
+        "to": [
+          0,
+          "scale"
+        ]
+      },
+      {
+        "from": [
+          2,
+          "output0"
+        ],
+        "to": [
+          11,
+          "mesh"
+        ]
+      },
+      {
+        "from": [
+          13,
+          "output"
+        ],
+        "to": [
+          11,
+          "camera"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output0"
+        ],
+        "to": [
+          13,
+          "transform"
+        ]
+      },
+      {
+        "from": [
+          17,
+          "output"
+        ],
+        "to": [
+          14,
+          "rotation"
+        ]
+      },
+      {
+        "from": [
+          15,
+          "output"
+        ],
+        "to": [
+          18,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          16,
+          "output"
+        ],
+        "to": [
+          18,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output"
+        ],
+        "to": [
+          14,
+          "translation"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output0"
+        ],
+        "to": [
+          19,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      4,
+      10,
+      15,
+      16,
+      17
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "2d-wire",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "77697265-366B-4570-833A-D9F433415B8F - Transformation 2D",
+      "identifier": "f1690ef8-2147-46e3-aff7-a4ac0033ad75",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "2d-wire",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 21,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 10
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 367,
+          "y": 556.0813598632812
+        },
+        "class": {
+          "id": "77697265-366B-4570-833A-D9F433415B8F",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "rotation": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "scale": {
+            "type": "float2",
+            "value": [
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ],
+              [
+                1,
+                1
+              ]
+            ]
+          },
+          "translation": {
+            "type": "float2",
+            "value": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Transformation 2D (1)"
+      },
+      "1": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "TRANSFORMATION 2D\n\nThe Transformation2D node constructs the transformation2d type.\nThis type can be used to send transformation information to nodes like the Mesh2D and Camera2D nodes.\n\nThe transformation 2d type contains information about translation, scale and rotation.\nDo note that scale does not affect the Camera2D node (use zoom instead)."
+          }
+        },
+        "bounds": {
+          "height": 190.31460571289062,
+          "width": 489,
+          "x": -352.28887939453125,
+          "y": 14.309868812561033
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "10": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 1
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 184.07553100585935,
+          "y": 652.4586791992188
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0.30000001192092896
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Scale"
+      },
+      "11": {
+        "attributes": {
+          "aa": {
+            "type": "integer",
+            "value": 2
+          },
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "mesh-dimensions": {
+            "type": "integer",
+            "value": 10
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 1597.876953125,
+          "y": 454.72216796875
+        },
+        "class": {
+          "id": "77697265-E8EC-7A1G-901A-CFEC174D3B67",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "camera": {
+            "type": "camera2d",
+            "value": {
+              "projection": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ],
+              "view": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ]
+            }
+          },
+          "mesh": {
+            "type": "mesh2d",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "mesh-dimensions",
+          "resolution-mode",
+          "resolution-absolute"
+        ],
+        "name": "Renderer 2D"
+      },
+      "13": {
+        "attributes": {
+          "mode": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 1311.8948974609375,
+          "y": 576.720458984375
+        },
+        "class": {
+          "id": "77697265-8E76-4D11-8420-0A3F4CF72566",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "transform": {
+            "type": "transformation2d",
+            "value": null
+          },
+          "zoom": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "mode"
+        ],
+        "name": "Camera 2D"
+      },
+      "14": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 1065.44775390625,
+          "y": 576.7730102539062
+        },
+        "class": {
+          "id": "77697265-366B-4570-833A-D9F433415B8F",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "rotation": {
+            "type": "float",
+            "value": 0
+          },
+          "scale": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "translation": {
+            "type": "float2",
+            "value": [
+              -0.4000000059604645,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "scale",
+          "instances"
+        ],
+        "name": "Transformation 2D (2)"
+      },
+      "15": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 1
+          },
+          "min": {
+            "type": "float",
+            "value": -1
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 620.44775390625,
+          "y": 576.7730102539062
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Move X"
+      },
+      "16": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 1
+          },
+          "min": {
+            "type": "float",
+            "value": -1
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 620.44775390625,
+          "y": 688.7730102539062
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Move Y"
+      },
+      "17": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 1
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 621.887451171875,
+          "y": 790.496337890625
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Rotation"
+      },
+      "18": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 810.44775390625,
+          "y": 576.7730102539062
+        },
+        "class": {
+          "id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances"
+        ],
+        "name": "Float2"
+      },
+      "19": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1836.1348876953125,
+          "y": 455.1134033203125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "2": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 10
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 620.7568359375,
+          "y": 451.3449401855469
+        },
+        "class": {
+          "id": "77697265-e8c1-11ec-8fea-0242ac120002",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "geometry": {
+            "type": "geometry2d",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "material": {
+            "type": "material",
+            "value": [
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              },
+              {
+                "color": [
+                  1,
+                  1,
+                  1,
+                  1
+                ],
+                "type": "SolidColor"
+              }
+            ]
+          },
+          "transformation": {
+            "type": "transformation2d",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Mesh 2D"
+      },
+      "20": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "TRANSFORMATION 2D EXAMPLE\n\nIn this example we have two Transformation2D nodes, one for the Mesh2D node and one for the Camera2D node.\nThe first  Transformation2D node gets its translation data from a Linear node(for x) and Sine node(for y).\nIt also gets scale data from the Scale slider (a float in node).\n\nThe second Transformation2D node gets all its information from sliders (Float In nodes).\nBy working like this, the first Transformation2D node gives us control over the individual meshes.\nAnd the second Transformation2D nodes gives us control over the entire rendered mesh.\nThe second Transformation2D also makes sure we don't need a regular Transform node after we've already rendered the meshes."
+          }
+        },
+        "bounds": {
+          "height": 713.2225341796875,
+          "width": 2380.985107421875,
+          "x": -351.7930908203125,
+          "y": 225.5894317626953
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "3": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 366.7981872558594,
+          "y": 686.1171264648438
+        },
+        "class": {
+          "id": "77697265-D822-4ABE-9A4A-5693E1B92151",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "albedo": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "albedo_map": {
+            "type": "texture2d",
+            "value": null
+          },
+          "blend_mode": {
+            "type": "integer",
+            "value": 1
+          },
+          "wrap_mode": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Material"
+      },
+      "4": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 196.04298400878906,
+          "y": 747.4503173828125
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow"
+        ],
+        "name": "Texture In"
+      },
+      "5": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 367.3271179199219,
+          "y": 454.9957580566406
+        },
+        "class": {
+          "id": "77697265-E9C4-924B-BE62-F4FB3F2F3CE9",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "height": {
+            "type": "float",
+            "value": 1
+          },
+          "uvs": {
+            "type": "box2d",
+            "value": {
+              "max": [
+                1,
+                1
+              ],
+              "min": [
+                0,
+                0
+              ]
+            }
+          },
+          "width": {
+            "type": "float",
+            "value": 1.600000023841858
+          }
+        },
+        "hidden": [
+          "uvs",
+          "instances"
+        ],
+        "name": "Rectangle"
+      },
+      "6": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "include-max": {
+            "type": "bool",
+            "value": true
+          },
+          "size": {
+            "type": "integer",
+            "value": 10
+          },
+          "type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": -108.31140899658203,
+          "y": 556.1310424804688
+        },
+        "class": {
+          "id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "max": {
+            "type": "float",
+            "value": 1.5
+          },
+          "min": {
+            "type": "float",
+            "value": -1.5
+          }
+        },
+        "hidden": [
+          "type",
+          "flow",
+          "include-max"
+        ],
+        "name": "Linear"
+      },
+      "7": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 10
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 119.75050354003906,
+          "y": 555.9710693359375
+        },
+        "class": {
+          "id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "input1": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances"
+        ],
+        "name": "Float2"
+      },
+      "8": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 10
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": -108.31139373779297,
+          "y": 681.0413208007812
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": [
+              0.10000000149011612,
+              0.10000000149011612,
+              0.10000000149011612,
+              0.10000000149011612,
+              0.10000000149011612,
+              0.10000000149011612,
+              0.10000000149011612,
+              0.10000000149011612,
+              0.10000000149011612,
+              0.10000000149011612
+            ]
+          },
+          "frequency": {
+            "type": "float",
+            "value": [
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25,
+              0.25
+            ]
+          },
+          "offset": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "instances"
+        ],
+        "name": "Sine"
+      },
+      "9": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "include-max": {
+            "type": "bool",
+            "value": false
+          },
+          "size": {
+            "type": "integer",
+            "value": 10
+          },
+          "type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": -324.4734802246093,
+          "y": 681.0413208007812
+        },
+        "class": {
+          "id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "max": {
+            "type": "float",
+            "value": 2
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "type",
+          "flow",
+          "include-max"
+        ],
+        "name": "Linear"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -414.6578369140625,
+        "y": -515.497314453125,
+        "zoom": 0.48437631130218506
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {
+        "4": "Wire Logo"
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null
+        }
+      }
+    }
+  }
+}

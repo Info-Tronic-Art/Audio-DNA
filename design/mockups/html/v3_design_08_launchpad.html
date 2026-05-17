@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — v3 Design 08: Launchpad</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #0a0a0d; color: #d8d8d8; font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif; font-size: 11px; overflow: hidden; position: relative; }
+
+/* ═══════════════ TOP BAR (30px) ═══════════════ */
+.top-bar {
+  height: 30px; width: 100%; background: #111114; border-bottom: 1px solid #1e1e22;
+  display: flex; align-items: center; padding: 0 10px; gap: 3px; position: relative; z-index: 10;
+}
+.tb-section { display: flex; align-items: center; gap: 3px; }
+.tb-sep { width: 1px; height: 16px; background: #2a2a30; margin: 0 6px; }
+.tb-btn { height: 22px; padding: 0 8px; background: #1e1e24; border: 1px solid #2a2a30; color: #999; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tb-btn:hover { background: #2a2a34; color: #ddd; }
+.tb-btn.active { background: #1a2a3a; color: #00d9ff; border-color: #00d9ff44; }
+.tb-btn.transport { width: 26px; height: 22px; font-size: 13px; }
+.tb-dropdown { height: 22px; padding: 0 6px; background: #1a1a20; border: 1px solid #2a2a30; color: #aaa; font-size: 10px; }
+.tb-slider-wrap { display: flex; align-items: center; gap: 3px; }
+.tb-slider { width: 50px; height: 4px; background: #2a2a30; position: relative; }
+.tb-slider-fill { height: 100%; background: #00d9ff33; position: absolute; left: 0; top: 0; }
+.tb-slider-thumb { width: 2px; height: 10px; background: #00d9ff; position: absolute; top: -3px; }
+.tb-label { color: #555; font-size: 9px; white-space: nowrap; }
+.tb-bpm { font-size: 16px; font-weight: 700; color: #44bb44; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.tb-state { font-size: 8px; color: #44bb44; letter-spacing: 0.5px; }
+.tb-beat-wheel { width: 22px; height: 22px; position: relative; display: inline-block; }
+.tb-beat-seg { position: absolute; width: 9px; height: 9px; border-radius: 50%; }
+.tb-beat-seg.active { background: #00d9ff; box-shadow: 0 0 4px #00d9ff88; }
+.tb-beat-seg.dim { background: #222230; }
+.tb-beat-seg:nth-child(1) { top: 1px; left: 1px; }
+.tb-beat-seg:nth-child(2) { top: 1px; right: 1px; }
+.tb-beat-seg:nth-child(3) { bottom: 1px; right: 1px; }
+.tb-beat-seg:nth-child(4) { bottom: 1px; left: 1px; }
+.tb-bar-phrase { font-size: 8px; color: #556; line-height: 1.3; }
+.tb-spacer { flex: 1; }
+.tb-stats { font-size: 9px; color: #444; font-variant-numeric: tabular-nums; display: flex; gap: 8px; }
+
+/* ═══════════════ MAIN LAYOUT ═══════════════ */
+.main { display: flex; flex-direction: column; height: calc(100% - 30px); }
+
+/* ═══════════════ MASSIVE GRID AREA (80%) ═══════════════ */
+.grid-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+/* Column triggers */
+.col-triggers {
+  height: 28px; display: flex; margin-left: 0; padding-left: 220px;
+  background: #0e0e11; border-bottom: 1px solid #1a1a1e;
+}
+.col-trig {
+  width: 140px; height: 28px; background: #131316; border: 1px solid #1e1e22; border-bottom: 2px solid #1e1e22;
+  color: #555; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  letter-spacing: 1px;
+}
+.col-trig:hover { background: #1a1a20; color: #888; }
+.col-trig.active { color: #00d9ff; border-bottom-color: #00d9ff; background: #0d1520; }
+
+/* Grid scroll */
+.grid-scroll { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Layer row */
+.layer-row { display: flex; border-bottom: 1px solid #1a1a1e; flex: 1; min-height: 0; }
+
+/* ═══════════════ LAYER HEADER (left, 220px) ═══════════════ */
+.layer-header {
+  width: 220px; flex-shrink: 0; display: flex; flex-direction: column; padding: 6px 8px;
+  border-right: 1px solid #1a1a1e; position: relative; justify-content: center;
+}
+.lh-row1 { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+.lh-name { font-size: 12px; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.lh-type {
+  font-size: 8px; padding: 2px 5px; color: #888; background: #1a1a22; font-weight: 600;
+  letter-spacing: 0.5px; text-transform: uppercase;
+}
+.lh-btn {
+  width: 22px; height: 20px; background: #1a1a22; border: 1px solid #222228; color: #666;
+  font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.lh-btn.bypass-on { background: #2a1515; color: #cc5555; border-color: #442222; }
+.lh-btn.solo-on { background: #252518; color: #aaaa44; border-color: #444422; }
+
+.lh-row2 { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.lh-opacity-wrap { display: flex; align-items: center; gap: 4px; flex: 1; }
+.lh-opacity-label { font-size: 8px; color: #555; }
+.lh-opacity-bar { flex: 1; height: 8px; background: #1a1a22; position: relative; overflow: hidden; }
+.lh-opacity-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.lh-blend { font-size: 9px; color: #666; background: #161618; padding: 2px 5px; border: 1px solid #222228; }
+
+.lh-row3 { display: flex; align-items: center; gap: 3px; }
+.lh-transport-btn {
+  width: 22px; height: 18px; background: #1a1a22; border: 1px solid #222228; color: #666;
+  font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.lh-transport-btn:hover { color: #aaa; background: #222228; }
+
+/* Layer color accents */
+.layer-row.l1 .layer-header { background: #1a1015; }
+.layer-row.l2 .layer-header { background: #101a15; }
+.layer-row.l3 .layer-header { background: #10151a; }
+.layer-row.l4 .layer-header { background: #1a1a10; }
+.layer-row.l1 .lh-name { color: #ff8888; }
+.layer-row.l2 .lh-name { color: #88ff88; }
+.layer-row.l3 .lh-name { color: #88aaff; }
+.layer-row.l4 .lh-name { color: #ffcc66; }
+.layer-row.l1 .lh-opacity-fill { background: #ff444488; }
+.layer-row.l2 .lh-opacity-fill { background: #44ff8888; }
+.layer-row.l3 .lh-opacity-fill { background: #4488ff88; }
+.layer-row.l4 .lh-opacity-fill { background: #ffaa4488; }
+
+/* ═══════════════ CELLS (140x each, HUGE) ═══════════════ */
+.cells-row { display: flex; flex: 1; height: 100%; }
+
+.cell {
+  width: 140px; flex-shrink: 0; display: flex; flex-direction: column;
+  border: 3px solid #1e1e22; cursor: pointer; position: relative; overflow: hidden;
+  height: 100%;
+}
+.cell:hover { border-color: #333340; }
+.cell.empty { background: #0c0c0f; }
+
+/* Playing states per layer */
+.layer-row.l1 .cell.playing { border-color: #ff444488; box-shadow: inset 0 0 20px #ff111122, 0 0 8px #ff222222; background: #1a0c0c; }
+.layer-row.l2 .cell.playing { border-color: #44ff8888; box-shadow: inset 0 0 20px #11ff1122, 0 0 8px #22ff2222; background: #0c1a0c; }
+.layer-row.l3 .cell.playing { border-color: #4488ff88; box-shadow: inset 0 0 20px #1144ff22, 0 0 8px #2244ff22; background: #0c0c1a; }
+.layer-row.l4 .cell.playing { border-color: #ffaa4488; box-shadow: inset 0 0 20px #ff881122, 0 0 8px #ff882222; background: #1a160c; }
+
+.cell.selected { border-color: #ffffff !important; box-shadow: 0 0 12px #ffffff44 !important; }
+
+/* Thumbnail area */
+.cell-thumb {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden; min-height: 0;
+}
+.cell-thumb-inner {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #444;
+}
+.cell-thumb-grad {
+  width: 100%; height: 100%;
+}
+
+/* Badges */
+.cell-badges { position: absolute; top: 4px; right: 4px; display: flex; gap: 3px; }
+.cell-badge {
+  font-size: 8px; font-weight: 700; padding: 2px 5px; color: #ccc;
+  letter-spacing: 0.3px;
+}
+.cell-badge.fx { background: #7744aa88; }
+.cell-badge.src { background: #44889988; }
+.cell-badge.img { background: #886644aa; }
+.cell-badge.vid { background: #448888aa; }
+.cell-badge.milk { background: #88446688; }
+
+/* Source type icon area */
+.cell-source-icon {
+  position: absolute; top: 4px; left: 4px;
+  font-size: 8px; color: #666; background: #00000088; padding: 1px 4px;
+}
+
+/* Name bar */
+.cell-name {
+  height: 22px; display: flex; align-items: center; padding: 0 6px;
+  font-size: 11px; font-weight: 700; color: #ccc; background: #00000044;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* Progress bar */
+.cell-progress { height: 4px; background: #0a0a0d; position: relative; flex-shrink: 0; }
+.cell-progress-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.layer-row.l1 .cell.playing .cell-progress-fill { background: #ff4444aa; }
+.layer-row.l2 .cell.playing .cell-progress-fill { background: #44ff88aa; }
+.layer-row.l3 .cell.playing .cell-progress-fill { background: #4488ffaa; }
+.layer-row.l4 .cell.playing .cell-progress-fill { background: #ffaa44aa; }
+.cell:not(.playing) .cell-progress-fill { background: #33333366; }
+
+/* ═══════════════ BOTTOM AREA (20%) ═══════════════ */
+.bottom-area {
+  height: 210px; flex-shrink: 0; display: flex; border-top: 2px solid #1e1e22;
+  background: #0d0d10;
+}
+
+/* Bottom Left: Preview + Inspector Summary */
+.bottom-left { width: 50%; display: flex; border-right: 1px solid #1e1e22; }
+
+.preview-panel { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; padding: 6px; border-right: 1px solid #1a1a1e; }
+.preview-label { font-size: 9px; color: #555; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+.preview-viewport {
+  width: 320px; height: 180px; background: #080810; border: 1px solid #1e1e22;
+  display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
+}
+.preview-content {
+  width: 100%; height: 100%; position: relative;
+}
+
+/* Inspector summary */
+.inspector-summary { flex: 1; display: flex; flex-direction: column; padding: 6px 10px; overflow: hidden; }
+.is-title { font-size: 10px; color: #555; margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; }
+.is-clip-name { font-size: 14px; font-weight: 700; color: #ff8888; margin-bottom: 8px; }
+.is-source { font-size: 10px; color: #888; margin-bottom: 10px; }
+.is-param-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.is-param-label { font-size: 9px; color: #777; width: 80px; }
+.is-param-slider { flex: 1; height: 6px; background: #1a1a22; position: relative; }
+.is-param-fill { height: 100%; position: absolute; left: 0; top: 0; background: #ff444466; }
+.is-param-val { font-size: 9px; color: #999; width: 35px; text-align: right; font-variant-numeric: tabular-nums; }
+.is-fx-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.is-fx-pill { font-size: 9px; padding: 3px 8px; background: #7744aa44; color: #bb88ee; border: 1px solid #7744aa44; }
+
+/* Bottom Right: Browser + Signal */
+.bottom-right { width: 50%; display: flex; }
+
+/* Browser */
+.browser-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #1a1a1e; padding: 6px; }
+.browser-tabs { display: flex; gap: 1px; margin-bottom: 6px; }
+.browser-tab {
+  padding: 3px 10px; font-size: 9px; color: #555; background: #131316; cursor: pointer;
+  border: 1px solid #1a1a1e; letter-spacing: 0.5px;
+}
+.browser-tab.active { color: #00d9ff; background: #0d1520; border-color: #00d9ff44; }
+.browser-search {
+  width: 100%; height: 22px; background: #111114; border: 1px solid #222228; color: #aaa;
+  padding: 0 8px; font-size: 10px; margin-bottom: 6px;
+}
+.browser-list { flex: 1; overflow: hidden; }
+.browser-cat { margin-bottom: 4px; }
+.browser-cat-header { font-size: 9px; color: #666; font-weight: 600; margin-bottom: 2px; padding: 2px 4px; background: #111114; letter-spacing: 0.5px; text-transform: uppercase; }
+.browser-item { font-size: 10px; color: #999; padding: 2px 8px; cursor: pointer; }
+.browser-item:hover { background: #1a1a22; color: #ddd; }
+
+/* Signal strip */
+.signal-strip { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; padding: 6px; }
+.signal-title { font-size: 9px; color: #555; margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; }
+.signal-meter { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.signal-meter-label { font-size: 9px; color: #666; width: 50px; }
+.signal-meter-bar { flex: 1; height: 10px; background: #1a1a22; position: relative; overflow: hidden; }
+.signal-meter-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.signal-meter-fill.rms { background: linear-gradient(90deg, #22aa44, #66cc44); }
+.signal-meter-fill.peak { background: linear-gradient(90deg, #44aa66, #aacc44); }
+.signal-meter-fill.bass { background: linear-gradient(90deg, #aa2244, #ff4466); }
+.signal-meter-fill.mid { background: linear-gradient(90deg, #aa6622, #ffaa44); }
+.signal-meter-fill.high { background: linear-gradient(90deg, #2244aa, #4488ff); }
+.signal-meter-fill.beat { background: linear-gradient(90deg, #00d9ff, #00d9ff88); }
+.signal-meter-val { font-size: 8px; color: #555; width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ═══════════════ DECK TABS (24px) ═══════════════ */
+.deck-tabs {
+  height: 24px; display: flex; background: #0a0a0d; border-top: 1px solid #1e1e22;
+  padding: 0 10px; align-items: center; gap: 2px;
+}
+.deck-tab {
+  padding: 3px 16px; font-size: 10px; color: #555; background: #111114;
+  border: 1px solid #1a1a1e; cursor: pointer; font-weight: 600;
+}
+.deck-tab.active { color: #00d9ff; background: #0d1520; border-color: #00d9ff44; }
+.deck-tab:hover { color: #888; }
+.deck-tabs-spacer { flex: 1; }
+.deck-add { font-size: 12px; color: #444; cursor: pointer; padding: 0 6px; }
+
+/* ═══════════════ FRACTAL / SOURCE GRADIENTS ═══════════════ */
+.grad-mandelbrot { background: radial-gradient(ellipse at 40% 45%, #ff6633, #cc2211 30%, #440044 55%, #110033 75%, #000011); }
+.grad-julia { background: radial-gradient(ellipse at 55% 50%, #44ffaa, #22aa88 30%, #004466 55%, #001133); }
+.grad-perlin { background: linear-gradient(135deg, #334455, #223344, #445566, #334455, #223344); }
+.grad-spectral-ring { background: radial-gradient(circle at 50% 50%, #000011 20%, #2244ff 35%, #44aaff 42%, #000022 48%, #ff4488 55%, #000022 62%, #44ff88 70%, #000022 78%); }
+.grad-mandelbulb { background: radial-gradient(circle at 45% 48%, #ff8844, #aa4422 35%, #442211 55%, #110808); }
+.grad-kaleido { background: conic-gradient(from 0deg, #ff4488, #4488ff, #44ff88, #ffaa44, #ff4488); }
+.grad-burning-ship { background: radial-gradient(ellipse at 45% 55%, #ffcc44, #ff6622 35%, #882211 55%, #220808); }
+.grad-torus { background: radial-gradient(ellipse at 50% 50%, #4488ff 15%, #2244aa 35%, #112266 55%, #080822); }
+.grad-sierpinski { background: conic-gradient(from 30deg, #44ff88, #228844, #114422, #44ff88); }
+.grad-voronoi { background: linear-gradient(135deg, #443366, #664488, #886644, #446688, #443366); }
+.grad-cymatics { background: radial-gradient(circle, #00ffff11 10%, #00aaff33 25%, #00ffff11 35%, #00aaff33 50%, #00ffff11 65%, #00aaff33 80%, #001122); }
+.grad-echo { background: linear-gradient(90deg, #4488ff22, #4488ff66, #4488ff22, #4488ff66, #4488ff22); }
+.grad-fluid { background: radial-gradient(ellipse at 40% 60%, #ff224488, #44228866, #22448844, #88224422, #0a0a0d); }
+.grad-attractor { background: linear-gradient(45deg, #ff224444, #ff884444, #ffff4444, #44ff4444, #4444ff44); }
+.grad-particles { background: radial-gradient(circle at 50% 50%, #ffaa4466, #ff444466, #88224444, #0a0a0d); }
+.grad-menger { background: linear-gradient(135deg, #666, #333 20%, #666 21%, #333 40%, #666 41%, #333 60%, #666 61%, #333 80%, #666 81%, #333); }
+.grad-noise { background: linear-gradient(45deg, #334, #445, #334, #445, #334, #445, #334); }
+.grad-geometric { background: conic-gradient(from 0deg at 50% 50%, #ff444466, #44ff4466, #4444ff66, #ff44ff66, #ff444466); }
+.grad-band-tower { background: linear-gradient(0deg, #ff2244, #ff8844, #ffff44, #44ff44, #4444ff, #8844ff, #ff2244); }
+.grad-milkdrop { background: radial-gradient(circle, #ff00ff44, #00ffff44, #ffff0044, #ff00ff44); }
+.grad-text { background: #0a0a0d; position: relative; }
+.grad-camera { background: linear-gradient(135deg, #334433, #445544, #334433); }
+.grad-image { background: linear-gradient(135deg, #443322, #554433, #443322); }
+
+/* Text overlay for sources */
+.cell-src-label {
+  position: absolute; bottom: 28px; left: 0; right: 0; text-align: center;
+  font-size: 9px; color: #ffffff88; background: #00000066; padding: 2px;
+  letter-spacing: 0.5px;
+}
+
+/* Playing pulse animation */
+@keyframes pulse-border {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+.cell.playing { animation: pulse-border 1.5s ease-in-out infinite; }
+
+/* Preview fractal animation */
+.preview-fractal {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 40% 45%, #ff6633, #cc2211 30%, #440044 55%, #110033 75%, #000011);
+}
+.preview-overlay {
+  position: absolute; bottom: 4px; right: 4px; font-size: 8px; color: #666;
+  background: #00000088; padding: 2px 5px;
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<div class="top-bar">
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width:90px;">Mic Input</div>
+    <div class="tb-slider-wrap">
+      <span class="tb-label">Gain</span>
+      <div class="tb-slider" style="width:40px;"><div class="tb-slider-fill" style="width:50%;"></div><div class="tb-slider-thumb" style="left:50%;"></div></div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn transport">|&lt;</div>
+    <div class="tb-btn transport active" style="color:#44ff88;">&#9654;</div>
+    <div class="tb-btn transport">&#9632;</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-beat-wheel">
+      <div class="tb-beat-seg active"></div>
+      <div class="tb-beat-seg dim"></div>
+      <div class="tb-beat-seg dim"></div>
+      <div class="tb-beat-seg dim"></div>
+    </div>
+    <div class="tb-bar-phrase">Bar 3<br>Phr 0.38</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-bpm">128.0</div>
+    <div class="tb-state">LOCKED</div>
+    <div class="tb-btn" style="margin-left:4px;">Tap</div>
+    <div class="tb-btn">Resync</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn" style="font-size:9px;">/4</div>
+    <div class="tb-btn" style="font-size:9px;">/2</div>
+    <div class="tb-btn active" style="font-size:9px;">x1</div>
+    <div class="tb-btn" style="font-size:9px;">x2</div>
+    <div class="tb-btn" style="font-size:9px;">x4</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width:80px;">Next Beat</div>
+    <div class="tb-slider-wrap">
+      <span class="tb-label">Fade</span>
+      <div class="tb-slider" style="width:35px;"><div class="tb-slider-fill" style="width:30%;"></div><div class="tb-slider-thumb" style="left:30%;"></div></div>
+    </div>
+    <div class="tb-slider-wrap">
+      <span class="tb-label">Master</span>
+      <div class="tb-slider" style="width:35px;"><div class="tb-slider-fill" style="width:100%;"></div><div class="tb-slider-thumb" style="left:100%;"></div></div>
+    </div>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width:100px;">Fullscreen</div>
+    <div class="tb-stats">
+      <span>60 FPS</span>
+      <span>2.1% DSP</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main">
+
+  <!-- ═══════════════ GRID AREA ═══════════════ -->
+  <div class="grid-area">
+
+    <!-- Column triggers -->
+    <div class="col-triggers">
+      <div class="col-trig active">1</div>
+      <div class="col-trig">2</div>
+      <div class="col-trig">3</div>
+      <div class="col-trig">4</div>
+      <div class="col-trig">5</div>
+      <div class="col-trig">6</div>
+      <div class="col-trig">7</div>
+      <div class="col-trig">8</div>
+      <div class="col-trig" style="border-color:#141416; color:#333;">9</div>
+      <div class="col-trig" style="border-color:#141416; color:#333;">10</div>
+      <div class="col-trig" style="border-color:#141416; color:#333;">11</div>
+      <div class="col-trig" style="border-color:#141416; color:#333;">12</div>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid-scroll">
+
+      <!-- ═══ LAYER 1 (Warm / Opaque) ═══ -->
+      <div class="layer-row l1">
+        <div class="layer-header">
+          <div class="lh-row1">
+            <div class="lh-name">Layer 1 - Fractals</div>
+            <div class="lh-type">Opaque</div>
+            <div class="lh-btn">B</div>
+            <div class="lh-btn">S</div>
+          </div>
+          <div class="lh-row2">
+            <div class="lh-opacity-wrap">
+              <span class="lh-opacity-label">V</span>
+              <div class="lh-opacity-bar"><div class="lh-opacity-fill" style="width:100%;"></div></div>
+            </div>
+            <div class="lh-blend">Normal</div>
+          </div>
+          <div class="lh-row3">
+            <div class="lh-transport-btn">&lt;</div>
+            <div class="lh-transport-btn">||</div>
+            <div class="lh-transport-btn" style="color:#ff6666;">&#9654;</div>
+            <div class="lh-transport-btn">&gt;|</div>
+            <span style="flex:1;"></span>
+            <div class="lh-blend" style="font-size:8px;">Dissolve 0.3s</div>
+          </div>
+        </div>
+        <div class="cells-row">
+          <!-- Cell 1: Mandelbrot (PLAYING + SELECTED) -->
+          <div class="cell playing selected">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-mandelbrot"></div></div>
+            <div class="cell-badges">
+              <div class="cell-badge src">SRC</div>
+              <div class="cell-badge fx">FX 2</div>
+            </div>
+            <div class="cell-name">Mandelbrot</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:62%;"></div></div>
+          </div>
+          <!-- Cell 2: Julia Set -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-julia"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Julia Set</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 3: Burning Ship -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-burning-ship"></div></div>
+            <div class="cell-badges">
+              <div class="cell-badge src">SRC</div>
+              <div class="cell-badge fx">FX 1</div>
+            </div>
+            <div class="cell-name">Burning Ship</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 4: Mandelbulb -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-mandelbulb"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Mandelbulb</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 5: Kaleidoscopic -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-kaleido"></div></div>
+            <div class="cell-badges">
+              <div class="cell-badge src">SRC</div>
+              <div class="cell-badge fx">FX 3</div>
+            </div>
+            <div class="cell-name">Kaleidoscopic</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 6: Menger Sponge -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-menger"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Menger Sponge</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 7: empty -->
+          <div class="cell empty">
+            <div class="cell-thumb"><div class="cell-thumb-inner"></div></div>
+            <div class="cell-name" style="color:#333;"></div>
+            <div class="cell-progress"></div>
+          </div>
+          <!-- Cell 8: empty -->
+          <div class="cell empty">
+            <div class="cell-thumb"><div class="cell-thumb-inner"></div></div>
+            <div class="cell-name" style="color:#333;"></div>
+            <div class="cell-progress"></div>
+          </div>
+          <!-- Extra columns (scrolled) -->
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+        </div>
+      </div>
+
+      <!-- ═══ LAYER 2 (Green / Transparent) ═══ -->
+      <div class="layer-row l2">
+        <div class="layer-header">
+          <div class="lh-row1">
+            <div class="lh-name">Layer 2 - Audio</div>
+            <div class="lh-type">Transparent</div>
+            <div class="lh-btn">B</div>
+            <div class="lh-btn">S</div>
+          </div>
+          <div class="lh-row2">
+            <div class="lh-opacity-wrap">
+              <span class="lh-opacity-label">V</span>
+              <div class="lh-opacity-bar"><div class="lh-opacity-fill" style="width:75%;"></div></div>
+            </div>
+            <div class="lh-blend">Screen</div>
+          </div>
+          <div class="lh-row3">
+            <div class="lh-transport-btn">&lt;</div>
+            <div class="lh-transport-btn">||</div>
+            <div class="lh-transport-btn" style="color:#66ff88;">&#9654;</div>
+            <div class="lh-transport-btn">&gt;|</div>
+            <span style="flex:1;"></span>
+            <div class="lh-blend" style="font-size:8px;">Dissolve 0.5s</div>
+          </div>
+        </div>
+        <div class="cells-row">
+          <!-- Cell 1: Spectral Ring (PLAYING) -->
+          <div class="cell playing">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-spectral-ring"></div></div>
+            <div class="cell-badges">
+              <div class="cell-badge src">SRC</div>
+              <div class="cell-badge fx">FX 1</div>
+            </div>
+            <div class="cell-name">Spectral Ring</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:38%;"></div></div>
+          </div>
+          <!-- Cell 2: Cymatics -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-cymatics"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Cymatics</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 3: Band Tower -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-band-tower"></div></div>
+            <div class="cell-badges">
+              <div class="cell-badge src">SRC</div>
+              <div class="cell-badge fx">FX 2</div>
+            </div>
+            <div class="cell-name">Band Tower</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 4: Timbral Nebula -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-particles"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Timbral Nebula</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 5: Spectral Waterfall -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background: linear-gradient(180deg, #4488ff44, #22448866, #ff448844, #ffaa4444, #0a0a0d);"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Spectral Waterfall</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 6: empty -->
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+        </div>
+      </div>
+
+      <!-- ═══ LAYER 3 (Cool / FX Only) ═══ -->
+      <div class="layer-row l3">
+        <div class="layer-header">
+          <div class="lh-row1">
+            <div class="lh-name">Layer 3 - Effects</div>
+            <div class="lh-type">FX Only</div>
+            <div class="lh-btn">B</div>
+            <div class="lh-btn">S</div>
+          </div>
+          <div class="lh-row2">
+            <div class="lh-opacity-wrap">
+              <span class="lh-opacity-label">V</span>
+              <div class="lh-opacity-bar"><div class="lh-opacity-fill" style="width:60%;"></div></div>
+            </div>
+            <div class="lh-blend">Additive</div>
+          </div>
+          <div class="lh-row3">
+            <div class="lh-transport-btn">&lt;</div>
+            <div class="lh-transport-btn">||</div>
+            <div class="lh-transport-btn" style="color:#6688ff;">&#9654;</div>
+            <div class="lh-transport-btn">&gt;|</div>
+            <span style="flex:1;"></span>
+            <div class="lh-blend" style="font-size:8px;">Cut</div>
+          </div>
+        </div>
+        <div class="cells-row">
+          <!-- Cell 1: Echo Trail (PLAYING) -->
+          <div class="cell playing">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-echo"></div></div>
+            <div class="cell-badges">
+              <div class="cell-badge fx">FX 3</div>
+            </div>
+            <div class="cell-source-icon">FX -</div>
+            <div class="cell-name">Echo Trail</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:81%;"></div></div>
+          </div>
+          <!-- Cell 2: Glitch Storm -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background: linear-gradient(45deg, #ff224444, #44ff2244, #2244ff44, #ff224444);"></div></div>
+            <div class="cell-badges"><div class="cell-badge fx">FX 4</div></div>
+            <div class="cell-source-icon">FX -</div>
+            <div class="cell-name">Glitch Storm</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 3: Kaleidoscope Mix -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-kaleido" style="opacity:0.5;"></div></div>
+            <div class="cell-badges"><div class="cell-badge fx">FX 2</div></div>
+            <div class="cell-source-icon">FX -</div>
+            <div class="cell-name">Kaleidoscope Mix</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 4: Strobe Flash -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background: linear-gradient(0deg, #ffffff11, #ffffff44, #ffffff11);"></div></div>
+            <div class="cell-badges"><div class="cell-badge fx">FX 1</div></div>
+            <div class="cell-source-icon">FX -</div>
+            <div class="cell-name">Strobe Flash</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 5: Feedback Loop -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad" style="background: radial-gradient(circle, #4488ff22, #2244aa22, #4488ff11, #0a0a0d);"></div></div>
+            <div class="cell-badges"><div class="cell-badge fx">FX 2</div></div>
+            <div class="cell-source-icon">FX -</div>
+            <div class="cell-name">Feedback Loop</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+        </div>
+      </div>
+
+      <!-- ═══ LAYER 4 (Gold / Transparent) ═══ -->
+      <div class="layer-row l4">
+        <div class="layer-header">
+          <div class="lh-row1">
+            <div class="lh-name">Layer 4 - Textures</div>
+            <div class="lh-type">Transparent</div>
+            <div class="lh-btn">B</div>
+            <div class="lh-btn">S</div>
+          </div>
+          <div class="lh-row2">
+            <div class="lh-opacity-wrap">
+              <span class="lh-opacity-label">V</span>
+              <div class="lh-opacity-bar"><div class="lh-opacity-fill" style="width:50%;"></div></div>
+            </div>
+            <div class="lh-blend">Multiply</div>
+          </div>
+          <div class="lh-row3">
+            <div class="lh-transport-btn">&lt;</div>
+            <div class="lh-transport-btn">||</div>
+            <div class="lh-transport-btn" style="color:#ffaa44;">&#9654;</div>
+            <div class="lh-transport-btn">&gt;|</div>
+            <span style="flex:1;"></span>
+            <div class="lh-blend" style="font-size:8px;">Wipe Right 1.0s</div>
+          </div>
+        </div>
+        <div class="cells-row">
+          <!-- Cell 1: Perlin Noise -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-perlin"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Perlin Noise</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 2: Voronoi Glass -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-voronoi"></div></div>
+            <div class="cell-badges">
+              <div class="cell-badge src">SRC</div>
+              <div class="cell-badge fx">FX 1</div>
+            </div>
+            <div class="cell-name">Voronoi Glass</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 3: Sierpinski -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-sierpinski"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Sierpinski</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 4: Fluid Dynamics -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-fluid"></div></div>
+            <div class="cell-badges">
+              <div class="cell-badge src">SRC</div>
+              <div class="cell-badge fx">FX 2</div>
+            </div>
+            <div class="cell-name">Fluid Dynamics</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 5: Geometric Pattern -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-geometric"></div></div>
+            <div class="cell-badges"><div class="cell-badge src">SRC</div></div>
+            <div class="cell-name">Geometric</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <!-- Cell 6: MilkDrop -->
+          <div class="cell">
+            <div class="cell-thumb"><div class="cell-thumb-grad grad-milkdrop"></div></div>
+            <div class="cell-badges"><div class="cell-badge milk">MD</div></div>
+            <div class="cell-name">Geiss - Feedback</div>
+            <div class="cell-progress"><div class="cell-progress-fill" style="width:0%;"></div></div>
+          </div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+          <div class="cell empty"><div class="cell-thumb"><div class="cell-thumb-inner"></div></div><div class="cell-name" style="color:#333;"></div><div class="cell-progress"></div></div>
+        </div>
+      </div>
+
+    </div><!-- grid-scroll -->
+  </div><!-- grid-area -->
+
+  <!-- ═══════════════ BOTTOM AREA ═══════════════ -->
+  <div class="bottom-area">
+
+    <!-- Bottom Left: Preview + Inspector Summary -->
+    <div class="bottom-left">
+      <div class="preview-panel">
+        <div class="preview-label">Preview</div>
+        <div class="preview-viewport">
+          <div class="preview-content">
+            <div class="preview-fractal"></div>
+            <div class="preview-overlay">1920x1080</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="inspector-summary">
+        <div class="is-title">Selected Clip</div>
+        <div class="is-clip-name">Mandelbrot</div>
+        <div class="is-source">Source: Mandelbrot Fractal | Dive Speed: auto-zoom</div>
+
+        <div class="is-param-row">
+          <div class="is-param-label">Zoom</div>
+          <div class="is-param-slider"><div class="is-param-fill" style="width:62%;"></div></div>
+          <div class="is-param-val">0.62</div>
+        </div>
+        <div class="is-param-row">
+          <div class="is-param-label">Color Shift</div>
+          <div class="is-param-slider"><div class="is-param-fill" style="width:35%;"></div></div>
+          <div class="is-param-val">0.35</div>
+        </div>
+        <div class="is-param-row">
+          <div class="is-param-label">Iterations</div>
+          <div class="is-param-slider"><div class="is-param-fill" style="width:80%;"></div></div>
+          <div class="is-param-val">0.80</div>
+        </div>
+
+        <div class="is-fx-pills">
+          <div class="is-fx-pill">Echo</div>
+          <div class="is-fx-pill">Hue Shift</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Right: Browser + Signal -->
+    <div class="bottom-right">
+      <div class="browser-panel">
+        <div class="browser-tabs">
+          <div class="browser-tab">Files</div>
+          <div class="browser-tab active">FX</div>
+          <div class="browser-tab">Sources</div>
+          <div class="browser-tab">Comp</div>
+          <div class="browser-tab">Record</div>
+          <div class="browser-tab">MilkDrop</div>
+        </div>
+        <input class="browser-search" type="text" placeholder="Search effects..." />
+        <div class="browser-list">
+          <div class="browser-cat">
+            <div class="browser-cat-header">Warp (27)</div>
+            <div class="browser-item">Ripple</div>
+            <div class="browser-item">Bulge</div>
+            <div class="browser-item">Wave</div>
+            <div class="browser-item">Liquid</div>
+            <div class="browser-item">Kaleidoscope</div>
+          </div>
+          <div class="browser-cat">
+            <div class="browser-cat-header">Color (31)</div>
+            <div class="browser-item">Hue Shift</div>
+            <div class="browser-item">Chromatic Aberration</div>
+          </div>
+          <div class="browser-cat">
+            <div class="browser-cat-header">Glitch (16)</div>
+            <div class="browser-item">Block Glitch</div>
+          </div>
+          <div class="browser-cat">
+            <div class="browser-cat-header">Time (6)</div>
+            <div class="browser-item">Echo</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="signal-strip">
+        <div class="signal-title">Signal</div>
+        <div class="signal-meter">
+          <div class="signal-meter-label">RMS</div>
+          <div class="signal-meter-bar"><div class="signal-meter-fill rms" style="width:68%;"></div></div>
+          <div class="signal-meter-val">0.68</div>
+        </div>
+        <div class="signal-meter">
+          <div class="signal-meter-label">Peak</div>
+          <div class="signal-meter-bar"><div class="signal-meter-fill peak" style="width:82%;"></div></div>
+          <div class="signal-meter-val">0.82</div>
+        </div>
+        <div class="signal-meter">
+          <div class="signal-meter-label">Bass</div>
+          <div class="signal-meter-bar"><div class="signal-meter-fill bass" style="width:91%;"></div></div>
+          <div class="signal-meter-val">0.91</div>
+        </div>
+        <div class="signal-meter">
+          <div class="signal-meter-label">Mid</div>
+          <div class="signal-meter-bar"><div class="signal-meter-fill mid" style="width:55%;"></div></div>
+          <div class="signal-meter-val">0.55</div>
+        </div>
+        <div class="signal-meter">
+          <div class="signal-meter-label">High</div>
+          <div class="signal-meter-bar"><div class="signal-meter-fill high" style="width:33%;"></div></div>
+          <div class="signal-meter-val">0.33</div>
+        </div>
+        <div class="signal-meter">
+          <div class="signal-meter-label">Beat</div>
+          <div class="signal-meter-bar"><div class="signal-meter-fill beat" style="width:25%;"></div></div>
+          <div class="signal-meter-val">0.25</div>
+        </div>
+        <div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
+          <div style="font-size: 8px; color: #555;">Onset: <span style="color: #44ff88;">YES</span></div>
+          <div style="font-size: 8px; color: #555;">Key: <span style="color: #aaa;">C min</span></div>
+          <div style="font-size: 8px; color: #555;">State: <span style="color: #ffaa44;">DROP</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ DECK TABS ═══════════════ -->
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <div class="deck-tabs-spacer"></div>
+    <div class="deck-add">+</div>
+  </div>
+
+</div><!-- main -->
+
+</body>
+</html>

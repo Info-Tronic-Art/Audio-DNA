@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 19 Var B (Improved)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(180deg, #1a1e24 0%, #14171c 50%, #101318 100%); color: #e0e0e0; font-size: 11px; }
+
+.top-bar { height: 36px; background: linear-gradient(180deg, #222830, #1c2026); display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #333; gap: 8px; }
+.hamburger { font-size: 16px; color: #888; cursor: pointer; }
+.logo { font-size: 14px; font-weight: 700; color: #fff; letter-spacing: 1px; }
+.logo span { color: #00e5ff; }
+.bpm-box { font-size: 18px; font-weight: 700; color: #4ade80; font-family: monospace; border: 1px solid #3a5a3a; padding: 2px 10px; background: #142018; border-radius: 2px; }
+.bpm-state { font-size: 7px; color: #4ade80; background: #1a3020; padding: 1px 4px; border-radius: 2px; }
+.btn { background: #2a2f38; border: 1px solid #444; color: #ccc; padding: 3px 8px; font-size: 10px; cursor: pointer; border-radius: 2px; }
+.btn:hover { background: #3a4048; }
+.sp { flex: 1; }
+.delay { color: #777; font-size: 10px; }
+.master-meters { display: flex; gap: 1px; height: 18px; align-items: flex-end; margin-left: 8px; }
+.master-meters div { width: 3px; border-radius: 1px; }
+.master-lbl { font-size: 8px; color: #666; text-transform: uppercase; margin-right: 4px; }
+
+.main { display: flex; height: calc(1080px - 36px - 26px); }
+
+/* DECK AREA */
+.deck-area { flex: 1; display: flex; flex-direction: column; }
+.scene-row { display: flex; height: 26px; align-items: center; padding-left: 80px; background: #181c20; border-bottom: 1px solid #282828; }
+.scene-col { flex: 1; text-align: center; font-size: 10px; color: #888; font-weight: 600; padding: 2px; cursor: pointer; }
+.scene-col.active { color: #f0a030; border-bottom: 2px solid #f0a030; }
+
+.grid-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.layer-row { display: flex; border-bottom: 1px solid #1e1e1e; flex: 1; min-height: 0; }
+.layer-label { width: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: #888; font-weight: 600; background: #181c20; border-right: 1px solid #252525; gap: 2px; }
+.layer-type { font-size: 7px; color: #555; }
+.meter { width: 4px; background: #111; border-radius: 2px; height: 100%; margin: 4px 2px; position: relative; }
+.meter-f { position: absolute; bottom: 0; width: 100%; border-radius: 2px; }
+.clips { flex: 1; display: flex; gap: 5px; padding: 5px; align-items: flex-start; flex-wrap: nowrap; overflow: hidden; }
+.c { width: 90px; height: 90px; background: #1a1e24; border: 1px solid #2a2a2a; border-radius: 3px; position: relative; overflow: hidden; cursor: pointer; flex-shrink: 0; }
+.c.act { border-color: #00e5ff; box-shadow: 0 0 6px rgba(0,229,255,0.25); }
+.c .th { width: 100%; height: 70px; }
+.c .nm { height: 20px; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; }
+.c .bd { position: absolute; top: 2px; right: 2px; font-size: 6px; padding: 1px 4px; border-radius: 2px; font-weight: 700; color: #fff; }
+.ec { width: 90px; height: 90px; background: repeating-linear-gradient(45deg, #181c20, #181c20 3px, #1e2228 3px, #1e2228 6px); border: 1px dashed #282828; border-radius: 3px; opacity: 0.4; flex-shrink: 0; }
+
+.g1 { background: linear-gradient(135deg, #8020c0, #4060f0, #20a0c0); }
+.g2 { background: linear-gradient(135deg, #c040a0, #6020c0); }
+.g3 { background: linear-gradient(135deg, #20c0a0, #1040a0); }
+.g4 { background: radial-gradient(circle, #60f0a0, #104030); }
+.g5 { background: linear-gradient(45deg, #f04060, #f0a020); }
+.g6 { background: linear-gradient(135deg, #2040a0, #60c0f0); }
+.g7 { background: radial-gradient(circle, #f0c040, #803020); }
+.g8 { background: linear-gradient(135deg, #104020, #40c060); }
+
+/* MIXING BOARDS */
+.mix-area { height: 230px; display: flex; border-top: 1px solid #333; background: linear-gradient(180deg, #1a1e24, #151820); }
+.board { flex: 1; border-right: 1px solid #222; padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.board:last-child { border-right: none; }
+.board-tabs { display: flex; gap: 2px; }
+.board-tab { flex: 1; padding: 2px; text-align: center; font-size: 8px; background: #1e2228; border: 1px solid #303030; color: #666; cursor: pointer; }
+.board-tab.act { background: #1e2a30; color: #00e5ff; border-color: #00e5ff; }
+.board-head { display: flex; justify-content: space-between; align-items: center; }
+.eng-tabs { display: flex; gap: 2px; }
+.et { padding: 1px 6px; font-size: 8px; background: #1e2228; border: 1px solid #333; color: #666; cursor: pointer; }
+.et.act { background: #00e5ff; color: #111; }
+.knobs { display: flex; gap: 6px; justify-content: center; margin: 2px 0; }
+.k { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.kc { width: 34px; height: 34px; border-radius: 50%; background: conic-gradient(from 220deg, #00e5ff 0deg, #00e5ff var(--a, 140deg), #222830 var(--a, 140deg), #222830 280deg); position: relative; cursor: pointer; }
+.kci { width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a4050, #1a1e28); position: absolute; top: 5px; left: 5px; }
+.kl { font-size: 8px; color: #666; }
+.op-row { display: flex; align-items: center; gap: 4px; }
+.op-lbl { font-size: 8px; color: #777; width: 36px; }
+.op-bar { flex: 1; height: 5px; background: #0a0c10; border-radius: 3px; overflow: hidden; }
+.op-fill { height: 100%; background: linear-gradient(90deg, #00e5ff, #4ade80); border-radius: 3px; }
+.op-val { font-size: 9px; color: #ccc; width: 28px; text-align: right; font-family: monospace; }
+
+/* RIGHT PANEL */
+.right-panel { width: 340px; background: linear-gradient(180deg, #1c2028, #161a20); border-left: 1px solid #333; display: flex; flex-direction: column; }
+.preview-sec { padding: 8px; }
+.prev-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.prev-lbl { font-size: 10px; color: #888; font-weight: 600; }
+.prev-btns { display: flex; gap: 3px; }
+.pb { padding: 2px 6px; font-size: 9px; background: #222; border: 1px solid #444; color: #999; cursor: pointer; }
+.prev-box { width: 100%; height: 190px; border: 1px solid #333; border-radius: 3px; overflow: hidden; background: radial-gradient(ellipse at 40% 50%, rgba(0,229,255,0.2), transparent 60%), linear-gradient(135deg, #0a1520, #1a3040, #0a2020); }
+
+.props { flex: 1; padding: 8px; overflow-y: auto; border-top: 1px solid #2a2a2a; }
+.sec-title { font-size: 10px; color: #888; font-weight: 600; margin: 6px 0 4px; display: flex; align-items: center; gap: 4px; }
+.sec-title .sm { display: flex; gap: 3px; margin-left: auto; }
+.sm-btn { width: 18px; height: 16px; background: #2a2f38; border: 1px solid #444; color: #888; font-size: 8px; text-align: center; line-height: 14px; cursor: pointer; }
+.pr { display: flex; align-items: center; margin-bottom: 3px; }
+.pr-l { width: 85px; font-size: 10px; color: #999; }
+.pr-s { flex: 1; height: 4px; background: #111; border-radius: 2px; position: relative; margin: 0 6px; cursor: pointer; }
+.pr-sf { height: 100%; border-radius: 2px; }
+.pr-v { font-size: 10px; color: #e0e0e0; font-family: monospace; width: 55px; text-align: right; }
+.sig-tri { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 6px solid #444; margin-right: 4px; cursor: pointer; }
+.sig-tri.on { border-bottom-color: #00e5ff; }
+
+/* Effects */
+.fx-sec { padding: 8px; border-top: 1px solid #2a2a2a; }
+.fx-item { display: flex; align-items: center; padding: 4px 0; border-bottom: 1px solid #1a1a1a; }
+.fx-nm { flex: 1; font-size: 10px; color: #ccc; }
+.fx-sl { width: 70px; height: 4px; background: #111; border-radius: 2px; margin: 0 6px; position: relative; }
+.fx-sl-f { height: 100%; border-radius: 2px; }
+.fx-tog { width: 16px; height: 16px; background: #222; border: 1px solid #444; color: #00e5ff; font-size: 9px; text-align: center; line-height: 14px; cursor: pointer; }
+.fx-tog.on { background: #1e2a30; border-color: #00e5ff; }
+.fx-add { padding: 4px 0; color: #4ade80; font-size: 10px; cursor: pointer; }
+
+/* Sources sidebar */
+.sources-col { padding: 8px; border-top: 1px solid #2a2a2a; }
+.src-item { display: flex; align-items: center; gap: 4px; padding: 3px 0; border-bottom: 1px solid #1a1a1a; }
+.src-dot { width: 6px; height: 6px; border-radius: 50%; }
+.src-nm { flex: 1; font-size: 9px; color: #aaa; }
+.src-bar { width: 50px; height: 4px; background: #111; border-radius: 2px; overflow: hidden; }
+.src-bf { height: 100%; border-radius: 2px; }
+
+.footer { height: 26px; background: linear-gradient(180deg, #1e2228, #14171c); border-top: 1px solid #333; display: flex; align-items: center; padding: 0 12px; gap: 10px; font-size: 10px; color: #555; }
+.footer .sp { flex: 1; }
+.f-item { cursor: pointer; padding: 2px 6px; }
+.f-item:hover { color: #ccc; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="hamburger">&#9776;</div>
+  <div class="logo"><span>&#9670;</span> Audio-DNA VJ</div>
+  <div class="sp"></div>
+  <div class="bpm-box">128.00</div>
+  <div class="bpm-state">LOCKED</div>
+  <div class="btn">TAP</div>
+  <div class="btn">|&lt;</div>
+  <div class="btn">&gt;|</div>
+  <div class="btn">RESYNC</div>
+  <div style="display:flex;gap:3px;margin:0 4px;">
+    <div style="width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 3px #4ade80;"></div>
+    <div style="width:7px;height:7px;border-radius:50%;background:#333;"></div>
+    <div style="width:7px;height:7px;border-radius:50%;background:#333;"></div>
+    <div style="width:7px;height:7px;border-radius:50%;background:#333;"></div>
+  </div>
+  <div class="delay">Bar: 8 / 1.1 | Delay: 40ms</div>
+  <div class="sp"></div>
+  <div class="master-lbl">Master</div>
+  <div class="btn" style="background:#f0a030;color:#111;">Input</div>
+  <div class="master-meters">
+    <div style="height:14px;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+    <div style="height:10px;background:#4ade80;"></div>
+    <div style="height:16px;background:linear-gradient(0deg,#4ade80,#f0a030);"></div>
+    <div style="height:8px;background:#4ade80;"></div>
+    <div style="height:12px;background:#4ade80;"></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="deck-area">
+    <div class="scene-row">
+      <div class="scene-col active">Intro</div>
+      <div class="scene-col">Verse 1</div>
+      <div class="scene-col">Chorus</div>
+      <div class="scene-col">Bridge</div>
+      <div class="scene-col">Outro</div>
+    </div>
+    <div class="grid-body">
+      <!-- Layer 4 -->
+      <div class="layer-row">
+        <div class="layer-label">Layer 4<div class="layer-type">Transparent</div></div>
+        <div class="meter"><div class="meter-f" style="height:55%;background:#4ade80;"></div></div>
+        <div class="clips">
+          <div class="c"><div class="th g1"></div><div class="nm">Nebula A</div><div class="bd" style="background:#c04040;">VIDEO</div></div>
+          <div class="c act"><div class="th g2"></div><div class="nm">Crystal Shard</div><div class="bd" style="background:#20a060;">SYNTH</div></div>
+          <div class="c"><div class="th g5"></div><div class="nm">Fire Burst</div><div class="bd" style="background:#c04040;">VIDEO</div></div>
+          <div class="c"><div class="th g7"></div><div class="nm">Golden Hour</div><div class="bd" style="background:#3060c0;">IMAGE</div></div>
+          <div class="c"><div class="th g3"></div><div class="nm">Outro Rise</div><div class="bd" style="background:#c04040;">VIDEO</div></div>
+        </div>
+      </div>
+      <!-- Layer 3 -->
+      <div class="layer-row">
+        <div class="layer-label">Layer 3<div class="layer-type">Transparent</div></div>
+        <div class="meter"><div class="meter-f" style="height:75%;background:#4ade80;"></div></div>
+        <div class="clips">
+          <div class="c"><div class="th g4"></div><div class="nm">Glow Orb</div><div class="bd" style="background:#20a060;">SYNTH</div></div>
+          <div class="c"><div class="th g6"></div><div class="nm">Wave Motion</div><div class="bd" style="background:#20a060;">SYNTH</div></div>
+          <div class="c act"><div class="th g8"></div><div class="nm">Forest Deep</div><div class="bd" style="background:#3060c0;">IMAGE</div></div>
+          <div class="c"><div class="th g1"></div><div class="nm">Magenta Glow</div><div class="bd" style="background:#c04040;">VIDEO</div></div>
+          <div class="ec"></div>
+        </div>
+      </div>
+      <!-- Layer 2 -->
+      <div class="layer-row">
+        <div class="layer-label">Layer 2<div class="layer-type">FX Only</div></div>
+        <div class="meter"><div class="meter-f" style="height:90%;background:linear-gradient(0deg,#4ade80,#80c040);"></div></div>
+        <div class="clips">
+          <div class="c"><div class="th g3"></div><div class="nm">Neon Grid</div><div class="bd" style="background:#20a060;">SYNTH</div></div>
+          <div class="c act"><div class="th" style="background:radial-gradient(circle,#00e5ff,#0a2040);"></div><div class="nm">Teal Pulse</div><div class="bd" style="background:#20a060;">SYNTH</div></div>
+          <div class="c"><div class="th" style="background:radial-gradient(circle,#60f0a0,#0a2020);"></div><div class="nm">Emerald Ring</div><div class="bd" style="background:#20a060;">SYNTH</div></div>
+          <div class="ec"></div>
+          <div class="ec"></div>
+        </div>
+      </div>
+      <!-- Layer 1 -->
+      <div class="layer-row">
+        <div class="layer-label">Layer 1<div class="layer-type">Opaque</div></div>
+        <div class="meter"><div class="meter-f" style="height:100%;background:linear-gradient(0deg,#4ade80,#f0a030);"></div></div>
+        <div class="clips">
+          <div class="c act"><div class="th" style="background:linear-gradient(135deg,#a04080,#4060f0);"></div><div class="nm">Base Video</div><div class="bd" style="background:#c04040;">VIDEO</div></div>
+          <div class="c"><div class="th" style="background:repeating-linear-gradient(45deg,#333,#333 4px,#444 4px,#444 8px);"></div><div class="nm">Checker</div><div class="bd" style="background:#3060c0;">IMAGE</div></div>
+          <div class="ec"></div>
+          <div class="ec"></div>
+          <div class="ec"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIXING BOARDS -->
+    <div class="mix-area">
+      <div class="board">
+        <div class="board-tabs"><div class="board-tab act">Mixing Board</div><div class="board-tab">Layer 1</div></div>
+        <div class="board-head"><div class="eng-tabs"><div class="et act">Engine</div><div class="et">Video</div></div></div>
+        <div class="knobs">
+          <div class="k"><div class="kc" style="--a:160deg;"><div class="kci"></div></div><div class="kl">Hue</div></div>
+          <div class="k"><div class="kc" style="--a:120deg;"><div class="kci"></div></div><div class="kl">Sat</div></div>
+          <div class="k"><div class="kc" style="--a:200deg;"><div class="kci"></div></div><div class="kl">Bri</div></div>
+          <div class="k"><div class="kc" style="--a:140deg;"><div class="kci"></div></div><div class="kl">Spd</div></div>
+        </div>
+        <div class="op-row"><div class="op-lbl">Opacity</div><div class="op-bar"><div class="op-fill" style="width:100%;"></div></div><div class="op-val">100</div></div>
+      </div>
+      <div class="board">
+        <div class="board-tabs"><div class="board-tab act">Mixing Board</div><div class="board-tab">Layer 2</div></div>
+        <div class="board-head"><div class="eng-tabs"><div class="et act">Engine</div><div class="et">Video</div></div></div>
+        <div class="knobs">
+          <div class="k"><div class="kc" style="--a:140deg;"><div class="kci"></div></div><div class="kl">Hue</div></div>
+          <div class="k"><div class="kc" style="--a:180deg;"><div class="kci"></div></div><div class="kl">Sat</div></div>
+          <div class="k"><div class="kc" style="--a:160deg;"><div class="kci"></div></div><div class="kl">Bri</div></div>
+          <div class="k"><div class="kc" style="--a:140deg;"><div class="kci"></div></div><div class="kl">Spd</div></div>
+        </div>
+        <div class="op-row"><div class="op-lbl">Opacity</div><div class="op-bar"><div class="op-fill" style="width:85%;"></div></div><div class="op-val">85</div></div>
+      </div>
+      <div class="board">
+        <div class="board-tabs"><div class="board-tab act">Mixing Board</div><div class="board-tab">Layer 3</div></div>
+        <div class="board-head"><div class="eng-tabs"><div class="et act">Engine</div><div class="et">Video</div></div></div>
+        <div class="knobs">
+          <div class="k"><div class="kc" style="--a:100deg;"><div class="kci"></div></div><div class="kl">Hue</div></div>
+          <div class="k"><div class="kc" style="--a:200deg;"><div class="kci"></div></div><div class="kl">Sat</div></div>
+          <div class="k"><div class="kc" style="--a:160deg;"><div class="kci"></div></div><div class="kl">Bri</div></div>
+          <div class="k"><div class="kc" style="--a:180deg;"><div class="kci"></div></div><div class="kl">Spd</div></div>
+        </div>
+        <div class="op-row"><div class="op-lbl">Opacity</div><div class="op-bar"><div class="op-fill" style="width:100%;"></div></div><div class="op-val">100</div></div>
+      </div>
+      <div class="board" style="border-right:none;">
+        <div class="board-tabs"><div class="board-tab act">Mixing Board</div><div class="board-tab">Layer 4</div></div>
+        <div class="board-head"><div class="eng-tabs"><div class="et act">Engine</div><div class="et">Video</div></div></div>
+        <div class="knobs">
+          <div class="k"><div class="kc" style="--a:180deg;"><div class="kci"></div></div><div class="kl">Hue</div></div>
+          <div class="k"><div class="kc" style="--a:120deg;"><div class="kci"></div></div><div class="kl">Sat</div></div>
+          <div class="k"><div class="kc" style="--a:180deg;"><div class="kci"></div></div><div class="kl">Bri</div></div>
+          <div class="k"><div class="kc" style="--a:140deg;"><div class="kci"></div></div><div class="kl">Spd</div></div>
+        </div>
+        <div class="op-row"><div class="op-lbl">Opacity</div><div class="op-bar"><div class="op-fill" style="width:70%;"></div></div><div class="op-val">70</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="preview-sec">
+      <div class="prev-head">
+        <div class="prev-lbl">Preview</div>
+        <div class="prev-btns"><div class="pb">Fullscreen</div><div class="pb">Detach</div></div>
+      </div>
+      <div class="prev-box"></div>
+    </div>
+    <div class="props">
+      <div class="sec-title">Layer 1: Video Engine <div class="sm"><div class="sm-btn">S</div><div class="sm-btn">M</div></div></div>
+      <div class="pr"><div class="sig-tri on"></div><div class="pr-l">Position X</div><div class="pr-s"><div class="pr-sf" style="width:52%;background:#00e5ff;"></div></div><div class="pr-v">124.00</div></div>
+      <div class="pr"><div class="sig-tri"></div><div class="pr-l">Position Y</div><div class="pr-s"><div class="pr-sf" style="width:48%;background:#00e5ff;"></div></div><div class="pr-v">44.10</div></div>
+      <div class="pr"><div class="sig-tri on"></div><div class="pr-l">Scale</div><div class="pr-s"><div class="pr-sf" style="width:65%;background:#00e5ff;"></div></div><div class="pr-v">2.60</div></div>
+      <div class="pr"><div class="sig-tri"></div><div class="pr-l">Rotation</div><div class="pr-s"><div class="pr-sf" style="width:50%;background:#00e5ff;"></div></div><div class="pr-v">0.00</div></div>
+      <div class="pr"><div class="sig-tri"></div><div class="pr-l">Anchor X</div><div class="pr-s"><div class="pr-sf" style="width:50%;background:#00e5ff;"></div></div><div class="pr-v">0.00</div></div>
+      <div class="pr"><div class="sig-tri"></div><div class="pr-l">Anchor Y</div><div class="pr-s"><div class="pr-sf" style="width:50%;background:#00e5ff;"></div></div><div class="pr-v">0.00</div></div>
+
+      <div class="sec-title">Blend & Video</div>
+      <div class="pr"><div class="pr-l">Blend Mode</div><div style="flex:1;"><select style="width:100%;background:#1a1e24;border:1px solid #333;color:#ccc;padding:2px;font-size:9px;"><option>Additive</option></select></div></div>
+      <div class="pr"><div class="sig-tri on"></div><div class="pr-l">Opacity</div><div class="pr-s"><div class="pr-sf" style="width:100%;background:linear-gradient(90deg,#00e5ff,#4ade80);"></div></div><div class="pr-v">1.00</div></div>
+
+      <div class="sources-col" style="padding:0;border:0;margin-top:8px;">
+        <div class="sec-title">Audio Sources</div>
+        <div class="src-item"><div class="src-dot" style="background:#4ade80;"></div><div class="src-nm">Master Audio</div><div class="src-bar"><div class="src-bf" style="width:72%;background:#4ade80;"></div></div></div>
+        <div class="src-item"><div class="src-dot" style="background:#f04060;"></div><div class="src-nm">Kick Drum</div><div class="src-bar"><div class="src-bf" style="width:55%;background:#f04060;"></div></div></div>
+        <div class="src-item"><div class="src-dot" style="background:#00e5ff;"></div><div class="src-nm">Bass Line</div><div class="src-bar"><div class="src-bf" style="width:40%;background:#00e5ff;"></div></div></div>
+        <div class="src-item"><div class="src-dot" style="background:#a060f0;"></div><div class="src-nm">LFO - Sine</div><div class="src-bar"><div class="src-bf" style="width:65%;background:#a060f0;"></div></div></div>
+      </div>
+    </div>
+    <div class="fx-sec">
+      <div class="sec-title">Effects</div>
+      <div class="fx-item"><div class="fx-nm">Blur</div><div class="fx-sl"><div class="fx-sl-f" style="width:40%;background:#f0a030;"></div></div><div class="fx-tog on">B</div></div>
+      <div class="fx-item"><div class="fx-nm">Kaleidoscope</div><div class="fx-sl"><div class="fx-sl-f" style="width:65%;background:#f0a030;"></div></div><div class="fx-tog on">B</div></div>
+      <div class="fx-item"><div class="fx-nm">RGB Shift</div><div class="fx-sl"><div class="fx-sl-f" style="width:30%;background:#f0a030;"></div></div><div class="fx-tog on">B</div></div>
+      <div class="fx-item"><div class="fx-nm">Echo</div><div class="fx-sl"><div class="fx-sl-f" style="width:50%;background:#f0a030;"></div></div><div class="fx-tog">B</div></div>
+      <div class="fx-add">+ Add Effect</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="f-item">Master Sources</span>
+  <span class="f-item" style="color:#4ade80;">Audio Player &#9654;</span>
+  <span class="f-item">Output &#9660;</span>
+  <div class="sp"></div>
+  <span>60 FPS | DSP: 8%</span>
+  <div class="sp"></div>
+  <span class="f-item">Save</span>
+  <span class="f-item">Load</span>
+  <span style="color:#f0a030;font-size:14px;">&#10022;</span>
+</div>
+
+</body>
+</html>

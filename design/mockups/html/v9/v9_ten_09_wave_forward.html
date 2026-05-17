@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Wave Forward (LIVE)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
+  html, body { background: #1a1a1a; color: #e0e0e0; font-family: 'IBM Plex Sans', -apple-system, sans-serif; font-size: 11px; overflow: hidden; }
+  body { width: 1920px; height: 1200px; position: relative; }
+  .mono { font-family: 'IBM Plex Mono', 'SF Mono', Menlo, monospace; }
+
+  .grain {
+    position: absolute; inset: 0;
+    pointer-events: none; z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* ============ TOP BAR 44px ============ */
+  .topbar {
+    height: 44px; background: #2a2a2a; border-bottom: 1px solid #3a3a3a;
+    display: flex; align-items: center; padding: 0 12px; gap: 14px;
+  }
+  .logo { font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px; color:#e0e0e0; padding-right:10px; border-right:1px solid #3a3a3a; }
+  .logo .dot { color:#5fdba7; }
+  .bpm-big { font-family:'IBM Plex Mono',monospace; font-size:30px; color:#5fdba7; font-weight:500; letter-spacing:-1px; }
+  .bpm-sub { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#888; }
+  .block { display:flex; flex-direction:column; gap:1px; padding: 0 8px; border-right: 1px solid #3a3a3a; }
+  .block .lbl { font-size:9px; color:#888; letter-spacing:1px; }
+  .block .val { font-family:'IBM Plex Mono',monospace; font-size:13px; color:#e0e0e0; }
+  .pill { padding: 3px 10px; background: rgba(95,219,167,0.12); color:#5fdba7; font-size:10px; letter-spacing:1.5px; border:1px solid #5fdba7; }
+  .beatwheel { width:28px; height:28px; border:1px solid #3a3a3a; position:relative; }
+  .beatwheel .seg { position:absolute; background:#2a2a2a; border:1px solid #3a3a3a; }
+  .beatwheel .seg.on { background:#5fdba7; }
+  .beatwheel .s1 { left:50%; top:0; width:50%; height:50%; }
+  .beatwheel .s2 { left:50%; top:50%; width:50%; height:50%; }
+  .beatwheel .s3 { left:0; top:50%; width:50%; height:50%; }
+  .beatwheel .s4 { left:0; top:0; width:50%; height:50%; }
+  .tbtn { width:26px; height:26px; background:#1a1a1a; border:1px solid #3a3a3a; color:#888; display:flex; align-items:center; justify-content:center; font-size:10px; }
+  .tbtn.active { color:#5fdba7; border-color:#5fdba7; }
+  .tbtn.rec { color:#ff4040; border-color:#ff4040; }
+  .spacer { flex:1; }
+  .modes { display:flex; gap:1px; }
+  .mode { padding:6px 14px; background:#1a1a1a; border:1px solid #3a3a3a; color:#888; font-size:10px; letter-spacing:2px; position:relative; }
+  .mode.active { color:#e0e0e0; }
+  .mode.active::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#5fdba7; }
+
+  /* ============ RESOLUME TRANSPORT 32px ============ */
+  .transport {
+    height: 32px; background: #242424; border-bottom:1px solid #3a3a3a;
+    display:flex; align-items:center; padding: 0 12px; gap:6px;
+  }
+  .tr-btn { min-width:24px; height:22px; background:#1a1a1a; border:1px solid #3a3a3a; color:#888; font-size:10px; padding:0 6px; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; }
+  .tr-btn.accent { color:#5fdba7; }
+  .tr-sep { width:1px; height:16px; background:#3a3a3a; margin:0 4px; }
+
+  /* ============ SIGNAL QUICK REF 22px ============ */
+  .sigref {
+    height:22px; background:#1f1f1f; border-bottom:1px solid #3a3a3a;
+    display:flex; align-items:center; padding: 0 12px; gap:0;
+    font-family:'IBM Plex Mono',monospace; font-size:10px;
+    overflow:hidden;
+  }
+  .sigref span { padding: 0 10px; border-right:1px solid #2f2f2f; color:#888; white-space:nowrap; }
+  .sigref span b { color:#e0e0e0; font-weight:500; margin-left:3px; }
+  .sigref span.m b { color:#5fdba7; }
+
+  /* ============ MAIN CONTAINER ============ */
+  .main { display:flex; flex-direction:column; height: calc(100% - 98px); }
+
+  /* ============ HERO WAVEFORM ROW 240px ============ */
+  .hero-row { height:240px; display:flex; border-bottom:1px solid #3a3a3a; background:#1a1a1a; }
+
+  .wavepanel { width:1200px; height:240px; position:relative; border-right:1px solid #3a3a3a; }
+  .wavepanel .deck-lbl {
+    position:absolute; top:6px; left:8px; font-family:'IBM Plex Mono',monospace;
+    font-size:9px; letter-spacing:2px; color:#5fdba7; z-index:3;
+    background:rgba(26,26,26,0.75); padding:2px 6px; border:1px solid #3a3a3a;
+  }
+  .wavepanel .bpm-overlay {
+    position:absolute; top:6px; right:8px; z-index:3;
+    background:rgba(26,26,26,0.75); padding: 3px 8px; border:1px solid #5fdba7;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:#5fdba7; letter-spacing:1px;
+  }
+  .wavepanel .time-left {
+    position:absolute; bottom:26px; left:8px; z-index:3;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:#e0e0e0;
+    background:rgba(26,26,26,0.75); padding: 2px 6px;
+  }
+  .wavepanel .time-right {
+    position:absolute; bottom:26px; right:8px; z-index:3;
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:#888;
+    background:rgba(26,26,26,0.75); padding: 2px 6px;
+  }
+  .wavepanel .hotcues {
+    position:absolute; top:0; left:0; right:0; height:14px; z-index:3;
+    pointer-events:none;
+  }
+  .hotcue { position:absolute; top:0; width:26px; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#5fdba7; text-align:center; transform:translateX(-13px); letter-spacing:1px; }
+  .hotcue .tri { width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:6px solid #5fdba7; margin: 0 auto 1px; }
+
+  /* ============ SIGNAL CARDS 720x240 (3x2 of 240x120) ============ */
+  .cards { width:720px; height:240px; display:grid; grid-template-columns: repeat(3, 240px); grid-template-rows: 120px 120px; }
+  .card { border-right:1px solid #3a3a3a; border-bottom:1px solid #3a3a3a; background:#232323; position:relative; padding:6px 10px 8px; display:flex; flex-direction:column; }
+  .card:nth-child(3n) { border-right:none; }
+  .card:nth-child(n+4) { border-bottom:none; }
+  .card .handle { display:flex; align-items:center; justify-content:space-between; height:18px; border-bottom:1px solid #2f2f2f; margin: -6px -10px 4px; padding: 0 10px; }
+  .card .handle .name { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; letter-spacing:1.5px; }
+  .card .handle .arr { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#666; letter-spacing:2px; }
+  .card .val { font-family:'IBM Plex Mono',monospace; font-size:28px; color:#5fdba7; line-height:1; margin-top:4px; }
+  .card .lbl { font-size:9px; color:#888; letter-spacing:1.5px; margin-top:2px; }
+  .card .spark { margin-top:4px; height:30px; }
+  .card .stats { display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:8px; color:#666; margin-top:2px; letter-spacing:1px; }
+
+  /* ============ MIDDLE: grid + inspector ============ */
+  .middle { flex:1; display:flex; min-height:0; border-bottom:1px solid #3a3a3a; }
+  .clipgrid { flex:1; background:#1a1a1a; padding:10px 12px; overflow:hidden; }
+  .deck-head { display:flex; align-items:center; height:22px; margin-bottom:8px; gap:10px; }
+  .deck-head .lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2px; color:#888; }
+  .deck-head .lbl b { color:#5fdba7; }
+  .deck-head .colnums { display:flex; gap:6px; margin-left:110px; }
+  .colnum { width:100px; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#666; letter-spacing:2px; }
+
+  .layer-row { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .layer-strip { width:104px; padding:6px 8px; background:#232323; border:1px solid #3a3a3a; height:80px; display:flex; flex-direction:column; justify-content:space-between; }
+  .ls-name { font-size:10px; color:#e0e0e0; letter-spacing:1px; }
+  .ls-name.m { color:#5fdba7; }
+  .ls-ctrl { display:flex; gap:3px; }
+  .ls-btn { width:18px; height:16px; background:#1a1a1a; border:1px solid #3a3a3a; color:#666; font-size:8px; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; }
+  .ls-btn.on { color:#5fdba7; border-color:#5fdba7; }
+  .ls-op { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; }
+  .ls-bar { height:3px; background:#1a1a1a; position:relative; }
+  .ls-bar::after { content:''; position:absolute; left:0; top:0; bottom:0; background:#5fdba7; }
+  .ls-bar.f100::after { width:100%; }
+  .ls-bar.f80::after { width:80%; }
+  .ls-bar.f60::after { width:60%; }
+  .ls-bar.f40::after { width:40%; }
+
+  .cells { display:flex; gap:6px; }
+  .cell { width:100px; height:80px; background:#232323; border:1px solid #3a3a3a; position:relative; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; padding:6px; overflow:hidden; }
+  .cell.empty { border:1px dashed #3a3a3a; background:transparent; }
+  .cell.loaded { background:#2a2a2a; }
+  .cell.playing { background: rgba(95,219,167,0.22); border:2px solid #5fdba7; color:#5fdba7; }
+  .cell.queued { border: 2px dashed #5fdba7; color:#5fdba7; }
+  .cell.selected { outline:1px solid #5fdba7; outline-offset:-2px; }
+  .cell .nm { font-size:9px; color:inherit; letter-spacing:.5px; }
+  .cell .sub { font-size:8px; color:#666; margin-top:2px; }
+
+  /* ============ INSPECTOR ============ */
+  .inspector { width:280px; background:#2a2a2a; border-left:1px solid #3a3a3a; display:flex; flex-direction:column; }
+  .insp-tabs { display:flex; height:26px; border-bottom:1px solid #3a3a3a; }
+  .insp-tab { flex:1; display:flex; align-items:center; justify-content:center; font-size:10px; letter-spacing:1.5px; color:#888; background:#1f1f1f; border-right:1px solid #3a3a3a; }
+  .insp-tab.on { background:#2a2a2a; color:#e0e0e0; position:relative; }
+  .insp-tab.on::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:#5fdba7; }
+  .insp-tab:last-child { border-right:none; }
+  .insp-body { flex:1; overflow:hidden; }
+  .sec { border-bottom:1px solid #3a3a3a; }
+  .sec-head { height:24px; display:flex; align-items:center; padding: 0 10px; background:#242424; font-size:10px; letter-spacing:2px; color:#e0e0e0; position:relative; }
+  .sec-head .tri { color:#888; margin-right:6px; font-size:8px; }
+  .sec-head .p { margin-left:auto; width:20px; height:16px; background:#1a1a1a; border:1px solid #3a3a3a; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; }
+  .sec-head.routed::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:#5fdba7; }
+  .row { display:flex; align-items:center; height:22px; padding: 0 8px; gap:6px; border-bottom:1px solid #2f2f2f; }
+  .row .lbl { width:90px; text-align:right; color:#888; font-size:10px; padding-right:4px; }
+  .row .val { width:50px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e0e0e0; text-align:center; }
+  .row .mm { width:16px; height:16px; background:#1a1a1a; border:1px solid #3a3a3a; color:#888; font-size:10px; display:flex; align-items:center; justify-content:center; }
+  .row .slider { flex:1; height:3px; background:#1a1a1a; position:relative; }
+  .row .slider .fill { position:absolute; left:0; top:0; bottom:0; background:#5fdba7; }
+  .row .slider .ind { position:absolute; top:-2px; width:1px; height:7px; background:#5fdba7; }
+  .row .pbtn { width:20px; height:16px; background:#1a1a1a; border:1px solid #3a3a3a; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; display:flex; align-items:center; justify-content:center; }
+  .row .pbtn.on { color:#5fdba7; border-color:#5fdba7; }
+
+  /* ============ BOTTOM STRIP 100px ============ */
+  .bottom { height:100px; background:#2a2a2a; display:flex; align-items:center; padding: 0 14px; gap:14px; border-top:1px solid #3a3a3a; }
+  .bcol { display:flex; flex-direction:column; gap:3px; align-items:flex-start; }
+  .bcol .t { font-size:9px; color:#888; letter-spacing:1.5px; }
+  .master-slider { width:100px; height:10px; background:#1a1a1a; border:1px solid #3a3a3a; position:relative; }
+  .master-slider::after { content:''; position:absolute; left:0; top:0; bottom:0; background:#5fdba7; width:75%; }
+  .master-val { font-family:'IBM Plex Mono',monospace; font-size:12px; color:#5fdba7; margin-top:2px; }
+  .xfader { width:170px; height:12px; background:#1a1a1a; border:1px solid #3a3a3a; position:relative; }
+  .xfader .xknob { position:absolute; left:45%; top:-3px; width:8px; height:18px; background:#5fdba7; }
+  .xfader .lbls { position:absolute; left:0; right:0; top:14px; display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; }
+  .scenes { display:flex; gap:3px; }
+  .scene { width:40px; height:60px; background:#1a1a1a; border:1px solid #3a3a3a; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#888; }
+  .scene.on { background: rgba(95,219,167,0.2); color:#5fdba7; border-color:#5fdba7; }
+  .macros { display:flex; gap:8px; }
+  .knob { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .knob .dial { width:44px; height:44px; border:1px solid #3a3a3a; background:#1a1a1a; position:relative; }
+  .knob .dial::after { content:''; position:absolute; left:50%; top:4px; width:1px; height:16px; background:#5fdba7; transform-origin: 50% 18px; }
+  .knob.k1 .dial::after { transform: translateX(-50%) rotate(-60deg); }
+  .knob.k2 .dial::after { transform: translateX(-50%) rotate(30deg); }
+  .knob.k3 .dial::after { transform: translateX(-50%) rotate(120deg); }
+  .knob.k4 .dial::after { transform: translateX(-50%) rotate(-20deg); }
+  .knob .nm { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#888; letter-spacing:1px; }
+  .knob .vv { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#5fdba7; }
+  .djbtns { display:flex; gap:4px; margin-left:auto; }
+  .djbtn { padding: 8px 18px; background:#1a1a1a; border:1px solid #5fdba7; color:#5fdba7; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:3px; }
+  .djbtn.cue { color:#e0e0e0; border-color:#3a3a3a; }
+
+  .sep { width:1px; height:70px; background:#3a3a3a; }
+</style>
+</head>
+<body>
+
+<!-- ======================== TOP BAR 44px ======================== -->
+<div class="topbar">
+  <div class="logo">AUDIO<span class="dot">·</span>DNA</div>
+  <div class="bpm-big mono">128</div>
+  <div style="display:flex;flex-direction:column;gap:0">
+    <div class="bpm-sub">BPM</div>
+    <div class="bpm-sub" style="color:#5fdba7">LOCKED</div>
+  </div>
+  <div class="block"><span class="lbl">BAR</span><span class="val">024</span></div>
+  <div class="block"><span class="lbl">PHRASE</span><span class="val">03/08</span></div>
+  <div class="block" style="border-right:none;"><span class="lbl">STRUCTURAL</span></div>
+  <div class="pill mono">DROP</div>
+  <div class="beatwheel">
+    <div class="seg s1 on"></div><div class="seg s2"></div><div class="seg s3"></div><div class="seg s4"></div>
+  </div>
+  <div class="tbtn active">&#9654;</div>
+  <div class="tbtn">&#10073;&#10073;</div>
+  <div class="tbtn">&#9632;</div>
+  <div class="block"><span class="lbl">QUANT</span><span class="val">1/4</span></div>
+  <div class="block"><span class="lbl">FADE</span><span class="val">2.0s</span></div>
+  <div class="block"><span class="lbl">MASTER</span><span class="val" style="color:#5fdba7">0dB</span></div>
+  <div class="tbtn rec">&#9679; REC</div>
+  <div class="block" style="border-right:none"><span class="lbl">FPS</span><span class="val">60.0</span></div>
+  <div class="spacer"></div>
+  <div class="modes">
+    <div class="mode active">LIVE</div>
+    <div class="mode">PROGRAM</div>
+    <div class="mode">SETUP</div>
+  </div>
+</div>
+
+<!-- ======================== RESOLUME TRANSPORT 32px ======================== -->
+<div class="transport">
+  <div class="tr-btn accent">&#9654;</div>
+  <div class="tr-btn">&#10073;&#10073;</div>
+  <div class="tr-btn">&#9632;</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn mono" style="min-width:36px">128</div>
+  <div class="tr-btn">&minus;</div>
+  <div class="tr-btn">+</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn">|&#9666;</div>
+  <div class="tr-btn">&#9656;|</div>
+  <div class="tr-btn">/2</div>
+  <div class="tr-btn">&times;2</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn accent">TAP</div>
+  <div class="tr-btn">RESYNC</div>
+  <div class="tr-btn">&#9833;</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn">&#8630;</div>
+  <div class="tr-btn">&#8631;</div>
+  <div class="tr-sep"></div>
+  <div class="tr-btn" style="color:#5fdba7">LINK</div>
+  <div class="tr-btn">MIDI</div>
+  <div class="tr-btn">OSC</div>
+  <div class="spacer" style="flex:1"></div>
+  <div class="tr-btn mono">01:42:16 SESSION</div>
+</div>
+
+<!-- ======================== SIGNAL QUICK REF 22px ======================== -->
+<div class="sigref">
+  <span>RMS <b>0.73</b></span>
+  <span>PEAK <b>0.91</b></span>
+  <span>LUFS <b>-12.4</b></span>
+  <span>FLUX <b>0.42</b></span>
+  <span>CENTROID <b>2.8k</b></span>
+  <span class="m">BASS <b>0.88</b></span>
+  <span>MID <b>0.45</b></span>
+  <span>HIGH <b>0.31</b></span>
+  <span class="m">BPM <b>128</b></span>
+  <span>KEY <b>Am</b></span>
+  <span class="m">GENRE <b>TECHNO</b></span>
+  <span>PITCH <b>220Hz</b></span>
+  <span>ONSETS <b>4.2/s</b></span>
+  <span>CREST <b>2.1</b></span>
+  <span>FLAT <b>0.28</b></span>
+</div>
+
+<!-- ======================== MAIN ======================== -->
+<div class="main">
+
+  <!-- =================== HERO WAVEFORM ROW 240px =================== -->
+  <div class="hero-row">
+
+    <!-- =========== WAVEFORM PANEL 1200x240 =========== -->
+    <div class="wavepanel">
+      <div class="deck-lbl">WAVEFORM &middot; 1.875s / div &middot; MASTER OUT</div>
+      <div class="bpm-overlay mono">128.00 BPM</div>
+
+      <!-- Hot cues (4 triangles labeled 01-04) -->
+      <div class="hotcues">
+        <div class="hotcue" style="left:120px;"><div class="tri"></div>01</div>
+        <div class="hotcue" style="left:392px;"><div class="tri"></div>02</div>
+        <div class="hotcue" style="left:760px;"><div class="tri"></div>03</div>
+        <div class="hotcue" style="left:1064px;"><div class="tri"></div>04</div>
+      </div>
+
+      <svg width="1200" height="226" style="display:block; position:absolute; top:14px; left:0;">
+        <!-- Minor beat grid ticks every 32px -->
+        <g stroke="#2f2f2f" stroke-width="1">
+          <line x1="32" y1="0" x2="32" y2="210"/><line x1="64" y1="0" x2="64" y2="210"/><line x1="96" y1="0" x2="96" y2="210"/>
+          <line x1="160" y1="0" x2="160" y2="210"/><line x1="192" y1="0" x2="192" y2="210"/><line x1="224" y1="0" x2="224" y2="210"/>
+          <line x1="288" y1="0" x2="288" y2="210"/><line x1="320" y1="0" x2="320" y2="210"/><line x1="352" y1="0" x2="352" y2="210"/>
+          <line x1="416" y1="0" x2="416" y2="210"/><line x1="448" y1="0" x2="448" y2="210"/><line x1="480" y1="0" x2="480" y2="210"/>
+          <line x1="544" y1="0" x2="544" y2="210"/><line x1="576" y1="0" x2="576" y2="210"/><line x1="608" y1="0" x2="608" y2="210"/>
+          <line x1="672" y1="0" x2="672" y2="210"/><line x1="704" y1="0" x2="704" y2="210"/><line x1="736" y1="0" x2="736" y2="210"/>
+          <line x1="800" y1="0" x2="800" y2="210"/><line x1="832" y1="0" x2="832" y2="210"/><line x1="864" y1="0" x2="864" y2="210"/>
+          <line x1="928" y1="0" x2="928" y2="210"/><line x1="960" y1="0" x2="960" y2="210"/><line x1="992" y1="0" x2="992" y2="210"/>
+          <line x1="1056" y1="0" x2="1056" y2="210"/><line x1="1088" y1="0" x2="1088" y2="210"/><line x1="1120" y1="0" x2="1120" y2="210"/>
+          <line x1="1184" y1="0" x2="1184" y2="210"/>
+        </g>
+        <!-- Downbeats every 128px brighter -->
+        <g stroke="#4a4a4a" stroke-width="1">
+          <line x1="128" y1="0" x2="128" y2="210"/><line x1="256" y1="0" x2="256" y2="210"/><line x1="384" y1="0" x2="384" y2="210"/>
+          <line x1="512" y1="0" x2="512" y2="210"/><line x1="640" y1="0" x2="640" y2="210"/><line x1="768" y1="0" x2="768" y2="210"/>
+          <line x1="896" y1="0" x2="896" y2="210"/><line x1="1024" y1="0" x2="1024" y2="210"/><line x1="1152" y1="0" x2="1152" y2="210"/>
+        </g>
+
+        <!-- Center separator between decks -->
+        <line x1="0" y1="103" x2="1200" y2="103" stroke="#3a3a3a" stroke-width="1"/>
+
+        <!-- Loop region -->
+        <rect x="392" y="0" width="368" height="210" fill="rgba(95,219,167,0.07)" stroke="#5fdba7" stroke-width="1" stroke-dasharray="2 3"/>
+
+        <!-- ============ DECK A WAVEFORM (top half y=0..100) ============ -->
+        <!-- build-up region -->
+        <g fill="#3ea078">
+          <rect x="0" y="48" width="2" height="9"/><rect x="4" y="46" width="2" height="13"/><rect x="8" y="49" width="2" height="7"/>
+          <rect x="12" y="44" width="2" height="17"/><rect x="16" y="47" width="2" height="11"/><rect x="20" y="43" width="2" height="19"/>
+          <rect x="24" y="48" width="2" height="9"/><rect x="28" y="42" width="2" height="21"/><rect x="32" y="38" width="2" height="29"/>
+          <rect x="36" y="45" width="2" height="15"/><rect x="40" y="41" width="2" height="23"/><rect x="44" y="39" width="2" height="27"/>
+          <rect x="48" y="43" width="2" height="19"/><rect x="52" y="37" width="2" height="31"/><rect x="56" y="41" width="2" height="23"/>
+          <rect x="60" y="35" width="2" height="35"/><rect x="64" y="33" width="2" height="39"/><rect x="68" y="38" width="2" height="29"/>
+          <rect x="72" y="34" width="2" height="37"/><rect x="76" y="39" width="2" height="27"/><rect x="80" y="32" width="2" height="41"/>
+          <rect x="84" y="36" width="2" height="33"/><rect x="88" y="30" width="2" height="45"/><rect x="92" y="34" width="2" height="37"/>
+          <rect x="96" y="28" width="2" height="49"/><rect x="100" y="32" width="2" height="41"/><rect x="104" y="26" width="2" height="53"/>
+          <rect x="108" y="30" width="2" height="45"/><rect x="112" y="24" width="2" height="57"/><rect x="116" y="28" width="2" height="49"/>
+          <rect x="120" y="22" width="2" height="61"/><rect x="124" y="26" width="2" height="53"/><rect x="128" y="18" width="2" height="69"/>
+          <rect x="132" y="24" width="2" height="57"/><rect x="136" y="20" width="2" height="65"/><rect x="140" y="26" width="2" height="53"/>
+          <rect x="144" y="22" width="2" height="61"/><rect x="148" y="18" width="2" height="69"/><rect x="152" y="24" width="2" height="57"/>
+          <rect x="156" y="20" width="2" height="65"/><rect x="160" y="16" width="2" height="73"/><rect x="164" y="22" width="2" height="61"/>
+          <rect x="168" y="18" width="2" height="69"/><rect x="172" y="14" width="2" height="77"/><rect x="176" y="20" width="2" height="65"/>
+          <rect x="180" y="16" width="2" height="73"/><rect x="184" y="12" width="2" height="81"/><rect x="188" y="18" width="2" height="69"/>
+          <rect x="192" y="10" width="2" height="85"/><rect x="196" y="14" width="2" height="77"/><rect x="200" y="8" width="2" height="89"/>
+          <rect x="204" y="12" width="2" height="81"/><rect x="208" y="6" width="2" height="93"/><rect x="212" y="10" width="2" height="85"/>
+          <rect x="216" y="4" width="2" height="97"/><rect x="220" y="8" width="2" height="89"/><rect x="224" y="6" width="2" height="93"/>
+          <rect x="228" y="12" width="2" height="81"/><rect x="232" y="8" width="2" height="89"/><rect x="236" y="4" width="2" height="97"/>
+          <rect x="240" y="10" width="2" height="85"/><rect x="244" y="6" width="2" height="93"/><rect x="248" y="12" width="2" height="81"/>
+          <rect x="252" y="8" width="2" height="89"/><rect x="256" y="2" width="2" height="99"/><rect x="260" y="8" width="2" height="89"/>
+          <rect x="264" y="4" width="2" height="97"/><rect x="268" y="10" width="2" height="85"/><rect x="272" y="6" width="2" height="93"/>
+          <rect x="276" y="2" width="2" height="99"/><rect x="280" y="8" width="2" height="89"/><rect x="284" y="4" width="2" height="97"/>
+          <rect x="288" y="0" width="2" height="101"/><rect x="292" y="6" width="2" height="93"/><rect x="296" y="2" width="2" height="99"/>
+          <rect x="300" y="8" width="2" height="89"/><rect x="304" y="4" width="2" height="97"/><rect x="308" y="0" width="2" height="101"/>
+          <rect x="312" y="6" width="2" height="93"/><rect x="316" y="2" width="2" height="99"/><rect x="320" y="8" width="2" height="89"/>
+          <rect x="324" y="4" width="2" height="97"/><rect x="328" y="0" width="2" height="101"/><rect x="332" y="6" width="2" height="93"/>
+          <rect x="336" y="2" width="2" height="99"/><rect x="340" y="0" width="2" height="101"/><rect x="344" y="4" width="2" height="97"/>
+          <rect x="348" y="0" width="2" height="101"/><rect x="352" y="6" width="2" height="93"/><rect x="356" y="2" width="2" height="99"/>
+          <rect x="360" y="0" width="2" height="101"/><rect x="364" y="4" width="2" height="97"/><rect x="368" y="0" width="2" height="101"/>
+          <rect x="372" y="2" width="2" height="99"/><rect x="376" y="0" width="2" height="101"/><rect x="380" y="4" width="2" height="97"/>
+        </g>
+        <!-- DROP region: bright mint full-amplitude -->
+        <g fill="#5fdba7">
+          <rect x="384" y="0" width="2" height="101"/><rect x="388" y="2" width="2" height="99"/><rect x="392" y="0" width="2" height="101"/>
+          <rect x="396" y="4" width="2" height="97"/><rect x="400" y="0" width="2" height="101"/><rect x="404" y="2" width="2" height="99"/>
+          <rect x="408" y="0" width="2" height="101"/><rect x="412" y="6" width="2" height="93"/><rect x="416" y="0" width="2" height="101"/>
+          <rect x="420" y="2" width="2" height="99"/><rect x="424" y="0" width="2" height="101"/><rect x="428" y="4" width="2" height="97"/>
+          <rect x="432" y="0" width="2" height="101"/><rect x="436" y="2" width="2" height="99"/><rect x="440" y="0" width="2" height="101"/>
+          <rect x="444" y="6" width="2" height="93"/><rect x="448" y="0" width="2" height="101"/><rect x="452" y="2" width="2" height="99"/>
+          <rect x="456" y="0" width="2" height="101"/><rect x="460" y="4" width="2" height="97"/><rect x="464" y="0" width="2" height="101"/>
+          <rect x="468" y="2" width="2" height="99"/><rect x="472" y="0" width="2" height="101"/><rect x="476" y="8" width="2" height="89"/>
+          <rect x="480" y="0" width="2" height="101"/><rect x="484" y="4" width="2" height="97"/><rect x="488" y="0" width="2" height="101"/>
+          <rect x="492" y="2" width="2" height="99"/><rect x="496" y="0" width="2" height="101"/><rect x="500" y="6" width="2" height="93"/>
+          <rect x="504" y="0" width="2" height="101"/><rect x="508" y="2" width="2" height="99"/><rect x="512" y="0" width="2" height="101"/>
+          <rect x="516" y="4" width="2" height="97"/><rect x="520" y="0" width="2" height="101"/><rect x="524" y="2" width="2" height="99"/>
+          <rect x="528" y="0" width="2" height="101"/><rect x="532" y="6" width="2" height="93"/><rect x="536" y="0" width="2" height="101"/>
+          <rect x="540" y="2" width="2" height="99"/><rect x="544" y="0" width="2" height="101"/><rect x="548" y="4" width="2" height="97"/>
+          <rect x="552" y="0" width="2" height="101"/><rect x="556" y="2" width="2" height="99"/><rect x="560" y="0" width="2" height="101"/>
+          <rect x="564" y="8" width="2" height="89"/><rect x="568" y="0" width="2" height="101"/><rect x="572" y="4" width="2" height="97"/>
+          <rect x="576" y="0" width="2" height="101"/><rect x="580" y="2" width="2" height="99"/><rect x="584" y="0" width="2" height="101"/>
+          <rect x="588" y="6" width="2" height="93"/><rect x="592" y="0" width="2" height="101"/><rect x="596" y="2" width="2" height="99"/>
+          <rect x="600" y="0" width="2" height="101"/><rect x="604" y="4" width="2" height="97"/><rect x="608" y="0" width="2" height="101"/>
+          <rect x="612" y="2" width="2" height="99"/><rect x="616" y="0" width="2" height="101"/><rect x="620" y="6" width="2" height="93"/>
+          <rect x="624" y="0" width="2" height="101"/><rect x="628" y="2" width="2" height="99"/><rect x="632" y="0" width="2" height="101"/>
+          <rect x="636" y="10" width="2" height="85"/><rect x="640" y="0" width="2" height="101"/><rect x="644" y="4" width="2" height="97"/>
+          <rect x="648" y="0" width="2" height="101"/><rect x="652" y="2" width="2" height="99"/><rect x="656" y="0" width="2" height="101"/>
+          <rect x="660" y="6" width="2" height="93"/><rect x="664" y="0" width="2" height="101"/><rect x="668" y="2" width="2" height="99"/>
+          <rect x="672" y="0" width="2" height="101"/><rect x="676" y="4" width="2" height="97"/><rect x="680" y="0" width="2" height="101"/>
+          <rect x="684" y="2" width="2" height="99"/><rect x="688" y="0" width="2" height="101"/><rect x="692" y="8" width="2" height="89"/>
+          <rect x="696" y="0" width="2" height="101"/><rect x="700" y="4" width="2" height="97"/><rect x="704" y="0" width="2" height="101"/>
+          <rect x="708" y="2" width="2" height="99"/><rect x="712" y="0" width="2" height="101"/><rect x="716" y="6" width="2" height="93"/>
+          <rect x="720" y="0" width="2" height="101"/><rect x="724" y="2" width="2" height="99"/><rect x="728" y="0" width="2" height="101"/>
+          <rect x="732" y="4" width="2" height="97"/><rect x="736" y="0" width="2" height="101"/><rect x="740" y="2" width="2" height="99"/>
+          <rect x="744" y="0" width="2" height="101"/><rect x="748" y="6" width="2" height="93"/><rect x="752" y="0" width="2" height="101"/>
+          <rect x="756" y="2" width="2" height="99"/>
+        </g>
+        <!-- high-freq dim 760-896 -->
+        <g fill="#3ea078">
+          <rect x="760" y="8" width="2" height="89"/><rect x="764" y="16" width="2" height="73"/><rect x="768" y="4" width="2" height="97"/>
+          <rect x="772" y="18" width="2" height="69"/><rect x="776" y="10" width="2" height="85"/><rect x="780" y="22" width="2" height="61"/>
+          <rect x="784" y="6" width="2" height="93"/><rect x="788" y="18" width="2" height="69"/><rect x="792" y="12" width="2" height="81"/>
+          <rect x="796" y="24" width="2" height="57"/><rect x="800" y="8" width="2" height="89"/><rect x="804" y="20" width="2" height="65"/>
+          <rect x="808" y="14" width="2" height="77"/><rect x="812" y="26" width="2" height="53"/><rect x="816" y="10" width="2" height="85"/>
+          <rect x="820" y="22" width="2" height="61"/><rect x="824" y="16" width="2" height="73"/><rect x="828" y="28" width="2" height="49"/>
+          <rect x="832" y="12" width="2" height="81"/><rect x="836" y="24" width="2" height="57"/><rect x="840" y="18" width="2" height="69"/>
+          <rect x="844" y="30" width="2" height="45"/><rect x="848" y="14" width="2" height="77"/><rect x="852" y="26" width="2" height="53"/>
+          <rect x="856" y="20" width="2" height="65"/><rect x="860" y="32" width="2" height="41"/><rect x="864" y="16" width="2" height="73"/>
+          <rect x="868" y="28" width="2" height="49"/><rect x="872" y="22" width="2" height="61"/><rect x="876" y="34" width="2" height="37"/>
+          <rect x="880" y="18" width="2" height="69"/><rect x="884" y="30" width="2" height="45"/><rect x="888" y="24" width="2" height="57"/>
+          <rect x="892" y="36" width="2" height="33"/><rect x="896" y="20" width="2" height="65"/>
+        </g>
+        <!-- Breakdown low 900-1200 (dark mint) -->
+        <g fill="#2f6a52">
+          <rect x="900" y="38" width="2" height="29"/><rect x="904" y="42" width="2" height="21"/><rect x="908" y="36" width="2" height="33"/>
+          <rect x="912" y="44" width="2" height="17"/><rect x="916" y="40" width="2" height="25"/><rect x="920" y="46" width="2" height="13"/>
+          <rect x="924" y="38" width="2" height="29"/><rect x="928" y="42" width="2" height="21"/><rect x="932" y="48" width="2" height="9"/>
+          <rect x="936" y="40" width="2" height="25"/><rect x="940" y="44" width="2" height="17"/><rect x="944" y="50" width="2" height="5"/>
+          <rect x="948" y="46" width="2" height="13"/><rect x="952" y="42" width="2" height="21"/><rect x="956" y="48" width="2" height="9"/>
+          <rect x="960" y="44" width="2" height="17"/><rect x="964" y="50" width="2" height="5"/><rect x="968" y="46" width="2" height="13"/>
+          <rect x="972" y="48" width="2" height="9"/><rect x="976" y="44" width="2" height="17"/><rect x="980" y="50" width="2" height="5"/>
+          <rect x="984" y="46" width="2" height="13"/><rect x="988" y="42" width="2" height="21"/><rect x="992" y="48" width="2" height="9"/>
+          <rect x="996" y="44" width="2" height="17"/><rect x="1000" y="50" width="2" height="5"/><rect x="1004" y="46" width="2" height="13"/>
+          <rect x="1008" y="48" width="2" height="9"/><rect x="1012" y="44" width="2" height="17"/><rect x="1016" y="50" width="2" height="5"/>
+          <rect x="1020" y="46" width="2" height="13"/><rect x="1024" y="42" width="2" height="21"/><rect x="1028" y="44" width="2" height="17"/>
+          <rect x="1032" y="40" width="2" height="25"/><rect x="1036" y="46" width="2" height="13"/><rect x="1040" y="42" width="2" height="21"/>
+          <rect x="1044" y="48" width="2" height="9"/><rect x="1048" y="44" width="2" height="17"/><rect x="1052" y="50" width="2" height="5"/>
+          <rect x="1056" y="46" width="2" height="13"/><rect x="1060" y="40" width="2" height="25"/><rect x="1064" y="36" width="2" height="33"/>
+          <rect x="1068" y="44" width="2" height="17"/><rect x="1072" y="40" width="2" height="25"/><rect x="1076" y="46" width="2" height="13"/>
+          <rect x="1080" y="42" width="2" height="21"/><rect x="1084" y="38" width="2" height="29"/><rect x="1088" y="44" width="2" height="17"/>
+          <rect x="1092" y="40" width="2" height="25"/><rect x="1096" y="46" width="2" height="13"/><rect x="1100" y="42" width="2" height="21"/>
+          <rect x="1104" y="38" width="2" height="29"/><rect x="1108" y="44" width="2" height="17"/><rect x="1112" y="40" width="2" height="25"/>
+          <rect x="1116" y="42" width="2" height="21"/><rect x="1120" y="44" width="2" height="17"/><rect x="1124" y="40" width="2" height="25"/>
+          <rect x="1128" y="46" width="2" height="13"/><rect x="1132" y="42" width="2" height="21"/><rect x="1136" y="48" width="2" height="9"/>
+          <rect x="1140" y="44" width="2" height="17"/><rect x="1144" y="40" width="2" height="25"/><rect x="1148" y="46" width="2" height="13"/>
+          <rect x="1152" y="42" width="2" height="21"/><rect x="1156" y="48" width="2" height="9"/><rect x="1160" y="44" width="2" height="17"/>
+          <rect x="1164" y="40" width="2" height="25"/><rect x="1168" y="46" width="2" height="13"/><rect x="1172" y="42" width="2" height="21"/>
+          <rect x="1176" y="38" width="2" height="29"/><rect x="1180" y="44" width="2" height="17"/><rect x="1184" y="40" width="2" height="25"/>
+          <rect x="1188" y="46" width="2" height="13"/><rect x="1192" y="42" width="2" height="21"/><rect x="1196" y="48" width="2" height="9"/>
+        </g>
+
+        <!-- ============ DECK B WAVEFORM (bottom half y=105..205) ============ -->
+        <g fill="#5fdba7">
+          <rect x="0" y="125" width="2" height="65"/><rect x="4" y="132" width="2" height="51"/><rect x="8" y="120" width="2" height="75"/>
+          <rect x="12" y="128" width="2" height="59"/><rect x="16" y="118" width="2" height="79"/><rect x="20" y="130" width="2" height="55"/>
+          <rect x="24" y="122" width="2" height="71"/><rect x="28" y="126" width="2" height="63"/><rect x="32" y="116" width="2" height="83"/>
+          <rect x="36" y="128" width="2" height="59"/><rect x="40" y="120" width="2" height="75"/><rect x="44" y="124" width="2" height="67"/>
+          <rect x="48" y="118" width="2" height="79"/><rect x="52" y="126" width="2" height="63"/><rect x="56" y="120" width="2" height="75"/>
+          <rect x="60" y="114" width="2" height="87"/><rect x="64" y="112" width="2" height="91"/><rect x="68" y="124" width="2" height="67"/>
+          <rect x="72" y="118" width="2" height="79"/><rect x="76" y="128" width="2" height="59"/><rect x="80" y="116" width="2" height="83"/>
+          <rect x="84" y="122" width="2" height="71"/><rect x="88" y="112" width="2" height="91"/><rect x="92" y="120" width="2" height="75"/>
+          <rect x="96" y="110" width="2" height="95"/><rect x="100" y="118" width="2" height="79"/><rect x="104" y="114" width="2" height="87"/>
+          <rect x="108" y="122" width="2" height="71"/><rect x="112" y="116" width="2" height="83"/><rect x="116" y="112" width="2" height="91"/>
+          <rect x="120" y="108" width="2" height="99"/><rect x="124" y="116" width="2" height="83"/><rect x="128" y="105" width="2" height="100"/>
+          <rect x="132" y="114" width="2" height="87"/><rect x="136" y="110" width="2" height="95"/><rect x="140" y="118" width="2" height="79"/>
+          <rect x="144" y="112" width="2" height="91"/><rect x="148" y="108" width="2" height="99"/><rect x="152" y="116" width="2" height="83"/>
+          <rect x="156" y="110" width="2" height="95"/><rect x="160" y="106" width="2" height="100"/><rect x="164" y="114" width="2" height="87"/>
+          <rect x="168" y="108" width="2" height="99"/><rect x="172" y="112" width="2" height="91"/><rect x="176" y="106" width="2" height="100"/>
+          <rect x="180" y="114" width="2" height="87"/><rect x="184" y="110" width="2" height="95"/><rect x="188" y="116" width="2" height="83"/>
+          <rect x="192" y="108" width="2" height="99"/><rect x="196" y="112" width="2" height="91"/><rect x="200" y="106" width="2" height="100"/>
+          <rect x="204" y="110" width="2" height="95"/><rect x="208" y="108" width="2" height="99"/><rect x="212" y="114" width="2" height="87"/>
+          <rect x="216" y="110" width="2" height="95"/><rect x="220" y="106" width="2" height="100"/><rect x="224" y="112" width="2" height="91"/>
+          <rect x="228" y="108" width="2" height="99"/><rect x="232" y="114" width="2" height="87"/><rect x="236" y="110" width="2" height="95"/>
+          <rect x="240" y="106" width="2" height="100"/><rect x="244" y="112" width="2" height="91"/><rect x="248" y="108" width="2" height="99"/>
+          <rect x="252" y="114" width="2" height="87"/><rect x="256" y="105" width="2" height="101"/><rect x="260" y="112" width="2" height="91"/>
+          <rect x="264" y="108" width="2" height="99"/><rect x="268" y="110" width="2" height="95"/><rect x="272" y="106" width="2" height="100"/>
+          <rect x="276" y="112" width="2" height="91"/><rect x="280" y="108" width="2" height="99"/><rect x="284" y="114" width="2" height="87"/>
+          <rect x="288" y="106" width="2" height="100"/><rect x="292" y="110" width="2" height="95"/><rect x="296" y="108" width="2" height="99"/>
+          <rect x="300" y="112" width="2" height="91"/><rect x="304" y="106" width="2" height="100"/><rect x="308" y="110" width="2" height="95"/>
+          <rect x="312" y="108" width="2" height="99"/><rect x="316" y="112" width="2" height="91"/><rect x="320" y="106" width="2" height="100"/>
+          <rect x="324" y="110" width="2" height="95"/><rect x="328" y="108" width="2" height="99"/><rect x="332" y="112" width="2" height="91"/>
+          <rect x="336" y="106" width="2" height="100"/><rect x="340" y="110" width="2" height="95"/><rect x="344" y="108" width="2" height="99"/>
+          <rect x="348" y="112" width="2" height="91"/><rect x="352" y="106" width="2" height="100"/><rect x="356" y="110" width="2" height="95"/>
+          <rect x="360" y="108" width="2" height="99"/><rect x="364" y="112" width="2" height="91"/><rect x="368" y="106" width="2" height="100"/>
+          <rect x="372" y="110" width="2" height="95"/><rect x="376" y="108" width="2" height="99"/><rect x="380" y="105" width="2" height="101"/>
+          <rect x="384" y="105" width="2" height="101"/><rect x="388" y="108" width="2" height="99"/><rect x="392" y="105" width="2" height="101"/>
+          <rect x="396" y="110" width="2" height="95"/><rect x="400" y="105" width="2" height="101"/><rect x="404" y="108" width="2" height="99"/>
+          <rect x="408" y="105" width="2" height="101"/><rect x="412" y="112" width="2" height="91"/><rect x="416" y="105" width="2" height="101"/>
+          <rect x="420" y="108" width="2" height="99"/><rect x="424" y="105" width="2" height="101"/><rect x="428" y="110" width="2" height="95"/>
+          <rect x="432" y="105" width="2" height="101"/><rect x="436" y="108" width="2" height="99"/><rect x="440" y="105" width="2" height="101"/>
+          <rect x="444" y="112" width="2" height="91"/><rect x="448" y="105" width="2" height="101"/><rect x="452" y="108" width="2" height="99"/>
+          <rect x="456" y="105" width="2" height="101"/><rect x="460" y="110" width="2" height="95"/><rect x="464" y="105" width="2" height="101"/>
+          <rect x="468" y="108" width="2" height="99"/><rect x="472" y="105" width="2" height="101"/><rect x="476" y="114" width="2" height="87"/>
+          <rect x="480" y="105" width="2" height="101"/><rect x="484" y="110" width="2" height="95"/><rect x="488" y="105" width="2" height="101"/>
+          <rect x="492" y="108" width="2" height="99"/><rect x="496" y="105" width="2" height="101"/><rect x="500" y="112" width="2" height="91"/>
+          <rect x="504" y="105" width="2" height="101"/><rect x="508" y="108" width="2" height="99"/><rect x="512" y="105" width="2" height="101"/>
+          <rect x="516" y="110" width="2" height="95"/><rect x="520" y="105" width="2" height="101"/><rect x="524" y="108" width="2" height="99"/>
+          <rect x="528" y="105" width="2" height="101"/><rect x="532" y="112" width="2" height="91"/><rect x="536" y="105" width="2" height="101"/>
+          <rect x="540" y="108" width="2" height="99"/><rect x="544" y="105" width="2" height="101"/><rect x="548" y="110" width="2" height="95"/>
+          <rect x="552" y="105" width="2" height="101"/><rect x="556" y="108" width="2" height="99"/><rect x="560" y="105" width="2" height="101"/>
+          <rect x="564" y="114" width="2" height="87"/><rect x="568" y="105" width="2" height="101"/><rect x="572" y="110" width="2" height="95"/>
+          <rect x="576" y="105" width="2" height="101"/><rect x="580" y="108" width="2" height="99"/><rect x="584" y="105" width="2" height="101"/>
+          <rect x="588" y="112" width="2" height="91"/><rect x="592" y="105" width="2" height="101"/><rect x="596" y="108" width="2" height="99"/>
+          <rect x="600" y="105" width="2" height="101"/><rect x="604" y="110" width="2" height="95"/><rect x="608" y="105" width="2" height="101"/>
+          <rect x="612" y="108" width="2" height="99"/><rect x="616" y="105" width="2" height="101"/><rect x="620" y="112" width="2" height="91"/>
+          <rect x="624" y="105" width="2" height="101"/><rect x="628" y="108" width="2" height="99"/><rect x="632" y="105" width="2" height="101"/>
+          <rect x="636" y="116" width="2" height="83"/><rect x="640" y="105" width="2" height="101"/><rect x="644" y="110" width="2" height="95"/>
+          <rect x="648" y="105" width="2" height="101"/><rect x="652" y="108" width="2" height="99"/><rect x="656" y="105" width="2" height="101"/>
+          <rect x="660" y="112" width="2" height="91"/><rect x="664" y="105" width="2" height="101"/><rect x="668" y="108" width="2" height="99"/>
+          <rect x="672" y="105" width="2" height="101"/><rect x="676" y="110" width="2" height="95"/><rect x="680" y="105" width="2" height="101"/>
+          <rect x="684" y="108" width="2" height="99"/><rect x="688" y="105" width="2" height="101"/><rect x="692" y="114" width="2" height="87"/>
+          <rect x="696" y="105" width="2" height="101"/><rect x="700" y="110" width="2" height="95"/><rect x="704" y="105" width="2" height="101"/>
+          <rect x="708" y="108" width="2" height="99"/><rect x="712" y="105" width="2" height="101"/><rect x="716" y="112" width="2" height="91"/>
+          <rect x="720" y="105" width="2" height="101"/><rect x="724" y="108" width="2" height="99"/><rect x="728" y="105" width="2" height="101"/>
+          <rect x="732" y="110" width="2" height="95"/><rect x="736" y="105" width="2" height="101"/><rect x="740" y="108" width="2" height="99"/>
+          <rect x="744" y="105" width="2" height="101"/><rect x="748" y="112" width="2" height="91"/><rect x="752" y="105" width="2" height="101"/>
+          <rect x="756" y="108" width="2" height="99"/>
+        </g>
+        <g fill="#3ea078">
+          <rect x="760" y="118" width="2" height="79"/><rect x="764" y="124" width="2" height="67"/><rect x="768" y="114" width="2" height="87"/>
+          <rect x="772" y="122" width="2" height="71"/><rect x="776" y="118" width="2" height="79"/><rect x="780" y="126" width="2" height="63"/>
+          <rect x="784" y="116" width="2" height="83"/><rect x="788" y="122" width="2" height="71"/><rect x="792" y="118" width="2" height="79"/>
+          <rect x="796" y="128" width="2" height="59"/><rect x="800" y="116" width="2" height="83"/><rect x="804" y="124" width="2" height="67"/>
+          <rect x="808" y="120" width="2" height="75"/><rect x="812" y="126" width="2" height="63"/><rect x="816" y="118" width="2" height="79"/>
+          <rect x="820" y="124" width="2" height="67"/><rect x="824" y="120" width="2" height="75"/><rect x="828" y="128" width="2" height="59"/>
+          <rect x="832" y="120" width="2" height="75"/><rect x="836" y="126" width="2" height="63"/><rect x="840" y="122" width="2" height="71"/>
+          <rect x="844" y="130" width="2" height="55"/><rect x="848" y="120" width="2" height="75"/><rect x="852" y="126" width="2" height="63"/>
+          <rect x="856" y="122" width="2" height="71"/><rect x="860" y="130" width="2" height="55"/><rect x="864" y="122" width="2" height="71"/>
+          <rect x="868" y="128" width="2" height="59"/><rect x="872" y="124" width="2" height="67"/><rect x="876" y="132" width="2" height="51"/>
+          <rect x="880" y="122" width="2" height="71"/><rect x="884" y="128" width="2" height="59"/><rect x="888" y="124" width="2" height="67"/>
+          <rect x="892" y="132" width="2" height="51"/><rect x="896" y="124" width="2" height="67"/><rect x="900" y="130" width="2" height="55"/>
+          <rect x="904" y="126" width="2" height="63"/><rect x="908" y="134" width="2" height="47"/><rect x="912" y="124" width="2" height="67"/>
+          <rect x="916" y="130" width="2" height="55"/><rect x="920" y="126" width="2" height="63"/><rect x="924" y="134" width="2" height="47"/>
+          <rect x="928" y="126" width="2" height="63"/><rect x="932" y="132" width="2" height="51"/><rect x="936" y="128" width="2" height="59"/>
+          <rect x="940" y="136" width="2" height="43"/><rect x="944" y="126" width="2" height="63"/><rect x="948" y="132" width="2" height="51"/>
+          <rect x="952" y="128" width="2" height="59"/><rect x="956" y="136" width="2" height="43"/><rect x="960" y="128" width="2" height="59"/>
+          <rect x="964" y="134" width="2" height="47"/><rect x="968" y="130" width="2" height="55"/><rect x="972" y="138" width="2" height="39"/>
+          <rect x="976" y="128" width="2" height="59"/><rect x="980" y="134" width="2" height="47"/><rect x="984" y="130" width="2" height="55"/>
+          <rect x="988" y="138" width="2" height="39"/><rect x="992" y="130" width="2" height="55"/><rect x="996" y="136" width="2" height="43"/>
+          <rect x="1000" y="132" width="2" height="51"/><rect x="1004" y="140" width="2" height="35"/><rect x="1008" y="130" width="2" height="55"/>
+          <rect x="1012" y="136" width="2" height="43"/><rect x="1016" y="132" width="2" height="51"/><rect x="1020" y="140" width="2" height="35"/>
+          <rect x="1024" y="128" width="2" height="59"/><rect x="1028" y="134" width="2" height="47"/><rect x="1032" y="130" width="2" height="55"/>
+          <rect x="1036" y="138" width="2" height="39"/><rect x="1040" y="132" width="2" height="51"/><rect x="1044" y="138" width="2" height="39"/>
+          <rect x="1048" y="134" width="2" height="47"/><rect x="1052" y="142" width="2" height="31"/><rect x="1056" y="132" width="2" height="51"/>
+          <rect x="1060" y="126" width="2" height="63"/><rect x="1064" y="118" width="2" height="79"/><rect x="1068" y="134" width="2" height="47"/>
+          <rect x="1072" y="130" width="2" height="55"/><rect x="1076" y="138" width="2" height="39"/><rect x="1080" y="132" width="2" height="51"/>
+          <rect x="1084" y="128" width="2" height="59"/><rect x="1088" y="134" width="2" height="47"/><rect x="1092" y="130" width="2" height="55"/>
+          <rect x="1096" y="138" width="2" height="39"/><rect x="1100" y="132" width="2" height="51"/><rect x="1104" y="128" width="2" height="59"/>
+          <rect x="1108" y="134" width="2" height="47"/><rect x="1112" y="130" width="2" height="55"/><rect x="1116" y="132" width="2" height="51"/>
+          <rect x="1120" y="134" width="2" height="47"/><rect x="1124" y="130" width="2" height="55"/><rect x="1128" y="136" width="2" height="43"/>
+          <rect x="1132" y="132" width="2" height="51"/><rect x="1136" y="138" width="2" height="39"/><rect x="1140" y="134" width="2" height="47"/>
+          <rect x="1144" y="130" width="2" height="55"/><rect x="1148" y="136" width="2" height="43"/><rect x="1152" y="132" width="2" height="51"/>
+          <rect x="1156" y="138" width="2" height="39"/><rect x="1160" y="134" width="2" height="47"/><rect x="1164" y="130" width="2" height="55"/>
+          <rect x="1168" y="136" width="2" height="43"/><rect x="1172" y="132" width="2" height="51"/><rect x="1176" y="128" width="2" height="59"/>
+          <rect x="1180" y="134" width="2" height="47"/><rect x="1184" y="130" width="2" height="55"/><rect x="1188" y="136" width="2" height="43"/>
+          <rect x="1192" y="132" width="2" height="51"/><rect x="1196" y="138" width="2" height="39"/>
+        </g>
+
+        <!-- Deck labels -->
+        <text x="8" y="20" font-family="IBM Plex Mono, monospace" font-size="9" fill="#888" letter-spacing="2">DECK A</text>
+        <text x="8" y="124" font-family="IBM Plex Mono, monospace" font-size="9" fill="#888" letter-spacing="2">DECK B</text>
+
+        <!-- PLAYHEAD -->
+        <line x1="540" y1="0" x2="540" y2="210" stroke="#5fdba7" stroke-width="2"/>
+        <polygon points="533,0 547,0 540,8" fill="#5fdba7"/>
+
+        <!-- MINIMAP 20px thin -->
+        <rect x="0" y="210" width="1200" height="16" fill="#181818" stroke="#2f2f2f" stroke-width="1"/>
+        <g fill="#3ea078">
+          <rect x="4" y="216" width="2" height="4"/><rect x="10" y="215" width="2" height="6"/><rect x="16" y="214" width="2" height="8"/>
+          <rect x="22" y="213" width="2" height="10"/><rect x="28" y="212" width="2" height="12"/><rect x="34" y="213" width="2" height="10"/>
+          <rect x="40" y="214" width="2" height="8"/><rect x="46" y="216" width="2" height="4"/><rect x="52" y="215" width="2" height="6"/>
+          <rect x="58" y="214" width="2" height="8"/><rect x="64" y="213" width="2" height="10"/><rect x="70" y="212" width="2" height="12"/>
+          <rect x="76" y="211" width="2" height="14"/><rect x="82" y="212" width="2" height="12"/><rect x="88" y="211" width="2" height="14"/>
+          <rect x="94" y="212" width="2" height="12"/><rect x="100" y="211" width="2" height="14"/><rect x="106" y="212" width="2" height="12"/>
+          <rect x="112" y="211" width="2" height="14"/><rect x="118" y="212" width="2" height="12"/><rect x="124" y="211" width="2" height="14"/>
+          <rect x="130" y="210" width="2" height="15"/><rect x="136" y="211" width="2" height="14"/><rect x="142" y="210" width="2" height="15"/>
+          <rect x="148" y="211" width="2" height="14"/><rect x="154" y="210" width="2" height="15"/><rect x="160" y="211" width="2" height="14"/>
+          <rect x="166" y="210" width="2" height="15"/><rect x="172" y="211" width="2" height="14"/><rect x="178" y="210" width="2" height="15"/>
+          <rect x="184" y="211" width="2" height="14"/><rect x="190" y="210" width="2" height="15"/><rect x="196" y="211" width="2" height="14"/>
+          <rect x="202" y="210" width="2" height="15"/><rect x="208" y="211" width="2" height="14"/><rect x="214" y="210" width="2" height="15"/>
+          <rect x="220" y="211" width="2" height="14"/><rect x="226" y="210" width="2" height="15"/><rect x="232" y="211" width="2" height="14"/>
+          <rect x="238" y="210" width="2" height="15"/><rect x="244" y="211" width="2" height="14"/><rect x="250" y="210" width="2" height="15"/>
+          <rect x="256" y="211" width="2" height="14"/><rect x="262" y="210" width="2" height="15"/><rect x="268" y="211" width="2" height="14"/>
+          <rect x="274" y="210" width="2" height="15"/>
+        </g>
+        <g fill="#5fdba7">
+          <rect x="280" y="210" width="2" height="15"/><rect x="286" y="210" width="2" height="15"/><rect x="292" y="210" width="2" height="15"/>
+          <rect x="298" y="210" width="2" height="15"/><rect x="304" y="210" width="2" height="15"/><rect x="310" y="210" width="2" height="15"/>
+          <rect x="316" y="210" width="2" height="15"/><rect x="322" y="210" width="2" height="15"/><rect x="328" y="210" width="2" height="15"/>
+          <rect x="334" y="210" width="2" height="15"/><rect x="340" y="210" width="2" height="15"/><rect x="346" y="210" width="2" height="15"/>
+          <rect x="352" y="210" width="2" height="15"/><rect x="358" y="210" width="2" height="15"/><rect x="364" y="210" width="2" height="15"/>
+          <rect x="370" y="210" width="2" height="15"/><rect x="376" y="210" width="2" height="15"/><rect x="382" y="210" width="2" height="15"/>
+          <rect x="388" y="210" width="2" height="15"/><rect x="394" y="210" width="2" height="15"/><rect x="400" y="210" width="2" height="15"/>
+          <rect x="406" y="210" width="2" height="15"/><rect x="412" y="210" width="2" height="15"/><rect x="418" y="210" width="2" height="15"/>
+          <rect x="424" y="210" width="2" height="15"/><rect x="430" y="210" width="2" height="15"/><rect x="436" y="210" width="2" height="15"/>
+          <rect x="442" y="210" width="2" height="15"/><rect x="448" y="210" width="2" height="15"/><rect x="454" y="210" width="2" height="15"/>
+          <rect x="460" y="210" width="2" height="15"/><rect x="466" y="210" width="2" height="15"/><rect x="472" y="210" width="2" height="15"/>
+          <rect x="478" y="210" width="2" height="15"/><rect x="484" y="210" width="2" height="15"/><rect x="490" y="210" width="2" height="15"/>
+          <rect x="496" y="210" width="2" height="15"/><rect x="502" y="210" width="2" height="15"/><rect x="508" y="210" width="2" height="15"/>
+          <rect x="514" y="210" width="2" height="15"/>
+        </g>
+        <g fill="#3ea078">
+          <rect x="520" y="212" width="2" height="13"/><rect x="526" y="213" width="2" height="12"/><rect x="532" y="211" width="2" height="14"/>
+          <rect x="538" y="212" width="2" height="13"/><rect x="544" y="213" width="2" height="12"/><rect x="550" y="214" width="2" height="11"/>
+          <rect x="556" y="213" width="2" height="12"/><rect x="562" y="212" width="2" height="13"/><rect x="568" y="213" width="2" height="12"/>
+          <rect x="574" y="214" width="2" height="11"/><rect x="580" y="215" width="2" height="10"/><rect x="586" y="214" width="2" height="11"/>
+          <rect x="592" y="215" width="2" height="10"/><rect x="598" y="216" width="2" height="9"/><rect x="604" y="215" width="2" height="10"/>
+          <rect x="610" y="214" width="2" height="11"/><rect x="616" y="215" width="2" height="10"/><rect x="622" y="216" width="2" height="9"/>
+          <rect x="628" y="215" width="2" height="10"/><rect x="634" y="216" width="2" height="9"/><rect x="640" y="217" width="2" height="8"/>
+          <rect x="646" y="216" width="2" height="9"/><rect x="652" y="215" width="2" height="10"/><rect x="658" y="216" width="2" height="9"/>
+          <rect x="664" y="214" width="2" height="11"/><rect x="670" y="213" width="2" height="12"/><rect x="676" y="212" width="2" height="13"/>
+          <rect x="682" y="211" width="2" height="14"/><rect x="688" y="210" width="2" height="15"/><rect x="694" y="211" width="2" height="14"/>
+          <rect x="700" y="212" width="2" height="13"/><rect x="706" y="211" width="2" height="14"/><rect x="712" y="210" width="2" height="15"/>
+        </g>
+        <!-- minimap playhead -->
+        <rect x="540" y="210" width="2" height="16" fill="#5fdba7"/>
+      </svg>
+
+      <!-- Time readouts -->
+      <div class="time-left mono">02:14</div>
+      <div class="time-right mono">-01:46</div>
+    </div>
+
+    <!-- =========== SIGNAL CARDS 720x240 (3x2) =========== -->
+    <div class="cards">
+
+      <!-- CARD 1: BASS -->
+      <div class="card">
+        <div class="handle"><span class="name">&#8801; BASS (20-250Hz)</span><span class="arr">&#9650;&#9660;</span></div>
+        <div class="val mono">0.88</div>
+        <div class="lbl">BAND ENERGY</div>
+        <svg class="spark" viewBox="0 0 200 30" width="100%" height="30" preserveAspectRatio="none">
+          <polyline fill="none" stroke="#5fdba7" stroke-width="1.2"
+            points="0,22 10,20 20,18 30,15 40,12 50,10 60,8 70,6 80,5 90,4 100,3 110,5 120,4 130,6 140,5 150,4 160,3 170,5 180,4 190,3 200,4"/>
+          <line x1="0" y1="15" x2="200" y2="15" stroke="#2f2f2f" stroke-width="0.5" stroke-dasharray="1 2"/>
+        </svg>
+        <div class="stats"><span>MIN 0.12</span><span>MAX 0.97</span><span>AVG 0.64</span></div>
+      </div>
+
+      <!-- CARD 2: KICK -->
+      <div class="card">
+        <div class="handle"><span class="name">&#8801; KICK (40-80Hz)</span><span class="arr">&#9650;&#9660;</span></div>
+        <div class="val mono">0.92</div>
+        <div class="lbl">TRANSIENT</div>
+        <svg class="spark" viewBox="0 0 200 30" width="100%" height="30" preserveAspectRatio="none">
+          <g stroke="#5fdba7" stroke-width="1">
+            <line x1="2" y1="24" x2="2" y2="10"/><line x1="14" y1="26" x2="14" y2="4"/><line x1="27" y1="25" x2="27" y2="8"/>
+            <line x1="40" y1="26" x2="40" y2="3"/><line x1="53" y1="24" x2="53" y2="9"/><line x1="66" y1="26" x2="66" y2="2"/>
+            <line x1="79" y1="25" x2="79" y2="7"/><line x1="92" y1="26" x2="92" y2="4"/><line x1="105" y1="25" x2="105" y2="8"/>
+            <line x1="118" y1="26" x2="118" y2="2"/><line x1="131" y1="24" x2="131" y2="9"/><line x1="144" y1="26" x2="144" y2="3"/>
+            <line x1="157" y1="25" x2="157" y2="7"/><line x1="170" y1="26" x2="170" y2="4"/><line x1="183" y1="25" x2="183" y2="8"/>
+            <line x1="196" y1="26" x2="196" y2="2"/>
+          </g>
+        </svg>
+        <div class="stats"><span>MIN 0.00</span><span>MAX 1.00</span><span>AVG 0.58</span></div>
+      </div>
+
+      <!-- CARD 3: SNARE -->
+      <div class="card">
+        <div class="handle"><span class="name">&#8801; SNARE (150-250Hz)</span><span class="arr">&#9650;&#9660;</span></div>
+        <div class="val mono">0.74</div>
+        <div class="lbl">TRANSIENT</div>
+        <svg class="spark" viewBox="0 0 200 30" width="100%" height="30" preserveAspectRatio="none">
+          <g stroke="#5fdba7" stroke-width="1">
+            <line x1="25" y1="24" x2="25" y2="8"/><line x1="30" y1="23" x2="30" y2="12"/>
+            <line x1="75" y1="24" x2="75" y2="6"/><line x1="80" y1="23" x2="80" y2="10"/>
+            <line x1="125" y1="24" x2="125" y2="7"/><line x1="130" y1="23" x2="130" y2="11"/>
+            <line x1="175" y1="24" x2="175" y2="5"/><line x1="180" y1="23" x2="180" y2="9"/>
+          </g>
+          <line x1="0" y1="27" x2="200" y2="27" stroke="#2f2f2f" stroke-width="0.5"/>
+        </svg>
+        <div class="stats"><span>MIN 0.08</span><span>MAX 0.89</span><span>AVG 0.41</span></div>
+      </div>
+
+      <!-- CARD 4: ONSET DENSITY -->
+      <div class="card">
+        <div class="handle"><span class="name">&#8801; ONSET DENSITY</span><span class="arr">&#9650;&#9660;</span></div>
+        <div class="val mono">4.2/s</div>
+        <div class="lbl">TRANSIENTS / SEC</div>
+        <svg class="spark" viewBox="0 0 200 30" width="100%" height="30" preserveAspectRatio="none">
+          <polyline fill="none" stroke="#5fdba7" stroke-width="1.2"
+            points="0,24 20,22 40,20 60,17 80,13 100,9 120,7 140,5 160,6 180,4 200,5"/>
+        </svg>
+        <div class="stats"><span>MIN 0.2</span><span>MAX 6.8</span><span>AVG 2.9</span></div>
+      </div>
+
+      <!-- CARD 5: SIDECHAIN PUMP -->
+      <div class="card">
+        <div class="handle"><span class="name">&#8801; SIDECHAIN PUMP</span><span class="arr">&#9650;&#9660;</span></div>
+        <div class="val mono">0.67</div>
+        <div class="lbl">PUMP INDEX</div>
+        <svg class="spark" viewBox="0 0 200 30" width="100%" height="30" preserveAspectRatio="none">
+          <polyline fill="none" stroke="#5fdba7" stroke-width="1.2"
+            points="0,8 5,12 10,18 15,22 20,24 25,20 30,14 35,10 40,6 45,10 50,16 55,22 60,24 65,20 70,14 75,9 80,5 85,10 90,17 95,22 100,24 105,20 110,14 115,8 120,5 125,10 130,17 135,22 140,24 145,20 150,13 155,7 160,5 165,10 170,17 175,22 180,24 185,19 190,13 195,8 200,5"/>
+        </svg>
+        <div class="stats"><span>MIN 0.15</span><span>MAX 0.82</span><span>AVG 0.52</span></div>
+      </div>
+
+      <!-- CARD 6: CENTROID -->
+      <div class="card">
+        <div class="handle"><span class="name">&#8801; SPECTRAL CENTROID</span><span class="arr">&#9650;&#9660;</span></div>
+        <div class="val mono">2.8k</div>
+        <div class="lbl">Hz &middot; BRIGHTNESS</div>
+        <svg class="spark" viewBox="0 0 200 30" width="100%" height="30" preserveAspectRatio="none">
+          <polyline fill="none" stroke="#5fdba7" stroke-width="1.2"
+            points="0,20 15,18 30,16 45,14 60,15 75,12 90,10 105,13 120,8 135,11 150,9 165,7 180,10 195,8 200,9"/>
+        </svg>
+        <div class="stats"><span>MIN 0.9k</span><span>MAX 5.1k</span><span>AVG 2.4k</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =================== MIDDLE: GRID + INSPECTOR =================== -->
+  <div class="middle">
+
+    <!-- CLIP GRID -->
+    <div class="clipgrid">
+      <div class="deck-head">
+        <div class="lbl">DECK A &middot; <b>WAREHOUSE</b></div>
+        <div class="colnums">
+          <span class="colnum">C.01</span><span class="colnum">C.02</span><span class="colnum">C.03</span><span class="colnum">C.04</span><span class="colnum">C.05</span><span class="colnum">C.06</span>
+        </div>
+      </div>
+
+      <!-- Layer 4 (top) -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-name">L4 FX</div>
+          <div class="ls-ctrl"><div class="ls-btn">S</div><div class="ls-btn">M</div><div class="ls-btn on">B</div></div>
+          <div class="ls-op">OP 74%</div>
+          <div class="ls-bar f80"></div>
+        </div>
+        <div class="cells">
+          <div class="cell loaded"><div class="nm">Glitch</div><div class="sub">FX</div></div>
+          <div class="cell empty"></div>
+          <div class="cell loaded"><div class="nm">Chroma</div><div class="sub">FX</div></div>
+          <div class="cell empty"></div>
+          <div class="cell loaded"><div class="nm">RGB Split</div><div class="sub">FX</div></div>
+          <div class="cell empty"></div>
+        </div>
+      </div>
+
+      <!-- Layer 3 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-name">L3 TRANS</div>
+          <div class="ls-ctrl"><div class="ls-btn">S</div><div class="ls-btn">M</div><div class="ls-btn">B</div></div>
+          <div class="ls-op">OP 58%</div>
+          <div class="ls-bar f60"></div>
+        </div>
+        <div class="cells">
+          <div class="cell loaded"><div class="nm">Mesh.01</div><div class="sub">4.2s</div></div>
+          <div class="cell queued"><div class="nm">Mesh.02</div><div class="sub">QUEUED</div></div>
+          <div class="cell empty"></div>
+          <div class="cell loaded"><div class="nm">Mesh.04</div><div class="sub">4.2s</div></div>
+          <div class="cell empty"></div>
+          <div class="cell loaded"><div class="nm">Mesh.06</div><div class="sub">4.2s</div></div>
+        </div>
+      </div>
+
+      <!-- Layer 2 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-name m">L2 VISUAL</div>
+          <div class="ls-ctrl"><div class="ls-btn">S</div><div class="ls-btn">M</div><div class="ls-btn on">B</div></div>
+          <div class="ls-op">OP 100%</div>
+          <div class="ls-bar f100"></div>
+        </div>
+        <div class="cells">
+          <div class="cell loaded selected"><div class="nm">CityNight</div><div class="sub">MP4 &middot; 12s</div></div>
+          <div class="cell loaded"><div class="nm">Subway</div><div class="sub">MP4 &middot; 8s</div></div>
+          <div class="cell playing"><div class="nm">Warehouse</div><div class="sub">&#9654; 0:02:14</div></div>
+          <div class="cell loaded"><div class="nm">Tunnel</div><div class="sub">MP4 &middot; 6s</div></div>
+          <div class="cell loaded"><div class="nm">RainStreet</div><div class="sub">MP4 &middot; 10s</div></div>
+          <div class="cell empty"></div>
+        </div>
+      </div>
+
+      <!-- Layer 1 (bottom) -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-name">L1 SOURCE</div>
+          <div class="ls-ctrl"><div class="ls-btn">S</div><div class="ls-btn">M</div><div class="ls-btn on">B</div></div>
+          <div class="ls-op">OP 40%</div>
+          <div class="ls-bar f40"></div>
+        </div>
+        <div class="cells">
+          <div class="cell loaded"><div class="nm">Mandelbulb</div><div class="sub">SRC</div></div>
+          <div class="cell loaded"><div class="nm">Julia3D</div><div class="sub">SRC</div></div>
+          <div class="cell loaded"><div class="nm">Torus.01</div><div class="sub">SRC</div></div>
+          <div class="cell loaded"><div class="nm">Perlin</div><div class="sub">SRC</div></div>
+          <div class="cell loaded"><div class="nm">Cymatics</div><div class="sub">SRC</div></div>
+          <div class="cell loaded"><div class="nm">Spectrum</div><div class="sub">SRC</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSPECTOR -->
+    <div class="inspector">
+      <div class="insp-tabs">
+        <div class="insp-tab">COMPOSITION</div>
+        <div class="insp-tab">LAYER</div>
+        <div class="insp-tab on">CLIP</div>
+      </div>
+
+      <div class="insp-body">
+
+        <!-- TRANSPORT -->
+        <div class="sec">
+          <div class="sec-head"><span class="tri">&#9660;</span>TRANSPORT<span class="p">P.</span></div>
+          <div class="row">
+            <span class="lbl">Speed</span>
+            <span class="val">1.00&times;</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+          </div>
+          <div class="row">
+            <span class="lbl">In Point</span>
+            <span class="val">0.00</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:0%"></div><div class="ind" style="left:0%"></div></div>
+          </div>
+          <div class="row">
+            <span class="lbl">Out Point</span>
+            <span class="val">1.00</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="ind" style="left:100%"></div></div>
+          </div>
+          <div class="row">
+            <span class="lbl">Mode</span>
+            <span class="val" style="width:auto;flex:1;text-align:left;color:#5fdba7">BPM SYNC</span>
+          </div>
+          <div class="row">
+            <span class="lbl">Beat Div</span>
+            <span class="val">4.00</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:40%"></div><div class="ind" style="left:40%"></div></div>
+          </div>
+        </div>
+
+        <!-- VIDEO -->
+        <div class="sec">
+          <div class="sec-head routed"><span class="tri">&#9660;</span>VIDEO<span class="p">P.</span></div>
+          <div class="row">
+            <span class="lbl">Opacity</span>
+            <span class="val">100%</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="ind" style="left:100%"></div></div>
+            <span class="pbtn on">P.</span>
+          </div>
+          <div class="row">
+            <span class="lbl">Width</span>
+            <span class="val">1.00</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+          </div>
+          <div class="row">
+            <span class="lbl">Height</span>
+            <span class="val">1.00</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+          </div>
+          <div class="row">
+            <span class="lbl">Blend Mode</span>
+            <span class="val" style="width:auto;flex:1;text-align:left">Screen</span>
+          </div>
+        </div>
+
+        <!-- TRANSFORM -->
+        <div class="sec">
+          <div class="sec-head"><span class="tri">&#9660;</span>TRANSFORM<span class="p">P.</span></div>
+          <div class="row">
+            <span class="lbl">Position X</span>
+            <span class="val">0.00</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+          </div>
+          <div class="row">
+            <span class="lbl">Position Y</span>
+            <span class="val">0.00</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+          </div>
+          <div class="row">
+            <span class="lbl">Scale</span>
+            <span class="val">1.00</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+          </div>
+          <div class="row">
+            <span class="lbl">Rotation</span>
+            <span class="val">0.00&deg;</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="ind" style="left:50%"></div></div>
+          </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div class="sec">
+          <div class="sec-head routed"><span class="tri">&#9660;</span>DASHBOARD<span class="p">P.</span></div>
+          <div class="row">
+            <span class="lbl">Link 1</span>
+            <span class="val">0.73</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:73%"></div><div class="ind" style="left:73%"></div></div>
+            <span class="pbtn on">P.</span>
+          </div>
+          <div class="row">
+            <span class="lbl">Link 2</span>
+            <span class="val">0.45</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:45%"></div><div class="ind" style="left:45%"></div></div>
+            <span class="pbtn">P.</span>
+          </div>
+          <div class="row">
+            <span class="lbl">Link 3</span>
+            <span class="val">0.88</span>
+            <span class="mm">&minus;</span><span class="mm">+</span>
+            <div class="slider"><div class="fill" style="width:88%"></div><div class="ind" style="left:88%"></div></div>
+            <span class="pbtn on">P.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== BOTTOM STRIP 100px =================== -->
+  <div class="bottom">
+    <!-- MASTER -->
+    <div class="bcol">
+      <div class="t">MASTER</div>
+      <div class="master-slider"></div>
+      <div class="master-val">-3.2 dB</div>
+    </div>
+    <div class="sep"></div>
+
+    <!-- CROSSFADER -->
+    <div class="bcol">
+      <div class="t">CROSSFADER &middot; DECK A / DECK B</div>
+      <div class="xfader">
+        <div class="xknob"></div>
+        <div class="lbls"><span>A</span><span>CENTER</span><span>B</span></div>
+      </div>
+      <div style="height:4px"></div>
+      <div class="t mono" style="color:#5fdba7">0.45 &rarr; A</div>
+    </div>
+    <div class="sep"></div>
+
+    <!-- SCENES -->
+    <div class="bcol">
+      <div class="t">SCENES</div>
+      <div class="scenes">
+        <div class="scene">01</div>
+        <div class="scene on">02</div>
+        <div class="scene">03</div>
+        <div class="scene">04</div>
+        <div class="scene">05</div>
+        <div class="scene">06</div>
+        <div class="scene">07</div>
+        <div class="scene">08</div>
+      </div>
+    </div>
+    <div class="sep"></div>
+
+    <!-- MACROS -->
+    <div class="bcol">
+      <div class="t">MACROS</div>
+      <div class="macros">
+        <div class="knob k1"><div class="dial"></div><div class="nm">M1 INTENS</div><div class="vv">0.32</div></div>
+        <div class="knob k2"><div class="dial"></div><div class="nm">M2 CHAOS</div><div class="vv">0.58</div></div>
+        <div class="knob k3"><div class="dial"></div><div class="nm">M3 BRIGHT</div><div class="vv">0.75</div></div>
+        <div class="knob k4"><div class="dial"></div><div class="nm">M4 HUE</div><div class="vv">0.42</div></div>
+      </div>
+    </div>
+
+    <!-- DJ BUTTONS -->
+    <div class="djbtns">
+      <div class="djbtn">SYNC</div>
+      <div class="djbtn cue">CUE</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="grain"></div>
+</body>
+</html>

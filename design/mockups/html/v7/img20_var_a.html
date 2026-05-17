@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 20 Var A (Faithful — Cyberpunk Teal)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background: linear-gradient(180deg, #0c1018 0%, #0a0e14 50%, #080c10 100%); color: #b0d0d8; font-size: 11px; }
+
+/* Glow effects */
+.glow { text-shadow: 0 0 6px rgba(0,200,220,0.3); }
+.border-glow { box-shadow: 0 0 8px rgba(0,200,220,0.15); }
+
+/* TOP BAR */
+.top-bar { height: 38px; background: linear-gradient(180deg, #141a22, #0e1218); display: flex; align-items: center; padding: 0 14px; border-bottom: 1px solid #1a3038; gap: 10px; }
+.star { font-size: 16px; color: #00c8dc; margin-right: 4px; }
+.logo { font-size: 15px; font-weight: 700; color: #e0f0f4; letter-spacing: 1px; }
+.bpm-box { font-size: 18px; font-weight: 700; color: #00e5ff; font-family: monospace; border: 1px solid #1a4048; padding: 2px 12px; background: #0a1418; border-radius: 2px; }
+.btn { background: #0e1a22; border: 1px solid #1a3038; color: #80b0b8; padding: 3px 10px; font-size: 10px; cursor: pointer; border-radius: 2px; }
+.btn:hover { background: #1a2a32; border-color: #00c8dc; color: #00e5ff; }
+.btn.active { background: #00c8dc; color: #0a0e14; border-color: #00c8dc; }
+.sp { flex: 1; }
+.beat-dots { display: flex; gap: 4px; }
+.bd { width: 8px; height: 8px; border-radius: 50%; border: 1px solid #1a4048; background: #0a1418; }
+.bd.on { background: #00e5ff; border-color: #00e5ff; box-shadow: 0 0 6px #00e5ff; }
+
+/* MAIN */
+.main { display: flex; height: calc(1080px - 38px - 28px); }
+
+/* DECK + PREVIEW */
+.center { flex: 1; display: flex; flex-direction: column; }
+
+/* SCENE ROW */
+.scene-row { display: flex; height: 26px; align-items: center; padding: 0 10px; background: #0c1218; border-bottom: 1px solid #162028; gap: 4px; }
+.scene-tab { flex: 1; text-align: center; font-size: 10px; color: #507078; padding: 3px; cursor: pointer; border-bottom: 2px solid transparent; }
+.scene-tab.active { color: #00e5ff; border-bottom-color: #00e5ff; }
+
+/* GRID */
+.grid { display: flex; flex-direction: column; flex: 1; padding: 6px; gap: 4px; }
+.layer-row { display: flex; align-items: center; gap: 6px; height: 50px; }
+.layer-lbl { width: 70px; font-size: 10px; color: #608088; font-weight: 600; text-align: right; padding-right: 6px; }
+.dot-strip { display: flex; gap: 4px; flex: 1; }
+.dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #1a3038; background: #0c1418; cursor: pointer; }
+.dot.filled { background: #00c8dc; border-color: #00e5ff; box-shadow: 0 0 4px rgba(0,200,220,0.4); }
+.dot.active { background: #00e5ff; border-color: #fff; box-shadow: 0 0 8px #00e5ff; }
+.line-label { font-size: 8px; color: #405058; text-align: center; width: 70px; }
+
+/* PREVIEW */
+.preview-area { width: 440px; margin: 6px; }
+.prev-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.prev-lbl { font-size: 10px; color: #608088; }
+.prev-btns { display: flex; gap: 3px; }
+.pb { padding: 2px 8px; font-size: 9px; background: #0e1a22; border: 1px solid #1a3038; color: #80b0b8; cursor: pointer; }
+.prev-box { width: 100%; height: 220px; background: radial-gradient(ellipse at 50% 50%, rgba(0,200,220,0.15), transparent 70%), linear-gradient(135deg, #081018, #0c1a22, #081018); border: 1px solid #1a3038; border-radius: 4px; box-shadow: 0 0 20px rgba(0,200,220,0.1); }
+
+/* MIXING BOARDS */
+.mix-area { display: flex; border-top: 1px solid #162028; background: linear-gradient(180deg, #0c1218, #0a0e14); height: 320px; }
+.board { flex: 1; border-right: 1px solid #1a2028; padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.board:last-of-type { border-right: none; }
+.board-title { font-size: 10px; color: #507078; font-weight: 600; text-transform: lowercase; }
+.sm-row { display: flex; gap: 4px; }
+.sm-btn { padding: 2px 8px; font-size: 9px; background: #0e1a22; border: 1px solid #1a3038; color: #80b0b8; cursor: pointer; border-radius: 2px; }
+.sm-btn.active { background: #00c8dc; color: #0a0e14; }
+.engine-badge { padding: 1px 8px; font-size: 8px; background: #1a3038; color: #00c8dc; border: 1px solid #1a4048; border-radius: 2px; }
+.knob-group { display: flex; gap: 10px; margin: 6px 0; }
+.kn { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.kn-c { width: 38px; height: 38px; border-radius: 50%; background: conic-gradient(from 220deg, #00c8dc 0deg, #00c8dc var(--a, 140deg), #1a2028 var(--a, 140deg), #1a2028 280deg); position: relative; cursor: pointer; box-shadow: 0 0 8px rgba(0,200,220,0.15); }
+.kn-i { width: 28px; height: 28px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #1a2830, #0c1418); position: absolute; top: 5px; left: 5px; border: 1px solid #1a3038; }
+.kn-l { font-size: 8px; color: #507078; }
+/* Vertical bars for opacity */
+.v-bars { display: flex; gap: 3px; height: 60px; align-items: flex-end; margin: 4px 0; }
+.v-bar { width: 6px; background: #0a1418; border: 1px solid #1a2028; border-radius: 2px; position: relative; }
+.v-bar-fill { position: absolute; bottom: 0; width: 100%; border-radius: 2px; background: linear-gradient(0deg, #00c8dc, #00e5ff); }
+.op-label { font-size: 9px; color: #507078; }
+.op-slider { width: 100%; height: 6px; background: #0a1418; border: 1px solid #1a2028; border-radius: 3px; overflow: hidden; margin: 2px 0; }
+.op-fill { height: 100%; background: linear-gradient(90deg, #006878, #00c8dc); border-radius: 3px; }
+.expand-btn { padding: 2px 12px; font-size: 9px; background: #0e1a22; border: 1px solid #1a3038; color: #507078; cursor: pointer; margin-top: auto; }
+
+/* RIGHT INSPECTOR */
+.right-panel { width: 340px; background: linear-gradient(180deg, #0e1418, #0a0e14); border-left: 1px solid #1a3038; display: flex; flex-direction: column; }
+.r-section { padding: 8px; border-bottom: 1px solid #162028; }
+.r-title { font-size: 10px; color: #608088; font-weight: 600; margin-bottom: 4px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.r-title .arrow { font-size: 8px; color: #507078; }
+.r-row { display: flex; align-items: center; padding: 3px 0; }
+.r-lbl { width: 120px; font-size: 10px; color: #80b0b8; }
+.r-sl { flex: 1; height: 4px; background: #0a1418; border-radius: 2px; overflow: hidden; margin: 0 6px; }
+.r-sl-f { height: 100%; border-radius: 2px; }
+.r-val { font-size: 10px; color: #b0d0d8; font-family: monospace; width: 40px; text-align: right; }
+.r-select { flex: 1; background: #0a1418; border: 1px solid #1a3038; color: #b0d0d8; padding: 2px 6px; font-size: 9px; }
+
+/* FX LIST */
+.fx-item { display: flex; align-items: center; padding: 3px 0; border-bottom: 1px solid #0e1418; }
+.fx-name { flex: 1; font-size: 10px; color: #b0d0d8; }
+.fx-bypass { width: 14px; height: 14px; background: #0a1418; border: 1px solid #1a3038; color: #00c8dc; font-size: 8px; text-align: center; line-height: 12px; cursor: pointer; margin-left: 4px; }
+
+/* FOOTER */
+.footer { height: 28px; background: linear-gradient(180deg, #0e1218, #0a0e14); border-top: 1px solid #1a3038; display: flex; align-items: center; padding: 0 12px; gap: 12px; font-size: 10px; color: #405058; }
+.footer .sp { flex: 1; }
+.f-item { cursor: pointer; padding: 2px 8px; border: 1px solid #1a2028; color: #608088; }
+.f-item:hover { border-color: #00c8dc; color: #00c8dc; }
+.footer-logo { font-size: 16px; color: #00c8dc; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="star">&#10022;</div>
+  <div class="logo glow">Audio-DNA VJ</div>
+  <div class="sp"></div>
+  <div class="bpm-box">[128.00]</div>
+  <div class="btn">[TAP]</div>
+  <div class="btn">[|&lt;]</div>
+  <div class="btn">[&gt;|]</div>
+  <div class="btn active">[RESYNC]</div>
+  <div class="beat-dots">
+    <div class="bd on"></div><div class="bd"></div><div class="bd"></div><div class="bd"></div>
+  </div>
+  <div class="sp"></div>
+</div>
+
+<div class="main">
+  <div class="center">
+    <!-- Scene tabs -->
+    <div class="scene-row">
+      <div class="scene-tab active">Intro</div>
+      <div class="scene-tab">Verse 1</div>
+      <div class="scene-tab">Verse 2</div>
+      <div class="scene-tab">Verse 3</div>
+      <div class="scene-tab">Verse 4</div>
+    </div>
+
+    <div style="display:flex;flex:1;">
+      <!-- GRID with dots -->
+      <div class="grid" style="flex:1;">
+        <div class="layer-row">
+          <div class="layer-lbl">Layer 4</div>
+          <div class="dot-strip">
+            <div class="dot filled"></div><div class="dot filled"></div><div class="dot active"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-lbl">Layer 3</div>
+          <div class="dot-strip">
+            <div class="dot filled"></div><div class="dot"></div><div class="dot filled"></div><div class="dot active"></div>
+            <div class="dot filled"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-lbl">Layer 2</div>
+          <div class="dot-strip">
+            <div class="dot active"></div><div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-lbl">Layer 1</div>
+          <div class="dot-strip">
+            <div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div>
+            <div class="dot filled"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;margin-left:76px;margin-top:4px;">
+          <div class="line-label">scene 1</div>
+          <div class="line-label">scene 2</div>
+          <div class="line-label">scene 3</div>
+          <div class="line-label">scene 4</div>
+          <div class="line-label">scene 5</div>
+          <div class="line-label">scene 6</div>
+        </div>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="preview-area">
+        <div class="prev-head">
+          <div class="prev-lbl glow">Preview</div>
+          <div class="prev-btns"><div class="pb">Fullscreen</div><div class="pb">Detach</div></div>
+        </div>
+        <div class="prev-box border-glow"></div>
+        <div style="font-size:9px;color:#405058;text-align:right;margin-top:2px;">scene 11</div>
+      </div>
+    </div>
+
+    <!-- MIXING BOARDS -->
+    <div class="mix-area">
+      <div class="board">
+        <div class="board-title">mixing board</div>
+        <div class="sm-row"><div class="sm-btn">[S]</div><div class="sm-btn">[M]</div></div>
+        <div class="engine-badge">engine</div>
+        <div class="knob-group">
+          <div class="kn"><div class="kn-c" style="--a:160deg;"><div class="kn-i"></div></div><div class="kn-l">H</div></div>
+          <div class="kn"><div class="kn-c" style="--a:120deg;"><div class="kn-i"></div></div><div class="kn-l">S</div></div>
+          <div class="kn"><div class="kn-c" style="--a:200deg;"><div class="kn-i"></div></div><div class="kn-l">B</div></div>
+        </div>
+        <div class="kn"><div class="kn-c" style="--a:140deg;width:32px;height:32px;"><div class="kn-i" style="width:22px;height:22px;top:5px;left:5px;"></div></div><div class="kn-l">Spd</div></div>
+        <div class="op-label">Opacity</div>
+        <div class="op-slider"><div class="op-fill" style="width:100%;"></div></div>
+        <div class="expand-btn">[Expand]</div>
+      </div>
+      <div class="board">
+        <div class="board-title">mixing board</div>
+        <div class="sm-row"><div class="sm-btn">[S]</div><div class="sm-btn">[M]</div></div>
+        <div class="engine-badge">engine</div>
+        <div class="knob-group">
+          <div class="kn"><div class="kn-c" style="--a:140deg;"><div class="kn-i"></div></div><div class="kn-l">H</div></div>
+          <div class="kn"><div class="kn-c" style="--a:180deg;"><div class="kn-i"></div></div><div class="kn-l">S</div></div>
+          <div class="kn"><div class="kn-c" style="--a:160deg;"><div class="kn-i"></div></div><div class="kn-l">B</div></div>
+        </div>
+        <div class="kn"><div class="kn-c" style="--a:140deg;width:32px;height:32px;"><div class="kn-i" style="width:22px;height:22px;top:5px;left:5px;"></div></div><div class="kn-l">Spd</div></div>
+        <div class="op-label">Opacity</div>
+        <div class="op-slider"><div class="op-fill" style="width:85%;"></div></div>
+        <div class="expand-btn">[Expand]</div>
+      </div>
+      <div class="board">
+        <div class="board-title">mixing board</div>
+        <div class="sm-row"><div class="sm-btn">[S]</div><div class="sm-btn">[M]</div></div>
+        <div class="engine-badge">engine</div>
+        <div class="knob-group">
+          <div class="kn"><div class="kn-c" style="--a:100deg;"><div class="kn-i"></div></div><div class="kn-l">H</div></div>
+          <div class="kn"><div class="kn-c" style="--a:200deg;"><div class="kn-i"></div></div><div class="kn-l">S</div></div>
+          <div class="kn"><div class="kn-c" style="--a:160deg;"><div class="kn-i"></div></div><div class="kn-l">B</div></div>
+        </div>
+        <div class="kn"><div class="kn-c" style="--a:180deg;width:32px;height:32px;"><div class="kn-i" style="width:22px;height:22px;top:5px;left:5px;"></div></div><div class="kn-l">Spd</div></div>
+        <div class="op-label">Opacity</div>
+        <div class="op-slider"><div class="op-fill" style="width:100%;"></div></div>
+        <div class="expand-btn">[Expand]</div>
+      </div>
+      <div class="board" style="border-right:none;">
+        <div class="board-title">mixing board</div>
+        <div class="sm-row"><div class="sm-btn">[S]</div><div class="sm-btn">[M]</div></div>
+        <div class="engine-badge">engine</div>
+        <div class="knob-group">
+          <div class="kn"><div class="kn-c" style="--a:180deg;"><div class="kn-i"></div></div><div class="kn-l">H</div></div>
+          <div class="kn"><div class="kn-c" style="--a:120deg;"><div class="kn-i"></div></div><div class="kn-l">S</div></div>
+          <div class="kn"><div class="kn-c" style="--a:180deg;"><div class="kn-i"></div></div><div class="kn-l">B</div></div>
+        </div>
+        <div class="kn"><div class="kn-c" style="--a:140deg;width:32px;height:32px;"><div class="kn-i" style="width:22px;height:22px;top:5px;left:5px;"></div></div><div class="kn-l">Spd</div></div>
+        <div class="op-label">Opacity</div>
+        <div class="op-slider"><div class="op-fill" style="width:70%;"></div></div>
+        <div class="expand-btn">[Expand]</div>
+      </div>
+
+      <!-- RIGHT INSPECTOR IN MIX AREA -->
+      <div style="width:340px;border-left:1px solid #1a3038;padding:8px;display:flex;flex-direction:column;gap:4px;">
+        <div class="r-title"><span class="arrow">&#9656;</span> Layer 1</div>
+        <div class="r-title"><span class="arrow">&#9656;</span> Audio Sources</div>
+        <div class="r-row"><div class="r-lbl" style="width:auto;font-size:9px;">Master Audio</div><div class="r-sl"><div class="r-sl-f" style="width:72%;background:#00c8dc;"></div></div></div>
+        <div class="r-row"><div class="r-lbl" style="width:auto;font-size:9px;">Kick Drum</div><div class="r-sl"><div class="r-sl-f" style="width:55%;background:#00c8dc;"></div></div></div>
+        <div class="r-title"><span class="arrow">&#9656;</span> Masking</div>
+        <div class="r-row"><div class="r-lbl">Mode</div><select class="r-select"><option>Luma Key</option></select></div>
+        <div class="r-title"><span class="arrow">&#9656;</span> Blend & Transform</div>
+        <div class="r-row"><div class="r-lbl">Blend Mode</div><select class="r-select"><option>Additive</option></select></div>
+        <div class="r-row"><div class="r-lbl">Scale</div><div class="r-sl"><div class="r-sl-f" style="width:65%;background:#00c8dc;"></div></div><div class="r-val">2.60</div></div>
+        <div style="flex:1;"></div>
+        <div style="border-top:1px solid #162028;padding-top:6px;">
+          <div class="r-title">Effects</div>
+          <div class="fx-item"><div class="fx-name">Blur</div><div class="fx-bypass">B</div></div>
+          <div class="fx-item"><div class="fx-name">Kaleidoscope</div><div class="fx-bypass">B</div></div>
+          <div class="fx-item"><div class="fx-name">RGB Shift</div><div class="fx-bypass">B</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="f-item">[Audio-DNA VJ]</div>
+  <div class="f-item">[Master Sources]</div>
+  <div class="f-item">[Audio Player &#9654;]</div>
+  <div class="f-item">[Outputs &#9660;]</div>
+  <div class="sp"></div>
+  <div class="f-item">[Save]</div>
+  <div class="f-item">[Load]</div>
+  <div class="footer-logo">&#10022;</div>
+</div>
+
+</body>
+</html>

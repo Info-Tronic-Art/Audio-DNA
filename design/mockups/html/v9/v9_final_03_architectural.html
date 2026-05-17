@@ -1,0 +1,2006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA · Sheet A-01 · Architectural</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;300;400;500;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+  /* ─── RESET ─────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; }
+
+  :root {
+    --paper:        #f4f1ea;
+    --paper-warm:   #efeadf;
+    --ink:          #1a1614;
+    --ink-soft:     #2d2824;
+    --grey-1:       #555149;
+    --grey-2:       #77726a;
+    --grey-3:       #99948c;
+    --grey-4:       #bcb6ad;
+    --hairline:     #1a161440;
+    --hairline-soft:#1a161420;
+    --blue:         #1e4a8a;
+    --blue-soft:    #1e4a8a22;
+    --blue-ghost:   #1e4a8a0c;
+    --red:          #c1272d;
+    --olive:        #5c6e3a;
+    --amber:        #e6d3a3;
+    --dark-inset:   #151210;
+    --dark-inset-2: #1d1916;
+    --ease:         cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  /* ─── BODY / PAPER ──────────────────────────────────────────────── */
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.08  0 0 0 0 0.06  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>"),
+      linear-gradient(rgba(30, 74, 138, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30, 74, 138, 0.045) 1px, transparent 1px);
+    background-size: 300px 300px, 20px 20px, 20px 20px;
+    position: relative;
+  }
+
+  /* ─── TYPOGRAPHY ────────────────────────────────────────────────── */
+  .serif { font-family: 'Fraunces', serif; }
+  .mono  { font-family: 'JetBrains Mono', monospace; }
+
+  .smallcaps {
+    font-family: 'Fraunces', serif;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+  }
+  .micro {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--grey-2);
+  }
+  .tick {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: var(--grey-3);
+  }
+  .annot {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--grey-1);
+  }
+  .dim {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    color: var(--grey-2);
+  }
+
+  /* ─── FRAME / SHEET ─────────────────────────────────────────────── */
+  .sheet {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1920px; height: 1080px;
+    padding: 14px 20px 10px 20px;
+  }
+
+  /* blueprint corners */
+  .sheet::before, .sheet::after,
+  .corner-tr, .corner-bl {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    border-color: var(--ink);
+  }
+  .sheet::before {
+    top: 10px; left: 14px;
+    border-top: 1px solid var(--ink);
+    border-left: 1px solid var(--ink);
+  }
+  .sheet::after {
+    bottom: 8px; right: 14px;
+    border-bottom: 1px solid var(--ink);
+    border-right: 1px solid var(--ink);
+  }
+  .corner-tr {
+    top: 10px; right: 14px;
+    border-top: 1px solid var(--ink);
+    border-right: 1px solid var(--ink);
+  }
+  .corner-bl {
+    bottom: 8px; left: 14px;
+    border-bottom: 1px solid var(--ink);
+    border-left: 1px solid var(--ink);
+  }
+
+  /* ─── TITLE BLOCK ───────────────────────────────────────────────── */
+  .titleblock {
+    position: absolute;
+    top: 14px; left: 20px; right: 20px;
+    height: 36px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 6px;
+  }
+  .title-left { display: flex; align-items: baseline; gap: 18px; }
+  .wordmark {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: 0.01em;
+    font-style: italic;
+  }
+  .wordmark .amp { color: var(--blue); font-style: normal; }
+  .subt {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--grey-1);
+  }
+  .title-right { display: flex; align-items: baseline; gap: 28px; }
+  .sheetnum {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--grey-1);
+  }
+  .sheetnum b { color: var(--ink); font-weight: 500; }
+
+  /* ─── PANEL BASE ────────────────────────────────────────────────── */
+  .panel {
+    position: absolute;
+    background: transparent;
+  }
+  .panel-hd {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0 0 6px 0;
+    border-bottom: 1px solid var(--ink);
+    margin-bottom: 8px;
+  }
+  .panel-hd .lhs { display: flex; align-items: baseline; gap: 8px; }
+  .panel-hd .sec {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--grey-1);
+  }
+  .panel-hd .title {
+    font-family: 'Fraunces', serif;
+    font-variant: small-caps;
+    font-weight: 500;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+  }
+  .panel-hd .rhs {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--grey-2);
+    letter-spacing: 0.14em;
+  }
+
+  /* tiny panel corner crosshairs */
+  .xh {
+    position: absolute;
+    width: 8px; height: 8px;
+    color: var(--grey-3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    line-height: 1;
+    user-select: none;
+  }
+  .xh.tl { top: -4px; left: -4px; }
+  .xh.tr { top: -4px; right: -4px; }
+  .xh.bl { bottom: -4px; left: -4px; }
+  .xh.br { bottom: -4px; right: -4px; }
+
+  /* ─── § 01  TEMPO ────────────────────────────────────────────────── */
+  .sec-tempo {
+    top: 58px; left: 20px; right: 20px;
+    height: 96px;
+  }
+  .tempo-row {
+    display: grid;
+    grid-template-columns: 280px 1px 160px 1px 220px 1px 240px 1px 1fr 1px 220px;
+    column-gap: 18px;
+    align-items: center;
+    height: 72px;
+    padding-top: 4px;
+  }
+  .vrule { width: 1px; height: 60px; background: var(--hairline); }
+
+  .bpm-block { display: flex; align-items: baseline; gap: 14px; }
+  .bpm-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 56px;
+    font-variation-settings: 'opsz' 144;
+    line-height: 0.9;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .bpm-num .dec { color: var(--blue); }
+  .bpm-side { display: flex; flex-direction: column; gap: 4px; }
+  .bpm-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.2em; color: var(--grey-2); text-transform: uppercase; }
+  .bpm-mode { font-family: 'Fraunces', serif; font-style: italic; font-size: 11px; color: var(--olive); }
+  .bpm-conf { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--grey-1); }
+
+  .beatwheel { position: relative; width: 110px; height: 110px; margin-left: -8px; }
+
+  .counters { display: flex; flex-direction: column; gap: 10px; }
+  .counter-row { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+  .counter-lbl { font-family: 'Fraunces', serif; font-variant: small-caps; font-size: 12px; letter-spacing: 0.1em; color: var(--grey-1); }
+  .counter-val { font-family: 'JetBrains Mono', monospace; font-size: 16px; color: var(--ink); letter-spacing: 0.04em; }
+  .counter-val .slash { color: var(--grey-3); margin: 0 2px; }
+
+  .controls { display: flex; flex-direction: column; gap: 8px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    padding: 0 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--ink);
+    cursor: pointer;
+    transition: all 140ms var(--ease);
+  }
+  .btn:hover { background: var(--ink); color: var(--paper); }
+  .btn.blue { border-color: var(--blue); color: var(--blue); }
+  .btn.blue:hover { background: var(--blue); color: var(--paper); }
+  .btn.sm { height: 22px; padding: 0 8px; font-size: 9px; }
+  .btn-row { display: flex; gap: 6px; }
+
+  .sync {
+    display: flex; flex-direction: column; gap: 4px;
+    padding-left: 10px;
+  }
+  .sync-item { display: flex; align-items: baseline; justify-content: space-between; }
+  .sync-name { font-family: 'Fraunces', serif; font-variant: small-caps; font-size: 12px; letter-spacing: 0.08em; color: var(--ink); }
+  .sync-val { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--grey-1); }
+  .sync-val.ok { color: var(--olive); }
+  .sync-val.off { color: var(--grey-3); }
+
+  .key-block { display: flex; flex-direction: column; gap: 6px; }
+  .keybig {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-style: italic;
+    font-size: 26px;
+    line-height: 0.95;
+    color: var(--ink);
+  }
+  .keybig .minor { color: var(--blue); font-style: italic; font-weight: 400; font-size: 16px; margin-left: 4px; }
+  .key-genre { font-family: 'Fraunces', serif; font-variant: small-caps; font-size: 11px; letter-spacing: 0.08em; color: var(--grey-1); }
+  .key-genre b { color: var(--ink); font-weight: 600; }
+
+  /* ─── § 02  WAVEFORM ───────────────────────────────────────────── */
+  .sec-wave {
+    top: 172px; left: 20px; right: 20px;
+    height: 120px;
+  }
+  .wave-inset {
+    position: relative;
+    height: 96px;
+    background: var(--dark-inset);
+    background-image:
+      linear-gradient(to right, rgba(230,211,163,0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(230,211,163,0.04) 1px, transparent 1px);
+    background-size: 40px 20px;
+    border: 1px solid var(--ink);
+    overflow: hidden;
+  }
+  .wave-hd {
+    position: absolute; top: 6px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; align-items: baseline;
+    color: var(--amber);
+    pointer-events: none;
+  }
+  .wave-hd .tl { font-family: 'Fraunces', serif; font-style: italic; font-size: 11px; color: #d0b98a; }
+  .wave-hd .tr { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.2em; color: #9c8b6a; text-transform: uppercase; }
+
+  .wave-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* survey sweep */
+  .wave-sweep {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    background: #1e4a8a;
+    opacity: 0.85;
+    animation: survey 4s var(--ease) infinite;
+    pointer-events: none;
+  }
+  .wave-sweep::before {
+    content: '';
+    position: absolute; top: 0; bottom: 0; right: 0; width: 80px;
+    background: linear-gradient(to right, rgba(30,74,138,0), rgba(30,74,138,0.18));
+  }
+  @keyframes survey {
+    0%   { left: -2%; opacity: 0; }
+    5%   { opacity: 0.9; }
+    95%  { opacity: 0.9; }
+    100% { left: 102%; opacity: 0; }
+  }
+
+  .ruler {
+    position: relative;
+    height: 22px;
+    display: flex; align-items: flex-start;
+    padding-top: 2px;
+  }
+  .ruler-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* ─── § 03  SIGNALS BAR ────────────────────────────────────────── */
+  .sec-sigbar {
+    top: 302px; left: 20px; right: 20px;
+    height: 46px;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+  }
+  .sig-cell {
+    position: relative;
+    padding: 6px 14px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    border-right: 1px solid var(--hairline);
+  }
+  .sig-cell:last-child { border-right: none; }
+  .sig-top { display: flex; align-items: baseline; justify-content: space-between; }
+  .sig-name {
+    font-family: 'Fraunces', serif;
+    font-variant: small-caps;
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+  }
+  .sig-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--blue);
+    font-weight: 500;
+  }
+  .sig-bar {
+    position: relative;
+    height: 3px;
+    background: transparent;
+    border-top: 0.5px solid var(--hairline);
+    border-bottom: 0.5px solid var(--hairline);
+  }
+  .sig-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--blue);
+    transition: width 120ms var(--ease);
+  }
+  .sig-fill.olive { background: var(--olive); }
+  .sig-fill.red   { background: var(--red); }
+
+  /* ─── LEFT: § 07 SIGNAL METERS ─────────────────────────────────── */
+  .sec-meters {
+    top: 358px; left: 20px;
+    width: 260px;
+    bottom: 230px;
+  }
+  .meters-list { display: flex; flex-direction: column; gap: 11px; padding-right: 6px; }
+  .meter-row { display: flex; flex-direction: column; gap: 2px; }
+  .meter-top { display: flex; align-items: baseline; justify-content: space-between; }
+  .meter-name { font-family: 'Fraunces', serif; font-variant: small-caps; font-size: 12px; letter-spacing: 0.06em; color: var(--ink); }
+  .meter-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--blue); }
+  .meter-bar {
+    position: relative; height: 8px;
+    background: transparent;
+    border: 0.5px solid var(--hairline);
+  }
+  .meter-bar::before {
+    content: ''; position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, transparent 0, transparent 9px, var(--hairline-soft) 9px, var(--hairline-soft) 10px);
+  }
+  .meter-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--blue); transition: width 120ms var(--ease); }
+  .meter-fill.olive { background: var(--olive); }
+  .meter-fill.red { background: var(--red); }
+  .meter-annot {
+    display: flex; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px; letter-spacing: 0.08em;
+    color: var(--grey-3);
+  }
+  .meter-annot .arr { letter-spacing: 0; color: var(--grey-3); }
+
+  .meter-section-hd {
+    margin-top: 14px;
+    padding-bottom: 4px;
+    border-bottom: 0.5px solid var(--hairline);
+    font-family: 'Fraunces', serif;
+    font-variant: small-caps;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--grey-1);
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .meter-section-hd .n {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.2em; color: var(--grey-3);
+  }
+
+  /* ─── MIDDLE: § 04 DECK ─────────────────────────────────────────── */
+  .sec-deck {
+    top: 358px;
+    left: 296px;
+    width: 988px;
+    bottom: 230px;
+  }
+  .deck-dimline {
+    position: relative;
+    height: 18px;
+    border-bottom: 0.5px solid var(--hairline);
+    margin-bottom: 6px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 4px;
+  }
+  .dim-arrow-l, .dim-arrow-r {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--grey-2);
+    letter-spacing: 0.14em;
+  }
+  .dim-cols {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex; gap: 24px;
+  }
+  .dim-col { font-family: 'Fraunces', serif; font-style: italic; font-size: 11px; color: var(--grey-1); }
+  .dim-col.active { color: var(--blue); font-weight: 500; }
+
+  .deck-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .layer-row {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 14px;
+    align-items: stretch;
+    border-top: 0.5px solid var(--hairline);
+    padding-top: 10px;
+    padding-bottom: 4px;
+  }
+  .layer-row:first-child { border-top: 1px solid var(--ink); }
+
+  .layer-strip {
+    position: relative;
+    padding: 2px 10px 6px 4px;
+  }
+  .layer-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.2em;
+    color: var(--grey-2);
+    text-transform: uppercase;
+  }
+  .layer-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 17px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    margin-top: 2px;
+    margin-bottom: 4px;
+  }
+  .layer-type {
+    font-family: 'Fraunces', serif;
+    font-variant: small-caps;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--grey-1);
+  }
+  .layer-type.opaque { color: var(--ink); }
+  .layer-type.transparent { color: var(--blue); }
+  .layer-type.fx { color: var(--red); }
+  .layer-type.mask { color: var(--olive); }
+
+  .op-row { margin-top: 8px; }
+  .op-line {
+    position: relative;
+    height: 4px;
+    border-top: 0.5px solid var(--hairline);
+    border-bottom: 0.5px solid var(--hairline);
+    margin-bottom: 2px;
+  }
+  .op-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--blue); transition: width 120ms var(--ease); }
+  .op-annot {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--grey-2); letter-spacing: 0.06em;
+  }
+  .op-annot .mid { color: var(--blue); font-weight: 500; }
+
+  .layer-fx {
+    margin-top: 8px;
+    display: flex; gap: 6px; flex-wrap: wrap;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--grey-1);
+  }
+  .layer-fx .chip {
+    padding: 1px 6px;
+    border: 0.5px solid var(--hairline);
+    color: var(--ink);
+  }
+  .layer-fx .chip.active { border-color: var(--blue); color: var(--blue); }
+
+  .clips {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+  .clip {
+    position: relative;
+    background: #fdfbf6;
+    border: 0.5px solid var(--ink);
+    min-height: 78px;
+    padding: 6px 8px 6px 8px;
+    display: flex; flex-direction: column; gap: 4px;
+    transition: all 140ms var(--ease);
+    cursor: pointer;
+  }
+  .clip:hover { background: #fff; }
+  .clip.empty {
+    background: transparent;
+    border: 0.5px dashed var(--grey-3);
+  }
+  .clip.empty::after {
+    content: '—';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--grey-3);
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-style: italic;
+  }
+  .clip.active {
+    border: 1.5px solid var(--blue);
+    box-shadow: 0 0 0 1px var(--blue);
+    animation: clip-pulse 0.469s var(--ease) infinite;
+  }
+  @keyframes clip-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px var(--blue); }
+    50%      { box-shadow: 0 0 0 3px var(--blue-soft); }
+  }
+  .clip-thumb {
+    position: relative;
+    height: 28px;
+    background: var(--dark-inset);
+    overflow: hidden;
+    border: 0.5px solid var(--ink);
+  }
+  .clip-thumb.t1 { background: radial-gradient(circle at 30% 40%, #3a2f5c, #0e0b18); }
+  .clip-thumb.t2 { background: radial-gradient(circle at 60% 50%, #1e4a8a, #050a16); }
+  .clip-thumb.t3 { background: linear-gradient(135deg, #5a2820, #1a0d0a); }
+  .clip-thumb.t4 { background: radial-gradient(ellipse at 50% 50%, #b89556, #1a1410); }
+  .clip-thumb.t5 { background: linear-gradient(180deg, #1a3f2a, #0a1410); }
+  .clip-thumb.t6 { background: radial-gradient(circle at 40% 60%, #6a4030, #0f0c0a); }
+  .clip-thumb.t7 { background: linear-gradient(90deg, #2a1a40, #40203a, #1a1030); }
+  .clip-thumb.t8 { background: radial-gradient(circle at 50% 30%, #b8a070, #0a0805); }
+  .clip-thumb.t9 { background: linear-gradient(135deg, #0a2030, #1e4a8a, #050a14); }
+
+  .clip-name {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 11px;
+    line-height: 1.2;
+    color: var(--ink);
+  }
+  .clip-meta {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.08em;
+    color: var(--grey-2);
+  }
+  .clip-meta .fx { color: var(--ink-soft); }
+  .clip.active .clip-meta .fx { color: var(--blue); }
+
+  .nowplaying {
+    position: absolute;
+    top: -16px; left: -8px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 10px;
+    color: var(--blue);
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+  .nowplaying::before {
+    content: '● '; color: var(--red);
+  }
+
+  .clip-idx {
+    position: absolute; top: 4px; right: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px; letter-spacing: 0.1em;
+    color: var(--grey-3);
+  }
+  .clip.active .clip-idx { color: var(--blue); }
+
+  /* ─── RIGHT: § 05 INSPECTOR ──────────────────────────────────────── */
+  .sec-inspector {
+    top: 358px;
+    right: 20px;
+    width: 300px;
+    bottom: 230px;
+  }
+  .insp-section {
+    padding: 10px 0 12px 0;
+    border-bottom: 0.5px solid var(--hairline);
+  }
+  .insp-section:last-child { border-bottom: none; }
+  .insp-hd {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .insp-hd .title {
+    font-family: 'Fraunces', serif;
+    font-variant: small-caps;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+  }
+  .insp-hd .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.2em; color: var(--grey-2);
+  }
+
+  .defbox { display: grid; grid-template-columns: 1fr auto; row-gap: 5px; column-gap: 14px; }
+  .defbox dt {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--grey-1);
+  }
+  .defbox dd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .defbox dd.blue { color: var(--blue); }
+  .defbox dd.arr::after {
+    content: ' ↗';
+    color: var(--blue);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .insp-desc {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: var(--grey-1);
+    margin-bottom: 6px;
+  }
+
+  .param-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 46px 14px;
+    align-items: center;
+    column-gap: 8px;
+    margin-bottom: 4px;
+  }
+  .param-name {
+    font-family: 'Fraunces', serif;
+    font-variant: small-caps;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+  }
+  .param-slide {
+    position: relative;
+    height: 3px;
+    border-top: 0.5px solid var(--hairline);
+    border-bottom: 0.5px solid var(--hairline);
+  }
+  .param-slide::before {
+    content: '';
+    position: absolute; left: 0; top: -2px; bottom: -2px; right: 0;
+    border-left: 0.5px solid var(--grey-3);
+    border-right: 0.5px solid var(--grey-3);
+  }
+  .param-slide .pf {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--blue);
+  }
+  .param-slide .ph {
+    position: absolute; top: -3px; width: 1px; height: 9px;
+    background: var(--ink);
+  }
+  .param-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--ink);
+    text-align: right;
+  }
+  .param-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--blue);
+    text-align: center;
+    line-height: 1;
+  }
+  .param-link.off { color: var(--grey-3); }
+
+  .route-mini {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 10.5px;
+    color: var(--grey-1);
+    padding-left: 108px;
+    margin-bottom: 3px;
+  }
+  .route-mini .src { color: var(--blue); font-weight: 500; font-style: italic; }
+  .route-mini .curve { color: var(--grey-2); font-size: 9.5px; letter-spacing: 0.08em; }
+
+  .key-sig-line {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 11.5px;
+    color: var(--grey-1);
+  }
+  .key-sig-line b { color: var(--blue); font-style: italic; font-weight: 500; }
+
+  /* ─── § 06 SIGNAL ROUTING ──────────────────────────────────────── */
+  .sec-routing {
+    bottom: 58px; left: 20px; right: 20px;
+    height: 160px;
+  }
+  .routing-body {
+    position: relative;
+    height: 128px;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 10px 14px;
+    display: grid;
+    grid-template-columns: 220px 1fr 260px;
+  }
+  .routing-body::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(30, 74, 138, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30, 74, 138, 0.06) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+
+  .routing-col {
+    position: relative;
+    z-index: 2;
+    display: flex; flex-direction: column; justify-content: space-around;
+  }
+  .routing-col.src { padding-right: 14px; }
+  .routing-col.tgt { padding-left: 14px; }
+
+  .port {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Fraunces', serif;
+    font-variant: small-caps;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+    position: relative;
+  }
+  .port .dot {
+    width: 8px; height: 8px;
+    border: 1px solid var(--ink);
+    background: var(--paper);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .port.active .dot { background: var(--blue); border-color: var(--blue); }
+  .port.active { color: var(--blue); }
+  .port .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--grey-2);
+    margin-left: 6px;
+    letter-spacing: 0.1em;
+  }
+  .port.tgt { justify-content: flex-start; }
+  .port .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--blue);
+    margin-left: auto;
+    padding-left: 10px;
+  }
+
+  .routing-patch {
+    position: relative;
+  }
+  .patch-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
+
+  .routing-hd {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    color: var(--grey-2);
+    text-transform: uppercase;
+  }
+
+  /* ─── FOOTER ──────────────────────────────────────────────────── */
+  .footer {
+    position: absolute;
+    bottom: 14px; left: 20px; right: 20px;
+    height: 32px;
+    border-top: 1px solid var(--ink);
+    padding-top: 6px;
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--grey-1);
+    text-transform: uppercase;
+  }
+  .footer .mid { display: flex; gap: 24px; }
+  .footer .mid span b { color: var(--ink); font-weight: 500; }
+  .footer .mid span .ok { color: var(--olive); }
+  .footer .scale {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--grey-1);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* ─── SCROLLBARS (hidden) ─────────────────────────────────────── */
+  .meters-list, .defbox { overflow: hidden; }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <span class="corner-tr"></span>
+  <span class="corner-bl"></span>
+
+  <!-- ══════════ TITLE BLOCK ══════════ -->
+  <div class="titleblock">
+    <div class="title-left">
+      <div class="wordmark">Audio<span class="amp">—</span>DNA</div>
+      <div class="subt">a surveyor's instrument for audio-reactive performance</div>
+    </div>
+    <div class="title-right">
+      <span class="sheetnum">SHEET <b>A-01</b> / REV 09.0</span>
+      <span class="sheetnum">DWG <b>PLAN + DETAIL</b></span>
+      <span class="sheetnum">↕ 1080 ↔ 1920</span>
+      <span class="sheetnum">SCALE <b>1:1</b></span>
+    </div>
+  </div>
+
+  <!-- ══════════ § 01  TEMPO ══════════ -->
+  <section class="panel sec-tempo">
+    <span class="xh tl">+</span><span class="xh tr">+</span><span class="xh bl">+</span><span class="xh br">+</span>
+    <div class="panel-hd">
+      <div class="lhs">
+        <span class="sec">§ 01</span>
+        <span class="title">Tempo · Transport · Sync</span>
+      </div>
+      <div class="rhs">PLAN VIEW &nbsp;·&nbsp; ↕ 96 PX</div>
+    </div>
+
+    <div class="tempo-row">
+      <!-- BPM -->
+      <div class="bpm-block">
+        <div class="bpm-num">128<span class="dec">.0</span></div>
+        <div class="bpm-side">
+          <span class="bpm-lbl">BEATS · MIN</span>
+          <span class="bpm-mode">↳ auto · locked</span>
+          <span class="bpm-conf">conf 0.96 · oct 1×</span>
+          <div class="btn-row">
+            <button class="btn sm">TAP</button>
+            <button class="btn sm">−</button>
+            <button class="btn sm">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="vrule"></div>
+
+      <!-- Beat wheel -->
+      <svg class="beatwheel" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <!-- outer tick ring -->
+        <g stroke="#99948c" stroke-width="0.5" fill="none">
+          <circle cx="60" cy="60" r="54"/>
+          <circle cx="60" cy="60" r="42"/>
+        </g>
+        <!-- cardinal ticks -->
+        <g stroke="#1a1614" stroke-width="0.75">
+          <line x1="60" y1="2"  x2="60" y2="10"/>
+          <line x1="118" y1="60" x2="110" y2="60"/>
+          <line x1="60" y1="118" x2="60" y2="110"/>
+          <line x1="2"  y1="60"  x2="10" y2="60"/>
+        </g>
+        <!-- 16 minor ticks -->
+        <g stroke="#99948c" stroke-width="0.5">
+          <g transform="rotate(22.5 60 60)"><line x1="60" y1="4"  x2="60" y2="10"/></g>
+          <g transform="rotate(45   60 60)"><line x1="60" y1="2"  x2="60" y2="10"/></g>
+          <g transform="rotate(67.5 60 60)"><line x1="60" y1="4"  x2="60" y2="10"/></g>
+          <g transform="rotate(112.5 60 60)"><line x1="60" y1="4"  x2="60" y2="10"/></g>
+          <g transform="rotate(135  60 60)"><line x1="60" y1="2"  x2="60" y2="10"/></g>
+          <g transform="rotate(157.5 60 60)"><line x1="60" y1="4"  x2="60" y2="10"/></g>
+          <g transform="rotate(202.5 60 60)"><line x1="60" y1="4"  x2="60" y2="10"/></g>
+          <g transform="rotate(225  60 60)"><line x1="60" y1="2"  x2="60" y2="10"/></g>
+          <g transform="rotate(247.5 60 60)"><line x1="60" y1="4"  x2="60" y2="10"/></g>
+          <g transform="rotate(292.5 60 60)"><line x1="60" y1="4"  x2="60" y2="10"/></g>
+          <g transform="rotate(315  60 60)"><line x1="60" y1="2"  x2="60" y2="10"/></g>
+          <g transform="rotate(337.5 60 60)"><line x1="60" y1="4"  x2="60" y2="10"/></g>
+        </g>
+        <!-- quarter arcs (beats in bar) -->
+        <g fill="none" stroke-width="6">
+          <path d="M 60 16 A 44 44 0 0 1 104 60" stroke="#1e4a8a"/>
+          <path d="M 104 60 A 44 44 0 0 1 60 104" stroke="#d8d2c4"/>
+          <path d="M 60 104 A 44 44 0 0 1 16 60" stroke="#d8d2c4"/>
+          <path d="M 16 60 A 44 44 0 0 1 60 16"   stroke="#d8d2c4"/>
+        </g>
+        <!-- cardinal labels -->
+        <g font-family="Fraunces" font-style="italic" font-size="10" fill="#77726a">
+          <text x="60" y="14" text-anchor="middle">N</text>
+          <text x="115" y="63" text-anchor="middle">E</text>
+          <text x="60" y="119" text-anchor="middle">S</text>
+          <text x="5" y="63" text-anchor="middle">W</text>
+        </g>
+        <!-- center crosshair -->
+        <g stroke="#1a1614" stroke-width="0.5">
+          <line x1="56" y1="60" x2="64" y2="60"/>
+          <line x1="60" y1="56" x2="60" y2="64"/>
+        </g>
+        <!-- beat number -->
+        <text x="60" y="52" text-anchor="middle" font-family="JetBrains Mono" font-size="8" fill="#99948c" letter-spacing="1">BEAT</text>
+        <text x="60" y="75" text-anchor="middle" font-family="Fraunces" font-style="italic" font-size="22" font-weight="600" fill="#1a1614">1</text>
+      </svg>
+
+      <div class="vrule"></div>
+
+      <!-- Counters -->
+      <div class="counters">
+        <div class="counter-row">
+          <span class="counter-lbl">Bar</span>
+          <span class="counter-val">03<span class="slash">/</span>08</span>
+        </div>
+        <div class="counter-row">
+          <span class="counter-lbl">Phrase</span>
+          <span class="counter-val">02<span class="slash">/</span>04</span>
+        </div>
+        <div class="counter-row">
+          <span class="counter-lbl">Beat</span>
+          <span class="counter-val">1<span class="slash">·</span>2<span class="slash">·</span>3<span class="slash">·</span>4</span>
+        </div>
+        <div class="counter-row">
+          <span class="counter-lbl">Sig.</span>
+          <span class="counter-val">4 / 4</span>
+        </div>
+      </div>
+
+      <div class="vrule"></div>
+
+      <!-- Key / Genre -->
+      <div class="key-block">
+        <div class="keybig">A<span class="minor">minor</span></div>
+        <div class="key-sig-line">detected key · <b>conf 0.87</b></div>
+        <div class="key-genre">Genre&nbsp;·&nbsp;<b>Techno</b>&nbsp;·&nbsp;energy <i>high</i></div>
+        <div class="key-genre">LUFS&nbsp;·&nbsp;<b>−14.2</b>&nbsp;·&nbsp;peak <i>−0.8 dB</i></div>
+      </div>
+
+      <div class="vrule"></div>
+
+      <!-- Sync / Ext -->
+      <div class="sync">
+        <div class="sync-item">
+          <span class="sync-name">Link</span>
+          <span class="sync-val ok">◉ 2 peers</span>
+        </div>
+        <div class="sync-item">
+          <span class="sync-name">MIDI Clock</span>
+          <span class="sync-val off">— off</span>
+        </div>
+        <div class="sync-item">
+          <span class="sync-name">OSC</span>
+          <span class="sync-val ok">◉ :9000</span>
+        </div>
+        <div class="sync-item">
+          <span class="sync-name">Syphon</span>
+          <span class="sync-val ok">◉ out</span>
+        </div>
+      </div>
+
+      <div class="vrule"></div>
+
+      <!-- Transport controls -->
+      <div class="controls">
+        <span class="micro">Master Transport</span>
+        <div class="btn-row">
+          <button class="btn blue">▶ PLAY</button>
+          <button class="btn">◼</button>
+          <button class="btn">◯ REC</button>
+        </div>
+        <span class="annot">t = 00:04:21 · recording armed</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ § 02  WAVEFORM ══════════ -->
+  <section class="panel sec-wave">
+    <span class="xh tl">+</span><span class="xh tr">+</span><span class="xh bl">+</span><span class="xh br">+</span>
+    <div class="panel-hd">
+      <div class="lhs">
+        <span class="sec">§ 02</span>
+        <span class="title">Waveform · Section A—A</span>
+      </div>
+      <div class="rhs">AMPL −1.0 ≤ y ≤ +1.0 &nbsp;·&nbsp; ↕ 96 PX &nbsp;·&nbsp; 8.0 SEC</div>
+    </div>
+
+    <div class="wave-inset">
+      <div class="wave-hd">
+        <span class="tl">fig. 01 — time-domain signal · stereo mono-sum</span>
+        <span class="tr">FS · 48 KHZ · WIN 384·K</span>
+      </div>
+
+      <svg class="wave-svg" viewBox="0 0 1880 96" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- center line -->
+        <line x1="0" y1="48" x2="1880" y2="48" stroke="#e6d3a3" stroke-opacity="0.25" stroke-width="0.5"/>
+
+        <!-- amplitude guide lines -->
+        <line x1="0" y1="16" x2="1880" y2="16" stroke="#e6d3a3" stroke-opacity="0.08" stroke-width="0.5" stroke-dasharray="2 4"/>
+        <line x1="0" y1="80" x2="1880" y2="80" stroke="#e6d3a3" stroke-opacity="0.08" stroke-width="0.5" stroke-dasharray="2 4"/>
+
+        <!-- waveform (dense vertical bars, hand-authored rhythm) -->
+        <g stroke="#e6d3a3" stroke-width="1.4" stroke-linecap="round">
+          <!-- bar 01 -->
+          <line x1="20"  y1="48" x2="20"  y2="48"/>
+          <line x1="30"  y1="34" x2="30"  y2="62"/>
+          <line x1="40"  y1="12" x2="40"  y2="84"/>
+          <line x1="50"  y1="30" x2="50"  y2="66"/>
+          <line x1="60"  y1="42" x2="60"  y2="54"/>
+          <line x1="70"  y1="36" x2="70"  y2="60"/>
+          <line x1="80"  y1="20" x2="80"  y2="76"/>
+          <line x1="90"  y1="32" x2="90"  y2="64"/>
+          <line x1="100" y1="44" x2="100" y2="52"/>
+          <line x1="110" y1="38" x2="110" y2="58"/>
+          <line x1="120" y1="16" x2="120" y2="80"/>
+          <line x1="130" y1="30" x2="130" y2="66"/>
+          <line x1="140" y1="42" x2="140" y2="54"/>
+          <line x1="150" y1="36" x2="150" y2="60"/>
+          <line x1="160" y1="24" x2="160" y2="72"/>
+          <line x1="170" y1="32" x2="170" y2="64"/>
+          <line x1="180" y1="44" x2="180" y2="52"/>
+          <line x1="190" y1="38" x2="190" y2="58"/>
+          <line x1="200" y1="22" x2="200" y2="74"/>
+          <line x1="210" y1="34" x2="210" y2="62"/>
+          <line x1="220" y1="44" x2="220" y2="52"/>
+          <line x1="230" y1="38" x2="230" y2="58"/>
+          <!-- bar 02 — drop approach -->
+          <line x1="240" y1="28" x2="240" y2="68"/>
+          <line x1="250" y1="34" x2="250" y2="62"/>
+          <line x1="260" y1="8"  x2="260" y2="88"/>
+          <line x1="270" y1="26" x2="270" y2="70"/>
+          <line x1="280" y1="42" x2="280" y2="54"/>
+          <line x1="290" y1="36" x2="290" y2="60"/>
+          <line x1="300" y1="18" x2="300" y2="78"/>
+          <line x1="310" y1="32" x2="310" y2="64"/>
+          <line x1="320" y1="44" x2="320" y2="52"/>
+          <line x1="330" y1="38" x2="330" y2="58"/>
+          <line x1="340" y1="10" x2="340" y2="86"/>
+          <line x1="350" y1="30" x2="350" y2="66"/>
+          <line x1="360" y1="40" x2="360" y2="56"/>
+          <line x1="370" y1="34" x2="370" y2="62"/>
+          <line x1="380" y1="24" x2="380" y2="72"/>
+          <line x1="390" y1="32" x2="390" y2="64"/>
+          <line x1="400" y1="44" x2="400" y2="52"/>
+          <line x1="410" y1="38" x2="410" y2="58"/>
+          <line x1="420" y1="20" x2="420" y2="76"/>
+          <line x1="430" y1="34" x2="430" y2="62"/>
+          <line x1="440" y1="42" x2="440" y2="54"/>
+          <line x1="450" y1="36" x2="450" y2="60"/>
+          <!-- bar 03 — the drop (playing now) -->
+          <line x1="460" y1="4"  x2="460" y2="92"/>
+          <line x1="470" y1="20" x2="470" y2="76"/>
+          <line x1="480" y1="10" x2="480" y2="86"/>
+          <line x1="490" y1="26" x2="490" y2="70"/>
+          <line x1="500" y1="14" x2="500" y2="82"/>
+          <line x1="510" y1="30" x2="510" y2="66"/>
+          <line x1="520" y1="42" x2="520" y2="54"/>
+          <line x1="530" y1="28" x2="530" y2="68"/>
+          <line x1="540" y1="6"  x2="540" y2="90"/>
+          <line x1="550" y1="24" x2="550" y2="72"/>
+          <line x1="560" y1="12" x2="560" y2="84"/>
+          <line x1="570" y1="30" x2="570" y2="66"/>
+          <line x1="580" y1="42" x2="580" y2="54"/>
+          <line x1="590" y1="34" x2="590" y2="62"/>
+          <line x1="600" y1="8"  x2="600" y2="88"/>
+          <line x1="610" y1="26" x2="610" y2="70"/>
+          <line x1="620" y1="16" x2="620" y2="80"/>
+          <line x1="630" y1="32" x2="630" y2="64"/>
+          <line x1="640" y1="42" x2="640" y2="54"/>
+          <line x1="650" y1="34" x2="650" y2="62"/>
+          <line x1="660" y1="22" x2="660" y2="74"/>
+          <line x1="670" y1="30" x2="670" y2="66"/>
+          <!-- bar 04 -->
+          <line x1="680" y1="14" x2="680" y2="82"/>
+          <line x1="690" y1="28" x2="690" y2="68"/>
+          <line x1="700" y1="38" x2="700" y2="58"/>
+          <line x1="710" y1="30" x2="710" y2="66"/>
+          <line x1="720" y1="18" x2="720" y2="78"/>
+          <line x1="730" y1="32" x2="730" y2="64"/>
+          <line x1="740" y1="42" x2="740" y2="54"/>
+          <line x1="750" y1="36" x2="750" y2="60"/>
+          <line x1="760" y1="10" x2="760" y2="86"/>
+          <line x1="770" y1="28" x2="770" y2="68"/>
+          <line x1="780" y1="20" x2="780" y2="76"/>
+          <line x1="790" y1="34" x2="790" y2="62"/>
+          <line x1="800" y1="44" x2="800" y2="52"/>
+          <line x1="810" y1="38" x2="810" y2="58"/>
+          <line x1="820" y1="24" x2="820" y2="72"/>
+          <line x1="830" y1="32" x2="830" y2="64"/>
+          <line x1="840" y1="42" x2="840" y2="54"/>
+          <line x1="850" y1="36" x2="850" y2="60"/>
+          <line x1="860" y1="18" x2="860" y2="78"/>
+          <line x1="870" y1="30" x2="870" y2="66"/>
+          <line x1="880" y1="40" x2="880" y2="56"/>
+          <line x1="890" y1="34" x2="890" y2="62"/>
+          <!-- bar 05 -->
+          <line x1="900" y1="26" x2="900" y2="70"/>
+          <line x1="910" y1="34" x2="910" y2="62"/>
+          <line x1="920" y1="14" x2="920" y2="82"/>
+          <line x1="930" y1="28" x2="930" y2="68"/>
+          <line x1="940" y1="40" x2="940" y2="56"/>
+          <line x1="950" y1="34" x2="950" y2="62"/>
+          <line x1="960" y1="22" x2="960" y2="74"/>
+          <line x1="970" y1="32" x2="970" y2="64"/>
+          <line x1="980" y1="40" x2="980" y2="56"/>
+          <line x1="990" y1="34" x2="990" y2="62"/>
+          <line x1="1000" y1="16" x2="1000" y2="80"/>
+          <line x1="1010" y1="30" x2="1010" y2="66"/>
+          <line x1="1020" y1="42" x2="1020" y2="54"/>
+          <line x1="1030" y1="34" x2="1030" y2="62"/>
+          <line x1="1040" y1="24" x2="1040" y2="72"/>
+          <line x1="1050" y1="32" x2="1050" y2="64"/>
+          <line x1="1060" y1="40" x2="1060" y2="56"/>
+          <line x1="1070" y1="34" x2="1070" y2="62"/>
+          <line x1="1080" y1="18" x2="1080" y2="78"/>
+          <line x1="1090" y1="28" x2="1090" y2="68"/>
+          <line x1="1100" y1="42" x2="1100" y2="54"/>
+          <line x1="1110" y1="34" x2="1110" y2="62"/>
+          <!-- bar 06 — breakdown -->
+          <line x1="1120" y1="38" x2="1120" y2="58"/>
+          <line x1="1130" y1="40" x2="1130" y2="56"/>
+          <line x1="1140" y1="42" x2="1140" y2="54"/>
+          <line x1="1150" y1="41" x2="1150" y2="55"/>
+          <line x1="1160" y1="43" x2="1160" y2="53"/>
+          <line x1="1170" y1="40" x2="1170" y2="56"/>
+          <line x1="1180" y1="38" x2="1180" y2="58"/>
+          <line x1="1190" y1="42" x2="1190" y2="54"/>
+          <line x1="1200" y1="44" x2="1200" y2="52"/>
+          <line x1="1210" y1="42" x2="1210" y2="54"/>
+          <line x1="1220" y1="38" x2="1220" y2="58"/>
+          <line x1="1230" y1="40" x2="1230" y2="56"/>
+          <line x1="1240" y1="44" x2="1240" y2="52"/>
+          <line x1="1250" y1="42" x2="1250" y2="54"/>
+          <line x1="1260" y1="36" x2="1260" y2="60"/>
+          <line x1="1270" y1="40" x2="1270" y2="56"/>
+          <line x1="1280" y1="44" x2="1280" y2="52"/>
+          <line x1="1290" y1="42" x2="1290" y2="54"/>
+          <line x1="1300" y1="38" x2="1300" y2="58"/>
+          <line x1="1310" y1="42" x2="1310" y2="54"/>
+          <line x1="1320" y1="44" x2="1320" y2="52"/>
+          <line x1="1330" y1="41" x2="1330" y2="55"/>
+          <!-- bar 07 — buildup -->
+          <line x1="1340" y1="38" x2="1340" y2="58"/>
+          <line x1="1350" y1="36" x2="1350" y2="60"/>
+          <line x1="1360" y1="34" x2="1360" y2="62"/>
+          <line x1="1370" y1="32" x2="1370" y2="64"/>
+          <line x1="1380" y1="30" x2="1380" y2="66"/>
+          <line x1="1390" y1="28" x2="1390" y2="68"/>
+          <line x1="1400" y1="26" x2="1400" y2="70"/>
+          <line x1="1410" y1="24" x2="1410" y2="72"/>
+          <line x1="1420" y1="22" x2="1420" y2="74"/>
+          <line x1="1430" y1="20" x2="1430" y2="76"/>
+          <line x1="1440" y1="18" x2="1440" y2="78"/>
+          <line x1="1450" y1="16" x2="1450" y2="80"/>
+          <line x1="1460" y1="14" x2="1460" y2="82"/>
+          <line x1="1470" y1="12" x2="1470" y2="84"/>
+          <line x1="1480" y1="10" x2="1480" y2="86"/>
+          <line x1="1490" y1="8"  x2="1490" y2="88"/>
+          <line x1="1500" y1="6"  x2="1500" y2="90"/>
+          <line x1="1510" y1="4"  x2="1510" y2="92"/>
+          <line x1="1520" y1="2"  x2="1520" y2="94"/>
+          <line x1="1530" y1="4"  x2="1530" y2="92"/>
+          <line x1="1540" y1="6"  x2="1540" y2="90"/>
+          <line x1="1550" y1="10" x2="1550" y2="86"/>
+          <!-- bar 08 — not-yet -->
+          <line x1="1560" y1="40" x2="1560" y2="56" stroke-opacity="0.3"/>
+          <line x1="1570" y1="34" x2="1570" y2="62" stroke-opacity="0.3"/>
+          <line x1="1580" y1="42" x2="1580" y2="54" stroke-opacity="0.3"/>
+          <line x1="1590" y1="38" x2="1590" y2="58" stroke-opacity="0.3"/>
+          <line x1="1600" y1="30" x2="1600" y2="66" stroke-opacity="0.3"/>
+          <line x1="1610" y1="36" x2="1610" y2="60" stroke-opacity="0.3"/>
+          <line x1="1620" y1="42" x2="1620" y2="54" stroke-opacity="0.3"/>
+          <line x1="1630" y1="38" x2="1630" y2="58" stroke-opacity="0.3"/>
+          <line x1="1640" y1="28" x2="1640" y2="68" stroke-opacity="0.3"/>
+          <line x1="1650" y1="34" x2="1650" y2="62" stroke-opacity="0.3"/>
+          <line x1="1660" y1="42" x2="1660" y2="54" stroke-opacity="0.3"/>
+          <line x1="1670" y1="38" x2="1670" y2="58" stroke-opacity="0.3"/>
+          <line x1="1680" y1="30" x2="1680" y2="66" stroke-opacity="0.3"/>
+          <line x1="1690" y1="36" x2="1690" y2="60" stroke-opacity="0.3"/>
+          <line x1="1700" y1="42" x2="1700" y2="54" stroke-opacity="0.3"/>
+          <line x1="1710" y1="38" x2="1710" y2="58" stroke-opacity="0.3"/>
+          <line x1="1720" y1="28" x2="1720" y2="68" stroke-opacity="0.3"/>
+          <line x1="1730" y1="34" x2="1730" y2="62" stroke-opacity="0.3"/>
+          <line x1="1740" y1="42" x2="1740" y2="54" stroke-opacity="0.3"/>
+          <line x1="1750" y1="38" x2="1750" y2="58" stroke-opacity="0.3"/>
+          <line x1="1760" y1="30" x2="1760" y2="66" stroke-opacity="0.3"/>
+          <line x1="1770" y1="36" x2="1770" y2="60" stroke-opacity="0.3"/>
+          <line x1="1780" y1="42" x2="1780" y2="54" stroke-opacity="0.3"/>
+          <line x1="1790" y1="40" x2="1790" y2="56" stroke-opacity="0.3"/>
+          <line x1="1800" y1="36" x2="1800" y2="60" stroke-opacity="0.3"/>
+          <line x1="1810" y1="42" x2="1810" y2="54" stroke-opacity="0.3"/>
+          <line x1="1820" y1="38" x2="1820" y2="58" stroke-opacity="0.3"/>
+          <line x1="1830" y1="40" x2="1830" y2="56" stroke-opacity="0.3"/>
+          <line x1="1840" y1="42" x2="1840" y2="54" stroke-opacity="0.3"/>
+          <line x1="1850" y1="40" x2="1850" y2="56" stroke-opacity="0.3"/>
+          <line x1="1860" y1="42" x2="1860" y2="54" stroke-opacity="0.3"/>
+        </g>
+
+        <!-- bar separator lines -->
+        <g stroke="#e6d3a3" stroke-opacity="0.28" stroke-width="0.5">
+          <line x1="235" y1="4" x2="235" y2="92"/>
+          <line x1="455" y1="4" x2="455" y2="92"/>
+          <line x1="675" y1="4" x2="675" y2="92"/>
+          <line x1="895" y1="4" x2="895" y2="92"/>
+          <line x1="1115" y1="4" x2="1115" y2="92"/>
+          <line x1="1335" y1="4" x2="1335" y2="92"/>
+          <line x1="1555" y1="4" x2="1555" y2="92"/>
+        </g>
+
+        <!-- playhead -->
+        <g>
+          <line x1="580" y1="0" x2="580" y2="96" stroke="#c1272d" stroke-width="1"/>
+          <polygon points="572,0 588,0 580,8" fill="#c1272d"/>
+        </g>
+
+        <!-- NOW PLAYING annotation -->
+        <g font-family="Fraunces" font-style="italic" font-size="10" fill="#c1272d">
+          <text x="595" y="14">t = 04:21 · bar 03 · beat 2</text>
+        </g>
+      </svg>
+
+      <!-- survey sweep -->
+      <div class="wave-sweep"></div>
+    </div>
+
+    <!-- Ruler -->
+    <div class="ruler">
+      <svg class="ruler-svg" viewBox="0 0 1880 22" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- base line -->
+        <line x1="0" y1="0" x2="1880" y2="0" stroke="#1a1614" stroke-width="0.5"/>
+        <!-- 1/8th ticks -->
+        <g stroke="#99948c" stroke-width="0.5">
+          <!-- generate 64 eighth ticks -->
+          <line x1="20"   y1="0" x2="20"   y2="3"/> <line x1="47.5" y1="0" x2="47.5" y2="3"/> <line x1="75"   y1="0" x2="75"   y2="3"/> <line x1="102.5" y1="0" x2="102.5" y2="3"/>
+          <line x1="130"  y1="0" x2="130"  y2="3"/> <line x1="157.5" y1="0" x2="157.5" y2="3"/> <line x1="185"  y1="0" x2="185"  y2="3"/> <line x1="212.5" y1="0" x2="212.5" y2="3"/>
+          <line x1="240"  y1="0" x2="240"  y2="3"/> <line x1="267.5" y1="0" x2="267.5" y2="3"/> <line x1="295"  y1="0" x2="295"  y2="3"/> <line x1="322.5" y1="0" x2="322.5" y2="3"/>
+          <line x1="350"  y1="0" x2="350"  y2="3"/> <line x1="377.5" y1="0" x2="377.5" y2="3"/> <line x1="405"  y1="0" x2="405"  y2="3"/> <line x1="432.5" y1="0" x2="432.5" y2="3"/>
+          <line x1="460"  y1="0" x2="460"  y2="3"/> <line x1="487.5" y1="0" x2="487.5" y2="3"/> <line x1="515"  y1="0" x2="515"  y2="3"/> <line x1="542.5" y1="0" x2="542.5" y2="3"/>
+          <line x1="570"  y1="0" x2="570"  y2="3"/> <line x1="597.5" y1="0" x2="597.5" y2="3"/> <line x1="625"  y1="0" x2="625"  y2="3"/> <line x1="652.5" y1="0" x2="652.5" y2="3"/>
+          <line x1="680"  y1="0" x2="680"  y2="3"/> <line x1="707.5" y1="0" x2="707.5" y2="3"/> <line x1="735"  y1="0" x2="735"  y2="3"/> <line x1="762.5" y1="0" x2="762.5" y2="3"/>
+          <line x1="790"  y1="0" x2="790"  y2="3"/> <line x1="817.5" y1="0" x2="817.5" y2="3"/> <line x1="845"  y1="0" x2="845"  y2="3"/> <line x1="872.5" y1="0" x2="872.5" y2="3"/>
+          <line x1="900"  y1="0" x2="900"  y2="3"/> <line x1="927.5" y1="0" x2="927.5" y2="3"/> <line x1="955"  y1="0" x2="955"  y2="3"/> <line x1="982.5" y1="0" x2="982.5" y2="3"/>
+          <line x1="1010" y1="0" x2="1010" y2="3"/> <line x1="1037.5" y1="0" x2="1037.5" y2="3"/> <line x1="1065" y1="0" x2="1065" y2="3"/> <line x1="1092.5" y1="0" x2="1092.5" y2="3"/>
+          <line x1="1120" y1="0" x2="1120" y2="3"/> <line x1="1147.5" y1="0" x2="1147.5" y2="3"/> <line x1="1175" y1="0" x2="1175" y2="3"/> <line x1="1202.5" y1="0" x2="1202.5" y2="3"/>
+          <line x1="1230" y1="0" x2="1230" y2="3"/> <line x1="1257.5" y1="0" x2="1257.5" y2="3"/> <line x1="1285" y1="0" x2="1285" y2="3"/> <line x1="1312.5" y1="0" x2="1312.5" y2="3"/>
+          <line x1="1340" y1="0" x2="1340" y2="3"/> <line x1="1367.5" y1="0" x2="1367.5" y2="3"/> <line x1="1395" y1="0" x2="1395" y2="3"/> <line x1="1422.5" y1="0" x2="1422.5" y2="3"/>
+          <line x1="1450" y1="0" x2="1450" y2="3"/> <line x1="1477.5" y1="0" x2="1477.5" y2="3"/> <line x1="1505" y1="0" x2="1505" y2="3"/> <line x1="1532.5" y1="0" x2="1532.5" y2="3"/>
+          <line x1="1560" y1="0" x2="1560" y2="3"/> <line x1="1587.5" y1="0" x2="1587.5" y2="3"/> <line x1="1615" y1="0" x2="1615" y2="3"/> <line x1="1642.5" y1="0" x2="1642.5" y2="3"/>
+          <line x1="1670" y1="0" x2="1670" y2="3"/> <line x1="1697.5" y1="0" x2="1697.5" y2="3"/> <line x1="1725" y1="0" x2="1725" y2="3"/> <line x1="1752.5" y1="0" x2="1752.5" y2="3"/>
+          <line x1="1780" y1="0" x2="1780" y2="3"/> <line x1="1807.5" y1="0" x2="1807.5" y2="3"/> <line x1="1835" y1="0" x2="1835" y2="3"/> <line x1="1862.5" y1="0" x2="1862.5" y2="3"/>
+        </g>
+        <!-- beat ticks (quarter) -->
+        <g stroke="#555149" stroke-width="0.5">
+          <line x1="20" y1="0" x2="20" y2="6"/>   <line x1="75" y1="0" x2="75" y2="6"/>   <line x1="130" y1="0" x2="130" y2="6"/> <line x1="185" y1="0" x2="185" y2="6"/>
+          <line x1="240" y1="0" x2="240" y2="6"/> <line x1="295" y1="0" x2="295" y2="6"/> <line x1="350" y1="0" x2="350" y2="6"/> <line x1="405" y1="0" x2="405" y2="6"/>
+          <line x1="460" y1="0" x2="460" y2="6"/> <line x1="515" y1="0" x2="515" y2="6"/> <line x1="570" y1="0" x2="570" y2="6"/> <line x1="625" y1="0" x2="625" y2="6"/>
+          <line x1="680" y1="0" x2="680" y2="6"/> <line x1="735" y1="0" x2="735" y2="6"/> <line x1="790" y1="0" x2="790" y2="6"/> <line x1="845" y1="0" x2="845" y2="6"/>
+          <line x1="900" y1="0" x2="900" y2="6"/> <line x1="955" y1="0" x2="955" y2="6"/> <line x1="1010" y1="0" x2="1010" y2="6"/> <line x1="1065" y1="0" x2="1065" y2="6"/>
+          <line x1="1120" y1="0" x2="1120" y2="6"/> <line x1="1175" y1="0" x2="1175" y2="6"/> <line x1="1230" y1="0" x2="1230" y2="6"/> <line x1="1285" y1="0" x2="1285" y2="6"/>
+          <line x1="1340" y1="0" x2="1340" y2="6"/> <line x1="1395" y1="0" x2="1395" y2="6"/> <line x1="1450" y1="0" x2="1450" y2="6"/> <line x1="1505" y1="0" x2="1505" y2="6"/>
+          <line x1="1560" y1="0" x2="1560" y2="6"/> <line x1="1615" y1="0" x2="1615" y2="6"/> <line x1="1670" y1="0" x2="1670" y2="6"/> <line x1="1725" y1="0" x2="1725" y2="6"/>
+          <line x1="1780" y1="0" x2="1780" y2="6"/> <line x1="1835" y1="0" x2="1835" y2="6"/>
+        </g>
+        <!-- bar ticks -->
+        <g stroke="#1a1614" stroke-width="0.75">
+          <line x1="20" y1="0" x2="20" y2="10"/>
+          <line x1="240" y1="0" x2="240" y2="10"/>
+          <line x1="460" y1="0" x2="460" y2="10"/>
+          <line x1="680" y1="0" x2="680" y2="10"/>
+          <line x1="900" y1="0" x2="900" y2="10"/>
+          <line x1="1120" y1="0" x2="1120" y2="10"/>
+          <line x1="1340" y1="0" x2="1340" y2="10"/>
+          <line x1="1560" y1="0" x2="1560" y2="10"/>
+          <line x1="1780" y1="0" x2="1780" y2="10"/>
+        </g>
+        <!-- bar numerals -->
+        <g font-family="Fraunces" font-style="italic" font-size="10" fill="#1a1614">
+          <text x="24" y="20">01</text>
+          <text x="244" y="20">02</text>
+          <text x="464" y="20">03</text>
+          <text x="684" y="20">04</text>
+          <text x="904" y="20">05</text>
+          <text x="1124" y="20">06</text>
+          <text x="1344" y="20">07</text>
+          <text x="1564" y="20">08</text>
+        </g>
+        <!-- structural labels -->
+        <g font-family="Fraunces" font-style="italic" font-size="9" fill="#77726a">
+          <text x="140" y="20">· verse</text>
+          <text x="360" y="20">· pre</text>
+          <text x="580" y="20">· drop</text>
+          <text x="800" y="20">· drop ii</text>
+          <text x="1020" y="20">· drop iii</text>
+          <text x="1220" y="20">· breakdown</text>
+          <text x="1445" y="20">· buildup</text>
+          <text x="1665" y="20">· drop iv</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ══════════ § 03  SIGNAL BAR ══════════ -->
+  <section class="sec-sigbar">
+    <div class="sig-cell">
+      <div class="sig-top"><span class="sig-name">RMS</span><span class="sig-val">0.82</span></div>
+      <div class="sig-bar"><div class="sig-fill" style="width: 82%"></div></div>
+      <span class="tick">dBFS −14.2 · peak 0.94</span>
+    </div>
+    <div class="sig-cell">
+      <div class="sig-top"><span class="sig-name">Bass</span><span class="sig-val">0.91</span></div>
+      <div class="sig-bar"><div class="sig-fill red" style="width: 91%"></div></div>
+      <span class="tick">60 — 250 Hz · sub 0.72</span>
+    </div>
+    <div class="sig-cell">
+      <div class="sig-top"><span class="sig-name">Mid</span><span class="sig-val">0.54</span></div>
+      <div class="sig-bar"><div class="sig-fill" style="width: 54%"></div></div>
+      <span class="tick">500 — 2.0 kHz</span>
+    </div>
+    <div class="sig-cell">
+      <div class="sig-top"><span class="sig-name">High</span><span class="sig-val">0.38</span></div>
+      <div class="sig-bar"><div class="sig-fill" style="width: 38%"></div></div>
+      <span class="tick">4 — 6 kHz · brilliance 0.22</span>
+    </div>
+    <div class="sig-cell">
+      <div class="sig-top"><span class="sig-name">Onset</span><span class="sig-val">0.94</span></div>
+      <div class="sig-bar"><div class="sig-fill red" style="width: 94%"></div></div>
+      <span class="tick">◉ detected · str 0.94</span>
+    </div>
+    <div class="sig-cell">
+      <div class="sig-top"><span class="sig-name">Flux</span><span class="sig-val">0.48</span></div>
+      <div class="sig-bar"><div class="sig-fill" style="width: 48%"></div></div>
+      <span class="tick">centroid 2142 Hz</span>
+    </div>
+    <div class="sig-cell">
+      <div class="sig-top"><span class="sig-name">Beat φ</span><span class="sig-val">0.62</span></div>
+      <div class="sig-bar"><div class="sig-fill olive" style="width: 62%"></div></div>
+      <span class="tick">sawtooth · 128 bpm</span>
+    </div>
+  </section>
+
+  <!-- ══════════ § 07  LEFT — METERS ══════════ -->
+  <section class="panel sec-meters">
+    <span class="xh tl">+</span><span class="xh tr">+</span><span class="xh bl">+</span><span class="xh br">+</span>
+    <div class="panel-hd">
+      <div class="lhs">
+        <span class="sec">§ 07</span>
+        <span class="title">Signal Meters</span>
+      </div>
+      <div class="rhs">DETAIL</div>
+    </div>
+
+    <div class="meters-list">
+      <div class="meter-section-hd"><span>Dynamics</span><span class="n">i.</span></div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">LUFS</span><span class="meter-val">−14.2</span></div>
+        <div class="meter-bar"><div class="meter-fill olive" style="width: 58%"></div></div>
+        <div class="meter-annot"><span>−60</span><span class="arr">←——————→</span><span>0</span></div>
+      </div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Peak</span><span class="meter-val">−0.8</span></div>
+        <div class="meter-bar"><div class="meter-fill red" style="width: 94%"></div></div>
+        <div class="meter-annot"><span>0.00</span><span class="arr">←——————→</span><span>1.00</span></div>
+      </div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Dyn. Range</span><span class="meter-val">8.4</span></div>
+        <div class="meter-bar"><div class="meter-fill" style="width: 42%"></div></div>
+        <div class="meter-annot"><span>0</span><span class="arr">←——————→</span><span>20</span></div>
+      </div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Transient</span><span class="meter-val">3.2</span></div>
+        <div class="meter-bar"><div class="meter-fill" style="width: 68%"></div></div>
+        <div class="meter-annot"><span>0</span><span class="arr">←——————→</span><span>5 /s</span></div>
+      </div>
+
+      <div class="meter-section-hd"><span>Spectral</span><span class="n">ii.</span></div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Centroid</span><span class="meter-val">2142</span></div>
+        <div class="meter-bar"><div class="meter-fill" style="width: 36%"></div></div>
+        <div class="meter-annot"><span>0 Hz</span><span class="arr">←——————→</span><span>12 k</span></div>
+      </div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Flatness</span><span class="meter-val">0.31</span></div>
+        <div class="meter-bar"><div class="meter-fill" style="width: 31%"></div></div>
+        <div class="meter-annot"><span>0.00</span><span class="arr">←——————→</span><span>1.00</span></div>
+      </div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Rolloff 85%</span><span class="meter-val">6.8k</span></div>
+        <div class="meter-bar"><div class="meter-fill" style="width: 56%"></div></div>
+        <div class="meter-annot"><span>0</span><span class="arr">←——————→</span><span>12 k</span></div>
+      </div>
+
+      <div class="meter-section-hd"><span>Advanced</span><span class="n">iii.</span></div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Sidechain</span><span class="meter-val">0.71</span></div>
+        <div class="meter-bar"><div class="meter-fill" style="width: 71%"></div></div>
+        <div class="meter-annot"><span>0.00</span><span class="arr">←—bass↔mid—→</span><span>1.00</span></div>
+      </div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Swing</span><span class="meter-val">0.52</span></div>
+        <div class="meter-bar"><div class="meter-fill" style="width: 52%"></div></div>
+        <div class="meter-annot"><span>0.50 straight</span><span class="arr">→</span><span>0.67</span></div>
+      </div>
+
+      <div class="meter-row">
+        <div class="meter-top"><span class="meter-name">Reese</span><span class="meter-val">0.18</span></div>
+        <div class="meter-bar"><div class="meter-fill" style="width: 18%"></div></div>
+        <div class="meter-annot"><span>0.00</span><span class="arr">←——————→</span><span>1.00</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ § 04  DECK ══════════ -->
+  <section class="panel sec-deck">
+    <span class="xh tl">+</span><span class="xh tr">+</span><span class="xh bl">+</span><span class="xh br">+</span>
+    <div class="panel-hd">
+      <div class="lhs">
+        <span class="sec">§ 04</span>
+        <span class="title">Deck I · Plan View</span>
+      </div>
+      <div class="rhs">4 LAYERS × 6 COLUMNS &nbsp;·&nbsp; DECK II: STANDBY</div>
+    </div>
+
+    <!-- dimension line -->
+    <div class="deck-dimline">
+      <span class="dim-arrow-l">A ←</span>
+      <div class="dim-cols">
+        <span class="dim-col">col. 01</span>
+        <span class="dim-col">col. 02</span>
+        <span class="dim-col active">col. 03 · triggered</span>
+        <span class="dim-col">col. 04</span>
+        <span class="dim-col">col. 05</span>
+        <span class="dim-col">col. 06</span>
+      </div>
+      <span class="dim-arrow-r">→ A</span>
+    </div>
+
+    <div class="deck-grid">
+
+      <!-- LAYER 01 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-badge">LAYER · 01</div>
+          <div class="layer-name">Base Field</div>
+          <div class="layer-type opaque">opaque · 16-beat autopilot</div>
+          <div class="op-row">
+            <div class="op-line"><div class="op-fill" style="width: 100%"></div></div>
+            <div class="op-annot"><span>0</span><span class="mid">opacity · 1.00</span><span>1</span></div>
+          </div>
+          <div class="layer-fx">
+            <span class="chip active">Ripple</span>
+            <span class="chip">Kaleidoscope</span>
+          </div>
+        </div>
+        <div class="clips">
+          <div class="clip">
+            <div class="clip-idx">I.01</div>
+            <div class="clip-thumb t1"></div>
+            <div class="clip-name">Mandelbrot,<br>plate I</div>
+            <div class="clip-meta"><span>fractal</span><span class="fx">fx · 02</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">I.02</div>
+            <div class="clip-thumb t2"></div>
+            <div class="clip-name">Julia Set,<br>fig. 07</div>
+            <div class="clip-meta"><span>fractal</span><span class="fx">fx · 01</span></div>
+          </div>
+          <div class="clip active">
+            <span class="nowplaying">now playing — bar 03 / 08</span>
+            <div class="clip-idx">I.03</div>
+            <div class="clip-thumb t3"></div>
+            <div class="clip-name">The Spectrum<br>Ring</div>
+            <div class="clip-meta"><span>source</span><span class="fx">fx · 03</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">I.04</div>
+            <div class="clip-thumb t4"></div>
+            <div class="clip-name">Mandelbulb,<br>spec. VI</div>
+            <div class="clip-meta"><span>3d frac</span><span class="fx">fx · 01</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">I.05</div>
+            <div class="clip-thumb t5"></div>
+            <div class="clip-name">Fluid<br>Dynamics Study</div>
+            <div class="clip-meta"><span>sim</span><span class="fx">fx · 02</span></div>
+          </div>
+          <div class="clip empty">
+            <div class="clip-idx">I.06</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 02 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-badge">LAYER · 02</div>
+          <div class="layer-name">Chromatic Veil</div>
+          <div class="layer-type transparent">transparent · add · 8-beat</div>
+          <div class="op-row">
+            <div class="op-line"><div class="op-fill" style="width: 84%; background: #1e4a8a;"></div></div>
+            <div class="op-annot"><span>0</span><span class="mid">opacity · 0.84</span><span>1</span></div>
+          </div>
+          <div class="layer-fx">
+            <span class="chip active">Echo</span>
+            <span class="chip">RGB Split</span>
+            <span class="chip">Hue Shift</span>
+          </div>
+        </div>
+        <div class="clips">
+          <div class="clip">
+            <div class="clip-idx">II.01</div>
+            <div class="clip-thumb t6"></div>
+            <div class="clip-name">Timbral<br>Mosaic</div>
+            <div class="clip-meta"><span>audio</span><span class="fx">fx · 00</span></div>
+          </div>
+          <div class="clip active">
+            <span class="nowplaying">now playing — loop ½</span>
+            <div class="clip-idx">II.02</div>
+            <div class="clip-thumb t7"></div>
+            <div class="clip-name">Chromatic<br>Ring</div>
+            <div class="clip-meta"><span>audio</span><span class="fx">fx · 03</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">II.03</div>
+            <div class="clip-thumb t8"></div>
+            <div class="clip-name">Perlin Noise,<br>treatise</div>
+            <div class="clip-meta"><span>noise</span><span class="fx">fx · 01</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">II.04</div>
+            <div class="clip-thumb t9"></div>
+            <div class="clip-name">Band Tower,<br>no. 3</div>
+            <div class="clip-meta"><span>audio</span><span class="fx">fx · 02</span></div>
+          </div>
+          <div class="clip empty">
+            <div class="clip-idx">II.05</div>
+          </div>
+          <div class="clip empty">
+            <div class="clip-idx">II.06</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 03 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-badge">LAYER · 03</div>
+          <div class="layer-name">Glitch Stratum</div>
+          <div class="layer-type fx">fx only · 4-beat · random</div>
+          <div class="op-row">
+            <div class="op-line"><div class="op-fill" style="width: 52%; background: #c1272d;"></div></div>
+            <div class="op-annot"><span>0</span><span class="mid" style="color: #c1272d">mix · 0.52</span><span>1</span></div>
+          </div>
+          <div class="layer-fx">
+            <span class="chip active">Block Glitch</span>
+            <span class="chip active">RGB Split</span>
+            <span class="chip">Scanlines</span>
+          </div>
+        </div>
+        <div class="clips">
+          <div class="clip">
+            <div class="clip-idx">III.01</div>
+            <div class="clip-thumb t2"></div>
+            <div class="clip-name">Signal<br>Destroy</div>
+            <div class="clip-meta"><span>fx</span><span class="fx">fx · 01</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">III.02</div>
+            <div class="clip-thumb t3"></div>
+            <div class="clip-name">Data<br>Corruption</div>
+            <div class="clip-meta"><span>fx</span><span class="fx">fx · 01</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">III.03</div>
+            <div class="clip-thumb t1"></div>
+            <div class="clip-name">Rhythm<br>Slice</div>
+            <div class="clip-meta"><span>fx</span><span class="fx">fx · 02</span></div>
+          </div>
+          <div class="clip active">
+            <span class="nowplaying">firing · 4-beat cycle</span>
+            <div class="clip-idx">III.04</div>
+            <div class="clip-thumb t7"></div>
+            <div class="clip-name">Pixel<br>Explosion</div>
+            <div class="clip-meta"><span>fx</span><span class="fx">fx · 03</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">III.05</div>
+            <div class="clip-thumb t6"></div>
+            <div class="clip-name">Fragment<br>Burst</div>
+            <div class="clip-meta"><span>fx</span><span class="fx">fx · 01</span></div>
+          </div>
+          <div class="clip empty">
+            <div class="clip-idx">III.06</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 04 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="layer-badge">LAYER · 04</div>
+          <div class="layer-name">Vignette Mask</div>
+          <div class="layer-type mask">mask · luma · persistent</div>
+          <div class="op-row">
+            <div class="op-line"><div class="op-fill" style="width: 100%; background: #5c6e3a;"></div></div>
+            <div class="op-annot"><span>0</span><span class="mid" style="color: #5c6e3a">fill · 1.00</span><span>1</span></div>
+          </div>
+          <div class="layer-fx">
+            <span class="chip">Vignette</span>
+            <span class="chip">Edge Blur</span>
+          </div>
+        </div>
+        <div class="clips">
+          <div class="clip active">
+            <span class="nowplaying" style="color:#5c6e3a">persistent mask</span>
+            <div class="clip-idx">IV.01</div>
+            <div class="clip-thumb t4"></div>
+            <div class="clip-name">Circular Iris,<br>plate I</div>
+            <div class="clip-meta"><span>mask</span><span class="fx">fx · 01</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">IV.02</div>
+            <div class="clip-thumb t5"></div>
+            <div class="clip-name">Rectilinear<br>Frame</div>
+            <div class="clip-meta"><span>mask</span><span class="fx">fx · 00</span></div>
+          </div>
+          <div class="clip">
+            <div class="clip-idx">IV.03</div>
+            <div class="clip-thumb t8"></div>
+            <div class="clip-name">Hexagonal<br>Gate</div>
+            <div class="clip-meta"><span>mask</span><span class="fx">fx · 01</span></div>
+          </div>
+          <div class="clip empty">
+            <div class="clip-idx">IV.04</div>
+          </div>
+          <div class="clip empty">
+            <div class="clip-idx">IV.05</div>
+          </div>
+          <div class="clip empty">
+            <div class="clip-idx">IV.06</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════ § 05  INSPECTOR ══════════ -->
+  <section class="panel sec-inspector">
+    <span class="xh tl">+</span><span class="xh tr">+</span><span class="xh bl">+</span><span class="xh br">+</span>
+    <div class="panel-hd">
+      <div class="lhs">
+        <span class="sec">§ 05</span>
+        <span class="title">Inspector</span>
+      </div>
+      <div class="rhs">LAYER.01 · I.03</div>
+    </div>
+
+    <!-- CLIP section -->
+    <div class="insp-section">
+      <div class="insp-hd">
+        <span class="title">Clip · The Spectrum Ring</span>
+        <span class="num">i.</span>
+      </div>
+      <p class="insp-desc">An audio-native ring source in which each FFT bin is mapped to a radial spoke. Selected for its coherence with the bass / mid sidechain pump of the present phrase.</p>
+      <dl class="defbox">
+        <dt>type</dt><dd>audio source</dd>
+        <dt>beats</dt><dd>4.00</dd>
+        <dt>loop</dt><dd>ping-pong</dd>
+        <dt>in / out</dt><dd>0.00 / 1.00</dd>
+        <dt>transport</dt><dd class="blue">BPM sync ↗</dd>
+        <dt>snap</dt><dd>bar</dd>
+      </dl>
+    </div>
+
+    <!-- TRANSFORM section -->
+    <div class="insp-section">
+      <div class="insp-hd">
+        <span class="title">Transform</span>
+        <span class="num">ii.</span>
+      </div>
+      <div class="param-row">
+        <span class="param-name">Position X</span>
+        <div class="param-slide"><div class="pf" style="width: 50%"></div><div class="ph" style="left: 50%"></div></div>
+        <span class="param-val">0.00</span>
+        <span class="param-link off">▷</span>
+      </div>
+      <div class="param-row">
+        <span class="param-name">Position Y</span>
+        <div class="param-slide"><div class="pf" style="width: 50%"></div><div class="ph" style="left: 50%"></div></div>
+        <span class="param-val">0.00</span>
+        <span class="param-link off">▷</span>
+      </div>
+      <div class="param-row">
+        <span class="param-name">Scale</span>
+        <div class="param-slide"><div class="pf" style="width: 62%"></div><div class="ph" style="left: 62%"></div></div>
+        <span class="param-val">1.24</span>
+        <span class="param-link">▶</span>
+      </div>
+      <div class="route-mini">↳ <span class="src">RMS</span> <span class="curve">· exp 2.0</span> · 0.00 → 1.50</div>
+      <div class="param-row">
+        <span class="param-name">Rotation</span>
+        <div class="param-slide"><div class="pf" style="width: 38%"></div><div class="ph" style="left: 38%"></div></div>
+        <span class="param-val">−43°</span>
+        <span class="param-link">▶</span>
+      </div>
+      <div class="route-mini">↳ <span class="src">Bar φ</span> <span class="curve">· linear</span> · −180° → 180°</div>
+    </div>
+
+    <!-- FX section -->
+    <div class="insp-section">
+      <div class="insp-hd">
+        <span class="title">Effects &nbsp;<span class="smallcaps" style="color:var(--grey-2);font-size:11px">· 3 slots</span></span>
+        <span class="num">iii.</span>
+      </div>
+      <div class="param-row">
+        <span class="param-name">Ripple · Freq</span>
+        <div class="param-slide"><div class="pf" style="width: 74%"></div><div class="ph" style="left: 74%"></div></div>
+        <span class="param-val">0.74</span>
+        <span class="param-link">▶</span>
+      </div>
+      <div class="route-mini">↳ <span class="src">Bass</span> <span class="curve">· s-curve</span> · 0.20 → 0.90</div>
+      <div class="param-row">
+        <span class="param-name">Ripple · Ampl</span>
+        <div class="param-slide"><div class="pf" style="width: 42%"></div><div class="ph" style="left: 42%"></div></div>
+        <span class="param-val">0.42</span>
+        <span class="param-link off">▷</span>
+      </div>
+      <div class="param-row">
+        <span class="param-name">Kaleido · Sides</span>
+        <div class="param-slide"><div class="pf" style="width: 55%"></div><div class="ph" style="left: 55%"></div></div>
+        <span class="param-val">6</span>
+        <span class="param-link">▶</span>
+      </div>
+      <div class="route-mini">↳ <span class="src">Phrase φ</span> <span class="curve">· stepped 8</span></div>
+    </div>
+
+    <!-- SIGNATURE section -->
+    <div class="insp-section">
+      <div class="insp-hd">
+        <span class="title">Signature</span>
+        <span class="num">iv.</span>
+      </div>
+      <p class="key-sig-line">Key&nbsp;·&nbsp;<b>A minor</b>, correlation 0.87</p>
+      <p class="key-sig-line">Genre&nbsp;·&nbsp;<b>Techno</b>, confidence 0.81</p>
+      <p class="key-sig-line">Energy&nbsp;·&nbsp;<b>high</b>&nbsp;·&nbsp;state <i>drop iii</i></p>
+    </div>
+  </section>
+
+  <!-- ══════════ § 06  SIGNAL ROUTING ══════════ -->
+  <section class="panel sec-routing">
+    <span class="xh tl">+</span><span class="xh tr">+</span><span class="xh bl">+</span><span class="xh br">+</span>
+    <div class="panel-hd">
+      <div class="lhs">
+        <span class="sec">§ 06</span>
+        <span class="title">Signal Routing · Detail 01</span>
+      </div>
+      <div class="rhs">PATCH BAY &nbsp;·&nbsp; 7 ACTIVE ROUTES · 3 DORMANT &nbsp;·&nbsp; ↕ 128 PX</div>
+    </div>
+
+    <div class="routing-body">
+
+      <!-- Sources -->
+      <div class="routing-col src">
+        <div class="port active" id="src-rms">
+          <span class="dot"></span>
+          <span>RMS</span>
+          <span class="num">0.82</span>
+        </div>
+        <div class="port active" id="src-bass">
+          <span class="dot"></span>
+          <span>Bass</span>
+          <span class="num">0.91</span>
+        </div>
+        <div class="port active" id="src-onset">
+          <span class="dot"></span>
+          <span>Onset</span>
+          <span class="num">◉ 0.94</span>
+        </div>
+        <div class="port active" id="src-beat">
+          <span class="dot"></span>
+          <span>Beat φ</span>
+          <span class="num">0.62</span>
+        </div>
+        <div class="port active" id="src-bar">
+          <span class="dot"></span>
+          <span>Bar φ</span>
+          <span class="num">0.40</span>
+        </div>
+        <div class="port active" id="src-phrase">
+          <span class="dot"></span>
+          <span>Phrase φ</span>
+          <span class="num">0.18</span>
+        </div>
+        <div class="port" id="src-centroid">
+          <span class="dot"></span>
+          <span>Centroid</span>
+          <span class="num">—</span>
+        </div>
+      </div>
+
+      <!-- Patch -->
+      <div class="routing-patch">
+        <svg class="patch-svg" viewBox="0 0 600 110" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#1e4a8a"/>
+            </marker>
+            <marker id="ar-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#bcb6ad"/>
+            </marker>
+
+            <path id="c1" d="M 6 10  C 200 10, 400 16, 594 16" />
+            <path id="c2" d="M 6 26  C 200 26, 400 34, 594 34" />
+            <path id="c3" d="M 6 42  C 220 42, 380 52, 594 52" />
+            <path id="c4" d="M 6 58  C 200 58, 400 70, 594 70" />
+            <path id="c5" d="M 6 74  C 220 74, 380 86, 594 86" />
+            <path id="c6" d="M 6 90  C 200 90, 400 104, 594 104" />
+            <path id="c7" d="M 6 42  C 200 70, 400 60, 594 52" />
+            <path id="c-off-1" d="M 6 106  C 200 106, 400 90, 594 70" />
+          </defs>
+
+          <!-- dormant routes first -->
+          <g fill="none" stroke="#bcb6ad" stroke-width="0.5" stroke-dasharray="3 3">
+            <use href="#c-off-1"/>
+          </g>
+
+          <!-- active routes -->
+          <g fill="none" stroke="#1e4a8a" stroke-width="0.8">
+            <use href="#c1"/>
+            <use href="#c2"/>
+            <use href="#c3"/>
+            <use href="#c4"/>
+            <use href="#c5"/>
+            <use href="#c6"/>
+            <use href="#c7" stroke-opacity="0.5"/>
+          </g>
+
+          <!-- labels along paths -->
+          <g font-family="Fraunces" font-style="italic" font-size="10" fill="#1a1614">
+            <text><textPath href="#c1" startOffset="30%">RMS ⟶ Layer.02 · Opacity &nbsp; · exp &nbsp; · 0.84</textPath></text>
+            <text><textPath href="#c2" startOffset="30%">Bass ⟶ Ripple · Freq &nbsp; · s-curve &nbsp; · 0.74</textPath></text>
+            <text><textPath href="#c3" startOffset="28%">Onset ⟶ Glitch.trigger &nbsp; · step &nbsp; · ◉</textPath></text>
+            <text><textPath href="#c4" startOffset="30%">Beat φ ⟶ Kaleido · Phase &nbsp; · linear &nbsp; · 0.62</textPath></text>
+            <text><textPath href="#c5" startOffset="30%">Bar φ ⟶ Clip.I.03 · Rotation &nbsp; · linear</textPath></text>
+            <text><textPath href="#c6" startOffset="28%">Phrase φ ⟶ Composition · Scale &nbsp; · s-curve</textPath></text>
+            <text><textPath href="#c7" startOffset="30%" fill="#1e4a8a" opacity="0.55">Onset ⟶ Echo · Decay &nbsp; · exp</textPath></text>
+          </g>
+
+          <!-- dormant label -->
+          <g font-family="Fraunces" font-style="italic" font-size="9" fill="#bcb6ad">
+            <text><textPath href="#c-off-1" startOffset="30%">Phrase φ ⟶ Transform · Rotation &nbsp; · dormant</textPath></text>
+          </g>
+        </svg>
+
+        <div class="routing-hd">
+          <span>↔ 560 px · 1 : 1</span>
+          <span>cable type · bezier · length fit</span>
+          <span>legend · <span style="color:var(--blue)">━━</span> active &nbsp; <span style="color:var(--grey-3)">╌╌</span> dormant</span>
+        </div>
+      </div>
+
+      <!-- Targets -->
+      <div class="routing-col tgt">
+        <div class="port tgt active">
+          <span class="dot"></span>
+          <span>Layer.02 Opacity</span>
+          <span class="val">0.84</span>
+        </div>
+        <div class="port tgt active">
+          <span class="dot"></span>
+          <span>Ripple · Freq</span>
+          <span class="val">0.74</span>
+        </div>
+        <div class="port tgt active">
+          <span class="dot"></span>
+          <span>Glitch · Trigger</span>
+          <span class="val">◉</span>
+        </div>
+        <div class="port tgt active">
+          <span class="dot"></span>
+          <span>Kaleido · Phase</span>
+          <span class="val">0.62</span>
+        </div>
+        <div class="port tgt active">
+          <span class="dot"></span>
+          <span>Clip · Rotation</span>
+          <span class="val">−43°</span>
+        </div>
+        <div class="port tgt active">
+          <span class="dot"></span>
+          <span>Comp. · Scale</span>
+          <span class="val">1.08</span>
+        </div>
+        <div class="port tgt">
+          <span class="dot"></span>
+          <span>Transform · Rot</span>
+          <span class="val">—</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <div class="footer">
+    <span>AUDIO-DNA &nbsp;·&nbsp; BUILD <b>V.9.0</b> &nbsp;·&nbsp; ROUTE REV 03</span>
+    <div class="mid">
+      <span><b>60.0</b> FPS</span>
+      <span>CPU <b>22</b>%</span>
+      <span>GPU <b>41</b>%</span>
+      <span>LATENCY <b>18</b> MS</span>
+      <span>RING <b class="ok">◉ STABLE</b></span>
+      <span>DISK <b>12.4</b> MB/S</span>
+    </div>
+    <span class="scale">drawn to scale · 1920 × 1080 · 1:1</span>
+  </div>
+
+</div>
+</body>
+</html>

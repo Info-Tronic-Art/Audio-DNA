@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA · V9 Brutalist 03 · Dual-Stage</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0a0a0a;
+  --bg-2: #111111;
+  --bg-3: #161616;
+  --bg-4: #1c1c1c;
+  --ink: #e6e6e6;
+  --ink-dim: #8a8a8a;
+  --ink-dimmer: #555555;
+  --hair: #2a2a2a;
+  --hair-bright: #3a3a3a;
+  --accent: #ff4500;
+  --grain-op: 0.04;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: #000;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 11px;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+.stage {
+  width: 1920px;
+  height: 1080px;
+  position: relative;
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+}
+
+/* Grain overlay */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--grain-op);
+  z-index: 9999;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.8 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Panel halves */
+.half {
+  width: 960px;
+  height: 1080px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--hair);
+}
+.half.right { border-right: none; }
+
+/* Divider label */
+.divider-label {
+  position: absolute;
+  top: 50%;
+  left: 960px;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  background: var(--bg);
+  padding: 4px 10px;
+  border: 1px solid var(--hair);
+  z-index: 500;
+}
+
+/* ========== Menu bar ========== */
+.menubar {
+  height: 22px;
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 18px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+  background: var(--bg-2);
+  flex-shrink: 0;
+}
+.menubar .brand {
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+.menubar .brand .dot { color: var(--accent); }
+.menubar .spacer { flex: 1; }
+.menubar .meta {
+  font-size: 9px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.2em;
+}
+
+/* ========== Top bar ========== */
+.topbar {
+  height: 36px;
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-2);
+  flex-shrink: 0;
+}
+.tb-cell {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-right: 1px solid var(--hair);
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+}
+.tb-cell .lbl {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dimmer);
+  text-transform: uppercase;
+}
+.tb-cell .val {
+  color: var(--ink);
+  font-weight: 600;
+}
+.tb-cell.bpm .val {
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.tb-btn {
+  padding: 4px 8px;
+  border: 1px solid var(--hair);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--ink-dim);
+  background: transparent;
+  text-transform: uppercase;
+}
+.tb-btn.on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.multipliers { display: flex; gap: 2px; }
+.mult {
+  width: 24px; height: 20px;
+  border: 1px solid var(--hair);
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-dim);
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: 0.05em;
+}
+.mult.sel {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+/* Beat wheel */
+.beatwheel {
+  width: 22px; height: 22px;
+  position: relative;
+  border: 1px solid var(--hair-bright);
+  border-radius: 50%;
+}
+.beatwheel .seg {
+  position: absolute;
+  width: 50%; height: 50%;
+  background: var(--ink-dimmer);
+}
+.beatwheel .seg.tl { top:0; left:0; }
+.beatwheel .seg.tr { top:0; right:0; }
+.beatwheel .seg.br { bottom:0; right:0; }
+.beatwheel .seg.bl { bottom:0; left:0; }
+.beatwheel .seg.tl { background: var(--accent); animation: beatpulse 0.468s infinite; }
+@keyframes beatpulse {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+.beatwheel .hub {
+  position: absolute;
+  width: 4px; height: 4px;
+  background: var(--bg-2);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+/* MODE TOGGLE - biggest affordance */
+.mode-toggle {
+  display: flex;
+  align-items: stretch;
+  border-left: 1px solid var(--hair);
+  margin-left: auto;
+}
+.mode-cell {
+  width: 70px;
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  font-size: 11px;
+  border-right: 1px solid var(--hair);
+  background: transparent;
+  color: var(--ink-dimmer);
+  position: relative;
+}
+.mode-cell .tiny {
+  font-size: 7px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--ink-dimmer);
+  margin-bottom: 2px;
+}
+.mode-cell.on {
+  background: var(--accent);
+  color: #fff;
+}
+.mode-cell.on .tiny {
+  color: rgba(255,255,255,0.85);
+}
+.mode-cell.on::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: -1px; right: -1px; bottom: -1px;
+  border: 1px solid var(--accent);
+  pointer-events: none;
+}
+
+/* ========== Generic panel ========== */
+.panel {
+  border-bottom: 1px solid var(--hair);
+  position: relative;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--hair);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  height: 20px;
+}
+.panel-head .idx {
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 8px;
+}
+.panel-head .sep { color: var(--ink-dimmer); margin: 0 6px; }
+.panel-head .right {
+  margin-left: auto;
+  color: var(--ink-dimmer);
+  font-size: 8px;
+  letter-spacing: 0.28em;
+}
+
+/* ========== WAVEFORM MAX (PROGRAM) ========== */
+.wf-max {
+  height: 180px;
+  position: relative;
+  background: var(--bg);
+  border-bottom: 1px solid var(--hair);
+  overflow: hidden;
+}
+.wf-head {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--hair);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--ink-dim);
+}
+.wf-head .idx { color: var(--accent); font-weight: 700; margin-right: 8px; }
+.wf-head .meta {
+  margin-left: auto;
+  color: var(--ink-dimmer);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  display: flex;
+  gap: 14px;
+}
+.wf-head .meta span b { color: var(--ink); font-weight: 600; }
+.wf-body {
+  position: relative;
+  height: 160px;
+}
+.wf-deck {
+  position: absolute;
+  left: 0; right: 0;
+  height: 68px;
+}
+.wf-deck.a { top: 6px; }
+.wf-deck.b { bottom: 6px; }
+.wf-label {
+  position: absolute;
+  top: 2px; left: 6px;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: var(--ink-dimmer);
+}
+.wf-label b { color: var(--ink); }
+.wf-label .key {
+  color: var(--accent);
+  margin-left: 8px;
+}
+.wf-canvas {
+  position: absolute;
+  top: 14px; left: 6px; right: 6px; bottom: 2px;
+  background: linear-gradient(180deg, rgba(255,69,0,0.025) 0%, rgba(138,138,138,0.03) 50%, rgba(230,230,230,0.02) 100%);
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  overflow: hidden;
+}
+.wf-bars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 0 2px;
+}
+.wf-bar {
+  flex: 1;
+  background: linear-gradient(180deg, var(--accent) 0%, #ff8a57 18%, #e6e6e6 40%, #8a8a8a 60%, #4a4a4a 100%);
+  opacity: 0.75;
+}
+.wf-playhead {
+  position: absolute;
+  top: -2px; bottom: -2px;
+  width: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.wf-beatgrid {
+  position: absolute;
+  top: 0; bottom: 0; left: 0; right: 0;
+  pointer-events: none;
+}
+.wf-beatgrid .tick {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: var(--hair-bright);
+  opacity: 0.7;
+}
+.wf-beatgrid .tick.bar {
+  background: var(--ink-dim);
+  opacity: 0.55;
+}
+.wf-barnum {
+  position: absolute;
+  top: -12px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.1em;
+}
+.wf-structural {
+  position: absolute;
+  bottom: -12px;
+  height: 10px;
+  display: flex;
+  left: 6px; right: 6px;
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dimmer);
+}
+.wf-zone {
+  flex: 1;
+  border-top: 1px solid var(--hair);
+  text-align: center;
+  padding-top: 2px;
+}
+.wf-zone.drop { color: var(--accent); border-color: var(--accent); }
+
+/* ========== SIGNALS FULL (PROGRAM) ========== */
+.sig-full {
+  height: 60px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  flex-direction: column;
+}
+.sig-full .panel-head { background: transparent; }
+.sig-row {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(17, 1fr);
+  border-top: 1px solid var(--hair);
+}
+.sig-cell {
+  border-right: 1px solid var(--hair);
+  padding: 3px 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--mono);
+}
+.sig-cell:last-child { border-right: none; }
+.sig-cell .lbl {
+  font-size: 7px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dimmer);
+}
+.sig-cell .val {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1;
+}
+.sig-cell .val.hot { color: var(--accent); }
+.sig-meter {
+  height: 2px;
+  background: var(--hair);
+  margin-top: 1px;
+  position: relative;
+}
+.sig-meter::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: var(--ink);
+  width: var(--w, 30%);
+}
+.sig-meter.hot::after { background: var(--accent); }
+
+/* ========== Main row PROGRAM ========== */
+.mainrow-prog {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  border-bottom: 1px solid var(--hair);
+}
+
+/* DECK GRID PROGRAM */
+.deck-prog {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--hair);
+  min-width: 0;
+  background: var(--bg);
+}
+.deck-grid-prog {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 34px repeat(6, 1fr);
+  grid-template-rows: 22px repeat(3, 1fr);
+  gap: 0;
+}
+.deck-colhead {
+  border-right: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.22em;
+  background: var(--bg-2);
+}
+.deck-corner {
+  border-right: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  background: var(--bg-2);
+}
+.deck-rowhead-p {
+  border-right: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  background: var(--bg-2);
+  gap: 2px;
+}
+.deck-rowhead-p .lnum { color: var(--accent); font-weight: 700; font-size: 9px; }
+.deck-cell-p {
+  border-right: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  position: relative;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-dim);
+  overflow: hidden;
+}
+.deck-cell-p.active {
+  background: #1a0e08;
+  border-left: 2px solid var(--accent);
+}
+.deck-cell-p.loaded { background: var(--bg-3); }
+.deck-cell-p.empty { background: #060606; }
+.deck-cell-p .thumb {
+  height: 50px;
+  background: linear-gradient(135deg, #1f1f1f, #0e0e0e);
+  border: 1px solid var(--hair);
+  margin-bottom: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.deck-cell-p .thumb.img-a { background: linear-gradient(135deg, var(--accent), #331408); }
+.deck-cell-p .thumb.img-b { background: linear-gradient(45deg, #2a2a2a, #4a4a4a, #1c1c1c); }
+.deck-cell-p .thumb.img-c { background: radial-gradient(circle at 30% 40%, #fff, #161616 60%); }
+.deck-cell-p .thumb.img-d { background: repeating-linear-gradient(45deg, #111 0 6px, #222 6px 12px); }
+.deck-cell-p .thumb.img-e { background: linear-gradient(180deg, #ff4500 0%, #333 50%, #000 100%); }
+.deck-cell-p .thumb.img-f { background: conic-gradient(from 180deg, #222, #444, #222); }
+.deck-cell-p .cname {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-size: 9px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.deck-cell-p .ctags {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.12em;
+}
+.deck-cell-p .ctags .bpm { color: var(--ink-dim); }
+.deck-cell-p .ctags .key { color: var(--accent); }
+.deck-cell-p .cmeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.12em;
+  margin-top: 2px;
+}
+.deck-cell-p .fxtag {
+  position: absolute;
+  top: 4px; right: 4px;
+  background: var(--accent);
+  color: #000;
+  font-family: var(--mono);
+  font-size: 7px;
+  padding: 1px 3px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.deck-cell-p .playglyph {
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 4px 0 4px 6px;
+  border-color: transparent transparent transparent var(--accent);
+}
+
+/* INSPECTOR WIDE */
+.inspector-wide {
+  width: 360px;
+  border-right: 1px solid var(--hair);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  min-height: 0;
+}
+.insp-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--hair);
+  height: 24px;
+  flex-shrink: 0;
+}
+.insp-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dimmer);
+  border-right: 1px solid var(--hair);
+  background: var(--bg-3);
+  text-transform: uppercase;
+}
+.insp-tab:last-child { border-right: none; }
+.insp-tab.on {
+  background: var(--bg);
+  color: var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
+.insp-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.insp-section {
+  border-bottom: 1px solid var(--hair);
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+.insp-section h4 {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  color: var(--ink-dimmer);
+  font-weight: 500;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.insp-section h4 .idx { color: var(--accent); margin-right: 6px; font-weight: 700; }
+
+.sig-big {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.sig-big .name {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: var(--ink);
+  font-weight: 600;
+}
+.sig-big .val {
+  font-family: var(--mono);
+  font-size: 42px;
+  font-weight: 300;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-family: var(--mono);
+  font-size: 8px;
+}
+.slider-row .lbl {
+  color: var(--ink-dim);
+  letter-spacing: 0.16em;
+}
+.slider-row .track {
+  height: 3px;
+  background: var(--hair);
+  position: relative;
+}
+.slider-row .track::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: var(--accent);
+  width: var(--w, 40%);
+}
+.slider-row .track .thumb {
+  position: absolute;
+  top: -2px; bottom: -2px;
+  width: 2px;
+  background: var(--ink);
+  left: var(--w, 40%);
+}
+.slider-row .val {
+  color: var(--ink);
+  text-align: right;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.wave-select {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  margin-bottom: 8px;
+}
+.wave-btn {
+  height: 26px;
+  border: 1px solid var(--hair);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.14em;
+  color: var(--ink-dim);
+  background: var(--bg-3);
+  gap: 1px;
+}
+.wave-btn.on {
+  background: var(--bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.wave-btn .glyph {
+  height: 8px;
+  width: 18px;
+  position: relative;
+}
+.wave-btn .glyph svg { width: 100%; height: 100%; }
+
+.beat-select {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  margin-bottom: 8px;
+}
+.beat-cell {
+  height: 20px;
+  border: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-dim);
+  letter-spacing: 0.1em;
+  background: var(--bg-3);
+}
+.beat-cell.on {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.env-panel {
+  height: 100px;
+  background: #070707;
+  border: 1px solid var(--hair);
+  position: relative;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+.env-panel .grid-line {
+  position: absolute;
+  background: var(--hair);
+  opacity: 0.5;
+}
+.env-panel .grid-line.h { left: 0; right: 0; height: 1px; }
+.env-panel .grid-line.v { top: 0; bottom: 0; width: 1px; }
+.env-panel svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.env-panel .cp {
+  position: absolute;
+  width: 8px; height: 8px;
+  background: var(--bg);
+  border: 1.5px solid var(--accent);
+  transform: translate(-50%, -50%);
+}
+.env-panel .lbl-ax {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: 6px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.2em;
+}
+
+.env-controls {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.env-btn {
+  padding: 3px 7px;
+  border: 1px solid var(--hair);
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+  background: var(--bg-3);
+  text-transform: uppercase;
+}
+.env-btn.on { border-color: var(--accent); color: var(--accent); }
+.env-btn.off { color: var(--ink-dimmer); }
+
+.routes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.route-item {
+  border: 1px solid var(--hair);
+  background: var(--bg-3);
+  padding: 4px 6px;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.route-item .head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink);
+  font-weight: 600;
+}
+.route-item .head .src { color: var(--accent); }
+.route-item .head .arrow { color: var(--ink-dimmer); margin: 0 4px; }
+.route-item .meta {
+  display: flex;
+  gap: 8px;
+  color: var(--ink-dimmer);
+  font-size: 7px;
+  letter-spacing: 0.15em;
+}
+
+/* BROWSER WIDE */
+.browser-wide {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2);
+  min-height: 0;
+}
+.br-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--hair);
+  height: 22px;
+  flex-shrink: 0;
+}
+.br-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dimmer);
+  border-right: 1px solid var(--hair);
+  background: var(--bg-3);
+  text-transform: uppercase;
+}
+.br-tab.on { background: var(--bg); color: var(--accent); border-bottom: 1px solid var(--accent); }
+.br-search {
+  height: 22px;
+  border-bottom: 1px solid var(--hair);
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-dim);
+  letter-spacing: 0.12em;
+  background: var(--bg-3);
+}
+.br-search .caret { color: var(--accent); margin-right: 4px; }
+.br-cat {
+  height: 20px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-dim);
+  letter-spacing: 0.18em;
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--hair);
+  text-transform: uppercase;
+}
+.br-cat b { color: var(--accent); }
+.br-list {
+  flex: 1;
+  overflow: hidden;
+}
+.br-row {
+  height: 28px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--hair);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  gap: 6px;
+  background: var(--bg);
+}
+.br-row .icon {
+  width: 10px; height: 10px;
+  border: 1px solid var(--ink-dim);
+}
+.br-row .tag {
+  margin-left: auto;
+  font-size: 7px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.2em;
+}
+.br-row.on { background: var(--bg-3); }
+.br-row.on .icon { border-color: var(--accent); background: var(--accent); }
+
+/* ========== BOTTOM ROUTER (PROGRAM) ========== */
+.router-strip {
+  height: 80px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  flex-direction: column;
+}
+.router-strip .panel-head { background: transparent; }
+.router-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border-top: 1px solid var(--hair);
+}
+.route-viz {
+  border-right: 1px solid var(--hair);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--mono);
+  position: relative;
+}
+.route-viz:last-child { border-right: none; }
+.route-viz .flow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+}
+.route-viz .flow .src {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+.route-viz .flow .arr {
+  color: var(--ink-dim);
+  font-size: 11px;
+}
+.route-viz .flow .tgt {
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.route-viz .line-viz {
+  height: 14px;
+  background: var(--bg-3);
+  border: 1px solid var(--hair);
+  position: relative;
+  overflow: hidden;
+}
+.route-viz .line-viz svg {
+  width: 100%; height: 100%;
+  display: block;
+}
+.route-viz .tail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dimmer);
+}
+
+/* ========== STATUS BAR ========== */
+.statusbar {
+  height: 18px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dimmer);
+  gap: 16px;
+  flex-shrink: 0;
+}
+.statusbar .dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  animation: blink 1.5s infinite;
+}
+.statusbar .spacer { flex: 1; }
+@keyframes blink { 0%,60%{opacity:1} 70%,100%{opacity:0.25} }
+
+/* ========== PROGRAM annotation ========== */
+.mode-annot {
+  position: absolute;
+  top: 64px;
+  left: 10px;
+  z-index: 100;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.24em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 3px 8px;
+  background: rgba(255,69,0,0.08);
+  text-transform: uppercase;
+}
+
+/* ========== PLAY MODE ========== */
+.wf-min {
+  height: 40px;
+  position: relative;
+  background: var(--bg);
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+.wf-min .lbl-min {
+  width: 34px;
+  border-right: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dim);
+  background: var(--bg-2);
+}
+.wf-min .lbl-min .idx { color: var(--accent); }
+.wf-min .wf-bars-min {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  gap: 1px;
+  position: relative;
+}
+.wf-min .wf-bars-min .wf-bar { height: 70%; }
+
+.sig-min {
+  height: 20px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink);
+  letter-spacing: 0.12em;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.sig-min .sig-mini {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+.sig-min .sig-mini .nm {
+  color: var(--ink-dimmer);
+  font-size: 7px;
+  letter-spacing: 0.22em;
+}
+.sig-min .sig-mini .v { color: var(--ink); font-weight: 600; }
+.sig-min .sig-mini .v.hot { color: var(--accent); }
+.sig-min .sig-mini.trig .v { color: var(--accent); }
+.sig-min .sig-mini .dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  animation: blink 0.8s infinite;
+}
+.sig-min .sep { color: var(--ink-dimmer); }
+
+/* PLAY main */
+.play-main {
+  flex: 1;
+  display: flex;
+  position: relative;
+  min-height: 0;
+}
+.deck-play {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.deck-play .panel-head { height: 18px; }
+.deck-grid-play {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 28px repeat(10, 1fr);
+  grid-template-rows: 18px repeat(5, 1fr);
+  min-height: 0;
+}
+.dp-corner, .dp-colhead {
+  border-right: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  background: var(--bg-2);
+}
+.dp-colhead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.15em;
+}
+.dp-rowhead {
+  border-right: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  background: var(--bg-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--accent);
+  font-weight: 700;
+}
+.dp-cell {
+  border-right: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  position: relative;
+  background: var(--bg);
+  padding: 3px;
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink-dim);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.dp-cell .thumb {
+  flex: 1;
+  background: linear-gradient(135deg, #1c1c1c, #0a0a0a);
+  border: 1px solid var(--hair);
+  margin-bottom: 2px;
+}
+.dp-cell .thumb.img-a { background: linear-gradient(135deg, var(--accent), #331408); }
+.dp-cell .thumb.img-b { background: linear-gradient(45deg, #2a2a2a, #4a4a4a, #1c1c1c); }
+.dp-cell .thumb.img-c { background: radial-gradient(circle at 30% 40%, #fff, #161616 60%); }
+.dp-cell .thumb.img-d { background: repeating-linear-gradient(45deg, #111 0 4px, #222 4px 8px); }
+.dp-cell .thumb.img-e { background: linear-gradient(180deg, #ff4500 0%, #333 50%, #000 100%); }
+.dp-cell .thumb.img-f { background: conic-gradient(from 180deg, #222, #444, #222); }
+.dp-cell .thumb.img-g { background: radial-gradient(circle at 60% 60%, var(--accent), #000 70%); }
+.dp-cell .thumb.img-h { background: linear-gradient(90deg, #333, #888, #333); }
+.dp-cell .nm {
+  font-size: 7px;
+  color: var(--ink);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dp-cell.active {
+  background: #1a0e08;
+  border-left: 2px solid var(--accent);
+}
+.dp-cell.active .playglyph {
+  position: absolute;
+  top: 2px; right: 3px;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 3px 0 3px 5px;
+  border-color: transparent transparent transparent var(--accent);
+}
+.dp-cell.empty { background: #060606; }
+
+/* Edge strips (collapsed surfaces) */
+.edge-strip {
+  width: 14px;
+  background: var(--bg-2);
+  border-left: 1px solid var(--hair);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.edge-strip.bottom {
+  width: 100%;
+  height: 14px;
+  border-left: none;
+  border-top: 1px solid var(--hair);
+  flex-direction: row;
+  padding: 0 14px;
+}
+.edge-strip .marker {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  width: 10px; height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.edge-strip .sideways {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.28em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.edge-strip.bottom .sideways {
+  writing-mode: horizontal-tb;
+  transform: none;
+}
+.edge-strip .ghost {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: #ffffff;
+  opacity: 0.25;
+  top: 0;
+  animation: ghost 6s ease-in-out infinite;
+}
+.edge-strip.bottom .ghost {
+  left: 0;
+  top: 0; bottom: 0; right: auto;
+  height: auto;
+  width: 1px;
+  animation: ghosth 6s ease-in-out infinite;
+}
+@keyframes ghost {
+  0% { top: 0; opacity: 0; }
+  15% { opacity: 0.45; }
+  50% { top: 100%; opacity: 0.45; }
+  55% { opacity: 0; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes ghosth {
+  0% { left: 0; opacity: 0; }
+  15% { opacity: 0.45; }
+  50% { left: 100%; opacity: 0.45; }
+  55% { opacity: 0; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* Bottom status common classes */
+.statusbar-play .spacer { flex: 1; }
+
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="grain"></div>
+
+  <!-- ========== LEFT HALF : PROGRAM MODE ========== -->
+  <div class="half left">
+
+    <!-- Menu bar -->
+    <div class="menubar">
+      <span class="brand">AUDIO<span class="dot">·</span>DNA</span>
+      <span>FILE</span><span>EDIT</span><span>VIEW</span><span>COMP</span><span>DECK</span><span>SIGNAL</span><span>OUTPUT</span><span>WINDOW</span><span>HELP</span>
+      <span class="spacer"></span>
+      <span class="meta">V9 · BRUTALIST · 03 DUAL-STAGE · LEFT : PROGRAM</span>
+    </div>
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="tb-cell bpm"><span class="lbl">BPM</span><span class="val">128.0</span></div>
+      <div class="tb-cell">
+        <button class="tb-btn">TAP</button>
+        <button class="tb-btn">RSYNC</button>
+        <button class="tb-btn">MANUAL</button>
+      </div>
+      <div class="tb-cell">
+        <span class="lbl">MULT</span>
+        <div class="multipliers">
+          <div class="mult">1/4</div>
+          <div class="mult">1/2</div>
+          <div class="mult sel">1×</div>
+          <div class="mult">2×</div>
+          <div class="mult">4×</div>
+        </div>
+      </div>
+      <div class="tb-cell">
+        <div class="beatwheel">
+          <div class="seg tl"></div><div class="seg tr"></div><div class="seg br"></div><div class="seg bl"></div>
+          <div class="hub"></div>
+        </div>
+        <span class="lbl">BAR</span><span class="val">03/08</span>
+        <span class="lbl">PHR</span><span class="val">2/4</span>
+      </div>
+      <div class="tb-cell">
+        <span class="lbl">SRC</span><span class="val">MAIN OUT</span>
+      </div>
+      <div class="tb-cell">
+        <span class="lbl">MST</span><span class="val">0.85</span>
+      </div>
+      <div class="tb-cell">
+        <button class="tb-btn">REC</button>
+        <span class="lbl">FPS</span><span class="val">60.0</span>
+      </div>
+      <!-- MODE TOGGLE -->
+      <div class="mode-toggle">
+        <div class="mode-cell on"><span class="tiny">MODE</span>PROGRAM</div>
+        <div class="mode-cell"><span class="tiny">MODE</span>PLAY</div>
+      </div>
+    </div>
+
+    <!-- Annotation -->
+    <div class="mode-annot">MODE : PROGRAM · ALL SURFACES EXPANDED · DENSE FOR PREPARATION</div>
+
+    <!-- WAVEFORM MAX -->
+    <div class="wf-max">
+      <div class="wf-head">
+        <span class="idx">01 /</span>
+        <span>WAVEFORM</span><span class="sep">·</span><span>MAX</span>
+        <span class="meta">
+          <span>DECK A · <b>KICKER_128.WAV</b></span>
+          <span>KEY <b style="color:var(--accent)">F MIN</b></span>
+          <span>LEN <b>04:32</b></span>
+          <span>BPM <b>128.0</b></span>
+          <span>CUES <b>08</b></span>
+        </span>
+      </div>
+      <div class="wf-body">
+        <!-- Deck A -->
+        <div class="wf-deck a">
+          <div class="wf-label"><b>A ·</b> KICKER_128 <span class="key">F MIN</span></div>
+          <div class="wf-canvas">
+            <div class="wf-bars" id="wfa"></div>
+            <div class="wf-beatgrid" id="wfa-grid"></div>
+            <div class="wf-playhead" style="left: 42%;"></div>
+          </div>
+        </div>
+        <!-- Deck B -->
+        <div class="wf-deck b">
+          <div class="wf-label"><b>B ·</b> BASSLINE_REESE <span class="key">A MIN</span></div>
+          <div class="wf-canvas">
+            <div class="wf-bars" id="wfb"></div>
+            <div class="wf-beatgrid" id="wfb-grid"></div>
+            <div class="wf-playhead" style="left: 28%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGNALS FULL -->
+    <div class="sig-full">
+      <div class="panel-head">
+        <span class="idx">02 /</span>
+        <span>SIGNALS</span><span class="sep">·</span><span>FULL</span>
+        <span class="right">17 SIGNALS · ALL TOP-TIER</span>
+      </div>
+      <div class="sig-row" id="sigrow"></div>
+    </div>
+
+    <!-- MAIN ROW -->
+    <div class="mainrow-prog">
+      <!-- DECK GRID -->
+      <div class="deck-prog">
+        <div class="panel-head">
+          <span class="idx">03 /</span>
+          <span>DECK GRID</span><span class="sep">·</span><span>3 × 6</span>
+          <span class="right">DECK A · COLUMN C3 ACTIVE</span>
+        </div>
+        <div class="deck-grid-prog" id="deckprog"></div>
+      </div>
+
+      <!-- INSPECTOR WIDE -->
+      <div class="inspector-wide">
+        <div class="insp-tabs">
+          <div class="insp-tab">CLIP</div>
+          <div class="insp-tab">LAYER</div>
+          <div class="insp-tab">COMP</div>
+          <div class="insp-tab on">SIGNALS</div>
+        </div>
+        <div class="insp-body">
+          <!-- SELECTED SIGNAL -->
+          <div class="insp-section">
+            <h4><span class="idx">04A /</span> SELECTED SIGNAL</h4>
+            <div class="sig-big">
+              <div class="name">RMS</div>
+              <div class="val">0.72</div>
+            </div>
+            <div class="slider-row">
+              <span class="lbl">THRESHOLD</span>
+              <div class="track" style="--w: 22%"><div class="thumb"></div></div>
+              <span class="val">0.22</span>
+            </div>
+            <div class="slider-row">
+              <span class="lbl">GAIN</span>
+              <div class="track" style="--w: 68%"><div class="thumb"></div></div>
+              <span class="val">1.36</span>
+            </div>
+            <div class="slider-row">
+              <span class="lbl">FALLOFF</span>
+              <div class="track" style="--w: 45%"><div class="thumb"></div></div>
+              <span class="val">0.45</span>
+            </div>
+            <div class="slider-row">
+              <span class="lbl">SMOOTH</span>
+              <div class="track" style="--w: 30%"><div class="thumb"></div></div>
+              <span class="val">EMA</span>
+            </div>
+          </div>
+
+          <!-- OSCILLATOR -->
+          <div class="insp-section">
+            <h4><span class="idx">04B /</span> OSCILLATOR</h4>
+            <div class="wave-select">
+              <div class="wave-btn on">
+                <span class="glyph"><svg viewBox="0 0 18 8"><path d="M0,4 C4,0 6,8 9,4 C12,0 14,8 18,4" fill="none" stroke="currentColor" stroke-width="1"/></svg></span>
+                SINE
+              </div>
+              <div class="wave-btn">
+                <span class="glyph"><svg viewBox="0 0 18 8"><polyline points="0,8 9,0 9,8 18,0" fill="none" stroke="currentColor" stroke-width="1"/></svg></span>
+                SAW+
+              </div>
+              <div class="wave-btn">
+                <span class="glyph"><svg viewBox="0 0 18 8"><polyline points="0,0 9,8 9,0 18,8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span>
+                SAW-
+              </div>
+              <div class="wave-btn">
+                <span class="glyph"><svg viewBox="0 0 18 8"><polyline points="0,8 4.5,0 9,8 13.5,0 18,8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span>
+                TRI
+              </div>
+              <div class="wave-btn">
+                <span class="glyph"><svg viewBox="0 0 18 8"><polyline points="0,0 0,8 9,8 9,0 18,0 18,8" fill="none" stroke="currentColor" stroke-width="1"/></svg></span>
+                SQR
+              </div>
+            </div>
+            <div class="beat-select">
+              <div class="beat-cell">1/4</div>
+              <div class="beat-cell">1/2</div>
+              <div class="beat-cell on">1</div>
+              <div class="beat-cell">2</div>
+              <div class="beat-cell">4</div>
+              <div class="beat-cell">8</div>
+            </div>
+            <div class="slider-row">
+              <span class="lbl">AMPLITUDE</span>
+              <div class="track" style="--w: 72%"><div class="thumb"></div></div>
+              <span class="val">0.72</span>
+            </div>
+            <div class="slider-row">
+              <span class="lbl">PHASE OFFSET</span>
+              <div class="track" style="--w: 25%"><div class="thumb"></div></div>
+              <span class="val">90°</span>
+            </div>
+          </div>
+
+          <!-- ENVELOPE -->
+          <div class="insp-section">
+            <h4><span class="idx">04C /</span> ENVELOPE CURVE</h4>
+            <div class="env-panel">
+              <div class="grid-line v" style="left: 25%"></div>
+              <div class="grid-line v" style="left: 50%"></div>
+              <div class="grid-line v" style="left: 75%"></div>
+              <div class="grid-line h" style="top: 25%"></div>
+              <div class="grid-line h" style="top: 50%"></div>
+              <div class="grid-line h" style="top: 75%"></div>
+              <svg preserveAspectRatio="none" viewBox="0 0 100 100">
+                <polyline points="8,85 32,28 64,58 92,12" fill="none" stroke="#ff4500" stroke-width="1.5"/>
+              </svg>
+              <div class="cp" style="left: 8%; top: 85%;"></div>
+              <div class="cp" style="left: 32%; top: 28%;"></div>
+              <div class="cp" style="left: 64%; top: 58%;"></div>
+              <div class="cp" style="left: 92%; top: 12%;"></div>
+              <span class="lbl-ax" style="left: 4px; bottom: 2px;">0 · IN</span>
+              <span class="lbl-ax" style="right: 4px; bottom: 2px;">1 · OUT</span>
+              <span class="lbl-ax" style="left: 4px; top: 2px;">1.0</span>
+              <span class="lbl-ax" style="left: 4px; bottom: 10px;">0.0</span>
+            </div>
+            <div class="env-controls">
+              <div class="env-btn on">LOOP ON</div>
+              <div class="env-btn off">ONE-SHOT OFF</div>
+            </div>
+            <div class="env-controls">
+              <div class="env-btn">LIN</div>
+              <div class="env-btn">EXP</div>
+              <div class="env-btn on">S-CURVE</div>
+            </div>
+          </div>
+
+          <!-- ROUTES -->
+          <div class="insp-section">
+            <h4><span class="idx">04D /</span> ROUTES · RMS OUT</h4>
+            <div class="routes-list">
+              <div class="route-item">
+                <div class="head">
+                  <span class="src">RMS</span>
+                  <span class="arrow">──▶</span>
+                  <span>LAYER.02.OPACITY</span>
+                </div>
+                <div class="meta">
+                  <span>S-CURVE</span><span>·</span><span>0.00 → 0.85</span><span>·</span><span>EMA 0.30</span>
+                </div>
+              </div>
+              <div class="route-item">
+                <div class="head">
+                  <span class="src">RMS</span>
+                  <span class="arrow">──▶</span>
+                  <span>CLIP.03.BLUR · INTENSITY</span>
+                </div>
+                <div class="meta">
+                  <span>LIN</span><span>·</span><span>0.20 → 0.90</span><span>·</span><span>1-EURO</span>
+                </div>
+              </div>
+              <div class="route-item">
+                <div class="head">
+                  <span class="src">RMS</span>
+                  <span class="arrow">──▶</span>
+                  <span>GLOBAL.GLOW · SIZE</span>
+                </div>
+                <div class="meta">
+                  <span>EXP</span><span>·</span><span>0.00 → 1.00</span><span>·</span><span>EMA 0.18</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BROWSER FULL -->
+      <div class="browser-wide">
+        <div class="br-tabs">
+          <div class="br-tab">FILE</div>
+          <div class="br-tab on">FX</div>
+          <div class="br-tab">SRC</div>
+          <div class="br-tab">CMP</div>
+          <div class="br-tab">REC</div>
+        </div>
+        <div class="br-search"><span class="caret">▸</span>SEARCH_</div>
+        <div class="br-cat"><span>WARP</span><b>27</b></div>
+        <div class="br-list">
+          <div class="br-row on">
+            <div class="icon"></div>
+            <span>RIPPLE</span>
+            <span class="tag">WARP</span>
+          </div>
+          <div class="br-row">
+            <div class="icon"></div>
+            <span>BULGE</span>
+            <span class="tag">WARP</span>
+          </div>
+          <div class="br-row">
+            <div class="icon"></div>
+            <span>WAVE</span>
+            <span class="tag">WARP</span>
+          </div>
+          <div class="br-row">
+            <div class="icon"></div>
+            <span>LIQUID</span>
+            <span class="tag">WARP</span>
+          </div>
+          <div class="br-row">
+            <div class="icon"></div>
+            <span>KALEIDOSCOPE</span>
+            <span class="tag">WARP</span>
+          </div>
+          <div class="br-row">
+            <div class="icon"></div>
+            <span>FISHEYE</span>
+            <span class="tag">WARP</span>
+          </div>
+          <div class="br-row">
+            <div class="icon"></div>
+            <span>SWIRL</span>
+            <span class="tag">WARP</span>
+          </div>
+          <div class="br-row">
+            <div class="icon"></div>
+            <span>POLAR COORDS</span>
+            <span class="tag">WARP</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROUTER -->
+    <div class="router-strip">
+      <div class="panel-head">
+        <span class="idx">06 /</span>
+        <span>SIGNAL ROUTER</span><span class="sep">·</span><span>ACTIVE ROUTES</span>
+        <span class="right">06 / 60 SLOTS USED</span>
+      </div>
+      <div class="router-content">
+        <div class="route-viz">
+          <div class="flow"><span class="src">RMS</span><span class="arr">⟶</span><span class="tgt">OPACITY</span></div>
+          <div class="line-viz">
+            <svg preserveAspectRatio="none" viewBox="0 0 100 14">
+              <path d="M0,7 C15,3 25,11 40,7 C55,3 65,11 80,7 C92,4 96,10 100,7" stroke="#ff4500" fill="none" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="tail"><span>L02</span><span>S-CURVE</span></div>
+        </div>
+        <div class="route-viz">
+          <div class="flow"><span class="src">BASS</span><span class="arr">⟶</span><span class="tgt">ZOOM</span></div>
+          <div class="line-viz">
+            <svg preserveAspectRatio="none" viewBox="0 0 100 14">
+              <polyline points="0,13 20,2 22,13 42,2 44,13 64,2 66,13 86,2 88,13 100,2" stroke="#e6e6e6" fill="none" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="tail"><span>GLB</span><span>EXP</span></div>
+        </div>
+        <div class="route-viz">
+          <div class="flow"><span class="src">BEATPHASE</span><span class="arr">⟶</span><span class="tgt">STROBE</span></div>
+          <div class="line-viz">
+            <svg preserveAspectRatio="none" viewBox="0 0 100 14">
+              <polyline points="0,7 20,7 20,2 40,2 40,12 60,12 60,2 80,2 80,12 100,12" stroke="#ff4500" fill="none" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="tail"><span>L03</span><span>STEP</span></div>
+        </div>
+        <div class="route-viz">
+          <div class="flow"><span class="src">ONSET</span><span class="arr">⟶</span><span class="tgt">GLITCH</span></div>
+          <div class="line-viz">
+            <svg preserveAspectRatio="none" viewBox="0 0 100 14">
+              <polyline points="0,13 12,13 12,2 14,2 14,13 32,13 32,4 34,4 34,13 58,13 58,2 60,2 60,13 88,13 88,3 90,3 90,13 100,13" stroke="#ff4500" fill="none" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="tail"><span>L01</span><span>TRIG</span></div>
+        </div>
+        <div class="route-viz">
+          <div class="flow"><span class="src">LFO·SIN</span><span class="arr">⟶</span><span class="tgt">ROTATION</span></div>
+          <div class="line-viz">
+            <svg preserveAspectRatio="none" viewBox="0 0 100 14">
+              <path d="M0,7 C10,0 20,14 30,7 C40,0 50,14 60,7 C70,0 80,14 90,7 C95,4 98,9 100,7" stroke="#e6e6e6" fill="none" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="tail"><span>L02</span><span>1 BAR</span></div>
+        </div>
+        <div class="route-viz">
+          <div class="flow"><span class="src">ENV·A</span><span class="arr">⟶</span><span class="tgt">HUE SHIFT</span></div>
+          <div class="line-viz">
+            <svg preserveAspectRatio="none" viewBox="0 0 100 14">
+              <polyline points="0,13 8,2 20,4 45,8 100,12" stroke="#ff4500" fill="none" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="tail"><span>GLB</span><span>LOOP</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="statusbar">
+      <span class="dot"></span>
+      <span>LIVE</span>
+      <span>CPU 24%</span>
+      <span>GPU 41%</span>
+      <span>DRAW 6.8 MS</span>
+      <span>LAT 18 MS</span>
+      <span class="spacer"></span>
+      <span>PROGRAM MODE</span>
+      <span>60 SIGNALS</span>
+      <span>135 FX · 81 SRC</span>
+      <span>v9 · BRUTALIST · 03</span>
+    </div>
+
+  </div>
+
+  <!-- ========== DIVIDER ========== -->
+  <div class="divider-label">│ DUAL-STAGE · MODE COMPARISON │</div>
+
+  <!-- ========== RIGHT HALF : PLAY MODE ========== -->
+  <div class="half right">
+
+    <!-- Menu bar -->
+    <div class="menubar">
+      <span class="brand">AUDIO<span class="dot">·</span>DNA</span>
+      <span>FILE</span><span>EDIT</span><span>VIEW</span><span>COMP</span><span>DECK</span><span>SIGNAL</span><span>OUTPUT</span><span>WINDOW</span><span>HELP</span>
+      <span class="spacer"></span>
+      <span class="meta">V9 · BRUTALIST · 03 DUAL-STAGE · RIGHT : PLAY</span>
+    </div>
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="tb-cell bpm"><span class="lbl">BPM</span><span class="val">128.0</span></div>
+      <div class="tb-cell">
+        <button class="tb-btn">TAP</button>
+        <button class="tb-btn">RSYNC</button>
+        <button class="tb-btn">MANUAL</button>
+      </div>
+      <div class="tb-cell">
+        <span class="lbl">MULT</span>
+        <div class="multipliers">
+          <div class="mult">1/4</div>
+          <div class="mult">1/2</div>
+          <div class="mult sel">1×</div>
+          <div class="mult">2×</div>
+          <div class="mult">4×</div>
+        </div>
+      </div>
+      <div class="tb-cell">
+        <div class="beatwheel">
+          <div class="seg tl"></div><div class="seg tr"></div><div class="seg br"></div><div class="seg bl"></div>
+          <div class="hub"></div>
+        </div>
+        <span class="lbl">BAR</span><span class="val">03/08</span>
+        <span class="lbl">PHR</span><span class="val">2/4</span>
+      </div>
+      <div class="tb-cell">
+        <span class="lbl">SRC</span><span class="val">MAIN OUT</span>
+      </div>
+      <div class="tb-cell">
+        <span class="lbl">MST</span><span class="val">0.85</span>
+      </div>
+      <div class="tb-cell">
+        <button class="tb-btn on">REC</button>
+        <span class="lbl">FPS</span><span class="val">60.0</span>
+      </div>
+      <!-- MODE TOGGLE -->
+      <div class="mode-toggle">
+        <div class="mode-cell"><span class="tiny">MODE</span>PROGRAM</div>
+        <div class="mode-cell on"><span class="tiny">MODE</span>PLAY</div>
+      </div>
+    </div>
+
+    <!-- Annotation -->
+    <div class="mode-annot">MODE : PLAY · 3 SURFACES FULL · 3 COLLAPSED AS EDGE STRIPS · FAST CONTEXT RETURN</div>
+
+    <!-- WAVEFORM MIN -->
+    <div class="wf-min">
+      <div class="lbl-min"><span class="idx">01</span></div>
+      <div class="wf-bars-min" id="wfmin">
+        <div class="wf-playhead" style="left: 42%; top: 0; bottom: 0;"></div>
+      </div>
+    </div>
+
+    <!-- SIGNALS MIN -->
+    <div class="sig-min">
+      <div class="sig-mini"><span class="nm">RMS</span><span class="v hot">0.72</span></div>
+      <span class="sep">|</span>
+      <div class="sig-mini"><span class="nm">BASS</span><span class="v hot">0.88</span></div>
+      <span class="sep">|</span>
+      <div class="sig-mini"><span class="nm">MID</span><span class="v">0.43</span></div>
+      <span class="sep">|</span>
+      <div class="sig-mini"><span class="nm">HI</span><span class="v">0.29</span></div>
+      <span class="sep">|</span>
+      <div class="sig-mini trig"><span class="nm">BEAT</span><span class="dot"></span></div>
+      <span class="sep">|</span>
+      <div class="sig-mini trig"><span class="nm">ONSET</span><span class="dot"></span></div>
+      <span class="sep">|</span>
+      <div class="sig-mini"><span class="nm">GENRE</span><span class="v">HOUSE</span></div>
+      <span class="sep">|</span>
+      <div class="sig-mini trig"><span class="nm">DROP</span><span class="dot"></span></div>
+    </div>
+
+    <!-- PLAY MAIN -->
+    <div class="play-main">
+      <div class="deck-play">
+        <div class="panel-head">
+          <span class="idx">03 /</span>
+          <span>DECK GRID</span><span class="sep">·</span><span>5 × 10 MAX</span>
+          <span class="right">PERFORMANCE ACTIVE</span>
+        </div>
+        <div class="deck-grid-play" id="deckplay"></div>
+      </div>
+
+      <!-- Inspector collapsed -->
+      <div class="edge-strip">
+        <div class="marker">I</div>
+        <div class="sideways">▶ INSPECTOR</div>
+        <div class="marker" style="color: var(--ink-dimmer); border-color: var(--hair-bright);">+</div>
+        <div class="ghost"></div>
+      </div>
+
+      <!-- Browser collapsed -->
+      <div class="edge-strip">
+        <div class="marker">B</div>
+        <div class="sideways">▶ BROWSER</div>
+        <div class="marker" style="color: var(--ink-dimmer); border-color: var(--hair-bright);">+</div>
+        <div class="ghost" style="animation-delay: 2s;"></div>
+      </div>
+    </div>
+
+    <!-- Signal editor collapsed (bottom drawer) -->
+    <div class="edge-strip bottom">
+      <div class="marker">S</div>
+      <div class="sideways">▼ SIGNAL EDITOR · ENVELOPE · OSCILLATOR · ROUTES</div>
+      <div class="marker" style="color: var(--ink-dimmer); border-color: var(--hair-bright);">+</div>
+      <div class="ghost" style="animation-delay: 4s;"></div>
+    </div>
+
+    <!-- Status -->
+    <div class="statusbar">
+      <span class="dot"></span>
+      <span>LIVE</span>
+      <span>CPU 18%</span>
+      <span>GPU 38%</span>
+      <span>DRAW 6.1 MS</span>
+      <span>LAT 18 MS</span>
+      <span class="spacer"></span>
+      <span>PLAY MODE</span>
+      <span>3 COLLAPSED</span>
+      <span>DECK A · L02/C04</span>
+      <span>v9 · BRUTALIST · 03</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Waveform bar generators
+(function(){
+  function makeBars(el, count, seed) {
+    let html = '';
+    let s = seed;
+    for (let i = 0; i < count; i++) {
+      // Deterministic pseudo-random
+      s = (s * 9301 + 49297) % 233280;
+      let r = s / 233280;
+      let h = 15 + Math.abs(Math.sin(i * 0.11 + seed * 0.01)) * 70 + r * 15;
+      html += '<div class="wf-bar" style="height: ' + h.toFixed(0) + '%;"></div>';
+    }
+    el.innerHTML = html;
+  }
+  const wfa = document.getElementById('wfa');
+  const wfb = document.getElementById('wfb');
+  const wfmin = document.getElementById('wfmin');
+  if (wfa) makeBars(wfa, 280, 42);
+  if (wfb) makeBars(wfb, 280, 17);
+  if (wfmin) {
+    // Keep playhead div
+    const ph = wfmin.querySelector('.wf-playhead');
+    makeBars(wfmin, 220, 88);
+    if (ph) wfmin.appendChild(ph);
+  }
+
+  // Beat grid for deck A and B
+  function makeGrid(el, bars, beatsPerBar) {
+    let html = '';
+    const total = bars * beatsPerBar;
+    for (let i = 0; i <= total; i++) {
+      const pos = (i / total) * 100;
+      const isBar = (i % beatsPerBar) === 0;
+      html += '<div class="tick' + (isBar ? ' bar' : '') + '" style="left:' + pos.toFixed(2) + '%;"></div>';
+      if (isBar && i < total) {
+        html += '<div class="wf-barnum" style="left:' + (pos + 0.3).toFixed(2) + '%;">B' + (i/beatsPerBar + 1).toString().padStart(2,'0') + '</div>';
+      }
+    }
+    html += '<div class="wf-structural"><div class="wf-zone">INTRO</div><div class="wf-zone">BUILD</div><div class="wf-zone drop">DROP</div><div class="wf-zone">BREAK</div><div class="wf-zone">DROP 2</div><div class="wf-zone">OUTRO</div></div>';
+    el.innerHTML = html;
+  }
+  const ga = document.getElementById('wfa-grid');
+  const gb = document.getElementById('wfb-grid');
+  if (ga) makeGrid(ga, 8, 4);
+  if (gb) makeGrid(gb, 8, 4);
+})();
+
+// Signals row (17 signals)
+(function(){
+  const sigs = [
+    { name: 'RMS',    val: '0.72', hot: true,  w: 72 },
+    { name: 'PEAK',   val: '0.91', hot: true,  w: 91 },
+    { name: 'SUB',    val: '0.84', hot: true,  w: 84 },
+    { name: 'BASS',   val: '0.88', hot: true,  w: 88 },
+    { name: 'LOMID',  val: '0.52', hot: false, w: 52 },
+    { name: 'MID',    val: '0.43', hot: false, w: 43 },
+    { name: 'HIMID',  val: '0.31', hot: false, w: 31 },
+    { name: 'PRES',   val: '0.29', hot: false, w: 29 },
+    { name: 'BRIL',   val: '0.22', hot: false, w: 22 },
+    { name: 'CENT',   val: '2.4K', hot: false, w: 48 },
+    { name: 'FLUX',   val: '0.38', hot: false, w: 38 },
+    { name: 'ONSET',  val: '●',    hot: true,  w: 100 },
+    { name: 'BEAT',   val: '0.45', hot: true,  w: 45 },
+    { name: 'BAR',    val: '0.62', hot: false, w: 62 },
+    { name: 'PHRASE', val: '0.19', hot: false, w: 19 },
+    { name: 'GENRE',  val: 'HSE',  hot: false, w: 80 },
+    { name: 'ENERGY', val: 'HIGH', hot: true,  w: 82 },
+  ];
+  const row = document.getElementById('sigrow');
+  if (row) {
+    row.innerHTML = sigs.map(s => {
+      return '<div class="sig-cell">'
+        + '<span class="lbl">' + s.name + '</span>'
+        + '<span class="val' + (s.hot ? ' hot' : '') + '">' + s.val + '</span>'
+        + '<div class="sig-meter' + (s.hot ? ' hot' : '') + '" style="--w:' + s.w + '%;"></div>'
+        + '</div>';
+    }).join('');
+  }
+})();
+
+// PROGRAM Deck grid (3 layers x 6 cols)
+(function(){
+  const host = document.getElementById('deckprog');
+  if (!host) return;
+  const cols = ['C1','C2','C3','C4','C5','C6'];
+  const clips = [
+    // L01
+    [
+      { st: 'active', name: 'NEON_GRID',  thumb: 'img-a', fx: 4, bpm: '128', len: '0:32', key: 'F MIN', play: true },
+      { st: 'loaded', name: 'CITY_LOOP',  thumb: 'img-b', fx: 2, bpm: '128', len: '1:04', key: 'A MIN' },
+      { st: 'loaded', name: 'PARTICLE_Z', thumb: 'img-c', fx: 3, bpm: '128', len: '0:48', key: 'C MAJ' },
+      { st: 'loaded', name: 'STRIPES',    thumb: 'img-d', fx: 1, bpm: '128', len: '0:16', key: 'F MIN' },
+      { st: 'loaded', name: 'HEAT',       thumb: 'img-e', fx: 5, bpm: '128', len: '0:32', key: 'D MAJ' },
+      { st: 'empty',  name: '',           thumb: '',      fx: 0, bpm: '',    len: '',     key: '' },
+    ],
+    // L02
+    [
+      { st: 'loaded', name: 'MANDELBULB', thumb: 'img-c', fx: 2, bpm: '128', len: '∞',    key: '—' },
+      { st: 'active', name: 'TUNNEL_3D',  thumb: 'img-f', fx: 6, bpm: '128', len: '0:48', key: '—', play: true },
+      { st: 'loaded', name: 'FLUID_SIM',  thumb: 'img-a', fx: 3, bpm: '128', len: '∞',    key: '—' },
+      { st: 'loaded', name: 'KIFS',       thumb: 'img-d', fx: 4, bpm: '128', len: '1:20', key: '—' },
+      { st: 'empty',  name: '',           thumb: '',      fx: 0, bpm: '',    len: '',     key: '' },
+      { st: 'loaded', name: 'NOISE_FIELD',thumb: 'img-b', fx: 2, bpm: '128', len: '0:32', key: '—' },
+    ],
+    // L03
+    [
+      { st: 'loaded', name: 'STROBE_FX',  thumb: 'img-e', fx: 1, bpm: '128', len: '0:08', key: '—' },
+      { st: 'loaded', name: 'GLITCH_MAX', thumb: 'img-d', fx: 7, bpm: '128', len: '0:16', key: '—' },
+      { st: 'active', name: 'FEEDBACK_Z', thumb: 'img-a', fx: 3, bpm: '128', len: '∞',    key: '—', play: true },
+      { st: 'loaded', name: 'ECHO_TR',    thumb: 'img-f', fx: 4, bpm: '128', len: '0:32', key: '—' },
+      { st: 'loaded', name: 'RGB_SPLIT',  thumb: 'img-b', fx: 2, bpm: '128', len: '0:16', key: '—' },
+      { st: 'empty',  name: '',           thumb: '',      fx: 0, bpm: '',    len: '',     key: '' },
+    ],
+  ];
+  const layers = [
+    { n: '01', name: 'BG' },
+    { n: '02', name: 'MID' },
+    { n: '03', name: 'FX' },
+  ];
+  let html = '<div class="deck-corner"></div>';
+  cols.forEach(c => { html += '<div class="deck-colhead">' + c + '</div>'; });
+  layers.forEach((L, idx) => {
+    html += '<div class="deck-rowhead-p"><span class="lnum">' + L.n + '</span><span>' + L.name + '</span></div>';
+    clips[idx].forEach(c => {
+      if (c.st === 'empty') {
+        html += '<div class="deck-cell-p empty"></div>';
+      } else {
+        html += '<div class="deck-cell-p ' + c.st + '">'
+          + '<div class="thumb ' + c.thumb + '"></div>'
+          + (c.play ? '<div class="playglyph"></div>' : '')
+          + (c.fx > 0 ? '<div class="fxtag">FX·' + c.fx + '</div>' : '')
+          + '<div class="cname">' + c.name + '</div>'
+          + '<div class="ctags"><span class="bpm">' + c.bpm + '</span><span class="key">' + c.key + '</span></div>'
+          + '<div class="cmeta"><span>' + c.len + '</span><span>● RDY</span></div>'
+          + '</div>';
+      }
+    });
+  });
+  host.innerHTML = html;
+})();
+
+// PLAY Deck grid (5 layers x 10 cols)
+(function(){
+  const host = document.getElementById('deckplay');
+  if (!host) return;
+  const THUMBS = ['img-a','img-b','img-c','img-d','img-e','img-f','img-g','img-h'];
+  const NAMES = [
+    ['NEON_01','CITY_02','PARTCL','STRIPE','HEAT','ROOM','NEBULA','FLOW','GRID','NOISE'],
+    ['FLUID','MANDLB','TUNNEL','KIFS','APOLLO','JULIA','SIERP','MENG','BURNSHIP','NEWT'],
+    ['TEXT_01','CHROMA','WAVEFRM','SPECTRM','BANDTR','CYMAT','RINGS','SPECRN','TERRAIN','VOXEL'],
+    ['STROBE','RGBSPLT','ECHO','GLITCH','FBACK','BLOCKS','SCAN','PIXEL','SORT','CORRUPT'],
+    ['HUE','BLUR','EDGE','BLOOM','VIGN','GRAIN','GAMMA','LUT','SEPIA','SOLAR'],
+  ];
+  const ACTIVE = { 1: 4 };
+  let html = '<div class="dp-corner"></div>';
+  for (let c = 1; c <= 10; c++) html += '<div class="dp-colhead">C' + c + '</div>';
+  for (let r = 0; r < 5; r++) {
+    html += '<div class="dp-rowhead">L' + (r+1).toString().padStart(2,'0') + '</div>';
+    for (let c = 0; c < 10; c++) {
+      const active = (ACTIVE[r] === c);
+      // empty cells sparsely
+      const empty = ((r + c) % 13 === 5);
+      if (empty) {
+        html += '<div class="dp-cell empty"></div>';
+      } else {
+        const thumb = THUMBS[(r * 3 + c) % THUMBS.length];
+        const name = NAMES[r][c];
+        html += '<div class="dp-cell ' + (active ? 'active' : '') + '">'
+          + '<div class="thumb ' + thumb + '"></div>'
+          + (active ? '<div class="playglyph"></div>' : '')
+          + '<div class="nm">' + name + '</div>'
+          + '</div>';
+      }
+    }
+  }
+  host.innerHTML = html;
+})();
+</script>
+
+</body>
+</html>

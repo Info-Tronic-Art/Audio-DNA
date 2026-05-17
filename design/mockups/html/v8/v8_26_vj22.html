@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio DNA VJ 22 - Purple/Blue DAW-Style</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #1a0f2e; color: #c8c0d8; font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+}
+
+/* ── Layout ── */
+.app { display: grid; grid-template-rows: 32px 260px 1fr 60px; width: 1920px; height: 1080px; }
+
+/* ── Top Nav Bar ── */
+.top-nav {
+  background: linear-gradient(180deg, #2a1a4a 0%, #1e1038 100%);
+  border-bottom: 1px solid #3a2a5e;
+  display: flex; align-items: center; padding: 0 12px; gap: 16px;
+}
+.logo { width: 24px; height: 24px; position: relative; }
+.logo::before {
+  content: ''; position: absolute; top: 2px; left: 4px;
+  width: 16px; height: 16px;
+  background: linear-gradient(135deg, #6a3aff 0%, #00d4ff 50%, #6a3aff 100%);
+  clip-path: polygon(50% 0%, 61% 35%, 100% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 0% 35%, 39% 35%);
+}
+.nav-tabs { display: flex; gap: 2px; }
+.nav-tab {
+  padding: 6px 18px; background: #241640; border: 1px solid #3a2a5e;
+  border-bottom: none; border-radius: 4px 4px 0 0; color: #8a7aaa; cursor: pointer;
+}
+.nav-tab.active { background: #3a2a6a; color: #e0d8f0; border-color: #5a4a8e; }
+.nav-spacer { flex: 1; }
+.nav-info { color: #6a5a8a; font-size: 10px; }
+
+/* ── Top Section (master + waveform) ── */
+.top-section {
+  display: grid; grid-template-columns: 220px 1fr 440px;
+  border-bottom: 1px solid #2a1a4e;
+}
+
+/* Master Audio Control */
+.master-audio {
+  background: linear-gradient(180deg, #1a1030 0%, #150d28 100%);
+  border-right: 1px solid #2a1a4e; padding: 8px;
+}
+.panel-title {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  color: #8a7ab0; letter-spacing: 1px; margin-bottom: 8px;
+  padding-bottom: 4px; border-bottom: 1px solid #2a1a4e;
+}
+.master-meters { display: flex; gap: 6px; height: 180px; padding: 8px 20px; }
+.meter-channel { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+.meter-label { font-size: 9px; color: #6a5a8a; }
+.meter-bar {
+  flex: 1; width: 18px; background: #0a0618; border: 1px solid #2a1a4e; border-radius: 2px;
+  position: relative; overflow: hidden;
+}
+.meter-fill {
+  position: absolute; bottom: 0; width: 100%; border-radius: 1px;
+  background: linear-gradient(0deg, #00cc44 0%, #00ee55 60%, #aaff00 80%, #ffaa00 92%, #ff3333 100%);
+}
+.meter-db { font-size: 8px; color: #5a4a7a; text-align: center; }
+.master-knobs { display: flex; gap: 8px; padding: 4px 8px; }
+.master-knob { text-align: center; }
+.knob-circle {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid #4a3a7e;
+  background: radial-gradient(circle, #2a1a4e, #1a0f2e);
+  margin: 0 auto 2px;
+}
+.knob-label { font-size: 8px; color: #6a5a8a; }
+
+/* Waveform Display */
+.waveform-display {
+  background: linear-gradient(180deg, #120a22 0%, #0d0818 100%);
+  border-right: 1px solid #2a1a4e; padding: 8px; position: relative;
+}
+.waveform-canvas {
+  width: 100%; height: 220px; position: relative; overflow: hidden;
+  background: #080415; border: 1px solid #2a1a4e; border-radius: 3px;
+}
+.waveform-svg { width: 100%; height: 100%; }
+.waveform-grid-line {
+  stroke: #1a1030; stroke-width: 0.5;
+}
+.waveform-center-line { stroke: #2a1a4e; stroke-width: 1; }
+.waveform-path {
+  fill: none; stroke-width: 1.5;
+}
+.waveform-fill { stroke: none; opacity: 0.3; }
+.waveform-playhead {
+  position: absolute; top: 0; left: 45%; width: 2px; height: 100%;
+  background: #ff4488; box-shadow: 0 0 6px #ff448888;
+}
+.waveform-time {
+  position: absolute; bottom: 4px; right: 8px;
+  font-size: 10px; color: #5a4a7a; font-family: monospace;
+}
+
+/* Right side panels */
+.right-panels {
+  background: linear-gradient(180deg, #1a1030 0%, #150d28 100%);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Audio Visualizer */
+.audio-visualizer { padding: 6px; flex: 1; }
+.viz-canvas {
+  width: 100%; height: 100%; background: #080415;
+  border: 1px solid #2a1a4e; border-radius: 3px;
+  position: relative; overflow: hidden;
+}
+.viz-canvas svg { width: 100%; height: 100%; }
+.viz-tabs { display: flex; gap: 2px; margin-top: 4px; }
+.viz-tab {
+  padding: 3px 10px; background: #1a1030; border: 1px solid #2a1a4e;
+  border-radius: 2px; font-size: 9px; color: #6a5a8a;
+}
+.viz-tab.active { background: #2a1a5a; color: #a090d0; }
+
+/* ── Center Section ── */
+.center-section {
+  display: grid; grid-template-columns: 1fr 440px;
+  overflow: hidden;
+}
+
+/* Composition Grid */
+.comp-grid {
+  background: #120a22; display: flex; flex-direction: column;
+}
+.comp-header {
+  display: flex; align-items: center; padding: 4px 8px; gap: 8px;
+  background: linear-gradient(180deg, #1e1038, #1a0d30);
+  border-bottom: 1px solid #2a1a4e;
+}
+.comp-title { font-size: 11px; font-weight: 600; color: #a090d0; }
+.comp-tabs { display: flex; gap: 2px; margin-left: 12px; }
+.comp-tab {
+  padding: 3px 10px; background: #1a1030; border: 1px solid #2a1a4e;
+  border-radius: 2px; font-size: 9px; color: #6a5a8a; cursor: pointer;
+}
+.comp-tab.active { background: #3a2a6a; color: #c8b8e8; }
+.comp-tab.icon { padding: 3px 8px; font-size: 12px; }
+
+.grid-area { flex: 1; overflow: hidden; }
+.grid-row {
+  display: grid; grid-template-columns: 32px 80px repeat(8, 1fr) 40px;
+  height: calc((100%) / 6); border-bottom: 1px solid #1a1030;
+  align-items: stretch;
+}
+.row-num {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #4a3a7e;
+  background: #0d0818; border-right: 1px solid #1a1030;
+}
+.row-label {
+  display: flex; align-items: center; padding: 0 6px;
+  font-size: 9px; color: #6a5a8a; background: #100a1e;
+  border-right: 1px solid #1a1030; white-space: nowrap; overflow: hidden;
+}
+.clip-slot {
+  border-right: 1px solid #1a1030; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.clip-slot.empty { background: #0a0618; }
+.clip-slot.filled {
+  cursor: pointer;
+}
+.clip-name {
+  font-size: 9px; font-weight: 500; text-align: center;
+  padding: 2px 4px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; width: 100%;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.clip-active-ring {
+  position: absolute; inset: 2px; border: 2px solid #00d4ff;
+  border-radius: 3px; box-shadow: 0 0 8px #00d4ff44;
+}
+.row-fader {
+  display: flex; align-items: center; justify-content: center;
+  background: #0d0818; border-left: 1px solid #1a1030;
+}
+.mini-fader {
+  width: 6px; height: 70%; background: #1a1030; border-radius: 3px;
+  position: relative;
+}
+.mini-fader-fill {
+  position: absolute; bottom: 0; width: 100%; border-radius: 3px;
+  background: linear-gradient(0deg, #00cc44, #00ee55);
+}
+.mini-fader-thumb {
+  position: absolute; width: 12px; height: 6px; background: #c8c0d8;
+  border-radius: 2px; left: -3px;
+}
+
+/* Right side lower */
+.right-lower {
+  display: flex; flex-direction: column; background: #150d28;
+  border-left: 1px solid #2a1a4e; overflow-y: auto;
+}
+
+/* Preview / Output Windows */
+.preview-section { padding: 6px; }
+.preview-label {
+  font-size: 9px; font-weight: 600; color: #6a5a8a; text-transform: uppercase;
+  letter-spacing: 0.5px; margin-bottom: 3px;
+}
+.preview-window {
+  width: 100%; height: 80px; background: #080415;
+  border: 1px solid #2a1a4e; border-radius: 3px;
+  overflow: hidden; position: relative;
+}
+
+/* Properties Panel */
+.properties-panel { padding: 6px; flex: 1; overflow-y: auto; }
+.prop-tabs { display: flex; gap: 2px; margin-bottom: 6px; }
+.prop-tab {
+  padding: 3px 8px; background: #1a1030; border: 1px solid #2a1a4e;
+  border-radius: 2px; font-size: 9px; color: #6a5a8a;
+}
+.prop-tab.active { background: #3a2a6a; color: #c8b8e8; }
+.prop-section {
+  margin-bottom: 4px; border: 1px solid #2a1a4e; border-radius: 3px;
+  overflow: hidden;
+}
+.prop-section-header {
+  display: flex; align-items: center; padding: 4px 8px; gap: 6px;
+  background: linear-gradient(180deg, #221840, #1a1030);
+  cursor: pointer; font-size: 10px; color: #a090d0;
+}
+.prop-arrow { font-size: 8px; color: #6a5a8a; }
+.prop-section-body { padding: 6px 8px; background: #120a22; }
+.prop-slider-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+}
+.prop-slider-label { font-size: 9px; color: #6a5a8a; width: 60px; }
+.prop-slider-track {
+  flex: 1; height: 4px; background: #1a1030; border-radius: 2px;
+  position: relative;
+}
+.prop-slider-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #4a3aff, #00d4ff);
+}
+.prop-slider-val { font-size: 9px; color: #8a7aaa; width: 30px; text-align: right; }
+
+/* Video Router */
+.video-router { padding: 6px; }
+.router-tabs { display: flex; gap: 2px; margin-bottom: 4px; }
+.router-tab {
+  padding: 3px 8px; background: #1a1030; border: 1px solid #2a1a4e;
+  border-radius: 2px; font-size: 9px; color: #6a5a8a;
+}
+.router-tab.active { background: #3a2a6a; color: #c8b8e8; }
+.router-entry {
+  display: flex; align-items: center; padding: 3px 8px; gap: 6px;
+  border-bottom: 1px solid #1a1030; font-size: 9px;
+}
+.router-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.router-dot.active { background: #00cc44; box-shadow: 0 0 4px #00cc4488; }
+.router-dot.inactive { background: #3a2a5e; }
+.router-name { color: #8a7aaa; }
+
+/* ── Bottom Bar ── */
+.bottom-bar {
+  background: linear-gradient(180deg, #1e1038, #150d28);
+  border-top: 1px solid #3a2a5e;
+  display: flex; align-items: center; padding: 0 12px; gap: 4px;
+}
+.layer-fader-group {
+  display: flex; flex-direction: column; align-items: center;
+  width: 80px; gap: 2px;
+}
+.layer-fader-label { font-size: 8px; color: #5a4a7a; text-transform: uppercase; }
+.layer-fader-bar {
+  width: 60px; height: 8px; background: #0a0618; border: 1px solid #2a1a4e;
+  border-radius: 2px; overflow: hidden;
+}
+.layer-fader-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00cc44, #00ee55);
+}
+.layer-meter-bar {
+  width: 60px; height: 4px; background: #0a0618; border-radius: 2px;
+  overflow: hidden;
+}
+.layer-meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00cc44 0%, #aaff00 80%, #ff3333 100%);
+}
+
+/* Clip color presets */
+.clip-teal { background: linear-gradient(135deg, #0a4a4a, #0d6868); color: #40e8e8; }
+.clip-purple { background: linear-gradient(135deg, #3a1a5a, #5a2a8a); color: #c090ff; }
+.clip-blue { background: linear-gradient(135deg, #1a2a5a, #2a3a8a); color: #6090ff; }
+.clip-indigo { background: linear-gradient(135deg, #2a1a6a, #4a2a9a); color: #8070ff; }
+.clip-magenta { background: linear-gradient(135deg, #4a1a4a, #7a2a6a); color: #e060c0; }
+.clip-dark { background: linear-gradient(135deg, #1a1a30, #2a2a4a); color: #8080aa; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top Nav -->
+  <div class="top-nav">
+    <div class="logo"></div>
+    <div style="font-size:13px;font-weight:700;color:#a090d0;letter-spacing:1px;">AUDIO DNA</div>
+    <div class="nav-tabs">
+      <div class="nav-tab active">Main</div>
+      <div class="nav-tab">Processing</div>
+      <div class="nav-tab">Processor</div>
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-info">48000 Hz &nbsp;|&nbsp; 128 smp &nbsp;|&nbsp; 60 fps &nbsp;|&nbsp; 2.67 ms</div>
+  </div>
+
+  <!-- Top Section -->
+  <div class="top-section">
+
+    <!-- Master Audio Control -->
+    <div class="master-audio">
+      <div class="panel-title">Master Audio Control</div>
+      <div class="master-meters">
+        <div class="meter-channel">
+          <div class="meter-label">L</div>
+          <div class="meter-bar"><div class="meter-fill" style="height:72%;"></div></div>
+          <div class="meter-db">-6.2</div>
+        </div>
+        <div class="meter-channel">
+          <div class="meter-label">R</div>
+          <div class="meter-bar"><div class="meter-fill" style="height:68%;"></div></div>
+          <div class="meter-db">-7.1</div>
+        </div>
+        <div class="meter-channel">
+          <div class="meter-label">M</div>
+          <div class="meter-bar"><div class="meter-fill" style="height:58%;"></div></div>
+          <div class="meter-db">-9.4</div>
+        </div>
+        <div class="meter-channel">
+          <div class="meter-label">S</div>
+          <div class="meter-bar"><div class="meter-fill" style="height:45%;"></div></div>
+          <div class="meter-db">-12.0</div>
+        </div>
+      </div>
+      <div class="master-knobs">
+        <div class="master-knob"><div class="knob-circle"></div><div class="knob-label">Gain</div></div>
+        <div class="master-knob"><div class="knob-circle"></div><div class="knob-label">Pan</div></div>
+        <div class="master-knob"><div class="knob-circle"></div><div class="knob-label">Width</div></div>
+        <div class="master-knob"><div class="knob-circle"></div><div class="knob-label">Drive</div></div>
+      </div>
+    </div>
+
+    <!-- Waveform Display -->
+    <div class="waveform-display">
+      <div class="waveform-canvas">
+        <svg class="waveform-svg" viewBox="0 0 1200 220" preserveAspectRatio="none">
+          <!-- Grid lines -->
+          <line x1="0" y1="55" x2="1200" y2="55" class="waveform-grid-line"/>
+          <line x1="0" y1="110" x2="1200" y2="110" class="waveform-center-line"/>
+          <line x1="0" y1="165" x2="1200" y2="165" class="waveform-grid-line"/>
+          <!-- Vertical markers -->
+          <line x1="150" y1="0" x2="150" y2="220" class="waveform-grid-line"/>
+          <line x1="300" y1="0" x2="300" y2="220" class="waveform-grid-line"/>
+          <line x1="450" y1="0" x2="450" y2="220" class="waveform-grid-line"/>
+          <line x1="600" y1="0" x2="600" y2="220" class="waveform-grid-line"/>
+          <line x1="750" y1="0" x2="750" y2="220" class="waveform-grid-line"/>
+          <line x1="900" y1="0" x2="900" y2="220" class="waveform-grid-line"/>
+          <line x1="1050" y1="0" x2="1050" y2="220" class="waveform-grid-line"/>
+          <!-- Waveform fill (upper) -->
+          <path d="M0,110 Q20,60 40,75 Q60,40 80,55 Q100,25 120,48 Q140,15 160,40 Q180,55 200,30 Q220,50 240,65 Q260,35 280,50 Q300,70 320,45 Q340,20 360,55 Q380,40 400,70 Q420,30 440,50 Q460,65 480,35 Q500,55 520,40 Q540,25 560,60 Q580,45 600,70 Q620,30 640,55 Q660,40 680,65 Q700,25 720,50 Q740,35 760,60 Q780,45 800,30 Q820,55 840,40 Q860,70 880,35 Q900,50 920,65 Q940,30 960,55 Q980,45 1000,60 Q1020,35 1040,50 Q1060,70 1080,40 Q1100,55 1120,30 Q1140,65 1160,45 L1200,55 L1200,110 L0,110 Z" class="waveform-fill" style="fill:url(#waveGrad1);"/>
+          <!-- Waveform fill (lower) -->
+          <path d="M0,110 Q20,160 40,145 Q60,175 80,160 Q100,190 120,170 Q140,195 160,175 Q180,160 200,185 Q220,165 240,148 Q260,178 280,163 Q300,145 320,168 Q340,195 360,160 Q380,175 400,145 Q420,185 440,165 Q460,150 480,178 Q500,160 520,175 Q540,190 560,155 Q580,170 600,145 Q620,185 640,160 Q660,175 680,150 Q700,190 720,165 Q740,180 760,155 Q780,170 800,185 Q820,160 840,175 Q860,145 880,180 Q900,165 920,150 Q940,185 960,160 Q980,170 1000,155 Q1020,180 1040,165 Q1060,145 1080,175 Q1100,160 1120,185 Q1140,150 1160,170 L1200,160 L1200,110 L0,110 Z" class="waveform-fill" style="fill:url(#waveGrad2);"/>
+          <!-- Waveform line (upper) -->
+          <path d="M0,110 Q20,60 40,75 Q60,40 80,55 Q100,25 120,48 Q140,15 160,40 Q180,55 200,30 Q220,50 240,65 Q260,35 280,50 Q300,70 320,45 Q340,20 360,55 Q380,40 400,70 Q420,30 440,50 Q460,65 480,35 Q500,55 520,40 Q540,25 560,60 Q580,45 600,70 Q620,30 640,55 Q660,40 680,65 Q700,25 720,50 Q740,35 760,60 Q780,45 800,30 Q820,55 840,40 Q860,70 880,35 Q900,50 920,65 Q940,30 960,55 Q980,45 1000,60 Q1020,35 1040,50 Q1060,70 1080,40 Q1100,55 1120,30 Q1140,65 1160,45 L1200,55" class="waveform-path" style="stroke:url(#lineGrad1);"/>
+          <!-- Waveform line (lower) -->
+          <path d="M0,110 Q20,160 40,145 Q60,175 80,160 Q100,190 120,170 Q140,195 160,175 Q180,160 200,185 Q220,165 240,148 Q260,178 280,163 Q300,145 320,168 Q340,195 360,160 Q380,175 400,145 Q420,185 440,165 Q460,150 480,178 Q500,160 520,175 Q540,190 560,155 Q580,170 600,145 Q620,185 640,160 Q660,175 680,150 Q700,190 720,165 Q740,180 760,155 Q780,170 800,185 Q820,160 840,175 Q860,145 880,180 Q900,165 920,150 Q940,185 960,160 Q980,170 1000,155 Q1020,180 1040,165 Q1060,145 1080,175 Q1100,160 1120,185 Q1140,150 1160,170 L1200,160" class="waveform-path" style="stroke:url(#lineGrad2);"/>
+          <defs>
+            <linearGradient id="waveGrad1" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#4a2aff" stop-opacity="0.4"/>
+              <stop offset="30%" stop-color="#6a3aff" stop-opacity="0.5"/>
+              <stop offset="60%" stop-color="#2a6aff" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#00d4ff" stop-opacity="0.3"/>
+            </linearGradient>
+            <linearGradient id="waveGrad2" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#6a2aff" stop-opacity="0.3"/>
+              <stop offset="50%" stop-color="#4a3aff" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#2a5aff" stop-opacity="0.3"/>
+            </linearGradient>
+            <linearGradient id="lineGrad1" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#7a4aff"/>
+              <stop offset="40%" stop-color="#5a6aff"/>
+              <stop offset="70%" stop-color="#3a8aff"/>
+              <stop offset="100%" stop-color="#00d4ff"/>
+            </linearGradient>
+            <linearGradient id="lineGrad2" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#8a3aff"/>
+              <stop offset="50%" stop-color="#6a4aff"/>
+              <stop offset="100%" stop-color="#4a6aff"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="waveform-playhead"></div>
+        <div class="waveform-time">03:24.16 / 05:12.00</div>
+      </div>
+    </div>
+
+    <!-- Right panels: Audio Visualizer -->
+    <div class="right-panels">
+      <div class="audio-visualizer">
+        <div class="panel-title">Audio Visualizer</div>
+        <div class="viz-canvas">
+          <svg viewBox="0 0 420 140" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="vizGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.9"/>
+                <stop offset="50%" stop-color="#4a3aff" stop-opacity="0.6"/>
+                <stop offset="100%" stop-color="#1a0a3a" stop-opacity="0.1"/>
+              </linearGradient>
+              <linearGradient id="vizLine" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#00d4ff"/>
+                <stop offset="50%" stop-color="#6a4aff"/>
+                <stop offset="100%" stop-color="#00d4ff"/>
+              </linearGradient>
+            </defs>
+            <!-- Fill area -->
+            <path d="M0,140 L0,100 Q10,85 20,90 Q30,60 40,70 Q50,40 60,55 Q70,25 80,35 Q90,15 100,25 Q110,10 120,20 Q130,30 140,15 Q150,25 160,35 Q170,20 180,40 Q190,30 200,45 Q210,20 220,30 Q230,50 240,35 Q250,55 260,40 Q270,60 280,50 Q290,35 300,55 Q310,45 320,60 Q330,40 340,70 Q350,55 360,75 Q370,60 380,80 Q390,70 400,85 Q410,90 420,95 L420,140 Z" fill="url(#vizGrad)"/>
+            <!-- Line -->
+            <path d="M0,100 Q10,85 20,90 Q30,60 40,70 Q50,40 60,55 Q70,25 80,35 Q90,15 100,25 Q110,10 120,20 Q130,30 140,15 Q150,25 160,35 Q170,20 180,40 Q190,30 200,45 Q210,20 220,30 Q230,50 240,35 Q250,55 260,40 Q270,60 280,50 Q290,35 300,55 Q310,45 320,60 Q330,40 340,70 Q350,55 360,75 Q370,60 380,80 Q390,70 400,85 Q410,90 420,95" fill="none" stroke="url(#vizLine)" stroke-width="2"/>
+            <!-- Reflection -->
+            <path d="M0,140 L0,120 Q20,125 40,118 Q60,130 80,122 Q100,135 120,128 Q140,132 160,125 Q180,130 200,122 Q220,128 240,132 Q260,125 280,130 Q300,120 320,128 Q340,132 360,125 Q380,130 400,128 L420,130 L420,140 Z" fill="#00d4ff" opacity="0.08"/>
+          </svg>
+        </div>
+        <div class="viz-tabs">
+          <div class="viz-tab active">Waveform</div>
+          <div class="viz-tab">Mode</div>
+          <div class="viz-tab">Scale</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Section -->
+  <div class="center-section">
+
+    <!-- Composition Grid -->
+    <div class="comp-grid">
+      <div class="comp-header">
+        <div class="comp-title">Composition Grid</div>
+        <div class="comp-tabs">
+          <div class="comp-tab active">Thumbnail</div>
+          <div class="comp-tab">Search</div>
+          <div class="comp-tab icon">&#128269;</div>
+          <div class="comp-tab">Individual Layer</div>
+          <div class="comp-tab">Drag and Drop</div>
+        </div>
+      </div>
+      <div class="grid-area">
+        <!-- Row 1 -->
+        <div class="grid-row">
+          <div class="row-num">1</div>
+          <div class="row-label">Layer 1</div>
+          <div class="clip-slot clip-teal filled"><div class="clip-name">Plesal Vision</div><div class="clip-active-ring"></div></div>
+          <div class="clip-slot clip-purple filled"><div class="clip-name">Aurelia</div></div>
+          <div class="clip-slot clip-blue filled"><div class="clip-name">Basileia Core...</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-indigo filled"><div class="clip-name">Nexus Drift</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot empty"></div>
+          <div class="row-fader"><div class="mini-fader"><div class="mini-fader-fill" style="height:80%;"></div><div class="mini-fader-thumb" style="bottom:78%;"></div></div></div>
+        </div>
+        <!-- Row 2 -->
+        <div class="grid-row">
+          <div class="row-num">2</div>
+          <div class="row-label">Layer 2</div>
+          <div class="clip-slot clip-blue filled"><div class="clip-name">Saurei Blend...</div></div>
+          <div class="clip-slot clip-dark filled"><div class="clip-name">Velum Phase</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-magenta filled"><div class="clip-name">Prism Echo</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-indigo filled"><div class="clip-name">Cascade Arc</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot empty"></div>
+          <div class="row-fader"><div class="mini-fader"><div class="mini-fader-fill" style="height:65%;"></div><div class="mini-fader-thumb" style="bottom:63%;"></div></div></div>
+        </div>
+        <!-- Row 3 -->
+        <div class="grid-row">
+          <div class="row-num">3</div>
+          <div class="row-label">Layer 3</div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-purple filled"><div class="clip-name">Spectral Mist</div></div>
+          <div class="clip-slot clip-teal filled"><div class="clip-name">Deep Scatter</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-blue filled"><div class="clip-name">Orbital Flux</div></div>
+          <div class="clip-slot clip-dark filled"><div class="clip-name">Static Field</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="row-fader"><div class="mini-fader"><div class="mini-fader-fill" style="height:90%;"></div><div class="mini-fader-thumb" style="bottom:88%;"></div></div></div>
+        </div>
+        <!-- Row 4 -->
+        <div class="grid-row">
+          <div class="row-num">4</div>
+          <div class="row-label">Layer 4</div>
+          <div class="clip-slot clip-indigo filled"><div class="clip-name">Harmonic Fold</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-magenta filled"><div class="clip-name">Refract Bloom</div></div>
+          <div class="clip-slot clip-blue filled"><div class="clip-name">Warp Strand</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-teal filled"><div class="clip-name">Liquid Core</div></div>
+          <div class="row-fader"><div class="mini-fader"><div class="mini-fader-fill" style="height:55%;"></div><div class="mini-fader-thumb" style="bottom:53%;"></div></div></div>
+        </div>
+        <!-- Row 5 -->
+        <div class="grid-row">
+          <div class="row-num">5</div>
+          <div class="row-label">Layer 5</div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-dark filled"><div class="clip-name">Chymafon (bl...)</div></div>
+          <div class="clip-slot clip-purple filled"><div class="clip-name">Audietac</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-teal filled"><div class="clip-name">Pulse Grid</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-magenta filled"><div class="clip-name">Ion Trail</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="row-fader"><div class="mini-fader"><div class="mini-fader-fill" style="height:72%;"></div><div class="mini-fader-thumb" style="bottom:70%;"></div></div></div>
+        </div>
+        <!-- Row 6 -->
+        <div class="grid-row">
+          <div class="row-num">6</div>
+          <div class="row-label">Layer 6</div>
+          <div class="clip-slot clip-blue filled"><div class="clip-name">Nova Shell</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-indigo filled"><div class="clip-name">Void Lattice</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-dark filled"><div class="clip-name">Shadow Mesh</div></div>
+          <div class="clip-slot empty"></div>
+          <div class="clip-slot clip-purple filled"><div class="clip-name">Haze Drift</div></div>
+          <div class="row-fader"><div class="mini-fader"><div class="mini-fader-fill" style="height:45%;"></div><div class="mini-fader-thumb" style="bottom:43%;"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Lower panels -->
+    <div class="right-lower">
+
+      <!-- Preview Window -->
+      <div class="preview-section">
+        <div class="preview-label">Preview Window</div>
+        <div class="preview-window">
+          <svg viewBox="0 0 420 80" preserveAspectRatio="none" style="width:100%;height:100%;">
+            <defs>
+              <linearGradient id="prevGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#2a1a5a"/>
+                <stop offset="30%" stop-color="#4a2aaa"/>
+                <stop offset="60%" stop-color="#2a4aaa"/>
+                <stop offset="100%" stop-color="#1a2a6a"/>
+              </linearGradient>
+            </defs>
+            <rect width="420" height="80" fill="#080415"/>
+            <path d="M0,50 Q15,35 30,42 Q45,20 60,30 Q75,15 90,25 Q105,10 120,20 Q135,28 150,15 Q165,25 180,35 Q195,18 210,28 Q225,38 240,22 Q255,35 270,28 Q285,40 300,30 Q315,18 330,32 Q345,25 360,38 Q375,28 390,35 Q405,42 420,38 L420,80 L0,80 Z" fill="url(#prevGrad)" opacity="0.7"/>
+            <path d="M0,50 Q15,35 30,42 Q45,20 60,30 Q75,15 90,25 Q105,10 120,20 Q135,28 150,15 Q165,25 180,35 Q195,18 210,28 Q225,38 240,22 Q255,35 270,28 Q285,40 300,30 Q315,18 330,32 Q345,25 360,38 Q375,28 390,35 Q405,42 420,38" fill="none" stroke="#7a5aff" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Main Output Window -->
+      <div class="preview-section">
+        <div class="preview-label">Main Output Window</div>
+        <div class="preview-window">
+          <svg viewBox="0 0 420 80" preserveAspectRatio="none" style="width:100%;height:100%;">
+            <rect width="420" height="80" fill="#080415"/>
+            <path d="M0,45 Q20,30 40,38 Q60,18 80,28 Q100,12 120,22 Q140,30 160,18 Q180,28 200,38 Q220,22 240,32 Q260,18 280,28 Q300,38 320,25 Q340,35 360,22 Q380,32 400,40 L420,35 L420,80 L0,80 Z" fill="#1a2a6a" opacity="0.5"/>
+            <path d="M0,55 Q20,42 40,48 Q60,30 80,38 Q100,22 120,32 Q140,40 160,28 Q180,38 200,48 Q220,32 240,42 Q260,28 280,38 Q300,48 320,35 Q340,45 360,32 Q380,42 400,50 L420,45 L420,80 L0,80 Z" fill="#2a1a5a" opacity="0.4"/>
+            <path d="M0,45 Q20,30 40,38 Q60,18 80,28 Q100,12 120,22 Q140,30 160,18 Q180,28 200,38 Q220,22 240,32 Q260,18 280,28 Q300,38 320,25 Q340,35 360,22 Q380,32 400,40 L420,35" fill="none" stroke="#00aaff" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Properties Panel -->
+      <div class="properties-panel">
+        <div class="panel-title">Properties</div>
+        <div class="prop-tabs">
+          <div class="prop-tab active">Waveform</div>
+          <div class="prop-tab">Effects</div>
+          <div class="prop-tab">Parameters</div>
+        </div>
+
+        <!-- Waveform Section -->
+        <div class="prop-section">
+          <div class="prop-section-header"><span class="prop-arrow">&#9660;</span> Waveform</div>
+          <div class="prop-section-body">
+            <div class="prop-slider-row">
+              <div class="prop-slider-label">Amplitude</div>
+              <div class="prop-slider-track"><div class="prop-slider-fill" style="width:72%;"></div></div>
+              <div class="prop-slider-val">0.72</div>
+            </div>
+            <div class="prop-slider-row">
+              <div class="prop-slider-label">Frequency</div>
+              <div class="prop-slider-track"><div class="prop-slider-fill" style="width:45%;"></div></div>
+              <div class="prop-slider-val">0.45</div>
+            </div>
+            <div class="prop-slider-row">
+              <div class="prop-slider-label">Phase</div>
+              <div class="prop-slider-track"><div class="prop-slider-fill" style="width:30%;"></div></div>
+              <div class="prop-slider-val">0.30</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio Section -->
+        <div class="prop-section">
+          <div class="prop-section-header"><span class="prop-arrow">&#9660;</span> Audio</div>
+          <div class="prop-section-body">
+            <div class="prop-slider-row">
+              <div class="prop-slider-label">Bass</div>
+              <div class="prop-slider-track"><div class="prop-slider-fill" style="width:85%;"></div></div>
+              <div class="prop-slider-val">0.85</div>
+            </div>
+            <div class="prop-slider-row">
+              <div class="prop-slider-label">Mid</div>
+              <div class="prop-slider-track"><div class="prop-slider-fill" style="width:60%;"></div></div>
+              <div class="prop-slider-val">0.60</div>
+            </div>
+            <div class="prop-slider-row">
+              <div class="prop-slider-label">High</div>
+              <div class="prop-slider-track"><div class="prop-slider-fill" style="width:40%;"></div></div>
+              <div class="prop-slider-val">0.40</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Effects Section -->
+        <div class="prop-section">
+          <div class="prop-section-header"><span class="prop-arrow">&#9654;</span> Effects</div>
+        </div>
+
+        <!-- Parameters Section -->
+        <div class="prop-section">
+          <div class="prop-section-header"><span class="prop-arrow">&#9654;</span> Parameters</div>
+        </div>
+      </div>
+
+      <!-- Video Router -->
+      <div class="video-router">
+        <div class="panel-title">Video Router</div>
+        <div class="router-tabs">
+          <div class="router-tab active">Video Root</div>
+          <div class="router-tab">Screen Setup</div>
+        </div>
+        <div class="router-entry"><div class="router-dot active"></div><div class="router-name">Video Router 1 &mdash; Main Display</div></div>
+        <div class="router-entry"><div class="router-dot active"></div><div class="router-name">Video Router 2 &mdash; Stage Left</div></div>
+        <div class="router-entry"><div class="router-dot inactive"></div><div class="router-name">Video Router 3 &mdash; Stage Right</div></div>
+        <div class="router-entry"><div class="router-dot active"></div><div class="router-name">Video Router 4 &mdash; Floor LED</div></div>
+        <div class="router-entry"><div class="router-dot inactive"></div><div class="router-name">Video Router 5 &mdash; Backup</div></div>
+        <div class="router-entry"><div class="router-dot inactive"></div><div class="router-name">Video Router 6 &mdash; Preview</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar">
+    <div style="display:flex;gap:6px;flex:1;justify-content:center;">
+      <div class="layer-fader-group">
+        <div class="layer-fader-label">Layer 1</div>
+        <div class="layer-fader-bar"><div class="layer-fader-fill" style="width:80%;"></div></div>
+        <div class="layer-meter-bar"><div class="layer-meter-fill" style="width:72%;"></div></div>
+      </div>
+      <div class="layer-fader-group">
+        <div class="layer-fader-label">Layer 2</div>
+        <div class="layer-fader-bar"><div class="layer-fader-fill" style="width:65%;"></div></div>
+        <div class="layer-meter-bar"><div class="layer-meter-fill" style="width:58%;"></div></div>
+      </div>
+      <div class="layer-fader-group">
+        <div class="layer-fader-label">Layer 3</div>
+        <div class="layer-fader-bar"><div class="layer-fader-fill" style="width:90%;"></div></div>
+        <div class="layer-meter-bar"><div class="layer-meter-fill" style="width:85%;"></div></div>
+      </div>
+      <div class="layer-fader-group">
+        <div class="layer-fader-label">Layer 4</div>
+        <div class="layer-fader-bar"><div class="layer-fader-fill" style="width:55%;"></div></div>
+        <div class="layer-meter-bar"><div class="layer-meter-fill" style="width:48%;"></div></div>
+      </div>
+      <div class="layer-fader-group">
+        <div class="layer-fader-label">Layer 5</div>
+        <div class="layer-fader-bar"><div class="layer-fader-fill" style="width:72%;"></div></div>
+        <div class="layer-meter-bar"><div class="layer-meter-fill" style="width:65%;"></div></div>
+      </div>
+      <div class="layer-fader-group">
+        <div class="layer-fader-label">Layer 6</div>
+        <div class="layer-fader-bar"><div class="layer-fader-fill" style="width:45%;"></div></div>
+        <div class="layer-meter-bar"><div class="layer-meter-fill" style="width:38%;"></div></div>
+      </div>
+      <div class="layer-fader-group">
+        <div class="layer-fader-label">Master</div>
+        <div class="layer-fader-bar"><div class="layer-fader-fill" style="width:95%;background:linear-gradient(90deg,#4a3aff,#00d4ff);"></div></div>
+        <div class="layer-meter-bar"><div class="layer-meter-fill" style="width:78%;"></div></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-left:20px;">
+      <div style="font-size:10px;color:#5a4a7a;">BPM</div>
+      <div style="font-size:16px;font-weight:700;color:#00d4ff;font-family:monospace;">128.0</div>
+      <div style="width:1px;height:30px;background:#2a1a4e;"></div>
+      <div style="font-size:10px;color:#5a4a7a;">CPU</div>
+      <div style="font-size:12px;color:#00cc44;font-family:monospace;">12%</div>
+      <div style="width:1px;height:30px;background:#2a1a4e;"></div>
+      <div style="font-size:10px;color:#5a4a7a;">GPU</div>
+      <div style="font-size:12px;color:#00cc44;font-family:monospace;">28%</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,1292 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          1,
+          "output"
+        ],
+        "to": [
+          3,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          3,
+          "output0"
+        ],
+        "to": [
+          4,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          4,
+          "output"
+        ],
+        "to": [
+          5,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          7,
+          "output"
+        ],
+        "to": [
+          8,
+          "size"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          11,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "pattern"
+        ],
+        "to": [
+          9,
+          "radius"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output"
+        ],
+        "to": [
+          12,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          21,
+          "output"
+        ],
+        "to": [
+          15,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          22,
+          "output"
+        ],
+        "to": [
+          15,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          20,
+          "output"
+        ],
+        "to": [
+          15,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "output"
+        ],
+        "to": [
+          15,
+          "selection"
+        ]
+      },
+      {
+        "from": [
+          15,
+          "output"
+        ],
+        "to": [
+          24,
+          "shape"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output0"
+        ],
+        "to": [
+          25,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      1,
+      7,
+      23
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "7.14.0",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "77697265-2649-4abb-b38f-4e1005183415 - Int In",
+      "identifier": "2f78c0ed-3b6a-4063-90aa-f340853a7af1",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "7.14.0",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 26,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "Int In\n\nThe integer in node allows you to create an integer slider, menu buttons and drop-down menus. This makes the Int In one of the most powerful nodes to create UI elements for your patches."
+          }
+        },
+        "bounds": {
+          "height": 115,
+          "width": 472.09912109375,
+          "x": 202.13290405273438,
+          "y": 202
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "1": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 10
+          },
+          "min": {
+            "type": "integer",
+            "value": -10
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 214.88824462890625,
+          "y": 526.0963745117188
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Ex1 - Int In"
+      },
+      "11": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 5
+          },
+          "mode": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 838.62548828125,
+          "y": 862.2554321289062
+        },
+        "class": {
+          "id": "77697265-ab950887-37ee-4fd2-9487-c856b6b75c83",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "procedural",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          },
+          "thickness": {
+            "type": "float",
+            "value": [
+              0.05000000074505806,
+              0.05000000074505806,
+              0.05000000074505806,
+              0.05000000074505806,
+              0.05000000074505806
+            ]
+          }
+        },
+        "hidden": [
+          "mode",
+          "instances"
+        ],
+        "name": "Edge"
+      },
+      "12": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 5
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1059.328369140625,
+          "y": 862.2554321289062
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": [
+              null,
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "13": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 3: INT IN & SWITCH\n\nIn this example we are using the Int In node to create a drop down menu.\nBy setting the \"Options Count\" in the node panel to 3, we create three options.\nNext, we renamed Option #1, Option #2 and Option#3 to the names of the shapes going into the Switch.\nThis results in a drop down menu that lets the user decide which shape to use."
+          }
+        },
+        "bounds": {
+          "height": 562.7979125976562,
+          "width": 1056.2105712890625,
+          "x": 203.1981964111328,
+          "y": 1055.4271240234375
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "15": {
+        "attributes": {
+          "case-type": {
+            "type": "type",
+            "value": "procedural"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "selection-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "size": {
+            "type": "integer",
+            "value": 3
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 496.9068298339844,
+          "y": 1213.579833984375
+        },
+        "class": {
+          "id": "77697265-6899-4A9C-82AB-949346033440",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "procedural",
+            "value": null
+          },
+          "input1": {
+            "type": "procedural",
+            "value": null
+          },
+          "input2": {
+            "type": "procedural",
+            "value": null
+          },
+          "selection": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "selection-type",
+          "case-type",
+          "flow",
+          "size",
+          "instances"
+        ],
+        "name": "Switch"
+      },
+      "2": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 1: Integer Slider\n\nIn this first example we've created an integer slider with a min and max of -10 and 10.\nThe bounds of the slider can be set in the node inspector.\nHere you can also disable the min and max together, allowing the user to use whatever value they want.\nGive it a try, change the min/max and disable them"
+          }
+        },
+        "bounds": {
+          "height": 358.3763732910156,
+          "width": 773.7858276367188,
+          "x": 202.2630157470703,
+          "y": 337.5355224609375
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "20": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 240.84048461914065,
+          "y": 1464.1591796875
+        },
+        "class": {
+          "id": "77697265-7A3D-4390-812E-11DE31E7A433",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Octagon"
+      },
+      "21": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 240.84051513671875,
+          "y": 1305.9466552734375
+        },
+        "class": {
+          "id": "77697265-6928-4CE0-A145-5ED69D347DD0",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Pentagon"
+      },
+      "22": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 240.84048461914065,
+          "y": 1380.9376220703125
+        },
+        "class": {
+          "id": "77697265-7945-45E5-AF4D-E138F8DC377E",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Hexagon"
+      },
+      "23": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 3
+          },
+          "min": {
+            "type": "integer",
+            "value": 0
+          },
+          "option0-label": {
+            "type": "string",
+            "value": "Pentagon"
+          },
+          "option0-value": {
+            "type": "integer",
+            "value": 0
+          },
+          "option1-label": {
+            "type": "string",
+            "value": "Hexagon"
+          },
+          "option1-value": {
+            "type": "integer",
+            "value": 1
+          },
+          "option2-label": {
+            "type": "string",
+            "value": "Octagon"
+          },
+          "option2-value": {
+            "type": "integer",
+            "value": 2
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 3
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 305.7533264160156,
+          "y": 1213.579833984375
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "option0-label",
+          "option0-value",
+          "option1-label",
+          "option1-value",
+          "option2-label",
+          "option2-value",
+          "unit"
+        ],
+        "name": "Ex3 - Int In"
+      },
+      "24": {
+        "attributes": {
+          "antialising-direction": {
+            "type": "integer",
+            "value": 0
+          },
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "material-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "shape-dimensions": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 720.05029296875,
+          "y": 1213.5799560546875
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "antialiasing": {
+            "type": "float",
+            "value": 4
+          },
+          "camera": {
+            "type": "camera2d",
+            "value": {
+              "projection": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ],
+              "view": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ]
+            }
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              0.03921568766236305,
+              0.9803921580314637,
+              1
+            ]
+          },
+          "shape": {
+            "type": "procedural",
+            "value": null
+          }
+        },
+        "hidden": [
+          "antialising-direction",
+          "antialiasing",
+          "shape-dimensions",
+          "material-dimensions",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Shape Render"
+      },
+      "25": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 949.5955200195312,
+          "y": 1212.665283203125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "3": {
+        "attributes": {
+          "decimals-type": {
+            "type": "type",
+            "value": "null"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "trimZeroes-type": {
+            "type": "type",
+            "value": "null"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 371.4367980957031,
+          "y": 525.7647705078125
+        },
+        "class": {
+          "id": "77697265-5852-4454-89e5-61a24cea2d50",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input0-type",
+          "decimals-type",
+          "trimZeroes-type"
+        ],
+        "name": "String"
+      },
+      "4": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "font": {
+            "type": "string",
+            "value": "Arial"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "style": {
+            "type": "string",
+            "value": "Regular"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 587.8135375976562,
+          "y": 536.0277099609375
+        },
+        "class": {
+          "id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "alignment": {
+            "type": "integer",
+            "value": 1
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input": {
+            "type": "string",
+            "value": "Text"
+          },
+          "linewidth": {
+            "type": "float",
+            "value": 1920
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "spacing": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass",
+          "font",
+          "style",
+          "linewidth",
+          "alignment",
+          "spacing",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Text Render"
+      },
+      "5": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 824.7162475585938,
+          "y": 536.0277099609375
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "6": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 2: COLLECTION SIZE\n\nIn this example we are using an Int In, set to attribute flow, to control the size of the Linear.\nThis patch demonstrates the use for Int In nodes when changing the size of a collection.\nThis can be really useful when making cloners and generators where you want to give the user control over the quantity of elements."
+          }
+        },
+        "bounds": {
+          "height": 326.4132080078125,
+          "width": 1056.2105712890625,
+          "x": 203.1981964111328,
+          "y": 709.7376708984375
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "7": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "attribute"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "input": {
+            "type": "integer",
+            "value": 5
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 20
+          },
+          "min": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 241.04464721679688,
+          "y": 862.2554931640625
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Ex2 - Int In"
+      },
+      "8": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "include-max": {
+            "type": "bool",
+            "value": true
+          },
+          "size": {
+            "type": "integer",
+            "value": 5
+          },
+          "type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 392.5440368652344,
+          "y": 862.2554931640625
+        },
+        "class": {
+          "id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "max": {
+            "type": "float",
+            "value": 1
+          },
+          "min": {
+            "type": "float",
+            "value": 0.10000000149011612
+          }
+        },
+        "hidden": [
+          "type",
+          "flow",
+          "include-max"
+        ],
+        "name": "Linear"
+      },
+      "9": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 5
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 616.987548828125,
+          "y": 862.2554321289062
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": [
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5
+            ]
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Circle"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -213.293212890625,
+        "y": 164.73681640625,
+        "zoom": 0.6447386741638184
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null,
+          "Syphon": null
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Widescreen Variation A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px;
+  height: 1080px;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 11px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ═══════════════ TOP BAR ═══════════════ */
+.topbar {
+  height: 34px;
+  background: #111114;
+  border-bottom: 1px solid #2a2a2e;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 10px;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
+}
+.audio-badge {
+  font-size: 8px; color: #555; text-transform: uppercase; letter-spacing: 1px;
+  background: #1a1a1e; padding: 2px 6px; border: 1px solid #2a2a2e;
+}
+.audio-src { font-size: 9px; color: #888; }
+.topbar-sep { width: 1px; height: 20px; background: #2a2a2e; }
+.transport-group { display: flex; gap: 2px; }
+.transport-btn {
+  width: 24px; height: 22px; background: #1a1a1e; border: 1px solid #2a2a2e;
+  color: #666; font-size: 9px; display: flex; align-items: center; justify-content: center;
+}
+.transport-btn.active { color: #00d9ff; border-color: #00d9ff; }
+.beat-wheel {
+  width: 26px; height: 26px; border-radius: 50%; border: 2px solid #2a2a2e;
+  position: relative; flex-shrink: 0;
+}
+.bw-seg { position: absolute; width: 11px; height: 11px; }
+.bw-seg.tl { top: 1px; left: 1px; background: #00d9ff; border-radius: 6px 0 0 0; }
+.bw-seg.tr { top: 1px; right: 1px; background: #005566; border-radius: 0 6px 0 0; }
+.bw-seg.bl { bottom: 1px; left: 1px; background: #005566; border-radius: 0 0 0 6px; }
+.bw-seg.br { bottom: 1px; right: 1px; background: #005566; border-radius: 0 0 6px 0; }
+.bpm-big {
+  font-family: 'SF Mono', 'Consolas', monospace; font-size: 20px; font-weight: 700;
+  color: #fff; letter-spacing: -0.5px;
+}
+.bpm-unit { font-size: 8px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+.bar-info { font-family: 'SF Mono', monospace; font-size: 10px; color: #666; }
+.topbar-btn {
+  background: #1a1a1e; border: 1px solid #2a2a2e; color: #666;
+  padding: 2px 8px; font-size: 9px; height: 20px; display: flex; align-items: center;
+}
+.topbar-btn.on { color: #00d9ff; border-color: #005566; background: #0a1520; }
+.quantize-pills { display: flex; gap: 1px; }
+.q-pill {
+  width: 20px; height: 20px; background: #1a1a1e; border: 1px solid #2a2a2e;
+  color: #444; font-size: 8px; display: flex; align-items: center; justify-content: center;
+  font-family: 'SF Mono', monospace;
+}
+.q-pill.active { color: #00d9ff; border-color: #00d9ff; background: #0a1520; }
+.master-wrap { display: flex; align-items: center; gap: 4px; }
+.master-label { font-size: 8px; color: #444; text-transform: uppercase; letter-spacing: 0.5px; }
+.master-bar {
+  width: 80px; height: 5px; background: #1a1a1e; border: 1px solid #2a2a2e; position: relative;
+}
+.master-fill {
+  position: absolute; top: 0; left: 0; bottom: 0; width: 80%;
+  background: linear-gradient(90deg, #005566, #00d9ff);
+}
+.master-val { font-family: 'SF Mono', monospace; font-size: 9px; color: #aaa; }
+.output-btn {
+  background: #1a1a1e; border: 1px solid #2a2a2e; color: #00d9ff;
+  padding: 2px 8px; font-size: 9px; height: 20px; display: flex; align-items: center;
+}
+.fps { font-family: 'SF Mono', monospace; font-size: 10px; color: #44cc44; margin-left: auto; }
+
+/* ═══════════════ MAIN LAYOUT ═══════════════ */
+.main {
+  position: absolute; top: 34px; left: 0; right: 0; bottom: 0;
+  display: flex;
+}
+
+/* ZONE: PERFORMANCE (50%) */
+.zone-performance {
+  width: 960px; background: #111114; display: flex; flex-direction: column;
+}
+
+/* Column triggers */
+.col-triggers {
+  display: flex; height: 20px; padding-left: 160px;
+  background: #0e0e12; border-bottom: 1px solid #1a1a1e;
+}
+.col-trig {
+  width: 80px; display: flex; align-items: center; justify-content: center;
+  font-size: 8px; color: #333; border-right: 1px solid #1a1a1e;
+  font-family: 'SF Mono', monospace;
+}
+.col-trig.active { color: #00d9ff; background: #0a1218; }
+
+/* Layer rows */
+.deck-layers { flex: 1; display: flex; flex-direction: column; }
+.layer-row { display: flex; flex: 1; border-bottom: 1px solid #1a1a1e; min-height: 160px; }
+
+/* Layer strip (160px) */
+.layer-strip {
+  width: 160px; background: #0e0e12; border-right: 1px solid #1a1a1e;
+  padding: 6px 8px; display: flex; flex-direction: column; gap: 4px;
+}
+.ls-header { display: flex; align-items: center; justify-content: space-between; }
+.ls-name { font-size: 10px; color: #ccc; font-weight: 600; }
+.ls-type { font-size: 8px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+.ls-btns { display: flex; gap: 2px; margin-top: 2px; }
+.ls-btn {
+  width: 20px; height: 16px; background: #1a1a1e; border: 1px solid #222; color: #555;
+  font-size: 8px; display: flex; align-items: center; justify-content: center;
+}
+.ls-btn.active-bypass { color: #ff4444; border-color: #441111; background: #1a0808; }
+.ls-btn.active-solo { color: #cccc44; border-color: #444411; background: #1a1a08; }
+.ls-transport { display: flex; gap: 2px; margin-top: 2px; }
+.ls-t-btn {
+  width: 18px; height: 14px; background: #1a1a1e; border: 1px solid #222; color: #444;
+  font-size: 7px; display: flex; align-items: center; justify-content: center;
+}
+.ls-t-btn.active { color: #00d9ff; }
+.ls-sliders { display: flex; gap: 4px; margin-top: 4px; flex: 1; }
+.ls-vslider {
+  width: 18px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.ls-vslider-label { font-size: 7px; color: #555; text-transform: uppercase; }
+.ls-vslider-track {
+  flex: 1; width: 8px; background: #0a0a0e; border: 1px solid #1a1a1e; position: relative;
+  min-height: 60px;
+}
+.ls-vslider-fill { position: absolute; bottom: 0; left: 0; right: 0; }
+.ls-vslider-val { font-size: 7px; color: #555; font-family: 'SF Mono', monospace; }
+.ls-blend { font-size: 8px; color: #555; margin-top: 2px; }
+.ls-thumb {
+  width: 36px; height: 24px; background: #1a1a1e; border: 1px solid #222;
+  margin-top: 4px; overflow: hidden;
+}
+.ls-thumb-img {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #1a0044 0%, #002244 50%, #0a0022 100%);
+}
+
+/* Clip cells */
+.clips-area { display: flex; flex: 1; overflow: hidden; }
+.clip-cell {
+  width: 80px; height: 100%; border-right: 1px solid #1a1a1e;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.clip-thumb {
+  flex: 1; position: relative; overflow: hidden;
+}
+.clip-thumb-img {
+  width: 100%; height: 100%;
+}
+.clip-active { border: 2px solid #00d9ff; }
+.clip-selected { border: 2px solid #fff; }
+.clip-name {
+  height: 18px; background: #0e0e12; font-size: 8px; color: #666;
+  display: flex; align-items: center; padding: 0 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.clip-fx-badge {
+  position: absolute; top: 2px; right: 2px; font-size: 7px; color: #00d9ff;
+  background: rgba(0,0,0,0.7); padding: 0 3px;
+}
+/* Gradient fills for thumbnails */
+.grad-a { background: linear-gradient(135deg, #220044 0%, #003366 100%); }
+.grad-b { background: linear-gradient(135deg, #002200 0%, #004444 100%); }
+.grad-c { background: linear-gradient(135deg, #330000 0%, #442200 100%); }
+.grad-d { background: linear-gradient(135deg, #000033 0%, #003300 100%); }
+.grad-e { background: linear-gradient(135deg, #110022 0%, #220044 100%); }
+.grad-f { background: linear-gradient(135deg, #001122 0%, #002244 100%); }
+.grad-g { background: linear-gradient(135deg, #220000 0%, #002222 100%); }
+.grad-h { background: linear-gradient(135deg, #000022 0%, #440000 100%); }
+.grad-src { background: repeating-linear-gradient(45deg, #1a1a2e, #1a1a2e 4px, #222240 4px, #222240 8px); }
+.grad-empty { background: #111114; }
+
+/* Deck tabs */
+.deck-tabs {
+  height: 24px; display: flex; background: #0e0e12; border-top: 1px solid #1a1a1e;
+}
+.deck-tab {
+  padding: 0 20px; display: flex; align-items: center; font-size: 9px; color: #555;
+  border-right: 1px solid #1a1a1e;
+}
+.deck-tab.active { color: #00d9ff; background: #0a1520; border-bottom: 2px solid #00d9ff; }
+
+/* ═══════════════ SIGNAL BAR (40px vertical) ═══════════════ */
+.signal-bar {
+  width: 40px; background: #0e0e12;
+  border-left: 1px solid #2a2a2e; border-right: 1px solid #2a2a2e;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 0; gap: 4px;
+}
+.signal-label {
+  font-size: 7px; color: #333; text-transform: uppercase; letter-spacing: 1px;
+  writing-mode: vertical-rl; text-orientation: mixed;
+}
+.vband {
+  width: 20px; flex: 1; background: #0a0a0e; border: 1px solid #1a1a1e;
+  position: relative; display: flex; align-items: flex-end;
+}
+.vband-fill { width: 100%; position: absolute; bottom: 0; }
+.vb-sub .vband-fill { height: 82%; background: linear-gradient(0deg, #660011, #ff2244); }
+.vb-bass .vband-fill { height: 70%; background: linear-gradient(0deg, #663300, #ff6622); }
+.vb-lmid .vband-fill { height: 52%; background: linear-gradient(0deg, #665500, #ffaa00); }
+.vb-mid .vband-fill { height: 45%; background: linear-gradient(0deg, #115511, #44dd44); }
+.vb-hmid .vband-fill { height: 32%; background: linear-gradient(0deg, #005555, #00cccc); }
+.vb-pres .vband-fill { height: 25%; background: linear-gradient(0deg, #113366, #4488ff); }
+.vb-bril .vband-fill { height: 16%; background: linear-gradient(0deg, #441166, #aa44ff); }
+.vband-lbl {
+  font-size: 6px; color: #333; text-align: center; width: 100%;
+  position: absolute; bottom: -10px;
+}
+.signal-bpm-box {
+  font-family: 'SF Mono', monospace; font-size: 9px; color: #888;
+  text-align: center; padding: 2px 0;
+  border-top: 1px solid #1a1a1e; border-bottom: 1px solid #1a1a1e; width: 100%;
+}
+.signal-beat-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: #00d9ff;
+  box-shadow: 0 0 6px rgba(0,217,255,0.4);
+}
+.signal-phase { font-size: 7px; color: #444; text-align: center; }
+
+/* ═══════════════ ZONE: CONTROL (30%) ═══════════════ */
+.zone-control {
+  width: 536px; background: #141418; display: flex; flex-direction: column;
+  border-right: 1px solid #2a2a2e;
+}
+
+/* Preview thumbnail */
+.preview-thumb {
+  width: 200px; height: 112px; background: #000; margin: 8px auto;
+  position: relative; overflow: hidden; border: 1px solid #2a2a2e;
+}
+.preview-visual {
+  width: 100%; height: 100%;
+  background:
+    radial-gradient(ellipse at 35% 40%, #0a0044 0%, #180066 15%, #0a0033 35%, transparent 60%),
+    radial-gradient(ellipse at 65% 55%, #002244 0%, #003366 20%, #001122 40%, transparent 65%),
+    radial-gradient(circle at 50% 50%, #110022 0%, #000008 50%);
+}
+.preview-label {
+  position: absolute; top: 3px; left: 5px; font-size: 7px; color: rgba(255,255,255,0.25);
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.preview-fps {
+  position: absolute; top: 3px; right: 5px; font-family: 'SF Mono', monospace;
+  font-size: 7px; color: rgba(255,255,255,0.2);
+}
+
+/* Inspector tabs */
+.inspector-tabs {
+  display: flex; height: 22px; background: #0e0e12; border-bottom: 1px solid #1a1a1e;
+}
+.insp-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #555; border-right: 1px solid #1a1a1e;
+}
+.insp-tab.active { color: #00d9ff; background: #0a1520; border-bottom: 2px solid #00d9ff; }
+
+/* Inspector content */
+.inspector-body {
+  flex: 1; overflow-y: auto; padding: 8px 10px;
+}
+.insp-section {
+  margin-bottom: 10px;
+}
+.insp-section-header {
+  font-size: 8px; font-weight: 700; color: #555; text-transform: uppercase;
+  letter-spacing: 1px; padding: 4px 0 4px; border-bottom: 1px solid #222;
+  margin-bottom: 6px;
+}
+.insp-row {
+  display: flex; align-items: center; height: 20px; gap: 6px; margin-bottom: 2px;
+}
+.insp-label { font-size: 9px; color: #777; width: 80px; flex-shrink: 0; }
+.insp-slider-track {
+  flex: 1; height: 6px; background: #1a1a1e; border: 1px solid #222; position: relative;
+}
+.insp-slider-fill { position: absolute; top: 0; left: 0; bottom: 0; background: #00d9ff; }
+.insp-slider-val { font-size: 9px; color: #888; font-family: 'SF Mono', monospace; width: 36px; text-align: right; }
+.insp-triangle {
+  width: 8px; height: 8px; display: inline-block;
+  border-left: 5px solid #444; border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  flex-shrink: 0;
+}
+.insp-triangle.connected { border-left-color: #00d9ff; }
+.insp-combo {
+  flex: 1; height: 18px; background: #1a1a1e; border: 1px solid #222;
+  font-size: 9px; color: #aaa; display: flex; align-items: center; padding: 0 6px;
+}
+.insp-knobs {
+  display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0;
+}
+.insp-knob {
+  width: 48px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.insp-knob-circle {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid #333;
+  background: #1a1a1e; position: relative;
+}
+.insp-knob-indicator {
+  position: absolute; width: 2px; height: 10px; background: #00d9ff;
+  top: 4px; left: 50%; transform-origin: bottom center;
+}
+.insp-knob-label { font-size: 7px; color: #555; text-align: center; }
+.insp-knob-val { font-size: 7px; color: #777; font-family: 'SF Mono', monospace; }
+
+/* Transport section */
+.transport-section { display: flex; gap: 4px; align-items: center; margin: 4px 0; }
+.t-btn {
+  width: 24px; height: 20px; background: #1a1a1e; border: 1px solid #222;
+  color: #555; font-size: 9px; display: flex; align-items: center; justify-content: center;
+}
+.t-btn.active { color: #00d9ff; border-color: #005566; }
+.transport-timeline {
+  flex: 1; height: 16px; background: #0a0a0e; border: 1px solid #222;
+  position: relative;
+}
+.tl-range {
+  position: absolute; top: 0; bottom: 0; background: rgba(0,217,255,0.1);
+  border-left: 2px solid #00d9ff; border-right: 2px solid #00d9ff;
+  left: 10%; right: 15%;
+}
+.tl-playhead {
+  position: absolute; top: 0; bottom: 0; width: 2px; background: #00d9ff;
+  left: 35%;
+}
+
+/* Effect stack */
+.fx-row {
+  display: flex; align-items: center; height: 22px; gap: 4px; padding: 0 4px;
+  background: #1a1a1e; border: 1px solid #222; margin-bottom: 2px;
+}
+.fx-bypass {
+  width: 14px; height: 14px; background: #111; border: 1px solid #333;
+  font-size: 7px; color: #555; display: flex; align-items: center; justify-content: center;
+}
+.fx-bypass.on { color: #00d9ff; border-color: #005566; }
+.fx-name { font-size: 9px; color: #aaa; flex: 1; }
+.fx-val { font-size: 8px; color: #555; font-family: 'SF Mono', monospace; }
+.fx-delete {
+  width: 14px; height: 14px; font-size: 8px; color: #444;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Cuepoints */
+.cue-row { display: flex; gap: 3px; margin: 4px 0; }
+.cue-btn {
+  width: 24px; height: 18px; background: #1a1a1e; border: 1px solid #222;
+  font-size: 8px; color: #555; display: flex; align-items: center; justify-content: center;
+  font-family: 'SF Mono', monospace;
+}
+.cue-btn.set { color: #00d9ff; border-color: #005566; }
+
+/* ═══════════════ ZONE: CONTENT (20%) ═══════════════ */
+.zone-content {
+  width: 384px; background: #141418; display: flex; flex-direction: column;
+}
+.browser-search {
+  height: 28px; display: flex; align-items: center; padding: 0 8px; gap: 6px;
+  background: #0e0e12; border-bottom: 1px solid #1a1a1e;
+}
+.browser-search-input {
+  flex: 1; height: 20px; background: #1a1a1e; border: 1px solid #222;
+  padding: 0 8px; font-size: 9px; color: #888; font-style: italic;
+  display: flex; align-items: center;
+}
+.browser-search-icon { font-size: 10px; color: #444; }
+.browser-tabs {
+  display: flex; height: 22px; background: #0e0e12; border-bottom: 1px solid #1a1a1e;
+}
+.browser-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 8px; color: #555; border-right: 1px solid #1a1a1e; text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.browser-tab.active { color: #00d9ff; background: #0a1520; border-bottom: 2px solid #00d9ff; }
+
+.browser-body { flex: 1; overflow-y: auto; padding: 4px 8px; }
+.browser-category {
+  margin-bottom: 6px;
+}
+.browser-cat-header {
+  font-size: 8px; font-weight: 700; color: #555; text-transform: uppercase;
+  letter-spacing: 1px; padding: 4px 0; border-bottom: 1px solid #1a1a1e;
+  display: flex; align-items: center; gap: 4px;
+}
+.browser-cat-count { font-size: 7px; color: #333; font-weight: 400; }
+.browser-cat-arrow { font-size: 8px; color: #333; }
+.browser-item {
+  height: 20px; display: flex; align-items: center; padding: 0 8px;
+  font-size: 9px; color: #888;
+}
+.browser-item:hover { background: #1a1a22; color: #00d9ff; }
+.browser-item-icon { width: 12px; color: #444; font-size: 8px; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="audio-badge">Audio</div>
+  <div class="audio-src">Mic Input</div>
+  <div class="topbar-sep"></div>
+  <div class="transport-group">
+    <div class="transport-btn">&#9654;</div>
+    <div class="transport-btn active">||</div>
+    <div class="transport-btn">&#9632;</div>
+  </div>
+  <div class="beat-wheel">
+    <div class="bw-seg tl"></div><div class="bw-seg tr"></div>
+    <div class="bw-seg bl"></div><div class="bw-seg br"></div>
+  </div>
+  <div class="bar-info">Bar 7</div>
+  <div class="bar-info">Phr 0.84</div>
+  <div class="topbar-sep"></div>
+  <div class="bpm-big">128.0</div>
+  <div class="bpm-unit">BPM</div>
+  <div style="font-size:8px;color:#44cc44;text-transform:uppercase;letter-spacing:0.5px;">LOCKED</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-btn">Tap</div>
+  <div class="topbar-btn">Resync</div>
+  <div class="topbar-btn on">Manual</div>
+  <div class="topbar-sep"></div>
+  <div class="quantize-pills">
+    <div class="q-pill">/4</div><div class="q-pill">/2</div>
+    <div class="q-pill active">x1</div><div class="q-pill">x2</div><div class="q-pill">x4</div>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-btn">Quantize: Beat</div>
+  <div class="topbar-sep"></div>
+  <div class="master-wrap">
+    <div class="master-label">Fade</div>
+    <div class="master-bar"><div class="master-fill" style="width:40%"></div></div>
+    <div class="master-val">0.3s</div>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="master-wrap">
+    <div class="master-label">Master</div>
+    <div class="master-bar"><div class="master-fill" style="width:80%"></div></div>
+    <div class="master-val">0.80</div>
+  </div>
+  <div class="topbar-sep"></div>
+  <div class="output-btn">Output: Display 2</div>
+  <div class="fps">60 FPS</div>
+  <div style="font-size:9px;color:#666;margin-left:6px;">DSP 4%</div>
+</div>
+
+<!-- MAIN 3-ZONE LAYOUT -->
+<div class="main">
+
+  <!-- ZONE: PERFORMANCE (50% = ~960px) -->
+  <div class="zone-performance">
+    <!-- Column triggers -->
+    <div class="col-triggers">
+      <div class="col-trig active">1</div><div class="col-trig">2</div><div class="col-trig">3</div>
+      <div class="col-trig">4</div><div class="col-trig">5</div><div class="col-trig">6</div>
+      <div class="col-trig">7</div><div class="col-trig">8</div><div class="col-trig">9</div>
+      <div class="col-trig">10</div>
+    </div>
+    <!-- Deck grid: 3 layers x 10 cols -->
+    <div class="deck-layers">
+      <!-- Layer 3 (top) -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-header"><span class="ls-name">FX Overlay</span><span class="ls-type">FX Only</span></div>
+          <div class="ls-btns">
+            <div class="ls-btn">X</div><div class="ls-btn">B</div><div class="ls-btn">S</div>
+          </div>
+          <div class="ls-transport">
+            <div class="ls-t-btn">&lt;</div><div class="ls-t-btn">||</div>
+            <div class="ls-t-btn active">&gt;</div><div class="ls-t-btn">&gt;|</div>
+          </div>
+          <div class="ls-sliders">
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">S</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:50%;background:#00d9ff;"></div></div>
+              <div class="ls-vslider-val">1.0</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">K</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:10%;background:#ffaa00;"></div></div>
+              <div class="ls-vslider-val">0.1</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">V</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:100%;background:#00aa88;"></div></div>
+              <div class="ls-vslider-val">1.0</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">F</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:30%;background:#4488ff;"></div></div>
+              <div class="ls-vslider-val">0.3</div>
+            </div>
+          </div>
+          <div class="ls-blend">Add</div>
+        </div>
+        <div class="clips-area">
+          <div class="clip-cell clip-active"><div class="clip-thumb grad-src"><div class="clip-fx-badge">FX 3</div></div><div class="clip-name">FX - Glitch Pack</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-src"></div><div class="clip-name">FX - Kaleidoscope</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-src"></div><div class="clip-name">FX - Color Wash</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-src"></div><div class="clip-name">FX - Strobe</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-src"></div><div class="clip-name">FX - Echo Trail</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-empty"></div><div class="clip-name"></div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-empty"></div><div class="clip-name"></div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-empty"></div><div class="clip-name"></div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-empty"></div><div class="clip-name"></div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-empty"></div><div class="clip-name"></div></div>
+        </div>
+      </div>
+      <!-- Layer 2 (middle) -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-header"><span class="ls-name">Patterns</span><span class="ls-type">Transparent</span></div>
+          <div class="ls-btns">
+            <div class="ls-btn">X</div><div class="ls-btn">B</div><div class="ls-btn">S</div>
+          </div>
+          <div class="ls-transport">
+            <div class="ls-t-btn">&lt;</div><div class="ls-t-btn">||</div>
+            <div class="ls-t-btn active">&gt;</div><div class="ls-t-btn">&gt;|</div>
+          </div>
+          <div class="ls-sliders">
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">S</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:50%;background:#00d9ff;"></div></div>
+              <div class="ls-vslider-val">1.0</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">K</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:20%;background:#ffaa00;"></div></div>
+              <div class="ls-vslider-val">0.2</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">V</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:72%;background:#00aa88;"></div></div>
+              <div class="ls-vslider-val">0.72</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">F</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:30%;background:#4488ff;"></div></div>
+              <div class="ls-vslider-val">0.3</div>
+            </div>
+          </div>
+          <div class="ls-blend">Screen</div>
+        </div>
+        <div class="clips-area">
+          <div class="clip-cell"><div class="clip-thumb grad-e"></div><div class="clip-name">Mandelbulb</div></div>
+          <div class="clip-cell clip-active"><div class="clip-thumb grad-a"><div class="clip-fx-badge">FX 2</div></div><div class="clip-name">Torus Spiral</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-d"></div><div class="clip-name">Perlin Flow</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-f"></div><div class="clip-name">Julia Set</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-b"></div><div class="clip-name">Voronoi</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-g"></div><div class="clip-name">Spectrum Ring</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-c"></div><div class="clip-name">Cymatics</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-h"></div><div class="clip-name">Apollonian 3D</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-empty"></div><div class="clip-name"></div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-empty"></div><div class="clip-name"></div></div>
+        </div>
+      </div>
+      <!-- Layer 1 (bottom) -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-header"><span class="ls-name">Backgrounds</span><span class="ls-type">Opaque</span></div>
+          <div class="ls-btns">
+            <div class="ls-btn">X</div><div class="ls-btn">B</div><div class="ls-btn">S</div>
+          </div>
+          <div class="ls-transport">
+            <div class="ls-t-btn">&lt;</div><div class="ls-t-btn">||</div>
+            <div class="ls-t-btn active">&gt;</div><div class="ls-t-btn">&gt;|</div>
+          </div>
+          <div class="ls-sliders">
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">S</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:50%;background:#00d9ff;"></div></div>
+              <div class="ls-vslider-val">1.0</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">K</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:10%;background:#ffaa00;"></div></div>
+              <div class="ls-vslider-val">0.1</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">V</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:100%;background:#00aa88;"></div></div>
+              <div class="ls-vslider-val">1.0</div>
+            </div>
+            <div class="ls-vslider">
+              <div class="ls-vslider-label">F</div>
+              <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:30%;background:#4488ff;"></div></div>
+              <div class="ls-vslider-val">0.3</div>
+            </div>
+          </div>
+          <div class="ls-blend">Normal</div>
+        </div>
+        <div class="clips-area">
+          <div class="clip-cell clip-active"><div class="clip-thumb grad-a"></div><div class="clip-name">Nebula_01.mp4</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-b"></div><div class="clip-name">Forest_Loop.mp4</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-c"></div><div class="clip-name">Fire_Abstract.mp4</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-d"></div><div class="clip-name">Ocean_Deep.mp4</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-e"></div><div class="clip-name">City_Night.jpg</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-f"></div><div class="clip-name">Aurora.mp4</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-g"></div><div class="clip-name">Lava_Flow.mp4</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-h"></div><div class="clip-name">Smoke_Trails.mp4</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-a"></div><div class="clip-name">Abstract_01.jpg</div></div>
+          <div class="clip-cell"><div class="clip-thumb grad-empty"></div><div class="clip-name"></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Deck tabs -->
+    <div class="deck-tabs">
+      <div class="deck-tab active">Deck 1</div>
+      <div class="deck-tab">Deck 2</div>
+      <div class="deck-tab">Deck 3</div>
+      <div class="deck-tab">Deck 4</div>
+    </div>
+  </div>
+
+  <!-- SIGNAL BAR (40px vertical strip) -->
+  <div class="signal-bar">
+    <div class="signal-label">Signal</div>
+    <div class="vband vb-sub"><div class="vband-fill"></div></div>
+    <div class="vband vb-bass"><div class="vband-fill"></div></div>
+    <div class="vband vb-lmid"><div class="vband-fill"></div></div>
+    <div class="vband vb-mid"><div class="vband-fill"></div></div>
+    <div class="vband vb-hmid"><div class="vband-fill"></div></div>
+    <div class="vband vb-pres"><div class="vband-fill"></div></div>
+    <div class="vband vb-bril"><div class="vband-fill"></div></div>
+    <div class="signal-bpm-box">128</div>
+    <div class="signal-beat-dot"></div>
+    <div class="signal-phase">Bar 7</div>
+  </div>
+
+  <!-- ZONE: CONTROL (30% = ~536px) -->
+  <div class="zone-control">
+    <!-- Preview thumbnail at top -->
+    <div class="preview-thumb">
+      <div class="preview-visual"></div>
+      <div class="preview-label">Preview</div>
+      <div class="preview-fps">60 fps</div>
+    </div>
+
+    <!-- Inspector tabs -->
+    <div class="inspector-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Composition</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+
+    <!-- Inspector body -->
+    <div class="inspector-body">
+      <!-- Name -->
+      <div class="insp-section">
+        <div style="font-size:12px;color:#e0e0e0;font-weight:600;margin-bottom:6px;">Torus Spiral</div>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="insp-section">
+        <div class="insp-section-header">Dashboard</div>
+        <div class="insp-knobs">
+          <div class="insp-knob">
+            <div class="insp-knob-circle"><div class="insp-knob-indicator" style="transform:rotate(-60deg)"></div></div>
+            <div class="insp-knob-label">Macro 1</div>
+            <div class="insp-knob-val">0.35</div>
+          </div>
+          <div class="insp-knob">
+            <div class="insp-knob-circle"><div class="insp-knob-indicator" style="transform:rotate(20deg)"></div></div>
+            <div class="insp-knob-label">Macro 2</div>
+            <div class="insp-knob-val">0.62</div>
+          </div>
+          <div class="insp-knob">
+            <div class="insp-knob-circle"><div class="insp-knob-indicator" style="transform:rotate(-90deg)"></div></div>
+            <div class="insp-knob-label">Macro 3</div>
+            <div class="insp-knob-val">0.25</div>
+          </div>
+          <div class="insp-knob">
+            <div class="insp-knob-circle"><div class="insp-knob-indicator" style="transform:rotate(45deg)"></div></div>
+            <div class="insp-knob-label">Macro 4</div>
+            <div class="insp-knob-val">0.78</div>
+          </div>
+          <div class="insp-knob">
+            <div class="insp-knob-circle"><div class="insp-knob-indicator" style="transform:rotate(0deg)"></div></div>
+            <div class="insp-knob-label">Macro 5</div>
+            <div class="insp-knob-val">0.50</div>
+          </div>
+          <div class="insp-knob">
+            <div class="insp-knob-circle"><div class="insp-knob-indicator" style="transform:rotate(-30deg)"></div></div>
+            <div class="insp-knob-label">Macro 6</div>
+            <div class="insp-knob-val">0.40</div>
+          </div>
+          <div class="insp-knob">
+            <div class="insp-knob-circle"><div class="insp-knob-indicator" style="transform:rotate(60deg)"></div></div>
+            <div class="insp-knob-label">Macro 7</div>
+            <div class="insp-knob-val">0.85</div>
+          </div>
+          <div class="insp-knob">
+            <div class="insp-knob-circle"><div class="insp-knob-indicator" style="transform:rotate(-120deg)"></div></div>
+            <div class="insp-knob-label">Macro 8</div>
+            <div class="insp-knob-val">0.10</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transport -->
+      <div class="insp-section">
+        <div class="insp-section-header">Transport</div>
+        <div class="insp-row">
+          <div class="insp-label">Mode</div>
+          <div class="insp-combo">BPM Sync</div>
+        </div>
+        <div class="transport-section">
+          <div class="t-btn">&lt;</div>
+          <div class="t-btn">||</div>
+          <div class="t-btn active">&gt;</div>
+          <div class="transport-timeline">
+            <div class="tl-range"></div>
+            <div class="tl-playhead"></div>
+          </div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-label">Loop</div>
+          <div class="insp-combo">Loop</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-label">Speed</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:50%"></div></div>
+          <div class="insp-slider-val">1.0x</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-label">Beats/Cycle</div>
+          <div class="insp-combo">4 beats</div>
+        </div>
+      </div>
+
+      <!-- Cuepoints -->
+      <div class="insp-section">
+        <div class="insp-section-header">Cuepoints</div>
+        <div class="cue-row">
+          <div class="cue-btn set">1</div><div class="cue-btn set">2</div>
+          <div class="cue-btn">3</div><div class="cue-btn set">4</div>
+          <div class="cue-btn">5</div><div class="cue-btn">6</div>
+          <div class="cue-btn">7</div><div class="cue-btn">8</div>
+        </div>
+      </div>
+
+      <!-- Source Parameters -->
+      <div class="insp-section">
+        <div class="insp-section-header">Source Parameters</div>
+        <div class="insp-row">
+          <div class="insp-triangle connected"></div>
+          <div class="insp-label">Zoom</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:30%"></div></div>
+          <div class="insp-slider-val">0.30</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-triangle"></div>
+          <div class="insp-label">Speed</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:55%"></div></div>
+          <div class="insp-slider-val">0.55</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-triangle connected"></div>
+          <div class="insp-label">Stripe Count</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:40%"></div></div>
+          <div class="insp-slider-val">0.40</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-triangle"></div>
+          <div class="insp-label">Color Shift</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:65%"></div></div>
+          <div class="insp-slider-val">0.65</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-triangle"></div>
+          <div class="insp-label">Glow</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:20%"></div></div>
+          <div class="insp-slider-val">0.20</div>
+        </div>
+      </div>
+
+      <!-- Video -->
+      <div class="insp-section">
+        <div class="insp-section-header">Video</div>
+        <div class="insp-row">
+          <div class="insp-triangle connected"></div>
+          <div class="insp-label">Opacity</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:100%"></div></div>
+          <div class="insp-slider-val">1.00</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-label">Blend Mode</div>
+          <div class="insp-combo">Layer Determined</div>
+        </div>
+      </div>
+
+      <!-- Transform -->
+      <div class="insp-section">
+        <div class="insp-section-header">Transform</div>
+        <div class="insp-row">
+          <div class="insp-triangle"></div>
+          <div class="insp-label">Position X</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:50%"></div></div>
+          <div class="insp-slider-val">0</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-triangle"></div>
+          <div class="insp-label">Position Y</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:50%"></div></div>
+          <div class="insp-slider-val">0</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-triangle connected"></div>
+          <div class="insp-label">Scale</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:50%"></div></div>
+          <div class="insp-slider-val">1.00</div>
+        </div>
+        <div class="insp-row">
+          <div class="insp-triangle"></div>
+          <div class="insp-label">Rotation</div>
+          <div class="insp-slider-track"><div class="insp-slider-fill" style="width:50%"></div></div>
+          <div class="insp-slider-val">0.0</div>
+        </div>
+      </div>
+
+      <!-- Effects -->
+      <div class="insp-section">
+        <div class="insp-section-header">Effects</div>
+        <div class="fx-row">
+          <div class="fx-bypass on">B</div>
+          <div class="fx-name">Ripple</div>
+          <div class="fx-val">0.45</div>
+          <div class="fx-delete">x</div>
+        </div>
+        <div class="fx-row">
+          <div class="fx-bypass on">B</div>
+          <div class="fx-name">Hue Shift</div>
+          <div class="fx-val">0.30</div>
+          <div class="fx-delete">x</div>
+        </div>
+        <div style="font-size:8px;color:#333;padding:4px 0;text-align:center;">Drag effects here to add</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ZONE: CONTENT (20% = ~384px) -->
+  <div class="zone-content">
+    <!-- Search -->
+    <div class="browser-search">
+      <div class="browser-search-icon">&#128269;</div>
+      <div class="browser-search-input">Search effects and sources...</div>
+    </div>
+    <!-- Tabs -->
+    <div class="browser-tabs">
+      <div class="browser-tab active">All</div>
+      <div class="browser-tab">FX</div>
+      <div class="browser-tab">Sources</div>
+      <div class="browser-tab">Files</div>
+    </div>
+    <!-- Body -->
+    <div class="browser-body">
+      <!-- FX Categories -->
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9660;</span> Warp <span class="browser-cat-count">(28)</span></div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Ripple</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Bulge</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Wave</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Liquid</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Kaleidoscope</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Fisheye</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Swirl</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Polar Coords</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Twirl</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Bendoscope</div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9660;</span> Color <span class="browser-cat-count">(31)</span></div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Hue Shift</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Saturation</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Brightness</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Duotone</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Chromatic Aberration</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Thermal</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Posterize</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Solarize</div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9660;</span> Glitch <span class="browser-cat-count">(16)</span></div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Pixel Scatter</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> RGB Split</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Block Glitch</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Scanlines</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9670;</span> Digital Rain</div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Blur/Post <span class="browser-cat-count">(10)</span></div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> 3D/Depth <span class="browser-cat-count">(10)</span></div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Pattern <span class="browser-cat-count">(19)</span></div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Time <span class="browser-cat-count">(6)</span></div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Audio <span class="browser-cat-count">(3)</span></div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header" style="margin-top:8px;border-top:1px solid #2a2a2e;padding-top:8px;"><span class="browser-cat-arrow">&#9660;</span> Sources: Fractal <span class="browser-cat-count">(14)</span></div>
+        <div class="browser-item"><span class="browser-item-icon">&#9632;</span> Mandelbrot</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9632;</span> Julia Set</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9632;</span> Mandelbulb</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9632;</span> Menger Sponge</div>
+        <div class="browser-item"><span class="browser-item-icon">&#9632;</span> Apollonian 3D</div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Sources: Geometric <span class="browser-cat-count">(13)</span></div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Sources: Audio-Visual <span class="browser-cat-count">(9)</span></div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Sources: 3D <span class="browser-cat-count">(20)</span></div>
+      </div>
+      <div class="browser-category">
+        <div class="browser-cat-header"><span class="browser-cat-arrow">&#9654;</span> Sources: Noise <span class="browser-cat-count">(3)</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

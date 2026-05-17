@@ -1,0 +1,330 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          3,
+          "output"
+        ],
+        "to": [
+          5,
+          "osc"
+        ]
+      },
+      {
+        "from": [
+          6,
+          "osc"
+        ],
+        "to": [
+          4,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          7,
+          "output"
+        ],
+        "to": [
+          6,
+          "write"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "output0"
+        ],
+        "to": [
+          6,
+          "parameter1"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "OSC Example",
+      "identifier": "adcdb612-45a6-4f4d-9575-0aa58452f75e",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 9,
+    "nodes": {
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OSC\n\nWire can both read and write OSC. This enables you to get OSC data into your patch. A common use case is to create a custom TouchOSC application on an Ipad or smartphone to control your patch, source or effect.\n\nWriting OSC enables you to get data out of your patch into other applications. Let's say you want to send the luminescence of your output to Ableton where it will modulate a filter. OSC Write is the node for you.\n\nTo get OSC into Wire simply use the OSC In node and connect it to the Read OSC node. Specify the address and you are off to the races.\n\nTo get  OSC out of wire use the Write OSC in conjunction with the OSC Out node.\n\nThe amount of parameters can be set in the inspector."
+          }
+        },
+        "bounds": {
+          "height": 279.40350341796875,
+          "width": 1046.9403076171875,
+          "x": 227.57485961914065,
+          "y": 270.811767578125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "3": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 227,
+          "y": 610
+        },
+        "class": {
+          "id": "77697265-6489-4B7E-A024-A50A1F4C47E4",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "osc",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "OSC In"
+      },
+      "4": {
+        "attributes": {},
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1163,
+          "y": 610
+        },
+        "class": {
+          "id": "77697265-5b59-4fd5-b374-c7ca941ce21e",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "osc",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "OSC Out"
+      },
+      "5": {
+        "attributes": {
+          "parameter-number": {
+            "type": "number",
+            "value": 1
+          },
+          "parameter-type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 393,
+          "y": 610
+        },
+        "class": {
+          "id": "77697265-48C4-40C4-A756-81D6711CD472",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "address": {
+            "type": "string",
+            "value": "/dummyA"
+          },
+          "osc": {
+            "type": "osc",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Read OSC"
+      },
+      "6": {
+        "attributes": {
+          "parameter-number": {
+            "type": "number",
+            "value": 1
+          },
+          "parameter-type1": {
+            "type": "type",
+            "value": "float4"
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 945,
+          "y": 610
+        },
+        "class": {
+          "id": "77697265-8B96-4D66-BF59-C726226F8F9C",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "address": {
+            "type": "string",
+            "value": "/dummyB"
+          },
+          "parameter1": {
+            "type": "float4",
+            "value": [
+              0.7647058963775635,
+              0.14901961386203766,
+              0.14901961386203766,
+              1
+            ]
+          },
+          "write": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Write OSC"
+      },
+      "7": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 775,
+          "y": 610
+        },
+        "class": {
+          "id": "77697265-e61f-42c0-862a-0dca04e14569",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Trigger In"
+      },
+      "8": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 710,
+          "y": 720
+        },
+        "class": {
+          "id": "77697265-8035-4fab-a688-52338c6b4748",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float4",
+            "value": [
+              0.7647058963775635,
+              0.14901961386203766,
+              0.14901961386203766,
+              1
+            ]
+          }
+        },
+        "hidden": [],
+        "name": "Color"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 121.6962432861328,
+        "y": 152.72264099121094,
+        "zoom": 1.0225896835327148
+      },
+      "selection": [
+        "5"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "14": null
+        },
+        "out": {}
+      }
+    }
+  }
+}

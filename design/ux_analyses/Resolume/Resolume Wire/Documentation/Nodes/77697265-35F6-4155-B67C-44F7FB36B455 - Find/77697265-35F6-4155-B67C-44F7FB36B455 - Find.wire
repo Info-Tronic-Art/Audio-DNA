@@ -1,0 +1,1191 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					18,
+					"output"
+				],
+				"to": [
+					15,
+					"haystack"
+				]
+			},
+			{
+				"from": [
+					15,
+					"succeeded"
+				],
+				"to": [
+					19,
+					"selection"
+				]
+			},
+			{
+				"from": [
+					20,
+					"output"
+				],
+				"to": [
+					19,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					21,
+					"output"
+				],
+				"to": [
+					19,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					19,
+					"output"
+				],
+				"to": [
+					22,
+					"input"
+				]
+			},
+			{
+				"from": [
+					52,
+					"output"
+				],
+				"to": [
+					53,
+					"haystack"
+				]
+			},
+			{
+				"from": [
+					52,
+					"output"
+				],
+				"to": [
+					54,
+					"input"
+				]
+			},
+			{
+				"from": [
+					52,
+					"output"
+				],
+				"to": [
+					55,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					55,
+					"output0"
+				],
+				"to": [
+					56,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					56,
+					"output0"
+				],
+				"to": [
+					54,
+					"length"
+				]
+			},
+			{
+				"from": [
+					54,
+					"output0"
+				],
+				"to": [
+					57,
+					"input"
+				]
+			},
+			{
+				"from": [
+					53,
+					"output0"
+				],
+				"to": [
+					59,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					59,
+					"output0"
+				],
+				"to": [
+					54,
+					"start"
+				]
+			},
+			{
+				"from": [
+					59,
+					"output0"
+				],
+				"to": [
+					56,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					52,
+					"output"
+				],
+				"to": [
+					61,
+					"input"
+				]
+			},
+			{
+				"from": [
+					57,
+					"output"
+				],
+				"to": [
+					62,
+					"input"
+				]
+			},
+			{
+				"from": [
+					61,
+					"output"
+				],
+				"to": [
+					63,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					62,
+					"output0"
+				],
+				"to": [
+					63,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					63,
+					"output0"
+				],
+				"to": [
+					58,
+					"input"
+				]
+			}
+		],
+		"inputOrder": [
+			18,
+			52
+		],
+		"meta": {
+			"author": "",
+			"category": null,
+			"description": "",
+			"displayName": "77697265-35F6-4155-B67C-44F7FB36B455 - Find",
+			"editor": {
+				"branch": "",
+				"name": "Wire",
+				"version": "7.13.0.15559"
+			},
+			"identifier": "6e6e4aa9-ad16-44bf-b99e-628cb13d283b",
+			"licenseName": "",
+			"mail": "",
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 65,
+		"nodes": {
+			"14": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "FIND\n\nThe Find node can be used to find a substring(the Needle) in a string(the Haystack). The node will output a boolean(true) if the neelde is found within the haystack.\n\nThe start from inlet allows you to tell the node from which position in the haystack to start searching.\n\nIn the node panel you will find an option to look for either the first or last occurrence of the neelde. "
+					}
+				},
+				"bounds": {
+					"height": 246.610687255859375,
+					"width": 457.450103759765625,
+					"x": 193.726318359375,
+					"y": -357.5218505859375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"15": {
+				"attributes": {
+					"caseSensitive": {
+						"type": "bool",
+						"value": false
+					},
+					"haystack-flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					},
+					"needle-flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"occurrence": {
+						"type": "choice",
+						"value": "First"
+					},
+					"startFrom-flow": {
+						"type": "flow",
+						"value": "signal"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 382.658233642578125,
+					"y": 118.67803955078125
+				},
+				"class": {
+					"id": "77697265-35F6-4155-B67C-44F7FB36B455",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"haystack": {
+						"type": "string",
+						"value": ""
+					},
+					"needle": {
+						"type": "string",
+						"value": "Yes"
+					},
+					"startFrom": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"hidden": [],
+				"name": "Find"
+			},
+			"18": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 205.282470703125,
+					"y": 118.91350555419921875
+				},
+				"class": {
+					"id": "77697265-F29F-45E9-A833-21E09C750BA7",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "string",
+						"value": "Yes"
+					}
+				},
+				"hidden": [
+					"input"
+				],
+				"name": "Is John Here?"
+			},
+			"19": {
+				"attributes": {
+					"case-type": {
+						"type": "type",
+						"value": "texture2d"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					},
+					"selection-type": {
+						"type": "type",
+						"value": "bool"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 631.32135009765625,
+					"y": 118.913482666015625
+				},
+				"class": {
+					"id": "77697265-6899-4A9C-82AB-949346033440",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input0": {
+						"type": "texture2d",
+						"value": null
+					},
+					"input1": {
+						"type": "texture2d",
+						"value": null
+					},
+					"selection": {
+						"type": "bool",
+						"value": false
+					}
+				},
+				"hidden": [],
+				"name": "Switch"
+			},
+			"20": {
+				"attributes": {
+					"bitdepth": {
+						"type": "choice",
+						"value": "Patch Bit Depth"
+					},
+					"resolution": {
+						"type": "choice",
+						"value": "Patch Size"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 382.727203369140625,
+					"y": 324.646575927734375
+				},
+				"class": {
+					"id": "77697265-E8EC-4F1B-901A-CFFC104D3B07",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"color": {
+						"type": "float4",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"bypass"
+				],
+				"name": "Solid Color"
+			},
+			"21": {
+				"attributes": {
+					"bitdepth": {
+						"type": "choice",
+						"value": "Patch Bit Depth"
+					},
+					"resolution": {
+						"type": "choice",
+						"value": "Patch Size"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 382.727203369140625,
+					"y": 247.49664306640625
+				},
+				"class": {
+					"id": "77697265-E8EC-4F1B-901A-CFFC104D3B07",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"color": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"bypass"
+				],
+				"name": "Solid Color"
+			},
+			"22": {
+				"attributes": {
+					"instances": {
+						"type": "number",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 849.05560302734375,
+					"y": 118.9134979248046875
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [],
+				"name": "Texture Out"
+			},
+			"23": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "EXAMPLE 1\n\nIn this example we ask the user if John is here.\nWe use try to find the word string \"Yes\" or \"yes\" (we turned Case Sensitivity off in the node panel).\nIf that word is found we switch the light of, because we don't really like John."
+					}
+				},
+				"bounds": {
+					"height": 460.46014404296875,
+					"width": 803.6270751953125,
+					"x": 194.13861083984375,
+					"y": -60.24573135375976562
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"52": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 204.488128662109375,
+					"y": 725.04071044921875
+				},
+				"class": {
+					"id": "77697265-F29F-45E9-A833-21E09C750BA7",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "string",
+						"value": "Hello, my name is: Mark"
+					}
+				},
+				"hidden": [
+					"input"
+				],
+				"name": "String In"
+			},
+			"53": {
+				"attributes": {
+					"caseSensitive": {
+						"type": "bool",
+						"value": true
+					},
+					"haystack-flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					},
+					"needle-flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"occurrence": {
+						"type": "choice",
+						"value": "First"
+					},
+					"startFrom-flow": {
+						"type": "flow",
+						"value": "signal"
+					}
+				},
+				"bounds": {
+					"height": 105,
+					"width": 195,
+					"x": 394.488128662109375,
+					"y": 938.04071044921875
+				},
+				"class": {
+					"id": "77697265-35F6-4155-B67C-44F7FB36B455",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"haystack": {
+						"type": "string",
+						"value": ""
+					},
+					"needle": {
+						"type": "string",
+						"value": ": "
+					},
+					"startFrom": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"hidden": [],
+				"name": "Find"
+			},
+			"54": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					},
+					"wrapping": {
+						"type": "bool",
+						"value": false
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 1159.488037109375,
+					"y": 909.04071044921875
+				},
+				"class": {
+					"id": "77697265-5852-3bAB-89e5-F25a24ca2d50",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "string",
+						"value": ""
+					},
+					"length": {
+						"type": "integer",
+						"value": 0
+					},
+					"start": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"hidden": [],
+				"name": "Substring"
+			},
+			"55": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 394.50390625,
+					"y": 1067.1922607421875
+				},
+				"class": {
+					"id": "77697265-5f58-4439-9a96-809989a9e66e",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input0": {
+						"type": "string",
+						"value": ""
+					}
+				},
+				"hidden": [],
+				"name": "Length"
+			},
+			"56": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-dimensions": {
+						"type": "dimensions",
+						"value": []
+					},
+					"input1-dimensions": {
+						"type": "dimensions",
+						"value": []
+					},
+					"size": {
+						"type": "number",
+						"value": 2
+					},
+					"type0": {
+						"type": "type",
+						"value": "integer"
+					},
+					"type1": {
+						"type": "type",
+						"value": "integer"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 926.2132568359375,
+					"y": 1067.1922607421875
+				},
+				"class": {
+					"id": "77697265-2449-4CC3-BDCE-BEF250835A26",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input0": {
+						"type": "integer",
+						"value": 0
+					},
+					"input1": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"hidden": [],
+				"name": "Subtract"
+			},
+			"57": {
+				"attributes": {
+					"bitdepth": {
+						"type": "choice",
+						"value": "Patch Bit Depth"
+					},
+					"font": {
+						"type": "choice",
+						"value": "Arial"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					},
+					"resolution": {
+						"type": "choice",
+						"value": "Patch Size"
+					},
+					"style": {
+						"type": "choice",
+						"value": "Bold"
+					}
+				},
+				"bounds": {
+					"height": 153,
+					"width": 195,
+					"x": 1414.488037109375,
+					"y": 909.04071044921875
+				},
+				"class": {
+					"id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"alignment": {
+						"type": "integer",
+						"value": 1
+					},
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"input": {
+						"type": "string",
+						"value": "Text"
+					},
+					"linewidth": {
+						"type": "float",
+						"value": 1920
+					},
+					"material": {
+						"type": "float4",
+						"value": [
+							0.40000000596046448,
+							1,
+							0.729411780834198,
+							1
+						]
+					},
+					"scale": {
+						"type": "float",
+						"value": 1
+					},
+					"spacing": {
+						"type": "float2",
+						"value": [
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"bypass"
+				],
+				"name": "Text Render"
+			},
+			"58": {
+				"attributes": {
+					"instances": {
+						"type": "number",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 2169.23193359375,
+					"y": 725.04071044921875
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [],
+				"name": "Texture Out"
+			},
+			"59": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-dimensions": {
+						"type": "dimensions",
+						"value": []
+					},
+					"input1-dimensions": {
+						"type": "dimensions",
+						"value": []
+					},
+					"size": {
+						"type": "number",
+						"value": 2
+					},
+					"type0": {
+						"type": "type",
+						"value": "integer"
+					},
+					"type1": {
+						"type": "type",
+						"value": "integer"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 649.48809814453125,
+					"y": 938.04071044921875
+				},
+				"class": {
+					"id": "77697265-A9AF-4CB4-B10F-3968B36BB63B",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input0": {
+						"type": "integer",
+						"value": 0
+					},
+					"input1": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"hidden": [],
+				"name": "Add"
+			},
+			"61": {
+				"attributes": {
+					"bitdepth": {
+						"type": "choice",
+						"value": "Patch Bit Depth"
+					},
+					"font": {
+						"type": "choice",
+						"value": "Arial"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					},
+					"resolution": {
+						"type": "choice",
+						"value": "Patch Size"
+					},
+					"style": {
+						"type": "choice",
+						"value": "Bold"
+					}
+				},
+				"bounds": {
+					"height": 153,
+					"width": 195,
+					"x": 1669.488037109375,
+					"y": 725.04071044921875
+				},
+				"class": {
+					"id": "77697265-E2EC-4F1B-901A-CEFC474D3C07",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"alignment": {
+						"type": "integer",
+						"value": 1
+					},
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"input": {
+						"type": "string",
+						"value": "Text"
+					},
+					"linewidth": {
+						"type": "float",
+						"value": 1920
+					},
+					"material": {
+						"type": "float4",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"scale": {
+						"type": "float",
+						"value": 1
+					},
+					"spacing": {
+						"type": "float2",
+						"value": [
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"bypass"
+				],
+				"name": "Text Render"
+			},
+			"62": {
+				"attributes": {
+					"input-type": {
+						"type": "type",
+						"value": "texture2d"
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					},
+					"scale-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 1669.488037109375,
+					"y": 909.04071044921875
+				},
+				"class": {
+					"id": "77697265-9225-4009-9D2D-5F898E94CC33",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"anchor": {
+						"type": "float2",
+						"value": [
+							0,
+							0
+						]
+					},
+					"input": {
+						"type": "texture2d",
+						"value": null
+					},
+					"rotation": {
+						"type": "float",
+						"value": 0
+					},
+					"scale": {
+						"type": "float2",
+						"value": [
+							1.5,
+							1.5
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							0,
+							235.1999969482421875
+						]
+					}
+				},
+				"hidden": [],
+				"name": "Transform"
+			},
+			"63": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-dimensions": {
+						"type": "dimensions",
+						"value": []
+					},
+					"input1-dimensions": {
+						"type": "dimensions",
+						"value": []
+					},
+					"size": {
+						"type": "number",
+						"value": 2
+					},
+					"type0": {
+						"type": "type",
+						"value": "texture2d"
+					},
+					"type1": {
+						"type": "type",
+						"value": "texture2d"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 1926.5164794921875,
+					"y": 725.03692626953125
+				},
+				"class": {
+					"id": "77697265-A9AF-4CB4-B10F-3968B36BB63B",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input0": {
+						"type": "texture2d",
+						"value": null
+					},
+					"input1": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [],
+				"name": "Add"
+			},
+			"64": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "EXAMPLE 2\n\nIn this example we use find to search for the colon symbol.\nWe get the position of the colon and add 1 so we can read the string after the colon.\nWe use the Substring node to read the part after the colon.\n\nNext we render out the original string as well as the text after the colon."
+					}
+				},
+				"bounds": {
+					"height": 753.092529296875,
+					"width": 2170.264892578125,
+					"x": 193.43988037109375,
+					"y": 464.235382080078125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": -3.98583984375,
+				"y": -509.8172607421875,
+				"zoom": 0.51163184642791748
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null
+				}
+			}
+		}
+	}
+}

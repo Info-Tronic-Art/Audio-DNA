@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AUDIO DNA // RAVE FLYER MAXIMALIST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bungee&family=Archivo:ital,wght@0,100..900;1,100..900&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg: #0a0a0a;
+  --ink: #fefae0;
+  --pink: #ff006e;
+  --yellow: #ffd60a;
+  --green: #38f72c;
+  --cyan: #00f5ff;
+  --violet: #7209b7;
+  --off: #fefae0;
+  --line: #1a1a1a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1920px;
+  height: 1080px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Archivo', sans-serif;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ======= GRAIN + HALFTONE ======= */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  animation: grainShift 0.12s steps(3) infinite;
+}
+
+.halftone {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.12;
+  background-image: radial-gradient(circle, #fefae0 1px, transparent 1.5px);
+  background-size: 5px 5px;
+  mix-blend-mode: overlay;
+}
+
+.chroma-haze {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(at 15% 20%, rgba(255,0,110,0.18), transparent 55%),
+    radial-gradient(at 85% 15%, rgba(0,245,255,0.15), transparent 50%),
+    radial-gradient(at 80% 85%, rgba(114,9,183,0.22), transparent 55%),
+    radial-gradient(at 20% 90%, rgba(255,214,10,0.12), transparent 45%);
+}
+
+@keyframes grainShift {
+  0% { transform: translate(0,0); }
+  33% { transform: translate(-2px,1px); }
+  66% { transform: translate(1px,-2px); }
+  100% { transform: translate(-1px,2px); }
+}
+
+@keyframes glitch {
+  0%, 92%, 100% {
+    text-shadow: -3px 0 #00f5ff, 3px 0 #ffd60a;
+    transform: translate(0,0);
+  }
+  93% { text-shadow: -6px 0 #ff006e, 5px 0 #00f5ff; transform: translate(-1px,0); }
+  94% { text-shadow: 4px 0 #38f72c, -4px 0 #ff006e; transform: translate(1px,-1px); }
+  95% { text-shadow: -3px 0 #00f5ff, 3px 0 #ffd60a; transform: translate(0,0); }
+  97% { text-shadow: 6px 0 #7209b7, -3px 0 #38f72c; transform: translate(2px,0); }
+  98% { text-shadow: -3px 0 #00f5ff, 3px 0 #ffd60a; transform: translate(0,0); }
+}
+
+@keyframes strobe {
+  0%, 49% { outline-color: var(--pink); box-shadow: 0 0 0 3px var(--pink), 0 0 25px var(--pink); }
+  50%, 100% { outline-color: var(--yellow); box-shadow: 0 0 0 3px var(--yellow), 0 0 30px var(--yellow); }
+}
+
+@keyframes pulseBeat1 { 0%,100% { opacity:0.35; transform:scale(0.9); } 50% { opacity:1; transform:scale(1.08); } }
+@keyframes pulseBeat2 { 0%,100% { opacity:0.35; transform:scale(0.9); } 25% { opacity:1; transform:scale(1.08); } }
+@keyframes pulseBeat3 { 0%,100% { opacity:0.35; transform:scale(0.9); } 75% { opacity:1; transform:scale(1.08); } }
+@keyframes pulseBeat4 { 0%,100% { opacity:0.35; transform:scale(0.9); } 12% { opacity:1; transform:scale(1.08); } }
+
+@keyframes wobble {
+  0%,100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(2px) rotate(0.5deg); }
+  50% { transform: translateX(-1px) rotate(-0.3deg); }
+  75% { transform: translateX(1px) rotate(0.3deg); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+@keyframes ticker {
+  0% { color: var(--off); }
+  25% { color: var(--pink); }
+  50% { color: var(--yellow); }
+  75% { color: var(--cyan); }
+  100% { color: var(--off); }
+}
+
+@keyframes scanlineShear {
+  0%,100% { transform: skewX(0deg); }
+  50% { transform: skewX(-0.3deg); }
+}
+
+@keyframes waveSweep {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes playheadBolt {
+  0%,100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-2px) scaleY(1.05); }
+}
+
+@keyframes flicker {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.85; }
+  51% { opacity: 1; }
+  52% { opacity: 0.6; }
+  53% { opacity: 1; }
+}
+
+/* ======= LAYOUT ======= */
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  z-index: 2;
+}
+
+/* ======= TOP BAR (ticker) ======= */
+.ticker {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 36px;
+  background: #000;
+  border-bottom: 2px solid var(--pink);
+  font-family: 'Bungee', sans-serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 18px;
+  overflow: hidden;
+  z-index: 50;
+  animation: scanlineShear 8s ease-in-out infinite;
+}
+.ticker .t-item { display: flex; align-items: center; gap: 10px; animation: ticker 6s linear infinite; }
+.ticker .t-sep { color: var(--pink); }
+.ticker .rec-dot {
+  width: 12px; height: 12px;
+  background: #ff2222;
+  border-radius: 50%;
+  display: inline-block;
+  animation: blink 0.8s linear infinite;
+  box-shadow: 0 0 8px #ff2222;
+}
+
+/* ======= BPM MEGABLOCK ======= */
+.bpm-block {
+  position: absolute;
+  top: 44px;
+  left: 24px;
+  z-index: 30;
+  pointer-events: none;
+}
+.bpm-num {
+  font-family: 'Bungee', sans-serif;
+  font-size: 148px;
+  line-height: 0.82;
+  color: var(--pink);
+  animation: glitch 3s infinite steps(1);
+  letter-spacing: -4px;
+}
+.bpm-lbl {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: var(--off);
+  margin-top: 4px;
+  transform: translateX(6px);
+}
+.bpm-sub {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--yellow);
+  margin-top: 2px;
+  transform: translateX(6px);
+}
+
+/* Beat wheel */
+.beat-wheel {
+  position: absolute;
+  top: 60px;
+  left: 430px;
+  width: 110px;
+  height: 110px;
+  z-index: 30;
+}
+
+/* Deck + genre chips top right */
+.top-meta {
+  position: absolute;
+  top: 50px;
+  right: 24px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  z-index: 30;
+}
+.chip {
+  font-family: 'Bungee', sans-serif;
+  font-size: 12px;
+  padding: 8px 14px;
+  letter-spacing: 2px;
+  border: 2px solid;
+  line-height: 1;
+  transform: rotate(-1deg);
+}
+.chip.genre { background: var(--yellow); color: #000; border-color: #000; transform: rotate(1deg); }
+.chip.key { background: var(--cyan); color: #000; border-color: #000; }
+.chip.active { background: var(--pink); color: var(--off); border-color: var(--off); }
+.chip.audio { background: #000; color: var(--green); border-color: var(--green); }
+
+/* Big rotated decorative RAVE word */
+.word-rave {
+  position: absolute;
+  top: 52px;
+  right: 640px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 108px;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--violet);
+  letter-spacing: -4px;
+  transform: rotate(-4deg);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.55;
+}
+.word-live {
+  position: absolute;
+  top: 148px;
+  right: 980px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 48px;
+  color: var(--green);
+  letter-spacing: 2px;
+  transform: rotate(3deg);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.85;
+  text-shadow: -2px 0 var(--pink), 2px 0 var(--cyan);
+}
+
+/* ======= WAVEFORM STRIP ======= */
+.wave-strip {
+  position: absolute;
+  top: 218px;
+  left: 0; right: 0;
+  height: 140px;
+  background:
+    radial-gradient(at 20% 50%, rgba(255,0,110,0.28), transparent 55%),
+    radial-gradient(at 80% 50%, rgba(114,9,183,0.28), transparent 55%),
+    linear-gradient(180deg, #050505, #0a0a0a);
+  border-top: 2px solid var(--pink);
+  border-bottom: 2px solid var(--cyan);
+  z-index: 10;
+  overflow: hidden;
+}
+.wave-label {
+  position: absolute;
+  font-family: 'Bungee', sans-serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  padding: 4px 8px;
+  line-height: 1;
+  z-index: 2;
+}
+.wave-label.a { top: 6px; left: 560px; background: var(--cyan); color: #000; }
+.wave-label.b { top: 74px; left: 560px; background: var(--yellow); color: #000; }
+
+.wave-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.playhead {
+  position: absolute;
+  top: 4px; bottom: 4px;
+  left: 900px;
+  width: 4px;
+  background: var(--yellow);
+  box-shadow: 0 0 12px var(--yellow), 0 0 24px var(--pink);
+  z-index: 3;
+  animation: playheadBolt 0.25s ease-in-out infinite;
+}
+.playhead::before, .playhead::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  width: 16px;
+  height: 10px;
+  background: var(--yellow);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.playhead::before { top: -10px; }
+.playhead::after { bottom: -10px; transform: rotate(180deg); }
+
+.beat-dots {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  background-image: radial-gradient(circle, var(--off) 1.2px, transparent 2px);
+  background-size: 30px 6px;
+  opacity: 0.35;
+  z-index: 1;
+}
+
+/* ======= MAIN 4-COLUMN AREA ======= */
+.main {
+  position: absolute;
+  top: 358px;
+  left: 0; right: 0;
+  bottom: 140px;
+  display: grid;
+  grid-template-columns: 150px 1fr 300px 260px;
+  z-index: 10;
+}
+
+/* ======= SIGNAL PANEL ======= */
+.sig {
+  background: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+  border-right: 2px solid var(--line);
+  padding: 14px 10px;
+  position: relative;
+  overflow: hidden;
+}
+.sig::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, var(--pink) 0.8px, transparent 1.2px);
+  background-size: 8px 8px;
+  opacity: 0.08;
+  pointer-events: none;
+}
+.sig-title {
+  font-family: 'Bungee', sans-serif;
+  font-size: 14px;
+  color: var(--off);
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  text-shadow: -1px 0 var(--pink), 1px 0 var(--cyan);
+}
+.sig-pill {
+  position: relative;
+  height: 38px;
+  margin-bottom: 10px;
+  border-radius: 19px;
+  overflow: hidden;
+  background: #000;
+  border: 2px solid var(--off);
+}
+.sig-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: 19px;
+}
+.sig-lbl {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #000;
+  mix-blend-mode: difference;
+  filter: invert(1);
+  z-index: 2;
+}
+.sig-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sig-pill.rms .sig-fill { background: var(--pink); width: 68%; }
+.sig-pill.bass .sig-fill { background: var(--yellow); width: 84%; animation: flicker 0.4s infinite; }
+.sig-pill.mid .sig-fill { background: var(--green); width: 52%; }
+.sig-pill.high .sig-fill { background: var(--cyan); width: 38%; }
+.sig-pill.beat .sig-fill { background: var(--violet); width: 95%; }
+.sig-pill.onset .sig-fill { background: var(--off); width: 22%; }
+
+.sig-section {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+.sig-section-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--cyan);
+  margin-bottom: 8px;
+}
+.mini-meter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Archivo', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+.mini-meter .v { font-family: 'Space Mono', monospace; color: var(--yellow); }
+
+.deco-star {
+  position: absolute;
+  font-family: 'Bungee', sans-serif;
+  color: var(--yellow);
+  font-size: 22px;
+  transform: rotate(-15deg);
+}
+
+/* ======= DECK GRID ======= */
+.deck {
+  background: linear-gradient(180deg, #0b0b0b, #070707);
+  border-right: 2px solid var(--line);
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.deck-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.deck-title {
+  font-family: 'Bungee', sans-serif;
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: var(--off);
+  text-shadow: -2px 0 var(--pink), 2px 0 var(--cyan);
+}
+.deck-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--yellow);
+}
+.deck-tabs {
+  display: flex;
+  gap: 6px;
+}
+.deck-tab {
+  font-family: 'Bungee', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 6px 10px;
+  background: #000;
+  color: var(--off);
+  border: 1px solid var(--line);
+}
+.deck-tab.active { background: var(--pink); color: var(--off); border-color: var(--off); }
+
+.layers {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+.layer-row {
+  display: contents;
+}
+
+.layer-strip {
+  background: #000;
+  border-left: 4px solid;
+  padding: 6px 8px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 92px;
+}
+.layer-strip.c1 { border-color: var(--pink); }
+.layer-strip.c2 { border-color: var(--cyan); }
+.layer-strip.c3 { border-color: var(--yellow); }
+.layer-strip.c4 { border-color: var(--green); }
+.layer-strip.c5 { border-color: var(--violet); }
+.layer-strip.c6 { border-color: var(--off); }
+
+.layer-name {
+  font-family: 'Bungee', sans-serif;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  line-height: 1.1;
+  color: var(--off);
+}
+.layer-meta {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.layer-type {
+  font-family: 'Bungee', sans-serif;
+  font-size: 8px;
+  letter-spacing: 1px;
+  padding: 2px 5px;
+  background: var(--off);
+  color: #000;
+}
+.layer-type.fx { background: var(--yellow); }
+.layer-type.mask { background: var(--violet); color: var(--off); }
+.layer-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+.layer-btn {
+  width: 20px; height: 20px;
+  background: #111;
+  border: 1px solid var(--off);
+  color: var(--off);
+  font-family: 'Bungee', sans-serif;
+  font-size: 9px;
+  display: grid;
+  place-items: center;
+  box-shadow: 2px 2px 0 #000;
+}
+.layer-btn.s { background: var(--yellow); color: #000; }
+.layer-btn.m { background: var(--pink); color: var(--off); }
+.layer-btn.o { background: var(--cyan); color: #000; }
+
+.clip-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.clip {
+  position: relative;
+  height: 92px;
+  background: #000;
+  border: 2px solid var(--line);
+  overflow: hidden;
+  cursor: pointer;
+}
+.clip .thumb {
+  position: absolute;
+  inset: 0;
+}
+.clip .name {
+  position: absolute;
+  bottom: 4px; left: 6px; right: 6px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: var(--off);
+  text-shadow: -1px 0 var(--pink), 1px 0 var(--cyan), 1px 1px 2px #000;
+  z-index: 3;
+  line-height: 1;
+}
+.clip .fx-badge {
+  position: absolute;
+  top: 4px; right: 4px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 9px;
+  color: #000;
+  background: var(--yellow);
+  padding: 2px 4px;
+  letter-spacing: 1px;
+  z-index: 3;
+}
+.clip .corner-star {
+  position: absolute;
+  top: 2px; left: 3px;
+  color: var(--off);
+  font-size: 12px;
+  z-index: 3;
+  text-shadow: 1px 1px 0 #000;
+}
+.clip.empty {
+  background: #050505;
+  border: 1px dashed var(--line);
+}
+.clip.empty .thumb { background: repeating-linear-gradient(45deg, #050505, #050505 4px, #0a0a0a 4px, #0a0a0a 8px); }
+.clip.empty .name { opacity: 0.2; }
+.clip.active {
+  outline: 3px solid var(--pink);
+  animation: strobe 0.25s linear infinite;
+  z-index: 5;
+}
+.clip.triggered {
+  outline: 3px solid var(--yellow);
+  animation: flicker 0.15s infinite;
+}
+
+/* thumb palettes */
+.t-pink-violet { background: linear-gradient(135deg, #ff006e 0%, #7209b7 100%); }
+.t-cyan-green { background: linear-gradient(135deg, #00f5ff 0%, #38f72c 100%); }
+.t-yellow-pink { background: linear-gradient(135deg, #ffd60a 0%, #ff006e 100%); }
+.t-violet-cyan { background: linear-gradient(45deg, #7209b7 0%, #00f5ff 100%); }
+.t-green-yellow { background: linear-gradient(180deg, #38f72c 0%, #ffd60a 100%); }
+.t-pink-cyan { background: linear-gradient(90deg, #ff006e 0%, #00f5ff 100%); }
+.t-full-chroma { background: linear-gradient(45deg, #ff006e, #ffd60a, #38f72c, #00f5ff, #7209b7); }
+.t-violet-pink { background: linear-gradient(135deg, #7209b7 0%, #ff006e 100%); }
+
+.thumb-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.4) 0.5px, transparent 1.5px);
+  background-size: 4px 4px;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+}
+
+/* ======= INSPECTOR ======= */
+.insp {
+  background: linear-gradient(180deg, #080808, #040404);
+  border-right: 2px solid var(--line);
+  padding: 14px 14px;
+  position: relative;
+  overflow: hidden;
+}
+.insp::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(at 50% 0%, rgba(255,214,10,0.12), transparent 60%),
+    radial-gradient(at 20% 100%, rgba(255,0,110,0.12), transparent 60%);
+  pointer-events: none;
+}
+.insp-title {
+  font-family: 'Bungee', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--off);
+  text-shadow: -2px 0 var(--pink), 2px 0 var(--yellow);
+  margin-bottom: 4px;
+}
+.insp-path {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--cyan);
+  margin-bottom: 14px;
+}
+.pill-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; position: relative; z-index: 2;}
+.tab-pill {
+  font-family: 'Bungee', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  padding: 6px 10px;
+  line-height: 1;
+  border: 2px solid var(--off);
+  background: #000;
+  color: var(--off);
+}
+.tab-pill.t1 { background: var(--pink); border-color: var(--off); }
+.tab-pill.t2 { background: var(--cyan); color: #000; }
+.tab-pill.t3 { background: var(--yellow); color: #000; }
+.tab-pill.t4 { background: var(--violet); }
+
+.insp-section {
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 2;
+}
+.insp-section-title {
+  font-family: 'Bungee', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #000;
+  background: var(--green);
+  padding: 4px 8px;
+  margin-bottom: 8px;
+  display: inline-block;
+  line-height: 1;
+}
+.insp-section-title.pink { background: var(--pink); color: var(--off); }
+.insp-section-title.yellow { background: var(--yellow); }
+.insp-section-title.cyan { background: var(--cyan); }
+.insp-section-title.violet { background: var(--violet); color: var(--off); }
+
+.param-row {
+  display: grid;
+  grid-template-columns: 78px 1fr 40px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-family: 'Archivo', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.param-row .lbl { color: var(--off); text-transform: uppercase; }
+.param-row .slider {
+  height: 10px;
+  background: #000;
+  border: 1px solid var(--line);
+  position: relative;
+}
+.param-row .slider .f {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+}
+.param-row .slider .knob {
+  position: absolute;
+  top: 50%;
+  width: 6px; height: 14px;
+  background: var(--off);
+  transform: translate(-50%,-50%);
+  box-shadow: 1px 1px 0 #000;
+}
+.param-row .v {
+  font-family: 'Space Mono', monospace;
+  color: var(--yellow);
+  text-align: right;
+  font-size: 10px;
+}
+
+.fx-stack { margin-top: 6px; }
+.fx-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #000;
+  border: 1px solid var(--off);
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+.fx-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; }
+.fx-item.pink .dot { background: var(--pink); }
+.fx-item.yellow .dot { background: var(--yellow); }
+.fx-item.cyan .dot { background: var(--cyan); }
+.fx-item.green .dot { background: var(--green); }
+.fx-item .nm { flex: 1; color: var(--off); }
+.fx-item .val { color: var(--yellow); font-family: 'Space Mono', monospace; font-size: 9px; }
+
+/* ======= BROWSER ======= */
+.browser {
+  background: linear-gradient(180deg, #060606, #020202);
+  padding: 14px 12px;
+  position: relative;
+  overflow: hidden;
+}
+.browser::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, var(--cyan) 0.8px, transparent 1.2px);
+  background-size: 6px 6px;
+  opacity: 0.06;
+  pointer-events: none;
+}
+.browser-title {
+  font-family: 'Bungee', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: var(--off);
+  text-shadow: -1px 0 var(--cyan), 1px 0 var(--pink);
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
+}
+.br-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 2;
+}
+.br-tab {
+  font-family: 'Bungee', sans-serif;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  padding: 5px 8px;
+  background: #000;
+  color: var(--off);
+  border: 1px solid var(--line);
+  line-height: 1;
+}
+.br-tab.on { background: var(--yellow); color: #000; border-color: var(--off); }
+
+.br-search {
+  background: #000;
+  border: 2px solid var(--pink);
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--off);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+}
+.br-search .q { color: var(--yellow); }
+
+.br-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+}
+.br-cell {
+  position: relative;
+  height: 72px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  cursor: pointer;
+}
+.br-cell .nm {
+  position: absolute;
+  bottom: 2px; left: 4px; right: 4px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  color: var(--off);
+  line-height: 1;
+  text-shadow: 1px 1px 0 #000;
+}
+.br-cell .cnr {
+  position: absolute;
+  top: 2px; right: 2px;
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: #000;
+  background: var(--yellow);
+  padding: 1px 3px;
+}
+
+.br-fav {
+  margin-top: 10px;
+  position: relative;
+  z-index: 2;
+}
+.fav-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--violet);
+  margin-bottom: 6px;
+}
+.fav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #000;
+  padding: 4px 8px;
+  border-left: 3px solid var(--pink);
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--off);
+}
+.fav-row .c { font-family: 'Space Mono', monospace; color: var(--yellow); }
+
+/* ======= CROSSFADER STRIP ======= */
+.crossfader-strip {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 32px;
+  height: 108px;
+  background:
+    radial-gradient(at 30% 50%, rgba(255,0,110,0.18), transparent 50%),
+    radial-gradient(at 70% 50%, rgba(0,245,255,0.18), transparent 50%),
+    #050505;
+  border-top: 2px solid var(--yellow);
+  border-bottom: 2px solid var(--yellow);
+  display: grid;
+  grid-template-columns: 260px 1fr 260px 180px;
+  gap: 18px;
+  padding: 0 24px;
+  z-index: 30;
+  align-items: center;
+}
+
+.xf-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.xf-side.b { align-items: flex-end; text-align: right; }
+.xf-deck-lbl {
+  font-family: 'Bungee', sans-serif;
+  font-size: 46px;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: var(--pink);
+  text-shadow: -2px 0 var(--cyan), 2px 0 var(--yellow);
+}
+.xf-side.b .xf-deck-lbl { color: var(--cyan); text-shadow: -2px 0 var(--pink), 2px 0 var(--yellow); }
+.xf-deck-name {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--off);
+}
+.xf-deck-clip {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--yellow);
+  text-transform: uppercase;
+}
+
+.xf-core {
+  position: relative;
+  height: 88px;
+  padding: 6px 0;
+}
+.xf-track-wrap {
+  position: relative;
+  margin-top: 14px;
+  height: 32px;
+}
+.xf-track {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: 14px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, var(--pink) 0%, var(--violet) 50%, var(--cyan) 100%);
+  border: 2px solid var(--off);
+  box-shadow: 0 0 20px rgba(255,0,110,0.4);
+}
+.xf-notch {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(254,250,224,0.25);
+}
+.xf-handle {
+  position: absolute;
+  top: 50%;
+  left: 58%;
+  transform: translate(-50%,-50%);
+  width: 46px;
+  height: 44px;
+  background: var(--yellow);
+  border: 3px solid var(--off);
+  display: grid;
+  place-items: center;
+  font-family: 'Bungee', sans-serif;
+  font-size: 14px;
+  color: #000;
+  letter-spacing: 0.5px;
+  box-shadow: 3px 3px 0 var(--pink), -3px -3px 0 var(--cyan);
+  animation: wobble 1.6s ease-in-out infinite;
+  z-index: 3;
+}
+.xf-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--off);
+  padding: 0 2px;
+}
+.xf-ticks span.on { color: var(--yellow); }
+.xf-mode-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+.xf-mode {
+  display: flex;
+  gap: 4px;
+}
+.xf-mode .m {
+  font-family: 'Bungee', sans-serif;
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 3px 6px;
+  background: #000;
+  color: var(--off);
+  border: 1px solid var(--line);
+  line-height: 1;
+}
+.xf-mode .m.on { background: var(--green); color: #000; border-color: var(--off); }
+
+.master-blk {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.master-lbl {
+  font-family: 'Bungee', sans-serif;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--off);
+  text-shadow: -1px 0 var(--pink), 1px 0 var(--cyan);
+}
+.master-slider {
+  position: relative;
+  height: 28px;
+  background: #000;
+  border: 2px solid var(--off);
+}
+.master-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 78%;
+  background: linear-gradient(90deg, var(--green), var(--yellow), var(--pink));
+}
+.master-val {
+  position: absolute;
+  right: 6px; top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Bungee', sans-serif;
+  font-size: 11px;
+  color: #000;
+  mix-blend-mode: difference;
+  filter: invert(1);
+  letter-spacing: 1px;
+}
+
+.blackout {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.btn-big {
+  font-family: 'Bungee', sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  padding: 14px 0;
+  background: #ff1111;
+  color: var(--off);
+  border: 3px solid var(--off);
+  text-align: center;
+  line-height: 1;
+  box-shadow: 4px 4px 0 #000, -2px -2px 0 var(--yellow);
+  cursor: pointer;
+  animation: flicker 1s infinite;
+}
+.btn-mini {
+  font-family: 'Bungee', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  padding: 6px 0;
+  background: #000;
+  color: var(--green);
+  border: 2px solid var(--green);
+  text-align: center;
+}
+
+/* ======= BOTTOM STATUS ======= */
+.status {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 32px;
+  background: #000;
+  border-top: 2px solid var(--violet);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 22px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--off);
+  z-index: 40;
+}
+.status .triangle { color: var(--pink); font-family: 'Bungee', sans-serif; }
+.status .good { color: var(--green); }
+.status .warn { color: var(--yellow); }
+.status .rec-txt { color: #ff2222; display: flex; align-items: center; gap: 6px; }
+.status .rec-txt::before { content: '●●●'; color: #ff2222; animation: blink 0.5s infinite; }
+.status .right { margin-left: auto; color: var(--cyan); }
+
+/* decorative corner chars */
+.deco {
+  position: absolute;
+  font-family: 'Bungee', sans-serif;
+  pointer-events: none;
+  z-index: 20;
+}
+.deco.d1 { top: 234px; right: 28px; color: var(--pink); font-size: 28px; transform: rotate(15deg); opacity: 0.8; }
+.deco.d2 { top: 362px; left: 150px; color: var(--yellow); font-size: 22px; transform: rotate(-8deg); }
+.deco.d3 { bottom: 160px; right: 300px; color: var(--cyan); font-size: 26px; transform: rotate(12deg); }
+
+/* Drop word, rotated, bleeding through inspector/browser boundary */
+.word-drop {
+  position: absolute;
+  top: 940px;
+  left: 520px;
+  font-family: 'Bungee', sans-serif;
+  font-size: 62px;
+  color: transparent;
+  -webkit-text-stroke: 2px var(--yellow);
+  letter-spacing: 4px;
+  transform: rotate(-2deg);
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.35;
+}
+</style>
+</head>
+<body>
+
+<!-- ======= OVERLAYS ======= -->
+<svg class="grain" xmlns="http://www.w3.org/2000/svg">
+  <filter id="grainFilter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/>
+    <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.4 0"/>
+  </filter>
+  <rect width="100%" height="100%" filter="url(#grainFilter)"/>
+</svg>
+<div class="halftone"></div>
+<div class="chroma-haze"></div>
+
+<div class="stage">
+
+  <!-- ======= TICKER TOP ======= -->
+  <div class="ticker">
+    <span class="t-item">AUDIO DNA</span>
+    <span class="t-sep">✦</span>
+    <span class="t-item">LIVE</span>
+    <span class="t-sep">✦</span>
+    <span class="t-item">128 BPM</span>
+    <span class="t-sep">✦</span>
+    <span class="t-item">TECHNO</span>
+    <span class="t-sep">✦</span>
+    <span class="t-item"><span class="rec-dot"></span> REC 00:42:17</span>
+    <span class="t-sep">✦</span>
+    <span class="t-item">DECK A ⟶ DECK B</span>
+    <span class="t-sep">✦</span>
+    <span class="t-item">WAREHOUSE.LEIPZIG.25</span>
+    <span class="t-sep">✦</span>
+    <span class="t-item">★ BERGHAIN NIGHT ★</span>
+  </div>
+
+  <!-- ======= BPM MEGABLOCK ======= -->
+  <div class="bpm-block">
+    <div class="bpm-num">128.0</div>
+    <div class="bpm-lbl">B.P.M // AUBIO LOCK</div>
+    <div class="bpm-sub">PHRASE 03 / BAR 12 / BEAT ∆ 2</div>
+  </div>
+
+  <!-- Beat wheel -->
+  <svg class="beat-wheel" viewBox="0 0 110 110">
+    <circle cx="55" cy="55" r="48" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <!-- 4 wedges -->
+    <path d="M 55 55 L 55 7 A 48 48 0 0 1 103 55 Z" fill="#ff006e" style="animation: pulseBeat1 1.2s infinite; transform-origin: 55px 55px;"/>
+    <path d="M 55 55 L 103 55 A 48 48 0 0 1 55 103 Z" fill="#00f5ff" style="animation: pulseBeat2 1.2s infinite; transform-origin: 55px 55px;"/>
+    <path d="M 55 55 L 55 103 A 48 48 0 0 1 7 55 Z" fill="#ffd60a" style="animation: pulseBeat3 1.2s infinite; transform-origin: 55px 55px;"/>
+    <path d="M 55 55 L 7 55 A 48 48 0 0 1 55 7 Z" fill="#7209b7" style="animation: pulseBeat4 1.2s infinite; transform-origin: 55px 55px;"/>
+    <circle cx="55" cy="55" r="14" fill="#0a0a0a" stroke="#fefae0" stroke-width="2"/>
+    <text x="55" y="60" text-anchor="middle" font-family="Bungee" font-size="12" fill="#fefae0">2</text>
+  </svg>
+
+  <!-- Top right meta -->
+  <div class="top-meta">
+    <span class="chip audio">◯ AGGREGATE 2×BUS</span>
+    <span class="chip key">KEY // A min</span>
+    <span class="chip genre">▲ TECHNO 92%</span>
+    <span class="chip active">◉ DECK A LIVE</span>
+  </div>
+
+  <!-- Decorative rotated words -->
+  <div class="word-rave">R̸A̸V̸E̸</div>
+  <div class="word-live">D̸R̸O̸P̸</div>
+
+  <!-- ======= WAVEFORM STRIP ======= -->
+  <div class="wave-strip">
+    <span class="wave-label a">DECK A ▶</span>
+    <span class="wave-label b">◀ DECK B</span>
+    <div class="beat-dots"></div>
+    <div class="playhead"></div>
+
+    <svg class="wave-svg" preserveAspectRatio="none" viewBox="0 0 1920 140">
+      <defs>
+        <linearGradient id="gradA" x1="0" x2="1">
+          <stop offset="0%" stop-color="#00f5ff"/>
+          <stop offset="50%" stop-color="#ff006e"/>
+          <stop offset="100%" stop-color="#7209b7"/>
+        </linearGradient>
+        <linearGradient id="gradB" x1="0" x2="1">
+          <stop offset="0%" stop-color="#ffd60a"/>
+          <stop offset="50%" stop-color="#38f72c"/>
+          <stop offset="100%" stop-color="#00f5ff"/>
+        </linearGradient>
+      </defs>
+      <!-- Deck A waveform upper half -->
+      <g transform="translate(0,36)">
+        <path d="M0,0 L40,-12 L80,-28 L120,-10 L160,-34 L200,-20 L240,-42 L280,-18 L320,-30 L360,-8 L400,-24 L440,-14 L480,-40 L520,-22 L560,-6 L600,-34 L640,-20 L680,-44 L720,-16 L760,-30 L800,-12 L840,-26 L880,-38 L920,-22 L960,-10 L1000,-34 L1040,-28 L1080,-14 L1120,-40 L1160,-20 L1200,-30 L1240,-18 L1280,-44 L1320,-12 L1360,-28 L1400,-22 L1440,-36 L1480,-14 L1520,-26 L1560,-40 L1600,-18 L1640,-32 L1680,-10 L1720,-24 L1760,-38 L1800,-16 L1840,-30 L1880,-20 L1920,-34 L1920,0 Z"
+              fill="url(#gradA)" stroke="none" opacity="0.85"/>
+      </g>
+      <!-- Deck B waveform lower half -->
+      <g transform="translate(0,104)">
+        <path d="M0,0 L40,14 L80,22 L120,8 L160,30 L200,16 L240,36 L280,12 L320,26 L360,10 L400,32 L440,18 L480,40 L520,14 L560,8 L600,28 L640,22 L680,38 L720,10 L760,30 L800,16 L840,24 L880,34 L920,20 L960,8 L1000,30 L1040,24 L1080,16 L1120,36 L1160,18 L1200,28 L1240,14 L1280,40 L1320,10 L1360,26 L1400,22 L1440,32 L1480,12 L1520,24 L1560,36 L1600,16 L1640,28 L1680,8 L1720,22 L1760,34 L1800,14 L1840,28 L1880,18 L1920,30 L1920,0 Z"
+              fill="url(#gradB)" stroke="none" opacity="0.85"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- ======= MAIN GRID ======= -->
+  <div class="main">
+
+    <!-- ======= SIGNAL PANEL ======= -->
+    <div class="sig">
+      <div class="sig-title">SIG<br>NAL</div>
+
+      <div class="sig-pill rms">
+        <div class="sig-fill"></div>
+        <div class="sig-lbl"><span>★ RMS</span><span class="sig-val">0.68</span></div>
+      </div>
+      <div class="sig-pill bass">
+        <div class="sig-fill"></div>
+        <div class="sig-lbl"><span>▲ BASS</span><span class="sig-val">0.84</span></div>
+      </div>
+      <div class="sig-pill mid">
+        <div class="sig-fill"></div>
+        <div class="sig-lbl"><span>◆ MID</span><span class="sig-val">0.52</span></div>
+      </div>
+      <div class="sig-pill high">
+        <div class="sig-fill"></div>
+        <div class="sig-lbl"><span>✦ HIGH</span><span class="sig-val">0.38</span></div>
+      </div>
+      <div class="sig-pill beat">
+        <div class="sig-fill"></div>
+        <div class="sig-lbl"><span>● BEAT</span><span class="sig-val">0.95</span></div>
+      </div>
+      <div class="sig-pill onset">
+        <div class="sig-fill"></div>
+        <div class="sig-lbl"><span>◯ ONSET</span><span class="sig-val">0.22</span></div>
+      </div>
+
+      <div class="sig-section">
+        <div class="sig-section-title">✦ SPECTRAL</div>
+        <div class="mini-meter"><span>CENTROID</span><span class="v">1.8kHz</span></div>
+        <div class="mini-meter"><span>FLUX</span><span class="v">0.41</span></div>
+        <div class="mini-meter"><span>FLAT</span><span class="v">0.28</span></div>
+        <div class="mini-meter"><span>ROLLOFF</span><span class="v">5.2k</span></div>
+      </div>
+
+      <div class="sig-section">
+        <div class="sig-section-title">▲ ADVANCED</div>
+        <div class="mini-meter"><span>PUMP</span><span class="v">0.72</span></div>
+        <div class="mini-meter"><span>SWING</span><span class="v">0.52</span></div>
+        <div class="mini-meter"><span>REESE</span><span class="v">0.18</span></div>
+        <div class="mini-meter"><span>FORMANT</span><span class="v">0.09</span></div>
+      </div>
+
+      <div class="sig-section">
+        <div class="sig-section-title">● STATE</div>
+        <div class="mini-meter"><span>LUFS</span><span class="v">-9.8</span></div>
+        <div class="mini-meter"><span>STRUCT</span><span class="v">DROP</span></div>
+        <div class="mini-meter"><span>ENERGY</span><span class="v">HIGH</span></div>
+      </div>
+    </div>
+
+    <!-- ======= DECK GRID ======= -->
+    <div class="deck">
+      <div class="deck-hdr">
+        <div>
+          <div class="deck-title">DECK ∆ A</div>
+          <div class="deck-sub">◯ COLUMN 03 // 6 LAYERS // 4 TRIGGERED</div>
+        </div>
+        <div class="deck-tabs">
+          <span class="deck-tab active">A</span>
+          <span class="deck-tab">B</span>
+          <span class="deck-tab">C</span>
+          <span class="deck-tab">D</span>
+        </div>
+      </div>
+
+      <div class="layers">
+
+        <!-- Layer 1: NUKE (pink) -->
+        <div class="layer-strip c1">
+          <div>
+            <div class="layer-name">L01<br>NUKE</div>
+            <div class="layer-meta">
+              <span class="layer-type">OPAQUE</span>
+            </div>
+          </div>
+          <div class="layer-actions">
+            <div class="layer-btn s">S</div>
+            <div class="layer-btn m">M</div>
+            <div class="layer-btn o">◉</div>
+          </div>
+        </div>
+        <div class="clip-row">
+          <div class="clip">
+            <div class="thumb t-pink-violet"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">✦</span>
+            <span class="fx-badge">★3</span>
+            <div class="name">STROBE.01</div>
+          </div>
+          <div class="clip active">
+            <div class="thumb t-full-chroma"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">◉</span>
+            <span class="fx-badge">★5</span>
+            <div class="name">RIOT</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-yellow-pink"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">▲</span>
+            <span class="fx-badge">★2</span>
+            <div class="name">ACID.WAVE</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-pink-cyan"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★4</span>
+            <div class="name">BASS.DROP</div>
+          </div>
+          <div class="clip empty"><div class="thumb"></div><div class="name">—</div></div>
+          <div class="clip">
+            <div class="thumb t-violet-pink"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★1</span>
+            <div class="name">NEON.PULSE</div>
+          </div>
+        </div>
+
+        <!-- Layer 2: HAZE (cyan) -->
+        <div class="layer-strip c2">
+          <div>
+            <div class="layer-name">L02<br>HAZE</div>
+            <div class="layer-meta">
+              <span class="layer-type">TRANS</span>
+            </div>
+          </div>
+          <div class="layer-actions">
+            <div class="layer-btn s">S</div>
+            <div class="layer-btn m">M</div>
+            <div class="layer-btn o">◉</div>
+          </div>
+        </div>
+        <div class="clip-row">
+          <div class="clip">
+            <div class="thumb t-cyan-green"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">✧</span>
+            <span class="fx-badge">★2</span>
+            <div class="name">FOG.LOOP</div>
+          </div>
+          <div class="clip triggered">
+            <div class="thumb t-violet-cyan"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">◆</span>
+            <span class="fx-badge">★3</span>
+            <div class="name">SMOKE.BLM</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-pink-cyan"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★1</span>
+            <div class="name">DRIFT.02</div>
+          </div>
+          <div class="clip empty"><div class="thumb"></div><div class="name">—</div></div>
+          <div class="clip">
+            <div class="thumb t-cyan-green"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★4</span>
+            <div class="name">VAPOR</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-violet-cyan"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★2</span>
+            <div class="name">MIST.03</div>
+          </div>
+        </div>
+
+        <!-- Layer 3: BEAM (yellow) -->
+        <div class="layer-strip c3">
+          <div>
+            <div class="layer-name">L03<br>BEAM</div>
+            <div class="layer-meta">
+              <span class="layer-type">OPAQUE</span>
+            </div>
+          </div>
+          <div class="layer-actions">
+            <div class="layer-btn s">S</div>
+            <div class="layer-btn m">M</div>
+            <div class="layer-btn o">◉</div>
+          </div>
+        </div>
+        <div class="clip-row">
+          <div class="clip">
+            <div class="thumb t-yellow-pink"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★2</span>
+            <div class="name">LASER.01</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-green-yellow"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">★</span>
+            <span class="fx-badge">★3</span>
+            <div class="name">RAY.TOWER</div>
+          </div>
+          <div class="clip active">
+            <div class="thumb t-pink-cyan"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">◉</span>
+            <span class="fx-badge">★4</span>
+            <div class="name">BEAM.WALL</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-yellow-pink"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★1</span>
+            <div class="name">COMET</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-full-chroma"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★5</span>
+            <div class="name">HYPER.SUN</div>
+          </div>
+          <div class="clip empty"><div class="thumb"></div><div class="name">—</div></div>
+        </div>
+
+        <!-- Layer 4: GRIT (green) -->
+        <div class="layer-strip c4">
+          <div>
+            <div class="layer-name">L04<br>GRIT</div>
+            <div class="layer-meta">
+              <span class="layer-type fx">FX ONLY</span>
+            </div>
+          </div>
+          <div class="layer-actions">
+            <div class="layer-btn s">S</div>
+            <div class="layer-btn m">M</div>
+            <div class="layer-btn o">◉</div>
+          </div>
+        </div>
+        <div class="clip-row">
+          <div class="clip">
+            <div class="thumb t-green-yellow"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★6</span>
+            <div class="name">DATA.CORRUPT</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-cyan-green"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★4</span>
+            <div class="name">GLITCH.SORT</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-pink-violet"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">✦</span>
+            <span class="fx-badge">★3</span>
+            <div class="name">RGB.SPLIT</div>
+          </div>
+          <div class="clip triggered">
+            <div class="thumb t-violet-pink"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">◉</span>
+            <span class="fx-badge">★5</span>
+            <div class="name">SHRED.08</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-yellow-pink"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★2</span>
+            <div class="name">STUTTER</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-green-yellow"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★3</span>
+            <div class="name">BIT.CRUSH</div>
+          </div>
+        </div>
+
+        <!-- Layer 5: MASK (violet) -->
+        <div class="layer-strip c5">
+          <div>
+            <div class="layer-name">L05<br>MASK</div>
+            <div class="layer-meta">
+              <span class="layer-type mask">MASK</span>
+            </div>
+          </div>
+          <div class="layer-actions">
+            <div class="layer-btn s">S</div>
+            <div class="layer-btn m">M</div>
+            <div class="layer-btn o">◉</div>
+          </div>
+        </div>
+        <div class="clip-row">
+          <div class="clip">
+            <div class="thumb t-violet-pink"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★1</span>
+            <div class="name">GRID.MSK</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-violet-cyan"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★2</span>
+            <div class="name">IRIS.04</div>
+          </div>
+          <div class="clip empty"><div class="thumb"></div><div class="name">—</div></div>
+          <div class="clip">
+            <div class="thumb t-pink-violet"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">◆</span>
+            <span class="fx-badge">★3</span>
+            <div class="name">CRSS.STAR</div>
+          </div>
+          <div class="clip active">
+            <div class="thumb t-full-chroma"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">◉</span>
+            <span class="fx-badge">★4</span>
+            <div class="name">HEX.TUNNEL</div>
+          </div>
+          <div class="clip empty"><div class="thumb"></div><div class="name">—</div></div>
+        </div>
+
+        <!-- Layer 6: TEXT (off-white / pink) -->
+        <div class="layer-strip c6">
+          <div>
+            <div class="layer-name">L06<br>TEXT</div>
+            <div class="layer-meta">
+              <span class="layer-type">TRANS</span>
+            </div>
+          </div>
+          <div class="layer-actions">
+            <div class="layer-btn s">S</div>
+            <div class="layer-btn m">M</div>
+            <div class="layer-btn o">◉</div>
+          </div>
+        </div>
+        <div class="clip-row">
+          <div class="clip">
+            <div class="thumb t-pink-cyan"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★1</span>
+            <div class="name">LOGO.01</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-yellow-pink"></div><div class="thumb-overlay"></div>
+            <span class="corner-star">★</span>
+            <span class="fx-badge">★2</span>
+            <div class="name">RAVE.TKR</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-cyan-green"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★1</span>
+            <div class="name">ASCII.04</div>
+          </div>
+          <div class="clip empty"><div class="thumb"></div><div class="name">—</div></div>
+          <div class="clip">
+            <div class="thumb t-violet-cyan"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★3</span>
+            <div class="name">DROP.TXT</div>
+          </div>
+          <div class="clip">
+            <div class="thumb t-violet-pink"></div><div class="thumb-overlay"></div>
+            <span class="fx-badge">★2</span>
+            <div class="name">88.GLYPH</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ======= INSPECTOR ======= -->
+    <div class="insp">
+      <div class="insp-title">RIOT</div>
+      <div class="insp-path">⟶ DECK.A // L01.NUKE // C02</div>
+
+      <div class="pill-row">
+        <span class="tab-pill t1">CLIP</span>
+        <span class="tab-pill t2">LAYER</span>
+        <span class="tab-pill t3">COMP</span>
+        <span class="tab-pill t4">SIG</span>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-title pink">★ TRANSPORT</div>
+        <div class="param-row"><span class="lbl">SPEED</span><div class="slider"><div class="f" style="background:var(--pink);width:62%"></div><div class="knob" style="left:62%"></div></div><span class="v">1.24x</span></div>
+        <div class="param-row"><span class="lbl">IN POINT</span><div class="slider"><div class="f" style="background:var(--cyan);width:12%"></div><div class="knob" style="left:12%"></div></div><span class="v">0.12</span></div>
+        <div class="param-row"><span class="lbl">OUT PT</span><div class="slider"><div class="f" style="background:var(--cyan);width:88%"></div><div class="knob" style="left:88%"></div></div><span class="v">0.88</span></div>
+        <div class="param-row"><span class="lbl">SYNC</span><div class="slider"><div class="f" style="background:var(--yellow);width:100%"></div><div class="knob" style="left:100%"></div></div><span class="v">4.BAR</span></div>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-title yellow">▲ TRANSFORM</div>
+        <div class="param-row"><span class="lbl">POS X</span><div class="slider"><div class="f" style="background:var(--yellow);width:50%"></div><div class="knob" style="left:50%"></div></div><span class="v">+0.00</span></div>
+        <div class="param-row"><span class="lbl">POS Y</span><div class="slider"><div class="f" style="background:var(--yellow);width:48%"></div><div class="knob" style="left:48%"></div></div><span class="v">-0.02</span></div>
+        <div class="param-row"><span class="lbl">SCALE</span><div class="slider"><div class="f" style="background:var(--yellow);width:78%"></div><div class="knob" style="left:78%"></div></div><span class="v">1.58x</span></div>
+        <div class="param-row"><span class="lbl">ROT</span><div class="slider"><div class="f" style="background:var(--yellow);width:55%"></div><div class="knob" style="left:55%"></div></div><span class="v">+18°</span></div>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-title cyan">✦ FX STACK (5)</div>
+        <div class="fx-stack">
+          <div class="fx-item pink"><span class="dot"></span><span class="nm">RIPPLE</span><span class="val">0.72</span></div>
+          <div class="fx-item yellow"><span class="dot"></span><span class="nm">RGB SPLIT</span><span class="val">0.48</span></div>
+          <div class="fx-item green"><span class="dot"></span><span class="nm">GLITCH SORT</span><span class="val">0.61</span></div>
+          <div class="fx-item cyan"><span class="dot"></span><span class="nm">STROBE</span><span class="val">BEAT</span></div>
+          <div class="fx-item pink"><span class="dot"></span><span class="nm">DATA CORRUPT</span><span class="val">0.33</span></div>
+        </div>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-title violet">● VIDEO</div>
+        <div class="param-row"><span class="lbl">OPACITY</span><div class="slider"><div class="f" style="background:var(--violet);width:92%"></div><div class="knob" style="left:92%"></div></div><span class="v">0.92</span></div>
+        <div class="param-row"><span class="lbl">BLEND</span><div class="slider"><div class="f" style="background:var(--violet);width:60%"></div><div class="knob" style="left:60%"></div></div><span class="v">SCRN</span></div>
+      </div>
+    </div>
+
+    <!-- ======= BROWSER ======= -->
+    <div class="browser">
+      <div class="browser-title">BROWSE<br>∆R</div>
+
+      <div class="br-tabs">
+        <span class="br-tab on">FILES</span>
+        <span class="br-tab">FX</span>
+        <span class="br-tab">SRCS</span>
+        <span class="br-tab">DECKS</span>
+        <span class="br-tab">REC</span>
+      </div>
+
+      <div class="br-search">
+        <span class="q">⌕</span>
+        <span>rave_loop_*</span>
+      </div>
+
+      <div class="br-grid">
+        <div class="br-cell">
+          <div class="thumb t-pink-violet" style="position:absolute;inset:0"></div>
+          <div class="thumb-overlay"></div>
+          <span class="cnr">01</span>
+          <div class="nm">RAVE.LOOP.01</div>
+        </div>
+        <div class="br-cell">
+          <div class="thumb t-cyan-green" style="position:absolute;inset:0"></div>
+          <div class="thumb-overlay"></div>
+          <span class="cnr">02</span>
+          <div class="nm">CHROME.JAM</div>
+        </div>
+        <div class="br-cell">
+          <div class="thumb t-yellow-pink" style="position:absolute;inset:0"></div>
+          <div class="thumb-overlay"></div>
+          <span class="cnr">03</span>
+          <div class="nm">STROBE.KIT</div>
+        </div>
+        <div class="br-cell">
+          <div class="thumb t-full-chroma" style="position:absolute;inset:0"></div>
+          <div class="thumb-overlay"></div>
+          <span class="cnr">04</span>
+          <div class="nm">RIOT.OVER</div>
+        </div>
+        <div class="br-cell">
+          <div class="thumb t-violet-cyan" style="position:absolute;inset:0"></div>
+          <div class="thumb-overlay"></div>
+          <span class="cnr">05</span>
+          <div class="nm">NEON.GRID</div>
+        </div>
+        <div class="br-cell">
+          <div class="thumb t-pink-cyan" style="position:absolute;inset:0"></div>
+          <div class="thumb-overlay"></div>
+          <span class="cnr">06</span>
+          <div class="nm">ACID.SUN</div>
+        </div>
+        <div class="br-cell">
+          <div class="thumb t-green-yellow" style="position:absolute;inset:0"></div>
+          <div class="thumb-overlay"></div>
+          <span class="cnr">07</span>
+          <div class="nm">DATA.MOSH</div>
+        </div>
+        <div class="br-cell">
+          <div class="thumb t-violet-pink" style="position:absolute;inset:0"></div>
+          <div class="thumb-overlay"></div>
+          <span class="cnr">08</span>
+          <div class="nm">BASS.FLRP</div>
+        </div>
+      </div>
+
+      <div class="br-fav">
+        <div class="fav-title">✦ FAVOURITES / 88</div>
+        <div class="fav-list">
+          <div class="fav-row"><span>◉ RIOT.01</span><span class="c">FX.3</span></div>
+          <div class="fav-row"><span>◉ STROBE.KIT</span><span class="c">FX.5</span></div>
+          <div class="fav-row"><span>◉ ACID.WAVE</span><span class="c">FX.2</span></div>
+          <div class="fav-row"><span>◉ BASS.DROP</span><span class="c">FX.4</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ======= CROSSFADER STRIP ======= -->
+  <div class="crossfader-strip">
+    <div class="xf-side a">
+      <span class="xf-deck-lbl">DECK A</span>
+      <span class="xf-deck-name">◉ LAYER 01 // NUKE</span>
+      <span class="xf-deck-clip">⟶ RIOT / 128BPM / A min</span>
+    </div>
+
+    <div class="xf-core">
+      <div class="xf-mode-row">
+        <div class="xf-mode">
+          <span class="m on">A/B</span>
+          <span class="m">ADD</span>
+          <span class="m">MULT</span>
+          <span class="m">DODGE</span>
+          <span class="m">BURN</span>
+        </div>
+        <span style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--yellow)">CROSSFADER // 58%</span>
+      </div>
+      <div class="xf-track-wrap">
+        <div class="xf-track">
+          <div class="xf-notch" style="left:10%"></div>
+          <div class="xf-notch" style="left:25%"></div>
+          <div class="xf-notch" style="left:50%"></div>
+          <div class="xf-notch" style="left:75%"></div>
+          <div class="xf-notch" style="left:90%"></div>
+        </div>
+        <div class="xf-handle">A|B</div>
+      </div>
+      <div class="xf-ticks">
+        <span>A</span>
+        <span>25</span>
+        <span class="on">50</span>
+        <span>75</span>
+        <span>B</span>
+      </div>
+    </div>
+
+    <div class="master-blk">
+      <div class="xf-side" style="flex-direction:row; justify-content:space-between; align-items:baseline">
+        <span class="master-lbl">MASTER</span>
+        <span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--green);letter-spacing:1px">+0.0dB</span>
+      </div>
+      <div class="master-slider">
+        <div class="master-fill"></div>
+        <div class="master-val">78%</div>
+      </div>
+      <div class="xf-side" style="flex-direction:row; justify-content:space-between; align-items:baseline">
+        <span class="xf-deck-clip" style="color:var(--cyan)">◉ B LIVE // 0.42</span>
+        <span class="xf-deck-clip" style="color:var(--pink)">◉ A LIVE // 0.96</span>
+      </div>
+    </div>
+
+    <div class="blackout">
+      <div class="btn-big">✦ BLACKOUT</div>
+      <div style="display:flex;gap:6px">
+        <div class="btn-mini" style="flex:1">◉ TAP</div>
+        <div class="btn-mini" style="flex:1">◆ SNAP</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decorative elements -->
+  <div class="deco d1">∆∆∆</div>
+  <div class="deco d2">✦★✦</div>
+  <div class="deco d3">◆◆◆</div>
+  <div class="word-drop">L̸ I̸ V̸ E̸ // L E I P Z I G</div>
+
+  <!-- ======= STATUS BAR ======= -->
+  <div class="status">
+    <span class="triangle">∆</span><span class="good">60.0 FPS</span>
+    <span class="triangle">∆</span><span>CPU 22%</span>
+    <span class="triangle">∆</span><span class="warn">GPU 41%</span>
+    <span class="triangle">∆</span><span>1920×1080</span>
+    <span class="triangle">∆</span><span>CORE.AUDIO 48kHz</span>
+    <span class="triangle">∆</span><span class="rec-txt">REC 00:42:17</span>
+    <span class="right">✦ AUDIO DNA v0.25.4 // WAREHOUSE.LEIPZIG.25 ✦</span>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 04 Variation B (Improved)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; color: #e0e0e0; background: linear-gradient(145deg, #1a1e22, #151820); }
+.top-bar { display: flex; align-items: center; height: 34px; background: linear-gradient(180deg, #23282e, #1c2026); border-bottom: 1px solid #333; padding: 0 12px; gap: 8px; }
+.logo { font-weight: 700; font-size: 14px; color: #ff9f43; }
+.sep { width: 1px; height: 20px; background: #444; }
+.bpm { font-size: 17px; font-weight: 700; color: #4ade80; }
+.bpm-st { font-size: 8px; color: #4ade80; background: #1a3a2a; padding: 1px 4px; }
+.btn { background: #2a2e34; border: 1px solid #444; color: #ccc; font-size: 10px; padding: 3px 8px; cursor: pointer; }
+.btn.act { background: #ff9f43; color: #111; }
+.dots { display: flex; gap: 3px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot.on { background: #ff9f43; }
+.dot.off { background: #333; }
+.sp { flex: 1; }
+
+.scene-bar { display: flex; height: 28px; background: #1c2026; border-bottom: 1px solid #333; padding: 0 12px; align-items: center; gap: 3px; }
+.st { padding: 4px 16px; font-size: 11px; font-weight: 600; color: #888; background: #22262c; cursor: pointer; }
+.st.act { background: #ff9f43; color: #111; }
+.scene-right { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 10px; color: #888; }
+
+.main { display: flex; height: calc(1080px - 34px - 28px - 28px); }
+
+/* LEFT: LAYERS + GRID */
+.left { flex: 1; display: flex; flex-direction: column; }
+.grid-area { flex: 1; display: flex; overflow: auto; }
+.layers { width: 210px; background: linear-gradient(180deg, #1e2228, #181c22); border-right: 1px solid #2a2e34; overflow-y: auto; }
+.sec-t { font-size: 9px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 1px; padding: 5px 6px 3px; }
+.lr { display: flex; align-items: center; padding: 3px 4px; margin: 0 3px 1px; background: #22262c; gap: 3px; font-size: 10px; cursor: pointer; }
+.lr:hover { background: #2a2e34; }
+.lr.act { border-left: 2px solid #4aeaff; }
+.lr-name { flex: 1; }
+.lr-btns { display: flex; gap: 1px; }
+.lr-btn { font-size: 7px; padding: 1px 3px; background: #333; color: #777; }
+.lr-btn.s-on { color: #f1c40f; background: #3a3520; }
+.lr-badge { font-size: 6px; font-weight: 700; padding: 1px 3px; }
+.bgv { background: #e67e22; color: #fff; }
+.bgs { background: #00bcd4; color: #fff; }
+.bgi { background: #3498db; color: #fff; }
+.lr-opacity { width: 35px; height: 3px; background: #1a1e22; }
+.lr-opf { height: 100%; background: #4aeaff; }
+
+/* Signal mini meters in layer panel */
+.signal-mini { border-top: 1px solid #2a2e34; padding: 4px 6px; }
+.sm-item { display: flex; align-items: center; gap: 3px; margin-bottom: 2px; font-size: 8px; }
+.sm-name { width: 50px; color: #777; }
+.sm-bar { flex: 1; height: 3px; background: #1a1e22; }
+.sm-fill { height: 100%; }
+.sm-val { width: 28px; text-align: right; color: #777; font-size: 7px; }
+
+.grid { flex: 1; overflow: auto; }
+.grid-cols { display: flex; height: 22px; background: #1c2026; border-bottom: 1px solid #2a2e34; padding: 0 2px; align-items: center; position: sticky; top: 0; z-index: 1; }
+.gc { width: 92px; text-align: center; font-size: 9px; color: #777; font-weight: 600; }
+.gc.act { color: #ff9f43; border-bottom: 2px solid #ff9f43; }
+.grid-rows { padding: 2px; }
+.grow { display: flex; gap: 2px; margin-bottom: 2px; }
+.gcell { width: 90px; height: 90px; background: #1e2228; border: 1px solid #2a2e34; position: relative; cursor: pointer; overflow: hidden; }
+.gcell:hover { border-color: #444; }
+.gcell.act { border-color: #4aeaff; box-shadow: 0 0 4px rgba(74,234,255,0.15); }
+.gcell.play { border-color: #ff9f43; }
+.gcell-thumb { width: 100%; height: 70px; }
+.gcell-name { font-size: 7px; padding: 1px 2px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gcell-badge { position: absolute; top: 2px; left: 2px; font-size: 6px; font-weight: 700; padding: 1px 3px; }
+.gcell-play-icon { position: absolute; top: 2px; right: 2px; font-size: 7px; color: #4ade80; }
+.gcell-fx { position: absolute; bottom: 12px; left: 2px; font-size: 6px; color: #4ade80; background: rgba(26,58,42,0.8); padding: 0 2px; }
+.empty { width: 90px; height: 90px; background: #181c20; border: 1px dashed #282c32; }
+
+/* Macros bar at bottom of grid */
+.macros-bar { border-top: 1px solid #2a2e34; padding: 5px 8px; background: #1c2026; }
+.mac-t { font-size: 8px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+.mac-row { display: flex; gap: 10px; justify-content: center; }
+.mac { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.knob { width: 30px; height: 30px; border-radius: 50%; position: relative; }
+.kc { position: absolute; top: 3px; left: 3px; right: 3px; bottom: 3px; border-radius: 50%; background: #22262c; }
+.kl { font-size: 7px; color: #888; }
+
+/* RIGHT */
+.right { width: 400px; display: flex; flex-direction: column; border-left: 1px solid #2a2e34; background: linear-gradient(180deg, #1e2228, #181c22); }
+.out-sec { padding: 6px 8px; }
+.out-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; display: flex; justify-content: space-between; }
+.live { font-size: 8px; color: #e74c3c; font-weight: 700; }
+.out-prev { width: 100%; height: 165px; background: radial-gradient(ellipse, #3a2a1a, #1a0a04, #0a0402); border: 1px solid #2a2e34; position: relative; }
+.out-prev::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, rgba(255,180,80,0.3), rgba(100,200,255,0.1) 40%, transparent 70%); }
+.lp { width: 100%; height: 130px; background: linear-gradient(135deg, #2a0a0a, #1a0a2a, #0a1a2a); border: 1px solid #2a2e34; position: relative; }
+.lp::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(255,100,50,0.2), transparent 60%); }
+
+/* Sources + FX panel */
+.src-fx { border-top: 1px solid #2a2e34; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.src-tabs { display: flex; }
+.stab { flex: 1; text-align: center; padding: 4px 0; font-size: 10px; color: #888; background: #1e2228; border-bottom: 1px solid #2a2e34; cursor: pointer; }
+.stab.act { color: #4aeaff; border-bottom-color: #4aeaff; }
+.src-list { padding: 4px 6px; overflow-y: auto; }
+.si { display: flex; align-items: center; gap: 5px; padding: 4px; margin-bottom: 2px; background: #22262c; cursor: pointer; font-size: 10px; }
+.si:hover { background: #2a2e34; }
+.si-icon { font-size: 10px; width: 16px; text-align: center; }
+.si-name { flex: 1; }
+.si-viz { width: 50px; height: 16px; display: flex; align-items: flex-end; gap: 1px; }
+.si-vb { width: 4px; border-radius: 1px 1px 0 0; }
+.src-add { font-size: 9px; color: #4aeaff; padding: 4px 6px; text-align: center; cursor: pointer; }
+
+/* FX quick panel */
+.fx-panel { border-top: 1px solid #2a2e34; padding: 4px 6px; flex: 1; overflow-y: auto; }
+.fx-t { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+.fx-item { display: flex; align-items: center; gap: 3px; padding: 2px 3px; margin-bottom: 2px; background: #22262c; font-size: 8px; }
+.fx-bp { width: 12px; height: 12px; background: #333; color: #4ade80; text-align: center; line-height: 12px; font-size: 7px; }
+.fx-bp.off { color: #555; }
+.fx-name { flex: 1; }
+.fx-val { color: #4aeaff; font-size: 7px; }
+.fx-slider { width: 50px; height: 3px; background: #333; }
+.fx-sf { height: 100%; background: #4aeaff; }
+.fx-add { font-size: 8px; color: #4aeaff; padding: 3px; cursor: pointer; text-align: center; }
+
+/* Genre/structure indicator */
+.genre-strip { display: flex; gap: 8px; padding: 3px 8px; background: #1c2026; border-top: 1px solid #2a2e34; font-size: 8px; }
+.genre-item { display: flex; gap: 3px; }
+.genre-label { color: #777; }
+.genre-val { font-weight: 600; }
+
+.footer { display: flex; align-items: center; height: 28px; background: linear-gradient(180deg, #1c2026, #16181c); border-top: 1px solid #333; padding: 0 12px; gap: 10px; font-size: 10px; color: #888; }
+.footer .sp { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <span style="font-size:14px;color:#ff9f43;">&#9776;</span>
+  <span class="logo">Audio-DNA VJ</span><div class="sep"></div>
+  <span style="font-size:10px;color:#888;">BPM:</span><span class="bpm">128</span><span class="bpm-st">LOCKED</span>
+  <div class="btn">TAP</div><div class="btn">NUDGE -</div><div class="btn">NUDGE +</div><div class="btn">RESYNC</div>
+  <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+  <span style="font-size:11px;color:#aaa;">036 / 01.2</span>
+  <div class="sep"></div>
+  <div class="btn">/2</div><div class="btn act">x1</div><div class="btn">x2</div>
+  <div class="sp"></div>
+  <span style="font-size:10px;color:#888;">Quantize: Beat</span>
+  <div class="btn">Re-Trigger</div>
+  <div class="btn act">Auto 4</div>
+  <span style="font-size:10px;color:#4ade80;">60 FPS</span>
+  <span style="font-size:10px;color:#888;">2.1%</span>
+</div>
+
+<div class="scene-bar">
+  <div class="st">Intro</div><div class="st">Verse</div><div class="st">Build</div><div class="st act">Drop</div><div class="st">Outro</div>
+  <div class="scene-right">
+    <span>Genre: <span style="color:#ff9f43;">Techno</span></span>
+    <span>Energy: <span style="color:#4ade80;">High</span></span>
+    <span>State: <span style="color:#ff9f43;">Drop</span></span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="left">
+    <div class="grid-area">
+      <div class="layers">
+        <div class="sec-t">Layers</div>
+        <div class="lr act"><span class="lr-name">Background</span><div class="lr-btns"><span class="lr-btn">S</span><span class="lr-btn">M</span></div><div class="lr-opacity"><div class="lr-opf" style="width:100%;"></div></div></div>
+        <div class="lr"><span class="lr-name">Pulse Shapes</span><div class="lr-btns"><span class="lr-btn">S</span><span class="lr-btn">M</span></div><span class="lr-badge bgv">VIDEO</span><div class="lr-opacity"><div class="lr-opf" style="width:85%;"></div></div></div>
+        <div class="lr"><span class="lr-name">Strobe FX</span><div class="lr-btns"><span class="lr-btn s-on">S</span><span class="lr-btn">M</span></div><span class="lr-badge bgs">SYNTH</span><div class="lr-opacity"><div class="lr-opf" style="width:70%;"></div></div></div>
+        <div class="lr"><span class="lr-name">3D Tunnel</span><div class="lr-btns"><span class="lr-btn">S</span><span class="lr-btn">M</span></div><span class="lr-badge bgv">VIDEO</span><div class="lr-opacity"><div class="lr-opf" style="width:90%;"></div></div></div>
+        <div class="lr"><span class="lr-name">Text Overlay</span><div class="lr-btns"><span class="lr-btn">S</span><span class="lr-btn">M</span></div><span class="lr-badge bgs">SYNTH</span><div class="lr-opacity"><div class="lr-opf" style="width:55%;"></div></div></div>
+        <div class="lr"><span class="lr-name">Color Glitch</span><div class="lr-btns"><span class="lr-btn">S</span><span class="lr-btn">M</span></div><span class="lr-badge bgv">VIDEO</span><div class="lr-opacity"><div class="lr-opf" style="width:80%;"></div></div></div>
+        <div class="lr"><span class="lr-name">Mask Layer</span><div class="lr-btns"><span class="lr-btn">S</span><span class="lr-btn">M</span></div><span class="lr-badge bgi">MASK</span><div class="lr-opacity"><div class="lr-opf" style="width:100%;"></div></div></div>
+
+        <div class="signal-mini">
+          <div class="sec-t">Signals</div>
+          <div class="sm-item"><span class="sm-name">RMS</span><div class="sm-bar"><div class="sm-fill" style="width:72%;background:linear-gradient(90deg,#2d6e4a,#4ade80);"></div></div><span class="sm-val">0.72</span></div>
+          <div class="sm-item"><span class="sm-name">Bass</span><div class="sm-bar"><div class="sm-fill" style="width:85%;background:linear-gradient(90deg,#6e4a1a,#ff9f43);"></div></div><span class="sm-val">0.85</span></div>
+          <div class="sm-item"><span class="sm-name">Mid</span><div class="sm-bar"><div class="sm-fill" style="width:54%;background:linear-gradient(90deg,#6e4a1a,#ff9f43);"></div></div><span class="sm-val">0.54</span></div>
+          <div class="sm-item"><span class="sm-name">Beat</span><div class="sm-bar"><div class="sm-fill" style="width:72%;background:linear-gradient(90deg,#1a5a6e,#4aeaff);"></div></div><span class="sm-val">0.72</span></div>
+          <div class="sm-item"><span class="sm-name">Onset</span><div class="sm-bar"><div class="sm-fill" style="width:62%;background:linear-gradient(90deg,#4a1a6e,#b366ff);"></div></div><span class="sm-val">0.62</span></div>
+          <div class="sm-item"><span class="sm-name">Sidechain</span><div class="sm-bar"><div class="sm-fill" style="width:65%;background:linear-gradient(90deg,#6e4a1a,#ff9f43);"></div></div><span class="sm-val">0.65</span></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="grid-cols">
+          <div class="gc">Intro</div><div class="gc">Verse</div><div class="gc">Build</div><div class="gc act">Drop</div><div class="gc">Outro</div><div class="gc">Break</div>
+        </div>
+        <div class="grid-rows">
+          <div class="grow">
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#3498db,#1a3a5c,#0a1020);"></div><div class="gcell-name">City Lights</div><span class="gcell-badge bgv">VIDEO</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:conic-gradient(from 45deg,#e74c3c,#f39c12,#2ecc71,#3498db,#9b59b6,#e74c3c);"></div><div class="gcell-name">Geometric</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell play"><div class="gcell-thumb" style="background:radial-gradient(circle,#ff9f43,#e67e22,#2c1a00);"></div><div class="gcell-name">Bass Pulse</div><span class="gcell-badge bgs">SYNTH</span><span class="gcell-play-icon">&#9654;</span><span class="gcell-fx">FX:3</span></div>
+            <div class="gcell act"><div class="gcell-thumb" style="background:radial-gradient(circle,#00bcd4,#004d56,#001a1e);"></div><div class="gcell-name">Tunnel Spin</div><span class="gcell-badge bgs">SYNTH</span><span class="gcell-play-icon">&#9654;</span><span class="gcell-fx">FX:2</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:#111;"></div><div class="gcell-name">Fade Out</div><span class="gcell-badge bgv">VIDEO</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#e74c3c,#6b1a1a,#1a0404);"></div><div class="gcell-name">Fire Wall</div><span class="gcell-badge bgs">SYNTH</span></div>
+          </div>
+          <div class="grow">
+            <div class="gcell"><div class="gcell-thumb" style="background:repeating-radial-gradient(circle,#e74c3c,#e74c3c 3px,#2c0808 3px,#2c0808 6px);"></div><div class="gcell-name">Deep Crop</div><span class="gcell-badge bgv">VIDEO</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:repeating-linear-gradient(45deg,#9b59b6 0px,#9b59b6 3px,#1a0a2e 3px,#1a0a2e 6px);"></div><div class="gcell-name">Prism</div><span class="gcell-badge bgv">VIDEO</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#f1c40f,#2c1a00);"></div><div class="gcell-name">Ring Pulse</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:#0a1a0d;"></div><div class="gcell-name">VJ Text</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="empty"></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#b366ff,#4a1a6e,#0d0015);"></div><div class="gcell-name">Mandelbulb</div><span class="gcell-badge bgs">SYNTH</span><span class="gcell-fx">FX:1</span></div>
+          </div>
+          <div class="grow">
+            <div class="gcell"><div class="gcell-thumb" style="background:repeating-linear-gradient(0deg,#fff 0px,#fff 2px,#000 2px,#000 4px);"></div><div class="gcell-name">Strobe</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:conic-gradient(#e74c3c,#f39c12,#1abc9c,#3498db,#e74c3c);"></div><div class="gcell-name">Color Flash</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:repeating-linear-gradient(90deg,#333 0px,#333 3px,#111 3px,#111 6px);"></div><div class="gcell-name">Scanlines</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="empty"></div><div class="empty"></div><div class="empty"></div>
+          </div>
+          <div class="grow">
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#00bcd4,#004d56 40%,#001a1e 80%);"></div><div class="gcell-name">Tunnel Warp</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#9b59b6,#3a1560 40%,#0d0020 80%);"></div><div class="gcell-name">Menger</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#ff6b2b,#8b2500 40%,#1a0800 80%);"></div><div class="gcell-name">Mandelbrot</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#4aeaff,#1a5a6e 40%,#0a1a20 80%);"></div><div class="gcell-name">Julia 3D</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:conic-gradient(from 0deg,#1a1a2e,#16213e,#0f3460,#1a1a2e);"></div><div class="gcell-name">Torus Knot</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:radial-gradient(circle,#00ff88,#006633,#001a0d);"></div><div class="gcell-name">Spectral Ring</div><span class="gcell-badge bgs">SYNTH</span></div>
+          </div>
+          <div class="grow">
+            <div class="gcell"><div class="gcell-thumb" style="background:#0d0d1a;"></div><div class="gcell-name">Title Text</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="gcell"><div class="gcell-thumb" style="background:#0d0d1a;"></div><div class="gcell-name">Scroll Wall</div><span class="gcell-badge bgs">SYNTH</span></div>
+            <div class="empty"></div><div class="empty"></div><div class="empty"></div><div class="empty"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="macros-bar">
+      <div class="mac-t">Global Macros</div>
+      <div class="mac-row">
+        <div class="mac"><div class="knob" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 200deg,#333 200deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Hue</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 140deg,#333 140deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Sat</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 220deg,#333 220deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Bright</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#ff9f43 0deg,#ff9f43 180deg,#333 180deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Scale</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 160deg,#333 160deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Speed</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#4aeaff 0deg,#4aeaff 100deg,#333 100deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">FX</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#b366ff 0deg,#b366ff 240deg,#333 240deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Zoom</span></div>
+        <div class="mac"><div class="knob" style="background:conic-gradient(#b366ff 0deg,#b366ff 80deg,#333 80deg,#333 300deg,transparent 300deg);"><div class="kc"></div></div><span class="kl">Trail</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="out-sec">
+      <div class="out-label"><span>Output Preview</span><span class="live">LIVE</span></div>
+      <div class="out-prev"></div>
+    </div>
+    <div class="out-sec">
+      <div class="out-label"><span>Layer Preview</span></div>
+      <div class="lp"></div>
+    </div>
+    <div class="src-fx">
+      <div class="src-tabs">
+        <div class="stab act">Sources</div>
+        <div class="stab">Layer</div>
+        <div class="stab">Clip</div>
+      </div>
+      <div class="src-list">
+        <div class="si"><div class="si-icon">&#9835;</div><span class="si-name">Master Audio</span><div class="si-viz"><div class="si-vb" style="height:12px;background:#4ade80;"></div><div class="si-vb" style="height:16px;background:#4ade80;"></div><div class="si-vb" style="height:14px;background:#ffaa00;"></div><div class="si-vb" style="height:10px;background:#4ade80;"></div></div></div>
+        <div class="si"><div class="si-icon">&#9776;</div><span class="si-name">Kick Drum</span><div style="width:50px;height:14px;background:linear-gradient(90deg,#ff9f43,#ff9f43 72%,#333 72%);"></div></div>
+        <div class="si"><div class="si-icon">~</div><span class="si-name">LFO - Sine</span><div style="width:50px;height:14px;border-bottom:1px solid #4aeaff;"></div></div>
+        <div class="si"><div class="si-icon">~</div><span class="si-name">LFO - Custom</span><div style="width:50px;height:14px;border-bottom:1px solid #ff9f43;"></div></div>
+        <div class="si"><div class="si-icon">&#9651;</div><span class="si-name">Envelope 1</span><div style="width:50px;height:14px;border-bottom:1px solid #b366ff;"></div></div>
+        <div class="src-add">+ Add Audio Source</div>
+      </div>
+    </div>
+    <div class="fx-panel">
+      <div class="fx-t">Active FX (Tunnel Spin)</div>
+      <div class="fx-item"><div class="fx-bp">B</div><span class="fx-name">Ripple</span><div class="fx-slider"><div class="fx-sf" style="width:45%;"></div></div><span class="fx-val">0.45</span></div>
+      <div class="fx-item"><div class="fx-bp">B</div><span class="fx-name">Chromatic Aberration</span><div class="fx-slider"><div class="fx-sf" style="width:30%;"></div></div><span class="fx-val">0.30</span></div>
+      <div class="fx-item"><div class="fx-bp off">B</div><span class="fx-name">Echo</span><div class="fx-slider"><div class="fx-sf" style="width:70%;"></div></div><span class="fx-val">0.70</span></div>
+      <div class="fx-item"><div class="fx-bp">B</div><span class="fx-name">Glow</span><div class="fx-slider"><div class="fx-sf" style="width:55%;"></div></div><span class="fx-val">0.55</span></div>
+      <div class="fx-item"><div class="fx-bp">B</div><span class="fx-name">Kaleidoscope</span><div class="fx-slider"><div class="fx-sf" style="width:40%;"></div></div><span class="fx-val">0.40</span></div>
+      <div class="fx-add">+ Add Effect</div>
+    </div>
+    <div class="genre-strip">
+      <div class="genre-item"><span class="genre-label">Genre:</span><span class="genre-val" style="color:#ff9f43;">Techno</span></div>
+      <div class="genre-item"><span class="genre-label">Energy:</span><span class="genre-val" style="color:#4ade80;">High</span></div>
+      <div class="genre-item"><span class="genre-label">Key:</span><span class="genre-val" style="color:#4aeaff;">Am</span></div>
+      <div class="genre-item"><span class="genre-label">Sidechain:</span><span class="genre-val" style="color:#ff9f43;">0.65</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span style="cursor:pointer;">Master Sources</span><div class="sep" style="height:16px;"></div>
+  <span style="cursor:pointer;">&#9654; Player</span>
+  <span style="cursor:pointer;">&#9673;</span>
+  <div class="sep" style="height:16px;"></div>
+  <span>Output: Display 01 | 60 FPS | 1920x1080</span>
+  <div class="sp"></div>
+  <span style="cursor:pointer;">SAVE</span>
+  <span style="cursor:pointer;">LOAD</span>
+  <span style="cursor:pointer;">HELP</span>
+</div>
+
+</body>
+</html>

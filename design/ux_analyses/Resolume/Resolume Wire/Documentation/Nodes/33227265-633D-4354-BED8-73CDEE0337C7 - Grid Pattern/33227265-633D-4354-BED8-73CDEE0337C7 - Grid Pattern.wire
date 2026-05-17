@@ -1,0 +1,5629 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					22,
+					"output0"
+				],
+				"to": [
+					29,
+					"input"
+				]
+			},
+			{
+				"from": [
+					8,
+					"output"
+				],
+				"to": [
+					31,
+					"input"
+				]
+			},
+			{
+				"from": [
+					31,
+					"output"
+				],
+				"to": [
+					22,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					33,
+					"pattern"
+				],
+				"to": [
+					43,
+					"container"
+				]
+			},
+			{
+				"from": [
+					42,
+					"output"
+				],
+				"to": [
+					45,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					45,
+					"output0"
+				],
+				"to": [
+					48,
+					"input2"
+				]
+			},
+			{
+				"from": [
+					49,
+					"output"
+				],
+				"to": [
+					48,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					48,
+					"output"
+				],
+				"to": [
+					50,
+					"input"
+				]
+			},
+			{
+				"from": [
+					47,
+					"pattern"
+				],
+				"to": [
+					51,
+					"container"
+				]
+			},
+			{
+				"from": [
+					51,
+					"output0"
+				],
+				"to": [
+					45,
+					"material"
+				]
+			},
+			{
+				"from": [
+					52,
+					"output"
+				],
+				"to": [
+					43,
+					"offset"
+				]
+			},
+			{
+				"from": [
+					52,
+					"output"
+				],
+				"to": [
+					53,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					53,
+					"output0"
+				],
+				"to": [
+					51,
+					"offset"
+				]
+			},
+			{
+				"from": [
+					63,
+					"pattern"
+				],
+				"to": [
+					64,
+					"input2"
+				]
+			},
+			{
+				"from": [
+					62,
+					"pattern"
+				],
+				"to": [
+					64,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					65,
+					"output"
+				],
+				"to": [
+					66,
+					"input"
+				]
+			},
+			{
+				"from": [
+					66,
+					"output"
+				],
+				"to": [
+					67,
+					"input"
+				]
+			},
+			{
+				"from": [
+					68,
+					"output"
+				],
+				"to": [
+					64,
+					"mix"
+				]
+			},
+			{
+				"from": [
+					67,
+					"output"
+				],
+				"to": [
+					70,
+					"shape"
+				]
+			},
+			{
+				"from": [
+					71,
+					"pattern"
+				],
+				"to": [
+					70,
+					"material"
+				]
+			},
+			{
+				"from": [
+					70,
+					"output0"
+				],
+				"to": [
+					72,
+					"input"
+				]
+			},
+			{
+				"from": [
+					74,
+					"output"
+				],
+				"to": [
+					75,
+					"albedo_map"
+				]
+			},
+			{
+				"from": [
+					77,
+					"aspectratio"
+				],
+				"to": [
+					76,
+					"width"
+				]
+			},
+			{
+				"from": [
+					76,
+					"output"
+				],
+				"to": [
+					78,
+					"geometry"
+				]
+			},
+			{
+				"from": [
+					75,
+					"output"
+				],
+				"to": [
+					78,
+					"material"
+				]
+			},
+			{
+				"from": [
+					79,
+					"output0"
+				],
+				"to": [
+					78,
+					"transformation"
+				]
+			},
+			{
+				"from": [
+					80,
+					"pattern"
+				],
+				"to": [
+					79,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					78,
+					"output0"
+				],
+				"to": [
+					81,
+					"mesh"
+				]
+			},
+			{
+				"from": [
+					81,
+					"output0"
+				],
+				"to": [
+					82,
+					"input"
+				]
+			},
+			{
+				"from": [
+					33,
+					"pattern"
+				],
+				"to": [
+					42,
+					"begin"
+				]
+			},
+			{
+				"from": [
+					43,
+					"output0"
+				],
+				"to": [
+					42,
+					"end"
+				]
+			},
+			{
+				"from": [
+					64,
+					"output0"
+				],
+				"to": [
+					67,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					5,
+					"pattern"
+				],
+				"to": [
+					31,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					88,
+					"pattern"
+				],
+				"to": [
+					90,
+					"uvs"
+				]
+			},
+			{
+				"from": [
+					91,
+					"output"
+				],
+				"to": [
+					92,
+					"albedo_map"
+				]
+			},
+			{
+				"from": [
+					92,
+					"output"
+				],
+				"to": [
+					93,
+					"material"
+				]
+			},
+			{
+				"from": [
+					90,
+					"output"
+				],
+				"to": [
+					93,
+					"geometry"
+				]
+			},
+			{
+				"from": [
+					95,
+					"output0"
+				],
+				"to": [
+					93,
+					"transformation"
+				]
+			},
+			{
+				"from": [
+					94,
+					"pattern"
+				],
+				"to": [
+					104,
+					"container"
+				]
+			},
+			{
+				"from": [
+					103,
+					"trigger"
+				],
+				"to": [
+					104,
+					"reshuffle"
+				]
+			},
+			{
+				"from": [
+					93,
+					"output0"
+				],
+				"to": [
+					106,
+					"mesh"
+				]
+			},
+			{
+				"from": [
+					106,
+					"output0"
+				],
+				"to": [
+					107,
+					"input"
+				]
+			},
+			{
+				"from": [
+					104,
+					"output0"
+				],
+				"to": [
+					95,
+					"translation"
+				]
+			}
+		],
+		"inputOrder": [
+			52,
+			68,
+			74,
+			91
+		],
+		"meta": {
+			"author": "",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "2d-wire",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 20,
+					"patch": 0
+				}
+			},
+			"description": "This patch explains what this node does.",
+			"displayName": "Grid Pattern Example",
+			"identifier": "7c4d7035-add3-4496-a93c-be013ad15ae9",
+			"licenseName": "",
+			"mail": "",
+			"originalTarget": {
+				"branch": "2d-wire",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "7.20.0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 20,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 109,
+		"nodes": {
+			"1": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "GRID PATTERN\nThe Grid Pattern node generates a collection of Float2 values that results in a grid pattern. Alternatively the type can be set to Box2D to produce a grid of UV values.\n\nThe rows and columns parameters determine the final size of the collection (rows x columns).\nThe size parameter sets the width and height disttance between points.\n\nNote that the rows and columns require a cord at attribute flow."
+					}
+				},
+				"bounds": {
+					"height": 211.236328125,
+					"width": 542.67083740234375,
+					"x": 94.30718231201171875,
+					"y": 398.78607177734375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"103": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 179.0113525390625,
+					"y": 3488.743896484375
+				},
+				"class": {
+					"id": "77697265-FD65-470F-9F75-ED878267980E",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"enabled": {
+						"type": "bool",
+						"value": true
+					},
+					"frequency": {
+						"type": "float",
+						"value": 3
+					},
+					"reset": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"count"
+				],
+				"name": "Metronome",
+				"thumbnail_visible": true
+			},
+			"104": {
+				"attributes": {
+					"container-dimensions": {
+						"type": "integer",
+						"value": 16
+					},
+					"container-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 434.0113525390625,
+					"y": 3352.743896484375
+				},
+				"class": {
+					"id": "77697265-A7DD-4C94-96ED-33AE3756EA6A",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"container": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"mode": {
+						"type": "integer",
+						"value": 1
+					},
+					"reshuffle": {
+						"type": "trigger",
+						"value": null
+					},
+					"seed": {
+						"type": "integer",
+						"value": 100
+					}
+				},
+				"hidden": [
+					"seed",
+					"container-type",
+					"flow",
+					"container-dimensions"
+				],
+				"name": "Shuffle",
+				"thumbnail_visible": true
+			},
+			"106": {
+				"attributes": {
+					"aa": {
+						"type": "integer",
+						"value": 2
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"blending": {
+						"type": "integer",
+						"value": 0
+					},
+					"mesh-dimensions": {
+						"type": "integer",
+						"value": 16
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 1199.0113525390625,
+					"y": 3139.743896484375
+				},
+				"class": {
+					"id": "77697265-E8EC-7A1G-901A-CFEC174D3B67",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"mesh": {
+						"type": "mesh2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"aa",
+					"mesh-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth"
+				],
+				"name": "2D Render",
+				"thumbnail_visible": true
+			},
+			"107": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1454.0113525390625,
+					"y": 3139.743896484375
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"22": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 25
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 573.44964599609375,
+					"y": 804.82672119140625
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 4
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"material": {
+						"type": "color",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"camera",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"reduce"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"29": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 814.68072509765625,
+					"y": 804.82672119140625
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"30": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 1: SHAPES IN A GRID PATTERN\n\nIn this example we generate a collection of 25 points that we sent to the Move node.\nWe end up with placing 25 circles in a grid pattern.\nTry changing the size parameter."
+					}
+				},
+				"bounds": {
+					"height": 374.779296875,
+					"width": 881.1680908203125,
+					"x": 94.11638641357421875,
+					"y": 643.68310546875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"31": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 25
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 341.83843994140625,
+					"y": 804.81207275390625
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input-type",
+					"translation-type",
+					"flow",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": true
+			},
+			"32": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 3: GRID PATTERN AS A LINE\n\nIn this example we are drawing the pattern as a Line.\nThis is done by taking the collection from the Grid Pattern node and sending it to the begin of the Line node.\nNext, we Shift the same collection and send it to the end of the Line node.\nThe Shift is controlled by the Offset slide (which is an Int In node).\n\nBecause we are shifting the line, we also need to shift the Linear to keep up.\nThis way the line always starts from red and ends at green."
+					}
+				},
+				"bounds": {
+					"height": 579.4866943359375,
+					"width": 1339.7164306640625,
+					"x": 94.0622711181640625,
+					"y": 1710.4122314453125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"33": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 3
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 3
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 134.066192626953125,
+					"y": 1929.869140625
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"size": {
+						"type": "float2",
+						"value": [
+							1,
+							0.80000001192092896
+						]
+					}
+				},
+				"hidden": [
+					"pattern-type",
+					"flow"
+				],
+				"name": "Grid Pattern",
+				"thumbnail_visible": true
+			},
+			"42": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 9
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 576.30194091796875,
+					"y": 1929.869140625
+				},
+				"class": {
+					"id": "77697265-ad7a-4f41-8d67-643bf49f2ea4",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"begin": {
+						"type": "float2",
+						"value": [
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							],
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							],
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							],
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							],
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							],
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							],
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							],
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							],
+							[
+								-0.40000000596046448,
+								-0.40000000596046448
+							]
+						]
+					},
+					"end": {
+						"type": "float2",
+						"value": [
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							],
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							],
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							],
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							],
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							],
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							],
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							],
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							],
+							[
+								0.40000000596046448,
+								0.40000000596046448
+							]
+						]
+					},
+					"thickness": {
+						"type": "float",
+						"value": [
+							0.01499999966472387,
+							0.01499999966472387,
+							0.01499999966472387,
+							0.01499999966472387,
+							0.01499999966472387,
+							0.01499999966472387,
+							0.01499999966472387,
+							0.01499999966472387,
+							0.01499999966472387
+						]
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Line",
+				"thumbnail_visible": true
+			},
+			"43": {
+				"attributes": {
+					"container-dimensions": {
+						"type": "integer",
+						"value": 9
+					},
+					"container-flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"container-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"offset-flow": {
+						"type": "flow",
+						"value": "signal"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 345.241729736328125,
+					"y": 2022.012939453125
+				},
+				"class": {
+					"id": "77697265-A7DD-4C94-96ED-51AE37AZEA6A",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"container": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"offset": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"container-type",
+					"container-flow",
+					"offset-flow",
+					"container-dimensions"
+				],
+				"name": "Shift",
+				"thumbnail_visible": true
+			},
+			"45": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 9
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 9
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 817.34490966796875,
+					"y": 1929.869140625
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 4
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"material": {
+						"type": "color",
+						"value": [
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							]
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"reduce"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"47": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"max-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"min-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"size": {
+						"type": "integer",
+						"value": 9
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 344.3082275390625,
+					"y": 2124.217529296875
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"max": {
+						"type": "color",
+						"value": [
+							0.27058824896812439,
+							1,
+							0.03921568766236305,
+							0.5372549295425415
+						]
+					},
+					"min": {
+						"type": "color",
+						"value": [
+							1,
+							0.0117647061124444,
+							0.0117647061124444,
+							0.56470590829849243
+						]
+					}
+				},
+				"hidden": [
+					"include-max",
+					"min-type",
+					"max-type",
+					"pattern-type",
+					"flow"
+				],
+				"name": "Linear",
+				"thumbnail_visible": true
+			},
+			"48": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"input-count": {
+						"type": "integer",
+						"value": 2
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 1056.6134033203125,
+					"y": 1929.869140625
+				},
+				"class": {
+					"id": "77697265-A270-4D60-911C-A88B1BE6369A",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"input1": {
+						"type": "texture2d",
+						"value": null
+					},
+					"input2": {
+						"type": "texture2d",
+						"value": null
+					},
+					"mode": {
+						"type": "integer",
+						"value": 11
+					},
+					"opacity1": {
+						"type": "float",
+						"value": 1
+					},
+					"opacity2": {
+						"type": "float",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"bypass",
+					"input-count",
+					"mode",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Video Mixer",
+				"thumbnail_visible": true
+			},
+			"49": {
+				"attributes": {
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 817.344970703125,
+					"y": 2047.211669921875
+				},
+				"class": {
+					"id": "77697265-E8EC-4F1B-901A-CFFC104D3B07",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"bypass": {
+						"type": "bool",
+						"value": false
+					},
+					"color": {
+						"type": "color",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"bypass",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"instances"
+				],
+				"name": "Solid Color",
+				"thumbnail_visible": true
+			},
+			"5": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 5
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 5
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 109.44966888427734375,
+					"y": 876.82672119140625
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"size": {
+						"type": "float2",
+						"value": [
+							0.80000001192092896,
+							0.80000001192092896
+						]
+					}
+				},
+				"hidden": [
+					"pattern-type",
+					"flow"
+				],
+				"name": "Grid Pattern",
+				"thumbnail_visible": true
+			},
+			"50": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1272.9635009765625,
+					"y": 1929.869140625
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"51": {
+				"attributes": {
+					"container-dimensions": {
+						"type": "integer",
+						"value": 9
+					},
+					"container-flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"container-type": {
+						"type": "type",
+						"value": "float4"
+					},
+					"offset-flow": {
+						"type": "flow",
+						"value": "signal"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 576.2596435546875,
+					"y": 2123.770751953125
+				},
+				"class": {
+					"id": "77697265-A7DD-4C94-96ED-51AE37AZEA6A",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"container": {
+						"type": "float4",
+						"value": [
+							[
+								0,
+								0,
+								0,
+								1
+							],
+							[
+								0,
+								0,
+								0,
+								1
+							],
+							[
+								0,
+								0,
+								0,
+								1
+							],
+							[
+								0,
+								0,
+								0,
+								1
+							],
+							[
+								0,
+								0,
+								0,
+								1
+							],
+							[
+								0,
+								0,
+								0,
+								1
+							],
+							[
+								0,
+								0,
+								0,
+								1
+							],
+							[
+								0,
+								0,
+								0,
+								1
+							],
+							[
+								0,
+								0,
+								0,
+								1
+							]
+						]
+					},
+					"offset": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"container-type",
+					"container-flow",
+					"offset-flow",
+					"container-dimensions"
+				],
+				"name": "Shift",
+				"thumbnail_visible": true
+			},
+			"52": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"has-max": {
+						"type": "bool",
+						"value": true
+					},
+					"has-min": {
+						"type": "bool",
+						"value": true
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"max": {
+						"type": "integer",
+						"value": 9
+					},
+					"min": {
+						"type": "integer",
+						"value": 0
+					},
+					"options-count": {
+						"type": "integer",
+						"value": 0
+					},
+					"unit": {
+						"type": "integer",
+						"value": 0
+					},
+					"widget": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 177.643096923828125,
+					"y": 2082.517578125
+				},
+				"class": {
+					"id": "77697265-2649-4abb-b38f-4e1005183415",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"input",
+					"instances",
+					"flow",
+					"has-min",
+					"min",
+					"has-max",
+					"max",
+					"options-count",
+					"widget",
+					"unit"
+				],
+				"name": "Offset",
+				"thumbnail_visible": true
+			},
+			"53": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "integer"
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 344.308197021484375,
+					"y": 2230.559326171875
+				},
+				"class": {
+					"id": "77697265-AEE3-4B9D-BBD5-6Ae4CCD5aB30",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input0": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"hidden": [
+					"input0-type",
+					"flow",
+					"input0-dimensions"
+				],
+				"name": "Hub",
+				"thumbnail_visible": true
+			},
+			"54": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 2: CROSSFADING PATTERNS\n\nHere's a cool little trick you can do with patterns.\nWe are crossfading between the Grid Pattern and the Circle Pattern.\nMove the Mix slider to crossfade between the patterns."
+					}
+				},
+				"bounds": {
+					"height": 602.11419677734375,
+					"width": 1066.9873046875,
+					"x": 93.44889068603515625,
+					"y": 1066.2960205078125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"62": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 6
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 6
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 135.453155517578125,
+					"y": 1303.8153076171875
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"size": {
+						"type": "float2",
+						"value": [
+							0.60000002384185791,
+							0.60000002384185791
+						]
+					}
+				},
+				"hidden": [
+					"pattern-type",
+					"flow"
+				],
+				"name": "Grid Pattern",
+				"thumbnail_visible": true
+			},
+			"63": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"points": {
+						"type": "integer",
+						"value": 36
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 134.404937744140625,
+					"y": 1423.3126220703125
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73E0D30337C7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"angle": {
+						"type": "float",
+						"value": 1
+					},
+					"radius": {
+						"type": "float",
+						"value": 0.60000002384185791
+					}
+				},
+				"hidden": [
+					"flow"
+				],
+				"name": "Circle Pattern",
+				"thumbnail_visible": true
+			},
+			"64": {
+				"attributes": {
+					"input1-dimensions": {
+						"type": "integer",
+						"value": 36
+					},
+					"input1-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"input2-dimensions": {
+						"type": "integer",
+						"value": 36
+					},
+					"input2-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"mix-dimensions": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 348.242462158203125,
+					"y": 1303.815185546875
+				},
+				"class": {
+					"id": "77697265-7BAA-481B-8F7C-A32F6DBE1518",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input1": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"input2": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					},
+					"mix": {
+						"type": "float",
+						"value": 0.72452878952026367
+					}
+				},
+				"hidden": [
+					"input1-type",
+					"input2-type",
+					"input1-dimensions",
+					"input2-dimensions",
+					"mix-dimensions"
+				],
+				"name": "Cross Fader",
+				"thumbnail_visible": true
+			},
+			"65": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 135.453155517578125,
+					"y": 1226.2467041015625
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.10000000149011612
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle",
+				"thumbnail_visible": true
+			},
+			"66": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"mode": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 345.097808837890625,
+					"y": 1226.2467041015625
+				},
+				"class": {
+					"id": "77697265-ab950887-37ee-4fd2-9487-c856b6b75c83",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": null
+					},
+					"thickness": {
+						"type": "float",
+						"value": 0.00999999977648258
+					}
+				},
+				"hidden": [
+					"mode",
+					"instances"
+				],
+				"name": "Edge",
+				"thumbnail_visible": true
+			},
+			"67": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input-type": {
+						"type": "type",
+						"value": "procedural"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 36
+					},
+					"translation-type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 555.79058837890625,
+					"y": 1226.2467041015625
+				},
+				"class": {
+					"id": "77697265-0e5a-4bfd-b136-e4f68P3cc463",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"input-type",
+					"translation-type",
+					"flow",
+					"instances"
+				],
+				"name": "Move",
+				"thumbnail_visible": true
+			},
+			"68": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"has-max": {
+						"type": "bool",
+						"value": true
+					},
+					"has-min": {
+						"type": "bool",
+						"value": true
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"max": {
+						"type": "float",
+						"value": 1
+					},
+					"min": {
+						"type": "float",
+						"value": 0
+					},
+					"options-count": {
+						"type": "integer",
+						"value": 0
+					},
+					"unit": {
+						"type": "integer",
+						"value": 0
+					},
+					"widget": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 199.290679931640625,
+					"y": 1539.6654052734375
+				},
+				"class": {
+					"id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input": {
+						"type": "float",
+						"value": 0
+					}
+				},
+				"hidden": [
+					"input",
+					"instances",
+					"flow",
+					"has-min",
+					"min",
+					"has-max",
+					"max",
+					"options-count",
+					"widget",
+					"unit"
+				],
+				"name": "Mix",
+				"thumbnail_visible": true
+			},
+			"70": {
+				"attributes": {
+					"antialising-direction": {
+						"type": "integer",
+						"value": 0
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"material-dimensions": {
+						"type": "integer",
+						"value": 36
+					},
+					"reduce": {
+						"type": "bool",
+						"value": false
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					},
+					"shape-dimensions": {
+						"type": "integer",
+						"value": 36
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 775.91754150390625,
+					"y": 1226.2467041015625
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+					"version": 4
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"antialiasing": {
+						"type": "float",
+						"value": 4
+					},
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"material": {
+						"type": "color",
+						"value": [
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							],
+							[
+								1,
+								1,
+								1,
+								1
+							]
+						]
+					},
+					"shape": {
+						"type": "procedural",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"antialising-direction",
+					"antialiasing",
+					"shape-dimensions",
+					"material-dimensions",
+					"resolution-mode",
+					"resolution-relative",
+					"resolution-absolute",
+					"bitdepth",
+					"reduce"
+				],
+				"name": "Shape Render",
+				"thumbnail_visible": true
+			},
+			"71": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"max-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"min-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "color"
+					},
+					"size": {
+						"type": "integer",
+						"value": 36
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 555.79071044921875,
+					"y": 1303.815185546875
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"max": {
+						"type": "color",
+						"value": [
+							1,
+							0.03921568766236305,
+							0.25490197539329529,
+							1
+						]
+					},
+					"min": {
+						"type": "color",
+						"value": [
+							1,
+							0.03921568766236305,
+							0.94901961088180542,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"include-max",
+					"min-type",
+					"max-type",
+					"pattern-type",
+					"flow"
+				],
+				"name": "Linear",
+				"thumbnail_visible": true
+			},
+			"72": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 981.36920166015625,
+					"y": 1226.2467041015625
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"73": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 4: GRID CLONER\n\nIn this example we're making a simple grid cloner by using the Grid Pattern on some meshes.\nFirst we create Rectangle geometry to project our texture on.\nNext we apply the Grid Pattern through a Transformation2D node to place the geometry in a grid pattern.\nFinally we project our test card from the Texture In onto the geometry by using th Texture Material node."
+					}
+				},
+				"bounds": {
+					"height": 628.500244140625,
+					"width": 1338.9007568359375,
+					"x": 92.7797698974609375,
+					"y": 2327.89453125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"74": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 199.6092987060546875,
+					"y": 2785.0771484375
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"input",
+					"instances",
+					"flow"
+				],
+				"name": "Texture In",
+				"thumbnail_visible": true
+			},
+			"75": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 389.60931396484375,
+					"y": 2785.0771484375
+				},
+				"class": {
+					"id": "77697265-D822-4ABE-9A4A-5693E1B92151",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"albedo": {
+						"type": "color",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"albedo_map": {
+						"type": "texture2d",
+						"value": null
+					},
+					"blend_mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"wrap_mode": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Material",
+				"thumbnail_visible": true
+			},
+			"76": {
+				"attributes": {
+					"corner_resolution": {
+						"type": "integer",
+						"value": 3
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 389.60931396484375,
+					"y": 2489.0771484375
+				},
+				"class": {
+					"id": "77697265-E9C4-924B-BE62-F4FB3F2F3CE9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"corner_radius": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"height": {
+						"type": "float",
+						"value": 1
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": {
+							"max": [
+								1,
+								1
+							],
+							"min": [
+								0,
+								0
+							]
+						}
+					},
+					"width": {
+						"type": "float",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"corner_resolution",
+					"instances",
+					"uvs",
+					"corner_radius"
+				],
+				"name": "Rectangle",
+				"thumbnail_visible": true
+			},
+			"77": {
+				"attributes": {},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 134.6092987060546875,
+					"y": 2489.0771484375
+				},
+				"class": {
+					"id": "77697265-ec64-44f7-b446-de2a0220c5b8",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {},
+				"hidden": [],
+				"name": "Patch Info",
+				"thumbnail_visible": true
+			},
+			"78": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 25
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 644.60931396484375,
+					"y": 2489.0771484375
+				},
+				"class": {
+					"id": "77697265-e8c1-11ec-8fea-0242ac120002",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"geometry": {
+						"type": "geometry2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"material": {
+						"type": "material",
+						"value": [
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									0,
+									0,
+									0,
+									0
+								],
+								"type": "SolidColor"
+							}
+						]
+					},
+					"transformation": {
+						"type": "transformation2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Mesh 2D",
+				"thumbnail_visible": true
+			},
+			"79": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 25
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 389.60931396484375,
+					"y": 2649.0771484375
+				},
+				"class": {
+					"id": "77697265-366B-4570-833A-D9F433415B8F",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"rotation": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"scale": {
+						"type": "float2",
+						"value": [
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							],
+							[
+								0.20000000298023224,
+								0.20000000298023224
+							]
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Transformation 2D",
+				"thumbnail_visible": true
+			},
+			"8": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 109.44966888427734375,
+					"y": 804.82672119140625
+				},
+				"class": {
+					"id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"radius": {
+						"type": "float",
+						"value": 0.10000000149011612
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Circle",
+				"thumbnail_visible": true
+			},
+			"80": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 5
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 5
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 134.6092987060546875,
+					"y": 2649.0771484375
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"size": {
+						"type": "float2",
+						"value": [
+							1,
+							0.69999998807907104
+						]
+					}
+				},
+				"hidden": [
+					"pattern-type",
+					"flow"
+				],
+				"name": "Grid Pattern",
+				"thumbnail_visible": true
+			},
+			"81": {
+				"attributes": {
+					"aa": {
+						"type": "integer",
+						"value": 2
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"blending": {
+						"type": "integer",
+						"value": 0
+					},
+					"mesh-dimensions": {
+						"type": "integer",
+						"value": 25
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 899.60931396484375,
+					"y": 2489.0771484375
+				},
+				"class": {
+					"id": "77697265-E8EC-7A1G-901A-CFEC174D3B67",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"mesh": {
+						"type": "mesh2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"aa",
+					"mesh-dimensions",
+					"resolution-mode",
+					"resolution-absolute"
+				],
+				"name": "Renderer 2D",
+				"thumbnail_visible": true
+			},
+			"82": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1154.609375,
+					"y": 2489.0771484375
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out",
+				"thumbnail_visible": true
+			},
+			"87": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 5: BOX 2D\n\nIn this example we are using the Grid Pattern node to generate UV's for the Rectangle node.\nWe use another Grid pattern node to shuffle their positions around to create a scrambling effect."
+					}
+				},
+				"bounds": {
+					"height": 685.8580322265625,
+					"width": 1556.1865234375,
+					"x": 91.66900634765625,
+					"y": 2997.25830078125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment",
+				"thumbnail_visible": true
+			},
+			"88": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 4
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "box2d"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 4
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 434.0113525390625,
+					"y": 3216.743896484375
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"size": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"pattern-type",
+					"flow"
+				],
+				"name": "Grid Pattern",
+				"thumbnail_visible": true
+			},
+			"90": {
+				"attributes": {
+					"corner_resolution": {
+						"type": "integer",
+						"value": 3
+					},
+					"instances": {
+						"type": "integer",
+						"value": 16
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 689.0113525390625,
+					"y": 3139.743896484375
+				},
+				"class": {
+					"id": "77697265-E9C4-924B-BE62-F4FB3F2F3CE9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"corner_radius": {
+						"type": "float4",
+						"value": [
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							],
+							[
+								0,
+								0,
+								0,
+								0
+							]
+						]
+					},
+					"height": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": [
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							}
+						]
+					},
+					"width": {
+						"type": "float",
+						"value": [
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367,
+							1.76999998092651367
+						]
+					}
+				},
+				"hidden": [
+					"corner_resolution",
+					"instances",
+					"corner_radius"
+				],
+				"name": "Rectangle",
+				"thumbnail_visible": true
+			},
+			"91": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 499.0113525390625,
+					"y": 3488.743896484375
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances",
+					"flow"
+				],
+				"name": "Texture In 2",
+				"thumbnail_visible": true
+			},
+			"92": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 689.0113525390625,
+					"y": 3488.743896484375
+				},
+				"class": {
+					"id": "77697265-D822-4ABE-9A4A-5693E1B92151",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"albedo": {
+						"type": "color",
+						"value": [
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"albedo_map": {
+						"type": "texture2d",
+						"value": null
+					},
+					"blend_mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"wrap_mode": {
+						"type": "integer",
+						"value": 3
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Material",
+				"thumbnail_visible": true
+			},
+			"93": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 16
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 944.0113525390625,
+					"y": 3139.743896484375
+				},
+				"class": {
+					"id": "77697265-e8c1-11ec-8fea-0242ac120002",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"geometry": {
+						"type": "geometry2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"material": {
+						"type": "material",
+						"value": [
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							}
+						]
+					},
+					"transformation": {
+						"type": "transformation2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Mesh 2D",
+				"thumbnail_visible": true
+			},
+			"94": {
+				"attributes": {
+					"columns": {
+						"type": "integer",
+						"value": 4
+					},
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"pattern-type": {
+						"type": "type",
+						"value": "float2"
+					},
+					"rows": {
+						"type": "integer",
+						"value": 4
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 179.0113525390625,
+					"y": 3352.743896484375
+				},
+				"class": {
+					"id": "33227265-633D-4354-BED8-73CDEE0337C7",
+					"version": 3
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"size": {
+						"type": "float2",
+						"value": [
+							1.33000004291534424,
+							0.75
+						]
+					}
+				},
+				"hidden": [
+					"pattern-type",
+					"flow"
+				],
+				"name": "Grid Pattern",
+				"thumbnail_visible": true
+			},
+			"95": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 16
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 689.0113525390625,
+					"y": 3352.743896484375
+				},
+				"class": {
+					"id": "77697265-366B-4570-833A-D9F433415B8F",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"rotation": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"scale": {
+						"type": "float2",
+						"value": [
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							],
+							[
+								0.5,
+								0.5
+							]
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Transformation 2D",
+				"thumbnail_visible": true
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": -218.403045654296875,
+				"y": 1836.9796142578125,
+				"zoom": 0.75621050596237183
+			},
+			"selection": [
+				"50"
+			]
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {
+				"74": "Test Card",
+				"91": "Test Card"
+			}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null
+				}
+			}
+		}
+	}
+}

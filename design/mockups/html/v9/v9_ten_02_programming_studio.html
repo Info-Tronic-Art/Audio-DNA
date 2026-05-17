@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Programming Studio (PROGRAM mode)</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --panel: #2a2a2a;
+    --panel-alt: #252525;
+    --row-sep: #383838;
+    --hairline: #3a3a3a;
+    --label: #888;
+    --value: #e0e0e0;
+    --mint: #5fdba7;
+    --red: #ff4040;
+    --dim: #555;
+    --dim2: #444;
+    --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 1920px;
+    background: var(--bg);
+    color: var(--value);
+    font-family: var(--sans);
+    font-size: 12px;
+    overflow: hidden;
+  }
+
+  body {
+    position: relative;
+    min-height: 1200px;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='3'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  .hairline { border: 1px solid var(--hairline); }
+
+  /* ========== TOP BAR ========== */
+  .topbar {
+    height: 44px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .logo {
+    font-family: var(--sans);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--value);
+    font-size: 13px;
+  }
+  .logo .dna { color: var(--mint); }
+
+  .bpm-big {
+    font-family: var(--mono);
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--mint);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .bpm-wrap { display: flex; flex-direction: column; align-items: flex-start; }
+  .meta-col { display: flex; flex-direction: column; gap: 2px; }
+  .meta-col .v { color: var(--value); font-size: 12px; }
+  .meta-col .l { color: var(--label); font-size: 9px; letter-spacing: 0.1em; }
+
+  .structural-pill {
+    background: transparent;
+    border: 1px solid var(--mint);
+    color: var(--mint);
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Beat wheel */
+  .beat-wheel {
+    width: 28px;
+    height: 28px;
+    position: relative;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+  }
+  .beat-wheel svg { position: absolute; inset: 0; }
+
+  .transport-btns { display: flex; gap: 4px; }
+  .tbtn {
+    width: 26px; height: 26px;
+    border: 1px solid var(--hairline);
+    background: transparent;
+    color: var(--value);
+    font-family: var(--mono);
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .tbtn.active { color: var(--mint); border-color: var(--mint); }
+
+  .q-drop {
+    border: 1px solid var(--hairline);
+    padding: 4px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--value);
+  }
+
+  .mini-slider {
+    width: 90px; height: 4px;
+    background: var(--hairline);
+    position: relative;
+  }
+  .mini-slider .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--mint);
+  }
+  .mini-slider .thumb {
+    position: absolute;
+    width: 2px; top: -3px; bottom: -3px;
+    background: var(--mint);
+  }
+
+  .rec-dot {
+    width: 10px; height: 10px;
+    background: var(--red);
+    display: inline-block;
+    margin-right: 5px;
+  }
+
+  .mode-tabs { display: flex; gap: 0; margin-left: auto; }
+  .mode-tab {
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--label);
+    letter-spacing: 0.1em;
+    border-bottom: 2px solid transparent;
+  }
+  .mode-tab.active { color: var(--mint); border-bottom-color: var(--mint); }
+
+  /* ========== TRANSPORT STRIP ========== */
+  .transport-strip {
+    height: 32px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .ts-btn {
+    min-width: 28px;
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid var(--hairline);
+    background: transparent;
+    color: var(--value);
+    font-family: var(--mono);
+    font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0.05em;
+  }
+  .ts-btn.active { color: var(--mint); border-color: var(--mint); }
+  .ts-sep { width: 1px; height: 18px; background: var(--hairline); margin: 0 4px; }
+
+  /* ========== SIGNAL BAR ========== */
+  .signal-bar {
+    height: 22px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--value);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .sb-item { color: var(--value); }
+  .sb-item .k { color: var(--label); margin-right: 4px; }
+  .sb-sep { color: var(--dim); margin: 0 10px; }
+
+  /* ========== MAIN LAYOUT ========== */
+  .main {
+    display: flex;
+    height: calc(100vh - 98px);
+    min-height: 920px;
+  }
+
+  /* ---- LEFT: Signal Sources ---- */
+  .left-panel {
+    width: 280px;
+    background: var(--panel);
+    border-right: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-title {
+    height: 28px;
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--value);
+    text-transform: uppercase;
+  }
+  .panel-title .count { color: var(--label); margin-left: auto; }
+
+  .sig-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+  .sig-group-header {
+    height: 24px;
+    background: var(--panel-alt);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--mint);
+    text-transform: uppercase;
+  }
+  .sig-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--row-sep);
+    gap: 8px;
+    cursor: pointer;
+  }
+  .sig-row:hover { background: #303030; }
+  .sig-row.selected { background: #303030; }
+  .sig-row.selected .sig-name { color: var(--mint); }
+
+  .sig-handle {
+    width: 6px;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: -1px;
+    user-select: none;
+  }
+  .sig-name {
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--value);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sig-value {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--label);
+    width: 42px;
+    text-align: right;
+  }
+  /* 12px anchor with 3px invisible hit padding => 18px hit area */
+  .sig-anchor {
+    width: 18px; height: 18px;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    cursor: grab;
+  }
+  .sig-anchor::after {
+    content: "";
+    width: 12px; height: 12px;
+    background: var(--dim);
+    border-radius: 50%;
+    display: block;
+  }
+  .sig-anchor.connected::after { background: var(--mint); }
+  .sig-anchor.selected::after {
+    background: var(--mint);
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--mint);
+  }
+
+  /* ---- CENTER: Patch bay hero ---- */
+  .center-col {
+    flex: 1;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .patch-canvas-wrap {
+    flex: 1;
+    position: relative;
+    background: var(--bg);
+    border-bottom: 1px solid var(--hairline);
+    overflow: hidden;
+  }
+  .patch-title-strip {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 28px;
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; align-items: center;
+    padding: 0 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--value);
+    z-index: 3;
+  }
+  .patch-title-strip .pt-accent { color: var(--mint); }
+  .patch-title-strip .pt-meta { margin-left: auto; color: var(--label); font-size: 10px; letter-spacing: 0.1em; }
+
+  .patch-canvas {
+    position: absolute;
+    top: 28px; left: 0; right: 0; bottom: 0;
+  }
+
+  .patch-rail-label {
+    position: absolute;
+    top: 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--mint);
+    text-transform: uppercase;
+  }
+  .rail-label-left { left: 36px; }
+  .rail-label-right { right: 36px; }
+
+  .patch-node {
+    position: absolute;
+    width: 180px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--value);
+  }
+  .patch-node.left {
+    left: 60px;
+    justify-content: flex-end;
+    padding-right: 10px;
+    text-align: right;
+  }
+  .patch-node.right {
+    right: 60px;
+    justify-content: flex-start;
+    padding-left: 10px;
+    text-align: left;
+  }
+  .patch-node.selected { color: var(--mint); }
+  .patch-node.dim { color: var(--label); }
+
+  /* Off-curve legend */
+  .patch-legend {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 320px;
+    background: var(--panel);
+    border: 1px solid var(--hairline);
+    padding: 8px 10px;
+    z-index: 4;
+  }
+  .legend-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--label);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    padding: 3px 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    gap: 8px;
+    color: var(--value);
+    border-bottom: 1px solid var(--row-sep);
+  }
+  .legend-row:last-child { border-bottom: none; }
+  .legend-row.selected { color: var(--mint); }
+  .legend-swatch {
+    width: 22px; height: 2px;
+    background: var(--dim);
+    flex-shrink: 0;
+  }
+  .legend-swatch.selected { background: var(--mint); height: 2px; }
+  .legend-curve {
+    margin-left: auto;
+    color: var(--label);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+  .legend-row.selected .legend-curve { color: var(--mint); }
+
+  /* ---- ROUTE EDITOR (below patch) ---- */
+  .route-editor {
+    height: 300px;
+    background: var(--panel);
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+  }
+  .re-header {
+    height: 28px;
+    background: var(--panel-alt);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--value);
+  }
+  .re-header .accent-bar {
+    width: 3px; height: 16px; background: var(--mint); margin-right: 8px;
+  }
+  .re-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    flex: 1;
+    padding: 12px;
+  }
+  .re-col {
+    padding: 0 16px;
+    border-right: 1px solid var(--hairline);
+  }
+  .re-col:last-child { border-right: none; }
+
+  .re-col-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--label);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .re-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .re-label {
+    width: 90px;
+    text-align: right;
+    color: var(--label);
+    font-family: var(--sans);
+    font-size: 11px;
+  }
+  .re-value {
+    width: 50px;
+    color: var(--value);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .re-pm {
+    width: 18px; height: 18px;
+    border: 1px solid var(--hairline);
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--value);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .bar-slider {
+    flex: 1;
+    height: 4px;
+    background: var(--hairline);
+    position: relative;
+  }
+  .bar-slider .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--dim);
+  }
+  .bar-slider .thumb {
+    position: absolute;
+    width: 2px; top: -4px; bottom: -4px;
+    background: var(--mint);
+  }
+
+  .re-readout {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--hairline);
+    background: var(--bg);
+  }
+  .re-readout-row { display: flex; font-family: var(--mono); font-size: 11px; }
+  .re-readout-row .k { color: var(--label); width: 70px; }
+  .re-readout-row .v { color: var(--mint); flex: 1; text-align: left; }
+  .re-readout-row .v.target { color: var(--value); }
+
+  .re-dropdown {
+    height: 26px;
+    background: var(--bg);
+    border: 1px solid var(--hairline);
+    padding: 0 10px;
+    color: var(--value);
+    font-family: var(--mono);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .re-dropdown .chev { color: var(--label); font-size: 10px; }
+
+  .re-curve-preview {
+    margin-top: 8px;
+    height: 50px;
+    background: var(--bg);
+    border: 1px solid var(--hairline);
+    position: relative;
+  }
+
+  .re-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    margin-top: 8px;
+  }
+  .re-toggle-box {
+    width: 32px; height: 16px;
+    background: var(--mint);
+    position: relative;
+  }
+  .re-toggle-box .knob {
+    position: absolute; right: 2px; top: 2px;
+    width: 12px; height: 12px;
+    background: var(--bg);
+  }
+  .re-toggle-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--value);
+    letter-spacing: 0.1em;
+  }
+  .re-toggle-off {
+    width: 32px; height: 16px;
+    border: 1px solid var(--hairline);
+    position: relative;
+  }
+  .re-toggle-off .knob {
+    position: absolute; left: 2px; top: 2px;
+    width: 12px; height: 12px;
+    background: var(--dim);
+  }
+
+  /* ---- RIGHT: Live effect target inspector ---- */
+  .right-panel {
+    width: 340px;
+    background: var(--panel);
+    border-left: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .insp-tabs {
+    height: 28px;
+    display: flex;
+    background: var(--panel-alt);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .insp-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--label);
+    border-right: 1px solid var(--hairline);
+    cursor: pointer;
+  }
+  .insp-tab:last-child { border-right: none; }
+  .insp-tab.active { color: var(--mint); border-bottom: 2px solid var(--mint); }
+
+  .insp-body {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .sec {
+    border-bottom: 1px solid var(--hairline);
+  }
+  .sec-head {
+    height: 24px;
+    background: var(--panel-alt);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--value);
+    text-transform: uppercase;
+    position: relative;
+    cursor: pointer;
+  }
+  .sec-head.has-route::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--mint);
+  }
+  .sec-head .tri { margin-right: 6px; color: var(--label); font-size: 9px; }
+  .sec-head .p-btn {
+    margin-left: auto;
+    width: 22px; height: 16px;
+    border: 1px solid var(--hairline);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: var(--label);
+  }
+  .sec-head .p-btn.active { background: var(--mint); color: var(--bg); border-color: var(--mint); }
+
+  .sec-body { padding: 6px 10px 10px; }
+
+  /* Effect chain rows */
+  .fx-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--row-sep);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .fx-row.selected { background: #303030; }
+  .fx-row.selected .fx-name { color: var(--mint); }
+  .fx-btn {
+    width: 16px; height: 16px;
+    border: 1px solid var(--hairline);
+    background: transparent;
+    font-size: 10px;
+    color: var(--value);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .fx-btn.bypass { color: var(--label); }
+  .fx-btn.remove { color: var(--label); }
+  .fx-btn.expand { color: var(--mint); border-color: var(--mint); }
+  .fx-name {
+    flex: 1;
+    color: var(--value);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Param row inside a section */
+  .p-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .p-row .lbl {
+    width: 82px; text-align: right; color: var(--label);
+    font-family: var(--sans); font-size: 11px;
+  }
+  .p-row .val {
+    width: 42px; color: var(--value); font-family: var(--mono); font-size: 10px;
+  }
+  .p-row .minus, .p-row .plus {
+    width: 14px; height: 14px;
+    border: 1px solid var(--hairline);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--value); font-size: 10px;
+  }
+  .p-row .slot {
+    flex: 1; height: 4px; background: var(--hairline); position: relative;
+  }
+  .p-row .slot .f { position: absolute; left: 0; top: 0; bottom: 0; background: var(--dim); }
+  .p-row .slot .t { position: absolute; width: 2px; top: -4px; bottom: -4px; background: var(--mint); }
+  .p-row .p-toggle {
+    width: 18px; height: 14px;
+    border: 1px solid var(--hairline);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; color: var(--label);
+  }
+  .p-row .p-toggle.active { background: var(--mint); color: var(--bg); border-color: var(--mint); }
+
+  /* ========== BOTTOM STRIP: Deck ========== */
+  .bottom-strip {
+    height: 160px;
+    background: var(--panel);
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    overflow: hidden;
+  }
+  .deck-title-col {
+    width: 120px;
+    border-right: 1px solid var(--hairline);
+    background: var(--panel-alt);
+    display: flex;
+    flex-direction: column;
+  }
+  .deck-title-header {
+    height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--label);
+    border-bottom: 1px solid var(--hairline);
+    text-transform: uppercase;
+  }
+  .deck-layer-label {
+    height: 33px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--value);
+    border-bottom: 1px solid var(--row-sep);
+    gap: 6px;
+  }
+  .deck-layer-label:last-child { border-bottom: none; }
+  .deck-layer-label .idx { color: var(--label); }
+
+  .deck-grid-scroll {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .col-header-row {
+    height: 22px;
+    display: flex;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .col-h {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--label);
+    letter-spacing: 0.1em;
+    border-right: 1px solid var(--row-sep);
+  }
+  .col-h:last-child { border-right: none; }
+
+  .layer-row {
+    display: flex;
+    height: 33px;
+    border-bottom: 1px solid var(--row-sep);
+  }
+  .layer-row:last-child { border-bottom: none; }
+  .clip-cell {
+    flex: 1;
+    border-right: 1px solid var(--row-sep);
+    position: relative;
+    display: flex;
+    overflow: hidden;
+  }
+  .clip-cell:last-child { border-right: none; }
+  .clip-cell.playing { background: var(--mint); }
+  .clip-cell.playing .wave-strip { background: rgba(0,0,0,0.2); }
+  .clip-cell.playing .clip-name { background: rgba(0,0,0,0.3); color: var(--bg); }
+  .clip-cell.selected { outline: 1px solid var(--mint); outline-offset: -1px; }
+  .clip-cell.queued {
+    background: transparent;
+    outline: 1px dashed var(--mint); outline-offset: -1px;
+  }
+  .clip-cell.loaded { background: #333; }
+  .wave-strip {
+    width: 4px;
+    background: rgba(95, 219, 167, 0.22);
+    border-right: 1px solid var(--row-sep);
+  }
+  .clip-thumb {
+    flex: 1;
+    background: #222;
+    position: relative;
+    overflow: hidden;
+  }
+  .clip-name {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 12px;
+    background: rgba(0,0,0,0.5);
+    font-family: var(--mono);
+    font-size: 8px;
+    color: var(--value);
+    padding: 0 3px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .clip-cell.empty {
+    border: 1px dashed var(--dim2);
+    outline: none;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- =================== TOP BAR =================== -->
+<div class="topbar">
+  <div class="logo">AUDIO<span class="dna">·DNA</span></div>
+
+  <div class="bpm-wrap">
+    <span class="bpm-big">128</span>
+  </div>
+  <div class="meta-col">
+    <span class="l">BPM</span>
+    <span class="v" style="font-family:var(--mono);font-size:10px;color:var(--label)">A MIN</span>
+  </div>
+
+  <div class="meta-col">
+    <span class="l">BAR</span>
+    <span class="v" style="font-family:var(--mono)">037</span>
+  </div>
+  <div class="meta-col">
+    <span class="l">PHRASE</span>
+    <span class="v" style="font-family:var(--mono)">05/08</span>
+  </div>
+
+  <div class="structural-pill">DROP</div>
+
+  <!-- Beat wheel -->
+  <div class="beat-wheel">
+    <svg viewBox="0 0 28 28">
+      <circle cx="14" cy="14" r="12" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+      <path d="M14,14 L14,2 A12,12 0 0,1 26,14 Z" fill="#5fdba7"/>
+      <line x1="14" y1="2" x2="14" y2="26" stroke="#3a3a3a" stroke-width="0.5"/>
+      <line x1="2" y1="14" x2="26" y2="14" stroke="#3a3a3a" stroke-width="0.5"/>
+    </svg>
+  </div>
+
+  <div class="transport-btns">
+    <button class="tbtn active">▶</button>
+    <button class="tbtn">❙❙</button>
+    <button class="tbtn">■</button>
+  </div>
+
+  <div class="q-drop">QUANT 1/4 ▾</div>
+
+  <div class="meta-col">
+    <span class="l">FADE</span>
+    <div class="mini-slider"><div class="fill" style="width:45%"></div><div class="thumb" style="left:45%"></div></div>
+  </div>
+  <div class="meta-col">
+    <span class="l">MASTER</span>
+    <div class="mini-slider"><div class="fill" style="width:78%"></div><div class="thumb" style="left:78%"></div></div>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:10px;color:var(--value)">
+    <span class="rec-dot"></span>REC
+  </div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--label)">FPS 60</div>
+
+  <div class="mode-tabs">
+    <div class="mode-tab">LIVE</div>
+    <div class="mode-tab active">PROGRAM</div>
+    <div class="mode-tab">SETUP</div>
+  </div>
+</div>
+
+<!-- =================== TRANSPORT STRIP =================== -->
+<div class="transport-strip">
+  <button class="ts-btn active">▶</button>
+  <button class="ts-btn">❙❙</button>
+  <button class="ts-btn">■</button>
+  <div class="ts-sep"></div>
+  <button class="ts-btn" style="min-width:42px">128</button>
+  <button class="ts-btn">−</button>
+  <button class="ts-btn">+</button>
+  <div class="ts-sep"></div>
+  <button class="ts-btn">|◂</button>
+  <button class="ts-btn">▸|</button>
+  <button class="ts-btn">/2</button>
+  <button class="ts-btn">×2</button>
+  <button class="ts-btn active">TAP</button>
+  <button class="ts-btn">RESYNC</button>
+  <div class="ts-sep"></div>
+  <button class="ts-btn">METRO</button>
+  <div class="ts-sep"></div>
+  <button class="ts-btn">UNDO</button>
+  <button class="ts-btn">REDO</button>
+  <div class="ts-sep"></div>
+  <div style="font-family:var(--mono);font-size:10px;color:var(--label);letter-spacing:0.1em;margin-left:8px">PROGRAM ▸ LAYER 3 ▸ RIPPLE</div>
+  <div style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--mint)">◂ SIGNAL LINK ACTIVE ▸</div>
+</div>
+
+<!-- =================== SIGNAL QUICK-REF BAR =================== -->
+<div class="signal-bar">
+  <span class="sb-item"><span class="k">RMS</span>0.73</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">PEAK</span>0.91</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">LUFS</span>-12.4</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">FLUX</span>0.42</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">CENTROID</span>2.8k</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">BASS</span>0.88</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">MID</span>0.45</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">HIGH</span>0.31</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">BPM</span>128</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">KEY</span>Am</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">GENRE</span>TECHNO</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">PITCH</span>220Hz</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">ONSETS</span>4.2/s</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">CREST</span>2.1</span><span class="sb-sep">│</span>
+  <span class="sb-item"><span class="k">FLAT</span>0.28</span>
+</div>
+
+<!-- =================== MAIN =================== -->
+<div class="main">
+
+  <!-- LEFT: Signal Sources -->
+  <div class="left-panel">
+    <div class="panel-title">
+      SIGNAL SOURCES
+      <span class="count">47</span>
+    </div>
+    <div class="sig-list">
+
+      <div class="sig-group-header">DYNAMICS</div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">RMS</div>
+        <div class="sig-value">0.73</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Peak</div>
+        <div class="sig-value">0.91</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">LUFS</div>
+        <div class="sig-value">-12.4</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Dynamic Range</div>
+        <div class="sig-value">2.1</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Transient Density</div>
+        <div class="sig-value">4.2</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+
+      <div class="sig-group-header">SPECTRAL</div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Centroid</div>
+        <div class="sig-value">2.8k</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Flux</div>
+        <div class="sig-value">0.42</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Flatness</div>
+        <div class="sig-value">0.28</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Rolloff</div>
+        <div class="sig-value">8.3k</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Band [Sub]</div>
+        <div class="sig-value">0.62</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row selected">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Band [Bass]</div>
+        <div class="sig-value">0.88</div>
+        <div class="sig-anchor selected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Band [LowMid]</div>
+        <div class="sig-value">0.55</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Band [Mid]</div>
+        <div class="sig-value">0.45</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Band [HighMid]</div>
+        <div class="sig-value">0.38</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Band [Presence]</div>
+        <div class="sig-value">0.31</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Band [Brilliance]</div>
+        <div class="sig-value">0.22</div>
+        <div class="sig-anchor"></div>
+      </div>
+
+      <div class="sig-group-header">RHYTHM</div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Beat Phase</div>
+        <div class="sig-value">0.62</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Bar Phase</div>
+        <div class="sig-value">0.41</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Phrase Phase</div>
+        <div class="sig-value">0.58</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Onset</div>
+        <div class="sig-value">—</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Onset Strength</div>
+        <div class="sig-value">0.52</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">BPM</div>
+        <div class="sig-value">128</div>
+        <div class="sig-anchor"></div>
+      </div>
+
+      <div class="sig-group-header">PITCH</div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Dominant Pitch</div>
+        <div class="sig-value">220Hz</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Pitch Confidence</div>
+        <div class="sig-value">0.76</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Chroma [A]</div>
+        <div class="sig-value">0.82</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Chroma [C]</div>
+        <div class="sig-value">0.15</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Chroma [E]</div>
+        <div class="sig-value">0.68</div>
+        <div class="sig-anchor"></div>
+      </div>
+
+      <div class="sig-group-header">HARMONIC</div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Key</div>
+        <div class="sig-value">Am</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">HCDF</div>
+        <div class="sig-value">0.19</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">MFCC 0</div>
+        <div class="sig-value">-8.2</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">MFCC 1</div>
+        <div class="sig-value">3.4</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">MFCC 2</div>
+        <div class="sig-value">-1.1</div>
+        <div class="sig-anchor"></div>
+      </div>
+
+      <div class="sig-group-header">STRUCTURAL</div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Structural State</div>
+        <div class="sig-value">DROP</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Genre</div>
+        <div class="sig-value">TECH</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Energy State</div>
+        <div class="sig-value">HIGH</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Bar Count</div>
+        <div class="sig-value">37</div>
+        <div class="sig-anchor"></div>
+      </div>
+
+      <div class="sig-group-header">ADVANCED</div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Sidechain Pump</div>
+        <div class="sig-value">0.71</div>
+        <div class="sig-anchor connected"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Swing Ratio</div>
+        <div class="sig-value">0.52</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Formant Presence</div>
+        <div class="sig-value">0.08</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Resonance Peak</div>
+        <div class="sig-value">0.34</div>
+        <div class="sig-anchor"></div>
+      </div>
+      <div class="sig-row">
+        <div class="sig-handle">⋮⋮</div>
+        <div class="sig-name">Reese Bass</div>
+        <div class="sig-value">0.18</div>
+        <div class="sig-anchor"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: Patch Bay + Route Editor -->
+  <div class="center-col">
+
+    <div class="patch-canvas-wrap">
+      <div class="patch-title-strip">
+        <span>PATCH BAY</span>
+        <span class="pt-meta">
+          <span class="pt-accent" style="margin-right:14px">SELECTED: BASS → RIPPLE · INTENSITY</span>
+          7 ACTIVE ROUTES · 1 SELECTED · SNAP OFF · ZOOM 100%
+        </span>
+      </div>
+
+      <div class="patch-canvas">
+        <div class="patch-rail-label rail-label-left">SIGNALS</div>
+        <div class="patch-rail-label rail-label-right">TARGETS</div>
+
+        <!-- SVG patch routes. viewBox y: anchors at y=90,145,200,255,310,365,420,475 -->
+        <svg viewBox="0 0 820 560" preserveAspectRatio="none"
+             style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:820px;height:560px;">
+          <!-- Unselected routes: solid gray 1px, NO dashes -->
+          <path d="M40,90  C240,90  580,145 780,145" stroke="#555" stroke-width="1" fill="none"/>
+          <path d="M40,145 C240,145 580,310 780,310" stroke="#555" stroke-width="1" fill="none"/>
+          <path d="M40,255 C240,255 580,200 780,200" stroke="#555" stroke-width="1" fill="none"/>
+          <path d="M40,310 C240,310 580,420 780,420" stroke="#555" stroke-width="1" fill="none"/>
+          <path d="M40,365 C240,365 580,475 780,475" stroke="#555" stroke-width="1" fill="none"/>
+          <path d="M40,420 C240,420 580,255 780,255" stroke="#555" stroke-width="1" fill="none"/>
+          <path d="M40,475 C240,475 580,365 780,365" stroke="#555" stroke-width="1" fill="none"/>
+
+          <!-- Selected route: solid mint 2px -->
+          <path d="M40,200 C240,200 580,90 780,90" stroke="#5fdba7" stroke-width="2" fill="none"/>
+
+          <!-- Left rail anchors: 12px (r=6) -->
+          <circle cx="40" cy="90"  r="6" fill="#555"/>
+          <circle cx="40" cy="145" r="6" fill="#555"/>
+          <circle cx="40" cy="200" r="6" fill="#5fdba7"/>
+          <circle cx="40" cy="255" r="6" fill="#555"/>
+          <circle cx="40" cy="310" r="6" fill="#555"/>
+          <circle cx="40" cy="365" r="6" fill="#555"/>
+          <circle cx="40" cy="420" r="6" fill="#555"/>
+          <circle cx="40" cy="475" r="6" fill="#555"/>
+
+          <!-- Right rail anchors -->
+          <circle cx="780" cy="90"  r="6" fill="#5fdba7"/>
+          <circle cx="780" cy="145" r="6" fill="#555"/>
+          <circle cx="780" cy="200" r="6" fill="#555"/>
+          <circle cx="780" cy="255" r="6" fill="#555"/>
+          <circle cx="780" cy="310" r="6" fill="#555"/>
+          <circle cx="780" cy="365" r="6" fill="#555"/>
+          <circle cx="780" cy="420" r="6" fill="#555"/>
+          <circle cx="780" cy="475" r="6" fill="#555"/>
+        </svg>
+
+        <!-- Signal labels (left rail) — y values match SVG anchor y minus ~11px for vertical centering -->
+        <div class="patch-node left dim"      style="top: 79px;">RMS</div>
+        <div class="patch-node left dim"      style="top: 134px;">Peak</div>
+        <div class="patch-node left selected" style="top: 189px;">Band [Bass]</div>
+        <div class="patch-node left dim"      style="top: 244px;">Centroid</div>
+        <div class="patch-node left dim"      style="top: 299px;">Beat Phase</div>
+        <div class="patch-node left dim"      style="top: 354px;">Onset Strength</div>
+        <div class="patch-node left dim"      style="top: 409px;">Struct. State</div>
+        <div class="patch-node left dim"      style="top: 464px;">Sidechain Pump</div>
+
+        <!-- Target labels (right rail) -->
+        <div class="patch-node right selected" style="top: 79px;">Ripple.Intensity</div>
+        <div class="patch-node right dim"      style="top: 134px;">Ripple.Freq</div>
+        <div class="patch-node right dim"      style="top: 189px;">HueShift.Amount</div>
+        <div class="patch-node right dim"      style="top: 244px;">RGB Split.Offset</div>
+        <div class="patch-node right dim"      style="top: 299px;">Kaleido.Segments</div>
+        <div class="patch-node right dim"      style="top: 354px;">Zoom Blur.Size</div>
+        <div class="patch-node right dim"      style="top: 409px;">Transform.Scale</div>
+        <div class="patch-node right dim"      style="top: 464px;">Master.Opacity</div>
+
+        <!-- Off-curve legend -->
+        <div class="patch-legend">
+          <div class="legend-title">
+            <span>ACTIVE ROUTES</span>
+            <span>7 + 1</span>
+          </div>
+          <div class="legend-row selected">
+            <div class="legend-swatch selected"></div>
+            <span>Bass → Ripple.Intensity</span>
+            <span class="legend-curve">EXP</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-swatch"></div>
+            <span>RMS → Ripple.Freq</span>
+            <span class="legend-curve">LIN</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-swatch"></div>
+            <span>Peak → Kaleido.Segments</span>
+            <span class="legend-curve">STEP</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-swatch"></div>
+            <span>Centroid → HueShift.Amount</span>
+            <span class="legend-curve">S-CRV</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-swatch"></div>
+            <span>Beat Phase → Transform.Scale</span>
+            <span class="legend-curve">EXP</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-swatch"></div>
+            <span>Onset Str. → Zoom Blur.Size</span>
+            <span class="legend-curve">LIN</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-swatch"></div>
+            <span>Struct. State → Master.Opacity</span>
+            <span class="legend-curve">STEP</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-swatch"></div>
+            <span>Sidechain → RGB Split.Offset</span>
+            <span class="legend-curve">LOG</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROUTE EDITOR -->
+    <div class="route-editor">
+      <div class="re-header">
+        <div class="accent-bar"></div>
+        ROUTE EDITOR · BASS → RIPPLE · INTENSITY
+        <div style="margin-left:auto;color:var(--label);font-size:10px;letter-spacing:0.12em">ROUTE ID 0x4A · ENABLED</div>
+      </div>
+
+      <div class="re-grid">
+        <!-- Col 1: readout + curve preview -->
+        <div class="re-col">
+          <div class="re-col-title">SIGNAL PATH</div>
+          <div class="re-readout">
+            <div class="re-readout-row"><span class="k">SOURCE</span><span class="v">Band [Bass]</span></div>
+            <div class="re-readout-row"><span class="k">LIVE VAL</span><span class="v">0.88</span></div>
+            <div class="re-readout-row"><span class="k">TARGET</span><span class="v target">Layer 3 ▸ Ripple ▸ Intensity</span></div>
+            <div class="re-readout-row"><span class="k">CURRENT</span><span class="v">0.774</span></div>
+          </div>
+          <div class="re-col-title" style="margin-top:4px">CURVE</div>
+          <div class="re-dropdown">
+            <span>EXPONENTIAL (x²)</span>
+            <span class="chev">▾</span>
+          </div>
+          <div class="re-curve-preview">
+            <svg viewBox="0 0 200 50" preserveAspectRatio="none" style="width:100%;height:100%">
+              <line x1="0" y1="50" x2="200" y2="50" stroke="#3a3a3a" stroke-width="1"/>
+              <line x1="0" y1="0"  x2="0"   y2="50" stroke="#3a3a3a" stroke-width="1"/>
+              <!-- grid -->
+              <line x1="50"  y1="0" x2="50"  y2="50" stroke="#2a2a2a" stroke-width="0.5"/>
+              <line x1="100" y1="0" x2="100" y2="50" stroke="#2a2a2a" stroke-width="0.5"/>
+              <line x1="150" y1="0" x2="150" y2="50" stroke="#2a2a2a" stroke-width="0.5"/>
+              <line x1="0" y1="25" x2="200" y2="25" stroke="#2a2a2a" stroke-width="0.5"/>
+              <!-- exponential curve: y = 50 - 50*(x/200)^2 -->
+              <path d="M0,50 Q100,45 200,0" fill="none" stroke="#5fdba7" stroke-width="1.5"/>
+              <!-- live position at x = 0.88 * 200 = 176 -->
+              <circle cx="176" cy="11" r="2.5" fill="#5fdba7"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Col 2: input range + output range -->
+        <div class="re-col">
+          <div class="re-col-title">INPUT RANGE</div>
+          <div class="re-row">
+            <div class="re-label">Input Min</div>
+            <div class="re-value">0.05</div>
+            <button class="re-pm">−</button>
+            <button class="re-pm">+</button>
+            <div class="bar-slider">
+              <div class="fill" style="width:5%"></div>
+              <div class="thumb" style="left:5%"></div>
+            </div>
+          </div>
+          <div class="re-row">
+            <div class="re-label">Input Max</div>
+            <div class="re-value">0.95</div>
+            <button class="re-pm">−</button>
+            <button class="re-pm">+</button>
+            <div class="bar-slider">
+              <div class="fill" style="width:95%"></div>
+              <div class="thumb" style="left:95%"></div>
+            </div>
+          </div>
+
+          <div class="re-col-title" style="margin-top:14px">OUTPUT RANGE</div>
+          <div class="re-row">
+            <div class="re-label">Output Min</div>
+            <div class="re-value">0.15</div>
+            <button class="re-pm">−</button>
+            <button class="re-pm">+</button>
+            <div class="bar-slider">
+              <div class="fill" style="width:15%"></div>
+              <div class="thumb" style="left:15%"></div>
+            </div>
+          </div>
+          <div class="re-row">
+            <div class="re-label">Output Max</div>
+            <div class="re-value">0.85</div>
+            <button class="re-pm">−</button>
+            <button class="re-pm">+</button>
+            <div class="bar-slider">
+              <div class="fill" style="width:85%"></div>
+              <div class="thumb" style="left:85%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Col 3: smoothing + flags -->
+        <div class="re-col">
+          <div class="re-col-title">SMOOTHING</div>
+          <div class="re-row">
+            <div class="re-label">Attack</div>
+            <div class="re-value">0.08</div>
+            <button class="re-pm">−</button>
+            <button class="re-pm">+</button>
+            <div class="bar-slider">
+              <div class="fill" style="width:8%"></div>
+              <div class="thumb" style="left:8%"></div>
+            </div>
+          </div>
+          <div class="re-row">
+            <div class="re-label">Release</div>
+            <div class="re-value">0.35</div>
+            <button class="re-pm">−</button>
+            <button class="re-pm">+</button>
+            <div class="bar-slider">
+              <div class="fill" style="width:35%"></div>
+              <div class="thumb" style="left:35%"></div>
+            </div>
+          </div>
+          <div class="re-row">
+            <div class="re-label">One-Euro β</div>
+            <div class="re-value">0.04</div>
+            <button class="re-pm">−</button>
+            <button class="re-pm">+</button>
+            <div class="bar-slider">
+              <div class="fill" style="width:4%"></div>
+              <div class="thumb" style="left:4%"></div>
+            </div>
+          </div>
+
+          <div class="re-col-title" style="margin-top:14px">FLAGS</div>
+          <div class="re-toggle">
+            <div class="re-toggle-box"><div class="knob"></div></div>
+            <div class="re-toggle-label">ENABLED</div>
+            <div style="flex:1"></div>
+            <div class="re-toggle-label" style="color:var(--label)">INVERT</div>
+            <div class="re-toggle-off"><div class="knob"></div></div>
+          </div>
+          <div class="re-toggle">
+            <div class="re-toggle-off"><div class="knob"></div></div>
+            <div class="re-toggle-label" style="color:var(--label)">BIPOLAR</div>
+            <div style="flex:1"></div>
+            <div class="re-toggle-label" style="color:var(--label)">CHAIN</div>
+            <div class="re-toggle-off"><div class="knob"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Inspector -->
+  <div class="right-panel">
+    <div class="insp-tabs">
+      <div class="insp-tab">COMPOSITION</div>
+      <div class="insp-tab active">LAYER</div>
+      <div class="insp-tab">CLIP</div>
+    </div>
+
+    <div class="insp-body">
+
+      <!-- Layer summary -->
+      <div class="sec">
+        <div class="sec-head">
+          <span class="tri">▼</span>LAYER 3 — EFFECT LAYER
+          <div class="p-btn">P.</div>
+        </div>
+        <div class="sec-body">
+          <div class="p-row">
+            <div class="lbl">Opacity</div><div class="val">0.88</div>
+            <div class="minus">−</div><div class="plus">+</div>
+            <div class="slot"><div class="f" style="width:88%"></div><div class="t" style="left:88%"></div></div>
+            <div class="p-toggle">P.</div>
+          </div>
+          <div class="p-row">
+            <div class="lbl">Blend Mode</div><div class="val" style="width:60px">ADD</div>
+            <div style="flex:1;border:1px solid var(--hairline);height:18px;padding:0 4px;display:flex;align-items:center;font-size:10px;color:var(--label)">ADD ▾</div>
+            <div class="p-toggle">P.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Effect chain -->
+      <div class="sec">
+        <div class="sec-head has-route">
+          <span class="tri">▼</span>EFFECT CHAIN — 4 FX
+          <div class="p-btn active">P.</div>
+        </div>
+        <div class="sec-body">
+          <div class="fx-row selected">
+            <div class="fx-btn bypass">B</div>
+            <div class="fx-name">Ripple</div>
+            <div class="fx-btn expand">▾</div>
+            <div class="fx-btn remove">×</div>
+          </div>
+
+          <!-- Ripple expanded params -->
+          <div style="padding:4px 0 4px 8px;border-left:2px solid var(--mint);margin-left:4px;margin-bottom:8px">
+            <div class="p-row">
+              <div class="lbl">Intensity</div><div class="val">0.77</div>
+              <div class="minus">−</div><div class="plus">+</div>
+              <div class="slot"><div class="f" style="width:77%"></div><div class="t" style="left:77%"></div></div>
+              <div class="p-toggle active">P.</div>
+            </div>
+            <div class="p-row">
+              <div class="lbl">Frequency</div><div class="val">0.42</div>
+              <div class="minus">−</div><div class="plus">+</div>
+              <div class="slot"><div class="f" style="width:42%"></div><div class="t" style="left:42%"></div></div>
+              <div class="p-toggle active">P.</div>
+            </div>
+            <div class="p-row">
+              <div class="lbl">Speed</div><div class="val">0.55</div>
+              <div class="minus">−</div><div class="plus">+</div>
+              <div class="slot"><div class="f" style="width:55%"></div><div class="t" style="left:55%"></div></div>
+              <div class="p-toggle">P.</div>
+            </div>
+            <div class="p-row">
+              <div class="lbl">Center X</div><div class="val">0.50</div>
+              <div class="minus">−</div><div class="plus">+</div>
+              <div class="slot"><div class="f" style="width:50%"></div><div class="t" style="left:50%"></div></div>
+              <div class="p-toggle">P.</div>
+            </div>
+          </div>
+
+          <div class="fx-row">
+            <div class="fx-btn bypass">B</div>
+            <div class="fx-name">Hue Shift</div>
+            <div class="fx-btn">▸</div>
+            <div class="fx-btn remove">×</div>
+          </div>
+          <div class="fx-row">
+            <div class="fx-btn bypass">B</div>
+            <div class="fx-name">RGB Split</div>
+            <div class="fx-btn">▸</div>
+            <div class="fx-btn remove">×</div>
+          </div>
+          <div class="fx-row">
+            <div class="fx-btn bypass">B</div>
+            <div class="fx-name">Zoom Blur</div>
+            <div class="fx-btn">▸</div>
+            <div class="fx-btn remove">×</div>
+          </div>
+
+          <div style="padding:6px 0;color:var(--label);font-family:var(--mono);font-size:9px;letter-spacing:0.12em;text-align:center;border:1px dashed var(--hairline);margin-top:6px">
+            + DROP FX HERE
+          </div>
+        </div>
+      </div>
+
+      <!-- Transform section — mint bar because routing active -->
+      <div class="sec">
+        <div class="sec-head has-route">
+          <span class="tri">▼</span>TRANSFORM
+          <div class="p-btn active">P.</div>
+        </div>
+        <div class="sec-body">
+          <div class="p-row">
+            <div class="lbl">Position X</div><div class="val">0.00</div>
+            <div class="minus">−</div><div class="plus">+</div>
+            <div class="slot"><div class="f" style="width:50%"></div><div class="t" style="left:50%"></div></div>
+            <div class="p-toggle">P.</div>
+          </div>
+          <div class="p-row">
+            <div class="lbl">Position Y</div><div class="val">-0.05</div>
+            <div class="minus">−</div><div class="plus">+</div>
+            <div class="slot"><div class="f" style="width:45%"></div><div class="t" style="left:45%"></div></div>
+            <div class="p-toggle">P.</div>
+          </div>
+          <div class="p-row">
+            <div class="lbl">Scale</div><div class="val">1.12</div>
+            <div class="minus">−</div><div class="plus">+</div>
+            <div class="slot"><div class="f" style="width:56%"></div><div class="t" style="left:56%"></div></div>
+            <div class="p-toggle active">P.</div>
+          </div>
+          <div class="p-row">
+            <div class="lbl">Rotation</div><div class="val">2.4°</div>
+            <div class="minus">−</div><div class="plus">+</div>
+            <div class="slot"><div class="f" style="width:52%"></div><div class="t" style="left:52%"></div></div>
+            <div class="p-toggle">P.</div>
+          </div>
+          <div class="p-row">
+            <div class="lbl">Anchor X</div><div class="val">0.50</div>
+            <div class="minus">−</div><div class="plus">+</div>
+            <div class="slot"><div class="f" style="width:50%"></div><div class="t" style="left:50%"></div></div>
+            <div class="p-toggle">P.</div>
+          </div>
+          <div class="p-row">
+            <div class="lbl">Anchor Y</div><div class="val">0.50</div>
+            <div class="minus">−</div><div class="plus">+</div>
+            <div class="slot"><div class="f" style="width:50%"></div><div class="t" style="left:50%"></div></div>
+            <div class="p-toggle">P.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collapsed sections -->
+      <div class="sec">
+        <div class="sec-head">
+          <span class="tri">▸</span>VIDEO
+          <div class="p-btn">P.</div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-head">
+          <span class="tri">▸</span>TRANSITION
+          <div class="p-btn">P.</div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-head">
+          <span class="tri">▸</span>AUTOPILOT
+          <div class="p-btn">P.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- =================== BOTTOM STRIP: Deck =================== -->
+<div class="bottom-strip">
+  <div class="deck-title-col">
+    <div class="deck-title-header">DECK A</div>
+    <div class="deck-layer-label"><span class="idx">L1</span>MASTER</div>
+    <div class="deck-layer-label"><span class="idx">L2</span>CONTENT</div>
+    <div class="deck-layer-label" style="color:var(--mint)"><span class="idx" style="color:var(--mint)">L3</span>FX</div>
+    <div class="deck-layer-label"><span class="idx">L4</span>MASK</div>
+  </div>
+
+  <div class="deck-grid-scroll">
+    <div class="col-header-row">
+      <div class="col-h">01</div><div class="col-h">02</div><div class="col-h">03</div>
+      <div class="col-h">04</div><div class="col-h">05</div><div class="col-h">06</div>
+    </div>
+
+    <!-- L1 -->
+    <div class="layer-row">
+      <div class="clip-cell playing">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb">
+          <svg viewBox="0 0 100 80" preserveAspectRatio="none" style="width:100%;height:100%">
+            <rect width="100" height="80" fill="#5fdba7"/>
+            <circle cx="50" cy="40" r="28" fill="none" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
+          </svg>
+          <div class="clip-name">logo_loop</div>
+        </div>
+      </div>
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:linear-gradient(90deg,#2a2a2a,#444)">
+          <div class="clip-name">bg_grid</div>
+        </div>
+      </div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+    </div>
+
+    <!-- L2 -->
+    <div class="layer-row">
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb">
+          <svg viewBox="0 0 100 80" preserveAspectRatio="none" style="width:100%;height:100%">
+            <rect width="100" height="80" fill="#333"/>
+            <path d="M0,40 Q25,20 50,40 T100,40" stroke="#888" stroke-width="1" fill="none"/>
+          </svg>
+          <div class="clip-name">wave_a</div>
+        </div>
+      </div>
+      <div class="clip-cell playing">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb">
+          <svg viewBox="0 0 100 80" preserveAspectRatio="none" style="width:100%;height:100%">
+            <rect width="100" height="80" fill="#5fdba7"/>
+            <g stroke="rgba(0,0,0,0.25)" stroke-width="1" fill="none">
+              <circle cx="50" cy="40" r="10"/>
+              <circle cx="50" cy="40" r="20"/>
+              <circle cx="50" cy="40" r="30"/>
+            </g>
+          </svg>
+          <div class="clip-name">rings_03</div>
+        </div>
+      </div>
+      <div class="clip-cell queued">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:#2e2e2e">
+          <div class="clip-name">city_cam</div>
+        </div>
+      </div>
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:#2e2e2e">
+          <div class="clip-name">noise_b</div>
+        </div>
+      </div>
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:#2e2e2e">
+          <div class="clip-name">mesh_07</div>
+        </div>
+      </div>
+      <div class="clip-cell empty"></div>
+    </div>
+
+    <!-- L3 - selected / programming target -->
+    <div class="layer-row">
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:#252525">
+          <div class="clip-name">fx_ripple</div>
+        </div>
+      </div>
+      <div class="clip-cell playing selected">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb">
+          <svg viewBox="0 0 100 80" preserveAspectRatio="none" style="width:100%;height:100%">
+            <rect width="100" height="80" fill="#5fdba7"/>
+            <g stroke="rgba(0,0,0,0.4)" stroke-width="1" fill="none">
+              <path d="M0,20 Q25,10 50,20 T100,20"/>
+              <path d="M0,40 Q25,30 50,40 T100,40"/>
+              <path d="M0,60 Q25,50 50,60 T100,60"/>
+            </g>
+          </svg>
+          <div class="clip-name">fx_ripple02 *</div>
+        </div>
+      </div>
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:#252525">
+          <div class="clip-name">fx_kaleido</div>
+        </div>
+      </div>
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:#252525">
+          <div class="clip-name">fx_glitch</div>
+        </div>
+      </div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+    </div>
+
+    <!-- L4 -->
+    <div class="layer-row">
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:#1e1e1e">
+          <div class="clip-name">mask_circle</div>
+        </div>
+      </div>
+      <div class="clip-cell loaded">
+        <div class="wave-strip"></div>
+        <div class="clip-thumb" style="background:#1e1e1e">
+          <div class="clip-name">mask_vhs</div>
+        </div>
+      </div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+      <div class="clip-cell empty"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

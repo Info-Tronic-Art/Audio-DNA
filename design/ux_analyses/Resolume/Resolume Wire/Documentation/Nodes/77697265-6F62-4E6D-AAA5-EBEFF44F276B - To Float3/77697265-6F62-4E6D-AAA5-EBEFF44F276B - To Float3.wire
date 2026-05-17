@@ -1,0 +1,458 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          6,
+          "output"
+        ],
+        "to": [
+          7,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          7,
+          "output0"
+        ],
+        "to": [
+          5,
+          "offset"
+        ]
+      },
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          8,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": [
+      6
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "7.14.0",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 15,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "77697265-6F62-4E6D-AAA5-EBEFF44F276B - To Float3",
+      "identifier": "0ead99f3-5879-495e-9822-762c04b37b48",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "7.14.0",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "color-types",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 19,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 10,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "TO FLOAT3\n\nThe To Float3 node converts floats, float2’s and integers to the float 3 type. \nIt will use the incoming value for all  components of the float3.\nConverting from float2 to float3 will make the final component 0.\n\nFor example:  A float(5.3) into the To Float3 node will produce a float3(5.3, 5.3, 5.3).\n\nWire will almost always implicitly convert to float3 for you, making this node very niche."
+          }
+        },
+        "bounds": {
+          "height": 228,
+          "width": 531,
+          "x": 339,
+          "y": 175
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "5": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          }
+        },
+        "bounds": {
+          "height": 226,
+          "width": 195,
+          "x": 824.5,
+          "y": 592.5
+        },
+        "class": {
+          "id": "77697265-E404-464F-A4C8-FF262AB15588",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "algorithm": {
+            "type": "integer",
+            "value": 1
+          },
+          "amplitude": {
+            "type": "float",
+            "value": 0.00999999977648258
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "channels": {
+            "type": "integer",
+            "value": 1
+          },
+          "clamp": {
+            "type": "bool",
+            "value": true
+          },
+          "density": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 1.100000023841858
+          },
+          "gain": {
+            "type": "float",
+            "value": 1
+          },
+          "modifier": {
+            "type": "integer",
+            "value": 2
+          },
+          "octaves": {
+            "type": "integer",
+            "value": 1
+          },
+          "offset": {
+            "type": "float3",
+            "value": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass",
+          "algorithm",
+          "clamp",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Fractal Noise",
+        "thumbnail_visible": true
+      },
+      "6": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 10
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 379.5,
+          "y": 789.5
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "unit"
+        ],
+        "name": "Float In",
+        "thumbnail_visible": true
+      },
+      "7": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 569.5,
+          "y": 789.5
+        },
+        "class": {
+          "id": "77697265-6F62-4E6D-AAA5-EBEFF44F276B",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float3",
+            "value": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances"
+        ],
+        "name": "To Float3",
+        "thumbnail_visible": true
+      },
+      "8": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1079.5,
+          "y": 592.5
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "9": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE\n\nIn this example we are converting the Float In into a Float3 which in turn will control the X, Y an Z phase of the Fractal noise.\n\nNote that wire will implicitly convert the Float In to Float 3 when you directly connect the Float In to the Phase offset. \nThe To Float3 node is only here for demonstration purposes."
+          }
+        },
+        "bounds": {
+          "height": 465,
+          "width": 953,
+          "x": 339,
+          "y": 420
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 146.5,
+        "y": 108.5,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null,
+          "Syphon": null
+        }
+      }
+    }
+  }
+}

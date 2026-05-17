@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 1</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: #d0d0d0; font-size: 11px;
+  background: linear-gradient(160deg, #1a1e22 0%, #151820 50%, #121518 100%);
+}
+
+/* ===== TOP BAR ===== */
+.top-bar {
+  display: flex; align-items: center; height: 38px;
+  background: linear-gradient(180deg, #252a30 0%, #1e2228 100%);
+  border-bottom: 1px solid #333840;
+  padding: 0 12px;
+}
+.logo {
+  font-size: 15px; font-weight: 700; color: #e8a830;
+  letter-spacing: 1.5px; margin-right: 20px; white-space: nowrap;
+}
+.logo span { color: #7ab8cc; font-weight: 400; }
+.beat-dots {
+  display: flex; gap: 4px; align-items: center; margin-right: 24px;
+}
+.beat-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #3a3f45; border: 1px solid #4a4f55;
+}
+.beat-dot.active { background: #e8a830; border-color: #f0c060; box-shadow: 0 0 6px #e8a83088; }
+.beat-label { color: #888; font-size: 10px; margin-right: 8px; }
+.bpm-display {
+  background: #111418; border: 1px solid #333840; border-radius: 3px;
+  padding: 3px 10px; color: #e8a830; font-size: 13px; font-weight: 600;
+  margin-right: 16px; font-variant-numeric: tabular-nums;
+}
+.scene-tabs {
+  display: flex; gap: 2px; margin-left: auto;
+}
+.scene-tab {
+  padding: 5px 14px; background: #22272d; border: 1px solid #333840;
+  border-radius: 3px 3px 0 0; color: #888; font-size: 11px; cursor: pointer;
+}
+.scene-tab.active { background: #2a3038; color: #e0e0e0; border-bottom-color: #2a3038; }
+.top-btn {
+  padding: 4px 10px; background: #22272d; border: 1px solid #333840;
+  border-radius: 3px; color: #999; font-size: 10px; margin-left: 6px; cursor: pointer;
+}
+.top-btn:hover { background: #2a3038; color: #ccc; }
+.output-badge {
+  padding: 3px 8px; background: #1a3020; border: 1px solid #2a5030;
+  border-radius: 3px; color: #4c8; font-size: 10px; margin-left: 8px;
+}
+
+/* ===== MAIN LAYOUT ===== */
+.main-area {
+  display: flex; height: calc(1080px - 38px - 240px - 28px);
+}
+
+/* ===== LEFT PANEL: Scene Flow ===== */
+.left-panel {
+  width: 180px; background: linear-gradient(180deg, #1c2026 0%, #181c20 100%);
+  border-right: 1px solid #2a2f35;
+  display: flex; flex-direction: column;
+}
+.panel-header {
+  padding: 8px 10px; font-size: 11px; font-weight: 600; color: #8a9099;
+  text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid #2a2f35;
+  background: linear-gradient(180deg, #222830 0%, #1e2228 100%);
+}
+.scene-list {
+  flex: 1; padding: 6px;
+}
+.scene-btn {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; padding: 7px 10px; margin-bottom: 3px;
+  background: #22272d; border: 1px solid #333840; border-radius: 3px;
+  color: #bbb; font-size: 11px; cursor: pointer;
+}
+.scene-btn.active {
+  background: linear-gradient(135deg, #2a3540 0%, #253040 100%);
+  border-color: #4a7090; color: #e0e0e0;
+}
+.scene-btn .scene-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #555;
+}
+.scene-btn.active .scene-dot { background: #4a90c0; box-shadow: 0 0 4px #4a90c088; }
+.scene-btn:nth-child(4).active .scene-dot { background: #e85030; box-shadow: 0 0 4px #e8503088; }
+.add-scene-btn {
+  width: 100%; padding: 6px; margin-top: 4px;
+  background: transparent; border: 1px dashed #3a4048; border-radius: 3px;
+  color: #556; font-size: 10px; cursor: pointer; text-align: center;
+}
+.layers-section {
+  border-top: 1px solid #2a2f35; padding: 6px;
+}
+.layer-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px; margin-bottom: 2px;
+  background: #1e2228; border-radius: 2px; font-size: 10px; color: #999;
+}
+.layer-item .layer-color {
+  width: 4px; height: 16px; border-radius: 1px;
+}
+.layer-item .layer-eye { color: #556; font-size: 9px; margin-left: auto; }
+
+/* ===== CENTER: Preview ===== */
+.center-area {
+  flex: 1; display: flex; flex-direction: column;
+  padding: 8px;
+}
+.preview-container {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.preview-label {
+  font-size: 10px; color: #556; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.preview-box {
+  width: 580px; height: 326px;
+  background: linear-gradient(135deg, #0a1a1a 0%, #0d2020 20%, #152828 40%, #0a1818 60%, #1a2828 80%, #0d1515 100%);
+  border: 1px solid #333840; border-radius: 2px;
+  position: relative; overflow: hidden;
+}
+/* Kaleidoscope fractal visual */
+.preview-box::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 0%, #0a1515cc 70%),
+    conic-gradient(from 0deg at 50% 50%,
+      #0d2828 0deg, #1a4040 30deg, #0a2020 60deg,
+      #1a3838 90deg, #0d2828 120deg, #204848 150deg,
+      #0a1818 180deg, #1a4040 210deg, #0d2828 240deg,
+      #1a3838 270deg, #0d2020 300deg, #204848 330deg,
+      #0d2828 360deg);
+}
+.preview-box::after {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 50% 48%, #c8943022 0%, transparent 30%),
+    radial-gradient(circle at 52% 50%, #4a908018 0%, transparent 40%),
+    conic-gradient(from 45deg at 50% 50%,
+      transparent 0deg, #c8943010 20deg, transparent 40deg,
+      #4a908010 60deg, transparent 80deg,
+      #c8943010 100deg, transparent 120deg,
+      #4a908010 140deg, transparent 160deg,
+      #c8943010 180deg, transparent 200deg,
+      #4a908010 220deg, transparent 240deg,
+      #c8943010 260deg, transparent 280deg,
+      #4a908010 300deg, transparent 320deg,
+      #c8943010 340deg, transparent 360deg);
+}
+.preview-fractal-center {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 120px; height: 120px; border-radius: 50%;
+  background: radial-gradient(circle, #c89430 0%, #806020 30%, #405030 60%, transparent 100%);
+  opacity: 0.6; filter: blur(8px);
+}
+.preview-fractal-ring {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 200px; height: 200px; border-radius: 50%;
+  border: 2px solid #4a908040; box-shadow: 0 0 30px #4a908020, inset 0 0 30px #4a908010;
+}
+.preview-fractal-ring2 {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 300px; height: 300px; border-radius: 50%;
+  border: 1px solid #c8943020; box-shadow: 0 0 20px #c8943010;
+}
+.transport-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 8px; width: 580px;
+}
+.transport-btn {
+  width: 28px; height: 22px; background: #22272d; border: 1px solid #333840;
+  border-radius: 2px; display: flex; align-items: center; justify-content: center;
+  color: #888; font-size: 10px; cursor: pointer;
+}
+.transport-btn.play { color: #4c8; }
+.transport-timeline {
+  flex: 1; height: 6px; background: #1a1e22; border-radius: 3px;
+  border: 1px solid #2a2f35; position: relative;
+}
+.transport-progress {
+  width: 35%; height: 100%; background: linear-gradient(90deg, #4a7090 0%, #5a90b0 100%);
+  border-radius: 3px; position: relative;
+}
+.transport-progress::after {
+  content: ''; position: absolute; right: -4px; top: -3px;
+  width: 8px; height: 12px; background: #8ab0cc; border-radius: 2px;
+  border: 1px solid #aaccdd;
+}
+.transport-time {
+  font-size: 10px; color: #888; font-variant-numeric: tabular-nums; min-width: 70px;
+  text-align: right;
+}
+
+/* ===== CENTER-RIGHT: Sources ===== */
+.sources-area {
+  width: 260px; padding: 8px 8px 8px 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.source-card {
+  background: linear-gradient(180deg, #1e2228 0%, #1a1e24 100%);
+  border: 1px solid #2a2f35; border-radius: 3px;
+  padding: 8px 10px;
+}
+.source-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.source-card-title { font-size: 10px; font-weight: 600; color: #aab0b8; }
+.source-card-badge {
+  font-size: 8px; padding: 1px 5px; border-radius: 2px;
+  text-transform: uppercase; font-weight: 600;
+}
+.badge-audio { background: #2a3520; color: #6c5; border: 1px solid #3a5030; }
+.badge-lfo { background: #20252a; color: #5a9cc0; border: 1px solid #2a4050; }
+.source-waveform {
+  height: 40px; background: #111418; border-radius: 2px;
+  position: relative; overflow: hidden; margin-bottom: 6px;
+}
+/* Audio waveform bars */
+.waveform-bars {
+  display: flex; align-items: flex-end; height: 100%;
+  gap: 1px; padding: 2px 4px;
+}
+.waveform-bar {
+  flex: 1; background: linear-gradient(0deg, #2a6040 0%, #4c8 60%, #8e4 100%);
+  border-radius: 1px 1px 0 0; min-width: 2px;
+}
+/* LFO sine visualization */
+.lfo-wave {
+  width: 100%; height: 100%;
+  position: relative;
+}
+.lfo-wave svg { width: 100%; height: 100%; }
+.source-meters {
+  display: flex; gap: 4px; align-items: center;
+}
+.source-meter-bar {
+  flex: 1; height: 4px; background: #111418; border-radius: 2px;
+  overflow: hidden;
+}
+.source-meter-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #3a8050 0%, #4c8 50%, #cc4 80%, #e84 100%);
+}
+.source-meter-label { font-size: 8px; color: #556; min-width: 18px; }
+
+/* ===== RIGHT PANEL ===== */
+.right-panel {
+  width: 240px;
+  background: linear-gradient(180deg, #1c2026 0%, #181c20 100%);
+  border-left: 1px solid #2a2f35;
+  display: flex; flex-direction: column;
+}
+.right-tabs {
+  display: flex; border-bottom: 1px solid #2a2f35;
+}
+.right-tab {
+  flex: 1; padding: 7px 4px; text-align: center;
+  font-size: 10px; color: #666; cursor: pointer;
+  background: #1a1e22; border-right: 1px solid #2a2f35;
+}
+.right-tab.active { color: #d0d0d0; background: #22272d; border-bottom: 2px solid #4a90c0; }
+.right-tab:last-child { border-right: none; }
+.right-content {
+  flex: 1; overflow-y: auto; padding: 6px;
+}
+.source-list-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; margin-bottom: 3px;
+  background: #1e2228; border: 1px solid #2a2f35; border-radius: 3px;
+  cursor: pointer;
+}
+.source-list-item.active {
+  border-color: #4a7090; background: #222a32;
+}
+.source-mini-wave {
+  width: 50px; height: 24px; background: #111418; border-radius: 2px;
+  overflow: hidden; position: relative; flex-shrink: 0;
+}
+.source-mini-bars {
+  display: flex; align-items: flex-end; height: 100%; gap: 1px; padding: 1px 2px;
+}
+.source-mini-bar {
+  flex: 1; border-radius: 1px 1px 0 0; min-width: 1px;
+}
+.source-list-info {
+  flex: 1; min-width: 0;
+}
+.source-list-name { font-size: 10px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.source-list-type { font-size: 8px; color: #666; }
+.source-list-meter {
+  width: 3px; height: 20px; background: #111418; border-radius: 1px;
+  overflow: hidden; display: flex; flex-direction: column-reverse;
+}
+.source-list-meter-fill { background: linear-gradient(0deg, #4c8 0%, #cc4 60%, #e84 100%); }
+
+/* ===== BOTTOM: Layer Strip ===== */
+.layer-strip {
+  height: 240px;
+  background: linear-gradient(180deg, #1a1e24 0%, #161a1e 100%);
+  border-top: 1px solid #333840;
+  display: flex; flex-direction: column;
+}
+.layer-strip-header {
+  display: flex; align-items: center;
+  padding: 4px 10px; height: 26px;
+  background: linear-gradient(180deg, #222830 0%, #1e2228 100%);
+  border-bottom: 1px solid #2a2f35;
+}
+.layer-strip-title {
+  font-size: 10px; font-weight: 600; color: #8a9099;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.layer-tabs {
+  display: flex; gap: 2px; margin-left: 16px;
+}
+.layer-tab {
+  padding: 3px 12px; background: #22272d; border: 1px solid #2a2f35;
+  border-radius: 2px; font-size: 10px; color: #777; cursor: pointer;
+}
+.layer-tab.active { background: #2a3038; color: #e0e0e0; border-color: #4a6080; }
+.layer-strip-content {
+  flex: 1; display: flex; padding: 6px 8px; gap: 6px; overflow-x: auto;
+}
+.layer-channel {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 100px; gap: 4px;
+}
+.layer-channel-label {
+  font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;
+  white-space: nowrap; width: 100%; text-align: center;
+}
+/* Clip cells */
+.clip-cell {
+  width: 84px; height: 84px;
+  border: 1px solid #333840; border-radius: 3px;
+  overflow: hidden; position: relative; cursor: pointer;
+  flex-shrink: 0;
+}
+.clip-cell.active { border-color: #5a90b0; box-shadow: 0 0 8px #4a80a044; }
+.clip-thumb {
+  width: 100%; height: 100%;
+}
+.engine-badge {
+  position: absolute; top: 3px; right: 3px;
+  font-size: 7px; font-weight: 700; padding: 1px 4px;
+  border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.engine-video { background: #802010cc; color: #f08060; border: 1px solid #a03020; }
+.engine-image { background: #102060cc; color: #60a0f0; border: 1px solid #2040a0; }
+.engine-synth { background: #104020cc; color: #60d080; border: 1px solid #208040; }
+.clip-name {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 2px 4px; font-size: 8px; color: #ccc;
+  background: linear-gradient(0deg, #000000cc 0%, transparent 100%);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Rotary knobs */
+.knob-row {
+  display: flex; gap: 6px; justify-content: center;
+}
+.knob-group {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.knob {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #22272d; border: 2px solid #333840;
+  position: relative;
+}
+.knob::after {
+  content: '';
+  position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
+  width: 2px; height: 7px; background: #888; border-radius: 1px;
+}
+.knob-arc {
+  position: absolute; inset: -3px; border-radius: 50%;
+  background: conic-gradient(from 220deg, var(--arc-color, #4a90c0) 0deg, var(--arc-color, #4a90c0) var(--arc-end, 120deg), transparent var(--arc-end, 120deg), transparent 280deg);
+  -webkit-mask: radial-gradient(circle, transparent 60%, black 61%);
+  mask: radial-gradient(circle, transparent 60%, black 61%);
+}
+.knob-label { font-size: 7px; color: #667; text-transform: uppercase; }
+/* Fader */
+.fader-group {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; margin-top: 4px;
+}
+.fader-track {
+  width: 8px; height: 50px; background: #111418; border-radius: 4px;
+  border: 1px solid #2a2f35; position: relative;
+}
+.fader-fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(0deg, #3a6050 0%, #4c8 100%);
+  border-radius: 0 0 3px 3px;
+}
+.fader-handle {
+  position: absolute; left: -3px; right: -3px; height: 6px;
+  background: #ddd; border-radius: 2px; border: 1px solid #aaa;
+}
+.fader-meter {
+  width: 3px; height: 50px; background: #111418; border-radius: 1px;
+  overflow: hidden; display: flex; flex-direction: column-reverse;
+}
+.fader-meter-fill {
+  background: linear-gradient(0deg, #2a6040 0%, #4c8 50%, #cc4 80%, #e84 100%);
+}
+.layer-btns {
+  display: flex; gap: 2px;
+}
+.layer-btn {
+  width: 18px; height: 14px; font-size: 7px; font-weight: 700;
+  background: #1a1e22; border: 1px solid #2a2f35; border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  color: #556; cursor: pointer;
+}
+.layer-btn.muted { background: #401010; color: #e84; border-color: #602020; }
+.layer-btn.soloed { background: #103020; color: #4c8; border-color: #205030; }
+
+/* ===== FOOTER BAR ===== */
+.footer-bar {
+  height: 28px; display: flex; align-items: center;
+  background: linear-gradient(180deg, #1e2228 0%, #1a1e22 100%);
+  border-top: 1px solid #2a2f35;
+  padding: 0 12px; gap: 12px;
+}
+.footer-label { font-size: 9px; color: #556; }
+.footer-value { font-size: 9px; color: #888; }
+.footer-btn {
+  padding: 2px 8px; background: #22272d; border: 1px solid #2a2f35;
+  border-radius: 2px; font-size: 9px; color: #777; cursor: pointer;
+}
+.footer-spacer { flex: 1; }
+.footer-status {
+  display: flex; align-items: center; gap: 4px;
+}
+.footer-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: #4c8;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">Audio-DNA <span>VJ</span></div>
+  <div class="beat-label">Beat</div>
+  <div class="beat-dots">
+    <div class="beat-dot active"></div>
+    <div class="beat-dot active"></div>
+    <div class="beat-dot active"></div>
+    <div class="beat-dot active"></div>
+  </div>
+  <div class="bpm-display">128.0</div>
+  <div class="scene-tabs">
+    <div class="scene-tab">Deck 1</div>
+    <div class="scene-tab active">Deck 2</div>
+    <div class="scene-tab">Deck 3</div>
+    <div class="scene-tab">Deck 4</div>
+  </div>
+  <div class="top-btn">Preferences</div>
+  <div class="top-btn">Fullscreen</div>
+  <div class="output-badge">1920x1080 @ 60fps</div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+
+  <!-- LEFT PANEL: Scene Flow -->
+  <div class="left-panel">
+    <div class="panel-header">Scene Flow</div>
+    <div class="scene-list">
+      <div class="scene-btn"><div class="scene-dot"></div> Intro</div>
+      <div class="scene-btn"><div class="scene-dot"></div> Verse</div>
+      <div class="scene-btn active"><div class="scene-dot"></div> Build</div>
+      <div class="scene-btn"><div class="scene-dot"></div> Drop</div>
+      <div class="scene-btn"><div class="scene-dot"></div> Outro</div>
+      <div class="add-scene-btn">+ Add Scene</div>
+    </div>
+    <div class="panel-header">Layers</div>
+    <div class="layers-section">
+      <div class="layer-item">
+        <div class="layer-color" style="background:#e8a830"></div>
+        Impact <span class="layer-eye">&#9673;</span>
+      </div>
+      <div class="layer-item">
+        <div class="layer-color" style="background:#e05040"></div>
+        Lasers <span class="layer-eye">&#9673;</span>
+      </div>
+      <div class="layer-item">
+        <div class="layer-color" style="background:#4a90c0"></div>
+        Tunnel <span class="layer-eye">&#9673;</span>
+      </div>
+      <div class="layer-item">
+        <div class="layer-color" style="background:#60a060"></div>
+        Texture <span class="layer-eye">&#9673;</span>
+      </div>
+      <div class="layer-item">
+        <div class="layer-color" style="background:#a060c0"></div>
+        Shapes <span class="layer-eye">&#9673;</span>
+      </div>
+      <div class="layer-item">
+        <div class="layer-color" style="background:#c0a060"></div>
+        Bloom <span class="layer-eye">&#9673;</span>
+      </div>
+      <div class="layer-item">
+        <div class="layer-color" style="background:#60c0c0"></div>
+        Synth Grid <span class="layer-eye">&#9673;</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: Preview -->
+  <div class="center-area">
+    <div class="preview-container">
+      <div class="preview-label">Live Output Preview</div>
+      <div class="preview-box">
+        <div class="preview-fractal-center"></div>
+        <div class="preview-fractal-ring"></div>
+        <div class="preview-fractal-ring2"></div>
+      </div>
+      <div class="transport-bar">
+        <div class="transport-btn">&#9664;&#9664;</div>
+        <div class="transport-btn">&#9632;</div>
+        <div class="transport-btn play">&#9654;</div>
+        <div class="transport-btn">&#10073;&#10073;</div>
+        <div class="transport-timeline">
+          <div class="transport-progress"></div>
+        </div>
+        <div class="transport-time">01:24.8 / 04:12.0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER-RIGHT: Source Cards -->
+  <div class="sources-area">
+    <!-- Master Audio -->
+    <div class="source-card">
+      <div class="source-card-header">
+        <div class="source-card-title">Master Audio</div>
+        <div class="source-card-badge badge-audio">Audio</div>
+      </div>
+      <div class="source-waveform">
+        <div class="waveform-bars">
+          <div class="waveform-bar" style="height:30%"></div>
+          <div class="waveform-bar" style="height:55%"></div>
+          <div class="waveform-bar" style="height:80%"></div>
+          <div class="waveform-bar" style="height:65%"></div>
+          <div class="waveform-bar" style="height:90%"></div>
+          <div class="waveform-bar" style="height:70%"></div>
+          <div class="waveform-bar" style="height:45%"></div>
+          <div class="waveform-bar" style="height:85%"></div>
+          <div class="waveform-bar" style="height:60%"></div>
+          <div class="waveform-bar" style="height:75%"></div>
+          <div class="waveform-bar" style="height:50%"></div>
+          <div class="waveform-bar" style="height:40%"></div>
+          <div class="waveform-bar" style="height:70%"></div>
+          <div class="waveform-bar" style="height:55%"></div>
+          <div class="waveform-bar" style="height:35%"></div>
+          <div class="waveform-bar" style="height:60%"></div>
+          <div class="waveform-bar" style="height:80%"></div>
+          <div class="waveform-bar" style="height:65%"></div>
+          <div class="waveform-bar" style="height:45%"></div>
+          <div class="waveform-bar" style="height:70%"></div>
+          <div class="waveform-bar" style="height:50%"></div>
+          <div class="waveform-bar" style="height:85%"></div>
+          <div class="waveform-bar" style="height:60%"></div>
+          <div class="waveform-bar" style="height:40%"></div>
+        </div>
+      </div>
+      <div class="source-meters">
+        <div class="source-meter-label">Left</div>
+        <div class="source-meter-bar"><div class="source-meter-fill" style="width:72%"></div></div>
+        <div class="source-meter-label">Right</div>
+        <div class="source-meter-bar"><div class="source-meter-fill" style="width:68%"></div></div>
+      </div>
+    </div>
+
+    <!-- LFO Sine -->
+    <div class="source-card">
+      <div class="source-card-header">
+        <div class="source-card-title">LFO - Sine</div>
+        <div class="source-card-badge badge-lfo">LFO</div>
+      </div>
+      <div class="source-waveform">
+        <div class="lfo-wave">
+          <svg viewBox="0 0 240 40" preserveAspectRatio="none">
+            <path d="M0,20 Q15,2 30,20 Q45,38 60,20 Q75,2 90,20 Q105,38 120,20 Q135,2 150,20 Q165,38 180,20 Q195,2 210,20 Q225,38 240,20"
+              stroke="#4a90c0" stroke-width="1.5" fill="none" opacity="0.8"/>
+            <path d="M0,20 Q15,2 30,20 Q45,38 60,20 Q75,2 90,20 Q105,38 120,20 Q135,2 150,20 Q165,38 180,20 Q195,2 210,20 Q225,38 240,20"
+              stroke="#4a90c0" stroke-width="0.5" fill="url(#lfoGrad)" opacity="0.15"/>
+            <defs>
+              <linearGradient id="lfoGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#4a90c0"/>
+                <stop offset="100%" stop-color="transparent"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:9px;color:#667;padding-top:2px;">
+        <span>Rate: 2.0 Hz</span><span>Phase: 0.0</span><span>Range: 0 - 1</span>
+      </div>
+    </div>
+
+    <!-- LFO Custom -->
+    <div class="source-card">
+      <div class="source-card-header">
+        <div class="source-card-title">LFO - Custom</div>
+        <div class="source-card-badge badge-lfo">LFO</div>
+      </div>
+      <div class="source-waveform">
+        <div class="lfo-wave">
+          <svg viewBox="0 0 240 40" preserveAspectRatio="none">
+            <path d="M0,30 L20,30 L25,5 L35,5 L40,20 L60,35 L80,10 L100,25 L110,5 L120,30 L140,30 L145,5 L155,5 L160,20 L180,35 L200,10 L220,25 L230,5 L240,30"
+              stroke="#c09050" stroke-width="1.5" fill="none" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:9px;color:#667;padding-top:2px;">
+        <span>Rate: 0.5 Hz</span><span>Steps: 8</span><span>Smooth: On</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="right-tabs">
+      <div class="right-tab active">Sources</div>
+      <div class="right-tab">Layer</div>
+      <div class="right-tab">Clip</div>
+    </div>
+    <div class="right-content">
+      <!-- Source list items -->
+      <div class="source-list-item active">
+        <div class="source-mini-wave">
+          <div class="source-mini-bars">
+            <div class="source-mini-bar" style="height:40%;background:#4c8"></div>
+            <div class="source-mini-bar" style="height:70%;background:#4c8"></div>
+            <div class="source-mini-bar" style="height:90%;background:#6e4"></div>
+            <div class="source-mini-bar" style="height:60%;background:#4c8"></div>
+            <div class="source-mini-bar" style="height:80%;background:#6e4"></div>
+            <div class="source-mini-bar" style="height:50%;background:#4c8"></div>
+            <div class="source-mini-bar" style="height:75%;background:#4c8"></div>
+            <div class="source-mini-bar" style="height:45%;background:#4c8"></div>
+            <div class="source-mini-bar" style="height:65%;background:#4c8"></div>
+            <div class="source-mini-bar" style="height:85%;background:#6e4"></div>
+          </div>
+        </div>
+        <div class="source-list-info">
+          <div class="source-list-name">Master Audio</div>
+          <div class="source-list-type">Audio Input</div>
+        </div>
+        <div class="source-list-meter">
+          <div class="source-list-meter-fill" style="height:72%"></div>
+        </div>
+      </div>
+
+      <div class="source-list-item">
+        <div class="source-mini-wave">
+          <div class="source-mini-bars">
+            <div class="source-mini-bar" style="height:90%;background:#e8a830"></div>
+            <div class="source-mini-bar" style="height:20%;background:#c89030"></div>
+            <div class="source-mini-bar" style="height:10%;background:#c89030"></div>
+            <div class="source-mini-bar" style="height:80%;background:#e8a830"></div>
+            <div class="source-mini-bar" style="height:15%;background:#c89030"></div>
+            <div class="source-mini-bar" style="height:10%;background:#c89030"></div>
+            <div class="source-mini-bar" style="height:85%;background:#e8a830"></div>
+            <div class="source-mini-bar" style="height:20%;background:#c89030"></div>
+            <div class="source-mini-bar" style="height:10%;background:#c89030"></div>
+            <div class="source-mini-bar" style="height:75%;background:#e8a830"></div>
+          </div>
+        </div>
+        <div class="source-list-info">
+          <div class="source-list-name">Kick Drum</div>
+          <div class="source-list-type">Audio Band</div>
+        </div>
+        <div class="source-list-meter">
+          <div class="source-list-meter-fill" style="height:85%"></div>
+        </div>
+      </div>
+
+      <div class="source-list-item">
+        <div class="source-mini-wave">
+          <div class="source-mini-bars" style="align-items:center;">
+            <div class="source-mini-bar" style="height:30%;background:#4a90c0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:60%;background:#4a90c0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:90%;background:#5aa0d0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:60%;background:#4a90c0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:30%;background:#4a90c0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:60%;background:#4a90c0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:90%;background:#5aa0d0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:60%;background:#4a90c0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:30%;background:#4a90c0;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:60%;background:#4a90c0;border-radius:1px;"></div>
+          </div>
+        </div>
+        <div class="source-list-info">
+          <div class="source-list-name">LFO - Sine</div>
+          <div class="source-list-type">Oscillator</div>
+        </div>
+        <div class="source-list-meter">
+          <div class="source-list-meter-fill" style="height:50%"></div>
+        </div>
+      </div>
+
+      <div class="source-list-item">
+        <div class="source-mini-wave">
+          <div class="source-mini-bars" style="align-items:center;">
+            <div class="source-mini-bar" style="height:50%;background:#c09050;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:80%;background:#c09050;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:20%;background:#a08040;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:70%;background:#c09050;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:40%;background:#a08040;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:90%;background:#c09050;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:30%;background:#a08040;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:60%;background:#c09050;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:80%;background:#c09050;border-radius:1px;"></div>
+            <div class="source-mini-bar" style="height:10%;background:#a08040;border-radius:1px;"></div>
+          </div>
+        </div>
+        <div class="source-list-info">
+          <div class="source-list-name">LFO - Custom</div>
+          <div class="source-list-type">Oscillator</div>
+        </div>
+        <div class="source-list-meter">
+          <div class="source-list-meter-fill" style="height:35%"></div>
+        </div>
+      </div>
+
+      <div class="source-list-item">
+        <div class="source-mini-wave">
+          <div class="source-mini-bars">
+            <div class="source-mini-bar" style="height:60%;background:#8060c0"></div>
+            <div class="source-mini-bar" style="height:40%;background:#8060c0"></div>
+            <div class="source-mini-bar" style="height:70%;background:#a080e0"></div>
+            <div class="source-mini-bar" style="height:50%;background:#8060c0"></div>
+            <div class="source-mini-bar" style="height:80%;background:#a080e0"></div>
+            <div class="source-mini-bar" style="height:45%;background:#8060c0"></div>
+            <div class="source-mini-bar" style="height:65%;background:#8060c0"></div>
+            <div class="source-mini-bar" style="height:55%;background:#8060c0"></div>
+            <div class="source-mini-bar" style="height:75%;background:#a080e0"></div>
+            <div class="source-mini-bar" style="height:35%;background:#8060c0"></div>
+          </div>
+        </div>
+        <div class="source-list-info">
+          <div class="source-list-name">Beat Phase</div>
+          <div class="source-list-type">Rhythm</div>
+        </div>
+        <div class="source-list-meter">
+          <div class="source-list-meter-fill" style="height:60%"></div>
+        </div>
+      </div>
+
+      <div class="source-list-item">
+        <div class="source-mini-wave">
+          <div class="source-mini-bars">
+            <div class="source-mini-bar" style="height:30%;background:#c06060"></div>
+            <div class="source-mini-bar" style="height:50%;background:#c06060"></div>
+            <div class="source-mini-bar" style="height:40%;background:#c06060"></div>
+            <div class="source-mini-bar" style="height:60%;background:#e08080"></div>
+            <div class="source-mini-bar" style="height:45%;background:#c06060"></div>
+            <div class="source-mini-bar" style="height:35%;background:#c06060"></div>
+            <div class="source-mini-bar" style="height:55%;background:#c06060"></div>
+            <div class="source-mini-bar" style="height:70%;background:#e08080"></div>
+            <div class="source-mini-bar" style="height:40%;background:#c06060"></div>
+            <div class="source-mini-bar" style="height:50%;background:#c06060"></div>
+          </div>
+        </div>
+        <div class="source-list-info">
+          <div class="source-list-name">Spectral Flux</div>
+          <div class="source-list-type">Spectral</div>
+        </div>
+        <div class="source-list-meter">
+          <div class="source-list-meter-fill" style="height:45%"></div>
+        </div>
+      </div>
+
+      <div class="source-list-item">
+        <div class="source-mini-wave">
+          <div class="source-mini-bars">
+            <div class="source-mini-bar" style="height:50%;background:#60b0a0"></div>
+            <div class="source-mini-bar" style="height:65%;background:#60b0a0"></div>
+            <div class="source-mini-bar" style="height:55%;background:#60b0a0"></div>
+            <div class="source-mini-bar" style="height:70%;background:#80d0c0"></div>
+            <div class="source-mini-bar" style="height:60%;background:#60b0a0"></div>
+            <div class="source-mini-bar" style="height:50%;background:#60b0a0"></div>
+            <div class="source-mini-bar" style="height:75%;background:#80d0c0"></div>
+            <div class="source-mini-bar" style="height:55%;background:#60b0a0"></div>
+            <div class="source-mini-bar" style="height:65%;background:#60b0a0"></div>
+            <div class="source-mini-bar" style="height:45%;background:#60b0a0"></div>
+          </div>
+        </div>
+        <div class="source-list-info">
+          <div class="source-list-name">Onset Strength</div>
+          <div class="source-list-type">Transient</div>
+        </div>
+        <div class="source-list-meter">
+          <div class="source-list-meter-fill" style="height:55%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM: Layer Strip -->
+<div class="layer-strip">
+  <div class="layer-strip-header">
+    <div class="layer-strip-title">Layer Strip</div>
+    <div class="layer-tabs">
+      <div class="layer-tab active">Impact</div>
+      <div class="layer-tab">Lasers</div>
+      <div class="layer-tab">Tunnel</div>
+      <div class="layer-tab">Texture</div>
+      <div class="layer-tab">Shapes</div>
+      <div class="layer-tab">Bloom</div>
+      <div class="layer-tab">Synth Grid</div>
+    </div>
+  </div>
+  <div class="layer-strip-content">
+
+    <!-- Layer 1: Impact -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Impact</div>
+      <div class="clip-cell active">
+        <div class="clip-thumb" style="background:linear-gradient(135deg,#1a3040,#2a5060,#1a4050,#103040);"></div>
+        <div class="engine-badge engine-video">Video</div>
+        <div class="clip-name">Shockwave Loop</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:180deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:140deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:200deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:100deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:75%"></div><div class="fader-handle" style="bottom:calc(75% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:68%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn soloed">S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 2: Lasers -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Lasers</div>
+      <div class="clip-cell">
+        <div class="clip-thumb" style="background:linear-gradient(45deg,#200808,#601010,#a02020,#601010);"></div>
+        <div class="engine-badge engine-synth">Synth</div>
+        <div class="clip-name">Laser Scanner</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:60deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:220deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:160deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:200deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:60%"></div><div class="fader-handle" style="bottom:calc(60% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:55%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 3: Tunnel -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Tunnel</div>
+      <div class="clip-cell active">
+        <div class="clip-thumb" style="background:radial-gradient(circle,#102030,#1a3848,#0d2028,#081018);"></div>
+        <div class="engine-badge engine-synth">Synth</div>
+        <div class="clip-name">Warp Tunnel</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:120deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:180deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:140deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:240deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:85%"></div><div class="fader-handle" style="bottom:calc(85% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:78%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 4: Texture -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Texture</div>
+      <div class="clip-cell">
+        <div class="clip-thumb" style="background:linear-gradient(160deg,#181820,#282830,#201828,#181820);"></div>
+        <div class="engine-badge engine-image">Image</div>
+        <div class="clip-name">Grunge Overlay</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:90deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:100deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:180deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:80deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:45%"></div><div class="fader-handle" style="bottom:calc(45% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:40%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn muted">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 5: Shapes -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Shapes</div>
+      <div class="clip-cell">
+        <div class="clip-thumb" style="background:linear-gradient(45deg,#201030,#302050,#201040,#100820);"></div>
+        <div class="engine-badge engine-synth">Synth</div>
+        <div class="clip-name">Geometric Pulse</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:240deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:200deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:120deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:160deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:70%"></div><div class="fader-handle" style="bottom:calc(70% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:62%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 6: Bloom -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Bloom</div>
+      <div class="clip-cell">
+        <div class="clip-thumb" style="background:radial-gradient(circle,#403010,#302008,#201005,#100800);"></div>
+        <div class="engine-badge engine-video">Video</div>
+        <div class="clip-name">Light Leak</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:150deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:120deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:250deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:120deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:55%"></div><div class="fader-handle" style="bottom:calc(55% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:48%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer 7: Synth Grid -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Synth Grid</div>
+      <div class="clip-cell active">
+        <div class="clip-thumb" style="background:linear-gradient(135deg,#082020,#104040,#0a3030,#062020);"></div>
+        <div class="engine-badge engine-synth">Synth</div>
+        <div class="clip-name">Neon Grid</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:200deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:260deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:180deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:180deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:80%"></div><div class="fader-handle" style="bottom:calc(80% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:72%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extra clips to the right -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Overlay</div>
+      <div class="clip-cell">
+        <div class="clip-thumb" style="background:linear-gradient(180deg,#0a0a15,#15152a,#0a0a15);"></div>
+        <div class="engine-badge engine-image">Image</div>
+        <div class="clip-name">Particle Dust</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:140deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:160deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:140deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:100deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:40%"></div><div class="fader-handle" style="bottom:calc(40% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:35%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-channel">
+      <div class="layer-channel-label">Background</div>
+      <div class="clip-cell">
+        <div class="clip-thumb" style="background:linear-gradient(135deg,#0a1020,#152030,#0a1520);"></div>
+        <div class="engine-badge engine-video">Video</div>
+        <div class="clip-name">Nebula Drift</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:100deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:180deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:160deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:140deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:90%"></div><div class="fader-handle" style="bottom:calc(90% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:82%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional clips -->
+    <div class="layer-channel">
+      <div class="layer-channel-label">Strobe</div>
+      <div class="clip-cell">
+        <div class="clip-thumb" style="background:linear-gradient(180deg,#303030,#101010,#303030);"></div>
+        <div class="engine-badge engine-synth">Synth</div>
+        <div class="clip-name">Flash Burst</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:80deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:60deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:260deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:220deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:30%"></div><div class="fader-handle" style="bottom:calc(30% - 3px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:25%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn muted">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-channel">
+      <div class="layer-channel-label">Mask</div>
+      <div class="clip-cell">
+        <div class="clip-thumb" style="background:radial-gradient(circle,#202020,#0a0a0a);"></div>
+        <div class="engine-badge engine-image">Image</div>
+        <div class="clip-name">Circle Mask</div>
+      </div>
+      <div class="knob-row">
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e06050;--arc-end:140deg;"></div></div>
+          <div class="knob-label">Hue</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#50c080;--arc-end:140deg;"></div></div>
+          <div class="knob-label">Saturation</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#e8a830;--arc-end:140deg;"></div></div>
+          <div class="knob-label">Brightness</div>
+        </div>
+        <div class="knob-group">
+          <div class="knob"><div class="knob-arc" style="--arc-color:#4a90c0;--arc-end:40deg;"></div></div>
+          <div class="knob-label">Speed</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px;align-items:flex-end;">
+        <div class="fader-group">
+          <div style="display:flex;gap:2px;">
+            <div class="fader-track"><div class="fader-fill" style="height:100%"></div><div class="fader-handle" style="bottom:calc(100% - 6px)"></div></div>
+            <div class="fader-meter"><div class="fader-meter-fill" style="height:0%"></div></div>
+          </div>
+        </div>
+        <div class="layer-btns">
+          <div class="layer-btn">M</div>
+          <div class="layer-btn">S</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER BAR -->
+<div class="footer-bar">
+  <div class="footer-label">Master Sources</div>
+  <div class="footer-btn">Audio Player</div>
+  <div class="footer-btn">Tap Tempo</div>
+  <div class="footer-btn">MIDI Learn</div>
+  <div class="footer-spacer"></div>
+  <div class="footer-label">Output:</div>
+  <div class="footer-value">Display 2</div>
+  <div class="footer-label">|</div>
+  <div class="footer-label">Resolution:</div>
+  <div class="footer-value">1920 x 1080</div>
+  <div class="footer-label">|</div>
+  <div class="footer-status">
+    <div class="footer-dot"></div>
+    <div class="footer-value">60 fps</div>
+  </div>
+  <div class="footer-label">|</div>
+  <div class="footer-label">CPU:</div>
+  <div class="footer-value">12%</div>
+  <div class="footer-label">GPU:</div>
+  <div class="footer-value">34%</div>
+</div>
+
+</body>
+</html>

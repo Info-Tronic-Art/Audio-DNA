@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AUDIO-DNA :: CRT TERMINAL v9.0</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Major+Mono+Display&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg: #050505;
+  --bg-cell: #0a0a0a;
+  --amber: #ffb000;
+  --amber-bright: #ffd24a;
+  --amber-dim: #ffb00055;
+  --amber-faint: #ffb00022;
+  --amber-ghost: #ffb0000d;
+  --text: #ffcc44;
+  --green: #00ff41;
+  --green-dim: #00ff4155;
+  --red: #ff3030;
+  --red-dim: #ff303055;
+  --border: #ffb00055;
+  --border-bright: #ffb000cc;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1920px;
+  height: 1080px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  overflow: hidden;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+  text-rendering: geometricPrecision;
+}
+
+body {
+  animation: flicker 1.5s infinite;
+  position: relative;
+}
+
+.app {
+  width: 1920px;
+  height: 1080px;
+  position: relative;
+  filter: contrast(1.05) brightness(1.02);
+  background: radial-gradient(ellipse at center, #050505 0%, #020202 70%, #000000 100%);
+}
+
+/* CRT SCANLINES - OVERLAY */
+.app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0,0,0,0.15) 3px,
+    rgba(0,0,0,0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* CRT RGB SUBPIXEL GRID - VERY SUBTLE */
+.app::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255, 0, 0, 0.015) 0px,
+      rgba(0, 255, 0, 0.015) 1px,
+      rgba(0, 0, 255, 0.015) 2px,
+      transparent 3px
+    ),
+    radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* SCANNING LINE SWEEP */
+.scan-line {
+  position: fixed;
+  left: 0;
+  width: 100vw;
+  height: 2px;
+  background: var(--amber);
+  opacity: 0.15;
+  z-index: 9997;
+  box-shadow: 0 0 12px var(--amber), 0 0 24px var(--amber);
+  animation: scan 8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  from { top: 0; }
+  to { top: 100vh; }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  12% { opacity: 0.99; }
+  27% { opacity: 0.97; }
+  43% { opacity: 1; }
+  50% { opacity: 0.97; }
+  61% { opacity: 0.99; }
+  73% { opacity: 0.99; }
+  89% { opacity: 0.98; }
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes phosphor-pulse {
+  0%, 100% {
+    box-shadow: 0 0 6px var(--amber), inset 0 0 8px var(--amber-dim);
+    border-color: var(--amber);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--amber), 0 0 24px var(--amber-dim), inset 0 0 14px var(--amber);
+    border-color: var(--amber-bright);
+  }
+}
+
+@keyframes phosphor-pulse-green {
+  0%, 100% {
+    box-shadow: 0 0 6px var(--green), inset 0 0 8px var(--green-dim);
+    border-color: var(--green);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--green), 0 0 24px var(--green-dim), inset 0 0 14px var(--green);
+  }
+}
+
+@keyframes drop-blink {
+  0%, 60% { opacity: 1; color: var(--red); text-shadow: 0 0 6px var(--red), 0 0 14px var(--red); }
+  70%, 100% { opacity: 0.4; color: var(--amber); text-shadow: 0 0 4px var(--amber); }
+}
+
+@keyframes wobble {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(0.5px); }
+  75% { transform: translateX(-0.5px); }
+}
+
+@keyframes wave-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--amber)) drop-shadow(0 0 10px var(--amber)); }
+  50% { filter: drop-shadow(0 0 8px var(--amber)) drop-shadow(0 0 18px var(--amber)); }
+}
+
+/* ALL TEXT PHOSPHOR GLOW */
+.glow { text-shadow: 0 0 4px currentColor, 0 0 10px currentColor; }
+.glow-strong { text-shadow: 0 0 6px currentColor, 0 0 14px currentColor, 0 0 22px currentColor; }
+
+/* ═════════════════ TITLE BAR ═════════════════ */
+.titlebar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 34px;
+  border-bottom: 1px solid var(--border);
+  background: #0a0604;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  color: var(--amber);
+  text-shadow: 0 0 4px var(--amber), 0 0 10px var(--amber);
+  letter-spacing: 1px;
+  gap: 14px;
+  z-index: 10;
+}
+.titlebar .brand {
+  font-family: 'Major Mono Display', monospace;
+  font-size: 16px;
+  color: var(--amber-bright);
+  text-shadow: 0 0 6px var(--amber), 0 0 14px var(--amber);
+  letter-spacing: 3px;
+}
+.titlebar .sep { color: var(--amber-dim); }
+.titlebar .rec-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  background: var(--red);
+  border-radius: 0;
+  margin-right: 6px;
+  box-shadow: 0 0 8px var(--red), 0 0 16px var(--red);
+  animation: blink 1s infinite;
+}
+.titlebar .rec {
+  color: var(--red);
+  text-shadow: 0 0 4px var(--red), 0 0 10px var(--red);
+  font-weight: bold;
+}
+.titlebar .menu-item {
+  padding: 2px 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.titlebar .menu-item:hover { border-color: var(--border); }
+.titlebar .spacer { flex: 1; }
+.titlebar .win-btn {
+  display: inline-block;
+  width: 22px; height: 18px;
+  border: 1px solid var(--border);
+  text-align: center;
+  line-height: 16px;
+  margin-left: 4px;
+  font-size: 13px;
+}
+.titlebar .win-btn:hover { border-color: var(--amber); box-shadow: 0 0 6px var(--amber-dim); }
+
+/* ═════════════════ MASTER STAT BAR ═════════════════ */
+.masterbar {
+  position: absolute;
+  top: 34px; left: 0; right: 0;
+  height: 90px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(to bottom, #0a0704 0%, #050301 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 32px;
+  z-index: 10;
+}
+
+.mb-block { display: flex; flex-direction: column; gap: 2px; }
+.mb-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--amber-dim);
+  letter-spacing: 2px;
+  text-shadow: 0 0 3px var(--amber-dim);
+}
+.mb-bpm {
+  font-family: 'Major Mono Display', monospace;
+  font-size: 48px;
+  color: var(--amber-bright);
+  text-shadow: 0 0 8px var(--amber), 0 0 20px var(--amber), 0 0 40px var(--amber);
+  line-height: 1;
+  letter-spacing: 2px;
+}
+.mb-value {
+  font-family: 'VT323', monospace;
+  font-size: 28px;
+  color: var(--amber);
+  text-shadow: 0 0 4px var(--amber), 0 0 12px var(--amber);
+  line-height: 1;
+}
+.mb-sub {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: var(--text);
+  text-shadow: 0 0 3px var(--text);
+  letter-spacing: 1px;
+}
+
+.mb-divider {
+  width: 1px;
+  height: 62px;
+  background: linear-gradient(to bottom, transparent, var(--amber-dim), transparent);
+}
+
+.beat-wheel {
+  display: flex;
+  gap: 4px;
+  font-family: 'VT323', monospace;
+  font-size: 26px;
+  line-height: 1;
+}
+.beat-wheel span {
+  color: var(--amber-dim);
+  text-shadow: 0 0 3px var(--amber-dim);
+}
+.beat-wheel span.on {
+  color: var(--amber-bright);
+  text-shadow: 0 0 6px var(--amber), 0 0 14px var(--amber), 0 0 22px var(--amber);
+}
+
+.struct-state {
+  padding: 4px 12px;
+  border: 1px solid var(--red);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px;
+  color: var(--red);
+  text-shadow: 0 0 6px var(--red), 0 0 14px var(--red);
+  letter-spacing: 3px;
+  animation: drop-blink 0.6s infinite;
+  box-shadow: 0 0 12px var(--red-dim), inset 0 0 8px var(--red-dim);
+}
+
+.genre-tag {
+  padding: 4px 14px;
+  border: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px;
+  color: var(--amber-bright);
+  text-shadow: 0 0 4px var(--amber), 0 0 10px var(--amber);
+  letter-spacing: 3px;
+  box-shadow: inset 0 0 10px var(--amber-faint);
+}
+
+/* ═════════════════ WAVEFORM ═════════════════ */
+.waveform-section {
+  position: absolute;
+  top: 124px; left: 0; right: 0;
+  height: 100px;
+  border-bottom: 1px solid var(--border);
+  padding: 6px 14px;
+  z-index: 10;
+}
+.wf-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--amber-dim);
+  letter-spacing: 2px;
+  margin-bottom: 2px;
+  display: flex;
+  justify-content: space-between;
+}
+.wf-title span { color: var(--amber); text-shadow: 0 0 4px var(--amber); }
+.wf-canvas {
+  position: relative;
+  height: 72px;
+  border: 1px solid var(--amber-faint);
+  background:
+    repeating-linear-gradient(to right, transparent, transparent 31px, var(--amber-ghost) 31px, var(--amber-ghost) 32px),
+    linear-gradient(to bottom, #030201, #060401, #030201);
+  overflow: hidden;
+}
+.wf-canvas svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  animation: wobble 0.8s infinite;
+}
+.wf-canvas svg polyline {
+  animation: wave-pulse 0.5s infinite;
+}
+
+.wf-beatline {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 1px;
+  background: var(--amber-dim);
+}
+.wf-beatline.bar {
+  background: var(--amber);
+  box-shadow: 0 0 4px var(--amber);
+}
+.wf-beatline .bar-label {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 12px;
+  color: var(--amber);
+  text-shadow: 0 0 4px var(--amber);
+}
+
+.wf-zone {
+  position: absolute;
+  top: 3px;
+  padding: 1px 6px;
+  border: 1px solid var(--amber);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--amber);
+  text-shadow: 0 0 4px var(--amber);
+  letter-spacing: 2px;
+  background: rgba(10,6,2,0.85);
+  box-shadow: 0 0 6px var(--amber-dim);
+}
+
+.wf-playhead {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--red);
+  box-shadow: 0 0 6px var(--red), 0 0 14px var(--red);
+  animation: blink 1s infinite;
+}
+.wf-playhead::after {
+  content: '▼';
+  position: absolute;
+  top: -2px; left: -5px;
+  color: var(--red);
+  font-size: 12px;
+  text-shadow: 0 0 4px var(--red);
+}
+
+/* ═════════════════ QUICK REF BAR ═════════════════ */
+.quickref {
+  position: absolute;
+  top: 224px; left: 0; right: 0;
+  height: 26px;
+  border-bottom: 1px solid var(--border);
+  background: #0a0604;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 18px;
+  font-family: 'VT323', monospace;
+  font-size: 15px;
+  color: var(--text);
+  text-shadow: 0 0 3px var(--text);
+  z-index: 10;
+}
+.quickref .qr-item { display: flex; gap: 4px; }
+.quickref .qr-lbl { color: var(--amber-dim); text-shadow: 0 0 3px var(--amber-dim); letter-spacing: 1px; }
+.quickref .qr-val { color: var(--amber); text-shadow: 0 0 4px var(--amber); min-width: 36px; text-align: right; }
+
+/* ═════════════════ SIGNAL BAR ═════════════════ */
+.signalbar {
+  position: absolute;
+  top: 250px; left: 0; right: 0;
+  height: 46px;
+  border-bottom: 1px solid var(--border);
+  background: #060402;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 10px;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  z-index: 10;
+}
+.signalbar .sb-header {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--amber-dim);
+  text-shadow: 0 0 3px var(--amber-dim);
+  letter-spacing: 2px;
+  border-right: 1px solid var(--amber-dim);
+  padding-right: 10px;
+  margin-right: 4px;
+}
+.signalbar .sig {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 112px;
+}
+.sig-lbl {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--amber-dim);
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 3px var(--amber-dim);
+}
+.sig-bar {
+  font-family: 'VT323', monospace;
+  font-size: 13px;
+  color: var(--amber);
+  letter-spacing: -1px;
+  text-shadow: 0 0 4px var(--amber);
+  line-height: 1;
+  display: flex;
+  gap: 4px;
+}
+.sig-bar .val {
+  color: var(--amber-bright);
+  text-shadow: 0 0 5px var(--amber), 0 0 12px var(--amber);
+  min-width: 30px;
+}
+
+/* ═════════════════ DECK GRID ═════════════════ */
+.deck {
+  position: absolute;
+  top: 296px; left: 0; right: 0;
+  height: 656px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px 10px 14px;
+  z-index: 10;
+  overflow: hidden;
+}
+.deck-header {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--amber);
+  text-shadow: 0 0 4px var(--amber), 0 0 10px var(--amber);
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.deck-header .deck-tabs { display: flex; gap: 6px; }
+.deck-header .deck-tab {
+  padding: 3px 14px;
+  border: 1px solid var(--border);
+  color: var(--amber-dim);
+  text-shadow: 0 0 3px var(--amber-dim);
+  font-size: 13px;
+  letter-spacing: 2px;
+}
+.deck-header .deck-tab.active {
+  color: var(--amber-bright);
+  border-color: var(--amber);
+  text-shadow: 0 0 5px var(--amber), 0 0 14px var(--amber);
+  background: var(--amber-faint);
+  box-shadow: 0 0 10px var(--amber-dim), inset 0 0 8px var(--amber-faint);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 160px repeat(10, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 8px;
+  height: calc(100% - 30px);
+}
+
+.layer-header {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #0a0604, #050301);
+  box-shadow: inset 0 0 8px var(--amber-faint);
+}
+.layer-header .ln {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  color: var(--amber-bright);
+  text-shadow: 0 0 4px var(--amber), 0 0 10px var(--amber);
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.layer-header .li {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--amber-dim);
+  text-shadow: 0 0 3px var(--amber-dim);
+  letter-spacing: 1px;
+}
+.layer-header .lv {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'VT323', monospace;
+  font-size: 13px;
+  color: var(--text);
+  text-shadow: 0 0 3px var(--text);
+}
+.layer-header .lv-bar {
+  flex: 1;
+  color: var(--amber);
+  letter-spacing: -1px;
+  text-shadow: 0 0 4px var(--amber);
+}
+.layer-header .lx {
+  display: flex;
+  gap: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+}
+.layer-header .lx span {
+  padding: 0 4px;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber-dim);
+  text-shadow: 0 0 3px var(--amber-dim);
+}
+.layer-header .lx span.on {
+  background: var(--amber);
+  color: #000;
+  border-color: var(--amber);
+  text-shadow: none;
+  box-shadow: 0 0 6px var(--amber);
+}
+.layer-header .lx span.on-g {
+  background: var(--green);
+  color: #000;
+  border-color: var(--green);
+  text-shadow: none;
+  box-shadow: 0 0 6px var(--green);
+}
+
+.clip {
+  border: 1px solid var(--amber-dim);
+  background: var(--bg-cell);
+  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+.clip-thumb {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.42;
+}
+.clip-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+.clip-name {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: var(--amber-bright);
+  text-shadow: 0 0 3px var(--amber), 0 0 8px var(--amber);
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.clip-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--amber-dim);
+  text-shadow: 0 0 2px var(--amber-dim);
+  letter-spacing: 1px;
+}
+.clip.empty {
+  border-color: var(--amber-ghost);
+  background: transparent;
+}
+.clip.empty .clip-inner { justify-content: center; align-items: center; }
+.clip.empty .plus {
+  color: var(--amber-ghost);
+  font-size: 28px;
+  text-shadow: none;
+}
+.clip.active {
+  border: 1px solid var(--amber);
+  animation: phosphor-pulse 0.469s infinite;
+}
+.clip.active .clip-name {
+  color: var(--amber-bright);
+  text-shadow: 0 0 5px var(--amber), 0 0 14px var(--amber), 0 0 22px var(--amber);
+}
+.clip.cued {
+  border: 1px solid var(--green);
+  box-shadow: 0 0 8px var(--green-dim), inset 0 0 8px var(--green-dim);
+  animation: phosphor-pulse-green 0.939s infinite;
+}
+.clip.cued .clip-name { color: var(--green); text-shadow: 0 0 4px var(--green), 0 0 10px var(--green); }
+.clip:hover:not(.empty):not(.active) {
+  border-color: var(--amber);
+  box-shadow: 0 0 8px var(--amber-dim);
+}
+.clip-playbar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: var(--amber);
+  box-shadow: 0 0 4px var(--amber);
+}
+
+/* Pixelated blocky gradients as thumbs */
+.thumb-mand { background: linear-gradient(135deg, #3a0000 0%, #3a0000 20%, #7a2200 20%, #7a2200 35%, #b06000 35%, #b06000 50%, #ffb000 50%, #ffb000 65%, #ffd060 65%, #ffd060 80%, #ffffa0 80%, #ffffa0 100%); }
+.thumb-julia { background: linear-gradient(45deg, #001a3a 0%, #001a3a 15%, #003366 15%, #003366 30%, #0066aa 30%, #0066aa 45%, #00aaff 45%, #00aaff 60%, #66ddff 60%, #66ddff 80%, #ffffff 80%); }
+.thumb-ring { background: radial-gradient(circle, #ffb000 0%, #ffb000 12%, #5a3a00 12%, #5a3a00 24%, #ffb000 24%, #ffb000 36%, #3a2400 36%, #3a2400 48%, #ffb000 48%, #ffb000 60%, #1a1000 60%); }
+.thumb-torus { background: conic-gradient(from 0deg, #ff3030 0deg, #ff3030 45deg, #ffb000 45deg, #ffb000 90deg, #ffff30 90deg, #ffff30 135deg, #00ff41 135deg, #00ff41 180deg, #00aaff 180deg, #00aaff 225deg, #3030ff 225deg, #3030ff 270deg, #aa00ff 270deg, #aa00ff 315deg, #ff30aa 315deg); }
+.thumb-sier { background: repeating-linear-gradient(60deg, #1a0a00 0px, #1a0a00 10px, #663000 10px, #663000 20px, #ffb000 20px, #ffb000 30px, #663000 30px, #663000 40px); }
+.thumb-fluid { background: linear-gradient(90deg, #003a3a 0%, #006666 14%, #00aaaa 28%, #00ffff 42%, #00ff41 56%, #aaff00 70%, #ffb000 84%, #ff3030 100%); }
+.thumb-spec { background: repeating-linear-gradient(to right, #3a0000 0px, #3a0000 8px, #7a0000 8px, #7a0000 14px, #ff3030 14px, #ff3030 18px, #ffb000 18px, #ffb000 24px, #ffff30 24px, #ffff30 28px, #00ff41 28px, #00ff41 34px, #00ffff 34px, #00ffff 40px); }
+.thumb-echo { background: linear-gradient(135deg, #000 0%, #000 15%, #3a1a00 15%, #3a1a00 30%, #7a3a00 30%, #7a3a00 45%, #b06000 45%, #b06000 60%, #ffb000 60%, #ffb000 75%, #ffff80 75%); }
+.thumb-glitch { background: linear-gradient(90deg, #ff3030 0%, #ff3030 8%, #000 8%, #000 12%, #00ff41 12%, #00ff41 20%, #ff3030 20%, #ff3030 28%, #000 28%, #000 32%, #ffb000 32%, #ffb000 48%, #000 48%, #000 52%, #00aaff 52%, #00aaff 64%, #ff3030 64%, #ff3030 78%, #ffb000 78%); }
+.thumb-kaleido { background: conic-gradient(from 45deg, #2a0044 0deg, #66008a 60deg, #aa00cc 120deg, #ff3090 180deg, #ff6040 240deg, #ffb000 300deg, #2a0044 360deg); }
+.thumb-rgb { background: linear-gradient(90deg, #ff0000 0%, #ff0000 25%, #000 25%, #000 35%, #00ff00 35%, #00ff00 60%, #000 60%, #000 70%, #0000ff 70%, #0000ff 100%); }
+.thumb-block { background: linear-gradient(45deg, #ffb000 0%, #ffb000 25%, #000 25%, #000 50%, #ff3030 50%, #ff3030 75%, #000 75%); }
+.thumb-tunnel { background: radial-gradient(circle, #000 0%, #000 12%, #ffb000 12%, #ffb000 20%, #000 20%, #000 32%, #ffb000 32%, #ffb000 42%, #000 42%, #000 58%, #ffb000 58%, #ffb000 72%); }
+.thumb-wave { background: repeating-linear-gradient(0deg, #000 0px, #000 6px, #003366 6px, #003366 10px, #0066aa 10px, #0066aa 14px, #00aaff 14px, #00aaff 18px, #66ddff 18px, #66ddff 22px); }
+.thumb-noise { background:
+  repeating-linear-gradient(45deg, #222 0px, #222 3px, #555 3px, #555 5px, #888 5px, #888 7px, #bbb 7px, #bbb 9px); }
+.thumb-fire { background: linear-gradient(to top, #ff3030 0%, #ff3030 20%, #ff8800 20%, #ff8800 45%, #ffb000 45%, #ffb000 70%, #ffff30 70%, #ffff30 88%, #ffffff 88%); }
+
+/* ═════════════════ FOOTER ═════════════════ */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  border-top: 1px solid var(--border);
+  background: #0a0604;
+  z-index: 10;
+}
+.drawer-tabs {
+  height: 26px;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-tab {
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--amber-dim);
+  text-shadow: 0 0 3px var(--amber-dim);
+  letter-spacing: 3px;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+}
+.drawer-tab:hover { color: var(--amber); text-shadow: 0 0 4px var(--amber); }
+.drawer-tab.active {
+  color: var(--amber-bright);
+  text-shadow: 0 0 5px var(--amber), 0 0 14px var(--amber);
+  background: var(--amber-faint);
+  box-shadow: inset 0 0 8px var(--amber-faint);
+}
+.drawer-tab .count {
+  margin-left: 8px;
+  color: var(--amber);
+  font-size: 12px;
+}
+
+.statusline {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 24px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--text);
+  text-shadow: 0 0 3px var(--text);
+  letter-spacing: 1px;
+}
+.statusline .stat { display: flex; gap: 6px; align-items: center; }
+.statusline .stat-lbl { color: var(--amber-dim); text-shadow: 0 0 3px var(--amber-dim); letter-spacing: 2px; font-size: 11px; }
+.statusline .stat-val { color: var(--amber); text-shadow: 0 0 4px var(--amber); font-size: 15px; font-family: 'VT323', monospace; }
+.statusline .good { color: var(--green); text-shadow: 0 0 4px var(--green), 0 0 10px var(--green); }
+.statusline .warn { color: var(--red); text-shadow: 0 0 4px var(--red), 0 0 10px var(--red); }
+.statusline .divider { color: var(--amber-dim); }
+.statusline .rec-live {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--red);
+  color: var(--red);
+  text-shadow: 0 0 4px var(--red), 0 0 10px var(--red);
+  animation: blink 1.5s infinite;
+  box-shadow: 0 0 10px var(--red-dim), inset 0 0 8px var(--red-dim);
+}
+.statusline .spacer { flex: 1; }
+
+/* ═════════════════ FLOATING QUICK REF ═════════════════ */
+.keyref {
+  position: absolute;
+  top: 140px;
+  right: 24px;
+  width: 240px;
+  background: rgba(5,3,1,0.92);
+  border: 1px solid var(--border-bright);
+  padding: 8px 10px;
+  z-index: 100;
+  font-family: 'VT323', monospace;
+  color: var(--text);
+  text-shadow: 0 0 3px var(--text);
+  font-size: 14px;
+  box-shadow: 0 0 14px var(--amber-dim), inset 0 0 10px var(--amber-faint);
+  line-height: 1.15;
+}
+.keyref .kh {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  text-shadow: 0 0 4px var(--amber), 0 0 10px var(--amber);
+  letter-spacing: 3px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.keyref .kline { color: var(--amber-dim); white-space: pre; }
+.keyref .krow { color: var(--text); white-space: pre; }
+.keyref .krow b { color: var(--amber); text-shadow: 0 0 4px var(--amber); font-weight: normal; }
+.keyref .krow .gr { color: var(--green); text-shadow: 0 0 3px var(--green); }
+.keyref .krow .rd { color: var(--red); text-shadow: 0 0 3px var(--red); }
+
+/* CURSOR */
+.cursor {
+  display: inline-block;
+  width: 9px;
+  height: 14px;
+  background: var(--amber-bright);
+  vertical-align: text-bottom;
+  margin-left: 3px;
+  box-shadow: 0 0 4px var(--amber), 0 0 10px var(--amber);
+  animation: blink 1s infinite;
+}
+
+/* ACTIVE BADGE */
+.on-badge {
+  display: inline-block;
+  color: var(--green);
+  text-shadow: 0 0 4px var(--green), 0 0 10px var(--green);
+  font-family: 'Share Tech Mono', monospace;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="scan-line"></div>
+
+  <!-- ═══════════ TITLE BAR ═══════════ -->
+  <div class="titlebar">
+    <span>╔═</span>
+    <span class="brand">AUDIO-DNA</span>
+    <span class="sep">║</span>
+    <span>TERMINAL v9.0</span>
+    <span class="sep">║</span>
+    <span><span class="rec-dot"></span><span class="rec">REC 00:42:17</span></span>
+    <span class="sep">║</span>
+    <span>COMP: TECHNO_SET_04.adna</span>
+    <span class="sep">║</span>
+    <span class="on-badge">● SYNCED</span>
+    <span class="spacer"></span>
+    <span class="menu-item">FILE</span>
+    <span class="menu-item">DECK</span>
+    <span class="menu-item">SIGNAL</span>
+    <span class="menu-item">OUTPUT</span>
+    <span class="menu-item">VIEW</span>
+    <span class="win-btn">_</span>
+    <span class="win-btn">□</span>
+    <span class="win-btn">×</span>
+  </div>
+
+  <!-- ═══════════ MASTER STAT BAR ═══════════ -->
+  <div class="masterbar">
+    <div class="mb-block">
+      <div class="mb-label">┤ TEMPO ├</div>
+      <div class="mb-bpm">128.0</div>
+      <div class="mb-sub">BPM &nbsp; ● LINK</div>
+    </div>
+
+    <div class="mb-divider"></div>
+
+    <div class="mb-block">
+      <div class="mb-label">┤ BEAT ├</div>
+      <div class="beat-wheel"><span class="on">■</span><span>□</span><span>□</span><span>□</span></div>
+      <div class="mb-sub">03 / 04</div>
+    </div>
+
+    <div class="mb-divider"></div>
+
+    <div class="mb-block">
+      <div class="mb-label">┤ BAR ├</div>
+      <div class="mb-value">03 / 08</div>
+      <div class="mb-sub">PHRASE 02 / 04</div>
+    </div>
+
+    <div class="mb-divider"></div>
+
+    <div class="mb-block">
+      <div class="mb-label">┤ STRUCTURAL STATE ├</div>
+      <div class="struct-state">[ &gt;&gt;&gt; DROP &lt;&lt;&lt; ]</div>
+      <div class="mb-sub">BUILDUP ENDED @ 00:42:10</div>
+    </div>
+
+    <div class="mb-divider"></div>
+
+    <div class="mb-block">
+      <div class="mb-label">┤ GENRE CLASSIFIER ├</div>
+      <div class="genre-tag">[ TECHNO &nbsp; 0.94 ]</div>
+      <div class="mb-sub">KEY:A-MIN &nbsp; ENERGY:HIGH</div>
+    </div>
+
+    <div class="mb-divider"></div>
+
+    <div class="mb-block">
+      <div class="mb-label">┤ MASTER ├</div>
+      <div class="mb-value">0.85</div>
+      <div class="mb-sub" style="color: var(--amber); text-shadow: 0 0 4px var(--amber);">[████████████░░]</div>
+    </div>
+
+    <div class="mb-divider"></div>
+
+    <div class="mb-block">
+      <div class="mb-label">┤ DECK X-FADER ├</div>
+      <div class="mb-value" style="font-size: 22px;">A &nbsp;[■■■■■■░░] &nbsp;B</div>
+      <div class="mb-sub">ALPHA BLEND &nbsp; 0.62</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ WAVEFORM ═══════════ -->
+  <div class="waveform-section">
+    <div class="wf-title">
+      <span>► WAVEFORM ──── SOURCE: INPUT.01 / SYSTEM_AUDIO ──── 48.0kHz / 16bit / MONO ──── 2048 FFT / 512 HOP</span>
+      <span>▼ -6.3 dBFS &nbsp; ▲ -1.8 dBFS PEAK &nbsp; LUFS -11.4</span>
+    </div>
+    <div class="wf-canvas">
+      <!-- Beat grid -->
+      <div class="wf-beatline bar" style="left: 6.25%;"><span class="bar-label">BAR 01</span></div>
+      <div class="wf-beatline" style="left: 9.4%;"></div>
+      <div class="wf-beatline" style="left: 12.5%;"></div>
+      <div class="wf-beatline" style="left: 15.6%;"></div>
+      <div class="wf-beatline bar" style="left: 18.75%;"><span class="bar-label">BAR 02</span></div>
+      <div class="wf-beatline" style="left: 21.9%;"></div>
+      <div class="wf-beatline" style="left: 25%;"></div>
+      <div class="wf-beatline" style="left: 28.1%;"></div>
+      <div class="wf-beatline bar" style="left: 31.25%;"><span class="bar-label">BAR 03</span></div>
+      <div class="wf-beatline" style="left: 34.4%;"></div>
+      <div class="wf-beatline" style="left: 37.5%;"></div>
+      <div class="wf-beatline" style="left: 40.6%;"></div>
+      <div class="wf-beatline bar" style="left: 43.75%;"><span class="bar-label">BAR 04</span></div>
+      <div class="wf-beatline" style="left: 46.9%;"></div>
+      <div class="wf-beatline" style="left: 50%;"></div>
+      <div class="wf-beatline" style="left: 53.1%;"></div>
+      <div class="wf-beatline bar" style="left: 56.25%;"><span class="bar-label">BAR 05</span></div>
+      <div class="wf-beatline" style="left: 59.4%;"></div>
+      <div class="wf-beatline" style="left: 62.5%;"></div>
+      <div class="wf-beatline" style="left: 65.6%;"></div>
+      <div class="wf-beatline bar" style="left: 68.75%;"><span class="bar-label">BAR 06</span></div>
+      <div class="wf-beatline" style="left: 71.9%;"></div>
+      <div class="wf-beatline" style="left: 75%;"></div>
+      <div class="wf-beatline" style="left: 78.1%;"></div>
+      <div class="wf-beatline bar" style="left: 81.25%;"><span class="bar-label">BAR 07</span></div>
+      <div class="wf-beatline" style="left: 84.4%;"></div>
+      <div class="wf-beatline" style="left: 87.5%;"></div>
+      <div class="wf-beatline" style="left: 90.6%;"></div>
+      <div class="wf-beatline bar" style="left: 93.75%;"><span class="bar-label">BAR 08</span></div>
+
+      <!-- Zones -->
+      <div class="wf-zone" style="left: 2%;">╞ INTRO ╡</div>
+      <div class="wf-zone" style="left: 20%;">╞ BUILDUP ╡</div>
+      <div class="wf-zone" style="left: 44%;" >╞ DROP ╡</div>
+      <div class="wf-zone" style="left: 70%;">╞ BREAKDOWN ╡</div>
+
+      <!-- Waveform -->
+      <svg viewBox="0 0 1000 60" preserveAspectRatio="none" style="position: absolute; top: 18px; left: 0; width: 100%; height: 50px;">
+        <defs>
+          <filter id="glow"><feGaussianBlur stdDeviation="1.2"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <polyline points="0,30 10,28 20,32 30,25 40,35 50,20 60,40 70,18 80,42 90,22 100,38 110,26 120,34 130,20 140,40 150,16 160,44 170,22 180,38 190,28 200,32 210,12 220,48 230,14 240,46 250,20 260,40 270,18 280,42 290,24 300,36 310,14 320,46 330,16 340,44 350,18 360,42 370,22 380,38 390,30 400,30
+        410,8 420,52 430,6 440,54 450,4 460,56 470,8 480,52 490,10 500,50 510,4 520,56 530,6 540,54 550,8 560,52 570,10 580,50 590,12 600,48 610,4 620,56 630,2 640,58 650,6 660,54 670,8 680,52 690,10 700,50 710,14 720,46 730,18 740,42 750,22 760,38 770,26 780,34 790,28 800,32 810,20 820,40 830,24 840,36 850,28 860,32 870,30 880,30 890,30 900,30 910,31 920,29 930,30 940,30 950,30 960,30 970,30 980,30 990,30 1000,30"
+        fill="none" stroke="#ffb000" stroke-width="1" filter="url(#glow)"/>
+      </svg>
+
+      <!-- Playhead -->
+      <div class="wf-playhead" style="left: 43%;"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ QUICK REF ═══════════ -->
+  <div class="quickref">
+    <span class="qr-item"><span class="qr-lbl">RMS</span><span class="qr-val">0.72</span></span>
+    <span class="qr-item"><span class="qr-lbl">BASS</span><span class="qr-val">0.88</span></span>
+    <span class="qr-item"><span class="qr-lbl">MID</span><span class="qr-val">0.43</span></span>
+    <span class="qr-item"><span class="qr-lbl">HIGH</span><span class="qr-val">0.29</span></span>
+    <span class="qr-item"><span class="qr-lbl">CENTROID</span><span class="qr-val">2140Hz</span></span>
+    <span class="qr-item"><span class="qr-lbl">FLUX</span><span class="qr-val">0.56</span></span>
+    <span class="qr-item"><span class="qr-lbl">FLATNESS</span><span class="qr-val">0.18</span></span>
+    <span class="qr-item"><span class="qr-lbl">ONSET</span><span class="qr-val" style="color: var(--green); text-shadow: 0 0 4px var(--green);">●●</span></span>
+    <span class="qr-item"><span class="qr-lbl">PITCH</span><span class="qr-val">110Hz</span></span>
+    <span class="qr-item"><span class="qr-lbl">KEY</span><span class="qr-val">A-min</span></span>
+    <span class="qr-item"><span class="qr-lbl">LUFS</span><span class="qr-val">-11.4</span></span>
+    <span class="qr-item"><span class="qr-lbl">CREST</span><span class="qr-val">3.2</span></span>
+    <span class="qr-item"><span class="qr-lbl">HCDF</span><span class="qr-val">0.14</span></span>
+    <span class="qr-item"><span class="qr-lbl">PUMP</span><span class="qr-val">0.67</span></span>
+    <span class="qr-item"><span class="qr-lbl">SWING</span><span class="qr-val">0.51</span></span>
+    <span class="qr-item"><span class="qr-lbl">FORMANT</span><span class="qr-val">0.22</span></span>
+    <span class="qr-item"><span class="qr-lbl">REESE</span><span class="qr-val">0.71</span></span>
+    <span class="qr-item"><span class="qr-lbl">GENRE</span><span class="qr-val">TECHNO</span></span>
+    <span class="qr-item" style="margin-left:auto;"><span class="qr-lbl">CURSOR</span><span class="cursor"></span></span>
+  </div>
+
+  <!-- ═══════════ SIGNAL BAR ═══════════ -->
+  <div class="signalbar">
+    <div class="sb-header">▼ SIGNAL&nbsp;BUS ▼</div>
+    <div class="sig"><div class="sig-lbl">RMS</div><div class="sig-bar">[████████░░░] <span class="val">0.72</span></div></div>
+    <div class="sig"><div class="sig-lbl">BASS</div><div class="sig-bar">[██████████░] <span class="val">0.88</span></div></div>
+    <div class="sig"><div class="sig-lbl">MID</div><div class="sig-bar">[█████░░░░░░] <span class="val">0.43</span></div></div>
+    <div class="sig"><div class="sig-lbl">HIGH</div><div class="sig-bar">[███░░░░░░░░] <span class="val">0.29</span></div></div>
+    <div class="sig"><div class="sig-lbl">SUB</div><div class="sig-bar">[█████████░░] <span class="val">0.81</span></div></div>
+    <div class="sig"><div class="sig-lbl">PRES</div><div class="sig-bar">[████░░░░░░░] <span class="val">0.36</span></div></div>
+    <div class="sig"><div class="sig-lbl">BRILL</div><div class="sig-bar">[██░░░░░░░░░] <span class="val">0.18</span></div></div>
+    <div class="sig"><div class="sig-lbl">CENTROID</div><div class="sig-bar">[█████░░░░░░] <span class="val">0.48</span></div></div>
+    <div class="sig"><div class="sig-lbl">FLUX</div><div class="sig-bar">[██████░░░░░] <span class="val">0.56</span></div></div>
+    <div class="sig"><div class="sig-lbl">ONSET</div><div class="sig-bar">[██████████░] <span class="val">0.91</span></div></div>
+    <div class="sig"><div class="sig-lbl">BEATPH</div><div class="sig-bar">[████░░░░░░░] <span class="val">0.42</span></div></div>
+    <div class="sig"><div class="sig-lbl">BARPH</div><div class="sig-bar">[██████░░░░░] <span class="val">0.58</span></div></div>
+    <div class="sig"><div class="sig-lbl">PHRASE</div><div class="sig-bar">[█████░░░░░░] <span class="val">0.44</span></div></div>
+    <div class="sig"><div class="sig-lbl">PUMP</div><div class="sig-bar">[███████░░░░] <span class="val">0.67</span></div></div>
+    <div class="sig"><div class="sig-lbl">REESE</div><div class="sig-bar">[████████░░░] <span class="val">0.71</span></div></div>
+  </div>
+
+  <!-- ═══════════ DECK GRID ═══════════ -->
+  <div class="deck">
+    <div class="deck-header">
+      <span>┤ DECK :: 06 LAYERS × 10 COLUMNS ├</span>
+      <div class="deck-tabs">
+        <div class="deck-tab active">[ A ] TECHNO_SET</div>
+        <div class="deck-tab">[ B ] AMBIENT_INT</div>
+        <div class="deck-tab">[ C ] DRUM_BASS</div>
+        <div class="deck-tab">[ D ] ─ EMPTY ─</div>
+      </div>
+      <span>&gt; PERSISTENT: L01, L03 &nbsp;|&nbsp; AUTOPILOT: ON (BAR)</span>
+    </div>
+
+    <div class="grid">
+      <!-- ═══ LAYER 01 - FX ═══ -->
+      <div class="layer-header">
+        <div>
+          <div class="ln">&gt; LAYER_01</div>
+          <div class="li">FX ONLY</div>
+        </div>
+        <div class="lv"><span>OPA</span><span class="lv-bar">[████████░░]</span><span>0.82</span></div>
+        <div class="lx"><span class="on-g">P</span><span>M</span><span>S</span><span class="on">FX</span></div>
+      </div>
+      <div class="clip active">
+        <div class="clip-thumb thumb-ring"></div>
+        <div class="clip-inner">
+          <div class="clip-name">RIPPLE.01</div>
+          <div class="clip-meta"><span>FX</span><span>0:04</span></div>
+        </div>
+        <div class="clip-playbar" style="width: 62%;"></div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-echo"></div>
+        <div class="clip-inner">
+          <div class="clip-name">ECHO.A</div>
+          <div class="clip-meta"><span>FX</span><span>0:08</span></div>
+        </div>
+      </div>
+      <div class="clip cued">
+        <div class="clip-thumb thumb-kaleido"></div>
+        <div class="clip-inner">
+          <div class="clip-name">KALEIDOSCOPE</div>
+          <div class="clip-meta"><span>FX</span><span>0:16</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-rgb"></div>
+        <div class="clip-inner">
+          <div class="clip-name">RGB.SPLIT</div>
+          <div class="clip-meta"><span>FX</span><span>0:04</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-block"></div>
+        <div class="clip-inner">
+          <div class="clip-name">BLOCK.GLITCH</div>
+          <div class="clip-meta"><span>FX</span><span>0:02</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-glitch"></div>
+        <div class="clip-inner">
+          <div class="clip-name">PIXEL.SORT</div>
+          <div class="clip-meta"><span>FX</span><span>0:08</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-echo"></div>
+        <div class="clip-inner">
+          <div class="clip-name">FEEDBACK.SPIRAL</div>
+          <div class="clip-meta"><span>FX</span><span>LOOP</span></div>
+        </div>
+      </div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+
+      <!-- ═══ LAYER 02 - VIS ═══ -->
+      <div class="layer-header">
+        <div>
+          <div class="ln">&gt; LAYER_02</div>
+          <div class="li">VIS / SRC</div>
+        </div>
+        <div class="lv"><span>OPA</span><span class="lv-bar">[██████████]</span><span>1.00</span></div>
+        <div class="lx"><span>P</span><span>M</span><span>S</span><span>FX</span></div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-mand"></div>
+        <div class="clip-inner">
+          <div class="clip-name">MANDELBROT.01</div>
+          <div class="clip-meta"><span>SRC</span><span>BPM</span></div>
+        </div>
+      </div>
+      <div class="clip active">
+        <div class="clip-thumb thumb-julia"></div>
+        <div class="clip-inner">
+          <div class="clip-name">JULIA.07</div>
+          <div class="clip-meta"><span>SRC</span><span>BPM</span></div>
+        </div>
+        <div class="clip-playbar" style="width: 38%;"></div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-torus"></div>
+        <div class="clip-inner">
+          <div class="clip-name">TORUS.A</div>
+          <div class="clip-meta"><span>SRC</span><span>8B</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-sier"></div>
+        <div class="clip-inner">
+          <div class="clip-name">SIERPINSKI.3D</div>
+          <div class="clip-meta"><span>SRC</span><span>4B</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-fluid"></div>
+        <div class="clip-inner">
+          <div class="clip-name">FLUID.DYN</div>
+          <div class="clip-meta"><span>SRC</span><span>LIVE</span></div>
+        </div>
+      </div>
+      <div class="clip cued">
+        <div class="clip-thumb thumb-spec"></div>
+        <div class="clip-inner">
+          <div class="clip-name">SPECTRUM.RING</div>
+          <div class="clip-meta"><span>AUD</span><span>RT</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-tunnel"></div>
+        <div class="clip-inner">
+          <div class="clip-name">TUNNEL.VX</div>
+          <div class="clip-meta"><span>SRC</span><span>BPM</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-noise"></div>
+        <div class="clip-inner">
+          <div class="clip-name">PERLIN.NZ</div>
+          <div class="clip-meta"><span>SRC</span><span>LOOP</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-fire"></div>
+        <div class="clip-inner">
+          <div class="clip-name">REACTION.DF</div>
+          <div class="clip-meta"><span>SRC</span><span>LIVE</span></div>
+        </div>
+      </div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+
+      <!-- ═══ LAYER 03 - BG ═══ -->
+      <div class="layer-header">
+        <div>
+          <div class="ln">&gt; LAYER_03</div>
+          <div class="li">BG / OPAQ</div>
+        </div>
+        <div class="lv"><span>OPA</span><span class="lv-bar">[██████████]</span><span>1.00</span></div>
+        <div class="lx"><span class="on-g">P</span><span>M</span><span>S</span><span>FX</span></div>
+      </div>
+      <div class="clip active">
+        <div class="clip-thumb thumb-wave"></div>
+        <div class="clip-inner">
+          <div class="clip-name">OCEAN.LOOP</div>
+          <div class="clip-meta"><span>VID</span><span>0:42</span></div>
+        </div>
+        <div class="clip-playbar" style="width: 78%;"></div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-mand"></div>
+        <div class="clip-inner">
+          <div class="clip-name">LAVA.FLOW</div>
+          <div class="clip-meta"><span>VID</span><span>0:28</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-tunnel"></div>
+        <div class="clip-inner">
+          <div class="clip-name">VORTEX.HD</div>
+          <div class="clip-meta"><span>VID</span><span>0:16</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-noise"></div>
+        <div class="clip-inner">
+          <div class="clip-name">STATIC.01</div>
+          <div class="clip-meta"><span>VID</span><span>LOOP</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-fire"></div>
+        <div class="clip-inner">
+          <div class="clip-name">FIRE.SEQ</div>
+          <div class="clip-meta"><span>IMG</span><span>240F</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-julia"></div>
+        <div class="clip-inner">
+          <div class="clip-name">NEBULA.04</div>
+          <div class="clip-meta"><span>VID</span><span>1:20</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-wave"></div>
+        <div class="clip-inner">
+          <div class="clip-name">CITY.NIGHT</div>
+          <div class="clip-meta"><span>VID</span><span>0:54</span></div>
+        </div>
+      </div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+
+      <!-- ═══ LAYER 04 - MASK ═══ -->
+      <div class="layer-header">
+        <div>
+          <div class="ln">&gt; LAYER_04</div>
+          <div class="li">MASK/KEY</div>
+        </div>
+        <div class="lv"><span>OPA</span><span class="lv-bar">[███████░░░]</span><span>0.74</span></div>
+        <div class="lx"><span>P</span><span>M</span><span>S</span><span>FX</span></div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-sier"></div>
+        <div class="clip-inner">
+          <div class="clip-name">GRID.MASK</div>
+          <div class="clip-meta"><span>MASK</span><span>STATIC</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-block"></div>
+        <div class="clip-inner">
+          <div class="clip-name">STRIPES.A</div>
+          <div class="clip-meta"><span>MASK</span><span>BPM</span></div>
+        </div>
+      </div>
+      <div class="clip active">
+        <div class="clip-thumb thumb-noise"></div>
+        <div class="clip-inner">
+          <div class="clip-name">DOT.MATRIX</div>
+          <div class="clip-meta"><span>MASK</span><span>LIVE</span></div>
+        </div>
+        <div class="clip-playbar" style="width: 21%;"></div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-rgb"></div>
+        <div class="clip-inner">
+          <div class="clip-name">SCAN.BAR</div>
+          <div class="clip-meta"><span>MASK</span><span>LOOP</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-echo"></div>
+        <div class="clip-inner">
+          <div class="clip-name">SOFT.VIG</div>
+          <div class="clip-meta"><span>MASK</span><span>STATIC</span></div>
+        </div>
+      </div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+
+      <!-- ═══ LAYER 05 - TXT ═══ -->
+      <div class="layer-header">
+        <div>
+          <div class="ln">&gt; LAYER_05</div>
+          <div class="li">TEXT/OVL</div>
+        </div>
+        <div class="lv"><span>OPA</span><span class="lv-bar">[█████░░░░░]</span><span>0.52</span></div>
+        <div class="lx"><span>P</span><span>M</span><span>S</span><span>FX</span></div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-glitch"></div>
+        <div class="clip-inner">
+          <div class="clip-name">&gt; SYSTEM_ON</div>
+          <div class="clip-meta"><span>TXT</span><span>SCROLL</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-rgb"></div>
+        <div class="clip-inner">
+          <div class="clip-name">&gt; TECHNO_04</div>
+          <div class="clip-meta"><span>TXT</span><span>STATIC</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-block"></div>
+        <div class="clip-inner">
+          <div class="clip-name">ASCII.LOGO</div>
+          <div class="clip-meta"><span>TXT</span><span>STATIC</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-echo"></div>
+        <div class="clip-inner">
+          <div class="clip-name">BPM.READOUT</div>
+          <div class="clip-meta"><span>TXT</span><span>LIVE</span></div>
+        </div>
+      </div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+
+      <!-- ═══ LAYER 06 - CAM ═══ -->
+      <div class="layer-header">
+        <div>
+          <div class="ln">&gt; LAYER_06</div>
+          <div class="li">CAM/LIVE</div>
+        </div>
+        <div class="lv"><span>OPA</span><span class="lv-bar">[░░░░░░░░░░]</span><span>0.00</span></div>
+        <div class="lx"><span>P</span><span class="on">M</span><span>S</span><span>FX</span></div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-noise"></div>
+        <div class="clip-inner">
+          <div class="clip-name">CAM.01</div>
+          <div class="clip-meta"><span>LIVE</span><span>USB</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-noise"></div>
+        <div class="clip-inner">
+          <div class="clip-name">SYPHON.IN</div>
+          <div class="clip-meta"><span>LIVE</span><span>IPC</span></div>
+        </div>
+      </div>
+      <div class="clip">
+        <div class="clip-thumb thumb-noise"></div>
+        <div class="clip-inner">
+          <div class="clip-name">NDI.STREAM</div>
+          <div class="clip-meta"><span>LIVE</span><span>LAN</span></div>
+        </div>
+      </div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+      <div class="clip empty"><div class="clip-inner"><div class="plus">┼</div></div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <div class="footer">
+    <div class="drawer-tabs">
+      <div class="drawer-tab active">┤ INSPECTOR ├<span class="count">[03]</span></div>
+      <div class="drawer-tab">┤ BROWSER ├<span class="count">[1247]</span></div>
+      <div class="drawer-tab">┤ SIGNALS ├<span class="count">[15]</span></div>
+      <div class="drawer-tab">┤ ROUTING ├<span class="count">[28]</span></div>
+      <div class="drawer-tab">┤ BINDINGS ├<span class="count">[40]</span></div>
+      <div class="drawer-tab">┤ RECORDER ├<span class="count" style="color:var(--red);text-shadow:0 0 4px var(--red);">●REC</span></div>
+      <div class="drawer-tab">┤ LOG ├<span class="count">[312]</span></div>
+    </div>
+    <div class="statusline">
+      <div class="stat"><span class="stat-lbl">FPS</span><span class="stat-val good">60.00</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">CPU</span><span class="stat-val">24%</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">GPU</span><span class="stat-val">38%</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">RAM</span><span class="stat-val">1.2GB</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">VRAM</span><span class="stat-val">482MB</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">OUT</span><span class="stat-val">1920×1080@60</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">A-LATENCY</span><span class="stat-val good">18.3ms</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">ANLYS</span><span class="stat-val good">1.2ms</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">RENDER</span><span class="stat-val good">4.8ms</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">DROPPED</span><span class="stat-val">0</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">SYPHON</span><span class="stat-val good">SERVING</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">MIDI</span><span class="stat-val good">APC40 / LPX</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">OSC</span><span class="stat-val">:8000</span></div>
+      <span class="divider">│</span>
+      <div class="stat"><span class="stat-lbl">API</span><span class="stat-val good">:7070 LIVE</span></div>
+      <span class="spacer"></span>
+      <div class="stat"><span class="stat-lbl">v9.0.2</span></div>
+      <span class="divider">│</span>
+      <div class="rec-live"><span style="width:8px;height:8px;background:var(--red);display:inline-block;box-shadow:0 0 6px var(--red);"></span>REC 00:42:17 / H.264</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ FLOATING QUICK REF ═══════════ -->
+  <div class="keyref">
+    <div class="kh">┤ QUICK REF ├</div>
+    <div class="kline">┌─────┬────────────────────┐</div>
+    <div class="krow">│ <b>SPC</b> │ TAP TEMPO          │</div>
+    <div class="krow">│ <b>ESC</b> │ <span class="rd">BLACKOUT</span>           │</div>
+    <div class="krow">│ <b>TAB</b> │ CYCLE INSPECTOR    │</div>
+    <div class="krow">│ <b>Q–P</b> │ LAYER 01 CLIPS     │</div>
+    <div class="krow">│ <b>A–L</b> │ LAYER 02 CLIPS     │</div>
+    <div class="krow">│ <b>Z–M</b> │ LAYER 03 CLIPS     │</div>
+    <div class="krow">│ <b>F1</b>  │ PIANO MODE         │</div>
+    <div class="krow">│ <b>F2</b>  │ MOMENTARY MODE     │</div>
+    <div class="krow">│ <b>F5</b>  │ MIDI LEARN         │</div>
+    <div class="krow">│ <b>F9</b>  │ <span class="gr">RENDER SNAPSHOT</span>    │</div>
+    <div class="krow">│ <b>F10</b> │ <span class="rd">REC TOGGLE</span>         │</div>
+    <div class="krow">│ <b>F11</b> │ FULLSCREEN OUT     │</div>
+    <div class="krow">│ <b>1–8</b> │ MACRO SLOT         │</div>
+    <div class="krow">│ <b>CMD+Z</b>│ UNDO              │</div>
+    <div class="krow">│ <b>CMD+S</b>│ SAVE COMP         │</div>
+    <div class="kline">└─────┴────────────────────┘</div>
+  </div>
+
+</div>
+</body>
+</html>

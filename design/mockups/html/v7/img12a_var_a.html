@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ - Image 12a Var A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(170deg, #1a1e24 0%, #12151a 50%, #0e1115 100%); color: #d0d0d0; font-size: 12px; }
+
+/* TOP BAR */
+.top { height: 40px; background: linear-gradient(180deg, #22272e, #1a1e24); border-bottom: 1px solid #3a3f48; display: flex; align-items: center; padding: 0 14px; gap: 12px; }
+.project-dd { padding: 4px 14px; background: #252a32; border: 1px solid #444; border-radius: 3px; color: #aaa; font-size: 11px; cursor: pointer; }
+.bpm-big { font-size: 28px; font-weight: 700; color: #4caf50; font-family: 'Consolas', monospace; margin-left: 10px; }
+.top-btn { padding: 5px 14px; background: #252a32; border: 1px solid #3a3f48; border-radius: 3px; color: #aaa; font-size: 11px; cursor: pointer; }
+.top-btn:hover { background: #303840; color: #eee; }
+.top-btn.active { background: #f0a030; color: #111; border-color: #f0a030; font-weight: 600; }
+.top-btn.scene { padding: 5px 20px; }
+.scene-play { color: #4caf50; font-size: 9px; margin-left: 2px; }
+.spacer { flex: 1; }
+.master-meter { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.mm-label { font-size: 8px; color: #666; text-transform: uppercase; }
+.mm-bar { width: 120px; height: 8px; background: #0d1015; border-radius: 2px; overflow: hidden; display: flex; }
+.mm-fill { height: 100%; }
+.mm-green { background: linear-gradient(90deg, #2ecc71, #27ae60); width: 65%; }
+.mm-yellow { background: #f1c40f; width: 10%; }
+.peak-label { font-size: 8px; color: #e74c3c; text-transform: uppercase; margin-left: 4px; }
+.lock-ui { padding: 3px 8px; background: #252a32; border: 1px solid #444; border-radius: 3px; font-size: 10px; color: #888; cursor: pointer; }
+
+/* WAVEFORM LANES */
+.wave-section { height: 260px; padding: 8px 12px; display: flex; gap: 8px; overflow-x: auto; }
+.wave-lane { flex: 1; min-width: 240px; background: linear-gradient(180deg, #1a1e24, #141820); border: 1px solid #282e36; border-radius: 4px; padding: 6px; display: flex; flex-direction: column; }
+.wl-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.wl-title { font-size: 10px; color: #ccc; font-weight: 600; flex: 1; }
+.wl-badge { padding: 1px 5px; border-radius: 2px; font-size: 8px; font-weight: 700; }
+.wb-kick { background: #4caf50; color: #111; }
+.wb-video { background: #e67e22; color: #111; }
+.wb-synth { background: #00bcd4; color: #111; }
+.wb-build { background: #ff9800; color: #111; }
+.wb-outro { background: #9c27b0; color: #fff; }
+.wb-drop { background: #e91e63; color: #fff; }
+.wl-wave { flex: 1; background: #0a0d12; border-radius: 3px; position: relative; overflow: hidden; }
+.wl-waveform { position: absolute; inset: 0; }
+/* Color-coded waveforms via clip-path + color */
+.wf-green { background: rgba(76,175,80,0.15); }
+.wf-green::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(76,175,80,0.5), rgba(76,175,80,0.3)); clip-path: polygon(0% 50%, 2% 20%, 4% 65%, 6% 10%, 8% 75%, 10% 15%, 12% 60%, 14% 25%, 16% 70%, 18% 20%, 20% 55%, 22% 30%, 24% 65%, 26% 18%, 28% 58%, 30% 28%, 32% 62%, 34% 22%, 36% 55%, 38% 30%, 40% 60%, 42% 25%, 44% 58%, 46% 32%, 48% 55%, 50% 28%, 52% 60%, 54% 22%, 56% 65%, 58% 18%, 60% 58%, 62% 28%, 64% 55%, 66% 32%, 68% 60%, 70% 25%, 72% 55%, 74% 30%, 76% 58%, 78% 28%, 80% 52%, 82% 35%, 84% 55%, 86% 32%, 88% 50%, 90% 38%, 92% 52%, 94% 40%, 96% 48%, 98% 42%, 100% 50%); }
+.wf-purple { background: rgba(155,89,182,0.15); }
+.wf-purple::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(155,89,182,0.5), rgba(155,89,182,0.3)); clip-path: polygon(0% 50%, 3% 30%, 6% 58%, 9% 22%, 12% 65%, 15% 28%, 18% 55%, 21% 32%, 24% 60%, 27% 25%, 30% 52%, 33% 35%, 36% 58%, 39% 28%, 42% 52%, 45% 35%, 48% 55%, 51% 30%, 54% 58%, 57% 25%, 60% 55%, 63% 32%, 66% 52%, 69% 38%, 72% 50%, 75% 35%, 78% 52%, 81% 38%, 84% 48%, 87% 40%, 90% 52%, 93% 42%, 96% 48%, 100% 50%); }
+.wf-cyan { background: rgba(0,188,212,0.15); }
+.wf-cyan::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,188,212,0.5), rgba(0,188,212,0.3)); clip-path: polygon(0% 50%, 4% 22%, 8% 62%, 12% 18%, 16% 68%, 20% 25%, 24% 58%, 28% 30%, 32% 62%, 36% 22%, 40% 55%, 44% 32%, 48% 58%, 52% 25%, 56% 55%, 60% 30%, 64% 58%, 68% 28%, 72% 52%, 76% 35%, 80% 55%, 84% 32%, 88% 48%, 92% 38%, 96% 50%, 100% 50%); }
+.wf-yellow { background: rgba(241,196,15,0.15); }
+.wf-yellow::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(241,196,15,0.5), rgba(241,196,15,0.3)); clip-path: polygon(0% 50%, 3% 28%, 6% 60%, 9% 20%, 12% 65%, 15% 25%, 18% 58%, 21% 28%, 24% 55%, 27% 32%, 30% 60%, 33% 22%, 36% 55%, 39% 30%, 42% 58%, 45% 25%, 48% 55%, 51% 32%, 54% 58%, 57% 28%, 60% 52%, 63% 35%, 66% 55%, 69% 30%, 72% 50%, 75% 38%, 78% 52%, 81% 35%, 84% 50%, 87% 40%, 90% 48%, 93% 42%, 96% 50%, 100% 50%); }
+.wf-orange { background: rgba(230,126,34,0.15); }
+.wf-orange::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(230,126,34,0.5), rgba(230,126,34,0.3)); clip-path: polygon(0% 50%, 5% 32%, 10% 58%, 15% 25%, 20% 62%, 25% 30%, 30% 55%, 35% 35%, 40% 58%, 45% 30%, 50% 52%, 55% 35%, 60% 55%, 65% 32%, 70% 50%, 75% 38%, 80% 52%, 85% 35%, 90% 48%, 95% 42%, 100% 50%); }
+.wf-white { background: rgba(200,200,200,0.1); }
+.wf-white::after { content:''; position:absolute; inset:0; background: linear-gradient(90deg, rgba(200,200,200,0.4), rgba(200,200,200,0.2)); clip-path: polygon(0% 50%, 3% 35%, 6% 55%, 9% 28%, 12% 58%, 15% 32%, 18% 52%, 21% 35%, 24% 55%, 27% 30%, 30% 52%, 33% 38%, 36% 50%, 39% 35%, 42% 55%, 45% 32%, 48% 50%, 51% 38%, 54% 52%, 57% 35%, 60% 48%, 63% 40%, 66% 52%, 69% 38%, 72% 48%, 75% 42%, 78% 50%, 81% 44%, 84% 48%, 87% 45%, 90% 50%, 93% 47%, 96% 50%, 100% 50%); }
+.wl-playhead { position: absolute; left: 40%; top: 0; bottom: 0; width: 2px; background: #fff; opacity: 0.6; }
+
+/* LAYER STRIPS SECTION */
+.strips-section { flex: 1; display: flex; padding: 8px 12px; gap: 8px; overflow-x: auto; }
+.layer-strip { flex: 1; min-width: 240px; background: linear-gradient(180deg, #1e2228, #181c22); border: 1px solid #282e36; border-radius: 4px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+.ls-title-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.ls-name { font-size: 12px; font-weight: 600; color: #ccc; flex: 1; }
+.ls-audio { font-size: 9px; color: #666; }
+.ls-btns { display: flex; gap: 3px; margin-bottom: 4px; }
+.ls-btn { width: 22px; height: 18px; border-radius: 3px; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; }
+.btn-s { background: #b8a020; color: #111; }
+.btn-m { background: #555; color: #aaa; }
+.ls-knobs { display: flex; gap: 8px; justify-content: center; margin: 4px 0; }
+.lsk-g { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.lsk { width: 28px; height: 28px; border-radius: 50%; position: relative; }
+.lsk::after { content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 9px; background: #ddd; transform-origin: bottom center; border-radius: 1px; }
+.lsk-h { background: radial-gradient(circle at 40% 35%, #3a3248, #261e30); border: 2px solid #9b59b6; }
+.lsk-h::after { transform: translateX(-50%) rotate(-40deg); }
+.lsk-s { background: radial-gradient(circle at 40% 35%, #2a3848, #1a2830); border: 2px solid #2ecc71; }
+.lsk-s::after { transform: translateX(-50%) rotate(20deg); }
+.lsk-sp { background: radial-gradient(circle at 40% 35%, #2a3040, #1a2030); border: 2px solid #3498db; }
+.lsk-sp::after { transform: translateX(-50%) rotate(-10deg); }
+.lsk-g label { font-size: 8px; color: #666; }
+/* Vertical faders with level meters */
+.ls-fader-area { display: flex; gap: 6px; align-items: flex-end; justify-content: center; flex: 1; padding: 4px 0; }
+.ls-fader { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ls-fader-track { width: 22px; height: 120px; background: #0d1015; border-radius: 3px; position: relative; overflow: hidden; }
+.ls-fader-fill { position: absolute; bottom: 0; width: 100%; border-radius: 3px; }
+.ff-main { background: linear-gradient(180deg, #2ecc71 0%, #1a8a4a 70%, #145530 100%); }
+.ls-fader-label { font-size: 8px; color: #666; }
+.ls-fader-val { font-size: 9px; color: #aaa; font-family: monospace; }
+/* Level meter alongside fader */
+.ls-meter { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.meter-track { width: 6px; height: 120px; background: #0d1015; border-radius: 2px; position: relative; overflow: hidden; display: flex; flex-direction: column-reverse; gap: 1px; }
+.meter-seg { width: 100%; height: 4px; border-radius: 1px; }
+.seg-green { background: #2ecc71; }
+.seg-yellow { background: #f1c40f; }
+.seg-red { background: #e74c3c; }
+.seg-off { background: #1a1e24; }
+.ls-bottom-btns { display: flex; gap: 3px; margin-top: 2px; }
+.ls-bot-btn { padding: 3px 8px; background: #222830; border: 1px solid #333; border-radius: 2px; font-size: 9px; color: #888; cursor: pointer; flex: 1; text-align: center; }
+.ls-bot-btn.on { background: #f0a030; color: #111; border-color: #f0a030; }
+.ls-bot-btn:hover { background: #2a3040; }
+
+/* RIGHT PANEL */
+.right-panel { width: 200px; background: linear-gradient(180deg, #1c2028, #151920); border-left: 1px solid #2a2e35; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.rp-section { border-bottom: 1px solid #222; padding-bottom: 8px; }
+.rp-title { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.color-btn { padding: 8px; border-radius: 3px; text-align: center; font-size: 10px; font-weight: 600; cursor: pointer; border: 1px solid #333; }
+.cb-red { background: #c0392b; color: #fff; }
+.cb-blue { background: #2980b9; color: #fff; }
+.cb-green { background: #27ae60; color: #fff; }
+.cb-white { background: #bdc3c7; color: #111; }
+.rp-sources { font-size: 10px; color: #888; padding: 6px; background: #1a1e24; border: 1px solid #282e36; border-radius: 3px; text-align: center; cursor: pointer; }
+.rp-sources:hover { color: #f0a030; border-color: #f0a030; }
+.rp-knob-row { display: flex; gap: 12px; justify-content: center; margin-top: 6px; }
+.rp-knob-g { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.rp-knob { width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a4048, #22272e); border: 2px solid #555; position: relative; }
+.rp-knob::after { content: ''; position: absolute; top: 4px; left: 50%; width: 2px; height: 10px; background: #ddd; transform-origin: bottom center; border-radius: 1px; transform: translateX(-50%) rotate(-20deg); }
+.rp-knob-g label { font-size: 8px; color: #666; }
+
+/* FOOTER */
+.footer { height: 34px; background: linear-gradient(180deg, #1e2228, #161a1e); border-top: 1px solid #333; display: flex; align-items: center; padding: 0 14px; gap: 10px; font-size: 10px; }
+.f-play { display: flex; align-items: center; gap: 4px; }
+.f-play-btn { width: 24px; height: 20px; background: #252a32; border: 1px solid #3a3f48; border-radius: 2px; color: #aaa; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.f-file { color: #777; font-size: 10px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.f-spacer { flex: 1; }
+.f-info { color: #555; font-family: monospace; }
+.f-btn { padding: 3px 10px; background: #252a32; border: 1px solid #3a3f48; border-radius: 2px; color: #888; font-size: 10px; cursor: pointer; }
+.f-btn:hover { color: #ccc; background: #2a3040; }
+.f-btn.load { background: #f0a030; color: #111; border-color: #f0a030; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="project-dd">Project &#9662;</div>
+  <div class="bpm-big">128.00</div>
+  <div class="top-btn">TAP</div>
+  <div style="color:#555">|</div>
+  <div class="top-btn scene">INTRO &#9654;</div>
+  <div class="top-btn scene active">VERSE 1 &#9654;</div>
+  <div class="top-btn scene">BUILD &#9654;</div>
+  <div class="top-btn scene">DROP &#9654;</div>
+  <div class="top-btn scene">OUTRO &#9654;</div>
+  <div class="top-btn">PREV</div>
+  <div class="top-btn">NEXT</div>
+  <div class="top-btn" style="color:#4caf50;">+ SCENE</div>
+  <div class="spacer"></div>
+  <div class="master-meter">
+    <div class="mm-label">Master Audio Meter</div>
+    <div class="mm-bar"><div class="mm-fill mm-green"></div><div class="mm-fill mm-yellow"></div></div>
+  </div>
+  <div class="peak-label">PEAK</div>
+  <div class="spacer"></div>
+  <div class="rp-knob" style="width:28px;height:28px;border-width:1px;"><span style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:7px;color:#666;white-space:nowrap;">MASTER SPEED</span></div>
+  <div class="rp-knob" style="width:28px;height:28px;border-width:1px;"><span style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:7px;color:#666;white-space:nowrap;">MASTER DIMMER</span></div>
+  <div class="lock-ui">LOCK UI</div>
+</div>
+
+<!-- WAVEFORM LANES -->
+<div class="wave-section">
+  <div class="wave-lane">
+    <div class="wl-header"><span class="wl-title">LYR 1: KICK</span><span class="wl-badge wb-kick">KICK</span></div>
+    <div class="wl-wave"><div class="wl-waveform wf-green"></div><div class="wl-playhead"></div></div>
+  </div>
+  <div class="wave-lane">
+    <div class="wl-header"><span class="wl-title">LYR 1: VIDEO</span><span class="wl-badge wb-video">VIDEO</span></div>
+    <div class="wl-wave"><div class="wl-waveform wf-green"></div><div class="wl-playhead"></div></div>
+  </div>
+  <div class="wave-lane">
+    <div class="wl-header"><span class="wl-title">LYR 2: VERSE 1</span><span class="wl-badge wb-synth">SYNTH</span></div>
+    <div class="wl-wave"><div class="wl-waveform wf-purple"></div><div class="wl-playhead"></div></div>
+  </div>
+  <div class="wave-lane">
+    <div class="wl-header"><span class="wl-title">LYR 3: BUILD</span><span class="wl-badge wb-build">SNTH</span></div>
+    <div class="wl-wave"><div class="wl-waveform wf-cyan"></div><div class="wl-playhead"></div></div>
+  </div>
+  <div class="wave-lane">
+    <div class="wl-header"><span class="wl-title">LYR 4: DROP</span><span class="wl-badge wb-drop">SYNTH</span></div>
+    <div class="wl-wave"><div class="wl-waveform wf-yellow"></div><div class="wl-playhead"></div></div>
+  </div>
+  <div class="wave-lane">
+    <div class="wl-header"><span class="wl-title">LYR 5: OUTRO</span><span class="wl-badge wb-outro">SYNTH</span></div>
+    <div class="wl-wave"><div class="wl-waveform wf-orange"></div><div class="wl-playhead"></div></div>
+  </div>
+</div>
+
+<!-- LAYER STRIPS -->
+<div class="strips-section">
+  <div class="layer-strip">
+    <div class="ls-title-row"><span class="ls-name">LYR 1: KICK</span></div>
+    <div class="ls-audio">Audio: Kick Drum</div>
+    <div class="ls-btns"><div class="ls-btn btn-s">S</div><div class="ls-btn btn-m">M</div></div>
+    <div class="ls-knobs">
+      <div class="lsk-g"><div class="lsk lsk-h"></div><label>HUE</label></div>
+      <div class="lsk-g"><div class="lsk lsk-s"></div><label>SAT</label></div>
+      <div class="lsk-g"><div class="lsk lsk-sp"></div><label>SPEED</label></div>
+    </div>
+    <div class="ls-fader-area">
+      <div class="ls-fader">
+        <div class="ls-fader-val">100%</div>
+        <div class="ls-fader-track"><div class="ls-fader-fill ff-main" style="height:100%"></div></div>
+        <div class="ls-fader-label">Vol</div>
+      </div>
+      <div class="ls-meter">
+        <div class="meter-track">
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-yellow"></div>
+          <div class="meter-seg seg-yellow"></div><div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ls-bottom-btns">
+      <div class="ls-bot-btn on">STROBE</div>
+      <div class="ls-bot-btn">FLASH</div>
+    </div>
+  </div>
+
+  <div class="layer-strip">
+    <div class="ls-title-row"><span class="ls-name">LYR 2: KICK</span></div>
+    <div class="ls-audio">Audio: Kick Drum</div>
+    <div class="ls-btns"><div class="ls-btn btn-s">S</div><div class="ls-btn btn-m">M</div></div>
+    <div class="ls-knobs">
+      <div class="lsk-g"><div class="lsk lsk-h"></div><label>HUE</label></div>
+      <div class="lsk-g"><div class="lsk lsk-s"></div><label>SAT</label></div>
+      <div class="lsk-g"><div class="lsk lsk-sp"></div><label>SPEED</label></div>
+    </div>
+    <div class="ls-fader-area">
+      <div class="ls-fader">
+        <div class="ls-fader-val">100%</div>
+        <div class="ls-fader-track"><div class="ls-fader-fill ff-main" style="height:100%"></div></div>
+        <div class="ls-fader-label">Vol</div>
+      </div>
+      <div class="ls-meter">
+        <div class="meter-track">
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-yellow"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ls-bottom-btns">
+      <div class="ls-bot-btn">STROBE</div>
+      <div class="ls-bot-btn">FLASH</div>
+    </div>
+  </div>
+
+  <div class="layer-strip">
+    <div class="ls-title-row"><span class="ls-name">LYR 3: HIGH</span></div>
+    <div class="ls-audio">Audio: Kick Drum</div>
+    <div class="ls-btns"><div class="ls-btn btn-s">S</div><div class="ls-btn btn-m">M</div></div>
+    <div class="ls-knobs">
+      <div class="lsk-g"><div class="lsk lsk-h"></div><label>HUE</label></div>
+      <div class="lsk-g"><div class="lsk lsk-s"></div><label>SAT</label></div>
+      <div class="lsk-g"><div class="lsk lsk-sp"></div><label>SPEED</label></div>
+    </div>
+    <div class="ls-fader-area">
+      <div class="ls-fader">
+        <div class="ls-fader-val">100%</div>
+        <div class="ls-fader-track"><div class="ls-fader-fill ff-main" style="height:85%"></div></div>
+        <div class="ls-fader-label">Vol</div>
+      </div>
+      <div class="ls-meter">
+        <div class="meter-track">
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-yellow"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ls-bottom-btns">
+      <div class="ls-bot-btn">STROBE</div>
+      <div class="ls-bot-btn on">FLASH</div>
+    </div>
+  </div>
+
+  <div class="layer-strip">
+    <div class="ls-title-row"><span class="ls-name">LYR 4: HUE</span></div>
+    <div class="ls-audio">Audio: Kick Drum</div>
+    <div class="ls-btns"><div class="ls-btn btn-s">S</div><div class="ls-btn btn-m">M</div></div>
+    <div class="ls-knobs">
+      <div class="lsk-g"><div class="lsk lsk-h"></div><label>HUE</label></div>
+      <div class="lsk-g"><div class="lsk lsk-s"></div><label>SAT</label></div>
+      <div class="lsk-g"><div class="lsk lsk-sp"></div><label>SPEED</label></div>
+    </div>
+    <div class="ls-fader-area">
+      <div class="ls-fader">
+        <div class="ls-fader-val">100%</div>
+        <div class="ls-fader-track"><div class="ls-fader-fill ff-main" style="height:100%"></div></div>
+        <div class="ls-fader-label">Vol</div>
+      </div>
+      <div class="ls-meter">
+        <div class="meter-track">
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-yellow"></div><div class="meter-seg seg-yellow"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ls-bottom-btns">
+      <div class="ls-bot-btn">STROBE</div>
+      <div class="ls-bot-btn">FLASH</div>
+    </div>
+  </div>
+
+  <div class="layer-strip">
+    <div class="ls-title-row"><span class="ls-name">LYR 5: SHIN</span></div>
+    <div class="ls-audio">Audio: Kick Drum</div>
+    <div class="ls-btns"><div class="ls-btn btn-s">S</div><div class="ls-btn btn-m">M</div></div>
+    <div class="ls-knobs">
+      <div class="lsk-g"><div class="lsk lsk-h"></div><label>HUE</label></div>
+      <div class="lsk-g"><div class="lsk lsk-s"></div><label>SAT</label></div>
+      <div class="lsk-g"><div class="lsk lsk-sp"></div><label>SPEED</label></div>
+    </div>
+    <div class="ls-fader-area">
+      <div class="ls-fader">
+        <div class="ls-fader-val">100%</div>
+        <div class="ls-fader-track"><div class="ls-fader-fill ff-main" style="height:75%"></div></div>
+        <div class="ls-fader-label">Vol</div>
+      </div>
+      <div class="ls-meter">
+        <div class="meter-track">
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ls-bottom-btns">
+      <div class="ls-bot-btn">STROBE</div>
+      <div class="ls-bot-btn">FLASH</div>
+    </div>
+  </div>
+
+  <div class="layer-strip">
+    <div class="ls-title-row"><span class="ls-name">LYR 6: SYNTH</span></div>
+    <div class="ls-audio">Audio: Kick Drum</div>
+    <div class="ls-btns"><div class="ls-btn btn-s">S</div><div class="ls-btn btn-m">M</div></div>
+    <div class="ls-knobs">
+      <div class="lsk-g"><div class="lsk lsk-h"></div><label>HUE</label></div>
+      <div class="lsk-g"><div class="lsk lsk-s"></div><label>SAT</label></div>
+      <div class="lsk-g"><div class="lsk lsk-sp"></div><label>SPEED</label></div>
+    </div>
+    <div class="ls-fader-area">
+      <div class="ls-fader">
+        <div class="ls-fader-val">100%</div>
+        <div class="ls-fader-track"><div class="ls-fader-fill ff-main" style="height:90%"></div></div>
+        <div class="ls-fader-label">Vol</div>
+      </div>
+      <div class="ls-meter">
+        <div class="meter-track">
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div><div class="meter-seg seg-green"></div>
+          <div class="meter-seg seg-yellow"></div><div class="meter-seg seg-yellow"></div><div class="meter-seg seg-red"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+          <div class="meter-seg seg-off"></div><div class="meter-seg seg-off"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ls-bottom-btns">
+      <div class="ls-bot-btn">STROBE</div>
+      <div class="ls-bot-btn on">FLASH</div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="rp-section">
+    <div class="rp-title">Color Override</div>
+    <div class="color-grid">
+      <div class="color-btn cb-red">RED</div>
+      <div class="color-btn cb-blue">BLUE</div>
+      <div class="color-btn cb-green">GREEN</div>
+      <div class="color-btn cb-white">WHITE</div>
+    </div>
+  </div>
+  <div class="rp-section">
+    <div class="rp-title">Sources & FX</div>
+    <div class="rp-sources">Browse Sources</div>
+    <div class="rp-sources" style="margin-top:4px;">Browse Effects</div>
+  </div>
+  <div>
+    <div class="rp-title">Master</div>
+    <div class="rp-knob-row">
+      <div class="rp-knob-g"><div class="rp-knob"></div><label>Speed</label></div>
+      <div class="rp-knob-g"><div class="rp-knob"></div><label>Dimmer</label></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  <div class="f-play">
+    <div class="f-play-btn">&#9654;</div>
+  </div>
+  <div class="f-file">Nexus_Break.wav</div>
+  <div class="f-spacer"></div>
+  <div class="f-info">Output: Display 1 (1080p)</div>
+  <div class="f-spacer"></div>
+  <div class="f-btn">MIDI</div>
+  <div class="f-btn">KEY/MAP</div>
+  <div class="f-btn">SAVE</div>
+  <div class="f-btn load">LOAD</div>
+</div>
+
+</body>
+</html>

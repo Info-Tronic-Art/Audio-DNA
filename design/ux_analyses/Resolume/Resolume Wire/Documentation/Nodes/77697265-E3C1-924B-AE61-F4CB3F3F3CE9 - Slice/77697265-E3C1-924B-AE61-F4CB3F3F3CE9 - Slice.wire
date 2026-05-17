@@ -1,0 +1,167 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          4,
+          "output"
+        ],
+        "to": [
+          5,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "",
+      "displayName": "Slice Example",
+      "identifier": "a4334918-5ead-4071-ae34-652947dc0fcd",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 6,
+    "nodes": {
+      "0": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "SLICE\n\nConstructs a Slice.\nThis node currently has no use."
+          }
+        },
+        "bounds": {
+          "height": 147.2747802734375,
+          "width": 369.3009033203125,
+          "x": 373.34954833984375,
+          "y": 75.20132446289062
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "4": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 4
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 386.17242431640625,
+          "y": 264.29913330078125
+        },
+        "class": {
+          "id": "77697265-e61f-42c0-812a-0dca04e74562",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "slice",
+            "value": [
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Slice In"
+      },
+      "5": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 4
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 551.1724243164062,
+          "y": 264.29913330078125
+        },
+        "class": {
+          "id": "77697265-E3C1-924B-AE61-F4CB3F3F3CE9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "slice",
+            "value": [
+              null,
+              null,
+              null,
+              null
+            ]
+          }
+        },
+        "hidden": [],
+        "name": "Slice"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -78.83274841308594,
+        "y": -133.93572998046875,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

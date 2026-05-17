@@ -1,0 +1,1022 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          2,
+          "output"
+        ],
+        "to": [
+          3,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output"
+        ],
+        "to": [
+          11,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "trigger"
+        ],
+        "to": [
+          10,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          27,
+          "output"
+        ],
+        "to": [
+          28,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "output"
+        ],
+        "to": [
+          29,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          1,
+          "output"
+        ],
+        "to": [
+          29,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          29,
+          "output"
+        ],
+        "to": [
+          2,
+          "offset"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output0"
+        ],
+        "to": [
+          31,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          14,
+          "output"
+        ],
+        "to": [
+          31,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          31,
+          "output"
+        ],
+        "to": [
+          27,
+          "offset"
+        ]
+      }
+    ],
+    "inputOrder": [],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "77697265-CD40-419E-A3E4-84B7CBA9E961 - Float3",
+      "identifier": "96f17754-0b8a-4239-a401-4b9783126b5a",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "color-types",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 19,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 32,
+    "nodes": {
+      "1": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 315.875,
+          "y": 888.7408447265625
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "instances"
+        ],
+        "name": "Sine",
+        "thumbnail_visible": true
+      },
+      "10": {
+        "attributes": {
+          "distribution": {
+            "type": "integer",
+            "value": 0
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "type": {
+            "type": "type",
+            "value": "float2"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 572.8082275390625,
+          "y": 1539.8424072265625
+        },
+        "class": {
+          "id": "77697265-5581-4721-8519-0b8fa3d68b4d",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "argument1": {
+            "type": "float2",
+            "value": [
+              -1,
+              -1
+            ]
+          },
+          "argument2": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "input": {
+            "type": "trigger",
+            "value": null
+          },
+          "precision": {
+            "type": "float2",
+            "value": [
+              0.00999999977648258,
+              0.00999999977648258
+            ]
+          },
+          "seed": {
+            "type": "integer",
+            "value": 12
+          }
+        },
+        "hidden": [
+          "distribution",
+          "instances",
+          "seed",
+          "precision",
+          "type"
+        ],
+        "name": "Random",
+        "thumbnail_visible": true
+      },
+      "11": {
+        "attributes": {
+          "input0-type": {
+            "type": "type",
+            "value": "float2"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 827.8082275390625,
+          "y": 1539.8424072265625
+        },
+        "class": {
+          "id": "77697265-86ce-4e85-a02d-34f915fca74e",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "duration": {
+            "type": "float",
+            "value": 1
+          },
+          "input0": {
+            "type": "float2",
+            "value": [
+              -0.7299999594688416,
+              -0.25
+            ]
+          }
+        },
+        "hidden": [
+          "input0-type",
+          "instances"
+        ],
+        "name": "Smooth",
+        "thumbnail_visible": true
+      },
+      "12": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 317.8081970214844,
+          "y": 1539.8424072265625
+        },
+        "class": {
+          "id": "77697265-FD65-470F-9F75-ED878267980E",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "enabled": {
+            "type": "bool",
+            "value": true
+          },
+          "frequency": {
+            "type": "float",
+            "value": 1
+          },
+          "reset": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances",
+          "count"
+        ],
+        "name": "Metronome",
+        "thumbnail_visible": true
+      },
+      "14": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 827.8082275390625,
+          "y": 1625.8424072265625
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "instances"
+        ],
+        "name": "Sine",
+        "thumbnail_visible": true
+      },
+      "2": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          }
+        },
+        "bounds": {
+          "height": 226,
+          "width": 195,
+          "x": 825.875,
+          "y": 531.7408447265625
+        },
+        "class": {
+          "id": "77697265-E404-464F-A4C8-FF262AB15588",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "algorithm": {
+            "type": "integer",
+            "value": 1
+          },
+          "amplitude": {
+            "type": "float",
+            "value": 0.5639129877090454
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "channels": {
+            "type": "integer",
+            "value": 1
+          },
+          "clamp": {
+            "type": "bool",
+            "value": true
+          },
+          "density": {
+            "type": "float",
+            "value": 12
+          },
+          "frequency": {
+            "type": "float",
+            "value": 1.7000000476837158
+          },
+          "gain": {
+            "type": "float",
+            "value": 1
+          },
+          "modifier": {
+            "type": "integer",
+            "value": 1
+          },
+          "octaves": {
+            "type": "integer",
+            "value": 6
+          },
+          "offset": {
+            "type": "float3",
+            "value": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass",
+          "algorithm",
+          "clamp",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Fractal Noise",
+        "thumbnail_visible": true
+      },
+      "27": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          }
+        },
+        "bounds": {
+          "height": 226,
+          "width": 195,
+          "x": 1337.808349609375,
+          "y": 1342.8424072265625
+        },
+        "class": {
+          "id": "77697265-E404-464F-A4C8-FF262AB15588",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "algorithm": {
+            "type": "integer",
+            "value": 1
+          },
+          "amplitude": {
+            "type": "float",
+            "value": 0.5639129877090454
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "channels": {
+            "type": "integer",
+            "value": 1
+          },
+          "clamp": {
+            "type": "bool",
+            "value": true
+          },
+          "density": {
+            "type": "float",
+            "value": 12
+          },
+          "frequency": {
+            "type": "float",
+            "value": 1.7000000476837158
+          },
+          "gain": {
+            "type": "float",
+            "value": 1
+          },
+          "modifier": {
+            "type": "integer",
+            "value": 1
+          },
+          "octaves": {
+            "type": "integer",
+            "value": 6
+          },
+          "offset": {
+            "type": "float3",
+            "value": [
+              0,
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "bypass",
+          "algorithm",
+          "clamp",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Fractal Noise",
+        "thumbnail_visible": true
+      },
+      "28": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1592.808349609375,
+          "y": 1342.8424072265625
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "29": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "input1-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "input2-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 579.529052734375,
+          "y": 757.889892578125
+        },
+        "class": {
+          "id": "77697265-CD40-419E-A3E4-84B7CBA9E961",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 0
+          },
+          "input2": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input0-type",
+          "input1-type",
+          "input2-type"
+        ],
+        "name": "Float3",
+        "thumbnail_visible": true
+      },
+      "3": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1080.875,
+          "y": 531.7408447265625
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "31": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float2"
+          },
+          "input1-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "input2-type": {
+            "type": "type",
+            "value": "null"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 1083.12646484375,
+          "y": 1538.9173583984375
+        },
+        "class": {
+          "id": "77697265-CD40-419E-A3E4-84B7CBA9E961",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {
+          "input0": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "input1": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input0-type",
+          "input1-type",
+          "input2-type"
+        ],
+        "name": "Float3",
+        "thumbnail_visible": true
+      },
+      "4": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "Float3\n\nThe Float3 node constructs a float3 signal out of three regular floats or a float2 and a regular float signal."
+          }
+        },
+        "bounds": {
+          "height": 104.41084289550781,
+          "width": 855,
+          "x": 269,
+          "y": 267.70404052734375
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "6": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 1:  Float into Float3\n\nIn this example we are using the Float3 node to construct a float3 signal for the Fractal noise.\nA Triangle oscillator is used for the X (first value), the Y(second value)  is kept empty and a Sine oscillator is ued for the Z(third value).\nThe new float3 signal is used for the phase offset of the Fractal Noise node."
+          }
+        },
+        "bounds": {
+          "height": 659.9676513671875,
+          "width": 986,
+          "x": 269.5,
+          "y": 401
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "8": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 315.875,
+          "y": 728.7408447265625
+        },
+        "class": {
+          "id": "77697265-9890-41DC-A93D-9F3913A78FEB",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 5
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "anti-alias",
+          "instances"
+        ],
+        "name": "Triangle",
+        "thumbnail_visible": true
+      },
+      "9": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 2: Float2 and Float into Float3\n\nIn this example we are constructing a float3 signal by combining a float2 signal and a regular float signal in the Float3 node.\nThe Random node produces a float2 signal which we smooth and connect to the Float3 node.\nThe Sine node produces a float signal which we also connect to the Float3 node.\nThis results in a Float3 signal which we feed to the Phase Offset of the Fractal Noise node."
+          }
+        },
+        "bounds": {
+          "height": 683.8809204101562,
+          "width": 1514.8109130859375,
+          "x": 271.152587890625,
+          "y": 1095.2813720703125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffe53357",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -363.3450927734375,
+        "y": -120.147705078125,
+        "zoom": 0.5302749276161194
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": []
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null,
+          "Syphon": null
+        }
+      }
+    }
+  }
+}

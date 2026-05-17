@@ -2,7 +2,9 @@
 
 > A comprehensive, deeply technical research library for building a cross-platform desktop application that analyzes any audio source (microphone, line-in, system loopback) with minimum latency, feeding extracted music features into a real-time video synthesis and VJ performance engine.
 
-**29 documents** | **~100,000+ words** | **C++ code throughout** | **Cross-referenced**
+**36 documents** | **~100,000+ words** | **C++ code throughout** | **Cross-referenced**
+
+> **Note:** UI/UX competitive analysis documents (Resolume, Ableton, TouchDesigner, GrandMA3, etc.) have been moved to [`design/ux_analyses/`](../design/ux_analyses/). This index covers only the core audio/technical research library.
 
 ---
 
@@ -305,4 +307,4 @@ Curated, annotated resource list: 33 academic papers (onset detection, beat trac
 
 ---
 
-*Generated 2026-03-13 | 29 documents | Cross-platform C++ focus | Production-grade technical depth*
+*Generated 2026-03-13 | Updated 2026-05-17 | 36 documents | Cross-platform C++ focus | Production-grade technical depth*

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 11 — Resolume-Style Large Clip Grid</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #1a1a1a; color: #d0d0d0;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11px;
+}
+
+/* ─── TOP BAR ─── */
+.top-bar {
+  display: flex; align-items: center; height: 36px;
+  background: #111; border-bottom: 1px solid #333;
+  padding: 0 10px; gap: 12px;
+}
+.logo { display: flex; align-items: center; gap: 6px; }
+.logo svg { width: 22px; height: 22px; }
+.logo-text { font-size: 13px; font-weight: 700; color: #e0e0e0; letter-spacing: 1px; }
+.bpm-box {
+  background: #222; border: 1px solid #444; border-radius: 2px;
+  padding: 2px 10px; font-size: 16px; font-weight: 700; color: #d4a24c;
+  font-variant-numeric: tabular-nums;
+}
+.beat-dots { display: flex; gap: 4px; align-items: center; margin-left: 4px; }
+.beat-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #333; border: 1px solid #555;
+}
+.beat-dot.active { background: #d4a24c; border-color: #d4a24c; box-shadow: 0 0 4px #d4a24c88; }
+.beat-label { color: #888; font-size: 10px; margin-left: 2px; }
+.scene-tabs { display: flex; gap: 2px; margin-left: 20px; }
+.scene-tab {
+  padding: 4px 14px; background: #222; border: 1px solid #333;
+  color: #888; cursor: pointer; font-size: 11px; border-radius: 2px;
+}
+.scene-tab.active { background: #d4a24c22; border-color: #d4a24c; color: #d4a24c; font-weight: 600; }
+.scene-tab:hover { background: #2a2a2a; }
+.add-scene { color: #666; font-style: italic; }
+.top-spacer { flex: 1; }
+.top-info { color: #666; font-size: 10px; display: flex; gap: 12px; }
+
+/* ─── MAIN LAYOUT ─── */
+.main { display: flex; height: calc(1080px - 36px - 80px); }
+
+/* ─── LEFT: LAYERS COLUMN ─── */
+.layers-col {
+  width: 180px; min-width: 180px; background: #181818;
+  border-right: 1px solid #333; display: flex; flex-direction: column;
+}
+.layers-header {
+  padding: 6px 8px; font-size: 10px; color: #888;
+  text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 1px solid #2a2a2a;
+}
+.layers-list { flex: 1; overflow-y: auto; }
+.layer-row {
+  padding: 4px 6px; border-bottom: 1px solid #222;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.layer-row:hover { background: #1f1f1f; }
+.layer-top { display: flex; align-items: center; gap: 4px; }
+.layer-num {
+  width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  background: #252525; border: 1px solid #444; border-radius: 2px;
+  font-size: 9px; font-weight: 700; color: #aaa;
+}
+.layer-num.active { background: #d4a24c33; border-color: #d4a24c; color: #d4a24c; }
+.layer-name { flex: 1; font-size: 10px; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.layer-expand { color: #666; font-size: 8px; cursor: pointer; }
+.layer-controls { display: flex; gap: 2px; padding: 2px 0 2px 22px; }
+.layer-btn {
+  width: 20px; height: 16px; display: flex; align-items: center; justify-content: center;
+  background: #252525; border: 1px solid #3a3a3a; border-radius: 1px;
+  color: #777; font-size: 7px; cursor: pointer;
+}
+.layer-btn:hover { background: #333; color: #bbb; }
+.layer-btn.active-ctrl { background: #2a3520; border-color: #5a8a3a; color: #8fc96a; }
+.layer-opacity {
+  margin: 2px 0 2px 22px; height: 4px; background: #222;
+  border-radius: 2px; position: relative;
+}
+.layer-opacity-fill {
+  height: 100%; border-radius: 2px; background: linear-gradient(90deg, #555, #d4a24c);
+}
+.add-layer-btn {
+  padding: 8px; text-align: center; color: #666;
+  font-size: 10px; cursor: pointer; border-top: 1px solid #2a2a2a;
+}
+.add-layer-btn:hover { color: #aaa; background: #1f1f1f; }
+
+/* ─── CENTER: CLIP GRID ─── */
+.clip-grid-area {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.grid-scene-headers {
+  display: flex; height: 22px; background: #151515;
+  border-bottom: 1px solid #333;
+}
+.grid-scene-spacer { width: 0; }
+.grid-scene-col {
+  flex: 1; text-align: center; font-size: 10px; color: #777;
+  line-height: 22px; border-right: 1px solid #2a2a2a;
+}
+.grid-scene-col.active { color: #d4a24c; font-weight: 600; background: #d4a24c0a; }
+.clip-grid {
+  flex: 1; display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 3px; padding: 3px; overflow: hidden;
+}
+.clip-cell {
+  background: #1e1e1e; border: 1px solid #333; border-radius: 2px;
+  display: flex; flex-direction: column; overflow: hidden;
+  cursor: pointer; position: relative;
+}
+.clip-cell:hover { border-color: #555; }
+.clip-cell.active { border-color: #d4a24c; box-shadow: 0 0 6px #d4a24c44; }
+.clip-thumb {
+  flex: 1; position: relative; overflow: hidden;
+}
+.clip-label {
+  padding: 2px 4px; font-size: 8px; color: #aaa;
+  background: #111; text-align: center; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.clip-cell.active .clip-label { color: #d4a24c; }
+
+/* ─── RIGHT: SOURCES PANEL ─── */
+.right-panel {
+  width: 240px; min-width: 240px; background: #181818;
+  border-left: 1px solid #333; display: flex; flex-direction: column;
+}
+.right-tabs {
+  display: flex; border-bottom: 1px solid #333;
+}
+.right-tab {
+  flex: 1; text-align: center; padding: 5px 0; font-size: 10px;
+  color: #777; cursor: pointer; border-bottom: 2px solid transparent;
+}
+.right-tab.active { color: #d4a24c; border-bottom-color: #d4a24c; }
+.right-section {
+  flex: 1; overflow-y: auto; padding: 4px;
+}
+.source-item {
+  background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 2px;
+  margin-bottom: 4px; padding: 6px 8px;
+}
+.source-item-header {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+}
+.source-dot { width: 8px; height: 8px; border-radius: 50%; }
+.source-name { font-size: 10px; font-weight: 600; color: #ccc; }
+.source-spectrum {
+  height: 24px; background: #111; border-radius: 2px;
+  display: flex; align-items: flex-end; gap: 1px; padding: 2px;
+  margin-bottom: 4px;
+}
+.spec-bar { flex: 1; border-radius: 1px 1px 0 0; }
+.source-waveform {
+  height: 20px; background: #111; border-radius: 2px;
+  position: relative; overflow: hidden; margin-bottom: 4px;
+}
+.source-param-row {
+  display: flex; align-items: center; gap: 6px; margin: 2px 0;
+}
+.source-param-label { font-size: 9px; color: #888; width: 36px; }
+.source-param-slider {
+  flex: 1; height: 3px; background: #333; border-radius: 2px;
+  position: relative;
+}
+.source-param-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #555, #d4a24c);
+}
+.source-param-val { font-size: 9px; color: #aaa; width: 28px; text-align: right; }
+.right-divider {
+  height: 1px; background: #333; margin: 6px 0;
+}
+
+/* ─── BOTTOM: LAYER STRIPS ─── */
+.bottom-bar {
+  height: 80px; background: #131313; border-top: 1px solid #333;
+  display: flex; gap: 0;
+}
+.bottom-strip {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-right: 1px solid #2a2a2a;
+}
+.strip-label {
+  font-size: 10px; font-weight: 600; color: #d4a24c;
+  writing-mode: vertical-lr; text-orientation: mixed;
+  transform: rotate(180deg); letter-spacing: 1px;
+}
+.strip-knobs { display: flex; gap: 10px; }
+.knob-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.knob {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: conic-gradient(from 220deg, #444 0%, #666 60%, #444 80%, #333 100%);
+  border: 2px solid #555; position: relative;
+}
+.knob::after {
+  content: ''; position: absolute;
+  width: 2px; height: 10px; background: #ddd;
+  top: 3px; left: 50%; transform: translateX(-50%);
+  border-radius: 1px;
+}
+.knob.active-knob { border-color: #d4a24c; }
+.knob.active-knob::after { background: #d4a24c; }
+.knob-label { font-size: 8px; color: #888; text-transform: uppercase; }
+.strip-opacity {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; margin-left: auto;
+}
+.opacity-slider-v {
+  width: 6px; height: 48px; background: #222; border-radius: 3px;
+  position: relative; border: 1px solid #3a3a3a;
+}
+.opacity-fill-v {
+  position: absolute; bottom: 0; width: 100%; border-radius: 3px;
+  background: linear-gradient(to top, #d4a24c, #d4a24c88);
+}
+.opacity-label { font-size: 8px; color: #888; }
+
+/* ─── FOOTER ─── */
+.footer {
+  display: flex; align-items: center; height: 0;
+}
+.footer-item { font-size: 9px; color: #666; }
+
+/* ─── WAVE DRAWING ─── */
+.wave-line {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="none" stroke="#d4a24c" stroke-width="1.5"/>
+      <path d="M8 9c0-1.5 1.5-3 4-3s4 1.5 4 3c0 2-2 3-4 5-2-2-4-3-4-5z" fill="#d4a24c" opacity="0.7"/>
+      <path d="M12 14c1.5 1.5 2 3 2 4.5M12 14c-1.5 1.5-2 3-2 4.5" stroke="#d4a24c" stroke-width="1.2" fill="none"/>
+    </svg>
+    <span class="logo-text">Audio-DNA VJ</span>
+  </div>
+  <div class="bpm-box">126</div>
+  <div class="beat-dots">
+    <div class="beat-dot active"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot active"></div>
+    <span class="beat-label">1 1 4</span>
+  </div>
+  <div class="scene-tabs">
+    <div class="scene-tab">SCENE</div>
+    <div class="scene-tab">Intro</div>
+    <div class="scene-tab">Verse</div>
+    <div class="scene-tab">Build</div>
+    <div class="scene-tab active">Drop</div>
+    <div class="scene-tab">Outro</div>
+    <div class="scene-tab add-scene">+ Add Scene</div>
+  </div>
+  <div class="top-spacer"></div>
+  <div class="top-info">
+    <span>FPS: 99.94</span>
+    <span>1080x720</span>
+    <span>00:04:12.08</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: LAYERS -->
+  <div class="layers-col">
+    <div class="layers-header">Layers</div>
+    <div class="layers-list" id="layersList"></div>
+    <div class="add-layer-btn">+ Add Layer</div>
+  </div>
+
+  <!-- CENTER: CLIP GRID -->
+  <div class="clip-grid-area">
+    <div class="grid-scene-headers">
+      <div class="grid-scene-col">Intro</div>
+      <div class="grid-scene-col">Verse</div>
+      <div class="grid-scene-col">Build</div>
+      <div class="grid-scene-col active">Drop</div>
+      <div class="grid-scene-col">Outro</div>
+    </div>
+    <div class="clip-grid" id="clipGrid"></div>
+  </div>
+
+  <!-- RIGHT: SOURCES -->
+  <div class="right-panel">
+    <div class="right-tabs">
+      <div class="right-tab active">Sources</div>
+      <div class="right-tab">Layer</div>
+      <div class="right-tab">Clip</div>
+    </div>
+    <div class="right-section" id="rightSources"></div>
+  </div>
+</div>
+
+<!-- BOTTOM: LAYER STRIPS -->
+<div class="bottom-bar" id="bottomBar"></div>
+
+<script>
+// ─── LAYER DATA ───
+const layers = [
+  { num: 1, name: 'Impact', active: true, opacity: 0.85, controls: ['play','stop','pause','rec','loop','nudge'] },
+  { num: 2, name: 'Lasers', active: false, opacity: 0.72, controls: ['play','stop','pause','rec','loop','nudge'] },
+  { num: 3, name: 'Tunnel VFX', active: true, opacity: 1.0, controls: ['play','stop','pause','rec','loop','nudge'] },
+  { num: 4, name: 'Particles', active: false, opacity: 0.60, controls: ['play','stop','pause','rec','loop','nudge'] },
+  { num: 5, name: 'Nebula BG', active: false, opacity: 0.90, controls: ['play','stop','pause','rec','loop','nudge'] },
+  { num: 6, name: 'Geometry', active: true, opacity: 0.45, controls: ['play','stop','pause','rec','loop','nudge'] },
+];
+
+const ctrlSymbols = { play: '\u25B6', stop: '\u25A0', pause: '\u2016', rec: '\u25CF', loop: '\u21BB', nudge: '\u2194' };
+
+const layersList = document.getElementById('layersList');
+layers.forEach(l => {
+  const row = document.createElement('div');
+  row.className = 'layer-row';
+  const ctrls = l.controls.map(c => {
+    const cls = (c === 'play' && l.active) ? 'layer-btn active-ctrl' : 'layer-btn';
+    return `<div class="${cls}" title="${c}">${ctrlSymbols[c]}</div>`;
+  }).join('');
+  row.innerHTML = `
+    <div class="layer-top">
+      <div class="layer-num ${l.active ? 'active' : ''}">${l.num}</div>
+      <span class="layer-name">${l.name}</span>
+      <span class="layer-expand">\u25BC</span>
+    </div>
+    <div class="layer-controls">${ctrls}</div>
+    <div class="layer-opacity"><div class="layer-opacity-fill" style="width:${l.opacity*100}%"></div></div>
+  `;
+  layersList.appendChild(row);
+});
+
+// ─── CLIP THUMBNAILS ───
+const clipData = [
+  // Row 1 (layer 1)
+  { name:'Impact', grad:'radial-gradient(circle at 40% 40%, #f5a623, #c0392b 60%, #1a0a00)', active:false },
+  { name:'Video', grad:'linear-gradient(135deg, #2c3e50, #3498db 50%, #1abc9c)', active:false },
+  { name:'Lasers', grad:'repeating-linear-gradient(45deg, #000 0px, #000 4px, #39ff14 4px, #39ff14 5px)', active:false },
+  { name:'Spirit', grad:'radial-gradient(ellipse at 50% 30%, #9b59b6, #2c0845 70%, #0a001a)', active:true },
+  { name:'Drop', grad:'radial-gradient(circle, #fff 5%, #f39c12 20%, #e74c3c 50%, #000 80%)', active:false },
+  // Row 2 (layer 2)
+  { name:'Full Spectrum', grad:'linear-gradient(90deg, #e74c3c, #f39c12, #f1c40f, #2ecc71, #3498db, #9b59b6)', active:false },
+  { name:'Coral Tunnels', grad:'radial-gradient(circle at 50% 50%, #ff6b6b, #c0392b 40%, #641e16 70%, #0a0000)', active:false },
+  { name:'Stanho', grad:'conic-gradient(from 0deg, #1a1a2e, #16213e, #0f3460, #e94560, #1a1a2e)', active:true },
+  { name:'Tunnel', grad:'repeating-radial-gradient(circle at 50% 50%, #000 0px, #1a1a2e 15px, #000 30px)', active:false },
+  { name:'Tunnel', grad:'repeating-radial-gradient(circle at 50% 50%, #111 0px, #2c3e50 10px, #111 20px)', active:false },
+  // Row 3 (layer 3)
+  { name:'Wavy', grad:'repeating-linear-gradient(0deg, #0a0a2e 0px, #1a1a4e 8px, #0a0a2e 16px)', active:false },
+  { name:'Fluent', grad:'linear-gradient(160deg, #0c2461, #0a3d62, #079992, #38ada9)', active:false },
+  { name:'Pixel Sorting', grad:'repeating-linear-gradient(90deg, #e74c3c 0px, #f1c40f 3px, #2ecc71 6px, #3498db 9px, #9b59b6 12px)', active:false },
+  { name:'Solar Tunnels', grad:'radial-gradient(circle at 50% 50%, #f9ca24, #f0932b 30%, #eb4d4b 60%, #130f40)', active:true },
+  { name:'Nebula', grad:'radial-gradient(ellipse at 30% 60%, #6c5ce7 20%, #a29bfe 40%, #0a001a 80%)', active:false },
+  // Row 4 (layer 4)
+  { name:'Shapes', grad:'conic-gradient(from 45deg, #2d3436, #636e72, #dfe6e9, #636e72, #2d3436)', active:false },
+  { name:'Telemetry', grad:'linear-gradient(180deg, #0a0a1a 0%, #1a3a4a 40%, #00b894 80%, #0a0a1a 100%)', active:false },
+  { name:'Brazile', grad:'linear-gradient(135deg, #009432, #f9ca24, #0652DD, #f9ca24, #009432)', active:false },
+  { name:'Vono', grad:'radial-gradient(circle at 60% 40%, #e056fd, #be2edd 40%, #4a0072 80%)', active:true },
+  { name:'Laser Grid', grad:'repeating-linear-gradient(0deg, transparent 0px, transparent 11px, #00ff88 11px, #00ff88 12px), repeating-linear-gradient(90deg, transparent 0px, transparent 11px, #00ff88 11px, #00ff88 12px)', active:false },
+  // Row 5 (layer 5)
+  { name:'Bloom', grad:'radial-gradient(circle at 50% 50%, #ffeaa7 10%, #fdcb6e 30%, #e17055 60%, #2d3436 90%)', active:false },
+  { name:'Particles', grad:'radial-gradient(circle at 30% 30%, #fff 2%, transparent 3%), radial-gradient(circle at 70% 60%, #fff 1%, transparent 2%), radial-gradient(circle at 50% 80%, #fff 1.5%, transparent 2.5%), radial-gradient(circle at 80% 20%, #fff 1%, transparent 2%), radial-gradient(ellipse, #1a1a3e, #000)', active:false },
+  { name:'Particles', grad:'radial-gradient(circle at 20% 70%, #74b9ff 2%, transparent 3%), radial-gradient(circle at 60% 30%, #a29bfe 1.5%, transparent 2.5%), radial-gradient(circle at 80% 80%, #55efc4 1%, transparent 2%), radial-gradient(ellipse, #0a0a2e, #000)', active:true },
+  { name:'Video', grad:'linear-gradient(140deg, #6c5ce7 0%, #a29bfe 30%, #fd79a8 60%, #e84393 100%)', active:false },
+  { name:'Fractal Bloom', grad:'conic-gradient(from 0deg at 50% 50%, #e74c3c, #f39c12, #2ecc71, #3498db, #9b59b6, #e74c3c)', active:false },
+  // Row 6 (layer 6)
+  { name:'Stars', grad:'radial-gradient(circle at 25% 25%, #fff 1px, transparent 1px), radial-gradient(circle at 75% 45%, #fff 1px, transparent 1px), radial-gradient(circle at 50% 75%, #fff 0.5px, transparent 0.5px), radial-gradient(circle at 15% 85%, #fff 1px, transparent 1px), radial-gradient(circle at 85% 15%, #fff 0.5px, transparent 0.5px), linear-gradient(180deg, #000 0%, #0a0a2e 100%)', active:false },
+  { name:'Fire', grad:'linear-gradient(0deg, #f12711 0%, #f5af19 40%, #f12711 70%, #2d0000 100%)', active:false },
+  { name:'Geometry', grad:'conic-gradient(from 0deg, #2c3e50 0deg, #3498db 60deg, #2c3e50 120deg, #e74c3c 180deg, #2c3e50 240deg, #2ecc71 300deg, #2c3e50 360deg)', active:true },
+  { name:'Prism', grad:'linear-gradient(45deg, #ff0000 0%, #ff8800 16%, #ffff00 33%, #00ff00 50%, #0088ff 66%, #0000ff 83%, #8800ff 100%)', active:false },
+  { name:'Video', grad:'linear-gradient(135deg, #2c3e50 0%, #4ca1af 50%, #2c3e50 100%)', active:false },
+];
+
+const grid = document.getElementById('clipGrid');
+clipData.forEach(c => {
+  const cell = document.createElement('div');
+  cell.className = 'clip-cell' + (c.active ? ' active' : '');
+  cell.innerHTML = `
+    <div class="clip-thumb" style="background:${c.grad}"></div>
+    <div class="clip-label">${c.name}</div>
+  `;
+  grid.appendChild(cell);
+});
+
+// ─── RIGHT PANEL: SOURCES ───
+const rightSources = document.getElementById('rightSources');
+
+function makeSpecBars(colors, heights) {
+  return heights.map((h, i) =>
+    `<div class="spec-bar" style="background:${colors[i % colors.length]}; height:${h}%"></div>`
+  ).join('');
+}
+
+const specColors = ['#e74c3c','#f39c12','#f1c40f','#2ecc71','#27ae60','#3498db','#2980b9','#9b59b6','#8e44ad','#e74c3c','#f39c12','#f1c40f','#2ecc71','#3498db','#9b59b6','#e74c3c'];
+const specHeights = [30,55,80,95,70,85,60,45,75,90,50,65,40,55,70,35];
+
+rightSources.innerHTML = `
+  <div class="source-item">
+    <div class="source-item-header">
+      <div class="source-dot" style="background:#2ecc71"></div>
+      <span class="source-name">Master Audio</span>
+    </div>
+    <div class="source-spectrum">${makeSpecBars(specColors, specHeights)}</div>
+  </div>
+  <div class="source-item">
+    <div class="source-item-header">
+      <div class="source-dot" style="background:#e74c3c"></div>
+      <span class="source-name">Kick Drum</span>
+    </div>
+    <div class="source-param-row">
+      <span class="source-param-label">Rate</span>
+      <div class="source-param-slider"><div class="source-param-fill" style="width:65%"></div></div>
+      <span class="source-param-val">0.65</span>
+    </div>
+    <div class="source-param-row">
+      <span class="source-param-label">Pulse</span>
+      <div class="source-param-slider"><div class="source-param-fill" style="width:82%"></div></div>
+      <span class="source-param-val">0.82</span>
+    </div>
+  </div>
+  <div class="source-item">
+    <div class="source-item-header">
+      <div class="source-dot" style="background:#3498db"></div>
+      <span class="source-name">LFO-Sine</span>
+    </div>
+    <div class="source-param-row">
+      <span class="source-param-label">Rate</span>
+      <div class="source-param-slider"><div class="source-param-fill" style="width:40%"></div></div>
+      <span class="source-param-val">0.40</span>
+    </div>
+    <div class="source-param-row">
+      <span class="source-param-label">Phase</span>
+      <div class="source-param-slider"><div class="source-param-fill" style="width:25%"></div></div>
+      <span class="source-param-val">0.25</span>
+    </div>
+  </div>
+  <div class="source-item">
+    <div class="source-item-header">
+      <div class="source-dot" style="background:#f39c12"></div>
+      <span class="source-name">LFO-Custom</span>
+    </div>
+    <div class="source-param-row">
+      <span class="source-param-label">Rate</span>
+      <div class="source-param-slider"><div class="source-param-fill" style="width:55%"></div></div>
+      <span class="source-param-val">0.55</span>
+    </div>
+    <div class="source-param-row">
+      <span class="source-param-label">Depth</span>
+      <div class="source-param-slider"><div class="source-param-fill" style="width:70%"></div></div>
+      <span class="source-param-val">0.70</span>
+    </div>
+  </div>
+  <div class="right-divider"></div>
+  <div style="padding:4px 0;">
+    <div class="right-tabs" style="border-bottom:1px solid #333; margin-bottom:4px;">
+      <div class="right-tab active" style="font-size:9px; padding:3px 0;">Sources</div>
+      <div class="right-tab" style="font-size:9px; padding:3px 0;">Layer</div>
+      <div class="right-tab" style="font-size:9px; padding:3px 0;">Clip</div>
+    </div>
+  </div>
+  <div class="source-item">
+    <div class="source-item-header">
+      <div class="source-dot" style="background:#2ecc71"></div>
+      <span class="source-name">Master Audio</span>
+    </div>
+    <div class="source-spectrum">${makeSpecBars(specColors, [45,70,90,60,80,55,75,40,65,85,50,70,60,45,55,40])}</div>
+  </div>
+  <div class="source-item">
+    <div class="source-item-header">
+      <div class="source-dot" style="background:#e74c3c"></div>
+      <span class="source-name">Kick Drum</span>
+    </div>
+    <div class="source-waveform">
+      <svg class="wave-line" viewBox="0 0 220 20" preserveAspectRatio="none">
+        <polyline points="0,10 10,10 15,3 20,17 25,10 35,10 40,4 45,16 50,10 60,10 65,2 70,18 75,10 85,10 90,5 95,15 100,10 110,10 115,3 120,17 125,10 135,10 140,6 145,14 150,10 160,10 165,4 170,16 175,10 185,10 190,3 195,17 200,10 210,10 215,5 220,10"
+          fill="none" stroke="#e74c3c" stroke-width="1"/>
+      </svg>
+    </div>
+  </div>
+  <div class="source-item">
+    <div class="source-item-header">
+      <div class="source-dot" style="background:#3498db"></div>
+      <span class="source-name">LFO-Sine</span>
+    </div>
+    <div class="source-waveform">
+      <svg class="wave-line" viewBox="0 0 220 20" preserveAspectRatio="none">
+        <path d="M0,10 Q27.5,0 55,10 Q82.5,20 110,10 Q137.5,0 165,10 Q192.5,20 220,10"
+          fill="none" stroke="#3498db" stroke-width="1"/>
+      </svg>
+    </div>
+  </div>
+`;
+
+// ─── BOTTOM: LAYER STRIPS ───
+const bottomBar = document.getElementById('bottomBar');
+
+const strips = [
+  { name:'Impact', knobs:['Blur','Distort','Breathe','Macro','Brake','Wave'], opacity:0.85 },
+  { name:'Tunnel', knobs:['Glow','Warp','Pulse','Echo','Shake','Zoom'], opacity:0.92 },
+];
+
+const footerInfo = `
+  <div style="display:flex; align-items:center; gap:16px; padding:0 12px; color:#666; font-size:9px; border-left:1px solid #2a2a2a; min-width:260px;">
+    <span>Master Sources</span>
+    <span style="color:#888">|</span>
+    <span>Audio Player</span>
+    <span style="color:#888">|</span>
+    <span>FPS: <span style="color:#2ecc71">99.94</span></span>
+    <span style="color:#888">|</span>
+    <span>1080x720</span>
+    <span style="color:#888">|</span>
+    <span style="color:#aaa; font-variant-numeric:tabular-nums;">00:04:12.08</span>
+  </div>
+`;
+
+strips.forEach((s, si) => {
+  const knobsHTML = s.knobs.map((k, ki) => {
+    const isActive = ki === 0 || ki === 3;
+    return `<div class="knob-group">
+      <div class="knob ${isActive ? 'active-knob' : ''}" style="transform:rotate(${-120 + ki * 40}deg)"></div>
+      <span class="knob-label">${k}</span>
+    </div>`;
+  }).join('');
+
+  const strip = document.createElement('div');
+  strip.className = 'bottom-strip';
+  strip.innerHTML = `
+    <div class="strip-label">${s.name}</div>
+    <div class="strip-knobs">${knobsHTML}</div>
+    <div class="strip-opacity">
+      <div class="opacity-slider-v">
+        <div class="opacity-fill-v" style="height:${s.opacity*100}%"></div>
+      </div>
+      <span class="opacity-label">${Math.round(s.opacity*100)}%</span>
+    </div>
+  `;
+  bottomBar.appendChild(strip);
+});
+
+bottomBar.insertAdjacentHTML('beforeend', footerInfo);
+</script>
+</body>
+</html>

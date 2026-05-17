@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v9 — Sidebar Condensed (LIVE)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+  html, body {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+    font-size: 11px;
+    width: 1920px;
+    height: 1200px;
+    overflow: hidden;
+  }
+  .mono { font-family: 'IBM Plex Mono', 'SF Mono', Menlo, monospace; }
+  .mint { color: #5fdba7; }
+  .gray { color: #888; }
+  .warn { color: #ff4040; }
+  .app {
+    width: 1920px;
+    height: 1200px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    background: #1a1a1a;
+  }
+  /* Grain overlay */
+  .grain {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.5 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>");
+  }
+
+  /* ===== TOP BAR 44px ===== */
+  .topbar {
+    height: 44px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: #e0e0e0;
+  }
+  .logo .dot { color: #5fdba7; }
+  .bpm-big {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    color: #5fdba7;
+    line-height: 1;
+  }
+  .bpm-big sub { font-size: 10px; color: #888; font-weight: 400; margin-left: 4px; }
+  .stat {
+    display: flex; flex-direction: column;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1.15;
+  }
+  .stat .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat .val { font-size: 14px; color: #e0e0e0; }
+  .pill-mint {
+    background: #5fdba7;
+    color: #0a0a0a;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    letter-spacing: 1px;
+  }
+  .beatwheel {
+    width: 28px; height: 28px; position: relative;
+  }
+  .transport-ico {
+    width: 24px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #888;
+    font-size: 11px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+  }
+  .transport-ico.active { color: #5fdba7; border-color: #5fdba7; }
+  .spacer { flex: 1; }
+  .mode-tabs { display: flex; gap: 0; }
+  .mode-tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 8px 14px;
+    color: #888;
+    border-bottom: 2px solid transparent;
+    letter-spacing: 1px;
+  }
+  .mode-tab.active { color: #5fdba7; border-bottom-color: #5fdba7; }
+  .rec-dot { width: 10px; height: 10px; background: #ff4040; display: inline-block; border-radius: 50% !important; }
+  .fps { font-family: 'IBM Plex Mono', monospace; color: #888; font-size: 11px; }
+
+  /* ===== TRANSPORT STRIP 32px ===== */
+  .transport-strip {
+    height: 32px;
+    background: #222;
+    border-bottom: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .tbtn {
+    height: 22px;
+    min-width: 22px;
+    padding: 0 7px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tbtn.mint { color: #5fdba7; border-color: #5fdba7; }
+  .tbtn.gray { color: #888; }
+  .tbpm {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: #5fdba7;
+    padding: 0 10px;
+    font-weight: 600;
+  }
+
+  /* ===== SIGNAL BAR 22px ===== */
+  .signal-bar {
+    height: 22px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #888;
+    flex-shrink: 0;
+    gap: 6px;
+  }
+  .signal-bar span.v { color: #e0e0e0; }
+  .signal-bar span.m { color: #5fdba7; }
+  .sep { color: #383838; }
+
+  /* ===== MAIN BODY ===== */
+  .body {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+
+  /* ===== LEFT SIDEBAR 70px ===== */
+  .sidebar {
+    width: 70px;
+    background: #2a2a2a;
+    border-right: 1px solid #3a3a3a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 0;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .sb-block {
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .sb-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 8px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .vu {
+    width: 30px;
+    height: 60px;
+    display: flex;
+    gap: 3px;
+    justify-content: center;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    padding: 3px;
+  }
+  .vu-ch {
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(to top,
+      #5fdba7 0%, #5fdba7 55%,
+      #888 55%, #888 80%,
+      #3a3a3a 80%, #3a3a3a 100%);
+    position: relative;
+  }
+  .vu-ch::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 55%;
+    background: #1a1a1a;
+  }
+  .vu-ch.r::after { bottom: 48%; }
+
+  .vslider {
+    width: 30px;
+    height: 80px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    position: relative;
+  }
+  .vslider::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 0;
+    height: 62%;
+    background: #5fdba7;
+    opacity: 0.25;
+  }
+  .vslider::after {
+    content: '';
+    position: absolute;
+    left: -2px; right: -2px;
+    bottom: 62%;
+    height: 2px;
+    background: #5fdba7;
+  }
+  .xfader {
+    width: 40px;
+    height: 60px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    position: relative;
+  }
+  .xfader::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 0;
+    width: 48%;
+    background: #5fdba7;
+    opacity: 0.18;
+  }
+  .xfader::after {
+    content: '';
+    position: absolute;
+    top: -2px; bottom: -2px;
+    left: 48%;
+    width: 2px;
+    background: #5fdba7;
+  }
+
+  .ico-sq {
+    width: 32px; height: 32px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e0e0e0;
+  }
+  .ico-sq.mint { border-color: #5fdba7; color: #5fdba7; }
+  .ico-sq.red { border-color: #ff4040; color: #ff4040; }
+
+  .mini-bpm {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: #5fdba7;
+    line-height: 1;
+  }
+  .pulse {
+    width: 18px; height: 18px;
+    background: #5fdba7;
+    border-radius: 50% !important;
+    opacity: 0.9;
+    box-shadow: 0 0 0 3px rgba(95,219,167,0.15);
+  }
+  .mode-btn {
+    width: 60px; height: 26px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 1px;
+  }
+  .mode-btn.active {
+    color: #5fdba7;
+    border-color: #5fdba7;
+    background: rgba(95,219,167,0.08);
+  }
+  .sb-divider {
+    width: 46px;
+    height: 1px;
+    background: #3a3a3a;
+    margin: 2px 0;
+  }
+
+  /* ===== CENTER CLIP GRID ===== */
+  .center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1a1a1a;
+    min-width: 0;
+  }
+  .col-headers {
+    height: 30px;
+    display: flex;
+    background: #222;
+    border-bottom: 1px solid #3a3a3a;
+  }
+  .col-headers .left-pad {
+    width: 120px;
+    border-right: 1px solid #3a3a3a;
+    background: #252525;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 1px;
+  }
+  .col-hdr {
+    flex: 1;
+    min-width: 0;
+    border-right: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 0.5px;
+    padding: 0 4px;
+  }
+  .col-hdr .trig {
+    width: 16px; height: 16px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #5fdba7;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+  }
+  .grid-scroll {
+    flex: 1;
+    overflow: auto;
+  }
+  .layer-row {
+    display: flex;
+    height: 82px;
+    border-bottom: 1px solid #383838;
+  }
+  .layer-strip {
+    width: 120px;
+    background: #252525;
+    border-right: 1px solid #3a3a3a;
+    padding: 4px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .ls-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #e0e0e0;
+  }
+  .ls-top .x { color: #888; font-size: 10px; }
+  .ls-btns {
+    display: flex;
+    gap: 2px;
+  }
+  .ls-btn {
+    width: 16px; height: 14px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ls-btn.on { color: #5fdba7; border-color: #5fdba7; }
+  .ls-opacity {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: #888;
+  }
+  .hslider {
+    flex: 1;
+    height: 4px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    position: relative;
+  }
+  .hslider::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: #5fdba7;
+    opacity: 0.25;
+  }
+  .hslider::after {
+    content: '';
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 2px;
+    background: #5fdba7;
+  }
+  .hslider.v70::before { width: 70%; } .hslider.v70::after { left: 70%; }
+  .hslider.v100::before { width: 100%; } .hslider.v100::after { left: 100%; }
+  .hslider.v50::before { width: 50%; } .hslider.v50::after { left: 50%; }
+  .hslider.v85::before { width: 85%; } .hslider.v85::after { left: 85%; }
+  .hslider.v40::before { width: 40%; } .hslider.v40::after { left: 40%; }
+  .hslider.v60::before { width: 60%; } .hslider.v60::after { left: 60%; }
+  .hslider.v25::before { width: 25%; } .hslider.v25::after { left: 25%; }
+  .hslider.v80::before { width: 80%; } .hslider.v80::after { left: 80%; }
+
+  .ls-blend {
+    height: 16px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ls-blend .arr { color: #888; }
+
+  .grid-cells {
+    flex: 1;
+    display: flex;
+    min-width: 0;
+  }
+  .cell {
+    flex: 1;
+    min-width: 0;
+    border-right: 1px solid #3a3a3a;
+    background: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .cell-body {
+    flex: 1;
+    display: flex;
+    position: relative;
+    min-height: 0;
+  }
+  .cell-wave {
+    width: 6px;
+    background: #252525;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .cell-wave svg { width: 100%; height: 100%; display: block; }
+  .cell-thumb {
+    flex: 1;
+    background: #0e0e0e;
+    position: relative;
+    overflow: hidden;
+  }
+  .cell-thumb svg { width: 100%; height: 100%; display: block; }
+  .cell-name {
+    height: 14px;
+    background: #222;
+    border-top: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: #e0e0e0;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cell.playing { background: rgba(95,219,167,0.18); outline: 2px solid #5fdba7; outline-offset: -2px; z-index: 1; }
+  .cell.playing .cell-name { background: #5fdba7; color: #0a0a0a; font-weight: 700; }
+  .cell.playing .cell-wave { background: #5fdba7; }
+  .cell.queued { outline: 1px dashed #5fdba7; outline-offset: -1px; }
+  .cell.queued .cell-name { color: #5fdba7; }
+  .cell.selected { outline: 1px solid #5fdba7; outline-offset: -1px; }
+  .cell.empty { background: #141414; }
+  .cell.empty .cell-body { border: 1px dashed #333; margin: 3px; }
+  .cell.empty .cell-thumb { background: transparent; }
+  .cell.empty .cell-name { background: #0e0e0e; color: #555; }
+  .cell.empty .cell-wave { background: transparent; }
+
+  /* column trigger row */
+  .col-trig-row {
+    height: 22px;
+    display: flex;
+    background: #1e1e1e;
+    border-top: 1px solid #3a3a3a;
+  }
+  .col-trig-row .left-pad {
+    width: 120px;
+    border-right: 1px solid #3a3a3a;
+    background: #252525;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 1px;
+  }
+  .col-trig {
+    flex: 1;
+    min-width: 0;
+    border-right: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5fdba7;
+    font-size: 11px;
+  }
+
+  /* ===== RIGHT PANEL 280px ===== */
+  .right {
+    width: 280px;
+    background: #2a2a2a;
+    border-left: 1px solid #3a3a3a;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .insp-tabs {
+    display: flex;
+    background: #222;
+    border-bottom: 1px solid #3a3a3a;
+    height: 28px;
+  }
+  .insp-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 1px;
+    border-right: 1px solid #3a3a3a;
+    border-bottom: 2px solid transparent;
+  }
+  .insp-tab.active {
+    color: #5fdba7;
+    border-bottom-color: #5fdba7;
+    background: #2a2a2a;
+  }
+  .insp-tab:last-child { border-right: none; }
+
+  .section {
+    border-bottom: 1px solid #383838;
+  }
+  .section-hdr {
+    height: 24px;
+    background: #222;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #e0e0e0;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: relative;
+  }
+  .section-hdr.routed::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: #5fdba7;
+  }
+  .section-hdr .tri {
+    color: #888;
+    margin-right: 6px;
+    font-size: 8px;
+  }
+  .section-hdr .p-btn {
+    margin-left: auto;
+    font-size: 9px;
+    color: #888;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    padding: 1px 4px;
+  }
+  .section-body {
+    padding: 8px;
+  }
+
+  /* dashboard knobs */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .knob {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+  .knob-dial {
+    width: 36px; height: 36px;
+    border: 2px solid #3a3a3a;
+    border-radius: 50% !important;
+    position: relative;
+    background: #1a1a1a;
+  }
+  .knob-dial::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    width: 2px;
+    height: 12px;
+    background: #5fdba7;
+    transform-origin: center 16px;
+    transform: translateX(-50%) rotate(var(--a, -110deg));
+  }
+  .knob-lbl {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: #888;
+    letter-spacing: 0.5px;
+  }
+  .knob-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: #e0e0e0;
+  }
+
+  /* insp rows */
+  .insp-row {
+    display: flex;
+    align-items: center;
+    height: 22px;
+    gap: 4px;
+    margin-bottom: 3px;
+  }
+  .insp-row .lbl {
+    width: 84px;
+    text-align: right;
+    color: #888;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+  }
+  .insp-row .val {
+    width: 46px;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+  }
+  .insp-row .pm {
+    width: 14px; height: 14px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .insp-row .bar {
+    flex: 1;
+    height: 4px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    position: relative;
+  }
+  .insp-row .bar::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: #5fdba7;
+    opacity: 0.25;
+  }
+  .insp-row .bar::after {
+    content: '';
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 2px;
+    background: #5fdba7;
+  }
+  .insp-row .bar.v60::before { width: 60%; } .insp-row .bar.v60::after { left: 60%; }
+  .insp-row .bar.v100::before { width: 100%; } .insp-row .bar.v100::after { left: 100%; }
+  .insp-row .bar.v50::before { width: 50%; } .insp-row .bar.v50::after { left: 50%; }
+  .insp-row .bar.v75::before { width: 75%; } .insp-row .bar.v75::after { left: 75%; }
+  .insp-row .bar.v30::before { width: 30%; } .insp-row .bar.v30::after { left: 30%; }
+  .insp-row .bar.v45::before { width: 45%; } .insp-row .bar.v45::after { left: 45%; }
+  .insp-row .bar.v85::before { width: 85%; } .insp-row .bar.v85::after { left: 85%; }
+  .insp-row .bar.v20::before { width: 20%; } .insp-row .bar.v20::after { left: 20%; }
+  .insp-row .pbtn {
+    width: 16px; height: 14px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .insp-row .dd {
+    flex: 1;
+    height: 16px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #e0e0e0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .insp-row .dd .arr { color: #888; }
+
+  /* effect list */
+  .fx-item {
+    display: flex;
+    align-items: center;
+    height: 22px;
+    border-top: 1px solid #383838;
+    padding: 0 6px;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+  }
+  .fx-item .nm { flex: 1; color: #e0e0e0; }
+  .fx-btn {
+    width: 16px; height: 14px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-size: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .fx-btn.on { color: #5fdba7; border-color: #5fdba7; }
+
+  /* ===== BOTTOM 100px ===== */
+  .bottom {
+    height: 100px;
+    background: #222;
+    border-top: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+  .beatwheel-big {
+    width: 80px; height: 80px;
+    position: relative;
+  }
+  .dash-knobs-bottom {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .knob-b { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .knob-b .d {
+    width: 40px; height: 40px;
+    border: 2px solid #3a3a3a;
+    border-radius: 50% !important;
+    position: relative;
+    background: #1a1a1a;
+  }
+  .knob-b .d::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    width: 2px;
+    height: 14px;
+    background: #5fdba7;
+    transform-origin: center 18px;
+    transform: translateX(-50%) rotate(var(--a, -100deg));
+  }
+  .knob-b .l {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: #888;
+    letter-spacing: 0.5px;
+  }
+  .scenes {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+  .scene {
+    width: 84px; height: 32px;
+    background: #1a1a1a;
+    border: 1px solid #3a3a3a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #e0e0e0;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  .scene.active { border-color: #5fdba7; color: #5fdba7; background: rgba(95,219,167,0.08); }
+  .scene.drop { background: #5fdba7; color: #0a0a0a; border-color: #5fdba7; }
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="grain"></div>
+
+  <!-- ===== TOP BAR ===== -->
+  <div class="topbar">
+    <div class="logo">AUDIO<span class="dot">&bull;</span>DNA</div>
+    <div class="bpm-big">128<sub>BPM</sub></div>
+    <div class="stat"><span class="lbl">BAR</span><span class="val">47</span></div>
+    <div class="stat"><span class="lbl">PHRASE</span><span class="val">3/8</span></div>
+    <div class="pill-mint">DROP</div>
+    <div class="beatwheel">
+      <svg width="28" height="28" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="12" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+        <path d="M14,2 A12,12 0 0,1 26,14 L14,14 Z" fill="#5fdba7"/>
+        <path d="M26,14 A12,12 0 0,1 14,26 L14,14 Z" fill="#2a7a5c"/>
+        <circle cx="14" cy="14" r="2" fill="#1a1a1a"/>
+      </svg>
+    </div>
+    <div class="transport-ico active">&#9656;</div>
+    <div class="transport-ico">&#10074;&#10074;</div>
+    <div class="transport-ico">&#9632;</div>
+    <div class="stat"><span class="lbl">QUANTIZE</span><span class="val">1/4</span></div>
+    <div class="stat"><span class="lbl">FADE</span><span class="val mono">0.5s</span></div>
+    <div class="stat"><span class="lbl">MASTER</span><span class="val mono">0.92</span></div>
+    <div class="spacer"></div>
+    <div class="stat"><span class="lbl">REC</span><span class="val"><span class="rec-dot"></span></span></div>
+    <div class="fps mono">60.0 FPS</div>
+    <div class="mode-tabs">
+      <div class="mode-tab active">LIVE</div>
+      <div class="mode-tab">PROGRAM</div>
+      <div class="mode-tab">SETUP</div>
+    </div>
+  </div>
+
+  <!-- ===== TRANSPORT STRIP ===== -->
+  <div class="transport-strip">
+    <div class="tbtn mint">&#9656;</div>
+    <div class="tbtn">&#10074;&#10074;</div>
+    <div class="tbtn">&#9632;</div>
+    <div class="tbpm">128</div>
+    <div class="tbtn">&minus;</div>
+    <div class="tbtn">+</div>
+    <div class="tbtn">|&#9666;</div>
+    <div class="tbtn">&#9656;|</div>
+    <div class="tbtn">/2</div>
+    <div class="tbtn">&times;2</div>
+    <div class="tbtn mint">TAP</div>
+    <div class="tbtn">RESYNC</div>
+    <div class="tbtn">&#9835;</div>
+    <div class="tbtn">&#8630;</div>
+    <div class="tbtn">&#8631;</div>
+    <div class="spacer"></div>
+    <div class="tbtn gray">DECK A &middot; COMPOSITION: "DARK ROOM"</div>
+  </div>
+
+  <!-- ===== SIGNAL BAR ===== -->
+  <div class="signal-bar mono">
+    <span>RMS <span class="v">0.73</span></span><span class="sep">&#9474;</span>
+    <span>PEAK <span class="v">0.91</span></span><span class="sep">&#9474;</span>
+    <span>LUFS <span class="v">-12.4</span></span><span class="sep">&#9474;</span>
+    <span>FLUX <span class="v">0.42</span></span><span class="sep">&#9474;</span>
+    <span>CENTROID <span class="v">2.8k</span></span><span class="sep">&#9474;</span>
+    <span>BASS <span class="m">0.88</span></span><span class="sep">&#9474;</span>
+    <span>MID <span class="v">0.45</span></span><span class="sep">&#9474;</span>
+    <span>HIGH <span class="v">0.31</span></span><span class="sep">&#9474;</span>
+    <span>BPM <span class="m">128</span></span><span class="sep">&#9474;</span>
+    <span>KEY <span class="v">Am</span></span><span class="sep">&#9474;</span>
+    <span>GENRE <span class="m">TECHNO</span></span><span class="sep">&#9474;</span>
+    <span>PITCH <span class="v">220Hz</span></span><span class="sep">&#9474;</span>
+    <span>ONSETS <span class="v">4.2/s</span></span><span class="sep">&#9474;</span>
+    <span>CREST <span class="v">2.1</span></span><span class="sep">&#9474;</span>
+    <span>FLAT <span class="v">0.28</span></span>
+  </div>
+
+  <!-- ===== BODY ===== -->
+  <div class="body">
+
+    <!-- ===== SIDEBAR 70px ===== -->
+    <div class="sidebar">
+
+      <div class="sb-block">
+        <div class="vu"><div class="vu-ch"></div><div class="vu-ch r"></div></div>
+        <div class="sb-label">VU</div>
+      </div>
+
+      <div class="sb-block">
+        <div class="vslider"></div>
+        <div class="sb-label">MASTER</div>
+      </div>
+
+      <div class="sb-block">
+        <div class="xfader"></div>
+        <div class="sb-label">X-FADE</div>
+      </div>
+
+      <div class="sb-divider"></div>
+
+      <div class="sb-block">
+        <div class="ico-sq mint">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <rect x="5" y="2" width="6" height="8"/>
+            <path d="M3 8 v2 a5 5 0 0 0 10 0 v-2"/>
+            <path d="M8 13 v2"/>
+          </svg>
+        </div>
+        <div class="sb-label">MIC <span class="mint">&bull;</span></div>
+      </div>
+
+      <div class="sb-block">
+        <div class="mini-bpm mono">128</div>
+        <div class="sb-label">BPM</div>
+      </div>
+
+      <div class="sb-block">
+        <div class="pulse"></div>
+        <div class="sb-label">BEAT</div>
+      </div>
+
+      <div class="sb-divider"></div>
+
+      <div class="sb-block">
+        <div class="mode-btn active">A</div>
+      </div>
+      <div class="sb-block">
+        <div class="mode-btn">B</div>
+      </div>
+      <div class="sb-block">
+        <div class="mode-btn">M</div>
+        <div class="sb-label">DECK</div>
+      </div>
+
+      <div class="sb-divider"></div>
+
+      <div class="sb-block">
+        <div class="ico-sq red">
+          <svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="#ff4040"/></svg>
+        </div>
+        <div class="sb-label">REC</div>
+      </div>
+
+      <div class="sb-block">
+        <div class="ico-sq">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4">
+            <rect x="2" y="5" width="14" height="10"/>
+            <path d="M6 5 L7 3 h4 L12 5"/>
+            <circle cx="9" cy="10" r="3"/>
+          </svg>
+        </div>
+        <div class="sb-label">SNAP</div>
+      </div>
+
+      <div class="sb-block">
+        <div class="ico-sq">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M2 6 V2 h4 M10 2 h4 v4 M14 10 v4 h-4 M6 14 H2 v-4"/>
+          </svg>
+        </div>
+        <div class="sb-label">FULL</div>
+      </div>
+
+    </div>
+
+    <!-- ===== CENTER CLIP GRID ===== -->
+    <div class="center">
+
+      <!-- Column headers -->
+      <div class="col-headers">
+        <div class="left-pad">LAYERS &darr;</div>
+        <div class="col-hdr"><span class="trig">&#9656;</span>COLUMN 1</div>
+        <div class="col-hdr"><span class="trig">&#9656;</span>COLUMN 2</div>
+        <div class="col-hdr"><span class="trig">&#9656;</span>COLUMN 3</div>
+        <div class="col-hdr"><span class="trig">&#9656;</span>COLUMN 4</div>
+        <div class="col-hdr"><span class="trig">&#9656;</span>COLUMN 5</div>
+        <div class="col-hdr"><span class="trig">&#9656;</span>COLUMN 6</div>
+        <div class="col-hdr"><span class="trig">&#9656;</span>COLUMN 7</div>
+        <div class="col-hdr"><span class="trig">&#9656;</span>COLUMN 8</div>
+      </div>
+
+      <div class="grid-scroll">
+
+        <!-- LAYER 5 (top, FX) -->
+        <div class="layer-row">
+          <div class="layer-strip">
+            <div class="ls-top"><span>L5 &middot; FX</span><span class="x">&times;</span></div>
+            <div class="ls-btns">
+              <div class="ls-btn">M</div><div class="ls-btn">S</div><div class="ls-btn on">V</div>
+              <div class="ls-btn on">B</div><div class="ls-btn">A</div>
+            </div>
+            <div class="ls-opacity"><span>OPA</span><div class="hslider v50"></div><span>50</span></div>
+            <div class="ls-blend"><span>Screen</span><span class="arr">&#9662;</span></div>
+          </div>
+          <div class="grid-cells">
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="10" width="4" height="5" fill="#666"/><rect x="1" y="22" width="4" height="8" fill="#666"/><rect x="1" y="40" width="4" height="12" fill="#666"/><rect x="1" y="60" width="4" height="6" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.4" fill="none"><path d="M0 20 Q25 5 50 20 T100 20"/><path d="M0 33 Q25 18 50 33 T100 33"/><path d="M0 46 Q25 31 50 46 T100 46"/></g></svg></div>
+              </div>
+              <div class="cell-name">Trails</div>
+            </div>
+            <div class="cell playing">
+              <div class="cell-body">
+                <div class="cell-wave"></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="#5fdba7"><circle cx="30" cy="33" r="3"/><circle cx="50" cy="33" r="6"/><circle cx="72" cy="33" r="4"/></g><g stroke="#5fdba7" stroke-width="0.4" fill="none" opacity="0.5"><circle cx="50" cy="33" r="14"/><circle cx="50" cy="33" r="22"/></g></svg></div>
+              </div>
+              <div class="cell-name">Metaballs</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="5" width="4" height="10" fill="#666"/><rect x="1" y="30" width="4" height="6" fill="#666"/><rect x="1" y="50" width="4" height="18" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.3"><line x1="0" y1="0" x2="100" y2="66"/><line x1="100" y1="0" x2="0" y2="66"/><line x1="50" y1="0" x2="50" y2="66"/><line x1="0" y1="33" x2="100" y2="33"/></g></svg></div>
+              </div>
+              <div class="cell-name">Grid X</div>
+            </div>
+            <div class="cell empty"><div class="cell-body"><div class="cell-wave"></div><div class="cell-thumb"></div></div><div class="cell-name">&mdash;</div></div>
+            <div class="cell queued">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="15" width="4" height="8" fill="#5fdba7"/><rect x="1" y="35" width="4" height="14" fill="#5fdba7"/><rect x="1" y="58" width="4" height="7" fill="#5fdba7"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="#888"><circle cx="20" cy="20" r="1"/><circle cx="40" cy="30" r="1.5"/><circle cx="60" cy="15" r="1"/><circle cx="80" cy="45" r="2"/><circle cx="25" cy="50" r="1.5"/><circle cx="55" cy="55" r="1"/><circle cx="75" cy="25" r="1"/><circle cx="15" cy="38" r="1"/><circle cx="90" cy="35" r="1.2"/></g></svg></div>
+              </div>
+              <div class="cell-name">Particles</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="20" width="4" height="5" fill="#666"/><rect x="1" y="40" width="4" height="12" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.3" fill="none"><path d="M0 33 L100 33"/><path d="M0 23 Q50 3 100 23"/><path d="M0 43 Q50 63 100 43"/></g></svg></div>
+              </div>
+              <div class="cell-name">Flux</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="10" width="4" height="20" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.3" fill="none"><circle cx="50" cy="33" r="8"/><circle cx="50" cy="33" r="14"/><circle cx="50" cy="33" r="20"/><circle cx="50" cy="33" r="26"/></g></svg></div>
+              </div>
+              <div class="cell-name">Rings</div>
+            </div>
+            <div class="cell empty"><div class="cell-body"><div class="cell-wave"></div><div class="cell-thumb"></div></div><div class="cell-name">&mdash;</div></div>
+          </div>
+        </div>
+
+        <!-- LAYER 4 -->
+        <div class="layer-row">
+          <div class="layer-strip">
+            <div class="ls-top"><span>L4 &middot; TXT</span><span class="x">&times;</span></div>
+            <div class="ls-btns">
+              <div class="ls-btn">M</div><div class="ls-btn">S</div><div class="ls-btn on">V</div>
+              <div class="ls-btn">B</div><div class="ls-btn on">A</div>
+            </div>
+            <div class="ls-opacity"><span>OPA</span><div class="hslider v70"></div><span>70</span></div>
+            <div class="ls-blend"><span>Add</span><span class="arr">&#9662;</span></div>
+          </div>
+          <div class="grid-cells">
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="30" width="4" height="20" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><text x="50" y="40" font-family="monospace" font-size="14" font-weight="700" fill="#888" text-anchor="middle">DROP</text></svg></div>
+              </div>
+              <div class="cell-name">Text Drop</div>
+            </div>
+            <div class="cell selected">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="15" width="4" height="10" fill="#888"/><rect x="1" y="35" width="4" height="15" fill="#888"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><text x="50" y="38" font-family="monospace" font-size="10" fill="#888" text-anchor="middle" letter-spacing="2">SIGNAL</text><text x="50" y="52" font-family="monospace" font-size="7" fill="#666" text-anchor="middle">0x2C1A</text></svg></div>
+              </div>
+              <div class="cell-name">Signal</div>
+            </div>
+            <div class="cell playing">
+              <div class="cell-body">
+                <div class="cell-wave"></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><text x="50" y="30" font-family="monospace" font-size="8" fill="#5fdba7" text-anchor="middle">TECHNO</text><text x="50" y="42" font-family="monospace" font-size="6" fill="#5fdba7" text-anchor="middle" opacity="0.7">128 BPM</text><text x="50" y="52" font-family="monospace" font-size="5" fill="#5fdba7" text-anchor="middle" opacity="0.5">A MINOR</text></svg></div>
+              </div>
+              <div class="cell-name">Techno ID</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="20" width="4" height="8" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g font-family="monospace" font-size="5" fill="#666"><text x="5" y="10">01 FF A3</text><text x="5" y="20">2C B1 09</text><text x="5" y="30">E4 77 31</text><text x="5" y="40">8B 1C D2</text><text x="5" y="50">F0 44 6A</text><text x="5" y="60">9D 23 BE</text></g></svg></div>
+              </div>
+              <div class="cell-name">Data</div>
+            </div>
+            <div class="cell empty"><div class="cell-body"><div class="cell-wave"></div><div class="cell-thumb"></div></div><div class="cell-name">&mdash;</div></div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="25" width="4" height="10" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><text x="50" y="40" font-family="serif" font-style="italic" font-size="16" fill="#888" text-anchor="middle">Zen</text></svg></div>
+              </div>
+              <div class="cell-name">Zen</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="10" width="4" height="8" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><text x="50" y="25" font-family="monospace" font-size="5" fill="#888" text-anchor="middle">CYCLE 047</text><text x="50" y="40" font-family="monospace" font-size="10" fill="#e0e0e0" text-anchor="middle" font-weight="700">128</text><text x="50" y="52" font-family="monospace" font-size="4" fill="#666" text-anchor="middle">&#9656; LOOP</text></svg></div>
+              </div>
+              <div class="cell-name">Cycle</div>
+            </div>
+            <div class="cell empty"><div class="cell-body"><div class="cell-wave"></div><div class="cell-thumb"></div></div><div class="cell-name">&mdash;</div></div>
+          </div>
+        </div>
+
+        <!-- LAYER 3 -->
+        <div class="layer-row">
+          <div class="layer-strip">
+            <div class="ls-top"><span>L3 &middot; 3D</span><span class="x">&times;</span></div>
+            <div class="ls-btns">
+              <div class="ls-btn">M</div><div class="ls-btn">S</div><div class="ls-btn on">V</div>
+              <div class="ls-btn on">B</div><div class="ls-btn">A</div>
+            </div>
+            <div class="ls-opacity"><span>OPA</span><div class="hslider v85"></div><span>85</span></div>
+            <div class="ls-blend"><span>Alpha</span><span class="arr">&#9662;</span></div>
+          </div>
+          <div class="grid-cells">
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="5" width="4" height="25" fill="#666"/><rect x="1" y="40" width="4" height="20" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#888" stroke-width="0.3"><ellipse cx="50" cy="33" rx="25" ry="15"/><ellipse cx="50" cy="33" rx="25" ry="15" transform="rotate(60 50 33)"/><ellipse cx="50" cy="33" rx="25" ry="15" transform="rotate(-60 50 33)"/></g></svg></div>
+              </div>
+              <div class="cell-name">Torus A</div>
+            </div>
+            <div class="cell playing">
+              <div class="cell-body">
+                <div class="cell-wave"></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#5fdba7" stroke-width="0.5"><path d="M50 33 L20 10 L80 10 Z"/><path d="M50 33 L20 56 L80 56 Z"/><path d="M50 33 L20 10 L20 56 Z"/><path d="M50 33 L80 10 L80 56 Z"/><path d="M20 10 L80 10 L80 56 L20 56 Z"/></g><circle cx="50" cy="33" r="2" fill="#5fdba7"/></svg></div>
+              </div>
+              <div class="cell-name">Mandala</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="20" width="4" height="12" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#888" stroke-width="0.3"><path d="M0 33 Q25 20 50 33 Q75 46 100 33"/><path d="M0 25 Q25 12 50 25 Q75 38 100 25"/><path d="M0 41 Q25 28 50 41 Q75 54 100 41"/><path d="M0 17 Q25 4 50 17 Q75 30 100 17"/><path d="M0 49 Q25 36 50 49 Q75 62 100 49"/></g></svg></div>
+              </div>
+              <div class="cell-name">Line Scape</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="10" width="4" height="8" fill="#666"/><rect x="1" y="30" width="4" height="20" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#888" stroke-width="0.3"><polygon points="50,10 30,25 35,50 65,50 70,25"/><polygon points="50,18 38,28 40,45 60,45 62,28"/><polygon points="50,26 42,32 45,40 55,40 58,32"/></g></svg></div>
+              </div>
+              <div class="cell-name">Fractal</div>
+            </div>
+            <div class="cell queued">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="15" width="4" height="10" fill="#5fdba7"/><rect x="1" y="40" width="4" height="18" fill="#5fdba7"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#888" stroke-width="0.3"><circle cx="50" cy="33" r="5"/><circle cx="50" cy="33" r="11"/><circle cx="50" cy="33" r="17"/><circle cx="50" cy="33" r="23"/><circle cx="50" cy="33" r="29"/></g></svg></div>
+              </div>
+              <div class="cell-name">Spinner</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="20" width="4" height="8" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#888" stroke-width="0.3"><path d="M20 10 L80 10 L80 56 L20 56 Z"/><path d="M30 18 L70 18 L70 48 L30 48 Z"/><path d="M40 26 L60 26 L60 40 L40 40 Z"/><path d="M20 10 L40 26 M80 10 L60 26 M20 56 L40 40 M80 56 L60 40"/></g></svg></div>
+              </div>
+              <div class="cell-name">Voxel</div>
+            </div>
+            <div class="cell empty"><div class="cell-body"><div class="cell-wave"></div><div class="cell-thumb"></div></div><div class="cell-name">&mdash;</div></div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="30" width="4" height="10" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#888" stroke-width="0.3"><path d="M50 5 L50 60" /><path d="M20 33 L80 33"/><circle cx="50" cy="33" r="8"/><circle cx="50" cy="33" r="16"/><path d="M32 18 L68 48 M68 18 L32 48"/></g></svg></div>
+              </div>
+              <div class="cell-name">Axis</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LAYER 2 -->
+        <div class="layer-row">
+          <div class="layer-strip">
+            <div class="ls-top"><span>L2 &middot; GEN</span><span class="x">&times;</span></div>
+            <div class="ls-btns">
+              <div class="ls-btn">M</div><div class="ls-btn">S</div><div class="ls-btn on">V</div>
+              <div class="ls-btn on">B</div><div class="ls-btn">A</div>
+            </div>
+            <div class="ls-opacity"><span>OPA</span><div class="hslider v100"></div><span>100</span></div>
+            <div class="ls-blend"><span>Overlay</span><span class="arr">&#9662;</span></div>
+          </div>
+          <div class="grid-cells">
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="5" width="4" height="14" fill="#666"/><rect x="1" y="25" width="4" height="10" fill="#666"/><rect x="1" y="45" width="4" height="15" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.25" fill="none"><polygon points="10,10 90,15 85,55 15,50"/><polygon points="25,20 75,25 72,45 28,42"/><polygon points="40,28 60,30 58,38 42,37"/></g></svg></div>
+              </div>
+              <div class="cell-name">Voronoi</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="20" width="4" height="8" fill="#666"/><rect x="1" y="40" width="4" height="12" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="#888"><rect x="5" y="5" width="2" height="2"/><rect x="15" y="10" width="2" height="2"/><rect x="25" y="7" width="2" height="2"/><rect x="35" y="12" width="2" height="2"/><rect x="45" y="8" width="2" height="2"/><rect x="55" y="14" width="2" height="2"/><rect x="65" y="9" width="2" height="2"/><rect x="75" y="13" width="2" height="2"/><rect x="85" y="7" width="2" height="2"/><rect x="5" y="30" width="2" height="2"/><rect x="20" y="28" width="2" height="2"/><rect x="40" y="32" width="2" height="2"/><rect x="60" y="29" width="2" height="2"/><rect x="80" y="31" width="2" height="2"/><rect x="10" y="50" width="2" height="2"/><rect x="30" y="52" width="2" height="2"/><rect x="50" y="48" width="2" height="2"/><rect x="70" y="51" width="2" height="2"/><rect x="90" y="49" width="2" height="2"/></g></svg></div>
+              </div>
+              <div class="cell-name">Noise</div>
+            </div>
+            <div class="cell playing">
+              <div class="cell-body">
+                <div class="cell-wave"></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="#5fdba7"><rect x="2" y="50" width="5" height="12"/><rect x="10" y="40" width="5" height="22"/><rect x="18" y="30" width="5" height="32"/><rect x="26" y="20" width="5" height="42"/><rect x="34" y="10" width="5" height="52"/><rect x="42" y="15" width="5" height="47"/><rect x="50" y="25" width="5" height="37"/><rect x="58" y="35" width="5" height="27"/><rect x="66" y="28" width="5" height="34"/><rect x="74" y="38" width="5" height="24"/><rect x="82" y="45" width="5" height="17"/><rect x="90" y="52" width="5" height="10"/></g></svg></div>
+              </div>
+              <div class="cell-name">Spectrum</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="20" width="4" height="8" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><polyline points="0,33 5,20 10,45 15,25 20,40 25,15 30,50 35,22 40,43 45,18 50,48 55,20 60,45 65,25 70,40 75,15 80,50 85,22 90,43 95,18 100,33" stroke="#888" stroke-width="0.5" fill="none"/></svg></div>
+              </div>
+              <div class="cell-name">Waveform</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="10" width="4" height="15" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.3" fill="none"><line x1="10" y1="10" x2="10" y2="56"/><line x1="20" y1="10" x2="20" y2="56"/><line x1="30" y1="10" x2="30" y2="56"/><line x1="40" y1="10" x2="40" y2="56"/><line x1="50" y1="10" x2="50" y2="56"/><line x1="60" y1="10" x2="60" y2="56"/><line x1="70" y1="10" x2="70" y2="56"/><line x1="80" y1="10" x2="80" y2="56"/><line x1="90" y1="10" x2="90" y2="56"/></g></svg></div>
+              </div>
+              <div class="cell-name">Lines</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="25" width="4" height="8" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="#888"><circle cx="50" cy="33" r="1"/><circle cx="35" cy="20" r="1"/><circle cx="65" cy="20" r="1"/><circle cx="25" cy="33" r="1"/><circle cx="75" cy="33" r="1"/><circle cx="35" cy="46" r="1"/><circle cx="65" cy="46" r="1"/><circle cx="50" cy="10" r="1"/><circle cx="50" cy="56" r="1"/><circle cx="20" cy="15" r="1"/><circle cx="80" cy="15" r="1"/><circle cx="20" cy="51" r="1"/><circle cx="80" cy="51" r="1"/></g></svg></div>
+              </div>
+              <div class="cell-name">Beat 003</div>
+            </div>
+            <div class="cell queued">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="30" width="4" height="20" fill="#5fdba7"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.4" fill="none"><path d="M20 50 Q35 20 50 50 Q65 20 80 50"/><path d="M15 55 Q35 25 50 55 Q65 25 85 55"/></g></svg></div>
+              </div>
+              <div class="cell-name">Northern</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="15" width="4" height="10" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.3" fill="none"><path d="M0 33 Q25 10 50 33 Q75 56 100 33"/><path d="M0 33 Q25 56 50 33 Q75 10 100 33"/></g></svg></div>
+              </div>
+              <div class="cell-name">Flash</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LAYER 1 (bottom, base) -->
+        <div class="layer-row">
+          <div class="layer-strip">
+            <div class="ls-top"><span>L1 &middot; BG</span><span class="x">&times;</span></div>
+            <div class="ls-btns">
+              <div class="ls-btn">M</div><div class="ls-btn">S</div><div class="ls-btn on">V</div>
+              <div class="ls-btn on">B</div><div class="ls-btn">A</div>
+            </div>
+            <div class="ls-opacity"><span>OPA</span><div class="hslider v100"></div><span>100</span></div>
+            <div class="ls-blend"><span>Alpha</span><span class="arr">&#9662;</span></div>
+          </div>
+          <div class="grid-cells">
+            <div class="cell playing">
+              <div class="cell-body">
+                <div class="cell-wave"></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#5fdba7" stroke-width="0.4"><ellipse cx="35" cy="33" rx="3" ry="6"/><ellipse cx="65" cy="33" rx="3" ry="6"/></g><g fill="#5fdba7"><circle cx="35" cy="33" r="1.5"/><circle cx="65" cy="33" r="1.5"/></g><path d="M20 48 Q50 58 80 48" stroke="#5fdba7" stroke-width="0.4" fill="none"/></svg></div>
+              </div>
+              <div class="cell-name">Eyes</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="10" width="4" height="12" fill="#666"/><rect x="1" y="30" width="4" height="18" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#888" stroke-width="0.3"><path d="M30 25 C 30 15, 70 15, 70 25 C 70 40, 50 50, 50 50 C 50 50, 30 40, 30 25 Z"/><circle cx="42" cy="28" r="1" fill="#888"/><circle cx="58" cy="28" r="1" fill="#888"/><path d="M40 38 Q50 42 60 38"/></g></svg></div>
+              </div>
+              <div class="cell-name">Miro Face</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="25" width="4" height="8" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.3" fill="none"><path d="M30 20 Q40 28 50 20 Q60 28 70 20"/><path d="M28 28 Q40 36 52 28 Q62 36 72 28"/><path d="M45 40 Q50 48 55 40"/></g><path d="M48 45 Q50 50 52 45" stroke="#888" stroke-width="0.5" fill="none"/></svg></div>
+              </div>
+              <div class="cell-name">Lips</div>
+            </div>
+            <div class="cell selected">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="15" width="4" height="8" fill="#888"/><rect x="1" y="32" width="4" height="20" fill="#888"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.2" fill="none"><path d="M10 5 Q20 8 25 15 Q15 20 12 12 M35 8 Q45 12 40 20 Q30 22 32 14 M55 6 Q65 10 62 18 Q52 22 52 14 M75 10 Q88 12 85 20 Q72 24 72 15 M15 30 Q25 35 22 42 Q12 45 12 36 M40 32 Q50 36 47 44 Q35 47 37 38 M65 34 Q78 36 75 44 Q62 48 63 38 M20 52 Q32 55 28 62 Q18 62 18 55 M50 55 Q62 58 58 64 Q48 64 48 58"/></g></svg></div>
+              </div>
+              <div class="cell-name">Hair</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="10" width="4" height="20" fill="#666"/><rect x="1" y="35" width="4" height="15" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.3" fill="none"><path d="M0 33 L100 33"/><path d="M50 5 L50 61"/><circle cx="50" cy="33" r="12"/><path d="M20 15 L80 51 M80 15 L20 51"/></g></svg></div>
+              </div>
+              <div class="cell-name">Swiss</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="20" width="4" height="10" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g stroke="#888" stroke-width="0.3" fill="none"><circle cx="50" cy="33" r="20"/><circle cx="50" cy="33" r="15"/><circle cx="50" cy="33" r="10"/><path d="M30 33 L70 33 M50 13 L50 53"/></g></svg></div>
+              </div>
+              <div class="cell-name">Quad</div>
+            </div>
+            <div class="cell loaded">
+              <div class="cell-body">
+                <div class="cell-wave"><svg viewBox="0 0 6 80" preserveAspectRatio="none"><rect x="1" y="10" width="4" height="25" fill="#666"/></svg></div>
+                <div class="cell-thumb"><svg viewBox="0 0 100 66"><rect width="100" height="66" fill="#1a1a1a"/><g fill="none" stroke="#888" stroke-width="0.4"><path d="M30 50 Q50 20 70 50" /><path d="M35 50 Q50 28 65 50" /><path d="M40 50 Q50 36 60 50" /></g><rect x="30" y="48" width="40" height="2" fill="#888"/></svg></div>
+              </div>
+              <div class="cell-name">Night</div>
+            </div>
+            <div class="cell empty"><div class="cell-body"><div class="cell-wave"></div><div class="cell-thumb"></div></div><div class="cell-name">&mdash;</div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Column trigger row -->
+      <div class="col-trig-row">
+        <div class="left-pad">TRIG COL</div>
+        <div class="col-trig">&#9656;</div>
+        <div class="col-trig">&#9656;</div>
+        <div class="col-trig">&#9656;</div>
+        <div class="col-trig">&#9656;</div>
+        <div class="col-trig">&#9656;</div>
+        <div class="col-trig">&#9656;</div>
+        <div class="col-trig">&#9656;</div>
+        <div class="col-trig">&#9656;</div>
+      </div>
+    </div>
+
+    <!-- ===== RIGHT INSPECTOR 280px ===== -->
+    <div class="right">
+
+      <div class="insp-tabs">
+        <div class="insp-tab">COMPOSITION</div>
+        <div class="insp-tab active">LAYER</div>
+        <div class="insp-tab">CLIP</div>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="section">
+        <div class="section-hdr"><span class="tri">&#9662;</span>DASHBOARD<span class="p-btn">P.</span></div>
+        <div class="section-body">
+          <div class="dash-grid">
+            <div class="knob"><div class="knob-dial" style="--a:-85deg"></div><div class="knob-lbl">LINK 1</div><div class="knob-val">0.42</div></div>
+            <div class="knob"><div class="knob-dial" style="--a:40deg"></div><div class="knob-lbl">LINK 2</div><div class="knob-val">0.71</div></div>
+            <div class="knob"><div class="knob-dial" style="--a:-130deg"></div><div class="knob-lbl">LINK 3</div><div class="knob-val">0.11</div></div>
+            <div class="knob"><div class="knob-dial" style="--a:110deg"></div><div class="knob-lbl">LINK 4</div><div class="knob-val">0.88</div></div>
+            <div class="knob"><div class="knob-dial" style="--a:-10deg"></div><div class="knob-lbl">LINK 5</div><div class="knob-val">0.55</div></div>
+            <div class="knob"><div class="knob-dial" style="--a:75deg"></div><div class="knob-lbl">LINK 6</div><div class="knob-val">0.78</div></div>
+            <div class="knob"><div class="knob-dial" style="--a:-60deg"></div><div class="knob-lbl">LINK 7</div><div class="knob-val">0.34</div></div>
+            <div class="knob"><div class="knob-dial" style="--a:20deg"></div><div class="knob-lbl">LINK 8</div><div class="knob-val">0.63</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER master -->
+      <div class="section">
+        <div class="section-hdr routed"><span class="tri">&#9662;</span>LAYER<span class="p-btn">P.</span></div>
+        <div class="section-body">
+          <div class="insp-row"><span class="lbl">Name</span><span class="val" style="flex:1; width:auto">L3 &middot; 3D</span></div>
+          <div class="insp-row"><span class="lbl">Opacity</span><span class="val">0.85</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v85"></div><span class="pbtn">P.</span></div>
+          <div class="insp-row"><span class="lbl">Master</span><span class="val">1.00</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v100"></div></div>
+        </div>
+      </div>
+
+      <!-- VIDEO -->
+      <div class="section">
+        <div class="section-hdr"><span class="tri">&#9662;</span>VIDEO<span class="p-btn">P.</span></div>
+        <div class="section-body">
+          <div class="insp-row"><span class="lbl">Blend Mode</span><div class="dd"><span>Alpha</span><span class="arr">&#9662;</span></div></div>
+          <div class="insp-row"><span class="lbl">Opacity</span><span class="val">0.85</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v85"></div></div>
+          <div class="insp-row"><span class="lbl">Width</span><span class="val">1.00</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v100"></div></div>
+          <div class="insp-row"><span class="lbl">Height</span><span class="val">1.00</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v100"></div></div>
+        </div>
+      </div>
+
+      <!-- TRANSFORM -->
+      <div class="section">
+        <div class="section-hdr routed"><span class="tri">&#9662;</span>TRANSFORM<span class="p-btn">P.</span></div>
+        <div class="section-body">
+          <div class="insp-row"><span class="lbl">Position X</span><span class="val">0.00</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v50"></div><span class="pbtn">P.</span></div>
+          <div class="insp-row"><span class="lbl">Position Y</span><span class="val">+0.10</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v60"></div></div>
+          <div class="insp-row"><span class="lbl">Scale</span><span class="val">1.15</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v75"></div><span class="pbtn">P.</span></div>
+          <div class="insp-row"><span class="lbl">Rotation</span><span class="val">23&deg;</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v45"></div></div>
+          <div class="insp-row"><span class="lbl">Anchor</span><span class="val">0.50</span><span class="pm">&minus;</span><span class="pm">+</span><div class="bar v50"></div></div>
+        </div>
+      </div>
+
+      <!-- EFFECTS -->
+      <div class="section">
+        <div class="section-hdr routed"><span class="tri">&#9662;</span>EFFECTS<span class="p-btn">P.</span></div>
+        <div class="fx-item">
+          <span class="fx-btn on">B</span>
+          <span class="nm">Echo</span>
+          <span class="fx-btn">&#9662;</span>
+          <span class="fx-btn">&times;</span>
+        </div>
+        <div class="fx-item">
+          <span class="fx-btn on">B</span>
+          <span class="nm mint">Hue Shift</span>
+          <span class="fx-btn">&#9662;</span>
+          <span class="fx-btn">&times;</span>
+        </div>
+        <div class="fx-item">
+          <span class="fx-btn">B</span>
+          <span class="nm">Chromatic Aberration</span>
+          <span class="fx-btn">&#9662;</span>
+          <span class="fx-btn">&times;</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ===== BOTTOM STRIP ===== -->
+  <div class="bottom">
+
+    <div class="beatwheel-big">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="36" fill="none" stroke="#3a3a3a" stroke-width="1"/>
+        <!-- 4 beat segments -->
+        <path d="M40,4 A36,36 0 0,1 76,40 L40,40 Z" fill="#5fdba7"/>
+        <path d="M76,40 A36,36 0 0,1 40,76 L40,40 Z" fill="#2a7a5c"/>
+        <path d="M40,76 A36,36 0 0,1 4,40 L40,40 Z" fill="#1e4a3a"/>
+        <path d="M4,40 A36,36 0 0,1 40,4 L40,40 Z" fill="#12332a"/>
+        <circle cx="40" cy="40" r="5" fill="#1a1a1a"/>
+        <text x="40" y="44" font-family="'IBM Plex Mono', monospace" font-size="8" fill="#5fdba7" text-anchor="middle" font-weight="700">1</text>
+      </svg>
+    </div>
+
+    <div class="dash-knobs-bottom">
+      <div class="knob-b"><div class="d" style="--a:-85deg"></div><div class="l">LINK 1</div></div>
+      <div class="knob-b"><div class="d" style="--a:40deg"></div><div class="l">LINK 2</div></div>
+      <div class="knob-b"><div class="d" style="--a:-130deg"></div><div class="l">LINK 3</div></div>
+      <div class="knob-b"><div class="d" style="--a:110deg"></div><div class="l">LINK 4</div></div>
+      <div class="knob-b"><div class="d" style="--a:-10deg"></div><div class="l">LINK 5</div></div>
+      <div class="knob-b"><div class="d" style="--a:75deg"></div><div class="l">LINK 6</div></div>
+      <div class="knob-b"><div class="d" style="--a:-60deg"></div><div class="l">LINK 7</div></div>
+      <div class="knob-b"><div class="d" style="--a:20deg"></div><div class="l">LINK 8</div></div>
+    </div>
+
+    <div class="scenes">
+      <div class="scene">INTRO</div>
+      <div class="scene active">BUILD</div>
+      <div class="scene drop">DROP</div>
+      <div class="scene">BREAK</div>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

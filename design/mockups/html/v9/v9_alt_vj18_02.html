@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VJ18 Alt 02 — Broadcast Compact (Cyan)</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; color:#e0e0e0; font-family:'Segoe UI',system-ui,sans-serif; font-size:12px; width:1920px; height:1080px; overflow:hidden; }
+
+.menu-bar { height:24px; background:#1a1a1a; display:flex; align-items:center; padding:0 12px; border-bottom:1px solid #333; }
+.menu-bar span { margin-right:16px; font-size:11px; color:#aaa; cursor:pointer; }
+.menu-bar span:hover { color:#00ccff; }
+
+.top-bar { height:40px; background:#1e1e1e; display:flex; align-items:center; padding:0 12px; border-bottom:1px solid #333; gap:16px; }
+.logo { font-weight:700; font-size:14px; color:#00ccff; letter-spacing:1px; }
+.bpm-box { background:#2a2a2a; border:1px solid #00ccff; padding:4px 12px; display:flex; align-items:center; gap:8px; }
+.bpm-val { font-size:18px; font-weight:700; color:#00ccff; }
+.bpm-sub { font-size:10px; color:#888; }
+.beat-wheel { width:28px; height:28px; border-radius:50%; border:2px solid #00ccff; display:flex; align-items:center; justify-content:center; }
+.bw-dot { width:10px; height:10px; background:#00ccff; border-radius:50%; }
+.btn { background:#2a2a2a; border:1px solid #444; color:#e0e0e0; padding:4px 10px; cursor:pointer; font-size:11px; }
+.btn.active { background:#00ccff; color:#111; border-color:#00ccff; }
+.spacer { flex:1; }
+.info { font-size:10px; color:#777; }
+
+.signal-bar { height:28px; background:#161616; display:flex; align-items:center; padding:0 8px; border-bottom:1px solid #2a2a2a; gap:2px; }
+.sm { flex:1; height:16px; background:#1a1a1a; border:1px solid #333; position:relative; overflow:hidden; }
+.sm .f { position:absolute; left:0; top:0; height:100%; }
+.sm .l { position:absolute; left:4px; top:1px; font-size:9px; color:#999; z-index:1; }
+
+.deck-strip { height:24px; background:#1a1a1a; display:flex; align-items:center; padding:0 8px; gap:4px; border-bottom:1px solid #333; }
+.dt { padding:3px 14px; background:#222; border:1px solid #333; cursor:pointer; font-size:10px; }
+.dt.active { background:#00ccff; color:#111; border-color:#00ccff; font-weight:600; }
+.scene-row { height:22px; background:#1a1a1a; display:flex; padding:0 8px; gap:2px; border-bottom:1px solid #2a2a2a; }
+.sr { width:80px; display:flex; align-items:center; justify-content:center; font-size:9px; color:#888; cursor:pointer; }
+.sr.active { color:#00ccff; border-bottom:2px solid #00ccff; }
+
+/* MAIN: SIGNAL SIDEBAR + LAYERS + INSPECTOR */
+.main { display:flex; height:calc(1080px - 24px - 40px - 28px - 24px - 22px - 80px - 24px); }
+
+/* SIGNAL SIDEBAR */
+.sig-side { width:50px; background:#161616; border-right:1px solid #333; display:flex; flex-direction:column; padding:3px 2px; gap:2px; }
+.vm { flex:1; background:#1a1a1a; border:1px solid #2a2a2a; position:relative; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; }
+.vm .vf { width:80%; }
+.vm .vl { position:absolute; top:1px; font-size:7px; color:#666; writing-mode:vertical-lr; }
+
+/* LAYER STRIPS (no fader strip — faders inline) */
+.layers { flex:1; display:flex; flex-direction:column; overflow-y:auto; }
+.layer-strip { display:flex; min-height:0; flex:1; border-bottom:1px solid #333; }
+.ls-hdr { width:120px; background:#1a1a1a; display:flex; flex-direction:column; justify-content:center; padding:4px 6px; border-right:1px solid #333; }
+.ls-name { font-size:10px; font-weight:600; margin-bottom:2px; }
+.ls-name.on { color:#00ccff; }
+.ls-row { display:flex; align-items:center; gap:3px; margin-bottom:2px; }
+.ls-btn { font-size:8px; padding:1px 4px; background:#222; border:1px solid #333; color:#888; cursor:pointer; }
+.ls-btn.active { background:#00ccff; color:#111; border-color:#00ccff; }
+/* INLINE FADER */
+.ls-fader { width:60px; height:6px; background:#333; margin-top:2px; position:relative; }
+.ls-fader .fill { height:100%; }
+.ls-fader .knob { position:absolute; top:-3px; width:4px; height:12px; background:#00ccff; }
+.ls-val { font-size:8px; color:#888; margin-top:1px; }
+
+.ls-clips { flex:1; display:flex; gap:2px; padding:3px; overflow-x:auto; }
+.clip { width:85px; min-width:85px; height:100%; background:#1e1e1e; border:1px solid #333; position:relative; cursor:pointer; flex-shrink:0; overflow:hidden; }
+.clip:hover { border-color:#00ccff; }
+.clip.active { border-color:#00ccff; box-shadow:0 0 6px rgba(0,204,255,0.3); }
+.clip .bg { position:absolute; inset:0; }
+.clip .nm { position:absolute; bottom:2px; left:3px; font-size:8px; color:#ccc; text-shadow:0 1px 2px #000; }
+
+/* INSPECTOR */
+.inspector { width:280px; background:#1a1a1a; border-left:1px solid #333; display:flex; flex-direction:column; }
+.insp-tabs { height:24px; display:flex; background:#161616; border-bottom:1px solid #333; }
+.it { flex:1; display:flex; align-items:center; justify-content:center; font-size:9px; color:#888; cursor:pointer; border-bottom:2px solid transparent; }
+.it.active { color:#00ccff; border-bottom-color:#00ccff; }
+.insp-body { flex:1; overflow-y:auto; padding:6px; }
+.sec-t { font-size:9px; color:#00ccff; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px; border-bottom:1px solid #333; padding-bottom:3px; }
+.pr { display:flex; align-items:center; margin-bottom:3px; }
+.pl { width:80px; font-size:9px; color:#aaa; }
+.ps { flex:1; height:3px; background:#333; }
+.ps .t { height:100%; background:#00ccff; }
+.pv { width:30px; text-align:right; font-size:9px; color:#ccc; }
+
+/* BOTTOM THUMBNAIL BROWSER */
+.bottom-browser { height:80px; background:#161616; border-top:1px solid #333; display:flex; flex-direction:column; }
+.br-tabs { height:20px; display:flex; background:#1a1a1a; border-bottom:1px solid #2a2a2a; }
+.brt { padding:0 14px; display:flex; align-items:center; font-size:9px; color:#888; cursor:pointer; border-bottom:2px solid transparent; }
+.brt.active { color:#00ccff; border-bottom-color:#00ccff; }
+.br-strip { flex:1; display:flex; gap:3px; padding:4px 6px; overflow-x:auto; }
+.bt { width:54px; min-width:54px; height:50px; border:1px solid #333; position:relative; cursor:pointer; flex-shrink:0; }
+.bt:hover { border-color:#00ccff; }
+.bt .bbg { position:absolute; inset:0; }
+.bt .bnm { position:absolute; bottom:1px; left:2px; font-size:7px; color:#ccc; text-shadow:0 1px 1px #000; }
+
+.footer { height:24px; background:#1a1a1a; border-top:1px solid #333; display:flex; align-items:center; padding:0 12px; justify-content:space-between; }
+.footer span { font-size:10px; color:#666; }
+</style>
+</head>
+<body>
+
+<div class="menu-bar"><span>Audio-DNA</span><span>File</span><span>Edit</span><span>View</span><span>Output</span><span>Help</span></div>
+
+<div class="top-bar">
+  <div class="logo">AUDIO-DNA</div>
+  <div class="bpm-box"><div><div class="bpm-val">140.0</div><div class="bpm-sub">BPM</div></div><div class="beat-wheel"><div class="bw-dot"></div></div></div>
+  <span class="info">Bar 2 / 4</span><span class="info">Phrase 1</span>
+  <div class="btn active">PLAY</div><div class="btn">TAP</div><div class="btn">LINK</div>
+  <div class="spacer"></div><span class="info">60.0 fps</span><span class="info">Techno | High</span>
+</div>
+
+<div class="signal-bar">
+  <script>
+    const sN=['RMS','Peak','Bass','Low Mid','Mid','High Mid','Brilliance','Centroid','Flux','Onset','Beat','Bar'];
+    const sV=[0.70,0.88,0.94,0.58,0.45,0.33,0.16,0.60,0.52,1.0,0.80,0.50];
+    const sC=['#00ccff','#00ccff','#ff4444','#ff6644','#ffaa44','#ffcc44','#ffee44','#44aaff','#44ddff','#ff4488','#00ccff','#00ccff'];
+    document.write(sN.map((n,i)=>`<div class="sm"><div class="f" style="width:${sV[i]*100}%;background:${sC[i]}55"></div><div class="l">${n}</div></div>`).join(''));
+  </script>
+</div>
+
+<div class="deck-strip"><div class="dt active">Deck 1</div><div class="dt">Deck 2</div><div class="dt">Deck 3</div><div class="dt">Deck 4</div></div>
+<div class="scene-row">
+  <script>for(let i=1;i<=10;i++) document.write(`<div class="sr ${i===3?'active':''}">Scene ${i}</div>`);</script>
+</div>
+
+<div class="main">
+  <!-- SIGNAL SIDEBAR -->
+  <div class="sig-side">
+    <script>
+      const vL=['RMS','Bas','Mid','Hi','Ons','BPh','Flux','Side'];
+      const vV=[70,94,45,33,100,80,52,65];
+      const vC=['#00ccff','#ff4444','#ffaa44','#ffcc44','#ff4488','#00ccff','#44ddff','#00ccff'];
+      document.write(vL.map((l,i)=>`<div class="vm"><div class="vl">${l}</div><div class="vf" style="height:${vV[i]}%;background:${vC[i]}"></div></div>`).join(''));
+    </script>
+  </div>
+
+  <!-- LAYERS (7 rows, more visible without fader strip) -->
+  <div class="layers">
+    <script>
+      const lyrs=[
+        {name:'Master FX',on:true,opacity:0.85,clips:['Comp Transform','Glow','Vignette','Sharpen'],grads:['linear-gradient(135deg,#00ccff,#004466)','linear-gradient(135deg,#ffcc44,#443311)','linear-gradient(135deg,#444,#222)','linear-gradient(135deg,#888,#333)']},
+        {name:'FX A',on:true,opacity:0.80,clips:['Echo','RGB Split','Glitch Sort','Strobe','Frame Stutter','Data Corrupt'],grads:['linear-gradient(135deg,#4466ff,#112244)','linear-gradient(135deg,#ff44ff,#441144)','linear-gradient(135deg,#ff4488,#441122)','linear-gradient(135deg,#fff,#444)','linear-gradient(135deg,#8844ff,#220044)','linear-gradient(135deg,#ff4444,#441111)']},
+        {name:'FX B',on:false,opacity:0.50,clips:['Scanlines','CRT Sim','Posterize Time','Channel Delay'],grads:['linear-gradient(135deg,#888,#333)','linear-gradient(135deg,#666,#222)','linear-gradient(135deg,#aaa,#444)','linear-gradient(135deg,#4466ff,#112244)']},
+        {name:'Overlay',on:true,opacity:0.70,clips:['Neon Edge','Text Wall','Particle Rain','Dot Matrix','Pop Raster','ASCII Art','Cross Stitch'],grads:['linear-gradient(135deg,#44ffaa,#113322)','linear-gradient(135deg,#88ff88,#113311)','linear-gradient(135deg,#ff88ff,#331133)','linear-gradient(135deg,#aaa,#333)','linear-gradient(135deg,#ff4444,#331111)','linear-gradient(135deg,#888,#333)','linear-gradient(135deg,#ffaa44,#332211)']},
+        {name:'Visual A',on:true,opacity:1.00,clips:['Mandelbulb','Julia 3D','Menger','Spiral Torus','Spectrum Ring','Fluid Sim','KIFS','Strange Attr','Burning Ship'],grads:['linear-gradient(135deg,#ff4444,#441111)','linear-gradient(135deg,#44ff44,#114411)','linear-gradient(135deg,#4444ff,#111144)','linear-gradient(135deg,#ff44ff,#441144)','linear-gradient(135deg,#ff8800,#442200)','linear-gradient(135deg,#44aaff,#112233)','linear-gradient(135deg,#ffff44,#444411)','linear-gradient(135deg,#8844ff,#220044)','linear-gradient(135deg,#ff8844,#332211)']},
+        {name:'Visual B',on:false,opacity:0.40,clips:['Perlin','Voronoi','Simplex','Plasma','Fire','Diamond'],grads:['linear-gradient(135deg,#667788,#223344)','linear-gradient(135deg,#778866,#334422)','linear-gradient(135deg,#887766,#332211)','linear-gradient(135deg,#884422,#331100)','linear-gradient(135deg,#ff4400,#441100)','linear-gradient(135deg,#886677,#332233)']},
+        {name:'Background',on:true,opacity:1.00,clips:['Gradient A','Solid Dark','Ocean','Night Sky','Aurora','Nebula','Lava','Frost'],grads:['linear-gradient(135deg,#224488,#0a1533)','linear-gradient(135deg,#111,#000)','linear-gradient(135deg,#0066cc,#002244)','linear-gradient(135deg,#112244,#000)','linear-gradient(135deg,#004422,#001100)','linear-gradient(135deg,#220044,#000)','linear-gradient(135deg,#442200,#000)','linear-gradient(135deg,#224466,#001133)']},
+      ];
+      lyrs.forEach((ly,li)=>{
+        let html=`<div class="layer-strip"><div class="ls-hdr"><div class="ls-name ${ly.on?'on':''}">${ly.name}</div><div class="ls-row"><div class="ls-btn ${ly.on?'active':''}">V</div><div class="ls-btn">S</div><div class="ls-btn">M</div></div><div class="ls-fader"><div class="fill" style="width:${ly.opacity*100}%;background:#00ccff44"></div><div class="knob" style="left:${ly.opacity*100-2}%"></div></div><div class="ls-val">${(ly.opacity*100).toFixed(0)}%</div></div><div class="ls-clips">`;
+        ly.clips.forEach((c,ci)=>{
+          const act=li===4&&ci===0;
+          html+=`<div class="clip ${act?'active':''}"><div class="bg" style="background:${ly.grads[ci]}"></div><div class="nm">${c}</div></div>`;
+        });
+        html+='</div></div>';
+        document.write(html);
+      });
+    </script>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="inspector">
+    <div class="insp-tabs"><div class="it active">Clip</div><div class="it">Layer</div><div class="it">Signals</div><div class="it">Comp</div></div>
+    <div class="insp-body">
+      <div class="sec-t">Mandelbulb</div>
+      <div class="pr"><span class="pl">Zoom</span><div class="ps"><div class="t" style="width:45%"></div></div><span class="pv">0.45</span></div>
+      <div class="pr"><span class="pl">Power</span><div class="ps"><div class="t" style="width:60%"></div></div><span class="pv">0.60</span></div>
+      <div class="pr"><span class="pl">Iterations</span><div class="ps"><div class="t" style="width:70%"></div></div><span class="pv">0.70</span></div>
+      <div class="pr"><span class="pl">Speed</span><div class="ps"><div class="t" style="width:55%"></div></div><span class="pv">0.55</span></div>
+      <div class="pr"><span class="pl">Color Shift</span><div class="ps"><div class="t" style="width:30%"></div></div><span class="pv">0.30</span></div>
+      <div class="pr"><span class="pl">Glow</span><div class="ps"><div class="t" style="width:40%"></div></div><span class="pv">0.40</span></div>
+      <div class="pr"><span class="pl">Palette</span><div class="ps"><div class="t" style="width:75%"></div></div><span class="pv">Neon</span></div>
+      <div class="sec-t" style="margin-top:8px">Effects</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px"><span style="color:#00ccff">B</span><span style="flex:1">Echo</span><span style="color:#666">X</span></div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px"><span style="color:#00ccff">B</span><span style="flex:1">Glow</span><span style="color:#666">X</span></div>
+      <div class="sec-t" style="margin-top:8px">Signals</div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px">
+        <div style="width:6px;height:6px;background:#00ccff"></div><span style="color:#00ccff">RMS</span><span style="color:#555">-></span><span>Zoom</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;padding:3px;background:#222;border:1px solid #333;margin-bottom:2px;font-size:9px">
+        <div style="width:6px;height:6px;background:#ff4444"></div><span style="color:#ff4444">Bass</span><span style="color:#555">-></span><span>Glow</span>
+      </div>
+      <div class="sec-t" style="margin-top:8px">Transform</div>
+      <div class="pr"><span class="pl">Position X</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+      <div class="pr"><span class="pl">Scale</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">1.00</span></div>
+      <div class="pr"><span class="pl">Opacity</span><div class="ps"><div class="t" style="width:100%"></div></div><span class="pv">1.00</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM THUMBNAIL BROWSER -->
+<div class="bottom-browser">
+  <div class="br-tabs">
+    <div class="brt">Files</div><div class="brt active">Sources</div><div class="brt">Effects</div><div class="brt">Comp/Decks</div>
+  </div>
+  <div class="br-strip">
+    <script>
+      const thumbs=['Mandelbulb','Julia 3D','Menger','KIFS','Spiral','Helix','Knot','Trefoil','Perlin','Voronoi','Simplex','Plasma','Fire','Ocean','Spectrum','Band Tower','Cymatics','Strange','Fluid','Gravity','Particle','Text','Nebula'];
+      const tG=['#ff4444,#441111','#44ff44,#114411','#4444ff,#111144','#ffff44,#444411','#ff44ff,#441144','#44ffff,#114444','#ff8844,#442211','#88ff44,#224411','#667788,#223344','#778866,#334422','#887766,#332211','#884422,#331100','#ff4400,#441100','#0066cc,#002244','#ff8800,#442200','#ffcc00,#443300','#ffaa44,#332211','#8844ff,#220044','#44aaff,#112233','#ff88ff,#331133','#ff88ff,#441133','#88ff88,#113311','#220044,#000'];
+      document.write(thumbs.map((t,i)=>`<div class="bt"><div class="bbg" style="background:linear-gradient(135deg,${tG[i%tG.length]})"></div><div class="bnm">${t}</div></div>`).join(''));
+    </script>
+  </div>
+</div>
+
+<div class="footer"><span>Audio-DNA v2.0</span><span>Broadcast Compact Layout</span><span>Techno | Energy: High | Buildup</span><span>Syphon: Off</span></div>
+
+</body>
+</html>

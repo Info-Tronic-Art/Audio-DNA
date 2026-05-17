@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA · State 2/4 · Waveform Max · Signals Max</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:1920px;height:1080px;background:#0a0a0a;color:#e0e0e0;overflow:hidden;font-family:'IBM Plex Sans',sans-serif;font-size:11px;}
+body{position:relative;}
+
+/* Film grain overlay */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0.03;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+.mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+.sans{font-family:'IBM Plex Sans',sans-serif;}
+.upper{text-transform:uppercase;letter-spacing:0.08em;}
+
+/* ========== LAYOUT CONTAINERS ========== */
+.menubar{position:absolute;top:0;left:0;width:1920px;height:24px;background:#050505;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 12px;font-size:10.5px;color:#888;gap:18px;}
+.menubar .item{cursor:default;}
+.menubar .item:hover{color:#fff;}
+.menubar .sep{color:#333;}
+.menubar .right{margin-left:auto;display:flex;gap:14px;color:#666;}
+
+.topbar{position:absolute;top:24px;left:0;width:1920px;height:56px;background:#080808;border-bottom:1px solid #1a1a1a;display:flex;align-items:stretch;}
+
+.waveform{position:absolute;top:80px;left:0;width:1920px;height:240px;background:#060606;border-bottom:1px solid #1a1a1a;}
+
+.signallist{position:absolute;top:320px;left:0;width:320px;height:722px;background:#070707;border-right:1px solid #1a1a1a;overflow:hidden;}
+
+.right-area{position:absolute;top:320px;left:320px;width:1600px;height:722px;background:#080808;}
+
+.footer{position:absolute;bottom:0;left:0;width:1920px;height:18px;background:#050505;border-top:1px solid #1a1a1a;display:flex;align-items:center;padding:0 12px;font-size:10px;color:#555;gap:14px;}
+.footer .sep{color:#333;}
+.footer .right{margin-left:auto;color:#777;}
+
+/* ========== MENU BAR ========== */
+.menubar .logo{color:#fff;font-weight:600;letter-spacing:0.05em;}
+.menubar .logo .dot{color:#ff4500;}
+
+/* ========== TOP BAR ========== */
+.tb-logo{width:170px;border-right:1px solid #1a1a1a;display:flex;flex-direction:column;justify-content:center;padding:0 16px;}
+.tb-logo .name{font-size:14px;font-weight:600;letter-spacing:0.04em;color:#fff;}
+.tb-logo .name .tld{color:#ff4500;}
+.tb-logo .sub{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;letter-spacing:0.12em;margin-top:2px;}
+
+.tb-bpm{width:210px;border-right:1px solid #1a1a1a;display:flex;align-items:center;padding:0 18px;gap:14px;}
+.tb-bpm .num{font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:300;color:#ff4500;line-height:1;letter-spacing:-0.02em;}
+.tb-bpm .meta{display:flex;flex-direction:column;gap:3px;}
+.tb-bpm .meta .lbl{font-size:9px;color:#666;letter-spacing:0.14em;text-transform:uppercase;}
+.tb-bpm .meta .val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#bbb;}
+
+.tb-bars{width:160px;border-right:1px solid #1a1a1a;display:flex;flex-direction:column;justify-content:center;padding:0 16px;gap:4px;}
+.tb-bars .row{display:flex;justify-content:space-between;}
+.tb-bars .lbl{font-size:9px;color:#555;letter-spacing:0.14em;text-transform:uppercase;}
+.tb-bars .val{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#ddd;}
+
+.tb-wheel{width:110px;border-right:1px solid #1a1a1a;display:flex;align-items:center;justify-content:center;position:relative;}
+.beat-wheel{width:64px;height:64px;position:relative;}
+
+.tb-transport{width:270px;border-right:1px solid #1a1a1a;display:flex;align-items:center;gap:6px;padding:0 14px;}
+.tb-btn{height:32px;padding:0 12px;background:transparent;border:1px solid #242424;color:#bbb;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;display:flex;align-items:center;justify-content:center;cursor:default;}
+.tb-btn.filled{background:#151515;color:#fff;border-color:#333;}
+
+.tb-master{width:260px;border-right:1px solid #1a1a1a;display:flex;flex-direction:column;justify-content:center;padding:0 16px;gap:6px;}
+.tb-master .head{display:flex;justify-content:space-between;}
+.tb-master .head .lbl{font-size:9px;color:#666;letter-spacing:0.14em;text-transform:uppercase;}
+.tb-master .head .val{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ddd;}
+.tb-master .track{height:4px;background:#151515;position:relative;}
+.tb-master .track .fill{position:absolute;left:0;top:0;height:100%;background:#e0e0e0;width:82%;}
+.tb-master .meta{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;}
+
+.tb-rec{width:140px;border-right:1px solid #1a1a1a;display:flex;align-items:center;padding:0 14px;gap:10px;}
+.rec-dot{width:8px;height:8px;background:#ff2020;border-radius:0;animation:recpulse 1s ease-in-out infinite;}
+@keyframes recpulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.tb-rec .txt{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ddd;}
+.tb-rec .time{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;}
+
+.tb-modes{flex:1;display:flex;align-items:center;padding:0 14px;gap:4px;}
+.mode-cell{height:36px;flex:1;max-width:130px;background:transparent;border:1px solid #242424;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-family:'IBM Plex Mono',monospace;padding:4px 2px;}
+.mode-cell .mini{display:flex;gap:3px;height:8px;align-items:center;}
+.mode-cell .mini .b{width:10px;height:2px;background:#444;}
+.mode-cell .mini .b.wfmax{width:10px;height:6px;background:#444;}
+.mode-cell .mini .b.sigmax{width:2px;height:8px;background:#444;}
+.mode-cell .mini .b.sigmin{width:2px;height:3px;background:#444;}
+.mode-cell .lbl{font-size:8px;letter-spacing:0.08em;color:#666;}
+.mode-cell.active{background:#fff;border-color:#fff;}
+.mode-cell.active .lbl{color:#000;}
+.mode-cell.active .mini .b{background:#000;}
+
+/* ========== WAVEFORM MAX ========== */
+.wf-inner{position:relative;width:1920px;height:240px;}
+.wf-deck{position:absolute;left:0;width:1920px;height:120px;}
+.wf-deck.a{top:0;}
+.wf-deck.b{top:120px;border-top:1px solid #0d0d0d;}
+
+.wf-meta{position:absolute;top:6px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;z-index:5;pointer-events:none;}
+.wf-meta .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#999;letter-spacing:0.1em;}
+.wf-meta .tag b{color:#fff;font-weight:600;}
+.wf-meta .tag .key{color:#ff4500;}
+
+.wf-svg{position:absolute;top:0;left:0;width:1920px;height:120px;}
+
+.wf-playhead{position:absolute;left:960px;top:0;width:2px;height:240px;background:#fff;z-index:10;}
+.wf-playhead::before{
+  content:"";position:absolute;top:-1px;left:-6px;width:0;height:0;
+  border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid #fff;
+}
+
+/* bar numbers strip */
+.wf-bars{position:absolute;bottom:0;left:0;width:1920px;height:14px;display:flex;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#444;z-index:4;pointer-events:none;}
+.wf-bar-num{position:absolute;transform:translateX(-50%);}
+
+/* structural zones */
+.wf-zone{position:absolute;top:18px;height:102px;display:flex;align-items:flex-end;padding:4px 8px;z-index:2;pointer-events:none;}
+.wf-zone.buildup{background:rgba(80,140,220,0.08);}
+.wf-zone.drop{background:rgba(255,69,0,0.10);}
+.wf-zone.breakdown{background:rgba(160,100,200,0.08);}
+.wf-zone.outro{background:rgba(120,120,120,0.06);}
+.wf-zone .lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#ccc;letter-spacing:0.16em;text-transform:uppercase;background:rgba(0,0,0,0.4);padding:1px 6px;}
+
+/* cue points */
+.wf-cue{position:absolute;top:18px;z-index:3;pointer-events:none;}
+.wf-cue .tri{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #ff4500;transform:translateX(-50%);}
+.wf-cue .lbl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:#ff4500;letter-spacing:0.1em;margin-top:2px;transform:translateX(-50%);white-space:nowrap;padding-left:14px;}
+
+/* ========== SIGNAL LIST ========== */
+.sl-scroll{height:722px;overflow:hidden;padding:4px 0 10px;}
+.sl-group{border-bottom:1px solid #0f0f0f;}
+.sl-head{height:22px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;background:#0b0b0b;}
+.sl-head .t{font-size:10px;color:#fff;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;}
+.sl-head .c{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;}
+.sl-head .arrow{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;}
+
+.sl-row{height:24px;padding:0 14px;display:flex;align-items:center;gap:8px;position:relative;border-bottom:1px solid #0a0a0a;}
+.sl-row .name{flex:0 0 86px;font-size:11px;color:#aaa;}
+.sl-row .meter{flex:1;height:2px;background:#151515;position:relative;}
+.sl-row .meter .f{position:absolute;left:0;top:0;height:100%;background:#666;}
+.sl-row .val{flex:0 0 52px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ddd;}
+.sl-row .rc{flex:0 0 18px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;text-align:right;}
+.sl-row.sel{background:#1a1a1a;}
+.sl-row.sel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#ff4500;}
+.sl-row.sel .name{color:#fff;}
+.sl-row.sel .val{color:#ff4500;animation:justchanged 3s ease-in-out infinite;}
+.sl-row.sel .meter .f{background:#fff;}
+.sl-row.sel .rc{color:#ff4500;}
+
+@keyframes justchanged{0%,94%,100%{color:#ff4500}96%{color:#fff;text-shadow:0 0 8px #ff4500}}
+
+/* mfcc spark row */
+.sl-mfcc{padding:6px 14px 10px;display:flex;gap:2px;align-items:flex-end;height:42px;}
+.sl-mfcc .b{flex:1;background:#666;min-height:2px;}
+.sl-mfcc .lbls{display:flex;gap:2px;margin-top:4px;}
+.sl-mfcc-wrap{padding:6px 14px 8px;}
+.sl-mfcc-wrap .hd{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;margin-bottom:4px;}
+
+/* chroma vertical bars */
+.sl-chroma-wrap{padding:6px 14px 10px;}
+.sl-chroma-wrap .hd{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;margin-bottom:4px;}
+.sl-chroma{display:flex;gap:3px;align-items:flex-end;height:56px;}
+.sl-chroma .col{flex:1;display:flex;flex-direction:column;align-items:center;}
+.sl-chroma .col .bar{width:100%;background:#555;}
+.sl-chroma .col.active .bar{background:#ff4500;}
+.sl-chroma .col .l{font-family:'IBM Plex Mono',monospace;font-size:8px;color:#555;margin-top:3px;}
+.sl-chroma .col.active .l{color:#ff4500;}
+
+/* ========== RIGHT AREA ========== */
+.ra-wrap{width:1600px;height:722px;display:flex;flex-direction:column;}
+.sig-editor{height:370px;background:#080808;border-bottom:1px solid #1a1a1a;padding:14px 18px;position:relative;overflow:hidden;}
+.np-banner{height:44px;background:#0b0b0b;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 18px;gap:14px;}
+.grid-preview{flex:1;display:flex;background:#070707;}
+
+/* ========== SIGNAL EDITOR ========== */
+.se-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px;}
+.se-title{display:flex;align-items:baseline;gap:10px;}
+.se-title .name{font-size:22px;font-weight:600;color:#fff;letter-spacing:0.04em;}
+.se-title .tag{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ff4500;letter-spacing:0.12em;}
+.se-head .q{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;letter-spacing:0.14em;}
+
+.se-body{display:grid;grid-template-columns:340px 1fr 1fr;gap:18px;height:290px;}
+
+/* value + sliders column */
+.se-col1{display:flex;flex-direction:column;gap:10px;}
+.se-bigval{font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:300;color:#fff;line-height:1;letter-spacing:-0.02em;animation:justchanged 3s ease-in-out infinite;}
+.se-subval{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#888;letter-spacing:0.12em;margin-top:-4px;margin-bottom:6px;}
+
+.se-slider{height:32px;display:flex;align-items:center;gap:8px;}
+.se-slider .lbl{width:90px;font-size:11px;color:#888;letter-spacing:0.1em;text-transform:uppercase;}
+.se-slider .track{flex:1;height:2px;background:#151515;position:relative;}
+.se-slider .track .f{position:absolute;left:0;top:0;height:100%;background:#bbb;}
+.se-slider .track .knob{position:absolute;top:-4px;width:2px;height:10px;background:#fff;}
+.se-slider .val{width:44px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ddd;}
+
+/* oscillator + envelope column */
+.se-sect{display:flex;flex-direction:column;gap:6px;}
+.se-sect .hd{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1a1a1a;padding-bottom:4px;}
+.se-sect .hd .t{font-size:10px;color:#fff;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;}
+.se-sect .hd .s{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;letter-spacing:0.1em;}
+
+.osc-row{display:flex;gap:4px;margin:4px 0;}
+.osc-btn{width:48px;height:32px;border:1px solid #242424;display:flex;align-items:center;justify-content:center;background:transparent;}
+.osc-btn.sel{background:#1a1a1a;border-color:#444;}
+.osc-btn svg{stroke:#888;fill:none;}
+.osc-btn.sel svg{stroke:#fff;}
+
+.div-row{display:flex;gap:3px;margin:2px 0;}
+.div-btn{flex:1;height:26px;border:1px solid #242424;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;}
+.div-btn.sel{background:#1a1a1a;color:#fff;border-color:#444;}
+
+/* envelope */
+.env-panel{height:110px;background:#050505;border:1px solid #151515;position:relative;}
+.env-grid{position:absolute;inset:0;pointer-events:none;}
+.env-grid line{stroke:#111;stroke-width:1;}
+.env-curve{position:absolute;inset:0;}
+.env-pt{position:absolute;width:8px;height:8px;background:#fff;transform:translate(-50%,-50%);}
+
+.env-ctrls{display:flex;gap:6px;align-items:center;margin-top:6px;}
+.pill{height:22px;padding:0 10px;border:1px solid #242424;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#888;letter-spacing:0.1em;display:flex;align-items:center;}
+.pill.sel{background:#1a1a1a;color:#fff;border-color:#444;}
+.curve-sel{display:flex;gap:3px;margin-left:auto;}
+
+/* routes */
+.se-routes{margin-top:10px;}
+.rt-head{display:grid;grid-template-columns:30px 1fr 90px 140px 20px 20px;gap:10px;padding:4px 10px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;letter-spacing:0.14em;text-transform:uppercase;border-bottom:1px solid #1a1a1a;}
+.rt-row{display:grid;grid-template-columns:30px 1fr 90px 140px 20px 20px;gap:10px;padding:6px 10px;align-items:center;border-bottom:1px solid #0d0d0d;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#ccc;}
+.rt-row .idx{color:#555;}
+.rt-row .tgt{color:#eee;}
+.rt-row .crv{color:#aaa;}
+.rt-row .rng{color:#aaa;}
+.rt-row .dot{width:6px;height:6px;background:#4ade80;border-radius:0;}
+.rt-row .x{color:#555;font-size:12px;cursor:default;text-align:center;}
+.rt-add{height:32px;margin-top:6px;border:1px solid #242424;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;letter-spacing:0.12em;}
+
+/* ========== NOW PLAYING BANNER ========== */
+.np-left{display:flex;align-items:center;gap:12px;}
+.np-dot{width:8px;height:8px;background:#ff4500;border-radius:0;animation:beatpulse 0.47s ease-out infinite;}
+@keyframes beatpulse{0%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:0.7}100%{transform:scale(1);opacity:1}}
+.np-name{font-size:18px;font-weight:600;color:#fff;letter-spacing:0.02em;}
+.np-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#888;letter-spacing:0.08em;margin-left:4px;}
+.np-right{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#bbb;letter-spacing:0.08em;}
+
+/* ========== GRID + PREVIEW ========== */
+.grid-area{flex:1;padding:10px 12px;overflow:hidden;}
+.deck-row{display:flex;height:70px;margin-bottom:6px;gap:4px;}
+.deck-hdr{width:100px;background:#0b0b0b;border-left:3px solid #333;padding:6px 8px;display:flex;flex-direction:column;gap:3px;}
+.deck-hdr.active-layer{border-left-color:#ff4500;}
+.deck-hdr .name{font-size:10px;font-weight:600;color:#eee;letter-spacing:0.04em;}
+.deck-hdr .ty{font-family:'IBM Plex Mono',monospace;font-size:8px;color:#777;letter-spacing:0.12em;}
+.deck-hdr .ctl{display:flex;gap:3px;margin-top:2px;}
+.deck-hdr .sm{width:14px;height:12px;border:1px solid #242424;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:7px;color:#666;}
+.deck-hdr .sm.on{background:#ff4500;color:#000;border-color:#ff4500;}
+.deck-hdr .op{height:2px;background:#1a1a1a;margin-top:2px;position:relative;}
+.deck-hdr .op .f{position:absolute;left:0;top:0;height:100%;background:#888;}
+.deck-hdr .bl{font-family:'IBM Plex Mono',monospace;font-size:8px;color:#666;margin-top:1px;}
+
+.cells{flex:1;display:grid;grid-template-columns:repeat(6,1fr);gap:4px;}
+.cell{background:#0a0a0a;border:1px solid #161616;position:relative;overflow:hidden;}
+.cell .thumb{position:absolute;inset:0;}
+.cell .nm{position:absolute;bottom:3px;left:5px;right:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#aaa;letter-spacing:0.04em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.cell.empty{background:#060606;border-style:dashed;border-color:#151515;}
+.cell.queued{border:2px dashed #fff;}
+.cell.playing{background:#ff4500;}
+.cell.playing .nm{color:#fff;font-weight:500;}
+.cell.playing .prog{position:absolute;bottom:0;left:0;height:3px;background:#fff;width:42%;}
+
+.cell .thumb svg{width:100%;height:100%;display:block;}
+
+/* ========== PREVIEW ========== */
+.preview-wrap{width:340px;padding:10px;display:flex;flex-direction:column;gap:8px;border-left:1px solid #1a1a1a;}
+.preview-monitor{width:320px;height:180px;background:#000;position:relative;border:1px solid #222;}
+.preview-monitor svg{width:320px;height:180px;display:block;}
+.preview-live{position:absolute;top:6px;right:6px;display:flex;align-items:center;gap:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#fff;letter-spacing:0.1em;background:rgba(0,0,0,0.6);padding:2px 6px;}
+.preview-live .d{width:6px;height:6px;background:#ff2020;border-radius:0;animation:liveflicker 2s ease-in-out infinite;}
+@keyframes liveflicker{0%,100%{opacity:1}50%{opacity:0.4}}
+.preview-out{position:absolute;bottom:8px;right:8px;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#ccc;letter-spacing:0.1em;background:rgba(0,0,0,0.55);padding:2px 6px;}
+.preview-bar{position:absolute;bottom:0;left:0;right:0;height:2px;background:#ff4500;}
+
+.preview-stats{padding:6px 0;display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-family:'IBM Plex Mono',monospace;font-size:10px;}
+.preview-stats .k{color:#666;letter-spacing:0.1em;}
+.preview-stats .v{color:#ddd;text-align:right;}
+
+.preview-channels{display:flex;gap:4px;margin-top:4px;}
+.preview-channels .ch{flex:1;height:20px;border:1px solid #242424;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#888;letter-spacing:0.1em;}
+.preview-channels .ch.on{background:#1a1a1a;color:#fff;border-color:#444;}
+
+/* ========== BEAT WHEEL ========== */
+.beat-wheel .seg{fill:#1a1a1a;stroke:#0a0a0a;stroke-width:1;}
+.beat-wheel .seg.active{fill:#ff4500;animation:wheelpulse 0.47s ease-out infinite;}
+@keyframes wheelpulse{0%{opacity:1}50%{opacity:0.6}100%{opacity:1}}
+.beat-wheel text{fill:#888;font-family:'IBM Plex Mono',monospace;font-size:9px;}
+.beat-wheel .ctxt{fill:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;}
+
+/* ========== FOOTER ========== */
+.footer .k{color:#444;letter-spacing:0.08em;}
+.footer .v{color:#999;margin-right:4px;}
+.footer b{color:#fff;font-weight:500;}
+
+/* route flow animation */
+@keyframes routeflow{to{stroke-dashoffset:-24;}}
+.rt-flow{stroke-dasharray:3 5;animation:routeflow 6s linear infinite;}
+
+</style>
+</head>
+<body>
+
+<!-- ============== MENU BAR ============== -->
+<div class="menubar">
+  <span class="logo mono">audio<span class="dot">-</span>dna</span>
+  <span class="item">File</span>
+  <span class="item">Edit</span>
+  <span class="item">View</span>
+  <span class="item">Composition</span>
+  <span class="item">Layer</span>
+  <span class="item">Clip</span>
+  <span class="item">Signal</span>
+  <span class="item">Audio</span>
+  <span class="item">Output</span>
+  <span class="item">Window</span>
+  <span class="item">Help</span>
+  <span class="right mono">
+    <span>MIDI · LAUNCHPAD X</span><span class="sep">/</span>
+    <span>OSC · 8000</span><span class="sep">/</span>
+    <span>LINK · 2 PEERS</span><span class="sep">/</span>
+    <span>SYPHON · OUT A</span>
+  </span>
+</div>
+
+<!-- ============== TOP BAR ============== -->
+<div class="topbar">
+
+  <div class="tb-logo">
+    <div class="name">AUDIO<span class="tld">-</span>DNA</div>
+    <div class="sub">V9 · MK-04 · PREP</div>
+  </div>
+
+  <div class="tb-bpm">
+    <div class="num">128.0</div>
+    <div class="meta">
+      <div class="lbl">BPM · AUTO</div>
+      <div class="val">CONF 0.94</div>
+      <div class="val" style="color:#666;font-size:10px;">Am · 4/4</div>
+    </div>
+  </div>
+
+  <div class="tb-bars">
+    <div class="row"><span class="lbl">BAR</span><span class="val">003</span></div>
+    <div class="row"><span class="lbl">BEAT</span><span class="val">02.37</span></div>
+    <div class="row"><span class="lbl">PHRASE</span><span class="val">01/08</span></div>
+    <div class="row"><span class="lbl">STATE</span><span class="val">NORMAL</span></div>
+  </div>
+
+  <div class="tb-wheel">
+    <svg class="beat-wheel" viewBox="0 0 64 64">
+      <!-- 4 segments -->
+      <path class="seg active" d="M32,32 L32,4 A28,28 0 0,1 60,32 Z"/>
+      <path class="seg" d="M32,32 L60,32 A28,28 0 0,1 32,60 Z"/>
+      <path class="seg" d="M32,32 L32,60 A28,28 0 0,1 4,32 Z"/>
+      <path class="seg" d="M32,32 L4,32 A28,28 0 0,1 32,4 Z"/>
+      <circle cx="32" cy="32" r="11" fill="#050505"/>
+      <text class="ctxt" x="32" y="30" text-anchor="middle">03</text>
+      <text x="32" y="40" text-anchor="middle">2.4</text>
+    </svg>
+  </div>
+
+  <div class="tb-transport">
+    <div class="tb-btn">TAP</div>
+    <div class="tb-btn">NUDGE −</div>
+    <div class="tb-btn">NUDGE +</div>
+    <div class="tb-btn">RESYNC</div>
+    <div class="tb-btn">MANUAL</div>
+  </div>
+
+  <div class="tb-master">
+    <div class="head"><span class="lbl">MASTER</span><span class="val">0.82 · −1.7 dB</span></div>
+    <div class="track"><div class="fill"></div></div>
+    <div class="meta"><span>−∞</span><span>−24</span><span>−12</span><span>−6</span><span>0</span><span>+3</span></div>
+  </div>
+
+  <div class="tb-rec">
+    <div class="rec-dot"></div>
+    <div class="txt">REC</div>
+    <div class="time">00:12:34</div>
+  </div>
+
+  <div class="tb-modes">
+    <div class="mode-cell">
+      <div class="mini"><span class="b"></span><span class="b sigmin"></span></div>
+      <div class="lbl">WF·MIN<br>SIG·MIN</div>
+    </div>
+    <div class="mode-cell active">
+      <div class="mini"><span class="b wfmax"></span><span class="b sigmax"></span></div>
+      <div class="lbl">WF·MAX<br>SIG·MAX</div>
+    </div>
+    <div class="mode-cell">
+      <div class="mini"><span class="b"></span><span class="b sigmax"></span></div>
+      <div class="lbl">WF·MIN<br>SIG·MAX</div>
+    </div>
+    <div class="mode-cell">
+      <div class="mini"><span class="b wfmax"></span><span class="b sigmin"></span></div>
+      <div class="lbl">WF·MAX<br>SIG·MIN</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============== WAVEFORM (MAX) ============== -->
+<div class="waveform">
+  <div class="wf-inner">
+
+    <!-- defs -->
+    <svg width="0" height="0" style="position:absolute;">
+      <defs>
+        <linearGradient id="wfA" x1="0" y1="0" x2="1920" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#2a5a8a"/>
+          <stop offset="0.25" stop-color="#3aa0cc"/>
+          <stop offset="0.5" stop-color="#8be2ff"/>
+          <stop offset="0.75" stop-color="#3aa0cc"/>
+          <stop offset="1" stop-color="#2a5a8a"/>
+        </linearGradient>
+        <linearGradient id="wfB" x1="0" y1="0" x2="1920" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#333"/>
+          <stop offset="0.5" stop-color="#8a8a8a"/>
+          <stop offset="1" stop-color="#333"/>
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <!-- structural zone overlays (shared across both decks visually, drawn behind waveforms) -->
+    <div class="wf-zone buildup" style="left:0;width:480px;"><span class="lbl">BUILDUP</span></div>
+    <div class="wf-zone drop" style="left:480px;width:600px;"><span class="lbl">DROP</span></div>
+    <div class="wf-zone breakdown" style="left:1080px;width:480px;"><span class="lbl">BREAKDOWN</span></div>
+    <div class="wf-zone outro" style="left:1560px;width:360px;"><span class="lbl">OUTRO</span></div>
+
+    <!-- cue points -->
+    <div class="wf-cue" style="left:240px;"><div class="tri"></div><div class="lbl">CUE 1</div></div>
+    <div class="wf-cue" style="left:700px;"><div class="tri"></div><div class="lbl">CUE 2 · DROP</div></div>
+    <div class="wf-cue" style="left:1280px;"><div class="tri"></div><div class="lbl">CUE 3 · VOX</div></div>
+
+    <!-- DECK A -->
+    <div class="wf-deck a">
+      <div class="wf-meta">
+        <div class="tag"><b>DECK A</b> · <span class="key">Am</span> · 128.0 BPM · 02:14/05:47 · IN 00:00:40 · OUT 04:18</div>
+        <div class="tag">PEAK −3.2 dB · RMS −18.1 · LUFS −14.3</div>
+      </div>
+      <svg class="wf-svg" viewBox="0 0 1920 120" preserveAspectRatio="none">
+        <!-- beat grid: 16ths (very faint) -->
+        <g stroke="rgba(255,255,255,0.04)" stroke-width="1">
+          <!-- 16ths across 16 bars = 256 lines, draw every 16th at 1920/256 = 7.5px spacing -->
+          <!-- simplified: 80 tick lines -->
+          <g id="gridA"></g>
+        </g>
+        <!-- beat lines (1/4) -->
+        <g stroke="rgba(255,255,255,0.10)" stroke-width="1">
+          <!-- 64 beats -->
+        </g>
+        <!-- downbeats (every bar = 1 of 16) ORANGE 2px -->
+        <g stroke="#ff4500" stroke-width="2" opacity="0.55">
+          <line x1="0"    y1="0" x2="0"    y2="120"/>
+          <line x1="120"  y1="0" x2="120"  y2="120"/>
+          <line x1="240"  y1="0" x2="240"  y2="120"/>
+          <line x1="360"  y1="0" x2="360"  y2="120"/>
+          <line x1="480"  y1="0" x2="480"  y2="120"/>
+          <line x1="600"  y1="0" x2="600"  y2="120"/>
+          <line x1="720"  y1="0" x2="720"  y2="120"/>
+          <line x1="840"  y1="0" x2="840"  y2="120"/>
+          <line x1="960"  y1="0" x2="960"  y2="120"/>
+          <line x1="1080" y1="0" x2="1080" y2="120"/>
+          <line x1="1200" y1="0" x2="1200" y2="120"/>
+          <line x1="1320" y1="0" x2="1320" y2="120"/>
+          <line x1="1440" y1="0" x2="1440" y2="120"/>
+          <line x1="1560" y1="0" x2="1560" y2="120"/>
+          <line x1="1680" y1="0" x2="1680" y2="120"/>
+          <line x1="1800" y1="0" x2="1800" y2="120"/>
+        </g>
+
+        <!-- Waveform deck A: upper + lower mirrored -->
+        <g id="wfApaths"></g>
+      </svg>
+    </div>
+
+    <!-- DECK B -->
+    <div class="wf-deck b">
+      <div class="wf-meta">
+        <div class="tag"><b>DECK B</b> · <span class="key">F#m</span> · 128.0 BPM · 00:44/06:12 · CUED · GAIN −2.0</div>
+        <div class="tag">PEAK −5.4 dB · RMS −21.2 · LUFS −17.8 · OFFLINE</div>
+      </div>
+      <svg class="wf-svg" viewBox="0 0 1920 120" preserveAspectRatio="none">
+        <g stroke="#ff4500" stroke-width="2" opacity="0.35">
+          <line x1="0"    y1="0" x2="0"    y2="120"/>
+          <line x1="120"  y1="0" x2="120"  y2="120"/>
+          <line x1="240"  y1="0" x2="240"  y2="120"/>
+          <line x1="360"  y1="0" x2="360"  y2="120"/>
+          <line x1="480"  y1="0" x2="480"  y2="120"/>
+          <line x1="600"  y1="0" x2="600"  y2="120"/>
+          <line x1="720"  y1="0" x2="720"  y2="120"/>
+          <line x1="840"  y1="0" x2="840"  y2="120"/>
+          <line x1="960"  y1="0" x2="960"  y2="120"/>
+          <line x1="1080" y1="0" x2="1080" y2="120"/>
+          <line x1="1200" y1="0" x2="1200" y2="120"/>
+          <line x1="1320" y1="0" x2="1320" y2="120"/>
+          <line x1="1440" y1="0" x2="1440" y2="120"/>
+          <line x1="1560" y1="0" x2="1560" y2="120"/>
+          <line x1="1680" y1="0" x2="1680" y2="120"/>
+          <line x1="1800" y1="0" x2="1800" y2="120"/>
+        </g>
+        <g id="wfBpaths"></g>
+      </svg>
+    </div>
+
+    <!-- playhead (spans both decks) -->
+    <div class="wf-playhead"></div>
+
+    <!-- bar numbers at the very bottom -->
+    <div class="wf-bars">
+      <span class="wf-bar-num" style="left:60px;">01</span>
+      <span class="wf-bar-num" style="left:180px;">02</span>
+      <span class="wf-bar-num" style="left:300px;">03</span>
+      <span class="wf-bar-num" style="left:420px;">04</span>
+      <span class="wf-bar-num" style="left:540px;">05</span>
+      <span class="wf-bar-num" style="left:660px;">06</span>
+      <span class="wf-bar-num" style="left:780px;">07</span>
+      <span class="wf-bar-num" style="left:900px;">08</span>
+      <span class="wf-bar-num" style="left:1020px;">09</span>
+      <span class="wf-bar-num" style="left:1140px;">10</span>
+      <span class="wf-bar-num" style="left:1260px;">11</span>
+      <span class="wf-bar-num" style="left:1380px;">12</span>
+      <span class="wf-bar-num" style="left:1500px;">13</span>
+      <span class="wf-bar-num" style="left:1620px;">14</span>
+      <span class="wf-bar-num" style="left:1740px;">15</span>
+      <span class="wf-bar-num" style="left:1860px;">16</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============== SIGNAL LIST ============== -->
+<div class="signallist">
+  <div class="sl-scroll">
+
+    <!-- AMPLITUDE -->
+    <div class="sl-group">
+      <div class="sl-head"><span class="t">Amplitude</span><span class="c mono">5</span></div>
+      <div class="sl-row sel"><span class="name">RMS</span><span class="meter"><span class="f" style="width:72%"></span></span><span class="val">0.724</span><span class="rc">[3]</span></div>
+      <div class="sl-row"><span class="name">Peak</span><span class="meter"><span class="f" style="width:85%"></span></span><span class="val">0.850</span><span class="rc">[1]</span></div>
+      <div class="sl-row"><span class="name">RmsDB</span><span class="meter"><span class="f" style="width:82%"></span></span><span class="val">−18.2</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">LUFS</span><span class="meter"><span class="f" style="width:68%"></span></span><span class="val">−14.3</span><span class="rc">[2]</span></div>
+      <div class="sl-row"><span class="name">DynRange</span><span class="meter"><span class="f" style="width:31%"></span></span><span class="val">6.2</span><span class="rc"></span></div>
+    </div>
+
+    <!-- 7-BAND -->
+    <div class="sl-group">
+      <div class="sl-head"><span class="t">7-Band Energy</span><span class="c mono">7</span></div>
+      <div class="sl-row"><span class="name">Sub</span><span class="meter"><span class="f" style="width:88%"></span></span><span class="val">0.88</span><span class="rc">[4]</span></div>
+      <div class="sl-row"><span class="name">Bass</span><span class="meter"><span class="f" style="width:76%"></span></span><span class="val">0.76</span><span class="rc">[2]</span></div>
+      <div class="sl-row"><span class="name">LowMid</span><span class="meter"><span class="f" style="width:42%"></span></span><span class="val">0.42</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">Mid</span><span class="meter"><span class="f" style="width:55%"></span></span><span class="val">0.55</span><span class="rc">[1]</span></div>
+      <div class="sl-row"><span class="name">HighMid</span><span class="meter"><span class="f" style="width:38%"></span></span><span class="val">0.38</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">Presence</span><span class="meter"><span class="f" style="width:61%"></span></span><span class="val">0.61</span><span class="rc">[1]</span></div>
+      <div class="sl-row"><span class="name">Brilliance</span><span class="meter"><span class="f" style="width:47%"></span></span><span class="val">0.47</span><span class="rc"></span></div>
+    </div>
+
+    <!-- SPECTRAL -->
+    <div class="sl-group">
+      <div class="sl-head"><span class="t">Spectral</span><span class="c mono">4</span></div>
+      <div class="sl-row"><span class="name">Centroid</span><span class="meter"><span class="f" style="width:48%"></span></span><span class="val">2.4k</span><span class="rc">[2]</span></div>
+      <div class="sl-row"><span class="name">Flux</span><span class="meter"><span class="f" style="width:38%"></span></span><span class="val">0.38</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">Flatness</span><span class="meter"><span class="f" style="width:21%"></span></span><span class="val">0.21</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">Rolloff</span><span class="meter"><span class="f" style="width:58%"></span></span><span class="val">5.8k</span><span class="rc">[1]</span></div>
+    </div>
+
+    <!-- RHYTHM -->
+    <div class="sl-group">
+      <div class="sl-head"><span class="t">Rhythm</span><span class="c mono">6</span></div>
+      <div class="sl-row"><span class="name">Onset</span><span class="meter"><span class="f" style="width:0%"></span></span><span class="val">0.00</span><span class="rc">[2]</span></div>
+      <div class="sl-row"><span class="name">BeatPhase</span><span class="meter"><span class="f" style="width:37%"></span></span><span class="val">0.37</span><span class="rc">[5]</span></div>
+      <div class="sl-row"><span class="name">BarPhase</span><span class="meter"><span class="f" style="width:62%"></span></span><span class="val">0.62</span><span class="rc">[2]</span></div>
+      <div class="sl-row"><span class="name">PhrasePhase</span><span class="meter"><span class="f" style="width:18%"></span></span><span class="val">0.18</span><span class="rc">[1]</span></div>
+      <div class="sl-row"><span class="name">BarCount</span><span class="meter"><span class="f" style="width:18%"></span></span><span class="val">03</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">Transients</span><span class="meter"><span class="f" style="width:42%"></span></span><span class="val">4.2/s</span><span class="rc"></span></div>
+    </div>
+
+    <!-- PITCH/KEY -->
+    <div class="sl-group">
+      <div class="sl-head"><span class="t">Pitch / Key</span><span class="c mono">4</span></div>
+      <div class="sl-row"><span class="name">DomPitch</span><span class="meter"><span class="f" style="width:44%"></span></span><span class="val">440·A4</span><span class="rc">[1]</span></div>
+      <div class="sl-row"><span class="name">PitchConf</span><span class="meter"><span class="f" style="width:84%"></span></span><span class="val">0.84</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">Key</span><span class="meter"><span class="f" style="width:100%"></span></span><span class="val">Am</span><span class="rc">[1]</span></div>
+      <div class="sl-row"><span class="name">HCDF</span><span class="meter"><span class="f" style="width:12%"></span></span><span class="val">0.12</span><span class="rc"></span></div>
+    </div>
+
+    <!-- MFCC spark row -->
+    <div class="sl-group">
+      <div class="sl-head"><span class="t">MFCC</span><span class="c mono">13</span></div>
+      <div class="sl-mfcc-wrap">
+        <div class="hd"><span>M00</span><span>M06</span><span>M12</span></div>
+        <div class="sl-mfcc">
+          <div class="b" style="height:82%;"></div>
+          <div class="b" style="height:41%;"></div>
+          <div class="b" style="height:66%;"></div>
+          <div class="b" style="height:28%;"></div>
+          <div class="b" style="height:54%;"></div>
+          <div class="b" style="height:39%;"></div>
+          <div class="b" style="height:22%;"></div>
+          <div class="b" style="height:48%;"></div>
+          <div class="b" style="height:31%;"></div>
+          <div class="b" style="height:58%;"></div>
+          <div class="b" style="height:18%;"></div>
+          <div class="b" style="height:37%;"></div>
+          <div class="b" style="height:25%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHROMA -->
+    <div class="sl-group">
+      <div class="sl-head"><span class="t">Chroma</span><span class="c mono">12</span></div>
+      <div class="sl-chroma-wrap">
+        <div class="hd"><span>PITCH CLASSES</span><span>DETECTED · A</span></div>
+        <div class="sl-chroma">
+          <div class="col"><div class="bar" style="height:24%"></div><div class="l">C</div></div>
+          <div class="col"><div class="bar" style="height:14%"></div><div class="l">C#</div></div>
+          <div class="col"><div class="bar" style="height:38%"></div><div class="l">D</div></div>
+          <div class="col"><div class="bar" style="height:18%"></div><div class="l">D#</div></div>
+          <div class="col"><div class="bar" style="height:56%"></div><div class="l">E</div></div>
+          <div class="col"><div class="bar" style="height:22%"></div><div class="l">F</div></div>
+          <div class="col"><div class="bar" style="height:10%"></div><div class="l">F#</div></div>
+          <div class="col"><div class="bar" style="height:48%"></div><div class="l">G</div></div>
+          <div class="col"><div class="bar" style="height:16%"></div><div class="l">G#</div></div>
+          <div class="col active"><div class="bar" style="height:94%"></div><div class="l">A</div></div>
+          <div class="col"><div class="bar" style="height:28%"></div><div class="l">A#</div></div>
+          <div class="col"><div class="bar" style="height:34%"></div><div class="l">B</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADVANCED -->
+    <div class="sl-group">
+      <div class="sl-head"><span class="t">Advanced</span><span class="c mono">5</span></div>
+      <div class="sl-row"><span class="name">Sidechain</span><span class="meter"><span class="f" style="width:58%"></span></span><span class="val">0.58</span><span class="rc">[1]</span></div>
+      <div class="sl-row"><span class="name">Swing</span><span class="meter"><span class="f" style="width:52%"></span></span><span class="val">0.52</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">Formant</span><span class="meter"><span class="f" style="width:22%"></span></span><span class="val">0.22</span><span class="rc"></span></div>
+      <div class="sl-row"><span class="name">Resonance</span><span class="meter"><span class="f" style="width:45%"></span></span><span class="val">0.45</span><span class="rc">[1]</span></div>
+      <div class="sl-row"><span class="name">ReeseBass</span><span class="meter"><span class="f" style="width:31%"></span></span><span class="val">0.31</span><span class="rc"></span></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============== RIGHT AREA ============== -->
+<div class="right-area">
+  <div class="ra-wrap">
+
+    <!-- ============== SIGNAL EDITOR ============== -->
+    <div class="sig-editor">
+
+      <div class="se-head">
+        <div class="se-title">
+          <span class="name">RMS</span>
+          <span class="tag mono">[ 3 ROUTES · AMPLITUDE ]</span>
+        </div>
+        <span class="q mono">Q 0.12 · TO BEAT · LATENCY 12ms</span>
+      </div>
+
+      <div class="se-body">
+
+        <!-- COLUMN 1: big value + sliders -->
+        <div class="se-col1">
+          <div class="se-bigval mono">0.724</div>
+          <div class="se-subval mono">RAW 0.741 · SMOOTHED · −2.8 dB</div>
+
+          <div class="se-slider">
+            <span class="lbl">Threshold</span>
+            <span class="track"><span class="f" style="width:14%"></span><span class="knob" style="left:14%;"></span></span>
+            <span class="val">0.140</span>
+          </div>
+          <div class="se-slider">
+            <span class="lbl">Gain</span>
+            <span class="track"><span class="f" style="width:62%"></span><span class="knob" style="left:62%;"></span></span>
+            <span class="val">1.24×</span>
+          </div>
+          <div class="se-slider">
+            <span class="lbl">Falloff</span>
+            <span class="track"><span class="f" style="width:38%"></span><span class="knob" style="left:38%;"></span></span>
+            <span class="val">280ms</span>
+          </div>
+          <div class="se-slider">
+            <span class="lbl">Smoothing</span>
+            <span class="track"><span class="f" style="width:48%"></span><span class="knob" style="left:48%;"></span></span>
+            <span class="val">0.48</span>
+          </div>
+
+          <!-- mini histogram -->
+          <div style="display:flex;align-items:flex-end;gap:2px;height:36px;margin-top:8px;padding:0 0;">
+            <!-- 40 bars of historical values -->
+            <div style="flex:1;background:#333;height:22%;"></div>
+            <div style="flex:1;background:#333;height:28%;"></div>
+            <div style="flex:1;background:#333;height:34%;"></div>
+            <div style="flex:1;background:#333;height:40%;"></div>
+            <div style="flex:1;background:#444;height:48%;"></div>
+            <div style="flex:1;background:#444;height:52%;"></div>
+            <div style="flex:1;background:#444;height:58%;"></div>
+            <div style="flex:1;background:#555;height:64%;"></div>
+            <div style="flex:1;background:#555;height:68%;"></div>
+            <div style="flex:1;background:#555;height:72%;"></div>
+            <div style="flex:1;background:#666;height:76%;"></div>
+            <div style="flex:1;background:#666;height:80%;"></div>
+            <div style="flex:1;background:#777;height:84%;"></div>
+            <div style="flex:1;background:#888;height:88%;"></div>
+            <div style="flex:1;background:#999;height:91%;"></div>
+            <div style="flex:1;background:#aaa;height:94%;"></div>
+            <div style="flex:1;background:#bbb;height:96%;"></div>
+            <div style="flex:1;background:#ccc;height:98%;"></div>
+            <div style="flex:1;background:#fff;height:100%;"></div>
+            <div style="flex:1;background:#ccc;height:90%;"></div>
+            <div style="flex:1;background:#aaa;height:78%;"></div>
+            <div style="flex:1;background:#888;height:66%;"></div>
+            <div style="flex:1;background:#666;height:58%;"></div>
+            <div style="flex:1;background:#555;height:52%;"></div>
+            <div style="flex:1;background:#555;height:54%;"></div>
+            <div style="flex:1;background:#666;height:60%;"></div>
+            <div style="flex:1;background:#777;height:68%;"></div>
+            <div style="flex:1;background:#888;height:74%;"></div>
+            <div style="flex:1;background:#aaa;height:82%;"></div>
+            <div style="flex:1;background:#bbb;height:88%;"></div>
+            <div style="flex:1;background:#999;height:78%;"></div>
+            <div style="flex:1;background:#888;height:70%;"></div>
+            <div style="flex:1;background:#777;height:64%;"></div>
+            <div style="flex:1;background:#666;height:58%;"></div>
+            <div style="flex:1;background:#555;height:52%;"></div>
+            <div style="flex:1;background:#555;height:54%;"></div>
+            <div style="flex:1;background:#666;height:62%;"></div>
+            <div style="flex:1;background:#777;height:68%;"></div>
+            <div style="flex:1;background:#888;height:74%;"></div>
+            <div style="flex:1;background:#ff4500;height:72%;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;margin-top:3px;letter-spacing:0.1em;">
+            <span>−4 SEC</span><span>HISTORY</span><span>NOW</span>
+          </div>
+        </div>
+
+        <!-- COLUMN 2: OSCILLATOR -->
+        <div class="se-col2">
+          <div class="se-sect">
+            <div class="hd"><span class="t">Oscillator</span><span class="s">SINE · 1/4</span></div>
+
+            <div class="osc-row">
+              <div class="osc-btn sel" title="sine"><svg width="28" height="16" viewBox="0 0 28 16"><path d="M0,8 Q7,0 14,8 T28,8" stroke-width="1.2"/></svg></div>
+              <div class="osc-btn" title="saw up"><svg width="28" height="16" viewBox="0 0 28 16"><polyline points="0,14 14,2 14,14 28,2" stroke-width="1.2"/></svg></div>
+              <div class="osc-btn" title="saw down"><svg width="28" height="16" viewBox="0 0 28 16"><polyline points="0,2 14,14 14,2 28,14" stroke-width="1.2"/></svg></div>
+              <div class="osc-btn" title="triangle"><svg width="28" height="16" viewBox="0 0 28 16"><polyline points="0,14 7,2 21,14 28,2" stroke-width="1.2"/></svg></div>
+              <div class="osc-btn" title="square"><svg width="28" height="16" viewBox="0 0 28 16"><polyline points="0,14 0,2 14,2 14,14 28,14 28,2" stroke-width="1.2"/></svg></div>
+            </div>
+
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;letter-spacing:0.14em;text-transform:uppercase;margin-top:8px;margin-bottom:3px;">Beat Division</div>
+            <div class="div-row">
+              <div class="div-btn">1/4</div>
+              <div class="div-btn">1/2</div>
+              <div class="div-btn sel">1</div>
+              <div class="div-btn">2</div>
+              <div class="div-btn">4</div>
+              <div class="div-btn">8</div>
+            </div>
+
+            <div class="se-slider" style="margin-top:10px;">
+              <span class="lbl">Amp</span>
+              <span class="track"><span class="f" style="width:72%"></span><span class="knob" style="left:72%;"></span></span>
+              <span class="val">0.720</span>
+            </div>
+            <div class="se-slider">
+              <span class="lbl">Phase</span>
+              <span class="track"><span class="f" style="width:25%"></span><span class="knob" style="left:25%;"></span></span>
+              <span class="val">90°</span>
+            </div>
+            <div class="se-slider">
+              <span class="lbl">Offset</span>
+              <span class="track"><span class="f" style="width:50%"></span><span class="knob" style="left:50%;"></span></span>
+              <span class="val">0.000</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUMN 3: ENVELOPE -->
+        <div class="se-col3">
+          <div class="se-sect">
+            <div class="hd"><span class="t">Envelope</span><span class="s">3 POINTS · S-CURVE</span></div>
+
+            <div class="env-panel">
+              <svg class="env-grid" viewBox="0 0 320 110" preserveAspectRatio="none">
+                <!-- grid -->
+                <line x1="0" y1="27" x2="320" y2="27" stroke="#141414"/>
+                <line x1="0" y1="55" x2="320" y2="55" stroke="#1a1a1a"/>
+                <line x1="0" y1="82" x2="320" y2="82" stroke="#141414"/>
+                <line x1="80" y1="0" x2="80" y2="110" stroke="#141414"/>
+                <line x1="160" y1="0" x2="160" y2="110" stroke="#1a1a1a"/>
+                <line x1="240" y1="0" x2="240" y2="110" stroke="#141414"/>
+
+                <!-- fill under curve -->
+                <path d="M20,95 Q60,95 80,70 T160,30 Q220,14 300,10 L300,110 L20,110 Z" fill="#ff4500" fill-opacity="0.05"/>
+
+                <!-- S-curve -->
+                <path d="M20,95 Q60,95 80,70 T160,30 Q220,14 300,10" stroke="#ff4500" stroke-width="1.5" fill="none"/>
+
+                <!-- cursor hint -->
+                <line x1="190" y1="0" x2="190" y2="110" stroke="#444" stroke-width="1" stroke-dasharray="2 3"/>
+                <circle cx="190" cy="22" r="2.5" fill="#fff"/>
+              </svg>
+
+              <!-- draggable points -->
+              <div class="env-pt" style="left:20px;top:95px;"></div>
+              <div class="env-pt" style="left:160px;top:30px;"></div>
+              <div class="env-pt" style="left:300px;top:10px;"></div>
+
+              <!-- axis labels -->
+              <div style="position:absolute;left:4px;top:2px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#555;letter-spacing:0.1em;">1.0</div>
+              <div style="position:absolute;left:4px;bottom:2px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#555;letter-spacing:0.1em;">0.0</div>
+              <div style="position:absolute;right:4px;bottom:2px;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#555;letter-spacing:0.1em;">TIME</div>
+            </div>
+
+            <div class="env-ctrls">
+              <div class="pill sel">LOOP</div>
+              <div class="pill">ONE-SHOT</div>
+              <div class="pill">RETRIGGER</div>
+              <div class="curve-sel">
+                <div class="pill">LIN</div>
+                <div class="pill">EXP</div>
+                <div class="pill sel">S-CURVE</div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;letter-spacing:0.1em;">
+              <span>ATK <b style="color:#ddd;font-weight:500;">120ms</b></span>
+              <span>HOLD <b style="color:#ddd;font-weight:500;">60ms</b></span>
+              <span>DEC <b style="color:#ddd;font-weight:500;">480ms</b></span>
+              <span>REL <b style="color:#ddd;font-weight:500;">840ms</b></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROUTES LIST -->
+      <div class="se-routes">
+        <div class="rt-head">
+          <span>#</span><span>Target</span><span>Curve</span><span>Range</span><span></span><span></span>
+        </div>
+        <div class="rt-row">
+          <span class="idx">01</span>
+          <span class="tgt">LAYER.02 · OPACITY</span>
+          <span class="crv">SCURVE</span>
+          <span class="rng">0.00 → 0.90</span>
+          <span class="dot"></span>
+          <span class="x">×</span>
+        </div>
+        <div class="rt-row">
+          <span class="idx">02</span>
+          <span class="tgt">CLIP.03 · BLUR · INTENSITY</span>
+          <span class="crv">EXP</span>
+          <span class="rng">0.20 → 0.95</span>
+          <span class="dot"></span>
+          <span class="x">×</span>
+        </div>
+        <div class="rt-row">
+          <span class="idx">03</span>
+          <span class="tgt">GLOBAL · GLOW · SIZE</span>
+          <span class="crv">LIN</span>
+          <span class="rng">0.00 → 1.00</span>
+          <span class="dot"></span>
+          <span class="x">×</span>
+        </div>
+        <div class="rt-row">
+          <span class="idx">04</span>
+          <span class="tgt">LFO·A · AMP · MOD</span>
+          <span class="crv">LOG</span>
+          <span class="rng">0.30 → 1.00</span>
+          <span class="dot"></span>
+          <span class="x">×</span>
+        </div>
+        <div class="rt-add">+ ADD ROUTE</div>
+      </div>
+
+    </div>
+
+    <!-- ============== NOW PLAYING BANNER ============== -->
+    <div class="np-banner">
+      <div class="np-left">
+        <div class="np-dot"></div>
+        <div class="np-name">JULIA SET — PLATE VII</div>
+        <div class="np-meta mono">LAYER 02 · TRANSPARENT · FX: RIPPLE · ECHO · GLOW</div>
+      </div>
+      <div class="np-right mono">BPM 128.0 SYNC · LOOP 02:14/04:28</div>
+    </div>
+
+    <!-- ============== GRID + PREVIEW ============== -->
+    <div class="grid-preview">
+
+      <!-- GRID -->
+      <div class="grid-area">
+
+        <!-- LAYER 01 -->
+        <div class="deck-row">
+          <div class="deck-hdr">
+            <div class="name">L·01 BASE</div>
+            <div class="ty">OPAQUE · BG</div>
+            <div class="ctl">
+              <div class="sm">S</div>
+              <div class="sm">M</div>
+              <div class="op"><div class="f" style="width:100%"></div></div>
+            </div>
+            <div class="bl">NORMAL · 1.00</div>
+          </div>
+          <div class="cells">
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <defs><radialGradient id="t1a" cx="0.5" cy="0.5" r="0.6"><stop offset="0" stop-color="#22407a"/><stop offset="1" stop-color="#050510"/></radialGradient><filter id="n1"><feTurbulence baseFrequency="0.9" numOctaves="3"/><feColorMatrix values="0 0 0 0 0.3  0 0 0 0 0.4  0 0 0 0 0.8  0 0 0 0.4 0"/></filter></defs>
+                <rect width="120" height="70" fill="url(#t1a)"/><rect width="120" height="70" filter="url(#n1)" opacity="0.5"/>
+              </svg>
+            </div><div class="nm">plasma.01</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#080808"/>
+                <g stroke="#445" stroke-width="0.5" fill="none">
+                  <circle cx="60" cy="35" r="8"/><circle cx="60" cy="35" r="16"/><circle cx="60" cy="35" r="24"/><circle cx="60" cy="35" r="32"/><circle cx="60" cy="35" r="40"/>
+                </g>
+                <circle cx="60" cy="35" r="3" fill="#8bf"/>
+              </svg>
+            </div><div class="nm">rings.loop</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#0a0612"/>
+                <g fill="#a568b2" opacity="0.6">
+                  <polygon points="20,20 30,40 10,40"/><polygon points="40,15 50,35 30,35"/><polygon points="60,25 70,45 50,45"/><polygon points="80,18 90,38 70,38"/><polygon points="100,22 110,42 90,42"/>
+                  <polygon points="25,50 35,65 15,65"/><polygon points="50,55 60,68 40,68"/><polygon points="75,52 85,67 65,67"/><polygon points="100,56 110,69 90,69"/>
+                </g>
+              </svg>
+            </div><div class="nm">triangulate</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <defs><linearGradient id="t1d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e3a5a"/><stop offset="0.7" stop-color="#0a1020"/><stop offset="1" stop-color="#000"/></linearGradient></defs>
+                <rect width="120" height="70" fill="url(#t1d)"/>
+                <polyline points="0,50 10,48 20,42 30,40 40,30 50,28 60,22 70,18 80,20 90,15 100,12 110,10 120,8" stroke="#7af" stroke-width="1" fill="none"/>
+                <polyline points="0,60 10,58 20,56 30,52 40,48 50,46 60,42 70,40 80,38 90,36 100,34 110,32 120,30" stroke="#5ac" stroke-width="0.8" fill="none" opacity="0.6"/>
+              </svg>
+            </div><div class="nm">terrain.cold</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#0a0a0f"/>
+                <g stroke="#4a7" stroke-width="0.3" fill="none">
+                  <path d="M0,10 Q30,8 60,15 T120,12"/><path d="M0,22 Q30,18 60,28 T120,24"/><path d="M0,34 Q30,30 60,42 T120,38"/><path d="M0,46 Q30,42 60,54 T120,50"/><path d="M0,58 Q30,54 60,66 T120,62"/>
+                </g>
+              </svg>
+            </div><div class="nm">topo.green</div></div>
+
+            <div class="cell empty"><div class="nm" style="color:#333;">—</div></div>
+          </div>
+        </div>
+
+        <!-- LAYER 02 active -->
+        <div class="deck-row">
+          <div class="deck-hdr active-layer">
+            <div class="name">L·02 DRIVER</div>
+            <div class="ty">TRANSPARENT</div>
+            <div class="ctl">
+              <div class="sm on">S</div>
+              <div class="sm">M</div>
+              <div class="op"><div class="f" style="width:88%"></div></div>
+            </div>
+            <div class="bl">ADD · 0.88</div>
+          </div>
+          <div class="cells">
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#060406"/>
+                <g stroke="#d8a" stroke-width="0.4" fill="none" opacity="0.8">
+                  <path d="M60,35 Q80,20 100,35 T60,35"/><path d="M60,35 Q40,20 20,35 T60,35"/>
+                  <path d="M60,35 Q80,50 100,35 T60,35"/><path d="M60,35 Q40,50 20,35 T60,35"/>
+                  <circle cx="60" cy="35" r="18" opacity="0.5"/><circle cx="60" cy="35" r="9" opacity="0.7"/>
+                </g>
+              </svg>
+            </div><div class="nm">mandelbrot</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#100208"/>
+                <g fill="none">
+                  <path d="M0,35 Q30,10 60,35 T120,35" stroke="#f66" stroke-width="0.6"/>
+                  <path d="M0,40 Q30,15 60,40 T120,40" stroke="#c44" stroke-width="0.5"/>
+                  <path d="M0,30 Q30,5 60,30 T120,30" stroke="#f99" stroke-width="0.4"/>
+                </g>
+                <circle cx="20" cy="30" r="1.5" fill="#fcc"/><circle cx="50" cy="20" r="1.5" fill="#fcc"/><circle cx="80" cy="30" r="1.5" fill="#fcc"/><circle cx="105" cy="25" r="1.5" fill="#fcc"/>
+              </svg>
+            </div><div class="nm">ridge.warm</div></div>
+
+            <!-- PLAYING CELL -->
+            <div class="cell playing"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <defs><radialGradient id="pl1" cx="0.5" cy="0.5" r="0.6"><stop offset="0" stop-color="#fff"/><stop offset="0.5" stop-color="#ffaa88"/><stop offset="1" stop-color="#ff4500"/></radialGradient></defs>
+                <rect width="120" height="70" fill="#ff4500"/>
+                <g opacity="0.55">
+                  <circle cx="60" cy="35" r="28" fill="none" stroke="#fff" stroke-width="0.4"/>
+                  <circle cx="60" cy="35" r="20" fill="none" stroke="#fff" stroke-width="0.4"/>
+                  <circle cx="60" cy="35" r="12" fill="none" stroke="#fff" stroke-width="0.4"/>
+                </g>
+                <circle cx="60" cy="35" r="6" fill="url(#pl1)"/>
+              </svg>
+            </div><div class="nm">julia.plate.vii</div><div class="prog"></div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#070a0e"/>
+                <g stroke="#6af" stroke-width="0.3" fill="none">
+                  <line x1="0" y1="10" x2="120" y2="10"/><line x1="0" y1="20" x2="120" y2="20"/><line x1="0" y1="30" x2="120" y2="30"/><line x1="0" y1="40" x2="120" y2="40"/><line x1="0" y1="50" x2="120" y2="50"/><line x1="0" y1="60" x2="120" y2="60"/>
+                  <line x1="10" y1="0" x2="10" y2="70"/><line x1="30" y1="0" x2="30" y2="70"/><line x1="50" y1="0" x2="50" y2="70"/><line x1="70" y1="0" x2="70" y2="70"/><line x1="90" y1="0" x2="90" y2="70"/><line x1="110" y1="0" x2="110" y2="70"/>
+                </g>
+              </svg>
+            </div><div class="nm">grid.cyan</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#0a0514"/>
+                <g>
+                  <circle cx="20" cy="20" r="1" fill="#fff"/><circle cx="50" cy="15" r="0.8" fill="#fff"/><circle cx="70" cy="25" r="1.2" fill="#fff"/><circle cx="100" cy="18" r="0.9" fill="#fff"/>
+                  <circle cx="30" cy="40" r="1" fill="#fff"/><circle cx="60" cy="45" r="1.3" fill="#fff"/><circle cx="90" cy="42" r="0.8" fill="#fff"/>
+                  <circle cx="15" cy="55" r="1.1" fill="#fff"/><circle cx="45" cy="60" r="0.9" fill="#fff"/><circle cx="75" cy="58" r="1" fill="#fff"/><circle cx="105" cy="63" r="0.8" fill="#fff"/>
+                </g>
+              </svg>
+            </div><div class="nm">starfield</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#080810"/>
+                <g stroke="#9cf" stroke-width="0.4" fill="none" opacity="0.7">
+                  <path d="M10,35 Q20,20 30,35 Q40,50 50,35 Q60,20 70,35 Q80,50 90,35 Q100,20 110,35"/>
+                  <path d="M10,40 Q20,25 30,40 Q40,55 50,40 Q60,25 70,40 Q80,55 90,40 Q100,25 110,40"/>
+                  <path d="M10,30 Q20,15 30,30 Q40,45 50,30 Q60,15 70,30 Q80,45 90,30 Q100,15 110,30"/>
+                </g>
+              </svg>
+            </div><div class="nm">wave.packet</div></div>
+          </div>
+        </div>
+
+        <!-- LAYER 03 -->
+        <div class="deck-row">
+          <div class="deck-hdr">
+            <div class="name">L·03 FX</div>
+            <div class="ty">FX ONLY</div>
+            <div class="ctl">
+              <div class="sm">S</div>
+              <div class="sm">M</div>
+              <div class="op"><div class="f" style="width:62%"></div></div>
+            </div>
+            <div class="bl">SCREEN · 0.62</div>
+          </div>
+          <div class="cells">
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#050505"/>
+                <g fill="#fff" opacity="0.4">
+                  <rect x="10" y="10" width="3" height="3"/><rect x="30" y="20" width="3" height="3"/><rect x="50" y="15" width="3" height="3"/><rect x="70" y="25" width="3" height="3"/><rect x="90" y="12" width="3" height="3"/><rect x="110" y="22" width="3" height="3"/>
+                  <rect x="20" y="40" width="3" height="3"/><rect x="40" y="50" width="3" height="3"/><rect x="60" y="45" width="3" height="3"/><rect x="80" y="55" width="3" height="3"/><rect x="100" y="48" width="3" height="3"/>
+                  <rect x="15" y="60" width="3" height="3"/><rect x="45" y="62" width="3" height="3"/><rect x="75" y="65" width="3" height="3"/><rect x="105" y="58" width="3" height="3"/>
+                </g>
+              </svg>
+            </div><div class="nm">fx.glitch.01</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#020202"/>
+                <g stroke="#fff" stroke-width="0.3" opacity="0.5" fill="none">
+                  <line x1="0" y1="4" x2="120" y2="4"/><line x1="0" y1="10" x2="120" y2="10"/><line x1="0" y1="16" x2="120" y2="16"/><line x1="0" y1="22" x2="120" y2="22"/><line x1="0" y1="28" x2="120" y2="28"/><line x1="0" y1="34" x2="120" y2="34"/><line x1="0" y1="40" x2="120" y2="40"/><line x1="0" y1="46" x2="120" y2="46"/><line x1="0" y1="52" x2="120" y2="52"/><line x1="0" y1="58" x2="120" y2="58"/><line x1="0" y1="64" x2="120" y2="64"/>
+                </g>
+              </svg>
+            </div><div class="nm">scan.lines</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#000"/>
+                <g fill="none" opacity="0.7">
+                  <circle cx="60" cy="35" r="30" stroke="#fff" stroke-width="0.3"/>
+                  <circle cx="60" cy="35" r="22" stroke="#ddd" stroke-width="0.3"/>
+                  <circle cx="60" cy="35" r="14" stroke="#bbb" stroke-width="0.3"/>
+                </g>
+                <circle cx="60" cy="35" r="4" fill="#fff"/>
+              </svg>
+            </div><div class="nm">vignette</div></div>
+
+            <!-- QUEUED: LAYER 3 COL 4 per spec -->
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#0a0510"/>
+                <g fill="#c8f" opacity="0.6">
+                  <polygon points="60,10 70,30 50,30"/><polygon points="40,30 60,55 20,55"/><polygon points="80,30 100,55 60,55"/>
+                </g>
+              </svg>
+            </div><div class="nm">sier.tri</div></div>
+
+            <div class="cell queued"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#0a0814"/>
+                <g stroke="#9af" stroke-width="0.4" fill="none">
+                  <path d="M0,35 Q30,20 60,35 T120,35"/><path d="M0,35 Q30,50 60,35 T120,35"/>
+                  <circle cx="60" cy="35" r="12" opacity="0.5"/><circle cx="60" cy="35" r="24" opacity="0.3"/>
+                </g>
+              </svg>
+            </div><div class="nm">▸ cymatics</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <defs><filter id="nft"><feTurbulence baseFrequency="0.7" numOctaves="2"/></filter></defs>
+                <rect width="120" height="70" fill="#0a0a0a"/>
+                <rect width="120" height="70" filter="url(#nft)" opacity="0.3"/>
+              </svg>
+            </div><div class="nm">noise.film</div></div>
+          </div>
+        </div>
+
+        <!-- LAYER 04 -->
+        <div class="deck-row">
+          <div class="deck-hdr">
+            <div class="name">L·04 TEXT</div>
+            <div class="ty">OVERLAY</div>
+            <div class="ctl">
+              <div class="sm">S</div>
+              <div class="sm">M</div>
+              <div class="op"><div class="f" style="width:100%"></div></div>
+            </div>
+            <div class="bl">NORMAL · 1.00</div>
+          </div>
+          <div class="cells">
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#000"/>
+                <text x="60" y="42" text-anchor="middle" fill="#fff" font-family="IBM Plex Mono" font-size="12" font-weight="600" letter-spacing="2">LIVE</text>
+              </svg>
+            </div><div class="nm">text.live</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#000"/>
+                <text x="60" y="42" text-anchor="middle" fill="#bbb" font-family="IBM Plex Mono" font-size="9" letter-spacing="1">AUDIO-DNA</text>
+              </svg>
+            </div><div class="nm">text.logo</div></div>
+
+            <div class="cell"><div class="thumb">
+              <svg viewBox="0 0 120 70" preserveAspectRatio="none">
+                <rect width="120" height="70" fill="#000"/>
+                <text x="60" y="32" text-anchor="middle" fill="#888" font-family="IBM Plex Mono" font-size="7">BPM 128.0</text>
+                <text x="60" y="48" text-anchor="middle" fill="#ccc" font-family="IBM Plex Mono" font-size="7">KEY Am</text>
+              </svg>
+            </div><div class="nm">text.meta</div></div>
+
+            <div class="cell empty"><div class="nm" style="color:#333;">—</div></div>
+            <div class="cell empty"><div class="nm" style="color:#333;">—</div></div>
+            <div class="cell empty"><div class="nm" style="color:#333;">—</div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="preview-wrap">
+        <div class="preview-monitor">
+          <svg viewBox="0 0 320 180" preserveAspectRatio="none">
+            <defs>
+              <radialGradient id="pv-core" cx="0.5" cy="0.5" r="0.45">
+                <stop offset="0" stop-color="#fff" stop-opacity="0.95"/>
+                <stop offset="0.15" stop-color="#ffbb99" stop-opacity="0.7"/>
+                <stop offset="0.4" stop-color="#ff4500" stop-opacity="0.4"/>
+                <stop offset="0.8" stop-color="#3a1a3a" stop-opacity="0.3"/>
+                <stop offset="1" stop-color="#0a0820" stop-opacity="0"/>
+              </radialGradient>
+              <radialGradient id="pv-vig" cx="0.5" cy="0.5" r="0.7">
+                <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+                <stop offset="1" stop-color="#000" stop-opacity="0.85"/>
+              </radialGradient>
+              <filter id="pv-turb">
+                <feTurbulence baseFrequency="0.025" numOctaves="3" seed="7"/>
+                <feDisplacementMap in="SourceGraphic" scale="10"/>
+              </filter>
+              <filter id="pv-grain">
+                <feTurbulence baseFrequency="1.2" numOctaves="1"/>
+                <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.08 0"/>
+              </filter>
+            </defs>
+
+            <!-- deep space background -->
+            <rect width="320" height="180" fill="#050515"/>
+
+            <!-- distant rings -->
+            <g fill="none" opacity="0.25">
+              <circle cx="160" cy="90" r="78" stroke="#445a8a" stroke-width="0.4"/>
+              <circle cx="160" cy="90" r="62" stroke="#556aa0" stroke-width="0.4"/>
+              <circle cx="160" cy="90" r="48" stroke="#7a7ac2" stroke-width="0.4"/>
+              <circle cx="160" cy="90" r="36" stroke="#9080d0" stroke-width="0.4"/>
+            </g>
+
+            <!-- turbulent core -->
+            <g filter="url(#pv-turb)">
+              <ellipse cx="160" cy="90" rx="80" ry="55" fill="url(#pv-core)"/>
+            </g>
+
+            <!-- scanlines -->
+            <g stroke="#000" stroke-width="0.5" opacity="0.25">
+              <line x1="0" y1="10" x2="320" y2="10"/><line x1="0" y1="20" x2="320" y2="20"/><line x1="0" y1="30" x2="320" y2="30"/><line x1="0" y1="40" x2="320" y2="40"/><line x1="0" y1="50" x2="320" y2="50"/><line x1="0" y1="60" x2="320" y2="60"/><line x1="0" y1="70" x2="320" y2="70"/><line x1="0" y1="80" x2="320" y2="80"/><line x1="0" y1="90" x2="320" y2="90"/><line x1="0" y1="100" x2="320" y2="100"/><line x1="0" y1="110" x2="320" y2="110"/><line x1="0" y1="120" x2="320" y2="120"/><line x1="0" y1="130" x2="320" y2="130"/><line x1="0" y1="140" x2="320" y2="140"/><line x1="0" y1="150" x2="320" y2="150"/><line x1="0" y1="160" x2="320" y2="160"/><line x1="0" y1="170" x2="320" y2="170"/>
+            </g>
+
+            <!-- vignette -->
+            <rect width="320" height="180" fill="url(#pv-vig)"/>
+
+            <!-- grain -->
+            <rect width="320" height="180" filter="url(#pv-grain)" opacity="0.6"/>
+          </svg>
+
+          <div class="preview-live">
+            <span class="d"></span>LIVE · 60fps
+          </div>
+          <div class="preview-out">OUTPUT A · SYPHON</div>
+          <div class="preview-bar"></div>
+        </div>
+
+        <div class="preview-stats">
+          <span class="k">RESOLUTION</span><span class="v">1920 × 1080</span>
+          <span class="k">FRAMERATE</span><span class="v">60.0 FPS</span>
+          <span class="k">LATENCY</span><span class="v">18.4 MS</span>
+          <span class="k">BUFFER</span><span class="v">3/3 OK</span>
+          <span class="k">GPU LOAD</span><span class="v">41%</span>
+          <span class="k">MEMORY</span><span class="v">312 MB</span>
+        </div>
+
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;letter-spacing:0.14em;text-transform:uppercase;margin-top:6px;">Output Channels</div>
+        <div class="preview-channels">
+          <div class="ch on">A · SYPHON</div>
+          <div class="ch">B · NDI</div>
+          <div class="ch">C · SPOUT</div>
+          <div class="ch">D · FILE</div>
+        </div>
+
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#555;letter-spacing:0.14em;text-transform:uppercase;margin-top:8px;">Recording</div>
+        <div style="display:flex;align-items:center;gap:8px;height:20px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#ccc;">
+          <div class="rec-dot" style="width:6px;height:6px;"></div>
+          <span>H.264 · 00:12:34 · 1.4 GB</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ============== FOOTER ============== -->
+<div class="footer mono">
+  <span class="k">FPS</span><span class="v"><b>60.0</b></span>
+  <span class="sep">·</span>
+  <span class="k">CPU</span><span class="v"><b>22%</b></span>
+  <span class="sep">·</span>
+  <span class="k">GPU</span><span class="v"><b>41%</b></span>
+  <span class="sep">·</span>
+  <span class="k">MEM</span><span class="v"><b>312 MB</b></span>
+  <span class="sep">·</span>
+  <span class="k">RES</span><span class="v"><b>1920 × 1080</b></span>
+  <span class="sep">·</span>
+  <span class="k">REC</span><span class="v"><b>00:12:34</b></span>
+  <span class="sep">·</span>
+  <span class="k">BUF</span><span class="v"><b>3/3</b></span>
+  <span class="sep">·</span>
+  <span class="k">AUDIO</span><span class="v"><b>48 kHz · 128spl</b></span>
+  <span class="right">STATE 2 / 4 · WAVEFORM MAX · SIGNALS MAX · PREP MODE</span>
+</div>
+
+<!-- ============== WAVEFORM PATH GENERATION ============== -->
+<script>
+(function(){
+  // Generate the actual waveform polylines with ~450 points each
+  function wfPath(seed, energy){
+    // energy array: 16 bars of energy values 0..1
+    // output upper and lower mirrored paths
+    let pointsUp = [];
+    let pointsDn = [];
+    const W = 1920, H = 120, CY = H/2;
+    const N = 460;
+    function rand(x){ x = (x*9301 + 49297) % 233280; return x/233280; }
+    for (let i=0; i<N; i++){
+      const x = (i/N)*W;
+      const barIdx = Math.floor((i/N)*16);
+      const e = energy[barIdx] || 0.3;
+      // noise / detail
+      const n1 = rand(seed + i*7.3);
+      const n2 = rand(seed + i*13.7 + 100);
+      const n3 = rand(seed + i*3.1 + 200);
+      // base amplitude from energy, add per-sample noise
+      let amp = e * 0.9 + (n1-0.5)*0.3*e + (n2-0.5)*0.12;
+      // beat emphasis every 16 samples
+      const local = i % Math.floor(N/64);
+      const beatBoost = (local < 3) ? (1.0 + (3-local)*0.15) : 1.0;
+      amp *= beatBoost;
+      amp = Math.max(0.02, Math.min(1.0, amp));
+      const upY = CY - amp * (CY - 4);
+      const dnY = CY + amp * (CY - 4);
+      pointsUp.push(x.toFixed(1) + "," + upY.toFixed(1));
+      pointsDn.push(x.toFixed(1) + "," + dnY.toFixed(1));
+    }
+    // Build one path: go across the top, come back along the bottom, close it
+    const topPath = pointsUp.join(" ");
+    const botPath = pointsDn.slice().reverse().join(" ");
+    return { top: topPath, bot: botPath };
+  }
+
+  // Deck A: 16 bars, structural energy profile
+  // BUILDUP (0-3): rising, DROP (4-8): huge, BREAKDOWN (9-12): dip + plateau, OUTRO (13-15): decay
+  const energyA = [
+    0.30, 0.42, 0.55, 0.72,   // buildup
+    0.94, 0.88, 0.95, 0.90, 0.92,  // drop
+    0.55, 0.45, 0.50, 0.52,   // breakdown
+    0.42, 0.32, 0.22           // outro
+  ];
+  const energyB = [
+    0.22, 0.26, 0.30, 0.34,
+    0.40, 0.38, 0.42, 0.44, 0.46,
+    0.50, 0.48, 0.46, 0.44,
+    0.40, 0.36, 0.30
+  ];
+
+  const pa = wfPath(17, energyA);
+  const pb = wfPath(42, energyB);
+
+  // Render deck A as a closed filled polygon
+  const wfA = document.getElementById('wfApaths');
+  wfA.innerHTML = `
+    <polygon points="${pa.top} ${pa.bot}" fill="url(#wfA)" opacity="0.9"/>
+    <polyline points="${pa.top}" stroke="#cfe8ff" stroke-width="0.4" fill="none" opacity="0.7"/>
+  `;
+
+  const wfB = document.getElementById('wfBpaths');
+  wfB.innerHTML = `
+    <polygon points="${pb.top} ${pb.bot}" fill="url(#wfB)" opacity="0.55"/>
+    <polyline points="${pb.top}" stroke="#aaa" stroke-width="0.3" fill="none" opacity="0.5"/>
+  `;
+
+  // Render 16th-note tick grid (fainter) on deck A and B
+  function buildTickGrid(parentId){
+    const parent = document.querySelector('#' + parentId);
+    if (!parent) return;
+    let ticks = '';
+    for (let i=0; i<256; i++){
+      const x = (i/256)*1920;
+      // Skip downbeats (every 16th) — those are drawn in orange
+      if (i % 16 === 0) continue;
+      const isBeat = (i % 4 === 0);
+      const opacity = isBeat ? 0.10 : 0.04;
+      ticks += `<line x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="120" stroke="#fff" stroke-width="0.5" opacity="${opacity}"/>`;
+    }
+    parent.insertAdjacentHTML('afterbegin', ticks);
+  }
+  // Inject ticks before the deck waveform paths to live behind them
+  const wfSvgs = document.querySelectorAll('.wf-svg');
+  wfSvgs.forEach(svg => {
+    const tg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    for (let i=0; i<256; i++){
+      const x = (i/256)*1920;
+      if (i % 16 === 0) continue;
+      const isBeat = (i % 4 === 0);
+      const opacity = isBeat ? 0.10 : 0.04;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x.toFixed(1));
+      line.setAttribute('x2', x.toFixed(1));
+      line.setAttribute('y1', '0');
+      line.setAttribute('y2', '120');
+      line.setAttribute('stroke', '#fff');
+      line.setAttribute('stroke-width', '0.5');
+      line.setAttribute('opacity', opacity);
+      tg.appendChild(line);
+    }
+    svg.insertBefore(tg, svg.firstChild);
+  });
+})();
+</script>
+
+</body>
+</html>

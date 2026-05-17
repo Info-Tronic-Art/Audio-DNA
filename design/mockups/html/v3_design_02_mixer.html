@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — v3 Design 02: Mixer</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #0c0c0f; color: #d8d8d8; font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', sans-serif; font-size: 11px; overflow: hidden; position: relative; }
+
+/* ═══════════════ TOP BAR (30px) ═══════════════ */
+.top-bar {
+  height: 30px; width: 100%; background: #111114; border-bottom: 1px solid #1e1e22;
+  display: flex; align-items: center; padding: 0 10px; gap: 3px; position: relative; z-index: 100;
+}
+.tb-section { display: flex; align-items: center; gap: 3px; }
+.tb-sep { width: 1px; height: 16px; background: #2a2a30; margin: 0 6px; }
+.tb-btn { height: 22px; padding: 0 8px; background: #1e1e24; border: 1px solid #2a2a30; color: #999; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tb-btn:hover { background: #2a2a34; color: #ddd; }
+.tb-btn.active { background: #1a2a3a; color: #00d9ff; border-color: #00d9ff44; }
+.tb-btn.transport { width: 26px; height: 22px; font-size: 13px; }
+.tb-dropdown { height: 22px; padding: 0 6px; background: #1a1a20; border: 1px solid #2a2a30; color: #aaa; font-size: 10px; }
+.tb-bpm { font-size: 17px; font-weight: 700; color: #44bb44; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.tb-state { font-size: 8px; color: #44bb44; letter-spacing: 0.5px; }
+.tb-beat-wheel { width: 22px; height: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.tb-beat-seg { width: 9px; height: 9px; border-radius: 50%; background: #222230; }
+.tb-beat-seg.active { background: #00d9ff; box-shadow: 0 0 4px #00d9ff88; }
+.tb-mult { font-size: 9px; padding: 0 4px; height: 18px; }
+.tb-spacer { flex: 1; }
+.tb-label { color: #555; font-size: 9px; white-space: nowrap; }
+.tb-bar-phrase { font-size: 8px; color: #556; line-height: 1.3; text-align: center; }
+.tb-slider-wrap { display: flex; align-items: center; gap: 3px; }
+.tb-slider { width: 50px; height: 4px; background: #2a2a30; position: relative; }
+.tb-slider-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.tb-slider-thumb { width: 2px; height: 10px; position: absolute; top: -3px; }
+.tb-stats { font-size: 9px; color: #444; font-variant-numeric: tabular-nums; display: flex; gap: 8px; }
+
+/* ═══════════════ MAIN LAYOUT ═══════════════ */
+.main { display: flex; height: calc(100% - 30px); }
+
+/* Left side: preview + rotated deck */
+.left-area { width: 55%; display: flex; flex-direction: column; }
+
+/* Preview */
+.preview-area { height: 394px; background: #080810; position: relative; border-bottom: 1px solid #1a1a1e; }
+.preview-viewport { width: 700px; height: 394px; margin: 0 auto; position: relative; overflow: hidden; }
+.preview-visual {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 40% 50%, #0a1535, #050a18), linear-gradient(135deg, #020210 0%, #0a0520 30%, #051525 60%, #020210 100%);
+  position: relative;
+}
+.preview-visual::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 35% 45%, rgba(0,100,200,0.15) 0%, transparent 50%), radial-gradient(circle at 65% 55%, rgba(100,0,150,0.1) 0%, transparent 40%); }
+.preview-visual::after { content: ''; position: absolute; inset: 0; background: repeating-conic-gradient(rgba(0,180,255,0.03) 0deg 3deg, transparent 3deg 12deg) center / 400px 400px; }
+.preview-info { position: absolute; bottom: 6px; left: 8px; font-size: 8px; color: #445; }
+.preview-fps { position: absolute; top: 6px; right: 8px; font-size: 8px; color: #335; }
+.preview-label { position: absolute; top: 6px; left: 8px; font-size: 8px; color: #335; }
+/* Side fill for non-16:9 */
+.preview-side { flex: 1; background: #060608; }
+.preview-wrap { display: flex; height: 394px; }
+
+/* ═══════════════ ROTATED DECK (columns = vertical scenes) ═══════════════ */
+.deck-section { flex: 1; display: flex; flex-direction: column; border-top: 1px solid #1a1a1e; overflow: hidden; }
+.deck-header { height: 22px; background: #111115; display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid #1a1a1e; gap: 8px; }
+.deck-header-label { font-size: 9px; color: #556; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.deck-tab { padding: 0 10px; height: 18px; display: flex; align-items: center; font-size: 9px; color: #555; cursor: pointer; background: #0e0e12; border: 1px solid #1a1a1e; }
+.deck-tab.active { color: #00d9ff; border-color: #00d9ff44; background: #0d1520; }
+
+/* Scene columns */
+.scene-grid { flex: 1; display: flex; overflow: hidden; }
+
+/* Layer labels column */
+.layer-labels { width: 70px; display: flex; flex-direction: column; flex-shrink: 0; }
+.layer-label-header { height: 26px; background: #111115; border-bottom: 1px solid #1a1a1e; border-right: 1px solid #1a1a1e; }
+.layer-label { flex: 1; background: #111115; border-bottom: 1px solid #141418; border-right: 1px solid #1a1a1e; display: flex; align-items: center; padding: 0 6px; }
+.layer-label-text { font-size: 9px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer-label-text.l1 { color: #cc5555; }
+.layer-label-text.l2 { color: #44bbaa; }
+.layer-label-text.l3 { color: #ccaa44; }
+.layer-label-type { font-size: 7px; color: #556; margin-left: 4px; }
+
+/* Scene columns (vertical) */
+.scene-columns { flex: 1; display: flex; overflow-x: auto; }
+.scene-col { width: 130px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid #161619; }
+.scene-trigger { height: 26px; background: #111115; border-bottom: 1px solid #1a1a1e; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #444; cursor: pointer; position: relative; }
+.scene-trigger.active { color: #00d9ff; background: #0d1520; }
+.scene-trigger.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: #00d9ff; }
+.scene-trigger-num { font-weight: 600; }
+
+.scene-cell { flex: 1; background: #0e0e12; border-bottom: 1px solid #141418; display: flex; cursor: pointer; position: relative; overflow: hidden; padding: 4px; gap: 4px; }
+.scene-cell:hover { background: #121218; }
+.scene-cell.playing { background: #0d1218; border-left: 3px solid #00d9ff55; }
+.scene-cell.empty { background: #0b0b0e; }
+
+.sc-thumb { width: 48px; height: 36px; background: #080810; border: 1px solid #1a1a22; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.sc-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
+.sc-name { font-size: 8px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-name.active { color: #ccc; }
+.sc-fx { font-size: 7px; color: #00d9ff88; }
+.sc-type { font-size: 7px; color: #556; }
+.sc-progress { position: absolute; bottom: 0; left: 0; height: 2px; background: #00d9ff44; }
+
+/* Source cell gradients */
+.src-mandelbrot { background: linear-gradient(135deg, #0a0a2a, #1a0a3a, #0a1a4a); }
+.src-plasma { background: linear-gradient(45deg, #1a0020, #001a30, #002a10); }
+.src-fire { background: linear-gradient(0deg, #1a0800, #2a1500, #1a0a00); }
+.src-perlin { background: linear-gradient(135deg, #0a0a0a, #151515, #0a0a0a); }
+.src-spectral { background: radial-gradient(circle, #0a0a2a, #1a0a1a); }
+.src-torus { background: radial-gradient(circle, #0a1520, #050a10); }
+.src-julia { background: linear-gradient(135deg, #0a1a0a, #001a1a); }
+.src-wave { background: linear-gradient(90deg, #0a0a1a, #0a1a0a, #1a0a0a); }
+
+/* ═══════════════ RIGHT: MIXER SECTION ═══════════════ */
+.right-area { width: 45%; display: flex; flex-direction: column; border-left: 1px solid #1e1e22; }
+
+/* Mixer area */
+.mixer-area { flex: 1; display: flex; flex-direction: column; }
+
+.mixer-header { height: 26px; background: #111115; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid #1e1e22; }
+.mixer-title { font-size: 10px; color: #556; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Channel strips */
+.channel-strips { flex: 1; display: flex; justify-content: center; gap: 0; padding: 0; background: #0a0a0d; position: relative; }
+
+.channel-strip {
+  width: 155px; display: flex; flex-direction: column; align-items: center;
+  background: #0e0e12; border-left: 1px solid #1a1a1e; border-right: 1px solid #1a1a1e;
+  padding: 8px 6px; gap: 6px; position: relative;
+}
+
+.cs-name { font-size: 11px; font-weight: 600; text-align: center; width: 100%; padding: 4px 0; letter-spacing: 0.5px; }
+.cs-name.l1 { color: #cc5555; border-bottom: 2px solid #cc555544; }
+.cs-name.l2 { color: #44bbaa; border-bottom: 2px solid #44bbaa44; }
+.cs-name.l3 { color: #ccaa44; border-bottom: 2px solid #ccaa4444; }
+
+.cs-type { font-size: 8px; color: #556; margin-top: -2px; }
+
+/* Clip preview in strip */
+.cs-clip-preview { width: 80px; height: 50px; background: #080810; border: 1px solid #1e1e24; position: relative; overflow: hidden; }
+.cs-clip-name { font-size: 8px; color: #777; text-align: center; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+
+/* Fader + VU meter row */
+.cs-fader-row { display: flex; gap: 6px; align-items: stretch; flex: 1; }
+
+/* Vertical fader */
+.cs-fader-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.cs-fader-label { font-size: 7px; color: #555; text-transform: uppercase; }
+.cs-fader-track {
+  width: 8px; height: 200px; background: #141418; position: relative; border: 1px solid #1e1e22;
+}
+.cs-fader-fill { position: absolute; bottom: 0; left: 0; width: 100%; }
+.cs-fader-fill.l1 { background: linear-gradient(to top, #cc555533, #cc555588); }
+.cs-fader-fill.l2 { background: linear-gradient(to top, #44bbaa33, #44bbaa88); }
+.cs-fader-fill.l3 { background: linear-gradient(to top, #ccaa4433, #ccaa4488); }
+.cs-fader-thumb {
+  position: absolute; left: -4px; width: 16px; height: 6px;
+  background: #ccc; border: 1px solid #999;
+}
+.cs-fader-value { font-size: 8px; color: #777; font-variant-numeric: tabular-nums; text-align: center; }
+
+/* VU meter */
+.cs-vu-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.cs-vu-label { font-size: 7px; color: #555; }
+.cs-vu-track { width: 6px; height: 200px; background: #0c0c10; position: relative; border: 1px solid #1a1a1e; display: flex; flex-direction: column-reverse; }
+.cs-vu-segment { width: 100%; height: 3px; margin-bottom: 1px; }
+.cs-vu-segment.green { background: #33aa55; }
+.cs-vu-segment.yellow { background: #aaaa33; }
+.cs-vu-segment.red { background: #cc4444; }
+.cs-vu-segment.dim { opacity: 0.15; }
+.cs-vu-peak { position: absolute; left: 0; width: 100%; height: 2px; background: #55cc77; }
+
+/* Second fader (Speed) */
+.cs-speed-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.cs-speed-track { width: 6px; height: 200px; background: #141418; position: relative; border: 1px solid #1e1e22; }
+.cs-speed-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: #00d9ff22; }
+.cs-speed-thumb { position: absolute; left: -3px; width: 12px; height: 4px; background: #00d9ff88; border: 1px solid #00d9ff44; }
+
+/* Blend mode dropdown */
+.cs-blend { width: 100%; }
+.cs-blend-dropdown {
+  width: 100%; height: 20px; background: #141418; border: 1px solid #1e1e22;
+  color: #888; font-size: 9px; padding: 0 6px; display: flex; align-items: center; justify-content: space-between;
+}
+.cs-blend-arrow { font-size: 7px; color: #555; }
+
+/* BSM buttons */
+.cs-bsm { display: flex; gap: 2px; width: 100%; justify-content: center; }
+.cs-bsm-btn {
+  width: 30px; height: 20px; background: #141418; border: 1px solid #1e1e22;
+  color: #555; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cs-bsm-btn.bypass-on { background: #2a1515; color: #aa4444; border-color: #442222; }
+.cs-bsm-btn.solo-on { background: #252518; color: #aaaa44; border-color: #444422; }
+
+/* Transport buttons */
+.cs-transport { display: flex; gap: 2px; width: 100%; justify-content: center; }
+.cs-transport-btn {
+  width: 28px; height: 22px; background: #141418; border: 1px solid #1e1e22;
+  color: #666; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cs-transport-btn.playing { color: #44bb88; }
+.cs-transport-btn:hover { background: #1e1e24; color: #aaa; }
+
+/* ═══════════════ CROSSFADER ═══════════════ */
+.crossfader-area {
+  height: 50px; background: #0e0e12; border-top: 1px solid #1e1e22;
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 20px;
+}
+.cf-label-left { font-size: 9px; color: #cc5555; font-weight: 600; }
+.cf-label-right { font-size: 9px; color: #44bbaa; font-weight: 600; }
+.cf-track-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; max-width: 400px; }
+.cf-label { font-size: 7px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+.cf-track {
+  width: 100%; height: 10px; background: #141418; border: 1px solid #1e1e22; position: relative;
+}
+.cf-fill-left { position: absolute; left: 0; top: 0; height: 100%; background: linear-gradient(90deg, #cc555522, transparent); }
+.cf-fill-right { position: absolute; right: 0; top: 0; height: 100%; background: linear-gradient(-90deg, #44bbaa22, transparent); }
+.cf-thumb {
+  position: absolute; top: -3px; width: 18px; height: 16px;
+  background: #cccccc; border: 1px solid #888;
+  transform: translateX(-50%);
+}
+.cf-curve { display: flex; gap: 2px; }
+.cf-curve-btn { width: 24px; height: 14px; background: #141418; border: 1px solid #1e1e22; font-size: 7px; color: #555; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.cf-curve-btn.active { color: #00d9ff; border-color: #00d9ff44; }
+
+/* Assign buttons under crossfader */
+.cf-assigns { display: flex; width: 100%; justify-content: space-between; max-width: 400px; }
+.cf-assign { font-size: 8px; }
+.cf-assign-btn { width: 18px; height: 14px; background: #141418; border: 1px solid #1e1e22; font-size: 7px; color: #555; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.cf-assign-btn.active-l { color: #cc5555; border-color: #cc555544; }
+.cf-assign-btn.active-r { color: #44bbaa; border-color: #44bbaa44; }
+
+/* ═══════════════ INSPECTOR (bottom) ═══════════════ */
+.inspector-area { height: 200px; background: #0e0e12; border-top: 1px solid #1e1e22; display: flex; flex-direction: column; }
+.insp-tabs { height: 24px; display: flex; background: #111115; border-bottom: 1px solid #1a1a1e; }
+.insp-tab { padding: 0 14px; height: 100%; display: flex; align-items: center; font-size: 9px; color: #555; cursor: pointer; border-bottom: 2px solid transparent; }
+.insp-tab.active { color: #00d9ff; border-bottom-color: #00d9ff; }
+.insp-content { flex: 1; display: flex; overflow: hidden; padding: 6px 10px; gap: 10px; }
+
+/* Inspector sections */
+.insp-section { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.insp-section-title { font-size: 8px; color: #445; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 1px solid #1a1a1e; padding-bottom: 2px; }
+
+/* Param rows */
+.param-row { display: flex; align-items: center; gap: 4px; height: 18px; }
+.param-triangle { width: 6px; height: 6px; clip-path: polygon(0 0, 100% 50%, 0 100%); background: #334; flex-shrink: 0; }
+.param-triangle.connected { background: #00d9ff; }
+.param-label { font-size: 8px; color: #777; width: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.param-value { font-size: 8px; color: #999; width: 28px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.param-slider { flex: 1; height: 4px; background: #1e1e24; position: relative; min-width: 40px; }
+.param-slider-fill { height: 100%; background: #00d9ff33; position: absolute; left: 0; top: 0; }
+.param-slider-thumb { width: 2px; height: 8px; background: #00d9ff; position: absolute; top: -2px; }
+
+/* Effect rows in inspector */
+.fx-row { display: flex; align-items: center; gap: 4px; height: 18px; padding: 0 4px; background: #111116; border: 1px solid #1a1a1e; }
+.fx-bypass { width: 14px; height: 14px; background: #1a1a22; border: 1px solid #222228; color: #666; font-size: 7px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 600; }
+.fx-bypass.off { color: #aa4444; background: #1a1212; }
+.fx-name { font-size: 9px; color: #aaa; flex: 1; }
+.fx-value { font-size: 8px; color: #00d9ff88; }
+.fx-delete { width: 14px; height: 14px; color: #444; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* Dashboard knobs */
+.dashboard { display: flex; gap: 4px; }
+.dash-knob { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.dash-knob-circle {
+  width: 28px; height: 28px; border-radius: 50%; background: #141418;
+  border: 2px solid #2a2a30; position: relative; display: flex; align-items: center; justify-content: center;
+}
+.dash-knob-indicator {
+  width: 2px; height: 8px; background: #00d9ff; position: absolute; top: 3px;
+  transform-origin: bottom center;
+}
+.dash-knob-label { font-size: 7px; color: #556; }
+
+/* ═══════════════ BROWSER (right overlay) ═══════════════ */
+.browser-overlay {
+  position: absolute; right: 0; top: 30px; width: 240px; height: calc(100% - 30px);
+  background: #0e0e12; border-left: 1px solid #1e1e22; z-index: 50;
+  display: flex; flex-direction: column;
+}
+.browser-tabs { height: 24px; display: flex; background: #111115; border-bottom: 1px solid #1a1a1e; }
+.browser-tab { padding: 0 10px; height: 100%; display: flex; align-items: center; font-size: 9px; color: #555; cursor: pointer; border-bottom: 2px solid transparent; }
+.browser-tab.active { color: #00d9ff; border-bottom-color: #00d9ff; }
+.browser-search { height: 26px; display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid #1a1a1e; }
+.browser-search-input {
+  width: 100%; height: 18px; background: #141418; border: 1px solid #1e1e22;
+  color: #888; font-size: 9px; padding: 0 6px;
+}
+.browser-content { flex: 1; overflow-y: auto; padding: 4px 0; }
+.browser-category { padding: 0; }
+.browser-cat-header {
+  height: 22px; display: flex; align-items: center; padding: 0 8px; gap: 4px;
+  cursor: pointer; color: #888; font-size: 9px; font-weight: 600;
+}
+.browser-cat-header:hover { background: #141418; }
+.browser-cat-arrow { font-size: 7px; color: #555; width: 10px; }
+.browser-cat-count { font-size: 7px; color: #445; margin-left: auto; }
+.browser-item {
+  height: 20px; display: flex; align-items: center; padding: 0 8px 0 22px;
+  font-size: 9px; color: #777; cursor: pointer;
+}
+.browser-item:hover { background: #141420; color: #aaa; }
+.browser-item.dragging { background: #0d1520; color: #00d9ff; }
+
+/* ═══════════════ AUDIO MINI STRIP (under preview) ═══════════════ */
+.audio-mini { height: 18px; background: #0e0e11; border-bottom: 1px solid #1a1a1e; display: flex; align-items: center; padding: 0 10px; gap: 8px; }
+.am-band { width: 5px; height: 5px; border-radius: 50%; }
+.am-label { font-size: 8px; color: #445; }
+.am-val { font-size: 8px; font-variant-numeric: tabular-nums; }
+.am-beat { width: 5px; height: 5px; border-radius: 50%; background: #00d9ff; animation: beatpulse 0.5s ease-in-out infinite alternate; }
+@keyframes beatpulse { from { opacity: 0.3; } to { opacity: 1; } }
+.am-sep { width: 1px; height: 10px; background: #1e1e22; }
+
+/* Waveform mini */
+.waveform-strip { height: 24px; background: #0c0c10; border-bottom: 1px solid #1a1a1e; display: flex; align-items: flex-end; padding: 2px 4px; gap: 1px; }
+.wf-bar { width: 2px; background: #00d9ff22; flex-shrink: 0; }
+
+/* Master VU */
+.master-section {
+  width: 50px; background: #0c0c10; border-left: 1px solid #1e1e22;
+  display: flex; flex-direction: column; align-items: center; padding: 8px 4px; gap: 4px;
+}
+.master-label { font-size: 7px; color: #556; text-transform: uppercase; letter-spacing: 0.5px; }
+.master-vu { width: 8px; flex: 1; background: #0a0a0e; border: 1px solid #1a1a1e; position: relative; display: flex; flex-direction: column-reverse; }
+.master-fader-track { width: 6px; flex: 1; background: #141418; border: 1px solid #1e1e22; position: relative; margin-top: 4px; }
+.master-fader-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, #ffffff22, #ffffff66); }
+.master-fader-thumb { position: absolute; left: -3px; width: 12px; height: 5px; background: #ccc; border: 1px solid #888; }
+.master-value { font-size: 8px; color: #888; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<div class="top-bar">
+  <div class="tb-section">
+    <div class="tb-dropdown" style="width: 80px;">Mic Input</div>
+    <div class="tb-label">Gain</div>
+    <div class="tb-slider-wrap">
+      <div class="tb-slider" style="width: 40px;">
+        <div class="tb-slider-fill" style="width: 50%; background: #00d9ff33;"></div>
+        <div class="tb-slider-thumb" style="left: 49%; background: #00d9ff;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn transport">&#9664;</div>
+    <div class="tb-btn transport active" style="color: #44bb88;">&#9654;</div>
+    <div class="tb-btn transport">&#9632;</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-beat-wheel">
+      <div class="tb-beat-seg active"></div>
+      <div class="tb-beat-seg dim"></div>
+      <div class="tb-beat-seg dim"></div>
+      <div class="tb-beat-seg dim"></div>
+    </div>
+    <div class="tb-bar-phrase">Bar 3<br>Phr 0.38</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-bpm">128.0</div>
+    <div class="tb-state">LOCKED</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn" style="font-size: 9px;">Tap</div>
+    <div class="tb-btn" style="font-size: 9px;">Resync</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-btn tb-mult">/4</div>
+    <div class="tb-btn tb-mult">/2</div>
+    <div class="tb-btn tb-mult active">x1</div>
+    <div class="tb-btn tb-mult">x2</div>
+    <div class="tb-btn tb-mult">x4</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Quantize</div>
+    <div class="tb-dropdown" style="width: 72px;">Next Beat</div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Fade</div>
+    <div class="tb-slider-wrap">
+      <div class="tb-slider" style="width: 36px;">
+        <div class="tb-slider-fill" style="width: 30%; background: #ffffff22;"></div>
+        <div class="tb-slider-thumb" style="left: 29%; background: #aaa;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Master</div>
+    <div class="tb-slider-wrap">
+      <div class="tb-slider" style="width: 40px;">
+        <div class="tb-slider-fill" style="width: 100%; background: #ffffff22;"></div>
+        <div class="tb-slider-thumb" style="left: 98%; background: #ccc;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-section">
+    <div class="tb-label">Output</div>
+    <div class="tb-dropdown" style="width: 90px;">Fullscreen LG</div>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-stats">
+    <span style="color: #44bb88;">60 fps</span>
+    <span>DSP 2.1%</span>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main">
+
+  <!-- LEFT AREA: Preview + Rotated Deck -->
+  <div class="left-area">
+
+    <!-- Preview -->
+    <div class="preview-area">
+      <div class="preview-wrap">
+        <div class="preview-side"></div>
+        <div class="preview-viewport">
+          <div class="preview-visual">
+            <div class="preview-label">Preview</div>
+            <div class="preview-fps">1920 x 1080</div>
+            <div class="preview-info">L1: Mandelbrot + Ripple, Echo | L2: Spectral Ring | L3: FX Only: Kaleidoscope</div>
+          </div>
+        </div>
+        <div class="preview-side"></div>
+      </div>
+    </div>
+
+    <!-- Audio mini strip -->
+    <div class="audio-mini">
+      <div class="am-band" style="background: #cc4444;"></div>
+      <span class="am-label">Bass</span><span class="am-val" style="color: #cc6644;">0.72</span>
+      <div class="am-band" style="background: #44aa44;"></div>
+      <span class="am-label">Mid</span><span class="am-val" style="color: #66aa44;">0.45</span>
+      <div class="am-band" style="background: #4488cc;"></div>
+      <span class="am-label">High</span><span class="am-val" style="color: #4488aa;">0.31</span>
+      <div class="am-sep"></div>
+      <div class="am-beat"></div>
+      <span class="am-val" style="color: #556;">RMS 0.58</span>
+      <div class="am-sep"></div>
+      <span class="am-val" style="color: #556;">Onset 0.82</span>
+      <div class="am-sep"></div>
+      <span class="am-val" style="color: #667;">Key: Am</span>
+      <span class="am-val" style="color: #556;">Drop</span>
+    </div>
+
+    <!-- Waveform mini -->
+    <div class="waveform-strip" id="waveform"></div>
+
+    <!-- Rotated Deck: Columns = Scenes (vertical), Layers = rows within each column -->
+    <div class="deck-section">
+      <div class="deck-header">
+        <div class="deck-header-label">Scenes</div>
+        <div style="flex:1;"></div>
+        <div class="deck-tab active">Deck 1</div>
+        <div class="deck-tab">Deck 2</div>
+        <div class="deck-tab">Deck 3</div>
+      </div>
+      <div class="scene-grid">
+        <!-- Layer labels -->
+        <div class="layer-labels">
+          <div class="layer-label-header"></div>
+          <div class="layer-label"><span class="layer-label-text l1">Layer 1</span></div>
+          <div class="layer-label"><span class="layer-label-text l2">Layer 2</span></div>
+          <div class="layer-label"><span class="layer-label-text l3">Layer 3</span></div>
+        </div>
+
+        <!-- Scene columns -->
+        <div class="scene-columns">
+          <!-- Scene 1 (active) -->
+          <div class="scene-col">
+            <div class="scene-trigger active"><span class="scene-trigger-num">1</span></div>
+            <div class="scene-cell playing">
+              <div class="sc-thumb src-mandelbrot"></div>
+              <div class="sc-info">
+                <div class="sc-name active">Mandelbrot</div>
+                <div class="sc-type">Source</div>
+                <div class="sc-fx">FX 2</div>
+              </div>
+              <div class="sc-progress" style="width: 65%;"></div>
+            </div>
+            <div class="scene-cell playing">
+              <div class="sc-thumb src-spectral"></div>
+              <div class="sc-info">
+                <div class="sc-name active">Spectral Ring</div>
+                <div class="sc-type">Source</div>
+                <div class="sc-fx">FX 1</div>
+              </div>
+              <div class="sc-progress" style="width: 38%;"></div>
+            </div>
+            <div class="scene-cell playing">
+              <div class="sc-thumb" style="background: #0e0e16;"><span style="font-size:7px; color:#ccaa4444;">FX</span></div>
+              <div class="sc-info">
+                <div class="sc-name active">FX - Kaleidoscope</div>
+                <div class="sc-type">FX Only</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scene 2 -->
+          <div class="scene-col">
+            <div class="scene-trigger"><span class="scene-trigger-num">2</span></div>
+            <div class="scene-cell">
+              <div class="sc-thumb src-julia"></div>
+              <div class="sc-info">
+                <div class="sc-name">Julia Set</div>
+                <div class="sc-type">Source</div>
+              </div>
+            </div>
+            <div class="scene-cell">
+              <div class="sc-thumb src-torus"></div>
+              <div class="sc-info">
+                <div class="sc-name">Torus Knot</div>
+                <div class="sc-type">Source</div>
+                <div class="sc-fx">FX 1</div>
+              </div>
+            </div>
+            <div class="scene-cell">
+              <div class="sc-thumb" style="background: #0e0e16;"><span style="font-size:7px; color:#ccaa4444;">FX</span></div>
+              <div class="sc-info">
+                <div class="sc-name">FX - Echo</div>
+                <div class="sc-type">FX Only</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scene 3 -->
+          <div class="scene-col">
+            <div class="scene-trigger"><span class="scene-trigger-num">3</span></div>
+            <div class="scene-cell">
+              <div class="sc-thumb src-fire"></div>
+              <div class="sc-info">
+                <div class="sc-name">Strange Attractor</div>
+                <div class="sc-type">Source</div>
+                <div class="sc-fx">FX 3</div>
+              </div>
+            </div>
+            <div class="scene-cell">
+              <div class="sc-thumb src-plasma"></div>
+              <div class="sc-info">
+                <div class="sc-name">Chromatic Ring</div>
+                <div class="sc-type">Source</div>
+              </div>
+            </div>
+            <div class="scene-cell empty">
+              <div class="sc-thumb" style="background: #0a0a0e;"></div>
+              <div class="sc-info">
+                <div class="sc-name" style="color:#444;">Empty</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scene 4 -->
+          <div class="scene-col">
+            <div class="scene-trigger"><span class="scene-trigger-num">4</span></div>
+            <div class="scene-cell">
+              <div class="sc-thumb src-perlin"></div>
+              <div class="sc-info">
+                <div class="sc-name">Perlin Noise</div>
+                <div class="sc-type">Source</div>
+              </div>
+            </div>
+            <div class="scene-cell">
+              <div class="sc-thumb src-wave"></div>
+              <div class="sc-info">
+                <div class="sc-name">Band Tower</div>
+                <div class="sc-type">Source</div>
+                <div class="sc-fx">FX 2</div>
+              </div>
+            </div>
+            <div class="scene-cell">
+              <div class="sc-thumb" style="background: #0e0e16;"><span style="font-size:7px; color:#ccaa4444;">FX</span></div>
+              <div class="sc-info">
+                <div class="sc-name">FX - Strobe</div>
+                <div class="sc-type">FX Only</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scene 5 -->
+          <div class="scene-col">
+            <div class="scene-trigger"><span class="scene-trigger-num">5</span></div>
+            <div class="scene-cell">
+              <div class="sc-thumb" style="background: linear-gradient(135deg, #1a0a20, #0a1020);"></div>
+              <div class="sc-info">
+                <div class="sc-name">Menger Sponge</div>
+                <div class="sc-type">Source</div>
+              </div>
+            </div>
+            <div class="scene-cell">
+              <div class="sc-thumb" style="background: linear-gradient(45deg, #0a1a1a, #001515);"></div>
+              <div class="sc-info">
+                <div class="sc-name">Cymatics</div>
+                <div class="sc-type">Source</div>
+                <div class="sc-fx">FX 1</div>
+              </div>
+            </div>
+            <div class="scene-cell empty">
+              <div class="sc-thumb" style="background: #0a0a0e;"></div>
+              <div class="sc-info">
+                <div class="sc-name" style="color:#444;">Empty</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scene 6 -->
+          <div class="scene-col">
+            <div class="scene-trigger"><span class="scene-trigger-num">6</span></div>
+            <div class="scene-cell">
+              <div class="sc-thumb" style="background: radial-gradient(circle, #0a0a20, #050510);"></div>
+              <div class="sc-info">
+                <div class="sc-name">Apollonian 3D</div>
+                <div class="sc-type">Source</div>
+              </div>
+            </div>
+            <div class="scene-cell empty">
+              <div class="sc-thumb" style="background: #0a0a0e;"></div>
+              <div class="sc-info">
+                <div class="sc-name" style="color:#444;">Empty</div>
+              </div>
+            </div>
+            <div class="scene-cell empty">
+              <div class="sc-thumb" style="background: #0a0a0e;"></div>
+              <div class="sc-info">
+                <div class="sc-name" style="color:#444;">Empty</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT AREA: Mixer + Crossfader + Inspector -->
+  <div class="right-area">
+
+    <!-- Mixer -->
+    <div class="mixer-area">
+      <div class="mixer-header">
+        <div class="mixer-title">Channel Mixer</div>
+      </div>
+      <div class="channel-strips">
+
+        <!-- Channel 1 (Layer 1 - Red) -->
+        <div class="channel-strip">
+          <div class="cs-name l1">Layer 1</div>
+          <div class="cs-type">Opaque</div>
+          <div class="cs-clip-preview src-mandelbrot"></div>
+          <div class="cs-clip-name">Mandelbrot</div>
+          <div class="cs-fader-row">
+            <div class="cs-fader-wrap">
+              <div class="cs-fader-label">Vol</div>
+              <div class="cs-fader-track">
+                <div class="cs-fader-fill l1" style="height: 85%;"></div>
+                <div class="cs-fader-thumb" style="bottom: calc(85% - 3px);"></div>
+              </div>
+              <div class="cs-fader-value">0.85</div>
+            </div>
+            <div class="cs-vu-wrap">
+              <div class="cs-vu-label">VU</div>
+              <div class="cs-vu-track">
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment yellow"></div>
+                <div class="cs-vu-segment yellow"></div>
+                <div class="cs-vu-segment dim yellow"></div>
+                <div class="cs-vu-segment dim yellow"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-peak" style="bottom: 165px;"></div>
+              </div>
+            </div>
+            <div class="cs-speed-wrap">
+              <div class="cs-fader-label">Spd</div>
+              <div class="cs-speed-track">
+                <div class="cs-speed-fill" style="height: 50%;"></div>
+                <div class="cs-speed-thumb" style="bottom: calc(50% - 2px);"></div>
+              </div>
+              <div class="cs-fader-value" style="color: #00d9ff88;">1.0x</div>
+            </div>
+          </div>
+          <div class="cs-blend">
+            <div class="cs-blend-dropdown">Normal <span class="cs-blend-arrow">&#9660;</span></div>
+          </div>
+          <div class="cs-bsm">
+            <div class="cs-bsm-btn">B</div>
+            <div class="cs-bsm-btn">S</div>
+            <div class="cs-bsm-btn">M</div>
+          </div>
+          <div class="cs-transport">
+            <div class="cs-transport-btn">&#9664;</div>
+            <div class="cs-transport-btn">||</div>
+            <div class="cs-transport-btn playing">&#9654;</div>
+            <div class="cs-transport-btn">&#9654;|</div>
+          </div>
+        </div>
+
+        <!-- Channel 2 (Layer 2 - Teal) -->
+        <div class="channel-strip">
+          <div class="cs-name l2">Layer 2</div>
+          <div class="cs-type">Transparent</div>
+          <div class="cs-clip-preview src-spectral"></div>
+          <div class="cs-clip-name">Spectral Ring</div>
+          <div class="cs-fader-row">
+            <div class="cs-fader-wrap">
+              <div class="cs-fader-label">Vol</div>
+              <div class="cs-fader-track">
+                <div class="cs-fader-fill l2" style="height: 70%;"></div>
+                <div class="cs-fader-thumb" style="bottom: calc(70% - 3px);"></div>
+              </div>
+              <div class="cs-fader-value">0.70</div>
+            </div>
+            <div class="cs-vu-wrap">
+              <div class="cs-vu-label">VU</div>
+              <div class="cs-vu-track">
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment yellow"></div>
+                <div class="cs-vu-segment dim yellow"></div>
+                <div class="cs-vu-segment dim yellow"></div>
+                <div class="cs-vu-segment dim yellow"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-peak" style="bottom: 120px;"></div>
+              </div>
+            </div>
+            <div class="cs-speed-wrap">
+              <div class="cs-fader-label">Spd</div>
+              <div class="cs-speed-track">
+                <div class="cs-speed-fill" style="height: 50%;"></div>
+                <div class="cs-speed-thumb" style="bottom: calc(50% - 2px);"></div>
+              </div>
+              <div class="cs-fader-value" style="color: #00d9ff88;">1.0x</div>
+            </div>
+          </div>
+          <div class="cs-blend">
+            <div class="cs-blend-dropdown">Additive <span class="cs-blend-arrow">&#9660;</span></div>
+          </div>
+          <div class="cs-bsm">
+            <div class="cs-bsm-btn">B</div>
+            <div class="cs-bsm-btn">S</div>
+            <div class="cs-bsm-btn">M</div>
+          </div>
+          <div class="cs-transport">
+            <div class="cs-transport-btn">&#9664;</div>
+            <div class="cs-transport-btn">||</div>
+            <div class="cs-transport-btn playing">&#9654;</div>
+            <div class="cs-transport-btn">&#9654;|</div>
+          </div>
+        </div>
+
+        <!-- Channel 3 (Layer 3 - Gold) -->
+        <div class="channel-strip">
+          <div class="cs-name l3">Layer 3</div>
+          <div class="cs-type">FX Only</div>
+          <div class="cs-clip-preview" style="background: #0e0e16; display:flex; align-items:center; justify-content:center;"><span style="font-size:9px; color:#ccaa4455;">FX</span></div>
+          <div class="cs-clip-name">FX - Kaleidoscope</div>
+          <div class="cs-fader-row">
+            <div class="cs-fader-wrap">
+              <div class="cs-fader-label">Vol</div>
+              <div class="cs-fader-track">
+                <div class="cs-fader-fill l3" style="height: 100%;"></div>
+                <div class="cs-fader-thumb" style="bottom: calc(100% - 3px);"></div>
+              </div>
+              <div class="cs-fader-value">1.00</div>
+            </div>
+            <div class="cs-vu-wrap">
+              <div class="cs-vu-label">VU</div>
+              <div class="cs-vu-track">
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment green"></div>
+                <div class="cs-vu-segment yellow"></div>
+                <div class="cs-vu-segment yellow"></div>
+                <div class="cs-vu-segment yellow"></div>
+                <div class="cs-vu-segment dim red"></div>
+                <div class="cs-vu-peak" style="bottom: 192px;"></div>
+              </div>
+            </div>
+            <div class="cs-speed-wrap">
+              <div class="cs-fader-label">Spd</div>
+              <div class="cs-speed-track">
+                <div class="cs-speed-fill" style="height: 25%;"></div>
+                <div class="cs-speed-thumb" style="bottom: calc(25% - 2px);"></div>
+              </div>
+              <div class="cs-fader-value" style="color: #00d9ff88;">0.5x</div>
+            </div>
+          </div>
+          <div class="cs-blend">
+            <div class="cs-blend-dropdown">Screen <span class="cs-blend-arrow">&#9660;</span></div>
+          </div>
+          <div class="cs-bsm">
+            <div class="cs-bsm-btn">B</div>
+            <div class="cs-bsm-btn">S</div>
+            <div class="cs-bsm-btn">M</div>
+          </div>
+          <div class="cs-transport">
+            <div class="cs-transport-btn">&#9664;</div>
+            <div class="cs-transport-btn">||</div>
+            <div class="cs-transport-btn playing">&#9654;</div>
+            <div class="cs-transport-btn">&#9654;|</div>
+          </div>
+        </div>
+
+        <!-- Master VU -->
+        <div class="master-section">
+          <div class="master-label">Master</div>
+          <div class="master-vu">
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment green"></div>
+            <div class="cs-vu-segment yellow"></div>
+            <div class="cs-vu-segment yellow"></div>
+            <div class="cs-vu-segment yellow"></div>
+            <div class="cs-vu-segment dim red"></div>
+          </div>
+          <div class="master-fader-track">
+            <div class="master-fader-fill" style="height: 92%;"></div>
+            <div class="master-fader-thumb" style="bottom: calc(92% - 2px);"></div>
+          </div>
+          <div class="master-value">0.92</div>
+        </div>
+
+      </div>
+
+      <!-- Crossfader -->
+      <div class="crossfader-area">
+        <div class="cf-label-left">L1</div>
+        <div class="cf-track-wrap">
+          <div class="cf-label">Crossfader</div>
+          <div class="cf-track">
+            <div class="cf-fill-left" style="width: 50%;"></div>
+            <div class="cf-fill-right" style="width: 50%;"></div>
+            <div class="cf-thumb" style="left: 50%;"></div>
+          </div>
+          <div class="cf-assigns">
+            <div class="cf-assign" style="display:flex; gap:2px;">
+              <div class="cf-assign-btn active-l">A</div>
+              <span style="font-size:7px; color:#556;">L1</span>
+            </div>
+            <div class="cf-curve">
+              <div class="cf-curve-btn">&#10010;</div>
+              <div class="cf-curve-btn active">X</div>
+              <div class="cf-curve-btn">&#9644;</div>
+            </div>
+            <div class="cf-assign" style="display:flex; gap:2px;">
+              <span style="font-size:7px; color:#556;">L2</span>
+              <div class="cf-assign-btn active-r">B</div>
+            </div>
+          </div>
+        </div>
+        <div class="cf-label-right">L2</div>
+      </div>
+    </div>
+
+    <!-- Inspector -->
+    <div class="inspector-area">
+      <div class="insp-tabs">
+        <div class="insp-tab active">Clip</div>
+        <div class="insp-tab">Layer</div>
+        <div class="insp-tab">Composition</div>
+        <div class="insp-tab">Signal</div>
+      </div>
+      <div class="insp-content">
+        <!-- Transport section -->
+        <div class="insp-section" style="width: 140px;">
+          <div class="insp-section-title">Transport</div>
+          <div class="param-row">
+            <div class="param-label">Mode</div>
+            <div class="cs-blend-dropdown" style="width: 76px; height: 16px; font-size: 8px;">BPM Sync <span class="cs-blend-arrow">&#9660;</span></div>
+          </div>
+          <div class="param-row">
+            <div class="param-label">Loop</div>
+            <div class="cs-blend-dropdown" style="width: 76px; height: 16px; font-size: 8px;">Loop <span class="cs-blend-arrow">&#9660;</span></div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle connected"></div>
+            <div class="param-label">Speed</div>
+            <div class="param-value">1.0x</div>
+            <div class="param-slider" style="width: 44px;"><div class="param-slider-fill" style="width: 50%;"></div><div class="param-slider-thumb" style="left: 49%;"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle"></div>
+            <div class="param-label">Beats/Cyc</div>
+            <div class="param-value">4</div>
+            <div class="param-slider" style="width: 44px;"><div class="param-slider-fill" style="width: 25%;"></div><div class="param-slider-thumb" style="left: 24%;"></div></div>
+          </div>
+        </div>
+
+        <!-- Source Params -->
+        <div class="insp-section" style="width: 160px;">
+          <div class="insp-section-title">Source: Mandelbrot</div>
+          <div class="param-row">
+            <div class="param-triangle connected"></div>
+            <div class="param-label">Dive Speed</div>
+            <div class="param-value">0.35</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 35%;"></div><div class="param-slider-thumb" style="left: 34%;"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle"></div>
+            <div class="param-label">Location</div>
+            <div class="param-value">3</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 30%;"></div><div class="param-slider-thumb" style="left: 29%;"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle"></div>
+            <div class="param-label">Power</div>
+            <div class="param-value">2.0</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 0%;"></div><div class="param-slider-thumb" style="left: 0%;"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle connected"></div>
+            <div class="param-label">Color Shift</div>
+            <div class="param-value">0.62</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 62%;"></div><div class="param-slider-thumb" style="left: 61%;"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle"></div>
+            <div class="param-label">Palette</div>
+            <div class="param-value">Fire</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 12%;"></div><div class="param-slider-thumb" style="left: 11%;"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle"></div>
+            <div class="param-label">Iterations</div>
+            <div class="param-value">0.50</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 50%;"></div><div class="param-slider-thumb" style="left: 49%;"></div></div>
+          </div>
+        </div>
+
+        <!-- Video section -->
+        <div class="insp-section" style="width: 130px;">
+          <div class="insp-section-title">Video</div>
+          <div class="param-row">
+            <div class="param-triangle connected"></div>
+            <div class="param-label">Opacity</div>
+            <div class="param-value">0.85</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 85%;"></div><div class="param-slider-thumb" style="left: 84%;"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="param-label">Blend</div>
+            <div class="cs-blend-dropdown" style="width: 66px; height: 16px; font-size: 8px;">Normal <span class="cs-blend-arrow">&#9660;</span></div>
+          </div>
+          <div class="insp-section-title" style="margin-top: 6px;">Transform</div>
+          <div class="param-row">
+            <div class="param-triangle"></div>
+            <div class="param-label">Scale</div>
+            <div class="param-value">1.00</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 50%;"></div><div class="param-slider-thumb" style="left: 49%;"></div></div>
+          </div>
+          <div class="param-row">
+            <div class="param-triangle connected"></div>
+            <div class="param-label">Rotation</div>
+            <div class="param-value">0.00</div>
+            <div class="param-slider"><div class="param-slider-fill" style="width: 50%;"></div><div class="param-slider-thumb" style="left: 49%;"></div></div>
+          </div>
+        </div>
+
+        <!-- Effects section -->
+        <div class="insp-section" style="flex: 1; min-width: 160px;">
+          <div class="insp-section-title">Effects</div>
+          <div class="fx-row">
+            <div class="fx-bypass">B</div>
+            <div class="fx-name">Ripple</div>
+            <div class="fx-value">0.65</div>
+            <div class="fx-delete">x</div>
+          </div>
+          <div style="padding-left: 18px; display: flex; flex-direction: column; gap: 2px;">
+            <div class="param-row">
+              <div class="param-triangle connected"></div>
+              <div class="param-label">Intensity</div>
+              <div class="param-value">0.65</div>
+              <div class="param-slider"><div class="param-slider-fill" style="width: 65%;"></div><div class="param-slider-thumb" style="left: 64%;"></div></div>
+            </div>
+            <div class="param-row">
+              <div class="param-triangle"></div>
+              <div class="param-label">Frequency</div>
+              <div class="param-value">0.40</div>
+              <div class="param-slider"><div class="param-slider-fill" style="width: 40%;"></div><div class="param-slider-thumb" style="left: 39%;"></div></div>
+            </div>
+            <div class="param-row">
+              <div class="param-triangle"></div>
+              <div class="param-label">Center X</div>
+              <div class="param-value">0.50</div>
+              <div class="param-slider"><div class="param-slider-fill" style="width: 50%;"></div><div class="param-slider-thumb" style="left: 49%;"></div></div>
+            </div>
+          </div>
+          <div class="fx-row" style="margin-top: 2px;">
+            <div class="fx-bypass">B</div>
+            <div class="fx-name">Echo</div>
+            <div class="fx-value">0.80</div>
+            <div class="fx-delete">x</div>
+          </div>
+          <div class="fx-row">
+            <div class="fx-bypass off">B</div>
+            <div class="fx-name" style="color: #666; text-decoration: line-through;">Chromatic Aberration</div>
+            <div class="fx-value" style="opacity: 0.4;">0.30</div>
+            <div class="fx-delete">x</div>
+          </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="insp-section" style="width: 100px;">
+          <div class="insp-section-title">Dashboard</div>
+          <div class="dashboard" style="flex-wrap: wrap; justify-content: center;">
+            <div class="dash-knob">
+              <div class="dash-knob-circle"><div class="dash-knob-indicator" style="transform: rotate(-30deg);"></div></div>
+              <div class="dash-knob-label">Macro 1</div>
+            </div>
+            <div class="dash-knob">
+              <div class="dash-knob-circle" style="border-color: #00d9ff44;"><div class="dash-knob-indicator" style="transform: rotate(45deg);"></div></div>
+              <div class="dash-knob-label" style="color: #00d9ff88;">Intensity</div>
+            </div>
+            <div class="dash-knob">
+              <div class="dash-knob-circle"><div class="dash-knob-indicator" style="transform: rotate(0deg);"></div></div>
+              <div class="dash-knob-label">Macro 3</div>
+            </div>
+            <div class="dash-knob">
+              <div class="dash-knob-circle"><div class="dash-knob-indicator" style="transform: rotate(60deg);"></div></div>
+              <div class="dash-knob-label">Macro 4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Browser overlay -->
+  <div class="browser-overlay">
+    <div class="browser-tabs">
+      <div class="browser-tab">Files</div>
+      <div class="browser-tab active">FX</div>
+      <div class="browser-tab">Sources</div>
+      <div class="browser-tab">Comp</div>
+      <div class="browser-tab">Rec</div>
+    </div>
+    <div class="browser-search">
+      <input class="browser-search-input" placeholder="Search effects..." value="">
+    </div>
+    <div class="browser-content">
+      <!-- Warp category (expanded) -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9660;</span>
+          Warp
+          <span class="browser-cat-count">28</span>
+        </div>
+        <div class="browser-item">Ripple</div>
+        <div class="browser-item">Bulge</div>
+        <div class="browser-item">Wave</div>
+        <div class="browser-item">Liquid</div>
+        <div class="browser-item">Kaleidoscope</div>
+        <div class="browser-item">Fisheye</div>
+        <div class="browser-item">Swirl</div>
+        <div class="browser-item">Polar Coords</div>
+        <div class="browser-item">Twirl</div>
+        <div class="browser-item">Shear</div>
+        <div class="browser-item">Elastic Bounce</div>
+        <div class="browser-item">Ripple Pond</div>
+        <div class="browser-item">Diamond Distort</div>
+        <div class="browser-item">Barrel Distort</div>
+        <div class="browser-item">Sine Grid</div>
+        <div class="browser-item dragging">Glitch Displace</div>
+        <div class="browser-item">Quad Mirror</div>
+        <div class="browser-item">Flip</div>
+        <div class="browser-item">Warp Field</div>
+        <div class="browser-item">Slide Wrap</div>
+        <div class="browser-item">Tile Grid</div>
+        <div class="browser-item">Spot Zoom</div>
+        <div class="browser-item">Bendoscope</div>
+        <div class="browser-item">UV Remap</div>
+        <div class="browser-item">Liquid Morph</div>
+        <div class="browser-item">Infinite Zoom</div>
+        <div class="browser-item">Density Wave</div>
+      </div>
+      <!-- Color category (collapsed) -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Color
+          <span class="browser-cat-count">31</span>
+        </div>
+      </div>
+      <!-- Glitch category (collapsed) -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Glitch
+          <span class="browser-cat-count">16</span>
+        </div>
+      </div>
+      <!-- Blur/Post category (collapsed) -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Blur / Post
+          <span class="browser-cat-count">10</span>
+        </div>
+      </div>
+      <!-- 3D / Depth category (collapsed) -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          3D / Depth
+          <span class="browser-cat-count">10</span>
+        </div>
+      </div>
+      <!-- Pattern category (collapsed) -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Pattern
+          <span class="browser-cat-count">19</span>
+        </div>
+      </div>
+      <!-- Animation -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Animation
+          <span class="browser-cat-count">6</span>
+        </div>
+      </div>
+      <!-- Time -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Time
+          <span class="browser-cat-count">6</span>
+        </div>
+      </div>
+      <!-- Audio -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Audio
+          <span class="browser-cat-count">3</span>
+        </div>
+      </div>
+      <!-- Blend -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Blend
+          <span class="browser-cat-count">5</span>
+        </div>
+      </div>
+      <!-- Composite -->
+      <div class="browser-category">
+        <div class="browser-cat-header">
+          <span class="browser-cat-arrow">&#9654;</span>
+          Composite
+          <span class="browser-cat-count">3</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Generate waveform bars -->
+<script>
+(function() {
+  var wf = document.getElementById('waveform');
+  for (var i = 0; i < 260; i++) {
+    var bar = document.createElement('div');
+    bar.className = 'wf-bar';
+    var h = Math.abs(Math.sin(i * 0.08) * Math.sin(i * 0.03) * 12 + Math.random() * 4 + 2);
+    bar.style.height = h + 'px';
+    if (i > 120 && i < 140) bar.style.background = '#00d9ff44';
+    wf.appendChild(bar);
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,570 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					44,
+					"output"
+				],
+				"to": [
+					52,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					52,
+					"output0"
+				],
+				"to": [
+					45,
+					"input"
+				]
+			}
+		],
+		"inputOrder": [],
+		"meta": {
+			"author": "",
+			"category": null,
+			"description": "",
+			"displayName": "",
+			"identifier": "b7a0f92b-7677-4891-8c2c-f6a22104a2ce",
+			"licenseName": "",
+			"mail": "",
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 56,
+		"nodes": {
+			"43": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "COMMENT\n\nThis is the comment node, here you can write whatever you want. Really anything, even funny words like gobbledygoog or hottentottententententoonstellingsterrein."
+					}
+				},
+				"bounds": {
+					"height": 156,
+					"width": 334,
+					"x": 1215.541015625,
+					"y": 530.89312744140625
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"44": {
+				"attributes": {
+					"anti-alias": {
+						"type": "bool",
+						"value": false
+					},
+					"instances": {
+						"type": "number",
+						"value": 1
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": true
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 1826.5562744140625,
+					"y": 643.47747802734375
+				},
+				"class": {
+					"id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": 1
+					},
+					"frequency": {
+						"type": "float",
+						"value": 0.25
+					},
+					"offset": {
+						"type": "float",
+						"value": 0
+					},
+					"phase-offset": {
+						"type": "float",
+						"value": 0
+					},
+					"reset-phase": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"reset-phase"
+				],
+				"name": "Saw"
+			},
+			"45": {
+				"attributes": {
+					"instances": {
+						"type": "number",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 2366.225341796875,
+					"y": 643.3907470703125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [],
+				"name": "Texture Out"
+			},
+			"46": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "<Insert your comment here>"
+					}
+				},
+				"bounds": {
+					"height": 115,
+					"width": 195,
+					"x": 1232.98193359375,
+					"y": 957.3946533203125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"47": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 27
+					},
+					"text": {
+						"type": "text",
+						"value": "Bad hair day?"
+					}
+				},
+				"bounds": {
+					"height": 115,
+					"width": 195,
+					"x": 1605.302490234375,
+					"y": 1067.359375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"48": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "No comment"
+					}
+				},
+				"bounds": {
+					"height": 115,
+					"width": 195,
+					"x": 2019.1650390625,
+					"y": 1080.74462890625
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff02bbff",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"49": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "More coffee == more better"
+					}
+				},
+				"bounds": {
+					"height": 115,
+					"width": 195,
+					"x": 1958.211181640625,
+					"y": 882.16412353515625
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"50": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "Pink is my favorite color"
+					}
+				},
+				"bounds": {
+					"height": 115,
+					"width": 195,
+					"x": 1268.855712890625,
+					"y": 1190.874267578125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"51": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "Wire, wire, pants on fire!"
+					}
+				},
+				"bounds": {
+					"height": 115,
+					"width": 195,
+					"x": 1593.8387451171875,
+					"y": 1305.24072265625
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff2dc18a",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"52": {
+				"attributes": {
+					"bitdepth": {
+						"type": "choice",
+						"value": "Patch Bit Depth"
+					},
+					"input0-dimensions": {
+						"type": "dimensions",
+						"value": []
+					},
+					"input0-type": {
+						"type": "type",
+						"value": "float"
+					},
+					"resolution": {
+						"type": "choice",
+						"value": "Patch Size"
+					},
+					"sampling": {
+						"type": "choice",
+						"value": "Linear"
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 2095.225341796875,
+					"y": 643.3907470703125
+				},
+				"class": {
+					"id": "77697265-A4AE-41FA-8316-8C0D54BC55B7",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": 0
+					}
+				},
+				"hidden": [],
+				"name": "Texture"
+			},
+			"53": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "Wait, what?"
+					}
+				},
+				"bounds": {
+					"height": 115,
+					"width": 195,
+					"x": 1534.194580078125,
+					"y": 862.35235595703125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ff20c7bb",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"54": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Left"
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "number",
+						"value": 19
+					},
+					"text": {
+						"type": "text",
+						"value": "Ooh really?"
+					}
+				},
+				"bounds": {
+					"height": 115,
+					"width": 195,
+					"x": 1900.8018798828125,
+					"y": 1265.864501953125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffff6a00",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			},
+			"55": {
+				"attributes": {
+					"alignment": {
+						"type": "choice",
+						"value": "Center"
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "number",
+						"value": 23
+					},
+					"text": {
+						"type": "text",
+						"value": "NO FILL"
+					}
+				},
+				"bounds": {
+					"height": 224,
+					"width": 749,
+					"x": 1793.022705078125,
+					"y": 579.3251953125
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [],
+				"name": "Comment"
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": 1145.7818603515625,
+				"y": 498.56695556640625,
+				"zoom": 1
+			},
+			"selection": [
+				"43"
+			]
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": [
+					null,
+					null
+				]
+			}
+		},
+		"deviceConnections": {
+			"input": {}
+		},
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null
+				}
+			}
+		}
+	}
+}

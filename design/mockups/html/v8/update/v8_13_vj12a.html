@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 12a - Mixer/Channel Strip Layout (Updated)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #1a1a1a; color: #e0e0e0;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  display: flex; flex-direction: column;
+}
+
+/* ===== MENU BAR (topmost 24px) ===== */
+.menu-bar {
+  height: 24px; background: #0d0d0d; display: flex; align-items: center;
+  padding: 0 8px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0;
+  font-size: 12px; color: #bbb;
+}
+.menu-item {
+  padding: 2px 12px; cursor: pointer; position: relative;
+}
+.menu-item:hover { background: #333; color: #fff; }
+.menu-item.app-name { font-weight: 700; color: #7fc97f; }
+
+/* ===== SIGNAL BAR (~40px) ===== */
+.signal-bar {
+  height: 40px; background: linear-gradient(to bottom, #151515, #111);
+  display: flex; align-items: center; padding: 0 10px; gap: 6px;
+  border-bottom: 1px solid #2a2a2a; flex-shrink: 0;
+}
+.signal-meter {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 56px; gap: 1px;
+}
+.signal-meter-label { font-size: 8px; color: #666; letter-spacing: 0.5px; }
+.signal-meter-bar {
+  width: 48px; height: 10px; background: #0a0a0a; border: 1px solid #2a2a2a;
+  position: relative; overflow: hidden;
+}
+.signal-meter-fill {
+  position: absolute; top: 0; left: 0; bottom: 0;
+}
+.signal-meter-value { font-size: 8px; color: #999; font-variant-numeric: tabular-nums; }
+.signal-divider {
+  width: 1px; height: 28px; background: #2a2a2a; margin: 0 2px;
+}
+
+/* ===== TOP BAR ===== */
+.top-bar {
+  height: 48px; background: linear-gradient(to bottom, #181818, #111);
+  display: flex; align-items: center;
+  padding: 0 12px; border-bottom: 1px solid #333; flex-shrink: 0;
+}
+.bpm-section { display: flex; align-items: center; margin-right: 16px; }
+.bpm-value {
+  font-size: 32px; font-weight: 700; color: #fff; letter-spacing: -1px;
+  font-variant-numeric: tabular-nums; margin-right: 4px;
+}
+.bpm-label { font-size: 9px; color: #888; margin-right: 8px; }
+.tap-btn {
+  background: #2a2a2a; border: 1px solid #444; color: #aaa; padding: 4px 12px;
+  font-size: 11px; font-weight: 600; cursor: pointer; letter-spacing: 1px;
+}
+.tap-btn:hover { background: #444; color: #fff; }
+.manual-btn {
+  background: #2a2a2a; border: 1px solid #444; color: #888; padding: 4px 8px;
+  font-size: 10px; cursor: pointer; margin-left: 4px;
+}
+
+/* Beat wheel */
+.beat-wheel {
+  width: 36px; height: 36px; margin: 0 10px; position: relative;
+}
+.beat-wheel svg { width: 100%; height: 100%; }
+
+/* Quantize / Fade */
+.quantize-section { display: flex; align-items: center; gap: 6px; margin-right: 14px; }
+.quant-label { font-size: 9px; color: #666; letter-spacing: 0.5px; }
+.quant-select {
+  background: #222; border: 1px solid #444; color: #ccc; padding: 3px 8px;
+  font-size: 10px; cursor: pointer;
+}
+.quant-select::after { content: ' \25BE'; color: #666; }
+.fade-knob {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: conic-gradient(from 220deg, #444 0deg, #777 120deg, #444 280deg);
+  border: 1px solid #555; cursor: pointer;
+}
+
+/* Deck tabs */
+.deck-tabs { display: flex; gap: 2px; margin-right: 14px; }
+.deck-tab {
+  background: #1a1a1a; border: 1px solid #333; color: #666; padding: 4px 14px;
+  font-size: 11px; font-weight: 700; cursor: pointer; letter-spacing: 1px;
+}
+.deck-tab.active { background: #2a4a2a; border-color: #4a8; color: #7fc97f; }
+.deck-tab.add { color: #4a4; border-color: #3a3; }
+
+.top-spacer { flex: 1; }
+
+/* Master section */
+.master-section { display: flex; align-items: center; gap: 8px; }
+.master-label { font-size: 9px; color: #666; letter-spacing: 1px; }
+.master-meter {
+  width: 140px; height: 16px; background: #0a0a0a; border: 1px solid #333;
+  display: flex; gap: 1px; padding: 1px; position: relative;
+}
+.meter-segment { flex: 1; height: 100%; }
+.meter-green { background: #2d8; }
+.meter-yellow { background: #da3; }
+.meter-red { background: #222; }
+.meter-red.active { background: #d33; }
+.master-db { font-size: 10px; color: #888; font-variant-numeric: tabular-nums; }
+.lock-btn {
+  background: #222; border: 1px solid #444; color: #888; padding: 3px 10px;
+  font-size: 9px; cursor: pointer; letter-spacing: 1px; font-weight: 600;
+}
+
+/* ===== MAIN AREA ===== */
+.main-area {
+  flex: 1; display: flex; overflow: hidden;
+}
+
+/* ===== BROWSER PANEL (left) ===== */
+.browser-panel {
+  width: 200px; background: #151515; border-right: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.browser-tabs {
+  display: flex; height: 26px; border-bottom: 1px solid #2a2a2a;
+}
+.browser-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #666; cursor: pointer; border-right: 1px solid #2a2a2a;
+  background: #111;
+}
+.browser-tab:last-child { border-right: none; }
+.browser-tab.active { color: #ccc; background: #1e1e1e; border-bottom: 2px solid #4a8; }
+
+.browser-content { flex: 1; overflow-y: auto; padding: 6px; }
+.browser-category {
+  font-size: 9px; color: #666; letter-spacing: 1px; padding: 4px 6px;
+  margin-top: 4px; cursor: pointer;
+}
+.browser-category::before { content: '\25B6 '; font-size: 7px; }
+.browser-category.open::before { content: '\25BC '; font-size: 7px; }
+.browser-item {
+  font-size: 11px; color: #aaa; padding: 3px 6px 3px 18px;
+  cursor: pointer;
+}
+.browser-item:hover { background: #252525; color: #ccc; }
+.browser-item.selected { background: #2a4a2a; color: #7fc97f; }
+
+/* ===== CHANNEL STRIPS AREA ===== */
+.strips-area {
+  flex: 1; display: flex; flex-direction: column; padding: 6px 6px 4px 6px; gap: 4px;
+  overflow: hidden;
+}
+
+/* Clip grid row */
+.clip-grid-row {
+  display: flex; gap: 6px; flex-shrink: 0;
+}
+.clip-cell {
+  flex: 1; height: 64px; background: #181818; border: 1px solid #333;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.clip-cell.active { border-color: #4a8; }
+.clip-cell .clip-thumb {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.clip-thumb-pattern {
+  width: 100%; height: 100%; opacity: 0.4;
+}
+.clip-cell-label {
+  position: absolute; bottom: 2px; left: 0; right: 0;
+  font-size: 8px; color: #888; text-align: center;
+  background: rgba(0,0,0,0.6); padding: 1px 0;
+}
+.clip-cell.active .clip-cell-label { color: #7fc97f; }
+
+/* Channel strips */
+.channel-strips { display: flex; gap: 6px; flex: 1; min-height: 0; }
+.channel-strip {
+  flex: 1; background: linear-gradient(to bottom, #1e1e1e, #181818);
+  border: 1px solid #2a2a2a; display: flex;
+  flex-direction: column; padding: 5px; min-width: 0;
+}
+
+/* Waveform display */
+.waveform-display {
+  height: 80px; border: 1px solid #2a2a2a; margin-bottom: 4px; position: relative;
+  overflow: hidden; background: #0e0e0e;
+}
+.waveform-canvas { width: 100%; height: 100%; }
+
+/* Layer name */
+.layer-name {
+  font-size: 12px; font-weight: 700; margin-bottom: 1px; letter-spacing: 0.3px;
+}
+.source-label { font-size: 9px; color: #666; margin-bottom: 4px; }
+
+/* Solo/Mute */
+.solo-mute { display: flex; gap: 5px; margin-bottom: 5px; justify-content: center; }
+.sm-btn {
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid #444;
+  background: #1a1a1a; color: #666; font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.sm-btn.solo { border-color: #a80; }
+.sm-btn.solo:hover { background: #da0; color: #111; }
+.sm-btn.mute { border-color: #a33; }
+.sm-btn.mute:hover { background: #d44; color: #111; }
+
+/* Knobs row */
+.knobs-row { display: flex; justify-content: space-around; margin-bottom: 5px; }
+.knob-group { display: flex; flex-direction: column; align-items: center; }
+.knob {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: conic-gradient(from 220deg, #444 0deg, #777 140deg, #444 280deg);
+  border: 2px solid #3a3a3a; position: relative; cursor: pointer;
+}
+.knob::after {
+  content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 8px;
+  background: #ddd; transform: translateX(-50%);
+}
+.knob-label { font-size: 7px; color: #666; margin-top: 2px; letter-spacing: 0.5px; }
+
+/* Fader section */
+.fader-section {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 2px 0; min-height: 0;
+}
+.fader-track {
+  width: 26px; flex: 1; max-height: 160px; background: #0a0a0a; border: 1px solid #2a2a2a;
+  position: relative; margin-bottom: 3px;
+}
+.fader-fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, #1a5a1a, #2d8d2d, #4aba4a);
+}
+.fader-thumb {
+  position: absolute; left: -5px; right: -5px; height: 8px;
+  background: linear-gradient(to bottom, #bbb, #888, #bbb);
+  border: 1px solid #555; cursor: grab;
+}
+.opacity-label { font-size: 11px; color: #aaa; font-weight: 600; margin-bottom: 4px; }
+
+/* Bottom buttons */
+.strip-buttons { display: flex; gap: 3px; }
+.strip-btn {
+  flex: 1; background: #1a1a1a; border: 1px solid #333; color: #888;
+  padding: 4px 2px; font-size: 9px; font-weight: 700;
+  text-align: center; cursor: pointer; letter-spacing: 0.5px;
+}
+.strip-btn.strobe { border-color: #aa0; color: #aa0; }
+.strip-btn.strobe:hover { background: #ff0; color: #111; }
+.strip-btn.flash { border-color: #ccc; color: #ccc; }
+.strip-btn.flash:hover { background: #fff; color: #111; }
+
+/* ===== INSPECTOR PANEL (right) ===== */
+.inspector-panel {
+  width: 280px; background: #151515; border-left: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.inspector-tabs {
+  display: flex; height: 26px; border-bottom: 1px solid #2a2a2a;
+}
+.inspector-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #666; cursor: pointer; border-right: 1px solid #2a2a2a;
+  background: #111;
+}
+.inspector-tab:last-child { border-right: none; }
+.inspector-tab.active { color: #ccc; background: #1e1e1e; border-bottom: 2px solid #4a8; }
+
+.inspector-content {
+  flex: 1; overflow-y: auto; padding: 8px;
+}
+.inspector-section {
+  margin-bottom: 10px;
+}
+.inspector-section-title {
+  font-size: 9px; color: #555; letter-spacing: 1.5px; margin-bottom: 6px;
+  padding-bottom: 3px; border-bottom: 1px solid #252525; font-weight: 600;
+}
+
+/* Dashboard knobs */
+.dashboard-knobs {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  margin-bottom: 8px;
+}
+.dash-knob-group {
+  display: flex; flex-direction: column; align-items: center;
+}
+.dash-knob {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: conic-gradient(from 220deg, #333 0deg, #666 100deg, #333 280deg);
+  border: 2px solid #3a3a3a; position: relative; cursor: pointer;
+}
+.dash-knob::after {
+  content: ''; position: absolute; top: 3px; left: 50%; width: 2px; height: 8px;
+  background: #ccc; transform: translateX(-50%);
+}
+.dash-knob-label { font-size: 7px; color: #555; margin-top: 2px; text-align: center; }
+
+/* Cuepoints */
+.cuepoint-row {
+  display: flex; gap: 3px; margin-bottom: 8px;
+}
+.cuepoint-btn {
+  flex: 1; height: 20px; background: #1a1a1a; border: 1px solid #333;
+  color: #666; font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.cuepoint-btn.set { background: #2a3a2a; border-color: #4a8; color: #7fc97f; }
+
+/* Autopilot */
+.autopilot-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+}
+.autopilot-toggle {
+  width: 32px; height: 16px; background: #222; border: 1px solid #444;
+  border-radius: 8px; position: relative; cursor: pointer;
+}
+.autopilot-toggle.on { background: #2a5a2a; border-color: #4a8; }
+.autopilot-toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 10px; height: 10px; border-radius: 50%; background: #666;
+}
+.autopilot-toggle.on::after { left: 18px; background: #7fc97f; }
+.autopilot-label { font-size: 10px; color: #888; }
+.autopilot-select {
+  background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 2px 6px;
+  font-size: 10px; cursor: pointer;
+}
+
+/* Effect stack */
+.fx-stack { margin-bottom: 8px; }
+.fx-row {
+  display: flex; align-items: center; height: 24px; background: #1a1a1a;
+  border: 1px solid #2a2a2a; margin-bottom: 2px; padding: 0 4px;
+}
+.fx-bypass-btn {
+  width: 16px; height: 16px; background: #222; border: 1px solid #444;
+  color: #666; font-size: 8px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  margin-right: 4px;
+}
+.fx-bypass-btn.active { background: #2a5a2a; border-color: #4a8; color: #7fc97f; }
+.fx-name { flex: 1; font-size: 10px; color: #aaa; }
+.fx-signal-tri {
+  color: #4a8; font-size: 8px; cursor: pointer; margin: 0 3px;
+}
+.fx-delete {
+  color: #a44; font-size: 10px; cursor: pointer; margin-left: 2px; font-weight: 700;
+}
+
+/* Keying section */
+.keying-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+}
+.keying-select {
+  background: #1a1a1a; border: 1px solid #333; color: #aaa; padding: 2px 8px;
+  font-size: 10px; flex: 1;
+}
+
+/* Feedback section */
+.feedback-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+}
+.feedback-slider-track {
+  flex: 1; height: 6px; background: #222; border: 1px solid #333;
+  position: relative;
+}
+.feedback-slider-fill {
+  position: absolute; top: 0; left: 0; bottom: 0; width: 35%;
+  background: #4a8;
+}
+.feedback-slider-thumb {
+  position: absolute; top: -4px; width: 8px; height: 12px;
+  background: #888; border: 1px solid #aaa; left: 33%; cursor: pointer;
+}
+
+/* Transform section */
+.transform-grid {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 3px 6px;
+  align-items: center;
+}
+.transform-label { font-size: 9px; color: #555; }
+.transform-input {
+  background: #1a1a1a; border: 1px solid #2a2a2a; color: #aaa;
+  padding: 2px 6px; font-size: 10px; width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.transform-unit { font-size: 8px; color: #444; }
+
+/* ===== FOOTER ===== */
+.footer {
+  height: 32px; background: #0d0d0d; border-top: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 10px; flex-shrink: 0;
+}
+.footer-item {
+  font-size: 10px; color: #555; margin-right: 14px;
+  display: flex; align-items: center; gap: 4px;
+}
+.footer-item .value { color: #888; font-variant-numeric: tabular-nums; }
+.footer-item .good { color: #4a8; }
+.footer-item .warn { color: #da3; }
+.footer-spacer { flex: 1; }
+.rec-indicator {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: #666; margin-right: 14px;
+}
+.rec-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #444;
+}
+.rec-dot.recording { background: #d33; animation: rec-blink 1s infinite; }
+@keyframes rec-blink { 50% { opacity: 0.3; } }
+.footer-output {
+  font-size: 10px; color: #666; padding: 2px 10px;
+  border: 1px solid #2a2a2a; background: #111; margin-right: 6px;
+}
+.footer-output.active { color: #888; border-color: #444; }
+.footer-btn {
+  background: #1a1a1a; border: 1px solid #333; color: #888; padding: 3px 12px;
+  font-size: 10px; cursor: pointer; margin-left: 4px; font-weight: 600;
+  letter-spacing: 0.5px;
+}
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div class="menu-bar">
+  <div class="menu-item app-name">Audio-DNA</div>
+  <div class="menu-item">Composition</div>
+  <div class="menu-item">Deck</div>
+  <div class="menu-item">Layer</div>
+  <div class="menu-item">Column</div>
+  <div class="menu-item">Clip</div>
+  <div class="menu-item">Output</div>
+  <div class="menu-item">Shortcuts</div>
+  <div class="menu-item">View</div>
+</div>
+
+<!-- SIGNAL BAR -->
+<div class="signal-bar" id="signalBar"></div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="bpm-section">
+    <div class="bpm-value">128.00</div>
+    <div class="bpm-label">BPM</div>
+    <div class="tap-btn">TAP</div>
+    <div class="manual-btn">Manual</div>
+  </div>
+
+  <!-- Beat wheel -->
+  <div class="beat-wheel">
+    <svg viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="16" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+      <path d="M18 2 A16 16 0 0 1 34 18" stroke="#4a8" stroke-width="2.5" fill="none"/>
+      <path d="M34 18 A16 16 0 0 1 18 34" stroke="#333" stroke-width="2.5" fill="none"/>
+      <path d="M18 34 A16 16 0 0 1 2 18" stroke="#333" stroke-width="2.5" fill="none"/>
+      <path d="M2 18 A16 16 0 0 1 18 2" stroke="#333" stroke-width="2.5" fill="none"/>
+      <circle cx="18" cy="18" r="3" fill="#4a8"/>
+    </svg>
+  </div>
+
+  <!-- Quantize / Fade -->
+  <div class="quantize-section">
+    <div class="quant-label">Quantize</div>
+    <div class="quant-select">1 Beat</div>
+    <div class="quant-label" style="margin-left:6px;">Fade</div>
+    <div class="fade-knob"></div>
+  </div>
+
+  <!-- Deck tabs -->
+  <div class="deck-tabs">
+    <div class="deck-tab active">Deck 1</div>
+    <div class="deck-tab">Deck 2</div>
+    <div class="deck-tab">Deck 3</div>
+    <div class="deck-tab add">+</div>
+  </div>
+
+  <div class="top-spacer"></div>
+
+  <div class="master-section">
+    <div class="master-label">Master</div>
+    <div class="master-meter">
+      <div class="meter-segment meter-green"></div>
+      <div class="meter-segment meter-green"></div>
+      <div class="meter-segment meter-green"></div>
+      <div class="meter-segment meter-green"></div>
+      <div class="meter-segment meter-green"></div>
+      <div class="meter-segment meter-green"></div>
+      <div class="meter-segment meter-green"></div>
+      <div class="meter-segment meter-green"></div>
+      <div class="meter-segment meter-yellow"></div>
+      <div class="meter-segment meter-yellow"></div>
+      <div class="meter-segment meter-red"></div>
+      <div class="meter-segment meter-red"></div>
+    </div>
+    <div class="master-db">-3.2 dB</div>
+    <div class="lock-btn">Lock</div>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+
+  <!-- BROWSER PANEL -->
+  <div class="browser-panel">
+    <div class="browser-tabs">
+      <div class="browser-tab">Files</div>
+      <div class="browser-tab active">FX</div>
+      <div class="browser-tab">Sources</div>
+    </div>
+    <div class="browser-content" id="browserContent"></div>
+  </div>
+
+  <!-- CENTER: STRIPS AREA -->
+  <div class="strips-area">
+    <!-- Clip grid row -->
+    <div class="clip-grid-row" id="clipGrid"></div>
+    <!-- Channel strips -->
+    <div class="channel-strips" id="strips"></div>
+  </div>
+
+  <!-- INSPECTOR PANEL -->
+  <div class="inspector-panel">
+    <div class="inspector-tabs">
+      <div class="inspector-tab active">Clip</div>
+      <div class="inspector-tab">Layer</div>
+      <div class="inspector-tab">Composition</div>
+      <div class="inspector-tab">Signal</div>
+    </div>
+    <div class="inspector-content" id="inspectorContent"></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-item">FPS <span class="value good">60.0</span></div>
+  <div class="footer-item">DSP <span class="value good">1.2ms</span></div>
+  <div class="footer-item">GPU <span class="value good">3.4ms</span></div>
+  <div class="footer-item">Buffer <span class="value">128</span></div>
+  <div class="rec-indicator">
+    <div class="rec-dot"></div>
+    <span>Record</span>
+  </div>
+  <div class="footer-spacer"></div>
+  <div class="footer-output active">Output 1 (1080p)</div>
+  <div class="footer-output">Syphon</div>
+  <div class="footer-item">MIDI <span class="value">Connected</span></div>
+  <div class="footer-btn">Save</div>
+  <div class="footer-btn">Load</div>
+</div>
+
+<script>
+// ===== SIGNAL BAR =====
+const signals = [
+  { label: 'RMS',       value: 0.72, color: '#4a8' },
+  { label: 'Peak',      value: 0.88, color: '#5b9' },
+  { label: 'Bass',      value: 0.91, color: '#d44' },
+  { label: 'Mid',       value: 0.55, color: '#da3' },
+  { label: 'High',      value: 0.38, color: '#3af' },
+  { label: 'Beat Phase', value: 0.65, color: '#f80' },
+  { label: 'Bar Phase', value: 0.25, color: '#f60' },
+  { label: 'BPM',       value: 0.53, color: '#fff', text: '128' },
+  { label: 'Onset',     value: 0.15, color: '#f44' },
+  { label: 'Pitch',     value: 0.44, color: '#a6f' },
+  { label: 'Key',       value: 0.0,  color: '#6af', text: 'C maj' },
+  { label: 'Structure', value: 0.33, color: '#4cc', text: 'Normal' },
+];
+
+const sigBar = document.getElementById('signalBar');
+signals.forEach((s, i) => {
+  if (i > 0 && (i === 5 || i === 7 || i === 9)) {
+    const d = document.createElement('div');
+    d.className = 'signal-divider';
+    sigBar.appendChild(d);
+  }
+  const m = document.createElement('div');
+  m.className = 'signal-meter';
+  const showText = s.text !== undefined;
+  m.innerHTML = `
+    <div class="signal-meter-label">${s.label}</div>
+    <div class="signal-meter-bar">
+      <div class="signal-meter-fill" style="width:${s.value * 100}%;background:${s.color};"></div>
+    </div>
+    <div class="signal-meter-value">${showText ? s.text : (s.value * 100).toFixed(0) + '%'}</div>
+  `;
+  sigBar.appendChild(m);
+});
+
+// ===== BROWSER CONTENT (FX tab) =====
+const fxCategories = [
+  { name: 'Warp', items: ['Ripple', 'Bulge', 'Wave', 'Liquid', 'Kaleidoscope', 'Swirl', 'Fisheye'] },
+  { name: 'Color', items: ['Hue Shift', 'Saturation', 'Brightness', 'Duotone', 'Chromatic Aberration'] },
+  { name: 'Glitch', items: ['Pixel Scatter', 'RGB Split', 'Block Glitch', 'Scanlines', 'Digital Rain'] },
+  { name: 'Blur', items: ['Gaussian Blur', 'Zoom Blur', 'Motion Blur', 'Glow'] },
+  { name: 'Time', items: ['Echo', 'Posterize Time', 'Freeze', 'Frame Stutter'] },
+  { name: 'Pattern', items: ['CRT Simulation', 'VHS Effect', 'ASCII Art', 'Dot Matrix'] },
+  { name: 'Audio', items: ['Harmonic Displacement', 'Timbral Mosaic', 'Beat Ripple'] },
+  { name: 'Blend', items: ['Double Exposure', 'Frosted Glass', 'Prism Refract'] },
+];
+
+const browserEl = document.getElementById('browserContent');
+fxCategories.forEach((cat, ci) => {
+  const catEl = document.createElement('div');
+  catEl.className = 'browser-category' + (ci === 0 ? ' open' : '');
+  catEl.textContent = cat.name + ' (' + cat.items.length + ')';
+  browserEl.appendChild(catEl);
+  cat.items.forEach((item, ii) => {
+    const itemEl = document.createElement('div');
+    itemEl.className = 'browser-item' + (ci === 0 && ii === 0 ? ' selected' : '');
+    itemEl.textContent = item;
+    itemEl.style.display = ci === 0 ? 'block' : 'none';
+    itemEl.dataset.cat = ci;
+    browserEl.appendChild(itemEl);
+  });
+});
+
+// ===== CLIP GRID =====
+const clipNames = [
+  ['Mandelbrot', 'Julia Set', 'Fractal Zoom'],
+  ['Torus Spiral', 'Knot Wave', 'Sphere Morph'],
+  ['Bass Pulse', 'Sub Rumble', 'Kick Flash'],
+  ['Fluid Sim', 'Particle Storm', 'Smoke'],
+  ['Neon Edge', 'Wireframe', 'Dot Grid'],
+  ['Spectrum', 'Waveform', 'Beat Ring'],
+];
+const clipColors = ['#33cc55', '#3388ff', '#dd3333', '#33cccc', '#bb44dd', '#ddcc33'];
+
+const clipGrid = document.getElementById('clipGrid');
+clipNames.forEach((clips, i) => {
+  clips.forEach((name, j) => {
+    const cell = document.createElement('div');
+    cell.className = 'clip-cell' + (j === 0 ? ' active' : '');
+    const patternCanvas = document.createElement('canvas');
+    patternCanvas.width = 100;
+    patternCanvas.height = 60;
+    const pCtx = patternCanvas.getContext('2d');
+    // Mini procedural thumbnail
+    pCtx.fillStyle = '#111';
+    pCtx.fillRect(0, 0, 100, 60);
+    const c = clipColors[i];
+    pCtx.strokeStyle = c;
+    pCtx.lineWidth = 1;
+    pCtx.globalAlpha = 0.5;
+    for (let k = 0; k < 8; k++) {
+      pCtx.beginPath();
+      pCtx.arc(50 + Math.sin(k * 0.8 + j * 2) * 20, 30 + Math.cos(k * 0.8 + j) * 15,
+        10 + k * 3, 0, Math.PI * 2);
+      pCtx.stroke();
+    }
+    pCtx.globalAlpha = 1;
+    cell.innerHTML = `<div class="clip-thumb"></div><div class="clip-cell-label">${name}</div>`;
+    cell.querySelector('.clip-thumb').appendChild(patternCanvas);
+    patternCanvas.style.width = '100%';
+    patternCanvas.style.height = '100%';
+    clipGrid.appendChild(cell);
+  });
+});
+
+// ===== CHANNEL STRIPS =====
+const channels = [
+  { name: 'Layer 1: Kick',   source: 'Mandelbrot Fractal',   color: '#33cc55', opacity: 100, faderPct: 100 },
+  { name: 'Layer 2: Snare',  source: 'Torus Spiral',         color: '#3388ff', opacity: 85,  faderPct: 85  },
+  { name: 'Layer 3: Bass',   source: 'Bass Pulse Source',     color: '#dd3333', opacity: 92,  faderPct: 92  },
+  { name: 'Layer 4: Pad',    source: 'Fluid Simulation',      color: '#33cccc', opacity: 70,  faderPct: 70  },
+  { name: 'Layer 5: Lead',   source: 'Neon Edge Detect',      color: '#bb44dd', opacity: 78,  faderPct: 78  },
+  { name: 'Layer 6: Synth',  source: 'Spectrum Landscape',    color: '#ddcc33', opacity: 95,  faderPct: 95  },
+];
+
+const container = document.getElementById('strips');
+
+channels.forEach((ch, i) => {
+  const strip = document.createElement('div');
+  strip.className = 'channel-strip';
+  const canvasId = 'wave' + i;
+
+  strip.innerHTML = `
+    <div class="waveform-display">
+      <canvas id="${canvasId}" class="waveform-canvas"></canvas>
+    </div>
+    <div class="layer-name" style="color:${ch.color}">${ch.name}</div>
+    <div class="source-label">${ch.source}</div>
+    <div class="solo-mute">
+      <div class="sm-btn solo">S</div>
+      <div class="sm-btn mute">M</div>
+    </div>
+    <div class="knobs-row">
+      <div class="knob-group"><div class="knob" style="transform:rotate(${-40 + Math.random()*200}deg)"></div><div class="knob-label">Hue</div></div>
+      <div class="knob-group"><div class="knob" style="transform:rotate(${-40 + Math.random()*200}deg)"></div><div class="knob-label">Saturation</div></div>
+      <div class="knob-group"><div class="knob" style="transform:rotate(${-40 + Math.random()*200}deg)"></div><div class="knob-label">Speed</div></div>
+    </div>
+    <div class="fader-section">
+      <div class="fader-track">
+        <div class="fader-fill" style="height:${ch.faderPct}%"></div>
+        <div class="fader-thumb" style="bottom:calc(${ch.faderPct}% - 4px)"></div>
+      </div>
+      <div class="opacity-label">${ch.opacity}%</div>
+    </div>
+    <div class="strip-buttons">
+      <div class="strip-btn strobe">Strobe</div>
+      <div class="strip-btn flash">Flash</div>
+    </div>
+  `;
+  container.appendChild(strip);
+
+  // Draw waveform
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    const baseColor = ch.color;
+
+    ctx.fillStyle = '#0e0e0e';
+    ctx.fillRect(0, 0, w, h);
+
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, baseColor + '00');
+    grad.addColorStop(0.3, baseColor + '33');
+    grad.addColorStop(0.5, baseColor + '88');
+    grad.addColorStop(0.7, baseColor + '33');
+    grad.addColorStop(1, baseColor + '00');
+
+    const midY = h / 2;
+    const freq1 = 3 + i * 1.7;
+    const freq2 = 7 + i * 2.3;
+    const freq3 = 15 + i * 3.1;
+
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    for (let x = 0; x <= w; x++) {
+      const t = x / w;
+      const amp = (
+        Math.sin(t * freq1 * Math.PI * 2) * 0.4 +
+        Math.sin(t * freq2 * Math.PI * 2 + i) * 0.3 +
+        Math.sin(t * freq3 * Math.PI * 2 + i * 2) * 0.15 +
+        (Math.random() - 0.5) * 0.12
+      );
+      const envelope = Math.sin(t * Math.PI) * 0.8 + 0.2;
+      ctx.lineTo(x, midY - Math.abs(amp) * envelope * midY * 0.85);
+    }
+    for (let x = w; x >= 0; x--) {
+      const t = x / w;
+      const amp = (
+        Math.sin(t * freq1 * Math.PI * 2) * 0.4 +
+        Math.sin(t * freq2 * Math.PI * 2 + i) * 0.3 +
+        Math.sin(t * freq3 * Math.PI * 2 + i * 2) * 0.15 +
+        (Math.random() - 0.5) * 0.12
+      );
+      const envelope = Math.sin(t * Math.PI) * 0.8 + 0.2;
+      ctx.lineTo(x, midY + Math.abs(amp) * envelope * midY * 0.85);
+    }
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.strokeStyle = baseColor;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    for (let x = 0; x <= w; x++) {
+      const t = x / w;
+      const amp = (
+        Math.sin(t * freq1 * Math.PI * 2) * 0.4 +
+        Math.sin(t * freq2 * Math.PI * 2 + i) * 0.3 +
+        Math.sin(t * freq3 * Math.PI * 2 + i * 2) * 0.15
+      );
+      const envelope = Math.sin(t * Math.PI) * 0.8 + 0.2;
+      ctx.lineTo(x, midY + amp * envelope * midY * 0.7);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    const playheadX = w * (0.3 + i * 0.08);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(playheadX, 0);
+    ctx.lineTo(playheadX, h);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 0.5;
+    ctx.globalAlpha = 0.4;
+    for (let g = 0; g < 8; g++) {
+      const gx = (w / 8) * g;
+      ctx.beginPath();
+      ctx.moveTo(gx, 0);
+      ctx.lineTo(gx, h);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  });
+});
+
+// ===== INSPECTOR CONTENT =====
+const inspectorEl = document.getElementById('inspectorContent');
+inspectorEl.innerHTML = `
+  <!-- Dashboard Knobs -->
+  <div class="inspector-section">
+    <div class="inspector-section-title">DASHBOARD</div>
+    <div class="dashboard-knobs">
+      ${[1,2,3,4,5,6,7,8].map(n => `
+        <div class="dash-knob-group">
+          <div class="dash-knob" style="transform:rotate(${-60 + Math.random()*180}deg)"></div>
+          <div class="dash-knob-label">Knob ${n}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+
+  <!-- Cuepoints -->
+  <div class="inspector-section">
+    <div class="inspector-section-title">CUEPOINTS</div>
+    <div class="cuepoint-row">
+      <div class="cuepoint-btn set">1</div>
+      <div class="cuepoint-btn set">2</div>
+      <div class="cuepoint-btn">3</div>
+      <div class="cuepoint-btn">4</div>
+      <div class="cuepoint-btn">5</div>
+      <div class="cuepoint-btn">6</div>
+      <div class="cuepoint-btn">7</div>
+      <div class="cuepoint-btn">8</div>
+    </div>
+  </div>
+
+  <!-- Autopilot -->
+  <div class="inspector-section">
+    <div class="inspector-section-title">AUTOPILOT</div>
+    <div class="autopilot-row">
+      <div class="autopilot-toggle on"></div>
+      <div class="autopilot-label">On Beat</div>
+      <div class="autopilot-select">4 Beats</div>
+      <div class="autopilot-select">Random</div>
+    </div>
+  </div>
+
+  <!-- Effects Stack -->
+  <div class="inspector-section">
+    <div class="inspector-section-title">EFFECTS</div>
+    <div class="fx-stack">
+      <div class="fx-row">
+        <div class="fx-bypass-btn active">B</div>
+        <div class="fx-name">Ripple</div>
+        <div class="fx-signal-tri" title="Signal routed">\u25B6</div>
+        <div class="fx-delete">X</div>
+      </div>
+      <div class="fx-row">
+        <div class="fx-bypass-btn active">B</div>
+        <div class="fx-name">Hue Shift</div>
+        <div class="fx-signal-tri" title="Signal routed">\u25B6</div>
+        <div class="fx-delete">X</div>
+      </div>
+      <div class="fx-row">
+        <div class="fx-bypass-btn">B</div>
+        <div class="fx-name" style="color:#666;">Echo</div>
+        <div class="fx-signal-tri" style="color:#444;">\u25B6</div>
+        <div class="fx-delete">X</div>
+      </div>
+      <div class="fx-row">
+        <div class="fx-bypass-btn active">B</div>
+        <div class="fx-name">Glow</div>
+        <div class="fx-signal-tri" title="Signal routed">\u25B6</div>
+        <div class="fx-delete">X</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keying -->
+  <div class="inspector-section">
+    <div class="inspector-section-title">KEYING</div>
+    <div class="keying-row">
+      <div class="transform-label">Alpha Type</div>
+      <div class="keying-select">Additive</div>
+    </div>
+    <div class="keying-row">
+      <div class="transform-label">Blend Mode</div>
+      <div class="keying-select">Screen</div>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="inspector-section">
+    <div class="inspector-section-title">FEEDBACK</div>
+    <div class="feedback-row">
+      <div class="autopilot-toggle"></div>
+      <div class="autopilot-label">Enabled</div>
+      <div class="autopilot-select">Zoom In</div>
+    </div>
+    <div class="feedback-row">
+      <div class="transform-label">Amount</div>
+      <div class="feedback-slider-track">
+        <div class="feedback-slider-fill"></div>
+        <div class="feedback-slider-thumb"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transform -->
+  <div class="inspector-section">
+    <div class="inspector-section-title">TRANSFORM</div>
+    <div class="transform-grid">
+      <div class="transform-label">Position X</div>
+      <div class="transform-input">0.000</div>
+      <div class="transform-unit">px</div>
+      <div class="transform-label">Position Y</div>
+      <div class="transform-input">0.000</div>
+      <div class="transform-unit">px</div>
+      <div class="transform-label">Scale</div>
+      <div class="transform-input">100.0</div>
+      <div class="transform-unit">%</div>
+      <div class="transform-label">Rotation</div>
+      <div class="transform-input">0.0</div>
+      <div class="transform-unit">deg</div>
+    </div>
+  </div>
+`;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,551 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          5,
+          "output"
+        ],
+        "to": [
+          6,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          8,
+          "output"
+        ],
+        "to": [
+          9,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          9,
+          "output"
+        ],
+        "to": [
+          10,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output0"
+        ],
+        "to": [
+          13,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          6,
+          "output"
+        ],
+        "to": [
+          11,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          10,
+          "output0"
+        ],
+        "to": [
+          11,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          11,
+          "output0"
+        ],
+        "to": [
+          12,
+          "shape"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "This patch explains what this node does.",
+      "displayName": "Edge Example",
+      "identifier": "dcfba2ff-efb5-45a9-9312-a9ffae2de2de",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 16,
+    "nodes": {
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "EDGE\nThis node creates a new shape out of an incoming shape. The output of the shape is the edge of the incoming shape. The thickness of the edge can be regulated by the user.\n\n- Patch Explained -\n\n• Two Pentagon shapes go each into an Edge node that is controlled by a slider.\n• The bottom Pentagon is rotated slightly with the Transform node before going into the Union node.\n• The Union node combines both shapes into a single shape.\n• This is sent to the Shape Render to convert the shape into a texture before sending it out.\n"
+          }
+        },
+        "bounds": {
+          "height": 274,
+          "width": 850,
+          "x": 111.203125,
+          "y": 72.9921875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "10": {
+        "attributes": {
+          "input-type": {
+            "type": "type",
+            "value": "procedural"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "scale-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 568,
+          "y": 556
+        },
+        "class": {
+          "id": "77697265-9225-4009-9D2D-5F898E94CC33",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "anchor": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "input": {
+            "type": "procedural",
+            "value": null
+          },
+          "rotation": {
+            "type": "float",
+            "value": 0.10000000149011612
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "translation": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "anchor",
+          "translation",
+          "scale"
+        ],
+        "name": "Transform"
+      },
+      "11": {
+        "attributes": {
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input1-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "mode": {
+            "type": "choice",
+            "value": "Round"
+          },
+          "size": {
+            "type": "number",
+            "value": 2
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": 790,
+          "y": 499
+        },
+        "class": {
+          "id": "77697265-d619-42bf-b61d-4c9a7dcd6c2a",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "procedural",
+            "value": null
+          },
+          "input1": {
+            "type": "procedural",
+            "value": null
+          },
+          "smoothing": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [],
+        "name": "Union"
+      },
+      "12": {
+        "attributes": {
+          "antialising-direction": {
+            "type": "choice",
+            "value": "In"
+          },
+          "material-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "shape-dimensions": {
+            "type": "dimensions",
+            "value": []
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 1001,
+          "y": 499
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "antialiasing": {
+            "type": "float",
+            "value": 4
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              0.5843137502670288,
+              0.10980392247438432,
+              1
+            ]
+          },
+          "shape": {
+            "type": "procedural",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Shape Render"
+      },
+      "13": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1215,
+          "y": 499
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a shape.\n\n"
+          }
+        },
+        "bounds": {
+          "height": 380,
+          "width": 334,
+          "x": 462.08984375,
+          "y": 648.54296875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "3": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Input\nThe shape goes here.\n\n• Amplitude\nAdjust the thickness of the edge (from 0 to 1).\n\n\n"
+          }
+        },
+        "bounds": {
+          "height": 384,
+          "width": 312,
+          "x": 108.0078125,
+          "y": 648.91796875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "4": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "ATTRIBUTES\n\n• Mode\nYou can adjust the mode to adjust the direction of the edge. "
+          }
+        },
+        "bounds": {
+          "height": 376,
+          "width": 308,
+          "x": 843.0078125,
+          "y": 648.91796875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "5": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 114,
+          "y": 448
+        },
+        "class": {
+          "id": "77697265-6928-4CE0-A145-5ED69D347DD0",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Pentagon"
+      },
+      "6": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "mode": {
+            "type": "choice",
+            "value": "Inner"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 340,
+          "y": 448
+        },
+        "class": {
+          "id": "77697265-ab950887-37ee-4fd2-9487-c856b6b75c83",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "procedural",
+            "value": null
+          },
+          "thickness": {
+            "type": "float",
+            "value": 0.05000000074505806
+          }
+        },
+        "hidden": [],
+        "name": "Edge"
+      },
+      "8": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 110.5,
+          "y": 556
+        },
+        "class": {
+          "id": "77697265-6928-4CE0-A145-5ED69D347DD0",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "size": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [],
+        "name": "Pentagon"
+      },
+      "9": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "mode": {
+            "type": "choice",
+            "value": "Inner"
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 336.5,
+          "y": 556
+        },
+        "class": {
+          "id": "77697265-ab950887-37ee-4fd2-9487-c856b6b75c83",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "procedural",
+            "value": null
+          },
+          "thickness": {
+            "type": "float",
+            "value": 0.05000000074505806
+          }
+        },
+        "hidden": [],
+        "name": "Edge"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -69,
+        "y": 12,
+        "zoom": 1
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 13,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

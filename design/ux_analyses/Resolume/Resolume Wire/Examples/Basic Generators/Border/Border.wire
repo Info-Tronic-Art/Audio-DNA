@@ -1,0 +1,1432 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          11,
+          "output"
+        ],
+        "to": [
+          12,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output"
+        ],
+        "to": [
+          11,
+          "color"
+        ]
+      },
+      {
+        "from": [
+          46,
+          "output0"
+        ],
+        "to": [
+          12,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output"
+        ],
+        "to": [
+          46,
+          "material"
+        ]
+      },
+      {
+        "from": [
+          12,
+          "output0"
+        ],
+        "to": [
+          17,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          47,
+          "output0"
+        ],
+        "to": [
+          42,
+          "radius"
+        ]
+      },
+      {
+        "from": [
+          50,
+          "output0"
+        ],
+        "to": [
+          41,
+          "height"
+        ]
+      },
+      {
+        "from": [
+          50,
+          "output0"
+        ],
+        "to": [
+          41,
+          "width"
+        ]
+      },
+      {
+        "from": [
+          40,
+          "output"
+        ],
+        "to": [
+          56,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          42,
+          "output"
+        ],
+        "to": [
+          56,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          41,
+          "output"
+        ],
+        "to": [
+          56,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          57,
+          "output"
+        ],
+        "to": [
+          56,
+          "selection"
+        ]
+      },
+      {
+        "from": [
+          56,
+          "output"
+        ],
+        "to": [
+          46,
+          "shape"
+        ]
+      },
+      {
+        "from": [
+          51,
+          "output0"
+        ],
+        "to": [
+          40,
+          "height"
+        ]
+      },
+      {
+        "from": [
+          48,
+          "output0"
+        ],
+        "to": [
+          40,
+          "width"
+        ]
+      },
+      {
+        "from": [
+          32,
+          "output0"
+        ],
+        "to": [
+          47,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          32,
+          "output0"
+        ],
+        "to": [
+          48,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          32,
+          "output0"
+        ],
+        "to": [
+          50,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          32,
+          "output0"
+        ],
+        "to": [
+          51,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          15,
+          "output"
+        ],
+        "to": [
+          69,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          69,
+          "output0"
+        ],
+        "to": [
+          32,
+          "input0"
+        ]
+      }
+    ],
+    "inputOrder": [
+      18,
+      15,
+      57
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "master",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "Create a border source using texture math.",
+      "displayName": "Border",
+      "identifier": "2f163bb1-6a3d-412e-9c6c-1091f2430ae1",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "originalTarget": {
+        "branch": "master",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 12,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "thumbnail": "3355.IBkSG0fBZn....PCIgDQRA..C.L..H.GHX....PNcc7d....DLmPIQEBHf.B7g.YHB..LHcRDEDU3wY6ZGTSCEEEEE88I0AcD5n0F3AD.xAAfgpNnSvB8gJn2D1qkBNS2Imi6WW6E....7O1dud7xzi.....dFD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jvooG.i31du9Z5Q...vTNNVuuVqKSuCdtD.2zOuda84zi...fob+55so2.Oet.M....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jvooG.i372WVeL8H...XPmmd.77cb+5ZO8H....f+R685gKPC...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....RP.L....IH.F...fDD.C...PBBfA...HAAv....jf.X....R3WPScdw4hUxgRA....PRE4DQtJDXBB",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 70,
+    "nodes": {
+      "11": {
+        "attributes": {
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 3.799728393554687,
+          "y": 349.97662353515625
+        },
+        "class": {
+          "id": "77697265-E8EC-4F1B-901A-CFFC104D3B07",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff2dc18a",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "color": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          }
+        },
+        "hidden": [
+          "bypass",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth",
+          "instances"
+        ],
+        "name": "Solid Color"
+      },
+      "12": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "texture2d"
+          },
+          "type1": {
+            "type": "type",
+            "value": "texture2d"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 255.16726684570312,
+          "y": 350.29327392578125
+        },
+        "class": {
+          "id": "77697265-2449-4CC3-BDCE-BEF250835A26",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff2dc18a",
+        "constants": {
+          "input0": {
+            "type": "texture2d",
+            "value": null
+          },
+          "input1": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Subtract"
+      },
+      "15": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "float",
+            "value": 1
+          },
+          "min": {
+            "type": "float",
+            "value": 0
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -1906.7474365234375,
+          "y": 428.5188903808594
+        },
+        "class": {
+          "id": "77697265-D235-4A6A-B661-02ABE55C72FF",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "float",
+            "value": 0.25
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "unit"
+        ],
+        "name": "Thickness"
+      },
+      "17": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 474.0824279785156,
+          "y": 349.97491455078125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff2dc18a",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out"
+      },
+      "18": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -202.5745391845703,
+          "y": 350.84869384765625
+        },
+        "class": {
+          "id": "77697265-4C9E-4F75-B4F0-5415B713EA1B",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff2dc18a",
+        "constants": {
+          "input": {
+            "type": "float4",
+            "value": [
+              0.9098039269447327,
+              0.20392157137393951,
+              0,
+              1
+            ]
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "options-count",
+          "widget"
+        ],
+        "name": "Color"
+      },
+      "32": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": -1518.8787841796875,
+          "y": 426.6657104492187
+        },
+        "class": {
+          "id": "77697265-326F-4351-83FC-7A7FCFEDAFFC",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "input0-type",
+          "input0-dimensions"
+        ],
+        "name": "1 - x"
+      },
+      "37": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "CREATING THE SHAPE\n\nThe concept of the patch is that we have a solid color to fill the screen from which we subtract a shape, creating a border.\n\nFirst we create three different shapes: a rectangle, circle and a rhombus.\nWe have a Float In (renamed to Thickness), running from 0 to 1.\nThe 1-x node is used to flip the value. Instead of running from 0 to 1, we have a value running from 1 to 0.\n\nThe value is sent to a couple of Multiply nodes that are tuned just right so that they can go from a small dot to a screen filling shape.\n\nFinally we send the shapes to a Switch node controlled by a Choice In node (that we renamed to Type). This allows the user to switch between the three modes.\n"
+          }
+        },
+        "bounds": {
+          "height": 852.7374877929688,
+          "width": 1644.972412109375,
+          "x": -1932.9849853515625,
+          "y": 37.806488037109375
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "40": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": -949.3706665039062,
+          "y": 427.13092041015625
+        },
+        "class": {
+          "id": "77697265-4db6-4573-8aa7-42362bc44931",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "height": {
+            "type": "float",
+            "value": 1
+          },
+          "round": {
+            "type": "float4",
+            "value": [
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          "width": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Rectangle"
+      },
+      "41": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -949.3837280273436,
+          "y": 758.0863037109375
+        },
+        "class": {
+          "id": "77697265-3D51-4B4E-A18D-58E3EF5049C7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "height": {
+            "type": "float",
+            "value": 0.5
+          },
+          "width": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Rhombus"
+      },
+      "42": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": -948.6480102539062,
+          "y": 657.2244873046875
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.5199999809265137
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Circle"
+      },
+      "46": {
+        "attributes": {
+          "antialising-direction": {
+            "type": "integer",
+            "value": 0
+          },
+          "bitdepth": {
+            "type": "integer",
+            "value": 0
+          },
+          "material-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "resolution-absolute": {
+            "type": "float2",
+            "value": [
+              1920,
+              1080
+            ]
+          },
+          "resolution-mode": {
+            "type": "integer",
+            "value": 0
+          },
+          "resolution-relative": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "shape-dimensions": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 4.6822662353515625,
+          "y": 618.9332885742188
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff2dc18a",
+        "constants": {
+          "antialiasing": {
+            "type": "float",
+            "value": 4
+          },
+          "camera": {
+            "type": "camera2d",
+            "value": {
+              "projection": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ],
+              "view": [
+                1,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                -1,
+                0,
+                0,
+                0,
+                0,
+                1
+              ]
+            }
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "shape": {
+            "type": "procedural",
+            "value": null
+          }
+        },
+        "hidden": [
+          "antialising-direction",
+          "antialiasing",
+          "shape-dimensions",
+          "material-dimensions",
+          "resolution-mode",
+          "resolution-relative",
+          "resolution-absolute",
+          "bitdepth"
+        ],
+        "name": "Shape Render"
+      },
+      "47": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -1197.81298828125,
+          "y": 657.1536254882812
+        },
+        "class": {
+          "id": "77697265-A0D8-429A-A558-69BC58D0D425",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 2.0999999046325684
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Multiply"
+      },
+      "48": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -1197.81298828125,
+          "y": 427.71441650390625
+        },
+        "class": {
+          "id": "77697265-A0D8-429A-A558-69BC58D0D425",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 1.7999999523162842
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Multiply"
+      },
+      "50": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -1197.81298828125,
+          "y": 757.956787109375
+        },
+        "class": {
+          "id": "77697265-A0D8-429A-A558-69BC58D0D425",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 3
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Multiply"
+      },
+      "51": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -1197.81298828125,
+          "y": 538.3033447265625
+        },
+        "class": {
+          "id": "77697265-A0D8-429A-A558-69BC58D0D425",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 1
+          },
+          "input1": {
+            "type": "float",
+            "value": 1.0099999904632568
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Multiply"
+      },
+      "52": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "TEXTURE SUBTRACTION\n\nHere we render the shape to a texture with a user defined color.\nWe also create a solid color texture with the same color as the shape.\nNext, we subtract the rendered shape from the solid color and we end up with a border.\n\nA color and a pixel are similar in a way that they both hold 4 values: red, green, blue and alpha.\n\nWhat is happening in the subtract node is that we evaluate the color value of each pixel on the left and subtract the value on the right from it. \nBecause the color of our shape and the color of the solid are the same, the result of the subtraction is always Float4(0,0,0,0), in other words: transparent.\n"
+          }
+        },
+        "bounds": {
+          "height": 754.8699340820312,
+          "width": 1054.4512939453125,
+          "x": -256.9962158203125,
+          "y": 37.76435089111328
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff2dc18a",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "56": {
+        "attributes": {
+          "case-type": {
+            "type": "type",
+            "value": "procedural"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "selection-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "size": {
+            "type": "integer",
+            "value": 3
+          }
+        },
+        "bounds": {
+          "height": 106,
+          "width": 195,
+          "x": -524.089111328125,
+          "y": 568.7092895507812
+        },
+        "class": {
+          "id": "77697265-6899-4A9C-82AB-949346033440",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "procedural",
+            "value": null
+          },
+          "input1": {
+            "type": "procedural",
+            "value": null
+          },
+          "input2": {
+            "type": "procedural",
+            "value": null
+          },
+          "selection": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "selection-type",
+          "case-type",
+          "flow",
+          "size",
+          "instances"
+        ],
+        "name": "Switch"
+      },
+      "57": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 3
+          },
+          "min": {
+            "type": "integer",
+            "value": 0
+          },
+          "option0-label": {
+            "type": "string",
+            "value": "Rectangle"
+          },
+          "option0-value": {
+            "type": "integer",
+            "value": 0
+          },
+          "option1-label": {
+            "type": "string",
+            "value": "Circle"
+          },
+          "option1-value": {
+            "type": "integer",
+            "value": 1
+          },
+          "option2-label": {
+            "type": "string",
+            "value": "Diamond"
+          },
+          "option2-value": {
+            "type": "integer",
+            "value": 2
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 3
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -884.1048583984375,
+          "y": 311.87896728515625
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "input",
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "option0-label",
+          "option0-value",
+          "option1-label",
+          "option1-value",
+          "option2-label",
+          "option2-value"
+        ],
+        "name": "Type"
+      },
+      "58": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "BORDER\n\nThis is a very simple yet effective little source that allows the user to create a border around their content. This source is intended to be used as the top layer in a Arena/Avenue composition.\n\nThis example is a very basic introduction into doing math with textures, so even though the patch is simple, there is much to learn."
+          }
+        },
+        "bounds": {
+          "height": 191.01950073242188,
+          "width": 550.29638671875,
+          "x": -1742.4715576171875,
+          "y": -224.65647888183594
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment"
+      },
+      "69": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": -1742.9305419921875,
+          "y": 426.8938903808594
+        },
+        "class": {
+          "id": "77697265-2449-4CC3-BDCE-BEF250835A26",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "fff26eb5",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Subtract"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -2004.8421630859375,
+        "y": -801.59765625,
+        "zoom": 0.42349815368652344
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "monitors": [
+      {
+        "instance": 0,
+        "node": 17
+      }
+    ],
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null,
+          "Syphon": null
+        }
+      }
+    }
+  }
+}

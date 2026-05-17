@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920, height=1080">
+<title>Audio-DNA V9 — Command Center</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; background: #000; color: #e0e0e0; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; font-size: 12px; overflow: hidden; }
+
+/* ---- MENU BAR ---- */
+.menu-bar { height: 24px; background: #111; display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid #333; }
+.menu-bar .brand { color: #ff8800; font-weight: 700; font-size: 13px; margin-right: 16px; letter-spacing: 0.5px; }
+.menu-bar .menu-item { color: #999; padding: 0 10px; cursor: pointer; font-size: 11px; }
+.menu-bar .menu-item:hover { color: #e0e0e0; }
+
+/* ---- TOP BAR ---- */
+.top-bar { height: 36px; background: #1a1a1a; display: flex; align-items: center; padding: 0 10px; gap: 12px; border-bottom: 1px solid #333; }
+.bpm-box { background: #111; border: 1px solid #ff8800; color: #ff8800; font-size: 18px; font-weight: 700; padding: 2px 12px; min-width: 80px; text-align: center; }
+.beat-wheel { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #444; position: relative; overflow: hidden; }
+.beat-wheel .bw-fill { position: absolute; width: 50%; height: 50%; }
+.bw-tl { top: 0; left: 0; background: #ff8800; }
+.bw-tr { top: 0; right: 0; background: #333; }
+.bw-bl { bottom: 0; left: 0; background: #555; }
+.bw-br { bottom: 0; right: 0; background: #333; }
+.top-bar label { color: #666; font-size: 10px; text-transform: uppercase; }
+.top-bar .value { color: #e0e0e0; font-size: 11px; margin-left: 2px; }
+.top-bar .btn { background: #222; border: 1px solid #444; color: #999; padding: 3px 10px; cursor: pointer; font-size: 10px; }
+.top-bar .btn.active { border-color: #ff8800; color: #ff8800; }
+.spacer { flex: 1; }
+
+/* ---- SIGNAL STRIP ---- */
+.signal-strip { height: 20px; background: #0a0a0a; display: flex; align-items: center; gap: 1px; padding: 0 4px; border-bottom: 1px solid #222; }
+.ss { display: flex; align-items: center; gap: 2px; padding: 0 3px; }
+.ss-label { font-size: 8px; color: #666; width: 26px; text-align: right; }
+.ss-bar { width: 36px; height: 6px; background: #222; position: relative; overflow: hidden; }
+.ss-fill { height: 100%; position: absolute; left: 0; top: 0; }
+
+/* ---- MAIN LAYOUT ---- */
+.main { display: flex; height: calc(1080px - 24px - 36px - 20px - 22px - 120px); }
+
+/* ---- LEFT SIDEBAR (split: meters top, quick ref bottom) ---- */
+.left-sidebar { width: 200px; background: #0a0a0a; border-right: 1px solid #222; display: flex; flex-direction: column; }
+
+/* Signal Meters - top half */
+.meters-panel { flex: 1; display: flex; flex-direction: column; padding: 4px; overflow: hidden; border-bottom: 1px solid #333; }
+.meters-panel .mp-title { font-size: 9px; color: #ff8800; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid #222; }
+.meter-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+.meter-row .mr-label { font-size: 9px; color: #999; width: 60px; text-align: right; }
+.meter-row .mr-track { flex: 1; height: 8px; background: #1a1a1a; position: relative; border: 1px solid #222; }
+.meter-row .mr-fill { height: 100%; position: absolute; left: 0; top: 0; }
+.meter-row .mr-val { font-size: 9px; color: #e0e0e0; width: 32px; text-align: right; font-family: monospace; }
+
+/* Quick Reference - bottom half */
+.quick-ref-panel { height: 240px; display: flex; flex-direction: column; padding: 4px; overflow-y: auto; }
+.quick-ref-panel .qr-title { font-size: 9px; color: #ff8800; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid #222; }
+.qr-cat { font-size: 8px; color: #666; text-transform: uppercase; margin: 4px 0 2px; }
+.qr-icon-grid { display: flex; flex-wrap: wrap; gap: 2px; }
+.qr-icon { width: 28px; height: 28px; background: #111; border: 1px solid #222; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+.qr-icon:hover { border-color: #ff8800; }
+.qr-icon .qi-tip { display: none; position: absolute; }
+
+/* ---- CENTER ---- */
+.center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* Preview + signal status */
+.preview-area { height: 200px; background: #000; border-bottom: 1px solid #333; display: flex; flex-direction: column; }
+.preview-window { flex: 1; background: radial-gradient(ellipse at center, #1a0a2e 0%, #4a1942 30%, #000 100%); display: flex; align-items: center; justify-content: center; position: relative; }
+.preview-window .pw-label { position: absolute; top: 4px; left: 8px; font-size: 9px; color: #666; }
+.preview-window .pw-res { position: absolute; top: 4px; right: 8px; font-size: 9px; color: #666; }
+.signal-activity { height: 18px; background: #0a0a0a; display: flex; align-items: center; gap: 2px; padding: 0 6px; border-top: 1px solid #222; }
+.sa-dot { width: 6px; height: 6px; border-radius: 50%; }
+.sa-label { font-size: 8px; color: #666; margin-right: 6px; }
+
+/* Deck Grid */
+.deck-header { height: 24px; background: #1a1a1a; display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid #333; gap: 6px; }
+.deck-tab { padding: 2px 12px; font-size: 10px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; }
+.deck-tab.active { color: #ff8800; border-bottom-color: #ff8800; }
+.deck-grid { flex: 1; display: flex; flex-direction: column; padding: 3px; gap: 2px; overflow: hidden; }
+.layer-row { display: flex; gap: 2px; flex: 1; min-height: 0; }
+.layer-strip { width: 80px; background: #111; display: flex; flex-direction: column; justify-content: center; padding: 4px 6px; gap: 2px; }
+.layer-strip .ls-name { font-size: 10px; color: #e0e0e0; font-weight: 600; }
+.layer-strip .ls-type { font-size: 8px; color: #666; }
+.layer-strip .ls-opacity { display: flex; align-items: center; gap: 3px; }
+.layer-strip .ls-obar { width: 40px; height: 4px; background: #333; position: relative; }
+.layer-strip .ls-ofill { height: 100%; background: #ff8800; position: absolute; }
+.layer-strip .ls-oval { font-size: 8px; color: #999; }
+.clip-cell { flex: 1; background: #111; border: 1px solid #222; position: relative; overflow: hidden; cursor: pointer; min-width: 0; }
+.clip-cell:hover { border-color: #ff8800; }
+.clip-cell.active { border-color: #ff8800; box-shadow: 0 0 8px rgba(255,136,0,0.3); }
+.clip-cell.empty { background: #0a0a0a; border-color: #1a1a1a; }
+.clip-name { position: absolute; bottom: 2px; left: 3px; font-size: 8px; color: #fff; text-shadow: 0 0 3px #000, 0 0 6px #000; z-index: 2; }
+
+/* Signal overlay on clip - shows mapping name */
+.signal-overlay { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.signal-overlay svg { width: 100%; height: 100%; }
+.mapping-tag { position: absolute; top: 2px; left: 2px; background: rgba(255,136,0,0.8); color: #000; font-size: 7px; font-weight: 700; padding: 1px 4px; z-index: 4; max-width: calc(100% - 4px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mapping-tag-2 { top: 13px; background: rgba(255,136,0,0.5); }
+.fx-badge { position: absolute; top: 2px; right: 2px; background: rgba(68,170,255,0.7); color: #fff; font-size: 7px; font-weight: 600; padding: 1px 3px; z-index: 4; }
+
+/* ---- INSPECTOR ---- */
+.inspector { width: 300px; background: #111; border-left: 1px solid #333; display: flex; flex-direction: column; }
+.insp-tabs { display: flex; height: 28px; background: #1a1a1a; border-bottom: 1px solid #333; }
+.insp-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; }
+.insp-tab.active { color: #ff8800; border-bottom-color: #ff8800; }
+.insp-body { flex: 1; overflow-y: auto; padding: 8px; }
+.insp-section { margin-bottom: 12px; }
+.insp-section-title { font-size: 10px; color: #ff8800; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; padding-bottom: 3px; border-bottom: 1px solid #222; }
+
+/* Param row */
+.param-row { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.param-label { font-size: 10px; color: #999; width: 80px; }
+.param-slider { flex: 1; height: 4px; background: #333; position: relative; }
+.param-slider .ps-fill { height: 100%; background: #ff8800; }
+.param-val { font-size: 10px; color: #e0e0e0; width: 32px; text-align: right; }
+.param-signal { width: 8px; height: 8px; border: 1px solid #444; cursor: pointer; }
+.param-signal.connected { background: #ff8800; border-color: #ff8800; }
+
+/* Effect slot */
+.fx-slot { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: #1a1a1a; border: 1px solid #222; margin-bottom: 3px; }
+.fx-slot .fx-bypass { width: 8px; height: 8px; border-radius: 50%; background: #44aa44; flex-shrink: 0; }
+.fx-slot .fx-bypass.bypassed { background: #444; }
+.fx-slot .fx-name { font-size: 10px; color: #e0e0e0; flex: 1; }
+.fx-slot .fx-del { color: #666; font-size: 10px; cursor: pointer; }
+
+/* Signals tab content */
+.signal-card { display: flex; gap: 8px; padding: 8px; background: #1a1a1a; border: 1px solid #222; margin-bottom: 4px; cursor: grab; }
+.signal-card:hover { border-color: #ff8800; }
+.signal-card .sc-wave { width: 60px; height: 30px; background: #0a0a0a; border: 1px solid #333; flex-shrink: 0; overflow: hidden; }
+.signal-card .sc-wave svg { width: 100%; height: 100%; }
+.signal-card .sc-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.signal-card .sc-name { font-size: 11px; color: #e0e0e0; font-weight: 600; }
+.signal-card .sc-detail { font-size: 9px; color: #666; }
+.signal-card .sc-val { font-size: 14px; color: #ff8800; font-weight: 700; text-align: right; align-self: center; }
+
+/* ---- GRADIENT THUMBS ---- */
+.grad-1 { background: linear-gradient(135deg, #1a0a2e, #4a1942, #ff8800); }
+.grad-2 { background: linear-gradient(135deg, #0a1628, #1a4a6a, #00aaff); }
+.grad-3 { background: linear-gradient(135deg, #1a2a0a, #3a6a1a, #88ff00); }
+.grad-4 { background: linear-gradient(135deg, #2a0a0a, #6a1a1a, #ff2200); }
+.grad-5 { background: linear-gradient(135deg, #0a0a2a, #2a1a5a, #8844ff); }
+.grad-6 { background: linear-gradient(135deg, #2a2a0a, #6a5a1a, #ffcc00); }
+.grad-7 { background: linear-gradient(135deg, #0a2a2a, #1a5a5a, #00ffcc); }
+.grad-8 { background: linear-gradient(135deg, #2a0a2a, #5a1a4a, #ff44aa); }
+
+/* ---- BOTTOM: BROWSER ---- */
+.browser-strip { height: 120px; background: #0a0a0a; border-top: 1px solid #333; display: flex; flex-direction: column; }
+.browser-tabs { display: flex; height: 24px; background: #111; border-bottom: 1px solid #222; }
+.browser-tab { padding: 0 14px; display: flex; align-items: center; font-size: 10px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; }
+.browser-tab.active { color: #ff8800; border-bottom-color: #ff8800; }
+.browser-search { display: flex; align-items: center; margin-left: auto; padding-right: 8px; }
+.browser-search input { background: #1a1a1a; border: 1px solid #333; color: #e0e0e0; font-size: 10px; padding: 2px 8px; width: 140px; outline: none; }
+.browser-search input:focus { border-color: #ff8800; }
+.browser-scroll { flex: 1; display: flex; gap: 4px; padding: 6px 8px; overflow-x: auto; align-items: flex-start; }
+.browser-card { min-width: 90px; width: 90px; background: #111; border: 1px solid #222; display: flex; flex-direction: column; cursor: pointer; flex-shrink: 0; }
+.browser-card:hover { border-color: #ff8800; }
+.browser-card .bc-thumb { height: 54px; position: relative; overflow: hidden; }
+.browser-card .bc-name { font-size: 8px; color: #999; padding: 3px 4px; background: #0a0a0a; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser-card .bc-cat { font-size: 7px; color: #666; text-align: center; padding-bottom: 2px; background: #0a0a0a; }
+
+/* ---- FOOTER ---- */
+.footer { height: 22px; background: #0a0a0a; border-top: 1px solid #222; display: flex; align-items: center; padding: 0 10px; gap: 16px; }
+.footer span { font-size: 9px; color: #666; }
+.footer .fps { color: #ff8800; }
+</style>
+</head>
+<body>
+
+<!-- MENU BAR -->
+<div class="menu-bar">
+  <span class="brand">AUDIO-DNA</span>
+  <span class="menu-item">File</span>
+  <span class="menu-item">Edit</span>
+  <span class="menu-item">View</span>
+  <span class="menu-item">Composition</span>
+  <span class="menu-item">Output</span>
+  <span class="menu-item">Help</span>
+</div>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="bpm-box">140.0</div>
+  <div class="beat-wheel">
+    <div class="bw-fill bw-tl"></div>
+    <div class="bw-fill bw-tr"></div>
+    <div class="bw-fill bw-bl"></div>
+    <div class="bw-fill bw-br"></div>
+  </div>
+  <label>Bar <span class="value">2/4</span></label>
+  <label>Phrase <span class="value">3/8</span></label>
+  <div class="btn active">Quantize</div>
+  <div class="btn">Tap</div>
+  <div class="btn active">Link</div>
+  <div class="spacer"></div>
+  <label>Fade <span class="value">1.0s</span></label>
+  <label>Crossfade <span class="value">Add</span></label>
+  <label>Master <span class="value" style="color:#ff8800">85%</span></label>
+  <div class="btn">Fullscreen</div>
+  <div class="btn active" style="border-color:#ff4444; color:#ff4444;">REC</div>
+</div>
+
+<!-- SIGNAL STRIP -->
+<div class="signal-strip">
+  <div class="ss"><span class="ss-label">RMS</span><div class="ss-bar"><div class="ss-fill" style="width:72%;background:#ff8800;"></div></div></div>
+  <div class="ss"><span class="ss-label">Peak</span><div class="ss-bar"><div class="ss-fill" style="width:91%;background:#ff6600;"></div></div></div>
+  <div class="ss"><span class="ss-label">Bass</span><div class="ss-bar"><div class="ss-fill" style="width:85%;background:#ff4444;"></div></div></div>
+  <div class="ss"><span class="ss-label">Mid</span><div class="ss-bar"><div class="ss-fill" style="width:50%;background:#44ff44;"></div></div></div>
+  <div class="ss"><span class="ss-label">High</span><div class="ss-bar"><div class="ss-fill" style="width:35%;background:#4488ff;"></div></div></div>
+  <div class="ss"><span class="ss-label">Beat</span><div class="ss-bar"><div class="ss-fill" style="width:72%;background:#ff8800;"></div></div></div>
+  <div class="ss"><span class="ss-label">Bar</span><div class="ss-bar"><div class="ss-fill" style="width:50%;background:#ff8800;"></div></div></div>
+  <div class="ss"><span class="ss-label">Onset</span><div class="ss-bar"><div class="ss-fill" style="width:100%;background:#ffaa00;"></div></div></div>
+  <div class="ss"><span class="ss-label">Cent</span><div class="ss-bar"><div class="ss-fill" style="width:48%;background:#aa44ff;"></div></div></div>
+  <div class="ss"><span class="ss-label">Pitch</span><div class="ss-bar"><div class="ss-fill" style="width:62%;background:#ffcc44;"></div></div></div>
+  <div class="ss"><span class="ss-label">Key</span><div class="ss-bar"><div class="ss-fill" style="width:100%;background:#88ff44;"></div></div></div>
+  <div class="ss"><span class="ss-label">Struct</span><div class="ss-bar"><div class="ss-fill" style="width:66%;background:#ff44aa;"></div></div></div>
+  <div class="ss"><span class="ss-label">Genre</span><div class="ss-bar"><div class="ss-fill" style="width:90%;background:#ff44aa;"></div></div></div>
+  <div class="ss"><span class="ss-label">Pump</span><div class="ss-bar"><div class="ss-fill" style="width:70%;background:#ffcc00;"></div></div></div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT SIDEBAR: Meters + Quick Reference -->
+  <div class="left-sidebar">
+    <div class="meters-panel">
+      <div class="mp-title">Signal Meters</div>
+      <div class="meter-row"><span class="mr-label">RMS</span><div class="mr-track"><div class="mr-fill" style="width:72%;background:#ff8800;"></div></div><span class="mr-val">0.72</span></div>
+      <div class="meter-row"><span class="mr-label">Peak</span><div class="mr-track"><div class="mr-fill" style="width:91%;background:#ff6600;"></div></div><span class="mr-val">0.91</span></div>
+      <div class="meter-row"><span class="mr-label">Bass</span><div class="mr-track"><div class="mr-fill" style="width:85%;background:#ff4444;"></div></div><span class="mr-val">0.85</span></div>
+      <div class="meter-row"><span class="mr-label">Mid</span><div class="mr-track"><div class="mr-fill" style="width:50%;background:#44ff44;"></div></div><span class="mr-val">0.50</span></div>
+      <div class="meter-row"><span class="mr-label">High</span><div class="mr-track"><div class="mr-fill" style="width:35%;background:#4488ff;"></div></div><span class="mr-val">0.35</span></div>
+      <div class="meter-row"><span class="mr-label">Beat Phase</span><div class="mr-track"><div class="mr-fill" style="width:72%;background:#ff8800;"></div></div><span class="mr-val">0.72</span></div>
+      <div class="meter-row"><span class="mr-label">Bar Phase</span><div class="mr-track"><div class="mr-fill" style="width:50%;background:#ff8800;"></div></div><span class="mr-val">0.50</span></div>
+      <div class="meter-row"><span class="mr-label">Onset</span><div class="mr-track"><div class="mr-fill" style="width:100%;background:#ffaa00;"></div></div><span class="mr-val">1.00</span></div>
+      <div class="meter-row"><span class="mr-label">Centroid</span><div class="mr-track"><div class="mr-fill" style="width:48%;background:#aa44ff;"></div></div><span class="mr-val">2.4k</span></div>
+      <div class="meter-row"><span class="mr-label">Pitch</span><div class="mr-track"><div class="mr-fill" style="width:62%;background:#ffcc44;"></div></div><span class="mr-val">440</span></div>
+      <div class="meter-row"><span class="mr-label">Key</span><div class="mr-track"><div class="mr-fill" style="width:100%;background:#88ff44;"></div></div><span class="mr-val">Am</span></div>
+      <div class="meter-row"><span class="mr-label">Structure</span><div class="mr-track"><div class="mr-fill" style="width:66%;background:#ff44aa;"></div></div><span class="mr-val">Drop</span></div>
+      <div class="meter-row"><span class="mr-label">Genre</span><div class="mr-track"><div class="mr-fill" style="width:90%;background:#ff44aa;"></div></div><span class="mr-val">DnB</span></div>
+      <div class="meter-row"><span class="mr-label">Sidechain</span><div class="mr-track"><div class="mr-fill" style="width:70%;background:#ffcc00;"></div></div><span class="mr-val">0.70</span></div>
+      <div class="meter-row"><span class="mr-label">Formant</span><div class="mr-track"><div class="mr-fill" style="width:30%;background:#00ffcc;"></div></div><span class="mr-val">0.30</span></div>
+    </div>
+    <div class="quick-ref-panel">
+      <div class="qr-title">Quick Reference</div>
+      <div class="qr-cat">Favorite Effects</div>
+      <div class="qr-icon-grid">
+        <div class="qr-icon" style="color:#ff8800;" title="Ripple">~</div>
+        <div class="qr-icon" style="color:#44aaff;" title="Echo">&#x25C9;</div>
+        <div class="qr-icon" style="color:#ff44aa;" title="Kaleidoscope">&#x2732;</div>
+        <div class="qr-icon" style="color:#88ff44;" title="Glitch">&#x25A0;</div>
+        <div class="qr-icon" style="color:#ffcc00;" title="Glow">&#x2609;</div>
+        <div class="qr-icon" style="color:#aa44ff;" title="Liquid">&#x2668;</div>
+        <div class="qr-icon" style="color:#ff6600;" title="RGB Split">&#x2261;</div>
+        <div class="qr-icon" style="color:#00ffcc;" title="Freeze">&#x2744;</div>
+        <div class="qr-icon" style="color:#ff4444;" title="Strobe">&#x26A1;</div>
+        <div class="qr-icon" style="color:#4488ff;" title="Slit Scan">&#x2503;</div>
+      </div>
+      <div class="qr-cat">Favorite Sources</div>
+      <div class="qr-icon-grid">
+        <div class="qr-icon" style="color:#ff8800;" title="Mandelbrot">&#x2738;</div>
+        <div class="qr-icon" style="color:#44aaff;" title="Perlin">&#x2248;</div>
+        <div class="qr-icon" style="color:#ff44aa;" title="Spectrum Ring">&#x25CE;</div>
+        <div class="qr-icon" style="color:#88ff44;" title="Sierpinski">&#x2206;</div>
+        <div class="qr-icon" style="color:#ffcc00;" title="Mandelbulb">&#x25C6;</div>
+        <div class="qr-icon" style="color:#aa44ff;" title="Torus">&#x25D0;</div>
+        <div class="qr-icon" style="color:#ff6600;" title="Cymatics">&#x2740;</div>
+        <div class="qr-icon" style="color:#00ffcc;" title="Fluid">&#x224B;</div>
+      </div>
+      <div class="qr-cat">Recent Presets</div>
+      <div class="qr-icon-grid">
+        <div class="qr-icon" style="color:#e0e0e0; font-size:8px; width:56px;" title="Techno Pulse">Tech</div>
+        <div class="qr-icon" style="color:#e0e0e0; font-size:8px; width:56px;" title="DnB Storm">DnB</div>
+        <div class="qr-icon" style="color:#e0e0e0; font-size:8px; width:56px;" title="Ambient Drift">Amb</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <!-- Preview -->
+    <div class="preview-area">
+      <div class="preview-window">
+        <span class="pw-label">Output Preview</span>
+        <span class="pw-res">1920x1080</span>
+        <!-- Simulated fractal-like visual -->
+        <div style="width:300px; height:170px; background: radial-gradient(ellipse, #ff8800 0%, #4a1942 30%, #1a0a2e 60%, #000 100%); opacity:0.8; border-radius:2px;"></div>
+      </div>
+      <div class="signal-activity">
+        <span class="sa-label">Signals:</span>
+        <div class="sa-dot" style="background:#ff8800;"></div><span class="sa-label" style="color:#999;">RMS</span>
+        <div class="sa-dot" style="background:#ff4444;"></div><span class="sa-label" style="color:#999;">Bass</span>
+        <div class="sa-dot" style="background:#ff8800;"></div><span class="sa-label" style="color:#999;">Beat</span>
+        <div class="sa-dot" style="background:#ffaa00;"></div><span class="sa-label" style="color:#999;">Onset</span>
+        <div class="sa-dot" style="background:#88ff44;"></div><span class="sa-label" style="color:#999;">LFO</span>
+        <div class="sa-dot" style="background:#444;"></div><span class="sa-label" style="color:#555;">Env</span>
+        <div class="sa-dot" style="background:#444;"></div><span class="sa-label" style="color:#555;">Key</span>
+      </div>
+    </div>
+
+    <!-- Deck -->
+    <div class="deck-header">
+      <div class="deck-tab active">Deck 1</div>
+      <div class="deck-tab">Deck 2</div>
+      <div class="deck-tab">Deck 3</div>
+      <div class="deck-tab">Deck 4</div>
+      <div class="spacer"></div>
+      <span style="font-size:9px; color:#666;">Autopilot: Smart Random</span>
+    </div>
+    <div class="deck-grid">
+      <!-- Layer 1 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <span class="ls-name">Layer 1</span>
+          <span class="ls-type">Opaque</span>
+          <div class="ls-opacity"><div class="ls-obar"><div class="ls-ofill" style="width:100%;"></div></div><span class="ls-oval">100%</span></div>
+        </div>
+        <div class="clip-cell active">
+          <div style="position:absolute;inset:0;" class="grad-1"></div>
+          <div class="clip-name">Mandelbulb</div>
+          <div class="signal-overlay">
+            <svg viewBox="0 0 100 50" preserveAspectRatio="none"><path d="M0,35 Q15,5 30,30 T60,25 T90,35 L100,30" fill="none" stroke="rgba(255,136,0,0.5)" stroke-width="2"/></svg>
+          </div>
+          <div class="mapping-tag">RMS-&gt;Zoom</div>
+          <div class="mapping-tag mapping-tag-2">Bass-&gt;Glow</div>
+          <div class="fx-badge">3 FX</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-2"></div>
+          <div class="clip-name">Perlin Noise</div>
+          <div class="signal-overlay">
+            <svg viewBox="0 0 100 50" preserveAspectRatio="none"><path d="M0,40 L12,10 L25,40 L37,10 L50,40 L62,10 L75,40 L87,10 L100,40" fill="none" stroke="rgba(255,136,0,0.35)" stroke-width="1.5"/></svg>
+          </div>
+          <div class="mapping-tag">Beat-&gt;Scale</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-3"></div>
+          <div class="clip-name">Menger Sponge</div>
+          <div class="fx-badge">1 FX</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-4"></div>
+          <div class="clip-name">KIFS</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-5"></div>
+          <div class="clip-name">Burning Ship</div>
+          <div class="signal-overlay">
+            <svg viewBox="0 0 100 50" preserveAspectRatio="none"><path d="M0,25 Q25,5 50,25 Q75,45 100,25" fill="none" stroke="rgba(255,136,0,0.35)" stroke-width="1.5"/></svg>
+          </div>
+          <div class="mapping-tag">Cent-&gt;Color</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-6"></div>
+          <div class="clip-name">Apollonian</div>
+        </div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+      <!-- Layer 2 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <span class="ls-name">Layer 2</span>
+          <span class="ls-type">Transparent</span>
+          <div class="ls-opacity"><div class="ls-obar"><div class="ls-ofill" style="width:60%;"></div></div><span class="ls-oval">60%</span></div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-7"></div>
+          <div class="clip-name">Spectrum Ring</div>
+          <div class="signal-overlay">
+            <svg viewBox="0 0 100 50" preserveAspectRatio="none"><path d="M0,25 L100,25" fill="none" stroke="rgba(255,136,0,0.3)" stroke-width="1" stroke-dasharray="3,3"/></svg>
+          </div>
+          <div class="mapping-tag">Pump-&gt;Size</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-8"></div>
+          <div class="clip-name">Chromatic Ring</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-1"></div>
+          <div class="clip-name">Band Tower</div>
+          <div class="mapping-tag">Bass-&gt;Height</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;" class="grad-2"></div>
+          <div class="clip-name">Timbral Neb</div>
+        </div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+      <!-- Layer 3 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <span class="ls-name">Layer 3</span>
+          <span class="ls-type">FX Only</span>
+          <div class="ls-opacity"><div class="ls-obar"><div class="ls-ofill" style="width:80%;"></div></div><span class="ls-oval">80%</span></div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:18px;color:#ff8800;">~</span></div>
+          <div class="clip-name">Ripple+Glow</div>
+          <div class="mapping-tag">RMS-&gt;Intensity</div>
+          <div class="fx-badge">2 FX</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:18px;color:#44aaff;">&#x25C9;</span></div>
+          <div class="clip-name">Echo+Blur</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;background:#1a1a1a;display:flex;align-items:center;justify-content:center;"><span style="font-size:18px;color:#ff44aa;">&#x2732;</span></div>
+          <div class="clip-name">Kaleido</div>
+        </div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+      <!-- Layer 4 -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <span class="ls-name">Layer 4</span>
+          <span class="ls-type">Mask</span>
+          <div class="ls-opacity"><div class="ls-obar"><div class="ls-ofill" style="width:100%;"></div></div><span class="ls-oval">100%</span></div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;background:radial-gradient(circle,#fff,#000);"></div>
+          <div class="clip-name">Radial Mask</div>
+        </div>
+        <div class="clip-cell">
+          <div style="position:absolute;inset:0;background:conic-gradient(#fff,#000,#fff);"></div>
+          <div class="clip-name">Sweep Mask</div>
+          <div class="mapping-tag">Bar-&gt;Angle</div>
+        </div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+        <div class="clip-cell empty"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="inspector">
+    <div class="insp-tabs">
+      <div class="insp-tab">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Comp</div>
+      <div class="insp-tab active">Signals</div>
+    </div>
+    <div class="insp-body">
+      <div class="insp-section">
+        <div class="insp-section-title">Audio Sources</div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><path d="M0,15 Q8,3 16,15 T32,15 T48,15 T60,15" fill="none" stroke="#ff8800" stroke-width="1.5"/></svg></div>
+          <div class="sc-info"><span class="sc-name">RMS</span><span class="sc-detail">Root Mean Square amplitude</span></div>
+          <span class="sc-val">0.72</span>
+        </div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><rect x="0" y="4" width="15" height="22" fill="rgba(255,68,68,0.6)"/><rect x="16" y="8" width="15" height="18" fill="rgba(255,68,68,0.4)"/><rect x="32" y="12" width="15" height="14" fill="rgba(255,68,68,0.3)"/><rect x="48" y="16" width="12" height="10" fill="rgba(255,68,68,0.2)"/></svg></div>
+          <div class="sc-info"><span class="sc-name">Bass</span><span class="sc-detail">Sub + Bass band energy</span></div>
+          <span class="sc-val">0.85</span>
+        </div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><path d="M0,28 L15,28 L15,2 L30,28 L30,2 L45,28 L45,2 L60,28" fill="none" stroke="#ff8800" stroke-width="1.5"/></svg></div>
+          <div class="sc-info"><span class="sc-name">Beat Phase</span><span class="sc-detail">0-1 sawtooth synced to beat</span></div>
+          <span class="sc-val">0.72</span>
+        </div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><line x1="28" y1="28" x2="28" y2="2" stroke="#ffaa00" stroke-width="3"/></svg></div>
+          <div class="sc-info"><span class="sc-name">Onset</span><span class="sc-detail">Transient detected this frame</span></div>
+          <span class="sc-val">ON</span>
+        </div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><path d="M0,20 Q15,5 30,15 T60,10" fill="none" stroke="#aa44ff" stroke-width="1.5"/></svg></div>
+          <div class="sc-info"><span class="sc-name">Centroid</span><span class="sc-detail">Spectral brightness (Hz)</span></div>
+          <span class="sc-val">2.4k</span>
+        </div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><path d="M0,15 L8,22 L16,8 L24,20 L32,10 L40,18 L48,12 L56,16 L60,14" fill="none" stroke="#ffcc00" stroke-width="1.5"/></svg></div>
+          <div class="sc-info"><span class="sc-name">Sidechain Pump</span><span class="sc-detail">Bass-mid anti-correlation</span></div>
+          <span class="sc-val">0.70</span>
+        </div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-section-title">Oscillators</div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><path d="M0,15 Q8,3 15,15 T30,15 T45,15 T60,15" fill="none" stroke="#88ff44" stroke-width="1.5"/></svg></div>
+          <div class="sc-info"><span class="sc-name">LFO Sine</span><span class="sc-detail">1.0 Hz, free-running</span></div>
+          <span class="sc-val">0.71</span>
+        </div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><path d="M0,28 L15,2 L30,28 L45,2 L60,28" fill="none" stroke="#88ff44" stroke-width="1.5"/></svg></div>
+          <div class="sc-info"><span class="sc-name">LFO Sawtooth</span><span class="sc-detail">0.25 Hz, beat-synced</span></div>
+          <span class="sc-val">0.34</span>
+        </div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-section-title">Envelopes</div>
+        <div class="signal-card">
+          <div class="sc-wave"><svg viewBox="0 0 60 30"><path d="M0,28 L8,2 L20,8 L40,16 L60,28" fill="none" stroke="#ff6644" stroke-width="1.5"/></svg></div>
+          <div class="sc-info"><span class="sc-name">ADSR</span><span class="sc-detail">Attack 50ms, Release 500ms</span></div>
+          <span class="sc-val">0.42</span>
+        </div>
+      </div>
+      <div class="insp-section">
+        <div class="insp-section-title">Active Connections (7)</div>
+        <div style="padding:4px 0;">
+          <div style="font-size:9px; color:#999; padding:2px 0;">RMS &rarr; Mandelbulb / Zoom <span style="color:#ff8800;">0.72</span></div>
+          <div style="font-size:9px; color:#999; padding:2px 0;">Bass &rarr; Mandelbulb / Glow <span style="color:#ff8800;">0.85</span></div>
+          <div style="font-size:9px; color:#999; padding:2px 0;">Beat Phase &rarr; Perlin / Scale <span style="color:#ff8800;">0.72</span></div>
+          <div style="font-size:9px; color:#999; padding:2px 0;">Centroid &rarr; Burning Ship / Color <span style="color:#ff8800;">0.48</span></div>
+          <div style="font-size:9px; color:#999; padding:2px 0;">Pump &rarr; Spectrum Ring / Size <span style="color:#ff8800;">0.70</span></div>
+          <div style="font-size:9px; color:#999; padding:2px 0;">Bass &rarr; Band Tower / Height <span style="color:#ff8800;">0.85</span></div>
+          <div style="font-size:9px; color:#999; padding:2px 0;">RMS &rarr; Ripple / Intensity <span style="color:#ff8800;">0.72</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM BROWSER -->
+<div class="browser-strip">
+  <div class="browser-tabs">
+    <div class="browser-tab">Files</div>
+    <div class="browser-tab">FX</div>
+    <div class="browser-tab active">Sources</div>
+    <div class="browser-tab">Comp</div>
+    <div class="browser-search"><input type="text" placeholder="Search sources..." /></div>
+  </div>
+  <div class="browser-scroll">
+    <div class="browser-card"><div class="bc-thumb grad-1"></div><div class="bc-name">Mandelbrot</div><div class="bc-cat">2D Fractal</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-2"></div><div class="bc-name">Julia Set</div><div class="bc-cat">2D Fractal</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-3"></div><div class="bc-name">Mandelbulb</div><div class="bc-cat">3D Fractal</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-4"></div><div class="bc-name">Menger Sponge</div><div class="bc-cat">3D Fractal</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-5"></div><div class="bc-name">KIFS</div><div class="bc-cat">3D Fractal</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-6"></div><div class="bc-name">Perlin Noise</div><div class="bc-cat">Noise</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-7"></div><div class="bc-name">Voronoi</div><div class="bc-cat">Pattern</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-8"></div><div class="bc-name">Spectrum Ring</div><div class="bc-cat">Audio</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-1"></div><div class="bc-name">Band Tower</div><div class="bc-cat">Audio</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-2"></div><div class="bc-name">Cymatics</div><div class="bc-cat">Audio</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-3"></div><div class="bc-name">Fluid Dynamics</div><div class="bc-cat">Simulation</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-4"></div><div class="bc-name">Gravity Well</div><div class="bc-cat">Simulation</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-5"></div><div class="bc-name">Spiral Torus</div><div class="bc-cat">3D Torus</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-6"></div><div class="bc-name">Kaleido Fractal</div><div class="bc-cat">2D Fractal</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-7"></div><div class="bc-name">Apollonian</div><div class="bc-cat">2D Fractal</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-8"></div><div class="bc-name">Sierpinski</div><div class="bc-cat">2D Fractal</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-1"></div><div class="bc-name">Text Wall</div><div class="bc-cat">Text</div></div>
+    <div class="browser-card"><div class="bc-thumb grad-2"></div><div class="bc-name">Text Animator</div><div class="bc-cat">Text</div></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span class="fps">60.0 FPS</span>
+  <span>CPU: 18%</span>
+  <span>GPU: 42%</span>
+  <span>1920x1080</span>
+  <span>OpenGL 4.1</span>
+  <span>Syphon: ON</span>
+  <span style="flex:1;"></span>
+  <span>Genre: DnB (0.90)</span>
+  <span>Key: Am</span>
+  <span>Structure: Drop</span>
+  <span style="color:#ff8800;">Audio-DNA V9 — Command Center</span>
+</div>
+
+</body>
+</html>

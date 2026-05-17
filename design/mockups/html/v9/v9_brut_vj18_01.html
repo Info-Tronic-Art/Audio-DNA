@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VJ18 Brutalist 01 — Signal Routing</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { background:#0a0a0a; color:#e8e8e8; font-family:'IBM Plex Sans',sans-serif; font-size:11px; width:1920px; height:1080px; overflow:hidden; -webkit-font-smoothing:antialiased; }
+.mono { font-family:'IBM Plex Mono',monospace; }
+
+/* Grain overlay */
+body::after {
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:9999; opacity:0.03;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>");
+}
+
+/* MENU BAR 24 */
+.menu-bar { height:24px; background:#0a0a0a; display:flex; align-items:center; padding:0 14px; border-bottom:1px solid #222; gap:22px; }
+.menu-bar span { font-size:11px; color:#6e6e6e; cursor:pointer; letter-spacing:0.4px; font-weight:500; }
+.menu-bar .m-brand { color:#fff; font-weight:700; letter-spacing:1.2px; }
+.menu-bar span:hover { color:#e8e8e8; }
+
+/* TOP BAR 40 with BPM peeking above */
+.top-bar { height:40px; background:#0a0a0a; border-bottom:1px solid #222; display:flex; align-items:center; padding:0 14px; gap:18px; position:relative; }
+.bpm-block { display:flex; align-items:baseline; gap:8px; }
+.bpm-val { font-family:'IBM Plex Mono',monospace; font-size:48px; font-weight:500; color:#ff4500; line-height:1; letter-spacing:-2px; margin-top:-14px; }
+.bpm-lbl { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#6e6e6e; letter-spacing:1.4px; font-weight:500; text-transform:uppercase; }
+.beat-wheel { display:flex; gap:2px; align-items:center; }
+.bw-seg { width:10px; height:10px; background:#1a1a1a; border:1px solid #333; }
+.bw-seg.on { background:#ff4500; border-color:#ff4500; animation:beat 0.469s ease-out infinite; }
+@keyframes beat { 0%{opacity:1; transform:scaleY(1);} 30%{opacity:0.6; transform:scaleY(0.8);} 100%{opacity:0.9; transform:scaleY(1);} }
+.bar-phrase { display:flex; flex-direction:column; gap:2px; }
+.bp-row { display:flex; gap:10px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:#e8e8e8; letter-spacing:0.6px; }
+.bp-row .k { color:#6e6e6e; }
+.tb-btns { display:flex; gap:1px; }
+.tb-btn { height:24px; min-width:52px; padding:0 12px; background:#111; border:1px solid #222; color:#e8e8e8; font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; letter-spacing:1px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-transform:uppercase; }
+.tb-btn:hover { background:#1a1a1a; border-color:#333; }
+.tb-btn.active { color:#ff4500; border-color:#ff4500; background:#0a0a0a; }
+.master-block { display:flex; align-items:center; gap:8px; margin-left:6px; }
+.m-lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1.2px; text-transform:uppercase; }
+.m-track { width:180px; height:6px; background:#111; border:1px solid #222; position:relative; }
+.m-fill { height:100%; background:#e8e8e8; width:85%; }
+.m-val { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#fff; width:38px; }
+.rec { display:flex; align-items:center; gap:6px; }
+.rec-dot { width:10px; height:10px; background:#ff4500; animation:pulse 0.9s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.rec-t { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#fff; letter-spacing:1px; }
+.spacer { flex:1; }
+.tags { display:flex; gap:6px; }
+.tag { height:22px; padding:0 10px; background:#111; border:1px solid #222; color:#e8e8e8; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; display:flex; align-items:center; }
+
+/* SIGNAL BAR 28 */
+.signal-bar { height:28px; background:#0a0a0a; border-bottom:1px solid #222; display:flex; align-items:stretch; padding:0 10px; gap:1px; }
+.sm { flex:1; display:flex; align-items:center; padding:0 6px; position:relative; border-right:1px solid #1a1a1a; min-width:0; }
+.sm:last-child { border-right:none; }
+.sm .sm-track { position:absolute; left:0; bottom:0; right:0; height:2px; background:#1a1a1a; }
+.sm .sm-fill { position:absolute; left:0; bottom:0; height:2px; background:#e8e8e8; }
+.sm .sm-lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:0.8px; text-transform:uppercase; }
+.sm .sm-val { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; margin-left:auto; }
+.sm.sel .sm-lbl, .sm.sel .sm-val { color:#ff4500; }
+.sm.sel .sm-fill { background:#ff4500; }
+
+/* DECK TABS 22 */
+.deck-tabs { height:22px; background:#0a0a0a; border-bottom:1px solid #222; display:flex; padding:0 10px; gap:1px; align-items:stretch; }
+.dt { min-width:88px; padding:0 16px; background:#0a0a0a; border:1px solid #222; border-bottom:none; display:flex; align-items:center; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1.2px; color:#6e6e6e; cursor:pointer; text-transform:uppercase; }
+.dt.active { background:#111; color:#fff; border-color:#333; }
+
+/* SCENE ROW 22 */
+.scene-row { height:22px; background:#0a0a0a; border-bottom:1px solid #222; display:flex; padding:0 10px; align-items:stretch; }
+.sr { flex:1; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1px; cursor:pointer; border-right:1px solid #1a1a1a; }
+.sr:last-child { border-right:none; }
+.sr.active { color:#fff; border-bottom:2px solid #fff; }
+
+/* MAIN AREA */
+.main { display:flex; height:500px; border-bottom:1px solid #222; }
+
+/* LAYERS + CLIPS */
+.layers { flex:1; display:flex; flex-direction:column; background:#0a0a0a; min-width:0; overflow:hidden; }
+.layer-strip { display:flex; flex:1; border-bottom:1px solid #1a1a1a; min-height:0; }
+.layer-strip:last-child { border-bottom:none; }
+.ls-header { width:100px; min-width:100px; background:#0a0a0a; border-right:1px solid #222; padding:8px 10px; display:flex; flex-direction:column; gap:6px; }
+.ls-name { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600; color:#fff; letter-spacing:1px; text-transform:uppercase; }
+.ls-name.off { color:#6e6e6e; }
+.ls-ctrls { display:flex; gap:1px; }
+.ls-btn { width:24px; height:20px; background:#111; border:1px solid #222; color:#6e6e6e; font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:600; display:flex; align-items:center; justify-content:center; cursor:pointer; letter-spacing:0.5px; }
+.ls-btn.on { color:#fff; border-color:#333; background:#1a1a1a; }
+.ls-op { width:60px; height:4px; background:#111; border:1px solid #222; }
+.ls-op .fill { height:100%; background:#e8e8e8; }
+.ls-meta { display:flex; flex-direction:column; gap:3px; }
+.ls-blend { font-family:'IBM Plex Mono',monospace; font-size:9px; color:#6e6e6e; letter-spacing:0.8px; text-transform:uppercase; }
+.ls-clips { flex:1; display:flex; gap:1px; padding:4px; overflow:hidden; align-items:stretch; }
+.clip { width:90px; min-width:90px; background:#111; border:1px solid #222; position:relative; cursor:pointer; overflow:hidden; display:flex; flex-direction:column; }
+.clip svg { width:100%; height:100%; display:block; position:absolute; inset:0; }
+.clip .nm { position:absolute; left:0; right:0; bottom:0; padding:3px 5px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; letter-spacing:0.5px; text-transform:uppercase; background:linear-gradient(180deg,transparent,rgba(0,0,0,0.9)); text-shadow:0 1px 2px #000; z-index:2; }
+.clip:hover { border-color:#444; }
+.clip.playing { border-color:#ff4500; }
+.clip.playing::before { content:""; position:absolute; inset:0; background:#ff4500; mix-blend-mode:multiply; opacity:0.55; z-index:1; }
+.clip.playing .nm { color:#fff; background:linear-gradient(180deg,transparent,rgba(255,69,0,0.95)); }
+.clip.queued { border:1px dashed #fff; }
+.clip-badge { position:absolute; top:3px; left:4px; z-index:3; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:0.6px; color:#fff; background:rgba(0,0,0,0.6); padding:1px 4px; }
+
+/* INSPECTOR */
+.inspector { width:280px; min-width:280px; background:#0a0a0a; border-left:1px solid #222; display:flex; flex-direction:column; overflow:hidden; }
+.insp-tabs { height:24px; display:flex; border-bottom:1px solid #222; }
+.it { flex:1; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1.2px; color:#6e6e6e; cursor:pointer; border-right:1px solid #1a1a1a; text-transform:uppercase; }
+.it:last-child { border-right:none; }
+.it.active { color:#fff; border-bottom:2px solid #fff; }
+.insp-body { flex:1; overflow-y:auto; padding:0; }
+.insp-body::-webkit-scrollbar { width:6px; }
+.insp-body::-webkit-scrollbar-track { background:#0a0a0a; }
+.insp-body::-webkit-scrollbar-thumb { background:#222; }
+
+/* Preview dock in inspector */
+.preview { width:100%; height:158px; position:relative; background:#000; border-bottom:1px solid #222; overflow:hidden; }
+.preview svg { display:block; width:100%; height:100%; }
+.preview .p-tag { position:absolute; top:6px; left:6px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#fff; letter-spacing:1px; background:rgba(0,0,0,0.7); padding:3px 6px; z-index:2; }
+.preview .p-tag .live { color:#ff4500; }
+.preview .p-bar { position:absolute; left:0; right:0; bottom:0; height:2px; background:#ff4500; z-index:3; }
+
+.section { padding:10px 12px 8px; border-bottom:1px solid #1a1a1a; }
+.sec-t { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#fff; letter-spacing:1.4px; text-transform:uppercase; margin-bottom:8px; font-weight:600; display:flex; align-items:center; justify-content:space-between; }
+.sec-t .sc { color:#6e6e6e; font-weight:500; font-size:10px; }
+.pr { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+.pr .tri { width:8px; height:8px; color:#6e6e6e; font-size:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; }
+.pr .tri.on { color:#ff4500; }
+.pr .pl { width:72px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:0.5px; text-transform:uppercase; }
+.pr .ps { flex:1; height:4px; background:#111; border:1px solid #222; position:relative; }
+.pr .ps .t { height:100%; background:#e8e8e8; }
+.pr .ps.mapped .t { background:#ff4500; }
+.pr .pv { width:40px; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; }
+.pr .pv.mapped { color:#ff4500; }
+
+.fx-row { display:flex; align-items:center; gap:4px; padding:5px 6px; background:#111; border:1px solid #222; margin-bottom:2px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.6px; }
+.fx-row .fx-b { width:14px; height:14px; border:1px solid #333; color:#e8e8e8; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; }
+.fx-row .fx-n { flex:1; color:#fff; letter-spacing:1px; text-transform:uppercase; font-weight:600; }
+.fx-row .fx-tri { color:#ff4500; font-size:9px; cursor:pointer; margin-right:4px; }
+.fx-row .fx-src { color:#6e6e6e; font-size:9px; letter-spacing:0.5px; }
+.fx-row .fx-x { width:14px; height:14px; border:1px solid #333; color:#6e6e6e; display:flex; align-items:center; justify-content:center; font-size:9px; cursor:pointer; }
+
+/* BROWSER */
+.browser { width:200px; min-width:200px; background:#0a0a0a; border-left:1px solid #222; display:flex; flex-direction:column; }
+.br-tabs { height:24px; display:flex; border-bottom:1px solid #222; }
+.brt { flex:1; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:1px; color:#6e6e6e; cursor:pointer; border-right:1px solid #1a1a1a; text-transform:uppercase; }
+.brt:last-child { border-right:none; }
+.brt.active { color:#fff; border-bottom:2px solid #fff; }
+.br-list { flex:1; overflow-y:auto; padding:6px 0; }
+.br-list::-webkit-scrollbar { width:6px; }
+.br-list::-webkit-scrollbar-track { background:#0a0a0a; }
+.br-list::-webkit-scrollbar-thumb { background:#222; }
+.br-cat { padding:6px 12px 4px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#fff; letter-spacing:1.4px; text-transform:uppercase; font-weight:600; border-top:1px solid #1a1a1a; border-bottom:1px solid #1a1a1a; background:#111; display:flex; justify-content:space-between; }
+.br-cat:first-child { border-top:none; }
+.br-cat .bc-n { color:#6e6e6e; }
+.br-item { padding:5px 14px 5px 22px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; cursor:pointer; letter-spacing:0.8px; text-transform:uppercase; border-bottom:1px solid #121212; }
+.br-item:hover { background:#111; color:#fff; }
+
+/* SIGNAL ROUTING PANEL 120 */
+.routing-panel { height:120px; background:#0a0a0a; border-bottom:1px solid #222; display:flex; flex-direction:column; }
+.rp-head { height:22px; display:flex; align-items:center; padding:0 14px; border-bottom:1px solid #222; justify-content:space-between; }
+.rp-title { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#fff; letter-spacing:1.5px; text-transform:uppercase; font-weight:600; }
+.rp-title .ac { color:#ff4500; }
+.rp-meta { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1px; text-transform:uppercase; }
+.rp-body { flex:1; display:flex; gap:0; overflow-x:auto; padding:0; }
+.rp-body::-webkit-scrollbar { height:6px; }
+.rp-body::-webkit-scrollbar-track { background:#0a0a0a; }
+.rp-body::-webkit-scrollbar-thumb { background:#222; }
+.route-card { min-width:220px; width:220px; height:100%; background:#0a0a0a; border-right:1px solid #1a1a1a; padding:8px 10px; display:flex; flex-direction:column; gap:4px; position:relative; }
+.route-card.sel { background:#111; border-right:1px solid #333; }
+.route-card.sel::before { content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:#ff4500; }
+.rc-h { display:flex; align-items:center; gap:6px; }
+.rc-dot { width:6px; height:6px; background:#4ade80; }
+.route-card.sel .rc-dot { background:#ff4500; }
+.rc-src { font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:600; color:#fff; letter-spacing:0.5px; text-transform:uppercase; }
+.rc-arr { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#6e6e6e; }
+.rc-tgt { font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:500; color:#e8e8e8; letter-spacing:0.5px; text-transform:uppercase; }
+.rc-meter { height:4px; background:#111; border:1px solid #222; position:relative; width:100px; }
+.rc-meter .m-f { height:100%; background:#e8e8e8; }
+.route-card.sel .rc-meter .m-f { background:#ff4500; }
+.rc-info { display:flex; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:0.6px; text-transform:uppercase; }
+.rc-curve .c-lbl { color:#e8e8e8; }
+.rc-bottom { display:flex; justify-content:space-between; align-items:baseline; margin-top:auto; }
+.rc-smooth { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:0.6px; text-transform:uppercase; }
+.rc-live { font-family:'IBM Plex Mono',monospace; font-size:14px; color:#fff; font-weight:500; letter-spacing:0.5px; }
+.route-card.sel .rc-live { color:#ff4500; }
+.rc-live.flash { animation:justchanged 200ms ease-out; }
+@keyframes justchanged { 0%{color:#ff4500; background:#ff4500; padding:0 4px; color:#0a0a0a;} 100%{color:#fff; background:transparent; padding:0;} }
+.route-dashed { position:absolute; left:10px; right:10px; bottom:22px; height:1px; background:repeating-linear-gradient(90deg,#ff4500 0,#ff4500 3px,transparent 3px,transparent 6px); opacity:0.3; animation:dashflow 6s linear infinite; }
+@keyframes dashflow { 0%{background-position:0 0;} 100%{background-position:-40px 0;} }
+
+/* FADER STRIP 200 */
+.fader-strip { height:200px; background:#0a0a0a; border-bottom:1px solid #222; display:flex; padding:8px 12px; gap:0; align-items:stretch; overflow-x:auto; }
+.fg { width:50px; min-width:50px; display:flex; flex-direction:column; align-items:center; padding:0 2px; border-right:1px solid #111; gap:6px; }
+.fg:last-child { border-right:none; }
+.fg-lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:0.8px; text-transform:uppercase; line-height:1.1; text-align:center; height:14px; }
+.fg-track { flex:1; width:8px; background:#111; border:1px solid #222; position:relative; max-height:140px; }
+.fg-fill { position:absolute; left:0; right:0; bottom:0; background:#e8e8e8; }
+.fg.sel .fg-fill { background:#ff4500; }
+.fg-knob { position:absolute; left:-6px; width:20px; height:6px; background:#fff; }
+.fg.sel .fg-knob { background:#ff4500; }
+.fg-val { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#e8e8e8; letter-spacing:0.5px; height:14px; }
+.fg.sel .fg-val { color:#ff4500; }
+.fg.master { width:72px; min-width:72px; border-left:2px solid #333; margin-left:8px; padding-left:8px; }
+.fg.master .fg-lbl { color:#fff; font-weight:700; font-size:11px; }
+.fg.master .fg-track { width:14px; }
+.fg.master .fg-knob { width:28px; left:-8px; height:8px; }
+
+/* FOOTER 18 */
+.footer { height:18px; background:#0a0a0a; border-top:1px solid #222; display:flex; align-items:center; padding:0 14px; gap:18px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6e6e6e; letter-spacing:1px; text-transform:uppercase; }
+.footer .sep { color:#333; }
+.footer .accent { color:#fff; }
+
+</style>
+</head>
+<body>
+
+<!-- MENU 24 -->
+<div class="menu-bar">
+  <span class="m-brand">AUDIO-DNA</span>
+  <span>FILE</span><span>EDIT</span><span>VIEW</span><span>COMPOSITION</span><span>OUTPUT</span><span>MIDI</span><span>OSC</span><span>HELP</span>
+</div>
+
+<!-- TOP BAR 40 -->
+<div class="top-bar">
+  <div class="bpm-block">
+    <div class="bpm-val">128.0</div>
+    <div class="bpm-lbl">BPM</div>
+  </div>
+  <div class="beat-wheel">
+    <div class="bw-seg on"></div><div class="bw-seg"></div><div class="bw-seg"></div><div class="bw-seg"></div>
+  </div>
+  <div class="bar-phrase">
+    <div class="bp-row"><span class="k">BAR</span><span>04 / 08</span></div>
+    <div class="bp-row"><span class="k">PHRASE</span><span>2</span></div>
+  </div>
+  <div class="tb-btns">
+    <div class="tb-btn active">PLAY</div>
+    <div class="tb-btn">TAP</div>
+    <div class="tb-btn">MANUAL</div>
+  </div>
+  <div class="master-block">
+    <span class="m-lbl">MASTER</span>
+    <div class="m-track"><div class="m-fill"></div></div>
+    <span class="m-val">0.85</span>
+  </div>
+  <div class="rec">
+    <div class="rec-dot"></div>
+    <span class="rec-t">REC 00:12:34</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="tags">
+    <div class="tag">GENRE · HOUSE</div>
+    <div class="tag">ENERGY · HIGH</div>
+    <div class="tag">60 FPS</div>
+  </div>
+</div>
+
+<!-- SIGNAL BAR 28 -->
+<div class="signal-bar">
+  <script>
+    const signals=[
+      {n:'RMS',v:0.72,sel:false},
+      {n:'PEAK',v:0.85,sel:false},
+      {n:'BASS',v:0.91,sel:true},
+      {n:'LOW MID',v:0.55,sel:false},
+      {n:'MID',v:0.43,sel:false},
+      {n:'HIGH MID',v:0.32,sel:false},
+      {n:'PRESENCE',v:0.28,sel:false},
+      {n:'BRILLIANCE',v:0.18,sel:false},
+      {n:'CENTROID',v:0.61,sel:false},
+      {n:'FLUX',v:0.38,sel:false},
+      {n:'ONSET',v:0.00,sel:false},
+      {n:'BEAT PH',v:0.75,sel:false},
+      {n:'BAR PH',v:0.50,sel:false},
+      {n:'TRANSIENT',v:0.66,sel:false},
+    ];
+    document.write(signals.map(s=>`<div class="sm ${s.sel?'sel':''}"><span class="sm-lbl">${s.n}</span><span class="sm-val">${s.v.toFixed(2)}</span><div class="sm-track"></div><div class="sm-fill" style="width:${s.v*100}%"></div></div>`).join(''));
+  </script>
+</div>
+
+<!-- DECK TABS 22 -->
+<div class="deck-tabs">
+  <div class="dt active">DECK A</div>
+  <div class="dt">DECK B</div>
+  <div class="dt">DECK C</div>
+  <div class="dt">DECK D</div>
+</div>
+
+<!-- SCENE ROW 22 -->
+<div class="scene-row">
+  <script>
+    for(let i=1;i<=10;i++){document.write(`<div class="sr ${i===4?'active':''}">SCENE ${String(i).padStart(2,'0')}</div>`);}
+  </script>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="layers">
+    <script>
+      // 12 SVG generators
+      const gens = [
+        // 0: Fractal rings
+        (id,hue)=>`<svg viewBox="0 0 90 80" preserveAspectRatio="none"><defs><radialGradient id="g${id}" cx="50%" cy="50%"><stop offset="0%" stop-color="hsl(${hue},80%,60%)"/><stop offset="100%" stop-color="#000"/></radialGradient></defs><rect width="90" height="80" fill="url(#g${id})"/>${[0,1,2,3,4].map(i=>`<circle cx="45" cy="40" r="${8+i*7}" fill="none" stroke="hsl(${hue+i*20},70%,60%)" stroke-width="1" opacity="${0.9-i*0.15}"/>`).join('')}</svg>`,
+        // 1: Stripes diagonal
+        (id,hue)=>`<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="hsl(${hue},30%,8%)"/>${Array.from({length:18}).map((_,i)=>`<rect x="${-40+i*8}" y="-10" width="3" height="120" transform="rotate(25 45 40)" fill="hsl(${hue+(i%3)*40},70%,${50+i%3*10}%)" opacity="${0.5+(i%4)*0.1}"/>`).join('')}</svg>`,
+        // 2: Grid mesh
+        (id,hue)=>`<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="hsl(${hue},50%,6%)"/>${Array.from({length:10}).map((_,i)=>`<line x1="${i*10}" y1="0" x2="${i*10}" y2="80" stroke="hsl(${hue},70%,50%)" stroke-width="0.5" opacity="0.6"/>`).join('')}${Array.from({length:9}).map((_,i)=>`<line x1="0" y1="${i*10}" x2="90" y2="${i*10}" stroke="hsl(${hue+30},70%,50%)" stroke-width="0.5" opacity="0.6"/>`).join('')}<circle cx="45" cy="40" r="18" fill="none" stroke="hsl(${hue+60},80%,60%)" stroke-width="1.2"/></svg>`,
+        // 3: Triangular fractal
+        (id,hue)=>`<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="hsl(${hue},40%,10%)"/><polygon points="45,10 80,65 10,65" fill="none" stroke="hsl(${hue},80%,60%)" stroke-width="1"/><polygon points="45,25 65,55 25,55" fill="none" stroke="hsl(${hue+30},80%,60%)" stroke-width="1"/><polygon points="45,35 55,50 35,50" fill="none" stroke="hsl(${hue+60},80%,60%)" stroke-width="1"/><polygon points="45,42 50,48 40,48" fill="hsl(${hue+90},90%,70%)"/></svg>`,
+        // 4: Scanline noise
+        (id,hue)=>`<svg viewBox="0 0 90 80" preserveAspectRatio="none"><defs><linearGradient id="sc${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="hsl(${hue},60%,40%)"/><stop offset="100%" stop-color="hsl(${hue+40},70%,20%)"/></linearGradient></defs><rect width="90" height="80" fill="url(#sc${id})"/>${Array.from({length:40}).map((_,i)=>`<rect x="0" y="${i*2}" width="90" height="1" fill="#000" opacity="${0.15+(i%3)*0.1}"/>`).join('')}${Array.from({length:8}).map((_,i)=>`<rect x="${Math.random()*90}" y="${i*10}" width="${10+Math.random()*30}" height="1.5" fill="hsl(${hue+60},90%,70%)"/>`).join('')}</svg>`,
+        // 5: Torus spiral
+        (id,hue)=>`<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="#000"/>${Array.from({length:30}).map((_,i)=>{const a=i*0.4;const r=3+i*1.3;return `<ellipse cx="45" cy="40" rx="${r}" ry="${r*0.4}" fill="none" stroke="hsl(${hue+i*8},${70+i%2*10}%,${40+(i%5)*10}%)" stroke-width="0.8" transform="rotate(${i*12} 45 40)" opacity="${0.8-i*0.02}"/>`}).join('')}</svg>`,
+        // 6: Waveform
+        (id,hue)=>{let pts='';for(let i=0;i<90;i+=2){const y=40+Math.sin(i*0.3+id)*20*Math.sin(i*0.08);pts+=`${i},${y} `;}return `<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="hsl(${hue},30%,5%)"/><polyline points="${pts}" fill="none" stroke="hsl(${hue},80%,60%)" stroke-width="1.2"/><polyline points="${pts}" fill="none" stroke="hsl(${hue+40},90%,70%)" stroke-width="0.5" transform="translate(0 6)"/><polyline points="${pts}" fill="none" stroke="hsl(${hue-20},90%,70%)" stroke-width="0.5" transform="translate(0 -6)"/></svg>`},
+        // 7: ASCII cells
+        (id,hue)=>{let cells='';const chars='#@%*+=-';for(let y=0;y<8;y++)for(let x=0;x<10;x++){cells+=`<text x="${x*9+2}" y="${y*10+10}" font-family="monospace" font-size="9" fill="hsl(${hue+x*5},70%,${40+y*5}%)">${chars[(x+y)%chars.length]}</text>`;}return `<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="hsl(${hue},40%,5%)"/>${cells}</svg>`},
+        // 8: Radial burst
+        (id,hue)=>`<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="#000"/>${Array.from({length:24}).map((_,i)=>{const a=i*15*Math.PI/180;const x2=45+Math.cos(a)*50;const y2=40+Math.sin(a)*50;return `<line x1="45" y1="40" x2="${x2}" y2="${y2}" stroke="hsl(${hue+i*5},80%,60%)" stroke-width="1"/>`}).join('')}<circle cx="45" cy="40" r="8" fill="hsl(${hue+100},90%,70%)"/></svg>`,
+        // 9: Particle cloud
+        (id,hue)=>{let dots='';for(let i=0;i<40;i++){const x=Math.random()*90;const y=Math.random()*80;const r=0.5+Math.random()*2;dots+=`<circle cx="${x}" cy="${y}" r="${r}" fill="hsl(${hue+Math.random()*60},80%,${50+Math.random()*30}%)" opacity="${0.4+Math.random()*0.5}"/>`;}return `<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="hsl(${hue},40%,4%)"/>${dots}</svg>`},
+        // 10: Voronoi cells
+        (id,hue)=>{let cells='';const pts=[[20,20],[70,25],[30,60],[65,55],[45,40]];pts.forEach((p,i)=>{cells+=`<polygon points="${p[0]-15},${p[1]-15} ${p[0]+15},${p[1]-12} ${p[0]+13},${p[1]+15} ${p[0]-14},${p[1]+13}" fill="hsl(${hue+i*25},60%,${25+i*8}%)" stroke="hsl(${hue+i*25},80%,60%)" stroke-width="0.5"/>`;});return `<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="hsl(${hue},30%,6%)"/>${cells}</svg>`},
+        // 11: Text wall
+        (id,hue)=>{let txt='';const words=['SIGNAL','ROUTE','BEAT','FLUX','OSC','MIDI','FFT','VJ'];for(let y=0;y<6;y++){txt+=`<text x="${2-id%10}" y="${y*14+12}" font-family="monospace" font-size="11" font-weight="700" fill="hsl(${hue+y*15},70%,${40+y*8}%)">${words[(y+id)%words.length]} ${words[(y+id+2)%words.length]}</text>`;}return `<svg viewBox="0 0 90 80" preserveAspectRatio="none"><rect width="90" height="80" fill="hsl(${hue},50%,6%)"/>${txt}</svg>`},
+      ];
+
+      const lyrs=[
+        {name:'FX LAYER',on:true,blend:'SCREEN',op:0.80,clips:[
+          {n:'ECHO',gen:4,hue:210},{n:'RGB SPLIT',gen:1,hue:320},{n:'GLITCH SORT',gen:5,hue:350},
+          {n:'STROBE',gen:8,hue:40},{n:'DATA CORRUPT',gen:11,hue:0},{n:'SCANLINES',gen:4,hue:280},
+          {n:'FRAME STUTTER',gen:7,hue:160},{n:'PIXEL SCATTER',gen:9,hue:340},{n:'FEEDBACK',gen:5,hue:120},
+          {n:'TRAIL',gen:8,hue:260},{n:'BURN',gen:3,hue:30},{n:'CHROMA',gen:1,hue:190}
+        ]},
+        {name:'OVERLAY',on:true,blend:'ADD',op:0.65,clips:[
+          {n:'NEON EDGE',gen:3,hue:300},{n:'TEXT WALL',gen:11,hue:60},{n:'PARTICLE',gen:9,hue:320},
+          {n:'DOT MATRIX',gen:2,hue:180},{n:'POP RASTER',gen:4,hue:0},{n:'CRT SIM',gen:4,hue:220},
+          {n:'ASCII ART',gen:7,hue:120},{n:'HALFTONE',gen:2,hue:340},{n:'STITCH',gen:2,hue:270},
+          {n:'TYPOGRAPHY',gen:11,hue:30},{n:'VORONOI',gen:10,hue:220},{n:'WIRE MESH',gen:2,hue:0}
+        ]},
+        {name:'VISUAL A',on:true,blend:'NORMAL',op:1.00,playCol:2,clips:[
+          {n:'MANDELBULB',gen:0,hue:10},{n:'JULIA 3D',gen:0,hue:140},{n:'MENGER',gen:2,hue:220},
+          {n:'SPIRAL TORUS',gen:5,hue:300},{n:'SPECTRUM',gen:6,hue:30},{n:'FLUID SIM',gen:5,hue:200},
+          {n:'KIFS',gen:3,hue:60},{n:'STRANGE ATTR',gen:9,hue:280},{n:'PLASMA',gen:4,hue:340},
+          {n:'NEBULA',gen:9,hue:260},{n:'CYMATIC',gen:0,hue:180},{n:'RAY MARCH',gen:0,hue:40}
+        ]},
+        {name:'VISUAL B',on:false,blend:'MULT',op:0.50,clips:[
+          {n:'PERLIN',gen:5,hue:210},{n:'VORONOI',gen:10,hue:120},{n:'SIMPLEX',gen:5,hue:30},
+          {n:'FIRE',gen:4,hue:20},{n:'WATER',gen:6,hue:200},{n:'SMOKE',gen:9,hue:260},
+          {n:'TERRAIN',gen:1,hue:80},{n:'RIPPLE',gen:0,hue:180},{n:'MORPH',gen:3,hue:320},
+          {n:'FOLD',gen:8,hue:0},{n:'CRYSTAL',gen:10,hue:160},{n:'BLOB',gen:0,hue:300}
+        ]},
+        {name:'BACKGROUND',on:true,blend:'NORMAL',op:1.00,clips:[
+          {n:'GRADIENT A',gen:4,hue:210},{n:'SOLID DARK',gen:4,hue:240},{n:'OCEAN',gen:6,hue:200},
+          {n:'NIGHT SKY',gen:9,hue:240},{n:'AURORA',gen:1,hue:140},{n:'NEBULA DEEP',gen:9,hue:280},
+          {n:'CITY HAZE',gen:1,hue:20},{n:'VOID',gen:4,hue:0},{n:'TERRAIN DEPTH',gen:6,hue:100},
+          {n:'STORM',gen:5,hue:220},{n:'DEEP FIELD',gen:9,hue:260},{n:'HORIZON',gen:6,hue:40}
+        ]},
+      ];
+
+      // Selected: Visual A · Scene 4 (index 3) is the queued, playing is L2·C3 from spec
+      // Interpret: L2·C3 (Visual A, clip 2 = MENGER) plays; L3·C5 queued (Visual B, clip 4 = WATER)
+      lyrs.forEach((ly,li)=>{
+        let html=`<div class="layer-strip"><div class="ls-header"><div class="ls-name ${ly.on?'':'off'}">${ly.name}</div><div class="ls-ctrls"><div class="ls-btn ${ly.on?'on':''}">V</div><div class="ls-btn">S</div><div class="ls-btn">M</div></div><div class="ls-op"><div class="fill" style="width:${ly.op*100}%"></div></div><div class="ls-blend">${ly.blend}</div></div><div class="ls-clips">`;
+        ly.clips.forEach((c,ci)=>{
+          const playing=(li===2 && ci===2);
+          const queued=(li===3 && ci===4);
+          const badge=playing?`<div class="clip-badge">L${li+1}·C${ci+1}</div>`:(queued?`<div class="clip-badge">L${li+1}·C${ci+1}</div>`:'');
+          html+=`<div class="clip ${playing?'playing':''} ${queued?'queued':''}">${gens[c.gen](li*20+ci,c.hue)}${badge}<div class="nm">${c.n}</div></div>`;
+        });
+        html+='</div></div>';
+        document.write(html);
+      });
+    </script>
+  </div>
+
+  <!-- INSPECTOR -->
+  <div class="inspector">
+    <div class="insp-tabs">
+      <div class="it active">CLIP</div><div class="it">LAYER</div><div class="it">COMP</div><div class="it">SIGNAL</div>
+    </div>
+    <div class="insp-body">
+      <!-- PREVIEW DOCKED -->
+      <div class="preview">
+        <svg viewBox="0 0 320 180" preserveAspectRatio="none">
+          <defs>
+            <filter id="turb"><feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="4"/><feDisplacementMap in="SourceGraphic" scale="20"/></filter>
+            <radialGradient id="pg" cx="50%" cy="50%"><stop offset="0%" stop-color="#ff4500" stop-opacity="0.9"/><stop offset="40%" stop-color="#aa2200" stop-opacity="0.5"/><stop offset="100%" stop-color="#000"/></radialGradient>
+          </defs>
+          <rect width="320" height="180" fill="#000"/>
+          <rect width="320" height="180" fill="url(#pg)"/>
+          <g filter="url(#turb)"><circle cx="160" cy="90" r="60" fill="#ff4500" opacity="0.6"/></g>
+          <!-- Orbits -->
+          <ellipse cx="160" cy="90" rx="110" ry="40" fill="none" stroke="#ff4500" stroke-width="0.8" opacity="0.7"/>
+          <ellipse cx="160" cy="90" rx="80" ry="28" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.6" transform="rotate(30 160 90)"/>
+          <ellipse cx="160" cy="90" rx="50" ry="18" fill="none" stroke="#ff4500" stroke-width="0.6" opacity="0.8" transform="rotate(-20 160 90)"/>
+          <circle cx="160" cy="90" r="18" fill="#ff4500"/>
+          <circle cx="160" cy="90" r="8" fill="#ffffff"/>
+          <!-- Scanlines -->
+          <g opacity="0.25">
+            <script>for(let i=0;i<90;i++) document.write(`<rect x="0" y="${i*2}" width="320" height="1" fill="#000"/>`);</script>
+          </g>
+        </svg>
+        <div class="p-tag"><span class="live">LIVE</span> · 60 FPS · OUTPUT A</div>
+        <div class="p-bar"></div>
+      </div>
+
+      <!-- CLIP NAME -->
+      <div class="section">
+        <div class="sec-t">MENGER<span class="sc">L3·C3</span></div>
+        <div class="pr"><span class="tri on">▼</span><span class="pl">ITERATIONS</span><div class="ps mapped"><div class="t" style="width:70%"></div></div><span class="pv mapped">0.70</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">TWIST</span><div class="ps"><div class="t" style="width:30%"></div></div><span class="pv">0.30</span></div>
+        <div class="pr"><span class="tri on">▼</span><span class="pl">ZOOM</span><div class="ps mapped"><div class="t" style="width:45%"></div></div><span class="pv mapped">0.45</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">SPEED</span><div class="ps"><div class="t" style="width:55%"></div></div><span class="pv">0.55</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">COLOR SHIFT</span><div class="ps"><div class="t" style="width:30%"></div></div><span class="pv">0.30</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">PALETTE</span><div class="ps"><div class="t" style="width:60%"></div></div><span class="pv">FIRE</span></div>
+      </div>
+
+      <!-- TRANSFORM -->
+      <div class="section">
+        <div class="sec-t">TRANSFORM</div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">POSITION X</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">POSITION Y</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.00</span></div>
+        <div class="pr"><span class="tri on">▼</span><span class="pl">SCALE</span><div class="ps mapped"><div class="t" style="width:62%"></div></div><span class="pv mapped">1.24</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">ROTATION</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">0.0°</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">ANCHOR</span><div class="ps"><div class="t" style="width:50%"></div></div><span class="pv">CENTER</span></div>
+      </div>
+
+      <!-- VIDEO -->
+      <div class="section">
+        <div class="sec-t">VIDEO</div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">OPACITY</span><div class="ps"><div class="t" style="width:100%"></div></div><span class="pv">1.00</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">WIDTH</span><div class="ps"><div class="t" style="width:100%"></div></div><span class="pv">1920</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">HEIGHT</span><div class="ps"><div class="t" style="width:100%"></div></div><span class="pv">1080</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">BLEND</span><div class="ps"><div class="t" style="width:40%"></div></div><span class="pv">NORMAL</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">ALPHA</span><div class="ps"><div class="t" style="width:60%"></div></div><span class="pv">PREMUL</span></div>
+      </div>
+
+      <!-- TRANSITION -->
+      <div class="section">
+        <div class="sec-t">TRANSITION</div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">TYPE</span><div class="ps"><div class="t" style="width:20%"></div></div><span class="pv">DISSOLVE</span></div>
+        <div class="pr"><span class="tri">▼</span><span class="pl">DURATION</span><div class="ps"><div class="t" style="width:35%"></div></div><span class="pv">1.2s</span></div>
+      </div>
+
+      <!-- FX STACK -->
+      <div class="section" style="border-bottom:none;">
+        <div class="sec-t">FX STACK<span class="sc">03</span></div>
+        <div class="fx-row"><span class="fx-b">B</span><span class="fx-tri">▼</span><span class="fx-n">RIPPLE</span><span class="fx-src">← BASS</span><span class="fx-x">×</span></div>
+        <div class="fx-row"><span class="fx-b">B</span><span class="fx-tri">▼</span><span class="fx-n">ECHO</span><span class="fx-src">← BEAT</span><span class="fx-x">×</span></div>
+        <div class="fx-row"><span class="fx-b">B</span><span class="fx-tri">▼</span><span class="fx-n">KALEIDO</span><span class="fx-src">—</span><span class="fx-x">×</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROWSER -->
+  <div class="browser">
+    <div class="br-tabs">
+      <div class="brt">FILES</div><div class="brt active">FX</div><div class="brt">SRC</div><div class="brt">COMP</div><div class="brt">REC</div><div class="brt">SYS</div>
+    </div>
+    <div class="br-list">
+      <div class="br-cat">WARP<span class="bc-n">27</span></div>
+      <div class="br-item">RIPPLE</div>
+      <div class="br-item">BULGE</div>
+      <div class="br-item">WAVE</div>
+      <div class="br-item">LIQUID</div>
+      <div class="br-item">KALEIDOSCOPE</div>
+      <div class="br-item">FISHEYE</div>
+      <div class="br-item">SWIRL</div>
+      <div class="br-item">POLAR</div>
+      <div class="br-item">TWIRL</div>
+      <div class="br-item">SHEAR</div>
+      <div class="br-cat">COLOR<span class="bc-n">31</span></div>
+      <div class="br-item">HUE SHIFT</div>
+      <div class="br-item">SATURATION</div>
+      <div class="br-item">DUOTONE</div>
+      <div class="br-cat">GLITCH<span class="bc-n">16</span></div>
+      <div class="br-item">RGB SPLIT</div>
+      <div class="br-item">BLOCK GLITCH</div>
+      <div class="br-cat">TIME<span class="bc-n">06</span></div>
+      <div class="br-item">ECHO</div>
+      <div class="br-item">FREEZE</div>
+      <div class="br-item">FRAME STUTTER</div>
+      <div class="br-item">POSTERIZE TIME</div>
+      <div class="br-cat">BLUR<span class="bc-n">09</span></div>
+      <div class="br-item">GAUSSIAN BLUR</div>
+      <div class="br-item">GLOW</div>
+      <div class="br-item">VIGNETTE</div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNAL ROUTING PANEL 120 -->
+<div class="routing-panel">
+  <div class="rp-head">
+    <span class="rp-title">SIGNAL ROUTING · <span class="ac">8 ACTIVE ROUTES</span></span>
+    <span class="rp-meta">HOVER TO INSPECT · RIGHT-CLICK TO UNBIND</span>
+  </div>
+  <div class="rp-body">
+    <script>
+      const routes=[
+        {sel:true, src:'RMS', tgt:'LAYER.02 · OPACITY', curve:'SCURVE', from:0.00, to:0.90, smooth:12, val:0.82, meter:82},
+        {sel:false, src:'BASS', tgt:'MENGER · SCALE', curve:'EXP', from:0.10, to:2.00, smooth:8, val:1.24, meter:91},
+        {sel:false, src:'BEAT PH', tgt:'MENGER · SPEED', curve:'LINEAR', from:0.20, to:1.50, smooth:20, val:0.75, meter:75},
+        {sel:false, src:'FLUX', tgt:'ECHO · DECAY', curve:'LOG', from:0.00, to:0.95, smooth:30, val:0.38, meter:38},
+        {sel:false, src:'ONSET', tgt:'STROBE · FLASH', curve:'STEP', from:0.00, to:1.00, smooth:0, val:0.00, meter:0, flash:true},
+        {sel:false, src:'SIDECHAIN', tgt:'OVERLAY · SCALE', curve:'EXP', from:0.80, to:1.20, smooth:12, val:0.70, meter:70},
+        {sel:false, src:'CENTROID', tgt:'RIPPLE · FREQ', curve:'LINEAR', from:0.00, to:1.00, smooth:15, val:0.61, meter:61},
+        {sel:false, src:'BAR PH', tgt:'KALEIDO · SEG', curve:'STEP', from:0.00, to:8.00, smooth:0, val:0.50, meter:50},
+      ];
+      document.write(routes.map(r=>`
+        <div class="route-card ${r.sel?'sel':''}">
+          <div class="rc-h"><div class="rc-dot"></div><span class="rc-src">${r.src}</span><span class="rc-arr">⟶</span><span class="rc-tgt">${r.tgt}</span></div>
+          <div class="rc-meter"><div class="m-f" style="width:${r.meter}%"></div></div>
+          <div class="rc-info rc-curve"><span class="c-lbl">${r.curve}</span><span>${r.from.toFixed(2)}→${r.to.toFixed(2)}</span></div>
+          <div class="rc-bottom">
+            <span class="rc-smooth">SMOOTH ${r.smooth}ms</span>
+            <span class="rc-live ${r.flash?'flash':''}">${r.val.toFixed(2)}</span>
+          </div>
+          ${r.sel?'<div class="route-dashed"></div>':''}
+        </div>
+      `).join(''));
+    </script>
+  </div>
+</div>
+
+<!-- FADER STRIP 200 (16 column faders + master) -->
+<div class="fader-strip">
+  <script>
+    const cols=[];
+    const vals=[0.80,0.65,1.00,0.50,1.00,0.72,0.55,0.90,0.68,0.45,0.82,0.58,0.75,0.62,0.48,0.70];
+    for(let i=0;i<16;i++){cols.push({n:`C${String(i+1).padStart(2,'0')}`,v:vals[i],sel:i===3});}
+    document.write(cols.map(c=>`<div class="fg ${c.sel?'sel':''}"><div class="fg-lbl">${c.n}</div><div class="fg-track"><div class="fg-fill" style="height:${c.v*100}%"></div><div class="fg-knob" style="bottom:calc(${c.v*100}% - 3px)"></div></div><div class="fg-val">${(c.v*100).toFixed(0)}</div></div>`).join(''));
+    document.write(`<div class="fg master sel"><div class="fg-lbl">MASTER</div><div class="fg-track" style="width:14px"><div class="fg-fill" style="height:85%"></div><div class="fg-knob" style="bottom:calc(85% - 4px);width:28px;left:-8px;height:8px"></div></div><div class="fg-val">85</div></div>`);
+  </script>
+</div>
+
+<!-- FOOTER 18 -->
+<div class="footer">
+  <span class="accent">60.0 FPS</span>
+  <span class="sep">·</span>
+  <span>CPU 22%</span>
+  <span class="sep">·</span>
+  <span>GPU 41%</span>
+  <span class="sep">·</span>
+  <span>1920×1080</span>
+  <span class="sep">·</span>
+  <span>REC 00:12:34</span>
+  <span class="sep">·</span>
+  <span class="accent">AUDIO-DNA V9.0</span>
+  <span class="sep">·</span>
+  <span>BRUTALIST ROUTING</span>
+  <span style="flex:1"></span>
+  <span>HOUSE · HIGH · DROP</span>
+</div>
+
+</body>
+</html>

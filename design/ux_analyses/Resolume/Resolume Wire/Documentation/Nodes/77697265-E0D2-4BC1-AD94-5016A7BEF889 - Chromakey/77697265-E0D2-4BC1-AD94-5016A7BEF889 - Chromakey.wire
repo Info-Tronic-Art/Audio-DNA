@@ -1,0 +1,316 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          74,
+          "output"
+        ],
+        "to": [
+          73,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          75,
+          "output"
+        ],
+        "to": [
+          73,
+          "key-hue"
+        ]
+      },
+      {
+        "from": [
+          73,
+          "output"
+        ],
+        "to": [
+          76,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Default Example",
+      "identifier": "027417f2-73c8-4320-8bcb-182275c39577",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 77,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "CHROMAKEY\nThis node can be used to key a certain hue out of a texture. In the example you can see how scrolling through the key hue parameter keys out different hues. This is the basis for your chromakey. All the other parameters are there to perfect your keying."
+          }
+        },
+        "bounds": {
+          "height": 133.7155303955078,
+          "width": 740.0476684570312,
+          "x": -182.3693695068359,
+          "y": 105.72168731689452
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "73": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 346,
+          "width": 195,
+          "x": 169.7010040283203,
+          "y": 276.87615966796875
+        },
+        "class": {
+          "id": "77697265-E0D2-4BC1-AD94-5016A7BEF889",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "black-softness": {
+            "type": "float",
+            "value": 0.10000000149011612
+          },
+          "black-threshold": {
+            "type": "float",
+            "value": 0.20000000298023224
+          },
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "edge-blur": {
+            "type": "float",
+            "value": 0.125
+          },
+          "edge-shrink": {
+            "type": "float",
+            "value": 0.125
+          },
+          "hue-softness": {
+            "type": "float",
+            "value": 0.25
+          },
+          "hue-threshold": {
+            "type": "float",
+            "value": 0.10000000149011612
+          },
+          "input": {
+            "type": "texture2d",
+            "value": null
+          },
+          "key-hue": {
+            "type": "float",
+            "value": 0
+          },
+          "show-mask": {
+            "type": "bool",
+            "value": false
+          },
+          "spill-softness": {
+            "type": "float",
+            "value": 0.10000000149011612
+          },
+          "spill-threshold": {
+            "type": "float",
+            "value": 0.20000000298023224
+          },
+          "white-softness": {
+            "type": "float",
+            "value": 0.20000000298023224
+          },
+          "white-threshold": {
+            "type": "float",
+            "value": 0.20000000298023224
+          }
+        },
+        "hidden": [],
+        "name": "ChromaKey"
+      },
+      "74": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": -181.1942443847656,
+          "y": 277.19085693359375
+        },
+        "class": {
+          "id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Texture"
+      },
+      "75": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": -182.41693115234375,
+          "y": 386.00933837890625
+        },
+        "class": {
+          "id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Saw"
+      },
+      "76": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 429.3642883300781,
+          "y": 277.1908874511719
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -528.208984375,
+        "y": 67.81493377685547,
+        "zoom": 0.9999997615814208
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 76,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {
+          "74": "Wire Logo"
+        },
+        "out": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,699 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          25,
+          "output"
+        ],
+        "to": [
+          26,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          22,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          23,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          26,
+          "output0"
+        ],
+        "to": [
+          21,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          22,
+          "output0"
+        ],
+        "to": [
+          28,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "output0"
+        ],
+        "to": [
+          28,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          28,
+          "output"
+        ],
+        "to": [
+          27,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          27,
+          "output0"
+        ],
+        "to": [
+          26,
+          "translation"
+        ]
+      },
+      {
+        "from": [
+          30,
+          "output"
+        ],
+        "to": [
+          24,
+          "amplitude"
+        ]
+      }
+    ],
+    "inputOrder": [],
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "unknown",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 14,
+          "patch": 0
+        }
+      },
+      "description": "This patch explains what this node does.",
+      "displayName": "77697265-F1BB-4A7E-BF04-7D544E0E2D62 - Cos",
+      "identifier": "557a9892-6ad4-4f0a-8384-3980d0586c63",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "unknown",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 11,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "master",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 16,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 31,
+    "nodes": {
+      "20": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "COS\nThis Cos node calculates the cosine of the input."
+          }
+        },
+        "bounds": {
+          "height": 80.27066040039062,
+          "width": 353.608642578125,
+          "x": 74.14328002929688,
+          "y": 379.3310546875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "21": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1512.825439453125,
+          "y": 635.1829223632812
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture",
+        "thumbnail_visible": true
+      },
+      "22": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "normalized-input": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 579.5267944335938,
+          "y": 683.8216552734375
+        },
+        "class": {
+          "id": "77697265-F1BB-4A7E-BF04-7D544E0E2D62",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "normalized-input",
+          "flow",
+          "input0-type",
+          "input0-dimensions"
+        ],
+        "name": "Cos",
+        "thumbnail_visible": true
+      },
+      "23": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "normalized-input": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 579.5267944335938,
+          "y": 741.421630859375
+        },
+        "class": {
+          "id": "77697265-377A-4BCA-B170-B551F980F7BE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "normalized-input",
+          "flow",
+          "input0-type",
+          "input0-dimensions"
+        ],
+        "name": "Sin",
+        "thumbnail_visible": true
+      },
+      "24": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 332.52679443359375,
+          "y": 683.421630859375
+        },
+        "class": {
+          "id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 2
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase",
+          "unipolar",
+          "anti-alias",
+          "instances"
+        ],
+        "name": "Saw",
+        "thumbnail_visible": true
+      },
+      "25": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 1037.622802734375,
+          "y": 601.266845703125
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.5
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Circle",
+        "thumbnail_visible": true
+      },
+      "26": {
+        "attributes": {
+          "anchor-type": {
+            "type": "type",
+            "value": "float2"
+          },
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input-type": {
+            "type": "type",
+            "value": "procedural"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "rotation-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "scale-type": {
+            "type": "type",
+            "value": "float"
+          },
+          "translation-type": {
+            "type": "type",
+            "value": "float2"
+          }
+        },
+        "bounds": {
+          "height": 130,
+          "width": 195,
+          "x": 1271.54541015625,
+          "y": 634.5733642578125
+        },
+        "class": {
+          "id": "77697265-9225-4009-9D2D-5F898E94CC33",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "anchor": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          },
+          "input": {
+            "type": "procedural",
+            "value": null
+          },
+          "rotation": {
+            "type": "float",
+            "value": 0
+          },
+          "scale": {
+            "type": "float",
+            "value": 1
+          },
+          "translation": {
+            "type": "float2",
+            "value": [
+              0,
+              0
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances",
+          "input-type",
+          "translation-type",
+          "rotation-type",
+          "scale-type",
+          "anchor-type"
+        ],
+        "name": "Transform",
+        "thumbnail_visible": true
+      },
+      "27": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "input1-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "size": {
+            "type": "integer",
+            "value": 2
+          },
+          "type0": {
+            "type": "type",
+            "value": "float2"
+          },
+          "type1": {
+            "type": "type",
+            "value": "float2"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 1035.74560546875,
+          "y": 683.11328125
+        },
+        "class": {
+          "id": "77697265-A0D8-429A-A558-69BC58D0D425",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float2",
+            "value": [
+              1,
+              1
+            ]
+          },
+          "input1": {
+            "type": "float2",
+            "value": [
+              0.4000000059604645,
+              0.4000000059604645
+            ]
+          }
+        },
+        "hidden": [
+          "flow",
+          "size",
+          "type0",
+          "input0-dimensions",
+          "type1",
+          "input1-dimensions"
+        ],
+        "name": "Multiply",
+        "thumbnail_visible": true
+      },
+      "28": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 800.0673217773436,
+          "y": 684.9104614257812
+        },
+        "class": {
+          "id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0
+          },
+          "input1": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "flow",
+          "instances"
+        ],
+        "name": "Float2",
+        "thumbnail_visible": true
+      },
+      "29": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE: ROTATING AROUND A POINT\n\nIn this example we are using a Saw with an amplitude of Pi to generate a value between -π and π.\nBy using Cos for x and Sin for Y we can make the circle rotate around."
+          }
+        },
+        "bounds": {
+          "height": 355.06866455078125,
+          "width": 1623.71337890625,
+          "x": 74.14328002929688,
+          "y": 492.6003112792969
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "30": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "attribute"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 107.91731262207031,
+          "y": 734.4591674804688
+        },
+        "class": {
+          "id": "77697265-7BFA-44F2-A6D4-AE62B9FCC325",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "flow"
+        ],
+        "name": "Pi",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 31.26318359375,
+        "y": -221.401123046875,
+        "zoom": 0.554556667804718
+      },
+      "selection": []
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null,
+          "Display 3": null,
+          "Display 4": null,
+          "Syphon": null
+        }
+      }
+    }
+  }
+}

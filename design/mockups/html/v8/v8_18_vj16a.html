@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 16a — Detailed Layer Strip + Clip Grid</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+.app {
+  width: 1920px; height: 1080px; background: #1a1a1e; color: #e0e0e0;
+  display: flex; flex-direction: column; overflow: hidden; position: relative;
+  font-size: 11px; letter-spacing: 0.3px;
+}
+
+/* ─── TOP BAR ─── */
+.top-bar {
+  height: 44px; background: #111114; display: flex; align-items: center;
+  padding: 0 12px; border-bottom: 1px solid #2a2a2e; flex-shrink: 0; gap: 10px;
+}
+.logo { font-size: 15px; font-weight: 700; color: #00ccff; letter-spacing: 1.5px; margin-right: 16px; }
+.logo span { color: #666; font-weight: 400; }
+.bpm-section { display: flex; align-items: center; gap: 8px; }
+.bpm-label { color: #888; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+.bpm-value { font-size: 26px; font-weight: 700; color: #00ccff; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.bpm-btn {
+  background: #2a2a2e; border: 1px solid #3a3a3e; color: #ccc; padding: 3px 8px;
+  font-size: 9px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.bpm-btn:hover { background: #3a3a3e; }
+.bpm-btn.tap { background: #1a3a4a; border-color: #00668888; color: #00ccff; font-weight: 600; }
+.top-sep { width: 1px; height: 28px; background: #333; margin: 0 6px; }
+.bar-info { color: #aaa; font-size: 11px; font-variant-numeric: tabular-nums; }
+.bar-info b { color: #e0e0e0; }
+.room-delay { color: #777; font-size: 10px; }
+.room-delay span { color: #ffaa00; }
+.master-input { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.master-input-label { color: #888; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+.level-meter-h { display: flex; gap: 2px; align-items: center; }
+.level-bar-h { width: 3px; height: 16px; background: #1a1a1e; border: 1px solid #333; position: relative; overflow: hidden; }
+.level-bar-h .fill { position: absolute; bottom: 0; width: 100%; }
+.fill-green { background: #00cc66; }
+.fill-yellow { background: #ccaa00; }
+.fill-red { background: #cc3333; }
+
+/* ─── SCENE BAR ─── */
+.scene-bar {
+  height: 34px; background: #151518; display: flex; align-items: center;
+  padding: 0 12px; border-bottom: 1px solid #2a2a2e; flex-shrink: 0; gap: 6px;
+}
+.scene-btn {
+  padding: 5px 14px; background: #222226; border: 1px solid #333; color: #aaa;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+  font-weight: 500;
+}
+.scene-btn:hover { background: #2a2a2e; border-color: #444; color: #ddd; }
+.scene-btn.active { background: #00446688; border-color: #00aaff; color: #00ccff; font-weight: 700; }
+.auto-follow { display: flex; align-items: center; gap: 5px; margin-left: 8px; color: #888; font-size: 10px; }
+.auto-follow input { accent-color: #00ccff; }
+.scene-add { padding: 5px 10px; background: transparent; border: 1px dashed #444; color: #666; font-size: 10px; cursor: pointer; }
+.scene-add:hover { border-color: #888; color: #aaa; }
+
+/* ─── MAIN AREA ─── */
+.main-area { display: flex; flex: 1; overflow: hidden; }
+
+/* ─── LEFT: LAYERS + CLIP GRID ─── */
+.left-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ─── LAYER STRIPS ─── */
+.layer-strips { display: flex; flex-direction: column; flex: 1; overflow-y: auto; }
+
+.layer-strip {
+  display: flex; border-bottom: 1px solid #2a2a2e; min-height: 120px; flex-shrink: 0;
+}
+
+/* Layer header column */
+.layer-header {
+  width: 260px; background: #1e1e22; padding: 8px 10px; flex-shrink: 0;
+  border-right: 1px solid #2a2a2e; display: flex; flex-direction: column; gap: 4px;
+}
+.layer-top-row { display: flex; align-items: center; gap: 6px; }
+.layer-check { width: 14px; height: 14px; accent-color: #00ccff; }
+.layer-m-btn {
+  width: 20px; height: 18px; background: #333; border: 1px solid #444; color: #888;
+  font-size: 9px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.layer-m-btn.muted { background: #553300; border-color: #aa6600; color: #ffaa00; }
+.layer-name { font-size: 12px; font-weight: 600; color: #e0e0e0; flex: 1; }
+.layer-engine {
+  font-size: 8px; padding: 2px 6px; border: 1px solid #444; color: #aaa;
+  text-transform: uppercase; letter-spacing: 1px; background: #252528;
+}
+.layer-engine.video { border-color: #00668855; color: #00aacc; background: #0a1a20; }
+.layer-engine.image { border-color: #44660055; color: #88aa44; background: #141a0a; }
+.layer-engine.synth { border-color: #66006655; color: #cc44cc; background: #1a0a1a; }
+
+.layer-clip-info { font-size: 10px; color: #999; }
+.layer-clip-info b { color: #ccc; font-weight: 500; }
+.layer-audio-source { font-size: 10px; color: #888; }
+.layer-audio-source span { color: #00ccff; }
+
+.layer-mini-meter {
+  height: 18px; background: #111; border: 1px solid #2a2a2e; margin: 2px 0;
+  position: relative; overflow: hidden;
+}
+.meter-wave {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+}
+
+.layer-params {
+  display: flex; gap: 10px; font-size: 9px; color: #777; flex-wrap: wrap;
+}
+.layer-params span { white-space: nowrap; }
+.layer-params .val { color: #ccc; }
+
+.layer-opacity-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+.opacity-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.opacity-slider {
+  flex: 1; height: 6px; background: #333; appearance: none; -webkit-appearance: none;
+  outline: none; border: none; cursor: pointer;
+}
+.opacity-slider::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none; width: 10px; height: 14px;
+  background: #00ccff; border: none; cursor: pointer;
+}
+.opacity-val { font-size: 10px; color: #e0e0e0; font-weight: 600; width: 32px; text-align: right; }
+
+.blend-mode {
+  font-size: 9px; color: #aaa; background: #252528; border: 1px solid #3a3a3e;
+  padding: 2px 8px; text-transform: uppercase; letter-spacing: 0.5px; align-self: flex-start;
+}
+
+/* Clip grid columns */
+.clip-grid {
+  display: flex; flex: 1; overflow-x: auto;
+}
+.clip-column {
+  min-width: 110px; flex: 1; border-right: 1px solid #222226; display: flex;
+  flex-direction: column; align-items: center; padding: 6px 4px; gap: 4px;
+}
+.clip-cell {
+  width: 96px; height: 64px; background: #222226; border: 1px solid #333;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.clip-cell:hover { border-color: #555; }
+.clip-cell.active { border-color: #00aaff; box-shadow: 0 0 8px #00aaff33; }
+.clip-cell.playing { border-color: #00cc66; }
+.clip-thumb {
+  width: 100%; height: 100%; position: absolute; top: 0; left: 0; opacity: 0.6;
+}
+.clip-label {
+  font-size: 8px; color: #ccc; text-transform: uppercase; letter-spacing: 0.5px;
+  z-index: 1; text-shadow: 0 1px 3px #000;
+}
+.clip-empty { background: #1a1a1e; border-style: dashed; border-color: #2a2a2e; }
+
+/* Clip column headers (in scene bar) */
+.clip-col-header {
+  font-size: 9px; color: #777; text-transform: uppercase; letter-spacing: 1px;
+  text-align: center; padding: 4px 0; flex-shrink: 0;
+}
+.clip-col-header.active { color: #00ccff; font-weight: 700; }
+
+/* ─── RIGHT PANEL ─── */
+.right-panel {
+  width: 280px; background: #151518; border-left: 1px solid #2a2a2e;
+  display: flex; flex-direction: column; flex-shrink: 0;
+}
+.right-tabs {
+  display: flex; height: 30px; border-bottom: 1px solid #2a2a2e; flex-shrink: 0;
+}
+.right-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #777; text-transform: uppercase; letter-spacing: 1px;
+  cursor: pointer; background: #111114; border-right: 1px solid #2a2a2e;
+}
+.right-tab:last-child { border-right: none; }
+.right-tab:hover { color: #aaa; }
+.right-tab.active { color: #00ccff; background: #151518; border-bottom: 1px solid #151518; }
+
+.right-content { flex: 1; overflow-y: auto; padding: 8px; }
+
+/* Source items */
+.source-item {
+  background: #1e1e22; border: 1px solid #2a2a2e; margin-bottom: 6px; padding: 8px;
+}
+.source-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.source-collapse { color: #666; font-size: 10px; cursor: pointer; }
+.source-name { font-size: 11px; font-weight: 600; color: #e0e0e0; }
+.source-type { font-size: 8px; color: #888; text-transform: uppercase; }
+
+.source-viz {
+  height: 36px; background: #111; border: 1px solid #222; margin-bottom: 6px;
+  position: relative; overflow: hidden;
+}
+.source-params { display: flex; gap: 8px; }
+.source-param { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.source-param label { font-size: 8px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+.source-param-slider {
+  height: 4px; background: #333; appearance: none; -webkit-appearance: none;
+  width: 100%; outline: none; border: none; cursor: pointer;
+}
+.source-param-slider::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none; width: 8px; height: 12px;
+  background: #00ccff; border: none; cursor: pointer;
+}
+.source-param-val { font-size: 9px; color: #aaa; text-align: right; }
+
+.add-source-btn {
+  width: 100%; padding: 8px; background: transparent; border: 1px dashed #3a3a3e;
+  color: #666; font-size: 10px; cursor: pointer; text-transform: uppercase;
+  letter-spacing: 1px; margin-top: 4px;
+}
+.add-source-btn:hover { border-color: #00aaff55; color: #aaa; }
+
+.source-drag-hint {
+  text-align: center; color: #555; font-size: 10px; font-style: italic;
+  margin-top: 12px; padding: 8px;
+}
+
+/* ─── FOOTER ─── */
+.footer {
+  height: 32px; background: #111114; display: flex; align-items: center;
+  padding: 0 12px; border-top: 1px solid #2a2a2e; flex-shrink: 0; gap: 12px;
+  font-size: 10px; color: #777;
+}
+.footer-item { display: flex; align-items: center; gap: 4px; }
+.footer-btn {
+  padding: 3px 10px; background: #222226; border: 1px solid #333; color: #aaa;
+  font-size: 9px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.footer-btn:hover { background: #2a2a2e; border-color: #444; color: #ddd; }
+.footer-spacer { flex: 1; }
+.footer-display { color: #00cc66; }
+
+/* Canvas drawings for waveforms / meters */
+canvas { display: block; }
+
+/* Column header row above clip grid */
+.clip-grid-headers {
+  display: flex; height: 28px; background: #151518; border-bottom: 1px solid #2a2a2e;
+  flex-shrink: 0;
+}
+.col-hdr-spacer { width: 260px; flex-shrink: 0; border-right: 1px solid #2a2a2e; }
+.col-headers-inner { display: flex; flex: 1; }
+.col-hdr {
+  min-width: 110px; flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px;
+  border-right: 1px solid #222226;
+}
+.col-hdr.active { color: #00ccff; font-weight: 700; border-bottom: 2px solid #00aaff; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="logo">AUDIO-DNA <span>VJ</span></div>
+    <div class="top-sep"></div>
+    <div class="bpm-section">
+      <div class="bpm-label">Editable BPM</div>
+      <div class="bpm-value">128.00</div>
+      <button class="bpm-btn tap">TAP</button>
+      <button class="bpm-btn">Nudge-</button>
+      <button class="bpm-btn">Nudge+</button>
+      <button class="bpm-btn">RESYNC</button>
+    </div>
+    <div class="top-sep"></div>
+    <div class="bar-info">BAR: <b>32</b> &nbsp; BEAT: <b>1.1</b></div>
+    <div class="top-sep"></div>
+    <div class="room-delay">ROOM DELAY <span>15 ms</span></div>
+    <div class="master-input">
+      <div class="master-input-label">Master Audio Input</div>
+      <div class="level-meter-h" id="masterMeterL"></div>
+      <div class="level-meter-h" id="masterMeterR"></div>
+    </div>
+  </div>
+
+  <!-- SCENE BAR -->
+  <div class="scene-bar">
+    <button class="scene-btn">INTRO</button>
+    <button class="scene-btn active">VERSE</button>
+    <label class="auto-follow"><input type="checkbox" checked> Auto-Follow</label>
+    <button class="scene-btn">BUILD</button>
+    <button class="scene-btn">DROP</button>
+    <button class="scene-btn">OUTRO</button>
+    <button class="scene-add">+ Add Scene</button>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+
+    <!-- LEFT: LAYERS + CLIP GRID -->
+    <div class="left-panel">
+
+      <!-- Column headers -->
+      <div class="clip-grid-headers">
+        <div class="col-hdr-spacer" style="display:flex;align-items:center;padding-left:10px;font-size:9px;color:#555;text-transform:uppercase;letter-spacing:1px;">Layer / Parameters</div>
+        <div class="col-headers-inner">
+          <div class="col-hdr">INTRO</div>
+          <div class="col-hdr active">VERSE</div>
+          <div class="col-hdr">BUILD</div>
+          <div class="col-hdr">DROP</div>
+          <div class="col-hdr">OUTRO</div>
+        </div>
+      </div>
+
+      <!-- Layer strips -->
+      <div class="layer-strips">
+
+        <!-- LAYER 1 -->
+        <div class="layer-strip">
+          <div class="layer-header">
+            <div class="layer-top-row">
+              <input type="checkbox" class="layer-check" checked>
+              <div class="layer-m-btn">M</div>
+              <div class="layer-name">M LAYER 1</div>
+              <div class="layer-engine video">VIDEO</div>
+            </div>
+            <div class="layer-clip-info">CLIP: <b>Abstract_01.mov</b> &nbsp; MODE: Loop</div>
+            <div class="layer-audio-source">AUDIO SOURCE: <span>MASTER</span></div>
+            <canvas id="meter1" width="238" height="18" class="layer-mini-meter" style="border:1px solid #2a2a2e;background:#111;"></canvas>
+            <div class="layer-params">
+              <span>HUE: <span class="val">180°</span></span>
+              <span>SAT: <span class="val">75%</span></span>
+              <span>BRI: <span class="val">60%</span></span>
+              <span>SPEED: <span class="val">1.6x</span></span>
+            </div>
+            <div class="layer-opacity-row">
+              <span class="opacity-label">Opacity</span>
+              <input type="range" class="opacity-slider" min="0" max="100" value="100">
+              <span class="opacity-val">100%</span>
+            </div>
+            <div class="blend-mode">SCREEN</div>
+          </div>
+          <div class="clip-grid">
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="200" data-type="abstract"></canvas><span class="clip-label">Clip 1</span></div></div>
+            <div class="clip-column"><div class="clip-cell active"><canvas class="clip-thumb" width="96" height="64" data-hue="180" data-type="wave"></canvas><span class="clip-label">Clip 2</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="30" data-type="fire"></canvas><span class="clip-label">Clip 3</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="0" data-type="glitch"></canvas><span class="clip-label">Clip 4</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="260" data-type="fade"></canvas><span class="clip-label">Clip 5</span></div></div>
+          </div>
+        </div>
+
+        <!-- LAYER 2 -->
+        <div class="layer-strip">
+          <div class="layer-header">
+            <div class="layer-top-row">
+              <input type="checkbox" class="layer-check" checked>
+              <div class="layer-m-btn">M</div>
+              <div class="layer-name">M LAYER 2</div>
+              <div class="layer-engine image">IMAGE</div>
+            </div>
+            <div class="layer-clip-info">CLIP: <b>Fractal_Loop_03.png</b> &nbsp; MODE: Loop</div>
+            <div class="layer-audio-source">AUDIO SOURCE: <span>KICK DRUM</span></div>
+            <canvas id="meter2" width="238" height="18" class="layer-mini-meter" style="border:1px solid #2a2a2e;background:#111;"></canvas>
+            <div class="layer-params">
+              <span>HUE: <span class="val">220°</span></span>
+              <span>SAT: <span class="val">90%</span></span>
+              <span>BRI: <span class="val">80%</span></span>
+              <span>SPEED: <span class="val">1.0x</span></span>
+            </div>
+            <div class="layer-opacity-row">
+              <span class="opacity-label">Opacity</span>
+              <input type="range" class="opacity-slider" min="0" max="100" value="85">
+              <span class="opacity-val">85%</span>
+            </div>
+            <div class="blend-mode">ADD</div>
+          </div>
+          <div class="clip-grid">
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="220" data-type="fractal"></canvas><span class="clip-label">Clip 1</span></div></div>
+            <div class="clip-column"><div class="clip-cell active"><canvas class="clip-thumb" width="96" height="64" data-hue="280" data-type="spiral"></canvas><span class="clip-label">Clip 2</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="120" data-type="organic"></canvas><span class="clip-label">Clip 3</span></div></div>
+            <div class="clip-column"><div class="clip-cell clip-empty"></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="300" data-type="abstract"></canvas><span class="clip-label">Clip 4</span></div></div>
+          </div>
+        </div>
+
+        <!-- LAYER 3 -->
+        <div class="layer-strip">
+          <div class="layer-header">
+            <div class="layer-top-row">
+              <input type="checkbox" class="layer-check" checked>
+              <div class="layer-m-btn muted">M</div>
+              <div class="layer-name">M LAYER 3</div>
+              <div class="layer-engine synth">SYNTH</div>
+            </div>
+            <div class="layer-clip-info">CLIP: <b>Mandelbulb_Dive.src</b> &nbsp; MODE: Loop</div>
+            <div class="layer-audio-source">AUDIO SOURCE: <span>LFO - SINE</span></div>
+            <canvas id="meter3" width="238" height="18" class="layer-mini-meter" style="border:1px solid #2a2a2e;background:#111;"></canvas>
+            <div class="layer-params">
+              <span>HUE: <span class="val">45°</span></span>
+              <span>SAT: <span class="val">60%</span></span>
+              <span>BRI: <span class="val">100%</span></span>
+              <span>SPEED: <span class="val">0.5x</span></span>
+            </div>
+            <div class="layer-opacity-row">
+              <span class="opacity-label">Opacity</span>
+              <input type="range" class="opacity-slider" min="0" max="100" value="60">
+              <span class="opacity-val">60%</span>
+            </div>
+            <div class="blend-mode">MULTIPLY</div>
+          </div>
+          <div class="clip-grid">
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="45" data-type="mandel"></canvas><span class="clip-label">Clip 1</span></div></div>
+            <div class="clip-column"><div class="clip-cell active"><canvas class="clip-thumb" width="96" height="64" data-hue="160" data-type="tunnel"></canvas><span class="clip-label">Clip 2</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="90" data-type="wave"></canvas><span class="clip-label">Clip 3</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="340" data-type="fire"></canvas><span class="clip-label">Clip 4</span></div></div>
+            <div class="clip-column"><div class="clip-cell clip-empty"></div></div>
+          </div>
+        </div>
+
+        <!-- LAYER 4 -->
+        <div class="layer-strip">
+          <div class="layer-header">
+            <div class="layer-top-row">
+              <input type="checkbox" class="layer-check" checked>
+              <div class="layer-m-btn">M</div>
+              <div class="layer-name">M LAYER 4</div>
+              <div class="layer-engine video">VIDEO</div>
+            </div>
+            <div class="layer-clip-info">CLIP: <b>Neon_Grid_02.mov</b> &nbsp; MODE: PingPong</div>
+            <div class="layer-audio-source">AUDIO SOURCE: <span>LFO - CUSTOM</span></div>
+            <canvas id="meter4" width="238" height="18" class="layer-mini-meter" style="border:1px solid #2a2a2e;background:#111;"></canvas>
+            <div class="layer-params">
+              <span>HUE: <span class="val">300°</span></span>
+              <span>SAT: <span class="val">85%</span></span>
+              <span>BRI: <span class="val">70%</span></span>
+              <span>SPEED: <span class="val">2.0x</span></span>
+            </div>
+            <div class="layer-opacity-row">
+              <span class="opacity-label">Opacity</span>
+              <input type="range" class="opacity-slider" min="0" max="100" value="45">
+              <span class="opacity-val">45%</span>
+            </div>
+            <div class="blend-mode">OVERLAY</div>
+          </div>
+          <div class="clip-grid">
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="300" data-type="neon"></canvas><span class="clip-label">Clip 1</span></div></div>
+            <div class="clip-column"><div class="clip-cell active"><canvas class="clip-thumb" width="96" height="64" data-hue="190" data-type="grid"></canvas><span class="clip-label">Clip 2</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="60" data-type="particles"></canvas><span class="clip-label">Clip 3</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="15" data-type="glitch"></canvas><span class="clip-label">Clip 4</span></div></div>
+            <div class="clip-column"><div class="clip-cell"><canvas class="clip-thumb" width="96" height="64" data-hue="240" data-type="fade"></canvas><span class="clip-label">Clip 5</span></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="right-tabs">
+        <div class="right-tab active">Sources</div>
+        <div class="right-tab">Layer</div>
+        <div class="right-tab">Clip</div>
+      </div>
+      <div class="right-content">
+
+        <!-- MASTER source -->
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-collapse">-</span>
+            <span class="source-name">MASTER</span>
+            <span class="source-type" style="margin-left:auto;">Audio Input</span>
+          </div>
+          <canvas id="masterViz" width="256" height="36" style="width:100%;height:36px;background:#111;border:1px solid #222;margin-bottom:4px;"></canvas>
+        </div>
+
+        <!-- KICK DRUM source -->
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-collapse">-</span>
+            <span class="source-name">KICK DRUM</span>
+            <span class="source-type" style="margin-left:auto;">Band Filter</span>
+          </div>
+          <canvas id="kickViz" width="256" height="36" style="width:100%;height:36px;background:#111;border:1px solid #222;margin-bottom:4px;"></canvas>
+        </div>
+
+        <!-- LFO SINE source -->
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-collapse">-</span>
+            <span class="source-name">LFO - SINE</span>
+            <span class="source-type" style="margin-left:auto;">Oscillator</span>
+          </div>
+          <canvas id="sineViz" width="256" height="36" style="width:100%;height:36px;background:#111;border:1px solid #222;margin-bottom:6px;"></canvas>
+          <div class="source-params">
+            <div class="source-param">
+              <label>Rate</label>
+              <input type="range" class="source-param-slider" min="0" max="100" value="35">
+              <span class="source-param-val">2.0 Hz</span>
+            </div>
+            <div class="source-param">
+              <label>Depth</label>
+              <input type="range" class="source-param-slider" min="0" max="100" value="80">
+              <span class="source-param-val">80%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LFO CUSTOM source -->
+        <div class="source-item">
+          <div class="source-header">
+            <span class="source-collapse">-</span>
+            <span class="source-name">LFO - CUSTOM</span>
+            <span class="source-type" style="margin-left:auto;">Oscillator</span>
+          </div>
+          <canvas id="customViz" width="256" height="36" style="width:100%;height:36px;background:#111;border:1px solid #222;margin-bottom:6px;"></canvas>
+          <div class="source-params">
+            <div class="source-param">
+              <label>Rate</label>
+              <input type="range" class="source-param-slider" min="0" max="100" value="55">
+              <span class="source-param-val">4.5 Hz</span>
+            </div>
+            <div class="source-param">
+              <label>Depth</label>
+              <input type="range" class="source-param-slider" min="0" max="100" value="65">
+              <span class="source-param-val">65%</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="add-source-btn">+ Add Audio Source</button>
+        <div class="source-drag-hint">Drag a source onto a parameter</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="footer-item">MASTER SOURCES</span>
+    <div class="top-sep" style="height:20px;margin:0 4px;"></div>
+    <span class="footer-item">AUDIO PLAYER</span>
+    <div class="footer-spacer"></div>
+    <span class="footer-item footer-display">DISPLAY 1: 1920x1080 @ 60 FPS</span>
+    <div class="top-sep" style="height:20px;margin:0 4px;"></div>
+    <button class="footer-btn">SAVE</button>
+    <button class="footer-btn">LOAD</button>
+    <div class="top-sep" style="height:20px;margin:0 4px;"></div>
+    <span class="footer-item" style="color:#555;">HELP / SHORTCUTS</span>
+  </div>
+
+</div>
+
+<script>
+// ─── DRAW MASTER LEVEL METERS (horizontal bars) ───
+function buildMeter(containerId, levels) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  for (let i = 0; i < 16; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'level-bar-h';
+    const fill = document.createElement('div');
+    fill.className = 'fill';
+    const pct = levels[i] || 0;
+    fill.style.height = pct + '%';
+    if (i < 10) fill.classList.add('fill-green');
+    else if (i < 13) fill.classList.add('fill-yellow');
+    else fill.classList.add('fill-red');
+    bar.appendChild(fill);
+    container.appendChild(bar);
+  }
+}
+buildMeter('masterMeterL', [95,90,88,82,78,72,65,60,55,48,40,30,18,8,3,0]);
+buildMeter('masterMeterR', [90,85,83,80,74,68,62,56,50,44,36,25,14,5,0,0]);
+
+// ─── DRAW MINI METERS (waveform-like) ───
+function drawMiniMeter(canvasId, color, pattern) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = color;
+  const bars = 60;
+  for (let i = 0; i < bars; i++) {
+    const val = pattern(i / bars);
+    const bh = val * h * 0.9;
+    ctx.fillRect(i * (w / bars) + 1, h - bh, (w / bars) - 2, bh);
+  }
+}
+drawMiniMeter('meter1', '#00cc6688', t => 0.4 + 0.6 * Math.abs(Math.sin(t * Math.PI * 6)));
+drawMiniMeter('meter2', '#00aaff88', t => Math.max(0, Math.sin(t * Math.PI * 4) * 0.8 + 0.1));
+drawMiniMeter('meter3', '#cc44cc66', t => 0.3 + 0.4 * Math.sin(t * Math.PI * 3 + 1));
+drawMiniMeter('meter4', '#ffaa0066', t => 0.2 + 0.5 * Math.abs(Math.cos(t * Math.PI * 5)));
+
+// ─── DRAW SOURCE VISUALIZATIONS ───
+function drawSourceViz(canvasId, drawFn) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  drawFn(ctx, w, h);
+}
+
+// Master: level meters
+drawSourceViz('masterViz', (ctx, w, h) => {
+  const bars = 32;
+  for (let i = 0; i < bars; i++) {
+    const val = Math.max(0.05, 0.9 - (i / bars) * 0.8 + Math.sin(i * 0.7) * 0.15);
+    const bh = val * h * 0.85;
+    if (i / bars < 0.6) ctx.fillStyle = '#00cc66';
+    else if (i / bars < 0.8) ctx.fillStyle = '#ccaa00';
+    else ctx.fillStyle = '#cc3333';
+    ctx.fillRect(i * (w / bars) + 1, h - bh, (w / bars) - 2, bh);
+  }
+});
+
+// Kick drum: transient waveform
+drawSourceViz('kickViz', (ctx, w, h) => {
+  ctx.strokeStyle = '#00aaff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const t = x / w;
+    // Kick transient pattern: sharp peaks at regular intervals
+    const beat = t * 8;
+    const phase = beat % 1;
+    let val = 0;
+    if (phase < 0.05) val = 1.0;
+    else if (phase < 0.15) val = Math.exp(-(phase - 0.05) * 30) * 0.8;
+    else if (phase < 0.3) val = Math.exp(-(phase - 0.05) * 10) * 0.3;
+    else val = 0.02 + Math.random() * 0.03;
+    const y = h / 2 - val * h * 0.45 + (Math.random() - 0.5) * 2;
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Mirror below center
+  ctx.strokeStyle = '#00aaff55';
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const t = x / w;
+    const beat = t * 8;
+    const phase = beat % 1;
+    let val = 0;
+    if (phase < 0.05) val = 1.0;
+    else if (phase < 0.15) val = Math.exp(-(phase - 0.05) * 30) * 0.8;
+    else val = 0.02;
+    const y = h / 2 + val * h * 0.35;
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+});
+
+// Sine LFO
+drawSourceViz('sineViz', (ctx, w, h) => {
+  ctx.strokeStyle = '#00ccff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const t = x / w;
+    const y = h / 2 - Math.sin(t * Math.PI * 4) * h * 0.38;
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Subtle fill
+  ctx.fillStyle = '#00ccff0a';
+  ctx.beginPath();
+  ctx.moveTo(0, h / 2);
+  for (let x = 0; x < w; x++) {
+    const t = x / w;
+    const y = h / 2 - Math.sin(t * Math.PI * 4) * h * 0.38;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(w, h / 2);
+  ctx.closePath();
+  ctx.fill();
+});
+
+// Custom LFO (ramp + noise)
+drawSourceViz('customViz', (ctx, w, h) => {
+  ctx.strokeStyle = '#ffaa00';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x < w; x++) {
+    const t = x / w;
+    const cycles = 3;
+    const phase = (t * cycles) % 1;
+    // Custom shape: ramp up, sharp drop, with noise
+    let val;
+    if (phase < 0.7) val = phase / 0.7;
+    else if (phase < 0.75) val = 1.0 - (phase - 0.7) / 0.05;
+    else val = 0;
+    val += (Math.random() - 0.5) * 0.08;
+    const y = h / 2 - val * h * 0.36 + h * 0.18;
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+});
+
+// ─── DRAW CLIP THUMBNAILS ───
+document.querySelectorAll('.clip-thumb').forEach(canvas => {
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const hue = parseInt(canvas.dataset.hue) || 0;
+  const type = canvas.dataset.type || 'abstract';
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, `hsla(${hue}, 60%, 15%, 1)`);
+  grad.addColorStop(1, `hsla(${(hue + 40) % 360}, 50%, 8%, 1)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.globalAlpha = 0.7;
+
+  switch (type) {
+    case 'abstract':
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.arc(w * (0.2 + i * 0.15), h * (0.3 + Math.sin(i) * 0.2), 10 + i * 4, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${(hue + i * 30) % 360}, 70%, 50%, 0.4)`;
+        ctx.fill();
+      }
+      break;
+    case 'wave':
+      ctx.strokeStyle = `hsla(${hue}, 80%, 60%, 0.8)`;
+      ctx.lineWidth = 2;
+      for (let j = 0; j < 3; j++) {
+        ctx.beginPath();
+        for (let x = 0; x < w; x++) {
+          const y = h / 2 + Math.sin(x * 0.08 + j * 1.5) * (10 + j * 5);
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      break;
+    case 'fire':
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * w;
+        const y = h - Math.random() * h * 0.8;
+        const r = 3 + Math.random() * 8;
+        const rgrad = ctx.createRadialGradient(x, y, 0, x, y, r);
+        rgrad.addColorStop(0, `hsla(${hue + 20}, 100%, 60%, 0.6)`);
+        rgrad.addColorStop(1, `hsla(${hue}, 100%, 30%, 0)`);
+        ctx.fillStyle = rgrad;
+        ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      }
+      break;
+    case 'glitch':
+      for (let i = 0; i < 8; i++) {
+        const y = Math.random() * h;
+        const bh = 2 + Math.random() * 6;
+        ctx.fillStyle = `hsla(${(hue + i * 40) % 360}, 90%, 50%, 0.5)`;
+        ctx.fillRect(Math.random() * w * 0.3, y, w * (0.4 + Math.random() * 0.6), bh);
+      }
+      break;
+    case 'fade':
+      const rg = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w * 0.6);
+      rg.addColorStop(0, `hsla(${hue}, 70%, 60%, 0.6)`);
+      rg.addColorStop(1, `hsla(${hue}, 70%, 10%, 0)`);
+      ctx.fillStyle = rg;
+      ctx.fillRect(0, 0, w, h);
+      break;
+    case 'fractal':
+      for (let i = 0; i < 30; i++) {
+        const x = w / 2 + Math.cos(i * 0.8) * (i * 1.5);
+        const y = h / 2 + Math.sin(i * 0.8) * (i * 1.2);
+        ctx.fillStyle = `hsla(${(hue + i * 8) % 360}, 80%, 50%, 0.3)`;
+        ctx.fillRect(x - 2, y - 2, 4, 4);
+      }
+      break;
+    case 'spiral':
+      ctx.strokeStyle = `hsla(${hue}, 80%, 60%, 0.6)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      for (let a = 0; a < Math.PI * 6; a += 0.1) {
+        const r = a * 2;
+        const x = w / 2 + Math.cos(a) * r;
+        const y = h / 2 + Math.sin(a) * r;
+        if (a === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      break;
+    case 'organic':
+      for (let i = 0; i < 6; i++) {
+        ctx.beginPath();
+        ctx.ellipse(w / 2 + Math.cos(i) * 15, h / 2 + Math.sin(i) * 10, 20 + i * 3, 12 + i * 2, i * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${(hue + i * 20) % 360}, 60%, 40%, 0.3)`;
+        ctx.fill();
+      }
+      break;
+    case 'mandel':
+      for (let px = 0; px < w; px += 3) {
+        for (let py = 0; py < h; py += 3) {
+          const cx = (px / w - 0.7) * 3;
+          const cy = (py / h - 0.5) * 2;
+          let x = 0, y = 0, i = 0;
+          while (x * x + y * y < 4 && i < 20) { const t = x * x - y * y + cx; y = 2 * x * y + cy; x = t; i++; }
+          if (i < 20) {
+            ctx.fillStyle = `hsla(${(hue + i * 15) % 360}, 80%, ${30 + i * 3}%, 0.8)`;
+            ctx.fillRect(px, py, 3, 3);
+          }
+        }
+      }
+      break;
+    case 'tunnel':
+      for (let i = 8; i > 0; i--) {
+        ctx.strokeStyle = `hsla(${(hue + i * 20) % 360}, 70%, 50%, 0.5)`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(w / 2 - i * 5, h / 2 - i * 3.5, i * 10, i * 7);
+      }
+      break;
+    case 'neon':
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.8)`;
+      ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(10, h / 2);
+      ctx.bezierCurveTo(w * 0.3, 5, w * 0.7, h - 5, w - 10, h / 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      break;
+    case 'grid':
+      ctx.strokeStyle = `hsla(${hue}, 60%, 40%, 0.4)`;
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x < w; x += 8) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+      for (let y = 0; y < h; y += 8) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+      // Highlight center
+      ctx.fillStyle = `hsla(${hue}, 80%, 60%, 0.3)`;
+      ctx.fillRect(w / 2 - 16, h / 2 - 12, 32, 24);
+      break;
+    case 'particles':
+      for (let i = 0; i < 40; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        const r = 1 + Math.random() * 2;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${(hue + Math.random() * 40) % 360}, 80%, 60%, ${0.3 + Math.random() * 0.5})`;
+        ctx.fill();
+      }
+      break;
+  }
+
+  ctx.globalAlpha = 1;
+});
+</script>
+</body>
+</html>

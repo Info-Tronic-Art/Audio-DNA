@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 10 — Colorful Layer Strips</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #0a0a0e; color: #e0e0e0;
+  font-family: 'Segoe UI', -apple-system, Arial, sans-serif;
+  font-size: 12px;
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  height: 44px; background: #111118;
+  display: flex; align-items: center; padding: 0 12px;
+  border-bottom: 1px solid #252530;
+  gap: 14px;
+}
+.logo {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 16px; font-weight: 700; color: #fff;
+  letter-spacing: 1px;
+}
+.logo .dna-icon {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: linear-gradient(135deg, #00ccff, #7c3aed, #ff2266);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900; color: #fff;
+}
+.bpm-block {
+  display: flex; align-items: center; gap: 8px;
+  background: #1a1a24; border: 1px solid #333340; border-radius: 4px;
+  padding: 4px 12px; margin-left: 10px;
+}
+.bpm-value {
+  font-size: 26px; font-weight: 700; color: #00ff88;
+  font-family: 'Courier New', monospace; letter-spacing: 1px;
+}
+.bpm-label { font-size: 9px; color: #888; text-transform: uppercase; }
+.btn-small {
+  padding: 4px 10px; border-radius: 3px; border: 1px solid #444;
+  background: #222230; color: #ccc; font-size: 10px; cursor: pointer;
+  font-weight: 600; text-transform: uppercase;
+}
+.btn-small.tap { background: #2a1a3a; border-color: #7c3aed; color: #b388ff; }
+.btn-small.resync { background: #1a2a2a; border-color: #00aa66; color: #00ff88; }
+.beat-dots {
+  display: flex; gap: 5px; align-items: center; margin-left: 6px;
+}
+.beat-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #333; border: 1px solid #555;
+}
+.beat-dot.active { background: #00ff88; border-color: #00ff88; box-shadow: 0 0 6px #00ff88; }
+.room-delay {
+  margin-left: auto; font-size: 11px; color: #888;
+  background: #1a1a24; padding: 4px 10px; border-radius: 3px;
+  border: 1px solid #333;
+}
+.room-delay span { color: #ffaa00; font-weight: 600; }
+
+/* ── SCENE FLOW BAR ── */
+.scene-flow-bar {
+  height: 26px; background: #0e0e14; display: flex; align-items: center;
+  padding: 0 12px; border-bottom: 1px solid #1e1e28; gap: 20px;
+}
+.scene-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  color: #7c3aed; letter-spacing: 2px;
+}
+
+/* ── MAIN AREA ── */
+.main-area {
+  display: flex; height: calc(1080px - 44px - 26px - 36px);
+}
+
+/* ── LEFT: LAYER STRIPS ── */
+.layer-strips-panel {
+  flex: 1; overflow-y: auto; padding: 4px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.layer-strip {
+  background: #111118; border: 1px solid #222230; border-radius: 4px;
+  display: flex; align-items: center; padding: 6px 8px; gap: 8px;
+  min-height: 108px;
+}
+.layer-strip:nth-child(odd) { background: #121219; }
+
+/* Layer name + PSM */
+.layer-left {
+  width: 100px; display: flex; flex-direction: column; gap: 4px;
+  align-items: center; flex-shrink: 0;
+}
+.layer-name {
+  font-size: 13px; font-weight: 700; color: #fff;
+  text-align: center; width: 100%;
+}
+.psm-buttons { display: flex; gap: 3px; }
+.psm-btn {
+  width: 26px; height: 22px; border-radius: 3px; border: none;
+  font-size: 10px; font-weight: 800; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.psm-btn.play { background: #0d3d1a; color: #00ff66; border: 1px solid #00aa44; }
+.psm-btn.play.active { background: #00cc44; color: #000; }
+.psm-btn.solo { background: #3d3d0d; color: #ffdd00; border: 1px solid #aa8800; }
+.psm-btn.mute { background: #3d0d0d; color: #ff4444; border: 1px solid #aa2222; }
+
+/* Layer info section */
+.layer-info {
+  width: 180px; flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.info-row {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: #888;
+}
+.info-row .label { color: #666; width: 80px; text-align: right; }
+.info-row .value {
+  color: #ccc; background: #1a1a24; padding: 2px 6px;
+  border-radius: 2px; flex: 1; font-size: 10px;
+}
+
+/* Knobs section */
+.knobs-section {
+  display: flex; gap: 14px; flex-shrink: 0;
+  padding: 0 10px;
+}
+.knob-wrapper {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.knob-label { font-size: 9px; color: #888; text-transform: uppercase; font-weight: 600; }
+.knob-value { font-size: 9px; color: #ccc; font-family: monospace; }
+
+/* SVG Knob */
+.knob-svg { width: 52px; height: 52px; }
+
+/* Opacity slider */
+.opacity-section {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  flex-shrink: 0; margin: 0 6px;
+}
+.opacity-label { font-size: 9px; color: #888; text-transform: uppercase; }
+.opacity-track {
+  width: 10px; height: 68px; background: #1a1a24; border-radius: 3px;
+  border: 1px solid #333; position: relative;
+}
+.opacity-fill {
+  position: absolute; bottom: 0; width: 100%; border-radius: 0 0 2px 2px;
+  background: linear-gradient(to top, #00ccff, #0088cc);
+}
+.opacity-thumb {
+  position: absolute; width: 14px; height: 6px; background: #fff;
+  border-radius: 2px; left: -2px;
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex; flex-direction: column; gap: 3px;
+  flex-shrink: 0;
+}
+.action-btn {
+  padding: 4px 10px; border-radius: 3px; border: 1px solid #444;
+  background: #1a1a24; color: #ccc; font-size: 9px; cursor: pointer;
+  font-weight: 700; text-transform: uppercase; text-align: center;
+  min-width: 70px;
+}
+.action-btn.strobe { background: #3d2d0d; border-color: #cc8800; color: #ffcc00; }
+.action-btn.slowmo { background: #0d2d3d; border-color: #0088cc; color: #44ccff; }
+.action-btn.reset { background: #2a1a1a; border-color: #773333; color: #ff6666; }
+.action-btn.fxsend { background: #1a2a1a; border-color: #338833; color: #66ff66; }
+
+/* Expand toggle */
+.expand-toggle {
+  width: 22px; height: 22px; border-radius: 3px;
+  background: #222; border: 1px solid #444; color: #888;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; cursor: pointer; flex-shrink: 0;
+}
+
+/* ── RIGHT PANEL ── */
+.right-panel {
+  width: 260px; background: #0e0e14; border-left: 1px solid #222230;
+  display: flex; flex-direction: column;
+}
+.right-header {
+  padding: 8px 10px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; color: #7c3aed; letter-spacing: 1px;
+  border-bottom: 1px solid #222230;
+}
+
+/* Preview */
+.preview-area {
+  width: 200px; height: 112px; margin: 8px auto;
+  background: #000; border: 1px solid #333;
+  border-radius: 4px; position: relative; overflow: hidden;
+}
+.preview-label {
+  position: absolute; bottom: 4px; left: 0; right: 0;
+  text-align: center; font-size: 8px; color: #666;
+  text-transform: uppercase;
+}
+.preview-content {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, #0a001a, #1a0033, #000a1a);
+  position: relative; overflow: hidden;
+}
+.preview-content::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(120,50,220,0.3) 0%, transparent 60%),
+              radial-gradient(ellipse at 30% 70%, rgba(0,200,255,0.2) 0%, transparent 50%);
+}
+
+/* Sources panel */
+.sources-panel { flex: 1; padding: 8px; overflow-y: auto; }
+.source-category {
+  font-size: 10px; font-weight: 700; color: #00ccff;
+  margin: 8px 0 4px; text-transform: uppercase;
+}
+.source-item {
+  background: #1a1a24; border: 1px solid #2a2a35;
+  border-radius: 4px; margin-bottom: 6px; overflow: hidden;
+}
+.source-item-label {
+  padding: 4px 8px; font-size: 10px; color: #ccc;
+}
+.source-thumb {
+  width: 100%; height: 60px; position: relative; overflow: hidden;
+}
+
+/* Audio waveform visualization */
+.waveform-viz {
+  width: 100%; height: 100%; position: relative;
+}
+
+/* Bottom controls */
+.bottom-controls {
+  padding: 8px; border-top: 1px solid #222230;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.blackout-btn {
+  width: 100%; padding: 10px; border-radius: 4px;
+  background: #1a0a0a; border: 2px solid #ff2222;
+  color: #ff4444; font-size: 14px; font-weight: 800;
+  text-transform: uppercase; cursor: pointer; text-align: center;
+  letter-spacing: 2px;
+}
+.master-btn {
+  width: 100%; padding: 10px; border-radius: 4px;
+  background: #0a2a0a; border: 2px solid #00cc44;
+  color: #00ff66; font-size: 14px; font-weight: 800;
+  text-transform: uppercase; cursor: pointer; text-align: center;
+  letter-spacing: 2px;
+}
+
+/* ── FOOTER ── */
+.footer {
+  height: 36px; background: #111118; border-top: 1px solid #252530;
+  display: flex; align-items: center; padding: 0 12px; gap: 16px;
+}
+.footer-btn {
+  padding: 4px 14px; border-radius: 3px; border: 1px solid #333;
+  background: #1a1a24; color: #999; font-size: 10px;
+  font-weight: 600; text-transform: uppercase; cursor: pointer;
+}
+.footer-btn:hover { color: #fff; border-color: #555; }
+.footer-spacer { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="logo">
+    <div class="dna-icon">&#x29BE;</div>
+    <span>Audio-DNA VJ</span>
+  </div>
+  <div class="bpm-block">
+    <div>
+      <div class="bpm-label">BPM</div>
+      <div class="bpm-value">128.00</div>
+    </div>
+  </div>
+  <div class="btn-small tap">TAP</div>
+  <div class="btn-small">Nudge-</div>
+  <div class="btn-small">Nudge+</div>
+  <div class="btn-small resync">RESYNC</div>
+  <div class="beat-dots">
+    <div class="beat-dot active"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+  </div>
+  <div class="room-delay">Room Delay: <span>+20ms</span></div>
+</div>
+
+<!-- SCENE FLOW BAR -->
+<div class="scene-flow-bar">
+  <div class="scene-label">Scene Flow</div>
+  <div style="flex:1; height:14px; background:#1a1a24; border-radius:2px; border:1px solid #2a2a35; position:relative; overflow:hidden;">
+    <div style="position:absolute; left:0; top:0; bottom:0; width:35%; background:linear-gradient(90deg, rgba(124,58,237,0.4), rgba(0,204,255,0.2)); border-radius:2px;"></div>
+    <div style="position:absolute; left:10%; top:2px; bottom:2px; width:2px; background:#7c3aed; border-radius:1px;"></div>
+    <div style="position:absolute; left:25%; top:2px; bottom:2px; width:2px; background:#444;"></div>
+    <div style="position:absolute; left:50%; top:2px; bottom:2px; width:2px; background:#444;"></div>
+    <div style="position:absolute; left:75%; top:2px; bottom:2px; width:2px; background:#444;"></div>
+    <div style="position:absolute; left:35%; top:0; bottom:0; width:3px; background:#00ff88;"></div>
+  </div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+  <!-- LAYER STRIPS -->
+  <div class="layer-strips-panel" id="layerStrips"></div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="right-header">Sources</div>
+    <div class="preview-area">
+      <div class="preview-content"></div>
+      <div class="preview-label">Live Output Preview</div>
+    </div>
+    <div class="sources-panel">
+      <div class="source-category">Audio Visualizations</div>
+      <div class="source-item">
+        <div class="source-item-label">Audio Spectrum</div>
+        <div class="source-thumb">
+          <svg width="100%" height="100%" viewBox="0 0 240 60" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="specGrad" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0%" stop-color="#ff2266"/>
+                <stop offset="30%" stop-color="#ffaa00"/>
+                <stop offset="60%" stop-color="#00ff88"/>
+                <stop offset="100%" stop-color="#00ccff"/>
+              </linearGradient>
+            </defs>
+            <rect width="240" height="60" fill="#0a0a14"/>
+            <!-- Spectrum bars -->
+            <rect x="4" y="30" width="6" height="28" fill="url(#specGrad)" rx="1" opacity="0.9"/>
+            <rect x="12" y="20" width="6" height="38" fill="url(#specGrad)" rx="1" opacity="0.9"/>
+            <rect x="20" y="8" width="6" height="50" fill="url(#specGrad)" rx="1" opacity="0.95"/>
+            <rect x="28" y="12" width="6" height="46" fill="url(#specGrad)" rx="1" opacity="0.9"/>
+            <rect x="36" y="18" width="6" height="40" fill="url(#specGrad)" rx="1" opacity="0.85"/>
+            <rect x="44" y="5" width="6" height="53" fill="url(#specGrad)" rx="1" opacity="1"/>
+            <rect x="52" y="15" width="6" height="43" fill="url(#specGrad)" rx="1" opacity="0.9"/>
+            <rect x="60" y="22" width="6" height="36" fill="url(#specGrad)" rx="1" opacity="0.85"/>
+            <rect x="68" y="10" width="6" height="48" fill="url(#specGrad)" rx="1" opacity="0.95"/>
+            <rect x="76" y="25" width="6" height="33" fill="url(#specGrad)" rx="1" opacity="0.8"/>
+            <rect x="84" y="32" width="6" height="26" fill="url(#specGrad)" rx="1" opacity="0.75"/>
+            <rect x="92" y="18" width="6" height="40" fill="url(#specGrad)" rx="1" opacity="0.9"/>
+            <rect x="100" y="14" width="6" height="44" fill="url(#specGrad)" rx="1" opacity="0.9"/>
+            <rect x="108" y="28" width="6" height="30" fill="url(#specGrad)" rx="1" opacity="0.8"/>
+            <rect x="116" y="35" width="6" height="23" fill="url(#specGrad)" rx="1" opacity="0.7"/>
+            <rect x="124" y="20" width="6" height="38" fill="url(#specGrad)" rx="1" opacity="0.85"/>
+            <rect x="132" y="10" width="6" height="48" fill="url(#specGrad)" rx="1" opacity="0.95"/>
+            <rect x="140" y="24" width="6" height="34" fill="url(#specGrad)" rx="1" opacity="0.8"/>
+            <rect x="148" y="30" width="6" height="28" fill="url(#specGrad)" rx="1" opacity="0.75"/>
+            <rect x="156" y="16" width="6" height="42" fill="url(#specGrad)" rx="1" opacity="0.9"/>
+            <rect x="164" y="22" width="6" height="36" fill="url(#specGrad)" rx="1" opacity="0.85"/>
+            <rect x="172" y="34" width="6" height="24" fill="url(#specGrad)" rx="1" opacity="0.7"/>
+            <rect x="180" y="28" width="6" height="30" fill="url(#specGrad)" rx="1" opacity="0.8"/>
+            <rect x="188" y="38" width="6" height="20" fill="url(#specGrad)" rx="1" opacity="0.65"/>
+            <rect x="196" y="40" width="6" height="18" fill="url(#specGrad)" rx="1" opacity="0.6"/>
+            <rect x="204" y="44" width="6" height="14" fill="url(#specGrad)" rx="1" opacity="0.55"/>
+            <rect x="212" y="46" width="6" height="12" fill="url(#specGrad)" rx="1" opacity="0.5"/>
+            <rect x="220" y="48" width="6" height="10" fill="url(#specGrad)" rx="1" opacity="0.45"/>
+            <rect x="228" y="50" width="6" height="8" fill="url(#specGrad)" rx="1" opacity="0.4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-item-label">Audio Waveform</div>
+        <div class="source-thumb">
+          <svg width="100%" height="100%" viewBox="0 0 240 60" preserveAspectRatio="none">
+            <rect width="240" height="60" fill="#0a0a14"/>
+            <defs>
+              <linearGradient id="waveGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#ff2266"/>
+                <stop offset="25%" stop-color="#ff8800"/>
+                <stop offset="50%" stop-color="#00ff88"/>
+                <stop offset="75%" stop-color="#00ccff"/>
+                <stop offset="100%" stop-color="#7c3aed"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,30 Q10,10 20,30 Q30,50 40,30 Q50,5 60,30 Q70,55 80,30 Q90,12 100,30 Q110,48 120,30 Q130,8 140,30 Q150,52 160,30 Q170,14 180,30 Q190,46 200,30 Q210,18 220,30 Q230,42 240,30" fill="none" stroke="url(#waveGrad)" stroke-width="2.5" opacity="0.9"/>
+            <path d="M0,30 Q10,18 20,30 Q30,42 40,30 Q50,14 60,30 Q70,46 80,30 Q90,20 100,30 Q110,40 120,30 Q130,16 140,30 Q150,44 160,30 Q170,22 180,30 Q190,38 200,30 Q210,24 220,30 Q230,36 240,30" fill="none" stroke="url(#waveGrad)" stroke-width="1.5" opacity="0.5"/>
+          </svg>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-item-label">Chromatic Ring</div>
+        <div class="source-thumb">
+          <svg width="100%" height="100%" viewBox="0 0 240 60" preserveAspectRatio="none">
+            <rect width="240" height="60" fill="#0a0a14"/>
+            <circle cx="120" cy="30" r="22" fill="none" stroke="#ff2266" stroke-width="3" opacity="0.6"/>
+            <circle cx="120" cy="30" r="18" fill="none" stroke="#ffaa00" stroke-width="2" opacity="0.5"/>
+            <circle cx="120" cy="30" r="14" fill="none" stroke="#00ff88" stroke-width="2" opacity="0.6"/>
+            <circle cx="120" cy="30" r="10" fill="none" stroke="#00ccff" stroke-width="2" opacity="0.7"/>
+            <circle cx="120" cy="30" r="6" fill="#7c3aed" opacity="0.5"/>
+          </svg>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-item-label">Band Tower</div>
+        <div class="source-thumb">
+          <svg width="100%" height="100%" viewBox="0 0 240 60" preserveAspectRatio="none">
+            <rect width="240" height="60" fill="#0a0a14"/>
+            <rect x="30" y="5" width="25" height="50" rx="2" fill="#ff226640" stroke="#ff2266" stroke-width="1"/>
+            <rect x="65" y="10" width="25" height="45" rx="2" fill="#ff880040" stroke="#ff8800" stroke-width="1"/>
+            <rect x="100" y="2" width="25" height="53" rx="2" fill="#ffdd0040" stroke="#ffdd00" stroke-width="1"/>
+            <rect x="135" y="15" width="25" height="40" rx="2" fill="#00ff8840" stroke="#00ff88" stroke-width="1"/>
+            <rect x="170" y="25" width="25" height="30" rx="2" fill="#00ccff40" stroke="#00ccff" stroke-width="1"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-controls">
+      <div class="blackout-btn">Blackout</div>
+      <div class="master-btn">Master</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-btn">Master Sources</div>
+  <div class="footer-btn">Audio Player</div>
+  <div class="footer-btn">Outputs</div>
+  <div class="footer-spacer"></div>
+  <div class="footer-btn">Save</div>
+  <div class="footer-btn">Load</div>
+  <div class="footer-btn">Help</div>
+</div>
+
+<script>
+// Generate SVG knob with colored arc
+function createKnob(label, value, color, arcColor) {
+  const angle = -135 + (value / 100) * 270;
+  const startAngle = -135;
+  const rad = (a) => (a * Math.PI) / 180;
+  const cx = 26, cy = 26, r = 20;
+
+  // Arc path
+  function arcPath(start, end, radius) {
+    const x1 = cx + radius * Math.cos(rad(start));
+    const y1 = cy + radius * Math.sin(rad(start));
+    const x2 = cx + radius * Math.cos(rad(end));
+    const y2 = cy + radius * Math.sin(rad(end));
+    const large = (end - start) > 180 ? 1 : 0;
+    return `M${x1},${y1} A${radius},${radius} 0 ${large} 1 ${x2},${y2}`;
+  }
+
+  const bgEnd = startAngle + 270;
+  const valEnd = startAngle + (value / 100) * 270;
+
+  // Pointer
+  const px = cx + 14 * Math.cos(rad(valEnd));
+  const py = cy + 14 * Math.sin(rad(valEnd));
+
+  return `
+    <div class="knob-wrapper">
+      <div class="knob-label">${label}</div>
+      <svg class="knob-svg" viewBox="0 0 52 52">
+        <!-- Background track -->
+        <path d="${arcPath(startAngle, bgEnd, r)}" fill="none" stroke="#2a2a35" stroke-width="4" stroke-linecap="round"/>
+        <!-- Value arc -->
+        ${value > 0 ? `<path d="${arcPath(startAngle, valEnd, r)}" fill="none" stroke="${arcColor}" stroke-width="4" stroke-linecap="round" filter="url(#glow${color})"/>` : ''}
+        <!-- Glow filter -->
+        <defs>
+          <filter id="glow${color}" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- Center circle -->
+        <circle cx="${cx}" cy="${cy}" r="10" fill="#1a1a24" stroke="#333" stroke-width="1"/>
+        <!-- Pointer line -->
+        <line x1="${cx}" y1="${cy}" x2="${px}" y2="${py}" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <div class="knob-value">${value}%</div>
+    </div>
+  `;
+}
+
+// Layer data
+const layers = [
+  { name: 'Name 1', type: 'Mandelbulb', content: '3D Fractal', audio: 'Bass Energy', hue: 72, sat: 85, bright: 60, speed: 45, opacity: 0.9, play: true },
+  { name: 'Layer 2', type: 'Spectrum', content: 'Audio Viz', audio: 'Full Spectrum', hue: 30, sat: 70, bright: 80, speed: 55, opacity: 0.75, play: true },
+  { name: 'Layer 3', type: 'Kaleidoscope', content: 'Pattern', audio: 'Beat Phase', hue: 88, sat: 60, bright: 55, speed: 70, opacity: 0.85, play: true },
+  { name: 'Layer 4', type: 'Perlin Noise', content: 'Procedural', audio: 'Spectral Flux', hue: 50, sat: 90, bright: 45, speed: 30, opacity: 0.65, play: false },
+  { name: 'Layer 5', type: 'Julia Set', content: '2D Fractal', audio: 'RMS', hue: 65, sat: 75, bright: 70, speed: 80, opacity: 0.95, play: true },
+  { name: 'Layer 6', type: 'Video File', content: 'loop_01.mp4', audio: 'Onset', hue: 40, sat: 55, bright: 90, speed: 50, opacity: 0.5, play: false },
+  { name: 'Layer 7', type: 'Strange Attr.', content: 'Simulation', audio: 'Centroid', hue: 95, sat: 80, bright: 35, speed: 65, opacity: 0.7, play: true },
+  { name: 'Layer 8', type: 'Camera', content: 'Live Feed', audio: 'None', hue: 20, sat: 40, bright: 50, speed: 25, opacity: 0.6, play: false },
+];
+
+const container = document.getElementById('layerStrips');
+
+layers.forEach((layer, i) => {
+  const opacityH = Math.round(layer.opacity * 68);
+  const opacityY = 68 - opacityH;
+
+  const strip = document.createElement('div');
+  strip.className = 'layer-strip';
+  strip.innerHTML = `
+    <div class="layer-left">
+      <div class="layer-name">${layer.name}</div>
+      <div class="psm-buttons">
+        <div class="psm-btn play ${layer.play ? 'active' : ''}">P</div>
+        <div class="psm-btn solo">S</div>
+        <div class="psm-btn mute">M</div>
+      </div>
+    </div>
+    <div class="layer-info">
+      <div class="info-row"><span class="label">Engine Type</span><span class="value">${layer.type}</span></div>
+      <div class="info-row"><span class="label">Current Content</span><span class="value">${layer.content}</span></div>
+      <div class="info-row"><span class="label">Primary Audio</span><span class="value">${layer.audio}</span></div>
+    </div>
+    <div class="knobs-section">
+      ${createKnob('Hue', layer.hue, 'R' + i, '#ff3355')}
+      ${createKnob('Saturation', layer.sat, 'G' + i, '#33ff88')}
+      ${createKnob('Brightness', layer.bright, 'B' + i, '#3388ff')}
+      ${createKnob('Speed', layer.speed, 'O' + i, '#ff8833')}
+    </div>
+    <div class="opacity-section">
+      <div class="opacity-label">Opacity</div>
+      <div class="opacity-track">
+        <div class="opacity-fill" style="height:${opacityH}px;"></div>
+        <div class="opacity-thumb" style="bottom:${opacityH - 3}px;"></div>
+      </div>
+      <div style="font-size:9px; color:#ccc; font-family:monospace;">${Math.round(layer.opacity * 100)}%</div>
+    </div>
+    <div class="action-buttons">
+      <div class="action-btn strobe">Strobe</div>
+      <div class="action-btn slowmo">Slow Mo</div>
+      <div class="action-btn reset">Reset</div>
+      <div class="action-btn fxsend">FX Send</div>
+    </div>
+    <div class="expand-toggle">&#x25BC;</div>
+  `;
+  container.appendChild(strip);
+});
+</script>
+</body>
+</html>

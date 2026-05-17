@@ -1,0 +1,1651 @@
+<?xml version="1.0" encoding="utf-8"?>
+<contextual_help language="zh-Hans">
+  <default>
+    <title><![CDATA[説明]]></title>
+    <text><![CDATA[将鼠标移到需要资讯的介面上]]></text>
+  </default>
+  <help components="'Clear All Layers Button'">
+    <title><![CDATA[清除所有图层]]></title>
+    <text><![CDATA[停止所有在图层中播放的片段。]]></text>
+  </help>
+  <help components="'Bypass All Layers Button'">
+    <title><![CDATA[主略过]]></title>
+    <text><![CDATA[令所有输出变黑]]></text>
+  </help>
+  <help components="'selectCompositionEventButton'">
+    <title><![CDATA[合成]]></title>
+    <text><![CDATA[在预览视窗中预览合成, 并聚焦在合成页。]]></text>
+  </help>
+  <help components="'compositionMasterSlider'">
+    <title><![CDATA[主不透明度]]></title>
+    <text><![CDATA[将所有输出渐黑]]></text>
+  </help>
+  <help components="'speedSlider' 'compositionControlComponent'">
+    <title><![CDATA[整体速度控制]]></title>
+    <text><![CDATA[控制所有播放中的片段速度]]></text>
+  </help>
+  <help components="'forwardButton' 'compositionControlComponent'">
+    <title><![CDATA[全部视频向前播放]]></title>
+    <text><![CDATA[设置所有播放中的片段向前播放]]></text>
+  </help>
+  <help components="'backwardsButton' 'compositionControlComponent'">
+    <title><![CDATA[全部视频向後播放]]></title>
+    <text><![CDATA[设置所有播放中的片段向前播放]]></text>
+  </help>
+  <help components="'pauseButton' 'compositionControlComponent'">
+    <title><![CDATA[全部视频暂停]]></title>
+    <text><![CDATA[设置所有播放中的片段暂停]]></text>
+  </help>
+  <help components="'randomButton' 'compositionControlComponent'">
+    <title><![CDATA[全部视频随机播放]]></title>
+    <text><![CDATA[设置所有播放中的片段随机跳至片段中某影格]]></text>
+  </help>
+  <help components="'connectPrevColumn'">
+    <title><![CDATA[触发上一播放栏]]></title>
+    <text><![CDATA[移至上一个播放栏]]></text>
+  </help>
+  <help components="'connectNextColumn'">
+    <title><![CDATA[触发下一播放栏]]></title>
+    <text><![CDATA[移至下一个播放栏]]></text>
+  </help>
+  <help components="'vuBar' | 'fftBarsComponent'">
+    <title><![CDATA[等化器]]></title>
+    <text><![CDATA[为了填补这个空白，我们加入了FFT 视觉化程序，让你可以看到你的音频。但你是如何“看到“音频的呢？又能否“听到“音频呢？我们的星球是否只是一个行走在巨熊背後的球体呢？]]></text>
+  </help>
+  <help components="'columnTriggerComponent' 'groupedComponent' '' 'columnsViewport'">
+    <title><![CDATA[触发播放栏]]></title>
+    <text><![CDATA[触发後，立刻播放栏中所有的片段。]]></text>
+  </help>
+  <help components="'clearLayerButton'">
+    <title><![CDATA[清除图层]]></title>
+    <text><![CDATA[清除图层中播放的片段。]]></text>
+  </help>
+  <help components="'soloLayerButton'">
+    <title><![CDATA[单独播放图层]]></title>
+    <text><![CDATA[仅仅显示这个图层里所有的片段。]]></text>
+  </help>
+  <help components="'bypassLayerButton'">
+    <title><![CDATA[略过图层]]></title>
+    <text><![CDATA[让这个图层看不到。]]></text>
+  </help>
+  <help components="'blendModeComboboxLabel' 'blendModeCombobox' 'Layer Control Component'">
+    <title><![CDATA[选择图层混合模式]]></title>
+    <text><![CDATA[选择多种不同的图层混合模式]]></text>
+  </help>
+  <help components="'volumeSlider' 'Layer Control Component'">
+    <title><![CDATA[音频音量]]></title>
+    <text><![CDATA[调整图层中的音量。]]></text>
+  </help>
+  <help components="'masterSlider' 'Layer Control Component'">
+    <title><![CDATA[主图层]]></title>
+    <text><![CDATA[一次过调整图层的透明度及音量。]]></text>
+  </help>
+  <help components="'opacitySlider' 'Layer Control Component'">
+    <title><![CDATA[视频透明度]]></title>
+    <text><![CDATA[调整图层的透明度。取决於图层的混合模式，这个滑动控制会造成不同的视觉效果。]]></text>
+  </help>
+  <help components="'clipTriggerComponent' 'Layer Control Component'">
+    <title><![CDATA[当前播放片段]]></title>
+    <text><![CDATA[当前在图层中播放的片段。在片段属性面板中单击片段去调整其属性。]]></text>
+  </help>
+  <help components="'speedSlider' | 'n' 'speedSlider'">
+    <title><![CDATA[速度]]></title>
+    <text><![CDATA[设置片段在时间轴上回放之速度。1是正常值，2是加快两倍速度。]]></text>
+  </help>
+  <help components="'timelineSlider' '*' 'Layer Control Component'">
+    <title><![CDATA[时间轴]]></title>
+    <text><![CDATA[时间轴指出当前片段中之回放位置。移动播放把手去调整回放点。]]></text>
+  </help>
+  <help components="'' 'clipTriggerComponent' 'groupedComponent'">
+    <title><![CDATA[片段]]></title>
+    <text><![CDATA[触发片段。马上试试！这就是此刻需要播放的片段。]]></text>
+  </help>
+  <help components="'clipTriggerComponent' 'groupedComponent'">
+    <title><![CDATA[片段控制]]></title>
+    <text><![CDATA[点击片段的名字去预览，你也可以把片段拖拉到面板上的不同位置。]]></text>
+  </help>
+  <help components="'relocateButton'">
+    <title><![CDATA[重置片段]]></title>
+    <text><![CDATA[点击此按钮，重新在你电脑的深处找寻你片段的位置。]]></text>
+  </help>
+  <help components="'Layer Control Component' 'groupedComponent'">
+    <title><![CDATA[选择及预览图层]]></title>
+    <text><![CDATA[点击选择丶设置及预览此图层]]></text>
+  </help>
+  <help components="'groupAButton' | 'groupBButton'">
+    <title><![CDATA[指定交叉推杆汇流接口]]></title>
+    <text><![CDATA[这会指定群组或图层到交叉推杆中指定的汇流接口。]]></text>
+  </help>
+  <help components="'AVsliderTrans T' | 'Duration' 'transitionParamsComponent' | '*' 'spinner' 'paramBaseComponent' 'Duration' 'transitionParamsComponent'">
+    <title><![CDATA[过场时间]]></title>
+    <text><![CDATA[控制过场时间长度（0－10秒）。]]></text>
+  </help>
+  <help components="'transitionBlendModeButton' | 'Blend Mode' 'transitionMixerParamsComponent' |  '' '' 'paramBaseComponent' 'Blend Mode' 'transitionMixerParamsComponent'">
+    <title><![CDATA[选取过场方式]]></title>
+    <text><![CDATA[从表中选取一种过场方式，或选择随机选取。]]></text>
+  </help>
+  <help components="'connectPrevClip'">
+    <title><![CDATA[触发上一个片段]]></title>
+    <text><![CDATA[向後播放上一个片段。]]></text>
+  </help>
+  <help components="'connectNextClip'">
+    <title><![CDATA[触发下一个片段]]></title>
+    <text><![CDATA[向前播放下一个片段。]]></text>
+  </help>
+  <help components="'layerGroupControlComponent' 'groupedComponent'">
+    <title><![CDATA[选择及预览群组]]></title>
+    <text><![CDATA[点击选取，设定及预览群组。]]></text>
+  </help>
+  <help components="'clearLayerGroupButton'">
+    <title><![CDATA[清除群组]]></title>
+    <text><![CDATA[清除所有在群组中播放中的片段。]]></text>
+  </help>
+  <help components="'soloLayerGroupButton'">
+    <title><![CDATA[单独群组]]></title>
+    <text><![CDATA[单独显示所选取之群组，而不是其他群组。]]></text>
+  </help>
+  <help components="'bypassLayerGroupButton'">
+    <title><![CDATA[略过群组]]></title>
+    <text><![CDATA[让这个群组完全消失。]]></text>
+  </help>
+  <help components="'speedSlider' 'layerGroupControlComponent'">
+    <title><![CDATA[群组速度]]></title>
+    <text><![CDATA[设置群组中所有片段之播放速度。]]></text>
+  </help>
+  <help components="'forwardsButton' 'layerGroupControlComponent'">
+    <title><![CDATA[群组向前播放]]></title>
+    <text><![CDATA[设置群组中所有的片段向前播放]]></text>
+  </help>
+  <help components="'backwardsButton' 'layerGroupControlComponent'">
+    <title><![CDATA[群组向後播放]]></title>
+    <text><![CDATA[设置群组中所有的片段向後播放]]></text>
+  </help>
+  <help components="'pauseButton' 'layerGroupControlComponent'">
+    <title><![CDATA[群组暂停]]></title>
+    <text><![CDATA[暂停群组中所有的片段]]></text>
+  </help>
+  <help components="'randomButton' 'layerGroupControlComponent'">
+    <title><![CDATA[群组随机播放]]></title>
+    <text><![CDATA[设置群组中所有的片段随机播放]]></text>
+  </help>
+  <help components="'connectPrevColumn' 'layerGroupControlComponent'">
+    <title><![CDATA[触发上一个群组栏目]]></title>
+    <text><![CDATA[在这群组中的栏目中向後播放]]></text>
+  </help>
+  <help components="'connectNextColumn' 'layerGroupControlComponent'">
+    <title><![CDATA[触发下一个群组栏目]]></title>
+    <text><![CDATA[在这群组中的栏目中向前播放]]></text>
+  </help>
+  <help components="'columnTriggerComponent' 'groupedComponent' 'groupedComponent' '' 'clipsAndGroupsViewport'">
+    <title><![CDATA[群组栏目触发]]></title>
+    <text><![CDATA[立刻把群组栏目的所有片段打开。]]></text>
+  </help>
+  <help components="'crossFaderSlider'">
+    <title><![CDATA[交叉推杆]]></title>
+    <text><![CDATA[首先分图层予交叉推杆的A接口及B接口，然後将交叉推杆左至右移动， 右至左移动*wicka* *wicka*]]></text>
+  </help>
+  <help components="'fadeToAButton' | 'fadeToBButton'">
+    <title><![CDATA[淡出至汇流接口]]></title>
+    <text><![CDATA[点击切换交叉推杆至汇流接口。这个行为可於合成面板修改。]]></text>
+  </help>
+  <help components="'' '' '' '' '' 'LayersAndClips'">
+    <title><![CDATA[转盘]]></title>
+    <text><![CDATA[转盘含有片段，存於合成内。 一个合成可有多个转盘。转盘好像你的唱片而合成就是你的唱片箱。]]></text>
+  </help>
+  <help components="'*' '' '' '' '' '' 'LayersAndClips'">
+    <title><![CDATA[转盘]]></title>
+    <text><![CDATA[切换至这个转盘。]]></text>
+  </help>
+  <help components="'selectPrevDeckButton'">
+    <title><![CDATA[选择上一个转盘]]></title>
+    <text><![CDATA[向後选择上一个转盘]]></text>
+  </help>
+  <help components="'selectNextDeckButton'">
+    <title><![CDATA[选择下一个转盘]]></title>
+    <text><![CDATA[向前选择下一个转盘]]></text>
+  </help>
+  <help components="'barHighlightComponent'">
+    <title><![CDATA[拍子显示器]]></title>
+    <text><![CDATA[音乐拍子的视觉显示。四拍一小节，每四小节会有一闪动的黄色外框。让我们立刻跳舞吧。]]></text>
+  </help>
+  <help components="'linkToggle'">
+    <title><![CDATA[切换连接]]></title>
+    <text><![CDATA[这会让Resolume参与或离开任何可连结的Ableton Link 部分。]]></text>
+  </help>
+  <help components="'toolbarTempoComponent'">
+    <title><![CDATA[BPM 时钟]]></title>
+    <text><![CDATA[BPM时钟操纵Resolume内一切随音乐运行的东西]]></text>
+  </help>
+  <help components="'bpmValueLabel'">
+    <title><![CDATA[BPM值]]></title>
+    <text><![CDATA[当前的BPM]]></text>
+  </help>
+  <help components="'bpmIncButton' | 'bpmDecButton'">
+    <title><![CDATA[BPM调整]]></title>
+    <text><![CDATA[以单一增量调整BPM]]></text>
+  </help>
+  <help components="'bpmPullButton' | 'bpmPushButton'">
+    <title><![CDATA[BPM微调上／下]]></title>
+    <text><![CDATA[暂时微调BPM上下的数值。微调的百分比可於偏好设定中设置。]]></text>
+  </help>
+  <help components="'bpmDivideButton' | 'bpmMultiplyButton'">
+    <title><![CDATA[BPM 除/乘]]></title>
+    <text><![CDATA[将现时BPM速度减半或增加一倍]]></text>
+  </help>
+  <help components="'bpmTapButton'">
+    <title><![CDATA[BPM点撃器]]></title>
+    <text><![CDATA[随音乐点击此处，以设定BPM时钟。需要至少点击两下，点击四下或以上可增加准确率。]]></text>
+  </help>
+  <help components="'bpmResyncButton'">
+    <title><![CDATA[重新同步BPM时钟]]></title>
+    <text><![CDATA[重新让BPM时钟回到第一小节。用以重新校正BPM时钟。]]></text>
+  </help>
+  <help components="'bpmPauseButton'">
+    <title><![CDATA[暂停BPM时钟]]></title>
+    <text><![CDATA[暂停BPM时钟。]]></text>
+  </help>
+  <help components="'metronomeButton'">
+    <title><![CDATA[节拍器]]></title>
+    <text><![CDATA[滴答声转换成点击的时钟。]]></text>
+  </help>
+  <help components="'smpteLabel'">
+    <title><![CDATA[SMPTE]]></title>
+    <text><![CDATA[SMPTE可以用於根据外部时钟同步视频回放。]]></text>
+  </help>
+  <help components="'ToolbarSMPTEComponent'">
+    <title><![CDATA[SMPTE 输入]]></title>
+    <text><![CDATA[Resolume Arena有两个 SMPTE 输入端，能够同时连接两个DJ转盘。]]></text>
+  </help>
+  <help components="'SMPTEInputLabel1' | 'SMPTEInputLabel2'">
+    <title><![CDATA[SMPTE 入]]></title>
+    <text><![CDATA[现时输入SMPTE讯号的时间码。]]></text>
+  </help>
+  <help components="'smpteDelayCompensationSlider' | 'smpteDelayCompensationSlider1' | '*' 'smpteDelayCompensationSlider' | '*' 'smpteDelayCompensationSlider1' | 'delayLabel' | 'delayLabel2'">
+    <title><![CDATA[SMPTE输入延误补偿]]></title>
+    <text><![CDATA[容许以毫秒计算的偏移以补偿传入SMPTE信号的延误。]]></text>
+  </help>
+  <help components="'fftLabelComponent' | 'FFT Gain'">
+    <title><![CDATA[FFT输入增益]]></title>
+    <text><![CDATA[调整主要的FFT输入增益。提高输入音频的音量。]]></text>
+  </help>
+  <help components="'recordButton'">
+    <title><![CDATA[录制]]></title>
+    <text><![CDATA[记录现在输出到硬碟的视频。 点撃开始记录, 再点撃令其停止, 录下的片段则会加到转盘, 准备再次使用。]]></text>
+  </help>
+  <help components="'monitor' 'Output Monitor' | 'Output Monitor'">
+    <title><![CDATA[监视器]]></title>
+    <text><![CDATA[监视器是用来看看画面在发生什么事。输出览视器用来预览主要的混合输出。预览监视器可用来在混合素材前，预览该图层丶群组及档案之用。]]></text>
+  </help>
+  <help components="'menuButton' 'Output Monitor'">
+    <title><![CDATA[监视器设定]]></title>
+    <text><![CDATA[点击改变监视器的排列。]]></text>
+  </help>
+  <help components="'*' 'panelMonitorComponent' | 'foldComponentHeader' 'groupedComponent' | 'monitor' 'groupedComponent'">
+    <title><![CDATA[面板监视器]]></title>
+    <text><![CDATA[一个当前在面板上选择了的元素之实时预览。]]></text>
+  </help>
+  <help components="'*' 'dashboardComponent' | 'dashboardComponent' | '*' 'paramBaseComponent' 'dashboardComponent'">
+    <title><![CDATA[仪表盘]]></title>
+    <text><![CDATA[仪表盘快速地让你进入你的常用参数。抓住参数名称, 然後放到仪表盘上的拨轮，利用拨轮控制参数。你也可以拖拉多个参数在拨轮上去同一时间控制多个参数。]]></text>
+  </help>
+  <help components="'*' 'commonParamsComponent' | 'commonParamsComponent'">
+    <title><![CDATA[共用]]></title>
+    <text><![CDATA[在这面板里，你可以调整那些影响音频及视频播放的属性。]]></text>
+  </help>
+  <help components="'*' 'audioParamsComponent' | 'audioParamsComponent'">
+    <title><![CDATA[音频]]></title>
+    <text><![CDATA[控制面板中的音频。]]></text>
+  </help>
+  <help components="'*' 'videoParamsComponent' | 'videoParamsComponent' | '*' '*' 'videoParamsComponent'">
+    <title><![CDATA[视频]]></title>
+    <text><![CDATA[控制面板中的视频。]]></text>
+  </help>
+  <help components="'*' 'crossFaderParamsComponent' | 'crossFaderParamsComponent' | '*' '*' 'crossFaderParamsComponent'">
+    <title><![CDATA[交叉推杆]]></title>
+    <text><![CDATA[调整交叉推杆的动作。]]></text>
+  </help>
+  <help components="'renderPassComponent' | '*' 'renderPassComponent' | '*' '*' 'renderPassComponent' | '*' 'groupedComponent' '' 'renderPassComponent'">
+    <title><![CDATA[视频特效]]></title>
+    <text><![CDATA[调整面板中选中的视频属性。]]></text>
+  </help>
+  <help components="'audioEffectComponent' | '*' 'audioEffectComponent' | '*' '*' 'audioEffectComponent'">
+    <title><![CDATA[音频特效]]></title>
+    <text><![CDATA[调整面板中选中的音频属性。]]></text>
+  </help>
+  <help components="'uiButton' 'audioEffectComponent'">
+    <title><![CDATA[VST]]></title>
+    <text><![CDATA[为VST插件打开自订的使用者界面。]]></text>
+  </help>
+  <help components="'PresetsButton'">
+    <title><![CDATA[特效预设]]></title>
+    <text><![CDATA[特效预设是用来快速把特效中的参数设置到特定的值。在此选单中选择“储存“去创建一个新的预设。]]></text>
+  </help>
+  <help components="'bypassButton'">
+    <title><![CDATA[略过特效]]></title>
+    <text><![CDATA[取消特效但不用把之删除。]]></text>
+  </help>
+  <help components="'removeButton'">
+    <title><![CDATA[删除特效]]></title>
+    <text/>
+  </help>
+  <help components="'paramColorPickerComponent' | '*' 'paramColorPickerComponent' | '*' '*' '*' '*' 'paramColorComponent' | '*' '*' '*' '*' '*' 'paramColorPickerComponent'">
+    <title><![CDATA[颜色选取器]]></title>
+    <text><![CDATA[透过全色谱丶HSB滑动值丶RGB滑动值或您根据喜好设定的色标中选取颜色。]]></text>
+  </help>
+  <help components="'Composition'">
+    <title><![CDATA[合成面板]]></title>
+    <text><![CDATA[所有关於面板的资讯，你都可以在这里找到。遮罩丶特效丶名称。任可你在这里做的动作都会应用到当前的合成上。]]></text>
+  </help>
+  <help components="'nameLabel' 'Composition'">
+    <title><![CDATA[合成名称]]></title>
+    <text><![CDATA[当前合成的名称及解像度。]]></text>
+  </help>
+  <help components="'menuButton' '' 'Composition'">
+    <title><![CDATA[合成菜单]]></title>
+    <text><![CDATA[打开合成菜单。]]></text>
+  </help>
+  <help components="'Layer' | 'layerPropertiesComponent' | 'layerPropertiesHeaderComponent' 'Layer'">
+    <title><![CDATA[使用中的图层面板]]></title>
+    <text><![CDATA[使用中的图层资讯都可以在这里找到，包括遮罩丶特效等。名称。任可你在这里做的动作都会应用到当前的图层上。]]></text>
+  </help>
+  <help components="'nameLabel' 'layerPropertiesHeaderComponent'">
+    <title><![CDATA[图层名称]]></title>
+    <text><![CDATA[这个图层的名称。点击修改。]]></text>
+  </help>
+  <help components="'menuButton' 'layerPropertiesHeaderComponent'">
+    <title><![CDATA[图层菜单]]></title>
+    <text><![CDATA[打开图层菜单。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'layerAutoPilotComponent' | 'layerAutoPilotComponent'">
+    <title><![CDATA[自动导航]]></title>
+    <text><![CDATA[自动导航可用於播放图层中的所有片段。不如让Resolume的自动导航帮忙你一下，让你可以品尝那杯期待以久的饮品，如何？]]></text>
+  </help>
+  <help components="'backwardsButton2' 'layerAutoPilotComponent'">
+    <title><![CDATA[自动导航向後播放]]></title>
+    <text><![CDATA[让当前图层中的片段反序播放。]]></text>
+  </help>
+  <help components="'forwardsButton2' 'layerAutoPilotComponent'">
+    <title><![CDATA[自动导航向前播放]]></title>
+    <text><![CDATA[让当前图层中的片段顺序播放]]></text>
+  </help>
+  <help components="'pauseButton2' 'layerAutoPilotComponent'">
+    <title><![CDATA[自动导航暂停]]></title>
+    <text><![CDATA[关闭自动导航。你重新话事了。]]></text>
+  </help>
+  <help components="'randomButton2' 'layerAutoPilotComponent'">
+    <title><![CDATA[自动导航随机播放]]></title>
+    <text><![CDATA[按随机次序播放图层中的片段。]]></text>
+  </help>
+  <help components="'*' 'transitionParamsComponent'">
+    <title><![CDATA[转场]]></title>
+    <text><![CDATA[调整转场的属件。这个控制项与图层上的控制项是相对应的。]]></text>
+  </help>
+  <help components="'Group' | | '*' 'Group'">
+    <title><![CDATA[使用中的群组面板]]></title>
+    <text><![CDATA[所有使用中的群组资讯都能在这里找到。遮罩丶特效及名称。任可你在这里做的动作都会应用到当前的群组上。]]></text>
+  </help>
+  <help components="'nameLabel' '' 'Group'">
+    <title><![CDATA[群组名称]]></title>
+    <text><![CDATA[这个群的名称。点击去修改。]]></text>
+  </help>
+  <help components="'menuButton' '' 'Group'">
+    <title><![CDATA[群组菜单]]></title>
+    <text><![CDATA[打开群组菜单]]></text>
+  </help>
+  <help components="'Clip' | '' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[使用中的片段栏标]]></title>
+    <text><![CDATA[所有使用中的片段资讯都能在这里找到。遮罩丶特效及名称。任可你在这里做的动作都会应用到当前的片段上。]]></text>
+  </help>
+  <help components="'nameLabel' '' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[片段名称]]></title>
+    <text><![CDATA[点击这里修改片段的名称。]]></text>
+  </help>
+  <help components="'menuButton' '' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[片段菜单]]></title>
+    <text><![CDATA[打开片段菜单]]></text>
+  </help>
+  <help components="'transportTypeComboBoxLabel'">
+    <title><![CDATA[播放模式]]></title>
+    <text><![CDATA[选择片段回放的时机。时间轴让你手动控制播放速度，BPM同步把片段同步到主BPM播放。在Arena中，你还可以选择使用同步到某视频的SMPTE时间。]]></text>
+  </help>
+  <help components="'*' 'clipProperties' | 'foldComponentHeader' '*' 'clipProperties'">
+    <title><![CDATA[片段播放控制]]></title>
+    <text><![CDATA[在这里，你可以控制你的片段如何回放。向前丶向後丶快点丶慢点，由你决定。]]></text>
+  </help>
+  <help components="'timeLabelButton">
+    <title><![CDATA[片段时间]]></title>
+    <text><![CDATA[当前片段影格的时间秒数。按一下把之转换成剩馀时间秒数。]]></text>
+  </help>
+  <help components="'paramSlider' '*' 'clipProperties'">
+    <title><![CDATA[时间轴]]></title>
+    <text><![CDATA[时间轴指出片段的回放位置。抓取播放指针前後拖曳改变播放点。使用起始及终结点去裁切片段播放长度。]]></text>
+  </help>
+  <help components="'*' '*' 'clipTransportTimelineComponent' |   '*' '*' '*' '*' '*' 'clipTransportTimelineComponent' | '*' '*' '*' '*' 'clipTransportTimelineComponent'">
+    <title><![CDATA[时间轴速度]]></title>
+    <text><![CDATA[控制这个片段回放的速度。]]></text>
+  </help>
+  <help components="'*' '*' 'clipTransportVideoComponent' | '*' '*' '*' 'clipTransportVideoComponent' |  '*' '*' '*' '*' 'clipTransportVideoComponent'">
+    <title><![CDATA[BPM速度]]></title>
+    <text><![CDATA[控制这个片段根据BPM及拍子而回放的速度。]]></text>
+  </help>
+  <help components="'' 'groupedComponent' 'clipTransportSMPTEComponent' | '*' '' 'groupedComponent' 'clipTransportSMPTEComponent'">
+    <title><![CDATA[设置SMPTE输入]]></title>
+    <text><![CDATA[快速切换片段需要同步的SMPTE位置。你还可以周整它的偏移。]]></text>
+  </help>
+  <help components="'forwardButton'">
+    <title><![CDATA[向前播放]]></title>
+    <text/>
+  </help>
+  <help components="'backwardsButton'">
+    <title><![CDATA[向後播放]]></title>
+    <text/>
+  </help>
+  <help components="'pauseButton'">
+    <title><![CDATA[暂停回放]]></title>
+    <text/>
+  </help>
+  <help components="'randomButton'">
+    <title><![CDATA[随机播放]]></title>
+    <text><![CDATA[随机跳到视频中的帧数. 当片段处於BPM同步模式, 它会跳到随机的拍子并播放, 跳到随机的拍子并播放, 再跳到随机的拍子并播放。]]></text>
+  </help>
+  <help components="'loopButton'">
+    <title><![CDATA[循环播放]]></title>
+    <text><![CDATA[当片段播完时, 回到最初继续播放。然後当片段播完时, 回到最初继续播放。 然後又当片段播完时, 回到最初继续播放。]]></text>
+  </help>
+  <help components="'bounceButton'">
+    <title><![CDATA[反弹播放]]></title>
+    <text><![CDATA[以前丶後丶前丶後的方式切换时间线上视频播放的方向。]]></text>
+  </help>
+  <help components="'playOnceButton'">
+    <title><![CDATA[播放一次]]></title>
+    <text><![CDATA[将时间线播放一次，然後消失。]]></text>
+  </help>
+  <help components="'playOnceAndHoldButton'">
+    <title><![CDATA[播一次就停顿]]></title>
+    <text><![CDATA[将整条片段播放一次, 然後屏幕停在最後一帧上。]]></text>
+  </help>
+  <help components="'rewindButton'">
+    <title><![CDATA[重新开始]]></title>
+    <text><![CDATA[触发时，片段从头开始播放。]]></text>
+  </help>
+  <help components="'continueButton'">
+    <title><![CDATA[继续]]></title>
+    <text><![CDATA[继续从刚才的停下的地方播放。]]></text>
+  </help>
+  <help components="'playRelativeButton'">
+    <title><![CDATA[相对]]></title>
+    <text><![CDATA[继续於上一条片段结束的地方播放当前片段。为何不何？]]></text>
+  </help>
+  <help components="'beatLooperComponent' | 'foldComponentHeader' 'beatLooperComponent' | '*' 'beatLooperComponent' 'clipProperties'">
+    <title><![CDATA[节奏循环器]]></title>
+    <text><![CDATA[立刻按量化长度循环播放片段。 有趣得很!]]></text>
+  </help>
+  <help components="'cuePointsComponent' | 'foldComponentHeader' 'cuePointsComponent'">
+    <title><![CDATA[提示点]]></title>
+    <text><![CDATA[利用此6个提示点跳到片段中的不同位置。按下其中一个小箭头按钮来设定提示点。利用相应的按钮跳到该提示点。]]></text>
+  </help>
+  <help components="'cueSetButton'">
+    <title><![CDATA[设定提示点]]></title>
+    <text><![CDATA[提示点会於按钮按下时设定。利用右边较大的按钮重新跳到该位置。]]></text>
+  </help>
+  <help components="'cueJumpButton'">
+    <title><![CDATA[跳到提示点]]></title>
+    <text><![CDATA[跳到左边提示按钮设定的位置。]]></text>
+  </help>
+  <help components="'AudioTrackInfoComponent'">
+    <title><![CDATA[片段音频]]></title>
+    <text><![CDATA[使用中片段的音轨资讯。]]></text>
+  </help>
+  <help components="'VideoTrackInfoComponent'">
+    <title><![CDATA[片段视频]]></title>
+    <text><![CDATA[使用中片段的视频资讯。在这个你可以看到编码，分辨率，视频祯率及片段长度。把档案拖拉到这个区域取代当前的视频，而其他属性及特效设定则保持不变。]]></text>
+  </help>
+  <help components="'removeButton' 'AudioTrackInfoComponent'">
+    <title><![CDATA[移除音频]]></title>
+    <text><![CDATA[从片段中移除音频。]]></text>
+  </help>
+  <help components="'removeButton' 'VideoTrackInfoComponent'">
+    <title><![CDATA[移除视频]]></title>
+    <text><![CDATA[从片段中移除视频。]]></text>
+  </help>
+  <help components="'scaleToFitButton'">
+    <title><![CDATA[视频最大化]]></title>
+    <text><![CDATA[视频按合成大小缩放。]]></text>
+  </help>
+  <help components="'colorsRButton' | 'colorsGButton' | 'colorsBButton'">
+    <title><![CDATA[切换颜色通道]]></title>
+    <text><![CDATA[把视讯中的红丶绿丶蓝通道切换至打开或关闭。右键点击是单独看某一颜色通道。]]></text>
+  </help>
+  <help components="'colorsAButton'">
+    <title><![CDATA[Alpha通道]]></title>
+    <text><![CDATA[如果视讯中有alpha通道，你可以使用这个按钮打开或关闭该通道。]]></text>
+  </help>
+  <help components="'Blend Mode' 'videoMixerParamsComponent' 'trackSettingsComponent'">
+    <title><![CDATA[使图层混合模式无效化]]></title>
+    <text><![CDATA[使用这个下拉选项，你可以强制片段长期使用特定的混合模式，而不受图层中混合模式的影响。]]></text>
+  </help>
+  <help components="'*' 'renderPassGeneratorComponent' | '*' '*' 'renderPassGeneratorComponent'">
+    <title><![CDATA[生成器参数]]></title>
+    <text><![CDATA[调整这个生成素材的外观及感觉。]]></text>
+  </help>
+  <help components="'Duration' 'groupedComponent'">
+    <title><![CDATA[长度]]></title>
+    <text><![CDATA[这是当算动导航开啓时片段播放的长度，时间是以秒数显示。]]></text>
+  </help>
+  <help components="'Input' 'videoSettingsComponent'">
+    <title><![CDATA[视讯路由器输入]]></title>
+    <text><![CDATA[选取视讯路由器的输入端。你可以在路由器下选择特定的图层丶群组或图层混合的结果。你也可以选择预览。]]></text>
+  </help>
+  <help components="'Input Opacity' 'groupedComponent'">
+    <title><![CDATA[视讯路由器输入不透明度]]></title>
+    <text><![CDATA[选择路由器使不使用来源视讯的不透明度设定。基本上有两个模式切换，分别是推杆前／推杆後。]]></text>
+  </help>
+  <help components="'Input Bypass/Solo' 'groupedComponent'">
+    <title><![CDATA[视讯路由器略过或单独]]></title>
+    <text><![CDATA[选择路由器使不使用来源视讯的略过及单独设定。]]></text>
+  </help>
+  <help components="'Alpha Type'">
+    <title><![CDATA[Alpha通道解读]]></title>
+    <text><![CDATA[选择Resolume应如何解读这个片段的alpha通道。预乘透明度是最常用的。如果你看到内容周围有奇怪的光边，切换至直线透明度。]]></text>
+  </help>
+  <help components="'Servers' 'videoSettingsComponent' | 'Syphon Servers' 'videoSettingsComponent'">
+    <title><![CDATA[选取伺服器]]></title>
+    <text><![CDATA[可用的伺服器会在清单中显示。你可以从中选择一个。]]></text>
+  </help>
+  <help components="'*' 'videoSettingsComponent'">
+    <title><![CDATA[镜头输入设置]]></title>
+    <text><![CDATA[在这里你可以调整指定的现场摄像机输入设定。如果你的设备支持，视讯格式会自动更新至正确之设定。]]></text>
+  </help>
+  <help components="'*' 'paramBaseComponent'">
+    <title><![CDATA[参数]]></title>
+    <text><![CDATA[向右点撃参数将其重设。抓住参数名称, 然後放到仪表盘上的拨轮，利用拨轮控制参数。点撃黑箭头选取其参数中的一个动态选项。]]></text>
+  </help>
+  <help components="'*' 'spinner' 'paramBaseComponent'">
+    <title><![CDATA[微移参数]]></title>
+    <text><![CDATA[按 ＋ 和 －去精准改变参数。或以拖拉方法粗糙地调整参数。右击还原预设值。]]></text>
+  </help>
+  <help components="'toggleButton' 'paramBaseComponent'">
+    <title><![CDATA[切换参数]]></title>
+    <text><![CDATA[你试了把它再次打开及关闭了吗？]]></text>
+  </help>
+  <help components="'choiceButton1' 'paramBaseComponent' | 'choiceButton2' 'paramBaseComponent' | 'choiceButton3' 'paramBaseComponent' | 'choiceButton4' 'paramBaseComponent' | 'choiceButton5' 'paramBaseComponent'">
+    <title><![CDATA[选项参数]]></title>
+    <text><![CDATA[这会让你控制]]></text>
+  </help>
+  <help components="'paramSliderLabel' 'paramSlider' 'paramBaseComponent' | 'colorSliderLabel' 'colorSlider' 'paramBaseComponent' | '' '' 'paramBaseComponent' | 'spinnerLabel' 'spinner' 'paramBaseComponent' | 'colorDisplay' 'paramColorComponent'">
+    <title><![CDATA[参数值]]></title>
+    <text><![CDATA[参数实际使用上有意义的值及使用单位。旋转是角度，大小是百分比，声音电平是分贝等等。]]></text>
+  </help>
+  <help components="'paramSlider' 'paramTimelineComponent' 'paramBaseComponent' | 'paramTimelineComponent' 'paramBaseComponent'">
+    <title><![CDATA[时间轴参数动态化]]></title>
+    <text><![CDATA[根据时间轴上设置的速度，循环播放状态及方向等，动态化参数。]]></text>
+  </help>
+  <help components="'paramRangeSlider' 'paramLinkComponent' 'paramBaseComponent' | 'speedDialsComboBoxLabel' 'speedDialsComboBox' 'paramLinkComponent' 'paramBaseComponent' | 'linkRangeSliderText' 'paramLinkComponent' 'paramBaseComponent' | 'linkRangeSlider' 'paramLinkComponent' 'paramBaseComponent'">
+    <title><![CDATA[连接仪表盘拨轮]]></title>
+    <text><![CDATA[参数的值会由所连结之拨轮去决定。请注意一个拨轮可以控制多个参数！所以你可以同一时间控制一个视讯特效及音频特效的参数。什么？]]></text>
+  </help>
+  <help components="'parameterTimelineSliderBpm' | '*' 'ParamLinkBPMComponent' 'paramBaseComponent' | '*' 'parameterBeatSpinner' 'ParamLinkBPMComponent' 'paramBaseComponent' | 'ParamLinkBPMComponent' 'paramBaseComponent'">
+    <title><![CDATA[BPM 参数动态化]]></title>
+    <text><![CDATA[根据主BPM时钟同步动态化参数。]]></text>
+  </help>
+  <help components="'invertToggleButton' | 'toggleButton' 'parameterBaseComponent'">
+    <title><![CDATA[倒置值]]></title>
+    <text><![CDATA[反向绘制数值。比如，低的输入值会导致高参数值。]]></text>
+  </help>
+  <help components="'ParamLinkFFTBasicComponent' | '*' 'ParamLinkFFTBasicComponent' 'paramBaseComponent' | '*' 'ParamLinkFFTExtendedComponent' 'paramBaseComponent' 'paramBaseComponent' | 'ParamLinkFFTExtendedComponent'">
+    <title><![CDATA[FFT参数]]></title>
+    <text><![CDATA[根据来源音频的峰值移动参数。跟着低音鼓节奏律动。]]></text>
+  </help>
+  <help components="'' 'paramEnvelopeComponent' 'paramBaseComponent' | '' '' 'paramEnvelopeComponent' 'paramBaseComponent'">
+    <title><![CDATA[波封]]></title>
+    <text><![CDATA[重新利用自订的曲线调整输出的参数。双击去加入或移除影格，右击每一个影格去改变它的插值。]]></text>
+  </help>
+  <help components="'searchBar' | '*' 'searchBar' | 'clearFilterButton'">
+    <title><![CDATA[搜寻]]></title>
+    <text><![CDATA[开始在搜寻列中打字以收窄搜索范围。点击CTRL-?快速跳至搜寻工具。]]></text>
+  </help>
+  <help components="'Slices' | '' '' '' 'treeView' 'Slices' | 'treeView' 'Slices'">
+    <title><![CDATA[切片浏览器]]></title>
+    <text><![CDATA[所有当前在进阶输出中使用的切片都会显示在这个列表。你可以把它们拖到合成丶群组丶图层或片段面板去制作以切片输入为基础之特效。拖拉整个屏幕去看快速结果或单独切片去做更好的选择。]]></text>
+  </help>
+  <help components="'Files' | '' 'Files' | '' '' '' '' 'Files'">
+    <title><![CDATA[档案浏览器]]></title>
+    <text><![CDATA[从浏览器中拖拉档案到转盘中任一片段上以载入。双击档案在预览监视器中预览。]]></text>
+  </help>
+  <help components="'upButton' 'Files'">
+    <title><![CDATA[上一个目录]]></title>
+    <text><![CDATA[在档案系统中往上一个目录]]></text>
+  </help>
+  <help components="'*' 'currentDirectoryComboBox' 'Files' | 'currentDirectoryComboBox' 'Files'">
+    <title><![CDATA[目录选择]]></title>
+    <text><![CDATA[在这里选择不同的硬盘及目录。]]></text>
+  </help>
+  <help components="'favouriteButton' 'Files'">
+    <title><![CDATA[最好的目录！]]></title>
+    <text><![CDATA[加入或移除当前目录到你的喜爱目录中。所有的目录都是平等的，但有一些是更值得归纳在一起的。]]></text>
+  </help>
+  <help components="'listTypeButton' 'Files'">
+    <title><![CDATA[显示预览]]></title>
+    <text><![CDATA[当打开浏览器会显示图片及视讯档案预览。这可能会让系统慢下来，特别是当这个档案是首次打开。]]></text>
+  </help>
+  <help components="'Compositions' | 'ComponentTVIComposition' | 'ComponentTVIDeck'">
+    <title><![CDATA[合成／转盘]]></title>
+    <text><![CDATA[这个清单包含了所有你已储存的合成及其转盘。双击合成或转盘载入。你可以从任何一个合成载入一个转盘到你当前的合成中。]]></text>
+  </help>
+  <help components="'Effects' | 'videoEffectsButton' | 'audioEffectsButton' | '' '' '' 'treeView' '*' 'effectListsComponent' 'Effects' | 'treeView' '*' 'effectListsComponent' 'Effects'">
+    <title><![CDATA[音频及视讯特效]]></title>
+    <text><![CDATA[列出所有音频及视讯特效的预设。把特效，拖撞到片段丶图层丶群组及合成中。双击去在当前的选项中预览效果。]]></text>
+  </help>
+  <help components="'Sources' | 'Sources Tree View' | '' '' '' 'Sources Tree View'">
+    <title><![CDATA[素材]]></title>
+    <text><![CDATA[这里含有各类型的视讯和音频素材，以及所有你电脑可用的捕捉装置丶 NDI和 Spout／Syphon伺服器，生成的 FFGL的插件，以及有趣的回馈及魔术一样的视讯路由器。拖曳片段进行使用或双击去预监。]]></text>
+  </help>
+  <help components="'*' '*' 'Help'">
+    <title><![CDATA[帮助！帮助！]]></title>
+    <text><![CDATA[不要把鼠标指向我呀！]]></text>
+  </help>
+  <help components="'closeHelpButton'">
+    <title><![CDATA[关闭帮助]]></title>
+    <text><![CDATA[如果你觉得你什么都知道，请关闭我。我会在视图菜单中等待你！]]></text>
+  </help>
+  <help components="'currentTimeLabel'">
+    <title><![CDATA[当前时间]]></title>
+    <text><![CDATA[我迟到了！迟到了！要出席一个重要的约会！没有时间跟你问好，再见了！我迟到了！迟到了！]]></text>
+  </help>
+  <help components="'statusbarLabel'">
+    <title><![CDATA[当前版本]]></title>
+    <text><![CDATA[看你的版本是否最新？]]></text>
+  </help>
+  <help components="'Shortcuts'">
+    <title><![CDATA[键盘丶MIDI丶OSC及DMX捷径]]></title>
+    <text><![CDATA[任何一个有颜色的介面元素都可以用捷径指定连接。简单点击该处及键入相应的键盘按键或MIDI讯息便可控制该处。按delete键或backspace键去移除捷径。]]></text>
+  </help>
+  <help components="'' '' 'shortcutXmlStatesPickerComponent' 'ShortcutsTreeViewComponent'">
+    <title><![CDATA[捷径预设]]></title>
+    <text><![CDATA[在这里你可以改变那一个捷径是当前可使用的。捷径预设是非常方便的！你可以使用不同的预设给不同的MIDI控制装置，或使用不同的预设因应不同的VJ风格。]]></text>
+  </help>
+  <help components="'' '' '' 'treeView' 'ShortcutsTreeViewComponent' | 'treeView' 'ShortcutsTreeViewComponent'">
+    <title><![CDATA[捷径列表]]></title>
+    <text><![CDATA[一个当前在此预设中所有使用中的捷径列表。若果有捷径使用同一方法，会以红色显示。捷径当前没法使用会以灰色显示。右击去改变排列顺序。]]></text>
+  </help>
+  <help components="'targetTypeComboboxLabel' | 'targetLabel'">
+    <title><![CDATA[捷径目标]]></title>
+    <text><![CDATA[这里是决定捷径实际控制什么。“选取。“意指捷径对於当前选取的片段，图层及群组有效。“这个…“意指你长久地控制这特定的片段，图层及群组，无论你怎样移动它在合成中位置。“因应位置”意指捷径控制指定的位置，例如你可以长久控制图层一，无论你怎样移动图层。]]></text>
+  </help>
+  <help components="'modeLabel' | 'modeComboBoxLabel'">
+    <title><![CDATA[捷径模式]]></title>
+    <text><![CDATA[在这里，你可以改变捷径的模式。两个最主要的模式和必需认识的是切换模式及输入值模式。切换模式让你每次按键时切换两个指定的数值。而输入值则是把参数设定为一固定数值。如果你需要对所有模式有全盘的理解，请去看说明书。嗯…阅读中…]]></text>
+  </help>
+  <help components="'pianoButton'">
+    <title><![CDATA[钢琴模式]]></title>
+    <text><![CDATA[按键时参数会跳到最大值。 放开键时参数值回到最小值。]]></text>
+  </help>
+  <help components="'rangeLabel' | 'rangeSlider' | 'midiRangeSlider' | 'midiRangeLabel'">
+    <title><![CDATA[参数范围]]></title>
+    <text><![CDATA[设定参数的最大值及最小值。]]></text>
+  </help>
+  <help components="'mouseXButton'">
+    <title><![CDATA[滑鼠左右移动]]></title>
+    <text><![CDATA[按住一键，同时左右移动滑鼠，以控制参数。]]></text>
+  </help>
+  <help components="'mouseYButton'">
+    <title><![CDATA[滑鼠上下移动]]></title>
+    <text><![CDATA[按住一键，同时上下移动滑鼠，以控制参数。]]></text>
+  </help>
+  <help components="'invertButton'">
+    <title><![CDATA[倒置滑鼠行为]]></title>
+    <text><![CDATA[上下颠倒，左右掉换。]]></text>
+  </help>
+  <help components="'valueSlider' | 'valueLabel'">
+    <title><![CDATA[设置值]]></title>
+    <text><![CDATA[使用这个设定参数到某特定的值。]]></text>
+  </help>
+  <help components="'midiChannelLabel' | 'midiChannelComboBoxLabel' | 'midiKeyLabel' | 'midiNoteComboBoxLabel' | 'midiControllerNumberLabel' | 'midiControllerNumberComboBoxLabel'">
+    <title><![CDATA[MIDI讯息]]></title>
+    <text><![CDATA[当你使用MIDI学习，这个选项会自动被选上，但你在这里可以作手动改变。]]></text>
+  </help>
+  <help components="'midiControllerTypeLabel' | 'midiControllerTypeComboBoxLabel'">
+    <title><![CDATA[MIDI控制器模式]]></title>
+    <text><![CDATA[无限拨轮应设定为“相应值“.固定的MIDI控制器设定为“绝度值“。按钮如果输出MIDI CCs是一件违反自然的事，但当你设定为“按钮“时便可使用。]]></text>
+  </help>
+  <help components="'invertValueToggle'">
+    <title><![CDATA[倒置值]]></title>
+    <text><![CDATA[高低值反向输出。]]></text>
+  </help>
+  <help components="'stepLabel' | '*' Step Slider' | 'stepSizeLabel'">
+    <title><![CDATA[步大小]]></title>
+    <text><![CDATA[让参数值以精细或粗略方式改变。]]></text>
+  </help>
+  <help components="'loopValueToggle'">
+    <title><![CDATA[循环参数值]]></title>
+    <text><![CDATA[当参数值达到最大或最小值时, 将其再次循环。]]></text>
+  </help>
+  <help components="'midiOutVelocityLabel'">
+    <title><![CDATA[MIDI输出速度]]></title>
+    <text><![CDATA[此MIDI状态之实际输出速度。这个设置会改变控制器按键上的颜色。每一个控制器都会有其特定之颜色预设。但作为一个初始协助，我们可以预览一下APC40Mk2和APC Mini的色标。]]></text>
+  </help>
+  <help components="'velocityStatusLabel' | 'velocityStatusComboBoxLabel'">
+    <title><![CDATA[MIDI输出状态]]></title>
+    <text><![CDATA[一个下拉选项让你选择MIDI按钮输出时各个状态的速度。大部分的按钮只是颜色亮与不亮。但如果用来做片段触发时，就会有5个不同的状态！色彩斑烂！]]></text>
+  </help>
+  <help components="'velocityValueLabel' | ' '' '' '*' 'shortcutEditorMIDINoteComponent''">
+    <title><![CDATA[MIDI 输出速度]]></title>
+    <text><![CDATA[此MIDI状态之实际输出速度。这个设置会改变控制器按键上的颜色。每一个控制器都会有其特定之颜色预设。但作为一个初始协助，我们可以预览一下APC40Mk2和APC Mini的色标。]]></text>
+  </help>
+  <help components="'oscInputLabel' | 'shortcutInputAddressLabel'">
+    <title><![CDATA[OSC 输入]]></title>
+    <text><![CDATA[当前选取介面元素的OSC输入地址。第一地址为絶对地址且长期有效。第二地址会因当前的选择而控制不同的元素。来源地址是不能更改的。]]></text>
+  </help>
+  <help components="'shortcutEditorOSCComponent' | 'typeTagLabel'">
+    <title><![CDATA[OSC 类型标签]]></title>
+    <text><![CDATA[这个标签会告诉你OSC地址所需要输入的值（浮动值丶整数及字串），以及输入数值之范围。]]></text>
+  </help>
+  <help components="'enableOutputButton' |'oscOutputLabel'">
+    <title><![CDATA[OSC 输出]]></title>
+    <text><![CDATA[选此方框，从现选介面元素开启OSC输出。]]></text>
+  </help>
+  <help components="'wildcardComboBoxLabel'">
+    <title><![CDATA[OSC 输出外卡]]></title>
+    <text><![CDATA[使用这个下拉选单快速开啓OSC输出给于这个特定的元素，或一次过开啓OSC输出给于其他相同之完素。你也可以选择输出一个自订的地址。]]></text>
+  </help>
+  <help components="'shortcutOutputAddressLabel'">
+    <title><![CDATA[OSC输出地址]]></title>
+    <text><![CDATA[现选介面元素的OSC输出地址. 点撃以改变。]]></text>
+  </help>
+  <help components="'universeLabel' | 'universeComboBoxLabel'">
+    <title><![CDATA[DMX Lumiverse]]></title>
+    <text><![CDATA[选择这个DMX捷径是属於哪一个Resolume的内部DMX域。你可以在DMX偏好设定栏标中，指定Lumiverse为一个实体DMX输入。]]></text>
+  </help>
+  <help components="'dmxChannelLabel' | '*' 'dmxChannelSlider'">
+    <title><![CDATA[DMX通道]]></title>
+    <text><![CDATA[手动设置你想使用的捷径所控制的通道。]]></text>
+  </help>
+  <help components="'' 'Preferences'">
+    <title><![CDATA[偏好视窗]]></title>
+    <text><![CDATA[点选栏标，进行偏好设定。]]></text>
+  </help>
+  <help components="'GeneralPreferencesComponent' | 'generalTabButton' | 'GeneralPreferencesComponentHeader'">
+    <title><![CDATA[一般偏好设定]]></title>
+    <text/>
+  </help>
+  <help components="'recordDirectoryLabel'">
+    <title><![CDATA[录制目录]]></title>
+    <text><![CDATA[已记录的档案的保存位置。]]></text>
+  </help>
+  <help components="'browseRecordDirectoryButton'">
+    <title><![CDATA[选择目录]]></title>
+    <text><![CDATA[点撃以自订位置。]]></text>
+  </help>
+  <help components="'RecordVideoButton'">
+    <title><![CDATA[录制视频]]></title>
+    <text><![CDATA[使用记录功能时，选择是否包含视频输出。]]></text>
+  </help>
+  <help components="'RecordAudioButton'">
+    <title><![CDATA[录制音频]]></title>
+    <text><![CDATA[使用录制功能时，选择是否包含音频输出。]]></text>
+  </help>
+  <help components="'audioTabButton' | 'AudioPreferencesComponent' | '*' 'AudioPreferencesComponent'">
+    <title><![CDATA[音频偏好设定]]></title>
+    <text/>
+  </help>
+  <help components="'AudioOutputDeviceLabel' | 'OutputDeviceComboBoxLabel'">
+    <title><![CDATA[音频输出装置]]></title>
+    <text><![CDATA[选择你想输出音频的装置。]]></text>
+  </help>
+  <help components="'AudioInputDeviceLabel' | 'InputDeviceComboBoxLabel'">
+    <title><![CDATA[音频输入装置]]></title>
+    <text><![CDATA[选择你想输入音频的装置。]]></text>
+  </help>
+  <help components="'MasterOutputChannelsLabel' | 'masterOutputChannelsComboBoxLabel'">
+    <title><![CDATA[主输出通道]]></title>
+    <text><![CDATA[选择主音频的输出通道。]]></text>
+  </help>
+  <help components="'MasterOutputDelayLabel' | 'masterOutputDelaySlider' | 'masterOutputDelaySliderLabel'">
+    <title><![CDATA[主输出延迟]]></title>
+    <text><![CDATA[稍稍延迟Resolume的音频输出讯号，以补偿视频传输的延误。]]></text>
+  </help>
+  <help components="'PreviewOutputChannelsLabel' | 'previewOutputChannelsComboBoxLabel'">
+    <title><![CDATA[预览输出频道]]></title>
+    <text><![CDATA[选择你想听到预览输输出的通道。]]></text>
+  </help>
+  <help components="'refreshButton' 'AudioPreferencesComponent'">
+    <title><![CDATA[更新音频装置]]></title>
+    <text><![CDATA[点击检查最新连接的音频介面 。]]></text>
+  </help>
+  <help components="'SampleRateLabel' | 'sampleRateComboBoxLabel'">
+    <title><![CDATA[采样率]]></title>
+    <text><![CDATA[高采样率提供高音质, 但需要较多处理, 应用特效使用当中尤甚. 使用预设问题较少。]]></text>
+  </help>
+  <help components="'BufferSizeLabel' | 'blockSizeSlider' | 'blockSizeSliderLabel'">
+    <title><![CDATA[缓冲大小]]></title>
+    <text><![CDATA[较高缓冲大小会为系统带来较多延误, 但缓冲大小过低会导致音频出现电子脉冲。使用预设问题较少。]]></text>
+  </help>
+  <help components="'ExternalAudioFFTInputLabel' | 'fftInputChannelsComboBoxLabel'">
+    <title><![CDATA[外部音频 FFT 输入]]></title>
+    <text><![CDATA[选择你想使用音频分析的装置。]]></text>
+  </help>
+  <help components="'AudioFFTInputGainLabel' | 'fftInputGainSlider' | 'fftInputGainSliderLabel'">
+    <title><![CDATA[音频FFT输入增益]]></title>
+    <text><![CDATA[提高输入音频的音量]]></text>
+  </help>
+  <help components="'SMPTEInput1Label' | 'smpteInput1ComboBoxLabel' | 'SMPTEInput2Label' | 'smpteInput2ComboBoxLabel'">
+    <title><![CDATA[SMPTE 输入]]></title>
+    <text><![CDATA[选取你想进行SMPTE控制的输入音频。]]></text>
+  </help>
+  <help components="'SMPTETimecodeFramerate' | 'smpteFramerateComboBoxLabel'">
+    <title><![CDATA[SMPTE 时间代码帧率]]></title>
+    <text><![CDATA[这应该匹配您收到的 SMPTE 信号的帧率。]]></text>
+  </help>
+  <help components="'VSTPluginDirectoriesLabel' | 'DirectoryListTreeViewItemComponent' '' '' '' 'vstDirsTreeView' | 'vstDirsTreeView'">
+    <title><![CDATA[VST 插件目录]]></title>
+    <text><![CDATA[Resolume找寻VST插件的目录。使用手册载有预设插件的位置。]]></text>
+  </help>
+  <help components="'chooseDirectoryButton'">
+    <title><![CDATA[选择目录]]></title>
+    <text><![CDATA[按一下此处选择自订位置。]]></text>
+  </help>
+  <help components="'vstDirAddButton'">
+    <title><![CDATA[加入VST目录]]></title>
+    <text/>
+  </help>
+  <help components="'vstDirRemoveButton'">
+    <title><![CDATA[移除选取的VST目录]]></title>
+    <text/>
+  </help>
+  <help components="'videoTabButton' | '*' 'VideoPreferencesComponent' | 'VideoPreferencesComponent'">
+    <title><![CDATA[视讯偏好设定]]></title>
+    <text/>
+  </help>
+  <help components="'ffglDirsTreeView' | 'DirectoryListTreeViewItemComponent' '' '' '' 'ffglDirsTreeView'">
+    <title><![CDATA[FFGL插件目录]]></title>
+    <text><![CDATA[Resolume在当中找寻外加FFGL插件之目录。]]></text>
+  </help>
+  <help components="'addDirectoryButton'">
+    <title><![CDATA[加入目录]]></title>
+    <text><![CDATA[点撃加入目录。]]></text>
+  </help>
+  <help components="'removeDirectoryButton'">
+    <title><![CDATA[移除目录]]></title>
+    <text><![CDATA[点撃移除选择的目录。]]></text>
+  </help>
+  <help components="'radioDarkGrid' | 'radioLightGrid' | 'radioBlack'">
+    <title><![CDATA[暗透明方格表]]></title>
+    <text><![CDATA[当以alpha通道预览内容时，改变背景颜色去呈现内容。]]></text>
+  </help>
+  <help components="'midiTabButton' | '*' 'MidiPreferencesComponent' | 'MidiPreferencesComponent'">
+    <title><![CDATA[Midi偏好设定]]></title>
+    <text/>
+  </help>
+  <help components="'refreshListButton'">
+    <title><![CDATA[更新装置]]></title>
+    <text><![CDATA[点撃更新装置表单。]]></text>
+  </help>
+  <help components="'' '' '' '' 'midiDevicesTreeView' | 'midiDevicesTreeView'">
+    <title><![CDATA[MIDI装置]]></title>
+    <text><![CDATA[连接在电脑上的所有MIDI装置清单，和它们所有可使用的输入或输出端。]]></text>
+  </help>
+  <help components="'expandButton'">
+    <title><![CDATA[显示传输数据]]></title>
+    <text><![CDATA[扩展你的视窗显示输入讯息的清单。]]></text>
+  </help>
+  <help components="'clearButton' 'MidiMonitorComponent' |  'MidiMonitorComponent' | 'table' '' 'MidiMonitorComponent' | '' '' '' '' '' 'table' '' 'MidiMonitorComponent'">
+    <title><![CDATA[MIDI 传输数据]]></title>
+    <text><![CDATA[最近接收的200则MIDI讯号清单。]]></text>
+  </help>
+  <help components="'oscTabButton' |'oscPreferencesTitleLabel' | 'OscPreferencesComponent'">
+    <title><![CDATA[OSC偏好设定]]></title>
+    <text/>
+  </help>
+  <help components="'oscInputToggle'">
+    <title><![CDATA[啓用OSC输入]]></title>
+    <text><![CDATA[把OSC讯号从指定的闸口接收的开关按钮。]]></text>
+  </help>
+  <help components="'oscInputPortLabel'">
+    <title><![CDATA[OSC输入闸口]]></title>
+    <text><![CDATA[这是Resolume接收OSC讯号的闸口。]]></text>
+  </help>
+  <help components="'oscOutputToggle'">
+    <title><![CDATA[啓用OSC输出]]></title>
+    <text><![CDATA[把OSC讯号发送到指定目的地的开关按钮。]]></text>
+  </help>
+  <help components="'' 'OutputComboBox'">
+    <title><![CDATA[OSC输出选择]]></title>
+    <text><![CDATA[选择发送OSC讯号到哪里。]]></text>
+  </help>
+  <help components="'oscOutputPortLabel'">
+    <title><![CDATA[OSC输出闸口]]></title>
+    <text><![CDATA[这是Resolume发送OSC讯号的闸口。]]></text>
+  </help>
+  <help components="'oscOutputAddressLabel'">
+    <title><![CDATA[OSC输出IP地址]]></title>
+    <text><![CDATA[这是电脑或移动装置的IP地址，Resolume会对之发送OSC讯号。]]></text>
+  </help>
+  <help components="'oscBundleToggle'">
+    <title><![CDATA[使用封装包]]></title>
+    <text><![CDATA[选择Resolume是否对OSC讯号进行封装包处理。大部分OSC应用都能在不封装的情况下读取OSC讯号，但有些却偏好使用封装包。]]></text>
+  </help>
+  <help components="'*' '' 'OscPreferencesComponent' |  'OscPreferencesComponent' | 'table' '' '' 'OscPreferencesComponent' | '' 'table' '' '' 'OscPreferencesComponent' | '' '' '' '' '' 'table' '' '' 'OscPreferencesComponent'">
+    <title><![CDATA[OSC传输数据]]></title>
+    <text><![CDATA[列出最後接收200则OSC讯息。]]></text>
+  </help>
+  <help components="'dmxTabButton' | 'msgLabel' 'DMXPreferencesComponent' | 'DMXPreferencesComponent'">
+    <title><![CDATA[DMX偏好设定]]></title>
+    <text/>
+  </help>
+  <help components="'Input Button' 'DMXPreferencesComponent'">
+    <title><![CDATA[加入Art-Net 输入]]></title>
+    <text><![CDATA[加入一个输入装置去接收DMX讯号。]]></text>
+  </help>
+  <help components="'deleteButton' 'InputHeader' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[删除Art-Net输入]]></title>
+    <text><![CDATA[删除这个装置。]]></text>
+  </help>
+  <help components="'nodeNameEditor' 'DMXPreferencesComponent'">
+    <title><![CDATA[Art-Net节点名字]]></title>
+    <text><![CDATA[设置Art-Net 网中这个Resolume时件显示的名字。]]></text>
+  </help>
+  <help components="'InputHeader' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[Art-Net 输入设置]]></title>
+    <text><![CDATA[调整输入中的通道偏移及DMX域]]></text>
+  </help>
+  <help components="'Subnet' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[子网数字]]></title>
+    <text><![CDATA[子网的范围是0-15。与DMX域一起构成与Art-Net域沟通的输入地址。]]></text>
+  </help>
+  <help components="'Universe' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[DMX域]]></title>
+    <text><![CDATA[DMX域有0-15个。与子网数字一起构成与Art-Net域沟通的输入地址。]]></text>
+  </help>
+  <help components="'Channel Offset' 'groupedComponent' 'groupedComponent' '' 'Interface List' 'DMXPreferencesComponent'">
+    <title><![CDATA[DMX 通道偏移]]></title>
+    <text><![CDATA[使用这个DMX通道数字偏移，你可以快速把你已设定好的DMX通道移上或移下。]]></text>
+  </help>
+  <help components="'Bind IP Label' 'DMXPreferencesComponent' | 'bindIPComboLabel' 'bindIPCombo' 'DMXPreferencesComponent'">
+    <title><![CDATA[选择网络接收器]]></title>
+    <text><![CDATA[选择Resolume使用那一种网络介面去与Art-Net沟通。这让你可以确认你在使用的是有线网络而非无线网络卡。]]></text>
+  </help>
+  <help components="'DmxMonitor'">
+    <title><![CDATA[Art-Net 览视器]]></title>
+    <text><![CDATA[在这里你可以览视所有在你网络中的Art-Net 传输数据。使用中的子网及DMX域会亮起。你可以选择子网及DMX域和看到512条通道所发出的讯号。]]></text>
+  </help>
+  <help components="'defaultsTabButton' | 'msgLabel' 'DefaultPreferencesComponent' | 'DefaultPreferencesComponent' | '*' 'DefaultPreferencesComponent' | '*' '*' 'DefaultPreferencesComponent'">
+    <title><![CDATA[设为预设]]></title>
+    <text><![CDATA[在这里，你可以指定Resolume使用那些改变的值为预设值。新加入合成的片段会因为你新的预设值而改变。但他们对於本身就在合成里的片段不作影响 。]]></text>
+  </help>
+  <help components="'TempoNudgeLabel' 'DefaultPreferencesComponent' | 'TempoNudgeRangeSlider' 'DefaultPreferencesComponent'">
+    <title><![CDATA[节拍微调值]]></title>
+    <text><![CDATA[这个是用来以百分比改变BPM的按钮，当你按住微调按钮时可向上或向下改变BPM的速度百分比。]]></text>
+  </help>
+  <help components="'*' '' 'Composition Settings' | '' 'Composition Settings'">
+    <title><![CDATA[合成设定]]></title>
+    <text><![CDATA[设定合的名称，说明及视窗大小。]]></text>
+  </help>
+  <help components="'widthLabel' | 'heightLabel' | 'resolutionsComboBox'">
+    <title><![CDATA[以像素为单位显示合成大小]]></title>
+    <text><![CDATA[你可以输入你喜爱的任何大小, 或从下拉菜单选取既定的解像度。]]></text>
+  </help>
+  <help components="'addItemButton'">
+    <title><![CDATA[新增项目]]></title>
+    <text><![CDATA[将新的屏幕丶 片段和灯具添加到您的输出设置。]]></text>
+  </help>
+  <help components="'' '' 'xmlStatesPickerComponent'">
+    <title><![CDATA[预设菜单]]></title>
+    <text><![CDATA[保存丶 载入和管理不同的输出设置。]]></text>
+  </help>
+  <help components="'addScreen'">
+    <title><![CDATA[添加屏幕]]></title>
+    <text><![CDATA[建立新的屏幕。屏幕可以分配到任何实体或虚拟输出端。]]></text>
+  </help>
+  <help components="'addSlice'">
+    <title><![CDATA[添加切片]]></title>
+    <text><![CDATA[添加另一个片段到当前的屏幕。]]></text>
+  </help>
+  <help components="'addPolygon'">
+    <title><![CDATA[添加多边形切片]]></title>
+    <text><![CDATA[添加一个多边形切片到当前的屏幕。]]></text>
+  </help>
+  <help components="'addSliceTriangle'">
+    <title><![CDATA[添加三角形多边形切片]]></title>
+    <text><![CDATA[快速添加一个三角形多边形切片。]]></text>
+  </help>
+  <help components="'addSlicePolygon'">
+    <title><![CDATA[绘画多边形]]></title>
+    <text><![CDATA[添加多边形切片，您可以通过绘制点组成任何形状的切片。]]></text>
+  </help>
+  <help components="'addMask' ||  'addMaskSquare' || 'addMaskCircle' || 'addMaskTriangle' || 'addMaskHexagon'">
+    <title><![CDATA[添加遮罩]]></title>
+    <text><![CDATA[添加新的输出遮罩到目前的屏幕。]]></text>
+  </help>
+  <help components="'addMaskPolygon'">
+    <title><![CDATA[绘画遮罩]]></title>
+    <text><![CDATA[用想像力创建各种形状的遮罩，在合成上绘画以添加定点。]]></text>
+  </help>
+  <help components="'addLumiverse'">
+    <title><![CDATA[添加 Lumiverse]]></title>
+    <text><![CDATA[创建新的 Lumiverse，它是DMX 灯具的泉源。]]></text>
+  </help>
+  <help components="'addFixture'">
+    <title><![CDATA[添加灯具]]></title>
+    <text><![CDATA[添加新的灯具到目前的Lumiverse。]]></text>
+  </help>
+  <help components="'Screen'">
+    <title><![CDATA[屏幕]]></title>
+    <text><![CDATA[选取这个屏幕进行辑编。右击以快速分配输出端。]]></text>
+  </help>
+  <help components="'X' 'Screen'">
+    <title><![CDATA[移除萤幕]]></title>
+    <text><![CDATA[哇，闪光。这将删除此屏幕和其中的一切!]]></text>
+  </help>
+  <help components="'enableButton' 'Screen'">
+    <title><![CDATA[启用屏幕]]></title>
+    <text><![CDATA[这让你一次开启或关闭屏幕中所有切片和遮罩。]]></text>
+  </help>
+  <help components="'foldButton' 'Screen'">
+    <title><![CDATA[折叠屏幕]]></title>
+    <text><![CDATA[折叠此屏幕中的所有切片。这个动作同时隐藏选取输入栏标内的切片，使它变得不太凌乱。]]></text>
+  </help>
+  <help components="'sliceToggle'">
+    <title><![CDATA[启用切片]]></title>
+    <text><![CDATA[在输出中打开或关闭此切片。]]></text>
+  </help>
+  <help components="'Slice'">
+    <title><![CDATA[切片]]></title>
+    <text><![CDATA[选取这个切片进行编辑。右击切片打开选项，双击重新命名。]]></text>
+  </help>
+  <help components="'X' 'Slice'">
+    <title><![CDATA[移除切片]]></title>
+    <text><![CDATA[彻底移除这切片]]></text>
+  </help>
+  <help components="'Input Mask'">
+    <title><![CDATA[输入遮罩]]></title>
+    <text><![CDATA[选取这个输入遮罩进行编辑]]></text>
+  </help>
+  <help components="'sliceMaskToggleButton' 'Input Mask'">
+    <title><![CDATA[启用输入遮罩]]></title>
+    <text><![CDATA[开启或关闭这个切片的输入遮罩。]]></text>
+  </help>
+  <help components="'X' 'Input Mask">
+    <title><![CDATA[移除切片输入遮罩]]></title>
+    <text><![CDATA[揭示此切片的真正本质。]]></text>
+  </help>
+  <help components="'Polygon'">
+    <title><![CDATA[多边形切片]]></title>
+    <text><![CDATA[选取这个多边形切片进行编辑。]]></text>
+  </help>
+  <help components="'sliceToggle' 'Polygon'">
+    <title><![CDATA[启用多边形]]></title>
+    <text><![CDATA[在输出中显示或隐藏此多边形。]]></text>
+  </help>
+  <help components="'X' 'Polygon'">
+    <title><![CDATA[移除多边形]]></title>
+    <text><![CDATA[多边形消失了！]]></text>
+  </help>
+  <help components="'Mask'">
+    <title><![CDATA[遮罩]]></title>
+    <text><![CDATA[选取这遮罩进行编辑。]]></text>
+  </help>
+  <help components="'sliceToggle' 'Mask'">
+    <title><![CDATA[启用遮罩]]></title>
+    <text><![CDATA[在输出中显示或隐藏此遮罩。]]></text>
+  </help>
+  <help components="'X' 'Mask'">
+    <title><![CDATA[移除遮罩]]></title>
+    <text><![CDATA[完全移除遮罩。]]></text>
+  </help>
+  <help components="'Lumiverse'">
+    <title><![CDATA[Lumiverse]]></title>
+    <text><![CDATA[选择这个Lumiverse编缉。右键直接发送资料到Art-Net节点。]]></text>
+  </help>
+  <help components="'enableButton' 'Lumiverse'">
+    <title><![CDATA[启用Lumiverse]]></title>
+    <text><![CDATA[一次过关闭Lumiverse中所有灯具。]]></text>
+  </help>
+  <help components="'foldButton' 'Lumiverse'">
+    <title><![CDATA[折叠Lumiverse]]></title>
+    <text><![CDATA[折叠Lumiverse。这会隐藏输出选择栏标中的灯具，使之不至於太凌乱。]]></text>
+  </help>
+  <help components="'X' 'Lumiverse'">
+    <title><![CDATA[删除Lumiverse]]></title>
+    <text><![CDATA[以9000个太阳之力重击Lumiverse。]]></text>
+  </help>
+  <help components="'DmxSlice'">
+    <title><![CDATA[灯具切片]]></title>
+    <text><![CDATA[选择此灯具编缉。]]></text>
+  </help>
+  <help components="'sliceToggle' 'DmxSlice'">
+    <title><![CDATA[启用灯具]]></title>
+    <text><![CDATA[关闭这个灯具的输出。这会让Resolume停止向该灯具传送DMX资料。]]></text>
+  </help>
+  <help components="'X' 'DmxSlice'">
+    <title><![CDATA[删除灯具]]></title>
+    <text><![CDATA[彻底移除灯具]]></text>
+  </help>
+  <help components="'Input Selection' || 'ScreenSetup' 'InputAdvancedScreenSetupComponent'">
+    <title><![CDATA[输入选择]]></title>
+    <text><![CDATA[在这里你可以定义合成中那一部分作为你切片的输入。右键可打开预设选项。使用常用的快捷键ALT/SHIFT/CTRL(CMD)等键去控制及拷贝。]]></text>
+  </help>
+  <help components="'Output Transformation' || 'ScreenSetup' 'OutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[输出变形]]></title>
+    <text><![CDATA[改变输出切片中的形状及位置。每一块切片可以因应你的输出，单独地移动及重塑形状。右键可打开预设选项。使用常用的快捷键ALT/SHIFT/CTRL(CMD)等键去控制及拷贝。]]></text>
+  </help>
+  <help components="'DMX Output' || 'ScreenSetup' 'DMXOutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[DMX输出]]></title>
+    <text><![CDATA[在这里你可以看到或重新安排你灯具的起始通道或检查任何重覆使用之通道。]]></text>
+  </help>
+  <help components="'zoomComboBoxLabel' | 'zoomComboBox'">
+    <title><![CDATA[缩放]]></title>
+    <text><![CDATA[放大当前的视图，或将视图缩放至适合当前所选之内容或合成。]]></text>
+  </help>
+  <help components="'panMode'">
+    <title><![CDATA[左右调整工具]]></title>
+    <text><![CDATA[使用这个来左右调整。按住空格键以快速切换左右调整工具。]]></text>
+  </help>
+  <help components="'undoButton'">
+    <title><![CDATA[撤销]]></title>
+    <text><![CDATA[不要只顾做，你也可以撤消。]]></text>
+  </help>
+  <help components="'redoButton'">
+    <title><![CDATA[重做]]></title>
+    <text><![CDATA[撤销你撤销了的东西]]></text>
+  </help>
+  <help components="'snapButton'">
+    <title><![CDATA[切换紧贴功能]]></title>
+    <text><![CDATA[启用或不启用切片紧贴动作。]]></text>
+  </help>
+  <help components="'showGrid'">
+    <title><![CDATA[显示方格表]]></title>
+    <text><![CDATA[在输出内容显示目前活跃切片的名称和边界，所以你可以在复杂的输出设定中找到切片。它还在切片表面加上视角方格表，以及在游标加上略大的红色十字。]]></text>
+  </help>
+  <help components="'showLedGrid'">
+    <title><![CDATA[显示LED方格表]]></title>
+    <text><![CDATA[显示一个8x8的像素方格表，把所有切片紧贴於方格表上。这有助於安排切片作为LED处理器的输出。]]></text>
+  </help>
+  <help components="'compositionSizeLabel'">
+    <title><![CDATA[合成分辨率]]></title>
+    <text><![CDATA[输入中的合成像素阔度及高度。]]></text>
+  </help>
+  <help components="'editPointsButton'">
+    <title><![CDATA[编缉点]]></title>
+    <text><![CDATA[在编缉点模式，你可以改变当前切片中每一点的位置及弯曲变形。按T键快捷於编缉点及变形模式中切换。]]></text>
+  </help>
+  <help components="'transformButton'">
+    <title><![CDATA[变形模式]]></title>
+    <text><![CDATA[改变整个切的位置，旋转或大小。按T键快捷於编缉点及变形模式中切换。]]></text>
+  </help>
+  <help components="'foldComponentHeader' '*' 'groupedComponent' '' 'dataViewport'">
+    <title><![CDATA[名字]]></title>
+    <text><![CDATA[当前选择中所有你想知道关於它的事情。]]></text>
+  </help>
+  <help components="'Device'">
+    <title><![CDATA[选择装置]]></title>
+    <text><![CDATA[选择这个屏幕中的实物或虚拟输出。实物输出是指任何连接於电脑上的外部显示装置。虚拟输出可包括Sypon／Spout 及NDI，或在进阶输出内部及连接设置的屏幕。]]></text>
+  </help>
+  <help components="'Width' 'Screen' || 'Height' 'Screen'">
+    <title><![CDATA[屏幕阔度及高度]]></title>
+    <text><![CDATA[设置虚拟输出的阔度及高度。]]></text>
+  </help>
+  <help components="'Opacity' 'Screen' || 'Opacity' 'Lumiverse'">
+    <title><![CDATA[不透明度]]></title>
+    <text><![CDATA[淡出活跃屏幕，或使用Lumiverse渐入及渐出。]]></text>
+  </help>
+  <help components="'Brightness' 'Screen' || 'Contrast' 'Screen' || 'Red' 'Screen' || 'Green' 'Screen' || 'Blue' 'Screen' | 'Brightness' 'Lumiverse' || 'Contrast' 'Lumiverse' || 'Red' 'Lumiverse' || 'Green' 'Lumiverse' || 'Blue' 'Lumiverse'">
+    <title><![CDATA[颜色补偿]]></title>
+    <text><![CDATA[控制此屏幕或 Lumiverse 整个输出的颜色。用於调整不配搭的投影机或 LED 显示幕之间的差异。]]></text>
+  </help>
+  <help components="'*' 'Output Guide' | '*' '*' 'Output Guide' | '*' '*' '*' 'Output Guide' | '*' 'Input Guide' | '*' '*' 'Input Guide' | '*' '*' '*' 'Input Guide'">
+    <title><![CDATA[指引]]></title>
+    <text><![CDATA[载入一个影像档作为像素地图中的视觉指引。]]></text>
+  </help>
+  <help components="'Delay' '*' 'groupedComponent' '' 'dataViewport' '*'">
+    <title><![CDATA[屏幕延迟]]></title>
+    <text><![CDATA[为这个屏幕加入毫秒单位计算的延迟，补偿在其他输出中发现的任何延迟。]]></text>
+  </help>
+  <help components="'TargetIP' 'Lumiverse'">
+    <title><![CDATA[目标IP地址]]></title>
+    <text><![CDATA[Lumiverse向Art-Net 节点发送的IP地址。]]></text>
+  </help>
+  <help components="'Subnet' 'Lumiverse' | 'Universe' 'Lumiverse'">
+    <title><![CDATA[子网及DMX域]]></title>
+    <text><![CDATA[Lumiverse向Art-Net 节点发送的子网及DMX域。]]></text>
+  </help>
+  <help components="'Framerate' 'Lumiverse'">
+    <title><![CDATA[DMX 祯率]]></title>
+    <text><![CDATA[选择Lumiverse 向整个DMX网络发布讯息包的频率。]]></text>
+  </help>
+  <help components="'Input Source'">
+    <title><![CDATA[输入来源]]></title>
+    <text><![CDATA[让你可以选择切片输入来源的下拉清单。当中没有太多选项。你可以选择合成或略过合成，直接使用图层。预览视窗也可作为输入来源。更有趣的是可以使用虚拟屏幕作为切片输入来源。]]></text>
+  </help>
+  <help components="'Input Opacity'">
+    <title><![CDATA[输入不透明度]]></title>
+    <text><![CDATA[切片跟据图层不透明值或不管不透明值永远显示的切换按钮。适用於当你想在最终输出中改变图层的形状，而又在合成中找不到它时使用。]]></text>
+  </help>
+  <help components="'Input Bypass/Solo'">
+    <title><![CDATA[输入略过／单独]]></title>
+    <text><![CDATA[切片跟据图层略过丶单独或两者都不使用的切换按钮。适用於当你想在最终输出中改变图层的形状，而又在合成中找不到它时使用。]]></text>
+  </help>
+  <help components="'X' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent' || 'Y' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent'">
+    <title><![CDATA[切片输入的XY位置]]></title>
+    <text><![CDATA[切片丶切片遮罩及灯具相对合成的中心位置。这定义了你合成中需要作为输入的区域。]]></text>
+  </help>
+  <help components="'Left' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent' || 'Top' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent'">
+    <title><![CDATA[切片输入左边界及上边界位置]]></title>
+    <text><![CDATA[切片丶切片遮罩及灯具相对合成最左及最上边界的位置。]]></text>
+  </help>
+  <help components="'Width' 'ScreenLayerInputParams' || 'Height' 'ScreenLayerInputParams'">
+    <title><![CDATA[切片输入阔度及高度]]></title>
+    <text><![CDATA[当前切片，切片遮罩及灯具的输入像素阔度及像素高度。这定义了你合成输出区域的大小。]]></text>
+  </help>
+  <help components="'Rotation' '*' '*' '*' '*' 'InputAdvancedScreenSetupComponent'">
+    <title><![CDATA[切片输入旋转]]></title>
+    <text><![CDATA[旋转切片丶切片遮罩及灯具中的输入位置，例如你可以旋转LED屏。]]></text>
+  </help>
+  <help components="'toggleButton' 'Soft Edge'">
+    <title><![CDATA[启用柔边]]></title>
+    <text><![CDATA[勾选这个选项去决定当前切片是否使用柔边。当两台或多台投影机输出之间有重叠位置，需要混合时可使用这个工具。切片重叠位置会在输出区域中被遮罩遮起来。]]></text>
+  </help>
+  <help components="'label' 'Soft Edge'">
+    <title><![CDATA[柔边]]></title>
+    <text><![CDATA[当前切片中柔边设置的资讯。]]></text>
+  </help>
+  <help components="'Power'">
+    <title><![CDATA[柔边强度]]></title>
+    <text><![CDATA[使用这个控制来调整混合区域中柔边曲线的弯曲强度。]]></text>
+  </help>
+  <help components="'Luminance'">
+    <title><![CDATA[柔边亮度]]></title>
+    <text><![CDATA[使用这个控制来调整混合区域中柔边曲线的中心点亮度。]]></text>
+  </help>
+  <help components="'Gamma'">
+    <title><![CDATA[柔边伽傌]]></title>
+    <text><![CDATA[使用这个控制来调整混合区域中柔边的整体光度。]]></text>
+  </help>
+  <help components="'Gamma Red' || 'Gamma Green' || 'Gamma Blue'">
+    <title><![CDATA[RGB伽傌补偿]]></title>
+    <text><![CDATA[控制混合区域的颜色通道。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'InputMask'">
+    <title><![CDATA[切片输入遮罩]]></title>
+    <text><![CDATA[在切片的输入中加入遮罩，让你可创造透明度。]]></text>
+  </help>
+  <help components="'addLoveMask'">
+    <title><![CDATA[加入心形输入遮罩]]></title>
+    <text><![CDATA[因为爱能填满空白。]]></text>
+  </help>
+  <help components="'addSquareMask' || 'addCircleMask' || 'addTriangleMask' || 'addHexagonMask'">
+    <title><![CDATA[加入输入遮罩]]></title>
+    <text><![CDATA[在切片中快速加入预设遮罩形状。]]></text>
+  </help>
+  <help components="'addPolygonMask'">
+    <title><![CDATA[绘制输入遮罩]]></title>
+    <text><![CDATA[在切片中绘制你的输入遮罩形状。]]></text>
+  </help>
+  <help components="'Flip'">
+    <title><![CDATA[反转]]></title>
+    <text><![CDATA[把切片或灯具之输出，横向丶直向或双向反转。]]></text>
+  </help>
+  <help components="'Is Key'">
+    <title><![CDATA[切换底色通道]]></title>
+    <text><![CDATA[当广播混合使用时，把alpha通道渲染成白色或黑色之切换按钮。]]></text>
+  </help>
+  <help components="'Black BG'">
+    <title><![CDATA[黑色背景]]></title>
+    <text><![CDATA[把切片渲染在黑色背景上，即使其不透明度是0 。当投影项目设置中，物件互有覆盖时适用。]]></text>
+  </help>
+  <help components="'' '' 'FixtureChoiceDropdown'">
+    <title><![CDATA[选取灯具]]></title>
+    <text><![CDATA[选取这个灯具切片中使用的灯具描述档。]]></text>
+  </help>
+  <help components="'FixtureChoiceEdit'">
+    <title><![CDATA[开啓灯具编缉器]]></title>
+    <text><![CDATA[编缉当前灯具描述档或创建一个新的灯具描述档。]]></text>
+  </help>
+  <help components="'Start Channel' 'Fixture'">
+    <title><![CDATA[起始通道]]></title>
+    <text><![CDATA[在Lumiverse中第一条接收灯具讯号的通道。]]></text>
+  </help>
+  <help components="'GenericFixtureChoiceParam' || 'GenericFixtureRangeParam'">
+    <title><![CDATA[DMX参数]]></title>
+    <text><![CDATA[控制该灯具的指定功能参数。]]></text>
+  </help>
+  <help components="'paramBaseComponent' 'DipSwitches' | 'onButton' | 'offButton'">
+    <title><![CDATA[DIP开关]]></title>
+    <text><![CDATA[这个世界有十种人。明白二进制的人与不明白二进制的人。]]></text>
+  </help>
+  <help components="'FixturePixelsParam'">
+    <title><![CDATA[灯具输出预览]]></title>
+    <text><![CDATA[预览该灯具所发出的RGB的资料值。]]></text>
+  </help>
+  <help components="'Width' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Height' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[输出的阔与高]]></title>
+    <text><![CDATA[切片或遮罩在输出画面中的像素阔度及像素高度。这是定义你的切片在输出中的大小。]]></text>
+  </help>
+  <help components="'X' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Y' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'X' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent' || 'Y' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[输出的XY轴位置]]></title>
+    <text><![CDATA[切片或遮罩在输出画面中的中心点。这会影响你的切片在输出中所显示之位置。]]></text>
+  </help>
+  <help components="'Left' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Top' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Left' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent' || 'Top' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[输出的左边界及上边界位置]]></title>
+    <text><![CDATA[切片或遮罩在输出画面中最左与最上边界之位置。]]></text>
+  </help>
+  <help components="'Brightness' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Contrast' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Red' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Green' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Blue' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[色彩补偿]]></title>
+    <text><![CDATA[调整单一切片或灯具的色彩。必要状况时，可调高切片或灯具之亮度找寻其在舞台中之位置。]]></text>
+  </help>
+  <help components="'Rotation' '*' '*' '*' '*' 'OutputAdvancedScreenSetupComponent' || 'Rotation' '*' '*' '*' '*' 'DMXOutputAdvancedScreenSetupComponent'">
+    <title><![CDATA[输出旋转]]></title>
+    <text><![CDATA[以最终输出的切片或遮罩之中心点作旋转。不要旋转太多，否则有些像素会出界。]]></text>
+  </help>
+  <help components="'Point Mode'">
+    <title><![CDATA[切片点模式]]></title>
+    <text><![CDATA[切片点有两个模式可供选择：直线插值或贝尔兹曲线插值。]]></text>
+  </help>
+  <help components="'Subdivisions X'">
+    <title><![CDATA[切片横向变形点]]></title>
+    <text><![CDATA[加入或移除当前切片中的横向变形点。]]></text>
+  </help>
+  <help components="'Subdivisions Y'">
+    <title><![CDATA[切片直向变形点]]></title>
+    <text><![CDATA[加入或移除当前切片中的直向变形点。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'Point'">
+    <title><![CDATA[当前点位置]]></title>
+    <text><![CDATA[当前所选之点的XY轴位置。]]></text>
+  </help>
+  <help components="'X' 'Point' '*' '*' '*' '*' '*' | 'X' 'ToolsParams' '*' '*' '*' '*' '*'">
+    <title><![CDATA[点X位置]]></title>
+    <text><![CDATA[以像素显示现时所选点在X轴的位置。]]></text>
+  </help>
+  <help components="'Y' 'Point' '*' '*' '*' '*' '*'|'Y' 'ToolsParams' '*' '*' '*' '*' '*'">
+    <title><![CDATA[点Y位置]]></title>
+    <text><![CDATA[以像素显示现时所选点在Y轴的位置。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'Black Level Compensation'">
+    <title><![CDATA[黑阶补偿]]></title>
+    <text><![CDATA[调整这切片的黑阶。通过调整重叠区域及非重叠区域的差异，你能够统一边缘融合的切片的亮度。]]></text>
+  </help>
+  <help components="'Red' 'Black Level Compensation' || 'Green' 'Black Level Compensation' || 'Blue' 'Black Level Compensation'">
+    <title><![CDATA[通道补偿]]></title>
+    <text><![CDATA[增加切片黑色中的红色丶绿色或蓝色]]></text>
+  </help>
+  <help components="'Invert' 'MaskParams'">
+    <title><![CDATA[反转遮罩]]></title>
+    <text><![CDATA[这个按钮会以遮罩形状的内外为基础，互为反转。]]></text>
+  </help>
+  <help components="'cancelButton'">
+    <title><![CDATA[取消]]></title>
+    <text><![CDATA[取消之前所做的一切。关闭进阶输出，并将东西还原。当你要愐怀过去的时候适用。]]></text>
+  </help>
+  <help components="'okButton'">
+    <title><![CDATA[保存及关闭]]></title>
+    <text><![CDATA[确认你前面所有做过的工作。关闭进阶输出，应用所有改变及储存当前的设置。如果你是像素完美主义者请使用这个功能。]]></text>
+  </help>
+  <help components="'GenericFixtureName' || 'Fixtures' | 'filesList'">
+    <title><![CDATA[灯具描述档资料库]]></title>
+    <text><![CDATA[资料库中列出所有灯具描述档]]></text>
+  </help>
+  <help components="'createFixtureButton'">
+    <title><![CDATA[创建灯具]]></title>
+    <text><![CDATA[创建一个新的灯具描述档]]></text>
+  </help>
+  <help components="'deleteFixtureButton'">
+    <title><![CDATA[删除灯具]]></title>
+    <text><![CDATA[删除清单中所选中的灯具描述档]]></text>
+  </help>
+  <help components="'addPixelParameterButton'">
+    <title><![CDATA[加入参数]]></title>
+    <text><![CDATA[为新参数加入此灯具描述档中]]></text>
+  </help>
+  <help components="'removePixelParameterButton'">
+    <title><![CDATA[删除参数]]></title>
+    <text><![CDATA[删除清单中所选中的参数]]></text>
+  </help>
+  <help components="'closeButton' '' 'Fixture Editor'">
+    <title><![CDATA[关闭编缉器]]></title>
+    <text><![CDATA[关闭编缉器及储存你所有的改变。]]></text>
+  </help>
+  <help components="'FixtureParameters'">
+    <title><![CDATA[灯具参数]]></title>
+    <text><![CDATA[灯具描述档中控制灯具特性的各式参数。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'PixelsParam'">
+    <title><![CDATA[像素区块]]></title>
+    <text><![CDATA[由像素组成的区块，可以向灯具发送颜色讯号。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'GenericParam'">
+    <title><![CDATA[DMX参数]]></title>
+    <text><![CDATA[用於控制特定功能。你可以拖曳参数来改变顺序。]]></text>
+  </help>
+  <help components="'Default'">
+    <title><![CDATA[预设值]]></title>
+    <text><![CDATA[在这里，你可设置所发出DMX讯号参数的预设值。]]></text>
+  </help>
+  <help components="'Width' 'PixelsParam' || 'Height' 'PixelsParam'">
+    <title><![CDATA[像素宽度]]></title>
+    <text><![CDATA[设定这个灯具包含多少个像素点。]]></text>
+  </help>
+  <help components="'Color Space' 'PixelsParam'">
+    <title><![CDATA[色彩空間]]></title>
+    <text><![CDATA[选取灯具可以从哪些通道接收资讯，以及通道的顺序。]]></text>
+  </help>
+  <help components="'Gamma' 'PixelsParam'">
+    <title><![CDATA[伽马值]]></title>
+    <text><![CDATA[调整设定的伽玛校正。]]></text>
+  </help>
+  <help components="'Distribution' 'PixelsParam'">
+    <title><![CDATA[分布]]></title>
+    <text><![CDATA[跟据个人喜好设定各通道的分布状态。打开箭头表示第一通道，而紧接的箭头符号定义该通道怎样在灯具中“蛇行“。]]></text>
+  </help>
+  <help components="'Pixels' || 'PixelGroup'">
+    <title><![CDATA[像素分布]]></title>
+    <text><![CDATA[自定义的通道分布之视觉表示。]]></text>
+  </help>
+  <help components="'CollectButton' '' 'Media Manager'">
+    <title><![CDATA[收集多媒体档案]]></title>
+    <text><![CDATA[收集全部在合成中使用过的视频及素材置於一个整齐有序的位置。]]></text>
+  </help>
+  <help components="'LocateMissingFilesButton' '' 'Media Manager'">
+    <title><![CDATA[寻找全部文件位置]]></title>
+    <text><![CDATA[当选取了一个文件夹後，会自动从中搜寻遗失的档案。这个功能也会连搜寻文件夹中的任何次文件夹。]]></text>
+  </help>
+  <help components="'CloseButton' '' 'Media Manager'">
+    <title><![CDATA[关闭]]></title>
+    <text><![CDATA[我们将在此作结！]]></text>
+  </help>
+  <help components="'' '' '' '' '' '' 'TableList' '' 'Media Manager' | '' '' '' '' '' 'TableList' '' 'Media Manager'">
+    <title><![CDATA[档案资料]]></title>
+    <text><![CDATA[在此合成中出现的所有档案列表。遗失的档案会以红色标记。]]></text>
+  </help>
+  <help components="'RelocateButton' '' '' '' '' '' '' 'TableList' '' 'Media Manager'">
+    <title><![CDATA[重置档案]]></title>
+    <text><![CDATA[重置或更换指定档案。]]></text>
+  </help>
+  <help components="'UpdateCompositionToggle' '' 'Collect Media'">
+    <title><![CDATA[更新合成]]></title>
+    <text><![CDATA[收集所有档案至一个位置。当完成时，当前的合成会跟据新路径更新。便於合并你合成所使用的合部档案於一个地方。]]></text>
+  </help>
+  <help components="'CopyCompositionToggle' '' 'Collect Media'">
+    <title><![CDATA[复制合成]]></title>
+    <text><![CDATA[收集所有档案放置於同一个位置。当此动作完成後，现在的合成会复制 一份罝於同一位置。便於把所有合成及档案等相关资料转移到另一台电脑上]]></text>
+  </help>
+  <help components="'compositionMasterSlider' | 'propertyHeader' 'Master'">
+    <title><![CDATA[影音总控制]]></title>
+    <text><![CDATA[把所有片段推黑及声音调至无声的总控制项。]]></text>
+  </help>
+  <help components="'speedSlider' 'compositionControlComponent' | 'propertyHeader' 'Speed' 'commonParamsComponent' 'groupedComponent' '' 'viewport' 'Composition'">
+    <title><![CDATA[速度总控制]]></title>
+    <text><![CDATA[调整所有片段速度快慢的控制项。]]></text>
+  </help>
+  <help components="'forwardButton' 'compositionControlComponent' | ' forwardsButton2">
+    <title><![CDATA[全部向前播放]]></title>
+    <text><![CDATA[於此选择图层多种不同的混合模式]]></text>
+  </help>
+  <help components="'blendModeComboboxLabel' 'blendModeCombobox' 'Layer Control Component' | 'propertyHeader' 'Blend Mode' 'videoMixerParamsComponent' 'videoParamsComponent' 'groupedComponent' '' 'viewport' 'Layer' | 'propertyHeader' 'Blend Mode' 'transitionMixerParamsComponent' 'transitionParamsComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[选择图层混合模式]]></title>
+    <text><![CDATA[於此选择图层多种不同的混合模式。]]></text>
+  </help>
+  <help components="'volumeSlider' 'Layer Control Component' | 'propertyHeader' 'Volume' 'audioParamsComponent' 'groupedComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[音量控制]]></title>
+    <text><![CDATA[调整图层的音量。]]></text>
+  </help>
+  <help components="'volumeSlider' 'Layer Control Component' | 'propertyHeader' 'Volume' 'audioParamsComponent' 'groupedComponent' 'groupedComponent' '' 'viewport' 'Composition'">
+    <title><![CDATA[音量控制]]></title>
+    <text><![CDATA[调整合成的音量。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Pan' 'audioParamsComponent' 'groupedComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[音频平移]]></title>
+    <text><![CDATA[调整图层的音频平移。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Pan' 'audioParamsComponent' 'groupedComponent' 'groupedComponent' '' 'viewport' 'Composition'">
+    <title><![CDATA[音频平移]]></title>
+    <text><![CDATA[调整图层的音频平移。]]></text>
+  </help>
+  <help components="'AVsliderTrans T' | 'Duration' 'transitionParamsComponent' | '*' 'spinner' 'paramBaseComponent' 'Duration' 'transitionParamsComponent' | 'propertyHeader' 'Duration' 'transitionParamsComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[转场时间]]></title>
+    <text><![CDATA[控制转场的时长（0-10秒）。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'dashboardComponent' 'clipProperties' 'SingleClipPropertiesComponent' 'Clip' 'TabbedContainer' | '*' 'dashboardComponent' | 'dashboardComponent' | '*' 'paramBaseComponent' 'dashboardComponent'">
+    <title><![CDATA[仪表板]]></title>
+    <text><![CDATA[仪表板让你快速修改那些你常用的参数。抓取一个参数的名字，把它丢到其中一个转环上，参数便连结了。你可以一次丢多个参数到同一个转环上，同时控制那些参数。]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'layerAutoPilotComponent' | 'layerAutoPilotComponent' | 'foldComponentHeader' 'autoPilotGroupComponent' 'groupedComponent' '' 'viewport' 'Layer'">
+    <title><![CDATA[自动导航]]></title>
+    <text><![CDATA[自动导航可以用来播放一个图层中的所有片段。就让Resolume导航一下，你应该去享受一杯饮品。]]></text>
+  </help>
+  <help components="'forwardsButton2' 'layerAutoPilotComponent' | 'forwardButton2' 'layerAutoPilotComponent' 'autoPilotGroupComponent'">
+    <title><![CDATA[自动导航向前播放]]></title>
+    <text><![CDATA[把片段在当前的图层顺序中按序向前播放]]></text>
+  </help>
+  <help components="'*' '*' 'clipTransportTimelineComponent' |   '*' '*' '*' '*' '*' 'clipTransportTimelineComponent' | '*' '*' '*' '*' 'clipTransportTimelineComponent' | 'propertyHeader' 'Speed' 'groupedComponent' 'clipTransportTimelineComponent' 'clipProperties' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[时间轴速度]]></title>
+    <text><![CDATA[控制这个片段播放的速度]]></text>
+  </help>
+  <help components="'foldComponentHeader' 'cuePointsComponent' 'clipProperties' 'SingleClipPropertiesComponent' 'Clip'| 'cuePointsComponent' | 'foldComponentHeader' 'cuePointsComponent'">
+    <title><![CDATA[播放点]]></title>
+    <text><![CDATA[使用这六个播放点跳至片段中不同的位置。按其中一个小箭头按钮去设置一个播放点。使用该播放按钮跳至该播放点播放片段。]]></text>
+  </help>
+  <help components="'PopupComboBoxLabel' 'PopupComboBox' 'currentDirectoryComboBox' 'Files' |'*' 'currentDirectoryComboBox' 'Files' | 'currentDirectoryComboBox' 'Files'">
+    <title><![CDATA[路径选择器]]></title>
+    <text><![CDATA[在这里选择不同的硬盘或路径]]></text>
+  </help>
+  <help components="'playModeLabel' 'playMode'">
+    <title><![CDATA[播放模式]]></title>
+    <text><![CDATA[选择Resolume如何播放你的片段。循环播放指片段播放完毕後，从头再播放。随机播放会在播放完毕後，随意跳到时间轴的任一位置上播放。当时间轴是在BPM同步模式下，它会跳至随机的节拍上播放。来回播放指片段播放完毕後，倒头再播放。播放一次就是播放一次的意思了。]]></text>
+  </help>
+  <help components="'playModeAwayLabel' 'playModeAway'">
+    <title><![CDATA[触发模式]]></title>
+    <text><![CDATA[选择Resolume如何触发你的片段。继续从片段馀下的部分播放。相对上一片段的大概位置继续播放。]]></text>
+  </help>
+  <help components="'screenPickerButton'">
+    <title><![CDATA[屏幕色彩拾取器]]></title>
+    <text><![CDATA[从你屏幕中的任何位置中选取颜色。拾取及选取。]]></text>
+  </help>
+  <help components="'pickerButton'">
+    <title><![CDATA[颜色拾取器]]></title>
+    <text><![CDATA[透过HSB滑块丶RGB滑块或你自选色标组成的调色板选择全色彩空间中的颜色。]]></text>
+  </help>
+  <help components="'hsbButton'">
+    <title><![CDATA[HSB色彩空间]]></title>
+    <text><![CDATA[透过HSB滑块丶RGB滑块或你自选色标组成的调色板选择全色彩空间中的颜色。]]></text>
+  </help>
+  <help components="'rgbButton'">
+    <title><![CDATA[RGB色彩空间]]></title>
+    <text><![CDATA[透过HSB滑块丶RGB滑块或你自选色标组成的调色板选择全色彩空间中的颜色。]]></text>
+  </help>
+  <help components="'showPaletteButton' | 'paramColorPaletteComponent' | 'paramColorButton'">
+    <title><![CDATA[颜色调色板]]></title>
+    <text><![CDATA[从调色板选择颜色。右击调色板会有附加选项。专业提示：你可以动态化你的调色板！]]></text>
+  </help>
+  <help components="'PresetsButton'">
+    <title><![CDATA[预设 ]]></title>
+    <text><![CDATA[管理你的预设]]></text>
+  </help>
+  <help components="'propertyHeader' 'Curve' 'crossFaderParamsComponent'">
+    <title><![CDATA[交叉推杆曲线]]></title>
+    <text><![CDATA[调整交叉推杆的曲线]]></text>
+  </help>
+  <help components="'propertyHeader' 'Behaviour' 'crossFaderParamsComponent'">
+    <title><![CDATA[交叉推杆行为]]></title>
+    <text><![CDATA[让交叉推杆像小交叉推杆一样工作]]></text>
+  </help>
+  <help components="'propertyHeader' 'Blend Mode' 'crossFaderMixerParamsComponent'">
+    <title><![CDATA[交叉推杆混合模式]]></title>
+    <text><![CDATA[设定混会模式至交叉推杆混合模式]]></text>
+  </help>
+  <help components="'propertyHeader' 'Auto Size'">
+    <title><![CDATA[自动调整大小]]></title>
+    <text><![CDATA[这个功能会把所有在此图层内的片段，因应合成的大小，自动适配调整丶填满调整或拉伸调整。]]></text>
+  </help>
+  <help components="'-' | '+' | '*2' | '/2'">
+    <title><![CDATA[时长调整]]></title>
+    <text><![CDATA[减方丶加法丶乘法丶除法。Resolume 基本算法。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Duration'">
+    <title><![CDATA[时长]]></title>
+    <text/>
+  </help>
+  <help components="'foldComponentHeader' 'autoPilotGroupComponent' 'groupedComponent' '' 'viewport' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[自动导航]]></title>
+    <text><![CDATA[调整片段在自动导航模式中的行为]]></text>
+  </help>
+  <help components="'propertyHeader' 'view' 'layerAutoPilotComponent' 'autoPilotGroupComponent' 'groupedComponent' '' 'viewport' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[自动导航动作]]></title>
+    <text><![CDATA[设定片段在自动导航模式中的行为]]></text>
+  </help>
+  <help components="'propertyHeader' 'AutoPilotLoopCount' 'layerAutoPilotComponent' 'autoPilotGroupComponent' 'groupedComponent' '' 'viewport' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[循環次數]]></title>
+    <text><![CDATA[決定片段重覆播放的次數。]]></text>
+  </help>
+  <help components="'propertyHeader' 'Blend Mode' 'videoMixerParamsComponent' 'trackSettingsComponent' 'VideoTrackInfoComponent' 'groupedComponent' '' 'viewport' 'SingleClipPropertiesComponent' 'Clip'">
+    <title><![CDATA[片段混合模式]]></title>
+    <text><![CDATA[为片段设定独有的混合模式。此选项会把影片的图层混合模式盖过。]]></text>
+  </help>
+  <help components="'Clear All of theLayers Button'">
+    <title><![CDATA[Clear All of theLayers]]></title>
+    <text><![CDATA[Eject ALL the clips. From ALL the layers.]]></text>
+  </help>
+  <help components="'Queue' 'tabbedButtonBar'">
+    <title><![CDATA[Render Queue]]></title>
+    <text><![CDATA[The queue contains all rendered clips. Drag and drop to use the clip in your composition]]></text>
+  </help>
+  <help components="'view' '' '' '' '' 'view' 'Queue'">
+    <title><![CDATA[Rendered Clip]]></title>
+    <text><![CDATA[Your Clip. Rendered just right.]]></text>
+  </help>
+  <help components="'openFolderButton' 'view' '' '' '' '' 'view' 'Queue'">
+    <title><![CDATA[View in explorer]]></title>
+    <text><![CDATA[View rendered clip in the explorer]]></text>
+  </help>
+  <help components="'removeButton' 'view' '' '' '' '' 'view' 'Queue'">
+    <title><![CDATA[Remove from queue]]></title>
+    <text><![CDATA[Remove the clip from the queue. This does not remove the file.]]></text>
+  </help>
+  <help components="'newExtensionButton'">
+    <title><![CDATA[Create Patch]]></title>
+    <text><![CDATA[Create a new source, mixer or effect in Wire.]]></text>
+  </help>
+  <help components="'editExtensionButton'">
+    <title><![CDATA[Edit Patch]]></title>
+    <text><![CDATA[Edit this patch in Wire.]]></text>
+  </help>
+  <help components="'forkExtensionButton'">
+    <title><![CDATA[Fork Patch]]></title>
+    <text><![CDATA[Create a copy of this patch and edit it in Wire.]]></text>
+  </help>
+  <help components="'menuButton' 'Composition Monitor' | 'menuButton' 'Preview Monitor' | 'menuButton' 'Layer Monitor' | 'menuButton' 'Group Monitor'">
+    <title><![CDATA[Monitor Options]]></title>
+    <text><![CDATA[Adjust what you want to monitor (composition, preview, group or layer) and change monitor opacity behavior.]]></text>
+  </help>
+  <help components="'favoriteExtensionButton'">
+    <title><![CDATA[Favorite]]></title>
+    <text><![CDATA[Select to add or remove this source or effect to your Favorites.]]></text>
+  </help>
+  <help components="'panHand'">
+    <title><![CDATA[Pan Tool]]></title>
+    <text><![CDATA[Use this to pan around.]]></text>
+  </help>
+  <help components="'widgetStatus'">
+    <title><![CDATA[Widget is disabled]]></title>
+    <text><![CDATA[Transform widget is disabled because either Rotation X, Y or Anchor is not at default value, or multiple clips are selected, or the test card is enabled.]]></text>
+  </help>
+</contextual_help>

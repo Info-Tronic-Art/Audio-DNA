@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 7 Mockup</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.app {
+  width: 1920px; height: 1080px; background: #111; color: #e0e0e0;
+  display: grid; grid-template-rows: 40px 36px 1fr 32px;
+  overflow: hidden; position: relative; font-size: 12px;
+}
+
+/* === TOP BAR === */
+.topbar {
+  background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 12px; gap: 16px;
+}
+.topbar .app-title { font-weight: 700; font-size: 14px; color: #fff; letter-spacing: 0.5px; }
+.topbar .sep { width: 1px; height: 20px; background: #333; }
+.topbar .bpm-section { display: flex; align-items: center; gap: 8px; }
+.topbar .bpm-val { font-size: 20px; font-weight: 700; color: #ff8800; font-variant-numeric: tabular-nums; }
+.topbar .bpm-label { color: #888; font-size: 10px; text-transform: uppercase; }
+.topbar .btn-sm {
+  background: #2a2a2a; border: 1px solid #3a3a3a; color: #ccc; padding: 3px 10px;
+  font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.topbar .btn-sm:hover { background: #3a3a3a; }
+.beat-dots { display: flex; gap: 4px; align-items: center; }
+.beat-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+.beat-dot.active { background: #ff8800; box-shadow: 0 0 6px #ff880088; }
+.topbar .bar-info { color: #888; font-variant-numeric: tabular-nums; font-size: 13px; }
+.topbar .auto-badge {
+  background: #2a2a2a; border: 1px solid #444; padding: 3px 10px; font-size: 10px; color: #aaa;
+}
+.topbar .spacer { flex: 1; }
+
+/* === SCENE TABS === */
+.scene-tabs {
+  background: #151515; border-bottom: 1px solid #2a2a2a;
+  display: flex; align-items: stretch; padding: 0 12px;
+}
+.scene-tab {
+  padding: 0 20px; display: flex; align-items: center; font-size: 12px; color: #777;
+  cursor: pointer; border-bottom: 2px solid transparent; text-transform: uppercase;
+  letter-spacing: 0.5px; transition: all 0.15s;
+}
+.scene-tab:hover { color: #aaa; background: #1a1a1a; }
+.scene-tab.active { color: #ff8800; border-bottom-color: #ff8800; background: #1c1810; }
+
+/* === MAIN CONTENT === */
+.main-content {
+  display: grid; grid-template-columns: 220px 1fr 360px;
+  overflow: hidden;
+}
+
+/* === LEFT PANEL === */
+.left-panel {
+  background: #141414; border-right: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.panel-header {
+  padding: 8px 12px; font-size: 10px; font-weight: 700; color: #888;
+  text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #222;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* Layer rows */
+.layer-list { flex: 1; overflow-y: auto; }
+.layer-row {
+  display: grid; grid-template-columns: 24px 1fr 50px;
+  align-items: center; padding: 6px 8px; border-bottom: 1px solid #1a1a1a;
+  cursor: pointer; transition: background 0.1s;
+}
+.layer-row:hover { background: #1a1a1a; }
+.layer-row.active { background: #1c1810; border-left: 2px solid #ff8800; }
+.layer-num { font-size: 10px; color: #555; text-align: center; }
+.layer-info { display: flex; flex-direction: column; gap: 1px; padding-left: 4px; }
+.layer-name { font-size: 11px; color: #ddd; font-weight: 500; }
+.layer-source { font-size: 9px; color: #666; text-transform: uppercase; }
+.layer-toggles { display: flex; gap: 4px; }
+.toggle-btn {
+  width: 20px; height: 18px; font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  background: #222; color: #555; cursor: pointer;
+}
+.toggle-btn.solo-on { background: #ff8800; color: #000; }
+.toggle-btn.mute-on { background: #cc3333; color: #fff; }
+
+/* Utility / Audio Sources */
+.utility-section {
+  border-top: 1px solid #2a2a2a; flex-shrink: 0;
+}
+.audio-source-row {
+  display: flex; align-items: center; padding: 5px 10px; gap: 8px;
+  border-bottom: 1px solid #1a1a1a;
+}
+.audio-source-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.audio-source-name { font-size: 10px; color: #aaa; width: 56px; flex-shrink: 0; }
+.audio-waveform {
+  flex: 1; height: 22px; position: relative; overflow: hidden;
+}
+.audio-waveform canvas { width: 100%; height: 100%; }
+
+/* === CENTER PANEL === */
+.center-panel {
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Clip grid */
+.clip-grid-area { flex: 1; padding: 8px; overflow: auto; }
+.clip-grid-header {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  margin-bottom: 6px; padding: 0 4px;
+}
+.clip-grid-header span {
+  font-size: 9px; color: #555; text-transform: uppercase; text-align: center;
+  letter-spacing: 0.5px;
+}
+.clip-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+}
+.clip-cell {
+  aspect-ratio: 16/10; background: #1a1a1a; border: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; overflow: hidden; transition: all 0.15s;
+}
+.clip-cell:hover { border-color: #444; }
+.clip-cell.active { border-color: #ff8800; box-shadow: 0 0 8px #ff880033; }
+.clip-cell .clip-thumb {
+  width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.clip-cell .clip-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 12px 6px 4px; font-size: 10px; color: #ccc; text-align: center;
+}
+.clip-cell.empty {
+  border-style: dashed; border-color: #333;
+}
+.clip-cell.empty .clip-label { background: none; color: #555; font-size: 11px; }
+.new-clip-btn {
+  width: 100%; padding: 8px; background: #1a1a1a; border: 1px dashed #333;
+  color: #555; font-size: 11px; cursor: pointer; text-align: center; margin-top: 6px;
+}
+.new-clip-btn:hover { border-color: #555; color: #888; }
+
+/* Global Macros */
+.global-macros {
+  border-top: 1px solid #2a2a2a; padding: 8px 12px; flex-shrink: 0;
+}
+.macro-chips { display: flex; gap: 8px; margin-top: 6px; }
+.macro-chip {
+  flex: 1; padding: 6px 10px; border-radius: 3px; display: flex;
+  align-items: center; gap: 6px; font-size: 10px; cursor: pointer;
+}
+.macro-chip .chip-num { font-weight: 700; opacity: 0.7; }
+.macro-chip .chip-name { font-weight: 500; }
+.macro-chip.amber { background: #33280a; border: 1px solid #ff8800; color: #ffaa44; }
+.macro-chip.green { background: #0a2810; border: 1px solid #44cc44; color: #66dd66; }
+.macro-chip.blue { background: #0a1428; border: 1px solid #4488ff; color: #66aaff; }
+.macro-chip.purple { background: #1a0a28; border: 1px solid #aa44ff; color: #cc88ff; }
+
+/* === RIGHT PANEL === */
+.right-panel {
+  background: #141414; border-left: 1px solid #2a2a2a;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Preview windows */
+.preview-section { flex-shrink: 0; }
+.preview-window {
+  position: relative; width: 100%; aspect-ratio: 16/9;
+  background: #000; overflow: hidden;
+}
+.preview-window canvas { width: 100%; height: 100%; }
+.preview-badge {
+  position: absolute; top: 6px; right: 6px;
+  padding: 2px 8px; font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.badge-live { background: #cc0000; color: #fff; }
+.badge-focus { background: #333; color: #aaa; }
+.preview-label {
+  padding: 4px 10px; font-size: 10px; color: #777; text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 1px solid #222;
+}
+
+/* Macrobot */
+.macrobot-section {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.macrobot-header {
+  padding: 8px 12px; font-size: 10px; font-weight: 700; color: #888;
+  text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #222;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.knob-row {
+  display: flex; justify-content: space-around; padding: 12px 8px; gap: 4px;
+}
+.knob-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.knob {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: conic-gradient(from 220deg, #ff8800 0deg, #ff8800 var(--knob-angle, 120deg), #333 var(--knob-angle, 120deg), #333 280deg);
+  position: relative; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.knob::after {
+  content: ''; position: absolute; inset: 6px; border-radius: 50%;
+  background: #222; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+.knob::before {
+  content: ''; position: absolute; width: 2px; height: 10px;
+  background: #ff8800; top: 3px; left: 50%; transform: translateX(-50%) rotate(var(--knob-rot, -40deg));
+  transform-origin: bottom center; z-index: 2; border-radius: 1px;
+}
+.knob-label { font-size: 9px; color: #777; text-transform: uppercase; letter-spacing: 0.3px; }
+.knob-num {
+  width: 24px; height: 24px; border-radius: 50%; background: #2a2a2a;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #888; font-weight: 700; cursor: pointer;
+}
+.macrobot-actions {
+  padding: 8px 12px; display: flex; gap: 8px;
+}
+.btn-macro {
+  flex: 1; padding: 6px; text-align: center; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer;
+}
+.btn-add-fx { background: #1a1a1a; border: 1px solid #333; color: #888; }
+.btn-add-fx:hover { border-color: #555; color: #aaa; }
+.btn-advance { background: #ff8800; border: 1px solid #ff8800; color: #000; font-weight: 700; }
+.btn-advance:hover { background: #ffaa33; }
+
+/* === FOOTER === */
+.footer {
+  background: #1a1a1a; border-top: 1px solid #2a2a2a;
+  display: flex; align-items: center; padding: 0 12px; gap: 16px; font-size: 10px;
+}
+.footer .ft-item { color: #666; }
+.footer .ft-val { color: #999; }
+.footer .ft-sep { width: 1px; height: 16px; background: #2a2a2a; }
+.footer .spacer { flex: 1; }
+.footer .ft-btn {
+  background: #222; border: 1px solid #333; color: #888; padding: 2px 12px;
+  font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.footer .ft-btn:hover { background: #333; color: #aaa; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="app-title">Audio-DNA VJ</span>
+    <div class="sep"></div>
+    <div class="bpm-section">
+      <span class="bpm-label">BPM</span>
+      <span class="bpm-val">128</span>
+    </div>
+    <button class="btn-sm">TAP</button>
+    <button class="btn-sm">NUDGE-</button>
+    <button class="btn-sm">NUDGE+</button>
+    <div class="sep"></div>
+    <div class="beat-dots">
+      <div class="beat-dot active"></div>
+      <div class="beat-dot"></div>
+      <div class="beat-dot"></div>
+      <div class="beat-dot"></div>
+    </div>
+    <span class="bar-info">037 / 04.1</span>
+    <div class="sep"></div>
+    <span class="auto-badge">&bull;&bull;&bull; Auto 4</span>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- SCENE TABS -->
+  <div class="scene-tabs">
+    <div class="scene-tab">Intro</div>
+    <div class="scene-tab">Verse</div>
+    <div class="scene-tab">Build</div>
+    <div class="scene-tab active">Drop</div>
+    <div class="scene-tab">Outro</div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <div class="panel-header">Layers</div>
+      <div class="layer-list">
+        <div class="layer-row active">
+          <span class="layer-num">1</span>
+          <div class="layer-info">
+            <span class="layer-name">Background</span>
+            <span class="layer-source">Kick Drum &middot; Source</span>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn solo-on">S</div>
+            <div class="toggle-btn">M</div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <span class="layer-num">2</span>
+          <div class="layer-info">
+            <span class="layer-name">Pulse Shapes</span>
+            <span class="layer-source">Video</span>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn">S</div>
+            <div class="toggle-btn">M</div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <span class="layer-num">3</span>
+          <div class="layer-info">
+            <span class="layer-name">Strobe FX</span>
+            <span class="layer-source">Synth</span>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn">S</div>
+            <div class="toggle-btn">M</div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <span class="layer-num">4</span>
+          <div class="layer-info">
+            <span class="layer-name">3D Tunnel</span>
+            <span class="layer-source">Video</span>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn">S</div>
+            <div class="toggle-btn mute-on">M</div>
+          </div>
+        </div>
+        <div class="layer-row">
+          <span class="layer-num">5</span>
+          <div class="layer-info">
+            <span class="layer-name">Color Glitch</span>
+            <span class="layer-source">Video</span>
+          </div>
+          <div class="layer-toggles">
+            <div class="toggle-btn">S</div>
+            <div class="toggle-btn">M</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Utility / Audio Sources -->
+      <div class="utility-section">
+        <div class="panel-header">Utility</div>
+        <div class="audio-source-row">
+          <div class="audio-source-dot" style="background:#ff8800"></div>
+          <span class="audio-source-name">Kick Drum</span>
+          <div class="audio-waveform"><canvas id="wf1"></canvas></div>
+        </div>
+        <div class="audio-source-row">
+          <div class="audio-source-dot" style="background:#44cc44"></div>
+          <span class="audio-source-name">Bass</span>
+          <div class="audio-waveform"><canvas id="wf2"></canvas></div>
+        </div>
+        <div class="audio-source-row">
+          <div class="audio-source-dot" style="background:#4488ff"></div>
+          <span class="audio-source-name">Snare</span>
+          <div class="audio-waveform"><canvas id="wf3"></canvas></div>
+        </div>
+        <div class="audio-source-row">
+          <div class="audio-source-dot" style="background:#aa44ff"></div>
+          <span class="audio-source-name">Mic</span>
+          <div class="audio-waveform"><canvas id="wf4"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER PANEL -->
+    <div class="center-panel">
+      <div class="clip-grid-area">
+        <div class="clip-grid-header">
+          <span>Intro</span><span>Verse</span><span>Build</span><span style="color:#ff8800">Drop</span>
+        </div>
+        <!-- Row 1: Background -->
+        <div class="clip-grid">
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="200" data-style="gradient"></canvas></div>
+            <div class="clip-label">Ambient Wash</div>
+          </div>
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="120" data-style="bars"></canvas></div>
+            <div class="clip-label">Soft Pulse</div>
+          </div>
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="280" data-style="swirl"></canvas></div>
+            <div class="clip-label">Rising Tide</div>
+          </div>
+          <div class="clip-cell active">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="30" data-style="city"></canvas></div>
+            <div class="clip-label">City Lights</div>
+          </div>
+        </div>
+        <!-- Row 2: Pulse Shapes -->
+        <div class="clip-grid" style="margin-top:6px">
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="0" data-style="circles"></canvas></div>
+            <div class="clip-label">Rings</div>
+          </div>
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="60" data-style="triangles"></canvas></div>
+            <div class="clip-label">Prism</div>
+          </div>
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="180" data-style="grid"></canvas></div>
+            <div class="clip-label">Grid Build</div>
+          </div>
+          <div class="clip-cell active">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="330" data-style="geometric"></canvas></div>
+            <div class="clip-label">Geometric</div>
+          </div>
+        </div>
+        <!-- Row 3: Strobe FX -->
+        <div class="clip-grid" style="margin-top:6px">
+          <div class="clip-cell empty">
+            <div class="clip-label">-</div>
+          </div>
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="0" data-style="strobe"></canvas></div>
+            <div class="clip-label">Flash</div>
+          </div>
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="50" data-style="scan"></canvas></div>
+            <div class="clip-label">Scan Lines</div>
+          </div>
+          <div class="clip-cell active">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="15" data-style="bass-pulse"></canvas></div>
+            <div class="clip-label">Bass Pulse</div>
+          </div>
+        </div>
+        <!-- Row 4: 3D Tunnel -->
+        <div class="clip-grid" style="margin-top:6px">
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="260" data-style="tunnel"></canvas></div>
+            <div class="clip-label">Warp</div>
+          </div>
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="160" data-style="tunnel"></canvas></div>
+            <div class="clip-label">Neon Tube</div>
+          </div>
+          <div class="clip-cell empty">
+            <div class="clip-label">-</div>
+          </div>
+          <div class="clip-cell active">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="200" data-style="tunnel"></canvas></div>
+            <div class="clip-label">Tunnel Spin</div>
+          </div>
+        </div>
+        <!-- Row 5: Color Glitch -->
+        <div class="clip-grid" style="margin-top:6px">
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="0" data-style="glitch"></canvas></div>
+            <div class="clip-label">RGB Split</div>
+          </div>
+          <div class="clip-cell empty">
+            <div class="clip-label">-</div>
+          </div>
+          <div class="clip-cell">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="90" data-style="glitch"></canvas></div>
+            <div class="clip-label">Matrix</div>
+          </div>
+          <div class="clip-cell active">
+            <div class="clip-thumb"><canvas class="cell-canvas" data-hue="300" data-style="glitch"></canvas></div>
+            <div class="clip-label">Color Glitch</div>
+          </div>
+        </div>
+        <div class="new-clip-btn">+ New Clip</div>
+      </div>
+
+      <!-- Global Macros -->
+      <div class="global-macros">
+        <div class="panel-header" style="padding:0 0 4px 0; border:none;">Global Macros</div>
+        <div class="macro-chips">
+          <div class="macro-chip amber"><span class="chip-num">#1</span><span class="chip-name">Kick Drum</span></div>
+          <div class="macro-chip green"><span class="chip-num">#2</span><span class="chip-name">Bass</span></div>
+          <div class="macro-chip blue"><span class="chip-num">#3</span><span class="chip-name">Snare</span></div>
+          <div class="macro-chip purple"><span class="chip-num">#4</span><span class="chip-name">Mic</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <!-- Program Output -->
+      <div class="preview-section">
+        <div class="preview-label">Program Output</div>
+        <div class="preview-window">
+          <canvas id="preview-main"></canvas>
+          <div class="preview-badge badge-live">LIVE</div>
+        </div>
+      </div>
+      <!-- Focus Preview -->
+      <div class="preview-section">
+        <div class="preview-label">Focus Preview</div>
+        <div class="preview-window">
+          <canvas id="preview-focus"></canvas>
+          <div class="preview-badge badge-focus">FOCUS</div>
+        </div>
+      </div>
+      <!-- Macrobot -->
+      <div class="macrobot-section">
+        <div class="macrobot-header">
+          <span>Macrobot</span>
+        </div>
+        <div class="knob-row">
+          <div class="knob-group">
+            <div class="knob" style="--knob-angle:160deg; --knob-rot:-20deg"></div>
+            <span class="knob-label">Hue</span>
+          </div>
+          <div class="knob-group">
+            <div class="knob" style="--knob-angle:90deg; --knob-rot:-60deg"></div>
+            <span class="knob-label">Sat</span>
+          </div>
+          <div class="knob-group">
+            <div class="knob" style="--knob-angle:200deg; --knob-rot:10deg"></div>
+            <span class="knob-label">Bright</span>
+          </div>
+          <div class="knob-group">
+            <div class="knob" style="--knob-angle:140deg; --knob-rot:-30deg"></div>
+            <span class="knob-label">Speed</span>
+          </div>
+          <div class="knob-group">
+            <div class="knob-num">1</div>
+          </div>
+          <div class="knob-group">
+            <div class="knob-num">2</div>
+          </div>
+          <div class="knob-group">
+            <div class="knob-num">3</div>
+          </div>
+          <div class="knob-group">
+            <div class="knob-num">4</div>
+          </div>
+        </div>
+        <div class="macrobot-actions">
+          <button class="btn-macro btn-add-fx">+ Add Effect</button>
+          <button class="btn-macro btn-advance">ADVANCE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="ft-item">Player</span>
+    <div class="ft-sep"></div>
+    <span class="ft-item">Display <span class="ft-val">01</span></span>
+    <div class="ft-sep"></div>
+    <span class="ft-item">FPS: <span class="ft-val">60</span></span>
+    <div class="ft-sep"></div>
+    <span class="ft-item"><span class="ft-val">1920x1080</span></span>
+    <div class="spacer"></div>
+    <button class="ft-btn">Save</button>
+    <button class="ft-btn">Load</button>
+    <button class="ft-btn">Help</button>
+  </div>
+
+</div>
+
+<script>
+// --- Waveform drawing ---
+function drawWaveform(canvasId, color, seed) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  c.width = c.offsetWidth * 2;
+  c.height = c.offsetHeight * 2;
+  ctx.scale(2, 2);
+  const w = c.offsetWidth, h = c.offsetHeight;
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const mid = h / 2;
+  for (let x = 0; x < w; x++) {
+    const t = x / w;
+    const amp = (Math.sin(t * seed * 20) * 0.4 + Math.sin(t * seed * 7.3) * 0.3 + Math.sin(t * seed * 35) * 0.15) * mid * 0.85;
+    ctx.lineTo(x, mid + amp);
+  }
+  ctx.stroke();
+}
+
+// --- Cell thumbnail drawing ---
+function drawCellCanvas(canvas) {
+  const hue = parseInt(canvas.dataset.hue) || 0;
+  const style = canvas.dataset.style || 'gradient';
+  canvas.width = 160;
+  canvas.height = 100;
+  const ctx = canvas.getContext('2d');
+
+  if (style === 'city') {
+    const grd = ctx.createLinearGradient(0, 0, 0, 100);
+    grd.addColorStop(0, `hsl(${hue}, 70%, 15%)`);
+    grd.addColorStop(1, `hsl(${hue}, 80%, 5%)`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 160, 100);
+    for (let i = 0; i < 18; i++) {
+      const bx = Math.random() * 140 + 10;
+      const bh = Math.random() * 50 + 15;
+      const bw = Math.random() * 12 + 4;
+      ctx.fillStyle = `hsla(${hue + Math.random()*40}, 60%, ${20 + Math.random()*15}%, 0.9)`;
+      ctx.fillRect(bx, 100 - bh, bw, bh);
+      for (let wy = 100 - bh + 3; wy < 98; wy += 6) {
+        if (Math.random() > 0.4) {
+          ctx.fillStyle = `hsla(${hue + 20}, 90%, 70%, ${Math.random()*0.8+0.2})`;
+          ctx.fillRect(bx + 1, wy, 2, 2);
+        }
+      }
+    }
+  } else if (style === 'geometric') {
+    ctx.fillStyle = `hsl(${hue}, 20%, 8%)`;
+    ctx.fillRect(0, 0, 160, 100);
+    for (let i = 0; i < 8; i++) {
+      ctx.strokeStyle = `hsla(${hue + i * 30}, 80%, 60%, 0.6)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      const cx = 80, cy = 50, r = 12 + i * 6;
+      const sides = 3 + (i % 4);
+      for (let s = 0; s <= sides; s++) {
+        const a = (s / sides) * Math.PI * 2 - Math.PI / 2 + i * 0.2;
+        const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+        s === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+  } else if (style === 'tunnel') {
+    const grd = ctx.createRadialGradient(80, 50, 5, 80, 50, 70);
+    grd.addColorStop(0, `hsl(${hue}, 90%, 60%)`);
+    grd.addColorStop(0.5, `hsl(${hue + 40}, 70%, 25%)`);
+    grd.addColorStop(1, `hsl(${hue}, 30%, 5%)`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 160, 100);
+    for (let r = 10; r < 80; r += 12) {
+      ctx.strokeStyle = `hsla(${hue}, 80%, 50%, ${0.4 - r * 0.004})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(80, 50, r * 1.2, r * 0.8, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else if (style === 'glitch') {
+    ctx.fillStyle = `hsl(${hue}, 20%, 8%)`;
+    ctx.fillRect(0, 0, 160, 100);
+    for (let i = 0; i < 20; i++) {
+      const y = Math.random() * 100;
+      const h = Math.random() * 8 + 1;
+      ctx.fillStyle = `hsla(${hue + Math.random() * 60}, 80%, ${40 + Math.random() * 30}%, ${Math.random() * 0.6 + 0.2})`;
+      ctx.fillRect(Math.random() * 60, y, Math.random() * 120 + 20, h);
+    }
+  } else if (style === 'gradient') {
+    const grd = ctx.createLinearGradient(0, 0, 160, 100);
+    grd.addColorStop(0, `hsl(${hue}, 60%, 30%)`);
+    grd.addColorStop(1, `hsl(${hue + 60}, 50%, 15%)`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 160, 100);
+  } else if (style === 'bars') {
+    ctx.fillStyle = `hsl(${hue}, 20%, 8%)`;
+    ctx.fillRect(0, 0, 160, 100);
+    for (let i = 0; i < 12; i++) {
+      const bh = Math.random() * 60 + 10;
+      ctx.fillStyle = `hsla(${hue + i * 10}, 70%, 50%, 0.7)`;
+      ctx.fillRect(8 + i * 12, 100 - bh, 8, bh);
+    }
+  } else if (style === 'swirl') {
+    const grd = ctx.createRadialGradient(80, 50, 0, 80, 50, 80);
+    grd.addColorStop(0, `hsl(${hue}, 80%, 50%)`);
+    grd.addColorStop(1, `hsl(${hue + 80}, 40%, 10%)`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 160, 100);
+  } else if (style === 'circles') {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, 160, 100);
+    for (let r = 8; r < 50; r += 8) {
+      ctx.strokeStyle = `hsla(${hue + r * 3}, 80%, 55%, 0.5)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(80, 50, r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else if (style === 'triangles') {
+    ctx.fillStyle = `hsl(${hue}, 20%, 6%)`;
+    ctx.fillRect(0, 0, 160, 100);
+    for (let i = 0; i < 6; i++) {
+      ctx.strokeStyle = `hsla(${hue + i * 20}, 80%, 60%, 0.5)`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const s = 15 + i * 10;
+      ctx.moveTo(80, 50 - s * 0.6);
+      ctx.lineTo(80 + s * 0.5, 50 + s * 0.3);
+      ctx.lineTo(80 - s * 0.5, 50 + s * 0.3);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  } else if (style === 'grid') {
+    ctx.fillStyle = `hsl(${hue}, 15%, 6%)`;
+    ctx.fillRect(0, 0, 160, 100);
+    ctx.strokeStyle = `hsla(${hue}, 70%, 50%, 0.3)`;
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < 160; x += 10) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 100); ctx.stroke(); }
+    for (let y = 0; y < 100; y += 10) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(160, y); ctx.stroke(); }
+  } else if (style === 'strobe') {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, 160, 100);
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    for (let i = 0; i < 5; i++) ctx.fillRect(0, i * 20, 160, 10);
+  } else if (style === 'scan') {
+    ctx.fillStyle = `hsl(${hue}, 20%, 8%)`;
+    ctx.fillRect(0, 0, 160, 100);
+    for (let y = 0; y < 100; y += 4) {
+      ctx.fillStyle = `hsla(${hue}, 60%, 50%, ${y % 8 === 0 ? 0.4 : 0.15})`;
+      ctx.fillRect(0, y, 160, 1);
+    }
+  } else if (style === 'bass-pulse') {
+    const grd = ctx.createRadialGradient(80, 50, 0, 80, 50, 60);
+    grd.addColorStop(0, `hsl(${hue}, 100%, 60%)`);
+    grd.addColorStop(0.5, `hsl(${hue + 20}, 80%, 30%)`);
+    grd.addColorStop(1, `hsl(${hue}, 30%, 5%)`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 160, 100);
+  }
+}
+
+// --- Preview canvases ---
+function drawPreviewMain() {
+  const c = document.getElementById('preview-main');
+  c.width = c.offsetWidth * 2;
+  c.height = c.offsetHeight * 2;
+  const ctx = c.getContext('2d');
+  ctx.scale(2, 2);
+  const w = c.offsetWidth, h = c.offsetHeight;
+
+  // Golden/amber city scene
+  const grd = ctx.createRadialGradient(w * 0.5, h * 0.6, 10, w * 0.5, h * 0.5, w * 0.7);
+  grd.addColorStop(0, '#ffcc44');
+  grd.addColorStop(0.3, '#cc6600');
+  grd.addColorStop(0.6, '#662200');
+  grd.addColorStop(1, '#110500');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, w, h);
+
+  // Light rays
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.5, h * 0.55);
+    ctx.lineTo(w * 0.5 + Math.cos(angle) * w, h * 0.55 + Math.sin(angle) * w);
+    ctx.strokeStyle = `rgba(255, 200, 50, ${0.05 + Math.random() * 0.05})`;
+    ctx.lineWidth = 3 + Math.random() * 8;
+    ctx.stroke();
+  }
+
+  // Particle dots
+  for (let i = 0; i < 60; i++) {
+    const x = Math.random() * w, y = Math.random() * h;
+    const s = Math.random() * 2 + 0.5;
+    ctx.fillStyle = `rgba(255, ${180 + Math.random() * 75}, ${Math.random() * 80}, ${Math.random() * 0.7 + 0.2})`;
+    ctx.beginPath();
+    ctx.arc(x, y, s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawPreviewFocus() {
+  const c = document.getElementById('preview-focus');
+  c.width = c.offsetWidth * 2;
+  c.height = c.offsetHeight * 2;
+  const ctx = c.getContext('2d');
+  ctx.scale(2, 2);
+  const w = c.offsetWidth, h = c.offsetHeight;
+
+  // Red/orange abstract
+  const grd = ctx.createRadialGradient(w * 0.4, h * 0.5, 5, w * 0.5, h * 0.5, w * 0.6);
+  grd.addColorStop(0, '#ff4400');
+  grd.addColorStop(0.4, '#cc2200');
+  grd.addColorStop(0.7, '#440800');
+  grd.addColorStop(1, '#100200');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, w, h);
+
+  // Concentric shapes
+  for (let r = 15; r < w * 0.5; r += 18) {
+    ctx.strokeStyle = `rgba(255, ${80 + r}, ${20 + r * 0.3}, ${0.3 - r * 0.002})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(w * 0.45, h * 0.5, r * 1.1, r * 0.7, 0.2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+// --- Init ---
+window.addEventListener('load', () => {
+  drawWaveform('wf1', '#ff8800', 3.7);
+  drawWaveform('wf2', '#44cc44', 1.2);
+  drawWaveform('wf3', '#4488ff', 8.1);
+  drawWaveform('wf4', '#aa44ff', 5.4);
+
+  document.querySelectorAll('.cell-canvas').forEach(drawCellCanvas);
+
+  drawPreviewMain();
+  drawPreviewFocus();
+});
+</script>
+</body>
+</html>

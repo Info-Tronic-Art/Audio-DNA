@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — V6-05 Detailed Strips</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(180deg, #1a1e24 0%, #14171c 50%, #111418 100%);
+  color: #d0d0d0; font-size: 11px;
+}
+.top-bar {
+  height: 34px; display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, #2a2e34, #1e2228);
+  border-bottom: 1px solid #333; padding: 0 12px;
+}
+.logo { font-weight: 700; font-size: 14px; color: #e8e8e8; }
+.logo span { color: #d4a04a; }
+.sep { width: 1px; height: 20px; background: #444; margin: 0 4px; }
+.bpm { font-size: 18px; font-weight: 700; color: #5ddf5d; }
+.btn { background: linear-gradient(180deg, #3a3e44, #2a2e32); border: 1px solid #444; color: #ccc; padding: 3px 10px; border-radius: 3px; font-size: 10px; cursor: pointer; }
+.btn.act { background: #d4a04a; color: #111; border-color: #d4a04a; }
+.dots { display: flex; gap: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #333; border: 1px solid #555; }
+.dot.on { background: #d4a04a; border-color: #e8b85a; box-shadow: 0 0 4px #d4a04a; }
+.lbl { color: #888; font-size: 10px; }
+.bi { color: #999; font-size: 12px; font-weight: 600; }
+
+.scene-tabs {
+  height: 28px; display: flex; align-items: center; gap: 2px;
+  background: linear-gradient(180deg, #222630, #1c2028);
+  border-bottom: 1px solid #2a2e34; padding: 0 12px;
+}
+.stab { padding: 4px 16px; font-size: 11px; color: #999; cursor: pointer; border-radius: 3px 3px 0 0; }
+.stab.active { color: #fff; background: #333840; }
+
+.main { display: flex; height: calc(100% - 34px - 28px - 310px - 30px); }
+
+/* Scene flow */
+.sf { width: 150px; background: linear-gradient(180deg, #1e222a, #181c22); border-right: 1px solid #2a2e34; padding: 8px; }
+.sf-t { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.sf-i { display: flex; align-items: center; justify-content: space-between; padding: 5px 6px; margin-bottom: 3px; border-radius: 3px; background: linear-gradient(180deg, #2a2e36, #242830); border: 1px solid #333; }
+.sf-i.act { border-color: #d4a04a; background: linear-gradient(180deg, #3a3020, #2e2818); }
+.sf-i .n { font-size: 11px; color: #ccc; }
+.sf-i.act .n { color: #e8c870; }
+.sf-tr { font-size: 9px; padding: 2px 7px; background: #333; border: 1px solid #444; color: #aaa; border-radius: 2px; }
+.sf-a { color: #666; font-size: 10px; margin-top: 6px; }
+.sf-s { margin-top: 14px; }
+.sf-l { display: flex; align-items: center; gap: 6px; padding: 3px 4px; font-size: 10px; color: #999; margin-bottom: 2px; }
+.sf-lt { width: 24px; height: 24px; border-radius: 2px; border: 1px solid #444; }
+
+/* Center */
+.center { flex: 1; display: flex; flex-direction: column; padding: 8px 10px; }
+.gh-row { display: flex; gap: 2px; margin-bottom: 4px; padding-left: 68px; }
+.gh { width: 88px; text-align: center; font-size: 9px; color: #888; text-transform: uppercase; }
+.grid { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.gr { display: flex; align-items: center; gap: 2px; }
+.gl { width: 64px; font-size: 10px; color: #999; text-align: right; padding-right: 4px; white-space: nowrap; overflow: hidden; }
+.c { width: 88px; height: 88px; border-radius: 3px; background: linear-gradient(135deg, #222630, #1a1e26); border: 1px solid #333; position: relative; overflow: hidden; cursor: pointer; }
+.c:hover { border-color: #555; }
+.c.act { border: 2px solid #5bc8d8; }
+.c .th { width: 100%; height: 68px; }
+.c .cn { position: absolute; bottom: 0; left: 0; right: 0; height: 18px; background: rgba(0,0,0,0.7); font-size: 9px; color: #aaa; display: flex; align-items: center; padding: 0 4px; }
+.c .tb { position: absolute; top: 3px; left: 3px; font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 2px; text-transform: uppercase; }
+.bv { background: #c44; color: #fff; }
+.bim { background: #4488cc; color: #fff; }
+.bs { background: #44aa88; color: #fff; }
+.ph { position: absolute; top: 0; width: 2px; height: 68px; background: #5bc8d8; }
+.g1 { background: linear-gradient(135deg, #2a1a3a, #1a2a4a, #3a2a1a); }
+.g2 { background: linear-gradient(135deg, #3a1a1a, #4a2a1a, #2a1a3a); }
+.g3 { background: linear-gradient(45deg, #1a3a2a, #2a4a3a, #1a2a1a); }
+.g4 { background: linear-gradient(180deg, #4a3a1a, #3a2a0a, #1a1a2a); }
+.g5 { background: linear-gradient(135deg, #1a1a4a, #2a1a5a, #3a2a4a); }
+.g6 { background: linear-gradient(225deg, #3a2a2a, #2a1a1a, #4a3a2a); }
+.g7 { background: linear-gradient(135deg, #2a3a1a, #1a4a2a, #3a4a1a); }
+.g8 { background: linear-gradient(135deg, #0a1a2a, #1a2a3a, #0a2a4a); }
+.g9 { background: linear-gradient(135deg, #3a1a3a, #5a2a3a, #2a1a2a); }
+.g10 { background: radial-gradient(circle, #3a3a0a, #1a1a06 70%); }
+.emp { background: #1a1e26; }
+
+/* Preview */
+.prev { flex: 1; display: flex; flex-direction: column; margin-top: 4px; }
+.prev-l { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.prev-b { flex: 1; max-height: 180px; border-radius: 4px; overflow: hidden; border: 1px solid #333; position: relative; background: linear-gradient(135deg, #2a1a0a, #4a3010, #6a4a20, #3a2010, #1a0a00); }
+.prev-b .go { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(255,200,80,0.3) 0%, rgba(200,100,20,0.1) 40%, transparent 70%); }
+.prev-t { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.pb { background: #2a2e34; border: 1px solid #444; color: #ccc; padding: 2px 8px; border-radius: 2px; font-size: 10px; cursor: pointer; }
+.ptl { flex: 1; height: 4px; background: #333; border-radius: 2px; }
+.ptl .p { width: 65%; height: 100%; background: #d4a04a; border-radius: 2px; }
+
+/* Macros */
+.macros { margin-top: 6px; padding: 6px 8px; border-radius: 4px; background: linear-gradient(180deg, #222630, #1e222a); border: 1px solid #2a2e34; }
+.mt { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.mr { display: flex; gap: 10px; justify-content: center; }
+.mk { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.knob { width: 32px; height: 32px; border-radius: 50%; position: relative; background: linear-gradient(145deg, #333840, #252a30); border: 2px solid #444; }
+.knob::after { content: ''; position: absolute; top: 50%; left: 50%; width: 2px; height: 10px; background: #ccc; border-radius: 1px; transform-origin: bottom center; }
+.knob.r1::after { transform: translate(-50%, -100%) rotate(-60deg); }
+.knob.r2::after { transform: translate(-50%, -100%) rotate(-20deg); }
+.knob.r3::after { transform: translate(-50%, -100%) rotate(10deg); }
+.knob.r4::after { transform: translate(-50%, -100%) rotate(40deg); }
+.kl { font-size: 7px; color: #888; }
+.kv { font-size: 7px; color: #aaa; }
+
+/* Sources */
+.sources { width: 210px; background: linear-gradient(180deg, #1e222a, #181c22); border-left: 1px solid #2a2e34; padding: 8px; }
+.sp-tabs { display: flex; gap: 1px; margin-bottom: 8px; }
+.sp-tab { flex: 1; text-align: center; padding: 4px; font-size: 10px; color: #888; background: #252a30; cursor: pointer; border-radius: 3px 3px 0 0; }
+.sp-tab.act { background: #333840; color: #ddd; }
+.si { display: flex; align-items: center; gap: 6px; padding: 5px 4px; border-bottom: 1px solid #2a2e34; }
+.sico { font-size: 14px; width: 18px; text-align: center; }
+.sinf { flex: 1; }
+.sn { font-size: 11px; color: #ccc; }
+.sw { width: 100%; height: 18px; position: relative; border-radius: 2px; background: #1a1e24; overflow: hidden; margin-top: 2px; }
+.swb { position: absolute; bottom: 0; width: 3px; border-radius: 1px 1px 0 0; }
+.sm2 { width: 6px; height: 36px; border-radius: 2px; background: #1a1e24; border: 1px solid #333; display: flex; flex-direction: column-reverse; overflow: hidden; }
+.sadd { color: #666; font-size: 10px; padding: 6px 4px; }
+.shint { color: #555; font-size: 10px; padding: 4px; font-style: italic; }
+.lc { margin-top: 10px; padding-top: 8px; border-top: 1px solid #2a2e34; }
+.lc-t { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.lcr { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.lcl { font-size: 10px; color: #999; width: 50px; }
+.lcd { flex: 1; background: #2a2e34; border: 1px solid #444; color: #ccc; padding: 2px 5px; border-radius: 2px; font-size: 10px; }
+.lck { display: flex; gap: 6px; margin-top: 5px; }
+.lkw { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.lkn { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(145deg, #333840, #252a30); border: 2px solid #444; }
+.lkl { font-size: 7px; color: #888; }
+.lcb { background: #333; border: 1px solid #444; color: #aaa; padding: 3px 8px; border-radius: 2px; font-size: 9px; cursor: pointer; margin-top: 5px; }
+
+/* ===== DETAILED LAYER STRIPS ===== */
+.strip-area {
+  height: 310px; background: linear-gradient(180deg, #1c2028, #181c22);
+  border-top: 1px solid #333;
+}
+.layer-tab-bar {
+  display: flex; height: 26px; background: #1a1e24; border-bottom: 1px solid #2a2e34;
+  padding: 0 8px; gap: 1px; align-items: flex-end;
+}
+.ltab {
+  padding: 4px 12px; font-size: 10px; color: #888; cursor: pointer;
+  background: #222630; border-radius: 3px 3px 0 0;
+  border: 1px solid #333; border-bottom: none;
+}
+.ltab.act { background: #2a3040; color: #ddd; border-color: #444; }
+.ltab-add { padding: 4px 10px; font-size: 12px; color: #666; }
+
+.strips {
+  display: flex; gap: 6px; padding: 8px 10px; height: calc(100% - 26px); overflow-x: auto;
+}
+
+/* DETAILED STRIP CARD */
+.ds {
+  width: 180px; min-width: 180px; border-radius: 4px;
+  background: linear-gradient(180deg, #252a32, #1e2228);
+  border: 1px solid #333; padding: 6px; display: flex; flex-direction: column; gap: 4px;
+}
+.ds.act { border-color: #5bc8d8; }
+
+.ds-badge-row { display: flex; align-items: center; gap: 6px; }
+.ds-badge {
+  font-size: 7px; font-weight: 700; padding: 1px 5px; border-radius: 2px;
+  text-transform: uppercase; display: inline-block;
+}
+.ds-name { font-size: 10px; color: #ccc; flex: 1; white-space: nowrap; overflow: hidden; }
+
+.ds-thumb {
+  width: 100%; height: 50px; border-radius: 2px; border: 1px solid #333; overflow: hidden;
+}
+
+/* 4 rotary knobs with colored arcs */
+.ds-knobs { display: flex; gap: 6px; justify-content: center; }
+.ds-kw { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.ds-knob {
+  width: 28px; height: 28px; border-radius: 50%; position: relative;
+  background: linear-gradient(145deg, #333840, #252a30); border: 2px solid #444;
+}
+.ds-knob::after {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 2px; height: 8px; background: #ccc; border-radius: 1px;
+  transform-origin: bottom center;
+}
+/* Knob arcs via box-shadow */
+.ds-knob.hue { box-shadow: 0 0 0 2px transparent, inset 0 0 0 0 transparent; }
+.ds-knob .arc-ring {
+  position: absolute; inset: -4px; border-radius: 50%;
+  border: 2px solid transparent;
+}
+.ds-knob .arc-ring.hue-arc { border-left-color: #d44; border-bottom-color: #d44; transform: rotate(-45deg); }
+.ds-knob .arc-ring.sat-arc { border-left-color: #5bc8d8; border-bottom-color: #5bc8d8; border-top-color: #5bc8d8; transform: rotate(-45deg); }
+.ds-knob .arc-ring.bri-arc { border-left-color: #d4a04a; border-bottom-color: #d4a04a; transform: rotate(-45deg); }
+.ds-knob .arc-ring.spd-arc { border-left-color: #5ddf5d; transform: rotate(-90deg); }
+
+.ds-knob.k1::after { transform: translate(-50%, -100%) rotate(-40deg); }
+.ds-knob.k2::after { transform: translate(-50%, -100%) rotate(20deg); }
+.ds-knob.k3::after { transform: translate(-50%, -100%) rotate(-10deg); }
+.ds-knob.k4::after { transform: translate(-50%, -100%) rotate(0deg); }
+.ds-kl { font-size: 7px; color: #888; }
+
+/* Opacity slider */
+.ds-opacity-row { display: flex; align-items: center; gap: 4px; }
+.ds-opacity-lbl { font-size: 8px; color: #777; width: 24px; }
+.ds-opacity {
+  flex: 1; height: 6px; background: #222; border-radius: 3px;
+  border: 1px solid #333; position: relative; cursor: pointer;
+}
+.ds-opacity .fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #2a4a5a, #5bc8d8);
+}
+.ds-opacity .thumb {
+  position: absolute; top: -3px; width: 10px; height: 12px;
+  background: #ccc; border-radius: 2px; border: 1px solid #999;
+}
+.ds-opacity-val { font-size: 8px; color: #aaa; width: 26px; text-align: right; }
+
+/* FX / Macro / Strobe buttons */
+.ds-btn-row { display: flex; gap: 3px; }
+.ds-btn {
+  flex: 1; padding: 3px 2px; border-radius: 2px; font-size: 8px;
+  text-align: center; cursor: pointer; border: 1px solid #444;
+  background: linear-gradient(180deg, #333840, #2a2e34); color: #aaa;
+}
+.ds-btn:hover { background: #3a3e44; }
+.ds-btn.fx-active { border-color: #5bc8d8; color: #5bc8d8; }
+.ds-btn.macro-active { border-color: #d4a04a; color: #d4a04a; }
+.ds-btn.strobe-on { border-color: #cc4444; color: #cc4444; background: rgba(204,68,68,0.15); }
+
+/* Expand chevron */
+.ds-expand {
+  text-align: center; color: #666; font-size: 9px; cursor: pointer;
+  padding: 2px 0; border-top: 1px solid #2a2e34;
+}
+.ds-expand:hover { color: #999; }
+
+.footer { height: 30px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(180deg, #222630, #1a1e24); border-top: 1px solid #333; padding: 0 12px; }
+.fl, .fr { display: flex; align-items: center; gap: 12px; }
+.fi { font-size: 10px; color: #888; }
+.fs { color: #444; }
+.fb { background: #2a2e34; border: 1px solid #444; color: #aaa; padding: 3px 12px; border-radius: 2px; font-size: 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="logo">Audio-<span>DNA</span> VJ</div>
+  <div class="sep"></div>
+  <div class="lbl">BPM:</div><div class="bpm">128</div>
+  <div class="btn">TAP</div><div class="btn">NUDGE</div><div class="btn">NUDGE +</div><div class="btn">RESYNC</div>
+  <div class="sep"></div>
+  <div class="dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot"></div></div>
+  <div class="bi">037 / 04.1</div>
+  <div class="sep"></div>
+  <div class="btn act">Auto 4</div>
+  <div style="flex:1"></div>
+  <div class="lbl">Output: Display 01 | 60 FPS | 1920 x 1080</div>
+</div>
+
+<div class="scene-tabs">
+  <div class="stab">Intro</div><div class="stab">Verse</div><div class="stab">Build</div><div class="stab active">Drop</div><div class="stab">Outro</div>
+  <div style="flex:1"></div>
+  <span class="lbl">Quantize: Next Beat</span><span class="lbl" style="margin-left:10px;">Fade: 0.3s</span><span class="lbl" style="margin-left:10px;">Master: 100%</span>
+</div>
+
+<div class="main">
+  <!-- Scene flow -->
+  <div class="sf">
+    <div class="sf-t">Scene Flow</div>
+    <div class="sf-i"><span class="n">Intro</span><button class="sf-tr">Trigger</button></div>
+    <div class="sf-i"><span class="n">Verse</span><button class="sf-tr">Trigger</button></div>
+    <div class="sf-i act"><span class="n">Drop</span><button class="sf-tr">Trigger</button></div>
+    <div class="sf-i"><span class="n">Outro</span><button class="sf-tr">Trigger</button></div>
+    <div class="sf-a">+ Add Scene</div>
+    <div class="sf-s">
+      <div class="sf-t">Layers</div>
+      <div class="sf-l"><div class="sf-lt" style="background:linear-gradient(135deg,#2a1a3a,#1a2a4a);"></div>Background</div>
+      <div class="sf-l"><div class="sf-lt" style="background:linear-gradient(135deg,#3a1a1a,#4a2a1a);"></div>Pulse</div>
+      <div class="sf-l"><div class="sf-lt" style="background:linear-gradient(45deg,#1a3a2a,#2a4a3a);"></div>Strobe FX</div>
+      <div class="sf-l"><div class="sf-lt" style="background:linear-gradient(180deg,#4a3a1a,#3a2a0a);"></div>3D Tunnel</div>
+    </div>
+  </div>
+
+  <!-- Center -->
+  <div class="center">
+    <div class="gh-row"><div class="gh">Intro</div><div class="gh">Verse</div><div class="gh">Build</div><div class="gh">Drop</div><div class="gh">Outro</div></div>
+    <div class="grid">
+      <div class="gr">
+        <div class="gl">Background</div>
+        <div class="c"><div class="th g1"></div><span class="tb bv">VIDEO</span><div class="cn">City Lights</div><div class="ph" style="left:45%"></div></div>
+        <div class="c"><div class="th g3"></div><span class="tb bim">IMAGE</span><div class="cn">Geometric</div></div>
+        <div class="c"><div class="th g4"></div><span class="tb bv">VIDEO</span><div class="cn">Bass Pulse</div></div>
+        <div class="c act"><div class="th g2"></div><span class="tb bv">VIDEO</span><div class="cn">Tunnel</div><div class="ph" style="left:60%"></div></div>
+        <div class="c"><div class="th g8"></div><span class="tb bim">IMAGE</span><div class="cn">Fade Out</div></div>
+      </div>
+      <div class="gr">
+        <div class="gl">Pulse Shapes</div>
+        <div class="c"><div class="th g5"></div><span class="tb bs">SYNTH</span><div class="cn">Ring Pulse</div></div>
+        <div class="c"><div class="th g9"></div><span class="tb bs">SYNTH</span><div class="cn">Mandelbrot</div></div>
+        <div class="c"><div class="th g7"></div><span class="tb bs">SYNTH</span><div class="cn">Perlin Noise</div></div>
+        <div class="c act"><div class="th g10"></div><span class="tb bs">SYNTH</span><div class="cn">Cymatics</div></div>
+        <div class="c"><div class="th emp"></div></div>
+      </div>
+    </div>
+
+    <div class="prev">
+      <div class="prev-l">Live Output Preview</div>
+      <div class="prev-b"><div class="go"></div></div>
+      <div class="prev-t">
+        <button class="pb">&#9654;</button><button class="pb">&#10074;&#10074;</button><button class="pb">&#9632;</button>
+        <div class="ptl"><div class="p"></div></div>
+      </div>
+    </div>
+
+    <div class="macros">
+      <div class="mt">Global Macros</div>
+      <div class="mr">
+        <div class="mk"><div class="knob r1"></div><div class="kl">Hue</div><div class="kv">0.42</div></div>
+        <div class="mk"><div class="knob r2"></div><div class="kl">Sat</div><div class="kv">0.65</div></div>
+        <div class="mk"><div class="knob r3"></div><div class="kl">Bri</div><div class="kv">0.80</div></div>
+        <div class="mk"><div class="knob r4"></div><div class="kl">Scale</div><div class="kv">1.00</div></div>
+        <div class="mk"><div class="knob r1"></div><div class="kl">Speed</div><div class="kv">1.00</div></div>
+        <div class="mk"><div class="knob r3"></div><div class="kl">FX</div><div class="kv">0.30</div></div>
+        <div class="mk"><div class="knob r2"></div><div class="kl">M7</div><div class="kv">0.50</div></div>
+        <div class="mk"><div class="knob r4"></div><div class="kl">M8</div><div class="kv">0.50</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sources -->
+  <div class="sources">
+    <div class="sp-tabs">
+      <div class="sp-tab act">Sources</div><div class="sp-tab">Layer</div><div class="sp-tab">Clip</div>
+    </div>
+    <div class="si">
+      <div class="sico" style="color:#5ddf5d;">&#9835;</div>
+      <div class="sinf">
+        <div class="sn">Master Audio</div>
+        <div class="sw">
+          <div class="swb" style="left:2px;height:60%;background:#3a8a3a;"></div>
+          <div class="swb" style="left:6px;height:80%;background:#4aaa4a;"></div>
+          <div class="swb" style="left:10px;height:95%;background:#5ddf5d;"></div>
+          <div class="swb" style="left:14px;height:70%;background:#4aaa4a;"></div>
+          <div class="swb" style="left:18px;height:55%;background:#3a8a3a;"></div>
+          <div class="swb" style="left:22px;height:85%;background:#5ddf5d;"></div>
+          <div class="swb" style="left:26px;height:60%;background:#4aaa4a;"></div>
+          <div class="swb" style="left:30px;height:40%;background:#3a8a3a;"></div>
+        </div>
+      </div>
+      <div class="sm2"><div style="width:100%;background:linear-gradient(0deg,#2a5a2a,#5ddf5d);height:60%;"></div><div style="width:100%;background:#d4a04a;height:15%;"></div></div>
+    </div>
+    <div class="si">
+      <div class="sico" style="color:#d4a04a;">&#9835;</div>
+      <div class="sinf">
+        <div class="sn">Kick Drum</div>
+        <div class="sw"><div class="swb" style="left:4px;height:90%;background:#d4a04a;width:6px;"></div></div>
+      </div>
+    </div>
+    <div class="si">
+      <div class="sico" style="color:#888;">&#8767;</div>
+      <div class="sinf">
+        <div class="sn">LFO &mdash; Sine</div>
+        <div class="sw">
+          <svg width="100%" height="18" viewBox="0 0 100 18" style="position:absolute;top:0;left:0;">
+            <path d="M0,9 Q12,0 25,9 Q37,18 50,9 Q62,0 75,9 Q87,18 100,9" stroke="#5bc8d8" fill="none" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="si">
+      <div class="sico" style="color:#888;">&#8767;</div>
+      <div class="sinf">
+        <div class="sn">LFO &mdash; Custom</div>
+        <div class="sw">
+          <svg width="100%" height="18" viewBox="0 0 100 18" style="position:absolute;top:0;left:0;">
+            <path d="M0,14 L16,4 L33,11 L50,2 L66,16 L83,6 L100,12" stroke="#aa66cc" fill="none" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="sadd">+ Add Audio Source</div>
+    <div class="shint">Drag a source onto a parameter.</div>
+    <div class="lc">
+      <div class="lc-t">Layer Controls</div>
+      <div class="lcr"><div class="lcl">Blend</div><select class="lcd"><option>Normal</option></select></div>
+      <div class="lck">
+        <div class="lkw"><div class="lkn"></div><div class="lkl">H</div></div>
+        <div class="lkw"><div class="lkn"></div><div class="lkl">S</div></div>
+        <div class="lkw"><div class="lkn"></div><div class="lkl">B</div></div>
+        <div class="lkw"><div class="lkn"></div><div class="lkl">Spd</div></div>
+      </div>
+      <button class="lcb">+ Add / Pin FX</button>
+      <button class="lcb" style="margin-top:3px;">ADVANCE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DETAILED LAYER STRIPS ===== -->
+<div class="strip-area">
+  <div class="layer-tab-bar">
+    <div class="ltab act">Layer 1</div>
+    <div class="ltab">Layer 2</div>
+    <div class="ltab">Layer 3</div>
+    <div class="ltab">Layer 4</div>
+    <div class="ltab">Layer 5</div>
+    <div class="ltab">Layer 6</div>
+    <div class="ltab">Layer 7</div>
+    <div class="ltab">Layer 8</div>
+    <div class="ltab-add">+</div>
+  </div>
+  <div class="strips">
+    <!-- Strip 1: VIDEO Tunnel (active) -->
+    <div class="ds act">
+      <div class="ds-badge-row">
+        <span class="ds-badge bv">VIDEO</span>
+        <span class="ds-name">Tunnel</span>
+      </div>
+      <div class="ds-thumb g2"></div>
+      <div class="ds-knobs">
+        <div class="ds-kw">
+          <div class="ds-knob k1"><div class="arc-ring hue-arc"></div></div>
+          <div class="ds-kl">H</div>
+        </div>
+        <div class="ds-kw">
+          <div class="ds-knob k2"><div class="arc-ring sat-arc"></div></div>
+          <div class="ds-kl">S</div>
+        </div>
+        <div class="ds-kw">
+          <div class="ds-knob k3"><div class="arc-ring bri-arc"></div></div>
+          <div class="ds-kl">B</div>
+        </div>
+        <div class="ds-kw">
+          <div class="ds-knob k4"><div class="arc-ring spd-arc"></div></div>
+          <div class="ds-kl">Spd</div>
+        </div>
+      </div>
+      <div class="ds-opacity-row">
+        <div class="ds-opacity-lbl">Op</div>
+        <div class="ds-opacity"><div class="fill" style="width:85%"></div><div class="thumb" style="left:calc(85% - 5px)"></div></div>
+        <div class="ds-opacity-val">85%</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn fx-active">FX 1</div>
+        <div class="ds-btn fx-active">FX 2</div>
+        <div class="ds-btn macro-active">Macro</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn">Strobe</div>
+      </div>
+      <div class="ds-expand">&#9662; Expand</div>
+    </div>
+
+    <!-- Strip 2: SYNTH Cymatics -->
+    <div class="ds">
+      <div class="ds-badge-row">
+        <span class="ds-badge bs">SYNTH</span>
+        <span class="ds-name">Cymatics</span>
+      </div>
+      <div class="ds-thumb g10"></div>
+      <div class="ds-knobs">
+        <div class="ds-kw"><div class="ds-knob k1"><div class="arc-ring hue-arc"></div></div><div class="ds-kl">H</div></div>
+        <div class="ds-kw"><div class="ds-knob k2"><div class="arc-ring sat-arc"></div></div><div class="ds-kl">S</div></div>
+        <div class="ds-kw"><div class="ds-knob k3"><div class="arc-ring bri-arc"></div></div><div class="ds-kl">B</div></div>
+        <div class="ds-kw"><div class="ds-knob k4"><div class="arc-ring spd-arc"></div></div><div class="ds-kl">Spd</div></div>
+      </div>
+      <div class="ds-opacity-row">
+        <div class="ds-opacity-lbl">Op</div>
+        <div class="ds-opacity"><div class="fill" style="width:70%"></div><div class="thumb" style="left:calc(70% - 5px)"></div></div>
+        <div class="ds-opacity-val">70%</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn fx-active">FX 1</div>
+        <div class="ds-btn">FX 2</div>
+        <div class="ds-btn">Macro</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn strobe-on">Strobe</div>
+      </div>
+      <div class="ds-expand">&#9662; Expand</div>
+    </div>
+
+    <!-- Strip 3: IMAGE Geometric -->
+    <div class="ds">
+      <div class="ds-badge-row">
+        <span class="ds-badge bim">IMAGE</span>
+        <span class="ds-name">Geometric</span>
+      </div>
+      <div class="ds-thumb g3"></div>
+      <div class="ds-knobs">
+        <div class="ds-kw"><div class="ds-knob k1"><div class="arc-ring hue-arc"></div></div><div class="ds-kl">H</div></div>
+        <div class="ds-kw"><div class="ds-knob k2"><div class="arc-ring sat-arc"></div></div><div class="ds-kl">S</div></div>
+        <div class="ds-kw"><div class="ds-knob k3"><div class="arc-ring bri-arc"></div></div><div class="ds-kl">B</div></div>
+        <div class="ds-kw"><div class="ds-knob k4"><div class="arc-ring spd-arc"></div></div><div class="ds-kl">Spd</div></div>
+      </div>
+      <div class="ds-opacity-row">
+        <div class="ds-opacity-lbl">Op</div>
+        <div class="ds-opacity"><div class="fill" style="width:100%"></div><div class="thumb" style="left:calc(100% - 10px)"></div></div>
+        <div class="ds-opacity-val">100%</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn fx-active">FX 1</div>
+        <div class="ds-btn">FX 2</div>
+        <div class="ds-btn macro-active">Macro</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn">Strobe</div>
+      </div>
+      <div class="ds-expand">&#9662; Expand</div>
+    </div>
+
+    <!-- Strip 4: VIDEO Deep Drop A -->
+    <div class="ds">
+      <div class="ds-badge-row">
+        <span class="ds-badge bv">VIDEO</span>
+        <span class="ds-name">Deep Drop A</span>
+      </div>
+      <div class="ds-thumb g6"></div>
+      <div class="ds-knobs">
+        <div class="ds-kw"><div class="ds-knob k1"><div class="arc-ring hue-arc"></div></div><div class="ds-kl">H</div></div>
+        <div class="ds-kw"><div class="ds-knob k2"><div class="arc-ring sat-arc"></div></div><div class="ds-kl">S</div></div>
+        <div class="ds-kw"><div class="ds-knob k3"><div class="arc-ring bri-arc"></div></div><div class="ds-kl">B</div></div>
+        <div class="ds-kw"><div class="ds-knob k4"><div class="arc-ring spd-arc"></div></div><div class="ds-kl">Spd</div></div>
+      </div>
+      <div class="ds-opacity-row">
+        <div class="ds-opacity-lbl">Op</div>
+        <div class="ds-opacity"><div class="fill" style="width:60%"></div><div class="thumb" style="left:calc(60% - 5px)"></div></div>
+        <div class="ds-opacity-val">60%</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn fx-active">FX 1</div>
+        <div class="ds-btn fx-active">FX 2</div>
+        <div class="ds-btn fx-active">FX 3</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn macro-active">Macro</div>
+        <div class="ds-btn">Strobe</div>
+      </div>
+      <div class="ds-expand">&#9662; Expand</div>
+    </div>
+
+    <!-- Strip 5: SYNTH VJ Text -->
+    <div class="ds">
+      <div class="ds-badge-row">
+        <span class="ds-badge bs">SYNTH</span>
+        <span class="ds-name">VJ Text</span>
+      </div>
+      <div class="ds-thumb g5"></div>
+      <div class="ds-knobs">
+        <div class="ds-kw"><div class="ds-knob k1"><div class="arc-ring hue-arc"></div></div><div class="ds-kl">H</div></div>
+        <div class="ds-kw"><div class="ds-knob k2"><div class="arc-ring sat-arc"></div></div><div class="ds-kl">S</div></div>
+        <div class="ds-kw"><div class="ds-knob k3"><div class="arc-ring bri-arc"></div></div><div class="ds-kl">B</div></div>
+        <div class="ds-kw"><div class="ds-knob k4"><div class="arc-ring spd-arc"></div></div><div class="ds-kl">Spd</div></div>
+      </div>
+      <div class="ds-opacity-row">
+        <div class="ds-opacity-lbl">Op</div>
+        <div class="ds-opacity"><div class="fill" style="width:50%"></div><div class="thumb" style="left:calc(50% - 5px)"></div></div>
+        <div class="ds-opacity-val">50%</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn fx-active">FX 1</div>
+        <div class="ds-btn">FX 2</div>
+        <div class="ds-btn">Macro</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn strobe-on">Strobe</div>
+      </div>
+      <div class="ds-expand">&#9662; Expand</div>
+    </div>
+
+    <!-- Strip 6: SYNTH Color Flash -->
+    <div class="ds">
+      <div class="ds-badge-row">
+        <span class="ds-badge bs">SYNTH</span>
+        <span class="ds-name">Color Flash</span>
+      </div>
+      <div class="ds-thumb" style="background:linear-gradient(135deg,#3a3a1a,#2a2a0a);"></div>
+      <div class="ds-knobs">
+        <div class="ds-kw"><div class="ds-knob k1"><div class="arc-ring hue-arc"></div></div><div class="ds-kl">H</div></div>
+        <div class="ds-kw"><div class="ds-knob k2"><div class="arc-ring sat-arc"></div></div><div class="ds-kl">S</div></div>
+        <div class="ds-kw"><div class="ds-knob k3"><div class="arc-ring bri-arc"></div></div><div class="ds-kl">B</div></div>
+        <div class="ds-kw"><div class="ds-knob k4"><div class="arc-ring spd-arc"></div></div><div class="ds-kl">Spd</div></div>
+      </div>
+      <div class="ds-opacity-row">
+        <div class="ds-opacity-lbl">Op</div>
+        <div class="ds-opacity"><div class="fill" style="width:45%"></div><div class="thumb" style="left:calc(45% - 5px)"></div></div>
+        <div class="ds-opacity-val">45%</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn">FX 1</div>
+        <div class="ds-btn fx-active">FX 2</div>
+        <div class="ds-btn macro-active">Macro</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn">Strobe</div>
+      </div>
+      <div class="ds-expand">&#9662; Expand</div>
+    </div>
+
+    <!-- Strip 7: VIDEO Bass Pulse -->
+    <div class="ds">
+      <div class="ds-badge-row">
+        <span class="ds-badge bv">VIDEO</span>
+        <span class="ds-name">Bass Pulse</span>
+      </div>
+      <div class="ds-thumb g4"></div>
+      <div class="ds-knobs">
+        <div class="ds-kw"><div class="ds-knob k1"><div class="arc-ring hue-arc"></div></div><div class="ds-kl">H</div></div>
+        <div class="ds-kw"><div class="ds-knob k2"><div class="arc-ring sat-arc"></div></div><div class="ds-kl">S</div></div>
+        <div class="ds-kw"><div class="ds-knob k3"><div class="arc-ring bri-arc"></div></div><div class="ds-kl">B</div></div>
+        <div class="ds-kw"><div class="ds-knob k4"><div class="arc-ring spd-arc"></div></div><div class="ds-kl">Spd</div></div>
+      </div>
+      <div class="ds-opacity-row">
+        <div class="ds-opacity-lbl">Op</div>
+        <div class="ds-opacity"><div class="fill" style="width:75%"></div><div class="thumb" style="left:calc(75% - 5px)"></div></div>
+        <div class="ds-opacity-val">75%</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn fx-active">FX 1</div>
+        <div class="ds-btn">FX 2</div>
+        <div class="ds-btn macro-active">Macro</div>
+      </div>
+      <div class="ds-btn-row">
+        <div class="ds-btn">Strobe</div>
+      </div>
+      <div class="ds-expand">&#9662; Expand</div>
+    </div>
+
+    <!-- Strip 8: + New Clip -->
+    <div class="ds" style="border-style:dashed;border-color:#444;display:flex;align-items:center;justify-content:center;">
+      <div style="color:#555;font-size:24px;">+</div>
+      <div style="color:#666;font-size:9px;">New Clip</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <div class="fl">
+    <span class="fi">Master Sources &#9660;</span><span class="fs">|</span>
+    <span class="fi">&#9654; Audio Player</span><span class="fs">|</span>
+    <span class="fi">Outputs &#9660;</span><span class="fs">|</span>
+    <span class="fi">Output: Display 01 | 60 FPS | 1920 x 1080</span>
+  </div>
+  <div class="fr"><button class="fb">SAVE</button><button class="fb">LOAD</button><button class="fb">HELP</button></div>
+</div>
+
+</body>
+</html>

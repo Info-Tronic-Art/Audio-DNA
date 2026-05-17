@@ -1,0 +1,646 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          21,
+          "output0"
+        ],
+        "to": [
+          18,
+          "radius"
+        ]
+      },
+      {
+        "from": [
+          17,
+          "output"
+        ],
+        "to": [
+          22,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          18,
+          "output"
+        ],
+        "to": [
+          23,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          22,
+          "output"
+        ],
+        "to": [
+          25,
+          "shape"
+        ]
+      },
+      {
+        "from": [
+          23,
+          "output"
+        ],
+        "to": [
+          26,
+          "shape"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          17,
+          "radius"
+        ]
+      },
+      {
+        "from": [
+          24,
+          "output"
+        ],
+        "to": [
+          21,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          25,
+          "output0"
+        ],
+        "to": [
+          27,
+          "input2"
+        ]
+      },
+      {
+        "from": [
+          26,
+          "output0"
+        ],
+        "to": [
+          27,
+          "input1"
+        ]
+      },
+      {
+        "from": [
+          27,
+          "output"
+        ],
+        "to": [
+          28,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "",
+      "category": null,
+      "description": "This patch explains what this node does.",
+      "displayName": "1overX example",
+      "identifier": "5096b295-b2c5-4ede-abed-28c64cb04e99",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 29,
+    "nodes": {
+      "1": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "1/X\nThis node divides 1 by the incoming value. This is a quick way to proportionally inverse a signal.\nIn this example the green circle is inversely proportional to the size of the other circle. The bigger the other gets, the smaller this gets and vice versa\n\n- Patch Explained -\n\n• The Sine modulates the radii of the two rings. The red ring is modulated directly by the Sine, the green ring is modulated by the proportionally inverse of the signal."
+          }
+        },
+        "bounds": {
+          "height": 195.77487182617188,
+          "width": 755.8348388671875,
+          "x": 107.58299255371094,
+          "y": 196.28021240234375
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "17": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 586.819580078125,
+          "y": 454.0841979980469
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 0.6800000071525574
+          }
+        },
+        "hidden": [],
+        "name": "Circle"
+      },
+      "18": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 588.0675048828125,
+          "y": 559.836181640625
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4CAEC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "radius": {
+            "type": "float",
+            "value": 1.470588207244873
+          }
+        },
+        "hidden": [],
+        "name": "Circle"
+      },
+      "2": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a float value."
+          }
+        },
+        "bounds": {
+          "height": 122.307373046875,
+          "width": 334,
+          "x": 462.08984375,
+          "y": 648.54296875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "21": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 362.98828125,
+          "y": 560.71826171875
+        },
+        "class": {
+          "id": "77697265-8061-467F-B375-DB03FFF5ED40",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 0.6800000071525574
+          }
+        },
+        "hidden": [],
+        "name": "1 / x"
+      },
+      "22": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "mode": {
+            "type": "choice",
+            "value": "Inner"
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 807.819580078125,
+          "y": 454.0841979980469
+        },
+        "class": {
+          "id": "77697265-ab950887-37ee-4fd2-9487-c856b6b75c83",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "procedural",
+            "value": null
+          },
+          "thickness": {
+            "type": "float",
+            "value": 0.20000000298023224
+          }
+        },
+        "hidden": [],
+        "name": "Edge"
+      },
+      "23": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "mode": {
+            "type": "choice",
+            "value": "Inner"
+          }
+        },
+        "bounds": {
+          "height": 62,
+          "width": 195,
+          "x": 809.0675048828125,
+          "y": 559.836181640625
+        },
+        "class": {
+          "id": "77697265-ab950887-37ee-4fd2-9487-c856b6b75c83",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "procedural",
+            "value": null
+          },
+          "thickness": {
+            "type": "float",
+            "value": 0.20000000298023224
+          }
+        },
+        "hidden": [],
+        "name": "Edge"
+      },
+      "24": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 108.64199829101562,
+          "y": 450.4604797363281
+        },
+        "class": {
+          "id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 2
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 2
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "reset-phase"
+        ],
+        "name": "Sine"
+      },
+      "25": {
+        "attributes": {
+          "antialising-direction": {
+            "type": "choice",
+            "value": "In"
+          },
+          "material-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "shape-dimensions": {
+            "type": "dimensions",
+            "value": []
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 1023.819580078125,
+          "y": 454.0841979980469
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "antialiasing": {
+            "type": "float",
+            "value": 4
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              1,
+              0,
+              0,
+              1
+            ]
+          },
+          "shape": {
+            "type": "procedural",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Shape Render"
+      },
+      "26": {
+        "attributes": {
+          "antialising-direction": {
+            "type": "choice",
+            "value": "In"
+          },
+          "material-dimensions": {
+            "type": "dimensions",
+            "value": []
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          },
+          "shape-dimensions": {
+            "type": "dimensions",
+            "value": []
+          }
+        },
+        "bounds": {
+          "height": 86,
+          "width": 195,
+          "x": 1025.0675048828125,
+          "y": 559.836181640625
+        },
+        "class": {
+          "id": "77697265-EA26-47D6-985A-B4D5DC314BF7",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "antialiasing": {
+            "type": "float",
+            "value": 4
+          },
+          "material": {
+            "type": "float4",
+            "value": [
+              0.5568627715110779,
+              1,
+              0,
+              1
+            ]
+          },
+          "shape": {
+            "type": "procedural",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Shape Render"
+      },
+      "27": {
+        "attributes": {
+          "bitdepth": {
+            "type": "choice",
+            "value": "Patch Bit Depth"
+          },
+          "input-count": {
+            "type": "number",
+            "value": 2
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "resolution": {
+            "type": "choice",
+            "value": "Patch Size"
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 1245.819580078125,
+          "y": 455.0841979980469
+        },
+        "class": {
+          "id": "77697265-A270-4D60-911C-A88B1BE6369A",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "bypass": {
+            "type": "bool",
+            "value": false
+          },
+          "input1": {
+            "type": "texture2d",
+            "value": null
+          },
+          "input2": {
+            "type": "texture2d",
+            "value": null
+          },
+          "mode": {
+            "type": "integer",
+            "value": 11
+          },
+          "opacity1": {
+            "type": "float",
+            "value": 1
+          },
+          "opacity2": {
+            "type": "float",
+            "value": 1
+          }
+        },
+        "hidden": [
+          "bypass",
+          "mode"
+        ],
+        "name": "Video Mixer"
+      },
+      "28": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 128,
+          "x": 1463.819580078125,
+          "y": 454.0841979980469
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Texture"
+      },
+      "3": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Input\nAny value.\n"
+          }
+        },
+        "bounds": {
+          "height": 122.21701049804688,
+          "width": 312,
+          "x": 108.0078125,
+          "y": 648.91796875
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 92.48860931396486,
+        "y": 156.66287231445312,
+        "zoom": 0.9999998807907104
+      },
+      "selection": [
+        "28"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "preview-lock": 28,
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

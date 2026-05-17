@@ -1,0 +1,1118 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          24,
+          "output0"
+        ],
+        "to": [
+          25,
+          "collection"
+        ]
+      },
+      {
+        "from": [
+          25,
+          "output0"
+        ],
+        "to": [
+          26,
+          "image"
+        ]
+      },
+      {
+        "from": [
+          29,
+          "output"
+        ],
+        "to": [
+          25,
+          "index"
+        ]
+      },
+      {
+        "from": [
+          26,
+          "output"
+        ],
+        "to": [
+          30,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          32,
+          "output0"
+        ],
+        "to": [
+          33,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          32,
+          "output0"
+        ],
+        "to": [
+          34,
+          "video"
+        ]
+      },
+      {
+        "from": [
+          35,
+          "output"
+        ],
+        "to": [
+          34,
+          "phase"
+        ]
+      },
+      {
+        "from": [
+          34,
+          "output"
+        ],
+        "to": [
+          36,
+          "input"
+        ]
+      }
+    ],
+    "inputOrder": {
+      "groups": {},
+      "roots": [
+        {
+          "node": 29
+        }
+      ]
+    },
+    "meta": {
+      "author": "",
+      "category": null,
+      "deploymentTarget": {
+        "branch": "resource-types",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 22,
+          "patch": 0
+        }
+      },
+      "description": "",
+      "displayName": "Resource Nodes",
+      "identifier": "3681baa0-cdf6-43d0-9d95-af27ca83b92e",
+      "licenseName": "",
+      "mail": "",
+      "originalTarget": {
+        "branch": "resource-types",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 22,
+          "patch": 0
+        }
+      },
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "saveTarget": {
+        "branch": "development",
+        "name": "Wire",
+        "version": {
+          "major": 7,
+          "minor": 22,
+          "patch": 0
+        }
+      },
+      "thumbnail": "",
+      "url": "",
+      "vendor": ""
+    },
+    "nextNodeId": 39,
+    "nodes": {
+      "11": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 1: RESOURCE NODES\n\nThere are four nodes that deal with resources.\nEach node accepts their respective resource type from a resource in node.\nMore importantly, you can assign resources through the node panel.\nHere you can also instantiate the node."
+          }
+        },
+        "bounds": {
+          "height": 293.8172607421875,
+          "width": 655.008056640625,
+          "x": 275.48590087890625,
+          "y": 96.82210540771484
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Group",
+        "thumbnail_visible": true
+      },
+      "12": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": true
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "RESOURCE NODES\n\nThe Resource nodes allow you to assign a resource to them and route it to multiple destinations or instantiate it. \nThese nodes are the \"closed\" brothers of the Resource In nodes.\nAllowing you as a creator to work with resources without exposing them.\n\nThe resource types are paths towards files on your hard drive.\nThis means that they do not take up any memory until used.\nFor example: the LUT node using a LUT 3D resource\nThis means that you can have tons of resources \"ready to go\" only to use them when actually needed."
+          }
+        },
+        "bounds": {
+          "height": 229.72769165039062,
+          "width": 833.6476440429688,
+          "x": 276.40777587890625,
+          "y": -157.50588989257812
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffd0c117",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Comment",
+        "thumbnail_visible": true
+      },
+      "24": {
+        "attributes": {
+          "input0": {
+            "type": "resourceImage",
+            "value": [
+              {
+                "path": {
+                  "main": "Resource/Logo Shifted.png",
+                  "sub": ""
+                },
+                "value": {
+                  "alphaType": "straight",
+                  "bitDepth": 4,
+                  "channelCount": 4,
+                  "codec": "PNG",
+                  "resolution": {
+                    "height": 127,
+                    "width": 1042
+                  }
+                }
+              },
+              {
+                "path": {
+                  "main": "Resource/ResolumeLogo.png",
+                  "sub": ""
+                },
+                "value": {
+                  "alphaType": "straight",
+                  "bitDepth": 4,
+                  "channelCount": 4,
+                  "codec": "PNG",
+                  "resolution": {
+                    "height": 127,
+                    "width": 1042
+                  }
+                }
+              },
+              {
+                "path": {
+                  "main": "Resource/Logo Red.png",
+                  "sub": ""
+                },
+                "value": {
+                  "alphaType": "straight",
+                  "bitDepth": 4,
+                  "channelCount": 4,
+                  "codec": "PNG",
+                  "resolution": {
+                    "height": 127,
+                    "width": 1042
+                  }
+                }
+              }
+            ]
+          },
+          "instances": {
+            "type": "integer",
+            "value": 3
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 305.0810241699219,
+          "y": 585.788330078125
+        },
+        "class": {
+          "id": "77697265-7ed6-4662-9eee-a624eb168a19",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "instances"
+        ],
+        "name": "Image Resource",
+        "thumbnail_visible": true
+      },
+      "25": {
+        "attributes": {
+          "collection": {
+            "type": "resourceImage",
+            "value": [
+              {
+                "path": {
+                  "main": "Resource/Logo Shifted.png",
+                  "sub": ""
+                },
+                "value": {
+                  "alphaType": "straight",
+                  "bitDepth": 4,
+                  "channelCount": 4,
+                  "codec": "PNG",
+                  "resolution": {
+                    "height": 127,
+                    "width": 1042
+                  }
+                }
+              },
+              {
+                "path": {
+                  "main": "Resource/ResolumeLogo.png",
+                  "sub": ""
+                },
+                "value": {
+                  "alphaType": "straight",
+                  "bitDepth": 4,
+                  "channelCount": 4,
+                  "codec": "PNG",
+                  "resolution": {
+                    "height": 127,
+                    "width": 1042
+                  }
+                }
+              },
+              {
+                "path": {
+                  "main": "Resource/Logo Red.png",
+                  "sub": ""
+                },
+                "value": {
+                  "alphaType": "straight",
+                  "bitDepth": 4,
+                  "channelCount": 4,
+                  "codec": "PNG",
+                  "resolution": {
+                    "height": 127,
+                    "width": 1042
+                  }
+                }
+              }
+            ]
+          },
+          "collection-dimensions": {
+            "type": "integer",
+            "value": 3
+          },
+          "collection-flow": {
+            "type": "flow",
+            "value": "attribute"
+          },
+          "collection-type": {
+            "type": "type",
+            "value": "resourceImage"
+          },
+          "index": {
+            "type": "integer",
+            "value": 0
+          },
+          "index-dimensions": {
+            "type": "integer",
+            "value": 1
+          },
+          "index-flow": {
+            "type": "flow",
+            "value": "attribute"
+          },
+          "index-type": {
+            "type": "type",
+            "value": "integer"
+          },
+          "interpolation": {
+            "type": "integer",
+            "value": 0
+          },
+          "wrapping": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 560.0809936523438,
+          "y": 585.788330078125
+        },
+        "class": {
+          "id": "77697265-A7DD-4C94-96ED-4A5E3756EA6A",
+          "version": 3
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "wrapping",
+          "interpolation",
+          "collection-type",
+          "index-type",
+          "collection-flow",
+          "index-flow",
+          "collection-dimensions",
+          "index-dimensions"
+        ],
+        "name": "Read",
+        "thumbnail_visible": true
+      },
+      "26": {
+        "attributes": {
+          "image": {
+            "type": "resourceImage",
+            "value": {
+              "path": {
+                "main": "Resource/Logo Shifted.png",
+                "sub": ""
+              },
+              "value": {
+                "alphaType": "straight",
+                "bitDepth": 4,
+                "channelCount": 4,
+                "codec": "PNG",
+                "resolution": {
+                  "height": 127,
+                  "width": 1042
+                }
+              }
+            }
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 140,
+          "width": 195,
+          "x": 815.0809936523438,
+          "y": 585.788330078125
+        },
+        "class": {
+          "id": "77697265-3683-409B-8C89-43AFAEA9A2B0",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "straight": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "hidden": [
+          "straight",
+          "instances"
+        ],
+        "name": "Image",
+        "thumbnail_visible": true
+      },
+      "29": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "attribute"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "input": {
+            "type": "integer",
+            "value": 0
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "max": {
+            "type": "integer",
+            "value": 2
+          },
+          "min": {
+            "type": "integer",
+            "value": 0
+          },
+          "option0-label": {
+            "type": "string",
+            "value": "Shifted"
+          },
+          "option0-value": {
+            "type": "integer",
+            "value": 0
+          },
+          "option1-label": {
+            "type": "string",
+            "value": "Logo"
+          },
+          "option1-value": {
+            "type": "integer",
+            "value": 1
+          },
+          "option2-label": {
+            "type": "string",
+            "value": "Red"
+          },
+          "option2-value": {
+            "type": "integer",
+            "value": 2
+          },
+          "options-count": {
+            "type": "integer",
+            "value": 3
+          },
+          "unit": {
+            "type": "integer",
+            "value": 0
+          },
+          "widget": {
+            "type": "integer",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 130,
+          "x": 370.0810241699219,
+          "y": 645.77587890625
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "instances",
+          "flow",
+          "has-min",
+          "min",
+          "has-max",
+          "max",
+          "options-count",
+          "widget",
+          "option0-label",
+          "option0-value",
+          "option1-label",
+          "option1-value",
+          "option2-label",
+          "option2-value",
+          "unit"
+        ],
+        "name": "Int In",
+        "thumbnail_visible": true
+      },
+      "30": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 1070.0810546875,
+          "y": 585.788330078125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "31": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 2: READING RESOURCES\n\nIn this example we've assigned 3 image resources into the Image Resource node.\nNext, we use a Read node, allowing us to cycle through the resources.\nThe main advantage here is that only 1 image file is loaded into memory each time."
+          }
+        },
+        "bounds": {
+          "height": 324.12054443359375,
+          "width": 957,
+          "x": 275.0810241699219,
+          "y": 433.6553649902344
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ff02bbff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Group",
+        "thumbnail_visible": true
+      },
+      "32": {
+        "attributes": {
+          "input0": {
+            "type": "resourceVideo",
+            "value": {
+              "path": {
+                "main": "Resource/ResolumeLogomov.mov",
+                "sub": ""
+              },
+              "value": {
+                "alphaType": "premultiplied",
+                "bitDepth": 4,
+                "channelCount": 4,
+                "codec": "DXV 3.0 Normal Quality, With Alpha",
+                "fps": 30,
+                "frameCount": 120,
+                "lengthInMilliseconds": 4000.00000000000045475,
+                "resolution": {
+                  "height": 1080,
+                  "width": 1920
+                }
+              }
+            }
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 402.2755126953125,
+          "y": 952.9284057617188
+        },
+        "class": {
+          "id": "77697265-a625-4499-8ad1-5b39452172ab",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {},
+        "hidden": [
+          "instances"
+        ],
+        "name": "Video Resource",
+        "thumbnail_visible": true
+      },
+      "33": {
+        "attributes": {
+          "input0": {
+            "type": "resourceVideo",
+            "value": {
+              "path": {
+                "main": "Resource/ResolumeLogomov.mov",
+                "sub": ""
+              },
+              "value": {
+                "alphaType": "premultiplied",
+                "bitDepth": 4,
+                "channelCount": 4,
+                "codec": "DXV 3.0 Normal Quality, With Alpha",
+                "fps": 30,
+                "frameCount": 120,
+                "lengthInMilliseconds": 4000.00000000000045475,
+                "resolution": {
+                  "height": 1080,
+                  "width": 1920
+                }
+              }
+            }
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 677.9963989257812,
+          "y": 952.9378662109375
+        },
+        "class": {
+          "id": "77697265-b79f-4513-a041-6d94cbf95962",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {},
+        "hidden": [
+          "instances"
+        ],
+        "name": "Duration",
+        "thumbnail_visible": true
+      },
+      "34": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "video": {
+            "type": "resourceVideo",
+            "value": {
+              "path": {
+                "main": "Resource/ResolumeLogomov.mov",
+                "sub": ""
+              },
+              "value": {
+                "alphaType": "premultiplied",
+                "bitDepth": 4,
+                "channelCount": 4,
+                "codec": "DXV 3.0 Normal Quality, With Alpha",
+                "fps": 30,
+                "frameCount": 120,
+                "lengthInMilliseconds": 4000.00000000000045475,
+                "resolution": {
+                  "height": 1080,
+                  "width": 1920
+                }
+              }
+            }
+          }
+        },
+        "bounds": {
+          "height": 168,
+          "width": 195,
+          "x": 674.009765625,
+          "y": 1012.141845703125
+        },
+        "class": {
+          "id": "77697265-fa15-4549-9eb5-f5886253a470",
+          "version": 2
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "phase": {
+            "type": "float",
+            "value": 0
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Video Sampler",
+        "thumbnail_visible": true
+      },
+      "35": {
+        "attributes": {
+          "anti-alias": {
+            "type": "bool",
+            "value": false
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          },
+          "unipolar": {
+            "type": "bool",
+            "value": false
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 402.2755126953125,
+          "y": 1151.2520751953125
+        },
+        "class": {
+          "id": "77697265-F95F-41D8-8FC4-DF0DC56E1051",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "amplitude": {
+            "type": "float",
+            "value": 1
+          },
+          "frequency": {
+            "type": "float",
+            "value": 0.25
+          },
+          "offset": {
+            "type": "float",
+            "value": 0
+          },
+          "phase-offset": {
+            "type": "float",
+            "value": 0
+          },
+          "reset-phase": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances",
+          "frequency",
+          "amplitude",
+          "phase-offset",
+          "offset",
+          "reset-phase",
+          "unipolar",
+          "anti-alias"
+        ],
+        "name": "Saw Oscillator",
+        "thumbnail_visible": true
+      },
+      "36": {
+        "attributes": {
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 132,
+          "x": 904.4769287109375,
+          "y": 1012.141845703125
+        },
+        "class": {
+          "id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {
+          "input": {
+            "type": "texture2d",
+            "value": null
+          }
+        },
+        "hidden": [
+          "instances"
+        ],
+        "name": "Texture Out",
+        "thumbnail_visible": true
+      },
+      "37": {
+        "attributes": {
+          "alignment": {
+            "type": "integer",
+            "value": 0
+          },
+          "fill": {
+            "type": "bool",
+            "value": false
+          },
+          "font-size": {
+            "type": "float",
+            "value": 19
+          },
+          "text": {
+            "type": "string",
+            "value": "EXAMPLE 3: MULTIPLE DESTINATIONS\n\nIn this example we've assigned a video resource into the Video Resource node.\nNow we can route this into multiple destinations.\nHere we route it into the Video Sampler and into the Duration node."
+          }
+        },
+        "bounds": {
+          "height": 416.5135192871094,
+          "width": 955.3099975585938,
+          "x": 276.38165283203125,
+          "y": 810.4326782226562
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 1
+        },
+        "clock": "video",
+        "color": "ffae7bff",
+        "constants": {},
+        "hidden": [
+          "text",
+          "alignment",
+          "font-size",
+          "fill"
+        ],
+        "name": "Group",
+        "thumbnail_visible": true
+      },
+      "6": {
+        "attributes": {
+          "input0": {
+            "type": "resourceImage",
+            "value": {
+              "path": {
+                "main": "",
+                "sub": ""
+              },
+              "value": null
+            }
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 343.74591064453125,
+          "y": 244.81890869140625
+        },
+        "class": {
+          "id": "77697265-7ed6-4662-9eee-a624eb168a19",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "instances"
+        ],
+        "name": "Image Resource",
+        "thumbnail_visible": true
+      },
+      "7": {
+        "attributes": {
+          "input0": {
+            "type": "resourceVideo",
+            "value": {
+              "path": {
+                "main": "",
+                "sub": ""
+              },
+              "value": null
+            }
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 579.4221801757812,
+          "y": 244.81887817382812
+        },
+        "class": {
+          "id": "77697265-a625-4499-8ad1-5b39452172ab",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "instances"
+        ],
+        "name": "Video Resource",
+        "thumbnail_visible": true
+      },
+      "8": {
+        "attributes": {
+          "input0": {
+            "type": "resourceLut3d",
+            "value": {
+              "path": {
+                "main": "",
+                "sub": ""
+              },
+              "value": null
+            }
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 579.422119140625,
+          "y": 315.1659240722656
+        },
+        "class": {
+          "id": "77697265-6F0C-4AC1-A6E6-AE7DDF629B00",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "instances"
+        ],
+        "name": "LUT 3D Resource",
+        "thumbnail_visible": true
+      },
+      "9": {
+        "attributes": {
+          "input0": {
+            "type": "resourceIsf",
+            "value": {
+              "path": {
+                "main": "",
+                "sub": ""
+              },
+              "value": null
+            }
+          },
+          "instances": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 343.7459411621094,
+          "y": 315.1658935546875
+        },
+        "class": {
+          "id": "77697265-c34f-4db5-b405-d9f5764f42fb",
+          "version": 0
+        },
+        "clock": "video",
+        "color": "ffff6a00",
+        "constants": {},
+        "hidden": [
+          "instances"
+        ],
+        "name": "ISF Resource",
+        "thumbnail_visible": true
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": 113.2315673828125,
+        "y": -523.1420288085938,
+        "zoom": 1
+      },
+      "selection": [
+        "12"
+      ]
+    }
+  },
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    "deviceConnections": {
+      "input": {}
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "out": {
+          "Display 1": null,
+          "Display 2": null
+        }
+      }
+    }
+  }
+}

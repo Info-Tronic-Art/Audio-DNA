@@ -1,0 +1,283 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          75,
+          "pattern"
+        ],
+        "to": [
+          73,
+          "input0"
+        ]
+      },
+      {
+        "from": [
+          73,
+          "output0"
+        ],
+        "to": [
+          76,
+          "input0"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "Sum Examples",
+      "identifier": "35423d18-bf6f-40a9-b0ce-6f0b4e234df2",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "thumbnail": "",
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 82,
+    "nodes": {
+      "68": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "OUTLETS\n\n• Main\nOutputs a float.\n"
+          }
+        },
+        "bounds": {
+          "height": 124.75897216796876,
+          "width": 334,
+          "x": 368.8841857910156,
+          "y": 884.6724853515625
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "69": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "INLETS\n\n• Main\nA instanced float, bool or integer."
+          }
+        },
+        "bounds": {
+          "height": 125.98043823242188,
+          "width": 312,
+          "x": 14.802154541015623,
+          "y": 884.6724853515625
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "SUM\nThe Sum node makes a summation of all incomming values. In other words: it sums up all the instanced values it recieves.\n\nExample: The Sequence creates an array of integers running from 0 to 9. The Sum node sums up its contents (0+1+2+3+4+5+6+7+8+9 = 45)."
+          }
+        },
+        "bounds": {
+          "height": 152.99998474121094,
+          "width": 684.9403076171875,
+          "x": 14.8980712890625,
+          "y": 512.118408203125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "73": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "input0-dimensions": {
+            "type": "dimensions",
+            "value": [
+              10
+            ]
+          },
+          "input0-type": {
+            "type": "type",
+            "value": "float"
+          }
+        },
+        "bounds": {
+          "height": 30,
+          "width": 195,
+          "x": 236.83998107910153,
+          "y": 734.3713989257812
+        },
+        "class": {
+          "id": "77697265-A9AF-4CB4-B10F-3966436BB63B",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9
+            ]
+          }
+        },
+        "hidden": [],
+        "name": "Sum"
+      },
+      "75": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "size": {
+            "type": "number",
+            "value": 10
+          },
+          "type": {
+            "type": "type",
+            "value": "integer"
+          }
+        },
+        "bounds": {
+          "height": 82,
+          "width": 195,
+          "x": 14.83998107910156,
+          "y": 734.3713989257812
+        },
+        "class": {
+          "id": "77697265-4b9a-a7f6-922e86685f6c",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "begin": {
+            "type": "integer",
+            "value": 0
+          },
+          "step": {
+            "type": "integer",
+            "value": 1
+          }
+        },
+        "hidden": [],
+        "name": "Sequence"
+      },
+      "76": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "signal"
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 58,
+          "width": 195,
+          "x": 460.8400268554687,
+          "y": 734.3713989257812
+        },
+        "class": {
+          "id": "77697265-E9E1-4BAC-9742-265E5207A103",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input0": {
+            "type": "float",
+            "value": 45
+          }
+        },
+        "hidden": [],
+        "name": "Float"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -380.1600646972656,
+        "y": 362.3713684082031,
+        "zoom": 0.9999998807907104
+      },
+      "selection": [
+        "76"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

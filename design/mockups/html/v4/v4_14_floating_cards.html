@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v4-14: Floating Cards</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #121212; color: #e0e0e0; font-family: 'Segoe UI', -apple-system, sans-serif; }
+
+/* Card base */
+.card {
+  position: absolute; background: #1a1a1a; border: 1px solid #333;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.card-header {
+  height: 28px; background: #222; display: flex; align-items: center; padding: 0 10px;
+  font-size: 11px; color: #888; border-bottom: 1px solid #2a2a2a;
+  cursor: default; user-select: none;
+}
+.card-header .title { font-weight: 600; color: #e0e0e0; flex: 1; }
+.card-header .card-btn { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; color: #666; cursor: pointer; font-size: 12px; }
+.card-header .card-btn:hover { color: #e0e0e0; }
+.card-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
+
+/* === TRANSPORT CARD (top center) === */
+.card.transport {
+  left: 460px; top: 0; width: 1000px; height: 36px;
+  flex-direction: row; align-items: center; padding: 0 10px; gap: 6px;
+  border-top: none;
+}
+.transport select, .transport input[type="range"] { background: #252525; color: #e0e0e0; border: 1px solid #444; font-size: 10px; height: 20px; }
+.transport .btn { background: #252525; border: 1px solid #444; color: #e0e0e0; padding: 2px 8px; font-size: 10px; cursor: pointer; height: 22px; }
+.transport .btn:hover { background: #333; }
+.transport .btn.active { background: #00d9ff; color: #111; }
+.transport .sep { width: 1px; height: 20px; background: #444; }
+.transport .label { color: #888; font-size: 10px; }
+.transport .value { color: #e0e0e0; font-size: 11px; font-weight: 600; }
+
+/* === DASHBOARD CARD (top, spanning audio + transport) === */
+.card.dashboard {
+  left: 0; top: 0; width: 460px; height: 88px;
+}
+.dash-knobs { display: flex; gap: 8px; padding: 8px 12px; flex-wrap: wrap; }
+.dk {
+  width: 44px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.dk-ring {
+  width: 38px; height: 38px; border-radius: 50%; border: 2px solid #444;
+  background: radial-gradient(circle, #2a2a2a, #1a1a1a); position: relative;
+}
+.dk-arc {
+  position: absolute; top: -2px; left: -2px; width: 38px; height: 38px; border-radius: 50%;
+  border: 2px solid transparent;
+}
+.dk-indicator { position: absolute; width: 2px; height: 12px; background: #e0e0e0; top: 4px; left: 18px; transform-origin: center 15px; }
+.dk-label { font-size: 8px; color: #888; }
+
+/* === SIGNAL CARD (left) === */
+.card.signal {
+  left: 0; top: 88px; width: 200px; height: 560px;
+}
+.signal-strip { padding: 4px 8px; border-bottom: 1px solid #222; }
+.signal-strip .sl { font-size: 9px; color: #888; display: flex; justify-content: space-between; }
+.signal-strip .sb { height: 8px; background: #333; margin-top: 2px; }
+.signal-strip .sb-fill { height: 100%; }
+.signal-strip .peak-hold { position: relative; }
+.signal-strip .peak { position: absolute; top: 0; width: 2px; height: 8px; }
+
+/* === PREVIEW CARD (floating top-right of deck) === */
+.card.preview {
+  left: 920px; top: 38px; width: 220px; height: 152px;
+  z-index: 5;
+}
+.preview-content {
+  width: 100%; height: 100%;
+  background: radial-gradient(circle at 40% 45%, #ff4466 0%, #cc2244 20%, #442266 40%, #112244 60%, #0a1122 100%);
+}
+
+/* === DECK CARD (center, largest) === */
+.card.deck {
+  left: 200px; top: 38px; width: 940px; height: 610px;
+}
+.col-triggers { height: 22px; display: flex; margin-left: 230px; gap: 1px; background: #111; }
+.col-btn { flex: 1; height: 20px; background: #1e1e1e; border: 1px solid #2a2a2a; color: #666; font-size: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.col-btn.active { background: #00d9ff22; color: #00d9ff; border-color: #00d9ff; }
+.grid-rows { flex: 1; overflow-y: auto; }
+.grid-row { display: flex; }
+
+.layer-strip {
+  width: 230px; min-width: 230px; background: #1e1e1e; border-right: 1px solid #333;
+  border-bottom: 1px solid #2a2a2a; padding: 6px 8px;
+}
+.ls-header { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; }
+.ls-btn { width: 18px; height: 16px; background: #2a2a2a; border: 1px solid #444; color: #888; font-size: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ls-btn.bypass { color: #ff4444; background: #331111; }
+.ls-name { flex: 1; font-size: 10px; color: #e0e0e0; }
+.ls-controls { display: flex; gap: 4px; align-items: flex-end; }
+.vs { width: 12px; height: 40px; background: #2a2a2a; border: 1px solid #444; position: relative; }
+.vs-fill { position: absolute; bottom: 0; width: 100%; }
+.vs-lbl { font-size: 7px; color: #666; text-align: center; margin-top: 1px; }
+.ls-meta { font-size: 8px; color: #666; margin-top: 3px; }
+
+.cells-row { display: flex; gap: 1px; flex: 1; }
+.cell { width: 85px; min-width: 85px; height: 95px; background: #1c1c1c; border: 1px solid #2a2a2a; position: relative; overflow: hidden; cursor: pointer; }
+.cell.active { border-color: #00d9ff; box-shadow: inset 0 0 6px #00d9ff22; }
+.cell .thumb { width: 100%; height: 72px; }
+.cell .thumb.t1 { background: linear-gradient(135deg, #3a1a2a, #1a3a2a); }
+.cell .thumb.t2 { background: linear-gradient(135deg, #1a2a4a, #2a3a1a); }
+.cell .thumb.t3 { background: linear-gradient(45deg, #4a2a1a, #1a1a4a); }
+.cell .thumb.t4 { background: linear-gradient(135deg, #2a1a4a, #1a4a2a); }
+.cell .thumb.src { background: linear-gradient(135deg, #003322, #002244); }
+.cell .cname { font-size: 8px; color: #999; padding: 2px 4px; background: #161616; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cell .fx-badge { position: absolute; top: 2px; right: 2px; background: #ff44ff44; color: #ff44ff; font-size: 7px; padding: 1px 3px; }
+
+.deck-tabs { height: 24px; display: flex; margin-left: 230px; background: #111; border-top: 1px solid #333; }
+.dtab { padding: 0 16px; font-size: 10px; color: #888; display: flex; align-items: center; cursor: pointer; border-top: 2px solid transparent; }
+.dtab.active { color: #00d9ff; border-top-color: #00d9ff; }
+
+/* === INSPECTOR CARD (right) === */
+.card.inspector {
+  left: 1140px; top: 38px; width: 380px; height: 610px;
+}
+.insp-tabs { height: 26px; display: flex; background: #1e1e1e; border-bottom: 1px solid #333; }
+.insp-tab { padding: 0 10px; font-size: 10px; color: #888; display: flex; align-items: center; cursor: pointer; border-bottom: 2px solid transparent; }
+.insp-tab.active { color: #00d9ff; border-bottom-color: #00d9ff; }
+.insp-content { padding: 8px 10px; }
+.section-title { font-size: 10px; color: #888; text-transform: uppercase; margin-bottom: 4px; margin-top: 8px; letter-spacing: 0.5px; border-bottom: 1px solid #2a2a2a; padding-bottom: 2px; }
+.section-title:first-child { margin-top: 0; }
+.param-row { display: flex; align-items: center; height: 20px; margin-bottom: 2px; }
+.param-tri { width: 7px; height: 7px; background: #444; clip-path: polygon(0 0, 100% 50%, 0 100%); margin-right: 5px; }
+.param-tri.on { background: #00d9ff; }
+.param-name { font-size: 10px; color: #aaa; width: 80px; }
+.param-bar { flex: 1; height: 8px; background: #333; margin: 0 4px; }
+.param-bar-fill { height: 100%; }
+.param-val { font-size: 10px; color: #ccc; width: 36px; text-align: right; }
+
+.fx-row { display: flex; align-items: center; height: 20px; padding: 0 4px; background: #252525; margin-bottom: 2px; font-size: 10px; }
+.fx-row .bp { color: #00d9ff; font-size: 9px; width: 14px; cursor: pointer; }
+.fx-row .bp.off { color: #666; }
+.fx-row .nm { flex: 1; }
+.fx-row .vl { color: #888; font-size: 9px; }
+
+/* === BROWSER CARD (bottom right) === */
+.card.browser {
+  left: 1140px; top: 650px; width: 380px; height: 430px;
+}
+.browser-tabs { height: 26px; display: flex; background: #1e1e1e; border-bottom: 1px solid #333; }
+.browser-tab { padding: 0 8px; font-size: 10px; color: #888; display: flex; align-items: center; cursor: pointer; border-bottom: 2px solid transparent; }
+.browser-tab.active { color: #00d9ff; border-bottom-color: #00d9ff; }
+.browser-search { width: calc(100% - 16px); margin: 6px 8px; height: 22px; background: #252525; border: 1px solid #444; color: #e0e0e0; padding: 0 8px; font-size: 10px; }
+.fx-cat { margin: 0 8px 4px; }
+.fx-cat-hdr { font-size: 10px; color: #888; padding: 2px 0; cursor: pointer; }
+.fx-cat-hdr::before { content: '\25BE '; color: #555; }
+.fx-item { font-size: 10px; color: #ccc; padding: 2px 8px; cursor: pointer; }
+.fx-item:hover { background: #2a2a2a; color: #00d9ff; }
+
+/* === SIGNAL CARD additional area at bottom-left === */
+.card.waveform {
+  left: 0; top: 650px; width: 200px; height: 430px;
+}
+.wf-display { width: 100%; flex: 1; background: #0a0a0a; position: relative; }
+
+/* Transport card at top - special no-border-radius */
+.card.transport { box-shadow: none; border-top: none; }
+
+/* Right-side stats block in transport */
+.transport .stats { display: flex; gap: 8px; margin-left: auto; font-size: 10px; }
+
+/* Overlap effect: cards overlap by 2-4px */
+.card.deck { z-index: 1; }
+.card.preview { z-index: 6; }
+.card.inspector { z-index: 3; }
+.card.browser { z-index: 2; }
+.card.signal { z-index: 4; }
+.card.dashboard { z-index: 5; }
+
+/* Bottom area cards */
+.card.bottom-timing {
+  left: 200px; top: 650px; width: 500px; height: 430px;
+}
+.card.bottom-browser2 {
+  left: 700px; top: 650px; width: 440px; height: 430px;
+}
+</style>
+</head>
+<body>
+
+<!-- TRANSPORT CARD (top bar) -->
+<div class="card transport">
+  <select><option>Mic Input</option></select>
+  <span class="label">Gain</span>
+  <input type="range" style="width:60px;">
+  <div class="sep"></div>
+  <button class="btn">&#9654;</button>
+  <button class="btn">&#10074;&#10074;</button>
+  <button class="btn">&#9632;</button>
+  <div class="sep"></div>
+  <svg width="20" height="20" viewBox="0 0 20 20" style="vertical-align:middle;">
+    <circle cx="10" cy="10" r="8" fill="none" stroke="#333" stroke-width="2"/>
+    <path d="M10 2 A8 8 0 0 1 18 10" fill="none" stroke="#00d9ff" stroke-width="2"/>
+  </svg>
+  <span class="value" style="color:#4ade80; font-size:14px;">128.0</span>
+  <span style="color:#4ade80; font-size:9px;">LOCKED</span>
+  <div class="sep"></div>
+  <button class="btn">Tap</button>
+  <button class="btn">Resync</button>
+  <div class="sep"></div>
+  <button class="btn">/4</button>
+  <button class="btn">/2</button>
+  <button class="btn active">x1</button>
+  <button class="btn">x2</button>
+  <button class="btn">x4</button>
+  <div class="sep"></div>
+  <span class="label">Quantize</span>
+  <select><option>Off</option></select>
+  <span class="label">Fade</span>
+  <input type="range" style="width:40px;">
+  <span class="label">Master</span>
+  <input type="range" style="width:40px;">
+  <div class="stats">
+    <span class="label">Key: Am</span>
+    <span class="label">House</span>
+    <span class="label">FPS <span class="value">60</span></span>
+    <span class="label">DSP <span class="value">4.2%</span></span>
+    <select style="background:#252525; border:1px solid #444; color:#e0e0e0; font-size:10px; height:20px;"><option>Fullscreen</option></select>
+  </div>
+</div>
+
+<!-- DASHBOARD CARD -->
+<div class="card dashboard">
+  <div class="card-header">
+    <span class="title">Dashboard</span>
+    <span class="card-btn">-</span>
+  </div>
+  <div class="dash-knobs">
+    <div class="dk"><div class="dk-ring"><div class="dk-arc" style="border-top:2px solid #00d9ff; border-right:2px solid #00d9ff;"></div><div class="dk-indicator" style="transform:rotate(-30deg);"></div></div><div class="dk-label">Intensity</div></div>
+    <div class="dk"><div class="dk-ring"><div class="dk-arc" style="border-top:2px solid #ff6644; border-right:2px solid #ff6644;"></div><div class="dk-indicator" style="transform:rotate(15deg);"></div></div><div class="dk-label">Color</div></div>
+    <div class="dk"><div class="dk-ring"><div class="dk-arc" style="border-top:2px solid #44ff66; border-right:2px solid #44ff66;"></div><div class="dk-indicator" style="transform:rotate(-60deg);"></div></div><div class="dk-label">Speed</div></div>
+    <div class="dk"><div class="dk-ring"><div class="dk-arc" style="border-top:2px solid #e0e0e0; border-right:2px solid #e0e0e0;"></div><div class="dk-indicator" style="transform:rotate(45deg);"></div></div><div class="dk-label">Depth</div></div>
+    <div class="dk"><div class="dk-ring"><div class="dk-arc" style="border-top:2px solid #ffaa00; border-right:2px solid #ffaa00;"></div><div class="dk-indicator" style="transform:rotate(-10deg);"></div></div><div class="dk-label">Warp</div></div>
+    <div class="dk"><div class="dk-ring"><div class="dk-arc" style="border-top:2px solid #00d9ff; border-right:2px solid #00d9ff;"></div><div class="dk-indicator" style="transform:rotate(30deg);"></div></div><div class="dk-label">Glitch</div></div>
+    <div class="dk"><div class="dk-ring"><div class="dk-arc" style="border-top:2px solid #ff44ff; border-right:2px solid #ff44ff;"></div><div class="dk-indicator" style="transform:rotate(-45deg);"></div></div><div class="dk-label">Feedback</div></div>
+    <div class="dk"><div class="dk-ring"><div class="dk-arc" style="border-top:2px solid #e0e0e0; border-right:2px solid #e0e0e0;"></div><div class="dk-indicator" style="transform:rotate(60deg);"></div></div><div class="dk-label">Master</div></div>
+  </div>
+</div>
+
+<!-- SIGNAL CARD -->
+<div class="card signal">
+  <div class="card-header">
+    <span class="title">Signals</span>
+    <span class="card-btn">+</span>
+    <span class="card-btn">-</span>
+  </div>
+  <div class="card-body">
+    <div class="signal-strip"><div class="sl"><span>RMS</span><span>0.72</span></div><div class="sb"><div class="sb-fill" style="width:72%; background:#00d9ff;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Peak</span><span>0.85</span></div><div class="sb"><div class="sb-fill" style="width:85%; background:#ff6644;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Bass</span><span>0.90</span></div><div class="sb"><div class="sb-fill" style="width:90%; background:#ff4444;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Mid</span><span>0.45</span></div><div class="sb"><div class="sb-fill" style="width:45%; background:#44ff66;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>High</span><span>0.30</span></div><div class="sb"><div class="sb-fill" style="width:30%; background:#4488ff;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Beat Phase</span><span>0.63</span></div><div class="sb"><div class="sb-fill" style="width:63%; background:#ffaa00;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Bar Phase</span><span>0.37</span></div><div class="sb"><div class="sb-fill" style="width:37%; background:#ffaa00;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Onset</span><span>0.12</span></div><div class="sb"><div class="sb-fill" style="width:12%; background:#ff44ff;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Centroid</span><span>2.4k</span></div><div class="sb"><div class="sb-fill" style="width:55%; background:#44ffff;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Flux</span><span>0.33</span></div><div class="sb"><div class="sb-fill" style="width:33%; background:#ff8844;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Flatness</span><span>0.22</span></div><div class="sb"><div class="sb-fill" style="width:22%; background:#88ff44;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Pitch</span><span>440Hz</span></div><div class="sb"><div class="sb-fill" style="width:48%; background:#44ff88;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Key</span><span>Am</span></div><div class="sb"><div class="sb-fill" style="width:75%; background:#8844ff;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Struct</span><span>Drop</span></div><div class="sb"><div class="sb-fill" style="width:66%; background:#ff4488;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Sidechain</span><span>0.78</span></div><div class="sb"><div class="sb-fill" style="width:78%; background:#00d9ff;"></div></div></div>
+    <div class="signal-strip"><div class="sl"><span>Formant</span><span>0.35</span></div><div class="sb"><div class="sb-fill" style="width:35%; background:#ffaa44;"></div></div></div>
+  </div>
+</div>
+
+<!-- PREVIEW CARD (floating) -->
+<div class="card preview">
+  <div class="card-header">
+    <span class="title">Preview</span>
+    <span class="card-btn">x</span>
+  </div>
+  <div class="card-body">
+    <div class="preview-content"></div>
+  </div>
+</div>
+
+<!-- DECK CARD -->
+<div class="card deck">
+  <div class="card-header">
+    <span class="title">Deck 1 — Main Set</span>
+    <span class="card-btn">-</span>
+  </div>
+  <div class="card-body" style="display:flex; flex-direction:column;">
+    <div class="col-triggers">
+      <div class="col-btn">1</div><div class="col-btn">2</div><div class="col-btn active">3</div>
+      <div class="col-btn">4</div><div class="col-btn">5</div><div class="col-btn">6</div>
+      <div class="col-btn">7</div><div class="col-btn">8</div>
+    </div>
+    <div class="grid-rows">
+      <!-- Layer 3 -->
+      <div class="grid-row">
+        <div class="layer-strip">
+          <div class="ls-header"><div class="ls-btn bypass">B</div><div class="ls-btn">S</div><span class="ls-name">FX Layer</span></div>
+          <div class="ls-controls">
+            <div><div class="vs"><div class="vs-fill" style="height:50%; background:#00d9ff;"></div></div><div class="vs-lbl">S</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:10%; background:#ffaa00;"></div></div><div class="vs-lbl">K</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:70%; background:#00aa88;"></div></div><div class="vs-lbl">V</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:30%; background:#4488ff;"></div></div><div class="vs-lbl">F</div></div>
+          </div>
+          <div class="ls-meta">FX Only | Dissolve</div>
+        </div>
+        <div class="cells-row">
+          <div class="cell"><div class="thumb src"></div><div class="cname">FX - Glitch</div></div>
+          <div class="cell"><div class="thumb src"></div><div class="cname">FX - Echo</div></div>
+          <div class="cell active"><div class="thumb src"></div><div class="cname">FX - Strobe</div></div>
+          <div class="cell"><div class="thumb src"></div><div class="cname">FX - RGB</div></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+        </div>
+      </div>
+      <!-- Layer 2 -->
+      <div class="grid-row">
+        <div class="layer-strip">
+          <div class="ls-header"><div class="ls-btn">B</div><div class="ls-btn">S</div><span class="ls-name">Overlay</span></div>
+          <div class="ls-controls">
+            <div><div class="vs"><div class="vs-fill" style="height:50%; background:#00d9ff;"></div></div><div class="vs-lbl">S</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:10%; background:#ffaa00;"></div></div><div class="vs-lbl">K</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:55%; background:#00aa88;"></div></div><div class="vs-lbl">V</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:30%; background:#4488ff;"></div></div><div class="vs-lbl">F</div></div>
+          </div>
+          <div class="ls-meta">Transparent | Additive</div>
+        </div>
+        <div class="cells-row">
+          <div class="cell"><div class="thumb t1"></div><div class="cname">Particles</div></div>
+          <div class="cell"><div class="thumb t2"></div><div class="cname">Smoke</div></div>
+          <div class="cell active"><div class="thumb t3"></div><div class="cname">Light Rays</div><div class="fx-badge">1</div></div>
+          <div class="cell"><div class="thumb src"></div><div class="cname">Mandelbulb</div></div>
+          <div class="cell"><div class="thumb t4"></div><div class="cname">Fire Ring</div></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+        </div>
+      </div>
+      <!-- Layer 1 -->
+      <div class="grid-row">
+        <div class="layer-strip">
+          <div class="ls-header"><div class="ls-btn">B</div><div class="ls-btn">S</div><span class="ls-name">Main Content</span></div>
+          <div class="ls-controls">
+            <div><div class="vs"><div class="vs-fill" style="height:50%; background:#00d9ff;"></div></div><div class="vs-lbl">S</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:10%; background:#ffaa00;"></div></div><div class="vs-lbl">K</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:100%; background:#00aa88;"></div></div><div class="vs-lbl">V</div></div>
+            <div><div class="vs"><div class="vs-fill" style="height:30%; background:#4488ff;"></div></div><div class="vs-lbl">F</div></div>
+          </div>
+          <div class="ls-meta">Opaque | Dissolve</div>
+        </div>
+        <div class="cells-row">
+          <div class="cell"><div class="thumb t2"></div><div class="cname">City Night</div></div>
+          <div class="cell"><div class="thumb t3"></div><div class="cname">Abstract 01</div></div>
+          <div class="cell active"><div class="thumb t1"></div><div class="cname">Tunnel VJ</div><div class="fx-badge">3</div></div>
+          <div class="cell"><div class="thumb t4"></div><div class="cname">Ocean Wave</div></div>
+          <div class="cell"><div class="thumb t2"></div><div class="cname">Neon Grid</div></div>
+          <div class="cell"><div class="thumb src"></div><div class="cname">Julia Set</div></div>
+          <div class="cell"><div class="thumb t3"></div><div class="cname">Laser Show</div></div>
+          <div class="cell"><div class="thumb t4"></div><div class="cname">Starfield</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="deck-tabs">
+      <div class="dtab active">Deck 1</div>
+      <div class="dtab">Deck 2</div>
+      <div class="dtab">Deck 3</div>
+      <div class="dtab">+</div>
+    </div>
+  </div>
+</div>
+
+<!-- INSPECTOR CARD -->
+<div class="card inspector">
+  <div class="card-header">
+    <span class="title">Inspector</span>
+    <span class="card-btn" style="font-size:10px;">pin</span>
+    <span class="card-btn">-</span>
+  </div>
+  <div class="card-body">
+    <div class="insp-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Composition</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+    <div class="insp-content">
+      <div style="font-size:12px; font-weight:600; margin-bottom:6px;">Tunnel VJ</div>
+
+      <div class="section-title">Dashboard</div>
+      <div style="display:flex; gap:4px; margin-bottom:6px;">
+        <div style="width:28px; height:28px; border-radius:50%; border:2px solid #444; background:#222; position:relative;"><div style="width:2px; height:8px; background:#00d9ff; position:absolute; top:3px; left:13px; transform-origin:center 11px; transform:rotate(-30deg);"></div></div>
+        <div style="width:28px; height:28px; border-radius:50%; border:2px solid #444; background:#222; position:relative;"><div style="width:2px; height:8px; background:#ff6644; position:absolute; top:3px; left:13px; transform-origin:center 11px; transform:rotate(15deg);"></div></div>
+        <div style="width:28px; height:28px; border-radius:50%; border:2px solid #444; background:#222; position:relative;"><div style="width:2px; height:8px; background:#44ff66; position:absolute; top:3px; left:13px; transform-origin:center 11px; transform:rotate(-60deg);"></div></div>
+        <div style="width:28px; height:28px; border-radius:50%; border:2px solid #444; background:#222; position:relative;"><div style="width:2px; height:8px; background:#e0e0e0; position:absolute; top:3px; left:13px; transform-origin:center 11px; transform:rotate(45deg);"></div></div>
+        <div style="width:28px; height:28px; border-radius:50%; border:2px solid #444; background:#222; position:relative;"><div style="width:2px; height:8px; background:#ffaa00; position:absolute; top:3px; left:13px; transform-origin:center 11px; transform:rotate(-10deg);"></div></div>
+        <div style="width:28px; height:28px; border-radius:50%; border:2px solid #444; background:#222; position:relative;"><div style="width:2px; height:8px; background:#00d9ff; position:absolute; top:3px; left:13px; transform-origin:center 11px; transform:rotate(30deg);"></div></div>
+        <div style="width:28px; height:28px; border-radius:50%; border:2px solid #444; background:#222; position:relative;"><div style="width:2px; height:8px; background:#ff44ff; position:absolute; top:3px; left:13px; transform-origin:center 11px; transform:rotate(-45deg);"></div></div>
+        <div style="width:28px; height:28px; border-radius:50%; border:2px solid #444; background:#222; position:relative;"><div style="width:2px; height:8px; background:#e0e0e0; position:absolute; top:3px; left:13px; transform-origin:center 11px; transform:rotate(60deg);"></div></div>
+      </div>
+
+      <div class="section-title">Transport</div>
+      <div class="param-row"><div class="param-tri on"></div><span class="param-name">Speed</span><div class="param-bar"><div class="param-bar-fill" style="width:50%; background:#00d9ff55;"></div></div><span class="param-val">1.0x</span></div>
+      <div class="param-row"><div class="param-tri"></div><span class="param-name">Duration</span><div class="param-bar"><div class="param-bar-fill" style="width:33%; background:#00d9ff55;"></div></div><span class="param-val">4 bt</span></div>
+      <!-- Timeline -->
+      <div style="height:14px; background:#222; margin:4px 0; position:relative; border:1px solid #333;">
+        <div style="position:absolute; left:10%; top:0; bottom:0; right:85%; background:#00d9ff22;"></div>
+        <div style="position:absolute; left:35%; top:0; width:2px; height:100%; background:#00d9ff;"></div>
+      </div>
+
+      <div class="section-title">Video</div>
+      <div class="param-row"><div class="param-tri on"></div><span class="param-name">Opacity</span><div class="param-bar"><div class="param-bar-fill" style="width:100%; background:#00d9ff55;"></div></div><span class="param-val">1.00</span></div>
+      <div class="param-row"><div class="param-tri"></div><span class="param-name">Blend</span><span class="param-val" style="flex:1; text-align:left; margin-left:4px;">Normal</span></div>
+
+      <div class="section-title">Transform</div>
+      <div class="param-row"><div class="param-tri"></div><span class="param-name">Position X</span><div class="param-bar"><div class="param-bar-fill" style="width:50%; background:#ffaa0044;"></div></div><span class="param-val">0</span></div>
+      <div class="param-row"><div class="param-tri"></div><span class="param-name">Position Y</span><div class="param-bar"><div class="param-bar-fill" style="width:50%; background:#ffaa0044;"></div></div><span class="param-val">0</span></div>
+      <div class="param-row"><div class="param-tri on"></div><span class="param-name">Scale</span><div class="param-bar"><div class="param-bar-fill" style="width:50%; background:#ffaa0044;"></div></div><span class="param-val">1.00</span></div>
+      <div class="param-row"><div class="param-tri"></div><span class="param-name">Rotation</span><div class="param-bar"><div class="param-bar-fill" style="width:0%;"></div></div><span class="param-val">0.0</span></div>
+
+      <div class="section-title">Effects (3)</div>
+      <div class="fx-row"><span class="bp">B</span><span class="nm">Ripple</span><span class="vl">0.65</span></div>
+      <div style="padding:2px 4px 4px 18px;">
+        <div class="param-row"><div class="param-tri on"></div><span class="param-name">Intensity</span><div class="param-bar"><div class="param-bar-fill" style="width:65%; background:#00d9ff55;"></div></div><span class="param-val">0.65</span></div>
+        <div class="param-row"><div class="param-tri"></div><span class="param-name">Frequency</span><div class="param-bar"><div class="param-bar-fill" style="width:40%; background:#00d9ff55;"></div></div><span class="param-val">0.40</span></div>
+      </div>
+      <div class="fx-row"><span class="bp off">B</span><span class="nm">Hue Shift</span><span class="vl">0.30</span></div>
+      <div class="fx-row"><span class="bp off">B</span><span class="nm">Echo</span><span class="vl">0.80</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- BROWSER CARD -->
+<div class="card browser">
+  <div class="card-header">
+    <span class="title">Browser</span>
+    <span class="card-btn">-</span>
+  </div>
+  <div class="card-body">
+    <div class="browser-tabs">
+      <div class="browser-tab">Files</div>
+      <div class="browser-tab active">FX</div>
+      <div class="browser-tab">Sources</div>
+      <div class="browser-tab">Comp</div>
+      <div class="browser-tab">Rec</div>
+      <div class="browser-tab">MD</div>
+    </div>
+    <input class="browser-search" placeholder="Search effects...">
+    <div class="fx-cat"><div class="fx-cat-hdr">Warp (28)</div>
+      <div class="fx-item">Ripple</div><div class="fx-item">Bulge</div><div class="fx-item">Wave</div>
+      <div class="fx-item">Liquid</div><div class="fx-item">Kaleidoscope</div><div class="fx-item">Fisheye</div>
+      <div class="fx-item">Swirl</div><div class="fx-item">Polar Coords</div>
+    </div>
+    <div class="fx-cat"><div class="fx-cat-hdr">Color (31)</div>
+      <div class="fx-item">Hue Shift</div><div class="fx-item">Saturation</div><div class="fx-item">Chromatic Aberration</div>
+      <div class="fx-item">Posterize</div><div class="fx-item">Thermal</div><div class="fx-item">Duotone</div>
+    </div>
+    <div class="fx-cat"><div class="fx-cat-hdr">Glitch (15)</div>
+      <div class="fx-item">Pixel Scatter</div><div class="fx-item">RGB Split</div><div class="fx-item">Block Glitch</div>
+    </div>
+    <div class="fx-cat"><div class="fx-cat-hdr">Time (6)</div>
+      <div class="fx-item">Echo</div><div class="fx-item">Posterize Time</div><div class="fx-item">Freeze</div>
+    </div>
+    <div class="fx-cat"><div class="fx-cat-hdr">Audio (7)</div>
+      <div class="fx-item">Harmonic Displacement</div><div class="fx-item">Timbral Mosaic</div>
+    </div>
+  </div>
+</div>
+
+<!-- WAVEFORM / TIMING CARD (bottom left) -->
+<div class="card waveform">
+  <div class="card-header">
+    <span class="title">Waveform</span>
+    <span class="card-btn">-</span>
+  </div>
+  <div class="card-body" style="background:#0a0a0a; padding:4px;">
+    <svg width="192" height="380" viewBox="0 0 192 380">
+      <rect width="192" height="380" fill="#0a0a0a"/>
+      <line x1="0" y1="95" x2="192" y2="95" stroke="#222" stroke-width="0.5"/>
+      <line x1="0" y1="190" x2="192" y2="190" stroke="#333" stroke-width="1"/>
+      <line x1="0" y1="285" x2="192" y2="285" stroke="#222" stroke-width="0.5"/>
+      <!-- Waveform -->
+      <polyline fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.7"
+        points="0,190 8,160 16,130 24,155 32,185 40,170 48,145 56,115 64,140 72,165 80,190 88,200 96,180 104,145 112,125 120,155 128,190 136,210 144,195 152,165 160,140 168,150 176,175 184,195 192,190"/>
+      <!-- Spectrum at bottom -->
+      <rect x="5" y="310" width="20" height="50" fill="#ff4444" opacity="0.6"/>
+      <rect x="30" y="325" width="20" height="35" fill="#ff6644" opacity="0.6"/>
+      <rect x="55" y="330" width="20" height="30" fill="#ffaa00" opacity="0.6"/>
+      <rect x="80" y="335" width="20" height="25" fill="#44ff66" opacity="0.6"/>
+      <rect x="105" y="340" width="20" height="20" fill="#4488ff" opacity="0.6"/>
+      <rect x="130" y="345" width="20" height="15" fill="#8844ff" opacity="0.6"/>
+      <rect x="155" y="350" width="20" height="10" fill="#ff44ff" opacity="0.6"/>
+    </svg>
+  </div>
+</div>
+
+<!-- TIMING CARD (bottom center) -->
+<div class="card bottom-timing">
+  <div class="card-header">
+    <span class="title">Timing</span>
+    <span style="margin-left:auto; font-size:10px; color:#888;">BPM | Routing | Oscillators</span>
+    <span class="card-btn">-</span>
+  </div>
+  <div class="card-body" style="padding:8px; background:#141414;">
+    <div style="font-size:10px; color:#888; margin-bottom:6px;">BPM ANALYSIS</div>
+    <div style="height:80px; background:#0a0a0a; border:1px solid #2a2a2a; margin-bottom:8px; display:flex; align-items:flex-end; padding:4px; gap:2px;">
+      <!-- BPM histogram bars -->
+      <div style="flex:1; background:#333; height:10%;"></div>
+      <div style="flex:1; background:#444; height:15%;"></div>
+      <div style="flex:1; background:#555; height:25%;"></div>
+      <div style="flex:1; background:#666; height:40%;"></div>
+      <div style="flex:1; background:#00d9ff; height:90%;"></div>
+      <div style="flex:1; background:#666; height:35%;"></div>
+      <div style="flex:1; background:#555; height:20%;"></div>
+      <div style="flex:1; background:#444; height:12%;"></div>
+      <div style="flex:1; background:#333; height:8%;"></div>
+    </div>
+    <div style="display:flex; gap:16px; font-size:10px; color:#888; margin-bottom:12px;">
+      <span>Candidate: <span style="color:#00d9ff;">128.0</span></span>
+      <span>Confidence: <span style="color:#4ade80;">98%</span></span>
+      <span>State: <span style="color:#4ade80;">LOCKED</span></span>
+    </div>
+    <div style="font-size:10px; color:#888; margin-bottom:6px;">SIGNAL ROUTING</div>
+    <div style="display:flex; flex-wrap:wrap; gap:4px;">
+      <div style="background:#222; border:1px solid #333; padding:3px 6px; font-size:9px;">
+        <span style="color:#00d9ff;">RMS</span> -> <span style="color:#ff44ff;">Ripple.Intensity</span> <span style="color:#888;">Lin 0-1</span>
+      </div>
+      <div style="background:#222; border:1px solid #333; padding:3px 6px; font-size:9px;">
+        <span style="color:#ffaa00;">Beat Phase</span> -> <span style="color:#ff44ff;">Echo.Decay</span> <span style="color:#888;">Exp 0.3-0.9</span>
+      </div>
+      <div style="background:#222; border:1px solid #333; padding:3px 6px; font-size:9px;">
+        <span style="color:#ff4444;">Bass</span> -> <span style="color:#ff44ff;">Hue Shift.Amount</span> <span style="color:#888;">SCurve 0-1</span>
+      </div>
+      <div style="background:#222; border:1px solid #333; padding:3px 6px; font-size:9px;">
+        <span style="color:#44ff66;">Onset</span> -> <span style="color:#ff44ff;">Scale</span> <span style="color:#888;">Exp 0.8-1.2</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM BROWSER 2 CARD -->
+<div class="card bottom-browser2">
+  <div class="card-header">
+    <span class="title">Sources</span>
+    <span class="card-btn">-</span>
+  </div>
+  <div class="card-body" style="padding:6px;">
+    <input class="browser-search" placeholder="Search sources..." style="width:100%; margin:0 0 6px;">
+    <div class="fx-cat"><div class="fx-cat-hdr">Fractal (14)</div>
+      <div class="fx-item">Mandelbrot</div><div class="fx-item">Julia Set</div><div class="fx-item">Burning Ship</div>
+      <div class="fx-item">Newton Fractal</div><div class="fx-item">Mandelbulb</div><div class="fx-item">Menger Sponge</div>
+      <div class="fx-item">Apollonian</div><div class="fx-item">Sierpinski</div>
+    </div>
+    <div class="fx-cat"><div class="fx-cat-hdr">Geometric (13)</div>
+      <div class="fx-item">Checkerboard</div><div class="fx-item">Concentric Circles</div>
+      <div class="fx-item">Spiral</div><div class="fx-item">Hexagonal Grid</div>
+    </div>
+    <div class="fx-cat"><div class="fx-cat-hdr">Audio-Visual (9)</div>
+      <div class="fx-item">Spectrum Landscape</div><div class="fx-item">Chromatic Ring</div>
+      <div class="fx-item">Band Tower</div><div class="fx-item">Cymatics</div>
+    </div>
+    <div class="fx-cat"><div class="fx-cat-hdr">3D (20)</div>
+      <div class="fx-item">Torus Spiral</div><div class="fx-item">Torus Twist</div>
+      <div class="fx-item">Torus Knot</div>
+    </div>
+    <div class="fx-cat"><div class="fx-cat-hdr">Noise (3)</div>
+      <div class="fx-item">Perlin Noise</div><div class="fx-item">Simplex Noise</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

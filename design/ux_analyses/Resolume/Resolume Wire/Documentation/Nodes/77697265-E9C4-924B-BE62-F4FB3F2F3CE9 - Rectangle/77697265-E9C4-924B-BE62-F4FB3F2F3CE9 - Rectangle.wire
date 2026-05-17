@@ -1,0 +1,5802 @@
+{
+	"formatVersion": {
+		"major": 1,
+		"minor": 1,
+		"patch": 0
+	},
+	"patch": {
+		"connections": [
+			{
+				"from": [
+					11,
+					"output0"
+				],
+				"to": [
+					12,
+					"input"
+				]
+			},
+			{
+				"from": [
+					9,
+					"output"
+				],
+				"to": [
+					14,
+					"geometry"
+				]
+			},
+			{
+				"from": [
+					14,
+					"output0"
+				],
+				"to": [
+					11,
+					"mesh"
+				]
+			},
+			{
+				"from": [
+					15,
+					"output"
+				],
+				"to": [
+					14,
+					"material"
+				]
+			},
+			{
+				"from": [
+					16,
+					"aspectratio"
+				],
+				"to": [
+					9,
+					"width"
+				]
+			},
+			{
+				"from": [
+					26,
+					"output"
+				],
+				"to": [
+					9,
+					"height"
+				]
+			},
+			{
+				"from": [
+					27,
+					"output"
+				],
+				"to": [
+					28,
+					"geometry"
+				]
+			},
+			{
+				"from": [
+					30,
+					"output"
+				],
+				"to": [
+					28,
+					"material"
+				]
+			},
+			{
+				"from": [
+					28,
+					"output0"
+				],
+				"to": [
+					31,
+					"mesh"
+				]
+			},
+			{
+				"from": [
+					31,
+					"output0"
+				],
+				"to": [
+					32,
+					"input"
+				]
+			},
+			{
+				"from": [
+					44,
+					"output"
+				],
+				"to": [
+					46,
+					"input0"
+				]
+			},
+			{
+				"from": [
+					45,
+					"output"
+				],
+				"to": [
+					46,
+					"input1"
+				]
+			},
+			{
+				"from": [
+					49,
+					"output"
+				],
+				"to": [
+					50,
+					"geometry"
+				]
+			},
+			{
+				"from": [
+					51,
+					"output"
+				],
+				"to": [
+					50,
+					"material"
+				]
+			},
+			{
+				"from": [
+					52,
+					"output0"
+				],
+				"to": [
+					50,
+					"transformation"
+				]
+			},
+			{
+				"from": [
+					43,
+					"output0"
+				],
+				"to": [
+					57,
+					"input"
+				]
+			},
+			{
+				"from": [
+					59,
+					"output0"
+				],
+				"to": [
+					62,
+					"channel0"
+				]
+			},
+			{
+				"from": [
+					60,
+					"output0"
+				],
+				"to": [
+					62,
+					"channel1"
+				]
+			},
+			{
+				"from": [
+					61,
+					"output0"
+				],
+				"to": [
+					62,
+					"channel2"
+				]
+			},
+			{
+				"from": [
+					62,
+					"output"
+				],
+				"to": [
+					51,
+					"albedo"
+				]
+			},
+			{
+				"from": [
+					50,
+					"output0"
+				],
+				"to": [
+					63,
+					"mesh"
+				]
+			},
+			{
+				"from": [
+					64,
+					"output"
+				],
+				"to": [
+					63,
+					"camera"
+				]
+			},
+			{
+				"from": [
+					63,
+					"output0"
+				],
+				"to": [
+					69,
+					"input"
+				]
+			},
+			{
+				"from": [
+					75,
+					"pattern"
+				],
+				"to": [
+					49,
+					"width"
+				]
+			},
+			{
+				"from": [
+					75,
+					"pattern"
+				],
+				"to": [
+					49,
+					"height"
+				]
+			},
+			{
+				"from": [
+					57,
+					"output"
+				],
+				"to": [
+					51,
+					"albedo_map"
+				]
+			},
+			{
+				"from": [
+					83,
+					"pattern"
+				],
+				"to": [
+					52,
+					"rotation"
+				]
+			},
+			{
+				"from": [
+					85,
+					"output"
+				],
+				"to": [
+					52,
+					"translation"
+				]
+			},
+			{
+				"from": [
+					46,
+					"output"
+				],
+				"to": [
+					43,
+					"points"
+				]
+			}
+		],
+		"inputOrder": [
+			15,
+			30
+		],
+		"meta": {
+			"author": "",
+			"category": null,
+			"deploymentTarget": {
+				"branch": "2d-wire",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"description": "",
+			"displayName": "77697265-E9C4-924B-BE62-F4FB3F2F3CE9 - Rectangle",
+			"identifier": "b9294ca4-c4ef-40ba-a822-51af9ecbdd20",
+			"licenseName": "",
+			"mail": "",
+			"originalTarget": {
+				"branch": "2d-wire",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"quality": 32856,
+			"resolution": {
+				"height": 1080,
+				"width": 1920
+			},
+			"saveTarget": {
+				"branch": "7.14.0",
+				"name": "Wire",
+				"version": {
+					"major": 7,
+					"minor": 14,
+					"patch": 0
+				}
+			},
+			"thumbnail": "",
+			"url": "",
+			"vendor": ""
+		},
+		"nextNodeId": 87,
+		"nodes": {
+			"11": {
+				"attributes": {
+					"aa": {
+						"type": "integer",
+						"value": 2
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"mesh-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 310.66644287109375,
+					"y": 193.110321044921875
+				},
+				"class": {
+					"id": "77697265-E8EC-7A1G-901A-CFEC174D3B67",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"mesh": {
+						"type": "mesh2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"mesh-dimensions",
+					"resolution-mode",
+					"resolution-absolute"
+				],
+				"name": "Renderer 2D"
+			},
+			"12": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 528.56378173828125,
+					"y": 192.175140380859375
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out"
+			},
+			"14": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 82.70087432861328125,
+					"y": 191.839996337890625
+				},
+				"class": {
+					"id": "77697265-e8c1-11ec-8fea-0242ac120002",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"geometry": {
+						"type": "geometry2d",
+						"value": null
+					},
+					"material": {
+						"type": "material",
+						"value": {
+							"color": [
+								1,
+								1,
+								1,
+								1
+							],
+							"type": "SolidColor"
+						}
+					},
+					"transformation": {
+						"type": "transformation2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Mesh 2D"
+			},
+			"15": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": -73.67253875732421875,
+					"y": 308.255584716796875
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"input",
+					"instances",
+					"flow"
+				],
+				"name": "Texture In"
+			},
+			"16": {
+				"attributes": {},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": -358.51544189453125,
+					"y": 193.186187744140625
+				},
+				"class": {
+					"id": "77697265-ec64-44f7-b446-de2a0220c5b8",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [],
+				"name": "Patch Info"
+			},
+			"26": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": false
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": -359.016845703125,
+					"y": 344.083770751953125
+				},
+				"class": {
+					"id": "77697265-ED9B-4BEC-B3D4-43AC04731CBA",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": 1
+					},
+					"frequency": {
+						"type": "float",
+						"value": 0.25
+					},
+					"offset": {
+						"type": "float",
+						"value": 0
+					},
+					"phase-offset": {
+						"type": "float",
+						"value": 0
+					},
+					"reset-phase": {
+						"type": "trigger",
+						"value": null
+					}
+				},
+				"hidden": [
+					"reset-phase",
+					"unipolar",
+					"instances"
+				],
+				"name": "Sine"
+			},
+			"27": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 770.5064697265625,
+					"y": 202.7853546142578125
+				},
+				"class": {
+					"id": "77697265-E9C4-924B-BE62-F4FB3F2F3CE9",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"height": {
+						"type": "float",
+						"value": 2
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": {
+							"max": [
+								18,
+								18
+							],
+							"min": [
+								0,
+								0
+							]
+						}
+					},
+					"width": {
+						"type": "float",
+						"value": 3.59999990463256836
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Rectangle"
+			},
+			"28": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 1011.37579345703125,
+					"y": 201.1125030517578125
+				},
+				"class": {
+					"id": "77697265-e8c1-11ec-8fea-0242ac120002",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"geometry": {
+						"type": "geometry2d",
+						"value": null
+					},
+					"material": {
+						"type": "material",
+						"value": {
+							"color": [
+								1,
+								1,
+								1,
+								1
+							],
+							"type": "SolidColor"
+						}
+					},
+					"transformation": {
+						"type": "transformation2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Mesh 2D"
+			},
+			"30": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 130,
+					"x": 840.63983154296875,
+					"y": 327.735198974609375
+				},
+				"class": {
+					"id": "77697265-B2A2-4C1C-8C4C-2915D78CC8E9",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"input",
+					"instances",
+					"flow"
+				],
+				"name": "Texture In 2"
+			},
+			"31": {
+				"attributes": {
+					"aa": {
+						"type": "integer",
+						"value": 2
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"mesh-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 1216.3231201171875,
+					"y": 201.0819854736328125
+				},
+				"class": {
+					"id": "77697265-E8EC-7A1G-901A-CFEC174D3B67",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"mesh": {
+						"type": "mesh2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"mesh-dimensions",
+					"resolution-mode",
+					"resolution-absolute"
+				],
+				"name": "Renderer 2D"
+			},
+			"32": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1427.611572265625,
+					"y": 201.0819854736328125
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out"
+			},
+			"43": {
+				"attributes": {
+					"points-dimensions": {
+						"type": "integer",
+						"value": 6
+					}
+				},
+				"bounds": {
+					"height": 30,
+					"width": 195,
+					"x": 136.6014251708984375,
+					"y": 1258.863037109375
+				},
+				"class": {
+					"id": "77697265-ad7a-4f41-8d67-612CD29f2ea4",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"points": {
+						"type": "float2",
+						"value": [
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							],
+							[
+								0,
+								0
+							]
+						]
+					}
+				},
+				"hidden": [
+					"points-dimensions"
+				],
+				"name": "Polygon"
+			},
+			"44": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 6
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": false
+					}
+				},
+				"bounds": {
+					"height": 154,
+					"width": 195,
+					"x": -373.398590087890625,
+					"y": 1258.863037109375
+				},
+				"class": {
+					"id": "77697265-A2EF-44DA-9A81-BB0385C1948C",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"frequency": {
+						"type": "float",
+						"value": [
+							0.20000000298023224,
+							0.20000000298023224,
+							0.20000000298023224,
+							0.20000000298023224,
+							0.20000000298023224,
+							0.20000000298023224
+						]
+					},
+					"offset": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"reset": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"seed": {
+						"type": "float",
+						"value": [
+							6490.98095703125,
+							9286.2919921875,
+							569.72509765625,
+							2888.715576171875,
+							2614.539794921875,
+							7454.4716796875
+						]
+					}
+				},
+				"hidden": [
+					"unipolar",
+					"instances"
+				],
+				"name": "Perlin Generator"
+			},
+			"45": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 6
+					},
+					"unipolar": {
+						"type": "bool",
+						"value": false
+					}
+				},
+				"bounds": {
+					"height": 154,
+					"width": 195,
+					"x": -373.398590087890625,
+					"y": 1442.8631591796875
+				},
+				"class": {
+					"id": "77697265-A2EF-44DA-9A81-BB0385C1948C",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"amplitude": {
+						"type": "float",
+						"value": [
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5,
+							0.5
+						]
+					},
+					"frequency": {
+						"type": "float",
+						"value": [
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896,
+							0.30000001192092896
+						]
+					},
+					"offset": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"reset": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"seed": {
+						"type": "float",
+						"value": [
+							5812.09716796875,
+							2249.56982421875,
+							3833.230224609375,
+							716.21844482421875,
+							1662.5626220703125,
+							4125.81494140625
+						]
+					}
+				},
+				"hidden": [
+					"unipolar",
+					"instances"
+				],
+				"name": "Perlin Generator"
+			},
+			"46": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 6
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": -118.3985748291015625,
+					"y": 1258.863037109375
+				},
+				"class": {
+					"id": "77697265-E7EF-4944-8FC2-D808EE0433CB",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input0": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					},
+					"input1": {
+						"type": "float",
+						"value": [
+							0,
+							0,
+							0,
+							0,
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Float2"
+			},
+			"49": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 10
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 638.162353515625,
+					"y": 882.08062744140625
+				},
+				"class": {
+					"id": "77697265-E9C4-924B-BE62-F4FB3F2F3CE9",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"height": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": [
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							},
+							{
+								"max": [
+									1,
+									1
+								],
+								"min": [
+									0,
+									0
+								]
+							}
+						]
+					},
+					"width": {
+						"type": "float",
+						"value": [
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"uvs",
+					"instances"
+				],
+				"name": "Rectangle"
+			},
+			"50": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 100
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 893.162353515625,
+					"y": 882.08062744140625
+				},
+				"class": {
+					"id": "77697265-e8c1-11ec-8fea-0242ac120002",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"geometry": {
+						"type": "geometry2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"material": {
+						"type": "material",
+						"value": [
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							},
+							{
+								"color": [
+									1,
+									1,
+									1,
+									1
+								],
+								"type": "SolidColor"
+							}
+						]
+					},
+					"transformation": {
+						"type": "transformation2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Mesh 2D"
+			},
+			"51": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 3
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 638.162353515625,
+					"y": 1129.0806884765625
+				},
+				"class": {
+					"id": "77697265-D822-4ABE-9A4A-5693E1B92151",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"albedo": {
+						"type": "float4",
+						"value": [
+							[
+								0.40000000596046448,
+								1,
+								0.14117647707462311,
+								1
+							],
+							[
+								0.40000000596046448,
+								1,
+								0.14117647707462311,
+								1
+							],
+							[
+								0.40000000596046448,
+								1,
+								0.14117647707462311,
+								1
+							]
+						]
+					},
+					"albedo_map": {
+						"type": "texture2d",
+						"value": [
+							null,
+							null,
+							null
+						]
+					},
+					"blend_mode": {
+						"type": "integer",
+						"value": [
+							1,
+							1,
+							1
+						]
+					},
+					"wrap_mode": {
+						"type": "integer",
+						"value": [
+							0,
+							0,
+							0
+						]
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Material"
+			},
+			"52": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 100
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 638.162353515625,
+					"y": 993.08062744140625
+				},
+				"class": {
+					"id": "77697265-366B-4570-833A-D9F433415B8F",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"rotation": {
+						"type": "float",
+						"value": [
+							0.43999999761581421,
+							0.88999998569488525,
+							0.97999995946884155,
+							0.4699999988079071,
+							0.34999999403953552,
+							0.5,
+							0.43999999761581421,
+							0.26999998092651367,
+							0.75999999046325684,
+							0.87000000476837158,
+							0.34000000357627869,
+							0.42999997735023499,
+							0.28999999165534973,
+							0.37999999523162842,
+							0.22999998927116394,
+							0.25,
+							0.98999994993209839,
+							0.69999998807907104,
+							0.00999999977648258,
+							0.47999998927116394,
+							0.5,
+							0.62000000476837158,
+							0.37999999523162842,
+							0.57999998331069946,
+							0.97999995946884155,
+							0.43999999761581421,
+							0.88999998569488525,
+							0.97999995946884155,
+							0.4699999988079071,
+							0.34999999403953552,
+							0.5,
+							0.43999999761581421,
+							0.26999998092651367,
+							0.75999999046325684,
+							0.87000000476837158,
+							0.34000000357627869,
+							0.42999997735023499,
+							0.28999999165534973,
+							0.37999999523162842,
+							0.22999998927116394,
+							0.25,
+							0.98999994993209839,
+							0.69999998807907104,
+							0.00999999977648258,
+							0.47999998927116394,
+							0.5,
+							0.62000000476837158,
+							0.37999999523162842,
+							0.57999998331069946,
+							0.97999995946884155,
+							0.43999999761581421,
+							0.88999998569488525,
+							0.97999995946884155,
+							0.4699999988079071,
+							0.34999999403953552,
+							0.5,
+							0.43999999761581421,
+							0.26999998092651367,
+							0.75999999046325684,
+							0.87000000476837158,
+							0.34000000357627869,
+							0.42999997735023499,
+							0.28999999165534973,
+							0.37999999523162842,
+							0.22999998927116394,
+							0.25,
+							0.98999994993209839,
+							0.69999998807907104,
+							0.00999999977648258,
+							0.47999998927116394,
+							0.5,
+							0.62000000476837158,
+							0.37999999523162842,
+							0.57999998331069946,
+							0.97999995946884155,
+							0.43999999761581421,
+							0.88999998569488525,
+							0.97999995946884155,
+							0.4699999988079071,
+							0.34999999403953552,
+							0.5,
+							0.43999999761581421,
+							0.26999998092651367,
+							0.75999999046325684,
+							0.87000000476837158,
+							0.34000000357627869,
+							0.42999997735023499,
+							0.28999999165534973,
+							0.37999999523162842,
+							0.22999998927116394,
+							0.25,
+							0.98999994993209839,
+							0.69999998807907104,
+							0.00999999977648258,
+							0.47999998927116394,
+							0.5,
+							0.62000000476837158,
+							0.37999999523162842,
+							0.57999998331069946,
+							0.97999995946884155
+						]
+					},
+					"scale": {
+						"type": "float2",
+						"value": [
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							],
+							[
+								1,
+								1
+							]
+						]
+					},
+					"translation": {
+						"type": "float2",
+						"value": [
+							[
+								-0.88999998569488525,
+								0.14999999105930328
+							],
+							[
+								-0.37999999523162842,
+								-0.68999999761581421
+							],
+							[
+								1.49000000953674316,
+								0.31999999284744263
+							],
+							[
+								-1.16999995708465576,
+								-0.47999998927116394
+							],
+							[
+								0.66999995708465576,
+								-0.64999997615814209
+							],
+							[
+								0.70999997854232788,
+								0.40999999642372131
+							],
+							[
+								-1.04999995231628418,
+								-0.29999998211860657
+							],
+							[
+								-0.12999999523162842,
+								0.38999998569488525
+							],
+							[
+								1.12999999523162842,
+								-0.39999997615814209
+							],
+							[
+								1.33999991416931152,
+								-0.53999996185302734
+							],
+							[
+								0.85999995470046997,
+								-0.03999999910593033
+							],
+							[
+								1.07999992370605469,
+								0.19999998807907104
+							],
+							[
+								0.11999999731779099,
+								0.40999999642372131
+							],
+							[
+								-1.37999999523162842,
+								-0.00999999977648258
+							],
+							[
+								0.43999999761581421,
+								-0.91999995708465576
+							],
+							[
+								0.38999998569488525,
+								-0.79999995231628418
+							],
+							[
+								-1.09000003337860107,
+								0.2800000011920929
+							],
+							[
+								-1.44999992847442627,
+								0.56999999284744263
+							],
+							[
+								0.07999999821186066,
+								0.22999998927116394
+							],
+							[
+								-0.61000001430511475,
+								0.57999998331069946
+							],
+							[
+								-0.72999995946884155,
+								-0.88999998569488525
+							],
+							[
+								1.25999999046325684,
+								-0.37000000476837158
+							],
+							[
+								-1.11000001430511475,
+								-0.02999999932944775
+							],
+							[
+								0.2199999988079071,
+								-0.39999997615814209
+							],
+							[
+								1.46999990940093994,
+								-0.81000000238418579
+							],
+							[
+								1.28999996185302734,
+								-0.35999998450279236
+							],
+							[
+								-0.26999998092651367,
+								-0.75
+							],
+							[
+								-0.5,
+								-0.75999999046325684
+							],
+							[
+								0.11999999731779099,
+								0.78999996185302734
+							],
+							[
+								-1.18999993801116943,
+								0.09999999403953552
+							],
+							[
+								-0.09999999403953552,
+								-0.50999999046325684
+							],
+							[
+								-0.62999999523162842,
+								0.07000000029802322
+							],
+							[
+								1.19999992847442627,
+								0.35999998450279236
+							],
+							[
+								1.05999994277954102,
+								0.68999999761581421
+							],
+							[
+								1.37000000476837158,
+								-0.10999999940395355
+							],
+							[
+								-0.25,
+								0.09999999403953552
+							],
+							[
+								0.50999999046325684,
+								-0.31999999284744263
+							],
+							[
+								-0.2199999988079071,
+								0.69999998807907104
+							],
+							[
+								0.35999998450279236,
+								-0.52999997138977051
+							],
+							[
+								-0.52999997138977051,
+								-0.76999998092651367
+							],
+							[
+								0.15999999642372131,
+								-0.98999994993209839
+							],
+							[
+								-1.49000000953674316,
+								-0.15999999642372131
+							],
+							[
+								0.74000000953674316,
+								-0.38999998569488525
+							],
+							[
+								1.26999998092651367,
+								-0.07999999821186066
+							],
+							[
+								1.31999993324279785,
+								-0.61000001430511475
+							],
+							[
+								1.28999996185302734,
+								-0.12999999523162842
+							],
+							[
+								0.22999998927116394,
+								0.93000000715255737
+							],
+							[
+								-0.87999999523162842,
+								0.02999999932944775
+							],
+							[
+								-1.29999995231628418,
+								0.14999999105930328
+							],
+							[
+								-0.64999997615814209,
+								-0.5899999737739563
+							],
+							[
+								-0.09999999403953552,
+								0.88999998569488525
+							],
+							[
+								-1.44999992847442627,
+								-0.8399999737739563
+							],
+							[
+								0.39999997615814209,
+								-0.31000000238418579
+							],
+							[
+								1.23000001907348633,
+								0.10999999940395355
+							],
+							[
+								1.14999997615814209,
+								-0.74000000953674316
+							],
+							[
+								1.25999999046325684,
+								0.12999999523162842
+							],
+							[
+								-1.11000001430511475,
+								0.05999999865889549
+							],
+							[
+								-0.85999995470046997,
+								0.78999996185302734
+							],
+							[
+								-0.4699999988079071,
+								0.2199999988079071
+							],
+							[
+								0.19999998807907104,
+								-0.25999999046325684
+							],
+							[
+								-1.19999992847442627,
+								-0.84999996423721313
+							],
+							[
+								0.89999997615814209,
+								0.98999994993209839
+							],
+							[
+								1.18999993801116943,
+								0.35999998450279236
+							],
+							[
+								1.10000002384185791,
+								0.69999998807907104
+							],
+							[
+								-1.05999994277954102,
+								0.07999999821186066
+							],
+							[
+								1.33999991416931152,
+								0.38999998569488525
+							],
+							[
+								0.71999996900558472,
+								0.32999998331069946
+							],
+							[
+								-0.38999998569488525,
+								0.37999999523162842
+							],
+							[
+								1.1799999475479126,
+								-0.08999999612569809
+							],
+							[
+								-1.25,
+								0.88999998569488525
+							],
+							[
+								-0.09999999403953552,
+								0.17000000178813934
+							],
+							[
+								-0.02999999932944775,
+								0.40999999642372131
+							],
+							[
+								-1.05999994277954102,
+								0.94999998807907104
+							],
+							[
+								0.96999996900558472,
+								0.48999997973442078
+							],
+							[
+								0.34999999403953552,
+								0.05999999865889549
+							],
+							[
+								0.75,
+								-0.56999999284744263
+							],
+							[
+								-0.11999999731779099,
+								0.34000000357627869
+							],
+							[
+								0.62999999523162842,
+								0.42999997735023499
+							],
+							[
+								-0.07999999821186066,
+								0.96999996900558472
+							],
+							[
+								-1.26999998092651367,
+								0.28999999165534973
+							],
+							[
+								-1.12999999523162842,
+								-0.05999999865889549
+							],
+							[
+								-1.04999995231628418,
+								-0.81999999284744263
+							],
+							[
+								0.37000000476837158,
+								-0.10999999940395355
+							],
+							[
+								0.39999997615814209,
+								-0.55000001192092896
+							],
+							[
+								0.31000000238418579,
+								-0.5899999737739563
+							],
+							[
+								0.78999996185302734,
+								0.29999998211860657
+							],
+							[
+								-0.14999999105930328,
+								-0.96999996900558472
+							],
+							[
+								1.22000002861022949,
+								0.53999996185302734
+							],
+							[
+								-1.29999995231628418,
+								0.76999998092651367
+							],
+							[
+								-0.02999999932944775,
+								-0.57999998331069946
+							],
+							[
+								-0.91999995708465576,
+								-0.35999998450279236
+							],
+							[
+								-0.5899999737739563,
+								0.93999999761581421
+							],
+							[
+								-1.28999996185302734,
+								-0.56000000238418579
+							],
+							[
+								1.05999994277954102,
+								-0.89999997615814209
+							],
+							[
+								1.41999995708465576,
+								0.39999997615814209
+							],
+							[
+								0.28999999165534973,
+								0.52999997138977051
+							],
+							[
+								-0.68000000715255737,
+								-0.89999997615814209
+							],
+							[
+								-0.15999999642372131,
+								0.41999998688697815
+							],
+							[
+								-0.29999998211860657,
+								-0.37000000476837158
+							],
+							[
+								1.23000001907348633,
+								0.55000001192092896
+							]
+						]
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Transformation 2D"
+			},
+			"57": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					},
+					"mode": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 391.601409912109375,
+					"y": 1258.863037109375
+				},
+				"class": {
+					"id": "77697265-ab950887-37ee-4fd2-9487-c856b6b75c83",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input": {
+						"type": "procedural",
+						"value": null
+					},
+					"thickness": {
+						"type": "float",
+						"value": 0.00999999977648258
+					}
+				},
+				"hidden": [
+					"mode",
+					"instances"
+				],
+				"name": "Edge"
+			},
+			"59": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 136.6014251708984375,
+					"y": 1346.8631591796875
+				},
+				"class": {
+					"id": "77697265-8035-4fab-a688-52338c6b4748",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input0": {
+						"type": "float4",
+						"value": [
+							0,
+							0.88235294818878174,
+							0.15294118225574493,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Color"
+			},
+			"60": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 136.6014251708984375,
+					"y": 1434.8631591796875
+				},
+				"class": {
+					"id": "77697265-8035-4fab-a688-52338c6b4748",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input0": {
+						"type": "float4",
+						"value": [
+							0.05490196123719215,
+							0.51764708757400513,
+							0,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Color"
+			},
+			"61": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 58,
+					"width": 195,
+					"x": 136.6014251708984375,
+					"y": 1522.8629150390625
+				},
+				"class": {
+					"id": "77697265-8035-4fab-a688-52338c6b4748",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input0": {
+						"type": "float4",
+						"value": [
+							0.29803922772407532,
+							1,
+							0.64313727617263794,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"flow",
+					"instances"
+				],
+				"name": "Color"
+			},
+			"62": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"input0-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input1-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"input2-dimensions": {
+						"type": "integer",
+						"value": 1
+					},
+					"num-channels": {
+						"type": "integer",
+						"value": 3
+					},
+					"type": {
+						"type": "type",
+						"value": "float4"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 391.601409912109375,
+					"y": 1346.8631591796875
+				},
+				"class": {
+					"id": "77697265-3732-42da-653e-b641d4a49224",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"channel0": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							1
+						]
+					},
+					"channel1": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							1
+						]
+					},
+					"channel2": {
+						"type": "float4",
+						"value": [
+							0,
+							0,
+							0,
+							1
+						]
+					}
+				},
+				"hidden": [
+					"type",
+					"flow",
+					"num-channels",
+					"input0-dimensions",
+					"input1-dimensions",
+					"input2-dimensions"
+				],
+				"name": "Join"
+			},
+			"63": {
+				"attributes": {
+					"aa": {
+						"type": "integer",
+						"value": 2
+					},
+					"bitdepth": {
+						"type": "integer",
+						"value": 0
+					},
+					"mesh-dimensions": {
+						"type": "integer",
+						"value": 100
+					},
+					"resolution-absolute": {
+						"type": "float2",
+						"value": [
+							1920,
+							1080
+						]
+					},
+					"resolution-mode": {
+						"type": "integer",
+						"value": 0
+					},
+					"resolution-relative": {
+						"type": "float2",
+						"value": [
+							1,
+							1
+						]
+					}
+				},
+				"bounds": {
+					"height": 130,
+					"width": 195,
+					"x": 1148.1624755859375,
+					"y": 882.08062744140625
+				},
+				"class": {
+					"id": "77697265-E8EC-7A1G-901A-CFEC174D3B67",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"camera": {
+						"type": "camera2d",
+						"value": {
+							"projection": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								1
+							],
+							"view": [
+								1,
+								0,
+								0,
+								0,
+								0,
+								1,
+								0,
+								0,
+								0,
+								0,
+								-1,
+								0,
+								0,
+								0,
+								0,
+								1
+							]
+						}
+					},
+					"mesh": {
+						"type": "mesh2d",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					}
+				},
+				"hidden": [
+					"mesh-dimensions",
+					"resolution-mode",
+					"resolution-absolute"
+				],
+				"name": "Renderer 2D"
+			},
+			"64": {
+				"attributes": {
+					"mode": {
+						"type": "integer",
+						"value": 0
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": 893.162353515625,
+					"y": 1018.08062744140625
+				},
+				"class": {
+					"id": "77697265-8E76-4D11-8420-0A3F4CF72566",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"transform": {
+						"type": "transformation2d",
+						"value": null
+					},
+					"zoom": {
+						"type": "float",
+						"value": 1.10000002384185791
+					}
+				},
+				"hidden": [
+					"mode"
+				],
+				"name": "Camera 2D"
+			},
+			"69": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 132,
+					"x": 1376.8453369140625,
+					"y": 881.97955322265625
+				},
+				"class": {
+					"id": "77697265-BEEA-4D38-8EE5-0EBA4CBD0AEE",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"input": {
+						"type": "texture2d",
+						"value": null
+					}
+				},
+				"hidden": [
+					"instances"
+				],
+				"name": "Texture Out"
+			},
+			"71": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 1: HEIGHT AND WIDTH\n\nIn this example we use the Patch Info node to get the aspect ratio of the patch.\nThis is sent to to the widht inlet of the Rectangle to make sure the Rectangle is the correct width for the texture we give it in the Mesh 2D node.\nWe are also sending a Sine, running from-1 to 1, to the Rectangle's height inlet.\nNote that when the height is negative, the output is flipped upside down.\nThe Rectangle is sent to the Mesh 2D node to construct a mesh 2d type.\nNext we patch it to the Render 2D node to render it to a texture."
+					}
+				},
+				"bounds": {
+					"height": 488.41900634765625,
+					"width": 1105.744140625,
+					"x": -398.46575927734375,
+					"y": 14.8494110107421875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"72": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 2: UV\n\nIn this example we've changed  the UV values from 0,0,1,1 to 0,0,18,18.\nThis causes the texture to repeat itself, giving us a whole lot of copies!\nThis method can be used to creat incredibly lightweight repeating effects. "
+					}
+				},
+				"bounds": {
+					"height": 487.266937255859375,
+					"width": 842.2432861328125,
+					"x": 748.041259765625,
+					"y": 16.80733489990234375
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffae7bff",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"73": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": false
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "EXAMPLE 3: POLYGON MADNESS\n\nIn this final example we're demonstating the power of meshes.\nIn the final result we've got 100 polyons on the screen.\nDoing this with shapes would grind you GPU to a halt.\n\nInstead, we are generating a single polygon using Perlin Generator, Polygon and Edge.\nNext, we turn the shape into materials using the Texture Material.\nColor is added by joining 3 colors together and we end up with a collection of 2 texture materials (hover over the oulet of the node to see that it is a collection).\n\nAt the top  we are creating a collection of 10 Rectangles by sending a Linear collection into the widht and height inlets. \nThis gives us squares in different sizes.\n\nThe Random node is used to generate a collection of 100 Float2 values that are used to position the meshes.\nThe Linear node is used to rotate the meshes "
+					}
+				},
+				"bounds": {
+					"height": 1190.670654296875,
+					"width": 1989.5855712890625,
+					"x": -400.1951904296875,
+					"y": 550.7547607421875
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"75": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"size": {
+						"type": "integer",
+						"value": 10
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 391.177215576171875,
+					"y": 881.37841796875
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"max": {
+						"type": "float",
+						"value": 2
+					},
+					"min": {
+						"type": "float",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"type",
+					"flow",
+					"include-max"
+				],
+				"name": "Linear"
+			},
+			"80": {
+				"attributes": {
+					"alignment": {
+						"type": "integer",
+						"value": 0
+					},
+					"fill": {
+						"type": "bool",
+						"value": true
+					},
+					"font-size": {
+						"type": "float",
+						"value": 19
+					},
+					"text": {
+						"type": "string",
+						"value": "RECTANGLE\n\nThe Rectangle node constructs a rectangular geometry.\nThe width and height van be adjusted to your needs.\nThe UV parameters of the node are hidden by default but can be accessed through by right clicking the node and navigating to View.\n\nThe UV inlet takes a Box2D type which can be constructed with the Box2D node or Bounding Box node.\n\nBelow you can find three examples that use the Rectangle node and all its parameters."
+					}
+				},
+				"bounds": {
+					"height": 238.3932037353515625,
+					"width": 489.463531494140625,
+					"x": -401.1444091796875,
+					"y": -262.78277587890625
+				},
+				"class": {
+					"id": "77697265-3C1D-467D-A722-0FC566538374",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffd0c117",
+				"constants": {},
+				"hidden": [
+					"text",
+					"alignment",
+					"font-size",
+					"fill"
+				],
+				"name": "Comment"
+			},
+			"83": {
+				"attributes": {
+					"flow": {
+						"type": "flow",
+						"value": "signal"
+					},
+					"include-max": {
+						"type": "bool",
+						"value": true
+					},
+					"size": {
+						"type": "integer",
+						"value": 25
+					},
+					"type": {
+						"type": "type",
+						"value": "float"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 391.423858642578125,
+					"y": 1129.496826171875
+				},
+				"class": {
+					"id": "77697265-A48B-4AF9-8975-E3063B037D4C",
+					"version": 2
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"max": {
+						"type": "float",
+						"value": 1
+					},
+					"min": {
+						"type": "float",
+						"value": 0
+					}
+				},
+				"hidden": [
+					"type",
+					"flow",
+					"include-max"
+				],
+				"name": "Linear"
+			},
+			"85": {
+				"attributes": {
+					"distribution": {
+						"type": "integer",
+						"value": 0
+					},
+					"instances": {
+						"type": "integer",
+						"value": 100
+					},
+					"type": {
+						"type": "type",
+						"value": "float2"
+					}
+				},
+				"bounds": {
+					"height": 106,
+					"width": 195,
+					"x": 391.423858642578125,
+					"y": 1005.6531982421875
+				},
+				"class": {
+					"id": "77697265-5581-4721-8519-0b8fa3d68b4d",
+					"version": 1
+				},
+				"clock": "video",
+				"color": "ffe53357",
+				"constants": {
+					"argument1": {
+						"type": "float2",
+						"value": [
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							],
+							[
+								-1.5,
+								-1
+							]
+						]
+					},
+					"argument2": {
+						"type": "float2",
+						"value": [
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							],
+							[
+								1.5,
+								1
+							]
+						]
+					},
+					"input": {
+						"type": "trigger",
+						"value": [
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null,
+							null
+						]
+					},
+					"precision": {
+						"type": "float2",
+						"value": [
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							],
+							[
+								0.00999999977648258,
+								0.00999999977648258
+							]
+						]
+					},
+					"seed": {
+						"type": "integer",
+						"value": [
+							1666776064,
+							1332496256,
+							743477696,
+							1365448192,
+							351783392,
+							856000768,
+							1292658432,
+							1266718976,
+							820408320,
+							197732064,
+							426091168,
+							1217235456,
+							281331744,
+							598996928,
+							1180333184,
+							969976384,
+							2087947392,
+							638559936,
+							766286016,
+							501474912,
+							1540567808,
+							1987210240,
+							332401920,
+							1186145280,
+							756717504,
+							691725568,
+							1413247488,
+							1497590400,
+							689196864,
+							275326240,
+							456935072,
+							866860416,
+							1351571456,
+							1695315072,
+							1854068608,
+							1679967488,
+							1909778944,
+							165320288,
+							419568992,
+							34363272,
+							119156632,
+							705940224,
+							553761792,
+							144532448,
+							499615616,
+							521214656,
+							1148746880,
+							2098429568,
+							1325795840,
+							808064192,
+							583624896,
+							473377856,
+							993334656,
+							1258785664,
+							1562986112,
+							2105295104,
+							310526048,
+							1377596288,
+							1094737792,
+							1290887552,
+							881799488,
+							1392652288,
+							1730194176,
+							2107778816,
+							2056123648,
+							879415616,
+							1564081280,
+							46722704,
+							446359584,
+							1422807168,
+							596399232,
+							32901876,
+							842758400,
+							1639369728,
+							900008000,
+							1313201152,
+							329146784,
+							435883616,
+							1509041152,
+							1746890752,
+							309260320,
+							639917376,
+							641752832,
+							782336384,
+							704734144,
+							253781504,
+							1892445696,
+							1996945664,
+							1852005632,
+							1901376384,
+							1686125312,
+							802729024,
+							1805748736,
+							753629824,
+							72003240,
+							312001696,
+							1829704192,
+							169480560,
+							531271296,
+							681602624
+						]
+					}
+				},
+				"hidden": [
+					"distribution",
+					"type",
+					"seed",
+					"precision"
+				],
+				"name": "Random"
+			},
+			"9": {
+				"attributes": {
+					"instances": {
+						"type": "integer",
+						"value": 1
+					}
+				},
+				"bounds": {
+					"height": 82,
+					"width": 195,
+					"x": -139.39105224609375,
+					"y": 192.665557861328125
+				},
+				"class": {
+					"id": "77697265-E9C4-924B-BE62-F4FB3F2F3CE9",
+					"version": 0
+				},
+				"clock": "video",
+				"color": "fff26eb5",
+				"constants": {
+					"height": {
+						"type": "float",
+						"value": 1
+					},
+					"uvs": {
+						"type": "box2d",
+						"value": {
+							"max": [
+								1,
+								1
+							],
+							"min": [
+								0,
+								0
+							]
+						}
+					},
+					"width": {
+						"type": "float",
+						"value": 1
+					}
+				},
+				"hidden": [
+					"uvs",
+					"instances"
+				],
+				"name": "Rectangle"
+			}
+		},
+		"ui": {
+			"camera": {
+				"x": -155.9757080078125,
+				"y": -234.667938232421875,
+				"zoom": 0.66621923446655273
+			},
+			"selection": []
+		}
+	},
+	"resources": {},
+	"ui": {
+		"audio": {
+			"routing": {
+				"in": {},
+				"out": []
+			}
+		},
+		"deviceConnections": {
+			"input": {
+				"15": "Test Card",
+				"30": "Wire Logo"
+			}
+		},
+		"monitors": [
+			{
+				"instance": 0,
+				"node": 69
+			}
+		],
+		"transport": {
+			"bpm": 120,
+			"time-signature": [
+				4,
+				4
+			]
+		},
+		"video": {
+			"routing": {
+				"out": {
+					"Display 1": null,
+					"Display 2": null,
+					"Display 3": null,
+					"Display 4": null,
+					"Syphon": null
+				}
+			}
+		}
+	}
+}

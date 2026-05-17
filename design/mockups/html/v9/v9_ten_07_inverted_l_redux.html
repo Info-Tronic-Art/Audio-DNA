@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA — Design 7 — Inverted-L Redux (LIVE)</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --panel: #2a2a2a;
+    --row: #383838;
+    --hair: #3a3a3a;
+    --label: #888;
+    --value: #e0e0e0;
+    --mint: #5fdba7;
+    --red: #ff4040;
+    --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--value);
+    font-family: var(--sans);
+    font-size: 11px;
+    width: 1920px;
+    min-height: 1200px;
+    overflow: hidden;
+  }
+  .app {
+    position: relative;
+    width: 1920px;
+    height: 1200px;
+    background: var(--bg);
+  }
+  .grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    z-index: 1000;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* ================= TOP BAR (44px) ================= */
+  .topbar {
+    height: 44px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--hair);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 14px;
+    font-family: var(--mono);
+  }
+  .logo {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--value);
+    padding-right: 8px;
+    border-right: 1px solid var(--hair);
+  }
+  .logo .dot { color: var(--mint); }
+  .bpm-big {
+    font-family: var(--mono);
+    font-size: 28px;
+    color: var(--mint);
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    min-width: 64px;
+  }
+  .bpm-big .u { font-size: 10px; color: var(--label); margin-left: 3px; }
+  .tb-item {
+    display: flex;
+    flex-direction: column;
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 0 4px;
+  }
+  .tb-item .lbl { color: var(--label); text-transform: uppercase; font-size: 8px; }
+  .tb-item .val { color: var(--value); font-size: 12px; margin-top: 1px; }
+  .pill {
+    padding: 3px 10px;
+    background: var(--mint);
+    color: #0a0a0a;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .beat-wheel {
+    width: 28px; height: 28px; position: relative;
+  }
+  .transport-btn {
+    width: 26px; height: 26px;
+    background: var(--bg);
+    border: 1px solid var(--hair);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--value); font-size: 10px;
+    font-family: var(--mono);
+    cursor: pointer;
+  }
+  .transport-btn.active { border-color: var(--mint); color: var(--mint); }
+  .rec-btn {
+    background: var(--bg); border: 1px solid var(--red);
+    color: var(--red); padding: 4px 10px;
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .rec-btn .dot { width: 8px; height: 8px; background: var(--red); display: inline-block; margin-right: 5px; vertical-align: middle; }
+  .mode-tabs {
+    display: flex; gap: 0;
+    font-family: var(--mono); font-size: 10px;
+    margin-left: auto;
+  }
+  .mode-tab {
+    padding: 6px 16px;
+    color: var(--label);
+    border-bottom: 2px solid transparent;
+    letter-spacing: 1px;
+  }
+  .mode-tab.active {
+    color: var(--mint);
+    border-bottom-color: var(--mint);
+  }
+  .sep { width: 1px; height: 26px; background: var(--hair); }
+
+  /* ================= RESOLUME TRANSPORT STRIP (32px) ================= */
+  .transport-strip {
+    height: 32px;
+    background: #222;
+    border-bottom: 1px solid var(--hair);
+    display: flex; align-items: center;
+    padding: 0 12px; gap: 6px;
+    font-family: var(--mono); font-size: 10px;
+  }
+  .ts-btn {
+    height: 22px; min-width: 22px;
+    background: #1a1a1a;
+    border: 1px solid var(--hair);
+    color: var(--value);
+    font-family: var(--mono); font-size: 10px;
+    padding: 0 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ts-btn.mint { color: var(--mint); border-color: var(--mint); }
+  .ts-num { color: var(--mint); font-weight: 700; padding: 0 6px; }
+
+  /* ================= SIGNAL QUICK-REF BAR (22px) ================= */
+  .signal-bar {
+    height: 22px;
+    background: #1f1f1f;
+    border-bottom: 1px solid var(--hair);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--value);
+    overflow: hidden; white-space: nowrap;
+  }
+  .signal-bar .label { color: var(--label); margin-right: 4px; }
+  .signal-bar .val { color: var(--mint); margin-right: 2px; }
+  .signal-bar .divider { color: #555; margin: 0 10px; }
+
+  /* ================= MAIN LAYOUT ================= */
+  .main {
+    position: relative;
+    width: 1920px;
+    height: calc(1200px - 44px - 32px - 22px - 100px);
+    display: flex;
+  }
+
+  /* ==== LEFT COLUMN 240px — AUDIO ANALYSIS ==== */
+  .left-col {
+    width: 240px;
+    background: var(--panel);
+    border-right: 1px solid var(--hair);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .analysis-section {
+    border-bottom: 1px solid var(--hair);
+    padding: 6px 10px;
+  }
+  .section-header {
+    display: flex; align-items: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--label);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    justify-content: space-between;
+  }
+  .section-header .left { display: flex; align-items: center; gap: 4px; }
+  .section-header .tri { color: #666; font-size: 8px; }
+  .section-header .p { color: var(--label); font-family: var(--mono); font-size: 9px; border: 1px solid var(--hair); padding: 0 3px; }
+  .section-header.routed {
+    border-left: 2px solid var(--mint);
+    padding-left: 4px;
+    margin-left: -4px;
+  }
+  .spectrum-box { width: 100%; height: 100px; background: #151515; border: 1px solid var(--hair); }
+  .bands-list { display: flex; flex-direction: column; gap: 3px; }
+  .band-row {
+    display: flex; align-items: center;
+    font-family: var(--mono); font-size: 9px;
+    gap: 6px;
+  }
+  .band-row .name { color: var(--label); width: 58px; }
+  .band-row .bar { flex: 1; height: 7px; background: #151515; position: relative; }
+  .band-row .bar .fill { height: 100%; background: var(--mint); }
+  .band-row .val { color: var(--value); width: 28px; text-align: right; }
+  .chroma-row {
+    display: flex; gap: 2px;
+    height: 60px; align-items: flex-end;
+  }
+  .chroma-row .cbar {
+    flex: 1; background: #151515; border-top: 1px solid var(--hair);
+    position: relative;
+  }
+  .chroma-row .cbar .cfill { position: absolute; bottom: 0; left: 0; right: 0; background: var(--mint); }
+  .chroma-labels {
+    display: flex; gap: 2px; margin-top: 3px;
+    font-family: var(--mono); font-size: 8px; color: var(--label);
+  }
+  .chroma-labels span { flex: 1; text-align: center; }
+  .chroma-labels span.active { color: var(--mint); font-weight: 700; }
+  .dyn-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 4px 8px; font-family: var(--mono); font-size: 9px;
+  }
+  .dyn-grid .dv { color: var(--label); }
+  .dyn-grid .dn { color: var(--value); text-align: right; }
+  .dyn-grid .dn.mint { color: var(--mint); }
+  .beat-block {
+    display: flex; gap: 10px; align-items: center;
+  }
+  .beat-wheel-big {
+    width: 80px; height: 80px; position: relative;
+  }
+  .beat-data {
+    flex: 1; display: flex; flex-direction: column; gap: 2px;
+    font-family: var(--mono);
+  }
+  .beat-data .bpm { font-size: 28px; color: var(--mint); font-weight: 600; line-height: 1; }
+  .beat-data .bpm .u { font-size: 9px; color: var(--label); }
+  .beat-data .ph { font-size: 9px; color: var(--label); }
+  .beat-data .ph span { color: var(--value); }
+  .genre-row { display: flex; flex-direction: column; gap: 4px; font-family: var(--mono); }
+  .genre-row .genre-name { font-size: 16px; color: var(--value); font-weight: 600; letter-spacing: 1px; }
+  .genre-row .energy { display: flex; gap: 4px; align-items: center; font-size: 9px; color: var(--label); }
+  .genre-row .energy .meter { flex: 1; height: 4px; background: #151515; position: relative; }
+  .genre-row .energy .meter .fill { height: 100%; background: var(--mint); }
+  .structural-pill {
+    display: inline-block;
+    padding: 3px 10px; background: var(--mint); color: #0a0a0a;
+    font-family: var(--mono); font-size: 10px; font-weight: 700;
+    letter-spacing: 1px;
+    align-self: flex-start;
+  }
+
+  /* ==== CENTER AREA (grid + preview) ==== */
+  .center-area {
+    flex: 1;
+    position: relative;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .column-headers {
+    display: flex;
+    height: 24px;
+    border-bottom: 1px solid var(--hair);
+    padding-left: 164px; /* offset for layer label + mini-slider strip */
+    background: #222;
+  }
+  .col-header {
+    width: 100px;
+    border-right: 1px solid var(--hair);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 6px;
+    font-family: var(--mono); font-size: 9px;
+    color: var(--label);
+    letter-spacing: 1px;
+  }
+  .col-header .trig {
+    color: var(--mint); font-size: 9px;
+    cursor: pointer;
+  }
+
+  /* Floating preview */
+  .floating-preview {
+    position: absolute;
+    top: 34px;
+    left: 170px;
+    width: 320px;
+    height: 180px;
+    background: #0d1a14;
+    border: 1px solid var(--mint);
+    z-index: 10;
+  }
+  .floating-preview .label-live {
+    position: absolute; top: 6px; left: 8px;
+    color: var(--mint); font-family: var(--mono);
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-shadow: 0 0 2px #000;
+  }
+  .floating-preview .label-live::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px; background: var(--mint);
+    margin-right: 5px; vertical-align: middle;
+    animation: pulse 1.2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .floating-preview .label-res {
+    position: absolute; bottom: 6px; right: 8px;
+    color: var(--mint); font-family: var(--mono);
+    font-size: 9px; letter-spacing: 1px;
+    text-shadow: 0 0 2px #000;
+  }
+  .floating-preview svg { width: 100%; height: 100%; display: block; }
+
+  .grid-area {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+  }
+  .layer-row {
+    display: flex;
+    height: 90px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .layer-label {
+    width: 124px;
+    background: var(--panel);
+    border-right: 1px solid var(--hair);
+    padding: 6px 8px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .layer-label .name {
+    color: var(--value); font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .layer-label .num {
+    color: var(--label); font-size: 9px;
+  }
+  .layer-label .toggles {
+    display: flex; gap: 3px;
+  }
+  .lbl-btn {
+    width: 18px; height: 16px;
+    background: var(--bg);
+    border: 1px solid var(--hair);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 9px;
+    color: var(--label);
+  }
+  .lbl-btn.on { background: var(--mint); color: #0a0a0a; border-color: var(--mint); }
+
+  /* Per-layer mini slider strip (40px) */
+  .mini-strip {
+    width: 40px;
+    background: #222;
+    border-right: 1px solid var(--hair);
+    padding: 4px 3px;
+    display: flex;
+    gap: 3px; align-items: flex-start;
+    justify-content: center;
+  }
+  .mini-col {
+    display: flex; flex-direction: column; gap: 3px; align-items: center;
+  }
+  .v-slider {
+    width: 10px; height: 60px;
+    background: #151515;
+    border: 1px solid var(--hair);
+    position: relative;
+  }
+  .v-slider .fill {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--mint);
+  }
+  .v-slider .knob {
+    position: absolute; left: -2px; right: -2px;
+    height: 3px; background: var(--mint);
+  }
+  .mini-ms {
+    display: flex; flex-direction: column; gap: 2px;
+    align-items: center;
+    margin-top: 2px;
+  }
+  .ms-btn {
+    width: 12px; height: 10px;
+    background: var(--bg); border: 1px solid var(--hair);
+    font-family: var(--mono); font-size: 7px;
+    color: var(--label);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ms-btn.on { background: var(--mint); color: #0a0a0a; border-color: var(--mint); }
+  .mini-label {
+    font-family: var(--mono); font-size: 7px;
+    color: var(--label); letter-spacing: 0.5px;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+  }
+
+  /* Clip row */
+  .clip-row {
+    flex: 1;
+    display: flex;
+  }
+  .clip-cell {
+    width: 100px; height: 90px;
+    border-right: 1px solid var(--hair);
+    background: #1c1c1c;
+    position: relative;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 5px 6px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--label);
+    overflow: hidden;
+  }
+  .clip-cell.empty {
+    background: #151515;
+    border: 1px dashed #2a2a2a;
+  }
+  .clip-cell.loaded {
+    background: #1c1c1c;
+    color: var(--value);
+  }
+  .clip-cell.selected {
+    outline: 1px solid var(--mint);
+    outline-offset: -1px;
+  }
+  .clip-cell.queued {
+    border: 1px dashed var(--mint);
+    color: var(--mint);
+  }
+  .clip-cell.playing {
+    background: var(--mint);
+    border: 2px solid var(--mint);
+    color: #0a0a0a;
+  }
+  .clip-cell.playing .cname,
+  .clip-cell.playing .cmeta { color: #0a0a0a; }
+  .clip-cell .cname {
+    font-size: 10px;
+    color: var(--value);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    overflow: hidden; white-space: nowrap;
+    position: relative; z-index: 2;
+  }
+  .clip-cell .cmeta {
+    font-size: 8px;
+    color: var(--label);
+    display: flex; justify-content: space-between;
+    position: relative; z-index: 2;
+  }
+  .clip-cell .thumb {
+    position: absolute; inset: 0;
+    opacity: 0.18;
+    pointer-events: none;
+  }
+  .clip-cell.playing .thumb { opacity: 0.35; }
+  .clip-cell .progress {
+    position: absolute; bottom: 0; left: 0; height: 2px; background: #0a0a0a;
+  }
+
+  /* ==== RIGHT INSPECTOR ==== */
+  .inspector {
+    width: 260px;
+    background: var(--panel);
+    border-left: 1px solid var(--hair);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .insp-tabs {
+    display: flex; height: 28px;
+    border-bottom: 1px solid var(--hair);
+    background: #222;
+  }
+  .insp-tab {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 9px;
+    color: var(--label); letter-spacing: 1px;
+    border-right: 1px solid var(--hair);
+  }
+  .insp-tab.active {
+    color: var(--mint);
+    border-bottom: 2px solid var(--mint);
+  }
+  .insp-body {
+    flex: 1; overflow: auto;
+  }
+  .insp-section {
+    border-bottom: 1px solid var(--hair);
+    padding: 8px 10px;
+  }
+  .insp-section.routed .section-header {
+    border-left: 2px solid var(--mint);
+    padding-left: 6px;
+    margin-left: -6px;
+  }
+  .dash-knobs {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .dash-knob {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px;
+    font-family: var(--mono); font-size: 8px;
+  }
+  .dash-knob .k {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #151515; border: 1px solid var(--hair);
+    position: relative;
+  }
+  .dash-knob .k .indicator {
+    position: absolute; left: 50%; top: 3px;
+    width: 2px; height: 10px; background: var(--mint);
+    transform-origin: 1px 15px;
+  }
+  .dash-knob .lbl { color: var(--label); letter-spacing: 0.5px; }
+  .dash-knob .v { color: var(--value); }
+  .ins-row {
+    display: flex; align-items: center;
+    font-family: var(--mono); font-size: 10px;
+    height: 22px;
+    gap: 4px;
+  }
+  .ins-row .label {
+    width: 90px; color: var(--label); text-align: right;
+    font-size: 9px;
+  }
+  .ins-row .val {
+    width: 50px; color: var(--value); text-align: right;
+    font-family: var(--mono);
+  }
+  .ins-row .mbtn {
+    width: 14px; height: 14px;
+    background: var(--bg); border: 1px solid var(--hair);
+    color: var(--label); font-family: var(--mono); font-size: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ins-row .slider {
+    flex: 1; height: 4px; background: #151515;
+    border: 1px solid var(--hair);
+    position: relative;
+  }
+  .ins-row .slider .fill { height: 100%; background: var(--mint); }
+  .ins-row .slider .indicator {
+    position: absolute; top: -3px; width: 2px; height: 10px; background: var(--mint);
+  }
+  .ins-row .p-btn {
+    font-family: var(--mono); font-size: 8px;
+    border: 1px solid var(--hair); padding: 1px 3px;
+    color: var(--label);
+  }
+
+  .cuepoints-row {
+    display: flex; gap: 3px; flex-wrap: wrap;
+  }
+  .cue-dot {
+    width: 22px; height: 18px;
+    background: var(--bg); border: 1px solid var(--hair);
+    font-family: var(--mono); font-size: 9px;
+    color: var(--label);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .cue-dot.on { background: var(--mint); color: #0a0a0a; border-color: var(--mint); }
+
+  /* ==== BOTTOM STRIP ==== */
+  .bottom-strip {
+    height: 100px;
+    background: var(--panel);
+    border-top: 1px solid var(--hair);
+    display: flex; align-items: stretch;
+    padding: 8px 14px;
+    gap: 16px;
+  }
+  .bottom-block {
+    display: flex; flex-direction: column;
+    gap: 4px;
+    border-right: 1px solid var(--hair);
+    padding-right: 16px;
+    justify-content: space-between;
+  }
+  .bottom-block:last-child { border-right: none; }
+  .bb-title {
+    font-family: var(--mono); font-size: 9px;
+    color: var(--label); letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .master-meter {
+    width: 200px; height: 14px;
+    background: #151515; border: 1px solid var(--hair);
+    position: relative;
+  }
+  .master-meter .f {
+    height: 100%; background: linear-gradient(to right, var(--mint) 0%, var(--mint) 75%, #d4b94c 90%, var(--red) 100%);
+  }
+  .master-slider {
+    width: 200px; height: 6px;
+    background: #151515; border: 1px solid var(--hair);
+    position: relative;
+  }
+  .master-slider .indicator {
+    position: absolute; top: -3px; width: 3px; height: 12px; background: var(--mint);
+  }
+  .crossfader-block {
+    display: flex; flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+  }
+  .xfader-labels {
+    display: flex; justify-content: space-between;
+    width: 240px;
+    font-family: var(--mono); font-size: 9px; color: var(--label);
+  }
+  .xfader-track {
+    width: 240px; height: 14px;
+    background: #151515; border: 1px solid var(--hair);
+    position: relative;
+  }
+  .xfader-track .knob {
+    position: absolute; top: -2px; width: 18px; height: 18px;
+    background: var(--mint); border: 1px solid var(--mint);
+  }
+  .bottom-knobs {
+    display: flex; gap: 6px;
+  }
+  .bot-knob {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 3px; font-family: var(--mono); font-size: 8px;
+  }
+  .bot-knob .k {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: #151515; border: 1px solid var(--hair);
+    position: relative;
+  }
+  .bot-knob .k .ind {
+    position: absolute; left: 50%; top: 3px;
+    width: 2px; height: 12px; background: var(--mint);
+    transform-origin: 1px 17px;
+  }
+  .bot-knob .lbl { color: var(--label); }
+  .bot-knob .v { color: var(--value); }
+  .scene-btns { display: flex; gap: 5px; }
+  .scene-btn {
+    padding: 6px 10px;
+    background: var(--bg); border: 1px solid var(--hair);
+    color: var(--value); font-family: var(--mono); font-size: 10px;
+    letter-spacing: 1px; font-weight: 600;
+  }
+  .scene-btn.active {
+    background: var(--mint); color: #0a0a0a; border-color: var(--mint);
+  }
+  .action-btns { display: flex; gap: 6px; }
+  .action-btn {
+    padding: 6px 12px;
+    background: var(--bg); border: 1px solid var(--hair);
+    color: var(--value); font-family: var(--mono); font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .action-btn.rec { border-color: var(--red); color: var(--red); }
+  .action-btn .dot {
+    width: 7px; height: 7px; background: var(--red);
+    display: inline-block; margin-right: 5px; vertical-align: middle;
+  }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ TOP BAR ============ -->
+  <div class="topbar">
+    <div class="logo">AUDIO<span class="dot">&bull;</span>DNA</div>
+    <div class="bpm-big">128<span class="u">BPM</span></div>
+    <div class="sep"></div>
+    <div class="tb-item"><span class="lbl">BAR</span><span class="val">03 / 04</span></div>
+    <div class="tb-item"><span class="lbl">PHRASE</span><span class="val">6 / 8</span></div>
+    <div class="sep"></div>
+    <div class="pill">DROP</div>
+    <div class="sep"></div>
+    <div class="beat-wheel">
+      <svg viewBox="0 0 28 28" width="28" height="28">
+        <circle cx="14" cy="14" r="12" fill="none" stroke="#3a3a3a" stroke-width="1.5"/>
+        <path d="M14 2 A12 12 0 0 1 26 14 L14 14 Z" fill="#5fdba7" opacity="0.9"/>
+        <circle cx="14" cy="14" r="2.5" fill="#5fdba7"/>
+      </svg>
+    </div>
+    <div class="sep"></div>
+    <div class="transport-btn active">&#9654;</div>
+    <div class="transport-btn">&#10074;&#10074;</div>
+    <div class="transport-btn">&#9632;</div>
+    <div class="sep"></div>
+    <div class="tb-item"><span class="lbl">QUANTIZE</span><span class="val">1/4</span></div>
+    <div class="tb-item"><span class="lbl">FADE</span><span class="val">500ms</span></div>
+    <div class="tb-item"><span class="lbl">MASTER</span><span class="val">0.82</span></div>
+    <div class="sep"></div>
+    <div class="rec-btn"><span class="dot"></span>REC</div>
+    <div class="tb-item"><span class="lbl">FPS</span><span class="val">59.8</span></div>
+    <div class="mode-tabs">
+      <div class="mode-tab active">LIVE</div>
+      <div class="mode-tab">PROGRAM</div>
+      <div class="mode-tab">SETUP</div>
+    </div>
+  </div>
+
+  <!-- ============ RESOLUME TRANSPORT STRIP ============ -->
+  <div class="transport-strip">
+    <div class="ts-btn mint">&#9654;</div>
+    <div class="ts-btn">&#10074;&#10074;</div>
+    <div class="ts-btn">&#9632;</div>
+    <div class="ts-num">128</div>
+    <div class="ts-btn">&minus;</div>
+    <div class="ts-btn">+</div>
+    <div class="ts-btn">|&#9666;</div>
+    <div class="ts-btn">&#9656;|</div>
+    <div class="ts-btn">/2</div>
+    <div class="ts-btn">&times;2</div>
+    <div class="ts-btn">TAP</div>
+    <div class="ts-btn">RESYNC</div>
+    <div class="ts-btn">&#9719;</div>
+    <div class="ts-btn">&#8630;</div>
+    <div class="ts-btn">&#8631;</div>
+  </div>
+
+  <!-- ============ SIGNAL QUICK-REF ============ -->
+  <div class="signal-bar">
+    <span class="label">RMS</span><span class="val">0.73</span><span class="divider">&#9474;</span>
+    <span class="label">PEAK</span><span class="val">0.91</span><span class="divider">&#9474;</span>
+    <span class="label">LUFS</span><span class="val">-12.4</span><span class="divider">&#9474;</span>
+    <span class="label">FLUX</span><span class="val">0.42</span><span class="divider">&#9474;</span>
+    <span class="label">CENTROID</span><span class="val">2.8k</span><span class="divider">&#9474;</span>
+    <span class="label">BASS</span><span class="val">0.88</span><span class="divider">&#9474;</span>
+    <span class="label">MID</span><span class="val">0.45</span><span class="divider">&#9474;</span>
+    <span class="label">HIGH</span><span class="val">0.31</span><span class="divider">&#9474;</span>
+    <span class="label">BPM</span><span class="val">128</span><span class="divider">&#9474;</span>
+    <span class="label">KEY</span><span class="val">Am</span><span class="divider">&#9474;</span>
+    <span class="label">GENRE</span><span class="val">TECHNO</span><span class="divider">&#9474;</span>
+    <span class="label">PITCH</span><span class="val">220Hz</span><span class="divider">&#9474;</span>
+    <span class="label">ONSETS</span><span class="val">4.2/s</span><span class="divider">&#9474;</span>
+    <span class="label">CREST</span><span class="val">2.1</span><span class="divider">&#9474;</span>
+    <span class="label">FLAT</span><span class="val">0.28</span>
+  </div>
+
+  <!-- ============ MAIN AREA ============ -->
+  <div class="main">
+
+    <!-- ==== LEFT COLUMN (240px) ==== -->
+    <div class="left-col">
+
+      <!-- SPECTRUM -->
+      <div class="analysis-section">
+        <div class="section-header">
+          <div class="left"><span class="tri">&#9660;</span><span>SPECTRUM</span></div>
+          <span class="p">P.</span>
+        </div>
+        <div class="spectrum-box">
+          <svg width="100%" height="100" viewBox="0 0 220 100" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="specG" x1="0" x2="0" y1="1" y2="0">
+                <stop offset="0" stop-color="#5fdba7" stop-opacity="0.1"/>
+                <stop offset="1" stop-color="#5fdba7" stop-opacity="0.9"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,100 L0,62 L5,58 L10,40 L15,44 L20,30 L25,42 L30,28 L35,34 L40,22 L45,38 L50,44 L55,40 L60,52 L65,48 L70,56 L75,50 L80,58 L85,54 L90,62 L95,58 L100,66 L105,62 L110,70 L115,65 L120,72 L125,68 L130,75 L135,72 L140,78 L145,74 L150,80 L155,76 L160,82 L165,78 L170,84 L175,80 L180,86 L185,82 L190,88 L195,84 L200,90 L205,86 L210,92 L215,88 L220,94 L220,100 Z" fill="url(#specG)"/>
+            <path d="M0,62 L5,58 L10,40 L15,44 L20,30 L25,42 L30,28 L35,34 L40,22 L45,38 L50,44 L55,40 L60,52 L65,48 L70,56 L75,50 L80,58 L85,54 L90,62 L95,58 L100,66 L105,62 L110,70 L115,65 L120,72 L125,68 L130,75 L135,72 L140,78 L145,74 L150,80 L155,76 L160,82 L165,78 L170,84 L175,80 L180,86 L185,82 L190,88 L195,84 L200,90 L205,86 L210,92 L215,88 L220,94" fill="none" stroke="#5fdba7" stroke-width="1"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- 7 BANDS -->
+      <div class="analysis-section">
+        <div class="section-header">
+          <div class="left"><span class="tri">&#9660;</span><span>7 BANDS</span></div>
+          <span class="p">P.</span>
+        </div>
+        <div class="bands-list">
+          <div class="band-row"><span class="name">SUB</span><div class="bar"><div class="fill" style="width:92%"></div></div><span class="val">0.92</span></div>
+          <div class="band-row"><span class="name">BASS</span><div class="bar"><div class="fill" style="width:88%"></div></div><span class="val">0.88</span></div>
+          <div class="band-row"><span class="name">LOWMID</span><div class="bar"><div class="fill" style="width:62%"></div></div><span class="val">0.62</span></div>
+          <div class="band-row"><span class="name">MID</span><div class="bar"><div class="fill" style="width:45%"></div></div><span class="val">0.45</span></div>
+          <div class="band-row"><span class="name">HIGHMID</span><div class="bar"><div class="fill" style="width:38%"></div></div><span class="val">0.38</span></div>
+          <div class="band-row"><span class="name">PRESENCE</span><div class="bar"><div class="fill" style="width:31%"></div></div><span class="val">0.31</span></div>
+          <div class="band-row"><span class="name">BRILL</span><div class="bar"><div class="fill" style="width:22%"></div></div><span class="val">0.22</span></div>
+        </div>
+      </div>
+
+      <!-- CHROMAGRAM -->
+      <div class="analysis-section">
+        <div class="section-header">
+          <div class="left"><span class="tri">&#9660;</span><span>CHROMAGRAM</span></div>
+          <span class="p">P.</span>
+        </div>
+        <div class="chroma-row">
+          <div class="cbar"><div class="cfill" style="height:40%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:18%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:55%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:22%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:85%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:15%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:48%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:28%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:72%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:35%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:20%"></div></div>
+          <div class="cbar"><div class="cfill" style="height:60%"></div></div>
+        </div>
+        <div class="chroma-labels">
+          <span>C</span><span>C#</span><span>D</span><span>D#</span>
+          <span class="active">E</span><span>F</span><span>F#</span><span>G</span>
+          <span class="active">G#</span><span>A</span><span>A#</span><span>B</span>
+        </div>
+      </div>
+
+      <!-- DYNAMICS -->
+      <div class="analysis-section">
+        <div class="section-header">
+          <div class="left"><span class="tri">&#9660;</span><span>DYNAMICS</span></div>
+          <span class="p">P.</span>
+        </div>
+        <div class="dyn-grid">
+          <span class="dv">RMS</span><span class="dn mint">0.73</span>
+          <span class="dv">PEAK</span><span class="dn mint">0.91</span>
+          <span class="dv">LUFS</span><span class="dn">-12.4</span>
+          <span class="dv">CREST</span><span class="dn">2.10</span>
+          <span class="dv">FLUX</span><span class="dn">0.42</span>
+          <span class="dv">TRANS</span><span class="dn">4.2/s</span>
+        </div>
+      </div>
+
+      <!-- BEAT -->
+      <div class="analysis-section">
+        <div class="section-header">
+          <div class="left"><span class="tri">&#9660;</span><span>BEAT</span></div>
+          <span class="p">P.</span>
+        </div>
+        <div class="beat-block">
+          <div class="beat-wheel-big">
+            <svg viewBox="0 0 80 80" width="80" height="80">
+              <circle cx="40" cy="40" r="36" fill="none" stroke="#3a3a3a" stroke-width="2"/>
+              <path d="M40 4 A36 36 0 0 1 76 40 L40 40 Z" fill="#5fdba7" opacity="0.4"/>
+              <path d="M76 40 A36 36 0 0 1 40 76 L40 40 Z" fill="#5fdba7" opacity="0.9"/>
+              <circle cx="40" cy="40" r="4" fill="#5fdba7"/>
+              <line x1="40" y1="40" x2="70" y2="56" stroke="#0a0a0a" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="beat-data">
+            <div class="bpm">128<span class="u">BPM</span></div>
+            <div class="ph">BAR: <span>03/04</span></div>
+            <div class="ph">PHRASE: <span>6/8</span></div>
+            <div class="ph">BEAT: <span>3.62</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GENRE -->
+      <div class="analysis-section">
+        <div class="section-header">
+          <div class="left"><span class="tri">&#9660;</span><span>GENRE</span></div>
+          <span class="p">P.</span>
+        </div>
+        <div class="genre-row">
+          <div class="genre-name">TECHNO</div>
+          <div class="energy">
+            <span>ENERGY</span>
+            <div class="meter"><div class="fill" style="width:86%"></div></div>
+            <span style="color:var(--mint)">HIGH</span>
+          </div>
+          <div class="energy">
+            <span>CONF</span>
+            <div class="meter"><div class="fill" style="width:92%"></div></div>
+            <span style="color:var(--value)">0.92</span>
+          </div>
+          <div class="structural-pill">DROP</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ==== CENTER (grid + preview) ==== -->
+    <div class="center-area">
+
+      <!-- Column headers -->
+      <div class="column-headers">
+        <div class="col-header"><span>COLUMN 1</span><span class="trig">&#9654;</span></div>
+        <div class="col-header"><span>COLUMN 2</span><span class="trig">&#9654;</span></div>
+        <div class="col-header"><span>COLUMN 3</span><span class="trig">&#9654;</span></div>
+        <div class="col-header"><span>COLUMN 4</span><span class="trig">&#9654;</span></div>
+        <div class="col-header"><span>COLUMN 5</span><span class="trig">&#9654;</span></div>
+        <div class="col-header"><span>COLUMN 6</span><span class="trig">&#9654;</span></div>
+        <div class="col-header"><span>COLUMN 7</span><span class="trig">&#9654;</span></div>
+      </div>
+
+      <!-- Floating preview -->
+      <div class="floating-preview">
+        <div class="label-live">LIVE</div>
+        <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="pvG" cx="50%" cy="50%" r="60%">
+              <stop offset="0" stop-color="#5fdba7" stop-opacity="0.9"/>
+              <stop offset="0.5" stop-color="#1c4a36" stop-opacity="0.7"/>
+              <stop offset="1" stop-color="#0d1a14" stop-opacity="1"/>
+            </radialGradient>
+          </defs>
+          <rect width="320" height="180" fill="url(#pvG)"/>
+          <g stroke="#5fdba7" stroke-width="1" fill="none" opacity="0.8">
+            <circle cx="160" cy="90" r="30"/>
+            <circle cx="160" cy="90" r="50"/>
+            <circle cx="160" cy="90" r="72"/>
+            <circle cx="160" cy="90" r="95"/>
+          </g>
+          <g stroke="#5fdba7" stroke-width="0.5" opacity="0.5">
+            <line x1="0" y1="90" x2="320" y2="90"/>
+            <line x1="160" y1="0" x2="160" y2="180"/>
+            <line x1="40" y1="20" x2="280" y2="160"/>
+            <line x1="280" y1="20" x2="40" y2="160"/>
+          </g>
+          <rect x="60" y="60" width="200" height="60" fill="none" stroke="#5fdba7" stroke-width="1.5" opacity="0.9"/>
+          <rect x="90" y="78" width="140" height="24" fill="#5fdba7" opacity="0.6"/>
+        </svg>
+        <div class="label-res">1280 &times; 720</div>
+      </div>
+
+      <!-- Grid -->
+      <div class="grid-area">
+
+        <!-- Layer 1 -->
+        <div class="layer-row">
+          <div class="layer-label">
+            <div><div class="name">L1 &middot; BG</div><div class="num">1/5 &nbsp;OPAQUE</div></div>
+            <div class="toggles">
+              <div class="lbl-btn on">M</div>
+              <div class="lbl-btn">S</div>
+              <div class="lbl-btn on">V</div>
+            </div>
+          </div>
+          <div class="mini-strip">
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:74%"></div><div class="knob" style="bottom:74%"></div></div>
+              <div class="mini-ms">
+                <div class="ms-btn on">M</div>
+                <div class="ms-btn">S</div>
+              </div>
+            </div>
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:50%"></div><div class="knob" style="bottom:50%"></div></div>
+              <div class="mini-label">OP&nbsp;BL</div>
+            </div>
+          </div>
+          <div class="clip-row">
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#2a3a50"/><circle cx="50" cy="45" r="25" fill="#5fdba7" opacity="0.6"/></svg>
+              <div class="cname">Gridwork_01</div>
+              <div class="cmeta"><span>IMG</span><span>1080p</span></div>
+            </div>
+            <div class="clip-cell playing">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a4030"/><path d="M0 45 Q25 20 50 45 T100 45" stroke="#0a0a0a" fill="none" stroke-width="2"/></svg>
+              <div class="cname">Neon_Grid_v3</div>
+              <div class="cmeta"><span>&#9654; 1:23</span><span>LOOP</span></div>
+              <div class="progress" style="width:67%"></div>
+            </div>
+            <div class="clip-cell loaded selected">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#253040"/><rect x="20" y="20" width="60" height="50" fill="none" stroke="#5fdba7" stroke-width="2"/></svg>
+              <div class="cname">Ring_Static</div>
+              <div class="cmeta"><span>SRC</span><span>&mdash;</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a2030"/><circle cx="30" cy="60" r="15" fill="#5fdba7"/><circle cx="70" cy="30" r="15" fill="#5fdba7"/></svg>
+              <div class="cname">Halftone_Pulse</div>
+              <div class="cmeta"><span>VID</span><span>4K</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#301a30"/><path d="M0 45 L100 45 M50 0 L50 90" stroke="#5fdba7" stroke-width="1.5"/></svg>
+              <div class="cname">Cross_Lines</div>
+              <div class="cmeta"><span>SRC</span><span>&mdash;</span></div>
+            </div>
+            <div class="clip-cell empty">
+              <div class="cname" style="color:#444">&mdash;</div>
+            </div>
+            <div class="clip-cell empty">
+              <div class="cname" style="color:#444">&mdash;</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 2 -->
+        <div class="layer-row">
+          <div class="layer-label">
+            <div><div class="name">L2 &middot; GEOM</div><div class="num">2/5 &nbsp;TRANSP</div></div>
+            <div class="toggles">
+              <div class="lbl-btn on">M</div>
+              <div class="lbl-btn">S</div>
+              <div class="lbl-btn on">V</div>
+            </div>
+          </div>
+          <div class="mini-strip">
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:88%"></div><div class="knob" style="bottom:88%"></div></div>
+              <div class="mini-ms">
+                <div class="ms-btn on">M</div>
+                <div class="ms-btn">S</div>
+              </div>
+            </div>
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:65%"></div><div class="knob" style="bottom:65%"></div></div>
+              <div class="mini-label">OP&nbsp;BL</div>
+            </div>
+          </div>
+          <div class="clip-row">
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a1a2a"/><polygon points="50,15 85,75 15,75" fill="none" stroke="#5fdba7" stroke-width="2"/></svg>
+              <div class="cname">Triangle_A</div>
+              <div class="cmeta"><span>SRC</span><span>&mdash;</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#2a1a2a"/><rect x="25" y="20" width="50" height="50" fill="none" stroke="#5fdba7" stroke-width="2"/></svg>
+              <div class="cname">Square_Pulse</div>
+              <div class="cmeta"><span>SRC</span><span>&mdash;</span></div>
+            </div>
+            <div class="clip-cell playing">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a3030"/><polygon points="50,10 90,35 75,80 25,80 10,35" fill="#0a0a0a" opacity="0.5"/></svg>
+              <div class="cname">Pentagon_Spin</div>
+              <div class="cmeta"><span>&#9654; 0:42</span><span>LOOP</span></div>
+              <div class="progress" style="width:42%"></div>
+            </div>
+            <div class="clip-cell queued">
+              <div class="cname">Hexa_Array</div>
+              <div class="cmeta"><span>QUEUED</span><span>&#9654;</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#2a2a3a"/><circle cx="50" cy="45" r="30" fill="none" stroke="#5fdba7" stroke-width="2"/><circle cx="50" cy="45" r="15" fill="#5fdba7" opacity="0.6"/></svg>
+              <div class="cname">Ring_Strobe</div>
+              <div class="cmeta"><span>VID</span><span>HAP</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a2a1a"/><path d="M10 45 L30 20 L50 45 L70 20 L90 45" stroke="#5fdba7" stroke-width="2" fill="none"/></svg>
+              <div class="cname">ZigZag_FX</div>
+              <div class="cmeta"><span>SRC</span><span>&mdash;</span></div>
+            </div>
+            <div class="clip-cell empty">
+              <div class="cname" style="color:#444">&mdash;</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 3 -->
+        <div class="layer-row">
+          <div class="layer-label">
+            <div><div class="name">L3 &middot; PARTS</div><div class="num">3/5 &nbsp;TRANSP</div></div>
+            <div class="toggles">
+              <div class="lbl-btn on">M</div>
+              <div class="lbl-btn on">S</div>
+              <div class="lbl-btn on">V</div>
+            </div>
+          </div>
+          <div class="mini-strip">
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:60%"></div><div class="knob" style="bottom:60%"></div></div>
+              <div class="mini-ms">
+                <div class="ms-btn">M</div>
+                <div class="ms-btn on">S</div>
+              </div>
+            </div>
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:40%"></div><div class="knob" style="bottom:40%"></div></div>
+              <div class="mini-label">OP&nbsp;BL</div>
+            </div>
+          </div>
+          <div class="clip-row">
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#0a1a2a"/><g fill="#5fdba7"><circle cx="15" cy="20" r="2"/><circle cx="40" cy="50" r="2"/><circle cx="75" cy="30" r="2"/><circle cx="85" cy="70" r="2"/><circle cx="25" cy="65" r="2"/><circle cx="60" cy="15" r="2"/><circle cx="55" cy="75" r="2"/></g></svg>
+              <div class="cname">Starfield</div>
+              <div class="cmeta"><span>SRC</span><span>&mdash;</span></div>
+            </div>
+            <div class="clip-cell playing">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a2a30"/><g fill="#0a0a0a" opacity="0.7"><circle cx="20" cy="30" r="3"/><circle cx="45" cy="25" r="4"/><circle cx="70" cy="45" r="3"/><circle cx="30" cy="60" r="4"/><circle cx="60" cy="70" r="3"/><circle cx="85" cy="20" r="3"/></g></svg>
+              <div class="cname">Particle_Rain</div>
+              <div class="cmeta"><span>&#9654; 0:15</span><span>LOOP</span></div>
+              <div class="progress" style="width:28%"></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#2a1a1a"/><path d="M50 10 L55 40 L90 45 L60 55 L65 85 L50 60 L35 85 L40 55 L10 45 L45 40 Z" fill="#5fdba7" opacity="0.8"/></svg>
+              <div class="cname">Spark_Burst</div>
+              <div class="cmeta"><span>VID</span><span>ALPHA</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a1a2a"/><g stroke="#5fdba7" stroke-width="0.8" fill="none"><path d="M5 85 Q20 50 35 85 Q50 50 65 85 Q80 50 95 85"/></g></svg>
+              <div class="cname">Wave_Peaks</div>
+              <div class="cmeta"><span>SRC</span><span>&mdash;</span></div>
+            </div>
+            <div class="clip-cell queued">
+              <div class="cname">Snow_Fall</div>
+              <div class="cmeta"><span>QUEUED</span><span>&#9654;</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#2a2a1a"/><g fill="#5fdba7"><rect x="10" y="40" width="3" height="20"/><rect x="20" y="30" width="3" height="30"/><rect x="30" y="20" width="3" height="40"/><rect x="40" y="35" width="3" height="25"/><rect x="50" y="15" width="3" height="45"/><rect x="60" y="28" width="3" height="32"/><rect x="70" y="38" width="3" height="22"/><rect x="80" y="25" width="3" height="35"/></g></svg>
+              <div class="cname">Spectrum_Bars</div>
+              <div class="cmeta"><span>SRC</span><span>AUDIO</span></div>
+            </div>
+            <div class="clip-cell empty">
+              <div class="cname" style="color:#444">&mdash;</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 4 -->
+        <div class="layer-row">
+          <div class="layer-label">
+            <div><div class="name">L4 &middot; TEXT</div><div class="num">4/5 &nbsp;TRANSP</div></div>
+            <div class="toggles">
+              <div class="lbl-btn on">M</div>
+              <div class="lbl-btn">S</div>
+              <div class="lbl-btn on">V</div>
+            </div>
+          </div>
+          <div class="mini-strip">
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:45%"></div><div class="knob" style="bottom:45%"></div></div>
+              <div class="mini-ms">
+                <div class="ms-btn on">M</div>
+                <div class="ms-btn">S</div>
+              </div>
+            </div>
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:30%"></div><div class="knob" style="bottom:30%"></div></div>
+              <div class="mini-label">OP&nbsp;BL</div>
+            </div>
+          </div>
+          <div class="clip-row">
+            <div class="clip-cell empty">
+              <div class="cname" style="color:#444">&mdash;</div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#101010"/><text x="50" y="52" font-family="monospace" font-size="12" font-weight="700" fill="#5fdba7" text-anchor="middle">DROP</text></svg>
+              <div class="cname">Text_Drop</div>
+              <div class="cmeta"><span>TXT</span><span>ANIM</span></div>
+            </div>
+            <div class="clip-cell empty">
+              <div class="cname" style="color:#444">&mdash;</div>
+            </div>
+            <div class="clip-cell playing">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a4030"/><text x="50" y="40" font-family="monospace" font-size="10" font-weight="700" fill="#0a0a0a" text-anchor="middle">BASS</text><text x="50" y="60" font-family="monospace" font-size="10" font-weight="700" fill="#0a0a0a" text-anchor="middle">HEAVY</text></svg>
+              <div class="cname">Bass_Heavy</div>
+              <div class="cmeta"><span>&#9654; 0:08</span><span>ONCE</span></div>
+              <div class="progress" style="width:55%"></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a1a1a"/><text x="50" y="52" font-family="monospace" font-size="9" font-weight="700" fill="#5fdba7" text-anchor="middle">128 BPM</text></svg>
+              <div class="cname">BPM_Readout</div>
+              <div class="cmeta"><span>TXT</span><span>LIVE</span></div>
+            </div>
+            <div class="clip-cell empty">
+              <div class="cname" style="color:#444">&mdash;</div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#101010"/><text x="50" y="50" font-family="monospace" font-size="8" font-weight="700" fill="#5fdba7" text-anchor="middle">AUDIO-DNA</text></svg>
+              <div class="cname">Logo_Pulse</div>
+              <div class="cmeta"><span>TXT</span><span>LOOP</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Layer 5 -->
+        <div class="layer-row">
+          <div class="layer-label">
+            <div><div class="name">L5 &middot; FX</div><div class="num">5/5 &nbsp;FX ONLY</div></div>
+            <div class="toggles">
+              <div class="lbl-btn on">M</div>
+              <div class="lbl-btn">S</div>
+              <div class="lbl-btn on">V</div>
+            </div>
+          </div>
+          <div class="mini-strip">
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:72%"></div><div class="knob" style="bottom:72%"></div></div>
+              <div class="mini-ms">
+                <div class="ms-btn on">M</div>
+                <div class="ms-btn">S</div>
+              </div>
+            </div>
+            <div class="mini-col">
+              <div class="v-slider"><div class="fill" style="height:55%"></div><div class="knob" style="bottom:55%"></div></div>
+              <div class="mini-label">OP&nbsp;BL</div>
+            </div>
+          </div>
+          <div class="clip-row">
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#181818"/><path d="M10 45 Q25 20 40 45 Q55 70 70 45 Q85 20 95 45" stroke="#5fdba7" fill="none" stroke-width="1.5"/></svg>
+              <div class="cname">Ripple_FX</div>
+              <div class="cmeta"><span>FX</span><span>WARP</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#181818"/><g stroke="#5fdba7" fill="none" opacity="0.7"><circle cx="50" cy="45" r="15"/><circle cx="50" cy="45" r="25"/><circle cx="50" cy="45" r="35"/></g></svg>
+              <div class="cname">Echo_Trail</div>
+              <div class="cmeta"><span>FX</span><span>TIME</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#181818"/><g fill="#5fdba7" opacity="0.6"><rect x="10" y="10" width="20" height="20"/><rect x="40" y="35" width="25" height="25"/><rect x="75" y="60" width="15" height="15"/></g></svg>
+              <div class="cname">Block_Glitch</div>
+              <div class="cmeta"><span>FX</span><span>GLCH</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#181818"/><g stroke="#ff4040" stroke-width="0.5" opacity="0.5"><line x1="0" y1="20" x2="100" y2="20"/><line x1="0" y1="40" x2="100" y2="40"/><line x1="0" y1="60" x2="100" y2="60"/><line x1="0" y1="80" x2="100" y2="80"/></g></svg>
+              <div class="cname">Scanlines</div>
+              <div class="cmeta"><span>FX</span><span>PAT</span></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#181818"/><circle cx="50" cy="45" r="30" fill="#5fdba7" opacity="0.3"/><circle cx="50" cy="45" r="18" fill="#5fdba7" opacity="0.5"/><circle cx="50" cy="45" r="8" fill="#5fdba7"/></svg>
+              <div class="cname">Glow_Burst</div>
+              <div class="cmeta"><span>FX</span><span>POST</span></div>
+            </div>
+            <div class="clip-cell playing">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#1a4030"/><g stroke="#0a0a0a" stroke-width="1"><line x1="0" y1="30" x2="100" y2="30"/><line x1="0" y1="45" x2="100" y2="45"/><line x1="0" y1="60" x2="100" y2="60"/></g></svg>
+              <div class="cname">Strobe_Beat</div>
+              <div class="cmeta"><span>&#9654; BEAT</span><span>SYNC</span></div>
+              <div class="progress" style="width:80%"></div>
+            </div>
+            <div class="clip-cell loaded">
+              <svg class="thumb" viewBox="0 0 100 90"><rect width="100" height="90" fill="#181818"/><circle cx="50" cy="45" r="30" stroke="#5fdba7" fill="none" stroke-width="1"/><text x="50" y="52" font-family="monospace" font-size="14" fill="#5fdba7" text-anchor="middle">&infin;</text></svg>
+              <div class="cname">Feedback_INF</div>
+              <div class="cmeta"><span>FX</span><span>FBK</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- /grid-area -->
+    </div> <!-- /center-area -->
+
+    <!-- ==== RIGHT INSPECTOR ==== -->
+    <div class="inspector">
+      <div class="insp-tabs">
+        <div class="insp-tab">COMPOSITION</div>
+        <div class="insp-tab">LAYER</div>
+        <div class="insp-tab active">CLIP</div>
+      </div>
+      <div class="insp-body">
+
+        <!-- DASHBOARD -->
+        <div class="insp-section">
+          <div class="section-header">
+            <div class="left"><span class="tri">&#9660;</span><span>DASHBOARD</span></div>
+            <span class="p">P.</span>
+          </div>
+          <div class="dash-knobs">
+            <div class="dash-knob"><div class="k"><div class="indicator" style="transform:rotate(-110deg)"></div></div><div class="lbl">LINK 1</div><div class="v">0.35</div></div>
+            <div class="dash-knob"><div class="k"><div class="indicator" style="transform:rotate(40deg)"></div></div><div class="lbl">LINK 2</div><div class="v">0.72</div></div>
+            <div class="dash-knob"><div class="k"><div class="indicator" style="transform:rotate(-20deg)"></div></div><div class="lbl">LINK 3</div><div class="v">0.48</div></div>
+            <div class="dash-knob"><div class="k"><div class="indicator" style="transform:rotate(80deg)"></div></div><div class="lbl">LINK 4</div><div class="v">0.86</div></div>
+            <div class="dash-knob"><div class="k"><div class="indicator" style="transform:rotate(-130deg)"></div></div><div class="lbl">LINK 5</div><div class="v">0.22</div></div>
+            <div class="dash-knob"><div class="k"><div class="indicator" style="transform:rotate(0deg)"></div></div><div class="lbl">LINK 6</div><div class="v">0.50</div></div>
+            <div class="dash-knob"><div class="k"><div class="indicator" style="transform:rotate(110deg)"></div></div><div class="lbl">LINK 7</div><div class="v">0.92</div></div>
+            <div class="dash-knob"><div class="k"><div class="indicator" style="transform:rotate(-80deg)"></div></div><div class="lbl">LINK 8</div><div class="v">0.40</div></div>
+          </div>
+        </div>
+
+        <!-- TRANSPORT -->
+        <div class="insp-section">
+          <div class="section-header">
+            <div class="left"><span class="tri">&#9660;</span><span>TRANSPORT</span></div>
+            <span class="p">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Speed</span><span class="val">1.000&times;</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="indicator" style="left:50%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Position</span><span class="val">67%</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:67%"></div><div class="indicator" style="left:67%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">In Point</span><span class="val">0.000</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:0%"></div><div class="indicator" style="left:0%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Out Point</span><span class="val">1.000</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="indicator" style="left:100%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Loop Mode</span><span class="val">LOOP</span>
+            <span class="mbtn">&#9666;</span><span class="mbtn">&#9656;</span>
+            <div style="flex:1"></div>
+            <span class="p-btn">P.</span>
+          </div>
+        </div>
+
+        <!-- CUEPOINTS -->
+        <div class="insp-section">
+          <div class="section-header">
+            <div class="left"><span class="tri">&#9660;</span><span>CUEPOINTS</span></div>
+            <span class="p">P.</span>
+          </div>
+          <div class="cuepoints-row">
+            <div class="cue-dot on">1</div>
+            <div class="cue-dot">2</div>
+            <div class="cue-dot on">3</div>
+            <div class="cue-dot">4</div>
+            <div class="cue-dot">5</div>
+            <div class="cue-dot on">6</div>
+            <div class="cue-dot">7</div>
+            <div class="cue-dot">8</div>
+          </div>
+        </div>
+
+        <!-- VIDEO -->
+        <div class="insp-section">
+          <div class="section-header">
+            <div class="left"><span class="tri">&#9660;</span><span>VIDEO</span></div>
+            <span class="p">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Opacity</span><span class="val">1.00</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="indicator" style="left:100%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Blend Mode</span><span class="val">ADD</span>
+            <span class="mbtn">&#9666;</span><span class="mbtn">&#9656;</span>
+            <div style="flex:1"></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Width</span><span class="val">100%</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="indicator" style="left:100%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Height</span><span class="val">100%</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:100%"></div><div class="indicator" style="left:100%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+        </div>
+
+        <!-- TRANSFORM (ROUTED) -->
+        <div class="insp-section routed">
+          <div class="section-header">
+            <div class="left"><span class="tri">&#9660;</span><span>TRANSFORM</span></div>
+            <span class="p">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Position X</span><span class="val">0.00</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="indicator" style="left:50%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Position Y</span><span class="val">0.00</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="indicator" style="left:50%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Scale</span><span class="val">1.25</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:62%"></div><div class="indicator" style="left:62%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Rotation</span><span class="val">12&deg;</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:53%"></div><div class="indicator" style="left:53%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Anchor X</span><span class="val">0.50</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="indicator" style="left:50%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+          <div class="ins-row">
+            <span class="label">Anchor Y</span><span class="val">0.50</span>
+            <span class="mbtn">&minus;</span><span class="mbtn">+</span>
+            <div class="slider"><div class="fill" style="width:50%"></div><div class="indicator" style="left:50%"></div></div>
+            <span class="p-btn">P.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div> <!-- /main -->
+
+  <!-- ============ BOTTOM STRIP ============ -->
+  <div class="bottom-strip">
+
+    <div class="bottom-block">
+      <div class="bb-title">MASTER</div>
+      <div class="master-meter"><div class="f" style="width:82%"></div></div>
+      <div class="master-slider"><div class="indicator" style="left:82%"></div></div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--label)">LEVEL <span style="color:var(--mint)">0.82</span></div>
+    </div>
+
+    <div class="bottom-block crossfader-block">
+      <div class="bb-title">CROSSFADER &middot; ALPHA</div>
+      <div class="xfader-labels"><span>A</span><span style="color:var(--mint)">CENTER</span><span>B</span></div>
+      <div class="xfader-track"><div class="knob" style="left:48%"></div></div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--label);text-align:center">POSITION <span style="color:var(--mint)">0.48</span></div>
+    </div>
+
+    <div class="bottom-block">
+      <div class="bb-title">LINK KNOBS</div>
+      <div class="bottom-knobs">
+        <div class="bot-knob"><div class="k"><div class="ind" style="transform:rotate(-110deg)"></div></div><div class="lbl">LINK 1</div><div class="v">0.35</div></div>
+        <div class="bot-knob"><div class="k"><div class="ind" style="transform:rotate(40deg)"></div></div><div class="lbl">LINK 2</div><div class="v">0.72</div></div>
+        <div class="bot-knob"><div class="k"><div class="ind" style="transform:rotate(-20deg)"></div></div><div class="lbl">LINK 3</div><div class="v">0.48</div></div>
+        <div class="bot-knob"><div class="k"><div class="ind" style="transform:rotate(80deg)"></div></div><div class="lbl">LINK 4</div><div class="v">0.86</div></div>
+        <div class="bot-knob"><div class="k"><div class="ind" style="transform:rotate(-130deg)"></div></div><div class="lbl">LINK 5</div><div class="v">0.22</div></div>
+        <div class="bot-knob"><div class="k"><div class="ind" style="transform:rotate(0deg)"></div></div><div class="lbl">LINK 6</div><div class="v">0.50</div></div>
+        <div class="bot-knob"><div class="k"><div class="ind" style="transform:rotate(110deg)"></div></div><div class="lbl">LINK 7</div><div class="v">0.92</div></div>
+        <div class="bot-knob"><div class="k"><div class="ind" style="transform:rotate(-80deg)"></div></div><div class="lbl">LINK 8</div><div class="v">0.40</div></div>
+      </div>
+    </div>
+
+    <div class="bottom-block">
+      <div class="bb-title">SCENES</div>
+      <div class="scene-btns">
+        <div class="scene-btn">INTRO</div>
+        <div class="scene-btn">BUILD</div>
+        <div class="scene-btn active">DROP</div>
+        <div class="scene-btn">BREAK</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--label)">ACTIVE <span style="color:var(--mint)">DROP</span> &middot; BAR 03/04</div>
+    </div>
+
+    <div class="bottom-block" style="border-right:none">
+      <div class="bb-title">OUTPUT</div>
+      <div class="action-btns">
+        <div class="action-btn rec"><span class="dot"></span>REC</div>
+        <div class="action-btn">&#9673; SNAP</div>
+        <div class="action-btn">&#9974; FULL</div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--label)">OUT 1 &middot; 1920&times;1080 &middot; 59.8 FPS</div>
+    </div>
+
+  </div>
+
+  <div class="grain"></div>
+</div>
+</body>
+</html>

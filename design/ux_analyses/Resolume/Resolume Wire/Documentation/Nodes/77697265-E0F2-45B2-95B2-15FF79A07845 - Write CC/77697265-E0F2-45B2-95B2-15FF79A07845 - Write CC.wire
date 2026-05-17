@@ -1,0 +1,473 @@
+{
+  "formatVersion": {
+    "major": 1,
+    "minor": 1,
+    "patch": 0
+  },
+  "patch": {
+    "connections": [
+      {
+        "from": [
+          77,
+          "output"
+        ],
+        "to": [
+          78,
+          "pitch"
+        ]
+      },
+      {
+        "from": [
+          77,
+          "output"
+        ],
+        "to": [
+          74,
+          "pitch"
+        ]
+      },
+      {
+        "from": [
+          80,
+          "output"
+        ],
+        "to": [
+          74,
+          "write"
+        ]
+      },
+      {
+        "from": [
+          79,
+          "output"
+        ],
+        "to": [
+          78,
+          "write"
+        ]
+      },
+      {
+        "from": [
+          77,
+          "output"
+        ],
+        "to": [
+          73,
+          "controller"
+        ]
+      },
+      {
+        "from": [
+          81,
+          "output"
+        ],
+        "to": [
+          73,
+          "write"
+        ]
+      },
+      {
+        "from": [
+          73,
+          "output"
+        ],
+        "to": [
+          82,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          78,
+          "output"
+        ],
+        "to": [
+          82,
+          "input"
+        ]
+      },
+      {
+        "from": [
+          74,
+          "output"
+        ],
+        "to": [
+          82,
+          "input"
+        ]
+      }
+    ],
+    "meta": {
+      "author": "Mark Buitenwerf",
+      "category": null,
+      "description": "Explains what this node does",
+      "displayName": "MIDI Write Example",
+      "identifier": "b5073add-3d0e-4525-8883-77d95ea4da62",
+      "licenseFile": "",
+      "licenseName": "",
+      "mail": "mail@resolume.com",
+      "quality": 32856,
+      "resolution": {
+        "height": 1080,
+        "width": 1920
+      },
+      "url": "www.resolume.com",
+      "vendor": "Resolume"
+    },
+    "nextNodeId": 83,
+    "nodes": {
+      "71": {
+        "attributes": {
+          "font-size": {
+            "type": "number",
+            "value": 19
+          },
+          "text": {
+            "type": "text",
+            "value": "WRITING MIDI\n\nThe Midi Write nodes can be used to write notes and cc messages to other midi devices. You specify the channel, value, pitch and velocity. Send a trigger into the Write inlet to write the midi message."
+          }
+        },
+        "bounds": {
+          "height": 137.9999542236328,
+          "width": 872.9403076171875,
+          "x": -44.1934928894043,
+          "y": 309.84210205078125
+        },
+        "class": {
+          "id": "77697265-3C1D-467D-A722-0FC566538374",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {},
+        "hidden": [],
+        "name": "Comment"
+      },
+      "73": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "normalize": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 329.49908447265625,
+          "y": 467.0778198242187
+        },
+        "class": {
+          "id": "77697265-E0F2-45B2-95B2-15FF79A07845",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "channel": {
+            "type": "integer",
+            "value": 1
+          },
+          "controller": {
+            "type": "integer",
+            "value": 11
+          },
+          "value": {
+            "type": "float",
+            "value": 0
+          },
+          "write": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Write CC"
+      },
+      "74": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "normalize": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 329.49908447265625,
+          "y": 772.6227416992188
+        },
+        "class": {
+          "id": "77697265-C628-478C-8F3D-3608D19084F5",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "channel": {
+            "type": "integer",
+            "value": 1
+          },
+          "pitch": {
+            "type": "integer",
+            "value": 30
+          },
+          "velocity": {
+            "type": "float",
+            "value": 0
+          },
+          "write": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Write Note Off"
+      },
+      "77": {
+        "attributes": {
+          "flow": {
+            "type": "flow",
+            "value": "event"
+          },
+          "has-max": {
+            "type": "bool",
+            "value": true
+          },
+          "has-min": {
+            "type": "bool",
+            "value": true
+          },
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "max": {
+            "type": "number",
+            "value": 126
+          },
+          "min": {
+            "type": "number",
+            "value": 0
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": -44.58415222167969,
+          "y": 704.93603515625
+        },
+        "class": {
+          "id": "77697265-2649-4abb-b38f-4e1005183415",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "integer",
+            "value": 30
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Pitch"
+      },
+      "78": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          },
+          "normalize": {
+            "type": "bool",
+            "value": true
+          },
+          "zero-is-off": {
+            "type": "bool",
+            "value": true
+          }
+        },
+        "bounds": {
+          "height": 134,
+          "width": 195,
+          "x": 329.5780029296875,
+          "y": 620.7494506835938
+        },
+        "class": {
+          "id": "77697265-8283-4072-8EBE-60BAD8CA9B7A",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "channel": {
+            "type": "integer",
+            "value": 1
+          },
+          "pitch": {
+            "type": "integer",
+            "value": 30
+          },
+          "velocity": {
+            "type": "float",
+            "value": 0
+          },
+          "write": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "Write Note On"
+      },
+      "79": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": -44.58416748046875,
+          "y": 605.5491333007812
+        },
+        "class": {
+          "id": "77697265-e61f-42c0-862a-0dca04e14569",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Write On"
+      },
+      "80": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": -44.58416748046875,
+          "y": 801.9842529296875
+        },
+        "class": {
+          "id": "77697265-e61f-42c0-862a-0dca04e14569",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Write Off"
+      },
+      "81": {
+        "attributes": {
+          "instances": {
+            "type": "number",
+            "value": 1
+          }
+        },
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": -44.58416748046875,
+          "y": 492.1312255859375
+        },
+        "class": {
+          "id": "77697265-e61f-42c0-862a-0dca04e14569",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "trigger",
+            "value": null
+          }
+        },
+        "hidden": [
+          "input"
+        ],
+        "name": "Write CC"
+      },
+      "82": {
+        "attributes": {},
+        "bounds": {
+          "height": 80,
+          "width": 128,
+          "x": 708.417236328125,
+          "y": 620.7495727539062
+        },
+        "class": {
+          "id": "77697265-5743-430b-b5cd-a1f981ffbebf",
+          "version": 0
+        },
+        "clock": "video",
+        "constants": {
+          "input": {
+            "type": "midi",
+            "value": null
+          }
+        },
+        "hidden": [],
+        "name": "MIDI Out"
+      }
+    },
+    "ui": {
+      "camera": {
+        "x": -246.20062255859375,
+        "y": -32.326839447021484,
+        "zoom": 0.9999997615814208
+      },
+      "selection": [
+        "73"
+      ]
+    }
+  },
+  "resources": {},
+  "ui": {
+    "audio": {
+      "routing": {
+        "in": {},
+        "out": [
+          null,
+          null
+        ]
+      }
+    },
+    "transport": {
+      "bpm": 120,
+      "time-signature": [
+        4,
+        4
+      ]
+    },
+    "video": {
+      "routing": {
+        "in": {},
+        "out": {}
+      }
+    }
+  }
+}

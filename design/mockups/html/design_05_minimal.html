@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio-DNA — Minimal Design</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #000000;
+  color: #ffffff;
+  font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* === FULL-SCREEN PREVIEW/OUTPUT === */
+.preview-output {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at 40% 45%, #1a0a2e 0%, #0d0520 30%, #060212 60%, #000000 100%);
+  z-index: 0;
+}
+/* Simulated visual content */
+.visual-content {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+}
+.visual-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+}
+.visual-orb.orb1 {
+  width: 600px; height: 600px;
+  top: 15%; left: 25%;
+  background: radial-gradient(circle, #6622cc88 0%, #3311aa44 40%, transparent 70%);
+}
+.visual-orb.orb2 {
+  width: 400px; height: 400px;
+  top: 30%; left: 55%;
+  background: radial-gradient(circle, #cc226688 0%, #aa114444 40%, transparent 70%);
+}
+.visual-orb.orb3 {
+  width: 300px; height: 300px;
+  top: 50%; left: 35%;
+  background: radial-gradient(circle, #2266cc88 0%, #1144aa44 40%, transparent 70%);
+}
+/* RMS pulse glow border */
+.rms-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  box-shadow: inset 0 0 60px 8px #00d9ff18, inset 0 0 120px 20px #00d9ff08;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* === OVERLAY TOP BAR === */
+.top-bar-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 32px;
+  background: #0a0a0acc;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  z-index: 100;
+  border-bottom: 1px solid #ffffff10;
+}
+.top-bpm {
+  font-size: 18px;
+  font-weight: 800;
+  color: #00d9ff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+}
+.top-bpm-label {
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: -8px;
+}
+
+/* Beat wheel */
+.beat-wheel-mini {
+  width: 22px; height: 22px;
+  position: relative;
+}
+.beat-wheel-mini svg { width: 22px; height: 22px; }
+
+.bar-readout-mini {
+  font-size: 11px;
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
+.bar-readout-mini span { color: #00d9ff; }
+
+.top-sep {
+  width: 1px;
+  height: 16px;
+  background: #ffffff15;
+}
+
+/* Master slider */
+.master-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.master-mini-label {
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.master-mini-track {
+  width: 100px; height: 4px;
+  background: #ffffff10;
+  position: relative;
+  overflow: hidden;
+}
+.master-mini-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00d9ff00, #00d9ff);
+  width: 85%;
+}
+.master-mini-val {
+  font-size: 11px;
+  color: #aaa;
+  font-variant-numeric: tabular-nums;
+  min-width: 26px;
+}
+
+/* Blackout */
+.blackout-mini {
+  width: 52px; height: 20px;
+  background: #1a0505;
+  border: 1px solid #ff444488;
+  color: #ff4444;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.top-spacer { flex: 1; }
+
+/* FPS / DSP */
+.top-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stat-item {
+  font-size: 10px;
+  color: #555;
+  font-variant-numeric: tabular-nums;
+}
+.stat-item span { color: #888; }
+
+/* Mode badges */
+.mode-badge {
+  font-size: 9px;
+  color: #00d9ff;
+  border: 1px solid #00d9ff44;
+  padding: 1px 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: #00d9ff08;
+}
+.mode-badge.dim {
+  color: #555;
+  border-color: #333;
+  background: transparent;
+}
+
+/* === OVERLAY DECK GRID === */
+.deck-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 230px;
+  background: #000000bb;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid #ffffff10;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Layer rows */
+.layer-row {
+  display: flex;
+  align-items: stretch;
+  height: 68px;
+  border-bottom: 1px solid #ffffff08;
+}
+.layer-row:last-child { border-bottom: none; }
+
+/* Ultra-compact layer strip */
+.layer-strip-mini {
+  width: 120px;
+  background: #0d0d0d;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  border-right: 1px solid #ffffff10;
+  flex-shrink: 0;
+}
+.layer-strip-mini.layer-a { border-left: 3px solid #00d9ff; }
+.layer-strip-mini.layer-b { border-left: 3px solid #ffaa00; }
+.layer-strip-mini.layer-c { border-left: 3px solid #ff4488; }
+
+.layer-name-mini {
+  font-size: 10px;
+  font-weight: 700;
+  color: #e0e0e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.layer-type-mini {
+  font-size: 8px;
+  color: #666;
+  text-transform: uppercase;
+}
+
+/* Opacity slider inline */
+.layer-opacity-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.opacity-label-mini {
+  font-size: 8px;
+  color: #555;
+  width: 10px;
+}
+.opacity-track-mini {
+  flex: 1;
+  height: 3px;
+  background: #ffffff10;
+  position: relative;
+  overflow: hidden;
+}
+.opacity-fill-mini {
+  height: 100%;
+  background: #00d9ff;
+}
+.opacity-fill-mini.orange { background: #ffaa00; }
+.opacity-fill-mini.pink { background: #ff4488; }
+.opacity-val-mini {
+  font-size: 8px;
+  color: #888;
+  min-width: 18px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Blend mode */
+.blend-mini {
+  font-size: 8px;
+  color: #555;
+  margin-top: 1px;
+}
+
+/* Clip cells */
+.cells-scroll {
+  display: flex;
+  gap: 3px;
+  padding: 4px 6px;
+  overflow-x: hidden;
+  flex: 1;
+}
+
+.clip-cell-mini {
+  width: 85px;
+  min-width: 85px;
+  height: 60px;
+  background: #111111;
+  border: 1px solid #222;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.clip-cell-mini.active {
+  border-color: #00d9ff;
+  box-shadow: 0 0 8px #00d9ff22;
+}
+.clip-cell-mini.active-orange {
+  border-color: #ffaa00;
+  box-shadow: 0 0 8px #ffaa0022;
+}
+.clip-cell-mini.active-pink {
+  border-color: #ff4488;
+  box-shadow: 0 0 8px #ff448822;
+}
+.clip-cell-mini.empty {
+  background: #0a0a0a;
+  border-color: #181818;
+}
+
+/* Cell thumbnail gradient */
+.cell-thumb-mini {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+}
+.cell-thumb-mini.img-a { background: linear-gradient(135deg, #1a2a3a 0%, #0d1a2a 100%); }
+.cell-thumb-mini.img-b { background: linear-gradient(135deg, #2a1a3a 0%, #1a0d2a 100%); }
+.cell-thumb-mini.img-c { background: linear-gradient(135deg, #3a2a1a 0%, #2a1a0d 100%); }
+.cell-thumb-mini.img-d { background: linear-gradient(135deg, #1a3a2a 0%, #0d2a1a 100%); }
+.cell-thumb-mini.img-e { background: linear-gradient(135deg, #3a1a2a 0%, #2a0d1a 100%); }
+.cell-thumb-mini.img-f { background: linear-gradient(135deg, #2a2a3a 0%, #1a1a2a 100%); }
+.cell-thumb-mini.src-frac { background: radial-gradient(ellipse at 40% 40%, #2a1155 0%, #110033 60%, #080018 100%); }
+.cell-thumb-mini.src-torus { background: radial-gradient(ellipse at 50% 50%, #1a3355 0%, #0d1a33 60%, #060d1a 100%); }
+.cell-thumb-mini.src-noise { background: linear-gradient(45deg, #1a1a22 25%, #22221a 50%, #1a221a 75%); }
+.cell-thumb-mini.src-sim { background: radial-gradient(circle at 60% 40%, #332a11 0%, #1a1508 60%, #0d0a04 100%); }
+.cell-thumb-mini.src-audio { background: radial-gradient(circle at 50% 50%, #113322 0%, #081a11 60%, #040d08 100%); }
+.cell-thumb-mini.vid { background: linear-gradient(180deg, #1a2222 0%, #0d1515 100%); }
+
+/* Cell info overlay */
+.cell-info-mini {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, #000000cc);
+  padding: 2px 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.cell-name-mini {
+  font-size: 8px;
+  color: #ccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 55px;
+}
+.cell-fx-badge {
+  font-size: 7px;
+  color: #00d9ff;
+  background: #00d9ff15;
+  padding: 0px 3px;
+  white-space: nowrap;
+}
+
+/* Playhead bar on active cell */
+.cell-playhead-mini {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  background: #00d9ff;
+}
+.cell-playhead-mini.orange { background: #ffaa00; }
+.cell-playhead-mini.pink { background: #ff4488; }
+
+/* Source icon */
+.cell-source-icon {
+  position: absolute;
+  top: 2px; right: 3px;
+  font-size: 8px;
+  color: #ffffff44;
+}
+
+/* === LAYER INDICATOR LINES === */
+.layer-indicators {
+  position: absolute;
+  bottom: 232px;
+  left: 0; right: 0;
+  height: 4px;
+  display: flex;
+  z-index: 99;
+}
+.layer-ind-line {
+  height: 2px;
+  margin: 1px 0;
+}
+.layer-ind-line.cyan { background: #00d9ff; }
+.layer-ind-line.orange { background: #ffaa00; }
+.layer-ind-line.pink { background: #ff4488; }
+
+/* === KEYBOARD SHORTCUTS HINT === */
+.shortcut-hints {
+  position: absolute;
+  bottom: 238px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 99;
+}
+.shortcut-hint {
+  font-size: 9px;
+  color: #444;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.shortcut-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px; height: 16px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  font-size: 9px;
+  color: #888;
+  font-weight: 600;
+}
+
+/* === EDIT MODE OVERLAYS (shown) === */
+
+/* Inspector panel (right side, partially visible) */
+.inspector-overlay {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  width: 300px;
+  bottom: 230px;
+  background: #0d0d0dee;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 1px solid #ffffff10;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.inspector-tabs {
+  display: flex;
+  height: 28px;
+  background: #0a0a0a;
+  border-bottom: 1px solid #ffffff10;
+  flex-shrink: 0;
+}
+.inspector-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-right: 1px solid #ffffff08;
+  cursor: pointer;
+}
+.inspector-tab.active {
+  color: #00d9ff;
+  background: #00d9ff08;
+  border-bottom: 2px solid #00d9ff;
+}
+.inspector-tab:last-child { border-right: none; }
+
+.inspector-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* Inspector sections */
+.insp-section {
+  margin-bottom: 8px;
+}
+.insp-section-header {
+  font-size: 9px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 0;
+  border-bottom: 1px solid #ffffff08;
+  margin-bottom: 6px;
+}
+.insp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 20px;
+  padding: 0 2px;
+}
+.insp-label {
+  font-size: 10px;
+  color: #888;
+}
+.insp-value {
+  font-size: 10px;
+  color: #e0e0e0;
+  font-variant-numeric: tabular-nums;
+}
+.insp-slider-track {
+  width: 100px; height: 3px;
+  background: #ffffff10;
+  position: relative;
+  overflow: hidden;
+}
+.insp-slider-fill {
+  height: 100%;
+  background: #00d9ff;
+}
+.insp-slider-fill.orange { background: #ffaa00; }
+
+/* Combo box style */
+.insp-combo {
+  font-size: 10px;
+  color: #ccc;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  padding: 1px 6px;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Effect pills in inspector */
+.insp-fx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.insp-fx-row {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  background: #111;
+  border: 1px solid #1a1a1a;
+  padding: 0 6px;
+  gap: 6px;
+}
+.insp-fx-bypass {
+  width: 12px; height: 12px;
+  border: 1px solid #555;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 7px;
+  color: #00d9ff;
+}
+.insp-fx-bypass.on { background: #00d9ff22; border-color: #00d9ff; }
+.insp-fx-name {
+  font-size: 9px;
+  color: #ccc;
+  flex: 1;
+}
+.insp-fx-delete {
+  font-size: 9px;
+  color: #555;
+  cursor: pointer;
+}
+.insp-fx-param {
+  display: flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px 0 24px;
+  gap: 6px;
+}
+.insp-fx-param-label {
+  font-size: 8px;
+  color: #666;
+  width: 60px;
+}
+.insp-fx-param-track {
+  flex: 1;
+  height: 2px;
+  background: #ffffff10;
+  position: relative;
+  overflow: hidden;
+}
+.insp-fx-param-fill {
+  height: 100%;
+  background: #00d9ff88;
+}
+.insp-fx-param-val {
+  font-size: 8px;
+  color: #888;
+  min-width: 24px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Close button on inspector */
+.overlay-close {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 14px;
+  color: #555;
+  cursor: pointer;
+  z-index: 5;
+  line-height: 1;
+}
+
+/* === DESIGN LABEL === */
+.design-label {
+  position: absolute;
+  top: 40px;
+  left: 16px;
+  z-index: 200;
+  font-size: 11px;
+  color: #333;
+  letter-spacing: 0.5px;
+}
+.design-label strong {
+  color: #555;
+  font-weight: 600;
+}
+
+</style>
+</head>
+<body>
+
+<!-- FULL-SCREEN VISUAL OUTPUT -->
+<div class="preview-output">
+  <div class="visual-content">
+    <div class="visual-orb orb1"></div>
+    <div class="visual-orb orb2"></div>
+    <div class="visual-orb orb3"></div>
+  </div>
+  <div class="rms-glow"></div>
+</div>
+
+<!-- LAYER INDICATOR LINES (above deck) -->
+<div class="layer-indicators">
+  <div style="display:flex; flex-direction:column; width:100%;">
+    <div class="layer-ind-line cyan" style="width:85%;"></div>
+    <div class="layer-ind-line orange" style="width:62%;"></div>
+    <div class="layer-ind-line pink" style="width:100%;"></div>
+  </div>
+</div>
+
+<!-- KEYBOARD SHORTCUT HINTS -->
+<div class="shortcut-hints">
+  <div class="shortcut-hint"><span class="shortcut-key">E</span> Edit</div>
+  <div class="shortcut-hint"><span class="shortcut-key">B</span> Browser</div>
+  <div class="shortcut-hint"><span class="shortcut-key">I</span> Inspector</div>
+</div>
+
+<!-- OVERLAY TOP BAR -->
+<div class="top-bar-overlay">
+  <!-- BPM -->
+  <div class="top-bpm">128.0</div>
+  <div class="top-bpm-label">BPM</div>
+
+  <!-- Beat wheel -->
+  <div class="beat-wheel-mini">
+    <svg viewBox="0 0 22 22">
+      <circle cx="11" cy="11" r="9" fill="none" stroke="#333" stroke-width="1.5"/>
+      <!-- 4 segments, 2 lit -->
+      <path d="M11 2 A9 9 0 0 1 20 11" fill="none" stroke="#00d9ff" stroke-width="2" stroke-linecap="round"/>
+      <path d="M20 11 A9 9 0 0 1 11 20" fill="none" stroke="#00d9ff" stroke-width="2" stroke-linecap="round"/>
+      <path d="M11 20 A9 9 0 0 1 2 11" fill="none" stroke="#333" stroke-width="1.5"/>
+      <path d="M2 11 A9 9 0 0 1 11 2" fill="none" stroke="#333" stroke-width="1.5"/>
+      <circle cx="11" cy="11" r="2" fill="#00d9ff"/>
+    </svg>
+  </div>
+
+  <!-- Bar readout -->
+  <div class="bar-readout-mini"><span>3</span>.2 / 8</div>
+
+  <div class="top-sep"></div>
+
+  <!-- Master -->
+  <div class="master-mini">
+    <div class="master-mini-label">Master</div>
+    <div class="master-mini-track">
+      <div class="master-mini-fill" style="width:85%;"></div>
+    </div>
+    <div class="master-mini-val">85</div>
+  </div>
+
+  <div class="top-sep"></div>
+
+  <!-- Quantize -->
+  <div class="mode-badge">1 Beat</div>
+
+  <!-- Blackout -->
+  <div class="blackout-mini">BO</div>
+
+  <div class="top-spacer"></div>
+
+  <!-- Mode indicators -->
+  <div class="mode-badge">Perform</div>
+  <div class="mode-badge dim">Edit</div>
+
+  <div class="top-sep"></div>
+
+  <!-- Stats -->
+  <div class="top-stats">
+    <div class="stat-item"><span>60.0</span> fps</div>
+    <div class="stat-item"><span>2.1</span>ms dsp</div>
+    <div class="stat-item"><span>4.8</span>ms gpu</div>
+  </div>
+</div>
+
+<!-- OVERLAY DECK GRID -->
+<div class="deck-overlay">
+  <!-- Layer 1 (Opaque - cyan) -->
+  <div class="layer-row">
+    <div class="layer-strip-mini layer-a">
+      <div class="layer-name-mini">Layer 1</div>
+      <div class="layer-type-mini">Opaque</div>
+      <div class="layer-opacity-row">
+        <div class="opacity-label-mini">O</div>
+        <div class="opacity-track-mini">
+          <div class="opacity-fill-mini" style="width:85%;"></div>
+        </div>
+        <div class="opacity-val-mini">85</div>
+      </div>
+      <div class="blend-mini">Add</div>
+    </div>
+    <div class="cells-scroll">
+      <div class="clip-cell-mini active">
+        <div class="cell-thumb-mini img-a"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">sunset_hdr</div>
+          <div class="cell-fx-badge">3 FX</div>
+        </div>
+        <div class="cell-playhead-mini" style="width:42%;"></div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini img-b"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">crystals_4k</div>
+          <div class="cell-fx-badge">1 FX</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini src-frac"></div>
+        <div class="cell-source-icon">SRC</div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Mandelbulb</div>
+          <div class="cell-fx-badge">2 FX</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini vid"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">loop_01.mp4</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini img-c"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">neon_grid</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini src-torus"></div>
+        <div class="cell-source-icon">SRC</div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Spiral Torus</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini img-d"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">mountains</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini src-noise"></div>
+        <div class="cell-source-icon">SRC</div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Perlin Noise</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini img-e"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">abstract_01</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini img-f"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">glitch_tex</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+    </div>
+  </div>
+
+  <!-- Layer 2 (Transparent - orange) -->
+  <div class="layer-row">
+    <div class="layer-strip-mini layer-b">
+      <div class="layer-name-mini">Layer 2</div>
+      <div class="layer-type-mini">Transparent</div>
+      <div class="layer-opacity-row">
+        <div class="opacity-label-mini">O</div>
+        <div class="opacity-track-mini">
+          <div class="opacity-fill-mini orange" style="width:62%;"></div>
+        </div>
+        <div class="opacity-val-mini">62</div>
+      </div>
+      <div class="blend-mini">Screen</div>
+    </div>
+    <div class="cells-scroll">
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini src-audio"></div>
+        <div class="cell-source-icon">SRC</div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Spectrum Ring</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini active-orange">
+        <div class="cell-thumb-mini src-frac"></div>
+        <div class="cell-source-icon">SRC</div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Julia Set</div>
+          <div class="cell-fx-badge">2 FX</div>
+        </div>
+        <div class="cell-playhead-mini orange" style="width:78%;"></div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini img-a"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">particles_hd</div>
+          <div class="cell-fx-badge">1 FX</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini src-torus"></div>
+        <div class="cell-source-icon">SRC</div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Twist Torus</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini vid"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">vfx_spark.mov</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini src-sim"></div>
+        <div class="cell-source-icon">SRC</div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Fluid Sim</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+    </div>
+  </div>
+
+  <!-- Layer 3 (FX Only - pink) -->
+  <div class="layer-row">
+    <div class="layer-strip-mini layer-c">
+      <div class="layer-name-mini">Layer 3</div>
+      <div class="layer-type-mini">FX Only</div>
+      <div class="layer-opacity-row">
+        <div class="opacity-label-mini">O</div>
+        <div class="opacity-track-mini">
+          <div class="opacity-fill-mini pink" style="width:100%;"></div>
+        </div>
+        <div class="opacity-val-mini">100</div>
+      </div>
+      <div class="blend-mini">Normal</div>
+    </div>
+    <div class="cells-scroll">
+      <div class="clip-cell-mini active-pink">
+        <div class="cell-thumb-mini" style="background:#111;"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Echo+Ripple</div>
+          <div class="cell-fx-badge">4 FX</div>
+        </div>
+        <div class="cell-playhead-mini pink" style="width:100%;"></div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini" style="background:#111;"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Glitch Chain</div>
+          <div class="cell-fx-badge">3 FX</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini" style="background:#111;"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Color Grade</div>
+          <div class="cell-fx-badge">2 FX</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini">
+        <div class="cell-thumb-mini" style="background:#111;"></div>
+        <div class="cell-info-mini">
+          <div class="cell-name-mini">Kaleidoscope</div>
+          <div class="cell-fx-badge">1 FX</div>
+        </div>
+      </div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+      <div class="clip-cell-mini empty"></div>
+    </div>
+  </div>
+</div>
+
+<!-- INSPECTOR OVERLAY (shown in Edit mode) -->
+<div class="inspector-overlay">
+  <span class="overlay-close">&times;</span>
+  <div class="inspector-tabs">
+    <div class="inspector-tab active">Clip</div>
+    <div class="inspector-tab">Layer</div>
+    <div class="inspector-tab">Comp</div>
+    <div class="inspector-tab">Signal</div>
+  </div>
+  <div class="inspector-content">
+    <!-- Transport section -->
+    <div class="insp-section">
+      <div class="insp-section-header">Transport</div>
+      <div class="insp-row">
+        <div class="insp-label">Mode</div>
+        <div class="insp-combo">BPM Sync</div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Beat Division</div>
+        <div class="insp-combo">4 Beats</div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Loop Mode</div>
+        <div class="insp-combo">Loop</div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Speed</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="insp-slider-track" style="width:80px;">
+            <div class="insp-slider-fill" style="width:50%;"></div>
+          </div>
+          <div class="insp-value">1.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Autopilot -->
+    <div class="insp-section">
+      <div class="insp-section-header">Autopilot</div>
+      <div class="insp-row">
+        <div class="insp-label">Enabled</div>
+        <div class="insp-value" style="color:#00d9ff;">On</div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Trigger</div>
+        <div class="insp-combo">On Beat</div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Duration</div>
+        <div class="insp-combo">8 Beats</div>
+      </div>
+    </div>
+
+    <!-- Video -->
+    <div class="insp-section">
+      <div class="insp-section-header">Video</div>
+      <div class="insp-row">
+        <div class="insp-label">Opacity</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="insp-slider-track" style="width:80px;">
+            <div class="insp-slider-fill" style="width:85%;"></div>
+          </div>
+          <div class="insp-value">85</div>
+        </div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Blend Mode</div>
+        <div class="insp-combo">Add</div>
+      </div>
+    </div>
+
+    <!-- Transform -->
+    <div class="insp-section">
+      <div class="insp-section-header">Transform</div>
+      <div class="insp-row">
+        <div class="insp-label">Position X</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="insp-slider-track" style="width:80px;">
+            <div class="insp-slider-fill" style="width:50%;"></div>
+          </div>
+          <div class="insp-value">0.0</div>
+        </div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Position Y</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="insp-slider-track" style="width:80px;">
+            <div class="insp-slider-fill" style="width:50%;"></div>
+          </div>
+          <div class="insp-value">0.0</div>
+        </div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Scale</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="insp-slider-track" style="width:80px;">
+            <div class="insp-slider-fill" style="width:50%;"></div>
+          </div>
+          <div class="insp-value">1.00</div>
+        </div>
+      </div>
+      <div class="insp-row">
+        <div class="insp-label">Rotation</div>
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div class="insp-slider-track" style="width:80px;">
+            <div class="insp-slider-fill" style="width:0%;"></div>
+          </div>
+          <div class="insp-value">0.0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Effects -->
+    <div class="insp-section">
+      <div class="insp-section-header">Effects</div>
+      <div class="insp-fx-list">
+        <div class="insp-fx-row">
+          <div class="insp-fx-bypass on">B</div>
+          <div class="insp-fx-name">Ripple</div>
+          <div class="insp-fx-delete">&times;</div>
+        </div>
+        <div class="insp-fx-param">
+          <div class="insp-fx-param-label">Intensity</div>
+          <div class="insp-fx-param-track"><div class="insp-fx-param-fill" style="width:68%;"></div></div>
+          <div class="insp-fx-param-val">0.68</div>
+        </div>
+        <div class="insp-fx-param">
+          <div class="insp-fx-param-label">Frequency</div>
+          <div class="insp-fx-param-track"><div class="insp-fx-param-fill" style="width:45%;"></div></div>
+          <div class="insp-fx-param-val">0.45</div>
+        </div>
+
+        <div class="insp-fx-row">
+          <div class="insp-fx-bypass on">B</div>
+          <div class="insp-fx-name">Hue Shift</div>
+          <div class="insp-fx-delete">&times;</div>
+        </div>
+        <div class="insp-fx-param">
+          <div class="insp-fx-param-label">Amount</div>
+          <div class="insp-fx-param-track"><div class="insp-fx-param-fill" style="width:32%;"></div></div>
+          <div class="insp-fx-param-val">0.32</div>
+        </div>
+
+        <div class="insp-fx-row">
+          <div class="insp-fx-bypass on">B</div>
+          <div class="insp-fx-name">Echo</div>
+          <div class="insp-fx-delete">&times;</div>
+        </div>
+        <div class="insp-fx-param">
+          <div class="insp-fx-param-label">Decay</div>
+          <div class="insp-fx-param-track"><div class="insp-fx-param-fill" style="width:72%;"></div></div>
+          <div class="insp-fx-param-val">0.72</div>
+        </div>
+        <div class="insp-fx-param">
+          <div class="insp-fx-param-label">Mix</div>
+          <div class="insp-fx-param-track"><div class="insp-fx-param-fill" style="width:55%;"></div></div>
+          <div class="insp-fx-param-val">0.55</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Design label -->
+<div class="design-label"><strong>DESIGN 5</strong> — Minimal / Processing-Inspired</div>
+
+</body>
+</html>

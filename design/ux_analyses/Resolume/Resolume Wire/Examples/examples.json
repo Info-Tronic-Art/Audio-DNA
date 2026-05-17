@@ -1,0 +1,72 @@
+{
+	"categories":
+	[
+		{
+			"name": "Basic Generators",
+			"projects":
+			[
+				"./Basic Generators/Border/Border.wire",
+				"./Basic Generators/Clock/Clock.wire",
+				"./Basic Generators/LineTrails/LineTrails.wire",
+				"./Basic Generators/Loops/Loops.wire",
+				"./Basic Generators/NeonCircuits/NeonCircuits.wire",
+				"./Basic Generators/Radar/Radar.wire"
+			]
+		},
+		{
+			"name": "Basic Effects",
+			"projects":
+			[
+				"./Basic Effects/Mirror/Mirror.wire",
+				"./Basic Effects/Rainbow/Rainbow.wire",
+				"./Basic Effects/Screen Shake/Screen Shake.wire",
+				"./Basic Effects/Smooth Transform/Smooth Transform.wire",
+				"./Basic Effects/Splatter/Splatter.wire",
+				"./Basic Effects/VHS/VHS.wire"
+			]
+		},
+		{
+			"name": "Basic Blend Modes",
+			"projects":
+			[
+				"./Basic Blend Modes/Cross/Cross.wire"
+			]
+		},
+		{
+			"name": "Complex Generators",
+			"projects":
+			[
+				"./Complex Generators/AquaThingus/AquaThingus.wire",
+				"./Complex Generators/MotherFlocker/MotherFlocker.wire",
+				"./Complex Generators/NegativeRainbow/NegativeRainbow.wire",
+				"./Complex Generators/SquareVortex/SquareVortex.wire",
+				"./Complex Generators/Tunnel/Tunnel.wire",
+				"./Complex Generators/Turbulent Substance/TurbulentSubstance.wire",
+				"./Complex Generators/XY Oscilloscope/XY Oscilloscope.wire"
+			]
+		},
+		{
+			"name": "Complex Effects",
+			"projects":
+			[
+				"./Complex Effects/ChromaChop/ChromaChop.wire",
+				"./Complex Effects/Cloner/Cloner.wire",
+				"./Complex Effects/Distortion/Distortion.wire",
+				"./Complex Effects/Feedback Pro/Feedback Pro.wire",
+				"./Complex Effects/Game Boy/Game Boy.wire",
+				"./Complex Effects/Ghost/Ghost.wire",
+				"./Complex Effects/MultiScreener/MultiScreener.wire",
+				"./Complex Effects/SilkScreenShift/SilkScreenShift.wire",
+				"./Complex Effects/Slit Scanner/Slit Scanner.wire",
+				"./Complex Effects/Space Warper/Space_Warper.wire"
+			]
+		},
+		{
+			"name": "Complex Blend Modes",
+			"projects":
+			[
+				"./Complex Blend Modes/DigiGlitch/DigiGlitch.wire"
+			]
+		}
+	]
+}

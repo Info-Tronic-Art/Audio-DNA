@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ 8 — Wide Preview + Horizontal Layer Strips</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: linear-gradient(135deg, #0a0c10 0%, #12151c 40%, #0d1018 100%);
+  font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #c8ccd4; font-size: 12px;
+  display: flex; flex-direction: column;
+}
+
+/* ===== TOP BAR ===== */
+.topbar {
+  height: 44px; min-height: 44px;
+  background: linear-gradient(180deg, #1a1e28 0%, #14171f 100%);
+  border-bottom: 1px solid #2a2e38;
+  display: flex; align-items: center; padding: 0 12px; gap: 14px;
+}
+.topbar .brand { font-size: 15px; font-weight: 700; color: #00e5ff; letter-spacing: 1px; }
+.topbar .sep { width: 1px; height: 26px; background: #2a2e38; }
+.bpm-display {
+  display: flex; align-items: baseline; gap: 6px;
+}
+.bpm-value { font-size: 26px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+.bpm-label { font-size: 10px; color: #6a7080; text-transform: uppercase; }
+.topbar-btn {
+  background: #22262f; border: 1px solid #333842; border-radius: 3px;
+  color: #a0a8b8; font-size: 10px; padding: 4px 10px; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.topbar-btn:hover { background: #2a2e3a; color: #fff; }
+.topbar-btn.active { background: #00e5ff22; border-color: #00e5ff55; color: #00e5ff; }
+.beat-dots { display: flex; gap: 5px; align-items: center; }
+.beat-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #1a1e28; border: 1px solid #3a4050;
+}
+.beat-dot.active { background: #00e5ff; border-color: #00e5ff; box-shadow: 0 0 6px #00e5ff88; }
+.beat-dot.dim { background: #00e5ff44; border-color: #00e5ff66; }
+.room-delay {
+  display: flex; align-items: center; gap: 6px; color: #6a7080; font-size: 11px;
+}
+.room-delay span { color: #a0a8b8; }
+.level-meter {
+  width: 120px; height: 6px; background: #1a1e28; border-radius: 3px; overflow: hidden;
+  border: 1px solid #2a2e38;
+}
+.level-meter-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #00e5ff 0%, #00ff88 60%, #ffaa00 85%, #ff3344 100%);
+  width: 72%;
+}
+.topbar-spacer { flex: 1; }
+
+/* ===== MAIN LAYOUT ===== */
+.main { flex: 1; display: flex; overflow: hidden; }
+
+/* ===== LEFT PANEL — Scene Flow ===== */
+.left-panel {
+  width: 220px; min-width: 220px;
+  background: #11141a;
+  border-right: 1px solid #22262f;
+  display: flex; flex-direction: column;
+}
+.panel-header {
+  padding: 8px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  color: #6a7080; letter-spacing: 1px;
+  border-bottom: 1px solid #1e222c;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.scene-list { flex: 1; padding: 6px; overflow-y: auto; }
+.scene-item {
+  padding: 8px 10px; margin-bottom: 3px; border-radius: 3px;
+  background: #181c24; cursor: pointer; font-size: 11px;
+  border: 1px solid transparent;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.scene-item:hover { background: #1e222c; }
+.scene-item.active {
+  border-color: #00e5ff55; background: #00e5ff0a;
+}
+.scene-name { font-weight: 600; color: #e0e4ec; font-size: 12px; }
+.scene-triggers {
+  display: flex; gap: 4px;
+}
+.scene-trigger-btn {
+  font-size: 9px; padding: 2px 8px; background: #22262f;
+  border: 1px solid #333842; border-radius: 2px; color: #7a8090; cursor: pointer;
+}
+.scene-trigger-btn:hover { color: #00e5ff; border-color: #00e5ff55; }
+.add-scene {
+  padding: 8px 10px; text-align: center; color: #4a5060;
+  cursor: pointer; font-size: 11px; border-top: 1px solid #1e222c;
+}
+.add-scene:hover { color: #00e5ff; }
+
+.scene-detail {
+  border-top: 1px solid #22262f; padding: 8px 10px;
+  background: #0e1118;
+}
+.scene-detail-title { font-size: 11px; font-weight: 600; color: #8890a0; margin-bottom: 6px; }
+.scene-detail-layer {
+  font-size: 10px; color: #6a7080; padding: 3px 0;
+  display: flex; align-items: center; gap: 6px;
+}
+.scene-detail-layer .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.scene-detail-layer .dot.c1 { background: #00e5ff; }
+.scene-detail-layer .dot.c2 { background: #ff6b9d; }
+.scene-detail-layer .dot.c3 { background: #a855f7; }
+
+/* ===== CENTER AREA ===== */
+.center { flex: 1; display: flex; flex-direction: column; }
+
+/* Preview */
+.preview-area {
+  flex: 0 0 auto; padding: 10px 14px 0 14px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.preview-label {
+  font-size: 10px; color: #4a5060; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 4px; align-self: flex-start;
+}
+.preview-frame {
+  width: 650px; height: 366px;
+  background: #000; border: 1px solid #2a2e38; border-radius: 4px;
+  overflow: hidden; position: relative;
+}
+.preview-canvas {
+  width: 100%; height: 100%;
+  background:
+    radial-gradient(ellipse at 50% 80%, #0a2a4a 0%, transparent 60%),
+    linear-gradient(180deg, #040810 0%, #0c1828 40%, #162848 70%, #0a1828 100%);
+  position: relative;
+}
+/* Cyberpunk cityscape simulation */
+.city-layer {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 55%;
+  background: linear-gradient(180deg, transparent 0%, #0a182888 30%, #0a1828 100%);
+}
+.building { position: absolute; bottom: 0; background: #0c1620; }
+.building::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 4px, #1a3050 4px, #1a3050 5px),
+              repeating-linear-gradient(90deg, transparent, transparent 6px, #1a3050 6px, #1a3050 7px);
+  opacity: 0.3;
+}
+.building.b1 { left: 5%; width: 8%; height: 70%; }
+.building.b2 { left: 15%; width: 6%; height: 55%; }
+.building.b3 { left: 22%; width: 10%; height: 80%; background: #0e1a28; }
+.building.b4 { left: 34%; width: 7%; height: 45%; }
+.building.b5 { left: 42%; width: 12%; height: 90%; background: #101e2e; }
+.building.b6 { left: 56%; width: 5%; height: 50%; }
+.building.b7 { left: 63%; width: 9%; height: 75%; }
+.building.b8 { left: 74%; width: 8%; height: 60%; }
+.building.b9 { left: 84%; width: 11%; height: 85%; background: #0e1a28; }
+.neon-line {
+  position: absolute; height: 1px; opacity: 0.6;
+}
+.neon-line.n1 { bottom: 30%; left: 10%; width: 30%; background: #00e5ff; box-shadow: 0 0 8px #00e5ff; }
+.neon-line.n2 { bottom: 25%; left: 50%; width: 25%; background: #ff6b9d; box-shadow: 0 0 8px #ff6b9d; }
+.neon-line.n3 { bottom: 20%; left: 20%; width: 40%; background: #a855f7; box-shadow: 0 0 6px #a855f7; opacity: 0.4; }
+.preview-overlay {
+  position: absolute; top: 8px; right: 8px;
+  font-size: 9px; color: #00e5ff88; text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* Transport bar */
+.transport-bar {
+  width: 650px; margin-top: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.transport-btn {
+  width: 28px; height: 24px; background: #1a1e28; border: 1px solid #2a2e38;
+  border-radius: 3px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #7a8090; font-size: 10px;
+}
+.transport-btn:hover { color: #fff; border-color: #3a4050; }
+.transport-btn.play { color: #00e5ff; }
+.timeline-scrubber {
+  flex: 1; height: 20px; background: #14171f; border: 1px solid #22262f;
+  border-radius: 3px; position: relative; overflow: hidden;
+}
+.timeline-track {
+  position: absolute; top: 4px; bottom: 4px; left: 2px; right: 2px;
+  background: #1a1e28; border-radius: 2px;
+}
+.timeline-fill {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 38%;
+  background: linear-gradient(90deg, #00e5ff33, #00e5ff22);
+  border-radius: 2px;
+}
+.timeline-playhead {
+  position: absolute; top: 0; bottom: 0; left: 38%;
+  width: 2px; background: #00e5ff;
+  box-shadow: 0 0 4px #00e5ff88;
+}
+.timeline-markers {
+  position: absolute; top: 1px; left: 2px; right: 2px; bottom: 1px;
+  display: flex; align-items: flex-end;
+}
+.timeline-marker {
+  position: absolute; bottom: 0; width: 1px; height: 5px; background: #3a405066;
+}
+.detach-btn {
+  width: 28px; height: 24px; background: #1a1e28; border: 1px solid #2a2e38;
+  border-radius: 3px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #5a6070; font-size: 11px;
+}
+.detach-btn:hover { color: #00e5ff; }
+
+/* Layer Tabs */
+.layer-tabs-row {
+  display: flex; align-items: center; padding: 8px 14px 0 14px; gap: 2px;
+}
+.layer-tab {
+  padding: 5px 16px; font-size: 11px; font-weight: 600;
+  background: #14171f; border: 1px solid #22262f; border-bottom: none;
+  border-radius: 4px 4px 0 0; cursor: pointer; color: #5a6070;
+  position: relative;
+}
+.layer-tab:hover { color: #a0a8b8; background: #181c24; }
+.layer-tab.active {
+  background: #1a1e28; color: #00e5ff;
+  border-color: #2a2e38; border-bottom-color: #1a1e28;
+}
+.layer-tab.active::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+  height: 2px; background: #00e5ff;
+}
+.layer-tab-add {
+  padding: 5px 10px; font-size: 13px; color: #3a4050; cursor: pointer;
+  background: transparent; border: none;
+}
+.layer-tab-add:hover { color: #00e5ff; }
+
+/* Layer Strips */
+.layer-strips-area {
+  flex: 1; padding: 0 14px 8px 14px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.layer-strip {
+  display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, #181c26 0%, #14171f 100%);
+  border: 1px solid #22262f; border-radius: 4px;
+  padding: 8px 10px; min-height: 72px;
+}
+.layer-strip:hover { border-color: #2e3340; }
+.layer-strip.selected { border-color: #00e5ff44; }
+
+.ls-controls {
+  display: flex; flex-direction: column; gap: 3px; min-width: 32px;
+}
+.ls-btn {
+  width: 28px; height: 16px; font-size: 8px; font-weight: 700;
+  text-transform: uppercase; border: 1px solid #333842;
+  border-radius: 2px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  background: #22262f; color: #5a6070;
+}
+.ls-btn:hover { color: #fff; }
+.ls-btn.solo { color: #ffaa00; border-color: #ffaa0055; background: #ffaa0011; }
+.ls-btn.mute { color: #ff3344; border-color: #ff334455; background: #ff33440a; }
+
+.ls-clip-info {
+  flex: 0 0 160px; display: flex; flex-direction: column; gap: 4px;
+}
+.ls-clip-name { font-size: 12px; font-weight: 600; color: #e0e4ec; }
+.ls-clip-meta { font-size: 10px; color: #5a6070; }
+.ls-engine-badge {
+  display: inline-block; font-size: 8px; font-weight: 700; padding: 1px 6px;
+  border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ls-engine-badge.video { background: #2196f322; color: #64b5f6; border: 1px solid #2196f333; }
+.ls-engine-badge.image { background: #4caf5022; color: #81c784; border: 1px solid #4caf5033; }
+.ls-engine-badge.synth { background: #a855f722; color: #c084fc; border: 1px solid #a855f733; }
+.ls-engine-badge.source { background: #ff980022; color: #ffb74d; border: 1px solid #ff980033; }
+
+.ls-fx-section {
+  display: flex; gap: 4px; align-items: center;
+}
+.ls-fx-btn {
+  padding: 3px 10px; font-size: 9px; font-weight: 600;
+  background: #22262f; border: 1px solid #333842; border-radius: 2px;
+  color: #6a7080; cursor: pointer; text-transform: uppercase;
+}
+.ls-fx-btn:hover { color: #fff; }
+.ls-fx-btn.active { color: #00e5ff; border-color: #00e5ff44; background: #00e5ff0a; }
+.ls-strobe-btn {
+  padding: 3px 8px; font-size: 9px; font-weight: 700;
+  background: #22262f; border: 1px solid #333842; border-radius: 2px;
+  color: #5a6070; cursor: pointer;
+}
+.ls-strobe-btn.active { color: #ff3344; border-color: #ff334455; background: #ff33440a; }
+
+.ls-spacer { flex: 1; }
+
+/* Rotary Knob */
+.rotary-knob-group {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 52px;
+}
+.rotary-knob {
+  width: 44px; height: 44px; position: relative;
+}
+.rotary-knob svg { width: 44px; height: 44px; }
+.rotary-knob-label { font-size: 9px; color: #5a6070; text-transform: uppercase; }
+.rotary-knob-value { font-size: 9px; color: #a0a8b8; font-weight: 600; }
+
+.ls-expand-btn {
+  width: 20px; height: 20px; font-size: 10px; color: #3a4050;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  border: 1px solid #22262f; border-radius: 2px; background: transparent;
+}
+.ls-expand-btn:hover { color: #7a8090; }
+
+/* ===== RIGHT PANEL — Sources ===== */
+.right-panel {
+  width: 210px; min-width: 210px;
+  background: #11141a; border-left: 1px solid #22262f;
+  display: flex; flex-direction: column;
+}
+.source-tabs {
+  display: flex; border-bottom: 1px solid #1e222c;
+}
+.source-tab {
+  flex: 1; padding: 7px 0; text-align: center;
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  color: #4a5060; cursor: pointer; letter-spacing: 0.5px;
+  border-bottom: 2px solid transparent;
+}
+.source-tab:hover { color: #8890a0; }
+.source-tab.active { color: #00e5ff; border-bottom-color: #00e5ff; }
+
+.source-list { flex: 1; padding: 6px; overflow-y: auto; }
+.source-item {
+  padding: 8px 10px; margin-bottom: 3px; border-radius: 3px;
+  background: #181c24; cursor: pointer; border: 1px solid transparent;
+}
+.source-item:hover { background: #1e222c; }
+.source-item.active { border-color: #00e5ff33; }
+.source-item-name { font-size: 11px; font-weight: 600; color: #c8ccd4; margin-bottom: 3px; }
+.source-item-type { font-size: 9px; color: #4a5060; text-transform: uppercase; }
+
+.mini-spectrum {
+  display: flex; align-items: flex-end; gap: 1px; height: 20px; margin-top: 4px;
+}
+.mini-spectrum-bar {
+  flex: 1; background: #00e5ff; border-radius: 1px 1px 0 0; min-width: 2px;
+  opacity: 0.6;
+}
+
+.add-source {
+  padding: 8px 10px; text-align: center; color: #4a5060;
+  cursor: pointer; font-size: 11px; border-top: 1px solid #1e222c;
+}
+.add-source:hover { color: #00e5ff; }
+
+/* ===== FOOTER ===== */
+.footer {
+  height: 34px; min-height: 34px;
+  background: linear-gradient(180deg, #14171f 0%, #0e1118 100%);
+  border-top: 1px solid #22262f;
+  display: flex; align-items: center; padding: 0 14px; gap: 4px;
+}
+.footer-btn {
+  padding: 4px 14px; font-size: 10px; color: #5a6070;
+  background: transparent; border: 1px solid #22262f; border-radius: 3px;
+  cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.footer-btn:hover { color: #a0a8b8; border-color: #3a4050; }
+.footer-spacer { flex: 1; }
+.footer-status { font-size: 10px; color: #3a4050; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">Audio-DNA VJ</div>
+  <div class="sep"></div>
+  <div class="bpm-display">
+    <span class="bpm-value">128.00</span>
+    <span class="bpm-label">BPM</span>
+  </div>
+  <button class="topbar-btn active">TAP</button>
+  <button class="topbar-btn">Nudge-</button>
+  <button class="topbar-btn">Nudge+</button>
+  <button class="topbar-btn">RESYNC</button>
+  <div class="sep"></div>
+  <div class="beat-dots">
+    <div class="beat-dot active"></div>
+    <div class="beat-dot dim"></div>
+    <div class="beat-dot"></div>
+    <div class="beat-dot"></div>
+  </div>
+  <div class="sep"></div>
+  <div class="room-delay">Room Delay: <span>+0ms</span></div>
+  <div class="level-meter"><div class="level-meter-fill"></div></div>
+  <div class="topbar-spacer"></div>
+  <div style="font-size:10px;color:#3a4050;">60 FPS</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT PANEL — Scene Flow -->
+  <div class="left-panel">
+    <div class="panel-header">Scene Flow</div>
+    <div class="scene-list">
+      <div class="scene-item">
+        <span class="scene-name">Intro</span>
+        <div class="scene-triggers">
+          <span class="scene-trigger-btn">Trigger</span>
+          <span class="scene-trigger-btn">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <span class="scene-name">Verse</span>
+        <div class="scene-triggers">
+          <span class="scene-trigger-btn">Trigger</span>
+          <span class="scene-trigger-btn">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item active">
+        <span class="scene-name">Chorus</span>
+        <div class="scene-triggers">
+          <span class="scene-trigger-btn">Trigger</span>
+          <span class="scene-trigger-btn">Trigger</span>
+        </div>
+      </div>
+      <div class="scene-item">
+        <span class="scene-name">Drop</span>
+        <div class="scene-triggers">
+          <span class="scene-trigger-btn">Trigger</span>
+          <span class="scene-trigger-btn">Trigger</span>
+        </div>
+      </div>
+    </div>
+    <div class="add-scene">+ Add Scene</div>
+    <div class="scene-detail">
+      <div class="scene-detail-title">Chorus Scene:</div>
+      <div class="scene-detail-layer"><span class="dot c1"></span> Layer 1: Clip A</div>
+      <div class="scene-detail-layer"><span class="dot c2"></span> Layer 2: Pattern B</div>
+      <div class="scene-detail-layer"><span class="dot c3"></span> Layer 3: Waveform C</div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <!-- Preview -->
+    <div class="preview-area">
+      <div class="preview-label">Live Output Preview</div>
+      <div class="preview-frame">
+        <div class="preview-canvas">
+          <div class="city-layer">
+            <div class="building b1"></div>
+            <div class="building b2"></div>
+            <div class="building b3"></div>
+            <div class="building b4"></div>
+            <div class="building b5"></div>
+            <div class="building b6"></div>
+            <div class="building b7"></div>
+            <div class="building b8"></div>
+            <div class="building b9"></div>
+          </div>
+          <div class="neon-line n1"></div>
+          <div class="neon-line n2"></div>
+          <div class="neon-line n3"></div>
+          <div class="preview-overlay">LIVE</div>
+        </div>
+      </div>
+
+      <!-- Transport -->
+      <div class="transport-bar">
+        <div class="transport-btn" title="Previous">&#9664;&#9664;</div>
+        <div class="transport-btn play" title="Play">&#9654;</div>
+        <div class="transport-btn" title="Pause">&#10074;&#10074;</div>
+        <div class="timeline-scrubber">
+          <div class="timeline-track">
+            <div class="timeline-fill"></div>
+            <div class="timeline-playhead"></div>
+            <div class="timeline-markers">
+              <div class="timeline-marker" style="left:10%"></div>
+              <div class="timeline-marker" style="left:20%"></div>
+              <div class="timeline-marker" style="left:30%"></div>
+              <div class="timeline-marker" style="left:40%"></div>
+              <div class="timeline-marker" style="left:50%"></div>
+              <div class="timeline-marker" style="left:60%"></div>
+              <div class="timeline-marker" style="left:70%"></div>
+              <div class="timeline-marker" style="left:80%"></div>
+              <div class="timeline-marker" style="left:90%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="detach-btn" title="Detach to screen">&#9635;</div>
+      </div>
+    </div>
+
+    <!-- Layer Tabs -->
+    <div class="layer-tabs-row">
+      <div class="layer-tab active">Layer 1</div>
+      <div class="layer-tab">Layer 2</div>
+      <div class="layer-tab">Layer 3</div>
+      <div class="layer-tab">Layer 4</div>
+      <div class="layer-tab">Layer 5</div>
+      <div class="layer-tab">Layer 6</div>
+      <div class="layer-tab">Layer 7</div>
+      <div class="layer-tab">Layer 8</div>
+      <div class="layer-tab">Layer 9</div>
+      <div class="layer-tab-add">+</div>
+    </div>
+
+    <!-- Layer Strips -->
+    <div class="layer-strips-area">
+
+      <!-- Layer 1 -->
+      <div class="layer-strip selected">
+        <div class="ls-controls">
+          <div class="ls-btn solo">S</div>
+          <div class="ls-btn">M</div>
+        </div>
+        <div class="ls-clip-info">
+          <div class="ls-clip-name">Cyberpunk_City.mp4</div>
+          <div class="ls-clip-meta">
+            <span class="ls-engine-badge video">Video</span>
+            <span style="margin-left:4px;">1920x1080 / 30fps</span>
+          </div>
+        </div>
+        <div class="ls-fx-section">
+          <div class="ls-fx-btn active">FX1</div>
+          <div class="ls-fx-btn">Macro</div>
+          <div class="ls-strobe-btn">Strobe</div>
+        </div>
+        <div class="ls-spacer"></div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 1 1 7.2 33" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="22" y2="12" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Opacity</div>
+          <div class="rotary-knob-value">85%</div>
+        </div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 1 1 14 38" fill="none" stroke="#ff6b9d" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="16" y2="14" stroke="#ff6b9d" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Speed</div>
+          <div class="rotary-knob-value">1.0x</div>
+        </div>
+        <div class="ls-expand-btn">&#9662;</div>
+      </div>
+
+      <!-- Layer 2 -->
+      <div class="layer-strip">
+        <div class="ls-controls">
+          <div class="ls-btn">S</div>
+          <div class="ls-btn">M</div>
+        </div>
+        <div class="ls-clip-info">
+          <div class="ls-clip-name">Fractal_Mandelbrot</div>
+          <div class="ls-clip-meta">
+            <span class="ls-engine-badge synth">Synth</span>
+            <span style="margin-left:4px;">Procedural</span>
+          </div>
+        </div>
+        <div class="ls-fx-section">
+          <div class="ls-fx-btn">FX1</div>
+          <div class="ls-fx-btn active">Macro</div>
+          <div class="ls-strobe-btn">Strobe</div>
+        </div>
+        <div class="ls-spacer"></div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 0 1 36.8 33" fill="none" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="30" y2="16" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Opacity</div>
+          <div class="rotary-knob-value">62%</div>
+        </div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 0 1 39.5 26" fill="none" stroke="#ffaa00" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="32" y2="20" stroke="#ffaa00" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Dive</div>
+          <div class="rotary-knob-value">0.4x</div>
+        </div>
+        <div class="ls-expand-btn">&#9662;</div>
+      </div>
+
+      <!-- Layer 3 -->
+      <div class="layer-strip">
+        <div class="ls-controls">
+          <div class="ls-btn">S</div>
+          <div class="ls-btn mute">M</div>
+        </div>
+        <div class="ls-clip-info">
+          <div class="ls-clip-name">neon_grid_loop.mov</div>
+          <div class="ls-clip-meta">
+            <span class="ls-engine-badge video">Video</span>
+            <span style="margin-left:4px;">3840x2160 / 60fps</span>
+          </div>
+        </div>
+        <div class="ls-fx-section">
+          <div class="ls-fx-btn active">FX1</div>
+          <div class="ls-fx-btn active">Macro</div>
+          <div class="ls-strobe-btn active">Strobe</div>
+        </div>
+        <div class="ls-spacer"></div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 1 1 4 18" fill="none" stroke="#00ff88" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="12" y2="18" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Opacity</div>
+          <div class="rotary-knob-value">100%</div>
+        </div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 0 1 22 4" fill="none" stroke="#ff3344" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <circle cx="22" cy="12" r="2" fill="#ff3344"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Blend</div>
+          <div class="rotary-knob-value">Add</div>
+        </div>
+        <div class="ls-expand-btn">&#9662;</div>
+      </div>
+
+      <!-- Layer 4 -->
+      <div class="layer-strip">
+        <div class="ls-controls">
+          <div class="ls-btn">S</div>
+          <div class="ls-btn">M</div>
+        </div>
+        <div class="ls-clip-info">
+          <div class="ls-clip-name">particle_burst.png</div>
+          <div class="ls-clip-meta">
+            <span class="ls-engine-badge image">Image</span>
+            <span style="margin-left:4px;">2048x2048</span>
+          </div>
+        </div>
+        <div class="ls-fx-section">
+          <div class="ls-fx-btn">FX1</div>
+          <div class="ls-fx-btn">Macro</div>
+          <div class="ls-strobe-btn">Strobe</div>
+        </div>
+        <div class="ls-spacer"></div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 0 1 39 28" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="32" y2="22" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Opacity</div>
+          <div class="rotary-knob-value">45%</div>
+        </div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 0 1 36 11" fill="none" stroke="#ff6b9d" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="28" y2="14" stroke="#ff6b9d" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Scale</div>
+          <div class="rotary-knob-value">120%</div>
+        </div>
+        <div class="ls-expand-btn">&#9662;</div>
+      </div>
+
+      <!-- Layer 5 -->
+      <div class="layer-strip">
+        <div class="ls-controls">
+          <div class="ls-btn">S</div>
+          <div class="ls-btn">M</div>
+        </div>
+        <div class="ls-clip-info">
+          <div class="ls-clip-name">Spectrum_Landscape</div>
+          <div class="ls-clip-meta">
+            <span class="ls-engine-badge source">Source</span>
+            <span style="margin-left:4px;">Audio-Visual</span>
+          </div>
+        </div>
+        <div class="ls-fx-section">
+          <div class="ls-fx-btn active">FX1</div>
+          <div class="ls-fx-btn">Macro</div>
+          <div class="ls-strobe-btn">Strobe</div>
+        </div>
+        <div class="ls-spacer"></div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 0 1 33 9" fill="none" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="28" y2="14" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Opacity</div>
+          <div class="rotary-knob-value">30%</div>
+        </div>
+        <div class="rotary-knob-group">
+          <div class="rotary-knob">
+            <svg viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r="18" fill="none" stroke="#22262f" stroke-width="3"/>
+              <path d="M 22 4 A 18 18 0 1 1 9 34" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="22" cy="22" r="12" fill="#1a1e28" stroke="#2a2e38" stroke-width="1"/>
+              <line x1="22" y1="22" x2="14" y2="16" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="rotary-knob-label">Gain</div>
+          <div class="rotary-knob-value">78%</div>
+        </div>
+        <div class="ls-expand-btn">&#9662;</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL — Sources -->
+  <div class="right-panel">
+    <div class="panel-header">Audio Sources</div>
+    <div class="source-tabs">
+      <div class="source-tab active">Sources</div>
+      <div class="source-tab">Layer</div>
+      <div class="source-tab">Clip</div>
+    </div>
+    <div class="source-list">
+      <div class="source-item active">
+        <div class="source-item-name">Master Audio</div>
+        <div class="source-item-type">System Input</div>
+        <div class="mini-spectrum">
+          <div class="mini-spectrum-bar" style="height:55%"></div>
+          <div class="mini-spectrum-bar" style="height:80%"></div>
+          <div class="mini-spectrum-bar" style="height:100%"></div>
+          <div class="mini-spectrum-bar" style="height:70%"></div>
+          <div class="mini-spectrum-bar" style="height:90%"></div>
+          <div class="mini-spectrum-bar" style="height:45%"></div>
+          <div class="mini-spectrum-bar" style="height:60%"></div>
+          <div class="mini-spectrum-bar" style="height:35%"></div>
+          <div class="mini-spectrum-bar" style="height:50%"></div>
+          <div class="mini-spectrum-bar" style="height:25%"></div>
+          <div class="mini-spectrum-bar" style="height:40%"></div>
+          <div class="mini-spectrum-bar" style="height:15%"></div>
+          <div class="mini-spectrum-bar" style="height:30%"></div>
+          <div class="mini-spectrum-bar" style="height:20%"></div>
+          <div class="mini-spectrum-bar" style="height:10%"></div>
+          <div class="mini-spectrum-bar" style="height:8%"></div>
+        </div>
+      </div>
+      <div class="source-item">
+        <div class="source-item-name">Kick Drum</div>
+        <div class="source-item-type">Band Isolate &middot; 30-120 Hz</div>
+      </div>
+      <div class="source-item">
+        <div class="source-item-name">LFO-Sine</div>
+        <div class="source-item-type">Oscillator &middot; 0.25 Hz</div>
+      </div>
+      <div class="source-item">
+        <div class="source-item-name">LFO-Custom</div>
+        <div class="source-item-type">Envelope &middot; 4 Bars</div>
+      </div>
+      <div class="source-item">
+        <div class="source-item-name">Beat Phase</div>
+        <div class="source-item-type">Rhythm &middot; Sawtooth</div>
+      </div>
+      <div class="source-item">
+        <div class="source-item-name">Spectral Flux</div>
+        <div class="source-item-type">Analysis &middot; Normalized</div>
+      </div>
+    </div>
+    <div class="add-source">+ Add Audio Source</div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-btn">Master Sources</div>
+  <div class="footer-btn">Audio Player</div>
+  <div class="footer-btn">Outputs</div>
+  <div class="footer-spacer"></div>
+  <div class="footer-status">Audio-DNA VJ 8 &middot; 1920x1080 &middot; GL 4.1</div>
+  <div class="footer-spacer"></div>
+  <div class="footer-btn">Save</div>
+  <div class="footer-btn">Load</div>
+  <div class="footer-btn">Help</div>
+</div>
+
+</body>
+</html>

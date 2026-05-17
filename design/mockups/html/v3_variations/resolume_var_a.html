@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA v3 — Resolume-Refined Variation A</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1920px; height: 1080px; overflow: hidden;
+  background: #1a1a1a; color: #e0e0e0;
+  font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 11px; line-height: 1.3;
+}
+
+/* ===== TOP BAR ===== */
+.topbar {
+  height: 30px; background: #141414; display: flex; align-items: center;
+  padding: 0 10px; gap: 8px; border-bottom: 1px solid #2a2a2a;
+}
+.tb-group { display: flex; align-items: center; gap: 6px; }
+.tb-divider { width: 1px; height: 18px; background: #2a2a2a; margin: 0 4px; }
+.tb-spacer { flex: 1; }
+.tb-label { color: #666; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+.tb-btn { height: 20px; padding: 0 8px; background: #1a1a1a; border: 1px solid #333; color: #999; font-size: 9px; cursor: pointer; display: flex; align-items: center; }
+.tb-btn.active { color: #00d9ff; border-color: #00d9ff66; }
+.tb-btn.transport { width: 26px; font-size: 12px; justify-content: center; }
+.tb-btn.transport.playing { color: #00d9ff; }
+.tb-select { height: 20px; padding: 0 6px; background: #1a1a1a; border: 1px solid #333; color: #ccc; font-size: 10px; }
+.tb-bpm { font-size: 16px; font-weight: 700; color: #00d9ff; min-width: 52px; text-align: center; }
+.tb-slider { width: 50px; height: 4px; background: #222; position: relative; }
+.tb-slider .fill { height: 100%; background: #00d9ff; }
+.beat-wheel { width: 20px; height: 20px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; background: #333; border-radius: 50%; overflow: hidden; }
+.beat-wheel .seg { background: #1a1a1a; }
+.beat-wheel .seg.on { background: #00d9ff; }
+.tb-mult { width: 20px; height: 16px; font-size: 8px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #666; display: flex; align-items: center; justify-content: center; }
+.tb-mult.active { color: #00d9ff; border-color: #00d9ff55; }
+.tb-stat { color: #555; font-size: 9px; }
+.tb-stat span { color: #777; }
+
+/* ===== LAYOUT ===== */
+.app-body { display: flex; flex-direction: column; height: 1050px; }
+
+/* ===== DECK AREA (top 55%) ===== */
+.deck-area {
+  height: 55%; display: flex; flex-direction: column; background: #0d0d0d;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+/* Column triggers — 24px tall, prominent */
+.col-triggers {
+  height: 24px; display: flex; background: #0c0c0c; flex-shrink: 0;
+  border-bottom: 1px solid #1a1a1a;
+}
+.col-trigger {
+  flex: 1; height: 24px; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; color: #444; border-right: 1px solid #1a1a1a;
+  cursor: pointer; position: relative;
+}
+.col-trigger:hover { color: #888; background: #111; }
+.col-trigger.active { color: #00d9ff; background: #00d9ff0a; }
+.col-trigger.active::after { content: ''; position: absolute; bottom: 0; left: 5%; width: 90%; height: 2px; background: #00d9ff; }
+
+/* Layer rows */
+.layers-container { flex: 1; overflow-y: auto; }
+.layers-container::-webkit-scrollbar { width: 3px; }
+.layers-container::-webkit-scrollbar-thumb { background: #333; }
+
+.layer-row { display: flex; border-bottom: 1px solid #1a1a1a; height: 160px; }
+
+/* Layer strip — 200px with full S/K/V/F sliders */
+.layer-strip {
+  width: 200px; min-width: 200px; background: #131313; border-right: 1px solid #2a2a2a;
+  padding: 6px 8px; display: flex; flex-direction: column; gap: 3px;
+}
+.ls-top { display: flex; align-items: center; gap: 4px; }
+.ls-name { font-size: 11px; color: #e0e0e0; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-type { font-size: 7px; padding: 1px 4px; text-transform: uppercase; font-weight: 700; }
+.ls-type.opaque { background: #00d9ff22; color: #00d9ff; border: 1px solid #00d9ff44; }
+.ls-type.transparent { background: #ff990022; color: #ff9900; border: 1px solid #ff990044; }
+.ls-type.fx { background: #ff00ff22; color: #ff00ff; border: 1px solid #ff00ff44; }
+
+.ls-actions { display: flex; align-items: center; gap: 3px; }
+.ls-btn { width: 20px; height: 16px; font-size: 9px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #666; display: flex; align-items: center; justify-content: center; font-weight: 600; cursor: pointer; }
+.ls-btn.bypassed { color: #ff4444; border-color: #ff444444; }
+.ls-btn.solo { color: #ffcc00; border-color: #ffcc0044; }
+
+/* Vertical sliders area */
+.ls-sliders { display: flex; gap: 6px; flex: 1; margin-top: 4px; align-items: stretch; }
+.ls-vslider {
+  width: 24px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.ls-vslider-label { font-size: 8px; font-weight: 600; }
+.ls-vslider-track { flex: 1; width: 8px; background: #1a1a1a; border: 1px solid #222; position: relative; }
+.ls-vslider-fill { position: absolute; bottom: 0; width: 100%; }
+.ls-vslider-val { font-size: 7px; color: #888; font-variant-numeric: tabular-nums; }
+
+/* Transport row */
+.ls-transport { display: flex; gap: 2px; }
+.ls-tbtn { width: 18px; height: 14px; font-size: 10px; background: transparent; border: none; color: #555; display: flex; align-items: center; justify-content: center; }
+.ls-tbtn.active { color: #00d9ff; }
+
+/* Blend/key dropdowns area */
+.ls-dropdowns { display: flex; gap: 4px; font-size: 8px; color: #666; margin-top: auto; }
+.ls-dd { background: #1a1a1a; border: 1px solid #222; padding: 1px 4px; font-size: 7px; color: #888; }
+
+/* Layer thumbnail */
+.ls-thumb { width: 48px; height: 48px; background: #111; border: 1px solid #222; position: absolute; right: 6px; top: 28px; }
+.ls-thumb-inner { width: 100%; height: 100%; }
+
+/* Clip cells */
+.cells-row { display: flex; flex: 1; overflow-x: auto; }
+.cells-row::-webkit-scrollbar { height: 3px; }
+.cells-row::-webkit-scrollbar-thumb { background: #333; }
+
+.clip-cell {
+  width: 95px; min-width: 95px; height: 160px; background: #161616;
+  border: 1px solid #222; position: relative; cursor: pointer; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.clip-cell:hover { border-color: #444; }
+.clip-cell.active { border-color: #00d9ff; box-shadow: inset 0 0 0 1px #00d9ff; }
+.clip-cell.selected { border-color: #f59e0b; }
+
+.cell-thumb { flex: 1; display: flex; align-items: center; justify-content: center; }
+.cell-thumb.source { background: linear-gradient(135deg, #1a0a2e, #0a1a2e); }
+.cell-thumb.image { background: linear-gradient(135deg, #1a1a0a, #0a1a1a); }
+.cell-thumb.empty { background: #0d0d0d; }
+.cell-thumb.mandelbrot { background: radial-gradient(ellipse at 40% 50%, #000 20%, #1a0a3a 40%, #3a1a5a 55%, #ff6600 70%, #ffcc00 80%, #000 90%); }
+.cell-thumb.plasma { background: radial-gradient(circle at 30% 40%, #ff0066 0%, #6600ff 30%, #00ffcc 60%, #ff0066 100%); }
+.cell-thumb.spectral { background: conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0000); }
+.cell-thumb.kaleidoscope { background: repeating-conic-gradient(from 0deg, #00d9ff22, #ff00ff22 30deg, #ffcc0022 60deg); }
+.cell-thumb.noise { background: repeating-linear-gradient(45deg, #111 0px, #222 2px, #111 4px); }
+.cell-thumb.torus { background: radial-gradient(ellipse at 50% 45%, #ff440088, #ff004488 30%, #22004488 60%, #000 80%); }
+.cell-thumb.fluid { background: linear-gradient(120deg, #003366, #006699 30%, #00ccff44 50%, #003366 70%, #001133); }
+.cell-thumb.julia { background: radial-gradient(circle at 45% 50%, #000 15%, #0a1a3a 35%, #1a3a5a 55%, #00ccff 70%, #000 90%); }
+.cell-thumb.geometric { background: repeating-conic-gradient(from 45deg, #222 0deg, #00d9ff11 15deg, #222 30deg); }
+.cell-thumb.lines { background: repeating-linear-gradient(0deg, #00d9ff11 0px, transparent 1px, transparent 5px); }
+.cell-thumb.attractor { background: radial-gradient(circle at 55% 45%, #ffcc0066, #ff660044 25%, #11001a 60%); }
+
+.cell-name {
+  height: 16px; background: #0d0d0d; border-top: 1px solid #1a1a1a; padding: 0 3px;
+  display: flex; align-items: center; font-size: 8px; color: #888;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cell-name.active-name { color: #00d9ff; }
+.cell-fx { position: absolute; top: 2px; right: 2px; font-size: 6px; color: #ff00ff; background: rgba(0,0,0,0.6); padding: 0 2px; }
+.cell-playhead { position: absolute; bottom: 16px; left: 0; height: 2px; background: #00d9ff; width: 100%; }
+.cell-playhead-pos { height: 100%; background: #00d9ff; }
+
+/* Deck tabs at bottom of grid */
+.deck-tabs {
+  height: 24px; background: #0c0c0c; display: flex; align-items: center;
+  border-top: 1px solid #2a2a2a; flex-shrink: 0;
+}
+.deck-tab {
+  padding: 0 16px; height: 24px; display: flex; align-items: center;
+  font-size: 10px; color: #555; cursor: pointer; position: relative;
+}
+.deck-tab.active { color: #ccc; }
+.deck-tab.active::after { content: ''; position: absolute; bottom: 0; left: 4px; right: 4px; height: 2px; background: #00d9ff; }
+
+/* ===== BOTTOM AREA (45%) ===== */
+.bottom-area {
+  height: 45%; display: flex; background: #111;
+}
+
+/* Inspector (40%) */
+.inspector-panel {
+  width: 40%; border-right: 1px solid #2a2a2a; display: flex; flex-direction: column; overflow: hidden;
+}
+.insp-tabs {
+  height: 24px; display: flex; background: #0d0d0d; border-bottom: 1px solid #2a2a2a; flex-shrink: 0;
+}
+.insp-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.3px;
+  cursor: pointer; border-right: 1px solid #1a1a1a;
+}
+.insp-tab.active { color: #00d9ff; border-bottom: 1px solid #00d9ff; background: #111; }
+.insp-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.insp-body::-webkit-scrollbar { width: 3px; }
+.insp-body::-webkit-scrollbar-thumb { background: #333; }
+
+/* Inspector sections */
+.insp-section { border-bottom: 1px solid #1a1a1a; }
+.insp-section-hdr {
+  height: 22px; background: #151515; padding: 0 8px; display: flex; align-items: center;
+  font-size: 9px; font-weight: 600; color: #888; cursor: pointer; gap: 4px;
+}
+.insp-section-hdr .arrow { font-size: 7px; color: #555; }
+.insp-section-hdr .badge { margin-left: auto; font-size: 8px; color: #00d9ff; }
+.insp-section-body { padding: 4px 8px 6px; }
+
+/* Dashboard knobs */
+.dash-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.dash-knob { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.dk-ring { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #333; background: #1a1a1a; display: flex; align-items: center; justify-content: center; position: relative; }
+.dk-ring::before { content: ''; position: absolute; width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; border-top-color: #00d9ff; border-right-color: #00d9ff; transform: rotate(-45deg); }
+.dk-val { font-size: 9px; font-weight: 600; color: #ccc; }
+.dk-label { font-size: 7px; color: #555; text-align: center; }
+
+/* Param rows */
+.param-row { display: flex; align-items: center; height: 20px; gap: 3px; margin-bottom: 1px; }
+.param-triangle { width: 6px; height: 6px; flex-shrink: 0; cursor: pointer; border-left: 4px solid #444; border-top: 3px solid transparent; border-bottom: 3px solid transparent; }
+.param-triangle.connected { border-left-color: #00d9ff; }
+.param-label { width: 80px; font-size: 9px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.param-slider { flex: 1; height: 5px; background: #1a1a1a; border: 1px solid #222; position: relative; }
+.param-slider-fill { height: 100%; }
+.psf-cyan { background: #00d9ff; }
+.psf-white { background: #e0e0e0; }
+.param-val { width: 28px; font-size: 9px; color: #aaa; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Transport */
+.transport-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.transport-badge { font-size: 8px; padding: 1px 5px; background: #00d9ff22; color: #00d9ff; border: 1px solid #00d9ff44; }
+.transport-info { font-size: 8px; color: #666; }
+.transport-btns { display: flex; gap: 2px; }
+.transport-btn { width: 20px; height: 16px; background: #1a1a1a; border: 1px solid #2a2a2a; color: #666; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+.transport-btn.active { color: #00d9ff; }
+
+.timeline-bar { height: 14px; background: #0d0d0d; border: 1px solid #222; position: relative; margin-bottom: 3px; }
+.timeline-range { position: absolute; top: 0; height: 100%; background: #00d9ff11; border-left: 2px solid #00d9ff; border-right: 2px solid #00d9ff; }
+.timeline-playhead { position: absolute; top: 0; width: 2px; height: 100%; background: #00d9ff; }
+
+/* FX stack */
+.fx-item { display: flex; align-items: center; height: 22px; background: #141414; border: 1px solid #1a1a1a; margin-bottom: 1px; padding: 0 6px; gap: 3px; }
+.fx-bypass { width: 12px; height: 12px; background: #00d9ff; font-size: 7px; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 700; }
+.fx-bypass.off { background: #333; color: #555; }
+.fx-name { flex: 1; font-size: 9px; color: #ccc; font-weight: 500; }
+.fx-val { font-size: 8px; color: #666; }
+.fx-delete { font-size: 10px; color: #333; cursor: pointer; }
+.fx-params { padding: 3px 6px 3px 20px; background: #0d0d0d; border: 1px solid #1a1a1a; border-top: none; margin-bottom: 1px; }
+
+/* Browser (35%) */
+.browser-panel {
+  width: 35%; border-right: 1px solid #2a2a2a; display: flex; flex-direction: column; overflow: hidden;
+}
+.br-tabs { height: 24px; display: flex; background: #0d0d0d; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+.br-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #555; cursor: pointer; border-right: 1px solid #1a1a1a; }
+.br-tab.active { color: #00d9ff; border-bottom: 1px solid #00d9ff; background: #111; }
+.br-body { flex: 1; overflow-y: auto; padding: 0; }
+.br-body::-webkit-scrollbar { width: 3px; }
+.br-body::-webkit-scrollbar-thumb { background: #333; }
+.br-search { height: 24px; margin: 4px; background: #1a1a1a; border: 1px solid #222; display: flex; align-items: center; padding: 0 8px; color: #444; font-size: 9px; }
+
+.fx-cat { border-bottom: 1px solid #1a1a1a; }
+.fx-cat-hdr { height: 24px; background: #131313; padding: 0 8px; display: flex; align-items: center; font-size: 9px; font-weight: 600; color: #888; cursor: pointer; }
+.fx-cat-hdr .count { margin-left: auto; color: #444; font-size: 8px; }
+.fx-cat-body { padding: 2px 4px; display: flex; flex-wrap: wrap; gap: 3px; }
+.fx-item-card { width: 78px; height: 48px; background: #111; border: 1px solid #1a1a1a; cursor: grab; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.fx-item-card:hover { border-color: #333; }
+.fx-card-thumb { flex: 1; }
+.fx-card-name { height: 14px; background: #0d0d0d; display: flex; align-items: center; padding: 0 3px; font-size: 8px; color: #888; border-top: 1px solid #1a1a1a; }
+.fxp-ripple { background: radial-gradient(circle, #00d9ff22 0%, transparent 40%, #00d9ff11 60%, transparent 80%); }
+.fxp-bulge { background: radial-gradient(circle, #ffffff11, transparent 50%); }
+.fxp-wave { background: repeating-linear-gradient(0deg, #00d9ff11 0px, transparent 8px, transparent 16px); }
+.fxp-liquid { background: radial-gradient(ellipse at 30% 60%, #00ccff22, #ff00ff11 50%, transparent 80%); }
+.fxp-kaleidoscope { background: repeating-conic-gradient(from 0deg, #ff00ff11 0deg, #00d9ff11 45deg, #ffcc0011 90deg); }
+.fxp-swirl { background: conic-gradient(from 0deg, #00d9ff22, transparent, #ff00ff22, transparent, #00d9ff22); }
+.fxp-mirror { background: linear-gradient(90deg, #1a1a1a 50%, #111 50%); }
+.fxp-tile { background: repeating-linear-gradient(0deg, #222 0px, #222 10px, #1a1a1a 10px, #1a1a1a 20px), repeating-linear-gradient(90deg, #222 0px, #222 10px, #1a1a1a 10px, #1a1a1a 20px); }
+.fxp-hue { background: linear-gradient(90deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0000); opacity: 0.3; }
+.fxp-sat { background: linear-gradient(90deg, #888, #ff00ff); opacity: 0.3; }
+.fxp-echo { background: repeating-linear-gradient(135deg, #00d9ff11, transparent 10px, transparent 20px); }
+
+/* Right panel: Preview + Signal meters (25%) */
+.right-panel {
+  width: 25%; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.rp-preview {
+  width: 240px; height: 135px; background: #000; margin: 6px auto 4px;
+  border: 1px solid #2a2a2a; position: relative; overflow: hidden;
+}
+.preview-content {
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 38% 48%, #000 15%, #1a0a3e 35%, #3a1a6a 50%, #ff6600 65%, #ffcc00 78%, #000 92%);
+}
+.preview-content::after { content: ''; position: absolute; inset: 0; background: repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(0,217,255,0.05) 30deg, transparent 60deg); }
+.preview-fps { position: absolute; top: 2px; right: 4px; font-size: 8px; color: #00d9ff88; }
+
+.rp-label { font-size: 8px; color: #555; text-align: center; margin-bottom: 4px; }
+
+/* Signal meters section */
+.rp-signals { flex: 1; overflow-y: auto; padding: 0 8px; }
+.rp-signals::-webkit-scrollbar { width: 3px; }
+.rp-signals::-webkit-scrollbar-thumb { background: #333; }
+
+.rp-section-title { font-size: 7px; color: #00d9ff; text-transform: uppercase; letter-spacing: 0.8px; margin: 6px 0 3px; border-bottom: 1px solid #1a1a1a; padding-bottom: 2px; }
+
+.rp-meter { display: flex; align-items: center; gap: 3px; margin-bottom: 2px; height: 11px; }
+.rp-meter .lbl { font-size: 7px; color: #666; width: 28px; text-align: right; flex-shrink: 0; }
+.rp-meter .bar { flex: 1; height: 4px; background: #1a1a1a; position: relative; overflow: hidden; }
+.rp-meter .bar .fill { height: 100%; position: absolute; left: 0; }
+.rp-meter .val { font-size: 7px; color: #888; width: 22px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.f-blue { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.f-green { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.f-orange { background: linear-gradient(90deg, #f97316, #fb923c); }
+.f-cyan { background: linear-gradient(90deg, #00d9ff, #22d3ee); }
+.f-purple { background: linear-gradient(90deg, #a855f7, #c084fc); }
+.f-red { background: linear-gradient(90deg, #ef4444, #f87171); }
+.f-amber { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.f-teal { background: linear-gradient(90deg, #14b8a6, #2dd4bf); }
+
+/* Mini spectrum */
+.rp-spectrum { display: flex; align-items: flex-end; gap: 2px; height: 24px; margin-bottom: 4px; }
+.rp-band { flex: 1; min-width: 0; }
+
+/* Phase bars */
+.rp-phase { display: flex; align-items: center; gap: 2px; margin-bottom: 2px; height: 9px; }
+.rp-phase .lbl { font-size: 7px; color: #555; width: 24px; text-align: right; flex-shrink: 0; }
+.rp-phase .bar { flex: 1; height: 5px; background: #1a1a1a; position: relative; overflow: hidden; }
+.rp-phase .bar .fill { height: 100%; position: absolute; left: 0; }
+
+.rp-badge { font-size: 7px; font-weight: 600; padding: 1px 4px; display: inline-block; margin-right: 3px; }
+.rp-badge.drop { color: #f87171; background: #2a0808; border: 1px solid #ef4444; }
+.rp-badge.techno { color: #00d9ff; background: #0a2a33; border: 1px solid #00d9ff44; }
+</style>
+</head>
+<body>
+
+<!-- ===== TOP BAR ===== -->
+<div class="topbar">
+  <div class="tb-group">
+    <span class="tb-label">In</span>
+    <select class="tb-select" style="width:110px"><option>MacBook Pro Mic</option></select>
+    <div class="tb-slider" style="width:40px"><div class="fill" style="width:72%"></div></div>
+  </div>
+  <div class="tb-divider"></div>
+  <div class="tb-group">
+    <div class="tb-btn transport playing">&#9654;</div>
+    <div class="tb-btn transport">&#9646;&#9646;</div>
+    <div class="tb-btn transport">&#9632;</div>
+  </div>
+  <div class="tb-divider"></div>
+  <div class="tb-group">
+    <div class="beat-wheel"><div class="seg on"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div></div>
+    <span style="font-size:8px;color:#888">3.2</span>
+    <div class="tb-bpm">128.4</div>
+    <span style="font-size:7px;color:#4ade80;background:#142814;padding:1px 4px">LOCKED</span>
+    <div class="tb-btn" style="font-size:8px;padding:0 5px">Tap</div>
+    <div class="tb-btn" style="font-size:8px;padding:0 5px">Resync</div>
+  </div>
+  <div class="tb-divider"></div>
+  <div class="tb-group">
+    <div class="tb-mult">/4</div><div class="tb-mult">/2</div><div class="tb-mult active">1x</div><div class="tb-mult">2x</div><div class="tb-mult">4x</div>
+  </div>
+  <div class="tb-spacer"></div>
+  <div class="tb-divider"></div>
+  <div class="tb-group">
+    <span class="tb-label">Q</span><select class="tb-select" style="width:50px"><option>1 Bar</option></select>
+    <div class="tb-divider"></div>
+    <span class="tb-label">Fade</span><div class="tb-slider" style="width:36px"><div class="fill" style="width:50%;background:#f59e0b"></div></div>
+    <div class="tb-divider"></div>
+    <span class="tb-label">Master</span><div class="tb-slider" style="width:36px"><div class="fill" style="width:85%"></div></div>
+    <div class="tb-divider"></div>
+    <div class="tb-btn" style="font-size:8px">Output</div>
+    <div class="tb-btn" style="font-size:8px;color:#ff3b3b">Rec</div>
+  </div>
+  <div class="tb-divider"></div>
+  <span class="tb-stat"><span>60.0</span> fps</span>
+  <span class="tb-stat"><span>0.8</span> ms</span>
+</div>
+
+<!-- ===== BODY ===== -->
+<div class="app-body">
+
+<!-- DECK AREA (top 55%) -->
+<div class="deck-area">
+  <div class="col-triggers">
+    <div style="width:200px;min-width:200px;background:#0c0c0c;border-right:1px solid #1a1a1a"></div>
+    <div class="col-trigger">1</div><div class="col-trigger">2</div><div class="col-trigger active">3</div><div class="col-trigger">4</div><div class="col-trigger">5</div><div class="col-trigger">6</div><div class="col-trigger">7</div><div class="col-trigger">8</div><div class="col-trigger">9</div><div class="col-trigger">10</div><div class="col-trigger">11</div><div class="col-trigger">12</div>
+  </div>
+
+  <div class="layers-container">
+    <!-- Layer 1 -->
+    <div class="layer-row">
+      <div class="layer-strip" style="position:relative">
+        <div class="ls-top"><span class="ls-name">Visuals</span><span class="ls-type opaque">OPQ</span></div>
+        <div class="ls-actions">
+          <div class="ls-btn">X</div><div class="ls-btn">B</div><div class="ls-btn">S</div>
+          <div class="ls-transport" style="margin-left:auto">
+            <div class="ls-tbtn">&#9664;</div><div class="ls-tbtn active">&#9654;</div><div class="ls-tbtn">&#9646;&#9646;</div><div class="ls-tbtn">&#9654;|</div>
+          </div>
+        </div>
+        <div class="ls-sliders">
+          <div class="ls-vslider">
+            <span class="ls-vslider-label" style="color:#00d9ff">S</span>
+            <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:50%;background:#00d9ff"></div></div>
+            <span class="ls-vslider-val">1.0</span>
+          </div>
+          <div class="ls-vslider">
+            <span class="ls-vslider-label" style="color:#f59e0b">K</span>
+            <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:10%;background:#f59e0b"></div></div>
+            <span class="ls-vslider-val">0.1</span>
+          </div>
+          <div class="ls-vslider">
+            <span class="ls-vslider-label" style="color:#14b8a6">V</span>
+            <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:100%;background:#14b8a6"></div></div>
+            <span class="ls-vslider-val">100</span>
+          </div>
+          <div class="ls-vslider">
+            <span class="ls-vslider-label" style="color:#3b82f6">F</span>
+            <div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:30%;background:#3b82f6"></div></div>
+            <span class="ls-vslider-val">0.3</span>
+          </div>
+        </div>
+        <div class="ls-dropdowns">
+          <span class="ls-dd">Normal</span>
+          <span class="ls-dd">Dissolve</span>
+        </div>
+        <div class="ls-thumb" style="top:28px"><div class="ls-thumb-inner" style="background:radial-gradient(ellipse at 40% 50%, #000 20%, #1a0a3a 40%, #3a1a5a 55%, #ff6600 70%, #ffcc00 80%, #000 90%)"></div></div>
+      </div>
+      <div class="cells-row">
+        <div class="clip-cell active"><div class="cell-thumb mandelbrot"></div><div class="cell-name active-name">Mandelbrot</div><div class="cell-fx">FX 2</div></div>
+        <div class="clip-cell"><div class="cell-thumb plasma"></div><div class="cell-name">Plasma</div></div>
+        <div class="clip-cell"><div class="cell-thumb spectral"></div><div class="cell-name">Spectral Ring</div></div>
+        <div class="clip-cell"><div class="cell-thumb image"></div><div class="cell-name">city_night.jpg</div></div>
+        <div class="clip-cell"><div class="cell-thumb kaleidoscope"></div><div class="cell-name">Kaleidoscope</div></div>
+        <div class="clip-cell"><div class="cell-thumb torus"></div><div class="cell-name">Torus Spiral</div></div>
+        <div class="clip-cell"><div class="cell-thumb julia"></div><div class="cell-name">Julia Set</div></div>
+        <div class="clip-cell"><div class="cell-thumb noise"></div><div class="cell-name">Perlin Noise</div></div>
+        <div class="clip-cell"><div class="cell-thumb geometric"></div><div class="cell-name">Voronoi</div></div>
+        <div class="clip-cell"><div class="cell-thumb attractor"></div><div class="cell-name">Attractor</div></div>
+        <div class="clip-cell"><div class="cell-thumb fluid"></div><div class="cell-name">Fluid Sim</div></div>
+        <div class="clip-cell"><div class="cell-thumb lines"></div><div class="cell-name">Line Rider</div></div>
+      </div>
+    </div>
+
+    <!-- Layer 2 -->
+    <div class="layer-row">
+      <div class="layer-strip" style="position:relative">
+        <div class="ls-top"><span class="ls-name">Overlay</span><span class="ls-type transparent">TRN</span></div>
+        <div class="ls-actions">
+          <div class="ls-btn">X</div><div class="ls-btn">B</div><div class="ls-btn">S</div>
+          <div class="ls-transport" style="margin-left:auto">
+            <div class="ls-tbtn">&#9664;</div><div class="ls-tbtn active">&#9654;</div><div class="ls-tbtn">&#9646;&#9646;</div><div class="ls-tbtn">&#9654;|</div>
+          </div>
+        </div>
+        <div class="ls-sliders">
+          <div class="ls-vslider"><span class="ls-vslider-label" style="color:#00d9ff">S</span><div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:50%;background:#00d9ff"></div></div><span class="ls-vslider-val">1.0</span></div>
+          <div class="ls-vslider"><span class="ls-vslider-label" style="color:#f59e0b">K</span><div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:20%;background:#f59e0b"></div></div><span class="ls-vslider-val">0.2</span></div>
+          <div class="ls-vslider"><span class="ls-vslider-label" style="color:#14b8a6">V</span><div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:70%;background:#14b8a6"></div></div><span class="ls-vslider-val">70</span></div>
+          <div class="ls-vslider"><span class="ls-vslider-label" style="color:#3b82f6">F</span><div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:30%;background:#3b82f6"></div></div><span class="ls-vslider-val">0.3</span></div>
+        </div>
+        <div class="ls-dropdowns"><span class="ls-dd">Screen</span><span class="ls-dd">Dissolve</span></div>
+        <div class="ls-thumb" style="top:28px"><div class="ls-thumb-inner" style="background:radial-gradient(circle,#ff00ff22,transparent 60%)"></div></div>
+      </div>
+      <div class="cells-row">
+        <div class="clip-cell"><div class="cell-thumb source" style="background:repeating-linear-gradient(0deg,#00d9ff08 0px,transparent 1px,transparent 4px)"></div><div class="cell-name">Scan Lines</div></div>
+        <div class="clip-cell selected"><div class="cell-thumb source" style="background:radial-gradient(circle,#ff00ff22,transparent 60%)"></div><div class="cell-name">Glow Orb</div><div class="cell-fx">FX 1</div></div>
+        <div class="clip-cell"><div class="cell-thumb source" style="background:repeating-conic-gradient(from 0deg,#ffcc0011,transparent 20deg)"></div><div class="cell-name">Starburst</div></div>
+        <div class="clip-cell"><div class="cell-thumb source" style="background:linear-gradient(45deg,#00d9ff11,#ff00ff11)"></div><div class="cell-name">Gradient</div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+      </div>
+    </div>
+
+    <!-- Layer 3 -->
+    <div class="layer-row">
+      <div class="layer-strip" style="position:relative">
+        <div class="ls-top"><span class="ls-name">Effects</span><span class="ls-type fx">FX</span></div>
+        <div class="ls-actions">
+          <div class="ls-btn">X</div><div class="ls-btn">B</div><div class="ls-btn">S</div>
+        </div>
+        <div class="ls-sliders">
+          <div class="ls-vslider"><span class="ls-vslider-label" style="color:#00d9ff">S</span><div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:50%;background:#00d9ff"></div></div><span class="ls-vslider-val">1.0</span></div>
+          <div class="ls-vslider"><span class="ls-vslider-label" style="color:#f59e0b">K</span><div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:10%;background:#f59e0b"></div></div><span class="ls-vslider-val">0.1</span></div>
+          <div class="ls-vslider"><span class="ls-vslider-label" style="color:#14b8a6">V</span><div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:100%;background:#14b8a6"></div></div><span class="ls-vslider-val">100</span></div>
+          <div class="ls-vslider"><span class="ls-vslider-label" style="color:#3b82f6">F</span><div class="ls-vslider-track"><div class="ls-vslider-fill" style="height:30%;background:#3b82f6"></div></div><span class="ls-vslider-val">0.3</span></div>
+        </div>
+        <div class="ls-dropdowns"><span class="ls-dd">FX Only</span><span class="ls-dd">Cut</span></div>
+      </div>
+      <div class="cells-row">
+        <div class="clip-cell"><div class="cell-thumb empty" style="background:#0d0d0d"><span style="color:#ff00ff;font-size:8px">FX - Echo</span></div><div class="cell-name">FX - Echo</div></div>
+        <div class="clip-cell"><div class="cell-thumb empty" style="background:#0d0d0d"><span style="color:#ff00ff;font-size:8px">FX - Glitch</span></div><div class="cell-name">FX - Glitch</div></div>
+        <div class="clip-cell"><div class="cell-thumb empty" style="background:#0d0d0d"><span style="color:#ff00ff;font-size:8px">FX - Bloom</span></div><div class="cell-name">FX - Bloom</div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+        <div class="clip-cell"><div class="cell-thumb empty"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck-tabs">
+    <div style="width:200px;min-width:200px"></div>
+    <div class="deck-tab active">Deck A</div>
+    <div class="deck-tab">Deck B</div>
+    <div class="deck-tab">Deck C</div>
+    <div class="deck-tab">+</div>
+  </div>
+</div>
+
+<!-- BOTTOM AREA (45%) -->
+<div class="bottom-area">
+
+  <!-- Inspector 40% -->
+  <div class="inspector-panel">
+    <div class="insp-tabs">
+      <div class="insp-tab active">Clip</div>
+      <div class="insp-tab">Layer</div>
+      <div class="insp-tab">Comp</div>
+      <div class="insp-tab">Signal</div>
+    </div>
+    <div class="insp-body">
+      <div style="padding:6px 8px;border-bottom:1px solid #1a1a1a">
+        <div style="font-size:12px;font-weight:600">Mandelbrot</div>
+        <div style="font-size:8px;color:#555">Procedural Source - Fractal</div>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-hdr"><span class="arrow">&#9660;</span> Dashboard <span class="badge">3 linked</span></div>
+        <div class="insp-section-body">
+          <div class="dash-grid">
+            <div class="dash-knob"><div class="dk-ring"><span class="dk-val">.72</span></div><span class="dk-label">Zoom</span></div>
+            <div class="dash-knob"><div class="dk-ring"><span class="dk-val">.45</span></div><span class="dk-label">Speed</span></div>
+            <div class="dash-knob"><div class="dk-ring"><span class="dk-val">.60</span></div><span class="dk-label">Color</span></div>
+            <div class="dash-knob"><div class="dk-ring" style="border-color:#333"><span class="dk-val" style="color:#555">--</span></div><span class="dk-label">Link 4</span></div>
+            <div class="dash-knob"><div class="dk-ring" style="border-color:#333"><span class="dk-val" style="color:#555">--</span></div><span class="dk-label">Link 5</span></div>
+            <div class="dash-knob"><div class="dk-ring" style="border-color:#333"><span class="dk-val" style="color:#555">--</span></div><span class="dk-label">Link 6</span></div>
+            <div class="dash-knob"><div class="dk-ring" style="border-color:#333"><span class="dk-val" style="color:#555">--</span></div><span class="dk-label">Link 7</span></div>
+            <div class="dash-knob"><div class="dk-ring" style="border-color:#333"><span class="dk-val" style="color:#555">--</span></div><span class="dk-label">Link 8</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-hdr"><span class="arrow">&#9660;</span> Transport</div>
+        <div class="insp-section-body">
+          <div class="transport-row">
+            <span class="transport-badge">BPM Sync</span>
+            <span class="transport-info">4 beats/cycle</span>
+            <div class="transport-btns" style="margin-left:auto">
+              <div class="transport-btn">&#9664;</div><div class="transport-btn active">&#9654;</div><div class="transport-btn">&#9646;&#9646;</div>
+            </div>
+          </div>
+          <div class="timeline-bar"><div class="timeline-range" style="left:10%;width:80%"></div><div class="timeline-playhead" style="left:35%"></div></div>
+        </div>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-hdr"><span class="arrow">&#9660;</span> Source Parameters</div>
+        <div class="insp-section-body">
+          <div class="param-row"><div class="param-triangle connected"></div><span class="param-label">Dive Speed</span><div class="param-slider"><div class="param-slider-fill psf-cyan" style="width:55%"></div></div><span class="param-val">0.55</span></div>
+          <div class="param-row"><div class="param-triangle connected"></div><span class="param-label">Zoom</span><div class="param-slider"><div class="param-slider-fill psf-cyan" style="width:40%"></div></div><span class="param-val">0.40</span></div>
+          <div class="param-row"><div class="param-triangle"></div><span class="param-label">Center X</span><div class="param-slider"><div class="param-slider-fill psf-white" style="width:50%"></div></div><span class="param-val">0.50</span></div>
+          <div class="param-row"><div class="param-triangle"></div><span class="param-label">Center Y</span><div class="param-slider"><div class="param-slider-fill psf-white" style="width:50%"></div></div><span class="param-val">0.50</span></div>
+          <div class="param-row"><div class="param-triangle connected"></div><span class="param-label">Color Shift</span><div class="param-slider"><div class="param-slider-fill psf-cyan" style="width:30%"></div></div><span class="param-val">0.30</span></div>
+          <div class="param-row"><div class="param-triangle"></div><span class="param-label">Iterations</span><div class="param-slider"><div class="param-slider-fill psf-white" style="width:60%"></div></div><span class="param-val">0.60</span></div>
+          <div class="param-row"><div class="param-triangle"></div><span class="param-label">Power</span><div class="param-slider"><div class="param-slider-fill psf-white" style="width:25%"></div></div><span class="param-val">2.0</span></div>
+          <div class="param-row"><div class="param-triangle"></div><span class="param-label">Palette</span><div class="param-slider"><div class="param-slider-fill psf-white" style="width:75%"></div></div><span class="param-val">Fire</span></div>
+        </div>
+      </div>
+
+      <div class="insp-section">
+        <div class="insp-section-hdr"><span class="arrow">&#9660;</span> Effects <span class="badge">2</span></div>
+        <div class="insp-section-body">
+          <div class="fx-item"><div class="fx-bypass">B</div><span class="fx-name">Ripple</span><span class="fx-val">0.65</span><span class="fx-delete">x</span></div>
+          <div class="fx-params">
+            <div class="param-row"><div class="param-triangle connected"></div><span class="param-label">Intensity</span><div class="param-slider"><div class="param-slider-fill psf-cyan" style="width:65%"></div></div><span class="param-val">0.65</span></div>
+            <div class="param-row"><div class="param-triangle"></div><span class="param-label">Frequency</span><div class="param-slider"><div class="param-slider-fill psf-white" style="width:40%"></div></div><span class="param-val">0.40</span></div>
+          </div>
+          <div class="fx-item"><div class="fx-bypass">B</div><span class="fx-name">Hue Shift</span><span class="fx-val">0.30</span><span class="fx-delete">x</span></div>
+        </div>
+      </div>
+
+      <div class="insp-section"><div class="insp-section-hdr"><span class="arrow">&#9654;</span> Video</div></div>
+      <div class="insp-section"><div class="insp-section-hdr"><span class="arrow">&#9654;</span> Transform</div></div>
+    </div>
+  </div>
+
+  <!-- Browser 35% -->
+  <div class="browser-panel">
+    <div class="br-tabs">
+      <div class="br-tab">Files</div>
+      <div class="br-tab active">FX</div>
+      <div class="br-tab">Sources</div>
+      <div class="br-tab">Decks</div>
+      <div class="br-tab">Rec</div>
+    </div>
+    <div class="br-body">
+      <div class="br-search">Search effects...</div>
+      <div class="fx-cat">
+        <div class="fx-cat-hdr">Warp <span class="count">28</span></div>
+        <div class="fx-cat-body">
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-ripple"></div><div class="fx-card-name">Ripple</div></div>
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-bulge"></div><div class="fx-card-name">Bulge</div></div>
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-wave"></div><div class="fx-card-name">Wave</div></div>
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-liquid"></div><div class="fx-card-name">Liquid</div></div>
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-kaleidoscope"></div><div class="fx-card-name">Kaleidoscope</div></div>
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-swirl"></div><div class="fx-card-name">Swirl</div></div>
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-mirror"></div><div class="fx-card-name">Mirror</div></div>
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-tile"></div><div class="fx-card-name">Tile Grid</div></div>
+        </div>
+      </div>
+      <div class="fx-cat">
+        <div class="fx-cat-hdr">Color <span class="count">31</span></div>
+        <div class="fx-cat-body">
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-hue"></div><div class="fx-card-name">Hue Shift</div></div>
+          <div class="fx-item-card"><div class="fx-card-thumb fxp-sat"></div><div class="fx-card-name">Saturation</div></div>
+        </div>
+      </div>
+      <div class="fx-cat"><div class="fx-cat-hdr">Glitch <span class="count">16</span></div></div>
+      <div class="fx-cat"><div class="fx-cat-hdr">Blur/Post <span class="count">10</span></div></div>
+      <div class="fx-cat"><div class="fx-cat-hdr">Time <span class="count">6</span></div></div>
+      <div class="fx-cat"><div class="fx-cat-hdr">Audio <span class="count">3</span></div></div>
+      <div class="fx-cat"><div class="fx-cat-hdr">Pattern <span class="count">19</span></div></div>
+    </div>
+  </div>
+
+  <!-- Right: Preview + Signal (25%) -->
+  <div class="right-panel">
+    <div class="rp-preview">
+      <div class="preview-content"></div>
+      <span class="preview-fps">60.0 fps</span>
+    </div>
+    <div class="rp-label">COMPOSITION OUTPUT</div>
+
+    <div class="rp-signals">
+      <div class="rp-section-title">Amplitude</div>
+      <div class="rp-meter"><span class="lbl">RMS</span><div class="bar"><div class="fill f-blue" style="width:68%"></div></div><span class="val">0.68</span></div>
+      <div class="rp-meter"><span class="lbl">Peak</span><div class="bar"><div class="fill f-blue" style="width:82%"></div></div><span class="val">0.82</span></div>
+      <div class="rp-meter"><span class="lbl">LUFS</span><div class="bar"><div class="fill f-blue" style="width:62%"></div></div><span class="val">-14.2</span></div>
+
+      <div class="rp-section-title">Spectrum</div>
+      <div class="rp-spectrum">
+        <div class="rp-band" style="height:18px;background:#ff0044"></div>
+        <div class="rp-band" style="height:22px;background:#ff4400"></div>
+        <div class="rp-band" style="height:14px;background:#ff8800"></div>
+        <div class="rp-band" style="height:10px;background:#ffcc00"></div>
+        <div class="rp-band" style="height:7px;background:#88ff00"></div>
+        <div class="rp-band" style="height:9px;background:#00ccff"></div>
+        <div class="rp-band" style="height:4px;background:#8844ff"></div>
+      </div>
+
+      <div class="rp-section-title">Rhythm</div>
+      <div class="rp-phase"><span class="lbl">Beat</span><div class="bar"><div class="fill f-cyan" style="width:65%"></div></div></div>
+      <div class="rp-phase"><span class="lbl">Bar</span><div class="bar"><div class="fill f-green" style="width:42%"></div></div></div>
+      <div class="rp-phase"><span class="lbl">Phrase</span><div class="bar"><div class="fill f-purple" style="width:18%"></div></div></div>
+      <div class="rp-meter"><span class="lbl">Onset</span><div class="bar"><div class="fill f-orange" style="width:82%"></div></div><span class="val">0.82</span></div>
+
+      <div class="rp-section-title">Pitch &amp; Key</div>
+      <div style="display:flex;align-items:baseline;gap:3px;margin-bottom:3px">
+        <span style="font-size:11px;font-weight:600">440 Hz</span>
+        <span style="font-size:9px;color:#00d9ff">A4</span>
+        <span style="font-size:9px;font-weight:600;background:#1a1a1a;border:1px solid #333;padding:0 4px;margin-left:4px">Am</span>
+      </div>
+
+      <div class="rp-section-title">State</div>
+      <div><span class="rp-badge drop">DROP</span><span class="rp-badge techno">TECHNO</span><span style="font-size:7px;color:#555">78%</span></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /app-body -->
+</body>
+</html>

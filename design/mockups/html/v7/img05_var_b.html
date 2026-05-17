@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Audio-DNA VJ — Image 05 Var B (Enhanced)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(160deg, #1a1e24 0%, #131620 50%, #0e1118 100%); color: #d0d0d0; font-size: 12px; }
+
+.topbar { height: 38px; background: linear-gradient(180deg, #282c34 0%, #1e2228 100%); border-bottom: 1px solid #3a3e44; display: flex; align-items: center; padding: 0 12px; gap: 10px; }
+.logo { font-size: 17px; font-weight: 700; color: #e8e8e8; letter-spacing: 1px; }
+.logo span { color: #f0a030; }
+.sep { width: 1px; height: 22px; background: #3a3e44; }
+.bpm-box { display: flex; align-items: baseline; gap: 4px; }
+.bpm-val { font-size: 20px; font-weight: 800; color: #4ae04a; font-variant-numeric: tabular-nums; }
+.bpm-unit { font-size: 10px; color: #6a6; }
+.btn { background: #2a2e34; color: #bbb; border: 1px solid #444; padding: 4px 12px; border-radius: 3px; font-size: 11px; cursor: pointer; }
+.btn:hover { background: #3a3e44; }
+.btn-danger { background: #8a2020; color: #fff; border-color: #b03030; font-weight: 700; font-size: 12px; }
+.btn-warn { background: #6a5020; color: #fff; border-color: #907030; font-weight: 600; }
+.btn-safe { background: #206a30; color: #fff; border-color: #30a040; font-weight: 600; }
+.beat-dots { display: flex; gap: 4px; }
+.beat-dot { width: 10px; height: 10px; border-radius: 50%; background: #2a2e34; border: 1px solid #444; }
+.beat-dot.on { background: #f0a030; border-color: #f0a030; box-shadow: 0 0 6px rgba(240,160,48,0.5); }
+.meter-h { width: 120px; height: 10px; background: #1a1a1a; border-radius: 5px; overflow: hidden; border: 1px solid #333; }
+.meter-h-fill { height: 100%; background: linear-gradient(90deg, #1a6a1a, #4ae04a 50%, #e0e040 80%, #e04040); border-radius: 4px; }
+.bar-info { font-size: 14px; color: #aaa; font-weight: 600; font-variant-numeric: tabular-nums; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.fps { font-size: 12px; color: #4ae04a; font-weight: 600; }
+.led { width: 8px; height: 8px; border-radius: 50%; background: #4ae04a; box-shadow: 0 0 4px #4ae04a; }
+
+/* PERFORMANCE BUTTONS */
+.perf-row { height: 30px; background: linear-gradient(180deg, #222630 0%, #1c2028 100%); border-bottom: 1px solid #2a2e34; display: flex; align-items: center; padding: 0 12px; gap: 8px; }
+
+/* MAIN */
+.main { display: flex; height: 614px; }
+
+/* SCENE FLOW - enhanced with color-coded states */
+.scene-flow { width: 200px; background: linear-gradient(180deg, #1c2028 0%, #161a20 100%); border-right: 1px solid #2a2e34; padding: 10px; }
+.scene-flow h3 { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+.scene-row { display: flex; align-items: center; margin-bottom: 5px; padding: 5px 8px; border-radius: 4px; background: #22262e; border: 1px solid #2a2e34; transition: all 0.15s; }
+.scene-row.live { border-color: #f0a030; background: linear-gradient(90deg, #2a2418, #22262e); }
+.scene-row .name { flex: 1; font-size: 12px; color: #ccc; }
+.scene-row.live .name { color: #f0a030; font-weight: 700; }
+.scene-pill { font-size: 9px; padding: 2px 8px; border-radius: 10px; margin-left: 3px; cursor: pointer; }
+.pill-now { background: #f0a030; color: #111; font-weight: 700; }
+.pill-cut { background: #444; color: #ccc; }
+.pill-fade { background: #404060; color: #aac; }
+.pill-next { background: #2a4a2a; color: #8c8; }
+.pill-trigger { background: #333; color: #aaa; border: 1px solid #555; }
+.add-scene-btn { margin-top: 10px; font-size: 11px; color: #4aaa8a; cursor: pointer; padding: 4px 0; }
+.scene-detail { margin-top: 14px; padding: 10px; background: #1a1e24; border-radius: 4px; border: 1px solid #2a2e34; }
+.scene-detail-title { font-size: 11px; color: #f0a030; font-weight: 600; margin-bottom: 6px; }
+.scene-detail-layer { font-size: 10px; color: #888; line-height: 1.8; padding-left: 4px; }
+.scene-detail-layer span { color: #aaa; }
+
+/* CENTER */
+.center { flex: 1; display: flex; flex-direction: column; }
+.preview-header { height: 30px; display: flex; align-items: center; justify-content: center; gap: 16px; background: #1c2028; border-bottom: 1px solid #2a2e34; }
+.pv-tab { font-size: 11px; color: #666; padding: 4px 14px; cursor: pointer; border-radius: 3px; }
+.pv-tab.active { color: #f0a030; background: rgba(240,160,48,0.1); }
+.preview-container { flex: 1; display: flex; gap: 12px; padding: 12px; justify-content: center; align-items: center; }
+.preview-panel { width: 320px; height: 220px; border-radius: 6px; border: 1px solid #333; overflow: hidden; position: relative; }
+.preview-panel.cue { background: linear-gradient(135deg, #101830, #1a1040, #0a2040); }
+.preview-panel.cue::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 40% 50%, rgba(80,60,180,0.2), transparent 70%); }
+.preview-panel.live { background: linear-gradient(135deg, #201810, #1a1020, #102030); }
+.preview-panel.live::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 60% 40%, rgba(240,180,60,0.15), transparent 60%); }
+.preview-label { position: absolute; top: 6px; left: 8px; font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 2px; background: rgba(0,0,0,0.5); padding: 2px 8px; border-radius: 3px; z-index: 1; }
+.take-live-btn { position: absolute; bottom: 10px; right: 10px; background: linear-gradient(180deg, #f0a030, #d08020); color: #111; font-size: 11px; font-weight: 700; padding: 5px 14px; border-radius: 4px; z-index: 1; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+
+/* TRANSPORT */
+.transport { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 24px; background: #1a1e24; border-top: 1px solid #2a2e34; }
+.t-btn { width: 30px; height: 24px; background: #2a2e34; border: 1px solid #444; border-radius: 4px; color: #ccc; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; }
+.t-btn.play { background: #f0a030; color: #111; }
+.scrubber { flex: 1; height: 8px; background: #1a1a1a; border-radius: 4px; position: relative; border: 1px solid #2a2e34; }
+.scrub-fill { height: 100%; width: 48%; background: linear-gradient(90deg, #305080, #5080c0); border-radius: 3px; }
+.scrub-head { position: absolute; top: -4px; left: 48%; width: 3px; height: 16px; background: #e0e0e0; border-radius: 2px; box-shadow: 0 0 4px rgba(255,255,255,0.3); }
+
+/* MACROS */
+.macros-area { height: 70px; display: flex; align-items: center; justify-content: center; gap: 24px; background: linear-gradient(180deg, #1c2028 0%, #181c22 100%); border-top: 1px solid #2a2e34; }
+.macro-group { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.m-knob { width: 36px; height: 36px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #404448, #1e2228); border: 2px solid #4a4e54; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.m-knob .arc { position: absolute; inset: -4px; border-radius: 50%; }
+.arc-amber { border: 2.5px solid transparent; border-top-color: #f0a030; border-right-color: #f0a030; }
+.arc-cyan { border: 2.5px solid transparent; border-top-color: #40c0c0; border-right-color: #40c0c0; }
+.arc-green { border: 2.5px solid transparent; border-top-color: #4ae04a; }
+.m-knob .pointer { position: absolute; top: 4px; left: 50%; width: 2px; height: 11px; background: #ddd; transform-origin: bottom center; border-radius: 1px; }
+.m-label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+.m-num { font-size: 8px; color: #555; }
+
+/* SOURCES */
+.sources { width: 220px; background: linear-gradient(180deg, #1c2028 0%, #161a20 100%); border-left: 1px solid #2a2e34; display: flex; flex-direction: column; }
+.src-tabs { display: flex; height: 28px; border-bottom: 1px solid #2a2e34; }
+.src-tab { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666; cursor: pointer; }
+.src-tab.active { color: #f0a030; background: rgba(240,160,48,0.05); border-bottom: 2px solid #f0a030; }
+.src-list { flex: 1; overflow-y: auto; }
+.src-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #1a1e24; }
+.src-item:hover { background: #252830; }
+.src-ico { width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+.ico-audio { background: #1a4a1a; color: #4ae04a; }
+.ico-kick { background: #4a3a1a; color: #e0a040; }
+.ico-lfo { background: #1a3a5a; color: #40a0e0; }
+.src-name { flex: 1; font-size: 11px; color: #ccc; }
+.src-wave { width: 55px; height: 18px; }
+.src-wave svg { width: 100%; height: 100%; }
+.src-meter-v { width: 5px; height: 18px; background: #111; border-radius: 2px; overflow: hidden; display: flex; flex-direction: column-reverse; }
+.src-meter-v-fill { width: 100%; background: linear-gradient(0deg, #1a6a1a, #4ae04a 70%, #e0e040); border-radius: 0 0 2px 2px; }
+.src-add { padding: 10px 12px; font-size: 11px; color: #40a0a0; cursor: pointer; }
+.src-hint { padding: 8px 12px; font-size: 10px; color: #444; font-style: italic; }
+.src-divider { border-top: 1px solid #2a2e34; margin: 4px 0; }
+.layer-ctrl-section { padding: 10px 12px; }
+.lc-label { font-size: 10px; color: #666; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.blend-select { width: 100%; background: #22262e; border: 1px solid #3a3e44; color: #ccc; padding: 4px 8px; border-radius: 3px; font-size: 11px; }
+.hsb-row { display: flex; gap: 12px; margin-top: 10px; justify-content: center; }
+.hsb-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.hsb-knob { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #3a3e44, #1e2228); border: 1.5px solid #4a4e54; position: relative; }
+.hsb-knob .dot { position: absolute; top: 3px; left: 50%; width: 2px; height: 7px; background: #bbb; transform-origin: bottom center; border-radius: 1px; }
+.hsb-label { font-size: 8px; color: #777; }
+
+/* LAYER TABS */
+.ltabs { height: 28px; background: #1a1e24; border-bottom: 1px solid #2a2e34; display: flex; align-items: center; padding: 0 10px; gap: 2px; }
+.ltab { padding: 4px 14px; font-size: 11px; color: #666; background: #22262e; border: 1px solid transparent; border-bottom: none; border-radius: 4px 4px 0 0; cursor: pointer; }
+.ltab.active { color: #f0a030; border-color: #3a3e44; background: #2a2e34; }
+.ltab.add { color: #40a0a0; background: transparent; }
+
+/* CLIP STRIP */
+.clip-strip { height: 210px; background: linear-gradient(180deg, #1a1e24 0%, #161a20 100%); display: flex; padding: 8px 10px; gap: 8px; overflow-x: auto; }
+.clip { width: 116px; min-width: 116px; background: linear-gradient(180deg, #252830 0%, #1e2228 100%); border: 1px solid #333; border-radius: 5px; display: flex; flex-direction: column; overflow: hidden; }
+.clip.active { border-color: #40d0d0; box-shadow: 0 0 8px rgba(64,208,208,0.15); }
+.clip-header { display: flex; align-items: center; gap: 2px; padding: 3px 5px; }
+.clip-on { font-size: 8px; color: #888; background: #2a2e34; border-radius: 2px; padding: 1px 4px; }
+.clip-on.active { color: #e04040; }
+.clip-sm { font-size: 8px; color: #666; padding: 1px 3px; cursor: pointer; }
+.clip-sm.s-on { color: #c0c020; }
+.clip-thumb-sq { width: 88px; height: 88px; margin: 0 auto; border-radius: 4px; position: relative; }
+.clip-type-badge { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: 700; padding: 1px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.tb-video { background: linear-gradient(90deg, #c04820, #a03010); color: #fff; }
+.tb-image { background: linear-gradient(90deg, #2060c0, #1040a0); color: #fff; }
+.tb-synth { background: linear-gradient(90deg, #20a0a0, #108080); color: #fff; }
+.clip-name-bar { font-size: 9px; color: #aaa; text-align: center; padding: 3px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clip-knob-row { display: flex; justify-content: center; gap: 8px; padding: 3px 0; }
+.ck { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 38% 32%, #3a3e44, #1e2228); border: 1.5px solid #444; position: relative; }
+.ck .ptr { position: absolute; top: 3px; left: 50%; width: 1.5px; height: 7px; background: #aaa; transform-origin: bottom center; border-radius: 1px; }
+.clip-actions { display: flex; gap: 3px; padding: 2px 5px; }
+.ca-btn { flex: 1; font-size: 8px; padding: 2px 0; text-align: center; background: #22262e; border: 1px solid #333; border-radius: 3px; color: #777; cursor: pointer; }
+.ca-btn.fx-act { color: #40d0d0; border-color: #40d0d0; }
+.clip-bottom { display: flex; gap: 2px; padding: 2px 5px; }
+.cb-btn { flex: 1; font-size: 8px; padding: 2px 0; text-align: center; background: #1e2228; border: 1px solid #2a2e34; border-radius: 2px; color: #555; cursor: pointer; }
+.empty-clip { width: 116px; min-width: 116px; border: 1px dashed #2a2e34; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #333; }
+
+.t1 { background: linear-gradient(135deg, #a03818 0%, #301018 50%, #183048 100%); }
+.t2 { background: linear-gradient(135deg, #183868 0%, #0c2848 50%, #3050a0 100%); }
+.t3 { background: linear-gradient(135deg, #188868 0%, #0c4838 50%, #185038 100%); }
+.t4 { background: linear-gradient(135deg, #683818 0%, #382010 50%, #502818 100%); }
+
+/* FOOTER */
+.footer { height: 32px; background: linear-gradient(180deg, #222630 0%, #1a1e24 100%); border-top: 1px solid #3a3e44; display: flex; align-items: center; padding: 0 14px; gap: 20px; }
+.f-item { font-size: 11px; color: #666; cursor: pointer; }
+.f-item:hover { color: #aaa; }
+.f-right { margin-left: auto; display: flex; gap: 10px; }
+.f-btn { font-size: 11px; color: #888; padding: 3px 14px; background: #2a2e34; border: 1px solid #3a3e44; border-radius: 3px; cursor: pointer; }
+.f-btn:hover { color: #ddd; background: #333; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Audio-<span>DNA</span> VJ</div>
+  <div class="sep"></div>
+  <div class="bpm-box">
+    <span class="bpm-val">128.00</span>
+    <span class="bpm-unit">BPM</span>
+  </div>
+  <div class="sep"></div>
+  <span class="btn" style="font-size:10px">128 Arg</span>
+  <div class="sep"></div>
+  <span class="btn" style="padding:3px 8px">TAP</span>
+  <span class="btn" style="padding:3px 8px">NUDGE -</span>
+  <span class="btn" style="padding:3px 8px">NUDGE +</span>
+  <span class="btn" style="padding:3px 8px">RESYNC</span>
+  <div class="sep"></div>
+  <div class="meter-h"><div class="meter-h-fill" style="width:72%"></div></div>
+  <div class="sep"></div>
+  <div class="beat-dots">
+    <div class="beat-dot on"></div><div class="beat-dot on"></div><div class="beat-dot on"></div><div class="beat-dot"></div>
+  </div>
+  <div class="topbar-right">
+    <div class="bar-info">037 / 04.1</div>
+    <div class="sep"></div>
+    <span style="font-size:11px;color:#888">Room Delay: +0ms</span>
+    <div class="meter-h" style="width:70px"><div class="meter-h-fill" style="width:40%"></div></div>
+    <div class="sep"></div>
+    <span class="fps">FPS: 60</span>
+    <div class="led"></div>
+    <span class="btn" style="padding:3px 8px">Audio IN</span>
+    <span class="btn" style="padding:3px 8px">LED WALL</span>
+  </div>
+</div>
+
+<!-- PERFORMANCE ROW -->
+<div class="perf-row">
+  <span class="btn" style="font-size:10px;padding:2px 10px">Scene Flow</span>
+  <span class="btn" style="font-size:10px;padding:2px 10px">Quantize: 1 bar</span>
+  <div style="flex:1"></div>
+  <span class="btn-safe btn" style="font-size:10px;padding:3px 14px">SAFE LOOK</span>
+  <span class="btn-warn btn" style="font-size:10px;padding:3px 14px;background:#6a5020;color:#fff;border-color:#907030">BLACKOUT</span>
+  <span class="btn-danger btn" style="font-size:10px;padding:3px 14px">PANIC</span>
+  <span class="btn" style="font-size:10px;padding:3px 10px">KILL FX</span>
+  <span class="btn" style="font-size:10px;padding:3px 10px">HARD RESYNC</span>
+  <div class="sep"></div>
+  <span class="btn" style="font-size:10px;padding:2px 10px">MIDI Learn</span>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main">
+  <!-- SCENE FLOW -->
+  <div class="scene-flow">
+    <h3>Scene Flow</h3>
+    <div class="scene-row">
+      <span class="name">Intro</span>
+      <span class="scene-pill pill-now">NOW</span>
+      <span class="scene-pill pill-cut">Cut</span>
+      <span class="scene-pill pill-trigger">Trigger</span>
+    </div>
+    <div class="scene-row">
+      <span class="name">Verse</span>
+      <span class="scene-pill pill-next">NEXT</span>
+      <span class="scene-pill pill-fade">Fade</span>
+    </div>
+    <div class="scene-row live">
+      <span class="name">Chorus</span>
+      <span class="scene-pill pill-now">LIVE</span>
+      <span class="scene-pill pill-trigger">TRIGGER</span>
+    </div>
+    <div class="scene-row">
+      <span class="name">Drop</span>
+      <span class="scene-pill pill-trigger">Trigger</span>
+    </div>
+    <div class="add-scene-btn">+ Add Scene</div>
+
+    <div class="scene-detail">
+      <div class="scene-detail-title">Chorus Lv2</div>
+      <div class="scene-row" style="margin-bottom:3px;padding:3px 6px">
+        <span class="name" style="font-size:11px;color:#f0a030">LIVE</span>
+        <span style="font-size:9px;color:#666">Verse</span>
+      </div>
+      <div class="scene-row" style="padding:3px 6px">
+        <span class="name" style="font-size:11px">Drop</span>
+        <span class="scene-pill pill-trigger" style="font-size:8px">Trigger</span>
+      </div>
+    </div>
+
+    <div class="scene-detail" style="margin-top:8px">
+      <div class="scene-detail-title">Active Scene Layers</div>
+      <div class="scene-detail-layer">
+        L1: <span>Clip: Geo-Pulse A</span><br>
+        L2: <span>Pattern B</span><br>
+        L3: <span>Waveform C</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <div class="preview-header">
+      <span class="pv-tab active">LIVE</span>
+      <span class="pv-tab">CUE</span>
+      <span style="font-size:11px;color:#666">Promise, Next</span>
+      <span style="font-size:11px;color:#4ae04a;font-weight:600">Verse: NEXT - Fa5</span>
+      <div style="flex:1"></div>
+      <span style="font-size:10px;color:#555">Layout</span>
+    </div>
+    <div style="text-align:center;font-size:10px;color:#555;padding:4px;letter-spacing:1px">LIVE OUTPUT PREVIEW</div>
+    <div class="preview-container">
+      <div class="preview-panel cue">
+        <span class="preview-label">CUE</span>
+      </div>
+      <div class="preview-panel live">
+        <span class="preview-label">LIVE</span>
+        <span class="take-live-btn">TAKE TO LIVE</span>
+      </div>
+    </div>
+
+    <div class="transport">
+      <div class="t-btn">&#9664;</div>
+      <div class="t-btn play">&#9654;</div>
+      <div class="t-btn">&#9632;</div>
+      <div class="scrubber">
+        <div class="scrub-fill"></div>
+        <div class="scrub-head"></div>
+      </div>
+      <span style="font-size:10px;color:#666">01:23.4</span>
+      <span class="btn" style="font-size:10px;padding:2px 8px">Detach</span>
+    </div>
+
+    <div class="macros-area">
+      <div class="macro-group">
+        <div class="m-knob"><div class="arc arc-amber" style="transform:rotate(-40deg)"></div><div class="pointer" style="transform:rotate(-30deg)"></div></div>
+        <span class="m-label">Hue</span><span class="m-num">1</span>
+      </div>
+      <div class="macro-group">
+        <div class="m-knob"><div class="arc arc-amber" style="transform:rotate(10deg)"></div><div class="pointer" style="transform:rotate(15deg)"></div></div>
+        <span class="m-label">Sat</span><span class="m-num">2</span>
+      </div>
+      <div class="macro-group">
+        <div class="m-knob"><div class="arc arc-cyan" style="transform:rotate(-20deg)"></div><div class="pointer" style="transform:rotate(-25deg)"></div></div>
+        <span class="m-label">Bright</span><span class="m-num">3</span>
+      </div>
+      <div class="macro-group">
+        <div class="m-knob"><div class="arc arc-amber" style="transform:rotate(30deg)"></div><div class="pointer" style="transform:rotate(40deg)"></div></div>
+        <span class="m-label">Scale</span><span class="m-num">4</span>
+      </div>
+      <div class="macro-group">
+        <div class="m-knob"><div class="arc arc-green" style="transform:rotate(-10deg)"></div><div class="pointer" style="transform:rotate(-5deg)"></div></div>
+        <span class="m-label">Speed</span><span class="m-num">5</span>
+      </div>
+      <div class="macro-group">
+        <div class="m-knob"><div class="arc arc-cyan" style="transform:rotate(50deg)"></div><div class="pointer" style="transform:rotate(55deg)"></div></div>
+        <span class="m-label">FX Mix</span><span class="m-num">6</span>
+      </div>
+      <div class="macro-group">
+        <div class="m-knob"><div class="arc arc-amber" style="transform:rotate(20deg)"></div><div class="pointer" style="transform:rotate(25deg)"></div></div>
+        <span class="m-label">Strobe</span><span class="m-num">7</span>
+      </div>
+      <div class="macro-group">
+        <div class="m-knob"><div class="arc arc-green" style="transform:rotate(-50deg)"></div><div class="pointer" style="transform:rotate(-45deg)"></div></div>
+        <span class="m-label">Feedback</span><span class="m-num">8</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOURCES -->
+  <div class="sources">
+    <div class="src-tabs">
+      <div class="src-tab">CUE</div>
+      <div class="src-tab active">SOURCES</div>
+      <div class="src-tab">LAYER</div>
+      <div class="src-tab">CLIP</div>
+    </div>
+    <div class="src-list">
+      <div class="src-item">
+        <div class="src-ico ico-audio">&#9835;</div>
+        <span class="src-name">Master Audio</span>
+        <div class="src-wave"><svg viewBox="0 0 55 18"><polyline points="0,12 6,7 12,4 18,10 24,5 30,2 36,9 42,13 48,5 55,8" fill="none" stroke="#4ae04a" stroke-width="1.5"/></svg></div>
+        <div class="src-meter-v"><div class="src-meter-v-fill" style="height:80%"></div></div>
+      </div>
+      <div class="src-item">
+        <div class="src-ico ico-kick">&#9835;</div>
+        <span class="src-name">Kick Drum</span>
+        <div class="src-wave"><svg viewBox="0 0 55 18"><polyline points="0,16 8,2 14,16 22,16 30,3 36,16 44,16 52,5" fill="none" stroke="#e0a040" stroke-width="1.5"/></svg></div>
+        <div class="src-meter-v"><div class="src-meter-v-fill" style="height:60%"></div></div>
+      </div>
+      <div class="src-item">
+        <div class="src-ico ico-lfo">&#8767;</div>
+        <span class="src-name">LFO &mdash; Sine</span>
+        <div class="src-wave"><svg viewBox="0 0 55 18"><path d="M0,9 Q14,0 28,9 Q42,18 55,9" fill="none" stroke="#40a0e0" stroke-width="1.5"/></svg></div>
+      </div>
+      <div class="src-item">
+        <div class="src-ico ico-lfo">&#8767;</div>
+        <span class="src-name">LFO &mdash; Custom</span>
+        <div class="src-wave"><svg viewBox="0 0 55 18"><polyline points="0,9 12,2 24,16 36,2 48,16 55,9" fill="none" stroke="#40a0e0" stroke-width="1.5"/></svg></div>
+      </div>
+      <div class="src-add">+ Add Audio Source</div>
+      <div class="src-hint">Drag a source onto a parameter.</div>
+      <div class="src-divider"></div>
+      <div class="layer-ctrl-section">
+        <div class="lc-label">Layer Controls</div>
+        <div class="lc-label" style="margin-top:6px">Blend Mode</div>
+        <select class="blend-select"><option>Normal</option><option>Additive</option><option>Screen</option></select>
+        <div class="hsb-row">
+          <div class="hsb-item"><div class="hsb-knob"><div class="dot" style="transform:rotate(-30deg)"></div></div><span class="hsb-label">H</span></div>
+          <div class="hsb-item"><div class="hsb-knob"><div class="dot" style="transform:rotate(20deg)"></div></div><span class="hsb-label">S</span></div>
+          <div class="hsb-item"><div class="hsb-knob"><div class="dot" style="transform:rotate(-10deg)"></div></div><span class="hsb-label">B</span></div>
+          <div class="hsb-item"><div class="hsb-knob"><div class="dot" style="transform:rotate(40deg)"></div></div><span class="hsb-label">Spd</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LAYER TABS -->
+<div class="ltabs">
+  <span class="ltab active">Layer 1</span>
+  <span class="ltab">Layer 2</span>
+  <span class="ltab">Layer 3</span>
+  <span class="ltab">Layer 4</span>
+  <span class="ltab">Layer 5</span>
+  <span class="ltab">Layer 6</span>
+  <span class="ltab">Layer 7</span>
+  <span class="ltab">Layer 8</span>
+  <span class="ltab">Layer 9</span>
+  <span class="ltab add">+ Add Layer</span>
+</div>
+
+<!-- CLIP STRIP -->
+<div class="clip-strip">
+  <div class="clip active">
+    <div class="clip-header"><span class="clip-on active">ON</span><div style="flex:1"></div><span class="clip-sm s-on">S</span><span class="clip-sm">M</span></div>
+    <div class="clip-thumb-sq t1"><span class="clip-type-badge tb-video">VIDEO</span></div>
+    <div class="clip-name-bar">Clip: Geo-Pulse A</div>
+    <div class="clip-knob-row"><div class="ck"><div class="ptr" style="transform:rotate(-30deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(20deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(-10deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(40deg)"></div></div></div>
+    <div class="clip-actions"><span class="ca-btn fx-act">FX 1</span><span class="ca-btn">Macro</span></div>
+    <div class="clip-bottom"><span class="cb-btn">Strobe</span><span class="cb-btn">Expand</span></div>
+  </div>
+  <div class="clip">
+    <div class="clip-header"><span class="clip-on active">ON</span><div style="flex:1"></div><span class="clip-sm">S</span><span class="clip-sm">M</span></div>
+    <div class="clip-thumb-sq t2"><span class="clip-type-badge tb-image">IMAGE</span></div>
+    <div class="clip-name-bar">Pattern B</div>
+    <div class="clip-knob-row"><div class="ck"><div class="ptr" style="transform:rotate(15deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(-40deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(30deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(-20deg)"></div></div></div>
+    <div class="clip-actions"><span class="ca-btn fx-act">FX 1</span><span class="ca-btn">Macro</span></div>
+    <div class="clip-bottom"><span class="cb-btn">Strobe</span><span class="cb-btn">Expand</span></div>
+  </div>
+  <div class="clip">
+    <div class="clip-header"><span class="clip-on active">ON</span><div style="flex:1"></div><span class="clip-sm">S</span><span class="clip-sm">M</span></div>
+    <div class="clip-thumb-sq t3"><span class="clip-type-badge tb-synth">SYNTH</span></div>
+    <div class="clip-name-bar">Waveform C</div>
+    <div class="clip-knob-row"><div class="ck"><div class="ptr" style="transform:rotate(-50deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(35deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(-15deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(25deg)"></div></div></div>
+    <div class="clip-actions"><span class="ca-btn">FX 1</span><span class="ca-btn">Macro</span></div>
+    <div class="clip-bottom"><span class="cb-btn">Strobe</span><span class="cb-btn">Expand</span></div>
+  </div>
+  <div class="clip">
+    <div class="clip-header"><span class="clip-on">ON</span><div style="flex:1"></div><span class="clip-sm">S</span><span class="clip-sm">M</span></div>
+    <div class="clip-thumb-sq t4"><span class="clip-type-badge tb-video">VIDEO</span></div>
+    <div class="clip-name-bar">Tunnel Spin D</div>
+    <div class="clip-knob-row"><div class="ck"><div class="ptr" style="transform:rotate(10deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(-25deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(45deg)"></div></div><div class="ck"><div class="ptr" style="transform:rotate(-5deg)"></div></div></div>
+    <div class="clip-actions"><span class="ca-btn">FX 1</span><span class="ca-btn">Macro</span></div>
+    <div class="clip-bottom"><span class="cb-btn">Strobe</span><span class="cb-btn">Expand</span></div>
+  </div>
+  <div class="empty-clip">Empty</div>
+  <div class="empty-clip">Empty</div>
+  <div class="empty-clip">Empty</div>
+  <div class="empty-clip">Empty</div>
+  <div class="empty-clip">Empty</div>
+  <div class="empty-clip">Empty</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span class="f-item">Master Sources</span>
+  <span class="f-item">Audio Player</span>
+  <span class="f-item">Outputs</span>
+  <div class="f-right">
+    <span class="f-btn">Save</span>
+    <span class="f-btn">Load</span>
+    <span class="f-btn">Help</span>
+  </div>
+</div>
+
+</body>
+</html>
