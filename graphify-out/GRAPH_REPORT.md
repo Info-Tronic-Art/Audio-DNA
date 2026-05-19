@@ -1,16 +1,16 @@
-# Graph Report - RealTimeAudio  (2026-05-18)
+# Graph Report - RealTimeAudio  (2026-05-19)
 
 ## Corpus Check
-- 253 files · ~6,690,075 words
+- 253 files · ~6,690,408 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4222 nodes · 13652 edges · 259 communities (185 shown, 74 thin omitted)
+- 4231 nodes · 13665 edges · 262 communities (187 shown, 75 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 65 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c8480b91`
+- Built from commit: `d63387f2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -177,15 +177,15 @@
 - [[_COMMUNITY_Community 159|Community 159]]
 - [[_COMMUNITY_Community 160|Community 160]]
 - [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
 - [[_COMMUNITY_Community 164|Community 164]]
-- [[_COMMUNITY_Community 165|Community 165]]
-- [[_COMMUNITY_Community 166|Community 166]]
 - [[_COMMUNITY_Community 167|Community 167]]
 - [[_COMMUNITY_Community 168|Community 168]]
 - [[_COMMUNITY_Community 169|Community 169]]
-- [[_COMMUNITY_Community 173|Community 173]]
-- [[_COMMUNITY_Community 174|Community 174]]
-- [[_COMMUNITY_Community 175|Community 175]]
+- [[_COMMUNITY_Community 170|Community 170]]
+- [[_COMMUNITY_Community 171|Community 171]]
+- [[_COMMUNITY_Community 172|Community 172]]
 - [[_COMMUNITY_Community 176|Community 176]]
 - [[_COMMUNITY_Community 177|Community 177]]
 - [[_COMMUNITY_Community 178|Community 178]]
@@ -220,9 +220,9 @@
 - [[_COMMUNITY_Community 207|Community 207]]
 - [[_COMMUNITY_Community 208|Community 208]]
 - [[_COMMUNITY_Community 209|Community 209]]
-- [[_COMMUNITY_Community 219|Community 219]]
-- [[_COMMUNITY_Community 220|Community 220]]
-- [[_COMMUNITY_Community 221|Community 221]]
+- [[_COMMUNITY_Community 210|Community 210]]
+- [[_COMMUNITY_Community 211|Community 211]]
+- [[_COMMUNITY_Community 212|Community 212]]
 - [[_COMMUNITY_Community 222|Community 222]]
 - [[_COMMUNITY_Community 223|Community 223]]
 - [[_COMMUNITY_Community 224|Community 224]]
@@ -242,6 +242,9 @@
 - [[_COMMUNITY_Community 238|Community 238]]
 - [[_COMMUNITY_Community 239|Community 239]]
 - [[_COMMUNITY_Community 240|Community 240]]
+- [[_COMMUNITY_Community 241|Community 241]]
+- [[_COMMUNITY_Community 242|Community 242]]
+- [[_COMMUNITY_Community 243|Community 243]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `i()` - 104 edges
@@ -267,7 +270,7 @@
 - `se()` --calls--> `_e()`  [INFERRED]
   design/ux_analyses/Resolume/Resolume Arena/rest/docs/swagger-ui-bundle.js → design/ux_analyses/Resolume/Resolume Wire/REST/dashboard/static/js/main.689317ae.js
 
-## Communities (259 total, 74 thin omitted)
+## Communities (262 total, 75 thin omitted)
 
 ### Community 0 - "Main Component Controller"
 Cohesion: 0.06
@@ -278,68 +281,68 @@ Cohesion: 0.06
 Nodes (156): xu(), _(), a(), ae(), al(), an(), ar(), at() (+148 more)
 
 ### Community 2 - "Compositor Engine"
-Cohesion: 0.06
-Nodes (146): aa(), ai(), Al(), ao(), as(), au(), ba(), bi() (+138 more)
+Cohesion: 0.05
+Nodes (145): aa(), ai(), Al(), ao(), as(), au(), ba(), bi() (+137 more)
 
 ### Community 3 - "API Server"
 Cohesion: 0.06
-Nodes (128): aa(), ai(), Al(), ao(), as(), au(), ba(), bi() (+120 more)
+Nodes (137): ai(), Al(), ao(), as(), au(), ba(), bi(), bl() (+129 more)
 
 ### Community 4 - "MilkDrop Preset Browser"
 Cohesion: 0.09
-Nodes (58): _(), a(), ae(), b(), be(), c(), ce(), clear() (+50 more)
+Nodes (59): _(), a(), ae(), b(), be(), c(), ce(), clear() (+51 more)
 
 ### Community 5 - "Signal Registry"
-Cohesion: 0.06
-Nodes (29): _(), a(), an(), b(), bn(), c(), clear(), cn() (+21 more)
+Cohesion: 0.09
+Nodes (42): _(), a(), aa(), b(), c(), clear(), concat(), d() (+34 more)
 
 ### Community 6 - "Layer Strip UI"
 Cohesion: 0.07
-Nodes (51): ae(), ar(), be(), Br(), ce(), cs(), d(), de() (+43 more)
+Nodes (33): ae(), be(), ce(), cs(), Ee(), first(), ge(), get() (+25 more)
 
 ### Community 7 - "Clip Inspector"
-Cohesion: 0.05
-Nodes (41): b(), br, bt, clear(), concat(), constructor(), consume(), Dr() (+33 more)
+Cohesion: 0.06
+Nodes (62): ae(), al(), ar(), as(), au(), bt(), ce(), da() (+54 more)
 
 ### Community 8 - "Test Server"
 Cohesion: 0.06
-Nodes (54): aa(), ai(), au(), bt(), c(), dr(), Dt(), eu() (+46 more)
+Nodes (55): aa(), ai(), au(), bi(), c(), dr(), Dt(), eu() (+47 more)
 
 ### Community 9 - "Clip Cell UI"
-Cohesion: 0.04
-Nodes (26): ar(), Br(), dn(), dr(), gr(), ir(), jn(), kr() (+18 more)
+Cohesion: 0.06
+Nodes (39): b(), br, bt, clear(), concat(), constructor(), consume(), Dr() (+31 more)
 
 ### Community 10 - "BPM Tracker"
-Cohesion: 0.07
-Nodes (34): ae(), at(), be(), br, fr, ge(), ht(), ie() (+26 more)
+Cohesion: 0.08
+Nodes (29): at(), Bt(), ct, et(), first(), ft(), get(), Gt() (+21 more)
 
 ### Community 11 - "ProjectM Preset Manager"
-Cohesion: 0.11
-Nodes (17): A(), C(), d(), dt(), I(), it(), l(), m (+9 more)
+Cohesion: 0.05
+Nodes (22): ar, dr, Er, gr, hr, ir(), jr, Kr() (+14 more)
 
 ### Community 12 - "Audio Readout Panel"
-Cohesion: 0.09
-Nodes (31): at(), Bt(), ct, et(), first(), ft(), get(), Gt() (+23 more)
+Cohesion: 0.04
+Nodes (14): an(), bn(), cn(), dn(), en(), le(), ln(), mn() (+6 more)
 
 ### Community 13 - "Curve Transforms"
-Cohesion: 0.1
-Nodes (29): at(), Bt(), ct, et(), first(), ft(), g(), Gt() (+21 more)
+Cohesion: 0.07
+Nodes (32): ae(), an, at(), br, cn, ct(), et(), fr (+24 more)
 
 ### Community 14 - "Universal Param Control"
 Cohesion: 0.07
-Nodes (44): ao(), as(), b(), co(), Di(), Eo(), Fi(), fo() (+36 more)
+Nodes (26): an(), at(), bn(), Bt(), cn(), ct, dn(), en() (+18 more)
 
 ### Community 15 - "Layer Inspector"
-Cohesion: 0.05
-Nodes (29): app(), _default_executable(), Pytest configuration for Eyes visual tests.  Provides fixtures that spawn the Au, Find the built executable., Spawn Audio-DNA in test mode for the entire test session.      The app starts on, Reset app state before each test for isolation., reset_between_tests(), VJ App Controller — Python client for the Eyes test harness HTTP API.  Wraps the (+21 more)
+Cohesion: 0.1
+Nodes (23): _(), c, d(), f, g(), h(), hr, I() (+15 more)
 
 ### Community 16 - "Inspector Panel"
 Cohesion: 0.05
-Nodes (36): app(), _audio_dna_running(), _ensure_ax_mocks(), _make_mock_element(), _mock_copy_attribute(), Tests for the accessibility tree inspector.  Unit tests mock the AX API so they, Mock for AXUIElementCopyAttributeValue that reads from element._attrs., Tests for the recursive tree walker. (+28 more)
+Nodes (29): app(), _default_executable(), Pytest configuration for Eyes visual tests.  Provides fixtures that spawn the Au, Find the built executable., Spawn Audio-DNA in test mode for the entire test session.      The app starts on, Reset app state before each test for isolation., reset_between_tests(), VJ App Controller — Python client for the Eyes test harness HTTP API.  Wraps the (+21 more)
 
 ### Community 17 - "Session Recorder"
-Cohesion: 0.06
-Nodes (8): an(), bn(), cn(), en(), on(), rn(), tn(), u()
+Cohesion: 0.05
+Nodes (36): app(), _audio_dna_running(), _ensure_ax_mocks(), _make_mock_element(), _mock_copy_attribute(), Tests for the accessibility tree inspector.  Unit tests mock the AX API so they, Mock for AXUIElementCopyAttributeValue that reads from element._attrs., Tests for the recursive tree walker. (+28 more)
 
 ### Community 18 - "ProjectM Source"
 Cohesion: 0.14
@@ -347,95 +350,91 @@ Nodes (44): advanceSlideshow(), beatSyncRandomize(), buildBindableTargets(), clo
 
 ### Community 19 - "Image Sequence Player"
 Cohesion: 0.1
-Nodes (17): c, d(), f, g(), h(), hr, l(), m() (+9 more)
+Nodes (16): _(), A(), b(), E(), it(), l(), ln(), m (+8 more)
 
 ### Community 20 - "Effect Stack View"
-Cohesion: 0.16
-Nodes (42): _a(), Ai(), At(), bi(), cu(), Dt(), Ea(), es() (+34 more)
+Cohesion: 0.05
+Nodes (29): Eyes Visual Tests — Render Pipeline  Tests the core rendering pipeline: image lo, Two effects chained should both apply., Two effects chained should both apply., Verify audio feature injection works., Verify audio feature injection works., Injecting features should succeed., Injecting features should succeed., Verify state endpoint works. (+21 more)
 
 ### Community 21 - "Deck View"
-Cohesion: 0.06
-Nodes (17): constructor(), _expand(), fn(), gen(), gn(), hn(), In, kn() (+9 more)
+Cohesion: 0.09
+Nodes (14): be(), ce(), de(), fe(), h, he(), J(), je() (+6 more)
 
 ### Community 22 - "Renderer Accessors"
-Cohesion: 0.14
-Nodes (40): As(), At(), bi(), bs(), cl(), Cs(), Ds(), Es() (+32 more)
+Cohesion: 0.15
+Nodes (38): As(), At(), ba(), bs(), cl(), Cs(), Ds(), Es() (+30 more)
 
 ### Community 23 - "Files Browser"
-Cohesion: 0.09
-Nodes (18): ae(), be(), de(), fe(), get(), he(), ie(), jt() (+10 more)
+Cohesion: 0.08
+Nodes (16): be(), ce(), de(), ee(), fe(), ft, get(), he() (+8 more)
 
 ### Community 26 - "Preferences Dialog"
 Cohesion: 0.09
-Nodes (15): dr, ft(), hr, jr, Kr(), lr(), lt(), nt() (+7 more)
+Nodes (18): ar(), Br(), dr(), fe(), jn(), kr(), ln(), mr() (+10 more)
 
 ### Community 27 - "MIDI Learn Overlay"
-Cohesion: 0.06
-Nodes (22): Eyes Visual Tests — Render Pipeline  Tests the core rendering pipeline: image lo, Two effects chained should both apply., Verify audio feature injection works., Injecting features should succeed., Verify state endpoint works., State endpoint should list all effects., Verify reset clears state properly., After reset, no effects should be enabled. (+14 more)
-
-### Community 28 - "Signal Inspector"
 Cohesion: 0.15
 Nodes (30): applyCompTransform(), attachTo(), captureFrame(), clearActiveSource(), clearImage(), closeMediaForClip(), compileAllShaders(), compileShaderWithUtils() (+22 more)
 
+### Community 28 - "Signal Inspector"
+Cohesion: 0.21
+Nodes (28): ApiServer(), handleComposition(), handleGetBpm(), handleGetFeatures(), handleHealth(), handleInjectFeatures(), handleListEffects(), handleListSources() (+20 more)
+
 ### Community 29 - "Mapping Editor"
 Cohesion: 0.12
-Nodes (31): _(), ba(), c(), _e(), G(), gl(), gu(), ho() (+23 more)
+Nodes (29): _(), a(), bl(), D(), dl(), fl(), fo(), gi() (+21 more)
 
 ### Community 30 - "Look and Feel"
-Cohesion: 0.11
-Nodes (31): ae(), ar(), ce(), dr(), Er(), Fr(), gr(), gt() (+23 more)
-
-### Community 31 - "Effects Rack Panel"
 Cohesion: 0.08
 Nodes (19): psnr_between(), Signal Routing Verification — Tests the complete signal→route→parameter→shader p, RMS should change effect output via u_rms uniform., End-to-end: create route from audio signal to effect parameter,     inject featu, Check if signal API endpoints are available., Route Volume signal → Ripple intensity → verify RMS changes ripple., Route with threshold=0.5 should only activate above 0.5 RMS., Inverted route: high RMS should DECREASE the parameter. (+11 more)
 
-### Community 32 - "Procedural Source"
+### Community 31 - "Effects Rack Panel"
 Cohesion: 0.12
 Nodes (23): addSignal(), evaluateAll(), getCachedValue(), getClipPositionSignal(), getSignal(), getSignalAt(), getSignalByName(), getSignalsByCategory() (+15 more)
 
-### Community 33 - "Binding Overlay"
-Cohesion: 0.07
-Nodes (9): an, ce(), cn, cr, Ee(), ir(), jt, mr (+1 more)
-
-### Community 34 - "Composition Inspector"
+### Community 32 - "Procedural Source"
 Cohesion: 0.09
 Nodes (26): frame_is_not_black(), frames_are_different(), Eyes Visual Tests — Comprehensive Fractal Source Validation  Tests EVERY control, Every fractal must render a visible frame at defaults., Every parameter must produce a visible change when modified., Zoom at ALL positions (0, 0.25, 0.5, 0.75, 1.0) must be non-black., Dive speed at various levels must not go black., Power at all positions must not go black. (+18 more)
 
-### Community 35 - "Preset Manager"
-Cohesion: 0.23
-Nodes (26): ApiServer(), handleComposition(), handleGetBpm(), handleGetFeatures(), handleHealth(), handleInjectFeatures(), handleListEffects(), handleListSources() (+18 more)
-
-### Community 37 - "Signal Bar"
+### Community 34 - "Composition Inspector"
 Cohesion: 0.18
 Nodes (24): addToRecent(), calculateContentHeight(), firePresetSelected(), getCuratedPresets(), getPresetsForSection(), getSelectedPresetPaths(), handlePresetClick(), initSections() (+16 more)
 
-### Community 38 - "MIDI Output Handler"
+### Community 35 - "Preset Manager"
 Cohesion: 0.16
 Nodes (25): CaretOnlyComboBoxLookAndFeel, FadeSpeedSliderLookAndFeel, FlatButtonLookAndFeel, FlatComboBoxLookAndFeel, FullBoundsSliderLAF, KeyingSliderLookAndFeel, LayerStrip(), mouseDown() (+17 more)
 
-### Community 39 - "Video Recorder"
+### Community 36 - "Video Player"
 Cohesion: 0.22
 Nodes (27): applyClipEffects(), applyClipTransform(), applyFXOnlyLayer(), applyLayerKeying(), applyLayerTransform(), applyMaskLayer(), applyScreenSplit(), applyTransition() (+19 more)
 
-### Community 40 - "Browser Panel"
-Cohesion: 0.13
-Nodes (28): al(), bt(), cl(), ee(), Ga(), he(), ie(), iu() (+20 more)
+### Community 37 - "Signal Bar"
+Cohesion: 0.11
+Nodes (10): A(), ae(), ie(), kt, le(), ne(), re(), Rr (+2 more)
 
-### Community 41 - "Comp Decks Browser"
-Cohesion: 0.13
-Nodes (26): _(), ao(), bo(), co(), D(), Eo(), fo(), go() (+18 more)
-
-### Community 42 - "FX Browser"
-Cohesion: 0.24
-Nodes (23): handleAddRoute(), handleHealth(), handleInjectFeatures(), handleListRoutes(), handleListSignals(), handleListSources(), handleLoadImage(), handleLoadMilkDropPreset() (+15 more)
-
-### Community 43 - "Top Bar"
+### Community 39 - "Video Recorder"
 Cohesion: 0.19
 Nodes (23): buildSourceParamControls(), ClipInspector(), getPreferredHeight(), isInterestedInDragSource(), itemDragEnter(), itemDragExit(), itemDropped(), mouseDown() (+15 more)
 
+### Community 40 - "Browser Panel"
+Cohesion: 0.24
+Nodes (23): handleAddRoute(), handleHealth(), handleInjectFeatures(), handleListRoutes(), handleListSignals(), handleListSources(), handleLoadImage(), handleLoadMilkDropPreset() (+15 more)
+
+### Community 41 - "Comp Decks Browser"
+Cohesion: 0.24
+Nodes (10): C(), d(), dt(), f(), I(), O(), P(), ut() (+2 more)
+
+### Community 42 - "FX Browser"
+Cohesion: 0.16
+Nodes (26): aa(), ba(), bl(), bo(), Do(), Ei(), fl(), gl() (+18 more)
+
+### Community 43 - "Top Bar"
+Cohesion: 0.18
+Nodes (26): Ai(), bi(), Ci(), Dt(), es(), eu(), fa(), Ft() (+18 more)
+
 ### Community 44 - "Genre Detector"
-Cohesion: 0.14
-Nodes (4): g(), vn(), y(), z()
+Cohesion: 0.16
+Nodes (26): cl(), ee(), Eo(), Ga(), go(), he(), _i(), ie() (+18 more)
 
 ### Community 45 - "Audio Engine"
 Cohesion: 0.16
@@ -446,16 +445,16 @@ Cohesion: 0.18
 Nodes (22): analyzeDownbeatPosition(), BPMTracker(), correctOctaveError(), feedDownbeatFeatures(), feedSilenceDetection(), foldBPMToRange(), process(), processRawBPM() (+14 more)
 
 ### Community 47 - "Sources Browser"
-Cohesion: 0.09
-Nodes (9): ar, Er, gr, or, pr, rr, sr, tr() (+1 more)
+Cohesion: 0.11
+Nodes (8): _expand(), gen(), kn(), N(), _randBool(), randInt(), _randSelect(), _toOtherCase()
 
 ### Community 48 - "Preview Panel"
-Cohesion: 0.09
-Nodes (8): ee(), gt, ht(), lr, nr, T(), tr, y()
+Cohesion: 0.14
+Nodes (25): _a(), ao(), At(), b(), co(), Ea(), fo(), H() (+17 more)
 
 ### Community 49 - "MIDI Input Handler"
-Cohesion: 0.13
-Nodes (25): a(), al(), ba(), bl(), dl(), fl(), ha(), hl() (+17 more)
+Cohesion: 0.15
+Nodes (25): ao(), bo(), co(), ei(), Eo(), go(), ho(), io() (+17 more)
 
 ### Community 50 - "Texture Manager"
 Cohesion: 0.12
@@ -465,89 +464,85 @@ Nodes (24): Exception, AccessibilityPermissionError, AppNotFoundError, AXInspect
 Cohesion: 0.18
 Nodes (21): getCurrentPreset(), getFavorites(), getMoodCounts(), getPreset(), getPresetsByMood(), getUserPresets(), guessMood(), loadManifest() (+13 more)
 
+### Community 52 - "Source Registry"
+Cohesion: 0.11
+Nodes (13): ar(), Br(), dr(), fn(), hn(), jn(), kr(), mr() (+5 more)
+
 ### Community 53 - "Undo Manager"
-Cohesion: 0.18
-Nodes (24): ca(), ce(), De(), fe(), ga(), ii(), kl(), le() (+16 more)
-
-### Community 54 - "Effect Library"
-Cohesion: 0.17
-Nodes (9): _(), A(), ce(), I(), k(), N(), push(), vt (+1 more)
-
-### Community 55 - "Effect Chain"
 Cohesion: 0.22
 Nodes (19): buildSourcePickerMenu(), drawSignalTriangle(), getPreferredHeight(), handleSourcePickerResult(), mouseDown(), paint(), ResettableSlider(), resized() (+11 more)
 
-### Community 56 - "Mapping Engine"
+### Community 54 - "Effect Library"
 Cohesion: 0.21
 Nodes (19): getPreferredHeight(), isInterestedInDragSource(), itemDragEnter(), itemDragExit(), itemDropped(), LayerInspector(), mouseDown(), paint() (+11 more)
 
-### Community 57 - "Mapping Suggester"
+### Community 55 - "Effect Chain"
 Cohesion: 0.24
 Nodes (21): AudioReadoutPanel(), drawBandMeters(), drawBarIndicator(), drawBeatPhase(), drawDbMeter(), drawGenreState(), drawLabel(), drawMeter() (+13 more)
 
 ### Community 58 - "Macro Panel"
-Cohesion: 0.13
-Nodes (22): ae(), ar(), ci(), e(), ee(), G(), hr(), J() (+14 more)
-
-### Community 59 - "MFCC Extractor"
 Cohesion: 0.18
 Nodes (20): backIn(), backInOut(), backOut(), bounceIn(), bounceInOut(), bounceOut(), circularIn(), circularInOut() (+12 more)
 
+### Community 59 - "MFCC Extractor"
+Cohesion: 0.1
+Nodes (8): cr, nn, pn(), qr, rn, sn, T(), vr
+
 ### Community 60 - "Feature Bus"
 Cohesion: 0.1
-Nodes (7): cr, E(), kr, rt(), S(), ur, yr
+Nodes (7): gt, ht(), jt(), lr, ot, T(), tr
 
 ### Community 61 - "Feedback Processor"
-Cohesion: 0.22
-Nodes (17): applyParams(), feedAudio(), getCurrentPresetName(), getCurrentPresetPath(), initGL(), loadPreset(), nextPreset(), prevPreset() (+9 more)
-
-### Community 62 - "Autopilot"
 Cohesion: 0.23
 Nodes (17): inspectClip(), inspectLayer(), InspectorPanel(), inspectSignal(), paint(), refresh(), resized(), setActiveTab() (+9 more)
 
-### Community 63 - "ISF Shader Loader"
-Cohesion: 0.14
-Nodes (7): de(), fe(), h, he(), J(), me(), ue()
+### Community 62 - "Autopilot"
+Cohesion: 0.22
+Nodes (17): applyParams(), feedAudio(), getCurrentPresetName(), getCurrentPresetPath(), initGL(), loadPreset(), nextPreset(), prevPreset() (+9 more)
 
-### Community 64 - "Timing Window"
+### Community 63 - "ISF Shader Loader"
 Cohesion: 0.11
 Nodes (8): Ct(), dt, fr(), join(), jr, mr, qt, xt()
 
-### Community 65 - "Onset Detector"
-Cohesion: 0.12
-Nodes (7): dn(), ir(), lr(), mn(), nn(), sr(), yn()
-
-### Community 66 - "Analysis Thread"
+### Community 64 - "Timing Window"
 Cohesion: 0.24
 Nodes (18): advancePlayback(), clear(), getCurrentTime(), getDuration(), getNumEvents(), loadFromFile(), recordClipTrigger(), recordColumnTrigger() (+10 more)
 
-### Community 67 - "OSC Handler"
+### Community 65 - "Onset Detector"
 Cohesion: 0.21
 Nodes (16): advanceFrame(), close(), getCurrentTexture(), getDuration(), getThumbnail(), ImageSequence(), loadImageToTexture(), open() (+8 more)
 
-### Community 68 - "Programming Mode"
-Cohesion: 0.16
-Nodes (19): aa(), au(), bl(), bo(), da(), Do(), Ei(), fl() (+11 more)
-
-### Community 69 - "Record Panel"
+### Community 66 - "Analysis Thread"
 Cohesion: 0.23
 Nodes (15): EffectStackView(), getPreferredHeight(), isInterestedInDragSource(), itemDragEnter(), itemDragExit(), itemDropped(), mouseDown(), paint() (+7 more)
 
-### Community 70 - "Knob Widget"
+### Community 67 - "OSC Handler"
 Cohesion: 0.25
 Nodes (15): clearSelection(), DeckView(), getNaturalHeight(), layoutGrid(), paint(), rebuildGrid(), refresh(), resized() (+7 more)
 
-### Community 71 - "Menu Bar"
+### Community 68 - "Programming Mode"
+Cohesion: 0.11
+Nodes (5): cr, E(), kr, nr, ur
+
+### Community 69 - "Record Panel"
 Cohesion: 0.22
 Nodes (14): attachTo(), closeButtonPressed(), detach(), goFullscreenOnDisplay(), initShaders(), keyPressed(), loadImage(), newOpenGLContextCreated() (+6 more)
 
-### Community 72 - "Syphon Output"
+### Community 70 - "Knob Widget"
 Cohesion: 0.26
 Nodes (13): ~FilesBrowser(), FilesBrowser::FileListContent, filesDropped(), filterBySearch(), generateThumbnail(), isMediaFile(), loadFavorites(), navigateTo() (+5 more)
 
-### Community 73 - "Fullscreen Quad"
+### Community 71 - "Menu Bar"
 Cohesion: 0.21
 Nodes (16): getActiveDeck(), getSignalRegistry(), setActiveDeck(), setAnalysisThread(), setComposition(), setMasterLevel(), setOnAutopilotAdvanced(), setOnGenreChanged() (+8 more)
+
+### Community 72 - "Syphon Output"
+Cohesion: 0.18
+Nodes (17): cu(), Di(), et(), Fi(), gu(), Hl(), Ii(), ji() (+9 more)
+
+### Community 73 - "Fullscreen Quad"
+Cohesion: 0.27
+Nodes (17): ca(), ga(), ii(), kl(), Ls(), Ml(), nl(), oi() (+9 more)
 
 ### Community 74 - "Ring Buffer"
 Cohesion: 0.14
@@ -562,44 +557,44 @@ Cohesion: 0.24
 Nodes (15): addBinding(), clearAll(), fromVar(), getBinding(), getBindingAt(), getRelativeCCValue(), loadFromFile(), processKeyDown() (+7 more)
 
 ### Community 77 - "Effect Model"
-Cohesion: 0.23
-Nodes (11): _(), b(), E(), et(), f(), mt(), Se(), v() (+3 more)
+Cohesion: 0.15
+Nodes (4): ar, at, first(), oe()
 
 ### Community 78 - "Chroma Extractor"
+Cohesion: 0.2
+Nodes (16): ae(), ar(), ci(), e(), ee(), ji(), K(), ne() (+8 more)
+
+### Community 79 - "Spectral Features"
 Cohesion: 0.18
 Nodes (14): analyze_sweep(), brightness(), Tier 2: Range Quality Analysis  For each source parameter, renders at 11 positio, Sweep every parameter and verify quality metrics., Auto-discover all sources and sweep all their params.      This class discovers, Sweep every param on every source. Generates CSV reports., Render a source at multiple parameter positions, return list of (value, path) tu, Analyze a parameter sweep for quality metrics. (+6 more)
 
-### Community 79 - "Spectral Features"
+### Community 80 - "Structural Detector"
 Cohesion: 0.28
 Nodes (12): getPreferredHeight(), hideAllControls(), paint(), paintCurveEditor(), paintSectionHeader(), refresh(), resized(), setSignal() (+4 more)
 
-### Community 80 - "Structural Detector"
+### Community 81 - "Key Detector"
 Cohesion: 0.23
 Nodes (14): closeButtonPressed(), Content::Content(), Content::layoutAboutTab(), Content::layoutAudioTab(), Content::layoutGeneralTab(), Content::layoutPlaceholderTab(), Content::layoutVideoTab(), Content::paint() (+6 more)
-
-### Community 81 - "Key Detector"
-Cohesion: 0.22
-Nodes (12): AudioDNALookAndFeel(), drawButtonBackground(), drawButtonText(), drawComboBox(), drawLabel(), drawLinearSlider(), drawPopupMenuBackground(), drawPopupMenuItem() (+4 more)
 
 ### Community 82 - "Loudness Analyzer"
 Cohesion: 0.26
 Nodes (12): addListener(), getCurveName(), getMapping(), getSourceName(), MappingEditor(), notifyChanged(), paint(), populateCurveCombo() (+4 more)
 
 ### Community 83 - "FFT Processor"
+Cohesion: 0.22
+Nodes (12): AudioDNALookAndFeel(), drawButtonBackground(), drawButtonText(), drawComboBox(), drawLabel(), drawLinearSlider(), drawPopupMenuBackground(), drawPopupMenuItem() (+4 more)
+
+### Community 84 - "Audio Engine IO"
 Cohesion: 0.28
 Nodes (12): addParam(), createFBO(), deleteFBO(), initGL(), ProceduralSource(), releaseGL(), render(), reset() (+4 more)
 
-### Community 84 - "Audio Engine IO"
-Cohesion: 0.15
-Nodes (4): ar, at, first(), oe()
-
 ### Community 85 - "Audio Callback"
-Cohesion: 0.2
-Nodes (15): bu(), ca(), Ci(), fu(), Ge(), H(), hu(), ke() (+7 more)
+Cohesion: 0.19
+Nodes (15): _(), c(), G(), It(), J(), L(), ls(), m() (+7 more)
 
 ### Community 86 - "Video Player Controls"
-Cohesion: 0.19
-Nodes (11): ei(), H(), jo(), ks(), Q(), Qs(), sl(), ti() (+3 more)
+Cohesion: 0.2
+Nodes (15): bt(), ce(), De(), fe(), gt(), ht(), Jt(), le() (+7 more)
 
 ### Community 87 - "Spectrum Display"
 Cohesion: 0.18
@@ -618,8 +613,8 @@ Cohesion: 0.38
 Nodes (13): closeMappingEditor(), EffectsRackPanel(), findMappingForParam(), isEffectLocked(), mappingEditorChanged(), mappingEditorCloseRequested(), mappingEditorDeleteRequested(), openMappingEditor() (+5 more)
 
 ### Community 91 - "Signal Smoother"
-Cohesion: 0.14
-Nodes (5): ct(), gt(), qr, rn, sn
+Cohesion: 0.16
+Nodes (6): ir(), lr(), nr(), ro(), xn(), yn()
 
 ### Community 92 - "Composition Model"
 Cohesion: 0.35
@@ -642,264 +637,280 @@ Cohesion: 0.38
 Nodes (12): advanceFrame(), close(), convertFrameToRGBA(), decodeFrameAtTime(), decodeNextFrame(), getThumbnail(), open(), releaseGL() (+4 more)
 
 ### Community 97 - "Macro Bank"
-Cohesion: 0.32
-Nodes (8): ~CompDecksBrowser(), CompDecksBrowser::CompDeckListContent, getCompositionsDir(), getDecksDir(), paint(), refresh(), resized(), scanForFiles()
+Cohesion: 0.15
+Nodes (5): ft(), lr(), mr, R(), tn
 
 ### Community 98 - "Mapping Engine Header"
+Cohesion: 0.21
+Nodes (13): bu(), ca(), _e(), fu(), Ge(), hu(), ke(), ne() (+5 more)
+
+### Community 99 - "Top Bar Header"
 Cohesion: 0.33
 Nodes (9): BrowserPanel(), paint(), refresh(), resized(), setActiveTab(), setComposition(), setEffectLibrary(), showActiveTab() (+1 more)
 
-### Community 99 - "Top Bar Header"
+### Community 100 - "Preset Manager Header"
+Cohesion: 0.32
+Nodes (8): ~CompDecksBrowser(), CompDecksBrowser::CompDeckListContent, getCompositionsDir(), getDecksDir(), paint(), refresh(), resized(), scanForFiles()
+
+### Community 101 - "Audio Readout Header"
 Cohesion: 0.27
 Nodes (8): buildCategoryList(), FXBrowser(), FXBrowser::FXListContent, paint(), refresh(), resized(), setEffectLibrary(), toggleCategory()
 
-### Community 100 - "Preset Manager Header"
+### Community 102 - "Undo Manager Header"
 Cohesion: 0.32
 Nodes (9): chromaticComplexity(), classify(), computeEnergyState(), computeScores(), GenreDetector(), genreName(), genreScores(), process() (+1 more)
 
-### Community 101 - "Audio Readout Header"
+### Community 103 - "Command Pattern"
 Cohesion: 0.26
 Nodes (9): addRoute(), clearAll(), getRoute(), getRouteAt(), getRoutesForSource(), getRoutesForTarget(), processFrame(), removeRoute() (+1 more)
 
-### Community 102 - "Undo Manager Header"
+### Community 104 - "Feature Snapshot"
 Cohesion: 0.27
 Nodes (7): buildSourceList(), matchesSearch(), paint(), resized(), ~SourcesBrowser(), SourcesBrowser::SourceListContent, toggleCategory()
 
-### Community 103 - "Command Pattern"
+### Community 105 - "Session Recorder Header"
 Cohesion: 0.38
 Nodes (10): handleMultiplierButton(), paint(), paintBarPhraseDisplay(), paintBeatWheel(), resized(), setDspLoad(), setFps(), timerCallback() (+2 more)
 
-### Community 104 - "Feature Snapshot"
+### Community 106 - "Syphon Input"
 Cohesion: 0.35
 Nodes (8): clearImage(), loadImage(), paint(), PreviewPanel(), queueCameraFrame(), resized(), setActiveTab(), updateTabButtonColors()
 
-### Community 105 - "Session Recorder Header"
+### Community 107 - "Syphon Output Header"
 Cohesion: 0.29
 Nodes (8): enableDevice(), getAvailableDevices(), handleIncomingMidiMessage(), isDeviceEnabled(), MidiHandler(), MidiInputCallback(), start(), stop()
 
-### Community 106 - "Syphon Input"
+### Community 108 - "NDI Output"
 Cohesion: 0.32
 Nodes (8): createFBOs(), loadImage(), loadLUT(), release(), releaseFBOs(), releaseLUT(), TextureManager(), uploadImage()
 
-### Community 107 - "Syphon Output Header"
+### Community 109 - "NDI Input"
 Cohesion: 0.3
 Nodes (8): compileProgram(), compileProgramFromFiles(), getProgram(), getUniformLocation(), releaseAll(), reloadAll(), setShadersDirectory(), ShaderManager()
 
-### Community 108 - "NDI Output"
+### Community 110 - "Spout Output"
 Cohesion: 0.36
 Nodes (10): AudioEngine(), changeListenerCallback(), getDeviceStatus(), hasAudioDevice(), isPlaying(), loadFile(), pause(), play() (+2 more)
 
-### Community 109 - "NDI Input"
+### Community 111 - "Compositor Header"
 Cohesion: 0.36
 Nodes (8): createSource(), getCategory(), getDisplayName(), getRegisteredIds(), isRegistered(), registerDefaults(), registerSource(), SourceRegistry()
 
-### Community 110 - "Spout Output"
+### Community 112 - "LUT Loader Header"
+Cohesion: 0.2
+Nodes (5): Ee(), ge(), ye(), yr, ze()
+
+### Community 113 - "Embedded Shaders"
+Cohesion: 0.22
+Nodes (7): al(), H(), Q(), sl(), Vl(), W(), Wl()
+
+### Community 114 - "Binding Manager Header"
 Cohesion: 0.31
 Nodes (7): createEffect(), EffectLibrary(), getEffectDef(), getEffectNames(), getEffectsByCategory(), registerDefaults(), registerEffect()
 
-### Community 111 - "Compositor Header"
+### Community 115 - "Binding Target Mode"
 Cohesion: 0.2
 Nodes (5): Performance Verification — Tests that sources and effects render within budget., Every source must render within budget., Effects should not significantly slow down rendering., TestEffectPerformance, TestSourcePerformance
 
-### Community 112 - "LUT Loader Header"
+### Community 116 - "Audio Callback Header"
 Cohesion: 0.24
 Nodes (8): psnr_between(), Audio Reactivity Verification — Tests that injected audio features change visual, Audio features should visibly change source output., Audio features should change effect output when effects use audio uniforms., Effects that use u_rms should respond to RMS changes., test_rms_bass_beat_affect_sources(), TestAudioFeaturesAffectEffects, TestAudioFeaturesAffectSources
 
-### Community 113 - "Embedded Shaders"
+### Community 117 - "Autopilot Header"
 Cohesion: 0.4
 Nodes (6): addGenreSuggestions(), addUniversalSuggestions(), featureActivity(), MappingSuggester(), suggestGenreMappings(), suggestMappings()
 
-### Community 114 - "Binding Manager Header"
+### Community 118 - "Layer Mix Mode"
 Cohesion: 0.38
 Nodes (6): MacroPanel(), paint(), refresh(), resized(), setMacroBank(), showSourcePicker()
 
-### Community 115 - "Binding Target Mode"
+### Community 119 - "Clip Playlist Trigger"
 Cohesion: 0.44
 Nodes (8): canRedo(), canUndo(), clear(), perform(), redo(), redoDescription(), undo(), undoDescription()
 
-### Community 116 - "Audio Callback Header"
+### Community 120 - "Preset Selector Logic"
 Cohesion: 0.4
 Nodes (6): buildDCTMatrix(), buildFilterbank(), hzToMel(), melToHz(), MFCCExtractor(), process()
 
-### Community 117 - "Autopilot Header"
+### Community 121 - "Preset Selector Header"
 Cohesion: 0.31
 Nodes (6): acquireRead(), acquireWrite(), FeatureBus(), getLatestRead(), hasNewData(), publishWrite()
 
-### Community 118 - "Layer Mix Mode"
+### Community 122 - "Route Target Scope"
 Cohesion: 0.38
 Nodes (6): applyPreset(), ensureSize(), ~FeedbackProcessor(), initGL(), process(), releaseGL()
 
-### Community 119 - "Clip Playlist Trigger"
+### Community 123 - "Link Sync Header"
 Cohesion: 0.49
 Nodes (8): addEffect(), applyDryWet(), ensurePrevFrameFBO(), getCachedUniformLocation(), getEffect(), render(), savePreviousFrame(), uploadEffectUniforms()
 
-### Community 121 - "Preset Selector Header"
+### Community 124 - "Uniform Bridge Header"
 Cohesion: 0.31
 Nodes (7): classify_vibe(), load_progress(), main(), Load progress from previous run., Save progress for resume., Analyze a rendered frame and classify into a vibe category.     Returns (vibe, s, save_progress()
 
-### Community 122 - "Route Target Scope"
+### Community 125 - "Uniform Bridge Logic"
 Cohesion: 0.33
 Nodes (8): load_preset(), main(), Load a MilkDrop preset via the test API., Capture a rendered frame., Score a rendered image on visual interest (0-100).      Criteria:     - Non-blac, render_frame(), reset(), score_image()
 
-### Community 123 - "Link Sync Header"
+### Community 126 - "Effect Chain Header"
 Cohesion: 0.44
 Nodes (7): addMapping(), applyCurve(), clearAll(), extractSource(), getMapping(), processFrame(), removeMapping()
 
-### Community 124 - "Uniform Bridge Header"
+### Community 127 - "ISF Loader Header"
 Cohesion: 0.42
 Nodes (5): paint(), resized(), setActiveTab(), TimingWindow(), updateTabButtonColors()
 
-### Community 125 - "Uniform Bridge Logic"
+### Community 128 - "Clip Position Signal"
 Cohesion: 0.33
 Nodes (5): AnalysisThread(), getBpmTracker(), getPCMSamples(), getWaveformSamples(), run()
 
-### Community 126 - "Effect Chain Header"
+### Community 129 - "Envelope Signal"
 Cohesion: 0.33
 Nodes (5): OnsetDetector(), process(), setMinInterOnsetMs(), setSilence(), setThreshold()
 
-### Community 127 - "ISF Loader Header"
+### Community 130 - "Audio Signal"
 Cohesion: 0.36
 Nodes (5): MessageLoopCallback(), OscHandler(), oscMessageReceived(), startListening(), stopListening()
 
-### Community 128 - "Clip Position Signal"
+### Community 131 - "Signal Category"
 Cohesion: 0.56
 Nodes (7): advanceClip(), getActionForClip(), getBeatsForClip(), getPerTypeAction(), getPerTypeBeats(), processFrame(), smartAdvanceClip()
 
-### Community 129 - "Envelope Signal"
+### Community 132 - "Chained Signal Header"
 Cohesion: 0.47
 Nodes (7): convertToGLSL(), extractGLSLBody(), extractJSONBlock(), getISFDirectory(), parseISFFile(), parseISFSource(), registerISFEffect()
 
-### Community 130 - "Audio Signal"
+### Community 133 - "Oscillator Signal"
 Cohesion: 0.29
 Nodes (8): ge(), _i(), Je(), ki(), Ns(), Ts(), wi(), Ye()
 
-### Community 131 - "Signal Category"
+### Community 134 - "Chained Signal Logic"
 Cohesion: 0.32
 Nodes (7): compute_psnr(), compute_ssim(), Vision Check — Image comparison for the Eyes visual testing harness.  Compares r, Compute Peak Signal-to-Noise Ratio between two images.      Returns float('inf'), Compute Structural Similarity Index between two images.      Uses scikit-image's, Compare a rendered frame against a golden reference.      Args:         rendered, verify_frame()
 
-### Community 132 - "Chained Signal Header"
+### Community 135 - "Main Component Header"
 Cohesion: 0.32
 Nodes (5): brightness(), psnr_between(), Time Sweep Verification — Tests that animated sources/effects change over time., Animated sources must produce different frames at different times., TestSourcesAnimateOverTime
 
-### Community 133 - "Oscillator Signal"
+### Community 136 - "Mapping Types"
 Cohesion: 0.43
 Nodes (4): paint(), ProgrammingMode(), resized(), setActive()
 
-### Community 134 - "Chained Signal Logic"
+### Community 137 - "Spectrum Display Header"
 Cohesion: 0.36
 Nodes (4): paint(), RecordPanel(), refresh(), resized()
 
-### Community 135 - "Main Component Header"
+### Community 138 - "Effects Rack Header"
 Cohesion: 0.36
 Nodes (4): AudioDNAMenuBar(), getMenuBarNames(), getMenuForIndex(), menuItemSelected()
 
-### Community 136 - "Mapping Types"
+### Community 139 - "Preferences Header"
 Cohesion: 0.36
 Nodes (4): draw(), FullscreenQuad(), init(), release()
 
-### Community 137 - "Spectrum Display Header"
+### Community 140 - "Waveform Display Header"
 Cohesion: 0.36
 Nodes (4): addParam(), Effect(), resetParams(), setParamValue()
 
-### Community 140 - "Waveform Display Header"
+### Community 143 - "Syphon Input Impl"
 Cohesion: 0.38
 Nodes (6): compute_psnr(), main(), Render clean baseline with no effects., Enable effect with explicit default params, render, compare to baseline., render_baseline(), test_effect_visual()
 
-### Community 141 - "Knob Header"
+### Community 144 - "Community 144"
 Cohesion: 0.48
 Nodes (5): Knob(), paint(), resized(), setMappingIndicator(), setParamName()
 
-### Community 142 - "Genre Smoothing"
+### Community 145 - "Community 145"
 Cohesion: 0.43
 Nodes (3): ChromaExtractor(), computeBinToChromaMap(), process()
 
-### Community 143 - "Syphon Input Impl"
+### Community 146 - "Community 146"
 Cohesion: 0.43
 Nodes (3): KeyDetector(), pearsonCorrelation(), process()
 
-### Community 144 - "Community 144"
+### Community 147 - "Community 147"
 Cohesion: 0.43
 Nodes (3): LoudnessAnalyzer(), process(), processBiquad()
 
-### Community 145 - "Community 145"
+### Community 148 - "Community 148"
 Cohesion: 0.43
 Nodes (3): computeBandBinRanges(), process(), SpectralFeatures()
 
-### Community 146 - "Community 146"
-Cohesion: 0.43
-Nodes (3): buildHannWindow(), FFTProcessor(), process()
-
-### Community 147 - "Community 147"
+### Community 149 - "Community 149"
 Cohesion: 0.43
 Nodes (3): classifyState(), process(), StructuralDetector()
 
-### Community 148 - "Community 148"
+### Community 150 - "Community 150"
 Cohesion: 0.29
 Nodes (5): SyphonOutputImpl, -initWithContextname, -publishTexturewidthheight, -setName, -shutdown
 
-### Community 149 - "Community 149"
+### Community 151 - "Community 151"
 Cohesion: 0.48
 Nodes (5): availableToRead(), pop(), push(), readPos_(), writePos_()
 
-### Community 150 - "Community 150"
+### Community 152 - "Community 152"
 Cohesion: 0.48
 Nodes (5): addColumn(), getLayer(), initDefault(), moveLayer(), removeLayer()
 
-### Community 151 - "Community 151"
+### Community 153 - "Community 153"
 Cohesion: 0.48
 Nodes (5): ~LinkSync(), requestBeatAtTime(), setBPM(), setEnabled(), update()
 
 ### Community 154 - "Community 154"
+Cohesion: 0.43
+Nodes (3): buildHannWindow(), FFTProcessor(), process()
+
+### Community 157 - "Community 157"
 Cohesion: 0.53
 Nodes (4): audioDeviceAboutToStart(), audioDeviceIOCallbackWithContext(), audioDeviceStopped(), setInputGain()
 
-### Community 155 - "Community 155"
-Cohesion: 0.53
-Nodes (4): setLoopMode(), setPlaying(), setReverse(), setSpeed()
-
-### Community 156 - "Community 156"
+### Community 158 - "Community 158"
 Cohesion: 0.53
 Nodes (4): AudioCallback(), audioDeviceAboutToStart(), audioDeviceIOCallbackWithContext(), audioDeviceStopped()
 
-### Community 158 - "Community 158"
-Cohesion: 0.6
-Nodes (3): paint(), SpectrumDisplay(), timerCallback()
-
 ### Community 159 - "Community 159"
-Cohesion: 0.6
-Nodes (3): paint(), timerCallback(), WaveformDisplay()
-
-### Community 160 - "Community 160"
-Cohesion: 0.6
-Nodes (3): OneEuroFilter(), reset(), Smoother()
+Cohesion: 0.53
+Nodes (4): setLoopMode(), setPlaying(), setReverse(), setSpeed()
 
 ### Community 161 - "Community 161"
 Cohesion: 0.6
-Nodes (3): getActiveDeck(), initDefault(), removeDeck()
+Nodes (3): paint(), SpectrumDisplay(), timerCallback()
+
+### Community 162 - "Community 162"
+Cohesion: 0.6
+Nodes (3): paint(), timerCallback(), WaveformDisplay()
+
+### Community 163 - "Community 163"
+Cohesion: 0.6
+Nodes (3): OneEuroFilter(), reset(), Smoother()
 
 ### Community 164 - "Community 164"
+Cohesion: 0.6
+Nodes (3): getActiveDeck(), initDefault(), removeDeck()
+
+### Community 167 - "Community 167"
 Cohesion: 0.67
 Nodes (3): psnr(), Test if an effect with defaults produces visible change. Returns PSNR., test_effect()
 
 ## Knowledge Gaps
-- **158 isolated node(s):** `Pytest configuration for Eyes visual tests.  Provides fixtures that spawn the Au`, `Find the built executable.`, `Spawn Audio-DNA in test mode for the entire test session.      The app starts on`, `Reset app state before each test for isolation.`, `Auto-Discovering Effect Verification — Tests ALL registered effects.  Queries /a` (+153 more)
+- **165 isolated node(s):** `Pytest configuration for Eyes visual tests.  Provides fixtures that spawn the Au`, `Find the built executable.`, `Spawn Audio-DNA in test mode for the entire test session.      The app starts on`, `Reset app state before each test for isolation.`, `Auto-Discovering Effect Verification — Tests ALL registered effects.  Queries /a` (+160 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **74 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **75 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `_e()` connect `Mapping Editor` to `Renderer Core`, `Compositor Engine`, `API Server`, `MilkDrop Preset Browser`, `Layer Strip UI`, `Browser Panel`, `BPM Tracker`, `Universal Param Control`, `Audio Callback`, `Undo Manager`, `Files Browser`?**
+- **Why does `_e()` connect `Mapping Engine Header` to `Renderer Core`, `Compositor Engine`, `API Server`, `MilkDrop Preset Browser`, `Layer Strip UI`, `Clip Inspector`, `Fullscreen Quad`, `Genre Detector`, `Curve Transforms`, `Audio Callback`, `Files Browser`?**
   _High betweenness centrality (0.187) - this node is a cross-community bridge._
-- **Why does `ae()` connect `BPM Tracker` to `ProjectM Preset Manager`, `Genre Detector`, `Mapping Editor`, `ISF Shader Loader`?**
+- **Why does `ae()` connect `Curve Transforms` to `Mapping Engine Header`, `Comp Decks Browser`, `Image Sequence Player`, `Deck View`, `Mapping Engine`?**
   _High betweenness centrality (0.066) - this node is a cross-community bridge._
-- **Why does `we()` connect `Files Browser` to `Clip Inspector`, `Preview Panel`, `Image Sequence Player`, `Source Registry`, `Effect Library`, `Mapping Editor`?**
+- **Why does `we()` connect `Files Browser` to `Mapping Engine Header`, `Signal Bar`, `Clip Cell UI`, `Effect Model`, `Layer Inspector`, `Mapping Suggester`?**
   _High betweenness centrality (0.065) - this node is a cross-community bridge._
 - **What connects `Pytest configuration for Eyes visual tests.  Provides fixtures that spawn the Au`, `Find the built executable.`, `Spawn Audio-DNA in test mode for the entire test session.      The app starts on` to the rest of the system?**
-  _158 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _165 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Main Component Controller` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._
 - **Should `Renderer Core` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._
 - **Should `Compositor Engine` be split into smaller, more focused modules?**
-  _Cohesion score 0.06 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._

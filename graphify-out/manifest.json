@@ -120,8 +120,8 @@
     "hash": "78b4a840fa52db26383bfbdf1951d0f8"
   },
   "/Users/boriskarpman/projects/RealTimeAudio/tests/visual/test_render_pipeline.py": {
-    "mtime": 1779154310.5699127,
-    "hash": "9cb92b49e65b3fed3bb7b262fbd36648"
+    "mtime": 1779195185.3730063,
+    "hash": "c5e60ead4658703055bc66caf9b2166d"
   },
   "/Users/boriskarpman/projects/RealTimeAudio/tests/visual/test_ax_inspector.py": {
     "mtime": 1779156041.5043993,
@@ -888,12 +888,12 @@
     "hash": "d3cc0be640139f8d7d7de5b940078198"
   },
   "/Users/boriskarpman/projects/RealTimeAudio/src/api/ApiServer.cpp": {
-    "mtime": 1779154310.5071166,
-    "hash": "36744881284b75b5034826024c06df8e"
+    "mtime": 1779194259.3946896,
+    "hash": "1a2cfcd6724c12c753584f2af0cf7315"
   },
   "/Users/boriskarpman/projects/RealTimeAudio/src/api/ApiServer.h": {
-    "mtime": 1779154310.5073771,
-    "hash": "cd29e355de08a913479c2c3d3aae8cf2"
+    "mtime": 1779159300.0480912,
+    "hash": "eb346bc0f176a9c26879f41294908627"
   },
   "/Users/boriskarpman/projects/RealTimeAudio/src/routing/MacroBank.h": {
     "mtime": 1779154310.5280676,
