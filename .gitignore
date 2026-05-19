@@ -66,3 +66,4 @@ build-debug/
 *.dmg
 *.ogg
 VALIDATION_PROTOCOL.md
+__pycache__/

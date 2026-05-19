@@ -80,10 +80,9 @@ class TestEffects:
 
     def test_enable_single_effect(self, app, tmp_path):
         """Enabling an effect should change the rendered output."""
-        if not os.path.exists(TEST_IMAGE):
-            pytest.skip(f"Test image not found: {TEST_IMAGE}")
-
-        app.load_image(TEST_IMAGE)
+        # Use a procedural source (works in both production and test mode)
+        app.reset()
+        app.load_source("checkerboard")
 
         # Capture without effect
         no_fx = str(tmp_path / "no_fx.png")
@@ -110,10 +109,9 @@ class TestEffects:
 
     def test_effect_chain(self, app, tmp_path):
         """Two effects chained should both apply."""
-        if not os.path.exists(TEST_IMAGE):
-            pytest.skip(f"Test image not found: {TEST_IMAGE}")
-
-        app.load_image(TEST_IMAGE)
+        # Use a procedural source (works in both production and test mode)
+        app.reset()
+        app.load_source("checkerboard")
 
         # Capture with just hue shift
         app.set_effect("Hue Shift", enabled=True, params={"shift": 0.5})
@@ -121,7 +119,7 @@ class TestEffects:
         app.render_frame(hue_only, time_val=1.0)
 
         app.reset()
-        app.load_image(TEST_IMAGE)
+        app.load_source("checkerboard")
 
         # Capture with hue shift + invert
         app.set_effect_chain([

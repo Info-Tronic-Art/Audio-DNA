@@ -43,3 +43,8 @@ When validating UI changes, use this sequence:
 **Files:** tests/visual/conftest.py, tests/visual/test_ax_inspector.py
 **Note:** The conftest.py in tests/visual/ has an `autouse=True` fixture `reset_between_tests` that depends on the `app` fixture, which skips all tests when the Audio-DNA executable is not built. Any new test file in tests/visual/ that does NOT need the running app must override both `app` and `reset_between_tests` fixtures locally to avoid being skipped.
 **Valid while:** tests/visual/conftest.py still has autouse=True on reset_between_tests
+
+## 2026-05-18 — set_effect_chain and state endpoints ported to ApiServer
+**Files:** src/api/ApiServer.cpp, src/api/ApiServer.h
+**Note:** POST /api/set_effect_chain and GET /api/state are now available on port 7070 (ApiServer, always-on) in addition to port 8080 (TestServer, test-mode only). ApiServer version wraps state response in {"ok": true} pattern unlike TestServer's raw JSON. The param write uses direct assignment (fx->getParam(p).value = val) matching ApiServer style, not fx->setParamValue() as in TestServer. ApiServer.cpp is at exactly 900 lines — budget ceiling. Melatonin inspector FetchContent is broken (module header not found); build with -DAUDIODNA_BUILD_INSPECTOR=OFF to work around.
+**Valid while:** both ApiServer.cpp and TestServer.cpp contain these endpoints

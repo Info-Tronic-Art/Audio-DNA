@@ -197,6 +197,10 @@ void ApiServer::setupRoutes()
     server_.Post("/api/reset", [this](const httplib::Request& req, httplib::Response& res) {
         handleReset(req, res);
     });
+
+    // Batch effect chain configuration / combined state snapshot
+    server_.Post("/api/set_effect_chain", [this](const httplib::Request& req, httplib::Response& res) { handleSetEffectChain(req, res); });
+    server_.Get("/api/state", [this](const httplib::Request& req, httplib::Response& res) { handleState(req, res); });
 }
 
 // --- Endpoint handlers ---
@@ -205,8 +209,10 @@ void ApiServer::handleHealth(const httplib::Request&, httplib::Response& res)
 {
     auto* obj = new juce::DynamicObject();
     obj->setProperty("ok", true);
+    obj->setProperty("status", "ready");
     obj->setProperty("version", "0.1.0");
     obj->setProperty("fps", static_cast<double>(renderer_.getFps()));
+    obj->setProperty("effects_count", effectChain_.getNumEffects());
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 
@@ -622,6 +628,10 @@ void ApiServer::handleLoadImage(const httplib::Request& req, httplib::Response& 
     }
 
     renderer_.loadImage(f);
+
+    // Give the GL thread time to process the pending image load
+    juce::Thread::sleep(100);
+
     res.set_content(jsonOk(), "application/json");
 }
 
@@ -787,4 +797,110 @@ void ApiServer::handleReset(const httplib::Request&, httplib::Response& res)
     }
 
     res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleSetEffectChain(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    if (!obj || !obj->hasProperty("effects"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'effects' array"), "application/json");
+        return;
+    }
+
+    auto* effectsArray = obj->getProperty("effects").getArray();
+    if (!effectsArray)
+    {
+        res.status = 400;
+        res.set_content(jsonError("'effects' must be an array"), "application/json");
+        return;
+    }
+
+    // Disable all, then enable requested
+    for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+        if (auto* fx = effectChain_.getEffect(i))
+            fx->setEnabled(false);
+    for (const auto& fxVar : *effectsArray)
+    {
+        auto* fxObj = fxVar.getDynamicObject();
+        if (!fxObj) continue;
+
+        juce::String effectName = fxObj->getProperty("name").toString();
+        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+        {
+            auto* fx = effectChain_.getEffect(i);
+            if (fx && fx->getName() == effectName)
+            {
+                fx->setEnabled(true);
+                if (fxObj->hasProperty("params"))
+                {
+                    if (auto* paramsObj = fxObj->getProperty("params").getDynamicObject())
+                    {
+                        for (auto& prop : paramsObj->getProperties())
+                        {
+                            float val = static_cast<float>(static_cast<double>(prop.value));
+                            for (int p = 0; p < fx->getNumParams(); ++p)
+                            {
+                                if (fx->getParam(p).name == prop.name.toString().toStdString())
+                                {
+                                    fx->getParam(p).value = val;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    res.set_content(jsonOk(), "application/json");
+}
+void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
+{
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("fps", static_cast<double>(renderer_.getFps()));
+    obj->setProperty("frame_time_ms", static_cast<double>(renderer_.getFrameTimeMs()));
+    obj->setProperty("master_level", static_cast<double>(renderer_.getMasterLevel()));
+
+    // Effects state
+    juce::Array<juce::var> effectsArr;
+    for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+    {
+        auto* fx = effectChain_.getEffect(i);
+        if (!fx) continue;
+        auto* fxObj = new juce::DynamicObject();
+        fxObj->setProperty("name", fx->getName());
+        fxObj->setProperty("category", fx->getCategory());
+        fxObj->setProperty("enabled", fx->isEnabled());
+        fxObj->setProperty("dry_wet", static_cast<double>(fx->getDryWet()));
+        juce::Array<juce::var> paramsArr;
+        for (int p = 0; p < fx->getNumParams(); ++p)
+        {
+            auto& param = fx->getParam(p);
+            auto* paramObj = new juce::DynamicObject();
+            paramObj->setProperty("name", juce::String(param.name));
+            paramObj->setProperty("value", static_cast<double>(param.value));
+            paramObj->setProperty("default", static_cast<double>(param.defaultValue));
+            paramsArr.add(juce::var(paramObj));
+        }
+        fxObj->setProperty("params", paramsArr);
+        effectsArr.add(juce::var(fxObj));
+    }
+    obj->setProperty("effects", effectsArr);
+    obj->setProperty("active_deck", composition_.activeDeckIndex);
+    obj->setProperty("num_decks", static_cast<int>(composition_.decks.size()));
+
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }

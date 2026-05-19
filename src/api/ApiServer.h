@@ -86,6 +86,8 @@ private:
     void handleListSources(const httplib::Request& req, httplib::Response& res);
     void handleRenderFrame(const httplib::Request& req, httplib::Response& res);
     void handleReset(const httplib::Request& req, httplib::Response& res);
+    void handleSetEffectChain(const httplib::Request& req, httplib::Response& res);
+    void handleState(const httplib::Request& req, httplib::Response& res);
 
     // JSON helpers
     std::string jsonOk();
