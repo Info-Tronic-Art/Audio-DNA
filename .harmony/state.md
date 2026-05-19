@@ -2,6 +2,6 @@
 
 Norm ID: 2
 Last normalized: 2026-05-18
-last_normalized_sha: 0b388c9cea3b9f27c89c5a5894ee05ade76d5cfb
+last_normalized_sha: be77898ebb8d9abe5026dea7baff6337c5ea3623
 Normalized by: Harmony
 Method: full (secrets scan → discovery → deep audit → execute) — re-normalized from ~/Documents copy
