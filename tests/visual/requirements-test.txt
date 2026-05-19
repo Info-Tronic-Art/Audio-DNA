@@ -3,3 +3,5 @@ requests>=2.28
 opencv-python>=4.7
 numpy>=1.24
 scikit-image>=0.20
+pyobjc-framework-ApplicationServices>=10.0
+pyobjc-framework-Cocoa>=10.0

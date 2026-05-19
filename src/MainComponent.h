@@ -38,6 +38,9 @@
 #if AUDIODNA_TEST_SERVER
  #include "test/TestServer.h"
 #endif
+#if AUDIODNA_BUILD_INSPECTOR
+ #include <melatonin_inspector/melatonin_inspector.h>
+#endif
 #if AUDIODNA_HAS_CAMERA
  #include <juce_video/juce_video.h>
 #endif
@@ -266,6 +269,9 @@ private:
     int testPort_ = 8080;
 #if AUDIODNA_TEST_SERVER
     std::unique_ptr<TestServer> testServer_;
+#endif
+#if AUDIODNA_BUILD_INSPECTOR
+    std::unique_ptr<melatonin::Inspector> melatoninInspector_;
 #endif
 
     // === P22: Output & Integration ===

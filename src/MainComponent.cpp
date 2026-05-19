@@ -1170,6 +1170,9 @@ MainComponent::~MainComponent()
     if (testServer_)
         testServer_->stop();
 #endif
+#if AUDIODNA_BUILD_INSPECTOR
+    melatoninInspector_.reset();
+#endif
 #if AUDIODNA_HAS_CAMERA
     closeCamera();
 #endif
@@ -1594,6 +1597,18 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return false; // Let the KeyListener on the overlay handle it
     if (midiLearnOverlay_ && midiLearnOverlay_->isLearnModeActive())
         return false;
+
+#if AUDIODNA_BUILD_INSPECTOR
+    // Shift+Cmd+I = toggle Melatonin Inspector
+    if (key.isKeyCode('I') && mod.isCommandDown() && mod.isShiftDown())
+    {
+        if (!melatoninInspector_)
+            melatoninInspector_ = std::make_unique<melatonin::Inspector>(*this);
+
+        melatoninInspector_->setVisible(!melatoninInspector_->isVisible());
+        return true;
+    }
+#endif
 
     // Shift+Cmd+K = toggle keyboard binding mode
     if (key.isKeyCode('K') && mod.isCommandDown() && mod.isShiftDown())

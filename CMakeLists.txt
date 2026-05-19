@@ -55,6 +55,18 @@ FetchContent_MakeAvailable(httplib)
 # --- Visual Test Server (Eyes, optional) ---
 option(AUDIODNA_BUILD_TEST_SERVER "Build with embedded HTTP test server (Eyes)" OFF)
 
+# --- Melatonin Inspector (JUCE component inspector, optional debug tool) ---
+option(AUDIODNA_BUILD_INSPECTOR "Build with Melatonin Inspector debug overlay" OFF)
+if(AUDIODNA_BUILD_INSPECTOR)
+    FetchContent_Declare(
+        melatonin_inspector
+        GIT_REPOSITORY https://github.com/sudara/melatonin_inspector.git
+        GIT_TAG        origin/main
+        SOURCE_DIR     ${CMAKE_CURRENT_BINARY_DIR}/melatonin_inspector
+    )
+    FetchContent_MakeAvailable(melatonin_inspector)
+endif()
+
 # --- Syphon (macOS inter-app GPU texture sharing, optional) ---
 if(APPLE)
     option(AUDIODNA_BUILD_SYPHON "Build with Syphon output (macOS)" OFF)
@@ -368,6 +380,12 @@ target_link_libraries(AudioDNA PRIVATE httplib::httplib)
 # Add test server compile definition
 if(AUDIODNA_BUILD_TEST_SERVER)
     target_compile_definitions(AudioDNA PRIVATE AUDIODNA_TEST_SERVER=1)
+endif()
+
+# Melatonin Inspector (debug overlay)
+if(AUDIODNA_BUILD_INSPECTOR)
+    target_compile_definitions(AudioDNA PRIVATE AUDIODNA_BUILD_INSPECTOR=1)
+    target_link_libraries(AudioDNA PRIVATE melatonin_inspector)
 endif()
 
 # Syphon framework (optional, macOS only)
