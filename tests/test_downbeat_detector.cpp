@@ -144,7 +144,7 @@ TEST_CASE("downbeatDetected fires only on beat 0", "[downbeat][trigger]")
 // Bar Phase Tests
 // ============================================================================
 
-TEST_CASE("barPhase is in [0, 1) range", "[downbeat][barphase]")
+TEST_CASE("barPhase stays within zero to one range", "[downbeat][barphase]")
 {
     BPMTracker tracker(512, 1024, 48000);
     lockBPM(tracker, 120.0f);
