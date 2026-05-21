@@ -12,15 +12,15 @@
 | Procedural sources | 81 | 108 | 101 | +20 undocumented in Boris's doc |
 | Effects | 135 | 135 | 135 | Match |
 | Effect parameters | — | — | 333 | Never inventoried |
-| Source parameters | — | — | 628 | Never inventoried |
-| Total adjustable params | — | — | 1,253+ | ~1,050 without dedicated UI |
+| Source parameters | — | — | 754 | Never inventoried (628 via grep; 754 actual with runtime helper expansion) |
+| Total adjustable params | — | — | 1,379+ | ~1,176 without dedicated UI (corrected: 333 effect + 754 source + ~292 inspector) |
 | Blend modes | 48 | — | 25 | Boris overcounts (includes transitions) |
 | Transition modes | 45+ | — | 30 | Boris overcounts |
 | Total MixMode enum | — | — | 55 | 25 blend + 30 transition |
 | Keying modes | 13 | — | 13 | Match |
-| Mapping sources | — | 40+ | 57 | 17 undocumented |
+| Mapping sources | — | 40+ | 58 | 18 undocumented (57 was grep count; 58 actual enum excluding Count sentinel) |
 | Curve types | 24 | 5 | 24 | FEATURES.md undercounts (only lists basic 5) |
-| Default signals | 12 | — | 36 | 8 visible + 25 hidden + 3 modulation |
+| Default signals | 12 | — | 32 | 8 visible + 21 hidden audio + 2 modulation + 1 clip position |
 | UI components | — | — | 37 | (34 active, 3 hidden v1) |
 | HTML mockups | 31 (handoff) | — | 392 | Handoff vastly undercounts (v1-v9 iterations) |
 
@@ -46,7 +46,7 @@
 |---------|--------|-------|
 | MilkDrop/projectM system | **MISSING from FEATURES.md** | 2K LOC, 9800 presets, 3 play modes. Boris's doc covers it; FEATURES.md doesn't mention it at all |
 | Render pipeline effects | Partial | Screen Split, Freeze in code. Frame Stutter, Echo in screenshots. Not systematically documented |
-| 25 hidden audio signals | Working | Registered but not visible in default signal bar (P25 advanced features etc.) |
+| 21 hidden audio signals | Working | Registered but not visible in default signal bar (P25 advanced features etc.). Originally counted as 25; verified 21 by enum audit. |
 | LUT Loader | Working | 111 LOC in render pipeline. Neither doc mentions it |
 | Camera input | Defined | MediaType::Camera in Clip enum, cameraDeviceIndex field. Not wired to UI |
 | v1/v2 layout split | Working | 3 hidden v1 components (AudioReadoutPanel, SpectrumDisplay, EffectsRackPanel) + many hidden v1 controls in MainComponent |
@@ -91,10 +91,10 @@
 
 ### Effect and source parameters (CONFIRMED by code audit)
 - 135 effects × 1-8 params = **333 effect parameters**
-- 101 sources × 1-16 params = **628 source parameters**
-- **Total confirmed adjustable parameters: 1,253+**
-- **Parameters WITHOUT dedicated UI: ~1,050+**
-- **Parameters that are automatable: ~1,100+**
+- 101 sources × 1-16 params = **754 source parameters** (628 via grep; 754 actual with runtime helper expansion)
+- **Total confirmed adjustable parameters: 1,379+** (333 effect + 754 source + ~292 inspector)
+- **Parameters WITHOUT dedicated UI: ~1,176+**
+- **Parameters that are automatable: ~1,226+**
 
 ### Every parameter that is a UniversalParamControl has 4 sub-features:
 - Signal source selection (8 modes: Manual/Signal/BPM Sync/Oscillator/Envelope/Clip Position/Timeline/Macro)
