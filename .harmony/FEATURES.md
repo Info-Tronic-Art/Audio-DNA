@@ -1,6 +1,6 @@
 # Features — Audio-DNA (RealTimeAudio)
 
-Last audited: 2026-05-21 | SHA: 108c8d0
+Norm: v2 | Last audited: 2026-05-21 | SHA: 108c8d0
 
 <!-- C++20/JUCE/OpenGL desktop application. Framework gating:
      Security/Auth: N/A — local desktop app, no user accounts
@@ -11,8 +11,7 @@ Last audited: 2026-05-21 | SHA: 108c8d0
 
 ---
 
-## 1. Audio I/O & Capture
-
+## 1. Audio I/O & Capture [R]
 **What it does:** Manages audio input devices (mic, system audio, file playback), mono-downmixes incoming samples, and pushes them into a lock-free ring buffer for the analysis thread.
 
 **Entry points:**
@@ -65,8 +64,7 @@ AudioTransportSource (file playback) → same callback path
 
 ---
 
-## 2. Audio Analysis Pipeline
-
+## 2. Audio Analysis Pipeline [R]
 **What it does:** Extracts 58 audio features from raw samples in real-time via a 16-stage pipeline running every 10.7ms (512-sample hop at 48kHz). Features are accessible as mapping sources and signals.
 
 **Entry points:**
@@ -137,10 +135,12 @@ RingBuffer → 2048-sample window → FFT → [spectral|onset|BPM|MFCC|chroma|pi
 - **OnsetDetector and BPMTracker use separate internal 1024-pt FFTs** — redundant with main 2048-pt FFTProcessor. Aubio's internal state cannot share the main FFT result.
 - **One-frame lag**: Stage 5 (BPM) uses `prevHCDF_` and `prevStructuralState_` because chroma HCDF (stage 7) and structural (stage 11) aren't computed yet. Fundamental pipeline ordering constraint.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 3. Feature Transport
-
+## 3. Feature Transport [R]
 **What it does:** Transfers the complete FeatureSnapshot from analysis thread to render thread via lock-free triple-buffer atomic swap, with optional EMA/One-Euro smoothing.
 
 **Entry points:**
@@ -182,10 +182,12 @@ Per-mapping: raw value → Smoother (EMA alpha or One-Euro beta) → smooth valu
 - **`FeatureSnapshot::clear()` uses `memset(this, 0, sizeof(*this))`** then manually sets non-zero defaults. Adding any non-trivial member (vtable, std::string) would break this.
 - **`hasNewData()` uses relaxed memory order** — fine for single reader, but with multiple readers only one will successfully acquire.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 4. Visual Effects System
-
+## 4. Visual Effects System [R]
 **What it does:** Provides 135 GLSL shader effects across 11 categories + 15 clip-to-clip transitions, with effect chains at per-clip, per-layer, and global levels. Supports ISF shader import.
 
 **Entry points:**
@@ -291,10 +293,12 @@ Double Exposure (2), Frosted Glass (2), Prism (2), Rain on Glass (2), Hexagonali
 - Multi-select FX drag drops comma-separated names — must split on commas.
 - Parameter ranges often need nonlinear remapping in shader (`mix(0.82, 0.995, slider)`) for perceptually linear control.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 5. Render Pipeline
-
+## 5. Render Pipeline [R]
 **What it does:** Manages the OpenGL 4.1 rendering loop: shader compilation, texture management, deck/layer compositing with per-level effect chains, temporal buffers, feedback system, and frame ring buffer.
 
 **Entry points:**
@@ -512,10 +516,12 @@ UV centered at origin → anchor offset → rotation (2D mat2) → inverse scale
 - Screen Split / Frame Stutter can't use normal shader pipeline — need ring buffer of N past frames, intercepted before normal rendering.
 - Ring buffer at full resolution = 4GB VRAM. 1/4 downscale is essential.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 6. Audio-Visual Mapping
-
+## 6. Audio-Visual Mapping [R]
 **What it does:** Routes any of 58 audio features to any effect parameter via a configurable pipeline: extract → normalize → curve → scale → smooth → write. Supports 24 curve types and genre-aware mapping suggestions.
 
 **Entry points:**
@@ -583,6 +589,36 @@ FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(
 **Dependencies & services:**
 - No external dependencies — pure math
 
+**Config:**
+- Mapping source count: 58 (MappingSource enum, MappingTypes.h:6) (source: hardcoded)
+- Curve type count: 24 (MappingCurve enum, MappingTypes.h:90) (source: hardcoded)
+- Mapping struct defaults (MappingTypes.h:123):
+  - `source`: MappingSource::RMS (source: hardcoded)
+  - `curve`: MappingCurve::Linear (source: hardcoded)
+  - `inputMin`: 0.0, `inputMax`: 1.0 (source: hardcoded)
+  - `outputMin`: 0.0, `outputMax`: 1.0 (source: hardcoded)
+  - `smoothing`: 0.15 — EMA alpha, higher = less smoothing (source: hardcoded)
+- Stepped curve default N: 4 steps (MappingEngine.h:50, CurveTransforms.h:40) (source: hardcoded)
+- Smoother default alpha: 0.3 (Smoother.h:12) (source: hardcoded)
+- OneEuroFilter defaults (Smoother.h:55): rate=93.75 Hz, minCutoff=1.0 Hz, beta=0.007, dCutoff=1.0 Hz (source: hardcoded)
+- Back easing overshoot: c1=1.70158, c2=c1*1.525, c3=c1+1.0 (CurveTransforms.h:76-78) (source: hardcoded)
+- Elastic period: c4=2pi/3, c5=2pi/4.5 (CurveTransforms.h:106-107) (source: hardcoded)
+- Bounce magic constants: n1=7.5625, d1=2.75 (CurveTransforms.h:139-140) (source: hardcoded)
+- Logarithmic curve base: log(1 + 9x) / log(10) (CurveTransforms.h:29) (source: hardcoded)
+- Multi-mapping accumulation clamp: [0, 1] (MappingEngine.cpp:214) (source: hardcoded)
+- MappingSuggester defaults (MappingSuggester.h:34-35):
+  - `maxSuggestions`: 8 for snapshot-based, 6 for genre-based (source: hardcoded)
+  - `suggestions.reserve`: 20 snapshot / 12 genre (source: hardcoded)
+- MappingSuggester activity thresholds (MappingSuggester.cpp):
+  - Bass: low=0.1, high=0.6 (line 57) (source: hardcoded)
+  - Mid: low=0.1, high=0.6 (line 59) (source: hardcoded)
+  - High: low=0.05, high=0.4 (line 61) (source: hardcoded)
+  - Beat relevance: 0.9 if trackerState==2, else 0.3 (line 62) (source: hardcoded)
+  - Onset/transient density: low=1.0, high=8.0 (line 63) (source: hardcoded)
+  - Spectral centroid: low=1000.0, high=8000.0 (line 96) (source: hardcoded)
+  - RMS: low=0.05, high=0.5 (line 105) (source: hardcoded)
+- MappingSuggester relevance scores: per-suggestion, range [0, 1], weighted by activity (source: hardcoded)
+
 **Failure modes:**
 - Invalid source enum → default to 0.0 (handled)
 - Target effect removed → orphaned mapping (unhandled — mapping still exists)
@@ -600,10 +636,12 @@ FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(
 - **`Mapping.smoothing` is named "alpha" but behaves as EMA coefficient** — higher = LESS smoothing (1.0 = passthrough). Opposite of typical "smoothing" semantics.
 - **`removeMapping()` uses vector erase** — invalidates all indices >= removed. No stable IDs for mappings.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 7. Signal Routing Engine
-
+## 7. Signal Routing Engine [R]
 **What it does:** Manages 32 named signals (8 visible + 21 hidden audio + 2 modulation + 1 clip position) and evaluates chained signal expressions each frame to feed the render pipeline.
 
 **Entry points:**
@@ -700,10 +738,12 @@ FeatureSnapshot fields → SignalRegistry (named signals) → ChainedSignal (der
 - **`getCachedValue()` is O(n) linear scan per call** — each route calls once, ChainedSignal calls twice. Fine for ~30 signals, won't scale to hundreds.
 - **RoutingEngine does NOT apply curve transforms** — uses gain/threshold/falloff instead. Deliberate v2 design difference from MappingEngine.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 8. Clip & Layer Composition
-
+## 8. Clip & Layer Composition [R]
 **What it does:** Hierarchical data model for VJ performance: Composition → Decks → Layers → Clips, with undo/redo and per-type autopilot automation.
 
 **Entry points:**
@@ -760,8 +800,7 @@ Autopilot: beat/video trigger → advance clip → fire callback → refresh Dec
 
 ---
 
-## 9. Procedural Sources
-
+## 9. Procedural Sources [R]
 **What it does:** 108 code-generated visual sources across 18 categories: 7 2D fractals, 8 3D ray-marched fractals, 8 torus variants, 9 audio-visual, text, simulations, pattern/noise/geometric/particle/nature sources, 7 wireframe shapes, and a MilkDrop visualizer. Total: 754 parameters at runtime.
 
 **Entry points:**
@@ -893,10 +932,12 @@ Laser Scanner (6)
 - 3D camera distance `mix(5.0, 0.3, zoom)` — at zoom=1 camera is INSIDE the fractal.
 - Layer Router source reads another layer's output — self-reference gets previous frame (1 frame delay).
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 10. Keyboard & MIDI Performance
-
+## 10. Keyboard & MIDI Performance [R]
 **What it does:** Maps keyboard keys and MIDI notes/CC to actions (clip triggers, param control, transport) with 3 targeting modes, toggle/momentary triggers, velocity-to-opacity, and hardware feedback for Launchpad/APC.
 
 **Entry points:**
@@ -944,10 +985,12 @@ Deck state → MidiOutputHandler (6Hz poll) → note-on/off → Launchpad/APC pa
 - **Modifier mismatch on keyUp** — if user releases Shift before releasing bound key, modifier mismatch causes momentary release to be missed.
 - **Relative CC mode**: accumulated value is per-(channel, CC) globally. Two bindings on same CC with different step sizes share accumulated value.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 11. Video Playback & Media
-
+## 11. Video Playback & Media [R]
 **What it does:** Decodes video files (MP4/MOV/AVI/MKV/WebM/HAP Alpha) via FFmpeg to GL textures, and plays multi-image sequences with configurable FPS and BPM sync.
 
 **Entry points:**
@@ -989,10 +1032,12 @@ Image folder → load all images → cycle by timer/BPM → clip texture
 - HAP Alpha requires specific FFmpeg codec support.
 - BPM Sync with Content Beats requires knowing how many beats the video content represents.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 12. Video Recording & Capture
-
+## 12. Video Recording & Capture [R]
 **What it does:** Records the live output to H.264/ProRes/MJPEG video files via FFmpeg with triple-buffered GL readback, and captures PNG snapshots.
 
 **Entry points:**
@@ -1039,8 +1084,7 @@ Performance events → SessionRecorder → JSON file
 
 ---
 
-## 13. Output & Display
-
+## 13. Output & Display [R]
 **What it does:** Sends rendered output to fullscreen display on any connected monitor, with optional Syphon output/input for inter-app GPU texture sharing on macOS.
 
 **Entry points:**
@@ -1082,10 +1126,12 @@ SyphonInput → IOSurface → clip texture input
 - Syphon is Obj-C++ (.mm files) — only compiles on macOS.
 - `__has_include` detection means build succeeds without Syphon installed, but feature is silently disabled.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 14. External Control
-
+## 14. External Control [R]
 **What it does:** REST API (port 7070, 20+ endpoints) and OSC input for external control of all app functions.
 
 **Entry points:**
@@ -1133,10 +1179,12 @@ OSC message → OscHandler (message thread) → state change
 - **`ApiServer` captures `this` in callAsync lambdas** — if server stopped while lambdas queued, use-after-free possible.
 - **`handleSnapshot()` blocks HTTP thread** while rendering — stalls other API requests.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 15. Ableton Link Sync
-
+## 15. Ableton Link Sync [R]
 **What it does:** Optional tempo synchronization with Ableton Live and other Link-enabled applications.
 
 **Entry points:**
@@ -1173,10 +1221,12 @@ Link network session → LinkSync (atomic BPM/phase) → BPMTracker manual mode 
 - **`update()` must be called explicitly per frame** — Link state is not pushed. Stale `getBeatPhase()` values if `update()` frequency drops.
 - **`requestBeatAtTime()` is implemented but never called** — force-aligns all Link peers to downbeat. No UI button or binding exposes it (ghost function).
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 16. Genre Detection & Smart Features
-
+## 16. Genre Detection & Smart Features [R]
 **What it does:** Real-time 8-genre classification from audio features with per-genre smoothing, AI mapping suggestions, smart autopilot, and structural scene triggering.
 
 **Entry points:**
@@ -1222,10 +1272,12 @@ Structural transitions → onStructuralStateChanged_ → scene trigger
 - **`std::rand()` used in autopilot** — not seeded explicitly, non-deterministic across runs. Thread safety of `std::rand()` is implementation-defined.
 - **Beat crossing detection threshold** — `beatPhase < lastBeatPhase_ - 0.5f` means only phase wraps from ~1.0 to ~0.0 are detected. BPM tracker skipping a beat (phase jumps >0.5 without wrapping) → crossing missed.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 17. MilkDrop/projectM Visualization
-
+## 17. MilkDrop/projectM Visualization [R]
 **What it does:** Renders classic MilkDrop presets via libprojectM-4, supporting ~9800 .milk/.prjm presets with audio-reactive warp meshes, feedback loops, and per-equation beat sensitivity. Provides a dedicated browser with 3 play modes (Jukebox, VJ Clip, Playlist) and audio-driven auto-switching based on structural transitions and energy matching.
 
 **Entry points:**
@@ -1307,8 +1359,7 @@ MilkDropBrowser → drag "milkdrop:{path}" or "milkdrop_playlist:path1|path2|pat
 
 ---
 
-## 18. Render Pipeline Time Effects
-
+## 18. Render Pipeline Time Effects [R]
 **What it does:** Five temporal effects that operate on frame history rather than spatial pixel manipulation: Echo (ghost trails), Posterize Time (frame rate reduction), Freeze (frame hold), Screen Split (surveillance grid with per-cell delay), and Frame Stutter (temporal jumping). Screen Split and Frame Stutter use a per-layer ring buffer of 480 frames at 1/4 resolution. Echo, Posterize Time, and Freeze use the standard temporal buffer (`u_prev_frame`).
 
 **Entry points:**
@@ -1353,6 +1404,16 @@ Screen Split: clip texture → pushFrameToRing() → per-cell getFrameFromRing()
 Frame Stutter: clip texture → pushFrameToRing() → getFrameFromRing(framesAgo) → direct texture swap
 ```
 
+**Dependencies & services:**
+- OpenGL 4.1 Core Profile: FBO management (glBindFramebuffer, glFramebufferTexture2D), texture operations (glBindTexture, GL_TEXTURE_2D), viewport manipulation (glViewport), blending control (glDisable/GL_BLEND), clear operations (glClearColor, glClear)
+- JUCE juce_opengl: GL function wrappers via `juce::gl` namespace (CompositorEngine.cpp:6)
+- ShaderManager: compiles and caches GLSL programs — "ghost_trails", "frame_hold", "time_freeze" (Renderer.cpp:1267-1269), "passthrough" for ring buffer blit and Screen Split rendering
+- EmbeddedShaders: GLSL #version 410 fragment shaders — `ghostTrails` (EmbeddedShaders.h:8409), `frameHold` (EmbeddedShaders.h:8463), `timeFreeze` (EmbeddedShaders.h:8502)
+- FullscreenQuad: screen-aligned quad for fragment shader dispatch and ring buffer blit
+- EffectLibrary: effect registration and definition lookup (EffectLibrary.cpp:646-670)
+- CompositorEngine internals: effectFBO_A_/effectFBO_B_ (ping-pong FBOs), TemporalBuffer (u_prev_frame for Echo/Posterize/Freeze), FrameRingBuffer (CompositorEngine.h:169 — per-layer, 480 frames at 1/4 resolution for Screen Split/Frame Stutter)
+- No external libraries beyond JUCE and OpenGL
+
 **Config:**
 - Ring buffer: 480 frames per layer, 1/4 resolution (~120MB VRAM at 1080p source)
 - Echo: decay [0,1]→[0.82,0.995], operator Add/Screen/Max/Blend
@@ -1376,10 +1437,12 @@ Frame Stutter: clip texture → pushFrameToRing() → getFrameFromRing(framesAgo
 - **Echo name collision** — FeedbackProcessor also has an "Echo" preset (layer-level Larsen loop, amount=0.60). Different systems, same name.
 - **Posterize Time uses `u_time` for quantization** — timing inconsistent if u_time has jitter or resets.
 
+
+**Storage:** N/A — real-time in-memory processing
+
 ---
 
-## 19. LUT Loader (Ghost Feature)
-
+## 19. LUT Loader (Ghost Feature) [C]
 **Status: Ghost — code exists, no UI path to load external .cube files**
 
 **What it does:** Parses .cube LUT files and uploads them as `GL_TEXTURE_3D` handles for color grading. Supports standard .cube format: `LUT_3D_SIZE N` header followed by N^3 RGB float triples.
@@ -1389,53 +1452,144 @@ Frame Stutter: clip texture → pushFrameToRing() → getFrameFromRing(framesAgo
 - `TextureManager::loadLUT()` (src/render/TextureManager.h:36) — wrapper (never called)
 
 **Implementation chain:**
-1. `LUTLoader::loadCubeFile()` parses .cube file: skip comments/TITLE/DOMAIN lines, read `LUT_3D_SIZE N`, parse N^3 RGB triples
-2. Creates GL_TEXTURE_3D with GL_RGB32F, trilinear filtering, clamp-to-edge
-3. `TextureManager::loadLUT()` wraps the above but is **never called** anywhere in the codebase
-4. The "Color Grade" effect uses a hardcoded GLSL shader, not a 3D LUT texture
+1. `LUTLoader::loadCubeFile()` (src/render/LUTLoader.cpp:7) parses .cube file: skip comments (#), TITLE, DOMAIN_MIN, DOMAIN_MAX lines; read `LUT_3D_SIZE N`; parse N^3 RGB float triples into `std::vector<float>`
+2. Validates: `lutSize > 0` and `data.size() == lutSize^3 * 3`; returns 0 on mismatch (LUTLoader.cpp:56)
+3. Creates GL_TEXTURE_3D via `glGenTextures` + `glTexImage3D` with GL_RGB32F internal format, trilinear filtering (`GL_LINEAR` min/mag), clamp-to-edge on all 3 axes (LUTLoader.cpp:63-77)
+4. `LUTLoader::releaseLUT()` (LUTLoader.cpp:84) calls `glDeleteTextures` to free the GL handle
+5. `TextureManager::loadLUT()` (TextureManager.cpp:148) delegates directly to `LUTLoader::loadCubeFile()` — **never called** anywhere in the codebase
+6. `TextureManager::releaseLUT()` (TextureManager.cpp:153) delegates to `LUTLoader::releaseLUT()` — also never called
+7. The "Color Grade" effect uses a hardcoded GLSL shader, not a 3D LUT texture
 
-**Why ghost:** `TextureManager::loadLUT()` is never called. No UI exists to browse/load .cube files. No API endpoint exposes LUT loading. Infrastructure is complete but disconnected from any consumer.
+**Data flow:**
+1. Caller provides `juce::File` path to a .cube file
+2. `LUTLoader::loadCubeFile()` reads entire file into a `juce::String` via `file.loadFileAsString()` (LUTLoader.cpp:15)
+3. Tokenizes into lines via `juce::StringArray::addTokens` with newline delimiter (LUTLoader.cpp:22-23)
+4. Iterates lines: skips empty, comment (#), TITLE, DOMAIN_MIN/MAX; extracts `LUT_3D_SIZE N`; parses remaining lines as space/tab-separated R G B float triples into `std::vector<float>` (LUTLoader.cpp:25-53)
+5. Reserves `N^3 * 3` floats in the vector on seeing LUT_3D_SIZE (LUTLoader.cpp:38)
+6. Uploads to GPU: `glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, N, N, N, 0, GL_RGB, GL_FLOAT, data.data())` (LUTLoader.cpp:73-75)
+7. Returns `GLuint` texture handle (or 0 on any failure)
+8. **Dead end:** no consumer ever calls `loadCubeFile()` or `TextureManager::loadLUT()` — the returned texture handle is never bound to a shader uniform
+
+**Dependencies & services:**
+- `juce_opengl` — GL types (`GLuint`), GL function wrappers (`glGenTextures`, `glTexImage3D`, `glTexParameteri`, `glDeleteTextures`, `GL_TEXTURE_3D`, `GL_RGB32F`, etc.) via `juce::gl` namespace
+- `juce_core` — `juce::File` (file I/O), `juce::String` / `juce::StringArray` (parsing)
+- OpenGL 4.1 — `GL_TEXTURE_3D` and `GL_RGB32F` require OpenGL 1.2+ (satisfied by the project's OpenGL 4.1 minimum)
+- No external libraries — pure JUCE + OpenGL, no third-party .cube parser
+
+**Storage:** Reads .cube files from disk via `juce::File::loadFileAsString()`. No persistent writes. The entire file content is held in memory as a `juce::String` during parsing, then discarded after GPU upload.
 
 **Config:**
 - Format: .cube only, GL_RGB32F texture, trilinear filtering
-- No size cap: 64^3 LUT = 3.1MB (fine), 256^3 = 192MB (excessive)
+- No size cap: 64^3 LUT = 3.1MB VRAM (fine), 256^3 = 192MB VRAM (excessive)
+
+**Failure modes:**
+- File not found: `file.existsAsFile()` returns false, logs `[LUTLoader] File not found: {path}` to stderr, returns 0 (LUTLoader.cpp:9-12)
+- Empty file: `content.isEmpty()` true, returns 0 silently with no log (LUTLoader.cpp:16-17)
+- Missing `LUT_3D_SIZE` header: `lutSize` stays 0, validation fails at line 56, logs `[LUTLoader] Invalid .cube file: size=0, entries={N}` to stderr, returns 0
+- Entry count mismatch (truncated or malformed file): `data.size() != lutSize^3 * 3`, same validation failure and log, returns 0
+- Malformed float values: `juce::String::getFloatValue()` returns 0.0f for unparseable strings, silently produces wrong LUT data (no error)
+- GL upload failure: no error check after `glTexImage3D`; if GL context is missing or out of VRAM, texture may be invalid but non-zero `texId` is still returned
+- Thread safety: header comment states "Must be called on the GL thread"; no internal guard. Calling from the wrong thread causes undefined GL behavior
+
+**Test coverage:**
+- No dedicated LUT tests exist. `LUTLoader.cpp` is compiled into the test binary (tests/CMakeLists.txt:97, :198) but no test file exercises `loadCubeFile()` or `releaseLUT()`.
 
 **Gotchas:**
-- DOMAIN_MIN/MAX lines parsed but ignored — non-[0,1] domains produce incorrect grades.
-- Entire file loaded into memory as string before parsing.
+- DOMAIN_MIN/MAX lines parsed but ignored — non-[0,1] domains produce incorrect color grades.
+- Entire file loaded into memory as a single string before line-by-line parsing. Large .cube files (256^3 = ~50MB text) spike memory briefly.
+- No GL error checking after `glTexImage3D` — an out-of-VRAM condition returns a non-zero texture handle that may render garbage.
+- `releaseLUT()` guards against texId == 0 but callers have no tracking — passing a stale non-zero handle after prior release to `glDeleteTextures` is undefined.
+
+**Why ghost:** `TextureManager::loadLUT()` is never called. No UI exists to browse/load .cube files. No API endpoint exposes LUT loading. Infrastructure is complete but disconnected from any consumer.
+
+**Activation estimate:** LOW (~1-2 days) — add file picker UI, bind returned texture to a color grading shader uniform, wire through the effect chain or clip pipeline.
 
 ---
 
-## 20. Camera Input (Ghost Feature)
+## 20. Camera Input (Ghost Feature) [C]
+**Status: Ghost — code exists, compile-gated behind AUDIODNA_HAS_CAMERA, not connected to v2 compositor**
 
-**Status: Ghost — code exists, no UI in v2 layout**
-
-**What it does:** Defines camera as a clip media type and provides v1-era infrastructure for live camera input (device enumeration, open/close, frame capture), but the camera path is not connected to the v2 deck/layer/clip compositor.
+**What it does:** Defines camera as a clip media type and provides v1-era infrastructure for live camera input (device enumeration, open/close, frame capture to GL texture). Camera frames reach the v1 preview panel and output window renderers but are NOT routed through the v2 deck/layer/clip compositor pipeline.
 
 **Entry points:**
-- `Clip::MediaType::Camera` (src/model/Clip.h:17) — enum value
-- `MainComponent::openCamera()` / `closeCamera()` / `refreshCameraList()` — v1 camera lifecycle
+- `Clip::MediaType::Camera` (src/model/Clip.h:17) — enum value in the MediaType enum
+- `MainComponent::openCamera()` (src/MainComponent.cpp:2244) — opens a camera device by index
+- `MainComponent::closeCamera()` (src/MainComponent.cpp:2273) — tears down the active camera
+- `MainComponent::refreshCameraList()` (src/MainComponent.cpp:2232) — enumerates available devices into the combo box
+- `MainComponent::imageReceived()` (src/MainComponent.cpp:2143) — `CameraDevice::Listener` callback, dispatches frames
+- `Renderer::queueCameraFrame()` (src/render/Renderer.cpp:51) — thread-safe frame queue for v1 preview
+- `OutputRenderer::queueCameraFrame()` (src/ui/OutputWindow.cpp:42) — thread-safe frame queue for output window
+
+**Implementation chain:**
+1. **Build gate:** Camera code is compile-gated by `AUDIODNA_HAS_CAMERA`, set to 1 on macOS and Windows, 0 on Linux (CMakeLists.txt:354-358). When enabled, `JUCE_USE_CAMERA=1` is also defined, enabling `juce_video` camera support (CMakeLists.txt:364).
+2. **Device enumeration:** `refreshCameraList()` calls `juce::CameraDevice::getAvailableDevices()`, populates `cameraSelector_` combo box with "Off" (id=1) followed by device names (id = index+2) (MainComponent.cpp:2232-2241).
+3. **Open:** `openCamera(deviceIndex)` calls `closeCamera()` first, then `juce::CameraDevice::openDevice(deviceIndex, 0, 0, 1920, 1080, false)` — min size 0x0 (system default), max size 1920x1080, no high-quality stills (MainComponent.cpp:2244-2270).
+4. **Listener registration:** On success, sets `cameraActive_ = true` and calls `cameraDevice_->addListener(this)` to receive frames via the `CameraDevice::Listener` interface (MainComponent.cpp:2265-2268).
+5. **Frame dispatch:** `imageReceived(const juce::Image&)` is called by JUCE on the camera thread. It forwards the frame to two destinations: `previewPanel_.queueCameraFrame(image)` and optionally `outputWindow_->getRenderer().queueCameraFrame(image)` (MainComponent.cpp:2143-2151).
+6. **Close:** `closeCamera()` removes the listener, resets the `unique_ptr<CameraDevice>`, sets `cameraActive_ = false` (MainComponent.cpp:2273-2281). Also called in destructor (MainComponent.cpp:1177).
+7. **UI wiring:** `cameraSelector_.onChange` lambda reads selected ID: 1 = closeCamera(), >1 = openCamera(selected - 2) (MainComponent.cpp:170-176). Camera label and selector are laid out in Row 1 of `resized()` (MainComponent.cpp:1358-1361).
+
+**Data flow:**
+1. Camera hardware delivers frames to JUCE's internal camera thread
+2. JUCE calls `MainComponent::imageReceived(const juce::Image&)` on the camera thread
+3. Frame is forwarded to `Renderer::queueCameraFrame()`: acquires `cameraFrameMutex_`, copies `juce::Image` to `pendingCameraFrame_`, sets `hasPendingCameraFrame_ = true` (Renderer.cpp:51-56)
+4. On next GL render pass, `Renderer::renderOpenGL()` acquires `cameraFrameMutex_`, calls `texMgr_.uploadImage(pendingCameraFrame_)` which converts JUCE ARGB to RGBA, flips Y, uploads via `glTexImage2D` (or `glTexSubImage2D` if same size) to `imageTexID_` (Renderer.cpp:127-135, TextureManager.cpp:27-94)
+5. The uploaded texture replaces the main image texture (`imageTexID_`) — subsequent v1 effect chain renders use it as input
+6. Same path for `OutputRenderer` (OutputWindow.cpp:42-47, 82-90)
+7. **Dead end for v2:** `CompositorEngine::getClipTexture()` (CompositorEngine.cpp:1045-1061) handles Image, Source, Video, ImageSequence — **Camera is not handled**, falls through to `return 0`. A clip with `MediaType::Camera` produces no texture in the compositor.
+8. `Clip::cameraDeviceIndex` is serialized (Clip.cpp:10, :90) but never read by the compositor or any runtime path other than `replaceContent()`.
+
+**Dependencies & services:**
+- `juce_video` — `juce::CameraDevice` (device enumeration, open, listener interface), compile-gated by `JUCE_USE_CAMERA=1`
+- `juce_gui_basics` — `juce::ComboBox` for camera selector UI, `juce::Label` for camera label
+- `juce_graphics` — `juce::Image` for frame transfer between camera thread and GL thread
+- `juce_opengl` — GL texture upload via `TextureManager::uploadImage()` (ARGB-to-RGBA conversion + `glTexImage2D`)
+- `juce_core` — `juce::StringArray` for device list
+- Platform requirement: macOS or Windows (Linux excluded at build time, CMakeLists.txt:354-357)
+
+**Storage:** N/A — camera frames are transient in-memory images. `Clip::cameraDeviceIndex` is serialized to composition JSON (Clip.cpp:10, :90) but this value is never used at runtime to open a camera.
+
+**Config:**
+- Camera resolution: min 0x0 (system default), max 1920x1080 (hardcoded in `openCamera`, MainComponent.cpp:2254-2257)
+- High-quality stills: disabled (false parameter in `openDevice`)
+- Platform: macOS and Windows only (`AUDIODNA_HAS_CAMERA` compile gate)
+- To activate in v2 compositor: needs a Camera case in `CompositorEngine::getClipTexture()` that retrieves the camera frame as a GL texture
+
+**Failure modes:**
+- Device index out of range: `openCamera()` returns early without error log (MainComponent.cpp:2249-2250)
+- Camera fails to open (permissions denied, device busy): `CameraDevice::openDevice()` returns nullptr, `fileLabel_` displays "Camera failed to open", `cameraActive_` stays false (MainComponent.cpp:2259-2262)
+- No devices available: `refreshCameraList()` populates only the "Off" entry, no crash
+- Camera thread frame delivery while GL context is being destroyed: `cameraFrameMutex_` protects the handoff, but if `Renderer` is destroyed mid-frame the queued image is silently dropped
+- Frame format mismatch: `TextureManager::uploadImage()` converts any JUCE Image to ARGB then RGBA, so format is normalized; invalid images (`!image.isValid()`) return false (TextureManager.cpp:29-30)
+- Linux build: all camera code is excluded by `#if AUDIODNA_HAS_CAMERA` guards; `Clip::MediaType::Camera` enum still exists but is inert
+
+**Test coverage:**
+- No camera-related tests exist. No test file references `openCamera`, `closeCamera`, `imageReceived`, or `MediaType::Camera`.
+
+**Gotchas:**
+- **Camera selector IS visible in v2 layout on macOS/Windows** — it is compile-gated (`#if AUDIODNA_HAS_CAMERA`), not hidden via `setVisible(false)`. When the flag is enabled, the selector appears in Row 1 of the layout (MainComponent.cpp:1358-1361).
+- **Camera frames replace the main image texture** — `texMgr_.uploadImage()` overwrites `imageTexID_`, so an active camera clobbers any loaded still image in the v1 pipeline.
+- **Frame copy on camera thread** — `imageReceived()` copies the `juce::Image` (reference-counted, shallow copy) into `pendingCameraFrame_` under mutex. The actual pixel data copy happens on the GL thread during `uploadImage()`.
+- **Renderer camera queue is always compiled** — `Renderer::queueCameraFrame()`, `pendingCameraFrame_`, `cameraFrameMutex_`, and `hasPendingCameraFrame_` are NOT behind `#if AUDIODNA_HAS_CAMERA`; only the MainComponent camera device/selector are gated.
+- **Serialized but unused** — `cameraDeviceIndex` is written to and read from composition JSON, but no code path uses the deserialized value to open a camera at load time.
 
 **Why ghost:**
 - `CompositorEngine::getClipTexture()` handles Image, Source, Video, ImageSequence — but **Camera is not handled** (falls through to `return 0`)
-- Camera selector UI is `setVisible(false)` in v2 layout
-- Camera frames go to legacy preview panel and output window, not v2 compositor pipeline
+- Camera frames go to the v1 preview panel and output window renderers only, not the v2 compositor pipeline
+- Even on macOS/Windows where the camera UI compiles in, selecting a camera device feeds frames to the v1 texture path, not to any clip in the v2 deck
 
-**Config:**
-- Camera resolution: 320x240 (hardcoded — likely placeholder)
-- To activate: needs Camera case in `CompositorEngine::getClipTexture()` converting JUCE Image to GL texture
+**Activation estimate:** MEDIUM (~3-5 days) — add Camera case in `CompositorEngine::getClipTexture()` to retrieve GL texture from camera frame queue, wire camera device lifecycle into clip model (so a Clip with MediaType::Camera opens/closes the device), handle the camera-thread-to-GL-thread frame transfer within the compositor path.
 
 ---
 
-## 21. v1/v2 Layout Component Split
-
-**What it does:** Three complete UI components from v1 remain in the codebase but are hidden (`setVisible(false)`) in the v2 layout, plus ~15 hidden v1 controls in MainComponent.
+## 21. v1/v2 Layout Component Split [C]
+**What it does:** Three complete UI components from v1 remain in the codebase but are hidden (`setVisible(false)`) in the v2 layout, plus ~15 hidden v1 controls in MainComponent. Two v2 components (WaveformDisplay, Knob) are conditionally visible based on layout state.
 
 **Hidden v1 components:**
 
-- **AudioReadoutPanel** (src/ui/AudioReadoutPanel.h, 697 LOC) — left panel showing all audio features at 30fps: RMS/peak/ZCR meters, 7-band energy bars, beat phase, bar indicator, onset flash, structural/genre state. Hidden at MainComponent.cpp:1320.
-- **SpectrumDisplay** (src/ui/SpectrumDisplay.h, 171 LOC) — 7-band energy bars with attack/release smoothing, peak hold (20 frames), color-coded gradient. Hidden at MainComponent.cpp:1321.
-- **EffectsRackPanel** (src/ui/EffectsRackPanel.h, 670 LOC) — right-side effect chain with rotary knobs and mapping controls. Superseded by EffectStackView (v2). Hidden at MainComponent.cpp:1322.
+- **AudioReadoutPanel** (src/ui/AudioReadoutPanel.h, 70 LOC header) — left panel showing all audio features at 30fps: RMS/peak/ZCR meters, 7-band energy bars, beat phase, bar indicator, onset flash, structural/genre state. Hidden at MainComponent.cpp:1399.
+- **SpectrumDisplay** (src/ui/SpectrumDisplay.h, 47 LOC header) — 7-band energy bars with attack/release smoothing, peak hold (20 frames), color-coded gradient. Hidden at MainComponent.cpp:1400.
+- **EffectsRackPanel** (src/ui/EffectsRackPanel.h, 99 LOC header) — right-side effect chain with rotary knobs and mapping controls. Superseded by EffectStackView (v2). Hidden at MainComponent.cpp:1401.
 
 **Active v2 UI components (conditionally visible):**
 
@@ -1443,23 +1597,82 @@ Frame Stutter: clip texture → pushFrameToRing() → getFrameFromRing(framesAgo
 
 - **Knob** (src/ui/Knob.h) — Rotary parameter control for the effects rack. Wraps a `ResettableSlider` with name/value labels. Features a mapping indicator ring: a colored arc drawn behind the knob arc in magenta when a mapping source is assigned (`setMappingIndicator(sourceName)`), dim when unmapped. `isMapped()` returns the current mapping state. Preferred size: 64x80px (`kPreferredWidth`/`kPreferredHeight`).
 
+**Entry points:**
+- `AudioReadoutPanel` constructor: `MainComponent.h:140` — stack member `audioReadoutPanel_{analysisThread_, analysisThread_.getFeatureBus()}`
+- `SpectrumDisplay` constructor: `MainComponent.h:141` — stack member `spectrumDisplay_{analysisThread_.getFeatureBus()}`
+- `EffectsRackPanel` constructor: `MainComponent.cpp` — heap-allocated `std::unique_ptr<EffectsRackPanel>` (`MainComponent.h:146`)
+- `WaveformDisplay` constructor: `MainComponent.h:139` — stack member `waveformDisplay_{analysisThread_}`
+- `Knob` — instantiated dynamically inside `EffectsRackPanel::rebuildUI()` as `ParamKnob.knob` per effect parameter
+- Visibility toggle: `MainComponent::resized()` at lines 1316-1327 (expanded mode hides all), lines 1398-1401 (v1 panels always hidden in normal layout), lines 1467-1469 (waveformDisplay visible in normal layout)
+
+**Implementation chain:**
+1. All components are created during `MainComponent` construction (stack members for AudioReadoutPanel/SpectrumDisplay/WaveformDisplay, `unique_ptr` for EffectsRackPanel)
+2. `MainComponent::resized()` determines visibility:
+   - If `signalBarExpanded` is true (lines 1316-1327): ALL panels hidden including waveform, preview, deck, inspector, browser, timing
+   - In normal layout (lines 1398-1401): `audioReadoutPanel_`, `spectrumDisplay_`, and `effectsRackPanel_` are unconditionally `setVisible(false)` — this is the v1/v2 split
+   - WaveformDisplay: `setVisible(true)` and positioned below preview panel (line 1467-1469) in normal layout only
+3. Knob instances live inside EffectsRackPanel's `EffectSection.paramKnobs` vector — created per-effect on `rebuildUI()`, destroyed on chain change
+
+**Data flow:**
+```
+AudioReadoutPanel: FeatureBus -> timerCallback() (30fps) -> displaySnap_ (smoothed) -> paint()
+SpectrumDisplay:   FeatureBus -> timerCallback() (30fps) -> displayBands_[7] (attack/release smoothed) -> paint()
+WaveformDisplay:   AnalysisThread::getWaveformSamples() -> timerCallback() (30fps) -> rawBuffer_ -> Column{min,max,rms} -> columns_[512] circular buffer -> paint()
+EffectsRackPanel:  EffectChain + MappingEngine -> timerCallback() -> Knob slider values + mapping indicator state -> paint()
+Knob:              Parent sets slider value -> ResettableSlider -> paint() (includes mapping arc if setMappingIndicator called)
+```
+
+**Dependencies & services:**
+- `juce::Component` — base class for all UI components
+- `juce::Timer` — 30fps update tick for AudioReadoutPanel, SpectrumDisplay, WaveformDisplay, EffectsRackPanel
+- `FeatureBus` — read-only audio feature data for AudioReadoutPanel and SpectrumDisplay
+- `AnalysisThread` — raw waveform sample source for WaveformDisplay (`getWaveformSamples()`)
+- `MappingEngine` — mapping state for EffectsRackPanel's per-knob indicator rings
+- `EffectChain` + `EffectLibrary` — effect parameters for EffectsRackPanel knob values
+- `AudioDNALookAndFeel` — color constants (`kSurface`, `kPanelBorder`, `kAccentCyan`, `kTextPrimary`, `kTextSecondary`, `kMeterYellow`)
+- `ResettableSlider` (via `UniversalParamControl.h`) — slider base for Knob
+- `MappingEditor` — popup for configuring individual mappings (owned by EffectsRackPanel)
+
+**Storage:** N/A — real-time in-memory rendering, no persistence
+
+**Config:**
+- `WaveformDisplay::kMaxColumns = 512` — circular buffer width
+- `WaveformDisplay::kPeakHoldFrames = 30` (~1s at 30fps), `kPeakDecayRate = 0.97f`
+- `SpectrumDisplay::kPeakHoldFrames = 20` (~0.67s at 30fps), `kPeakDecay = 0.95f`
+- `SpectrumDisplay::kAttackAlpha = 0.6f`, `kReleaseAlpha = 0.08f`
+- `Knob::kPreferredWidth = 64`, `kPreferredHeight = 80`
+- Waveform height: `max(30, int(previewArea.height * 0.12))` — hardcoded in `MainComponent::resized()` line 1467
+- Hidden v1 controls (~15): `audioSourceLabel_`, `audioSourceSelector_`, `inputGainLabel_`, `inputGainSlider_`, `masterLevelSlider_`, `masterLevelLabel_`, `displaySelector_`, `outputLabel_`, `fpsLabel_`, `cpuLabel_`, `viewportLabel_`, `resolutionSelector_`, `randomLabel_`, `beatRandomToggle_`, `beatCountSelector_`, `syncButton_` — all `setVisible(false)` at lines 1331-1346
+- Band colors: 7-element arrays in both AudioReadoutPanel and SpectrumDisplay (red through purple gradient), defined as `static constexpr`
+
+**Failure modes:**
+- Unhiding v1 components without adjusting layout: v1 panels would overlap v2 panels — `resized()` does not allocate space for them in the v2 layout
+- EffectsRackPanel shown alongside EffectStackView: both read/write the same `EffectChain` — parameter conflicts possible if both have active knob listeners
+- WaveformDisplay shown in expanded mode: `resized()` returns early at line 1327 before reaching the waveform layout code, so it would be visible but at stale bounds
+
+**Test coverage:**
+- No dedicated UI component tests for any of these components
+- No layout tests verifying visibility states
+- WaveformDisplay, AudioReadoutPanel, SpectrumDisplay untested (pure visual components)
+
 **Gotchas:**
 - All three hidden components are functional code, just not visible. Could be resurfaced for programming/diagnostic mode.
 - EffectsRackPanel is heap-allocated (`unique_ptr`), others are stack members.
 - v1 controls add ~200 lines of member declarations to MainComponent.
 - WaveformDisplay reads `waveformBuffer_` via non-atomic memcpy (see Feature 2 gotchas) — torn read risk if analysis writes simultaneously.
+- Two separate hide paths: lines 1316-1327 (expanded mode) and lines 1398-1401 (normal mode) both hide v1 panels but for different reasons — changing one path without the other creates inconsistency.
+- SpectrumDisplay and AudioReadoutPanel both display 7-band energy with independent smoothing parameters — values may visually disagree if both are shown simultaneously.
 
 ---
 
-## 22. Ghost Features — Control Domain
-
-Code-complete features with model/logic but no UI path or incomplete wiring.
+## 22. Ghost Features — Control Domain [C]
+**What it does:** Five code-complete features with model/logic but no UI path or incomplete wiring. Each sub-feature has data structures and/or implementation but lacks the UI integration or render pipeline connection needed to activate.
 
 ### 22a. MacroBanks — Per-Scope Macro Knobs
 
 **What it does:** 8 "dashboard link" knobs per scope (Clip, Layer, Global). Each macro can be manual or signal-driven, distributes value to linked parameters with per-link range and invert.
 
-**Status:** Global scope fully wired (`MainComponent` creates `globalMacroBank_`, passes to inspectors, MIDI routed). **Clip and Layer scopes NOT INSTANTIATED** — enum values exist but no MacroBank objects created for Clip/Layer. Model structs lack MacroBank member fields.
+**Status:** Global scope fully wired (`MainComponent` creates `globalMacroBank_`, passes to inspectors, MIDI routed). **Clip and Layer scopes NOT INSTANTIATED** — enum values exist but no MacroBank objects created for Clip/Layer. Model structs (Clip, Layer, Deck) lack MacroBank member fields.
 
 **Activation estimate:** MEDIUM (~3 days) — add MacroBank to Clip/Layer structs, wire inspectors, update serialization.
 
@@ -1467,7 +1680,7 @@ Code-complete features with model/logic but no UI path or incomplete wiring.
 
 **What it does:** Continuous A/B crossfading between decks with blend mode (Alpha/Add/Multiply), behaviour (Cut/Smooth), and curve (Linear/EaseInOut/SCurve).
 
-**Status:** Model fields exist in Composition struct (`crossfaderPhase`, enums for mode/behaviour/curve). **crossfaderPhase is NEVER READ** outside the model. `crossfaderBlendMode` used once for deck transitions (not live crossfader). No UI slider, not serialized.
+**Status:** Model fields exist in Composition struct (`crossfaderPhase`, enums for mode/behaviour/curve). **crossfaderPhase is NEVER READ** outside the model. `crossfaderBlendMode` used once for deck transitions at `Renderer.cpp:508` (not live crossfader — used as `u_blendMode` uniform during deck transition shader). No UI slider, not serialized (absent from `Composition::toVar()`/`fromVar()`).
 
 **Activation estimate:** HIGH (~1 week+) — requires dual-deck simultaneous rendering (doubles GPU workload), UI, MIDI binding, serialization.
 
@@ -1475,15 +1688,15 @@ Code-complete features with model/logic but no UI path or incomplete wiring.
 
 **What it does:** Route struct defines TargetScope enum (Clip, Layer, Global) for scoped signal routing. Currently only Global is wired.
 
-**Status:** `Renderer.cpp:205` has explicit TODO: "Clip/Layer scope routing needs compositor integration". Route carries `targetLayerId`/`targetClipId` fields but they are never used.
+**Status:** `Renderer.cpp:205` has explicit TODO: "Clip/Layer scope routing needs compositor integration". Route carries `targetLayerId`/`targetClipId` fields but they are never used in the routing callback (line 200 only handles `Route::TargetScope::Global`).
 
 **Activation estimate:** MEDIUM (~3 days) — data model complete, needs render pipeline integration.
 
 ### 22d. LinkSync::requestBeatAtTime()
 
-**What it does:** Forces all Ableton Link peers to realign to downbeat. Fully implemented (12 LOC).
+**What it does:** Forces all Ableton Link peers to realign to downbeat. Fully implemented (12 LOC in `LinkSync.cpp:63-74`).
 
-**Status:** Never called. No UI button, no binding, no API endpoint.
+**Status:** Never called. No UI button, no binding, no API endpoint. `LinkSync` itself is used: `MainComponent::timerCallback()` calls `linkSync_.update()` and reads `linkSync_.getBPM()` (line 1803-1806), but `requestBeatAtTime()` specifically has zero callers.
 
 **Activation estimate:** LOW (~1 day) — needs only a UI button or binding action.
 
@@ -1491,54 +1704,198 @@ Code-complete features with model/logic but no UI path or incomplete wiring.
 
 **What it does:** Analyzes FeatureSnapshot + genre to recommend source-to-effect mappings. Returns ranked suggestions with scores and reasons. 13 universal + 4 per-genre suggestions.
 
-**Status:** 319 LOC, fully implemented. No UI caller — no button/menu invokes it.
+**Status:** 266 LOC (MappingSuggester.cpp), fully implemented. No UI caller — no button/menu invokes it. Not included in any MainComponent or UI code.
 
 **Activation estimate:** LOW (~1 day) — needs UI trigger button + conversion from Suggestion to Mapping.
 
+**Entry points:**
+- 22a: `MacroBank` class (`src/routing/MacroBank.h:13`). Global instance: `MainComponent.h:207` as `globalMacroBank_{MacroBank::Scope::Global}`. Wired to inspectors at `MainComponent.cpp:901` via `inspectorPanel_->setMacroBank(&globalMacroBank_)`. MIDI write at `MainComponent.cpp:3842-3843`.
+- 22b: `Composition` struct fields (`src/model/Composition.h:31-37`): `crossfaderPhase`, `CrossfaderBlendMode`, `CrossfaderBehaviour`, `CrossfaderCurve`. Single read at `Renderer.cpp:508`.
+- 22c: `Route` struct (`src/routing/Route.h:8`): `TargetScope` enum (line 19), `targetLayerId` (line 21), `targetClipId` (line 22). Routing callback at `Renderer.cpp:198-206`.
+- 22d: `LinkSync::requestBeatAtTime()` (`src/sync/LinkSync.cpp:63`). `LinkSync` instance: `MainComponent.h:209` as `linkSync_`.
+- 22e: `MappingSuggester` class (`src/mapping/MappingSuggester.h:15`). Public API: `suggestMappings(snapshot, maxSuggestions)` and `suggestGenreMappings(genre, maxSuggestions)`.
+
+**Implementation chain:**
+- 22a MacroBanks: `MacroBank` stores 8 `Macro` structs in `std::array`. `updateValues(SignalRegistry&)` reads signal values for signal-driven macros or uses `manualValue` for manual. `MacroPanel` UI displays 8 knob slots, reads/writes via `setMacroBank()`. `InspectorPanel` distributes the bank pointer to `ClipInspector`, `LayerInspector`, `CompositionInspector`. `UniversalParamControl` populates a macro source dropdown from the bank (line 448). MIDI handler writes `globalMacroBank_.getMacro(idx).manualValue = value`. Per-link distribution (MacroLink vector with `RouteTarget`, `outputMin`, `outputMax`, `inverted`) is defined but no code iterates `links` to apply values to target parameters.
+- 22b Crossfader: Fields declared in `Composition.h:31-37`. `crossfaderBlendMode` is read at `Renderer.cpp:508` as a uniform for the deck transition shader — this is a one-time transition blend, not a live crossfader. `crossfaderPhase` (float [0,1]) is never read. `crossfaderBehaviour` and `crossfaderCurve` enums are never read. None of these fields appear in `toVar()`/`fromVar()` — not serialized.
+- 22c Route scope: `RoutingEngine::processFrame()` iterates routes and calls a lambda. The lambda at `Renderer.cpp:198-206` checks `route.targetScope == Global` and writes to `effectChain_`. Non-Global scopes fall through to the TODO comment with no action.
+- 22d requestBeatAtTime: Captures Ableton Link session state, calls `sessionState.requestBeatAtTime(0.0, now, quantum_)`, commits back. Guarded by `#if AUDIODNA_HAS_LINK` and `enabled_` atomic check.
+- 22e MappingSuggester: Stateless utility. `suggestMappings()` calls `addUniversalSuggestions()` (13 mappings based on feature activity levels) + `addGenreSuggestions()` (genre-specific), sorts by relevance descending, truncates to `maxSuggestions`. `suggestGenreMappings()` calls only `addGenreSuggestions()`. Each `Suggestion` carries `sourceName`, `targetCategory`, `targetEffect`, `targetParam`, `curveType`, `reason`, `relevance`.
+
+**Data flow:**
+- 22a: `SignalRegistry` (cached signal values) -> `MacroBank::updateValues()` -> `Macro.currentValue` -> (gap: no code distributes to `MacroLink.target` parameters)
+- 22b: `Composition.crossfaderPhase` <- never written after init (default 0.5). `Composition.crossfaderBlendMode` -> `Renderer.cpp:508` uniform `u_blendMode` (deck transition shader only)
+- 22c: `Signal values` -> `RoutingEngine::processFrame()` -> lambda with `Route` -> only `Global` scope reaches `EffectChain::setParamValue()`. `Clip/Layer` scope routes are evaluated but their values are discarded (no handler)
+- 22d: (no data flow — `requestBeatAtTime()` is a one-shot command to Ableton Link peers, no return value)
+- 22e: `FeatureSnapshot` + genre -> `MappingSuggester::suggestMappings()` -> `vector<Suggestion>` (sorted by relevance). No downstream consumer exists.
+
+**Dependencies & services:**
+- 22a: `SignalRegistry` (signal value cache), `RouteTarget` struct (`Route.h`), JUCE (no direct JUCE deps — pure C++ model)
+- 22b: `Composition` struct (model), OpenGL shader uniforms (Renderer reads `crossfaderBlendMode`)
+- 22c: `Route` struct, `RoutingEngine`, `Renderer`, `EffectChain` — render pipeline integration needed
+- 22d: Ableton Link library (`ableton/Link.hpp`), gated by `AUDIODNA_HAS_LINK` compile flag. Uses `link_.captureAppSessionState()` / `commitAppSessionState()`
+- 22e: `FeatureSnapshot` (audio analysis data), `GenreDetector` (genre enum). No JUCE dependency — pure C++ utility
+
+**Storage:** N/A — all in-memory model state. Crossfader fields are not serialized. MacroBank is not serialized. Route scope fields exist in the Route struct but are never persisted (no save/load code handles `targetLayerId`/`targetClipId`).
+
+**Config:**
+- 22a: `MacroBank::kNumMacros = 8`. Default macro names: "Link 1" through "Link 8". Default `manualValue = 0.5f`. Scope enum: `{Clip, Layer, Global}`.
+- 22b: `crossfaderPhase` default `0.5f`. `CrossfaderBlendMode` enum: `{Alpha, Add, Multiply}`. `CrossfaderBehaviour` enum: `{Cut, Smooth}`. `CrossfaderCurve` enum: `{Linear, EaseInOut, SCurve}`.
+- 22c: `Route::TargetScope` enum: `{Clip, Layer, Global}`. `targetLayerId` and `targetClipId` default to 0.
+- 22d: `quantum_` default `4.0` (4/4 time). Phase reset target: beat 0.0 (hardcoded in `requestBeatAtTime`).
+- 22e: Default `maxSuggestions = 8` for general, `6` for genre-specific. Activity thresholds are per-feature (hardcoded in `addUniversalSuggestions`).
+
+**Failure modes:**
+- 22a: Instantiating Clip/Layer MacroBanks without updating serialization would cause data loss on save/load. Inspector UI would show macro knobs pointing to a bank that does not persist.
+- 22b: Setting `crossfaderPhase` to 0.0 or 1.0 with no crossfader rendering logic has no effect (value is ignored). Enabling dual-deck render without doubling GPU resources would cause frame drops or OOM.
+- 22c: Routing to Clip/Layer scope silently discards the value — no error, no warning. User could configure routes that appear connected but have no effect.
+- 22d: Calling `requestBeatAtTime()` when Link is disabled results in early return, no error. Calling with no peers succeeds locally but has no effect.
+- 22e: No failure modes — stateless utility returns empty vector if no features are active.
+
+**Test coverage:**
+- 22a: No MacroBank unit tests. `test_routing_engine.cpp` tests routing but not macro integration.
+- 22b: No crossfader tests. `test_composition.cpp` tests serialization but crossfader fields are not serialized so not covered.
+- 22c: `test_routing_engine.cpp` exists but does not test Clip/Layer scope routing.
+- 22d: No LinkSync tests.
+- 22e: No MappingSuggester tests.
+
+**Gotchas:**
+- 22a: `MacroBank::updateValues()` is called but `Macro.links` vector is never iterated to distribute values to linked parameters — the "last mile" distribution is unimplemented despite the data model being complete.
+- 22b: `crossfaderBlendMode` at `Renderer.cpp:508` is used for deck transitions (one-time blend during `deckTransitionProgress_`), not live crossfading. Renaming or repurposing this field for live crossfading would break existing deck transition behavior.
+- 22c: The routing lambda at `Renderer.cpp:198-206` runs per-frame per-route. Adding Clip/Layer handling requires access to the compositor's per-layer effect chains, which the lambda does not currently have.
+- 22e: `MappingSuggester::Suggestion` uses `std::string` for all fields (7 strings per suggestion, up to 8 suggestions) — heap allocation on every call. Not real-time safe but acceptable since it would only be called on user action, not per-frame.
+- Across all 5 sub-features: none are referenced by any test file in `tests/`.
+
 ---
 
-## 23. TimingWindow (Stub UI)
-
-**What it does:** Tab component with 3 tabs (BPM, Routing, Oscillators). Tab switching works. **All 3 tabs render only a placeholder text label** — no actual content.
+## 23. TimingWindow (Stub UI) [C]
+**What it does:** A tabbed component with 3 tabs (BPM, Routing, Oscillators) positioned in the center-bottom panel area. Tab switching works with visual feedback (active tab accent line). All 3 tabs render only a placeholder text label showing the tab name — no functional content exists in any tab.
 
 **Entry points:**
-- `TimingWindow` class (src/ui/TimingWindow.h, src/ui/TimingWindow.cpp)
+- `TimingWindow` class: `src/ui/TimingWindow.h:8`, `src/ui/TimingWindow.cpp:3`
+- Construction: `MainComponent.cpp:1060` — `timingWindow_ = std::make_unique<TimingWindow>()`
+- Added to parent: `MainComponent.cpp:1061` — `addAndMakeVisible(timingWindow_.get())`
+- Layout: `MainComponent.cpp:1475-1478` — positioned in `timingArea` bounds, set visible
+- Hidden in expanded mode: `MainComponent.cpp:1326` — `timingWindow_->setVisible(false)`
+- Menu toggle: `MenuBarModel.h:112` — `kViewTimingWindow` command ID, `MenuBarModel.cpp:178` — "Timing Window" menu item
+- Member: `MainComponent.h:241` — `std::unique_ptr<TimingWindow> timingWindow_`
 
-**What exists:**
-- 3 tab buttons with active indicator (3px cyan accent line)
-- Tab bar height: 26px
+**Implementation chain:**
+1. `TimingWindow()` constructor (TimingWindow.cpp:3-18): Creates 3 `juce::TextButton` instances (`bpmTabBtn_`, `routingTabBtn_`, `oscTabBtn_`). Each button's `onClick` calls `setActiveTab(tab)`. All buttons added via `addAndMakeVisible()`. Initial tab colors set via `updateTabButtonColors()`.
+2. `setActiveTab(Tab)` (line 77-82): Sets `activeTab_` enum, calls `updateTabButtonColors()` + `repaint()`.
+3. `updateTabButtonColors()` (line 84-97): Active tab gets lighter background (`0xff3a3a5c`) and white text (`0xffffffff`). Inactive tabs get dark background (`0xff1a1a2e`) and dim text (`0xff606070`).
+4. `resized()` (line 68-75): Tab bar takes top `kTabBarHeight` (26px). Width divided equally among 3 buttons (`tabWidth = width / 3`).
+5. `paint()` (line 21-66): Fills background (`0xff1a1a1a`), draws tab bar background (`0xff222222`), draws panel border, draws 3px cyan accent line under active tab, draws placeholder text (tab name) centered in content area below tab bar at 11pt font, secondary text color at 0.4 alpha.
 
-**What is stub:**
-- BPM tab: should show detected BPM, beat phase visualization, manual override, tap tempo, Link status
-- Routing tab: should show signal routing config, ChainedSignal editor
-- Oscillators tab: should show modulation signal config (wave shape, frequency, phase, envelope)
+**Data flow:**
+```
+User clicks tab button -> onClick lambda -> setActiveTab(Tab) -> activeTab_ enum updated
+-> updateTabButtonColors() (button colors) + repaint() -> paint() draws accent line + placeholder text
+```
+No external data flows into TimingWindow — it receives no analysis data, BPM, routing state, or oscillator configuration. It is purely a visual stub.
+
+**Dependencies & services:**
+- `juce::Component` — base class
+- `juce::TextButton` — 3 tab buttons
+- `AudioDNALookAndFeel` — color constants (`kSurface`, `kPanelBorder`, `kAccentCyan`, `kTextPrimary`, `kTextSecondary`)
+- No dependencies on analysis, model, routing, or signal systems
+
+**Storage:** N/A — no data to persist
+
+**Config:**
+- `kTabBarHeight = 26` (pixels) — height of tab button row
+- Tab background: active `0xff3a3a5c`, inactive `0xff1a1a2e`
+- Tab text: active `0xffffffff`, inactive `0xff606070`
+- Panel background: `0xff1a1a1a`
+- Tab bar background: `0xff222222`
+- Accent line: 3px height, `kAccentCyan` color
+- Placeholder font: 11pt, `kTextSecondary` at 0.4 alpha
+- Layout position: determined by `vDividerFrac_` array in MainComponent — second panel in the 4-panel bottom row (preview | timing | inspector | browser)
+
+**Failure modes:**
+- No runtime failure modes — the component is a static visual stub with no data dependencies
+- If TimingWindow were populated with real controls without updating `resized()`, content would overlap the 26px tab bar or clip outside bounds
+
+**Test coverage:**
+- No tests. TimingWindow is not referenced in any test file.
+
+**Gotchas:**
+- Tab width calculation `tabBar.getWidth() / 3` uses integer division — if panel width is not divisible by 3, the rightmost tab gets the remainder (could be 1-2px wider or narrower).
+- The `Tab` enum is `int`-backed (`Tab : int`) with values 0/1/2 — switch statements have no default case, so adding a 4th tab without updating all switch statements would cause undefined paint behavior.
+- The "What is stub" content (BPM detection, routing config, oscillator config) represents intended functionality that has zero implementation — not even data model stubs or interface definitions exist for tab content.
+- Panel position depends on the resizable vertical divider system in MainComponent (`vDividerFrac_[3]`) — initial fraction `0.22-0.50` range.
 
 ---
 
-## 24. Dual-Mode System (ProgrammingMode — Vestigial)
-
-**What it does:** Intended to provide graduated UI visibility (programming mode vs presentation mode). Current implementation is a binary fullscreen-SignalBar toggle.
+## 24. Dual-Mode System (ProgrammingMode — Vestigial) [C]
+**What it does:** Intended to provide a graduated UI mode system (programming mode vs presentation mode). Current implementation is vestigial: the `ProgrammingMode` component exists but is always hidden. The View menu's "Programming Mode" item directly toggles the SignalBar between Expanded/Normal display size, bypassing the `ProgrammingMode` component entirely. The result is a binary fullscreen-SignalBar toggle, not a graduated mode system.
 
 **Entry points:**
-- `ProgrammingMode` class (src/ui/ProgrammingMode.h, 95 LOC total)
+- `ProgrammingMode` class: `src/ui/ProgrammingMode.h:10` (31 LOC header), `src/ui/ProgrammingMode.cpp` (64 LOC)
+- Construction: `MainComponent.cpp:511` — `programmingMode_ = std::make_unique<ProgrammingMode>(*signalBar_)`
+- Added as child (hidden): `MainComponent.cpp:512` — `addChildComponent(programmingMode_.get())` (note: `addChildComponent`, NOT `addAndMakeVisible` — starts invisible)
+- Always hidden: `MainComponent.cpp:1312-1313` — unconditional `programmingMode_->setVisible(false)` in `resized()`
+- Menu handler: `MainComponent.cpp:3199-3210` — `kViewProgrammingMode` directly toggles `signalBar_->setDisplaySize()` between Expanded/Normal, never touches `programmingMode_`
+- Menu item: `MenuBarModel.cpp:181` — "Programming Mode" in View menu
+- Member: `MainComponent.h:214` — `std::unique_ptr<ProgrammingMode> programmingMode_`
 
-**Current state:**
-- ProgrammingMode component is created (`MainComponent.cpp:511`) but **always hidden** (`setVisible(false)` at line 1313)
-- View menu "Programming Mode" toggles SignalBar expanded/normal **directly**, bypassing ProgrammingMode
-- When expanded: hides previewPanel, waveformDisplay, audioReadoutPanel, spectrumDisplay, effectsRackPanel
+**Implementation chain:**
+1. `ProgrammingMode(SignalBar& signalBar)` constructor (ProgrammingMode.cpp:3-13): Stores reference to SignalBar. Creates header label ("Programming Mode" in cyan, 14pt bold) and "Exit" close button. Both added via `addAndMakeVisible()`. Close button's `onClick` calls `setActive(false)`.
+2. `setActive(bool)` (line 15-36): If `active` changed, sets `active_` flag. If activating: calls `signalBar_.setDisplaySize(SignalStrip::DisplaySize::Expanded)`. If deactivating: calls `signalBar_.setDisplaySize(SignalStrip::DisplaySize::Normal)`. Sets own visibility to match `active_`. Triggers parent `resized()`.
+3. `paint()` (line 38-49): Dark overlay background (`kBackground` at 0.95 alpha), cyan border at 0.3 alpha.
+4. `resized()` (line 51-63): Header row (24px): label on left (200px), close button on right (60px). Remaining area is unused — comment says "signal bar occupies the rest (managed by parent)".
 
-**What IS NOT implemented:**
-- No graduated mode (some controls visible, others hidden)
-- No per-component mode behavior
-- No presentation mode
-- No programmable visibility per panel
+**Actual behavior path (View menu "Programming Mode"):**
+1. User selects View > Programming Mode -> `handleMenuCommand(kViewProgrammingMode)` at `MainComponent.cpp:3199`
+2. Checks current `signalBar_->getDisplaySize()` — if Expanded, sets Normal; if Normal, sets Expanded
+3. Calls `signalBar_->onSizeChanged()` -> triggers `MainComponent::resized()`
+4. In `resized()`: `programmingMode_->setVisible(false)` (line 1313, unconditional)
+5. If signal bar is expanded (line 1316-1327): all panels hidden (preview, waveform, readout, spectrum, effects rack, deck, inspector, browser, timing) — returns early
+6. `ProgrammingMode` component is NEVER shown, NEVER activated, NEVER receives the toggle event
 
-**What always runs regardless of mode:** keyboard bindings, MIDI, OSC, REST API, audio engine, analysis, render pipeline, output window, Syphon, autopilot, video recording.
+**Data flow:**
+```
+View menu -> handleMenuCommand(kViewProgrammingMode) -> signalBar_->setDisplaySize(toggle)
+-> onSizeChanged callback -> MainComponent::resized() -> expanded check -> hide all panels
+```
+ProgrammingMode component has no data flow — it is created but never made visible or interacted with. Its `setActive()` method would toggle SignalBar display size if called, but nothing calls it.
+
+**Dependencies & services:**
+- `juce::Component` — base class
+- `juce::Label` — header label ("Programming Mode")
+- `juce::TextButton` — "Exit" close button
+- `SignalBar` — reference stored, `setDisplaySize()` would be called by `setActive()` if it were ever invoked
+- `SignalStrip::DisplaySize` — enum with at least `Normal` and `Expanded` values
+- `AudioDNALookAndFeel` — color constants (`kBackground`, `kAccentCyan`)
+
+**Storage:** N/A — no persistent state
+
+**Config:**
+- Header label: "Programming Mode", 14pt bold, `kAccentCyan` color
+- Close button text: "Exit", 60px wide
+- Header row height: 24px
+- Overlay background: `kBackground` color at 0.95 alpha
+- Border: `kAccentCyan` at 0.3 alpha, 1px
+- Padding: 8px reduced bounds
+- `active_` flag: default `false`, never changed at runtime
+
+**Failure modes:**
+- Calling `ProgrammingMode::setActive(true)` externally would set `SignalBar` to Expanded and call `setVisible(true)`, but `MainComponent::resized()` immediately sets it back to `setVisible(false)` at line 1313 — the component would flash for one frame then disappear
+- The menu command and `ProgrammingMode::setActive()` both toggle SignalBar display size independently — if both paths were active, they could conflict (double-toggle back to original state)
+
+**Test coverage:**
+- No tests. ProgrammingMode is not referenced in any test file.
+
+**Gotchas:**
+- `addChildComponent` (not `addAndMakeVisible`) at line 512 means ProgrammingMode starts invisible by JUCE convention, AND `resized()` unconditionally hides it — double guarantee that it is never shown.
+- The menu handler at line 3199-3210 completely ignores the `ProgrammingMode` component — it talks directly to `signalBar_`. The ProgrammingMode class's `setActive()` method duplicates this logic but is never called.
+- `ProgrammingMode::resized()` leaves the area below the header row unused with a comment about SignalBar being "managed by parent" — suggesting the original design intent was for ProgrammingMode to be an overlay with the expanded SignalBar rendered inside its bounds, but this integration was never completed.
+- What always runs regardless of mode: keyboard bindings, MIDI, OSC, REST API, audio engine, analysis, render pipeline, output window, Syphon, autopilot, video recording.
+- The component is a candidate for removal — it adds dead code with no runtime effect. Its functionality (SignalBar expanded/normal toggle) is fully handled by the menu command handler.
 
 ---
 
-## 25. Session Recorder — Performance Event Capture
-
+## 25. Session Recorder — Performance Event Capture [R]
 **What it does:** Records timestamped performance events (parameter changes, clip triggers, transport actions) for session playback and replay. This is event recording, not video — it captures what the performer did, not what the audience saw. Playback reproduces the performance exactly by replaying events at their original timestamps.
 
 **Entry points:**
