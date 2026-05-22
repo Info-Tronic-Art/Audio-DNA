@@ -7,6 +7,28 @@
 > sensibility, aesthetic principles, decision framework, and "perfect" checklist.
 > Every builder MUST read DESIGN_PROFILE.md before implementing visual changes.
 
+> **Updated 2026-05-22.** Some decisions have been further refined since
+> this handoff was written. The CANONICAL sources for behavioral spec are
+> now:
+> - `../../FEATURE_CONNECTIONS.md` — behavioral reference with all 12
+>   connection-gap scenarios resolved (worked examples, precedence rules,
+>   state machine)
+> - `../../MENTAL_MODELS.md` — conceptual spine (three intent layers, scopes,
+>   AUTO/OVERRIDE state, etc.)
+>
+> This HANDOFF doc remains the IMPLEMENTATION PLAN (phases, file matrices,
+> builder dispatches). Where it conflicts with the canonical docs above,
+> the canonical docs win — except where Phase work has already started or
+> implementation specifics are needed.
+>
+> Key refinements since 2026-05-21:
+> - "Reclaim button" → renamed to "AUTO" (with orange `#ff4500` indicator)
+> - "P. button on section headers" → REMOVED entirely. Triangle-only routing.
+> - "Click occupied Hit slot = merge" → REVISED to "confirm dialog before
+>   replace" (no merge)
+> - The universal AUTO/OVERRIDE state machine is now field-level (not
+>   layer-level or scope-level)
+
 ---
 
 ## 1. OVERVIEW
@@ -208,7 +230,7 @@ static constexpr auto kPanelBorder   = kBorder;
 
 **Blue `#00d9ff` ON:** Playing clip fill+border, BPM number (48px), structural state pill,
 beat wheel segment, transport play when active, selected row highlight, just-changed flash,
-slider position indicator, active P. button, section header left-edge bar (active routing),
+slider position indicator, active triangle fill, section header left-edge bar (active routing),
 patch-bay selected route, signal column fills, active triangles, active Hit markers.
 
 **Blue `#00d9ff` NEVER:** Static labels, inactive buttons, background fills, decorative
@@ -274,10 +296,10 @@ auto sansTypeface = juce::Typeface::createSystemTypefaceFor(
 | **TopBar** | TopBar.h/cpp | Restructure to 3-strip (44+32+22=98px), BPM at 48px, transport strip, mode buttons | 4 |
 | **SignalBar** | SignalBar.h/cpp | 22px collapsed (not 26), overlay behavior (not replace), 30Hz update stays | 4, 7 |
 | **SignalStrip** | SignalStrip.h/cpp | Remove category coloring (all blue), remove rounded corners, fix colors | 1 |
-| **UniversalParamControl** | UniversalParamControl.h/cpp | Label→90px, Value→50px, slider→14px height, add P. button, update colors | 3 |
+| **UniversalParamControl** | UniversalParamControl.h/cpp | Label→90px, Value→50px, slider→14px height, update colors. (Note: P. button REMOVED 2026-05-22 — see header note + Section 10 Q3.) | 3 |
 | **MacroPanel** | MacroPanel.h/cpp | Replace 8 Knobs with 8 VerticalSignalColumns | 2 |
 | **InspectorPanel** | InspectorPanel.h/cpp | Tab styling (blue text+underline active), update colors | 1, 3 |
-| **ClipInspector** | ClipInspector.h/cpp | Section headers to directive spec (12px, uppercase-first, P. on right, 2px blue left bar) | 3 |
+| **ClipInspector** | ClipInspector.h/cpp | Section headers to directive spec (12px, uppercase-first, 2px blue left bar). (P. on right REMOVED 2026-05-22.) | 3 |
 | **LayerInspector** | LayerInspector.h/cpp | Same section header update | 3 |
 | **CompositionInspector** | CompositionInspector.h/cpp | Same section header update | 3 |
 | **DeckView** | DeckView.h/cpp | Update colors, deck tab styling | 1 |
@@ -408,6 +430,16 @@ update all references to use new names AND fix visual issues (rounded corners, h
   Remove references to kAccentMagenta (Knob mapping ring — remove entirely,
   or replace with kAccent). Update fonts.
 
+**2026-05-22 update:** The kAccentMagenta deletion stands, but `#ff4500`
+(orange) is RE-INTRODUCED as the new `--override` color token. Add a new
+constant:
+
+```cpp
+static constexpr juce::uint32 kOverride = 0xffff4500;  // --override (OVERRIDE state indicator only)
+```
+
+This is the only second-accent color in the design system. Use ONLY for OVERRIDE state visualization (top-chrome STATUS indicator + group-level + per-field orange dot). See `../../FEATURE_CONNECTIONS.md` Scenario 1.
+
 **After all 4 builders complete:**
 - Remove deprecated aliases from LookAndFeel.h (Phase 1c cleanup)
 - Delete kAccentMagenta, kMeterGreen, kMeterYellow constants
@@ -467,24 +499,30 @@ drawRotarySlider removed. App compiles and runs with new controls.
   - Value column: 36px → 50px, Mono 11px, kValue
   - Minus/Plus buttons: keep 20x20px
   - Slider: remaining width, height → 14px (not full row height)
-  - Add P. button: 20x20px at end, hairline border, kAccent fill when routed
+- **P. button REMOVED 2026-05-22.** No P. button on inspector rows. Triangle is the sole per-parameter routing affordance. Row width recovers ~20px of horizontal space previously allocated to P. button.
 - Slider track: dark with blue position indicator line (vertical hairline, not thumb)
 - Row height: 24px per inspector row
 
 **Builder B — Section Headers:**
 - ClipInspector.h/cpp, LayerInspector.h/cpp, CompositionInspector.h/cpp
 - Update section headers to directive spec (Section 5.7):
-  - `V Section Name                    [P.]`
   - V triangle: 7px clickable disclosure
   - Name: Sans 12px, kValue, uppercase first letter only
-  - P. on right: routes entire section
   - Height: 24px, kSectionHeader background
   - 2px kAccent left-edge bar when section has active routing
+
+**Section header grammar 2026-05-22:**
+
+```
+▼ Section Name
+```
+
+(No P. button. Keep the 2px kAccent left-edge bar when section has active routing — that's the passive indicator.)
 - Standard sections in order: Dashboard, Autopilot, Layer, Video, Transition,
   Transform, Effects, Cuepoints, Transport
 
 **Success criteria:** Inspector rows match directive grammar exactly. Section headers
-match directive spec. P. button present and functional.
+match directive spec. Per-parameter routing via Triangle only (P. button was REMOVED 2026-05-22 — see Phase 3 update notes above).
 
 ---
 
@@ -748,6 +786,22 @@ returns correct Hits for a given position. Diff-based override works correctly.
 - States: default, hover (tooltip), selected (2px kAccent border), active (full kAccent fill flash)
 - Render on timeline at Hit position
 
+**2026-05-22 refinements (Phase 10 implementation guidance):**
+
+The Capture Hit workflow is now ONE OF THREE creation workflows, all using a SINGLE UNIFIED Save/Capture BUTTON:
+
+1. **Scrub-and-save** — VJ scrubs recording (master playhead), clicks an empty Hit slot to SELECT it as save target (highlight only — does NOT move playhead), presses the unified Save button → Hit created at selected slot with state captured at the scrub position. If slot was occupied → CONFIRM DIALOG ("Replace this Hit?") — NOT merge.
+
+2. **Two-Hit automation** — two Hits define start/end, envelope between them. DEFAULT ENVELOPE: LINEAR. User can change to instant-cut / ease-in / ease-out / S-curve / exponential / step via the Hit Manager.
+
+3. **Live capture** — same unified button captures at current playhead. ADJACENT QUANTIZE TOGGLE next to button: Exact beat / Next bar / Closest bar.
+
+**No drag-and-drop.** Click-to-select + button-to-save only.
+
+**Hit quantization:** Hits live on a beat grid. Max 4 Hits per bar (1 per beat in 4/4). User-adjustable coarser. No two Hits at same position by design — Scenario 3 conflict is impossible.
+
+See `../../FEATURE_CONNECTIONS.md` Scenario 11 for full workflows.
+
 **Session 2 — Timeline + Inspector:**
 **Builder A — Hit lane on WaveformDisplay:**
 - Add Hit lane below stereo waveform pair
@@ -810,6 +864,23 @@ Pattern presets available.
 **Success criteria:** Multiple waveform display modes. Mode selector works.
 Click interaction functional. Hit markers visible on timeline.
 
+**2026-05-22 timeline structure additions (likely Phase 10 or 11 work):**
+
+Two-lane timeline structure beyond the waveform:
+- **HITS lane** (beat-quantized): blue capsule pills at beat positions; envelope curves between consecutive pills
+- **REC lane** (time-tick-labeled, decoupled from BPM): continuous density curve showing event activity; 60fps internal resolution
+
+Both lanes:
+- Thin by default; click handle → expand vertically
+- Click-and-drag horizontally → zoom IN to dragged range
+- After-Effects-style per-parameter sub-tracks when expanded (group → individual disclosure)
+
+Recording lane: SCRUBBABLE (drag to scrub master playhead). Hits lane: NOT scrubbable; click to jump playhead.
+
+Single active driver (HITS or RECORDING). Switch via lane handle dot. Recording lane has dropdown to switch between multiple stored recordings.
+
+See `../../FEATURE_CONNECTIONS.md` Scenario 11.
+
 ---
 
 ### Phase 12: Documentation Alignment
@@ -834,6 +905,10 @@ Click interaction functional. Hit markers visible on timeline.
 3. ARCHITECTURE_V2.md: Annotate with directive references or create ARCHITECTURE_V3.md
 4. FEATURES.md: Add new features (Hit system, Signal Groups, Layout Templates, Mode System)
 5. Cross-reference directive sections to implementation files
+6. **Cross-reference the new canonical docs:** Throughout CONTEXT.md, ARCHITECTURE_V2.md, and FEATURES.md, add cross-references to:
+   - `../FEATURE_CONNECTIONS.md` (canonical behavioral reference)
+   - `../MENTAL_MODELS.md` (conceptual spine)
+   - `BORIS_DECISIONS.md` (updated 2026-05-22 with new decisions)
 
 **Success criteria:** CONTEXT.md has all directive terms. ARCHITECTURE doc reflects
 current state. FEATURES.md includes new features.
@@ -977,7 +1052,7 @@ src/ui/TimingWindow.h              src/ui/TimingWindow.cpp
 | 0 | Build compiles. Font renders in test label. |
 | 1 | Zero `fillRoundedRectangle` in grep. Zero old color names. Screenshot audit. |
 | 2 | Zero `Knob` in grep. Vertical columns render. MacroPanel functional. |
-| 3 | Inspector row measurements match spec. P. button present. |
+| 3 | Inspector row measurements match spec. Triangle-only routing functional; no P. button anywhere (REMOVED 2026-05-22). |
 | 4 | Top chrome height = 98px. BPM at 48px is largest element. Signal bar 22px. |
 | 5 | Mode switching works. Per-mode state persists. |
 | 6 | Layout save/load works. Hotkeys switch. H1/P1/S1 functional. |
@@ -998,14 +1073,21 @@ src/ui/TimingWindow.h              src/ui/TimingWindow.cpp
 
 ## 10. OPEN QUESTIONS FOR BORIS
 
+> **All Q1-Q28 questions are RESOLVED.** Several have been further refined
+> in the 2026-05-22 session. The canonical statement of each resolution
+> now lives in `../../FEATURE_CONNECTIONS.md`. Listed here for historical
+> context and cross-reference.
+
 ### ALL DECISIONS CONFIRMED (2026-05-21)
 
 Boris approved all recommendations. These are final and locked.
 
 **Visual System:**
 - Q1: Audio "Hit" signal → renamed to **"Onset"** in UI (code stays `onsetDetected`)
+  - ✅ Confirmed 2026-05-22: LINEAR (Ableton-style). See FEATURE_CONNECTIONS Scenario 11 Workflow 2.
 - Q2: All signal meters use **blue kAccent only** — no category colors
 - Q3: Routing indicator = **triangles only**. P. button on **section headers only** (route-entire-section). Magenta deleted.
+  - 🔄 REFINED 2026-05-22: P. button REMOVED entirely (not just from rows). Triangle-only routing. See FEATURE_CONNECTIONS Scenario 3.
 - Q4: Signal smoothing **SPLIT** — triangles are RAW (no easing), column fills are SMOOTHED (0.3 alpha)
 - Q5: Beat wheel = **4 squares in a row** (14x14px each), not circular. Active square fills kAccent.
 - Q6: Signal column width on layer strips = **60px fixed**. 5 visible at typical width.
@@ -1028,10 +1110,12 @@ Boris approved all recommendations. These are final and locked.
 - Q17: Hit Group nesting = **flat only** for V1 (groups contain Hits, not other groups)
 - Q18: Data recording format = **JSON** for V1 (consistent with SessionRecorder)
 - Q19: Live Hit triggering = **both fire, diff-merge** (per directive's per-parameter override)
+  - 🔄 REFINED 2026-05-22: Hits and Live VJ are both state mutators (equal priority, last-write-wins). Live VJ touch creates an OVERRIDE that locks Hits from writing that field until AUTO release. Signal continues running. See FEATURE_CONNECTIONS Scenario 1 + 6.
 - Q20: Hit lane spacing = **same position allowed** (parallel Hits by design, Section 2.8)
 - Q21: Empty composition state = **empty dark stage**, BPM "---", all panels visible, signal bar shows zeros
 - Q22: Hit preview = **ghost preview on hover** (semi-transparent composition overlay, no state change)
 - Q23: Clip cell effects = **confirmed: already supports multiple effects** (no change needed)
+  - ✅ Confirmed 2026-05-22: cell-scoped clip instances — same source media can live in multiple cells, each with own in/out/cuepoints. See FEATURE_CONNECTIONS Scenario 9.
 - Q24: Pulse AI scope = **configuration assistant** for V1 (browse/suggest/configure, no live triggering). Deferred to Phase 13.
 
 **Implementation Strategy:**
@@ -1049,7 +1133,7 @@ Boris approved all recommendations. These are final and locked.
 
 3. **Magenta mapping indicator:** Knob.cpp draws a magenta arc when a parameter is
    mapped to a signal. With kAccentMagenta deleted, what replaces it?
-   (Recommended: use kAccent blue — the P. button and triangle already indicate routing)
+   (Recommended: use kAccent blue — the triangle already indicates routing; P. button was REMOVED 2026-05-22)
 
 4. **Scrollbar styling:** Current scrollbars have fully-rounded thumbs.
    Directive says no border-radius. Make scrollbar thumbs square?
@@ -1358,6 +1442,23 @@ The directive references 15+ HTML mockups as visual targets. Key ones:
 
 Note: these are historical HTML mockups (392 total across v2-v9). They inform the
 directive but should NOT be modified. Use as VISUAL REFERENCE for layout implementation.
+
+---
+
+## 13. Canonical Document Map (post-2026-05-22)
+
+For builders working on Audio-DNA implementation, the canonical documents and when to consult each:
+
+| Question | Doc |
+|----------|-----|
+| What is Audio-DNA's design vision? | `../../AUDIO_DNA_DIRECTIVE_FULL.md` (source-of-truth, updated 2026-05-22) |
+| How does Audio-DNA think about itself conceptually? | `../../MENTAL_MODELS.md` (the spine) |
+| How should X behave when Y happens? (precedence, edge cases) | `../../FEATURE_CONNECTIONS.md` Scenarios 1-12 |
+| What did Boris decide and why? | `../../BORIS_DECISIONS.md` (short-form, updated 2026-05-22) |
+| What phase am I in? What changes when? | This HANDOFF.md (implementation roadmap) |
+| What's the current state of the code? | `../../.harmony/FEATURES.md`, `../../design/FEATURE_INVENTORY.md` |
+
+When in doubt, FEATURE_CONNECTIONS.md and MENTAL_MODELS.md WIN over older statements in BORIS_DECISIONS, HANDOFF, or even (in narrow cases) the DIRECTIVE.
 
 ---
 
