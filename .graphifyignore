@@ -1,0 +1,28 @@
+# Graphify ignore — exclude non-source content from knowledge graph
+# Prevents vendor/build noise from inflating node count
+
+# Build artifacts
+build/
+
+# Design documents (mockups, UX analyses — not code)
+design/
+
+# Graphify output (self-referential)
+graphify-out/
+
+# Media assets
+media/
+
+# Research documents
+research/
+
+# Python environment
+.venv/
+.pytest_cache/
+
+# Git/CI
+.git/
+.github/
+
+# Audit workspace
+.audit/

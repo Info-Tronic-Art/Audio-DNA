@@ -134,6 +134,8 @@ RingBuffer → 2048-sample window → FFT → [spectral|onset|BPM|MFCC|chroma|pi
 - **SpectralFeatures adaptive normalization** — `fluxMax_`/`bandMaxEnergy_` decay via 0.9995 multiplier after silence; first frames after audio resume have exaggerated values. No reset mechanism.
 - **OnsetDetector and BPMTracker use separate internal 1024-pt FFTs** — redundant with main 2048-pt FFTProcessor. Aubio's internal state cannot share the main FFT result.
 - **One-frame lag**: Stage 5 (BPM) uses `prevHCDF_` and `prevStructuralState_` because chroma HCDF (stage 7) and structural (stage 11) aren't computed yet. Fundamental pipeline ordering constraint.
+- **barPhase test is flaky** (test_downbeat_detector.cpp, test #95, tag `[downbeat][barphase]`). The "barPhase stays within zero to one range" test uses synthetic kick patterns where timing sensitivity causes intermittent range violations. Root cause: synthetic beat spacing drifts relative to the tracker's internal phase accumulation.
+- **`quantum_` in LinkSync is a non-atomic `double`** (LinkSync.h:54). Read by the analysis thread (via `update()` called per-frame) and written by the UI thread (via `setQuantum()`). On x86-64 this is benign (aligned double reads/writes are atomic in practice), but it violates the C++ memory model — technically a torn-read risk on other architectures.
 
 
 **Storage:** N/A — real-time in-memory processing
@@ -296,6 +298,27 @@ Double Exposure (2), Frosted Glass (2), Prism (2), Rain on Glass (2), Hexagonali
 
 **Storage:** N/A — real-time in-memory processing
 
+### 4a. FX Browser (UI)
+
+**What it does:** Displays all 135 effects organized by 11 categories in a scrollable, searchable list. Effects can be dragged onto clip cells in the DeckView or into the EffectStackView in inspectors. Supports multi-select and category collapse/expand.
+
+**Key source files:**
+- `FXBrowser` class (src/ui/FXBrowser.h:11, src/ui/FXBrowser.cpp)
+
+**Parent component:** BrowserPanel (tab index 1: "FX")
+
+**Controls & interactions:**
+- Search field at top — filters effects by name
+- Category headers (collapsible) — click to expand/collapse
+- Effect rows — click to select, drag to apply to clip cell or effect stack
+- Multi-select via Shift/Cmd click
+- Double-click or drag triggers `onEffectActivated` callback
+
+**Gotchas:**
+- `setEffectLibrary()` must be called before `refresh()` — otherwise the list is empty.
+- Effect names in the browser are DISPLAY names; shader resolution requires `EffectLibrary::getEffectDef()`.
+- Multi-select drag drops comma-separated names (same pattern as deck cell drops).
+
 ---
 
 ## 5. Render Pipeline [R]
@@ -384,6 +407,8 @@ Accumulator → global FX → composition transform → swap buffers → display
 - Previous clip effects are applied during transition (`applyClipEffects` called on prevClip at CompositorEngine.cpp:1110)
 - 15 Creative/VJ and 3D transition enum entries exist as placeholders — selecting them produces a dissolve until shaders are implemented
 - Instant cut (`transitionSpeed <= 0` or `transitionSpeed == -1`) sets `crossfadeProgress = 1.0` immediately, skipping the blend entirely
+- **Transition shader coverage: 15 of 30 enum entries have dedicated shaders.** Shader-mapped: Cut, Dissolve, WipeLeft/Right/Up/Down, WipeEllipse (iris), PushLeft/Right/Up/Down, ZoomIn/Out, Flip, ToBlack. The remaining 15 (WipeDiagonal, RotateX/Y, Spin, Cube, Fold, ToWhite, Pixelate, Blur, Noise, RGBSplit, GlitchBlocks, Strobe, Slide, Stretch, Displace) fall back to dissolve via the `default:` case in `getTransitionShaderName()` (CompositorEngine.cpp:1083). See Renderer.cpp:1324-1338 for compiled shaders.
+- **No test coverage** for transitions — no test file exercises `applyTransition()` or validates per-mode shader output.
 
 ### 5b. Keying & Masking System
 
@@ -441,6 +466,8 @@ Accumulator → global FX → composition transform → swap buffers → display
 - The `scratchFBO_` is shared between keying passes but NOT with transitions (which use `transitionFBO_`) or effects (which use `effectFBO_A_/B_`)
 - `dryWetMix` on FX Only layers (Layer.h:110) is separate from keying — it controls effect intensity on the accumulator, not alpha
 - All keying parameters are uploaded every frame regardless of mode (e.g., chroma uniforms sent even for LumaKey) — the shader ignores irrelevant uniforms
+- **Keying shader coverage: only 3 of 13 modes have dedicated shaders.** `key_alpha` (transparencyAlpha), `key_luma` (transparencyLumaKey), and `key_chroma` (transparencyChromaKey) are real implementations. `key_max_rgb` and `key_luma_alpha` reuse `transparencyLight`. `key_inv_luma` and `key_saturation` reuse `transparencyLumaKey` (no actual inversion or saturation logic). The remaining 6 modes (InvertedLumaIsAlpha, EdgeDetection, ThresholdMask, ChannelR/G/B) all fall back to `transparencyAlpha` (plain alpha passthrough) — selecting these modes in the UI has no visual effect beyond passthrough. See Renderer.cpp:1109-1124 for the full mapping.
+- **No test coverage** for any keying mode — no test file exercises `applyLayerKeying()` or validates shader outputs per mode.
 
 ### 5c. Master Opacity & Composition Transform
 
@@ -497,6 +524,7 @@ UV centered at origin → anchor offset → rotation (2D mat2) → inverse scale
 - `masterSpeed` (Composition.h:25) is a global speed multiplier field but is NOT documented here as it affects playback timing, not visual compositing
 - Composition transform is applied to the entire output including all layers, global effects, and persistent layers — it is truly the last spatial operation before master level and frame present
 - Scale uses inverse mapping in shader (`uv /= scale`): scale > 1.0 zooms in (magnifies), scale < 1.0 zooms out (shrinks). Clamped to minimum 0.001 to prevent division by zero
+- **Composition transform fields are NOT serialized (runtime-only).** `compPositionX/Y`, `compScale`, `compRotation`, `compAnchorX/Y` are absent from `Composition::toVar()`/`fromVar()`. Any transform adjustments are lost on preset save/load or application restart. Only `masterOpacity` is serialized.
 
 **Failure modes:**
 - GPU can't keep up → frame drops, VSync miss (unhandled — no adaptive quality)
@@ -635,6 +663,33 @@ FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(
 - **`kSourceNames[]` in PresetManager MISSING P25 advanced sources** (SidechainPump, SwingRatio, etc.) — presets saved with P25 mappings fail to round-trip.
 - **`Mapping.smoothing` is named "alpha" but behaves as EMA coefficient** — higher = LESS smoothing (1.0 = passthrough). Opposite of typical "smoothing" semantics.
 - **`removeMapping()` uses vector erase** — invalidates all indices >= removed. No stable IDs for mappings.
+- **`MappingSuggester` exists (266 LOC) but has zero UI integration** — no button, menu, or API endpoint invokes `suggestMappings()` or `suggestGenreMappings()`. The class is not instantiated anywhere. See Feature 22e for full ghost status.
+- **`kSourceNames[]` in PresetManager is MISSING P25 advanced sources** — the array has 53 entries (RMS through ChromaB, indices 0-52) but the MappingSource enum has 58 entries (indices 53-57: SidechainPump, SwingRatio, FormantPresence, ResonancePeak, ReeseBass). Presets saved with P25 source mappings will serialize the enum integer, but `sourceToString()` returns "RMS" for out-of-range indices, and `stringToSource()` cannot match P25 names on load — mappings silently degrade to RMS.
+
+### 6c. MappingEditor (UI)
+
+**What it does:** A JUCE Component for configuring a single audio-to-visual Mapping. Provides dropdowns for source feature and curve type, sliders for input/output range and smoothing, enable/disable toggle, and delete button.
+
+**Key source files:**
+- `MappingEditor` class (src/ui/MappingEditor.h:18, src/ui/MappingEditor.cpp)
+
+**Parent component:** Opened as a popup from EffectsRackPanel or UniversalParamControl when the user clicks "map" on an effect parameter.
+
+**Controls & interactions:**
+- Source feature dropdown (ComboBox) — selects which of 58 audio features drives the mapping
+- Curve type dropdown (ComboBox) — selects from 24 curve types
+- Input min/max sliders — normalize source range
+- Output min/max sliders — scale target range
+- Smoothing slider — EMA alpha (higher = less smoothing)
+- Enable/Disable toggle — enables or disables the mapping without deleting it
+- Delete button — removes the mapping entirely
+- Randomize button — randomizes curve and range values
+- Close button ("X") — closes the editor popup
+- Uses a Listener interface (`mappingEditorChanged`, `mappingEditorDeleteRequested`, `mappingEditorCloseRequested`)
+
+**Gotchas:**
+- `setMapping()` copies values in; changes are communicated via Listener callbacks. The editor does not hold a pointer to the Mapping object.
+- Source and curve dropdowns are populated from enum names at construction, not dynamically.
 
 
 **Storage:** N/A — real-time in-memory processing
@@ -737,6 +792,27 @@ FeatureSnapshot fields → SignalRegistry (named signals) → ChainedSignal (der
 - **`ChainedSignal::getValue()` ignores the snapshot parameter entirely** — reads only cached values. If evaluated BEFORE its carrier/modulator signals in `evaluateAll()`, gets stale values from previous frame. Evaluation order = insertion order.
 - **`getCachedValue()` is O(n) linear scan per call** — each route calls once, ChainedSignal calls twice. Fine for ~30 signals, won't scale to hundreds.
 - **RoutingEngine does NOT apply curve transforms** — uses gain/threshold/falloff instead. Deliberate v2 design difference from MappingEngine.
+- **Clip/Layer scope routes are evaluated but values discarded.** The routing lambda at `Renderer.cpp:198-206` only handles `TargetScope::Global`. Non-Global routes are silently dropped with a TODO comment (line 205). See Feature 22c for full ghost status.
+
+### 7b. SignalInspector (UI)
+
+**What it does:** Displays full settings for the currently selected signal in the InspectorPanel's Signal tab. Adapts its controls based on signal type: audio signals show threshold/gain/falloff sliders; oscillator signals show wave shape, beat duration, amplitude, and phase offset; envelope signals show a curve editor with draggable control points and loop/one-shot toggles.
+
+**Key source files:**
+- `SignalInspector` class (src/ui/SignalInspector.h:15, src/ui/SignalInspector.cpp)
+
+**Parent component:** InspectorPanel (tab index 3: "Signal"), displayed inside a scrollable Viewport.
+
+**Controls & interactions:**
+- Audio signal controls: threshold slider, gain slider, falloff slider
+- Oscillator controls: wave shape selector (5 shapes), beat duration selector, amplitude slider, phase offset slider
+- Envelope controls: curve type selector (Linear/Exponential/SCurve), beat duration selector, amplitude slider, phase slider, looping toggle, one-shot toggle
+- Curve editor area (100px tall) — visual representation of envelope control points
+- All controls are hidden/shown dynamically based on signal type via `hideAllControls()` / `showAudioControls()` / `showOscillatorControls()` / `showEnvelopeControls()`
+
+**Gotchas:**
+- Envelope curve editor is currently a painted rectangle with basic control point display — draggable editing may be incomplete.
+- `setSignal(nullptr)` hides all controls gracefully.
 
 
 **Storage:** N/A — real-time in-memory processing
@@ -797,6 +873,28 @@ Autopilot: beat/video trigger → advance clip → fire callback → refresh Dec
 - Retriggering same clip preserves play/pause state. Only first activation auto-plays (`hasBeenTriggered` flag).
 - Per-type autopilot `perTypeEnabled` defaults to false — must be explicitly enabled.
 - Smart random assumes lower column index = calmer content, higher = more intense.
+- **`std::rand()` used in Autopilot without explicit seeding** (Autopilot.cpp:236, 304, 352). Three call sites use `std::rand()` for random clip selection and score jittering. No `std::srand()` call exists in the codebase — seed depends on implementation default. `std::rand()` thread safety is implementation-defined; since Autopilot runs on the render thread, concurrent `std::rand()` calls from other threads could corrupt internal state.
+
+### 8a. CompDecksBrowser (UI)
+
+**What it does:** Shows saved compositions and decks in the BrowserPanel. Two collapsible sections: Compositions (click to load full application state) and Decks (click to switch active deck). Supports save/rename/delete operations.
+
+**Key source files:**
+- `CompDecksBrowser` class (src/ui/CompDecksBrowser.h:10, src/ui/CompDecksBrowser.cpp)
+
+**Parent component:** BrowserPanel (tab index 3: "Comp/Decks")
+
+**Controls & interactions:**
+- "Save Composition" button — saves current state to JSON
+- "Save Deck" button — saves current deck
+- Compositions section (collapsible) — lists saved .json files with name and date, click to load
+- Decks section (collapsible) — lists saved deck files, click to load
+- Scrollable viewport for long lists
+- Callbacks: `onCompositionLoad`, `onDeckLoad`, `onCompositionSave`
+
+**Gotchas:**
+- `setComposition()` must be called before save operations work.
+- Files are scanned from `getCompositionsDir()` and `getDecksDir()` static paths — user document directory.
 
 ---
 
@@ -932,6 +1030,27 @@ Laser Scanner (6)
 - 3D camera distance `mix(5.0, 0.3, zoom)` — at zoom=1 camera is INSIDE the fractal.
 - Layer Router source reads another layer's output — self-reference gets previous frame (1 frame delay).
 
+### 9a. SourcesBrowser (UI)
+
+**What it does:** Displays all 108 procedural sources organized by category in a searchable, scrollable list. Users drag sources onto clip cells in the DeckView to use them as clip content.
+
+**Key source files:**
+- `SourcesBrowser` class (src/ui/SourcesBrowser.h:10, src/ui/SourcesBrowser.cpp)
+
+**Parent component:** BrowserPanel (tab index 2: "Sources")
+
+**Controls & interactions:**
+- Search box at top — filters sources by name
+- Category headers (collapsible) — click to expand/collapse, color-coded per category
+- Source rows (28px each) — click to select, drag onto deck clip cells
+- Multi-select tracking via `selectedIndices_` set
+- Source entries carry both display name and registry ID (e.g., "Perlin Noise" / "perlin_noise")
+- `onSourceActivated` callback fires on double-click or drag activation
+
+**Gotchas:**
+- Source list is built at construction from hardcoded entries, not dynamically from SourceRegistry. Adding new sources requires updating `buildSourceList()`.
+- Source IDs (snake_case) differ from display names (Title Case) — always use `sourceId` for runtime operations.
+
 
 **Storage:** N/A — real-time in-memory processing
 
@@ -985,6 +1104,51 @@ Deck state → MidiOutputHandler (6Hz poll) → note-on/off → Launchpad/APC pa
 - **Modifier mismatch on keyUp** — if user releases Shift before releasing bound key, modifier mismatch causes momentary release to be missed.
 - **Relative CC mode**: accumulated value is per-(channel, CC) globally. Two bindings on same CC with different step sizes share accumulated value.
 
+### 10a. BindingOverlay (UI)
+
+**What it does:** Semi-transparent fullscreen overlay shown when keyboard binding mode is active (Shortcuts > Edit Keyboard, Shift+Cmd+K). Highlights all bindable UI elements (clip cells, macros, transport). User clicks a target, then presses a key to create the binding.
+
+**Key source files:**
+- `BindingOverlay` class (src/ui/BindingOverlay.h:10, src/ui/BindingOverlay.cpp)
+
+**Parent component:** MainComponent (child overlay, shown on top of all panels)
+
+**Controls & interactions:**
+- Enter via `enterBindingMode()` — shows overlay, begins target highlighting
+- Click a highlighted target → enters "waiting for key" state (`waitingForKey_` flag)
+- Press any key → creates a `Binding` via `BindingManager`, exits wait state
+- Escape exits binding mode entirely
+- `setBindableTargets()` receives geometry from MainComponent so targets are drawn at correct positions
+- Displays existing binding key labels next to each target
+- `onBindingModeExit` callback notifies parent when done
+
+**Gotchas:**
+- Implements `juce::KeyListener` to intercept key presses during binding mode.
+- Target hit testing is rectangle-based — overlapping UI elements may cause wrong target selection.
+- Binding targets are regenerated on each enter (not cached) to match current deck layout.
+
+### 10b. MidiLearnOverlay (UI)
+
+**What it does:** Semi-transparent fullscreen overlay for MIDI learn mode (Shortcuts > Edit MIDI, Shift+Cmd+M). Same workflow as BindingOverlay but listens for MIDI input instead of keyboard. Notes map to triggers (clips, columns); CCs map to continuous controls (sliders, knobs).
+
+**Key source files:**
+- `MidiLearnOverlay` class (src/ui/MidiLearnOverlay.h:13, src/ui/MidiLearnOverlay.cpp)
+
+**Parent component:** MainComponent (child overlay, shown on top of all panels)
+
+**Controls & interactions:**
+- Enter via `enterLearnMode(AudioDeviceManager*)` — registers as MIDI input callback, shows overlay
+- Click a target → enters "waiting for MIDI" state (`waitingForMidi_` flag)
+- Send any MIDI note or CC → creates binding, shows last MIDI message info
+- Escape exits learn mode
+- Reuses `BindingOverlay::BindableTarget` struct for target geometry
+- `stopListening()` unregisters from all MIDI inputs on exit
+
+**Gotchas:**
+- Implements `juce::MidiInputCallback` — receives MIDI on the MIDI input thread, must dispatch to message thread for UI updates.
+- Requires a valid `AudioDeviceManager*` to enumerate and listen on MIDI inputs.
+- Shares the same BindableTarget format as BindingOverlay — targets are interchangeable.
+
 
 **Storage:** N/A — real-time in-memory processing
 
@@ -1031,6 +1195,30 @@ Image folder → load all images → cycle by timer/BPM → clip texture
 **Gotchas:**
 - HAP Alpha requires specific FFmpeg codec support.
 - BPM Sync with Content Beats requires knowing how many beats the video content represents.
+
+### 11a. FilesBrowser (UI)
+
+**What it does:** Folder navigation panel with thumbnails, search, and favorites. Users browse images, videos, and audio files and drag them onto deck cells to load as clip content. Supports grid view (thumbnails) and list view.
+
+**Key source files:**
+- `FilesBrowser` class (src/ui/FilesBrowser.h:9, src/ui/FilesBrowser.cpp)
+
+**Parent component:** BrowserPanel (tab index 0: "Files")
+
+**Controls & interactions:**
+- Navigation bar: Up button ("^"), path bar (editable), search field
+- View toggle: Grid view (64px thumbnails) / List view buttons
+- File entries — click to select, double-click or drag to load into deck
+- Multi-select via `selectedIndices_` set
+- Directory navigation — double-click folders to enter, Up button to go up
+- Favorites system — toggle favorite per file, persisted across sessions
+- `onFileActivated` callback fires on activation
+- `navigateTo(folder)` — programmatic navigation
+
+**Gotchas:**
+- Implements `juce::FileDragAndDropTarget` but returns `false` for `isInterestedInFileDrag()` — receives drags FROM this panel to deck cells, not into it.
+- Thumbnail generation (`generateThumbnail`) may be slow for large images — runs on the message thread.
+- Favorites stored via `loadFavorites()`/`saveFavorites()` — persistence location is user data directory.
 
 
 **Storage:** N/A — real-time in-memory processing
@@ -1680,7 +1868,7 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 
 **What it does:** Continuous A/B crossfading between decks with blend mode (Alpha/Add/Multiply), behaviour (Cut/Smooth), and curve (Linear/EaseInOut/SCurve).
 
-**Status:** Model fields exist in Composition struct (`crossfaderPhase`, enums for mode/behaviour/curve). **crossfaderPhase is NEVER READ** outside the model. `crossfaderBlendMode` used once for deck transitions at `Renderer.cpp:508` (not live crossfader — used as `u_blendMode` uniform during deck transition shader). No UI slider, not serialized (absent from `Composition::toVar()`/`fromVar()`).
+**Status: NOT FUNCTIONAL for live use.** Model fields exist in Composition struct (`crossfaderPhase`, enums for mode/behaviour/curve). `crossfaderPhase` is NEVER READ outside initialization (default 0.5, no code path reads or writes it at runtime). `crossfaderBlendMode` is read exactly once at `Renderer.cpp:508` — but this is for one-time deck-switch transitions, NOT live crossfading between simultaneously-rendered decks. `crossfaderBehaviour` and `crossfaderCurve` are never read. None of these fields are serialized (absent from `Composition::toVar()`/`fromVar()`). No UI slider exists. No MIDI/OSC binding targets the crossfader. The feature is model-only — no runtime behavior.
 
 **Activation estimate:** HIGH (~1 week+) — requires dual-deck simultaneous rendering (doubles GPU workload), UI, MIDI binding, serialization.
 
@@ -1688,7 +1876,7 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 
 **What it does:** Route struct defines TargetScope enum (Clip, Layer, Global) for scoped signal routing. Currently only Global is wired.
 
-**Status:** `Renderer.cpp:205` has explicit TODO: "Clip/Layer scope routing needs compositor integration". Route carries `targetLayerId`/`targetClipId` fields but they are never used in the routing callback (line 200 only handles `Route::TargetScope::Global`).
+**Status: Routes evaluated but values DISCARDED for Clip/Layer scopes.** `Renderer.cpp:200` only handles `Route::TargetScope::Global` — the routing lambda evaluates signal values for all routes each frame, but non-Global routes silently fall through to the TODO comment at line 205 ("Clip/Layer scope routing needs compositor integration"). The `targetLayerId`/`targetClipId` fields are carried in the Route struct but never read. Users can configure Clip/Layer scoped routes via the data model, but they have zero runtime effect — values are computed then thrown away.
 
 **Activation estimate:** MEDIUM (~3 days) — data model complete, needs render pipeline integration.
 
@@ -1704,7 +1892,7 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 
 **What it does:** Analyzes FeatureSnapshot + genre to recommend source-to-effect mappings. Returns ranked suggestions with scores and reasons. 13 universal + 4 per-genre suggestions.
 
-**Status:** 266 LOC (MappingSuggester.cpp), fully implemented. No UI caller — no button/menu invokes it. Not included in any MainComponent or UI code.
+**Status: Implemented but not integrated — no way to invoke from UI or API.** 266 LOC (MappingSuggester.cpp), fully implemented and compiles clean. Zero UI callers — no button, menu item, or keyboard shortcut invokes `suggestMappings()` or `suggestGenreMappings()`. Zero API endpoints expose it. Not included in any MainComponent, inspector, or mapping editor code. The class is not even instantiated anywhere in the application — it exists only as a compilable source file with no runtime presence.
 
 **Activation estimate:** LOW (~1 day) — needs UI trigger button + conversion from Suggestion to Mapping.
 
@@ -1942,9 +2130,18 @@ JSON → loadFromFile() → events_ vector → advancePlayback(dt) → event poi
 **Integration:**
 - `MainComponent` owns `sessionRecorder_` (stack member, MainComponent.h:208)
 - `RecordPanel` receives pointer via `setSessionRecorder()` — provides Record/Stop/Play/Save/Load buttons
-- Currently only `recordClipTrigger()` is called from application code (MainComponent.cpp:2472)
 - `ApiServer` holds a reference but exposes no REST endpoints for session recording
-- Other record methods (ParameterChange, MacroChange, TransportChange, EffectToggle, CuepointJump) are implemented but have no callers — integration points not yet wired
+- **Only 1 of 7 event types is wired:** `recordClipTrigger()` is called from `MainComponent.cpp:2472`. The other 6 `record*()` methods have complete implementations but ZERO callers anywhere in the codebase:
+
+| Event Type | Method | Wired? | Expected Call Site |
+|------------|--------|--------|--------------------|
+| ClipTrigger | `recordClipTrigger()` | YES (MainComponent.cpp:2472) | Clip activation |
+| ParameterChange | `recordParameterChange()` | NO — 0 callers | Effect/source param changes |
+| ColumnTrigger | `recordColumnTrigger()` | NO — 0 callers | Column trigger button |
+| MacroChange | `recordMacroChange()` | NO — 0 callers | Macro knob changes |
+| TransportChange | `recordTransportChange()` | NO — 0 callers | Play/pause/stop/speed |
+| EffectToggle | `recordEffectToggle()` | NO — 0 callers | Effect enable/disable |
+| CuepointJump | `recordCuepointJump()` | NO — 0 callers | Cuepoint navigation |
 
 **Dependencies & services:**
 - JUCE: `CriticalSection` (mutex), `Time::getMillisecondCounterHiRes()` (wall clock), `JSON`/`DynamicObject` (serialization), `File` (I/O)
@@ -1971,8 +2168,494 @@ JSON → loadFromFile() → events_ vector → advancePlayback(dt) → event poi
 - `lock_` is `juce::CriticalSection` (recursive mutex) used on every `record*()` call — if recording high-frequency parameter changes, contention possible between UI/MIDI threads and any concurrent readers.
 - `advancePlayback()` returns raw pointers into `events_` vector — caller must not modify vector during playback iteration.
 - Timestamps are wall-clock-relative, not beat-relative — playback of a session recorded at 120 BPM replayed at 140 BPM will have events at the same wall times, not the same beat positions.
-- Only `recordClipTrigger` is wired; the other 6 event types have complete implementations but zero callers in the codebase. Wiring them requires adding `sessionRecorder_.record*()` calls at each action site.
+- **Only 1 of 7 event types is wired** — `recordClipTrigger` is the only `record*()` method called from application code (MainComponent.cpp:2472). The other 6 event types have complete implementations but zero callers. See Integration table above for per-type wiring status.
 - `Event::action` and `Event::effectName` are `std::string` — heap allocation on every TransportChange/EffectToggle recording event. Not RT-safe if called from audio thread (currently not called from audio thread).
+- **High-frequency lock contention risk**: `lock_` (juce::CriticalSection, recursive mutex) is acquired on every `record*()` call. If all 7 event types were wired, high-frequency parameter changes (~60Hz per mapped param) would contend with UI thread, MIDI thread, and playback reader on the same lock. Current single-caller wiring avoids this, but full wiring would need per-type lock-free queues or batching.
+
+---
+
+## 26. Application UI Framework [R]
+**What it does:** The UI shell and chrome components that form the application window layout: top bar, preview panel, deck grid, inspector panel, browser panel, signal bar, menu system, preferences, look-and-feel theme, and shared parameter controls. These components orchestrate the domain features (F1-F25) into a usable VJ application interface.
+
+**Entry points:**
+- `MainComponent` (src/MainComponent.h) — top-level JUCE component, owns all UI panels
+- `AudioDNALookAndFeel` (src/ui/LookAndFeel.h:4) — global visual theme
+- `AudioDNAMenuBar` (src/ui/MenuBarModel.h:8) — 9-menu application menu bar
+
+**Implementation chain:**
+1. `MainComponent` creates all panels during construction: TopBar, SignalBar, PreviewPanel, DeckView, InspectorPanel, BrowserPanel, TimingWindow, BindingOverlay, MidiLearnOverlay
+2. `MainComponent::resized()` performs a 4-region layout: TopBar (top strip), SignalBar (below top bar), main content area (preview | timing | inspector | browser), DeckView (remaining space)
+3. `AudioDNALookAndFeel` applied globally — all JUCE widgets inherit the dark theme with cyan/magenta accents
+4. `AudioDNAMenuBar` provides 9 menus, each command ID dispatched to `MainComponent::handleMenuCommand()`
+
+**Data flow:**
+```
+User input → MainComponent → delegates to child panel → panel modifies model/calls back → MainComponent refreshes UI
+AudioDNALookAndFeel → all paint() calls use consistent color constants and widget rendering
+```
+
+**Dependencies & services:**
+- JUCE juce_gui_basics: Component, Timer, LookAndFeel_V4, MenuBarModel, Viewport, DragAndDrop
+- JUCE juce_opengl: OpenGLContext (hosted by PreviewPanel's GLHost)
+
+**Config:**
+- Layout dividers: `vDividerFrac_[4]` array controls relative widths of 4 bottom panels
+- TopBar height: fixed strip at top of window
+- SignalBar: 3 display sizes (Minimized ~20px, Normal ~80px, Expanded ~fullscreen)
+- DeckView cell size: 90x96px (Resolume-style dense grid)
+- All colors defined as `static constexpr` in `AudioDNALookAndFeel`
+
+**Failure modes:**
+- Window too small → panels clip or overlap (partially handled — minimum size enforced)
+- OpenGL context lost → PreviewPanel re-creates context (handled by JUCE)
+
+**Test coverage:**
+- No dedicated UI framework tests. UI components are visual-only.
+
+**Gotchas:**
+- `MainComponent::resized()` has two separate code paths: expanded mode (lines 1316-1327, hides everything except SignalBar) and normal mode (remaining code). Changes to one path must be mirrored in the other.
+- v1 controls (~15 members) are hidden via `setVisible(false)` in `resized()` but remain as stack/heap members on MainComponent, adding ~200 lines of member declarations.
+
+### 26a. TopBar
+
+**What it does:** The main application toolbar positioned below the menu bar. Contains audio source selector, input gain, transport controls (play/pause/stop), tempo display with animated beat wheel, tap tempo, BPM multiplier buttons (/4, /2, x1, x2, x4), quantize selector, global fade slider, master level slider, output display selector, and FPS/DSP stats.
+
+**Key source files:**
+- `TopBar` class (src/ui/TopBar.h:12, src/ui/TopBar.cpp)
+
+**Parent component:** MainComponent (top strip, full window width)
+
+**Controls & interactions:**
+- Audio Source section: source selector dropdown, input gain slider
+- Transport section: Play/Pause/Stop buttons
+- Tempo section: BPM display label, tracker state label, Tap button (8-tap averaging), Resync button
+- BPM Multiplier: /4, /2, x1, x2, x4 buttons — multiply detected BPM
+- Manual BPM: toggle button + editable text field for manual BPM entry
+- Quantize: dropdown selector for beat snap modes
+- Fade: global fade slider
+- Master Level: master brightness slider
+- Output: display selector dropdown
+- Stats: FPS label, DSP load label
+- Beat wheel: animated circular indicator showing beat phase, painted via `paintBeatWheel()`
+- Bar/phrase display: text showing current bar and phrase position
+- Updates at 30fps via `juce::Timer`
+
+**Callbacks:** `onTapTempo`, `onResync`, `onBpmMultiplierChanged`, `onQuantizeChanged`, `onManualBpmChanged`
+
+**Gotchas:**
+- Tap tempo uses an 8-element circular buffer (`tapTimes_`) with timeout — taps separated by >2s reset the count.
+- Beat wheel reads from `displaySnap_` (FeatureBus snapshot) — may show 1-frame-old data.
+
+### 26b. PreviewPanel
+
+**What it does:** Hosts the OpenGL Renderer inside a JUCE Component with [Preview] / [Output] tabs. The Preview tab shows the selected clip/layer solo or full composition; the Output tab shows what goes to the external display. Both render via the same GL renderer — tabs label the context only.
+
+**Key source files:**
+- `PreviewPanel` class (src/ui/PreviewPanel.h:12, src/ui/PreviewPanel.cpp)
+
+**Parent component:** MainComponent (first panel in the 4-panel bottom row)
+
+**Controls & interactions:**
+- Preview/Output tab buttons (26px tab bar at top)
+- GL rendering area (GLHost inner component) — displays the OpenGL output
+- Placeholder text "Load an image to see audio-reactive effects" when no image loaded
+- Provides accessors: `getRenderer()`, `getMappingEngine()`, `getEffectChain()`
+- `loadImage(File)` / `clearImage()` / `queueCameraFrame(Image)` for content loading
+
+**Gotchas:**
+- `GLHost` is a separate inner component to isolate GL rendering from JUCE 2D tab bar widgets.
+- `Renderer` is a stack member of PreviewPanel — its lifetime is tied to the panel.
+
+### 26c. DeckView
+
+**What it does:** Resolume-style layer x column deck grid. Displays column trigger buttons at top, layer strips on the left, clip cells in the grid, and deck switch tabs at the bottom. Supports horizontal/vertical scrolling when content exceeds the viewport.
+
+**Key source files:**
+- `DeckView` class (src/ui/DeckView.h:15, src/ui/DeckView.cpp)
+
+**Parent component:** MainComponent (main content area, below the 4-panel row)
+
+**Controls & interactions:**
+- Column trigger buttons (top row, 22px) — click to trigger entire column across all layers
+- Layer strips (left side, 250px wide) — per-layer controls and status (see 26d LayerStrip)
+- Clip cells (grid, 90x96px each) — per-clip thumbnail and interaction (see 26e ClipCell)
+- Deck tabs (bottom row, 24px) — click to switch active deck
+- Scrollable viewport when content exceeds visible area
+- Multi-selection: `selectCell(layer, column, addToSelection)` with Shift/Cmd support
+- Layer selection: `selectLayer(layerIndex)` highlights the layer strip
+- `rebuildGrid()` recreates all child components from current deck state
+- `refresh()` updates active clip highlights and button states
+
+**Callbacks:** `onClipTriggered`, `onClipSelected`, `onLayerSelected`, `onColumnTriggered`, `onFileDropped`, `onMultiFileDropped`, `onMultiVideoDropped`, `onEffectDropped`, `onSourceDropped`, `onClipMoved`, `onMilkDropDropped`, `onMilkDropPlaylistDropped`, `onDeckSwitched`, `onLayerFoldToggle`, `onLayerReorder`
+
+**Gotchas:**
+- Layout constants: `kLayerStripWidth=250`, `kCellWidth=90`, `kCellHeight=96`, `kCellGap=0` — flush grid with 1px borders drawn by cells.
+- `setComposition()` must be called before `rebuildGrid()` — reads active deck's layers and clips.
+- Deck tabs are dynamic — one per deck in the composition.
+
+### 26d. LayerStrip
+
+**What it does:** Resolume-style layer header displayed in the left side of the DeckView. Shows layer name, clip name, transport controls, clear/bypass/solo buttons, speed slider, keying threshold slider, opacity slider with blend mode dropdown, fade speed with transition mode dropdown, and clip thumbnail with playhead indicator.
+
+**Key source files:**
+- `LayerStrip` class (src/ui/LayerStrip.h:23, src/ui/LayerStrip.cpp)
+
+**Parent component:** DeckView (one per layer, 250px wide, in the left column)
+
+**Controls & interactions:**
+- Row 1: Clear (X), Bypass (B), Solo (S) buttons + transport controls (Back, Pause, Play, Forward)
+- Row 2: Speed slider (0-4x), Keying threshold slider, Opacity slider + blend/keying mode dropdown, thumbnail
+- Row 3: Layer name label, clip name with playhead indicator, Fade time slider + transition mode dropdown
+- Click on strip background → selects layer for inspection
+- Playhead scrubbing via mouse drag on clip name area
+- Layer drag reorder support (`onLayerDragReorder`)
+- Layer fold toggle (`onFoldToggle`)
+- Updates via `juce::Timer` for live playhead position
+
+**Callbacks:** `onSelect`, `onClearClip`, `onBypass`, `onSolo`, `onBlendModeChanged`, `onTransportPlay/Pause/Back/Forward`, `onFoldToggle`, `onLayerDragReorder`
+
+**Gotchas:**
+- Bypass active state uses a reddish tint (`kBypassActive = 0xff6a3a3a`), Solo uses yellowish (`kSoloActive = 0xff7a7a4a`).
+- Blend dropdown is populated from `Layer::MixMode` enum (30 entries including transitions) — only blend subset should be shown for the V dropdown.
+- Transition dropdown populated separately for the F dropdown.
+
+### 26e. ClipCell
+
+**What it does:** A single cell in the deck grid at the intersection of a layer and column. Two interaction zones: thumbnail area (click to trigger/retrigger clip) and name bar (click to select for inspection without triggering). Supports drag-and-drop for images, videos, effects, sources, and MilkDrop presets from browser panels and Finder.
+
+**Key source files:**
+- `ClipCell` class (src/ui/ClipCell.h:11, src/ui/ClipCell.cpp)
+
+**Parent component:** DeckView (grid, one per layer x column position)
+
+**Controls & interactions:**
+- Thumbnail area: click = trigger clip, displays clip thumbnail or media type icon
+- Name bar (20px bottom strip): click = select for inspection, right-click = context menu
+- Active state: muted teal border highlight (`kActiveBorder = 0xff4a9a8a`, clip is playing)
+- Selected state: white border highlight (user selected for inspection)
+- Drag-and-drop receive: files from Finder, effects from FXBrowser, sources from SourcesBrowser, MilkDrop presets from MilkDropBrowser
+- Clip-to-clip drag: drag from one cell to another to move/swap clips
+- Multi-file drop: image sequences or multiple videos
+- Hover states: `dragHover_`, `fxDragHover_`, `sourceDragHover_` for visual feedback
+
+**Callbacks:** `onTrigger`, `onSelect`, `onFileDrop`, `onMultiFileDrop`, `onMultiVideoDrop`, `onEffectDrop`, `onSourceDrop`, `onClipMove`, `onMilkDropDrop`, `onMilkDropPlaylistDrop`
+
+**Gotchas:**
+- `kNameBarHeight = 20` — the bottom 20px is the select zone, everything above is the trigger zone.
+- Implements both `juce::FileDragAndDropTarget` (Finder files) and `juce::DragAndDropTarget` (internal browser drags) — two separate interfaces for the same visual component.
+
+### 26f. InspectorPanel
+
+**What it does:** 4-tab container panel for inspecting Clip, Layer, Composition, and Signal properties. Auto-switches tabs based on user selection: clicking a clip opens the Clip tab, clicking a layer strip opens the Layer tab, clicking a signal strip opens the Signal tab. Supports "pin" mode to prevent auto-switching during live performance.
+
+**Key source files:**
+- `InspectorPanel` class (src/ui/InspectorPanel.h:23, src/ui/InspectorPanel.cpp)
+
+**Parent component:** MainComponent (third panel in the 4-panel bottom row)
+
+**Controls & interactions:**
+- Tab buttons: Clip, Layer, Composition, Signal (26px tab bar)
+- Pin button — prevents auto-tab-switching during performance
+- Each tab contains a scrollable Viewport wrapping its inspector component:
+  - Clip tab → ClipInspector (see 26g)
+  - Layer tab → LayerInspector (see 26h)
+  - Composition tab → CompositionInspector (see 26i)
+  - Signal tab → SignalInspector (see 7a)
+- `inspectClip(Clip*)` / `inspectLayer(Layer*)` / `inspectSignal(Signal*)` — auto-switch + set data
+- `refresh()` refreshes the currently visible tab
+
+**Gotchas:**
+- When pinned, `inspectClip/Layer/Signal` calls still update the data but do not switch tabs.
+- Each inspector is wrapped in a `juce::Viewport` for scrolling — preferred height is calculated dynamically.
+
+### 26g. ClipInspector
+
+**What it does:** Resolume-style clip properties panel displayed in the InspectorPanel's Clip tab. Sections: Name + Thumbnail, Dashboard (8 macro knobs via MacroPanel), Transport (mode, playhead, loop/trigger, speed, duration), Cuepoints (8 cue buttons with set/jump), Autopilot, Source Parameters (for procedural source clips), Video (opacity, blend mode, RGBA toggles), Transform (position, scale, rotation, anchor), and Effects (EffectStackView).
+
+**Key source files:**
+- `ClipInspector` class (src/ui/ClipInspector.h:25, src/ui/ClipInspector.cpp)
+
+**Parent component:** InspectorPanel (Clip tab, inside Viewport)
+
+**Controls & interactions:**
+- Transport section: mode selector (Timeline/BPMSync), speed slider, reverse button, half/double speed buttons, loop mode selector, play/pause/back buttons, duration slider, beat division selector (BPMSync mode), content beats slider (BPMSync mode)
+- Cuepoints: 8 trigger buttons (jump to cuepoint) + 8 set buttons (set cuepoint at playhead)
+- Autopilot: action and duration selectors
+- Beat Snap: selector for quantize mode
+- Image Sequence FPS: slider (visible for image sequence clips)
+- Source Parameters: dynamically built `UniversalParamControl` list for procedural source parameters
+- Video: opacity control (UniversalParamControl), width/height sliders, blend mode selector, alpha type selector, RGBA channel toggles
+- Transform: position X/Y, scale, rotation, anchor (all UniversalParamControl)
+- Effects: full EffectStackView for per-clip effects
+- Timeline bar: draggable in/out points and playhead scrubber, beat markers
+- Accepts FX drops from browser (DragAndDropTarget)
+
+**Callbacks:** `onSourceParamsChanged`, `onCuepointJump`, `onCuepointSet`
+
+**Gotchas:**
+- Section layout uses `kRowHeight=24`, `kSectionGap=8` — compact but scrollable via parent Viewport.
+- Timeline in/out point dragging uses hit-test zones (`DragTarget::InPoint/OutPoint/Playhead`).
+- Source parameter controls are rebuilt via `buildSourceParamControls()` when clip changes.
+
+### 26h. LayerInspector
+
+**What it does:** Resolume-style layer properties panel displayed in the InspectorPanel's Layer tab. Sections: Name (editable), Dashboard (8 macro knobs), Autopilot (direction, duration, loops), Layer Master (master level, persistent toggle, ignore column trigger), Video (blend mode, opacity, width, height, auto size), Transition (blend mode, duration), Keying (mode, threshold, softness — visible for Transparent layers), DryWet (FX Only layers), 3D Controls (rotation, speed, scale — for ThreeD layers), Transform, Feedback (enable, preset, amount, scale, rotation, offset, luma key), and Layer Effects (EffectStackView).
+
+**Key source files:**
+- `LayerInspector` class (src/ui/LayerInspector.h:28, src/ui/LayerInspector.cpp)
+
+**Parent component:** InspectorPanel (Layer tab, inside Viewport)
+
+**Controls & interactions:**
+- Editable name label — rename layers inline
+- Autopilot: Rewind/Off/Forward/Random direction buttons, trigger mode selector (End of Video / On Beat), beat count selector, loops slider
+- Layer Master: UniversalParamControl + persistent toggle + ignore column trigger toggle
+- Video: blend mode dropdown, opacity control, width/height sliders, auto-size selector
+- Transition: blend mode dropdown, duration slider
+- Keying (Transparent type only): mode dropdown (13 keying modes), threshold slider, softness slider
+- FX Only: dry/wet mix slider
+- 3D Controls: rotation X/Y/Z sliders, speed slider, scale slider
+- Transform: position X/Y, scale, rotation, anchor (all UniversalParamControl)
+- Feedback: enable toggle, preset dropdown (6 presets), amount/scale X/Y/rotation/offset X/Y/luma key sliders
+- Layer Effects: EffectStackView for per-layer effects
+- Accepts FX drops from browser
+
+**Callbacks:** `onLayerNameChanged`
+
+**Gotchas:**
+- Section visibility is conditional on layer type — keying controls only shown for Transparent, dry/wet for FX Only, 3D controls for ThreeD layers.
+- Feedback controls reference `FeedbackProcessor` presets (6 Larsen loop configurations).
+- Uses `kRowHeight=22`, `kSectionGap=4` — slightly more compact than ClipInspector.
+
+### 26i. CompositionInspector
+
+**What it does:** Resolume-style composition properties panel displayed in the InspectorPanel's Composition tab. Sections: Name + Resolution, Dashboard (8 macro knobs), Autopilot (direction, duration, loops, master layer, per-type autopilot settings), Composition (master slider, speed slider), Video (opacity), Transform (position, scale, rotation, anchor), Global Effects (EffectStackView), and Output Settings (resolution dropdown).
+
+**Key source files:**
+- `CompositionInspector` class (src/ui/CompositionInspector.h:23, src/ui/CompositionInspector.cpp)
+
+**Parent component:** InspectorPanel (Composition tab, inside Viewport)
+
+**Controls & interactions:**
+- Autopilot: Rewind/Off/Forward/Random buttons, duration selector, clip loops slider, loop toggle, master layer selector
+- Per-Type Autopilot (P20): enabled toggle, cycle sliders for Opaque/Transparent/Effect layers, randomize toggles
+- Composition: master slider (UniversalParamControl with signal triangle), speed slider
+- Video: opacity slider (UniversalParamControl)
+- Transform: position X/Y, scale, rotation, anchor (all UniversalParamControl)
+- Global Effects: EffectStackView for composition-level effects
+- Output Settings: resolution dropdown
+
+**Gotchas:**
+- Per-Type Autopilot section is a P20 addition — only visible when `perTypeEnabledToggle_` is checked.
+- Master control has a signal triangle for audio-driven master level.
+
+### 26j. BrowserPanel
+
+**What it does:** 6-tab container for the right-bottom browser area. Houses FilesBrowser, FXBrowser, SourcesBrowser, CompDecksBrowser, RecordPanel, and MilkDropBrowser. Tab switching shows/hides the appropriate child component.
+
+**Key source files:**
+- `BrowserPanel` class (src/ui/BrowserPanel.h:16, src/ui/BrowserPanel.cpp)
+
+**Parent component:** MainComponent (fourth/rightmost panel in the 4-panel bottom row)
+
+**Controls & interactions:**
+- 6 tab buttons: Files, FX, Sources, Comp/Decks, Record, MilkDrop (26px tab bar)
+- Tab switching via `setActiveTab(Tab)` — hides all children, shows selected
+- `refresh()` refreshes all child browsers
+- `setEffectLibrary()` / `setComposition()` — forwards dependencies to children
+- Direct access to each browser: `getFilesBrowser()`, `getFXBrowser()`, `getSourcesBrowser()`, `getCompDecksBrowser()`, `getRecordPanel()`, `getMilkDropBrowser()`
+
+**Gotchas:**
+- Tab content components are all stack members (not heap) — always exist even when hidden.
+- Dependencies must be set before `refresh()` for the FX and CompDecks tabs to populate.
+
+### 26k. SignalBar & SignalStrip
+
+**What it does:** Horizontal strip of signal meters running full window width, positioned below the TopBar. Displays all visible signals (8 audio + 2 modulation by default) as individual `SignalStrip` meters. Three display size modes: Minimized (~20px tall), Normal (~80px tall), Expanded (fills most of window — "programming mode"). Updates at ~30fps from the FeatureBus.
+
+**Key source files:**
+- `SignalBar` class (src/ui/SignalBar.h:15, src/ui/SignalBar.cpp)
+- `SignalStrip` class (src/ui/SignalStrip.h:11, src/ui/SignalStrip.cpp)
+
+**Parent component:** MainComponent (below TopBar, full width)
+
+**Controls & interactions:**
+- SignalBar: [+] button to add signals via popup menu, shrink/grow buttons for size cycling
+- SignalStrip: single vertical meter per signal — click to select signal for SignalInspector
+- Three paint modes per strip: `paintMinimized`, `paintNormal`, `paintExpanded` — adaptive detail level
+- Each strip shows: signal name, formatted value, colored meter bar, peak hold indicator (30 frames), flash on transients
+- `rebuildStrips()` recreates strips from SignalRegistry — call after adding/removing signals
+- `onSignalSelected` callback fires when user clicks a strip
+- `onSizeChanged` callback triggers parent re-layout
+
+**Gotchas:**
+- Expanded mode (via View > Programming Mode) hides all other panels — see F24 for the ProgrammingMode interaction.
+- `SignalStrip::getSignalColour()` returns per-signal color — used for meter bar and accent.
+- Peak hold uses `kPeakHoldFrames=30` (~1s) with `kPeakDecay=0.97f` exponential decay.
+
+### 26l. EffectStackView
+
+**What it does:** Vertical list of effects for the v2 inspector, replacing the v1 EffectsRackPanel. Each effect row is collapsible: collapsed shows bypass button, icon, effect name, and primary param value on a single line; expanded shows all parameters as UniversalParamControl widgets with source triangles, plus a dry/wet control.
+
+**Key source files:**
+- `EffectStackView` class (src/ui/EffectStackView.h:25, src/ui/EffectStackView.cpp)
+
+**Parent component:** ClipInspector, LayerInspector, or CompositionInspector (embedded in the Effects section)
+
+**Controls & interactions:**
+- Per-effect header row (26px): Bypass button (B), effect name, Delete button (X), click to expand/collapse
+- Expanded: dry/wet control + per-parameter UniversalParamControl widgets (with signal triangles, sliders, +/- buttons)
+- Accepts FX drops from browser (DragAndDropTarget) — `onEffectAdded` callback
+- Effect reordering not yet implemented (rows are static)
+
+**Callbacks:** `onParamChanged`, `onBypassChanged`, `onDryWetChanged`, `onEffectAdded`, `onEffectRemoved`
+
+**Gotchas:**
+- `setEffects()` takes a pointer to `vector<Clip::EffectSlot>*` — the same vector is shared between the EffectStackView and the model. Direct mutation.
+- `rebuildRows()` recreates all UI controls — expensive, called on every `setEffects()`.
+- `kParamIndent = 12` — parameters are indented under the effect header.
+
+### 26m. UniversalParamControl
+
+**What it does:** The standard parameter widget used throughout all inspectors. Collapsed view shows a signal-connect triangle (grey=manual, cyan=connected), parameter label, value display, +/- buttons, and a slider. Expanded view adds a source picker dropdown, invert checkbox, and range min/max sliders. Supports 8 source modes: Manual, Signal, BPMSync, Oscillator, Envelope, ClipPosition, Timeline, and Macro.
+
+**Key source files:**
+- `UniversalParamControl` class (src/ui/UniversalParamControl.h:44, src/ui/UniversalParamControl.cpp)
+- `ResettableSlider` class (src/ui/UniversalParamControl.h:21) — slider with right-click reset to default
+
+**Parent component:** Used everywhere in ClipInspector, LayerInspector, CompositionInspector, EffectStackView
+
+**Controls & interactions:**
+- Signal connect triangle (14px clickable area) — grey when manual, cyan when connected to a source; click opens source picker popup
+- Slider with value display — drag to adjust, right-click to reset to default
+- +/- buttons for fine adjustment
+- Expanded view: source picker button showing current mode, invert toggle, range min/max sliders
+- Source picker popup menu: Manual, then grouped signal names from SignalRegistry, BPMSync, Oscillator, Envelope, ClipPosition, Timeline, Macro options
+- Mini meter visualization when source drives value
+
+**Callbacks:** `onValueChanged`, `onExpandToggled`, `onSourceChanged`, `onRangeChanged`, `onInvertChanged`
+
+**Gotchas:**
+- `kCollapsedHeight=24`, `kExpandedHeight=100` — parent must recalculate layout when expand state changes.
+- `ResettableSlider` is a separate class (not a style) — subclasses `juce::Slider` to add right-click reset behavior.
+- Source picker requires `setSignalRegistry()` to be called — otherwise the dropdown only shows Manual.
+
+### 26n. MacroPanel
+
+**What it does:** Dashboard section showing 8 macro link knobs in a single row, displayed at the top of Clip, Layer, and Composition inspectors. Each knob is renameable and can be manual or signal-driven. Shows linked parameters beneath each knob.
+
+**Key source files:**
+- `MacroPanel` class (src/ui/MacroPanel.h:15, src/ui/MacroPanel.cpp)
+
+**Parent component:** ClipInspector, LayerInspector, CompositionInspector (Dashboard section)
+
+**Controls & interactions:**
+- 8 Knob widgets in a single row, each with a source picker button
+- Click source button → popup menu to select signal source or manual
+- Knob rotation → `onMacroValueChanged` callback
+- Source change → `onMacroSourceChanged` callback
+- `setMacroBank()` connects to the MacroBank data model
+- `kPreferredHeight = 110` — includes header label + 8 knobs
+
+**Gotchas:**
+- Each `MacroSlot` owns a `unique_ptr<Knob>` and `unique_ptr<TextButton>` — created at construction, not dynamically.
+- Only the Global MacroBank is currently instantiated (see F22a ghost feature).
+
+### 26o. LookAndFeel
+
+**What it does:** Global visual theme for the entire application. Subclasses `juce::LookAndFeel_V4` to provide a dark, professional VJ aesthetic with cyan and magenta accent colors. Overrides rendering for buttons, rotary sliders (knobs), linear sliders, toggle buttons, combo boxes, popup menus, labels, and scrollbars.
+
+**Key source files:**
+- `AudioDNALookAndFeel` class (src/ui/LookAndFeel.h:4, src/ui/LookAndFeel.cpp)
+
+**Color palette (static constexpr):**
+
+| Constant | Hex | Usage |
+|----------|-----|-------|
+| `kBackground` | `0xff1a1a2e` | Window/panel backgrounds |
+| `kSurface` | `0xff252540` | Raised surface elements |
+| `kSurfaceLight` | `0xff30305a` | Lighter surface variant |
+| `kAccentCyan` | `0xff00e5ff` | Primary accent (active states, beat wheel, signal triangles) |
+| `kAccentMagenta` | `0xffff00e5` | Secondary accent (mapping indicators) |
+| `kTextPrimary` | `0xffe0e0e0` | Primary text |
+| `kTextSecondary` | `0xff808090` | Dimmed/secondary text |
+| `kMeterGreen` | `0xff00e676` | Meter positive range |
+| `kMeterYellow` | `0xffffea00` | Meter warning range |
+| `kMeterRed` | `0xffff1744` | Meter peak/danger range |
+| `kPanelBorder` | `0xff3a3a5c` | Panel border lines |
+
+**Gotchas:**
+- Applied globally via `LookAndFeel::setDefaultLookAndFeel()` — all JUCE widgets inherit these overrides.
+- Some components (LayerStrip, TimingWindow) use additional local color constants that should coordinate with these global values.
+
+### 26p. MenuBarModel
+
+**What it does:** Implements the 9-menu application menu bar: Audio-DNA, Composition, Deck, Layer, Column, Clip, Output, Shortcuts, View. Defines ~60 command IDs and delegates all menu item selection to MainComponent via `onMenuCommand` callback.
+
+**Key source files:**
+- `AudioDNAMenuBar` class (src/ui/MenuBarModel.h:8, src/ui/MenuBarModel.cpp)
+
+**Parent component:** MainComponent (JUCE menu bar at window top)
+
+**Menu structure:**
+- Audio-DNA: Preferences, Import ISF Shader, About, Quit
+- Composition: Undo/Redo, New/Open/Save/SaveAs, Copy/Paste Effects, Collect Media, Relocate Files
+- Deck: New, Insert Before/After, Duplicate, Rename, Close, Clear Clips, Remove
+- Layer: New, Insert Above/Below, Duplicate, Rename, Copy/Paste Effects, Clear/Remove, Fold, Move Up/Down
+- Column: New, Insert Before/After, Duplicate, Clear Clips, Remove, Remove All Before/After
+- Clip: Select All, Cut/Copy/Paste, Copy/Paste Effects, Rename, Clear, Show in Finder, New Source/Effect, Replace Content, Lock
+- Output: Disabled/Fullscreen (per display)/Windowed, Identify Displays, Test Card, Snapshot, Start/Stop Recording
+- Shortcuts: Edit Keyboard, Edit MIDI, Stop, Export/Import Bindings
+- View: Signal Bar, Deck, Preview, Inspector, Browser, Timing Window, FPS Stats, Programming Mode, Save/Load/Reset Layout
+
+**Gotchas:**
+- Command IDs use ranges: 1000-1099 (Audio-DNA), 1100-1199 (Composition), 1200-1299 (Deck), etc.
+- Output fullscreen uses `kOutputFullscreenBase + displayIndex` — dynamic per detected display.
+
+### 26q. PreferencesDialog
+
+**What it does:** 8-tab settings dialog accessed via Audio-DNA > Preferences. Tabs: General, Audio, Video, MIDI, Recording, Defaults, Feedback, About. Settings are stored in a JSON file in the app's user data directory.
+
+**Key source files:**
+- `PreferencesDialog` class (src/ui/PreferencesDialog.h:8, src/ui/PreferencesDialog.cpp)
+
+**Parent component:** Shown modally via `PreferencesDialog::show(parent)`, centered on the main window.
+
+**Controls & interactions:**
+- General tab: Confirm on Quit toggle, Show Tooltips toggle
+- Audio tab: Sample Rate selector, Buffer Size selector, BPM Detection Range selector
+- Video tab: FPS Target selector, Render Resolution selector, MilkDrop Presets directory browser
+- MIDI/Recording/Defaults/Feedback tabs: placeholder layouts (not yet fully implemented)
+- About tab: version label, credits label
+- Scrollable content viewport for tabs that need it
+
+**Gotchas:**
+- Uses `juce::DialogWindow` for modal presentation — blocks interaction with main window while open.
+- `Content` is an inner class — the dialog owns a single Content component that handles all tab switching.
+- Most tabs beyond General/Audio/Video/About have placeholder implementations.
+
+### 26r. PresetManager (UI)
+
+**What it does:** Handles save/load of effect chain state + mappings as JSON preset files. Provides static methods for serialization (`savePreset`, `loadPreset`) and directory management for presets, compositions, and recordings.
+
+**Key source files:**
+- `PresetManager` class (src/ui/PresetManager.h:22, src/ui/PresetManager.cpp)
+
+**Usage:** Called by MainComponent and CompDecksBrowser for save/load operations. Not a visible UI component itself — provides the serialization layer used by UI panels.
+
+**Serialization format:**
+```json
+{"name": "preset name", "effects": [...], "mappings": [...]}
+```
+
+**Gotchas:**
+- `kSourceNames[]` array is MISSING P25 advanced sources (SidechainPump, SwingRatio, etc.) — presets with P25 mappings fail to round-trip correctly.
+- Effect names in presets use DISPLAY names — must be resolved via EffectLibrary on load.
+
+**Storage:**
+- Presets: `getPresetsDirectory()` (user documents)
+- Compositions: `getCompositionsDirectory()` (user documents)
+- Recordings: `getRecordingsDirectory()` (user documents)
 
 ---
 
