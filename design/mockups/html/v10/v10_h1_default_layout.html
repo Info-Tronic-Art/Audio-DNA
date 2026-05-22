@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio-DNA v10 — H1 Default Launch Layout</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===================================================================
+   v10 H1 — DEFAULT LAUNCH LAYOUT
+   Derived from v9_brut_stacked_var_b.html ("Near-perfect")
+   Changes from v9:
+     - Red/orange accents → blue #00d9ff (except OVERRIDE #ff4500)
+     - All knobs → vertical signal columns
+     - 98px top chrome (44 + 32 + 22)
+     - Section headers 24px, 2px blue left-edge
+     - Inspector grammar per §6.2
+     - Clip cells 100×80 with 6px waveform + 14px name
+     - Bottom focus bar right of preview
+   =================================================================== */
+
+/* ── Canonical Design Tokens (MOCKUP_BRIEF §2.1/§2.2/§2.3) ── */
+:root {
+  /* ── Backgrounds ── */
+  --bg:             #1a1a1a;
+  --panel:          #2a2a2a;
+  --section-header: #252525;
+  --separator:      #383838;
+  --border:         #3a3a3a;
+
+  /* ── Text ── */
+  --label:          #888888;
+  --value:          #e0e0e0;
+
+  /* ── Accent ── */
+  --accent:         #00d9ff;
+
+  /* ── Semantic ── */
+  --danger:         #ff4040;
+  --override:       #ff4500;
+
+  /* ── Typography ── */
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+
+  /* ── Borders ── */
+  --hairline:              1px;
+
+  /* ── Row heights ── */
+  --row-height-inspector:  24px;
+  --row-height-signal:     20px;
+  --row-height-section:    24px;
+
+  /* ── Inspector row columns ── */
+  --label-width:           90px;
+  --value-width:           50px;
+  --button-size:           20px;
+  --slider-height:         14px;
+
+  /* ── Clip cells ── */
+  --clip-width:            100px;
+  --clip-height:           80px;
+  --clip-name-height:      14px;
+  --clip-wave-width:       6px;
+
+  /* ── Top chrome ── */
+  --chrome-top:            44px;
+  --chrome-transport:      32px;
+  --chrome-signal:         22px;
+  --chrome-total:          98px;
+
+  /* ── Signal columns ── */
+  --signal-column-width:   60px;
+
+  /* ── Hit pill ── */
+  --pill-width:            8px;
+  --pill-height:           24px;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--value);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.25;
+  position: relative;
+}
+
+/* 3% SVG grain overlay — MANDATORY */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Keyframes ── */
+@keyframes beat {
+  0%   { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+@keyframes justchanged {
+  0%   { background-color: var(--accent); }
+  100% { background-color: transparent; }
+}
+.beatpulse { animation: beat 0.468s infinite alternate; }
+.justchanged { animation: justchanged 0.2s ease-out 1; }
+
+/* ===================================================================
+   TOP CHROME — 98px (44 + 32 + 22)
+   =================================================================== */
+.top-chrome {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: var(--chrome-total);
+  display: flex; flex-direction: column;
+  z-index: 10;
+}
+
+/* ── Strip 1: Top Bar 44px ── */
+.top-bar {
+  height: var(--chrome-top);
+  background: var(--panel);
+  border-bottom: var(--hairline) solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 12px;
+}
+.tb-logo {
+  font: 700 12px var(--font-mono);
+  color: #fff; letter-spacing: 2px;
+  padding-right: 16px;
+}
+.tb-logo .dot { color: var(--accent); }
+.bpm-display {
+  font: 500 48px var(--font-mono);
+  color: var(--accent);
+  line-height: 1;
+  padding: 0 14px;
+  border-right: var(--hairline) solid var(--border);
+  height: 100%; display: flex; align-items: center;
+}
+.bpm-unit {
+  font: 500 10px var(--font-mono);
+  color: var(--label);
+  letter-spacing: 2px;
+  margin-left: 6px;
+}
+.tb-cell {
+  display: flex; align-items: center;
+  padding: 0 10px;
+  border-right: var(--hairline) solid var(--border);
+  height: 100%; gap: 6px;
+}
+.tb-metric {
+  display: flex; flex-direction: column; align-items: flex-start;
+}
+.tb-metric-lab {
+  font: 400 9px var(--font-sans);
+  color: var(--label); letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.tb-metric-val {
+  font: 400 13px var(--font-mono);
+  color: var(--value);
+}
+.state-pill {
+  background: var(--accent); color: var(--bg);
+  font: 500 10px var(--font-sans);
+  text-transform: uppercase; letter-spacing: 1px;
+  padding: 2px 8px;
+}
+.beat-wheel {
+  width: 28px; height: 28px;
+  border: var(--hairline) solid var(--border);
+  position: relative; display: flex; align-items: center; justify-content: center;
+}
+.beat-wheel-seg {
+  position: absolute; width: 6px; height: 6px;
+  background: var(--border);
+}
+.beat-wheel-seg.active { background: var(--accent); }
+.tb-spacer { flex: 1; }
+.tb-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 24px;
+  background: transparent; border: var(--hairline) solid var(--border);
+  color: var(--label);
+  font: 500 11px var(--font-mono);
+  padding: 0 6px; margin: 0;
+  text-transform: uppercase; letter-spacing: 1px;
+  cursor: pointer;
+}
+.tb-btn:hover { border-color: var(--label); color: var(--value); }
+.tb-btn.on { color: #fff; border-color: #fff; }
+.tb-btn.accent { color: var(--accent); border-color: var(--accent); }
+.mode-tab {
+  font: 11px var(--font-sans);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--label);
+  padding: 4px 12px; cursor: pointer;
+  border: none; background: none;
+  height: 100%; display: flex; align-items: center;
+  border-bottom: 2px solid transparent;
+}
+.mode-tab.active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+.tb-master {
+  padding: 0 10px; border-right: var(--hairline) solid var(--border);
+  display: flex; align-items: center; gap: 8px; height: 100%;
+}
+.tb-master .lab {
+  font: 400 9px var(--font-mono);
+  color: var(--label); letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.tb-master-bar {
+  width: 70px; height: 6px;
+  background: var(--bg); border: var(--hairline) solid var(--border);
+  position: relative;
+}
+.tb-master-bar .fill { position: absolute; inset: 0; }
+.tb-master .val {
+  font: 400 11px var(--font-mono);
+  color: #fff; min-width: 36px; text-align: right;
+}
+.tb-fps {
+  font: 400 11px var(--font-mono);
+  color: var(--value); padding: 0 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.tb-fps .lab { color: var(--label); font-size: 9px; letter-spacing: 1.5px; }
+.tb-rec {
+  font: 500 11px var(--font-mono);
+  color: var(--danger);
+  padding: 0 12px; border-right: var(--hairline) solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  height: 100%;
+}
+.tb-rec-dot { width: 8px; height: 8px; background: var(--danger); }
+
+/* Override status indicator in top chrome */
+.tb-override-status {
+  padding: 0 10px; border-right: var(--hairline) solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  height: 100%;
+}
+.tb-override-dot { width: 8px; height: 8px; background: var(--override); }
+.tb-override-label {
+  font: 500 9px var(--font-mono);
+  color: var(--override); letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ── Strip 2: Transport 32px ── */
+.transport-strip {
+  height: var(--chrome-transport);
+  background: var(--bg);
+  border-bottom: var(--hairline) solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 12px; gap: 0;
+}
+.tp-btn {
+  width: 32px; height: 24px;
+  background: transparent; border: var(--hairline) solid var(--border);
+  color: var(--label);
+  font: 500 11px var(--font-mono);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; margin: 0;
+}
+.tp-btn:hover { color: var(--value); border-color: var(--label); }
+.tp-btn.on { color: var(--accent); border-color: var(--accent); }
+.tp-bpm {
+  font: 500 14px var(--font-mono);
+  color: var(--value);
+  padding: 0 10px;
+}
+.tp-sep { width: 1px; height: 20px; background: var(--border); margin: 0 8px; }
+.tp-label {
+  font: 400 9px var(--font-mono);
+  color: var(--label); letter-spacing: 1.5px;
+  text-transform: uppercase; margin-right: 6px;
+}
+
+/* ── Strip 3: Signal Quick-Ref Bar 22px ── */
+.signal-bar {
+  height: var(--chrome-signal);
+  background: var(--bg);
+  border-bottom: var(--hairline) solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 8px; gap: 0;
+  font: 11px var(--font-mono); color: var(--value);
+  cursor: pointer;
+}
+.sig-item {
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 8px;
+  border-right: var(--hairline) solid var(--border);
+  height: 100%;
+}
+.sig-item .sig-lab {
+  font: 400 9px var(--font-sans);
+  color: var(--label); letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.sig-item .sig-val {
+  font: 400 11px var(--font-mono);
+  color: var(--value);
+}
+.sig-item.active .sig-val { color: var(--accent); }
+
+/* ===================================================================
+   MAIN LAYOUT — below chrome, above bottom bar
+   =================================================================== */
+.main-area {
+  position: absolute;
+  top: var(--chrome-total); /* 98px */
+  left: 0; right: 0;
+  bottom: 240px; /* bottom focus height */
+  display: flex;
+}
+
+/* ── LEFT: DECK + LAYERS (65%) ── */
+.deck-area {
+  width: 65%;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  border-right: var(--hairline) solid var(--border);
+}
+.deck-tabs {
+  height: 22px; display: flex; align-items: stretch;
+  background: var(--bg);
+  border-bottom: var(--hairline) solid var(--border);
+}
+.deck-tab {
+  padding: 0 18px; display: flex; align-items: center;
+  font: 500 11px var(--font-mono);
+  color: var(--label); letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border-right: var(--hairline) solid var(--border);
+  cursor: pointer;
+}
+.deck-tab.active { color: #fff; background: var(--panel); }
+.deck-tab .num { color: var(--label); margin-right: 8px; }
+.deck-tab.active .num { color: var(--value); }
+
+/* Column triggers */
+.col-trig-row {
+  height: 18px; display: flex;
+  border-bottom: var(--hairline) solid var(--border);
+  margin-left: 180px;
+}
+.col-trig {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font: 500 11px var(--font-mono);
+  color: var(--label);
+  border-right: var(--hairline) solid var(--border);
+  cursor: pointer;
+}
+.col-trig.active { background: var(--panel); color: #fff; }
+
+/* Layer rows */
+.layer-rows { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.layer-row {
+  flex: 1; display: flex; min-height: 0;
+  border-bottom: var(--hairline) solid var(--border);
+}
+.layer-row:last-child { border-bottom: none; }
+
+/* ── Layer strip (left 180px) ── */
+.layer-strip {
+  width: 180px; background: var(--bg);
+  border-right: var(--hairline) solid var(--border);
+  padding: 6px 8px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.ls-top { display: flex; align-items: center; gap: 6px; }
+.ls-name {
+  font: 500 11px var(--font-sans);
+  color: #fff; flex: 1;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.ls-badge {
+  font: 400 9px var(--font-mono);
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 1px 5px; border: var(--hairline) solid var(--border);
+  color: var(--value);
+}
+
+/* Layer signal columns (vertical, per §6.4) */
+.ls-signals {
+  display: flex; gap: 3px; flex: 1; min-height: 0;
+}
+.ls-sig-col {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1; gap: 2px; min-height: 0;
+}
+.ls-sig-lab {
+  font: 400 8px var(--font-mono);
+  color: var(--label); letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.ls-sig-bar {
+  flex: 1; width: 20px; min-height: 18px;
+  background: var(--bg); border: var(--hairline) solid var(--border);
+  position: relative;
+}
+.ls-sig-bar .fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--accent); opacity: 0.5;
+}
+.ls-sig-bar .tick {
+  position: absolute; left: 2px; right: 2px;
+  height: 2px; background: var(--value);
+}
+.ls-sig-val {
+  font: 400 10px var(--font-mono);
+  color: var(--value);
+}
+.ls-opac { display: flex; align-items: center; gap: 6px; }
+.ls-opac-bar {
+  flex: 1; height: 6px;
+  background: var(--bg); border: var(--hairline) solid var(--border);
+  position: relative;
+}
+.ls-opac-bar .fill {
+  position: absolute; inset: 0;
+  background: var(--value);
+}
+.ls-opac-val {
+  font: 400 11px var(--font-mono);
+  color: var(--value); width: 36px; text-align: right;
+}
+.ls-blend {
+  font: 400 10px var(--font-mono);
+  color: var(--label); letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.ls-btnrow { display: flex; gap: 0; }
+.ls-smb {
+  width: 20px; height: 14px;
+  background: transparent; border: var(--hairline) solid var(--border);
+  color: var(--label);
+  font: 500 9px var(--font-mono);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; margin: 0;
+}
+.ls-smb.on { color: #fff; border-color: #fff; }
+.ls-tport { display: flex; gap: 0; }
+.ls-tbtn {
+  width: 22px; height: 18px;
+  background: transparent; border: var(--hairline) solid var(--border);
+  color: var(--label);
+  font: 400 10px var(--font-mono);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; margin: 0;
+}
+.ls-tbtn.on { color: var(--accent); border-color: var(--accent); }
+.ls-auto {
+  display: flex; align-items: center; gap: 6px;
+  font: 400 10px var(--font-mono);
+  color: var(--value); letter-spacing: 0.5px;
+}
+.ls-auto-dot { width: 7px; height: 7px; background: var(--accent); }
+
+/* Override indicator on layer strip */
+.ls-override-dot {
+  width: 6px; height: 6px; background: var(--override);
+  margin-left: auto; flex-shrink: 0;
+}
+
+/* ── Clip cells grid ── */
+.cells-grid { flex: 1; display: flex; min-width: 0; }
+.cell {
+  flex: 1; min-width: 0;
+  border-right: var(--hairline) solid var(--border);
+  background: var(--bg); position: relative; overflow: hidden;
+  display: flex;
+}
+.cell:last-child { border-right: none; }
+
+/* Clip waveform strip (left 6px) per §6.5 */
+.cell-wave {
+  width: var(--clip-wave-width);
+  background: var(--bg); flex-shrink: 0;
+  border-right: var(--hairline) solid var(--border);
+}
+.cell-wave svg {
+  width: 100%; height: 100%;
+  fill: none; stroke: var(--accent); stroke-width: 1; opacity: 0.4;
+}
+
+.cell .thumb {
+  flex: 1; position: relative;
+  background: #111;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.cell .thumb svg { width: 100%; height: 100%; display: block; }
+.cell .cname {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: var(--clip-name-height);
+  padding: 0 4px;
+  font: 400 9px var(--font-sans);
+  color: var(--label);
+  display: flex; align-items: center;
+  border-top: var(--hairline) solid var(--border);
+  background: rgba(26,26,26,0.85);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Cell states per §6.5 */
+.cell.empty { border: 1px dashed var(--border); }
+.cell.empty .thumb { background: var(--bg); }
+.cell.empty .thumb::before {
+  content: ''; width: 14px; height: 14px;
+  border: 1px dashed var(--border);
+}
+.cell.loaded { border: var(--hairline) solid var(--border); }
+.cell.playing { background: rgba(0,217,255,0.3); border: 2px solid var(--accent); }
+.cell.playing .cname { background: var(--accent); color: var(--bg); font-weight: 500; }
+.cell.queued { border: 2px dashed var(--accent); }
+.cell.queued .cname { color: #fff; font-weight: 500; }
+.cell.selected { border: 1px solid var(--accent); }
+.cell .playhead {
+  position: absolute; top: 0; bottom: var(--clip-name-height);
+  width: 1px; background: var(--accent);
+}
+
+/* ── RIGHT: INSPECTOR (35%) ── */
+.inspector-area {
+  width: 35%; background: var(--bg);
+  display: flex; flex-direction: column;
+}
+.insp-tabs {
+  height: 24px; display: flex;
+  background: var(--bg);
+  border-bottom: var(--hairline) solid var(--border);
+}
+.insp-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font: 500 11px var(--font-mono);
+  color: var(--label); letter-spacing: 2px;
+  text-transform: uppercase;
+  border-right: var(--hairline) solid var(--border);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.insp-tab:last-child { border-right: none; }
+.insp-tab.active {
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* Clip header */
+.clip-header {
+  height: 26px; padding: 0 12px;
+  background: var(--bg);
+  border-bottom: var(--hairline) solid var(--border);
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.ch-name { font: 500 13px var(--font-sans); color: #fff; }
+.ch-badge {
+  font: 400 10px var(--font-mono);
+  letter-spacing: 1.5px; color: var(--value);
+  padding: 2px 6px; border: var(--hairline) solid var(--border);
+  text-transform: uppercase;
+}
+.ch-loc {
+  margin-left: auto;
+  font: 400 11px var(--font-mono);
+  color: var(--label); letter-spacing: 1px;
+}
+
+.insp-content { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* ── Section Headers per §6.3 ── */
+.section { border-bottom: var(--hairline) solid var(--border); }
+.section-header {
+  display: flex; align-items: center;
+  height: var(--row-height-section);
+  background: var(--section-header);
+  padding: 0 8px; position: relative;
+  cursor: pointer;
+}
+.section-header[data-routed="true"]::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 2px; background: var(--accent);
+}
+.disclosure-tri {
+  font-size: 7px; color: var(--label);
+  margin-right: 6px; flex-shrink: 0;
+}
+.section-name {
+  font: 400 12px var(--font-sans);
+  color: var(--value);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.section-count {
+  margin-left: auto;
+  font: 400 10px var(--font-mono);
+  color: var(--label); letter-spacing: 1.5px;
+}
+.section-body { padding: 6px 8px; }
+
+/* ── Inspector Rows per §6.2 ── */
+.inspector-row {
+  display: flex; align-items: center;
+  height: var(--row-height-inspector);
+  padding: 0 4px;
+  border-bottom: var(--hairline) solid var(--separator);
+}
+.signal-triangle {
+  width: 7px; height: 7px; margin-right: 4px; flex-shrink: 0;
+  clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+}
+.signal-triangle.unrouted { background: var(--border); }
+.signal-triangle.selected-tri { background: var(--label); }
+.signal-triangle.active-tri { background: var(--accent); }
+.signal-triangle.active-tri.beatpulse { animation: beat 0.468s infinite alternate; }
+.row-label {
+  width: var(--label-width); text-align: right;
+  font: 400 11px var(--font-sans); color: var(--label);
+  padding-right: 8px; flex-shrink: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row-value {
+  width: var(--value-width); text-align: right;
+  font: 400 11px var(--font-mono); color: var(--value);
+  padding-right: 4px; flex-shrink: 0;
+}
+.row-btn {
+  width: var(--button-size); height: var(--button-size);
+  background: var(--bg); color: var(--label);
+  border: var(--hairline) solid var(--border);
+  font: 11px var(--font-sans); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin: 0;
+}
+.row-slider {
+  flex: 1; height: var(--slider-height);
+  background: var(--bg); border: var(--hairline) solid var(--border);
+  position: relative; margin-left: 4px;
+}
+.row-slider-fill { height: 100%; background: var(--panel); }
+.row-slider-thumb {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: var(--accent);
+}
+
+/* OVERRIDE state: orange dot at row end */
+.override-dot {
+  width: 6px; height: 6px; background: var(--override);
+  margin-left: auto; flex-shrink: 0;
+}
+
+/* Hover state indicator */
+.inspector-row:hover { background: var(--panel); }
+
+/* ── Signal Column (vertical, replaces knobs) per §6.4 ── */
+.signal-column {
+  width: var(--signal-column-width); height: 120px;
+  background: var(--bg); border: var(--hairline) solid var(--border);
+  position: relative; display: flex; flex-direction: column;
+}
+.signal-column-fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--accent); opacity: 0.4;
+  transition: height 0.08s linear;
+}
+.signal-column-tick {
+  position: absolute; left: 2px; right: 2px;
+  height: 2px; background: var(--value);
+}
+.signal-column-label {
+  font: 400 9px var(--font-mono);
+  color: var(--label); letter-spacing: 0.5px;
+  text-transform: uppercase; text-align: center;
+  padding-top: 2px;
+}
+.signal-column-val {
+  position: absolute; bottom: 2px; left: 0; right: 0;
+  text-align: center;
+  font: 400 10px var(--font-mono); color: var(--value);
+}
+.signal-column-midi {
+  position: absolute; bottom: -14px; left: 0; right: 0;
+  text-align: center;
+  font: 400 8px var(--font-mono); color: var(--label);
+}
+
+/* Dashboard signal columns grid (replaces knobs) */
+.dash-columns {
+  display: flex; gap: 4px; flex-wrap: wrap;
+}
+.dash-col-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.dash-col {
+  width: 44px; height: 56px;
+  background: var(--bg); border: var(--hairline) solid var(--border);
+  position: relative;
+}
+.dash-col .fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--accent); opacity: 0.4;
+}
+.dash-col .tick {
+  position: absolute; left: 2px; right: 2px;
+  height: 2px; background: var(--value);
+}
+.dash-col-lbl {
+  font: 400 9px var(--font-mono);
+  color: var(--label); letter-spacing: 0.5px;
+  text-transform: uppercase; text-align: center;
+}
+.dash-col-val {
+  font: 400 10px var(--font-mono);
+  color: var(--value);
+}
+/* OVERRIDE column */
+.dash-col.override-col { border-color: var(--override); }
+.dash-col.override-col .fill { background: var(--override); }
+
+/* FX row */
+.fx-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 8px;
+  background: var(--panel); border: var(--hairline) solid var(--border);
+  margin-bottom: 3px;
+}
+.fx-bypass {
+  width: 16px; height: 16px;
+  background: transparent; border: var(--hairline) solid var(--border);
+  color: var(--label);
+  font: 500 10px var(--font-mono);
+  display: flex; align-items: center; justify-content: center;
+}
+.fx-bypass.on { color: #fff; border-color: #fff; background: var(--bg); }
+.fx-name { font: 500 12px var(--font-sans); color: #fff; flex: 1; }
+.fx-val { font: 400 12px var(--font-mono); color: var(--value); letter-spacing: 0.5px; }
+.fx-del {
+  width: 16px; height: 16px;
+  font: 400 10px var(--font-mono); color: var(--label);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: var(--hairline) solid var(--border);
+}
+.fx-params {
+  padding: 5px 8px; background: #222;
+  border-left: var(--hairline) solid var(--border);
+  border-right: var(--hairline) solid var(--border);
+  border-bottom: var(--hairline) solid var(--border);
+  margin-bottom: 6px; margin-top: -3px;
+}
+
+/* Dropdown */
+.dd {
+  background: var(--bg); border: var(--hairline) solid var(--border);
+  color: var(--value);
+  font: 400 11px var(--font-mono); letter-spacing: 0.5px;
+  padding: 3px 8px; height: 22px;
+  display: flex; align-items: center;
+}
+
+/* ===================================================================
+   BOTTOM FOCUS BAR — 240px
+   =================================================================== */
+.bottom-band {
+  position: absolute;
+  bottom: 18px; left: 0; right: 0;
+  height: 222px;
+  display: flex;
+  border-top: var(--hairline) solid var(--border);
+  background: var(--bg);
+}
+
+/* Preview (left side) */
+.bb-preview {
+  width: 380px; border-right: var(--hairline) solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 8px;
+  gap: 6px;
+}
+.prev-wrap {
+  width: 300px; height: 168px;
+  border: var(--hairline) solid var(--border);
+  background: #000; position: relative; align-self: center;
+}
+.prev-live {
+  position: absolute; top: 4px; left: 4px;
+  font: 500 10px var(--font-mono);
+  letter-spacing: 2px; color: #fff;
+  background: var(--accent); padding: 2px 6px;
+}
+.prev-meta {
+  position: absolute; bottom: 4px; right: 4px;
+  font: 400 10px var(--font-mono); color: #fff;
+  background: rgba(0,0,0,0.7); padding: 2px 6px; letter-spacing: 1px;
+}
+.now-playing {
+  border: var(--hairline) solid var(--border);
+  padding: 6px 8px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.np-title { font: 500 12px var(--font-sans); color: #fff; letter-spacing: 0.3px; }
+.np-sub   { font: 400 11px var(--font-mono); color: var(--value); letter-spacing: 0.5px; }
+
+/* Bottom focus content — RIGHT of preview per Boris annotation */
+.bb-focus {
+  flex: 1;
+  display: flex; flex-direction: column;
+  border-right: var(--hairline) solid var(--border);
+  overflow: hidden;
+}
+
+/* Collapsed summary (shown by default) */
+.focus-collapsed {
+  height: 28px;
+  display: flex; align-items: center;
+  padding: 0 12px; gap: 12px;
+  border-bottom: var(--hairline) solid var(--border);
+  background: var(--section-header);
+  cursor: pointer;
+}
+.focus-collapsed-label {
+  font: 400 10px var(--font-sans);
+  color: var(--value); letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.focus-collapsed-val {
+  font: 400 11px var(--font-mono);
+  color: var(--value);
+}
+.focus-collapsed-tri {
+  font-size: 7px; color: var(--label); margin-right: 6px;
+}
+
+/* Expanded variation */
+.focus-expanded {
+  flex: 1; padding: 8px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+}
+
+/* Active routes panel (right side of bottom) */
+.bb-routes {
+  width: 360px; padding: 8px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0;
+}
+.routes-hdr {
+  font: 400 10px var(--font-mono);
+  color: #fff; letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 2px;
+}
+.routes-sub {
+  font: 400 9px var(--font-mono);
+  color: var(--label); letter-spacing: 1.5px; margin-bottom: 4px;
+}
+.route-card {
+  border: var(--hairline) solid var(--border);
+  padding: 4px 8px;
+  display: grid; grid-template-columns: 1fr auto 1fr auto;
+  gap: 6px; align-items: center;
+}
+.route-src {
+  font: 400 11px var(--font-mono);
+  color: var(--value); letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.route-arrow { font: 400 12px var(--font-mono); color: var(--label); }
+.route-tgt { font: 400 11px var(--font-mono); color: #fff; letter-spacing: 0.5px; }
+.route-curve {
+  font: 400 9px var(--font-mono); color: var(--label);
+  padding: 1px 5px; border: var(--hairline) solid var(--border);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.route-card.sel { border-color: var(--accent); }
+.route-card.sel .route-tgt { color: var(--accent); }
+.route-card.sel .route-curve { color: var(--accent); border-color: var(--accent); }
+
+/* ===================================================================
+   FOOTER — 18px
+   =================================================================== */
+.footer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 18px;
+  background: var(--bg);
+  border-top: var(--hairline) solid var(--border);
+  display: flex; align-items: center; padding: 0 14px;
+  font: 400 10px var(--font-mono);
+  color: var(--label); letter-spacing: 1.5px;
+  z-index: 10;
+}
+.footer .seg { margin-right: 14px; }
+.footer .seg.hl { color: #fff; }
+
+/* ── State annotation labels (for mockup presentation) ── */
+.state-label {
+  position: absolute;
+  font: 500 9px var(--font-mono);
+  color: var(--bg); letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 2px 6px; z-index: 500;
+}
+.state-label.default-state { background: var(--label); }
+.state-label.active-state { background: var(--accent); }
+.state-label.override-state { background: var(--override); }
+.state-label.hover-state { background: var(--value); }
+</style>
+</head>
+<body>
+
+<!-- =========================== TOP CHROME (98px) =========================== -->
+<div class="top-chrome">
+
+  <!-- Strip 1: Top Bar 44px -->
+  <div class="top-bar">
+    <div class="tb-logo">AUDIO<span class="dot">.</span>DNA</div>
+    <div class="bpm-display">128.0<span class="bpm-unit">BPM</span></div>
+    <div class="tb-cell">
+      <div class="tb-metric"><span class="tb-metric-lab">BAR</span><span class="tb-metric-val">042</span></div>
+      <div class="tb-metric"><span class="tb-metric-lab">BEAT</span><span class="tb-metric-val">3/4</span></div>
+      <div class="tb-metric"><span class="tb-metric-lab">PHRASE</span><span class="tb-metric-val">0.41</span></div>
+    </div>
+    <div class="tb-cell">
+      <div class="state-pill">DROP</div>
+    </div>
+    <div class="tb-cell">
+      <div class="beat-wheel">
+        <div class="beat-wheel-seg active beatpulse" style="top:4px;left:11px;"></div>
+        <div class="beat-wheel-seg" style="top:11px;right:4px;"></div>
+        <div class="beat-wheel-seg" style="bottom:4px;left:11px;"></div>
+        <div class="beat-wheel-seg" style="bottom:11px;left:4px;"></div>
+      </div>
+    </div>
+    <div class="tb-cell" style="gap:0;">
+      <button class="tb-btn">|&lt;</button>
+      <button class="tb-btn on accent">&gt;</button>
+      <button class="tb-btn">||</button>
+      <button class="tb-btn">&#9632;</button>
+    </div>
+    <!-- Override status (passive) -->
+    <div class="tb-override-status">
+      <div class="tb-override-dot"></div>
+      <span class="tb-override-label">OVERRIDE</span>
+    </div>
+    <div class="tb-spacer"></div>
+    <div class="tb-master">
+      <span class="lab">FADE</span>
+      <div class="tb-master-bar"><div class="fill" style="width:30%; background:var(--value);"></div></div>
+      <span class="val">0.3S</span>
+    </div>
+    <div class="tb-master">
+      <span class="lab">MASTER</span>
+      <div class="tb-master-bar"><div class="fill" style="width:100%; background:#fff;"></div></div>
+      <span class="val">1.00</span>
+    </div>
+    <div style="display:flex; height:100%; align-items:stretch;">
+      <div class="mode-tab active">LIVE</div>
+      <div class="mode-tab">PROGRAM</div>
+      <div class="mode-tab">SETUP</div>
+    </div>
+    <div class="tb-rec"><div class="tb-rec-dot beatpulse"></div>REC</div>
+    <div class="tb-fps"><span class="lab">FPS</span><span>60.0</span></div>
+  </div>
+
+  <!-- Strip 2: Transport 32px -->
+  <div class="transport-strip">
+    <button class="tp-btn">&gt;</button>
+    <button class="tp-btn">||</button>
+    <button class="tp-btn">&#9632;</button>
+    <div class="tp-sep"></div>
+    <span class="tp-bpm">128</span>
+    <button class="tp-btn">-</button>
+    <button class="tp-btn">+</button>
+    <div class="tp-sep"></div>
+    <button class="tp-btn">|&lt;</button>
+    <button class="tp-btn">&gt;|</button>
+    <div class="tp-sep"></div>
+    <button class="tp-btn">/2</button>
+    <button class="tp-btn">X1</button>
+    <button class="tp-btn">X2</button>
+    <div class="tp-sep"></div>
+    <button class="tp-btn">TAP</button>
+    <button class="tp-btn">RESYNC</button>
+    <div class="tp-sep"></div>
+    <span class="tp-label">QUANT</span>
+    <button class="tp-btn on">NEXT BEAT</button>
+    <div class="tp-sep"></div>
+    <span class="tp-label">LOOP</span>
+    <button class="tp-btn on accent">4</button>
+    <button class="tp-btn">8</button>
+    <button class="tp-btn">16</button>
+    <div style="flex:1;"></div>
+    <!-- Save/Capture button -->
+    <button class="tp-btn accent" style="min-width:80px; font-weight:500;">SAVE/CAPTURE</button>
+    <button class="tp-btn">EXACT</button>
+    <button class="tp-btn on">NEXT BAR</button>
+    <button class="tp-btn">CLOSEST</button>
+  </div>
+
+  <!-- Strip 3: Signal Quick-Ref Bar 22px -->
+  <div class="signal-bar">
+    <div class="sig-item active"><span class="sig-lab">RMS</span><span class="sig-val">0.72</span></div>
+    <div class="sig-item"><span class="sig-lab">PEAK</span><span class="sig-val">0.91</span></div>
+    <div class="sig-item"><span class="sig-lab">LUFS</span><span class="sig-val">-14</span></div>
+    <div class="sig-item"><span class="sig-lab">FLUX</span><span class="sig-val">0.33</span></div>
+    <div class="sig-item active"><span class="sig-lab">BASS</span><span class="sig-val">0.81</span></div>
+    <div class="sig-item"><span class="sig-lab">MID</span><span class="sig-val">0.45</span></div>
+    <div class="sig-item"><span class="sig-lab">HIGH</span><span class="sig-val">0.38</span></div>
+    <div class="sig-item"><span class="sig-lab">ONSET</span><span class="sig-val">0.58</span></div>
+    <div class="sig-item"><span class="sig-lab">BEAT</span><span class="sig-val beatpulse">0.72</span></div>
+    <div class="sig-item"><span class="sig-lab">PUMP</span><span class="sig-val">0.74</span></div>
+    <div class="sig-item"><span class="sig-lab">CENT</span><span class="sig-val">2.8K</span></div>
+    <div class="sig-item"><span class="sig-lab">KEY</span><span class="sig-val">C#M</span></div>
+    <div class="sig-item"><span class="sig-lab">GENRE</span><span class="sig-val">HOUSE</span></div>
+    <div class="sig-item"><span class="sig-lab">STRUCT</span><span class="sig-val">DROP</span></div>
+    <div class="sig-item"><span class="sig-lab">SWING</span><span class="sig-val">0.52</span></div>
+  </div>
+</div>
+
+<!-- =========================== MAIN AREA =========================== -->
+<div class="main-area">
+
+  <!-- ================== LEFT: DECK AREA (65%) ================== -->
+  <div class="deck-area">
+
+    <!-- Deck tabs — foldable -->
+    <div class="deck-tabs">
+      <div class="deck-tab active"><span class="num">01</span>DECK 1</div>
+      <div class="deck-tab"><span class="num">02</span>DECK 2</div>
+      <div class="deck-tab"><span class="num">03</span>DECK 3</div>
+      <div class="deck-tab" style="padding:0 10px; color:var(--label);">+</div>
+    </div>
+
+    <!-- Column triggers -->
+    <div class="col-trig-row">
+      <div class="col-trig">1</div>
+      <div class="col-trig">2</div>
+      <div class="col-trig active">3</div>
+      <div class="col-trig">4</div>
+      <div class="col-trig">5</div>
+      <div class="col-trig">6</div>
+      <div class="col-trig">7</div>
+      <div class="col-trig">8</div>
+      <div class="col-trig">9</div>
+      <div class="col-trig">10</div>
+    </div>
+
+    <!-- Layer rows -->
+    <div class="layer-rows">
+
+      <!-- ======= LAYER 4: Alpha Mask ======= -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <div class="ls-name">ALPHA MASK</div>
+            <div class="ls-badge">MASK</div>
+          </div>
+          <div class="ls-opac"><div class="ls-opac-bar"><div class="fill" style="width:100%;"></div></div><div class="ls-opac-val">1.00</div></div>
+          <div class="ls-blend">MULTIPLY</div>
+          <div class="ls-btnrow">
+            <div class="ls-smb">S</div><div class="ls-smb">M</div><div class="ls-smb">V</div>
+          </div>
+          <div class="ls-tport">
+            <div class="ls-tbtn">&lt;</div><div class="ls-tbtn">||</div><div class="ls-tbtn on">&gt;</div><div class="ls-tbtn">&gt;|</div>
+          </div>
+          <!-- Signal columns (vertical, replacing knobs) -->
+          <div class="ls-signals">
+            <div class="ls-sig-col"><div class="ls-sig-lab">SPD</div><div class="ls-sig-bar"><div class="fill" style="height:50%;"></div><div class="tick" style="bottom:50%;"></div></div><div class="ls-sig-val">1.0</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">OPC</div><div class="ls-sig-bar"><div class="fill" style="height:100%;"></div><div class="tick" style="bottom:100%;"></div></div><div class="ls-sig-val">1.0</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">KEY</div><div class="ls-sig-bar"><div class="fill" style="height:50%;"></div><div class="tick" style="bottom:50%;"></div></div><div class="ls-sig-val">0.5</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">FAD</div><div class="ls-sig-bar"><div class="fill" style="height:20%;"></div><div class="tick" style="bottom:20%;"></div></div><div class="ls-sig-val">0.2</div></div>
+          </div>
+        </div>
+        <div class="cells-grid">
+          <!-- C1 — Circle Mask (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,15 5,25 2,35 4,45 1,55 5,65 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <circle cx="45" cy="33" r="20" fill="none" stroke="#fff" stroke-width="0.5"/>
+                <circle cx="45" cy="33" r="12" fill="none" stroke="#888" stroke-width="0.5"/>
+              </svg>
+            </div>
+            <div class="cname">CIRCLE MASK</div>
+          </div>
+          <!-- C2 — Gradient V (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 2,20 4,35 1,50 5,65 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#222"/>
+                <rect x="0" y="0" width="90" height="33" fill="#555" opacity="0.5"/>
+              </svg>
+            </div>
+            <div class="cname">GRADIENT V</div>
+          </div>
+          <!-- C3 — Split H (selected state) -->
+          <div class="cell selected">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,20 5,40 2,60 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <rect x="30" y="0" width="30" height="66" fill="#333"/>
+              </svg>
+            </div>
+            <div class="cname">SPLIT H</div>
+          </div>
+          <!-- C4 — Checker (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 4,15 2,25 5,40 1,55 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="#fff"><rect x="0" y="0" width="22" height="22"/><rect x="44" y="0" width="22" height="22"/><rect x="22" y="22" width="22" height="22"/><rect x="66" y="22" width="22" height="22"/><rect x="0" y="44" width="22" height="22"/><rect x="44" y="44" width="22" height="22"/></g>
+              </svg>
+            </div>
+            <div class="cname">CHECKER 8</div>
+          </div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+        </div>
+      </div>
+
+      <!-- ======= LAYER 3: FX Chain (queued in col 5) ======= -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <div class="ls-name">FX CHAIN</div>
+            <div class="ls-badge">FX</div>
+          </div>
+          <div class="ls-opac"><div class="ls-opac-bar"><div class="fill" style="width:60%;"></div></div><div class="ls-opac-val">0.60</div></div>
+          <div class="ls-blend">SCREEN</div>
+          <div class="ls-btnrow">
+            <div class="ls-smb">S</div><div class="ls-smb">M</div><div class="ls-smb on">V</div>
+          </div>
+          <div class="ls-tport">
+            <div class="ls-tbtn">&lt;</div><div class="ls-tbtn">||</div><div class="ls-tbtn on">&gt;</div><div class="ls-tbtn">&gt;|</div>
+          </div>
+          <div class="ls-signals">
+            <div class="ls-sig-col"><div class="ls-sig-lab">SPD</div><div class="ls-sig-bar"><div class="fill" style="height:50%;"></div><div class="tick" style="bottom:50%;"></div></div><div class="ls-sig-val">1.0</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">OPC</div><div class="ls-sig-bar"><div class="fill" style="height:60%;"></div><div class="tick" style="bottom:60%;"></div></div><div class="ls-sig-val">0.6</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">KEY</div><div class="ls-sig-bar"><div class="fill" style="height:10%;"></div><div class="tick" style="bottom:10%;"></div></div><div class="ls-sig-val">0.1</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">FAD</div><div class="ls-sig-bar"><div class="fill" style="height:30%;"></div><div class="tick" style="bottom:30%;"></div></div><div class="ls-sig-val">0.3</div></div>
+          </div>
+          <div class="ls-auto"><div class="ls-auto-dot beatpulse"></div>AUTO 4 BEATS</div>
+        </div>
+        <div class="cells-grid">
+          <!-- Echo (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,18 5,32 2,48 4,62 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <rect x="10" y="8" width="70" height="50" fill="none" stroke="#fff" stroke-width="0.5"/>
+                <rect x="18" y="14" width="54" height="38" fill="none" stroke="#888" stroke-width="0.5"/>
+                <rect x="26" y="20" width="38" height="26" fill="none" stroke="#555" stroke-width="0.5"/>
+              </svg>
+            </div>
+            <div class="cname">FX ECHO</div>
+          </div>
+          <!-- Kaleidoscope (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 4,20 1,40 5,60 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g stroke="#e0e0e0" stroke-width="0.6" fill="none" transform="translate(45 33)">
+                  <polygon points="0,-22 19,11 -19,11"/>
+                  <polygon points="0,22 -19,-11 19,-11"/>
+                  <circle r="10"/>
+                </g>
+              </svg>
+            </div>
+            <div class="cname">KALEIDO</div>
+          </div>
+          <!-- Glitch (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 5,15 1,30 4,45 2,60 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="#fff"><rect x="0" y="6" width="90" height="2"/><rect x="8" y="18" width="78" height="2"/><rect x="0" y="30" width="60" height="2"/><rect x="30" y="42" width="56" height="3"/><rect x="6" y="54" width="70" height="2"/></g>
+              </svg>
+            </div>
+            <div class="cname">GLITCH SET</div>
+          </div>
+          <!-- Strobe (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,25 5,45 2,65 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="#fff"><rect x="0" y="0" width="15" height="66"/><rect x="30" y="0" width="15" height="66"/><rect x="60" y="0" width="15" height="66"/></g>
+              </svg>
+            </div>
+            <div class="cname">STROBE</div>
+          </div>
+          <!-- Ripple (queued state) -->
+          <div class="cell queued">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 2,20 4,40 1,55 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g stroke="#fff" stroke-width="0.5" fill="none">
+                  <path d="M0 50 C 15 30, 30 30, 45 40 S 75 50, 90 30"/>
+                  <path d="M0 38 C 20 20, 35 20, 50 35 S 78 40, 90 22"/>
+                </g>
+              </svg>
+            </div>
+            <div class="cname">RIPPLE</div>
+          </div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+        </div>
+      </div>
+
+      <!-- ======= LAYER 2: Overlays (Playing col 3 — ACTIVE state) ======= -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <div class="ls-name">OVERLAYS</div>
+            <div class="ls-badge">TRNS</div>
+            <div class="ls-override-dot" title="OVERRIDE active on this layer"></div>
+          </div>
+          <div class="ls-opac"><div class="ls-opac-bar"><div class="fill" style="width:75%;"></div></div><div class="ls-opac-val">0.75</div></div>
+          <div class="ls-blend">ADDITIVE</div>
+          <div class="ls-btnrow">
+            <div class="ls-smb on">S</div><div class="ls-smb">M</div><div class="ls-smb">V</div>
+          </div>
+          <div class="ls-tport">
+            <div class="ls-tbtn">&lt;</div><div class="ls-tbtn">||</div><div class="ls-tbtn on">&gt;</div><div class="ls-tbtn">&gt;|</div>
+          </div>
+          <div class="ls-signals">
+            <div class="ls-sig-col"><div class="ls-sig-lab">SPD</div><div class="ls-sig-bar"><div class="fill beatpulse" style="height:50%;"></div><div class="tick" style="bottom:50%;"></div></div><div class="ls-sig-val">1.0</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">OPC</div><div class="ls-sig-bar"><div class="fill" style="height:75%;"></div><div class="tick" style="bottom:75%;"></div></div><div class="ls-sig-val">0.75</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">KEY</div><div class="ls-sig-bar"><div class="fill" style="height:25%;"></div><div class="tick" style="bottom:25%;"></div></div><div class="ls-sig-val">0.25</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">FAD</div><div class="ls-sig-bar"><div class="fill" style="height:30%;"></div><div class="tick" style="bottom:30%;"></div></div><div class="ls-sig-val">0.3</div></div>
+          </div>
+          <div class="ls-auto"><div class="ls-auto-dot beatpulse"></div>AUTO 8 BEATS</div>
+        </div>
+        <div class="cells-grid">
+          <!-- Mandelbrot (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,20 5,35 2,50 4,65 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <circle cx="32" cy="33" r="16" fill="none" stroke="#888" stroke-width="0.5"/>
+                <circle cx="52" cy="33" r="10" fill="none" stroke="#888" stroke-width="0.5"/>
+              </svg>
+            </div>
+            <div class="cname">MANDELBROT</div>
+          </div>
+          <!-- Torus (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 4,18 2,32 5,48 1,62 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g stroke="#fff" fill="none" stroke-width="0.5">
+                  <ellipse cx="45" cy="33" rx="30" ry="12"/>
+                  <ellipse cx="45" cy="33" rx="22" ry="8"/>
+                  <ellipse cx="45" cy="33" rx="14" ry="4"/>
+                </g>
+              </svg>
+            </div>
+            <div class="cname">SPIRAL TORUS</div>
+          </div>
+          <!-- Julia Set — PLAYING (active state, with playhead) -->
+          <div class="cell playing">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,15 5,30 2,45 4,60 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="none" stroke="#fff" stroke-width="0.4">
+                  <path d="M 10 33 Q 28 10 45 22 T 80 33 Q 62 56 45 44 T 10 33 Z"/>
+                  <path d="M 22 33 Q 34 20 45 26 T 68 33 Q 56 46 45 40 T 22 33 Z"/>
+                </g>
+                <circle cx="45" cy="33" r="2" fill="#fff"/>
+              </svg>
+            </div>
+            <div class="cname">JULIA SET</div>
+            <div class="playhead" style="left:45%;"></div>
+          </div>
+          <!-- Strange Attractor (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 5,22 1,38 4,55 2,68 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g stroke="#888" stroke-width="0.35" fill="none">
+                  <path d="M 8 44 Q 28 8 48 30 T 80 26 Q 60 55 30 40 T 8 44 Z"/>
+                  <path d="M 18 38 Q 30 20 44 32 T 72 30 Q 54 48 36 38 T 18 38 Z"/>
+                </g>
+              </svg>
+            </div>
+            <div class="cname">STRANGE ATTR</div>
+          </div>
+          <!-- Voronoi (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 2,20 5,40 1,55 4,70 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g stroke="#fff" stroke-width="0.4" fill="none">
+                  <polygon points="10,15 28,6 44,16 38,30 20,30"/>
+                  <polygon points="44,16 62,8 78,20 70,34 56,28"/>
+                  <polygon points="38,30 56,28 60,42 48,50 32,44"/>
+                </g>
+              </svg>
+            </div>
+            <div class="cname">VORONOI</div>
+          </div>
+          <!-- Grid Lines (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,25 5,45 2,60 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g stroke="#888" stroke-width="0.4"><line x1="0" y1="16" x2="90" y2="16"/><line x1="0" y1="33" x2="90" y2="33"/><line x1="0" y1="50" x2="90" y2="50"/><line x1="22" y1="0" x2="22" y2="66"/><line x1="45" y1="0" x2="45" y2="66"/><line x1="68" y1="0" x2="68" y2="66"/></g>
+              </svg>
+            </div>
+            <div class="cname">GRID LINES</div>
+          </div>
+          <!-- Perlin (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 4,15 1,30 5,50 2,65 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="#888"><rect x="5" y="10" width="3" height="3"/><rect x="18" y="5" width="3" height="3"/><rect x="32" y="16" width="3" height="3"/><rect x="48" y="8" width="3" height="3"/><rect x="62" y="20" width="3" height="3"/><rect x="75" y="12" width="3" height="3"/><rect x="10" y="30" width="3" height="3"/><rect x="25" y="38" width="3" height="3"/><rect x="42" y="34" width="3" height="3"/><rect x="58" y="42" width="3" height="3"/><rect x="72" y="36" width="3" height="3"/><rect x="15" y="50" width="3" height="3"/><rect x="35" y="55" width="3" height="3"/></g>
+              </svg>
+            </div>
+            <div class="cname">PERLIN</div>
+          </div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+          <div class="cell empty"><div class="thumb"></div><div class="cname"></div></div>
+        </div>
+      </div>
+
+      <!-- ======= LAYER 1: Background (Playing col 3 — MilkDrop EON) ======= -->
+      <div class="layer-row">
+        <div class="layer-strip">
+          <div class="ls-top">
+            <div class="ls-name">BACKGROUND</div>
+            <div class="ls-badge">OPQ</div>
+          </div>
+          <div class="ls-opac"><div class="ls-opac-bar"><div class="fill" style="width:100%;"></div></div><div class="ls-opac-val">1.00</div></div>
+          <div class="ls-blend">NORMAL</div>
+          <div class="ls-btnrow">
+            <div class="ls-smb">S</div><div class="ls-smb">M</div><div class="ls-smb">V</div>
+          </div>
+          <div class="ls-tport">
+            <div class="ls-tbtn">&lt;</div><div class="ls-tbtn">||</div><div class="ls-tbtn on">&gt;</div><div class="ls-tbtn">&gt;|</div>
+          </div>
+          <div class="ls-signals">
+            <div class="ls-sig-col"><div class="ls-sig-lab">SPD</div><div class="ls-sig-bar"><div class="fill" style="height:50%;"></div><div class="tick" style="bottom:50%;"></div></div><div class="ls-sig-val">1.0</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">OPC</div><div class="ls-sig-bar"><div class="fill" style="height:100%;"></div><div class="tick" style="bottom:100%;"></div></div><div class="ls-sig-val">1.0</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">KEY</div><div class="ls-sig-bar"><div class="fill" style="height:10%;"></div><div class="tick" style="bottom:10%;"></div></div><div class="ls-sig-val">0.1</div></div>
+            <div class="ls-sig-col"><div class="ls-sig-lab">FAD</div><div class="ls-sig-bar"><div class="fill" style="height:30%;"></div><div class="tick" style="bottom:30%;"></div></div><div class="ls-sig-val">0.3</div></div>
+          </div>
+          <div class="ls-auto"><div class="ls-auto-dot beatpulse"></div>AUTO 16 BEATS</div>
+        </div>
+        <div class="cells-grid">
+          <!-- Mountains (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,20 5,40 2,55 4,70 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#111"/>
+                <polygon points="0,50 20,30 38,42 56,22 74,38 90,34 90,66 0,66" fill="#1a1a1a" stroke="#888" stroke-width="0.4"/>
+              </svg>
+            </div>
+            <div class="cname">MOUNTAINS.JPG</div>
+          </div>
+          <!-- Tunnel (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 4,18 1,35 5,50 2,68 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="none" stroke="#888" stroke-width="0.4">
+                  <rect x="10" y="6" width="70" height="54"/>
+                  <rect x="20" y="14" width="50" height="38"/>
+                  <rect x="30" y="22" width="30" height="22"/>
+                  <line x1="10" y1="6" x2="30" y2="22"/>
+                  <line x1="80" y1="6" x2="60" y2="22"/>
+                </g>
+              </svg>
+            </div>
+            <div class="cname">TUNNEL.MP4</div>
+          </div>
+          <!-- MilkDrop EON — PLAYING -->
+          <div class="cell playing">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 2,15 4,25 1,38 5,50 3,62 2,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="none" stroke="#fff" stroke-width="0.35">
+                  <circle cx="45" cy="33" r="8"/>
+                  <circle cx="45" cy="33" r="14"/>
+                  <circle cx="45" cy="33" r="20"/>
+                  <circle cx="45" cy="33" r="28"/>
+                </g>
+                <g stroke="#888" stroke-width="0.3">
+                  <line x1="45" y1="3" x2="45" y2="63"/>
+                  <line x1="5" y1="33" x2="85" y2="33"/>
+                </g>
+                <circle cx="45" cy="33" r="2" fill="#fff"/>
+              </svg>
+            </div>
+            <div class="cname">MILKDROP: EON</div>
+            <div class="playhead" style="left:82%;"></div>
+          </div>
+          <!-- Fire Wall (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 5,20 1,35 4,50 2,65 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <path d="M 10 66 Q 16 44 22 52 Q 28 36 34 48 Q 40 28 46 42 Q 52 34 58 46 Q 64 36 70 50 Q 76 40 82 52 L 82 66 Z" fill="#fff" opacity="0.8"/>
+              </svg>
+            </div>
+            <div class="cname">FIRE WALL</div>
+          </div>
+          <!-- Stars (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,22 5,38 2,55 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="#fff"><circle cx="10" cy="10" r="0.8"/><circle cx="28" cy="6" r="0.6"/><circle cx="44" cy="16" r="1"/><circle cx="62" cy="8" r="0.5"/><circle cx="78" cy="14" r="0.8"/><circle cx="18" cy="26" r="0.6"/><circle cx="36" cy="32" r="0.8"/><circle cx="52" cy="28" r="0.7"/><circle cx="70" cy="34" r="0.6"/><circle cx="14" cy="44" r="0.8"/><circle cx="46" cy="48" r="1"/><circle cx="64" cy="54" r="0.6"/><circle cx="80" cy="50" r="0.8"/></g>
+              </svg>
+            </div>
+            <div class="cname">STARS.MP4</div>
+          </div>
+          <!-- Simplex (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 4,18 1,35 5,52 2,65 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="#888"><rect x="8" y="8" width="2" height="2"/><rect x="24" y="16" width="2" height="2"/><rect x="40" y="8" width="2" height="2"/><rect x="56" y="20" width="2" height="2"/><rect x="72" y="12" width="2" height="2"/><rect x="16" y="32" width="2" height="2"/><rect x="32" y="40" width="2" height="2"/><rect x="48" y="32" width="2" height="2"/><rect x="64" y="44" width="2" height="2"/><rect x="8" y="48" width="2" height="2"/><rect x="40" y="56" width="2" height="2"/></g>
+              </svg>
+            </div>
+            <div class="cname">SIMPLEX</div>
+          </div>
+          <!-- Hexagons (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 2,15 5,30 1,45 4,60 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g stroke="#888" stroke-width="0.4" fill="none">
+                  <polygon points="22,12 32,18 32,28 22,34 12,28 12,18"/>
+                  <polygon points="44,12 54,18 54,28 44,34 34,28 34,18"/>
+                  <polygon points="66,12 76,18 76,28 66,34 56,28 56,18"/>
+                </g>
+              </svg>
+            </div>
+            <div class="cname">HEXAGONS</div>
+          </div>
+          <!-- Forest (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 5,20 1,35 4,55 2,70 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#111"/>
+                <g fill="#1a1a1a" stroke="#888" stroke-width="0.3"><polygon points="12,60 18,30 24,60"/><polygon points="32,60 38,22 44,60"/><polygon points="52,60 58,34 64,60"/><polygon points="72,60 78,26 84,60"/></g>
+              </svg>
+            </div>
+            <div class="cname">FOREST.JPG</div>
+          </div>
+          <!-- Nebula (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 1,20 5,40 2,55 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <ellipse cx="45" cy="30" rx="34" ry="18" fill="#222" opacity="0.5"/>
+                <g fill="#fff"><circle cx="22" cy="22" r="0.6"/><circle cx="42" cy="18" r="0.5"/><circle cx="58" cy="28" r="0.6"/><circle cx="70" cy="38" r="0.8"/><circle cx="30" cy="48" r="0.4"/></g>
+              </svg>
+            </div>
+            <div class="cname">NEBULA</div>
+          </div>
+          <!-- Abstract (loaded) -->
+          <div class="cell loaded">
+            <div class="cell-wave"><svg viewBox="0 0 6 80"><polyline points="3,5 4,22 1,40 5,58 3,75" /></svg></div>
+            <div class="thumb">
+              <svg viewBox="0 0 90 66" preserveAspectRatio="none">
+                <rect width="90" height="66" fill="#000"/>
+                <g fill="#888"><rect x="5" y="8" width="22" height="3"/><rect x="38" y="8" width="40" height="2"/><rect x="5" y="18" width="55" height="4"/><rect x="10" y="28" width="12" height="10"/><rect x="30" y="28" width="30" height="10"/><rect x="5" y="44" width="36" height="2"/><rect x="48" y="44" width="28" height="3"/><rect x="5" y="52" width="72" height="8"/></g>
+              </svg>
+            </div>
+            <div class="cname">ABSTRACT_01</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== RIGHT: INSPECTOR (35%) ================== -->
+  <div class="inspector-area">
+
+    <!-- Inspector tabs — foldable per Boris annotation -->
+    <div class="insp-tabs">
+      <div class="insp-tab active">CLIP</div>
+      <div class="insp-tab">LAYER</div>
+      <div class="insp-tab">COMP</div>
+      <div class="insp-tab">SIGNALS</div>
+    </div>
+
+    <!-- Clip header -->
+    <div class="clip-header">
+      <div class="ch-name">Julia Set</div>
+      <div class="ch-badge">VIDEO JULIA.07</div>
+      <div class="ch-loc">L2 C3</div>
+    </div>
+
+    <div class="insp-content">
+
+      <!-- DASHBOARD — signal columns replace knobs -->
+      <div class="section">
+        <div class="section-header" data-routed="true">
+          <span class="disclosure-tri">&#9660;</span>
+          <span class="section-name">DASHBOARD</span>
+          <span class="section-count">8 COLUMNS</span>
+        </div>
+        <div class="section-body">
+          <div class="dash-columns">
+            <!-- Col 1 Intensity -->
+            <div class="dash-col-wrap">
+              <div class="dash-col"><div class="fill" style="height:35%;"></div><div class="tick" style="bottom:35%;"></div></div>
+              <div class="dash-col-val">0.35</div>
+              <div class="dash-col-lbl">INTENS</div>
+            </div>
+            <!-- Col 2 Color — OVERRIDE state (orange) -->
+            <div class="dash-col-wrap">
+              <div class="dash-col override-col"><div class="fill" style="height:62%; background:var(--override); opacity:0.5;"></div><div class="tick" style="bottom:62%;"></div></div>
+              <div class="dash-col-val" style="color:var(--override);">0.62</div>
+              <div class="dash-col-lbl">COLOR</div>
+            </div>
+            <!-- Col 3 Zoom -->
+            <div class="dash-col-wrap">
+              <div class="dash-col"><div class="fill" style="height:20%;"></div><div class="tick" style="bottom:20%;"></div></div>
+              <div class="dash-col-val">0.20</div>
+              <div class="dash-col-lbl">ZOOM</div>
+            </div>
+            <!-- Col 4 Speed -->
+            <div class="dash-col-wrap">
+              <div class="dash-col"><div class="fill" style="height:78%;"></div><div class="tick" style="bottom:78%;"></div></div>
+              <div class="dash-col-val">0.78</div>
+              <div class="dash-col-lbl">SPEED</div>
+            </div>
+            <!-- Col 5 Warp -->
+            <div class="dash-col-wrap">
+              <div class="dash-col"><div class="fill" style="height:50%;"></div><div class="tick" style="bottom:50%;"></div></div>
+              <div class="dash-col-val">0.50</div>
+              <div class="dash-col-lbl">WARP</div>
+            </div>
+            <!-- Col 6 Glow -->
+            <div class="dash-col-wrap">
+              <div class="dash-col"><div class="fill" style="height:70%;"></div><div class="tick" style="bottom:70%;"></div></div>
+              <div class="dash-col-val">0.70</div>
+              <div class="dash-col-lbl">GLOW</div>
+            </div>
+            <!-- Col 7 M7 (dim) -->
+            <div class="dash-col-wrap" style="opacity:0.4;">
+              <div class="dash-col"><div class="fill" style="height:0;"></div></div>
+              <div class="dash-col-val">0.00</div>
+              <div class="dash-col-lbl">M7</div>
+            </div>
+            <!-- Col 8 M8 (dim) -->
+            <div class="dash-col-wrap" style="opacity:0.4;">
+              <div class="dash-col"><div class="fill" style="height:0;"></div></div>
+              <div class="dash-col-val">0.00</div>
+              <div class="dash-col-lbl">M8</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSPORT -->
+      <div class="section">
+        <div class="section-header" data-routed="true">
+          <span class="disclosure-tri">&#9660;</span>
+          <span class="section-name">TRANSPORT</span>
+          <span class="section-count">BPM SYNC 4 BEATS</span>
+        </div>
+        <div class="section-body">
+          <!-- Inspector row: Speed — active triangle, pulsing -->
+          <div class="inspector-row">
+            <span class="signal-triangle active-tri beatpulse" style="opacity:0.85;"></span>
+            <span class="row-label">Speed</span>
+            <span class="row-value">1.00</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:50%;"></div><div class="row-slider-thumb" style="left:50%;"></div></div>
+          </div>
+          <!-- Mode — unrouted -->
+          <div class="inspector-row">
+            <span class="signal-triangle unrouted"></span>
+            <span class="row-label">Mode</span>
+            <span class="row-value" style="color:var(--label);">--</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider" style="flex:0;width:0;margin:0;border:none;"></div>
+            <div class="dd" style="flex:1; margin-left:4px;">BPM SYNC</div>
+          </div>
+          <!-- Loop Mode — unrouted -->
+          <div class="inspector-row">
+            <span class="signal-triangle unrouted"></span>
+            <span class="row-label">Loop Mode</span>
+            <span class="row-value" style="color:var(--label);">--</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider" style="flex:0;width:0;margin:0;border:none;"></div>
+            <div class="dd" style="flex:1; margin-left:4px;">LOOP</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EFFECT STACK -->
+      <div class="section">
+        <div class="section-header" data-routed="true">
+          <span class="disclosure-tri">&#9660;</span>
+          <span class="section-name">EFFECT STACK</span>
+          <span class="section-count">3 ACTIVE</span>
+        </div>
+        <div class="section-body">
+          <!-- FX 1 Glow (expanded) -->
+          <div class="fx-row">
+            <div class="fx-bypass on">B</div>
+            <div class="fx-name">Glow</div>
+            <div class="fx-val">0.55</div>
+            <div class="fx-del">X</div>
+          </div>
+          <div class="fx-params">
+            <!-- Intensity — active triangle, OVERRIDE state -->
+            <div class="inspector-row" style="border:none; padding:0;">
+              <span class="signal-triangle active-tri beatpulse" style="opacity:0.70;"></span>
+              <span class="row-label">Intensity</span>
+              <span class="row-value" style="color:var(--override);">0.55</span>
+              <button class="row-btn">-</button><button class="row-btn">+</button>
+              <div class="row-slider"><div class="row-slider-fill" style="width:55%;"></div><div class="row-slider-thumb" style="left:55%;"></div></div>
+              <div class="override-dot"></div>
+            </div>
+            <!-- Radius — unrouted -->
+            <div class="inspector-row" style="border:none; padding:0; margin-top:4px;">
+              <span class="signal-triangle unrouted"></span>
+              <span class="row-label">Radius</span>
+              <span class="row-value">0.35</span>
+              <button class="row-btn">-</button><button class="row-btn">+</button>
+              <div class="row-slider"><div class="row-slider-fill" style="width:35%;"></div><div class="row-slider-thumb" style="left:35%;"></div></div>
+            </div>
+            <!-- Threshold — unrouted -->
+            <div class="inspector-row" style="border:none; padding:0; margin-top:4px;">
+              <span class="signal-triangle unrouted"></span>
+              <span class="row-label">Threshold</span>
+              <span class="row-value">0.50</span>
+              <button class="row-btn">-</button><button class="row-btn">+</button>
+              <div class="row-slider"><div class="row-slider-fill" style="width:50%;"></div><div class="row-slider-thumb" style="left:50%;"></div></div>
+            </div>
+          </div>
+
+          <!-- FX 2 Hue Shift (expanded) -->
+          <div class="fx-row">
+            <div class="fx-bypass on">B</div>
+            <div class="fx-name">Hue Shift</div>
+            <div class="fx-val">0.20</div>
+            <div class="fx-del">X</div>
+          </div>
+          <div class="fx-params">
+            <!-- Shift — active, OVERRIDE -->
+            <div class="inspector-row" style="border:none; padding:0;">
+              <span class="signal-triangle active-tri beatpulse" style="opacity:0.55;"></span>
+              <span class="row-label">Shift</span>
+              <span class="row-value" style="color:var(--override);">0.20</span>
+              <button class="row-btn">-</button><button class="row-btn">+</button>
+              <div class="row-slider"><div class="row-slider-fill" style="width:20%;"></div><div class="row-slider-thumb" style="left:20%;"></div></div>
+              <div class="override-dot"></div>
+            </div>
+            <!-- Saturation — unrouted -->
+            <div class="inspector-row" style="border:none; padding:0; margin-top:4px;">
+              <span class="signal-triangle unrouted"></span>
+              <span class="row-label">Saturation</span>
+              <span class="row-value">0.65</span>
+              <button class="row-btn">-</button><button class="row-btn">+</button>
+              <div class="row-slider"><div class="row-slider-fill" style="width:65%;"></div><div class="row-slider-thumb" style="left:65%;"></div></div>
+            </div>
+          </div>
+
+          <!-- FX 3 Chromatic (collapsed) -->
+          <div class="fx-row">
+            <div class="fx-bypass">B</div>
+            <div class="fx-name">Chromatic Aberration</div>
+            <div class="fx-val">0.12</div>
+            <div class="fx-del">X</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SOURCE PARAMETERS -->
+      <div class="section">
+        <div class="section-header" data-routed="true">
+          <span class="disclosure-tri">&#9660;</span>
+          <span class="section-name">SOURCE PARAMETERS</span>
+          <span class="section-count">8</span>
+        </div>
+        <div class="section-body">
+          <!-- Dive Speed — active, OVERRIDE -->
+          <div class="inspector-row">
+            <span class="signal-triangle active-tri" style="opacity:0.60;"></span>
+            <span class="row-label">Dive Speed</span>
+            <span class="row-value" style="color:var(--override);">0.40</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:40%;"></div><div class="row-slider-thumb" style="left:40%;"></div></div>
+            <div class="override-dot"></div>
+          </div>
+          <!-- Location — unrouted -->
+          <div class="inspector-row">
+            <span class="signal-triangle unrouted"></span>
+            <span class="row-label">Location</span>
+            <span class="row-value">3</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:30%;"></div><div class="row-slider-thumb" style="left:30%;"></div></div>
+          </div>
+          <!-- C Real — unrouted -->
+          <div class="inspector-row">
+            <span class="signal-triangle unrouted"></span>
+            <span class="row-label">C Real</span>
+            <span class="row-value">-0.70</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:65%;"></div><div class="row-slider-thumb" style="left:65%;"></div></div>
+          </div>
+          <!-- C Imag — unrouted -->
+          <div class="inspector-row">
+            <span class="signal-triangle unrouted"></span>
+            <span class="row-label">C Imag</span>
+            <span class="row-value">0.27</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:40%;"></div><div class="row-slider-thumb" style="left:40%;"></div></div>
+          </div>
+          <!-- Zoom — selected triangle (hover state demo) -->
+          <div class="inspector-row" style="background:var(--panel);">
+            <span class="signal-triangle selected-tri"></span>
+            <span class="row-label">Zoom</span>
+            <span class="row-value">0.50</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:50%;"></div><div class="row-slider-thumb" style="left:50%;"></div></div>
+          </div>
+          <!-- Iterations — unrouted -->
+          <div class="inspector-row">
+            <span class="signal-triangle unrouted"></span>
+            <span class="row-label">Iterations</span>
+            <span class="row-value">60</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:60%;"></div><div class="row-slider-thumb" style="left:60%;"></div></div>
+          </div>
+          <!-- Color Speed — active, OVERRIDE -->
+          <div class="inspector-row">
+            <span class="signal-triangle active-tri" style="opacity:0.70;"></span>
+            <span class="row-label">Color Speed</span>
+            <span class="row-value" style="color:var(--override);">0.55</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:55%;"></div><div class="row-slider-thumb" style="left:55%;"></div></div>
+            <div class="override-dot"></div>
+          </div>
+          <!-- Palette — unrouted -->
+          <div class="inspector-row">
+            <span class="signal-triangle unrouted"></span>
+            <span class="row-label">Palette</span>
+            <span class="row-value">3</span>
+            <button class="row-btn">-</button><button class="row-btn">+</button>
+            <div class="row-slider"><div class="row-slider-fill" style="width:37%;"></div><div class="row-slider-thumb" style="left:37%;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HIT INSPECTOR (collapsed) -->
+      <div class="section">
+        <div class="section-header">
+          <span class="disclosure-tri">&#9654;</span>
+          <span class="section-name">HIT INSPECTOR</span>
+          <span class="section-count">COLLAPSED</span>
+        </div>
+      </div>
+
+      <!-- SIGNAL DRAWER (collapsed) -->
+      <div class="section">
+        <div class="section-header">
+          <span class="disclosure-tri">&#9654;</span>
+          <span class="section-name">SIGNAL DRAWER</span>
+          <span class="section-count">COLLAPSED</span>
+        </div>
+      </div>
+
+      <!-- OUTPUT TABS (collapsed) -->
+      <div class="section">
+        <div class="section-header">
+          <span class="disclosure-tri">&#9654;</span>
+          <span class="section-name">OUTPUT TABS</span>
+          <span class="section-count">COLLAPSED</span>
+        </div>
+      </div>
+
+      <!-- MACRO EDITOR (collapsed) -->
+      <div class="section">
+        <div class="section-header">
+          <span class="disclosure-tri">&#9654;</span>
+          <span class="section-name">MACRO EDITOR</span>
+          <span class="section-count">COLLAPSED</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- =========================== BOTTOM FOCUS BAR =========================== -->
+<div class="bottom-band">
+
+  <!-- LEFT: PREVIEW -->
+  <div class="bb-preview">
+    <div class="prev-wrap">
+      <svg viewBox="0 0 300 168" preserveAspectRatio="none" style="display:block; width:100%; height:100%;">
+        <rect width="300" height="168" fill="#000"/>
+        <!-- MilkDrop EON background -->
+        <g fill="none" stroke="#fff" stroke-width="0.5" opacity="0.7">
+          <circle cx="150" cy="84" r="18"/>
+          <circle cx="150" cy="84" r="32"/>
+          <circle cx="150" cy="84" r="48"/>
+          <circle cx="150" cy="84" r="66"/>
+        </g>
+        <g stroke="#888" stroke-width="0.4" opacity="0.5">
+          <line x1="150" y1="0" x2="150" y2="168"/>
+          <line x1="0" y1="84" x2="300" y2="84"/>
+        </g>
+        <!-- Julia overlay -->
+        <g fill="none" stroke="#fff" stroke-width="0.6" opacity="0.6" transform="translate(150 84)">
+          <path d="M -80 0 Q -35 -50 0 -25 T 80 0 Q 35 50 0 25 T -80 0 Z"/>
+        </g>
+        <!-- Alpha mask overlay -->
+        <g opacity="0.2"><rect x="0" y="0" width="100" height="168" fill="#000"/><rect x="200" y="0" width="100" height="168" fill="#000"/></g>
+        <circle cx="150" cy="84" r="2" fill="var(--accent)"/>
+      </svg>
+      <div class="prev-live">LIVE</div>
+      <div class="prev-meta">1920x1080 60.0</div>
+    </div>
+    <div class="now-playing">
+      <div class="np-title">MilkDrop: Eon + Julia Set</div>
+      <div class="np-sub">L1 BG L2 OVERLAY L3 FX L4 SPLIT-H</div>
+    </div>
+  </div>
+
+  <!-- CENTER: BOTTOM FOCUS (right of preview per Boris) -->
+  <div class="bb-focus">
+    <!-- Collapsed summary -->
+    <div class="focus-collapsed">
+      <span class="focus-collapsed-tri">&#9660;</span>
+      <span class="focus-collapsed-label">FOCUS: Julia Set</span>
+      <span class="focus-collapsed-val" style="font: 400 11px var(--font-mono);">L2 C3 VIDEO 0.75 OPC ADDITIVE</span>
+    </div>
+    <!-- Expanded: one variation showing macro/effect detail -->
+    <div class="focus-expanded">
+      <div class="section-header" data-routed="true" style="height:20px;">
+        <span class="disclosure-tri">&#9660;</span>
+        <span class="section-name" style="font-size:11px;">SELECTED CLIP PARAMETERS</span>
+      </div>
+      <!-- Inspector rows in bottom focus use same grammar -->
+      <div class="inspector-row">
+        <span class="signal-triangle active-tri" style="opacity:0.85;"></span>
+        <span class="row-label">Opacity</span>
+        <span class="row-value">0.75</span>
+        <button class="row-btn">-</button><button class="row-btn">+</button>
+        <div class="row-slider"><div class="row-slider-fill" style="width:75%;"></div><div class="row-slider-thumb" style="left:75%;"></div></div>
+      </div>
+      <div class="inspector-row">
+        <span class="signal-triangle active-tri beatpulse" style="opacity:0.60;"></span>
+        <span class="row-label">Blend</span>
+        <span class="row-value" style="color:var(--label);">--</span>
+        <button class="row-btn">-</button><button class="row-btn">+</button>
+        <div class="row-slider" style="flex:0;width:0;margin:0;border:none;"></div>
+        <div class="dd" style="flex:1; margin-left:4px;">ADDITIVE</div>
+      </div>
+      <div class="inspector-row">
+        <span class="signal-triangle unrouted"></span>
+        <span class="row-label">Speed</span>
+        <span class="row-value">1.00</span>
+        <button class="row-btn">-</button><button class="row-btn">+</button>
+        <div class="row-slider"><div class="row-slider-fill" style="width:50%;"></div><div class="row-slider-thumb" style="left:50%;"></div></div>
+      </div>
+      <div class="inspector-row">
+        <span class="signal-triangle active-tri" style="opacity:0.45;"></span>
+        <span class="row-label">Color Speed</span>
+        <span class="row-value" style="color:var(--override);">0.55</span>
+        <button class="row-btn">-</button><button class="row-btn">+</button>
+        <div class="row-slider"><div class="row-slider-fill" style="width:55%;"></div><div class="row-slider-thumb" style="left:55%;"></div></div>
+        <div class="override-dot"></div>
+      </div>
+      <div class="inspector-row">
+        <span class="signal-triangle unrouted"></span>
+        <span class="row-label">Iterations</span>
+        <span class="row-value">60</span>
+        <button class="row-btn">-</button><button class="row-btn">+</button>
+        <div class="row-slider"><div class="row-slider-fill" style="width:60%;"></div><div class="row-slider-thumb" style="left:60%;"></div></div>
+      </div>
+      <div class="inspector-row">
+        <span class="signal-triangle unrouted"></span>
+        <span class="row-label">Zoom</span>
+        <span class="row-value">0.50</span>
+        <button class="row-btn">-</button><button class="row-btn">+</button>
+        <div class="row-slider"><div class="row-slider-fill" style="width:50%;"></div><div class="row-slider-thumb" style="left:50%;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: ACTIVE ROUTES -->
+  <div class="bb-routes">
+    <div class="routes-hdr">ACTIVE ROUTES</div>
+    <div class="routes-sub">6 / 18 SIGNAL BINDINGS</div>
+    <div class="route-card">
+      <div class="route-src">BASS</div>
+      <div class="route-arrow">&#10142;</div>
+      <div class="route-tgt">L1 ZOOM</div>
+      <div class="route-curve">EXP</div>
+    </div>
+    <div class="route-card sel">
+      <div class="route-src">RMS</div>
+      <div class="route-arrow">&#10142;</div>
+      <div class="route-tgt">L2 GLOW INT</div>
+      <div class="route-curve">LIN</div>
+    </div>
+    <div class="route-card">
+      <div class="route-src">ONSET</div>
+      <div class="route-arrow">&#10142;</div>
+      <div class="route-tgt">L3 STROBE</div>
+      <div class="route-curve">STEP</div>
+    </div>
+    <div class="route-card">
+      <div class="route-src">BEAT</div>
+      <div class="route-arrow">&#10142;</div>
+      <div class="route-tgt">L2 HUE</div>
+      <div class="route-curve">SCRV</div>
+    </div>
+    <div class="route-card">
+      <div class="route-src">CENTROID</div>
+      <div class="route-arrow">&#10142;</div>
+      <div class="route-tgt">COMP ROT</div>
+      <div class="route-curve">LOG</div>
+    </div>
+    <div class="route-card">
+      <div class="route-src">PUMP</div>
+      <div class="route-arrow">&#10142;</div>
+      <div class="route-tgt">L1 OPAC</div>
+      <div class="route-curve">EXP</div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================== FOOTER =========================== -->
+<div class="footer">
+  <div class="seg hl">AUDIO-DNA V10.0</div>
+  <div class="seg">|</div>
+  <div class="seg hl">H1 DEFAULT LAUNCH</div>
+  <div class="seg">|</div>
+  <div class="seg">60.0 FPS</div>
+  <div class="seg">|</div>
+  <div class="seg">1920x1080</div>
+  <div class="seg">|</div>
+  <div class="seg">REC 00:12:34</div>
+  <div class="seg" style="margin-left:auto;">CPU 34% | GPU 52% | RAM 1.8GB</div>
+</div>
+
+</body>
+</html>
