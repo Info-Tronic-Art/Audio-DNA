@@ -4,6 +4,15 @@
 > Every builder MUST read this before implementing any visual change.
 > Written 2026-05-21.
 
+> **Note 2026-05-22:** This document was written 2026-05-21. Some specifics
+> have been superseded by later session decisions (notably: P. button
+> REMOVED entirely; orange `#ff4500` added as the OVERRIDE state indicator;
+> AUTO/OVERRIDE field-level state machine). The canonical current behavioral
+> reference is `../../FEATURE_CONNECTIONS.md`, and the canonical visual/
+> design system reference for mockups is `../../MOCKUP_BRIEF.md`. The
+> design PHILOSOPHY captured in this doc (the 7 principles, anti-patterns,
+> "Perfect" Checklist intent) remains canonical.
+
 ---
 
 ## Core Design Tension
@@ -241,7 +250,7 @@ Boris says "this is perfect" when ALL of these are true:
 - Inspector rows follow Resolume-exact grammar
 - Beat wheel: 4 SQUARES in a row (14x14px), not circular. Active=kAccent fill.
 - Scrollbar thumbs: SQUARE (zero border-radius, no exceptions)
-- P. button on SECTION HEADERS only (route-entire-section). Not on individual rows.
+- P. button REMOVED entirely (2026-05-22 update — previously planned for section headers only, now eliminated. Routing happens via the Triangle on each row; section headers keep only the passive 2px blue left-edge bar indicator when routing is present.)
 
 ### The 2-Second Test
 Within 2 seconds, a performer in a dark club knows:
