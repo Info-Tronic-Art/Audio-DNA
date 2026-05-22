@@ -974,10 +974,15 @@ User opens composition on venue computer.
 Result:
   - Composition loads. All non-affected content works.
   - Affected cells display "media missing" state:
-    - Orange-tinted cell (using #ff4500)
+    - Cell drawn as Loaded state (1px border) with filename grayed (--label #888888)
+    - Red `×` mark overlay (--danger #ff4040) — canonical error indicator
     - File path shown in cell
   - UI offers "Re-link missing media" to locate the file.
   - User can play unaffected parts while fixing missing files.
+
+  Color rationale: `#ff4500` (--override orange) is reserved exclusively for
+  OVERRIDE state per BORIS_DECISIONS canonical rule. Missing-media uses
+  `--danger` red — the canonical "errors ONLY" color from MOCKUP_BRIEF §2.1.
 ```
 
 **Library export (per HANDOFF Q14):**

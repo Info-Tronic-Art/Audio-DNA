@@ -54,3 +54,17 @@
 **Rule:** When documenting event/callback systems, grep for callers of each method. API existence ≠ integration.
 **Scope:** universal
 **Promoted:** no
+
+### 2026-05-22 — §3.6 shorthand vs §6.7 full spec contradiction missed by vague cross-ref audit
+**Source:** Tester catch on MOCKUP_BRIEF cleanup — Builder applied opacity-floor edits to §6.7 + §6.2 but left §3.6 reading "direct 1:1 mapping" (semantically contradictory but defensible). Edit 8 packet wording said "scan for conflicting Active triangle descriptions" but didn't list §3.6 explicitly. Builder rationalized leaving it.
+**Trigger:** Cross-reference audit instructions that say "scan for X" without enumerating known candidate sites. Builder reads narrowly and skips defensible-but-contradictory sites.
+**Rule:** When a packet edits canonical doc and authoritative spec changes (new floor, new state, new rule), enumerate EVERY site that paraphrases or shorthands that spec — not just direct contradictions. List candidate sections by number in the cross-ref audit instruction, not just by topic.
+**Scope:** universal
+**Promoted:** no
+
+### 2026-05-22 — §6-tokens-win-over-§5-pixel-specs (MOCKUP_BRIEF authority hierarchy)
+**Source:** Boris-locked decision during MOCKUP_BRIEF cleanup. §5 cites pixel specs from praised v9 mockups; §6 declares canonical production tokens. Pre-cleanup, §5 = 50px and §6 = 60px for signal column.
+**Trigger:** Builder reading §5 quality-bar pixel specs and treating them as authoritative production values.
+**Rule:** MOCKUP_BRIEF §6 production tokens always override §5 quality-bar pixel specs when they differ. §5 is inspiration, §6 is contract. New §8.5 Token Sync Verification enforces this on every v10 mockup.
+**Scope:** repo
+**Promoted:** no
