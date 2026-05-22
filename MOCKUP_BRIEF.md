@@ -146,7 +146,7 @@ purpose.
 | Element                  | Size  | Weight | Font  | Color         |
 |--------------------------|-------|--------|-------|---------------|
 | BPM (hero number)        | 48px  | 500    | Mono  | `--accent`    |
-| Genre / structural state | 20-24px | 400  | Sans  | `--value`     |
+| Genre / structural state | 22px  | 400  | Sans  | `--value`     |
 | Section headers          | 12px  | 400    | Sans  | `--value`     |
 | Row labels               | 11px  | 400    | Sans  | `--label`     |
 | Row values               | 11px  | 400    | Mono  | `--value`     |
@@ -297,7 +297,8 @@ For mockups demonstrating live signal behavior:
 }
 ```
 
-- Signal triangle brightness: direct 1:1 mapping to signal value.
+- Signal triangle brightness: direct 1:1 mapping to signal value
+  (above 15% opacity floor — see §6.7 for formula).
   No easing, no transition curves. RAW.
 - Signal column fills: SMOOTHED (0.3 alpha EMA for readable,
   professional animation). This is a deliberate split from triangle
@@ -324,8 +325,8 @@ Violating ANY rule below makes the mockup **non-compliant**. There are no
 
 | Rule                        | Detail                                                    |
 |-----------------------------|-----------------------------------------------------------|
-| ONE accent color only       | Blue `#00d9ff`. Period.                                   |
-| Orange is OVERRIDE only     | `#ff4500` appears exclusively on OVERRIDE state indicators.|
+| ONE accent (active/alive)   | Blue `#00d9ff`. Used for routing, active state, signal.   |
+| Orange = OVERRIDE only      | `#ff4500` reserved for OVERRIDE state. NOT counted as an accent — deliberate exception, never used for any other purpose. |
 | No rainbow UI               | No green, purple, yellow, mint, teal in UI chrome.        |
 | Red is REC/error only       | `#ff4040` never used for emphasis or decoration.          |
 
@@ -406,6 +407,11 @@ value), accent only on active rows.
 | Padding            | 6-8px (very tight)                                 |
 | Position           | Absolute left:0 (literally pushed to screen edge)  |
 
+**Production reconciliation:** Signal meters listed at 50px reflect
+the v9 reference. Production canonical signal column width = 60px
+(see `--signal-column-width` token in §6.4). §6 production tokens
+win on conflict.
+
 **Why "best":** Zero wasted space, tight padding, hard borders, grid-aligned.
 
 ### 5.3 BEST Expanded Sidebar
@@ -477,7 +483,8 @@ When building any of these components, match the pixel specs above. These
 are the quality bar. If the directive states a different value from the
 mockup (e.g., label width 90px vs 82px), the **directive wins**. These
 pixel specs show the SHAPE and FEEL Boris praised; directive dimensions
-are the final measurements.
+are the final measurements. **When §5 quality-bar pixel specs differ from §6 production tokens,
+§6 wins.**
 
 ---
 
@@ -556,7 +563,8 @@ The most settled, most reused component. Every inspector row is identical:
 .signal-triangle[data-state="unrouted"]  { background: var(--border); }
 .signal-triangle[data-state="selected"]  { background: var(--label); }
 .signal-triangle[data-state="active"]    { background: var(--accent);
-                    /* brightness = signal value; set via JS: el.style.opacity = val */ }
+                    /* opacity floor 15% — set via JS:
+                       el.style.opacity = 0.15 + val * 0.85; */ }
 .row-label        { width: var(--label-width); text-align: right;
                     font: 11px var(--font-sans); color: var(--label);
                     padding-right: 8px; flex-shrink: 0;
@@ -704,10 +712,13 @@ All three states for the universal signal access triangle:
 |----------|-------------------------------------------------------------|
 | Unrouted | Very light outline (`--border` ~#3a3a3a), barely visible    |
 | Selected | Solid light fill (`--label` ~#888)                          |
-| Active   | Blue `--accent` fill, brightness = signal value 0-1 in real time |
+| Active   | Blue `--accent` fill, opacity = `0.15 + (signal_value × 0.85)`. Minimum visible at signal=0, ramps to full at signal=1. RAW 1:1 mapping above the floor — no easing, no smoothing. |
 
-Active state is RAW 1:1 mapping. Signal drops to zero, triangle drops to
-zero brightness instantly. No easing, no smoothing, no transition.
+Active state is RAW 1:1 mapping above a 15% opacity floor. A routed
+parameter at signal=0 stays dimly visible (so the user can see what's
+routed) and ramps to full opacity at signal=1 with no easing or
+smoothing. The opacity floor is the ONLY constant added to the otherwise
+raw mapping.
 
 ### 6.8 Orange Override Dot
 
@@ -753,8 +764,10 @@ All features below must be visible in this mockup:
 
 - Default state (what the user sees on launch or in normal operation)
 - Active state (with visible signal/Hit activity, pulsing triangles)
+- OVERRIDE state with orange indicators —
+  **REQUIRED for: h1, p1, inspector, bottom_focus, signal_drawer.
+  Optional for: top_chrome, s2, hit_system, clip_detail, states.**
 - (Optional) Hover state
-- (Optional) OVERRIDE state with orange indicators
 
 ### What to Get Right
 
@@ -844,6 +857,36 @@ Mockup-specific checks:
 - Tester PASS: Harmony presents to Boris for review.
 - Boris feedback: Harmony creates follow-up work packet referencing
   this doc + Boris's notes.
+
+### 8.5 Token Sync Verification
+
+Because every v10 mockup is a self-contained HTML file (§3.2), the design
+token `:root` block is duplicated across 10 files. To prevent drift when
+a token value changes:
+
+**Canonical source:** MOCKUP_BRIEF §2.1 (color tokens), §2.2 (font tokens),
+and §2.3 (spacing tokens). These are the ONLY authoritative token values.
+
+**Tester procedure (run for every v10 mockup PR):**
+
+1. Extract the `:root { ... }` block from the mockup file.
+2. Compare each declared CSS variable name + value against the canonical
+   list from MOCKUP_BRIEF §2.1, §2.2, §2.3.
+3. Every canonical variable MUST appear in the mockup's `:root`.
+4. Every value MUST match the canonical exactly (no rounding, no
+   substitution).
+5. Extra variables (mockup-specific) are allowed if prefixed `--mockup-`
+   or `--local-`. Otherwise FAIL.
+
+**On failure:** Tester reports the diff (variable name + canonical value
++ mockup value). Builder updates the mockup to match canonical.
+
+**On canonical change:** if Boris approves a token edit in MOCKUP_BRIEF,
+a follow-up Builder propagates the change to every existing v10 mockup.
+The Tester check then re-runs against the new canonical.
+
+A scripted version of this check is a follow-up task — for V1 the check
+is performed manually by the Tester against the canonical blocks.
 
 ---
 
