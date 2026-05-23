@@ -1,0 +1,3327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio-DNA v10 — Layer Row Design Study Part B (V11-V20)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===================================================================
+   v10 LAYER ROW DESIGN STUDY — PART B (V11-V20)
+   Category C: Signal Reinvented (V11-V14)
+   Category D: Layout Radical (V15-V20)
+   Iron rules: zero border-radius, zero box-shadow, zero gradients on
+   chrome, 1px hairlines, ALL-CAPS labels, monospace numbers.
+   =================================================================== */
+
+/* ── Canonical Design Tokens (MOCKUP_BRIEF §2.1/§2.2/§2.3 verbatim) ── */
+:root {
+  /* ── Backgrounds ── */
+  --bg:             #1a1a1a;
+  --panel:          #2a2a2a;
+  --section-header: #252525;
+  --separator:      #383838;
+  --border:         #3a3a3a;
+
+  /* ── Text ── */
+  --label:          #888888;
+  --value:          #e0e0e0;
+
+  /* ── Accent ── */
+  --accent:         #00d9ff;
+
+  /* ── Semantic ── */
+  --danger:         #ff4040;
+  --override:       #ff4500;
+
+  /* ── Typography ── */
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+
+  /* ── Borders ── */
+  --hairline:              1px;
+
+  /* ── Row heights ── */
+  --row-height-inspector:  24px;
+  --row-height-signal:     20px;
+  --row-height-section:    24px;
+
+  /* ── Inspector row columns ── */
+  --label-width:           90px;
+  --value-width:           50px;
+  --button-size:           20px;
+  --slider-height:         14px;
+
+  /* ── Clip cells ── */
+  --clip-width:            100px;
+  --clip-height:           80px;
+  --clip-name-height:      14px;
+  --clip-wave-width:       6px;
+
+  /* ── Top chrome ── */
+  --chrome-top:            44px;
+  --chrome-transport:      32px;
+  --chrome-signal:         22px;
+  --chrome-total:          98px;
+
+  /* ── Signal columns ── */
+  --signal-column-width:   60px;
+
+  /* ── Hit pill ── */
+  --pill-width:            8px;
+  --pill-height:           24px;
+
+  /* ── Study-page locals ── */
+  --local-row-ref-width:   1200px;
+  --local-page-max:        1280px;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--value);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.25;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 32px 40px 60px;
+  max-width: var(--local-page-max);
+  margin: 0 auto;
+}
+
+/* 3% SVG grain overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Keyframes ── */
+@keyframes beat {
+  0%   { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+@keyframes dashflow {
+  0%   { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes particle-flow {
+  0%   { transform: translateX(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateX(200px); opacity: 0; }
+}
+@keyframes ribbon-flow {
+  0%   { stroke-dashoffset: 16; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes tint-pulse {
+  0%   { opacity: 0.10; }
+  50%  { opacity: 0.40; }
+  100% { opacity: 0.10; }
+}
+
+/* ── Page Layout ── */
+.study-title {
+  font: 500 22px var(--font-sans);
+  color: var(--value);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.study-intro {
+  font: 11px/1.6 var(--font-sans);
+  color: var(--label);
+  max-width: 900px;
+  margin-bottom: 28px;
+}
+.category-heading {
+  font: 500 13px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 40px 0 20px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Variation Block ── */
+.variation-block {
+  margin-bottom: 40px;
+}
+.variation-heading {
+  font: 500 14px var(--font-sans);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.variation-note {
+  font: 10px/1.5 var(--font-sans);
+  color: var(--label);
+  margin-bottom: 10px;
+  max-width: 900px;
+}
+
+/* ── Row Frame (shared outer container) ── */
+.row-frame {
+  width: var(--local-row-ref-width);
+  position: relative;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  overflow: hidden;
+  display: flex;
+}
+
+/* ── Layer Strip (shared) ── */
+.strip {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  background: var(--panel);
+  position: relative;
+}
+
+/* ── Cells Grid (shared) ── */
+.cells-grid {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Clip Cell ── */
+.clip-cell {
+  width: 100px;
+  height: 80px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-shrink: 0;
+}
+.clip-cell .clip-wave {
+  width: 6px;
+  background: var(--bg);
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+}
+.clip-cell .clip-wave svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.clip-cell .clip-thumb-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.clip-cell .clip-thumb-area svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.clip-cell .clip-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  border-top: 1px solid var(--border);
+  padding: 0 4px;
+  font: 9px var(--font-sans);
+  color: var(--label);
+  display: flex;
+  align-items: center;
+  background: rgba(26,26,26,0.85);
+}
+
+/* Cell states */
+.cell-state-playing  { background: rgba(0,217,255,0.15); border: 2px solid var(--accent); }
+.cell-state-queued   { border: 2px dashed var(--accent); }
+.cell-state-selected { border: 1px solid var(--accent); }
+.cell-state-loaded   { border: 1px solid var(--border); }
+.cell-state-empty    { border: 1px dashed var(--border); background: var(--bg); }
+
+/* ── Shared Atoms ── */
+
+/* Buttons (X, B, S) */
+.ls-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--label);
+  border: 1px solid var(--border);
+  font: 500 10px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+}
+.ls-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Transport */
+.ls-transport {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+.ls-transport .ls-btn {
+  font: 500 9px var(--font-mono);
+}
+.ls-transport .ls-btn.playing {
+  color: var(--accent);
+  background: rgba(0,217,255,0.08);
+}
+
+/* Blend dropdown */
+.ls-blend {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--label);
+  font: 10px var(--font-sans);
+  padding: 0 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ls-blend::after {
+  content: '\25BC';
+  font-size: 6px;
+  margin-left: 4px;
+  color: var(--label);
+}
+
+/* Thumbnail */
+.ls-thumb {
+  flex-shrink: 0;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  overflow: hidden;
+  position: relative;
+}
+.ls-thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Fade controls */
+.ls-fade-pair {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 1px;
+}
+.ls-fade-speed {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  flex-shrink: 0;
+}
+.ls-fade-speed-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--accent);
+  opacity: 0.35;
+}
+.ls-fade-speed-tick {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  height: 1px;
+  background: var(--value);
+}
+.ls-fade-type {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--label);
+  font: 9px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ls-fade-type::after {
+  content: '\25BC';
+  font-size: 5px;
+  margin-left: 3px;
+  color: var(--label);
+}
+
+/* Slider columns (S V F) */
+.ls-slider-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.ls-slider-label {
+  font: 500 8px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1;
+}
+.ls-slider-track {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  flex: 1;
+  width: 100%;
+}
+.ls-slider-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--accent);
+  opacity: 0.3;
+}
+.ls-slider-fill.override {
+  background: var(--override);
+  opacity: 0.5;
+}
+.ls-slider-tick {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  height: 1px;
+  background: var(--value);
+}
+.ls-slider-value {
+  font: 9px var(--font-mono);
+  color: var(--value);
+  text-align: center;
+  line-height: 1;
+}
+
+/* Signal columns */
+.signal-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.signal-col-label {
+  font: 500 7px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1;
+}
+.signal-col-track {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  flex: 1;
+  width: 100%;
+}
+.signal-col-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--accent);
+  opacity: 0.4;
+}
+
+/* Signal ribbon (horizontal) */
+.signal-ribbon {
+  display: flex;
+  gap: 0;
+  align-items: center;
+  width: 100%;
+}
+
+/* Triangles */
+.ls-tri {
+  width: 6px;
+  height: 6px;
+  clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+  flex-shrink: 0;
+}
+.ls-tri.unrouted { background: var(--border); }
+.ls-tri.routed   { background: var(--accent); animation: beat 0.468s infinite alternate; }
+.ls-tri.override { background: var(--override); animation: beat 0.468s infinite alternate; }
+
+/* Layer name */
+.layer-name {
+  font: 10px var(--font-sans);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.layer-active {
+  border-bottom: 3px solid var(--accent);
+}
+.layer-override {
+  position: relative;
+}
+
+/* Override badge */
+.ls-override-badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--override);
+  color: var(--bg);
+  font: 500 7px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Override dot */
+.ls-override-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--override);
+  flex-shrink: 0;
+}
+
+/* Hairline separator */
+.ls-sep {
+  width: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+/* ===================================================================
+   V11 — SIGNAL-EDGE-BARS-ON-CELLS (~120px)
+   Each cell has 4 edge bars: TOP=BASS, BOTTOM=HIGH, LEFT=MID, RIGHT=RMS
+   =================================================================== */
+.v11-strip {
+  width: 380px;
+  display: flex;
+  align-items: stretch;
+}
+.v11-btn-stack {
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  flex-shrink: 0;
+}
+.v11-btn-stack .ls-btn { flex: 1; width: 22px; font-size: 9px; }
+.v11-transport {
+  width: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.v11-transport .ls-btn { width: 18px; height: 18px; font-size: 8px; }
+.v11-blend { width: 60px; height: 18px; font-size: 9px; align-self: center; }
+.v11-thumb { width: 100px; height: 72px; align-self: center; margin: 0 4px; }
+.v11-fade {
+  display: flex;
+  flex-direction: column;
+  width: 14px;
+  flex-shrink: 0;
+  padding: 4px 0;
+  gap: 1px;
+}
+.v11-fade .ls-fade-speed { flex: 1; width: 14px; }
+.v11-fade .ls-fade-type { width: 14px; height: 14px; font-size: 7px; padding: 0 1px; }
+.v11-sliders {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v11-sliders .ls-slider-col { width: 16px; gap: 2px; }
+.v11-sliders .ls-slider-label { font-size: 7px; }
+.v11-name {
+  position: absolute;
+  bottom: 2px;
+  left: 4px;
+  font-size: 9px;
+}
+
+/* V11 edge bars on cells */
+.cell-edge-bar {
+  position: absolute;
+  background: var(--accent);
+}
+.cell-edge-bar.top    { top: 0; left: 0; right: 0; height: 3px; opacity: 0.7; }
+.cell-edge-bar.bottom { bottom: 14px; left: 0; right: 0; height: 3px; opacity: 0.7; }
+.cell-edge-bar.left   { top: 0; left: 0; bottom: 14px; width: 3px; opacity: 0.7; }
+.cell-edge-bar.right  { top: 0; right: 0; bottom: 14px; width: 3px; opacity: 0.7; }
+.cell-state-playing .cell-edge-bar  { opacity: 1; }
+.cell-state-loaded .cell-edge-bar   { opacity: 0.3; }
+.cell-state-queued .cell-edge-bar   { opacity: 0.5; }
+.cell-state-selected .cell-edge-bar { opacity: 0.5; }
+.cell-state-empty .cell-edge-bar    { opacity: 0; }
+
+/* ===================================================================
+   V12 — SIGNAL-AS-TINT (~120px)
+   Translucent overlay on cells pulses with routed signal
+   =================================================================== */
+.v12-strip {
+  width: 380px;
+  display: flex;
+  align-items: stretch;
+}
+.v12-btn-stack {
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  flex-shrink: 0;
+}
+.v12-btn-stack .ls-btn { flex: 1; width: 22px; font-size: 9px; }
+.v12-transport {
+  width: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.v12-transport .ls-btn { width: 18px; height: 18px; font-size: 8px; }
+.v12-blend { width: 60px; height: 18px; font-size: 9px; align-self: center; }
+.v12-thumb { width: 100px; height: 72px; align-self: center; margin: 0 4px; }
+.v12-fade {
+  display: flex;
+  flex-direction: column;
+  width: 14px;
+  flex-shrink: 0;
+  padding: 4px 0;
+  gap: 1px;
+}
+.v12-fade .ls-fade-speed { flex: 1; width: 14px; }
+.v12-fade .ls-fade-type { width: 14px; height: 14px; font-size: 7px; padding: 0 1px; }
+.v12-sliders {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v12-sliders .ls-slider-col { width: 16px; gap: 2px; }
+.v12-sliders .ls-slider-label { font-size: 7px; }
+.v12-tri-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.v12-tri-label {
+  font: 6px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.v12-name {
+  position: absolute;
+  bottom: 2px;
+  left: 4px;
+  font-size: 9px;
+}
+
+/* V12 tint overlay */
+.cell-tint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 14px;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+.cell-state-playing .cell-tint { animation: tint-pulse 1.2s ease-in-out infinite; }
+.cell-state-queued .cell-tint  { opacity: 0.15; }
+
+/* V12 bottom bar: width = signal amplitude, accent fill */
+.v12-cell-bottom-bar {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+}
+/* V12 routing letter label */
+.v12-route-label {
+  position: absolute;
+  bottom: 16px;
+  left: 2px;
+  font: 7px var(--font-mono);
+  color: var(--label);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* ===================================================================
+   V13 — SIGNAL-PARTICLE-FLOW (~120px)
+   Source signal columns LEFT, animated ribbons flow to destinations
+   =================================================================== */
+.v13-strip {
+  width: 400px;
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+.v13-sources {
+  width: 60px;
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v13-sources .signal-col { width: 14px; gap: 1px; }
+.v13-sources .signal-col-label { font-size: 6px; }
+.v13-middle {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  position: relative;
+}
+.v13-btn-stack {
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  flex-shrink: 0;
+}
+.v13-btn-stack .ls-btn { flex: 1; width: 22px; font-size: 9px; }
+.v13-transport {
+  width: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.v13-transport .ls-btn { width: 18px; height: 18px; font-size: 8px; }
+.v13-blend { width: 50px; height: 18px; font-size: 9px; align-self: center; }
+.v13-thumb { width: 80px; height: 60px; align-self: center; margin: 0 4px; }
+.v13-fade {
+  display: flex;
+  flex-direction: column;
+  width: 12px;
+  flex-shrink: 0;
+  padding: 4px 0;
+  gap: 1px;
+}
+.v13-fade .ls-fade-speed { flex: 1; width: 12px; }
+.v13-fade .ls-fade-type { width: 12px; height: 12px; font-size: 6px; padding: 0 1px; }
+.v13-sliders {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v13-sliders .ls-slider-col { width: 14px; gap: 2px; }
+.v13-sliders .ls-slider-label { font-size: 7px; }
+.v13-name {
+  position: absolute;
+  bottom: 2px;
+  left: 64px;
+  font-size: 9px;
+}
+
+/* V13 routing ribbons (replaces particles) */
+.v13-ribbon-field {
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.v13-ribbon-field svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ===================================================================
+   V14 — SIGNAL-ROUTING-LINES (~125px)
+   Animated SVG lines source-to-destination (living patch)
+   =================================================================== */
+.v14-row-frame {
+  height: 125px;
+}
+.v14-strip {
+  width: 500px;
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+.v14-sources {
+  width: 56px;
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+}
+.v14-sources .signal-col { width: 12px; gap: 1px; }
+.v14-sources .signal-col-label { font-size: 6px; }
+.v14-routing-area {
+  width: 80px;
+  flex-shrink: 0;
+  position: relative;
+}
+.v14-routing-area svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.routing-line {
+  stroke: var(--accent);
+  stroke-width: 1;
+  fill: none;
+  stroke-dasharray: 4 3;
+  animation: dashflow 0.8s linear infinite;
+  opacity: 0.6;
+}
+.routing-line.override-line {
+  stroke: var(--override);
+}
+.v14-dest {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+.v14-btn-stack {
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  flex-shrink: 0;
+}
+.v14-btn-stack .ls-btn { flex: 1; width: 22px; font-size: 9px; }
+.v14-transport {
+  width: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.v14-transport .ls-btn { width: 18px; height: 18px; font-size: 8px; }
+.v14-blend { width: 50px; height: 18px; font-size: 9px; align-self: center; }
+.v14-thumb { width: 80px; height: 58px; align-self: center; margin: 0 2px; }
+.v14-fade {
+  display: flex;
+  flex-direction: column;
+  width: 12px;
+  flex-shrink: 0;
+  padding: 4px 0;
+  gap: 1px;
+}
+.v14-fade .ls-fade-speed { flex: 1; width: 12px; }
+.v14-fade .ls-fade-type { width: 12px; height: 12px; font-size: 6px; padding: 0 1px; }
+.v14-sliders {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v14-sliders .ls-slider-col { width: 14px; gap: 2px; }
+.v14-sliders .ls-slider-label { font-size: 7px; }
+.v14-name {
+  position: absolute;
+  bottom: 2px;
+  left: 60px;
+  font-size: 9px;
+}
+
+/* ===================================================================
+   V15 — CELLS-LEFT-STRIP-RIGHT (~120px)
+   Mirror layout: cells 780px left, strip 420px right (PROGRAMMING MODE)
+   =================================================================== */
+.v15-row-frame {
+  flex-direction: row-reverse;
+  position: relative;
+}
+.v15-strip {
+  width: 420px;
+  display: flex;
+  align-items: stretch;
+  border-left: 1px solid var(--separator);
+}
+.v15-cells {
+  width: 780px;
+  flex-shrink: 0;
+}
+.v15-mode-label {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font: 500 8px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  z-index: 1;
+}
+.v15-btn-stack {
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  flex-shrink: 0;
+}
+.v15-btn-stack .ls-btn { flex: 1; width: 22px; font-size: 9px; }
+.v15-transport {
+  width: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.v15-transport .ls-btn { width: 18px; height: 18px; font-size: 8px; }
+.v15-blend { width: 80px; height: 20px; font-size: 9px; align-self: center; }
+.v15-thumb { width: 100px; height: 72px; align-self: center; margin: 0 4px; }
+.v15-fade {
+  display: flex;
+  flex-direction: column;
+  width: 14px;
+  flex-shrink: 0;
+  padding: 4px 0;
+  gap: 1px;
+}
+.v15-fade .ls-fade-speed { flex: 1; width: 14px; }
+.v15-fade .ls-fade-type { width: 14px; height: 14px; font-size: 7px; padding: 0 1px; }
+.v15-sliders {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v15-sliders .ls-slider-col { width: 16px; gap: 2px; }
+.v15-sliders .ls-slider-label { font-size: 7px; }
+.v15-signals {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v15-signals .signal-col { width: 14px; gap: 1px; }
+.v15-signals .signal-col-label { font-size: 6px; }
+.v15-name {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 9px;
+}
+
+/* ===================================================================
+   V16 — RING-AROUND-THUMBNAIL (~130px)
+   U-SHAPE: controls on TOP, LEFT, BOTTOM of thumbnail. Right side OPEN
+   (connects visually to cells). SQUARE corners, NO circles.
+   =================================================================== */
+.v16-row-frame {
+  height: 130px;
+}
+.v16-strip {
+  width: 300px;
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+.v16-outer-controls {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  padding: 4px;
+  gap: 2px;
+}
+.v16-outer-sliders {
+  display: flex;
+  gap: 0;
+  flex: 1;
+}
+.v16-outer-sliders .ls-slider-col { width: 16px; gap: 2px; }
+.v16-outer-sliders .ls-slider-label { font-size: 7px; }
+.v16-outer-signals {
+  display: flex;
+  gap: 0;
+  flex: 1;
+}
+.v16-outer-signals .signal-col { width: 14px; gap: 1px; }
+.v16-outer-signals .signal-col-label { font-size: 6px; }
+.v16-ushape {
+  width: 208px;
+  height: 126px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  grid-template-rows: 24px 1fr 24px;
+  flex-shrink: 0;
+  margin: 2px 0;
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-right: none;
+}
+.v16-ushape-top {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.v16-ushape-top .ls-btn { width: 22px; height: 22px; font-size: 9px; }
+.v16-ushape-bottom {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.v16-ushape-bottom .ls-blend { width: 100%; height: 22px; font-size: 8px; }
+.v16-ushape-left {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  padding: 2px 0;
+}
+.v16-ushape-left .ls-fade-speed { width: 20px; flex: 1; }
+.v16-ushape-left .ls-fade-type { width: 20px; height: 14px; font-size: 6px; padding: 0 1px; }
+.v16-ushape-center {
+  grid-column: 2;
+  grid-row: 2;
+  overflow: hidden;
+  background: var(--bg);
+}
+.v16-ushape-center svg { width: 100%; height: 100%; display: block; }
+.v16-name {
+  position: absolute;
+  bottom: 2px;
+  left: 84px;
+  font-size: 9px;
+}
+.v16-cells {
+  padding: 0 4px;
+}
+.v16-cells .clip-cell { height: 75px; }
+
+/* ===================================================================
+   V17 — FLOATING-CONTROLS (~130px, 2 focus states)
+   FOCUS-STATE PROGRESSIVE DISCLOSURE: opacity-based, no hover dependency.
+   Works for MIDI/touch/hardware (bind layer focus to controller button).
+   =================================================================== */
+.v17-row-frame {
+  flex-direction: column;
+  height: auto;
+}
+.v17-state-label {
+  font: 500 8px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 3px 8px;
+  background: var(--section-header);
+  border-bottom: 1px solid var(--border);
+}
+.v17-layer-row {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 4px;
+  position: relative;
+}
+.v17-layer-thumb {
+  width: 80px;
+  height: 50px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.v17-layer-name {
+  font: 10px var(--font-sans);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.v17-layer-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.v17-layer-controls .ls-btn { width: 18px; height: 18px; font-size: 8px; }
+.v17-layer-controls .ls-transport .ls-btn { width: 16px; height: 16px; font-size: 7px; }
+.v17-layer-controls .ls-blend { width: 50px; height: 16px; font-size: 8px; }
+.v17-layer-controls .ls-sep { height: 18px; }
+.v17-focus-fade {
+  display: flex;
+  flex-direction: column;
+  width: 12px;
+  flex-shrink: 0;
+  gap: 1px;
+  margin-right: 2px;
+}
+.v17-focus-fade .ls-fade-speed { flex: 1; width: 12px; }
+.v17-focus-fade .ls-fade-type { width: 12px; height: 10px; font-size: 5px; padding: 0 1px; }
+.v17-focus-sliders {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
+.v17-focus-sliders .ls-slider-col { width: 14px; gap: 1px; }
+.v17-focus-sliders .ls-slider-label { font-size: 6px; }
+.v17-focus-signals {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.v17-focus-signals .signal-col { width: 12px; gap: 1px; }
+.v17-focus-signals .signal-col-label { font-size: 5px; }
+.v17-active-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.v17-layer-row .cells-grid {
+  gap: 2px;
+  padding: 0;
+}
+.v17-layer-row .clip-cell { height: 50px; width: 88px; }
+/* Inactive layer: controls demoted to 35% opacity */
+.v17-inactive .v17-layer-controls,
+.v17-inactive .v17-focus-fade,
+.v17-inactive .v17-focus-sliders,
+.v17-inactive .v17-focus-signals,
+.v17-inactive .v17-active-dot { opacity: 0.35; }
+/* Active layer: full visibility */
+.v17-active .v17-layer-controls,
+.v17-active .v17-focus-fade,
+.v17-active .v17-focus-sliders,
+.v17-active .v17-focus-signals,
+.v17-active .v17-active-dot { opacity: 1; }
+
+/* ===================================================================
+   V18 — PER-CELL-MICRO-CONTROLS (~120px)
+   Minimal strip. Controls embedded in 150x80 cells. Enlarged buttons (12px),
+   micro V bar + micro F numeric in each cell.
+   =================================================================== */
+.v18-strip {
+  width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+.v18-strip .ls-btn { width: 22px; height: 22px; font-size: 9px; }
+.v18-strip .layer-name { font-size: 11px; }
+.v18-active-indicator {
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.v18-cells .clip-cell {
+  width: 150px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+}
+.v18-cell-micro-top {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px;
+  background: var(--section-header);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.v18-cell-micro-top .ls-btn {
+  width: 20px;
+  height: 16px;
+  font-size: 8px;
+}
+.v18-cell-micro-top .ls-tri {
+  width: 5px;
+  height: 5px;
+}
+/* Micro V bar: 4px-tall fill bar showing opacity */
+.v18-micro-v {
+  width: 28px;
+  height: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  flex-shrink: 0;
+}
+.v18-micro-v-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--accent);
+}
+/* Micro F numeric */
+.v18-micro-f {
+  font: 7px var(--font-mono);
+  color: var(--label);
+  flex-shrink: 0;
+}
+.v18-cell-micro-top .speed-val {
+  font: 8px var(--font-mono);
+  color: var(--value);
+  margin-left: auto;
+}
+.v18-cell-middle {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+.v18-cell-middle svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.v18-cell-bottom {
+  height: 14px;
+  display: flex;
+  align-items: center;
+  padding: 0 3px;
+  font: 9px var(--font-sans);
+  color: var(--label);
+  background: rgba(26,26,26,0.85);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.v18-cell-state-dot {
+  width: 4px;
+  height: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.v18-cell-state-dot.playing  { background: var(--accent); }
+.v18-cell-state-dot.queued   { background: var(--accent); opacity: 0.5; }
+.v18-cell-state-dot.selected { background: var(--accent); opacity: 0.3; }
+.v18-cell-state-dot.loaded   { background: var(--border); }
+
+/* ===================================================================
+   V19 — ADAPTIVE-COLLAPSE (~175px, 3 rows)
+   ACTIVE ~120px, NEIGHBOR ~35px, DISTANT ~20px
+   =================================================================== */
+.v19-row-frame {
+  flex-direction: column;
+  height: auto;
+}
+.adaptive-collapse-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+.adaptive-collapse-row + .adaptive-collapse-row {
+  border-top: 1px solid var(--border);
+}
+
+/* Active row (full) */
+.v19-active {
+  height: 120px;
+}
+.v19-active-strip {
+  width: 380px;
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+.v19-active .v19-btn-stack {
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  flex-shrink: 0;
+}
+.v19-active .v19-btn-stack .ls-btn { flex: 1; width: 22px; font-size: 9px; }
+.v19-active .v19-transport {
+  width: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.v19-active .v19-transport .ls-btn { width: 18px; height: 18px; font-size: 8px; }
+.v19-active .v19-blend { width: 60px; height: 18px; font-size: 9px; align-self: center; }
+.v19-active .v19-thumb { width: 100px; height: 72px; align-self: center; margin: 0 4px; }
+.v19-active .v19-fade {
+  display: flex;
+  flex-direction: column;
+  width: 14px;
+  flex-shrink: 0;
+  padding: 4px 0;
+  gap: 1px;
+}
+.v19-active .v19-fade .ls-fade-speed { flex: 1; width: 14px; }
+.v19-active .v19-fade .ls-fade-type { width: 14px; height: 14px; font-size: 7px; padding: 0 1px; }
+.v19-sliders {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v19-sliders .ls-slider-col { width: 16px; gap: 2px; }
+.v19-sliders .ls-slider-label { font-size: 7px; }
+.v19-signals {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v19-signals .signal-col { width: 14px; gap: 1px; }
+.v19-signals .signal-col-label { font-size: 6px; }
+.v19-active .cells-grid .clip-cell { width: 100px; height: 80px; }
+.v19-active-label {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font: 7px var(--font-sans);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Neighbor row (compressed) */
+.v19-neighbor {
+  height: 35px;
+  background: var(--bg);
+}
+.v19-neighbor-strip {
+  width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.v19-neighbor-strip .ls-btn { width: 14px; height: 14px; font-size: 6px; }
+.v19-neighbor-strip .layer-name { font-size: 8px; }
+.v19-neighbor-strip .ls-thumb { width: 30px; height: 24px; }
+.v19-neighbor .cells-grid { gap: 1px; }
+.v19-neighbor .clip-cell {
+  width: 30px;
+  height: 24px;
+}
+.v19-neighbor .clip-cell .clip-wave { display: none; }
+.v19-neighbor .clip-cell .clip-name { height: 8px; font-size: 6px; }
+.v19-neighbor-label {
+  font: 6px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 4px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* Distant row (minimal) */
+.v19-distant {
+  height: 20px;
+  background: var(--bg);
+}
+.v19-distant-strip {
+  width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.v19-distant-strip .layer-name { font-size: 7px; color: var(--label); }
+.v19-distant-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+}
+.v19-distant-dot {
+  width: 6px;
+  height: 6px;
+}
+.v19-distant-dot.playing { background: var(--accent); }
+.v19-distant-dot.queued { background: var(--accent); opacity: 0.4; }
+.v19-distant-dot.loaded { background: var(--border); }
+.v19-distant-dot.empty { border: 1px dashed var(--border); background: none; }
+.v19-distant-dot.selected { background: var(--accent); opacity: 0.3; }
+.v19-distant-signal-blip {
+  width: 20px;
+  height: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.v19-distant-signal-blip-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40%;
+  background: var(--accent);
+  opacity: 0.3;
+}
+.v19-distant-label {
+  font: 6px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 4px;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+/* ===================================================================
+   V20 — HARMONY-RECOMMENDED (~120px)
+   Synthesis: playhead-rate speed, 4 signal columns + 1 primary edge bar
+   =================================================================== */
+.v20-strip {
+  width: 360px;
+  display: flex;
+  align-items: stretch;
+}
+.v20-btn-stack {
+  display: flex;
+  flex-direction: column;
+  width: 22px;
+  flex-shrink: 0;
+}
+.v20-btn-stack .ls-btn { flex: 1; width: 22px; font-size: 9px; }
+.v20-transport {
+  width: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+.v20-transport .ls-btn { width: 18px; height: 18px; font-size: 8px; }
+.v20-blend { width: 100px; height: 18px; font-size: 9px; align-self: center; }
+.v20-thumb-area {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  margin: 4px;
+  gap: 2px;
+}
+.v20-thumb { width: 120px; height: 68px; }
+.v20-playhead-bar {
+  width: 120px;
+  height: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.v20-playhead-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 65%;
+  background: var(--accent);
+  opacity: 0.5;
+}
+.v20-playhead-label {
+  font: 8px var(--font-mono);
+  color: var(--value);
+  position: absolute;
+  right: 2px;
+  top: 0;
+  line-height: 8px;
+}
+.v20-fade {
+  display: flex;
+  flex-direction: column;
+  width: 14px;
+  flex-shrink: 0;
+  padding: 4px 0;
+  gap: 1px;
+}
+.v20-fade .ls-fade-speed { flex: 1; width: 14px; }
+.v20-fade .ls-fade-type { width: 14px; height: 14px; font-size: 7px; padding: 0 1px; }
+.v20-sliders {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v20-sliders .ls-slider-col { width: 16px; gap: 2px; }
+.v20-sliders .ls-slider-label { font-size: 7px; }
+.v20-signals {
+  display: flex;
+  gap: 0;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+.v20-signals .signal-col { width: 14px; gap: 1px; }
+.v20-signals .signal-col-label { font-size: 6px; }
+.v20-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+}
+.v20-override-badge {
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+}
+
+/* V20 cells with primary signal edge bar */
+.v20-cells .clip-cell {
+  position: relative;
+}
+.v20-cell-top-edge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+  opacity: 0.6;
+}
+.cell-state-playing .v20-cell-top-edge { opacity: 1; }
+.cell-state-loaded .v20-cell-top-edge { opacity: 0.25; }
+.cell-state-empty .v20-cell-top-edge { opacity: 0; }
+.v20-cell-active-bar {
+  position: absolute;
+  bottom: 14px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+}
+.v20-override-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: var(--override);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 500 6px var(--font-sans);
+  color: var(--bg);
+  text-transform: uppercase;
+}
+
+/* ===================================================================
+   FOOTER TABLE
+   =================================================================== */
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font: 10px var(--font-sans);
+}
+.summary-table th {
+  background: var(--section-header);
+  color: var(--value);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  padding: 6px 8px;
+  text-align: left;
+  border: 1px solid var(--border);
+}
+.summary-table td {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  color: var(--label);
+  vertical-align: top;
+}
+.summary-table tr:nth-child(even) td {
+  background: var(--section-header);
+}
+.summary-table .rec {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+</style>
+</head>
+<body>
+
+<div class="study-title">AUDIO-DNA V10 -- LAYER ROW DESIGN STUDY PART B (V11-V20)</div>
+<div class="study-intro">
+  Signal Reinvented (V11-V14) and Layout Radical (V15-V20) explorations.
+  Each variation shows a full layer row: strip + cells grid at 1200px reference width.
+  No K slider anywhere. Speed and signal placements vary per design strategy.
+  Part A (V1-V10) in separate file.
+</div>
+
+<!-- ============================================================
+     CATEGORY C — SIGNAL REINVENTED
+     ============================================================ -->
+<div class="category-heading">CATEGORY C -- SIGNAL REINVENTED</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V11 — SIGNAL-EDGE-BARS-ON-CELLS
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V11: SIGNAL-EDGE-BARS-ON-CELLS</div>
+  <div class="variation-note">
+    Each cell has 4 edge bars: TOP=BASS, BOTTOM=HIGH, LEFT=MID, RIGHT=RMS.
+    No signal columns in strip -- signals live on the cells themselves.
+    Playing cells show bars at full opacity; inactive at 30%.
+    Height: ~120px. Speed: vertical column. Signal: 4 cell edge bars.
+  </div>
+  <div class="row-frame" style="height:120px;">
+    <!-- STRIP -->
+    <div class="strip v11-strip" style="height:120px;">
+      <!-- X B S -->
+      <div class="v11-btn-stack">
+        <div class="ls-btn active">X</div>
+        <div class="ls-btn active">B</div>
+        <div class="ls-btn">S</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Transport -->
+      <div class="v11-transport ls-transport">
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9664;</div>
+        <div class="ls-btn playing" style="width:18px;height:18px;font-size:8px;">&#9654;</div>
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9646;&#9646;</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Blend -->
+      <div class="ls-blend v11-blend">ADD</div>
+      <div class="ls-sep"></div>
+      <!-- Thumbnail -->
+      <div class="ls-thumb v11-thumb">
+        <svg viewBox="0 0 100 72" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="72" fill="#1a1a1a"/>
+          <line x1="0" y1="0" x2="100" y2="72" stroke="#00d9ff" stroke-width="0.5" opacity="0.4"/>
+          <line x1="100" y1="0" x2="0" y2="72" stroke="#00d9ff" stroke-width="0.5" opacity="0.4"/>
+          <rect x="30" y="20" width="40" height="32" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+          <rect x="40" y="28" width="20" height="16" fill="#00d9ff" opacity="0.08"/>
+          <line x1="10" y1="36" x2="90" y2="36" stroke="#3a3a3a" stroke-width="0.5"/>
+        </svg>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Fade pair -->
+      <div class="ls-fade-pair v11-fade">
+        <div class="ls-fade-speed">
+          <div class="ls-fade-speed-fill" style="height:40%;"></div>
+          <div class="ls-fade-speed-tick" style="bottom:40%;"></div>
+        </div>
+        <div class="ls-fade-type">LIN</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- S V F sliders -->
+      <div class="v11-sliders">
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">S</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:50%;"></div>
+            <div class="ls-slider-tick" style="bottom:50%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+        </div>
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">V</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:100%;"></div>
+            <div class="ls-slider-tick" style="bottom:100%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+        </div>
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">F</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill override" style="height:30%;"></div>
+            <div class="ls-slider-tick" style="bottom:30%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">0.3</div>
+        </div>
+      </div>
+      <!-- Layer name -->
+      <div class="layer-name v11-name">LAYER 1</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- CELLS with edge bars -->
+    <div class="cells-grid">
+      <!-- Cell 1: Playing -->
+      <div class="clip-cell cell-state-playing">
+        <div class="cell-edge-bar top" style="width:80%;"></div>
+        <div class="cell-edge-bar bottom" style="width:60%;"></div>
+        <div class="cell-edge-bar left" style="height:70%;"></div>
+        <div class="cell-edge-bar right" style="height:45%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,2 1,8 5,14 2,20 4,26 1,32 5,38 3,44 4,50 2,56 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polygon points="47,8 80,58 14,58" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/><line x1="0" y1="33" x2="94" y2="33" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">KICK_LOOP</div>
+      </div>
+      <!-- Cell 2: Queued -->
+      <div class="clip-cell cell-state-queued">
+        <div class="cell-edge-bar top" style="width:50%;"></div>
+        <div class="cell-edge-bar bottom" style="width:40%;"></div>
+        <div class="cell-edge-bar left" style="height:55%;"></div>
+        <div class="cell-edge-bar right" style="height:30%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,4 5,12 1,20 4,28 2,36 5,44 3,52 1,60" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="20" y="15" width="54" height="36" fill="none" stroke="#3a3a3a" stroke-width="0.5"/><line x1="20" y1="15" x2="74" y2="51" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/></svg></div>
+        <div class="clip-name">BASS_HIT</div>
+      </div>
+      <!-- Cell 3: Selected -->
+      <div class="clip-cell cell-state-selected">
+        <div class="cell-edge-bar top" style="width:35%;"></div>
+        <div class="cell-edge-bar bottom" style="width:70%;"></div>
+        <div class="cell-edge-bar left" style="height:40%;"></div>
+        <div class="cell-edge-bar right" style="height:60%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,3 4,11 1,19 5,27 3,35 2,43 4,51 1,59" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><circle cx="47" cy="33" r="20" fill="none" stroke="#3a3a3a" stroke-width="0.5"/><line x1="27" y1="33" x2="67" y2="33" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/></svg></div>
+        <div class="clip-name">SNARE_01</div>
+      </div>
+      <!-- Cell 4: Loaded -->
+      <div class="clip-cell cell-state-loaded">
+        <div class="cell-edge-bar top" style="width:20%;"></div>
+        <div class="cell-edge-bar bottom" style="width:25%;"></div>
+        <div class="cell-edge-bar left" style="height:15%;"></div>
+        <div class="cell-edge-bar right" style="height:20%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,5 4,15 2,25 5,35 1,45 4,55 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="10" y="20" width="30" height="26" fill="#2a2a2a"/><rect x="54" y="20" width="30" height="26" fill="#2a2a2a"/></svg></div>
+        <div class="clip-name">PAD_WASH</div>
+      </div>
+      <!-- Cell 5: Loaded -->
+      <div class="clip-cell cell-state-loaded">
+        <div class="cell-edge-bar top" style="width:15%;"></div>
+        <div class="cell-edge-bar bottom" style="width:30%;"></div>
+        <div class="cell-edge-bar left" style="height:25%;"></div>
+        <div class="cell-edge-bar right" style="height:10%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,3 1,13 5,23 2,33 4,43 1,53 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="0" y1="10" x2="94" y2="56" stroke="#3a3a3a" stroke-width="0.5"/><line x1="0" y1="56" x2="94" y2="10" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">FX_STAB</div>
+      </div>
+      <!-- Cell 6: Loaded -->
+      <div class="clip-cell cell-state-loaded">
+        <div class="cell-edge-bar top" style="width:40%;"></div>
+        <div class="cell-edge-bar bottom" style="width:15%;"></div>
+        <div class="cell-edge-bar left" style="height:35%;"></div>
+        <div class="cell-edge-bar right" style="height:25%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,2 4,14 1,26 5,38 3,50 2,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="5" y="5" width="84" height="56" fill="none" stroke="#3a3a3a" stroke-width="0.5"/><rect x="25" y="18" width="44" height="30" fill="#00d9ff" opacity="0.04"/></svg></div>
+        <div class="clip-name">TEXTURE_A</div>
+      </div>
+      <!-- Cell 7: Loaded -->
+      <div class="clip-cell cell-state-loaded">
+        <div class="cell-edge-bar top" style="width:55%;"></div>
+        <div class="cell-edge-bar bottom" style="width:45%;"></div>
+        <div class="cell-edge-bar left" style="height:30%;"></div>
+        <div class="cell-edge-bar right" style="height:50%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,4 5,16 1,28 4,40 2,52 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polyline points="0,50 20,20 40,40 60,15 80,35 94,10" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">RISER_02</div>
+      </div>
+      <!-- Cell 8: Empty -->
+      <div class="clip-cell cell-state-empty">
+        <div class="cell-edge-bar top" style="width:0;"></div>
+        <div class="cell-edge-bar bottom" style="width:0;"></div>
+        <div class="cell-edge-bar left" style="height:0;"></div>
+        <div class="cell-edge-bar right" style="height:0;"></div>
+        <div class="clip-name"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V12 — SIGNAL-AS-TINT
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V12: SIGNAL-AS-TINT</div>
+  <div class="variation-note">
+    Cells get translucent blue tint overlay (10-40% opacity range) pulsing with
+    routed signal. Each cell has a 2px BOTTOM BAR whose width = primary signal
+    amplitude, plus a single-letter routing label (B/M/H/R) in bottom-left corner.
+    Triangles next to routable params indicate routing state.
+    Height: ~120px. Speed: vertical column. Signal: cell tint + bottom bar + route label.
+  </div>
+  <div class="row-frame" style="height:120px;">
+    <!-- STRIP -->
+    <div class="strip v12-strip" style="height:120px;">
+      <div class="v12-btn-stack">
+        <div class="ls-btn active">X</div>
+        <div class="ls-btn active">B</div>
+        <div class="ls-btn">S</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="v12-transport ls-transport">
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9664;</div>
+        <div class="ls-btn playing" style="width:18px;height:18px;font-size:8px;">&#9654;</div>
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9646;&#9646;</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="ls-blend v12-blend" style="width:60px;height:18px;">SCREEN</div>
+      <div class="ls-sep"></div>
+      <div class="ls-thumb v12-thumb">
+        <svg viewBox="0 0 100 72" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="72" fill="#1a1a1a"/>
+          <rect x="10" y="10" width="80" height="52" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+          <line x1="10" y1="36" x2="90" y2="36" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+          <line x1="50" y1="10" x2="50" y2="62" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+          <rect x="30" y="22" width="40" height="28" fill="#00d9ff" opacity="0.06"/>
+        </svg>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="ls-fade-pair v12-fade">
+        <div class="ls-fade-speed">
+          <div class="ls-fade-speed-fill" style="height:35%;"></div>
+          <div class="ls-fade-speed-tick" style="bottom:35%;"></div>
+        </div>
+        <div class="ls-fade-type">COS</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Triangles next to routable params -->
+      <div class="v12-tri-group">
+        <div class="ls-tri routed"></div>
+        <div class="v12-tri-label">S</div>
+        <div class="ls-tri unrouted"></div>
+        <div class="v12-tri-label">V</div>
+        <div class="ls-tri routed"></div>
+        <div class="v12-tri-label">F</div>
+        <div class="ls-tri override"></div>
+        <div class="v12-tri-label">BLD</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="v12-sliders">
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">S</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:50%;"></div>
+            <div class="ls-slider-tick" style="bottom:50%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+        </div>
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">V</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:80%;"></div>
+            <div class="ls-slider-tick" style="bottom:80%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">0.8</div>
+        </div>
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">F</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:25%;"></div>
+            <div class="ls-slider-tick" style="bottom:25%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">0.3</div>
+        </div>
+      </div>
+      <div class="layer-name v12-name">LAYER 2</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- CELLS with tint overlay + bottom bar + routing label -->
+    <div class="cells-grid">
+      <div class="clip-cell cell-state-playing">
+        <div class="cell-tint"></div>
+        <div class="v12-route-label">B</div>
+        <div class="v12-cell-bottom-bar" style="width:75%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,2 1,10 5,18 2,26 4,34 1,42 5,50 3,58" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="15" y="10" width="64" height="46" fill="none" stroke="#3a3a3a" stroke-width="0.5"/><polygon points="47,15 70,50 24,50" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+        <div class="clip-name">VOCAL_CHP</div>
+      </div>
+      <div class="clip-cell cell-state-queued">
+        <div class="cell-tint"></div>
+        <div class="v12-route-label">M</div>
+        <div class="v12-cell-bottom-bar" style="width:45%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,4 4,14 2,24 5,34 1,44 3,54 4,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="10" y1="60" x2="84" y2="6" stroke="#3a3a3a" stroke-width="0.5"/><rect x="35" y="25" width="24" height="16" fill="#00d9ff" opacity="0.05"/></svg></div>
+        <div class="clip-name">SYNTH_PAD</div>
+      </div>
+      <div class="clip-cell cell-state-selected">
+        <div class="cell-tint"></div>
+        <div class="v12-route-label">H</div>
+        <div class="v12-cell-bottom-bar" style="width:30%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,5 5,15 1,25 4,35 2,45 5,55 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="5" y="20" width="84" height="26" fill="none" stroke="#3a3a3a" stroke-width="0.5"/><line x1="5" y1="33" x2="89" y2="33" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/></svg></div>
+        <div class="clip-name">AMBIENT_B</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="cell-tint" style="opacity:0;"></div>
+        <div class="v12-route-label">R</div>
+        <div class="v12-cell-bottom-bar" style="width:60%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,3 1,16 5,29 2,42 4,55 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polyline points="0,60 30,20 60,40 94,10" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">PERC_FILL</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="cell-tint" style="opacity:0;"></div>
+        <div class="v12-route-label">B</div>
+        <div class="v12-cell-bottom-bar" style="width:50%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,5 4,18 1,31 5,44 2,57 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="20" y="12" width="54" height="42" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">DRONE_01</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="cell-tint" style="opacity:0;"></div>
+        <div class="v12-route-label">M</div>
+        <div class="v12-cell-bottom-bar" style="width:40%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,4 5,17 1,30 4,43 2,56 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="47" y1="5" x2="47" y2="61" stroke="#3a3a3a" stroke-width="0.5"/><line x1="10" y1="33" x2="84" y2="33" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">CHORD_ST</div>
+      </div>
+      <div class="clip-cell cell-state-empty">
+        <div class="clip-name"></div>
+      </div>
+      <div class="clip-cell cell-state-empty">
+        <div class="clip-name"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V13 — SIGNAL-PARTICLE-FLOW
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V13: SIGNAL-PARTICLE-FLOW</div>
+  <div class="variation-note">
+    Source signal columns on far-left. SHORT ANIMATED RIBBONS (1-3px stroke-width
+    by amplitude) flow from specific source columns to specific destination params
+    (V/F sliders, blend). 4-5 ribbons MAX, each connecting ONE source to ONE dest.
+    Strip reduced to 400px for 7+ cells.
+    Height: ~120px. Speed: vertical column. Signal: source columns + routing ribbons.
+  </div>
+  <div class="row-frame" style="height:120px;">
+    <div class="strip v13-strip" style="height:120px;">
+      <!-- Source columns -->
+      <div class="v13-sources">
+        <div class="signal-col">
+          <div class="signal-col-label">BAS</div>
+          <div class="signal-col-track" style="height:80px;">
+            <div class="signal-col-fill" style="height:75%;"></div>
+          </div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">MID</div>
+          <div class="signal-col-track" style="height:80px;">
+            <div class="signal-col-fill" style="height:45%;"></div>
+          </div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">HI</div>
+          <div class="signal-col-track" style="height:80px;">
+            <div class="signal-col-fill" style="height:30%;"></div>
+          </div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">RMS</div>
+          <div class="signal-col-track" style="height:80px;">
+            <div class="signal-col-fill" style="height:60%;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Ribbon field: 5 animated routing ribbons, source-to-destination -->
+      <div class="v13-ribbon-field">
+        <svg viewBox="0 0 340 120" xmlns="http://www.w3.org/2000/svg">
+          <!-- BAS->V slider (high amplitude=3px) -->
+          <line x1="0" y1="25" x2="280" y2="40" stroke="#00d9ff" stroke-width="3" opacity="0.5" stroke-dasharray="8 8" style="animation:ribbon-flow 1.2s linear infinite;"/>
+          <!-- MID->F slider (mid amplitude=2px) -->
+          <line x1="0" y1="45" x2="280" y2="70" stroke="#00d9ff" stroke-width="2" opacity="0.4" stroke-dasharray="8 8" style="animation:ribbon-flow 1.5s linear infinite;"/>
+          <!-- HI->blend (low amplitude=1px) -->
+          <line x1="0" y1="60" x2="160" y2="55" stroke="#00d9ff" stroke-width="1" opacity="0.35" stroke-dasharray="8 8" style="animation:ribbon-flow 1.8s linear infinite;"/>
+          <!-- RMS->V slider (mid amplitude=2px) -->
+          <line x1="0" y1="80" x2="280" y2="50" stroke="#00d9ff" stroke-width="2" opacity="0.4" stroke-dasharray="8 8" style="animation:ribbon-flow 1.4s linear infinite;"/>
+          <!-- BAS->blend (high amplitude=3px) -->
+          <line x1="0" y1="35" x2="160" y2="60" stroke="#00d9ff" stroke-width="3" opacity="0.45" stroke-dasharray="8 8" style="animation:ribbon-flow 1.3s linear infinite;"/>
+        </svg>
+      </div>
+      <!-- Middle controls -->
+      <div class="v13-middle">
+        <div class="v13-btn-stack">
+          <div class="ls-btn active">X</div>
+          <div class="ls-btn active">B</div>
+          <div class="ls-btn">S</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="v13-transport ls-transport">
+          <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9664;</div>
+          <div class="ls-btn playing" style="width:18px;height:18px;font-size:8px;">&#9654;</div>
+          <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9646;&#9646;</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="ls-blend v13-blend">MULT</div>
+        <div class="ls-sep"></div>
+        <div class="ls-thumb v13-thumb">
+          <svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+            <rect width="80" height="60" fill="#1a1a1a"/>
+            <polyline points="0,50 12,18 28,36 42,8 56,32 70,14 80,40" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.35"/>
+            <rect x="16" y="15" width="48" height="30" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+          </svg>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="ls-fade-pair v13-fade">
+          <div class="ls-fade-speed">
+            <div class="ls-fade-speed-fill" style="height:50%;"></div>
+            <div class="ls-fade-speed-tick" style="bottom:50%;"></div>
+          </div>
+          <div class="ls-fade-type">LIN</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="v13-sliders">
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">S</div>
+            <div class="ls-slider-track" style="height:65px;">
+              <div class="ls-slider-fill" style="height:75%;"></div>
+              <div class="ls-slider-tick" style="bottom:75%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">1.5</div>
+          </div>
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">V</div>
+            <div class="ls-slider-track" style="height:65px;">
+              <div class="ls-slider-fill override" style="height:60%;"></div>
+              <div class="ls-slider-tick" style="bottom:60%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">0.6</div>
+          </div>
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">F</div>
+            <div class="ls-slider-track" style="height:65px;">
+              <div class="ls-slider-fill" style="height:30%;"></div>
+              <div class="ls-slider-tick" style="bottom:30%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">0.3</div>
+          </div>
+        </div>
+      </div>
+      <div class="layer-name v13-name">LAYER 3</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- CELLS (7 cells now with narrower strip) -->
+    <div class="cells-grid">
+      <div class="clip-cell cell-state-playing">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,3 1,11 5,19 2,27 4,35 1,43 5,51 3,59" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="10" y="8" width="74" height="50" fill="none" stroke="#3a3a3a" stroke-width="0.5"/><polyline points="10,45 30,20 50,35 74,12" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+        <div class="clip-name">GLITCH_LP</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,5 4,15 1,25 5,35 2,45 4,55 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="0" y1="33" x2="94" y2="33" stroke="#3a3a3a" stroke-width="0.5"/><rect x="25" y="15" width="44" height="36" fill="#00d9ff" opacity="0.04"/></svg></div>
+        <div class="clip-name">NOISE_FL</div>
+      </div>
+      <div class="clip-cell cell-state-selected">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,4 5,14 1,24 4,34 2,44 5,54 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polygon points="47,5 90,60 4,60" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">WASH_02</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,2 1,14 5,26 2,38 4,50 1,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="15" y="18" width="28" height="30" fill="#2a2a2a"/><rect x="51" y="18" width="28" height="30" fill="#2a2a2a"/></svg></div>
+        <div class="clip-name">CHIME_HI</div>
+      </div>
+      <div class="clip-cell cell-state-queued">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,6 4,16 2,26 5,36 1,46 3,56 4,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="10" y1="10" x2="84" y2="56" stroke="#3a3a3a" stroke-width="0.5"/><line x1="84" y1="10" x2="10" y2="56" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">IMPACT_A</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,3 5,15 1,27 4,39 2,51 5,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="8" y="8" width="78" height="50" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">SWEEP_DN</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,4 1,14 5,24 2,34 4,44 1,54 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="10" y1="50" x2="84" y2="16" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">DRIFT_C</div>
+      </div>
+      <div class="clip-cell cell-state-empty">
+        <div class="clip-name"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V14 — SIGNAL-ROUTING-LINES
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V14: SIGNAL-ROUTING-LINES</div>
+  <div class="variation-note">
+    Living patch diagram. Source columns far-left, animated SVG lines drawn to
+    destination params (S/V/F). stroke-dasharray flow effect. Literal visual routing.
+    Height: ~125px. Speed: vertical column (destination). Signal: animated routing lines.
+  </div>
+  <div class="row-frame v14-row-frame">
+    <div class="strip v14-strip" style="height:125px;">
+      <!-- Source columns -->
+      <div class="v14-sources">
+        <div class="signal-col">
+          <div class="signal-col-label">BAS</div>
+          <div class="signal-col-track" style="height:90px;">
+            <div class="signal-col-fill" style="height:80%;"></div>
+          </div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">MID</div>
+          <div class="signal-col-track" style="height:90px;">
+            <div class="signal-col-fill" style="height:50%;"></div>
+          </div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">HI</div>
+          <div class="signal-col-track" style="height:90px;">
+            <div class="signal-col-fill" style="height:35%;"></div>
+          </div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">RMS</div>
+          <div class="signal-col-track" style="height:90px;">
+            <div class="signal-col-fill" style="height:65%;"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Routing area with SVG lines -->
+      <div class="v14-routing-area">
+        <svg viewBox="0 0 80 125" xmlns="http://www.w3.org/2000/svg">
+          <!-- BASS -> S (top route) -->
+          <path d="M0,20 C40,20 40,30 80,30" class="routing-line"/>
+          <!-- MID -> V (middle route) -->
+          <path d="M0,45 C40,45 40,55 80,55" class="routing-line"/>
+          <!-- HI -> F (lower route) -->
+          <path d="M0,65 C40,65 40,75 80,75" class="routing-line"/>
+          <!-- RMS -> Blend (override route) -->
+          <path d="M0,85 C40,85 40,50 80,50" class="routing-line override-line"/>
+        </svg>
+      </div>
+      <!-- Destination controls -->
+      <div class="v14-dest">
+        <div class="v14-btn-stack">
+          <div class="ls-btn active">X</div>
+          <div class="ls-btn active">B</div>
+          <div class="ls-btn">S</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="v14-transport ls-transport">
+          <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9664;</div>
+          <div class="ls-btn playing" style="width:18px;height:18px;font-size:8px;">&#9654;</div>
+          <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9646;&#9646;</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="ls-blend v14-blend" style="width:50px;height:18px;">OVERLAY</div>
+        <div class="ls-sep"></div>
+        <div class="ls-thumb v14-thumb">
+          <svg viewBox="0 0 80 58" xmlns="http://www.w3.org/2000/svg">
+            <rect width="80" height="58" fill="#1a1a1a"/>
+            <line x1="0" y1="29" x2="80" y2="29" stroke="#3a3a3a" stroke-width="0.5"/>
+            <polyline points="5,48 20,15 35,38 50,8 65,32 80,20" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.35"/>
+            <rect x="15" y="12" width="50" height="34" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+          </svg>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="ls-fade-pair v14-fade">
+          <div class="ls-fade-speed">
+            <div class="ls-fade-speed-fill" style="height:45%;"></div>
+            <div class="ls-fade-speed-tick" style="bottom:45%;"></div>
+          </div>
+          <div class="ls-fade-type">LIN</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="v14-sliders">
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">S</div>
+            <div class="ls-slider-track" style="height:75px;">
+              <div class="ls-slider-fill" style="height:50%;"></div>
+              <div class="ls-slider-tick" style="bottom:50%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+          </div>
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">V</div>
+            <div class="ls-slider-track" style="height:75px;">
+              <div class="ls-slider-fill" style="height:90%;"></div>
+              <div class="ls-slider-tick" style="bottom:90%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">0.9</div>
+          </div>
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">F</div>
+            <div class="ls-slider-track" style="height:75px;">
+              <div class="ls-slider-fill override" style="height:40%;"></div>
+              <div class="ls-slider-tick" style="bottom:40%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">0.4</div>
+          </div>
+        </div>
+      </div>
+      <div class="layer-name v14-name">LAYER 4</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- CELLS -->
+    <div class="cells-grid">
+      <div class="clip-cell cell-state-playing">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,2 5,10 1,18 4,26 2,34 5,42 1,50 3,58" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="0" y1="5" x2="94" y2="61" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/><rect x="20" y="15" width="54" height="36" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">PATCH_01</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,4 4,16 1,28 5,40 3,52 2,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="5" y="5" width="84" height="56" fill="#2a2a2a"/></svg></div>
+        <div class="clip-name">FLOW_A</div>
+      </div>
+      <div class="clip-cell cell-state-selected">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,3 1,15 5,27 2,39 4,51 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polygon points="47,10 85,56 9,56" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">ROUTE_B</div>
+      </div>
+      <div class="clip-cell cell-state-queued">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,5 5,17 1,29 4,41 2,53 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="47" y1="5" x2="47" y2="61" stroke="#3a3a3a" stroke-width="0.5"/><line x1="5" y1="33" x2="89" y2="33" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">MATRIX_C</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,2 4,14 1,26 5,38 3,50 2,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="15" y="12" width="64" height="42" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">SIGNAL_D</div>
+      </div>
+      <div class="clip-cell cell-state-empty">
+        <div class="clip-name"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CATEGORY D — LAYOUT RADICAL
+     ============================================================ -->
+<div class="category-heading">CATEGORY D -- LAYOUT RADICAL</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V15 — CELLS-LEFT-STRIP-RIGHT
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V15: CELLS-LEFT-STRIP-RIGHT</div>
+  <div class="variation-note">
+    PROGRAMMING MODE layout. Cells 780px (65%) on left, strip 420px on right.
+    This layout is for PROGRAMMING/COMPOSING mode where the focus is clip
+    authorship -- cells are primary, strip is secondary. 1px hairline separator
+    between cells and strip to visually frame the unconventional layout.
+    Height: ~120px. Speed: vertical column. Signal: 4 vertical columns in strip.
+  </div>
+  <div class="row-frame v15-row-frame" style="height:120px;">
+    <!-- PROGRAMMING MODE label -->
+    <div class="v15-mode-label">PROGRAMMING MODE</div>
+    <!-- CELLS (left) -->
+    <div class="cells-grid v15-cells" style="width:780px;flex-shrink:0;padding:0 4px;">
+      <div class="clip-cell cell-state-playing">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,3 1,13 5,23 2,33 4,43 1,53 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polygon points="10,56 47,10 84,56" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+        <div class="clip-name">LEAD_SYN</div>
+      </div>
+      <div class="clip-cell cell-state-queued">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,4 5,14 1,24 4,34 2,44 5,54 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="15" y="15" width="64" height="36" fill="none" stroke="#3a3a3a" stroke-width="0.5"/><line x1="15" y1="33" x2="79" y2="33" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/></svg></div>
+        <div class="clip-name">PLUCK_02</div>
+      </div>
+      <div class="clip-cell cell-state-selected">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,2 4,12 1,22 5,32 2,42 4,52 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="0" y1="10" x2="94" y2="56" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">STAB_FX</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,5 1,17 5,29 2,41 4,53 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="20" y="18" width="54" height="30" fill="#2a2a2a"/></svg></div>
+        <div class="clip-name">BELL_01</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,3 4,15 1,27 5,39 3,51 2,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polyline points="0,50 25,20 47,40 70,15 94,35" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">PULSE_A</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,4 5,16 1,28 4,40 2,52 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="5" y="5" width="84" height="56" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">GRAIN_B</div>
+      </div>
+      <div class="clip-cell cell-state-empty">
+        <div class="clip-name"></div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- STRIP (right) -->
+    <div class="strip v15-strip" style="height:120px;">
+      <div class="v15-btn-stack">
+        <div class="ls-btn active">X</div>
+        <div class="ls-btn active">B</div>
+        <div class="ls-btn">S</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="v15-transport ls-transport">
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9664;</div>
+        <div class="ls-btn playing" style="width:18px;height:18px;font-size:8px;">&#9654;</div>
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9646;&#9646;</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="ls-blend v15-blend">ADD</div>
+      <div class="ls-sep"></div>
+      <div class="ls-thumb v15-thumb">
+        <svg viewBox="0 0 100 72" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="72" fill="#1a1a1a"/>
+          <rect x="5" y="5" width="90" height="62" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+          <line x1="50" y1="5" x2="50" y2="67" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/>
+          <polyline points="5,60 25,25 50,45 75,15 95,40" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="ls-fade-pair v15-fade">
+        <div class="ls-fade-speed">
+          <div class="ls-fade-speed-fill" style="height:55%;"></div>
+          <div class="ls-fade-speed-tick" style="bottom:55%;"></div>
+        </div>
+        <div class="ls-fade-type">LIN</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="v15-sliders">
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">S</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:50%;"></div>
+            <div class="ls-slider-tick" style="bottom:50%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+        </div>
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">V</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:100%;"></div>
+            <div class="ls-slider-tick" style="bottom:100%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+        </div>
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">F</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill override" style="height:35%;"></div>
+            <div class="ls-slider-tick" style="bottom:35%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">0.4</div>
+        </div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="v15-signals">
+        <div class="signal-col">
+          <div class="signal-col-label">BAS</div>
+          <div class="signal-col-track" style="height:70px;"><div class="signal-col-fill" style="height:70%;"></div></div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">MID</div>
+          <div class="signal-col-track" style="height:70px;"><div class="signal-col-fill" style="height:40%;"></div></div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">HI</div>
+          <div class="signal-col-track" style="height:70px;"><div class="signal-col-fill" style="height:25%;"></div></div>
+        </div>
+        <div class="signal-col">
+          <div class="signal-col-label">RMS</div>
+          <div class="signal-col-track" style="height:70px;"><div class="signal-col-fill" style="height:55%;"></div></div>
+        </div>
+      </div>
+      <div class="layer-name v15-name">LAYER 5</div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V16 — RING-AROUND-THUMBNAIL
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V16: RING-AROUND-THUMBNAIL</div>
+  <div class="variation-note">
+    U-SHAPE: controls on TOP (X/B/S + transport), LEFT (fade-pair), and BOTTOM
+    (blend) of thumbnail. RIGHT side OPEN -- connects visually to cells. S V F
+    columns + 4 signal columns far-left outside the U-shape. 8 cells. NO circles.
+    Height: ~130px. Speed: vertical column outside U-shape. Signal: 4 columns outside U-shape.
+  </div>
+  <div class="row-frame v16-row-frame" style="height:130px;">
+    <div class="strip v16-strip" style="height:130px;">
+      <!-- Outer controls: S V F + signals far-left -->
+      <div class="v16-outer-controls">
+        <div class="v16-outer-sliders" style="height:50px;">
+          <div class="ls-slider-col" style="width:16px;gap:2px;">
+            <div class="ls-slider-label" style="font-size:7px;">S</div>
+            <div class="ls-slider-track" style="height:36px;">
+              <div class="ls-slider-fill" style="height:50%;"></div>
+              <div class="ls-slider-tick" style="bottom:50%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+          </div>
+          <div class="ls-slider-col" style="width:16px;gap:2px;">
+            <div class="ls-slider-label" style="font-size:7px;">V</div>
+            <div class="ls-slider-track" style="height:36px;">
+              <div class="ls-slider-fill" style="height:85%;"></div>
+              <div class="ls-slider-tick" style="bottom:85%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">0.9</div>
+          </div>
+          <div class="ls-slider-col" style="width:16px;gap:2px;">
+            <div class="ls-slider-label" style="font-size:7px;">F</div>
+            <div class="ls-slider-track" style="height:36px;">
+              <div class="ls-slider-fill" style="height:30%;"></div>
+              <div class="ls-slider-tick" style="bottom:30%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">0.3</div>
+          </div>
+        </div>
+        <div class="v16-outer-signals" style="height:50px;">
+          <div class="signal-col" style="width:14px;gap:1px;">
+            <div class="signal-col-label" style="font-size:6px;">BAS</div>
+            <div class="signal-col-track" style="height:36px;"><div class="signal-col-fill" style="height:70%;"></div></div>
+          </div>
+          <div class="signal-col" style="width:14px;gap:1px;">
+            <div class="signal-col-label" style="font-size:6px;">MID</div>
+            <div class="signal-col-track" style="height:36px;"><div class="signal-col-fill" style="height:40%;"></div></div>
+          </div>
+          <div class="signal-col" style="width:14px;gap:1px;">
+            <div class="signal-col-label" style="font-size:6px;">HI</div>
+            <div class="signal-col-track" style="height:36px;"><div class="signal-col-fill" style="height:30%;"></div></div>
+          </div>
+          <div class="signal-col" style="width:14px;gap:1px;">
+            <div class="signal-col-label" style="font-size:6px;">RMS</div>
+            <div class="signal-col-track" style="height:36px;"><div class="signal-col-fill" style="height:55%;"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- U-shape: TOP + LEFT + BOTTOM, right side OPEN -->
+      <div class="v16-ushape">
+        <!-- Top: X B S buttons + transport -->
+        <div class="v16-ushape-top">
+          <div class="ls-btn" style="width:22px;height:22px;font-size:9px;">X</div>
+          <div class="ls-btn active" style="width:22px;height:22px;font-size:9px;">B</div>
+          <div class="ls-btn" style="width:22px;height:22px;font-size:9px;">S</div>
+          <div style="flex:1;"></div>
+          <div class="ls-btn" style="width:18px;height:18px;font-size:7px;">&#9664;</div>
+          <div class="ls-btn playing" style="width:18px;height:18px;font-size:7px;">&#9654;</div>
+          <div class="ls-btn" style="width:18px;height:18px;font-size:7px;">&#9646;&#9646;</div>
+          <div class="ls-override-badge" style="position:static;width:20px;height:20px;font-size:7px;">OVR</div>
+        </div>
+        <!-- Bottom: Blend -->
+        <div class="v16-ushape-bottom">
+          <div class="ls-blend" style="width:100%;height:22px;font-size:8px;">MULTIPLY</div>
+        </div>
+        <!-- Left: Fade pair -->
+        <div class="v16-ushape-left">
+          <div class="ls-fade-speed" style="width:20px;flex:1;">
+            <div class="ls-fade-speed-fill" style="height:40%;"></div>
+            <div class="ls-fade-speed-tick" style="bottom:40%;"></div>
+          </div>
+          <div class="ls-fade-type" style="width:20px;height:14px;font-size:6px;padding:0 1px;">LIN</div>
+        </div>
+        <!-- Center: Thumbnail (right edge open, connects to cells) -->
+        <div class="v16-ushape-center">
+          <svg viewBox="0 0 180 78" xmlns="http://www.w3.org/2000/svg">
+            <rect width="180" height="78" fill="#1a1a1a"/>
+            <rect x="8" y="8" width="164" height="62" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+            <polygon points="90,12 160,66 20,66" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+            <line x1="8" y1="39" x2="172" y2="39" stroke="#3a3a3a" stroke-width="0.5"/>
+            <rect x="50" y="22" width="80" height="34" fill="#00d9ff" opacity="0.05"/>
+          </svg>
+        </div>
+      </div>
+      <div class="layer-name v16-name">LAYER 6</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- CELLS (8 cells) -->
+    <div class="cells-grid v16-cells">
+      <div class="clip-cell cell-state-playing">
+        <div class="clip-wave"><svg viewBox="0 0 6 61"><polyline points="3,2 1,11 5,20 2,29 4,38 1,47 3,56" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 61"><rect width="94" height="61" fill="#1a1a1a"/><rect x="22" y="10" width="50" height="41" fill="none" stroke="#3a3a3a" stroke-width="0.5"/><line x1="22" y1="10" x2="72" y2="51" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/></svg></div>
+        <div class="clip-name">RING_LP</div>
+      </div>
+      <div class="clip-cell cell-state-queued">
+        <div class="clip-wave"><svg viewBox="0 0 6 61"><polyline points="2,4 4,13 1,22 5,31 3,40 2,49 4,57" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 61"><rect width="94" height="61" fill="#1a1a1a"/><polyline points="10,46 30,18 50,36 70,12 84,28" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">ORBIT_A</div>
+      </div>
+      <div class="clip-cell cell-state-selected">
+        <div class="clip-wave"><svg viewBox="0 0 6 61"><polyline points="3,3 5,12 1,21 4,30 2,39 5,48 3,57" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 61"><rect width="94" height="61" fill="#1a1a1a"/><rect x="10" y="8" width="74" height="45" fill="#2a2a2a"/></svg></div>
+        <div class="clip-name">CENTER_B</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 61"><polyline points="3,4 1,14 5,24 2,34 4,44 3,54" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 61"><rect width="94" height="61" fill="#1a1a1a"/><line x1="0" y1="30" x2="94" y2="30" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">HOVER_C</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 61"><polyline points="2,2 4,12 1,22 5,32 3,42 2,52" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 61"><rect width="94" height="61" fill="#1a1a1a"/><rect x="30" y="16" width="34" height="29" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">FRAME_D</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 61"><polyline points="3,3 1,13 5,23 2,33 4,43 3,53" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 61"><rect width="94" height="61" fill="#1a1a1a"/><line x1="10" y1="50" x2="84" y2="11" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">PULSE_E</div>
+      </div>
+      <div class="clip-cell cell-state-loaded">
+        <div class="clip-wave"><svg viewBox="0 0 6 61"><polyline points="2,5 4,15 1,25 5,35 3,45 2,55" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 61"><rect width="94" height="61" fill="#1a1a1a"/><rect x="8" y="8" width="78" height="45" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">WAVE_F</div>
+      </div>
+      <div class="clip-cell cell-state-empty">
+        <div class="clip-name"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V17 — FLOATING-CONTROLS
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V17: FLOATING-CONTROLS</div>
+  <div class="variation-note">
+    FOCUS-STATE PROGRESSIVE DISCLOSURE: no hover dependency. INACTIVE LAYER
+    shows full thumbnail + cells, all controls at 35% opacity (present but demoted).
+    ACTIVE/FOCUSED LAYER shows same composition with controls at 100% opacity.
+    Works for MIDI/touch/hardware -- bind layer focus to controller button or click.
+    Height: ~130px (combined). Speed: vertical column. Signal: 4 columns.
+  </div>
+  <div class="row-frame v17-row-frame">
+    <!-- INACTIVE LAYER (controls at 35% opacity) -->
+    <div class="v17-state-label">INACTIVE LAYER</div>
+    <div class="v17-layer-row v17-inactive">
+      <div class="ls-thumb v17-layer-thumb">
+        <svg viewBox="0 0 80 50" xmlns="http://www.w3.org/2000/svg">
+          <rect width="80" height="50" fill="#1a1a1a"/>
+          <rect x="5" y="5" width="70" height="40" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+          <polyline points="5,40 20,15 40,30 60,8 75,25" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="v17-layer-name">LAYER 7</div>
+      <div class="v17-active-dot"></div>
+      <!-- Controls: present but visually demoted (35% opacity via .v17-inactive) -->
+      <div class="v17-layer-controls">
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">X</div>
+        <div class="ls-btn active" style="width:18px;height:18px;font-size:8px;">B</div>
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">S</div>
+        <div class="ls-sep" style="height:18px;"></div>
+        <div class="ls-transport">
+          <div class="ls-btn" style="width:16px;height:16px;font-size:7px;">&#9664;</div>
+          <div class="ls-btn playing" style="width:16px;height:16px;font-size:7px;">&#9654;</div>
+          <div class="ls-btn" style="width:16px;height:16px;font-size:7px;">&#9646;&#9646;</div>
+        </div>
+        <div class="ls-sep" style="height:18px;"></div>
+        <div class="ls-blend" style="width:50px;height:16px;font-size:8px;">ADD</div>
+      </div>
+      <div class="v17-focus-fade" style="height:40px;">
+        <div class="ls-fade-speed" style="width:12px;flex:1;">
+          <div class="ls-fade-speed-fill" style="height:40%;"></div>
+          <div class="ls-fade-speed-tick" style="bottom:40%;"></div>
+        </div>
+        <div class="ls-fade-type" style="width:12px;height:10px;font-size:5px;padding:0 1px;">LIN</div>
+      </div>
+      <div class="v17-focus-sliders" style="height:40px;">
+        <div class="ls-slider-col" style="width:14px;gap:1px;">
+          <div class="ls-slider-label" style="font-size:6px;">S</div>
+          <div class="ls-slider-track" style="height:22px;"><div class="ls-slider-fill" style="height:50%;"></div><div class="ls-slider-tick" style="bottom:50%;"></div></div>
+          <div class="ls-slider-value" style="font-size:6px;">1.0</div>
+        </div>
+        <div class="ls-slider-col" style="width:14px;gap:1px;">
+          <div class="ls-slider-label" style="font-size:6px;">V</div>
+          <div class="ls-slider-track" style="height:22px;"><div class="ls-slider-fill" style="height:100%;"></div><div class="ls-slider-tick" style="bottom:100%;"></div></div>
+          <div class="ls-slider-value" style="font-size:6px;">1.0</div>
+        </div>
+        <div class="ls-slider-col" style="width:14px;gap:1px;">
+          <div class="ls-slider-label" style="font-size:6px;">F</div>
+          <div class="ls-slider-track" style="height:22px;"><div class="ls-slider-fill override" style="height:25%;"></div><div class="ls-slider-tick" style="bottom:25%;"></div></div>
+          <div class="ls-slider-value" style="font-size:6px;">0.3</div>
+        </div>
+      </div>
+      <div class="v17-focus-signals" style="height:40px;">
+        <div class="signal-col" style="width:12px;gap:1px;">
+          <div class="signal-col-label" style="font-size:5px;">BAS</div>
+          <div class="signal-col-track" style="height:22px;"><div class="signal-col-fill" style="height:65%;"></div></div>
+        </div>
+        <div class="signal-col" style="width:12px;gap:1px;">
+          <div class="signal-col-label" style="font-size:5px;">MID</div>
+          <div class="signal-col-track" style="height:22px;"><div class="signal-col-fill" style="height:35%;"></div></div>
+        </div>
+        <div class="signal-col" style="width:12px;gap:1px;">
+          <div class="signal-col-label" style="font-size:5px;">HI</div>
+          <div class="signal-col-track" style="height:22px;"><div class="signal-col-fill" style="height:20%;"></div></div>
+        </div>
+        <div class="signal-col" style="width:12px;gap:1px;">
+          <div class="signal-col-label" style="font-size:5px;">RMS</div>
+          <div class="signal-col-track" style="height:22px;"><div class="signal-col-fill" style="height:50%;"></div></div>
+        </div>
+      </div>
+      <div class="cells-grid" style="flex:1;">
+        <div class="clip-cell cell-state-playing" style="width:88px;height:50px;">
+          <div class="clip-wave"><svg viewBox="0 0 6 36"><polyline points="3,2 1,8 5,14 2,20 4,26 3,34" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 82 36"><rect width="82" height="36" fill="#1a1a1a"/><polygon points="41,4 74,32 8,32" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">FLOAT_01</div>
+        </div>
+        <div class="clip-cell cell-state-queued" style="width:88px;height:50px;">
+          <div class="clip-wave"><svg viewBox="0 0 6 36"><polyline points="2,3 4,9 1,15 5,21 3,27 2,33" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 82 36"><rect width="82" height="36" fill="#1a1a1a"/><rect x="10" y="6" width="62" height="24" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">CLEAN_02</div>
+        </div>
+        <div class="clip-cell cell-state-loaded" style="width:88px;height:50px;">
+          <div class="clip-wave"><svg viewBox="0 0 6 36"><polyline points="3,2 5,8 1,14 4,20 2,26 3,32" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 82 36"><rect width="82" height="36" fill="#1a1a1a"/><line x1="0" y1="18" x2="82" y2="18" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">AIRY_03</div>
+        </div>
+        <div class="clip-cell cell-state-empty" style="width:88px;height:50px;">
+          <div class="clip-name"></div>
+        </div>
+      </div>
+    </div>
+    <!-- ACTIVE/FOCUSED LAYER (controls at 100% opacity) -->
+    <div class="v17-state-label">ACTIVE/FOCUSED LAYER</div>
+    <div class="v17-layer-row v17-active" style="border-top:1px solid var(--border);">
+      <div class="ls-thumb v17-layer-thumb">
+        <svg viewBox="0 0 80 50" xmlns="http://www.w3.org/2000/svg">
+          <rect width="80" height="50" fill="#1a1a1a"/>
+          <rect x="5" y="5" width="70" height="40" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+          <polyline points="5,40 20,15 40,30 60,8 75,25" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="v17-layer-name">LAYER 7</div>
+      <div class="v17-active-dot"></div>
+      <!-- Controls: full visibility (100% opacity via .v17-active) -->
+      <div class="v17-layer-controls">
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">X</div>
+        <div class="ls-btn active" style="width:18px;height:18px;font-size:8px;">B</div>
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">S</div>
+        <div class="ls-sep" style="height:18px;"></div>
+        <div class="ls-transport">
+          <div class="ls-btn" style="width:16px;height:16px;font-size:7px;">&#9664;</div>
+          <div class="ls-btn playing" style="width:16px;height:16px;font-size:7px;">&#9654;</div>
+          <div class="ls-btn" style="width:16px;height:16px;font-size:7px;">&#9646;&#9646;</div>
+        </div>
+        <div class="ls-sep" style="height:18px;"></div>
+        <div class="ls-blend" style="width:50px;height:16px;font-size:8px;">ADD</div>
+      </div>
+      <div class="v17-focus-fade" style="height:40px;">
+        <div class="ls-fade-speed" style="width:12px;flex:1;">
+          <div class="ls-fade-speed-fill" style="height:40%;"></div>
+          <div class="ls-fade-speed-tick" style="bottom:40%;"></div>
+        </div>
+        <div class="ls-fade-type" style="width:12px;height:10px;font-size:5px;padding:0 1px;">LIN</div>
+      </div>
+      <div class="v17-focus-sliders" style="height:40px;">
+        <div class="ls-slider-col" style="width:14px;gap:1px;">
+          <div class="ls-slider-label" style="font-size:6px;">S</div>
+          <div class="ls-slider-track" style="height:22px;"><div class="ls-slider-fill" style="height:50%;"></div><div class="ls-slider-tick" style="bottom:50%;"></div></div>
+          <div class="ls-slider-value" style="font-size:6px;">1.0</div>
+        </div>
+        <div class="ls-slider-col" style="width:14px;gap:1px;">
+          <div class="ls-slider-label" style="font-size:6px;">V</div>
+          <div class="ls-slider-track" style="height:22px;"><div class="ls-slider-fill" style="height:100%;"></div><div class="ls-slider-tick" style="bottom:100%;"></div></div>
+          <div class="ls-slider-value" style="font-size:6px;">1.0</div>
+        </div>
+        <div class="ls-slider-col" style="width:14px;gap:1px;">
+          <div class="ls-slider-label" style="font-size:6px;">F</div>
+          <div class="ls-slider-track" style="height:22px;"><div class="ls-slider-fill override" style="height:25%;"></div><div class="ls-slider-tick" style="bottom:25%;"></div></div>
+          <div class="ls-slider-value" style="font-size:6px;">0.3</div>
+        </div>
+      </div>
+      <div class="v17-focus-signals" style="height:40px;">
+        <div class="signal-col" style="width:12px;gap:1px;">
+          <div class="signal-col-label" style="font-size:5px;">BAS</div>
+          <div class="signal-col-track" style="height:22px;"><div class="signal-col-fill" style="height:65%;"></div></div>
+        </div>
+        <div class="signal-col" style="width:12px;gap:1px;">
+          <div class="signal-col-label" style="font-size:5px;">MID</div>
+          <div class="signal-col-track" style="height:22px;"><div class="signal-col-fill" style="height:35%;"></div></div>
+        </div>
+        <div class="signal-col" style="width:12px;gap:1px;">
+          <div class="signal-col-label" style="font-size:5px;">HI</div>
+          <div class="signal-col-track" style="height:22px;"><div class="signal-col-fill" style="height:20%;"></div></div>
+        </div>
+        <div class="signal-col" style="width:12px;gap:1px;">
+          <div class="signal-col-label" style="font-size:5px;">RMS</div>
+          <div class="signal-col-track" style="height:22px;"><div class="signal-col-fill" style="height:50%;"></div></div>
+        </div>
+      </div>
+      <div class="cells-grid" style="flex:1;">
+        <div class="clip-cell cell-state-playing" style="width:88px;height:50px;">
+          <div class="clip-wave"><svg viewBox="0 0 6 36"><polyline points="3,2 1,8 5,14 2,20 4,26 3,34" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 82 36"><rect width="82" height="36" fill="#1a1a1a"/><polygon points="41,4 74,32 8,32" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">FLOAT_01</div>
+        </div>
+        <div class="clip-cell cell-state-queued" style="width:88px;height:50px;">
+          <div class="clip-wave"><svg viewBox="0 0 6 36"><polyline points="2,3 4,9 1,15 5,21 3,27 2,33" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 82 36"><rect width="82" height="36" fill="#1a1a1a"/><rect x="10" y="6" width="62" height="24" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">CLEAN_02</div>
+        </div>
+        <div class="clip-cell cell-state-loaded" style="width:88px;height:50px;">
+          <div class="clip-wave"><svg viewBox="0 0 6 36"><polyline points="3,2 5,8 1,14 4,20 2,26 3,32" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 82 36"><rect width="82" height="36" fill="#1a1a1a"/><line x1="0" y1="18" x2="82" y2="18" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">AIRY_03</div>
+        </div>
+        <div class="clip-cell cell-state-empty" style="width:88px;height:50px;">
+          <div class="clip-name"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V18 — PER-CELL-MICRO-CONTROLS
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V18: PER-CELL-MICRO-CONTROLS</div>
+  <div class="variation-note">
+    Minimal strip (~200px): just X + layer-name + active indicator.
+    Controls embedded in each 150x80 cell: enlarged 20px micro-control row
+    (12px B/S buttons, micro V bar, micro F numeric, triangle, speed). 7 cells.
+    Height: ~120px. Speed: per-cell numeric. Signal: per-cell routing triangle + micro V/F.
+  </div>
+  <div class="row-frame" style="height:120px;">
+    <!-- Minimal strip -->
+    <div class="strip v18-strip">
+      <div class="ls-btn active" style="width:22px;height:22px;font-size:9px;">X</div>
+      <div class="layer-name" style="font-size:11px;">LAYER 8</div>
+      <div class="v18-active-indicator"></div>
+      <div class="ls-override-dot" style="margin-left:4px;"></div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- CELLS with micro-controls (7 cells, 150px wide, enlarged 12px buttons) -->
+    <div class="cells-grid v18-cells" style="gap:2px;">
+      <!-- Cell 1: Playing -->
+      <div class="clip-cell cell-state-playing" style="width:150px;height:80px;">
+        <div class="v18-cell-micro-top">
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">B</div>
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">S</div>
+          <div class="ls-tri routed" style="width:5px;height:5px;"></div>
+          <div class="v18-micro-v"><div class="v18-micro-v-fill" style="width:80%;"></div></div>
+          <div class="v18-micro-f">0.3</div>
+          <div class="speed-val" style="font:8px var(--font-mono);color:var(--value);margin-left:auto;">1.0X</div>
+        </div>
+        <div class="v18-cell-middle">
+          <svg viewBox="0 0 150 46" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="46" fill="#1a1a1a"/>
+            <polygon points="75,4 140,42 10,42" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+            <line x1="0" y1="23" x2="150" y2="23" stroke="#3a3a3a" stroke-width="0.5"/>
+          </svg>
+        </div>
+        <div class="v18-cell-bottom">
+          MICRO_01
+          <div class="v18-cell-state-dot playing"></div>
+        </div>
+      </div>
+      <!-- Cell 2: Queued -->
+      <div class="clip-cell cell-state-queued" style="width:150px;height:80px;">
+        <div class="v18-cell-micro-top">
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">B</div>
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">S</div>
+          <div class="ls-tri unrouted" style="width:5px;height:5px;"></div>
+          <div class="v18-micro-v"><div class="v18-micro-v-fill" style="width:60%;"></div></div>
+          <div class="v18-micro-f">0.5</div>
+          <div class="speed-val" style="font:8px var(--font-mono);color:var(--value);margin-left:auto;">1.5X</div>
+        </div>
+        <div class="v18-cell-middle">
+          <svg viewBox="0 0 150 46" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="46" fill="#1a1a1a"/>
+            <rect x="18" y="6" width="114" height="34" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+            <line x1="75" y1="6" x2="75" y2="40" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/>
+          </svg>
+        </div>
+        <div class="v18-cell-bottom">
+          QUEUE_02
+          <div class="v18-cell-state-dot queued"></div>
+        </div>
+      </div>
+      <!-- Cell 3: Selected -->
+      <div class="clip-cell cell-state-selected" style="width:150px;height:80px;">
+        <div class="v18-cell-micro-top">
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">B</div>
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">S</div>
+          <div class="ls-tri routed" style="width:5px;height:5px;"></div>
+          <div class="v18-micro-v"><div class="v18-micro-v-fill" style="width:100%;"></div></div>
+          <div class="v18-micro-f">0.2</div>
+          <div class="speed-val" style="font:8px var(--font-mono);color:var(--value);margin-left:auto;">0.75X</div>
+        </div>
+        <div class="v18-cell-middle">
+          <svg viewBox="0 0 150 46" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="46" fill="#1a1a1a"/>
+            <polyline points="10,38 38,8 75,28 112,4 140,22" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+          </svg>
+        </div>
+        <div class="v18-cell-bottom">
+          SELECT_03
+          <div class="v18-cell-state-dot selected"></div>
+        </div>
+      </div>
+      <!-- Cell 4: Loaded (override) -->
+      <div class="clip-cell cell-state-loaded" style="width:150px;height:80px;">
+        <div class="v18-cell-micro-top">
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">B</div>
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">S</div>
+          <div class="ls-tri override" style="width:5px;height:5px;"></div>
+          <div class="v18-micro-v"><div class="v18-micro-v-fill" style="width:45%;"></div></div>
+          <div class="v18-micro-f">0.8</div>
+          <div class="speed-val" style="font:8px var(--font-mono);color:var(--override);margin-left:auto;">2.0X</div>
+        </div>
+        <div class="v18-cell-middle">
+          <svg viewBox="0 0 150 46" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="46" fill="#1a1a1a"/>
+            <rect x="25" y="8" width="100" height="30" fill="#2a2a2a"/>
+          </svg>
+        </div>
+        <div class="v18-cell-bottom">
+          OVER_04
+          <div class="v18-cell-state-dot loaded"></div>
+        </div>
+      </div>
+      <!-- Cell 5: Loaded -->
+      <div class="clip-cell cell-state-loaded" style="width:150px;height:80px;">
+        <div class="v18-cell-micro-top">
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">B</div>
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">S</div>
+          <div class="ls-tri unrouted" style="width:5px;height:5px;"></div>
+          <div class="v18-micro-v"><div class="v18-micro-v-fill" style="width:70%;"></div></div>
+          <div class="v18-micro-f">0.4</div>
+          <div class="speed-val" style="font:8px var(--font-mono);color:var(--value);margin-left:auto;">1.0X</div>
+        </div>
+        <div class="v18-cell-middle">
+          <svg viewBox="0 0 150 46" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="46" fill="#1a1a1a"/>
+            <line x1="0" y1="23" x2="150" y2="23" stroke="#3a3a3a" stroke-width="0.5"/>
+            <line x1="75" y1="0" x2="75" y2="46" stroke="#3a3a3a" stroke-width="0.5"/>
+          </svg>
+        </div>
+        <div class="v18-cell-bottom">
+          SPARE_05
+          <div class="v18-cell-state-dot loaded"></div>
+        </div>
+      </div>
+      <!-- Cell 6: Loaded -->
+      <div class="clip-cell cell-state-loaded" style="width:150px;height:80px;">
+        <div class="v18-cell-micro-top">
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">B</div>
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">S</div>
+          <div class="ls-tri routed" style="width:5px;height:5px;"></div>
+          <div class="v18-micro-v"><div class="v18-micro-v-fill" style="width:90%;"></div></div>
+          <div class="v18-micro-f">0.1</div>
+          <div class="speed-val" style="font:8px var(--font-mono);color:var(--value);margin-left:auto;">1.2X</div>
+        </div>
+        <div class="v18-cell-middle">
+          <svg viewBox="0 0 150 46" xmlns="http://www.w3.org/2000/svg">
+            <rect width="150" height="46" fill="#1a1a1a"/>
+            <polyline points="0,40 40,15 75,30 110,8 150,20" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+          </svg>
+        </div>
+        <div class="v18-cell-bottom">
+          EXTRA_06
+          <div class="v18-cell-state-dot loaded"></div>
+        </div>
+      </div>
+      <!-- Cell 7: Empty -->
+      <div class="clip-cell cell-state-empty" style="width:150px;height:80px;">
+        <div class="v18-cell-micro-top" style="opacity:0.3;">
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">B</div>
+          <div class="ls-btn" style="width:20px;height:16px;font-size:8px;">S</div>
+        </div>
+        <div class="v18-cell-middle"></div>
+        <div class="v18-cell-bottom" style="opacity:0.3;">EMPTY</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V19 — ADAPTIVE-COLLAPSE
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V19: ADAPTIVE-COLLAPSE</div>
+  <div class="variation-note">
+    3 layer rows: ACTIVE (~120px, fully expanded), NEIGHBOR (~35px, compressed),
+    DISTANT (~20px, minimal: name + cell dots). Visual hierarchy by attention focus.
+    Height: ~175px (3 rows). Speed: vertical column (active only). Signal: 4 columns (active only).
+  </div>
+  <div class="row-frame v19-row-frame">
+    <!-- ACTIVE ROW -->
+    <div class="adaptive-collapse-row v19-active" style="position:relative;">
+      <div class="v19-active-label">ACTIVE</div>
+      <div class="v19-active-strip" style="height:120px;">
+        <div class="v19-btn-stack">
+          <div class="ls-btn active">X</div>
+          <div class="ls-btn active">B</div>
+          <div class="ls-btn">S</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="v19-transport ls-transport">
+          <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9664;</div>
+          <div class="ls-btn playing" style="width:18px;height:18px;font-size:8px;">&#9654;</div>
+          <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9646;&#9646;</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="ls-blend v19-blend" style="width:60px;height:18px;font-size:9px;">SCREEN</div>
+        <div class="ls-sep"></div>
+        <div class="ls-thumb v19-thumb" style="width:100px;height:72px;align-self:center;margin:0 4px;">
+          <svg viewBox="0 0 100 72" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="72" fill="#1a1a1a"/>
+            <rect x="5" y="5" width="90" height="62" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+            <polyline points="5,60 25,20 50,45 75,10 95,35" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+            <rect x="30" y="20" width="40" height="32" fill="#00d9ff" opacity="0.05"/>
+          </svg>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="v19-fade" style="display:flex;flex-direction:column;width:14px;flex-shrink:0;padding:4px 0;gap:1px;">
+          <div class="ls-fade-speed" style="flex:1;width:14px;">
+            <div class="ls-fade-speed-fill" style="height:45%;"></div>
+            <div class="ls-fade-speed-tick" style="bottom:45%;"></div>
+          </div>
+          <div class="ls-fade-type" style="width:14px;height:14px;font-size:7px;padding:0 1px;">LIN</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="v19-sliders">
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">S</div>
+            <div class="ls-slider-track" style="height:70px;">
+              <div class="ls-slider-fill" style="height:50%;"></div>
+              <div class="ls-slider-tick" style="bottom:50%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+          </div>
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">V</div>
+            <div class="ls-slider-track" style="height:70px;">
+              <div class="ls-slider-fill" style="height:100%;"></div>
+              <div class="ls-slider-tick" style="bottom:100%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+          </div>
+          <div class="ls-slider-col">
+            <div class="ls-slider-label">F</div>
+            <div class="ls-slider-track" style="height:70px;">
+              <div class="ls-slider-fill override" style="height:30%;"></div>
+              <div class="ls-slider-tick" style="bottom:30%;"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px;">0.3</div>
+          </div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="v19-signals">
+          <div class="signal-col">
+            <div class="signal-col-label">BAS</div>
+            <div class="signal-col-track" style="height:70px;"><div class="signal-col-fill" style="height:75%;"></div></div>
+          </div>
+          <div class="signal-col">
+            <div class="signal-col-label">MID</div>
+            <div class="signal-col-track" style="height:70px;"><div class="signal-col-fill" style="height:40%;"></div></div>
+          </div>
+          <div class="signal-col">
+            <div class="signal-col-label">HI</div>
+            <div class="signal-col-track" style="height:70px;"><div class="signal-col-fill" style="height:30%;"></div></div>
+          </div>
+          <div class="signal-col">
+            <div class="signal-col-label">RMS</div>
+            <div class="signal-col-track" style="height:70px;"><div class="signal-col-fill" style="height:60%;"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="cells-grid">
+        <div class="clip-cell cell-state-playing">
+          <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,2 1,10 5,18 2,26 4,34 1,42 5,50 3,58" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polygon points="47,8 84,58 10,58" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+          <div class="clip-name">ADAPT_01</div>
+        </div>
+        <div class="clip-cell cell-state-queued">
+          <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,3 4,13 1,23 5,33 3,43 2,53 4,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="15" y="12" width="64" height="42" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">FLEX_02</div>
+        </div>
+        <div class="clip-cell cell-state-selected">
+          <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,4 5,14 1,24 4,34 2,44 5,54 3,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="0" y1="33" x2="94" y2="33" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">ZONE_03</div>
+        </div>
+        <div class="clip-cell cell-state-loaded">
+          <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,2 4,14 1,26 5,38 3,50 2,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="20" y="15" width="54" height="36" fill="#2a2a2a"/></svg></div>
+          <div class="clip-name">SCALE_04</div>
+        </div>
+        <div class="clip-cell cell-state-loaded">
+          <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,5 1,17 5,29 2,41 4,53 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="10" y1="10" x2="84" y2="56" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">RANK_05</div>
+        </div>
+        <div class="clip-cell cell-state-loaded">
+          <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,3 5,15 1,27 4,39 2,51 5,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+          <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="5" y="5" width="84" height="56" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+          <div class="clip-name">DEPTH_06</div>
+        </div>
+        <div class="clip-cell cell-state-empty">
+          <div class="clip-name"></div>
+        </div>
+      </div>
+    </div>
+    <!-- NEIGHBOR ROW (compressed) -->
+    <div class="adaptive-collapse-row v19-neighbor">
+      <div class="v19-neighbor-strip">
+        <div class="ls-btn" style="width:14px;height:14px;font-size:6px;">X</div>
+        <div class="ls-btn active" style="width:14px;height:14px;font-size:6px;">B</div>
+        <div class="ls-thumb" style="width:30px;height:24px;">
+          <svg viewBox="0 0 30 24" xmlns="http://www.w3.org/2000/svg"><rect width="30" height="24" fill="#1a1a1a"/><line x1="0" y1="12" x2="30" y2="12" stroke="#3a3a3a" stroke-width="0.5"/></svg>
+        </div>
+        <div class="layer-name" style="font-size:8px;color:var(--label);">LAYER 9B</div>
+      </div>
+      <div class="v19-neighbor-label">NEIGHBOR</div>
+      <div class="cells-grid" style="gap:1px;">
+        <div class="clip-cell cell-state-playing" style="width:30px;height:24px;"><div class="clip-name" style="height:8px;font-size:6px;">P</div></div>
+        <div class="clip-cell cell-state-queued" style="width:30px;height:24px;"><div class="clip-name" style="height:8px;font-size:6px;">Q</div></div>
+        <div class="clip-cell cell-state-selected" style="width:30px;height:24px;"><div class="clip-name" style="height:8px;font-size:6px;">S</div></div>
+        <div class="clip-cell cell-state-loaded" style="width:30px;height:24px;"><div class="clip-name" style="height:8px;font-size:6px;">L</div></div>
+        <div class="clip-cell cell-state-loaded" style="width:30px;height:24px;"><div class="clip-name" style="height:8px;font-size:6px;">L</div></div>
+        <div class="clip-cell cell-state-loaded" style="width:30px;height:24px;"><div class="clip-name" style="height:8px;font-size:6px;">L</div></div>
+        <div class="clip-cell cell-state-loaded" style="width:30px;height:24px;"><div class="clip-name" style="height:8px;font-size:6px;">L</div></div>
+        <div class="clip-cell cell-state-empty" style="width:30px;height:24px;"><div class="clip-name" style="height:8px;font-size:6px;"></div></div>
+      </div>
+    </div>
+    <!-- DISTANT ROW (minimal) -->
+    <div class="adaptive-collapse-row v19-distant">
+      <div class="v19-distant-strip">
+        <div class="layer-name" style="font-size:7px;color:var(--label);">LAYER 9C</div>
+      </div>
+      <div class="v19-distant-label">DISTANT</div>
+      <div class="v19-distant-dots">
+        <div class="v19-distant-dot playing"></div>
+        <div class="v19-distant-dot queued"></div>
+        <div class="v19-distant-dot selected"></div>
+        <div class="v19-distant-dot loaded"></div>
+        <div class="v19-distant-dot loaded"></div>
+        <div class="v19-distant-dot loaded"></div>
+        <div class="v19-distant-dot empty"></div>
+      </div>
+      <div class="v19-distant-signal-blip">
+        <div class="v19-distant-signal-blip-fill"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────────────────────────────
+     V20 — HARMONY-RECOMMENDED
+     ────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+  <div class="variation-heading">V20: HARMONY-RECOMMENDED</div>
+  <div class="variation-note">
+    Synthesis. Strip 360px: standard controls + thumbnail 120x80 with playhead-bar
+    showing rate + "1.0X" numeric. No S column -- speed on playhead. V F columns.
+    4 signal columns with routing triangles. Cells: 8 x 100x80, each with 3px TOP edge
+    bar (primary routed signal) + 3px blue bar bottom when active. 12x12 OVERRIDE corner badge.
+    Height: ~120px. Speed: playhead-rate (no S column). Signal: 4 columns + 1 primary edge bar per cell.
+  </div>
+  <div class="row-frame" style="height:120px;">
+    <div class="strip v20-strip" style="height:120px;">
+      <div class="v20-btn-stack">
+        <div class="ls-btn active">X</div>
+        <div class="ls-btn active">B</div>
+        <div class="ls-btn">S</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="v20-transport ls-transport">
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9664;</div>
+        <div class="ls-btn playing" style="width:18px;height:18px;font-size:8px;">&#9654;</div>
+        <div class="ls-btn" style="width:18px;height:18px;font-size:8px;">&#9646;&#9646;</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="ls-blend v20-blend" style="width:100px;height:18px;">ADD</div>
+      <div class="ls-sep"></div>
+      <!-- Thumbnail + playhead bar -->
+      <div class="v20-thumb-area">
+        <div class="ls-thumb v20-thumb">
+          <svg viewBox="0 0 120 68" xmlns="http://www.w3.org/2000/svg">
+            <rect width="120" height="68" fill="#1a1a1a"/>
+            <rect x="5" y="5" width="110" height="58" fill="none" stroke="#3a3a3a" stroke-width="0.5"/>
+            <polygon points="60,8 110,58 10,58" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+            <line x1="0" y1="34" x2="120" y2="34" stroke="#3a3a3a" stroke-width="0.5"/>
+            <polyline points="10,50 30,20 60,40 90,12 110,30" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/>
+          </svg>
+        </div>
+        <div class="v20-playhead-bar">
+          <div class="v20-playhead-fill"></div>
+          <div class="v20-playhead-label">1.0X</div>
+        </div>
+      </div>
+      <div class="ls-sep"></div>
+      <div class="ls-fade-pair v20-fade">
+        <div class="ls-fade-speed">
+          <div class="ls-fade-speed-fill" style="height:40%;"></div>
+          <div class="ls-fade-speed-tick" style="bottom:40%;"></div>
+        </div>
+        <div class="ls-fade-type">LIN</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- V F only (no S column -- speed is on playhead) -->
+      <div class="v20-sliders">
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">V</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:100%;"></div>
+            <div class="ls-slider-tick" style="bottom:100%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">1.0</div>
+        </div>
+        <div class="ls-slider-col">
+          <div class="ls-slider-label">F</div>
+          <div class="ls-slider-track" style="height:70px;">
+            <div class="ls-slider-fill" style="height:30%;"></div>
+            <div class="ls-slider-tick" style="bottom:30%;"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px;">0.3</div>
+        </div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- 4 signal columns with triangles -->
+      <div class="v20-signals">
+        <div class="signal-col">
+          <div class="ls-tri routed" style="margin-bottom:2px;"></div>
+          <div class="signal-col-label">BAS</div>
+          <div class="signal-col-track" style="height:65px;"><div class="signal-col-fill" style="height:80%;"></div></div>
+        </div>
+        <div class="signal-col">
+          <div class="ls-tri routed" style="margin-bottom:2px;"></div>
+          <div class="signal-col-label">MID</div>
+          <div class="signal-col-track" style="height:65px;"><div class="signal-col-fill" style="height:45%;"></div></div>
+        </div>
+        <div class="signal-col">
+          <div class="ls-tri unrouted" style="margin-bottom:2px;"></div>
+          <div class="signal-col-label">HI</div>
+          <div class="signal-col-track" style="height:65px;"><div class="signal-col-fill" style="height:30%;"></div></div>
+        </div>
+        <div class="signal-col">
+          <div class="ls-tri routed" style="margin-bottom:2px;"></div>
+          <div class="signal-col-label">RMS</div>
+          <div class="signal-col-track" style="height:65px;"><div class="signal-col-fill" style="height:60%;"></div></div>
+        </div>
+      </div>
+      <!-- Override badge -->
+      <div class="ls-override-badge v20-override-badge">OVR</div>
+      <!-- Active layer bar -->
+      <div class="v20-name"></div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- CELLS with top edge bars + active bottom bar -->
+    <div class="cells-grid v20-cells">
+      <!-- Cell 1: Playing -->
+      <div class="clip-cell cell-state-playing">
+        <div class="v20-cell-top-edge" style="width:80%;"></div>
+        <div class="v20-cell-active-bar"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,2 1,10 5,18 2,26 4,34 1,42 5,50 3,58" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polygon points="47,8 80,58 14,58" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/><line x1="0" y1="33" x2="94" y2="33" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">SYNTH_01</div>
+      </div>
+      <!-- Cell 2: Queued -->
+      <div class="clip-cell cell-state-queued">
+        <div class="v20-cell-top-edge" style="width:55%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,4 4,14 1,24 5,34 3,44 2,54 4,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="15" y="12" width="64" height="42" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">BASS_LP</div>
+      </div>
+      <!-- Cell 3: Selected -->
+      <div class="clip-cell cell-state-selected">
+        <div class="v20-cell-top-edge" style="width:40%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,3 5,13 1,23 4,33 2,43 5,53 3,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="10" y1="10" x2="84" y2="56" stroke="#3a3a3a" stroke-width="0.5"/><line x1="84" y1="10" x2="10" y2="56" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">PERC_HI</div>
+      </div>
+      <!-- Cell 4: Loaded -->
+      <div class="clip-cell cell-state-loaded">
+        <div class="v20-cell-top-edge" style="width:25%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,5 4,17 1,29 5,41 3,53 2,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="20" y="15" width="54" height="36" fill="#2a2a2a"/></svg></div>
+        <div class="clip-name">PAD_WRM</div>
+      </div>
+      <!-- Cell 5: Loaded with override -->
+      <div class="clip-cell cell-state-loaded">
+        <div class="v20-cell-top-edge" style="width:35%;"></div>
+        <div class="v20-override-corner">OVR</div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,2 1,14 5,26 2,38 4,50 1,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><polyline points="0,50 20,20 47,40 70,15 94,35" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">FX_OVER</div>
+      </div>
+      <!-- Cell 6: Loaded -->
+      <div class="clip-cell cell-state-loaded">
+        <div class="v20-cell-top-edge" style="width:50%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="2,3 5,15 1,27 4,39 2,51 5,63" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><rect x="5" y="5" width="84" height="56" fill="none" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">TEXTR_B</div>
+      </div>
+      <!-- Cell 7: Loaded -->
+      <div class="clip-cell cell-state-loaded">
+        <div class="v20-cell-top-edge" style="width:15%;"></div>
+        <div class="clip-wave"><svg viewBox="0 0 6 66"><polyline points="3,4 4,16 1,28 5,40 3,52 2,62" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.4"/></svg></div>
+        <div class="clip-thumb-area"><svg viewBox="0 0 94 66"><rect width="94" height="66" fill="#1a1a1a"/><line x1="47" y1="5" x2="47" y2="61" stroke="#3a3a3a" stroke-width="0.5"/></svg></div>
+        <div class="clip-name">RISER_C</div>
+      </div>
+      <!-- Cell 8: Empty -->
+      <div class="clip-cell cell-state-empty">
+        <div class="v20-cell-top-edge" style="width:0;"></div>
+        <div class="clip-name"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FOOTER — MINI COMPARISON TABLE (V11-V20)
+     ============================================================ -->
+<div class="category-heading">COMPARISON TABLE -- V11-V20</div>
+<table class="summary-table">
+  <thead>
+    <tr>
+      <th>VARIATION</th>
+      <th>HEIGHT</th>
+      <th>SPEED STRATEGY</th>
+      <th>SIGNAL STRATEGY</th>
+      <th>CELLS TREATMENT</th>
+      <th>AUDIO-DNA IDENTITY</th>
+      <th>RECOMMENDED USE CASE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>V11: SIGNAL-EDGE-BARS</td>
+      <td style="font-family:var(--font-mono);">~120px</td>
+      <td>Vertical column</td>
+      <td>4 cell edge bars (BASS/HIGH/MID/RMS)</td>
+      <td>8 cells, edge bars per cell</td>
+      <td>MED</td>
+      <td>Signal-per-clip visualization</td>
+    </tr>
+    <tr>
+      <td>V12: SIGNAL-AS-TINT</td>
+      <td style="font-family:var(--font-mono);">~120px</td>
+      <td>Vertical column</td>
+      <td>Cell tint (10-40%) + bottom bar + route label</td>
+      <td>8 cells, tint + amplitude bar + B/M/H/R label</td>
+      <td>MED</td>
+      <td>Ambient signal feedback with magnitude</td>
+    </tr>
+    <tr>
+      <td>V13: SIGNAL-PARTICLE-FLOW</td>
+      <td style="font-family:var(--font-mono);">~120px</td>
+      <td>Vertical column</td>
+      <td>Source columns + 5 animated routing ribbons</td>
+      <td>8 cells (400px strip), amplitude-width ribbons</td>
+      <td>HIGH</td>
+      <td>Live routing visualization (source-to-dest)</td>
+    </tr>
+    <tr>
+      <td>V14: SIGNAL-ROUTING-LINES</td>
+      <td style="font-family:var(--font-mono);">~125px</td>
+      <td>Vertical column (destination)</td>
+      <td>Animated SVG routing lines</td>
+      <td>6 cells, standard</td>
+      <td>HIGH</td>
+      <td>Living patch diagram</td>
+    </tr>
+    <tr>
+      <td>V15: CELLS-LEFT-STRIP-RIGHT</td>
+      <td style="font-family:var(--font-mono);">~120px</td>
+      <td>Vertical column</td>
+      <td>4 vertical columns in strip</td>
+      <td>780px cells (65%), PROGRAMMING MODE label</td>
+      <td>MED</td>
+      <td>Programming/composing mode (clip authorship)</td>
+    </tr>
+    <tr>
+      <td>V16: RING-AROUND-THUMBNAIL</td>
+      <td style="font-family:var(--font-mono);">~130px</td>
+      <td>Vertical column outside U-shape</td>
+      <td>4 columns outside U-shape</td>
+      <td>8 cells, U-shape (right open to cells)</td>
+      <td>HIGH</td>
+      <td>Thumbnail-centric, 3-direction scan</td>
+    </tr>
+    <tr>
+      <td>V17: FLOATING-CONTROLS</td>
+      <td style="font-family:var(--font-mono);">~130px</td>
+      <td>Vertical column (inline)</td>
+      <td>4 columns (inline)</td>
+      <td>4 cells, focus-state disclosure</td>
+      <td>MED</td>
+      <td>Opacity-based focus (MIDI/touch/hardware)</td>
+    </tr>
+    <tr>
+      <td>V18: PER-CELL-MICRO-CONTROLS</td>
+      <td style="font-family:var(--font-mono);">~120px</td>
+      <td>Per-cell numeric + micro V bar</td>
+      <td>Per-cell routing triangle + micro F</td>
+      <td>7 cells x 150px, 12px buttons, V bar + F num</td>
+      <td>HIGH</td>
+      <td>Control sublimation with V/F per cell</td>
+    </tr>
+    <tr>
+      <td>V19: ADAPTIVE-COLLAPSE</td>
+      <td style="font-family:var(--font-mono);">~175px</td>
+      <td>Vertical column (active only)</td>
+      <td>4 columns (active only)</td>
+      <td>3 rows: full/mini/dots</td>
+      <td>HIGH</td>
+      <td>Multi-layer focus hierarchy</td>
+    </tr>
+    <tr>
+      <td class="rec">V20: HARMONY-RECOMMENDED</td>
+      <td style="font-family:var(--font-mono);" class="rec">~120px</td>
+      <td class="rec">Playhead-rate + numeric (no S column)</td>
+      <td class="rec">4 columns + 1 primary edge bar per cell</td>
+      <td class="rec">8 cells, top edge bar + active bottom bar</td>
+      <td class="rec">HIGH</td>
+      <td class="rec">Recommended draft v9 layer-row spec</td>
+    </tr>
+  </tbody>
+</table>
+
+</body>
+</html>

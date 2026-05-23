@@ -1,0 +1,2782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio-DNA v10 — Layer Row Design Study Part A (V1-V10)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===================================================================
+   v10 LAYER ROW DESIGN STUDY — PART A (V1-V10)
+   Layer strip + cells grid — full row context.
+   No K slider. Speed and signal placement varies per variation.
+   Iron rules: zero border-radius, zero box-shadow, zero gradients on
+   chrome, 1px hairlines (2px for playing-clip border only), ALL-CAPS
+   labels, monospace numbers, sans labels, no emoji, no italic,
+   no underline.
+   =================================================================== */
+
+/* ── Canonical Design Tokens (MOCKUP_BRIEF 2.1/2.2/2.3 verbatim) ── */
+:root {
+  /* ── Backgrounds ── */
+  --bg:             #1a1a1a;
+  --panel:          #2a2a2a;
+  --section-header: #252525;
+  --separator:      #383838;
+  --border:         #3a3a3a;
+
+  /* ── Text ── */
+  --label:          #888888;
+  --value:          #e0e0e0;
+
+  /* ── Accent ── */
+  --accent:         #00d9ff;
+
+  /* ── Semantic ── */
+  --danger:         #ff4040;
+  --override:       #ff4500;
+
+  /* ── Typography ── */
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+
+  /* ── Borders ── */
+  --hairline:              1px;
+
+  /* ── Row heights ── */
+  --row-height-inspector:  24px;
+  --row-height-signal:     20px;
+  --row-height-section:    24px;
+
+  /* ── Inspector row columns ── */
+  --label-width:           90px;
+  --value-width:           50px;
+  --button-size:           20px;
+  --slider-height:         14px;
+
+  /* ── Clip cells ── */
+  --clip-width:            100px;
+  --clip-height:           80px;
+  --clip-name-height:      14px;
+  --clip-wave-width:       6px;
+
+  /* ── Top chrome ── */
+  --chrome-top:            44px;
+  --chrome-transport:      32px;
+  --chrome-signal:         22px;
+  --chrome-total:          98px;
+
+  /* ── Signal columns ── */
+  --signal-column-width:   60px;
+
+  /* ── Hit pill ── */
+  --pill-width:            8px;
+  --pill-height:           24px;
+
+  /* ── Study-page locals ── */
+  --local-row-ref-width:   1200px;
+  --local-page-max:        1280px;
+
+  /* ── V8 speed-intense color (extracted from hardcoded #00f0ff) ── */
+  --local-speed-intense:   #00f0ff;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--value);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1.25;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 32px 40px 60px;
+  max-width: var(--local-page-max);
+  margin: 0 auto;
+}
+
+/* 3% SVG grain overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Keyframes ── */
+@keyframes beat {
+  0%   { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+
+/* ── Page Layout ── */
+.study-title {
+  font: 500 22px var(--font-sans);
+  color: var(--value);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.study-intro {
+  font: 11px/1.6 var(--font-sans);
+  color: var(--label);
+  max-width: 900px;
+  margin-bottom: 28px;
+}
+.study-category {
+  font: 500 13px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 40px;
+  margin-bottom: 16px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Legend ── */
+.legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 10px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ── Variation Block ── */
+.variation-block {
+  margin-bottom: 40px;
+}
+.variation-heading {
+  font: 500 14px var(--font-sans);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.variation-note {
+  font: 10px/1.5 var(--font-sans);
+  color: var(--label);
+  margin-bottom: 10px;
+  max-width: 900px;
+}
+
+/* ── Row Frame (universal) ── */
+.row-frame {
+  width: var(--local-row-ref-width);
+  position: relative;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  overflow: hidden;
+  display: flex;
+}
+.row-frame.stacked {
+  flex-direction: column;
+}
+
+/* ===================================================================
+   SHARED LAYER STRIP ATOMS
+   =================================================================== */
+
+/* Strip container */
+.strip {
+  display: flex;
+  align-items: stretch;
+  background: var(--panel);
+  flex-shrink: 0;
+  position: relative;
+}
+.strip.vertical {
+  flex-direction: column;
+}
+
+/* Buttons (X, B, S) */
+.ls-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--label);
+  border: 1px solid var(--border);
+  font: 500 10px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+}
+.ls-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Transport */
+.ls-transport {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+.ls-transport .ls-btn {
+  font: 500 9px var(--font-mono);
+}
+.ls-transport .ls-btn.playing {
+  color: var(--accent);
+  background: rgba(0,217,255,0.08);
+}
+
+/* Blend dropdown */
+.ls-blend {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--label);
+  font: 10px var(--font-sans);
+  padding: 0 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ls-blend::after {
+  content: '\25BC';
+  font-size: 6px;
+  margin-left: 4px;
+  color: var(--label);
+}
+
+/* Thumbnail */
+.ls-thumb {
+  flex-shrink: 0;
+  background: var(--bg);
+  border: 2px solid var(--accent);
+  overflow: hidden;
+  position: relative;
+}
+.ls-thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Fade pair container */
+.ls-fade-pair {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 0;
+}
+.ls-fade-pair.horizontal {
+  flex-direction: row;
+}
+
+/* Fade speed slider */
+.ls-fade-speed {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  flex-shrink: 0;
+}
+.ls-fade-speed-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--accent);
+  opacity: 0.35;
+}
+.ls-fade-speed-tick {
+  position: absolute;
+  left: 1px; right: 1px;
+  height: 1px;
+  background: var(--value);
+}
+
+/* Fade type dropdown */
+.ls-fade-type {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--label);
+  font: 9px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ls-fade-type::after {
+  content: '\25BC';
+  font-size: 5px;
+  margin-left: 3px;
+  color: var(--label);
+}
+
+/* Slider columns (S V F) */
+.ls-slider-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.ls-slider-label {
+  font: 500 8px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1;
+}
+.ls-slider-track {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  flex: 1;
+  width: 100%;
+}
+.ls-slider-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--accent);
+  opacity: 0.3;
+}
+.ls-slider-fill.override {
+  background: var(--override);
+  opacity: 0.5;
+}
+.ls-slider-tick {
+  position: absolute;
+  left: 1px; right: 1px;
+  height: 1px;
+  background: var(--value);
+}
+.ls-slider-value {
+  font: 9px var(--font-mono);
+  color: var(--value);
+  text-align: center;
+  line-height: 1;
+}
+
+/* Signal columns */
+.signal-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.signal-col-label {
+  font: 500 7px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  line-height: 1;
+}
+.signal-col-track {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  flex: 1;
+  width: 100%;
+}
+.signal-col-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--accent);
+  opacity: 0.4;
+}
+
+/* Triangles */
+.ls-tri {
+  width: 6px;
+  height: 6px;
+  clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+  flex-shrink: 0;
+}
+.ls-tri.unrouted { background: var(--border); }
+.ls-tri.routed { background: var(--accent); animation: beat 0.468s infinite alternate; }
+
+/* Layer name */
+.layer-name {
+  font: 10px var(--font-sans);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Active layer indicator */
+.layer-active {
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Override layer indicator */
+.layer-override {
+  background: var(--override);
+  flex-shrink: 0;
+}
+
+/* Override badge */
+.ls-override-badge {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--override);
+  color: var(--bg);
+  font: 500 7px var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Override dot (per-field) */
+.ls-override-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--override);
+  flex-shrink: 0;
+}
+
+/* Hairline separators */
+.ls-sep {
+  width: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  align-self: stretch;
+}
+.ls-sep-h {
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 100%;
+}
+
+/* ===================================================================
+   CELLS GRID
+   =================================================================== */
+.cells-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  padding: 4px;
+  flex-wrap: nowrap;
+}
+.cells-grid.tight { gap: 1px; padding: 2px; }
+.cells-grid.comfortable { gap: 4px; padding: 6px; }
+
+/* Clip cell */
+.clip-cell {
+  width: 100px;
+  height: 80px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-shrink: 0;
+}
+
+/* Cell states */
+.cell-state-playing {
+  background: rgba(0,217,255,0.15);
+  border: 2px solid var(--accent);
+}
+.cell-state-queued {
+  border: 2px dashed var(--accent);
+}
+.cell-state-selected {
+  border: 1px solid var(--accent);
+}
+.cell-state-loaded {
+  border: 1px solid var(--border);
+}
+.cell-state-empty {
+  border: 1px dashed var(--border);
+}
+
+/* Waveform strip (left 6px) */
+.clip-wave {
+  width: 6px;
+  flex-shrink: 0;
+  background: var(--bg);
+  position: relative;
+}
+.clip-wave-bar {
+  position: absolute;
+  left: 1px;
+  width: 4px;
+  background: var(--accent);
+  opacity: 0.4;
+}
+
+/* Clip thumbnail area */
+.clip-thumb {
+  flex: 1;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+.clip-thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Clip name bar */
+.clip-name-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 14px;
+  border-top: 1px solid var(--border);
+  padding: 0 4px;
+  font: 9px var(--font-sans);
+  color: var(--label);
+  display: flex;
+  align-items: center;
+  background: rgba(26,26,26,0.85);
+}
+
+/* ===================================================================
+   SIGNAL RIBBON (V9, V10)
+   =================================================================== */
+.signal-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background: var(--section-header);
+  border: 1px solid var(--border);
+  height: 16px;
+  flex-shrink: 0;
+  width: 100%;
+}
+.signal-pill {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  height: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.signal-pill.active {
+  border-color: var(--accent);
+  background: rgba(0,217,255,0.08);
+}
+.signal-pill-name {
+  font: 500 7px var(--font-sans);
+  color: var(--label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.signal-pill-value {
+  font: 8px var(--font-mono);
+  color: var(--value);
+}
+.signal-pill-tri {
+  width: 4px;
+  height: 4px;
+  clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ===================================================================
+   PLAYHEAD BAR (V5)
+   =================================================================== */
+.playhead-bar {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 4px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+.playhead-speed-label {
+  position: absolute;
+  bottom: 6px;
+  right: 2px;
+  font: 500 8px var(--font-mono);
+  color: var(--accent);
+}
+
+/* ===================================================================
+   CELL BADGES (V6)
+   =================================================================== */
+.cell-speed-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font: 500 8px var(--font-mono);
+  color: var(--accent);
+  background: rgba(26,26,26,0.85);
+  padding: 1px 3px;
+  z-index: 2;
+}
+
+/* ===================================================================
+   FRAME COUNTER (V3)
+   =================================================================== */
+.cell-frame-counter {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font: 7px var(--font-mono);
+  color: var(--label);
+  z-index: 2;
+}
+
+/* ===================================================================
+   FOOTER TABLE
+   =================================================================== */
+.summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font: 10px var(--font-sans);
+}
+.summary-table th {
+  background: var(--section-header);
+  color: var(--value);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  padding: 6px 8px;
+  text-align: left;
+  border: 1px solid var(--border);
+}
+.summary-table td {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  color: var(--label);
+  vertical-align: top;
+}
+
+/* ===================================================================
+   V2 SPECIFIC — TWO-ROW LAYOUT
+   =================================================================== */
+.v2-active-edge {
+  width: 4px;
+  background: var(--accent);
+  flex-shrink: 0;
+  align-self: stretch;
+}
+.v2-top-row {
+  display: flex;
+  align-items: stretch;
+  height: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.v2-bottom-row {
+  display: flex;
+  align-items: stretch;
+  height: 80px;
+}
+
+/* ===================================================================
+   V8 SPECIFIC — SPEED-AS-COLOR
+   =================================================================== */
+.thumb-speed-pale {
+  border-color: rgba(0,217,255,0.35);
+}
+.thumb-speed-vivid {
+  border-color: var(--accent);
+}
+.thumb-speed-intense {
+  border-color: var(--local-speed-intense);
+  border-width: 2px;
+}
+/* V8 speed bottom-tint overlay */
+.clip-speed-tint {
+  position: absolute;
+  bottom: 14px; left: 0; right: 0;
+  height: 12px;
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<!-- ================================================================
+     HEADER
+     ================================================================ -->
+<div class="study-title">Layer Row Design Study — Part A (V1-V10)</div>
+<div class="study-intro">
+  10 variations exploring layer-row composition: strip + cells grid in context.
+  Speed (S) and signal placements vary across variations. No K slider.
+  All variations rendered at 1200px reference width for direct comparison.
+  Categories: A = Traditional+ (V1-V4), B = Speed Reinvented (V5-V8),
+  C = Signal Reinvented first 2 (V9-V10). Part B (V11-V20) in separate file.
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-swatch" style="background:rgba(0,217,255,0.15);border-color:var(--accent)"></div>
+    PLAYING
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="border:2px dashed var(--accent)"></div>
+    QUEUED
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="border:1px solid var(--accent)"></div>
+    SELECTED
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="border:1px solid var(--border);background:var(--bg)"></div>
+    LOADED
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="border:1px dashed var(--border);background:var(--bg)"></div>
+    EMPTY
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="background:var(--accent)"></div>
+    ACTIVE LAYER
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="background:var(--override)"></div>
+    OVERRIDE
+  </div>
+</div>
+
+
+<!-- ================================================================
+     CATEGORY A: TRADITIONAL+
+     ================================================================ -->
+<div class="study-category">Category A: Traditional+ (Baselines with Cells)</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V1: RESOLUME-WITH-CELLS (~120px)
+     Compact Resolume-mimic strip + 8 cells right. S V F columns.
+     Speed: vertical column. Signal: 4 vertical columns.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V1: Resolume-With-Cells</div>
+<div class="variation-note">
+  Compact Resolume-mimic strip (280px) + 8 cells right. S V F as vertical column
+  sliders. 4 signal columns in strip. ~120px height. Speed: column. Signal: columns.
+</div>
+
+<div class="row-frame" style="height:120px">
+  <!-- STRIP 280px -->
+  <div class="strip" style="width:280px;border-right:1px solid var(--border)">
+    <!-- X B S buttons stacked -->
+    <div style="display:flex;flex-direction:column;gap:0;padding:4px 2px;width:22px">
+      <div class="ls-btn active" style="width:18px;height:18px;font-size:9px">X</div>
+      <div class="ls-btn" style="width:18px;height:18px;font-size:9px">B</div>
+      <div class="ls-btn active" style="width:18px;height:18px;font-size:9px">S</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Transport -->
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:2px">
+      <div class="ls-transport">
+        <div class="ls-btn" style="width:18px;height:16px;font-size:8px">&#9664;</div>
+        <div class="ls-btn playing" style="width:18px;height:16px;font-size:8px">&#9646;&#9646;</div>
+        <div class="ls-btn" style="width:18px;height:16px;font-size:8px">&#9654;</div>
+      </div>
+      <!-- Blend -->
+      <div class="ls-blend" style="height:16px;margin-top:2px;width:54px;font-size:9px">ADD</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Thumbnail 60x45 -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px">
+      <div class="ls-thumb" style="width:60px;height:45px">
+        <svg viewBox="0 0 60 45" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="50" height="35" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+          <line x1="5" y1="22" x2="55" y2="22" stroke="#00d9ff" stroke-width="0.5" opacity="0.4"/>
+          <polyline points="5,35 15,15 25,28 35,8 45,30 55,18" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.6"/>
+        </svg>
+      </div>
+      <!-- Layer name -->
+      <div class="layer-name" style="font-size:8px;margin-top:2px">LAYER 1</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Fade pair -->
+    <div class="ls-fade-pair" style="width:20px;padding:4px 1px">
+      <div class="ls-fade-speed" style="flex:1;width:18px">
+        <div class="ls-fade-speed-fill" style="height:30%"></div>
+        <div class="ls-fade-speed-tick" style="bottom:30%"></div>
+      </div>
+      <div class="ls-fade-type" style="height:14px;width:18px;font-size:7px;justify-content:center">LIN</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- S V F columns 12px each — S column has hairline separator + RATE descriptor -->
+    <div style="display:flex;gap:1px;padding:3px 2px">
+      <div class="ls-slider-col" style="width:12px;gap:2px">
+        <div class="ls-slider-label" style="font-size:8px">RATE</div>
+        <div class="ls-slider-label" style="font-size:7px">S</div>
+        <div class="ls-slider-track" style="height:62px">
+          <div class="ls-slider-fill" style="height:50%"></div>
+          <div class="ls-slider-tick" style="bottom:50%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">1.0</div>
+      </div>
+      <!-- 1px hairline between S and V -->
+      <div style="width:1px;background:var(--separator);align-self:stretch;flex-shrink:0"></div>
+      <div class="ls-slider-col" style="width:12px;gap:2px">
+        <div class="ls-slider-label" style="font-size:7px">V</div>
+        <div class="ls-slider-track" style="height:70px">
+          <div class="ls-slider-fill override" style="height:80%"></div>
+          <div class="ls-slider-tick" style="bottom:80%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.8</div>
+        <div class="ls-override-dot" style="margin-top:1px"></div>
+      </div>
+      <div class="ls-slider-col" style="width:12px;gap:2px">
+        <div class="ls-slider-label" style="font-size:7px">F</div>
+        <div class="ls-slider-track" style="height:70px">
+          <div class="ls-slider-fill" style="height:25%"></div>
+          <div class="ls-slider-tick" style="bottom:25%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.3</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- 4 signal columns 10px each — labels enlarged to 8px -->
+    <div style="display:flex;gap:1px;padding:3px 2px">
+      <div class="signal-col" style="width:10px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:72px">
+          <div class="signal-col-fill" style="height:75%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">BA</div>
+      </div>
+      <div class="signal-col" style="width:10px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:72px">
+          <div class="signal-col-fill" style="height:45%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">MI</div>
+      </div>
+      <div class="signal-col" style="width:10px;gap:1px">
+        <div class="ls-tri unrouted" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:72px">
+          <div class="signal-col-fill" style="height:35%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">HI</div>
+      </div>
+      <div class="signal-col" style="width:10px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:72px">
+          <div class="signal-col-fill" style="height:60%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">RM</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CELLS GRID 8 cells -->
+  <div class="cells-grid" style="padding:4px 6px">
+    <!-- Playing -->
+    <div class="clip-cell cell-state-playing" style="width:100px;height:80px">
+      <div class="clip-wave">
+        <div class="clip-wave-bar" style="bottom:10px;height:20px"></div>
+        <div class="clip-wave-bar" style="bottom:35px;height:12px"></div>
+        <div class="clip-wave-bar" style="bottom:52px;height:8px"></div>
+      </div>
+      <div class="clip-thumb">
+        <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="8" width="70" height="50" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+          <line x1="10" y1="33" x2="80" y2="33" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/>
+          <polyline points="10,55 25,20 40,40 55,12 70,45 80,25" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="clip-name-bar">INTRO-A1</div>
+    </div>
+    <!-- Queued -->
+    <div class="clip-cell cell-state-queued" style="width:100px;height:80px">
+      <div class="clip-wave">
+        <div class="clip-wave-bar" style="bottom:15px;height:15px"></div>
+        <div class="clip-wave-bar" style="bottom:40px;height:10px"></div>
+      </div>
+      <div class="clip-thumb">
+        <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="10" width="50" height="46" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/>
+          <line x1="15" y1="56" x2="75" y2="10" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+          <line x1="15" y1="10" x2="75" y2="56" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="clip-name-bar">DROP-B2</div>
+    </div>
+    <!-- Selected -->
+    <div class="clip-cell cell-state-selected" style="width:100px;height:80px">
+      <div class="clip-wave">
+        <div class="clip-wave-bar" style="bottom:8px;height:25px"></div>
+        <div class="clip-wave-bar" style="bottom:38px;height:15px"></div>
+      </div>
+      <div class="clip-thumb">
+        <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="10,60 30,20 45,45 60,15 80,50" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.4"/>
+          <polyline points="10,50 30,30 50,55 70,25 80,40" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/>
+        </svg>
+      </div>
+      <div class="clip-name-bar">VERSE-C1</div>
+    </div>
+    <!-- Loaded 1 -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave">
+        <div class="clip-wave-bar" style="bottom:12px;height:18px"></div>
+      </div>
+      <div class="clip-thumb">
+        <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+          <rect x="25" y="15" width="40" height="36" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.2"/>
+        </svg>
+      </div>
+      <div class="clip-name-bar">BREAK-D1</div>
+    </div>
+    <!-- Loaded 2 -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave">
+        <div class="clip-wave-bar" style="bottom:20px;height:10px"></div>
+      </div>
+      <div class="clip-thumb">
+        <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+          <line x1="15" y1="33" x2="75" y2="33" stroke="#00d9ff" stroke-width="0.4" opacity="0.2"/>
+          <line x1="45" y1="10" x2="45" y2="56" stroke="#00d9ff" stroke-width="0.4" opacity="0.2"/>
+        </svg>
+      </div>
+      <div class="clip-name-bar">FILL-E1</div>
+    </div>
+    <!-- Loaded 3 -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave">
+        <div class="clip-wave-bar" style="bottom:5px;height:22px"></div>
+      </div>
+      <div class="clip-thumb">
+        <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="10,33 25,18 40,48 55,10 70,40 80,28" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.2"/>
+        </svg>
+      </div>
+      <div class="clip-name-bar">BUILD-F1</div>
+    </div>
+    <!-- Loaded 4 -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave">
+        <div class="clip-wave-bar" style="bottom:10px;height:14px"></div>
+      </div>
+      <div class="clip-thumb">
+        <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+          <rect x="15" y="20" width="60" height="26" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/>
+          <rect x="25" y="28" width="40" height="10" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/>
+        </svg>
+      </div>
+      <div class="clip-name-bar">PAD-G1</div>
+    </div>
+    <!-- Empty -->
+    <div class="clip-cell cell-state-empty" style="width:100px;height:80px">
+      <div class="clip-wave"></div>
+      <div class="clip-thumb"></div>
+    </div>
+  </div>
+
+  <!-- OVERRIDE badge top-right -->
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V2: DENSE-CURRENT-PLUS (~140px)
+     Two-row: controls top + cells bottom. 4px blue edge strip.
+     Speed: column with numeric value. Signal: 6 vertical columns.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V2: Dense-Current-Plus</div>
+<div class="variation-note">
+  Two-row layout: controls top row (40px) + cells bottom row (80px). 4px blue active
+  edge strip spanning both rows on left. S V F columns 16px with values. 6 signal
+  columns 12px. Accent connector line from control row to playing cell. ~120px total.
+</div>
+
+<div class="row-frame stacked" style="height:120px">
+  <div style="display:flex;height:120px">
+    <!-- 4px active edge -->
+    <div class="v2-active-edge"></div>
+
+    <div style="flex:1;display:flex;flex-direction:column">
+      <!-- TOP ROW 40px: controls -->
+      <div class="v2-top-row">
+        <!-- X B S row -->
+        <div style="display:flex;align-items:center;gap:0;padding:2px 3px">
+          <div class="ls-btn active" style="width:16px;height:16px;font-size:8px">X</div>
+          <div class="ls-btn" style="width:16px;height:16px;font-size:8px">B</div>
+          <div class="ls-btn active" style="width:16px;height:16px;font-size:8px">S</div>
+        </div>
+        <div class="ls-sep"></div>
+        <!-- Transport row -->
+        <div style="display:flex;align-items:center;padding:2px 3px">
+          <div class="ls-transport">
+            <div class="ls-btn" style="width:16px;height:16px;font-size:8px">&#9664;</div>
+            <div class="ls-btn playing" style="width:16px;height:16px;font-size:8px">&#9646;&#9646;</div>
+            <div class="ls-btn" style="width:16px;height:16px;font-size:8px">&#9654;</div>
+          </div>
+        </div>
+        <div class="ls-sep"></div>
+        <!-- Blend wide -->
+        <div style="display:flex;align-items:center;padding:2px 3px">
+          <div class="ls-blend" style="height:16px;width:70px;font-size:8px">ADDITIVE</div>
+        </div>
+        <div class="ls-sep"></div>
+        <!-- Thumbnail 80x32 (fits in 40px row) -->
+        <div style="display:flex;align-items:center;padding:2px 3px">
+          <div class="ls-thumb" style="width:80px;height:32px">
+            <svg viewBox="0 0 80 32" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="3" width="74" height="26" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/>
+              <polyline points="3,26 16,8 28,20 40,4 52,22 64,12 77,28" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.5"/>
+            </svg>
+          </div>
+        </div>
+        <div class="ls-sep"></div>
+        <!-- Fade pair -->
+        <div class="ls-fade-pair" style="padding:2px 2px;width:22px">
+          <div class="ls-fade-speed" style="flex:1;width:20px">
+            <div class="ls-fade-speed-fill" style="height:35%"></div>
+            <div class="ls-fade-speed-tick" style="bottom:35%"></div>
+          </div>
+          <div class="ls-fade-type" style="height:12px;width:20px;font-size:7px;justify-content:center">LIN</div>
+        </div>
+        <div class="ls-sep"></div>
+        <!-- S V F columns 16px with values -->
+        <div style="display:flex;gap:2px;padding:2px 2px">
+          <div class="ls-slider-col" style="width:16px;gap:1px">
+            <div class="ls-slider-label" style="font-size:7px">S</div>
+            <div class="ls-slider-track" style="height:16px">
+              <div class="ls-slider-fill" style="height:50%"></div>
+              <div class="ls-slider-tick" style="bottom:50%"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px">1.0</div>
+          </div>
+          <div class="ls-slider-col" style="width:16px;gap:1px">
+            <div class="ls-slider-label" style="font-size:7px">V</div>
+            <div class="ls-slider-track" style="height:16px">
+              <div class="ls-slider-fill" style="height:100%"></div>
+              <div class="ls-slider-tick" style="bottom:100%"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px">1.0</div>
+          </div>
+          <div class="ls-slider-col" style="width:16px;gap:1px">
+            <div class="ls-slider-label" style="font-size:7px">F</div>
+            <div class="ls-slider-track" style="height:16px">
+              <div class="ls-slider-fill override" style="height:60%"></div>
+              <div class="ls-slider-tick" style="bottom:60%"></div>
+            </div>
+            <div class="ls-slider-value" style="font-size:7px">0.5</div>
+            <div class="ls-override-dot" style="margin-top:1px"></div>
+          </div>
+        </div>
+        <div class="ls-sep"></div>
+        <!-- 6 signal columns 12px -->
+        <div style="display:flex;gap:1px;padding:2px 2px">
+          <div class="signal-col" style="width:12px;gap:1px">
+            <div class="ls-tri routed" style="width:5px;height:5px"></div>
+            <div class="signal-col-track" style="height:18px">
+              <div class="signal-col-fill" style="height:80%"></div>
+            </div>
+            <div class="signal-col-label" style="font-size:6px">BA</div>
+          </div>
+          <div class="signal-col" style="width:12px;gap:1px">
+            <div class="ls-tri routed" style="width:5px;height:5px"></div>
+            <div class="signal-col-track" style="height:18px">
+              <div class="signal-col-fill" style="height:45%"></div>
+            </div>
+            <div class="signal-col-label" style="font-size:6px">MI</div>
+          </div>
+          <div class="signal-col" style="width:12px;gap:1px">
+            <div class="ls-tri routed" style="width:5px;height:5px"></div>
+            <div class="signal-col-track" style="height:18px">
+              <div class="signal-col-fill" style="height:38%"></div>
+            </div>
+            <div class="signal-col-label" style="font-size:6px">HI</div>
+          </div>
+          <div class="signal-col" style="width:12px;gap:1px">
+            <div class="ls-tri unrouted" style="width:5px;height:5px"></div>
+            <div class="signal-col-track" style="height:18px">
+              <div class="signal-col-fill" style="height:65%"></div>
+            </div>
+            <div class="signal-col-label" style="font-size:6px">RM</div>
+          </div>
+          <div class="signal-col" style="width:12px;gap:1px">
+            <div class="ls-tri routed" style="width:5px;height:5px"></div>
+            <div class="signal-col-track" style="height:18px">
+              <div class="signal-col-fill" style="height:55%"></div>
+            </div>
+            <div class="signal-col-label" style="font-size:6px">ON</div>
+          </div>
+          <div class="signal-col" style="width:12px;gap:1px">
+            <div class="ls-tri routed" style="width:5px;height:5px"></div>
+            <div class="signal-col-track" style="height:18px">
+              <div class="signal-col-fill" style="height:72%"></div>
+            </div>
+            <div class="signal-col-label" style="font-size:6px">FX</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM ROW 80px: cells — accent connector on playing column -->
+      <div class="v2-bottom-row" style="position:relative">
+        <!-- Accent connector: vertical line from control row to playing cell -->
+        <div style="position:absolute;top:-1px;left:54px;width:1px;height:5px;background:var(--accent)"></div>
+        <div class="cells-grid" style="padding:0 4px">
+          <!-- Playing -->
+          <div class="clip-cell cell-state-playing" style="width:100px;height:80px">
+            <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:22px"></div><div class="clip-wave-bar" style="bottom:38px;height:14px"></div></div>
+            <div class="clip-thumb">
+              <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="5,60 20,25 35,45 50,10 65,40 80,20" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+              </svg>
+            </div>
+            <div class="clip-name-bar">BASS-DRV</div>
+          </div>
+          <!-- Queued -->
+          <div class="clip-cell cell-state-queued" style="width:100px;height:80px">
+            <div class="clip-wave"><div class="clip-wave-bar" style="bottom:15px;height:16px"></div></div>
+            <div class="clip-thumb">
+              <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+                <rect x="15" y="15" width="60" height="36" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+                <line x1="45" y1="15" x2="45" y2="51" stroke="#00d9ff" stroke-width="0.3" opacity="0.2"/>
+              </svg>
+            </div>
+            <div class="clip-name-bar">ACID-LP</div>
+          </div>
+          <!-- Selected -->
+          <div class="clip-cell cell-state-selected" style="width:100px;height:80px">
+            <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:20px"></div></div>
+            <div class="clip-thumb">
+              <svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="10,55 30,15 50,50 70,20 85,45" fill="none" stroke="#00d9ff" stroke-width="0.6" opacity="0.35"/>
+              </svg>
+            </div>
+            <div class="clip-name-bar">PAD-ATMO</div>
+          </div>
+          <!-- Loaded 1-5 -->
+          <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+            <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+            <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="18" width="50" height="30" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+            <div class="clip-name-bar">SWEEP-01</div>
+          </div>
+          <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+            <div class="clip-wave"><div class="clip-wave-bar" style="bottom:18px;height:10px"></div></div>
+            <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="55" x2="80" y2="10" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+            <div class="clip-name-bar">RISER-02</div>
+          </div>
+          <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+            <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:18px"></div></div>
+            <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,33 30,20 50,46 70,14 85,33" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+            <div class="clip-name-bar">STAB-03</div>
+          </div>
+          <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+            <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:12px"></div></div>
+            <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="30" y="25" width="30" height="16" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+            <div class="clip-name-bar">PERC-04</div>
+          </div>
+          <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+            <div class="clip-wave"><div class="clip-wave-bar" style="bottom:15px;height:8px"></div></div>
+            <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><line x1="15" y1="33" x2="75" y2="33" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+            <div class="clip-name-bar">DRONE-05</div>
+          </div>
+          <!-- Empty 1-2 -->
+          <div class="clip-cell cell-state-empty" style="width:100px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+          <div class="clip-cell cell-state-empty" style="width:100px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Layer name bar bottom -->
+  <div class="layer-name" style="position:absolute;bottom:2px;left:8px;font-size:8px">LAYER 2</div>
+  <!-- OVERRIDE badge -->
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V3: BRUTALIST-MAX-PLUS (~130px)
+     Max density. Frame counters on cells. 12 cells narrower.
+     Speed: column with "1.0X" label. Signal: 6 cols with triangles on top.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V3: Brutalist-Max-Plus</div>
+<div class="variation-note">
+  Aggressive density: every value visible, 8px minimum labels. S V F columns
+  14px with "1.0X"-style label above. 6 signal columns 10px with triangle
+  indicators on top. 10 cells (90x80), frame counters removed. ~130px.
+</div>
+
+<div class="row-frame" style="height:130px">
+  <!-- STRIP 260px -->
+  <div class="strip" style="width:260px;border-right:1px solid var(--border)">
+    <!-- X B S stacked tiny -->
+    <div style="display:flex;flex-direction:column;gap:0;padding:3px 2px;width:20px">
+      <div class="ls-btn active" style="width:16px;height:16px;font-size:8px">X</div>
+      <div class="ls-btn" style="width:16px;height:16px;font-size:8px">B</div>
+      <div class="ls-btn active" style="width:16px;height:16px;font-size:8px">S</div>
+      <div style="flex:1"></div>
+      <div class="layer-name" style="font-size:7px;writing-mode:vertical-lr;text-orientation:mixed;margin-top:4px">L3</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Transport + Blend stacked -->
+    <div style="display:flex;flex-direction:column;justify-content:flex-start;padding:3px 2px;gap:2px">
+      <div class="ls-transport">
+        <div class="ls-btn" style="width:16px;height:14px;font-size:7px">&#9664;</div>
+        <div class="ls-btn playing" style="width:16px;height:14px;font-size:7px">&#9646;&#9646;</div>
+        <div class="ls-btn" style="width:16px;height:14px;font-size:7px">&#9654;</div>
+      </div>
+      <div class="ls-blend" style="height:14px;width:48px;font-size:8px">SCREEN</div>
+      <div style="font:7px var(--font-sans);color:var(--label);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">FPS: <span style="font-family:var(--font-mono);color:var(--value)">60</span></div>
+      <div style="font:7px var(--font-sans);color:var(--label);text-transform:uppercase;letter-spacing:0.5px">DUR: <span style="font-family:var(--font-mono);color:var(--value)">04:32</span></div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Thumbnail 50x40 -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:3px 2px">
+      <div class="ls-thumb" style="width:50px;height:40px">
+        <svg viewBox="0 0 50 40" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="3" width="44" height="34" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/>
+          <polyline points="3,35 12,10 22,28 32,5 42,25 47,15" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+          <line x1="3" y1="20" x2="47" y2="20" stroke="#00d9ff" stroke-width="0.3" opacity="0.2"/>
+          <line x1="25" y1="3" x2="25" y2="37" stroke="#00d9ff" stroke-width="0.3" opacity="0.2"/>
+        </svg>
+      </div>
+      <!-- Fade pair horizontal -->
+      <div class="ls-fade-pair horizontal" style="margin-top:2px">
+        <div class="ls-fade-speed" style="width:24px;height:18px">
+          <div class="ls-fade-speed-fill" style="height:40%"></div>
+          <div class="ls-fade-speed-tick" style="bottom:40%"></div>
+        </div>
+        <div class="ls-fade-type" style="height:18px;width:24px;font-size:6px;justify-content:center">EXP</div>
+      </div>
+      <div style="font:6px var(--font-sans);color:var(--label);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px">FADE: <span style="font-family:var(--font-mono);color:var(--value)">0.4S</span></div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- S V F columns 14px with value + label above -->
+    <div style="display:flex;gap:2px;padding:3px 2px">
+      <div class="ls-slider-col" style="width:14px;gap:1px">
+        <div class="ls-slider-label" style="font-size:6px">SPD</div>
+        <div class="ls-slider-value" style="font-size:7px">1.0X</div>
+        <div class="ls-slider-track" style="height:72px">
+          <div class="ls-slider-fill" style="height:50%"></div>
+          <div class="ls-slider-tick" style="bottom:50%"></div>
+        </div>
+      </div>
+      <div class="ls-slider-col" style="width:14px;gap:1px">
+        <div class="ls-slider-label" style="font-size:6px">OPC</div>
+        <div class="ls-slider-value" style="font-size:7px">0.85</div>
+        <div class="ls-slider-track" style="height:72px">
+          <div class="ls-slider-fill" style="height:85%"></div>
+          <div class="ls-slider-tick" style="bottom:85%"></div>
+        </div>
+      </div>
+      <div class="ls-slider-col" style="width:14px;gap:1px">
+        <div class="ls-slider-label" style="font-size:6px">FDE</div>
+        <div class="ls-slider-value" style="font-size:7px">0.30</div>
+        <div class="ls-slider-track" style="height:72px">
+          <div class="ls-slider-fill override" style="height:30%"></div>
+          <div class="ls-slider-tick" style="bottom:30%"></div>
+        </div>
+        <div class="ls-override-dot" style="margin-top:1px"></div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- 6 signal cols 10px with triangle on top — labels enlarged to 8px -->
+    <div style="display:flex;gap:1px;padding:3px 1px">
+      <div class="signal-col" style="width:10px;gap:0">
+        <div class="ls-tri routed" style="width:5px;height:5px;margin-bottom:1px"></div>
+        <div class="signal-col-track" style="height:82px">
+          <div class="signal-col-fill" style="height:81%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">BA</div>
+      </div>
+      <div class="signal-col" style="width:10px;gap:0">
+        <div class="ls-tri routed" style="width:5px;height:5px;margin-bottom:1px"></div>
+        <div class="signal-col-track" style="height:82px">
+          <div class="signal-col-fill" style="height:45%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">MI</div>
+      </div>
+      <div class="signal-col" style="width:10px;gap:0">
+        <div class="ls-tri unrouted" style="width:5px;height:5px;margin-bottom:1px"></div>
+        <div class="signal-col-track" style="height:82px">
+          <div class="signal-col-fill" style="height:38%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">HI</div>
+      </div>
+      <div class="signal-col" style="width:10px;gap:0">
+        <div class="ls-tri routed" style="width:5px;height:5px;margin-bottom:1px"></div>
+        <div class="signal-col-track" style="height:82px">
+          <div class="signal-col-fill" style="height:72%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">RM</div>
+      </div>
+      <div class="signal-col" style="width:10px;gap:0">
+        <div class="ls-tri routed" style="width:5px;height:5px;margin-bottom:1px"></div>
+        <div class="signal-col-track" style="height:82px">
+          <div class="signal-col-fill" style="height:55%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">ON</div>
+      </div>
+      <div class="signal-col" style="width:10px;gap:0">
+        <div class="ls-tri unrouted" style="width:5px;height:5px;margin-bottom:1px"></div>
+        <div class="signal-col-track" style="height:82px">
+          <div class="signal-col-fill" style="height:33%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:8px">FX</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CELLS GRID 10 cells, 90x80 — frame counters removed -->
+  <div class="cells-grid tight">
+    <!-- Playing -->
+    <div class="clip-cell cell-state-playing" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:20px"></div><div class="clip-wave-bar" style="bottom:36px;height:12px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><polyline points="5,55 18,15 32,42 45,8 58,38 74,22" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.5"/></svg></div>
+      <div class="clip-name-bar" style="font-size:8px">GLT-01</div>
+    </div>
+    <!-- Queued -->
+    <div class="clip-cell cell-state-queued" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:14px;height:16px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="12" width="60" height="42" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.3"/><line x1="40" y1="12" x2="40" y2="54" stroke="#00d9ff" stroke-width="0.3" opacity="0.2"/></svg></div>
+      <div class="clip-name-bar" style="font-size:8px">GLT-02</div>
+    </div>
+    <!-- Selected -->
+    <div class="clip-cell cell-state-selected" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:22px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><polyline points="5,50 20,18 38,45 55,10 72,42" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+      <div class="clip-name-bar" style="font-size:8px">NOIS-03</div>
+    </div>
+    <!-- Loaded 1-5 -->
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="18" width="50" height="30" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar" style="font-size:8px">FRG-04</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:18px;height:10px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="33" x2="70" y2="33" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar" style="font-size:8px">CUT-05</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:18px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><polyline points="5,33 20,20 38,46 55,14 72,40" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar" style="font-size:8px">BRK-06</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:12px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="22" width="40" height="22" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar" style="font-size:8px">PLS-07</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:15px;height:8px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="50" x2="70" y2="16" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar" style="font-size:8px">SWP-08</div>
+    </div>
+    <!-- Empty 1-2 -->
+    <div class="clip-cell cell-state-empty" style="width:90px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+    <div class="clip-cell cell-state-empty" style="width:90px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+  </div>
+
+  <!-- OVERRIDE badge -->
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V4: STRIP-CELLS-50/50 (~120px)
+     Equal width: strip 600px, cells 600px. 6 cells comfortable.
+     Speed: spacious column. Signal: 4 columns.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V4: Strip-Cells-50/50</div>
+<div class="variation-note">
+  Strip 480px (40%), cells 720px (60%). Comfortable spacing.
+  S V F columns 18px each. 4 signal columns 14px. 8 cells at 90px. ~120px.
+</div>
+
+<div class="row-frame" style="height:120px">
+  <!-- STRIP 480px (40% of 1200) -->
+  <div class="strip" style="width:480px;border-right:1px solid var(--border)">
+    <!-- X B S stacked -->
+    <div style="display:flex;flex-direction:column;gap:0;padding:6px 4px;width:28px">
+      <div class="ls-btn active" style="width:22px;height:22px;font-size:10px">X</div>
+      <div class="ls-btn" style="width:22px;height:22px;font-size:10px">B</div>
+      <div class="ls-btn active" style="width:22px;height:22px;font-size:10px">S</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Transport -->
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:4px">
+      <div class="ls-transport">
+        <div class="ls-btn" style="width:22px;height:20px;font-size:10px">&#9664;</div>
+        <div class="ls-btn playing" style="width:22px;height:20px;font-size:10px">&#9646;&#9646;</div>
+        <div class="ls-btn" style="width:22px;height:20px;font-size:10px">&#9654;</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Blend wide 120px -->
+    <div style="display:flex;align-items:center;padding:4px">
+      <div class="ls-blend" style="height:24px;width:120px;font-size:10px">ADDITIVE</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Thumbnail 120x80 -->
+    <div style="display:flex;align-items:center;padding:4px">
+      <div class="ls-thumb" style="width:120px;height:80px">
+        <svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="8" width="104" height="64" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/>
+          <polyline points="8,65 25,20 42,50 60,10 78,55 95,25 112,60" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+          <line x1="8" y1="40" x2="112" y2="40" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/>
+          <polyline points="8,55 30,35 50,60 70,30 90,55 112,40" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.25"/>
+        </svg>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Fade pair vertical -->
+    <div class="ls-fade-pair" style="width:26px;padding:6px 2px">
+      <div class="ls-fade-speed" style="flex:1;width:22px">
+        <div class="ls-fade-speed-fill" style="height:25%"></div>
+        <div class="ls-fade-speed-tick" style="bottom:25%"></div>
+      </div>
+      <div class="ls-fade-type" style="height:16px;width:22px;font-size:8px;justify-content:center">LIN</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- S V F columns 18px -->
+    <div style="display:flex;gap:3px;padding:4px 3px">
+      <div class="ls-slider-col" style="width:18px;gap:2px">
+        <div class="ls-slider-label">S</div>
+        <div class="ls-slider-track" style="height:76px">
+          <div class="ls-slider-fill" style="height:75%"></div>
+          <div class="ls-slider-tick" style="bottom:75%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:8px">1.5</div>
+      </div>
+      <div class="ls-slider-col" style="width:18px;gap:2px">
+        <div class="ls-slider-label">V</div>
+        <div class="ls-slider-track" style="height:76px">
+          <div class="ls-slider-fill" style="height:100%"></div>
+          <div class="ls-slider-tick" style="bottom:100%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:8px">1.0</div>
+      </div>
+      <div class="ls-slider-col" style="width:18px;gap:2px">
+        <div class="ls-slider-label">F</div>
+        <div class="ls-slider-track" style="height:76px">
+          <div class="ls-slider-fill override" style="height:20%"></div>
+          <div class="ls-slider-tick" style="bottom:20%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:8px">0.2</div>
+        <div class="ls-override-dot" style="margin-top:1px"></div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- 4 signal columns 14px -->
+    <div style="display:flex;gap:2px;padding:4px 2px">
+      <div class="signal-col" style="width:14px;gap:1px">
+        <div class="ls-tri routed" style="width:6px;height:6px"></div>
+        <div class="signal-col-track" style="height:80px">
+          <div class="signal-col-fill" style="height:82%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:6px">BASS</div>
+      </div>
+      <div class="signal-col" style="width:14px;gap:1px">
+        <div class="ls-tri routed" style="width:6px;height:6px"></div>
+        <div class="signal-col-track" style="height:80px">
+          <div class="signal-col-fill" style="height:42%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:6px">MID</div>
+      </div>
+      <div class="signal-col" style="width:14px;gap:1px">
+        <div class="ls-tri unrouted" style="width:6px;height:6px"></div>
+        <div class="signal-col-track" style="height:80px">
+          <div class="signal-col-fill" style="height:36%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:6px">HIGH</div>
+      </div>
+      <div class="signal-col" style="width:14px;gap:1px">
+        <div class="ls-tri routed" style="width:6px;height:6px"></div>
+        <div class="signal-col-track" style="height:80px">
+          <div class="signal-col-fill" style="height:68%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:6px">RMS</div>
+      </div>
+    </div>
+    <!-- Layer name -->
+    <div style="display:flex;align-items:flex-end;padding:4px">
+      <div class="layer-name" style="font-size:9px">LAYER 4</div>
+    </div>
+  </div>
+
+  <!-- CELLS GRID 8 cells at 90px — 720px region (60%) -->
+  <div class="cells-grid comfortable">
+    <!-- Playing -->
+    <div class="clip-cell cell-state-playing" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:22px"></div><div class="clip-wave-bar" style="bottom:38px;height:14px"></div></div>
+      <div class="clip-thumb">
+        <svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="10" width="64" height="46" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/>
+          <rect x="16" y="20" width="48" height="26" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.2"/>
+          <polyline points="8,55 24,18 42,48 60,12 74,42" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.45"/>
+        </svg>
+      </div>
+      <div class="clip-name-bar">MAIN-VIS</div>
+    </div>
+    <!-- Queued -->
+    <div class="clip-cell cell-state-queued" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:18px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><polyline points="8,50 24,20 42,45 60,15 74,40" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+      <div class="clip-name-bar">NEXT-UP</div>
+    </div>
+    <!-- Selected -->
+    <div class="clip-cell cell-state-selected" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:24px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><rect x="12" y="15" width="56" height="36" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.25"/></svg></div>
+      <div class="clip-name-bar">ALT-MIX</div>
+    </div>
+    <!-- Loaded 1-4 -->
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><line x1="8" y1="50" x2="72" y2="16" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">SPARE-01</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:15px;height:10px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><polyline points="8,33 24,20 42,46 60,14 74,33" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">SPARE-02</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:18px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="22" width="44" height="22" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">SPARE-03</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:90px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:12px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 80 66" xmlns="http://www.w3.org/2000/svg"><polyline points="8,40 24,22 42,48 60,18 74,36" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">SPARE-04</div>
+    </div>
+    <!-- Empty -->
+    <div class="clip-cell cell-state-empty" style="width:90px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+  </div>
+
+  <!-- Active indicator bottom bar -->
+  <div class="layer-active" style="position:absolute;bottom:0;left:0;right:0;height:3px"></div>
+  <!-- OVERRIDE badge -->
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ================================================================
+     CATEGORY B: SPEED REINVENTED
+     ================================================================ -->
+<div class="study-category">Category B: Speed Reinvented</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V5: SPEED-AS-PLAYHEAD (~120px)
+     No S column. Playhead bar under thumbnail = rate visualization.
+     Speed: playhead-bar + numeric label. Signal: 4 columns.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V5: Speed-As-Playhead</div>
+<div class="variation-note">
+  S column removed. Playhead bar under thumbnail visualizes rate: bar fills at
+  speed-proportional rate. Numeric "1.5X" label adjacent. V F columns only (no S).
+  4 signal columns. ~120px. Speed as implicit playhead behavior.
+</div>
+
+<div class="row-frame" style="height:120px">
+  <div class="strip" style="width:340px;border-right:1px solid var(--border)">
+    <!-- X B S -->
+    <div style="display:flex;flex-direction:column;gap:0;padding:4px 3px;width:24px">
+      <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">X</div>
+      <div class="ls-btn" style="width:20px;height:20px;font-size:9px">B</div>
+      <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">S</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Transport -->
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:4px">
+      <div class="ls-transport">
+        <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9664;</div>
+        <div class="ls-btn playing" style="width:20px;height:18px;font-size:9px">&#9646;&#9646;</div>
+        <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9654;</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Blend -->
+    <div style="display:flex;align-items:center;padding:4px">
+      <div class="ls-blend" style="height:20px;width:70px;font-size:9px">ADD</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Thumbnail 100x72 with playhead bar + speed label -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px;position:relative">
+      <div class="ls-thumb" style="width:100px;height:72px;position:relative">
+        <svg viewBox="0 0 100 72" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="90" height="62" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/>
+          <polyline points="5,60 20,20 35,50 50,10 65,45 80,22 95,55" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+          <line x1="5" y1="36" x2="95" y2="36" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/>
+        </svg>
+        <!-- Playhead bar -->
+        <div class="playhead-bar" style="width:65%"></div>
+        <div class="playhead-speed-label">1.5X</div>
+      </div>
+      <div class="layer-name" style="font-size:8px;margin-top:2px">LAYER 5</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Fade pair -->
+    <div class="ls-fade-pair" style="width:22px;padding:4px 1px">
+      <div class="ls-fade-speed" style="flex:1;width:20px">
+        <div class="ls-fade-speed-fill" style="height:30%"></div>
+        <div class="ls-fade-speed-tick" style="bottom:30%"></div>
+      </div>
+      <div class="ls-fade-type" style="height:14px;width:20px;font-size:7px;justify-content:center">LIN</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- V F columns only (no S) 16px -->
+    <div style="display:flex;gap:2px;padding:4px 2px">
+      <div class="ls-slider-col" style="width:16px;gap:2px">
+        <div class="ls-slider-label" style="font-size:7px">V</div>
+        <div class="ls-slider-track" style="height:78px">
+          <div class="ls-slider-fill override" style="height:90%"></div>
+          <div class="ls-slider-tick" style="bottom:90%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.9</div>
+        <div class="ls-override-dot" style="margin-top:1px"></div>
+      </div>
+      <div class="ls-slider-col" style="width:16px;gap:2px">
+        <div class="ls-slider-label" style="font-size:7px">F</div>
+        <div class="ls-slider-track" style="height:78px">
+          <div class="ls-slider-fill" style="height:25%"></div>
+          <div class="ls-slider-tick" style="bottom:25%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.3</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- 4 signal columns 12px -->
+    <div style="display:flex;gap:1px;padding:4px 2px">
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px">
+          <div class="signal-col-fill" style="height:78%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:6px">BA</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px">
+          <div class="signal-col-fill" style="height:40%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:6px">MI</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri unrouted" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px">
+          <div class="signal-col-fill" style="height:35%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:6px">HI</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px">
+          <div class="signal-col-fill" style="height:62%"></div>
+        </div>
+        <div class="signal-col-label" style="font-size:6px">RM</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CELLS GRID 8 cells -->
+  <div class="cells-grid">
+    <div class="clip-cell cell-state-playing" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:22px"></div><div class="clip-wave-bar" style="bottom:38px;height:14px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="5,55 20,15 35,48 50,8 65,42 80,22" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.5"/></svg></div>
+      <div class="clip-name-bar">VJ-LOOP-A</div>
+    </div>
+    <div class="clip-cell cell-state-queued" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:14px;height:16px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="15" width="60" height="36" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.25"/></svg></div>
+      <div class="clip-name-bar">VJ-LOOP-B</div>
+    </div>
+    <div class="clip-cell cell-state-selected" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:20px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="55" x2="80" y2="10" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/><line x1="10" y1="10" x2="80" y2="55" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+      <div class="clip-name-bar">GLITCH-C</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,33 30,20 50,46 70,14 85,33" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">TUNNEL-D</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:18px;height:10px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="18" width="50" height="30" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">WARP-E</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:18px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="33" x2="80" y2="33" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">STROBE-F</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:12px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="25" y="22" width="40" height="22" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">SCAN-G</div>
+    </div>
+    <div class="clip-cell cell-state-empty" style="width:100px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+  </div>
+
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V6: SPEED-AS-CELL-BADGE (~120px)
+     S removed from strip. Per-clip speed badge on each cell.
+     Speed: per-cell badges. Signal: 4 columns.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V6: Speed-As-Cell-Badge</div>
+<div class="variation-note">
+  S removed from strip entirely. Each cell shows per-clip speed badge top-right
+  (e.g., "x1.5", "x0.75"). Layer-level speed implicit from active clip badge.
+  V F columns (no S). 4 signal columns. ~120px. Speed: per-cell badge.
+</div>
+
+<div class="row-frame" style="height:120px">
+  <div class="strip" style="width:300px;border-right:1px solid var(--border)">
+    <!-- X B S -->
+    <div style="display:flex;flex-direction:column;gap:0;padding:4px 3px;width:24px">
+      <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">X</div>
+      <div class="ls-btn" style="width:20px;height:20px;font-size:9px">B</div>
+      <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">S</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Transport -->
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:4px">
+      <div class="ls-transport">
+        <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9664;</div>
+        <div class="ls-btn playing" style="width:20px;height:18px;font-size:9px">&#9646;&#9646;</div>
+        <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9654;</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Blend -->
+    <div style="display:flex;align-items:center;padding:4px">
+      <div class="ls-blend" style="height:20px;width:70px;font-size:9px">SCREEN</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Thumbnail -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px">
+      <div class="ls-thumb" style="width:80px;height:60px">
+        <svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+          <polyline points="4,50 16,12 30,42 44,6 58,38 72,18" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+          <rect x="4" y="4" width="72" height="52" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.2"/>
+        </svg>
+      </div>
+      <div class="layer-name" style="font-size:8px;margin-top:2px">LAYER 6</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Fade pair -->
+    <div class="ls-fade-pair" style="width:22px;padding:4px 1px">
+      <div class="ls-fade-speed" style="flex:1;width:20px">
+        <div class="ls-fade-speed-fill" style="height:35%"></div>
+        <div class="ls-fade-speed-tick" style="bottom:35%"></div>
+      </div>
+      <div class="ls-fade-type" style="height:14px;width:20px;font-size:7px;justify-content:center">EXP</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- V F columns only (no S) -->
+    <div style="display:flex;gap:2px;padding:4px 2px">
+      <div class="ls-slider-col" style="width:16px;gap:2px">
+        <div class="ls-slider-label" style="font-size:7px">V</div>
+        <div class="ls-slider-track" style="height:78px">
+          <div class="ls-slider-fill" style="height:100%"></div>
+          <div class="ls-slider-tick" style="bottom:100%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">1.0</div>
+      </div>
+      <div class="ls-slider-col" style="width:16px;gap:2px">
+        <div class="ls-slider-label" style="font-size:7px">F</div>
+        <div class="ls-slider-track" style="height:78px">
+          <div class="ls-slider-fill override" style="height:40%"></div>
+          <div class="ls-slider-tick" style="bottom:40%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.4</div>
+        <div class="ls-override-dot" style="margin-top:1px"></div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- 4 signal columns -->
+    <div style="display:flex;gap:1px;padding:4px 2px">
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px"><div class="signal-col-fill" style="height:76%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">BA</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px"><div class="signal-col-fill" style="height:48%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">MI</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri unrouted" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px"><div class="signal-col-fill" style="height:32%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">HI</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px"><div class="signal-col-fill" style="height:58%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">RM</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CELLS GRID 8 cells with speed badges -->
+  <div class="cells-grid">
+    <!-- Playing with speed badge -->
+    <div class="clip-cell cell-state-playing" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:22px"></div><div class="clip-wave-bar" style="bottom:38px;height:12px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="8,55 22,18 38,45 52,8 68,40 82,20" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.5"/></svg></div>
+      <div class="clip-name-bar">REACT-01</div>
+      <div class="cell-speed-badge">x1.5</div>
+    </div>
+    <!-- Queued -->
+    <div class="clip-cell cell-state-queued" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:14px;height:16px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="12" width="60" height="42" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.25"/></svg></div>
+      <div class="clip-name-bar">REACT-02</div>
+      <div class="cell-speed-badge">x1.0</div>
+    </div>
+    <!-- Selected -->
+    <div class="clip-cell cell-state-selected" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:20px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,50 30,20 50,48 70,12 85,42" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+      <div class="clip-name-bar">FLOW-03</div>
+      <div class="cell-speed-badge">x0.75</div>
+    </div>
+    <!-- Loaded cells with badges -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="18" width="50" height="30" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">PULSE-04</div>
+      <div class="cell-speed-badge">x2.0</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:18px;height:10px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="50" x2="80" y2="16" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">WAVE-05</div>
+      <div class="cell-speed-badge">x1.0</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:18px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,33 30,18 50,44 70,14 85,36" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">MORPH-06</div>
+      <div class="cell-speed-badge">x0.5</div>
+    </div>
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:12px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="25" y="22" width="40" height="22" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-name-bar">GRID-07</div>
+      <div class="cell-speed-badge">x1.25</div>
+    </div>
+    <div class="clip-cell cell-state-empty" style="width:100px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+  </div>
+
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V7: SPEED-AS-CELL-WIDTH (~120px)
+     Cells at speed-proportional widths. Fast=narrow, slow=wide.
+     Speed: cell width encoding. Signal: 4 columns.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V7: Speed-As-Cell-Width</div>
+<div class="variation-note">
+  Cells rendered at speed-proportional width: 80-120px range (narrower variation).
+  Proper clip names, rate badge top-right, speed under-bar below each cell.
+  No S column in strip. Speed: moderate cell width + badge + under-bar. Signal: 4 columns.
+</div>
+
+<div class="row-frame" style="height:120px">
+  <div class="strip" style="width:280px;border-right:1px solid var(--border)">
+    <!-- X B S -->
+    <div style="display:flex;flex-direction:column;gap:0;padding:4px 3px;width:24px">
+      <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">X</div>
+      <div class="ls-btn" style="width:20px;height:20px;font-size:9px">B</div>
+      <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">S</div>
+    </div>
+    <div class="ls-sep"></div>
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:4px">
+      <div class="ls-transport">
+        <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9664;</div>
+        <div class="ls-btn playing" style="width:20px;height:18px;font-size:9px">&#9646;&#9646;</div>
+        <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9654;</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <div style="display:flex;align-items:center;padding:4px">
+      <div class="ls-blend" style="height:20px;width:60px;font-size:9px">ADD</div>
+    </div>
+    <div class="ls-sep"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px">
+      <div class="ls-thumb" style="width:70px;height:55px">
+        <svg viewBox="0 0 70 55" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3" y="3" width="64" height="49" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/>
+          <polyline points="3,48 14,12 28,38 42,5 56,35 67,18" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="layer-name" style="font-size:8px;margin-top:2px">LAYER 7</div>
+    </div>
+    <div class="ls-sep"></div>
+    <div class="ls-fade-pair" style="width:22px;padding:4px 1px">
+      <div class="ls-fade-speed" style="flex:1;width:20px">
+        <div class="ls-fade-speed-fill" style="height:30%"></div>
+        <div class="ls-fade-speed-tick" style="bottom:30%"></div>
+      </div>
+      <div class="ls-fade-type" style="height:14px;width:20px;font-size:7px;justify-content:center">LIN</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- V F only -->
+    <div style="display:flex;gap:2px;padding:4px 2px">
+      <div class="ls-slider-col" style="width:16px;gap:2px">
+        <div class="ls-slider-label" style="font-size:7px">V</div>
+        <div class="ls-slider-track" style="height:78px">
+          <div class="ls-slider-fill" style="height:85%"></div>
+          <div class="ls-slider-tick" style="bottom:85%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.85</div>
+      </div>
+      <div class="ls-slider-col" style="width:16px;gap:2px">
+        <div class="ls-slider-label" style="font-size:7px">F</div>
+        <div class="ls-slider-track" style="height:78px">
+          <div class="ls-slider-fill override" style="height:50%"></div>
+          <div class="ls-slider-tick" style="bottom:50%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.5</div>
+        <div class="ls-override-dot" style="margin-top:1px"></div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- 4 signal columns -->
+    <div style="display:flex;gap:1px;padding:4px 2px">
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px"><div class="signal-col-fill" style="height:74%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">BA</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px"><div class="signal-col-fill" style="height:42%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">MI</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri unrouted" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px"><div class="signal-col-fill" style="height:30%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">HI</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:78px"><div class="signal-col-fill" style="height:55%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">RM</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CELLS GRID with variable widths (80-120px range) + rate badges + speed under-bars -->
+  <div class="cells-grid" style="align-items:stretch">
+    <!-- x2.0 fast = 80px -->
+    <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      <div class="clip-cell cell-state-playing" style="width:80px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:20px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 70 66" xmlns="http://www.w3.org/2000/svg"><polyline points="4,55 15,15 28,42 40,8 55,30 66,18" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.5"/></svg></div>
+        <div class="clip-name-bar" style="font-size:7px">STAR FIELD</div>
+        <div class="cell-speed-badge">x2.0</div>
+      </div>
+      <div style="height:2px;width:80px;background:var(--accent);opacity:0.7"></div>
+    </div>
+    <!-- x1.5 = 85px -->
+    <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      <div class="clip-cell cell-state-queued" style="width:85px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:14px;height:14px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 75 66" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="12" width="60" height="42" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.25"/></svg></div>
+        <div class="clip-name-bar" style="font-size:7px">WAVE GRID</div>
+        <div class="cell-speed-badge">x1.5</div>
+      </div>
+      <div style="height:2px;width:64px;background:var(--accent);opacity:0.5"></div>
+    </div>
+    <!-- x1.0 default = 100px -->
+    <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      <div class="clip-cell cell-state-selected" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:22px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,50 30,18 50,45 70,12 85,40" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+        <div class="clip-name-bar">PRISM FX</div>
+        <div class="cell-speed-badge">x1.0</div>
+      </div>
+      <div style="height:2px;width:50px;background:var(--accent);opacity:0.35"></div>
+    </div>
+    <!-- x1.0 = 100px -->
+    <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="18" width="50" height="30" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">FRACTAL</div>
+        <div class="cell-speed-badge">x1.0</div>
+      </div>
+      <div style="height:2px;width:50px;background:var(--accent);opacity:0.35"></div>
+    </div>
+    <!-- x0.75 slow = 110px -->
+    <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      <div class="clip-cell cell-state-loaded" style="width:110px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:18px;height:10px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 100 66" xmlns="http://www.w3.org/2000/svg"><polyline points="5,33 22,18 45,46 68,14 95,36" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">DEEP SCAN</div>
+        <div class="cell-speed-badge">x0.75</div>
+      </div>
+      <div style="height:2px;width:38px;background:var(--accent);opacity:0.25"></div>
+    </div>
+    <!-- x0.5 slowest = 120px -->
+    <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      <div class="clip-cell cell-state-loaded" style="width:120px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:22px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 110 66" xmlns="http://www.w3.org/2000/svg"><line x1="5" y1="50" x2="105" y2="16" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/><line x1="5" y1="16" x2="105" y2="50" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">SLOW DRIFT</div>
+        <div class="cell-speed-badge">x0.5</div>
+      </div>
+      <div style="height:2px;width:25px;background:var(--accent);opacity:0.15"></div>
+    </div>
+    <!-- x1.5 = 85px -->
+    <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      <div class="clip-cell cell-state-loaded" style="width:85px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:14px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 75 66" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="20" width="55" height="26" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar" style="font-size:7px">LASER NET</div>
+        <div class="cell-speed-badge">x1.5</div>
+      </div>
+      <div style="height:2px;width:64px;background:var(--accent);opacity:0.5"></div>
+    </div>
+    <!-- x2.0 = 80px -->
+    <div style="display:flex;flex-direction:column;gap:0;flex-shrink:0">
+      <div class="clip-cell cell-state-loaded" style="width:80px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:15px;height:8px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 70 66" xmlns="http://www.w3.org/2000/svg"><polyline points="4,40 15,20 28,45 40,12 55,35 66,22" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar" style="font-size:7px">PIXEL RUN</div>
+        <div class="cell-speed-badge">x2.0</div>
+      </div>
+      <div style="height:2px;width:80px;background:var(--accent);opacity:0.7"></div>
+    </div>
+    <!-- empty -->
+    <div class="clip-cell cell-state-empty" style="width:100px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+  </div>
+
+  <div class="layer-active" style="position:absolute;bottom:0;left:0;right:0;height:3px"></div>
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V8: SPEED-AS-COLOR (~120px)
+     Thumbnail border hue shifts with speed. Pale(slow) vivid(1x)
+     intense(fast). S column small/secondary.
+     Speed: thumbnail border hue/saturation. Signal: 4 columns.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V8: Speed-As-Color</div>
+<div class="variation-note">
+  Speed indicated by 12px bottom-tint overlay on thumbnails: pale (slow, 10% opacity)
+  to full (fast, 30% opacity). S column small/secondary (10px, 0.6 opacity).
+  Active border still varies in hue. Color extracted to --local-speed-intense. ~120px.
+</div>
+
+<div class="row-frame" style="height:120px">
+  <div class="strip" style="width:330px;border-right:1px solid var(--border)">
+    <!-- X B S -->
+    <div style="display:flex;flex-direction:column;gap:0;padding:4px 3px;width:24px">
+      <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">X</div>
+      <div class="ls-btn" style="width:20px;height:20px;font-size:9px">B</div>
+      <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">S</div>
+    </div>
+    <div class="ls-sep"></div>
+    <div style="display:flex;flex-direction:column;justify-content:center;padding:4px">
+      <div class="ls-transport">
+        <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9664;</div>
+        <div class="ls-btn playing" style="width:20px;height:18px;font-size:9px">&#9646;&#9646;</div>
+        <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9654;</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <div style="display:flex;align-items:center;padding:4px">
+      <div class="ls-blend" style="height:20px;width:70px;font-size:9px">MULTIPLY</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Thumbnail with hue-shifting 2px border — showing FAST = intense bright blue -->
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px">
+      <div class="ls-thumb thumb-speed-intense" style="width:90px;height:65px">
+        <svg viewBox="0 0 90 65" xmlns="http://www.w3.org/2000/svg">
+          <rect x="5" y="5" width="80" height="55" fill="none" style="stroke:var(--local-speed-intense)" stroke-width="0.5" opacity="0.3"/>
+          <polyline points="5,55 18,15 34,45 50,8 66,40 82,20" fill="none" style="stroke:var(--local-speed-intense)" stroke-width="1" opacity="0.6"/>
+          <line x1="5" y1="32" x2="85" y2="32" style="stroke:var(--local-speed-intense)" stroke-width="0.3" opacity="0.2"/>
+        </svg>
+      </div>
+      <!-- Speed label next to thumb -->
+      <div style="display:flex;align-items:center;gap:4px;margin-top:2px">
+        <div class="layer-name" style="font-size:8px">LAYER 8</div>
+        <div style="font:500 8px var(--font-mono);color:var(--accent)">2.0X</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- Fade pair -->
+    <div class="ls-fade-pair" style="width:22px;padding:4px 1px">
+      <div class="ls-fade-speed" style="flex:1;width:20px">
+        <div class="ls-fade-speed-fill" style="height:28%"></div>
+        <div class="ls-fade-speed-tick" style="bottom:28%"></div>
+      </div>
+      <div class="ls-fade-type" style="height:14px;width:20px;font-size:7px;justify-content:center">LIN</div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- S V F columns 14px (S is small/secondary) -->
+    <div style="display:flex;gap:2px;padding:4px 2px">
+      <div class="ls-slider-col" style="width:10px;gap:1px;opacity:0.6">
+        <div class="ls-slider-label" style="font-size:6px">S</div>
+        <div class="ls-slider-track" style="height:72px">
+          <div class="ls-slider-fill" style="height:100%"></div>
+          <div class="ls-slider-tick" style="bottom:100%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:6px">2.0</div>
+      </div>
+      <div class="ls-slider-col" style="width:14px;gap:1px">
+        <div class="ls-slider-label" style="font-size:7px">V</div>
+        <div class="ls-slider-track" style="height:72px">
+          <div class="ls-slider-fill override" style="height:75%"></div>
+          <div class="ls-slider-tick" style="bottom:75%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.75</div>
+        <div class="ls-override-dot" style="margin-top:1px"></div>
+      </div>
+      <div class="ls-slider-col" style="width:14px;gap:1px">
+        <div class="ls-slider-label" style="font-size:7px">F</div>
+        <div class="ls-slider-track" style="height:72px">
+          <div class="ls-slider-fill" style="height:20%"></div>
+          <div class="ls-slider-tick" style="bottom:20%"></div>
+        </div>
+        <div class="ls-slider-value" style="font-size:7px">0.2</div>
+      </div>
+    </div>
+    <div class="ls-sep"></div>
+    <!-- 4 signal columns 12px -->
+    <div style="display:flex;gap:1px;padding:4px 2px">
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:72px"><div class="signal-col-fill" style="height:80%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">BA</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:72px"><div class="signal-col-fill" style="height:44%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">MI</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri unrouted" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:72px"><div class="signal-col-fill" style="height:36%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">HI</div>
+      </div>
+      <div class="signal-col" style="width:12px;gap:1px">
+        <div class="ls-tri routed" style="width:5px;height:5px"></div>
+        <div class="signal-col-track" style="height:72px"><div class="signal-col-fill" style="height:60%"></div></div>
+        <div class="signal-col-label" style="font-size:6px">RM</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CELLS GRID 8 cells — speed bottom-tint overlays, playing border uses --local-speed-intense -->
+  <div class="cells-grid">
+    <!-- Playing — fast (x2.0): intense border + 30% bottom tint -->
+    <div class="clip-cell cell-state-playing" style="width:100px;height:80px;border-color:var(--local-speed-intense)">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:22px"></div><div class="clip-wave-bar" style="bottom:38px;height:12px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="8,55 22,15 38,45 52,6 68,38 82,18" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.5"/></svg></div>
+      <div class="clip-speed-tint" style="background:var(--accent);opacity:0.3"></div>
+      <div class="clip-name-bar">LASER-A</div>
+    </div>
+    <!-- Queued — medium (x1.0): vivid border + 20% bottom tint -->
+    <div class="clip-cell cell-state-queued" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:14px;height:16px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="12" width="60" height="42" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.25"/></svg></div>
+      <div class="clip-speed-tint" style="background:var(--accent);opacity:0.2"></div>
+      <div class="clip-name-bar">PRISM-B</div>
+    </div>
+    <!-- Selected — slow (x0.5): pale border + 10% bottom tint -->
+    <div class="clip-cell cell-state-selected" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:20px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,50 30,20 50,48 70,12 85,42" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+      <div class="clip-speed-tint" style="background:var(--accent);opacity:0.1"></div>
+      <div class="clip-name-bar">FRACTAL-C</div>
+    </div>
+    <!-- Loaded — x1.5: 25% tint -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="18" width="50" height="30" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-speed-tint" style="background:var(--accent);opacity:0.25"></div>
+      <div class="clip-name-bar">MATRIX-D</div>
+    </div>
+    <!-- Loaded — x1.0: 20% tint -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:18px;height:10px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="50" x2="80" y2="16" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-speed-tint" style="background:var(--accent);opacity:0.2"></div>
+      <div class="clip-name-bar">MESH-E</div>
+    </div>
+    <!-- Loaded — x0.75: 15% tint -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:18px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,33 30,18 50,44 70,14 85,36" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-speed-tint" style="background:var(--accent);opacity:0.15"></div>
+      <div class="clip-name-bar">PIXEL-F</div>
+    </div>
+    <!-- Loaded — x0.5: 10% tint -->
+    <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+      <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:12px"></div></div>
+      <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="25" y="22" width="40" height="22" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+      <div class="clip-speed-tint" style="background:var(--accent);opacity:0.1"></div>
+      <div class="clip-name-bar">NOISE-G</div>
+    </div>
+    <div class="clip-cell cell-state-empty" style="width:100px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+  </div>
+
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ================================================================
+     CATEGORY C: SIGNAL REINVENTED (first 2 of 6)
+     ================================================================ -->
+<div class="study-category">Category C: Signal Reinvented</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V9: SIGNAL-RIBBON-ABOVE (~135px)
+     16px ribbon above row with signal pills. Routed show triangle below.
+     Speed: vertical column. Signal: horizontal ribbon above row.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V9: Signal-Ribbon-Above</div>
+<div class="variation-note">
+  Signals as horizontal ribbon (16px) above the layer row, showing 8 active signals
+  as compact pills: [NAME value]. Active = blue tint. Routed = small triangle below
+  pointing at strip. No signal columns in strip. S V F columns 16px. ~135px total.
+</div>
+
+<div class="row-frame stacked" style="height:135px">
+  <!-- RIBBON ABOVE -->
+  <div class="signal-ribbon">
+    <div class="signal-pill active">
+      <div class="signal-pill-name">BASS</div>
+      <div class="signal-pill-value">0.81</div>
+      <div class="signal-pill-tri"></div>
+    </div>
+    <div class="signal-pill active">
+      <div class="signal-pill-name">MID</div>
+      <div class="signal-pill-value">0.45</div>
+      <div class="signal-pill-tri"></div>
+    </div>
+    <div class="signal-pill">
+      <div class="signal-pill-name">HIGH</div>
+      <div class="signal-pill-value">0.38</div>
+    </div>
+    <div class="signal-pill active">
+      <div class="signal-pill-name">RMS</div>
+      <div class="signal-pill-value">0.72</div>
+      <div class="signal-pill-tri"></div>
+    </div>
+    <div class="signal-pill active">
+      <div class="signal-pill-name">BEAT</div>
+      <div class="signal-pill-value">*</div>
+    </div>
+    <div class="signal-pill active">
+      <div class="signal-pill-name">ONSET</div>
+      <div class="signal-pill-value">0.58</div>
+      <div class="signal-pill-tri"></div>
+    </div>
+    <div class="signal-pill">
+      <div class="signal-pill-name">FLUX</div>
+      <div class="signal-pill-value">0.33</div>
+    </div>
+    <div class="signal-pill active">
+      <div class="signal-pill-name">PUMP</div>
+      <div class="signal-pill-value">0.74</div>
+      <div class="signal-pill-tri"></div>
+    </div>
+  </div>
+
+  <!-- MAIN ROW (~120px) -->
+  <div style="display:flex;flex:1;align-items:stretch">
+    <div class="strip" style="width:340px;border-right:1px solid var(--border)">
+      <!-- X B S -->
+      <div style="display:flex;flex-direction:column;gap:0;padding:4px 3px;width:24px">
+        <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">X</div>
+        <div class="ls-btn" style="width:20px;height:20px;font-size:9px">B</div>
+        <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">S</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:4px">
+        <div class="ls-transport">
+          <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9664;</div>
+          <div class="ls-btn playing" style="width:20px;height:18px;font-size:9px">&#9646;&#9646;</div>
+          <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9654;</div>
+        </div>
+      </div>
+      <div class="ls-sep"></div>
+      <div style="display:flex;align-items:center;padding:4px">
+        <div class="ls-blend" style="height:20px;width:70px;font-size:9px">ADD</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Thumbnail -->
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px">
+        <div class="ls-thumb" style="width:90px;height:65px">
+          <svg viewBox="0 0 90 65" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="5" width="80" height="55" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/>
+            <polyline points="5,55 18,15 34,45 50,8 66,40 82,20" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+            <line x1="5" y1="32" x2="85" y2="32" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/>
+          </svg>
+        </div>
+        <div class="layer-name" style="font-size:8px;margin-top:2px">LAYER 9</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Fade pair -->
+      <div class="ls-fade-pair" style="width:22px;padding:4px 1px">
+        <div class="ls-fade-speed" style="flex:1;width:20px">
+          <div class="ls-fade-speed-fill" style="height:30%"></div>
+          <div class="ls-fade-speed-tick" style="bottom:30%"></div>
+        </div>
+        <div class="ls-fade-type" style="height:14px;width:20px;font-size:7px;justify-content:center">LIN</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- S V F columns 16px -->
+      <div style="display:flex;gap:2px;padding:4px 2px">
+        <div class="ls-slider-col" style="width:16px;gap:2px">
+          <div class="ls-slider-label" style="font-size:7px">S</div>
+          <div class="ls-slider-track" style="height:72px">
+            <div class="ls-slider-fill" style="height:50%"></div>
+            <div class="ls-slider-tick" style="bottom:50%"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px">1.0</div>
+        </div>
+        <div class="ls-slider-col" style="width:16px;gap:2px">
+          <div class="ls-slider-label" style="font-size:7px">V</div>
+          <div class="ls-slider-track" style="height:72px">
+            <div class="ls-slider-fill override" style="height:85%"></div>
+            <div class="ls-slider-tick" style="bottom:85%"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px">0.85</div>
+          <div class="ls-override-dot" style="margin-top:1px"></div>
+        </div>
+        <div class="ls-slider-col" style="width:16px;gap:2px">
+          <div class="ls-slider-label" style="font-size:7px">F</div>
+          <div class="ls-slider-track" style="height:72px">
+            <div class="ls-slider-fill" style="height:25%"></div>
+            <div class="ls-slider-tick" style="bottom:25%"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px">0.3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CELLS GRID 8 cells -->
+    <div class="cells-grid">
+      <div class="clip-cell cell-state-playing" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:22px"></div><div class="clip-wave-bar" style="bottom:38px;height:12px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="5,55 20,12 38,48 52,5 68,42 82,18" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.5"/></svg></div>
+        <div class="clip-name-bar">AMBIENT-A</div>
+      </div>
+      <div class="clip-cell cell-state-queued" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:14px;height:16px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="12" width="60" height="42" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.25"/><line x1="45" y1="12" x2="45" y2="54" stroke="#00d9ff" stroke-width="0.3" opacity="0.2"/></svg></div>
+        <div class="clip-name-bar">AMBIENT-B</div>
+      </div>
+      <div class="clip-cell cell-state-selected" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:20px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,50 30,22 50,48 70,14 85,40" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+        <div class="clip-name-bar">TEXTURE-C</div>
+      </div>
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="18" width="50" height="30" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">FIELD-D</div>
+      </div>
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:18px;height:10px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="50" x2="80" y2="16" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">GRAIN-E</div>
+      </div>
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:18px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,33 30,18 50,44 70,14 85,36" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">WASH-F</div>
+      </div>
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:12px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="25" y="22" width="40" height="22" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">CLOUD-G</div>
+      </div>
+      <div class="clip-cell cell-state-empty" style="width:100px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+    </div>
+  </div>
+
+  <div class="ls-override-badge" style="top:18px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────
+     V10: SIGNAL-RIBBON-BELOW (~135px)
+     Same as V9 but ribbon BELOW cells. Signals as "footnote."
+     Speed: vertical column. Signal: horizontal ribbon below cells.
+     ──────────────────────────────────────────────────────────────── -->
+<div class="variation-block">
+<div class="variation-heading">V10: Signal-Ribbon-Below</div>
+<div class="variation-note">
+  Same ribbon concept as V9, but placed BELOW the cells row. Upward-pointing triangles
+  on routed pills restore "signal drives visuals" direction. Active routed pills get
+  accent-filled triangle + connector hairline to playing cell. S V F columns 16px.
+  ~135px total. Speed: column. Signal: ribbon below with upward indicators.
+</div>
+
+<div class="row-frame stacked" style="height:135px">
+  <!-- MAIN ROW (~120px) -->
+  <div style="display:flex;flex:1;align-items:stretch">
+    <div class="strip" style="width:340px;border-right:1px solid var(--border)">
+      <!-- X B S -->
+      <div style="display:flex;flex-direction:column;gap:0;padding:4px 3px;width:24px">
+        <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">X</div>
+        <div class="ls-btn" style="width:20px;height:20px;font-size:9px">B</div>
+        <div class="ls-btn active" style="width:20px;height:20px;font-size:9px">S</div>
+      </div>
+      <div class="ls-sep"></div>
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:4px">
+        <div class="ls-transport">
+          <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9664;</div>
+          <div class="ls-btn playing" style="width:20px;height:18px;font-size:9px">&#9646;&#9646;</div>
+          <div class="ls-btn" style="width:20px;height:18px;font-size:9px">&#9654;</div>
+        </div>
+      </div>
+      <div class="ls-sep"></div>
+      <div style="display:flex;align-items:center;padding:4px">
+        <div class="ls-blend" style="height:20px;width:70px;font-size:9px">SCREEN</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Thumbnail -->
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 3px">
+        <div class="ls-thumb" style="width:90px;height:65px">
+          <svg viewBox="0 0 90 65" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="5" width="80" height="55" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.2"/>
+            <polyline points="5,55 15,30 28,50 40,15 55,42 68,22 82,48" fill="none" stroke="#00d9ff" stroke-width="1" opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="layer-name" style="font-size:8px;margin-top:2px">LAYER 10</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- Fade pair -->
+      <div class="ls-fade-pair" style="width:22px;padding:4px 1px">
+        <div class="ls-fade-speed" style="flex:1;width:20px">
+          <div class="ls-fade-speed-fill" style="height:45%"></div>
+          <div class="ls-fade-speed-tick" style="bottom:45%"></div>
+        </div>
+        <div class="ls-fade-type" style="height:14px;width:20px;font-size:7px;justify-content:center">EXP</div>
+      </div>
+      <div class="ls-sep"></div>
+      <!-- S V F columns 16px -->
+      <div style="display:flex;gap:2px;padding:4px 2px">
+        <div class="ls-slider-col" style="width:16px;gap:2px">
+          <div class="ls-slider-label" style="font-size:7px">S</div>
+          <div class="ls-slider-track" style="height:72px">
+            <div class="ls-slider-fill" style="height:75%"></div>
+            <div class="ls-slider-tick" style="bottom:75%"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px">1.5</div>
+        </div>
+        <div class="ls-slider-col" style="width:16px;gap:2px">
+          <div class="ls-slider-label" style="font-size:7px">V</div>
+          <div class="ls-slider-track" style="height:72px">
+            <div class="ls-slider-fill" style="height:100%"></div>
+            <div class="ls-slider-tick" style="bottom:100%"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px">1.0</div>
+        </div>
+        <div class="ls-slider-col" style="width:16px;gap:2px">
+          <div class="ls-slider-label" style="font-size:7px">F</div>
+          <div class="ls-slider-track" style="height:72px">
+            <div class="ls-slider-fill override" style="height:35%"></div>
+            <div class="ls-slider-tick" style="bottom:35%"></div>
+          </div>
+          <div class="ls-slider-value" style="font-size:7px">0.35</div>
+          <div class="ls-override-dot" style="margin-top:1px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CELLS GRID 8 cells -->
+    <div class="cells-grid">
+      <div class="clip-cell cell-state-playing" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:22px"></div><div class="clip-wave-bar" style="bottom:38px;height:14px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="8,55 22,15 38,42 52,8 68,38 82,22" fill="none" stroke="#00d9ff" stroke-width="0.8" opacity="0.5"/></svg></div>
+        <div class="clip-name-bar">DEEP-A1</div>
+      </div>
+      <div class="clip-cell cell-state-queued" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:14px;height:16px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="12" y="10" width="66" height="46" fill="none" stroke="#00d9ff" stroke-width="0.4" opacity="0.25"/></svg></div>
+        <div class="clip-name-bar">DEEP-B2</div>
+      </div>
+      <div class="clip-cell cell-state-selected" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:8px;height:20px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,50 30,20 50,48 70,12 85,40" fill="none" stroke="#00d9ff" stroke-width="0.5" opacity="0.3"/></svg></div>
+        <div class="clip-name-bar">DARK-C3</div>
+      </div>
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:12px;height:14px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="18" width="50" height="30" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">ECHO-D4</div>
+      </div>
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:18px;height:10px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="50" x2="80" y2="16" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">DELAY-E5</div>
+      </div>
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:5px;height:18px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><polyline points="10,33 30,18 50,44 70,14 85,36" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">REVERB-F6</div>
+      </div>
+      <div class="clip-cell cell-state-loaded" style="width:100px;height:80px">
+        <div class="clip-wave"><div class="clip-wave-bar" style="bottom:10px;height:12px"></div></div>
+        <div class="clip-thumb"><svg viewBox="0 0 90 66" xmlns="http://www.w3.org/2000/svg"><rect x="25" y="22" width="40" height="22" fill="none" stroke="#00d9ff" stroke-width="0.3" opacity="0.15"/></svg></div>
+        <div class="clip-name-bar">SPACE-G7</div>
+      </div>
+      <div class="clip-cell cell-state-empty" style="width:100px;height:80px"><div class="clip-wave"></div><div class="clip-thumb"></div></div>
+    </div>
+  </div>
+
+  <!-- RIBBON BELOW — upward triangles on routed pills + connector lines -->
+  <div class="signal-ribbon" style="border-top:1px solid var(--border);position:relative">
+    <!-- Connector hairlines from active routed pills up toward playing cell -->
+    <div style="position:absolute;top:-5px;left:16px;width:1px;height:5px;background:var(--accent)"></div>
+    <div style="position:absolute;top:-5px;left:72px;width:1px;height:5px;background:var(--accent)"></div>
+    <div style="position:absolute;top:-5px;left:145px;width:1px;height:5px;background:var(--accent)"></div>
+    <div style="position:absolute;top:-5px;left:254px;width:1px;height:5px;background:var(--accent)"></div>
+    <div style="position:absolute;top:-5px;left:330px;width:1px;height:5px;background:var(--accent)"></div>
+    <!-- BASS — active/routed: filled upward triangle -->
+    <div class="signal-pill active" style="position:relative">
+      <div style="position:absolute;top:-6px;left:50%;margin-left:-3px;width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:4px solid var(--accent)"></div>
+      <div class="signal-pill-name">BASS</div>
+      <div class="signal-pill-value">0.78</div>
+    </div>
+    <!-- MID — active/routed: filled upward triangle -->
+    <div class="signal-pill active" style="position:relative">
+      <div style="position:absolute;top:-6px;left:50%;margin-left:-3px;width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:4px solid var(--accent)"></div>
+      <div class="signal-pill-name">MID</div>
+      <div class="signal-pill-value">0.52</div>
+    </div>
+    <!-- HIGH — unrouted: outline upward triangle -->
+    <div class="signal-pill" style="position:relative">
+      <div style="position:absolute;top:-6px;left:50%;margin-left:-3px;font-size:6px;color:var(--label);line-height:1">&#9650;</div>
+      <div class="signal-pill-name">HIGH</div>
+      <div class="signal-pill-value">0.34</div>
+    </div>
+    <!-- RMS — active/routed: filled upward triangle -->
+    <div class="signal-pill active" style="position:relative">
+      <div style="position:absolute;top:-6px;left:50%;margin-left:-3px;width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:4px solid var(--accent)"></div>
+      <div class="signal-pill-name">RMS</div>
+      <div class="signal-pill-value">0.69</div>
+    </div>
+    <!-- BEAT — active but no triangle (beat is trigger, not continuous) -->
+    <div class="signal-pill active">
+      <div class="signal-pill-name">BEAT</div>
+      <div class="signal-pill-value">*</div>
+    </div>
+    <!-- ONSET — unrouted: outline upward triangle -->
+    <div class="signal-pill" style="position:relative">
+      <div style="position:absolute;top:-6px;left:50%;margin-left:-3px;font-size:6px;color:var(--label);line-height:1">&#9650;</div>
+      <div class="signal-pill-name">ONSET</div>
+      <div class="signal-pill-value">0.41</div>
+    </div>
+    <!-- FLUX — active/routed: filled upward triangle -->
+    <div class="signal-pill active" style="position:relative">
+      <div style="position:absolute;top:-6px;left:50%;margin-left:-3px;width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:4px solid var(--accent)"></div>
+      <div class="signal-pill-name">FLUX</div>
+      <div class="signal-pill-value">0.56</div>
+    </div>
+    <!-- PUMP — active/routed: filled upward triangle -->
+    <div class="signal-pill active" style="position:relative">
+      <div style="position:absolute;top:-6px;left:50%;margin-left:-3px;width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:4px solid var(--accent)"></div>
+      <div class="signal-pill-name">PUMP</div>
+      <div class="signal-pill-value">0.68</div>
+    </div>
+  </div>
+
+  <div class="ls-override-badge" style="top:2px;right:2px;width:28px;height:10px;font-size:6px">OVR</div>
+</div>
+</div>
+
+
+<!-- ================================================================
+     FOOTER: MINI COMPARISON TABLE (V1-V10)
+     ================================================================ -->
+<div style="margin-top:48px">
+  <div class="study-category">Comparison Table (V1-V10)</div>
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th>V#</th>
+        <th>NAME</th>
+        <th>HEIGHT</th>
+        <th>SPEED STRATEGY</th>
+        <th>SIGNAL STRATEGY</th>
+        <th>CELLS</th>
+        <th>AUDIO-DNA IDENTITY</th>
+        <th>USE CASE</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="color:var(--accent)">V1</td>
+        <td>RESOLUME-WITH-CELLS</td>
+        <td style="font-family:var(--font-mono)">~120px</td>
+        <td>Vertical column (conventional)</td>
+        <td>4 vertical columns</td>
+        <td style="font-family:var(--font-mono)">8 x 100x80</td>
+        <td>LOW</td>
+        <td>Resolume-familiar baseline</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V2</td>
+        <td>DENSE-CURRENT-PLUS</td>
+        <td style="font-family:var(--font-mono)">~120px</td>
+        <td>Column with numeric value</td>
+        <td>6 vertical columns</td>
+        <td style="font-family:var(--font-mono)">10 x 100x80</td>
+        <td>MED</td>
+        <td>Info-dense two-row layout</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V3</td>
+        <td>BRUTALIST-MAX-PLUS</td>
+        <td style="font-family:var(--font-mono)">~130px</td>
+        <td>Column + "1.0X" label</td>
+        <td>6 cols + triangles on top</td>
+        <td style="font-family:var(--font-mono)">10 x 90x80</td>
+        <td>HIGH</td>
+        <td>Max density, 8px labels, no frames</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V4</td>
+        <td>STRIP-CELLS-50/50</td>
+        <td style="font-family:var(--font-mono)">~120px</td>
+        <td>Spacious column slider</td>
+        <td>4 vertical columns</td>
+        <td style="font-family:var(--font-mono)">8 x 90x80</td>
+        <td>MED</td>
+        <td>Strip 40%, cells 60%</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V5</td>
+        <td>SPEED-AS-PLAYHEAD</td>
+        <td style="font-family:var(--font-mono)">~120px</td>
+        <td>Playhead bar + "1.5X" label</td>
+        <td>4 vertical columns</td>
+        <td style="font-family:var(--font-mono)">8 x 100x80</td>
+        <td>HIGH</td>
+        <td>Speed implicit in playback viz</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V6</td>
+        <td>SPEED-AS-CELL-BADGE</td>
+        <td style="font-family:var(--font-mono)">~120px</td>
+        <td>Per-cell speed badges</td>
+        <td>4 vertical columns</td>
+        <td style="font-family:var(--font-mono)">8 x 100x80</td>
+        <td>MED</td>
+        <td>Per-clip speed model</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V7</td>
+        <td>SPEED-AS-CELL-WIDTH</td>
+        <td style="font-family:var(--font-mono)">~120px</td>
+        <td>Cell width 80-120px + badge + under-bar</td>
+        <td>4 vertical columns</td>
+        <td style="font-family:var(--font-mono)">9 variable width</td>
+        <td>HIGH</td>
+        <td>Moderate width variation + name</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V8</td>
+        <td>SPEED-AS-COLOR</td>
+        <td style="font-family:var(--font-mono)">~120px</td>
+        <td>Bottom-tint overlay + hue border</td>
+        <td>4 vertical columns</td>
+        <td style="font-family:var(--font-mono)">8 x 100x80</td>
+        <td>MED</td>
+        <td>Visible speed tint, var extracted</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V9</td>
+        <td>SIGNAL-RIBBON-ABOVE</td>
+        <td style="font-family:var(--font-mono)">~135px</td>
+        <td>Vertical column</td>
+        <td>Horizontal ribbon above</td>
+        <td style="font-family:var(--font-mono)">8 x 100x80</td>
+        <td>HIGH</td>
+        <td>Signal names visible, prominent</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent)">V10</td>
+        <td>SIGNAL-RIBBON-BELOW</td>
+        <td style="font-family:var(--font-mono)">~135px</td>
+        <td>Vertical column</td>
+        <td>Ribbon below + upward triangles</td>
+        <td style="font-family:var(--font-mono)">8 x 100x80</td>
+        <td>MED</td>
+        <td>Upward indicators restore metaphor</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>
