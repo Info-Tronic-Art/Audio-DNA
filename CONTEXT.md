@@ -84,6 +84,21 @@ _Avoid_: "media", "content" — too vague.
 
 **Autopilot**: Auto-advances clips in a layer. Trigger modes: On Beat (N beats × loops) or End of Video. Smart mode uses structural state + energy level for intelligent selection.
 
+## Design System (v10)
+
+**Intent Layer**: One of three independent sources of visual control that coexist during performance: Signal (audio-driven automation), Hits (pre-programmed timeline events), and Live VJ (real-time human actions). All three compose simultaneously — they are not modes.
+_Avoid_: "mode" — intent layers are concurrent, not mutually exclusive.
+
+**AUTO/OVERRIDE**: Per-field state machine for every routable parameter. AUTO = value driven by Signal layer routes. OVERRIDE = value locked by Hits or Live VJ action, indicated by orange #ff4500. Release is per-field only — no global mass-release.
+_Avoid_: "manual mode", "locked" without specifying the OVERRIDE concept.
+
+**Hit**: A scheduled event on the Hits timeline lane that fires at a specific beat-quantized timestamp. Carries a payload (baseline changes, route modifications, clip triggers). Displayed as a pill on the timeline.
+_Avoid_: "keyframe" except in analogies — Hits are richer than simple keyframes.
+
+**Top Chrome**: The 98px three-strip header area at the top of the application window: menu bar + TopBar + SignalBar.
+
+**Bottom Focus Bar**: Contextual panel at the bottom of the composition area. Three states: collapsed summary, expanded macro view, expanded Hit anatomy (Hit Inspector).
+
 ## Performance & Control
 
 **Binding**: Maps a keyboard key or MIDI note/CC to an action. Three target modes: ByPosition (survives reorder), ThisItem (follows clip by ID), Selected (current UI selection). Two trigger modes: Toggle, Momentary.

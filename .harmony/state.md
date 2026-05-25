@@ -1,7 +1,7 @@
 # Harmony State — Audio-DNA (RealTimeAudio)
 
 Norm ID: 2
-Last normalized: 2026-05-21
-last_normalized_sha: 410d2fe502cabbb4d1a6cdb3134b9161c8bb7335
+Last normalized: 2026-05-24
+last_normalized_sha: 4ee10adeb582c7d8e4b2d3a52688f4546d2c7bb3
 Normalized by: Harmony
-Method: full re-normalize (secrets scan → discovery → deep audit → template compliance) — 26/26 features PASS (doc completeness pass: +27 UI components, 4 phantom fixes, 8 partial completions)
+Method: delta re-normalize (8 docs/design commits d4b83ec..4ee10ad — no source code changes). FEATURES.md updated with design direction notes (6 features touched), CONTEXT.md +5 domain terms (v10 design system section), FEATURE_MAP.md date refresh, graphify unchanged (no code delta).

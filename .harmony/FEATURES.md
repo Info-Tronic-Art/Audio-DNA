@@ -1,6 +1,6 @@
 # Features — Audio-DNA (RealTimeAudio)
 
-Norm: v2 | Last audited: 2026-05-21 | SHA: 108c8d0
+Norm: v2 | Last audited: 2026-05-24 | SHA: 4ee10ad
 
 <!-- C++20/JUCE/OpenGL desktop application. Framework gating:
      Security/Auth: N/A — local desktop app, no user accounts
@@ -777,6 +777,7 @@ FeatureSnapshot fields → SignalRegistry (named signals) → ChainedSignal (der
 - Hidden signals registered for all 5 advanced audio features (P25)
 - Signal values accessible via REST API
 - Route targeting currently supports Global scope only (Clip/Layer scopes defined in Route struct but not wired — see Ghost Features)
+- Design direction (2026-05-22): per-field AUTO/OVERRIDE state machine planned. OVERRIDE indicated by orange #ff4500. Per-field release only, no global mass-release. See MENTAL_MODELS.md Model 3 and FEATURE_CONNECTIONS.md for behavioral spec.
 
 **Failure modes:**
 - Circular signal dependency → infinite evaluation loop (unhandled — depends on topology)
@@ -1878,6 +1879,8 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 
 **Status: Routes evaluated but values DISCARDED for Clip/Layer scopes.** `Renderer.cpp:200` only handles `Route::TargetScope::Global` — the routing lambda evaluates signal values for all routes each frame, but non-Global routes silently fall through to the TODO comment at line 205 ("Clip/Layer scope routing needs compositor integration"). The `targetLayerId`/`targetClipId` fields are carried in the Route struct but never read. Users can configure Clip/Layer scoped routes via the data model, but they have zero runtime effect — values are computed then thrown away.
 
+**Design direction (2026-05-22):** Scope precedence locked as Global > Layer > Clip (mixing-desk model). Narrower scope overrides wider. Behavioral rules documented in FEATURE_CONNECTIONS.md and MENTAL_MODELS.md (Model 2: Three Scopes).
+
 **Activation estimate:** MEDIUM (~3 days) — data model complete, needs render pipeline integration.
 
 ### 22d. LinkSync::requestBeatAtTime()
@@ -2012,6 +2015,7 @@ No external data flows into TimingWindow — it receives no analysis data, BPM, 
 - The `Tab` enum is `int`-backed (`Tab : int`) with values 0/1/2 — switch statements have no default case, so adding a 4th tab without updating all switch statements would cause undefined paint behavior.
 - The "What is stub" content (BPM detection, routing config, oscillator config) represents intended functionality that has zero implementation — not even data model stubs or interface definitions exist for tab content.
 - Panel position depends on the resizable vertical divider system in MainComponent (`vDividerFrac_[3]`) — initial fraction `0.22-0.50` range.
+- Design direction (2026-05-22): two-lane timeline structure planned — HITS lane (beat-quantized event pills) + REC lane (time-tick density curve). See BORIS_DECISIONS.md and FEATURE_CONNECTIONS.md Scenario 11 for behavioral specs.
 
 ---
 
@@ -2304,8 +2308,8 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 
 **Controls & interactions:**
 - Row 1: Clear (X), Bypass (B), Solo (S) buttons + transport controls (Back, Pause, Play, Forward)
-- Row 2: Speed slider (0-4x), Keying threshold slider, Opacity slider + blend/keying mode dropdown, thumbnail
-- Row 3: Layer name label, clip name with playhead indicator, Fade time slider + transition mode dropdown
+- Row 2: Speed slider (S, 0-4x, default 1x), Keying threshold slider (K, 0-1, default 0.1), Opacity slider (V, 0-1, default 1.0) + blend/keying mode dropdown, thumbnail
+- Row 3: Layer name label, clip name with playhead indicator, Fade time slider (F, 0-4s, default 0.3s) + transition mode dropdown
 - Click on strip background → selects layer for inspection
 - Playhead scrubbing via mouse drag on clip name area
 - Layer drag reorder support (`onLayerDragReorder`)
@@ -2315,9 +2319,11 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 **Callbacks:** `onSelect`, `onClearClip`, `onBypass`, `onSolo`, `onBlendModeChanged`, `onTransportPlay/Pause/Back/Forward`, `onFoldToggle`, `onLayerDragReorder`
 
 **Gotchas:**
+- S/K/V/F slider shorthand: S = Speed (playback rate), K = Key threshold (chroma/alpha key), V = Opacity (layer transparency), F = Fade speed (transition duration). These single-letter labels appear on the strip and in design docs.
 - Bypass active state uses a reddish tint (`kBypassActive = 0xff6a3a3a`), Solo uses yellowish (`kSoloActive = 0xff7a7a4a`).
 - Blend dropdown is populated from `Layer::MixMode` enum (30 entries including transitions) — only blend subset should be shown for the V dropdown.
 - Transition dropdown populated separately for the F dropdown.
+- v10 design studies (design/mockups/html/v10/) explore dropping K from the layer strip and creative rearrangements of S/V/F with integrated signal columns — these are design-only, no code changes.
 
 ### 26e. ClipCell
 
@@ -2346,7 +2352,7 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 
 ### 26f. InspectorPanel
 
-**What it does:** 4-tab container panel for inspecting Clip, Layer, Composition, and Signal properties. Auto-switches tabs based on user selection: clicking a clip opens the Clip tab, clicking a layer strip opens the Layer tab, clicking a signal strip opens the Signal tab. Supports "pin" mode to prevent auto-switching during live performance.
+**What it does:** 4-tab container panel for inspecting Clip, Layer, Composition, and Signal properties. Auto-switches tabs based on user selection: clicking a clip opens the Clip tab, clicking a layer strip opens the Layer tab, clicking a signal strip opens the Signal tab. Supports "pin" mode to prevent auto-switching during live performance. v10 design direction (MOCKUP_BRIEF.md) specifies foldable tab groups (CLIP/LAYER/COMP/SIGNALS) with section-header grammar from AUDIO_DNA_DIRECTIVE_FULL.md.
 
 **Key source files:**
 - `InspectorPanel` class (src/ui/InspectorPanel.h:23, src/ui/InspectorPanel.cpp)
@@ -2587,6 +2593,7 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 **Gotchas:**
 - Applied globally via `LookAndFeel::setDefaultLookAndFeel()` — all JUCE widgets inherit these overrides.
 - Some components (LayerStrip, TimingWindow) use additional local color constants that should coordinate with these global values.
+- v10 design system (MOCKUP_BRIEF.md §2.1-§2.3) defines 31 canonical CSS design tokens for mockups. Orange #ff4500 is reserved exclusively for OVERRIDE state — not counted as an accent color.
 
 ### 26p. MenuBarModel
 
