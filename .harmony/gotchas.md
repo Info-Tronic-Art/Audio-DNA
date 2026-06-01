@@ -53,18 +53,32 @@
 **Trigger:** Assuming a feature is complete because the API exists.
 **Rule:** When documenting event/callback systems, grep for callers of each method. API existence ≠ integration.
 **Scope:** universal
-**Promoted:** no
+**Promoted:** yes → audit-workflow (2026-06-01)
 
 ### 2026-05-22 — §3.6 shorthand vs §6.7 full spec contradiction missed by vague cross-ref audit
 **Source:** Tester catch on MOCKUP_BRIEF cleanup — Builder applied opacity-floor edits to §6.7 + §6.2 but left §3.6 reading "direct 1:1 mapping" (semantically contradictory but defensible). Edit 8 packet wording said "scan for conflicting Active triangle descriptions" but didn't list §3.6 explicitly. Builder rationalized leaving it.
 **Trigger:** Cross-reference audit instructions that say "scan for X" without enumerating known candidate sites. Builder reads narrowly and skips defensible-but-contradictory sites.
 **Rule:** When a packet edits canonical doc and authoritative spec changes (new floor, new state, new rule), enumerate EVERY site that paraphrases or shorthands that spec — not just direct contradictions. List candidate sections by number in the cross-ref audit instruction, not just by topic.
 **Scope:** universal
-**Promoted:** no
+**Promoted:** yes → feature-build (2026-06-01)
 
 ### 2026-05-22 — §6-tokens-win-over-§5-pixel-specs (MOCKUP_BRIEF authority hierarchy)
 **Source:** Boris-locked decision during MOCKUP_BRIEF cleanup. §5 cites pixel specs from praised v9 mockups; §6 declares canonical production tokens. Pre-cleanup, §5 = 50px and §6 = 60px for signal column.
 **Trigger:** Builder reading §5 quality-bar pixel specs and treating them as authoritative production values.
 **Rule:** MOCKUP_BRIEF §6 production tokens always override §5 quality-bar pixel specs when they differ. §5 is inspiration, §6 is contract. New §8.5 Token Sync Verification enforces this on every v10 mockup.
 **Scope:** repo
+**Promoted:** no
+
+### 2026-05-22 — No push to remote (CI failure on Audio-DNA)
+**Source:** Boris session 15 — "I am getting messages that run failed in git remote. we should be making all of these locally. no need to push to remote at all."
+**Trigger:** Auto-commit-and-push protocol pushing to Audio-DNA remote triggers CI workflow that's currently failing.
+**Rule:** Commit locally to RTA, do NOT push to remote until Boris re-enables. Captured 2026-05-22 mid-session. May be temporary — verify with Boris before resuming pushes.
+**Scope:** repo (RealTimeAudio / Audio-DNA only)
+**Promoted:** no
+
+### 2026-05-22 — B+ minimum quality bar for design-variation evaluation
+**Source:** Boris session 15 — "Re-design anything that is not B+ level" then "refine all 20 to b+ and make the the default behavior in the future regardless of the task, you'll finish what I ask you for."
+**Trigger:** When Harmony spawns a Critic agent to grade design variations (layer-rows, mockups, page studies), and Boris requests "evaluate and refine".
+**Rule:** Anything graded below B+ gets refined in-place via Refiner Builder. Don't ask which to refine — refine all sub-B+ items. Re-Critic verifies B+ achieved. Iterate max 2 loops. Pattern: Critic (Tester + design-review methodology + Playwright) → Refiner (Builder with per-variation recommendations) → Re-Critic. Validated session 15: 13/13 refinements achieved B+ first pass.
+**Scope:** repo (RealTimeAudio design work). Boris may elevate to universal if same pattern applies to other projects' design audits — currently RTA-scoped.
 **Promoted:** no
