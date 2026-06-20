@@ -8,6 +8,10 @@ cmake_install.cmake
 Makefile
 compile_commands.json
 
+# === Knowledge-tool indexes (regenerable; WS5 codegraph + clangd) ===
+.codegraph/
+.cache/clangd/
+
 # === C++ build artifacts ===
 *.o
 *.obj
@@ -67,3 +71,13 @@ build-debug/
 *.ogg
 VALIDATION_PROTOCOL.md
 __pycache__/
+
+# >>> harmony transient-artifact hygiene >>>
+**/*.log
+.discuss-bridge/server.log
+.discuss-bridge/serve.log
+.vite/
+.next/
+.playwright-mcp/
+node_modules/
+# <<< harmony transient-artifact hygiene <<<
