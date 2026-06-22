@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "graphify-rta": {
+      "type": "stdio",
+      "command": "/Users/boriskarpman/.local/share/uv/tools/graphifyy/bin/python3",
+      "args": [
+        "-m", "graphify.serve",
+        "/Users/boriskarpman/projects/RealTimeAudio/graphify-out/graph.json"
+      ]
+    },
+    "codegraph-rta": {
+      "type": "stdio",
+      "command": "/opt/homebrew/bin/codegraph",
+      "args": [
+        "serve", "--mcp", "-p", "/Users/boriskarpman/projects/RealTimeAudio"
+      ]
+    },
+    "clangd-rta": {
+      "type": "stdio",
+      "command": "/Users/boriskarpman/.local/bin/clangd-mcp",
+      "args": [
+        "--clangd", "/usr/bin/clangd",
+        "--compile-commands-dir", "/Users/boriskarpman/projects/RealTimeAudio/build",
+        "--workspace-dir", "/Users/boriskarpman/projects/RealTimeAudio"
+      ]
+    }
+  }
+}
