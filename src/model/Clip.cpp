@@ -19,9 +19,10 @@ juce::var Clip::toVar() const
             seqArray.add(f.getFullPathName());
         obj->setProperty("sequenceFiles", seqArray);
         obj->setProperty("sequenceFps", static_cast<double>(sequenceFps));
-        obj->setProperty("beatDivision", static_cast<double>(beatDivision));
-        obj->setProperty("videoBeats", static_cast<double>(videoBeats));
     }
+    // BPM-sync timing — always persisted (matters for BPMSync clips without a sequence)
+    obj->setProperty("beatDivision", static_cast<double>(beatDivision));
+    obj->setProperty("videoBeats", static_cast<double>(videoBeats));
 
     // Source parameters
     juce::Array<juce::var> spArray;
@@ -50,6 +51,25 @@ juce::var Clip::toVar() const
     obj->setProperty("autopilotCustomBeats", autopilotCustomBeats);
     obj->setProperty("autopilotSpecificCol", autopilotSpecificCol);
 
+    // Video properties
+    obj->setProperty("clipOpacity", static_cast<double>(clipOpacity));
+    obj->setProperty("clipWidth", clipWidth);
+    obj->setProperty("clipHeight", clipHeight);
+    obj->setProperty("blendOverride", static_cast<int>(blendOverride));
+    obj->setProperty("alphaType", static_cast<int>(alphaType));
+    obj->setProperty("channelR", channelR);
+    obj->setProperty("channelG", channelG);
+    obj->setProperty("channelB", channelB);
+    obj->setProperty("channelA", channelA);
+
+    // Transform (per-clip)
+    obj->setProperty("positionX", static_cast<double>(positionX));
+    obj->setProperty("positionY", static_cast<double>(positionY));
+    obj->setProperty("scale", static_cast<double>(scale));
+    obj->setProperty("rotation", static_cast<double>(rotation));
+    obj->setProperty("anchorX", static_cast<double>(anchorX));
+    obj->setProperty("anchorY", static_cast<double>(anchorY));
+
     // Effects
     juce::Array<juce::var> fxArray;
     for (const auto& fx : effects)
@@ -58,6 +78,7 @@ juce::var Clip::toVar() const
         fxObj->setProperty("name", juce::String(fx.effectName));
         fxObj->setProperty("enabled", fx.enabled);
         fxObj->setProperty("bypassed", fx.bypassed);
+        fxObj->setProperty("dryWet", static_cast<double>(fx.dryWet));
         juce::Array<juce::var> paramArray;
         for (float p : fx.paramValues)
             paramArray.add(static_cast<double>(p));
@@ -71,6 +92,24 @@ juce::var Clip::toVar() const
     for (int i = 0; i < numCuepoints; ++i)
         cpArray.add(static_cast<double>(cuepoints[i]));
     obj->setProperty("cuepoints", cpArray);
+
+    // MilkDrop preset playlist (P20.5)
+    juce::Array<juce::var> playlistArray;
+    for (const auto& pe : presetPlaylist)
+    {
+        auto* peObj = new juce::DynamicObject();
+        peObj->setProperty("path", juce::String(pe.presetPath));
+        peObj->setProperty("name", juce::String(pe.presetName));
+        peObj->setProperty("mood", juce::String(pe.mood));
+        peObj->setProperty("energy", static_cast<double>(pe.energy));
+        playlistArray.add(juce::var(peObj));
+    }
+    obj->setProperty("presetPlaylist", playlistArray);
+    obj->setProperty("playlistCycleMode", static_cast<int>(playlistCycleMode));
+    obj->setProperty("playlistTrigger", static_cast<int>(playlistTrigger));
+    obj->setProperty("playlistTriggerBeats", playlistTriggerBeats);
+    obj->setProperty("playlistBlendSeconds", static_cast<double>(playlistBlendSeconds));
+    obj->setProperty("playlistEnabled", playlistEnabled);
 
     // P24.5: Content lock
     if (contentLocked)
@@ -145,6 +184,40 @@ void Clip::fromVar(const juce::var& v)
         autopilotCustomBeats = static_cast<int>(obj->getProperty("autopilotCustomBeats"));
         autopilotSpecificCol = static_cast<int>(obj->getProperty("autopilotSpecificCol"));
 
+        // Video properties (guarded for backward compatibility with old presets)
+        if (obj->hasProperty("clipOpacity"))
+            clipOpacity = static_cast<float>(static_cast<double>(obj->getProperty("clipOpacity")));
+        if (obj->hasProperty("clipWidth"))
+            clipWidth = static_cast<int>(obj->getProperty("clipWidth"));
+        if (obj->hasProperty("clipHeight"))
+            clipHeight = static_cast<int>(obj->getProperty("clipHeight"));
+        if (obj->hasProperty("blendOverride"))
+            blendOverride = static_cast<BlendOverride>(static_cast<int>(obj->getProperty("blendOverride")));
+        if (obj->hasProperty("alphaType"))
+            alphaType = static_cast<AlphaType>(static_cast<int>(obj->getProperty("alphaType")));
+        if (obj->hasProperty("channelR"))
+            channelR = static_cast<bool>(obj->getProperty("channelR"));
+        if (obj->hasProperty("channelG"))
+            channelG = static_cast<bool>(obj->getProperty("channelG"));
+        if (obj->hasProperty("channelB"))
+            channelB = static_cast<bool>(obj->getProperty("channelB"));
+        if (obj->hasProperty("channelA"))
+            channelA = static_cast<bool>(obj->getProperty("channelA"));
+
+        // Transform (per-clip)
+        if (obj->hasProperty("positionX"))
+            positionX = static_cast<float>(static_cast<double>(obj->getProperty("positionX")));
+        if (obj->hasProperty("positionY"))
+            positionY = static_cast<float>(static_cast<double>(obj->getProperty("positionY")));
+        if (obj->hasProperty("scale"))
+            scale = static_cast<float>(static_cast<double>(obj->getProperty("scale")));
+        if (obj->hasProperty("rotation"))
+            rotation = static_cast<float>(static_cast<double>(obj->getProperty("rotation")));
+        if (obj->hasProperty("anchorX"))
+            anchorX = static_cast<float>(static_cast<double>(obj->getProperty("anchorX")));
+        if (obj->hasProperty("anchorY"))
+            anchorY = static_cast<float>(static_cast<double>(obj->getProperty("anchorY")));
+
         effects.clear();
         if (auto* fxArray = obj->getProperty("effects").getArray())
         {
@@ -156,6 +229,8 @@ void Clip::fromVar(const juce::var& v)
                     slot.effectName = fxObj->getProperty("name").toString().toStdString();
                     slot.enabled = static_cast<bool>(fxObj->getProperty("enabled"));
                     slot.bypassed = static_cast<bool>(fxObj->getProperty("bypassed"));
+                    if (fxObj->hasProperty("dryWet"))
+                        slot.dryWet = static_cast<float>(static_cast<double>(fxObj->getProperty("dryWet")));
                     if (auto* paramArray = fxObj->getProperty("params").getArray())
                         for (const auto& p : *paramArray)
                             slot.paramValues.push_back(static_cast<float>(static_cast<double>(p)));
@@ -173,6 +248,34 @@ void Clip::fromVar(const juce::var& v)
                     cuepoints[numCuepoints++] = static_cast<float>(static_cast<double>(cp));
             }
         }
+
+        // MilkDrop preset playlist (P20.5)
+        presetPlaylist.clear();
+        if (auto* playlistArray = obj->getProperty("presetPlaylist").getArray())
+        {
+            for (const auto& peVar : *playlistArray)
+            {
+                if (auto* peObj = peVar.getDynamicObject())
+                {
+                    PresetEntry pe;
+                    pe.presetPath = peObj->getProperty("path").toString().toStdString();
+                    pe.presetName = peObj->getProperty("name").toString().toStdString();
+                    pe.mood = peObj->getProperty("mood").toString().toStdString();
+                    pe.energy = static_cast<float>(static_cast<double>(peObj->getProperty("energy")));
+                    presetPlaylist.push_back(std::move(pe));
+                }
+            }
+        }
+        if (obj->hasProperty("playlistCycleMode"))
+            playlistCycleMode = static_cast<PlaylistCycleMode>(static_cast<int>(obj->getProperty("playlistCycleMode")));
+        if (obj->hasProperty("playlistTrigger"))
+            playlistTrigger = static_cast<PlaylistTrigger>(static_cast<int>(obj->getProperty("playlistTrigger")));
+        if (obj->hasProperty("playlistTriggerBeats"))
+            playlistTriggerBeats = static_cast<int>(obj->getProperty("playlistTriggerBeats"));
+        if (obj->hasProperty("playlistBlendSeconds"))
+            playlistBlendSeconds = static_cast<float>(static_cast<double>(obj->getProperty("playlistBlendSeconds")));
+        if (obj->hasProperty("playlistEnabled"))
+            playlistEnabled = static_cast<bool>(obj->getProperty("playlistEnabled"));
 
         // P24.5: Content lock
         if (obj->hasProperty("contentLocked"))

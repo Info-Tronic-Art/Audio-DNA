@@ -172,6 +172,57 @@ struct Composition
         obj->setProperty("outputHeight", outputHeight);
         obj->setProperty("outputDisplay", outputDisplay);
 
+        // Composition master + video
+        obj->setProperty("masterSpeed", static_cast<double>(masterSpeed));
+        obj->setProperty("compOpacity", static_cast<double>(compOpacity));
+
+        // Crossfader
+        obj->setProperty("crossfaderPhase", static_cast<double>(crossfaderPhase));
+        obj->setProperty("crossfaderBlendMode", static_cast<int>(crossfaderBlendMode));
+        obj->setProperty("crossfaderBehaviour", static_cast<int>(crossfaderBehaviour));
+        obj->setProperty("crossfaderCurve", static_cast<int>(crossfaderCurve));
+
+        // Transform (composition-level)
+        obj->setProperty("compPositionX", static_cast<double>(compPositionX));
+        obj->setProperty("compPositionY", static_cast<double>(compPositionY));
+        obj->setProperty("compScale", static_cast<double>(compScale));
+        obj->setProperty("compRotation", static_cast<double>(compRotation));
+        obj->setProperty("compAnchorX", static_cast<double>(compAnchorX));
+        obj->setProperty("compAnchorY", static_cast<double>(compAnchorY));
+
+        // Autopilot (composition-level)
+        obj->setProperty("autopilotDirection", static_cast<int>(autopilotDirection));
+        obj->setProperty("autopilotDurationMode", static_cast<int>(autopilotDurationMode));
+        obj->setProperty("autopilotClipLoops", autopilotClipLoops);
+        obj->setProperty("autopilotLoop", autopilotLoop);
+        obj->setProperty("autopilotMasterLayer", autopilotMasterLayer);
+
+        // Per-Type Autopilot (P20)
+        obj->setProperty("ptaOpaqueCycleBeats", perTypeAutopilot.opaqueCycleBeats);
+        obj->setProperty("ptaOpaquePlayUntilEnd", perTypeAutopilot.opaquePlayUntilEnd);
+        obj->setProperty("ptaTransparentCycleBeats", perTypeAutopilot.transparentCycleBeats);
+        obj->setProperty("ptaTransparentMaxLayers", perTypeAutopilot.transparentMaxLayers);
+        obj->setProperty("ptaTransparentRandomize", perTypeAutopilot.transparentRandomize);
+        obj->setProperty("ptaEffectCycleBeats", perTypeAutopilot.effectCycleBeats);
+        obj->setProperty("ptaEffectMaxLayers", perTypeAutopilot.effectMaxLayers);
+        obj->setProperty("ptaEffectRandomize", perTypeAutopilot.effectRandomize);
+        obj->setProperty("ptaPerTypeEnabled", perTypeAutopilot.perTypeEnabled);
+        obj->setProperty("ptaGlobalRandomize", perTypeAutopilot.globalRandomize);
+        obj->setProperty("ptaLoopAutopilot", perTypeAutopilot.loopAutopilot);
+
+        // Genre-aware automation (P23)
+        obj->setProperty("autoPresetOnGenre", autoPresetOnGenre);
+        obj->setProperty("smartAutopilotEnabled", smartAutopilotEnabled);
+        obj->setProperty("structuralSceneEnabled", structuralSceneEnabled);
+        juce::Array<juce::var> genreDeckArray;
+        for (int i = 0; i < 8; ++i)
+            genreDeckArray.add(genreDeckAssignment[i]);
+        obj->setProperty("genreDeckAssignment", genreDeckArray);
+        juce::Array<juce::var> genrePresetArray;
+        for (int i = 0; i < 8; ++i)
+            genrePresetArray.add(juce::String(genrePresetNames[i]));
+        obj->setProperty("genrePresetNames", genrePresetArray);
+
         // Decks
         juce::Array<juce::var> deckArray;
         for (const auto& deck : decks)
@@ -186,6 +237,7 @@ struct Composition
             fxObj->setProperty("name", juce::String(fx.effectName));
             fxObj->setProperty("enabled", fx.enabled);
             fxObj->setProperty("bypassed", fx.bypassed);
+            fxObj->setProperty("dryWet", static_cast<double>(fx.dryWet));
             juce::Array<juce::var> paramArray;
             for (float p : fx.paramValues)
                 paramArray.add(static_cast<double>(p));
@@ -211,6 +263,92 @@ struct Composition
             outputHeight = static_cast<int>(obj->getProperty("outputHeight"));
             outputDisplay = static_cast<int>(obj->getProperty("outputDisplay"));
 
+            // Composition master + video (guarded for backward compatibility with old presets)
+            if (obj->hasProperty("masterSpeed"))
+                masterSpeed = static_cast<float>(static_cast<double>(obj->getProperty("masterSpeed")));
+            if (obj->hasProperty("compOpacity"))
+                compOpacity = static_cast<float>(static_cast<double>(obj->getProperty("compOpacity")));
+
+            // Crossfader
+            if (obj->hasProperty("crossfaderPhase"))
+                crossfaderPhase = static_cast<float>(static_cast<double>(obj->getProperty("crossfaderPhase")));
+            if (obj->hasProperty("crossfaderBlendMode"))
+                crossfaderBlendMode = static_cast<CrossfaderBlendMode>(static_cast<int>(obj->getProperty("crossfaderBlendMode")));
+            if (obj->hasProperty("crossfaderBehaviour"))
+                crossfaderBehaviour = static_cast<CrossfaderBehaviour>(static_cast<int>(obj->getProperty("crossfaderBehaviour")));
+            if (obj->hasProperty("crossfaderCurve"))
+                crossfaderCurve = static_cast<CrossfaderCurve>(static_cast<int>(obj->getProperty("crossfaderCurve")));
+
+            // Transform (composition-level)
+            if (obj->hasProperty("compPositionX"))
+                compPositionX = static_cast<float>(static_cast<double>(obj->getProperty("compPositionX")));
+            if (obj->hasProperty("compPositionY"))
+                compPositionY = static_cast<float>(static_cast<double>(obj->getProperty("compPositionY")));
+            if (obj->hasProperty("compScale"))
+                compScale = static_cast<float>(static_cast<double>(obj->getProperty("compScale")));
+            if (obj->hasProperty("compRotation"))
+                compRotation = static_cast<float>(static_cast<double>(obj->getProperty("compRotation")));
+            if (obj->hasProperty("compAnchorX"))
+                compAnchorX = static_cast<float>(static_cast<double>(obj->getProperty("compAnchorX")));
+            if (obj->hasProperty("compAnchorY"))
+                compAnchorY = static_cast<float>(static_cast<double>(obj->getProperty("compAnchorY")));
+
+            // Autopilot (composition-level)
+            if (obj->hasProperty("autopilotDirection"))
+                autopilotDirection = static_cast<AutopilotDirection>(static_cast<int>(obj->getProperty("autopilotDirection")));
+            if (obj->hasProperty("autopilotDurationMode"))
+                autopilotDurationMode = static_cast<AutopilotDurationMode>(static_cast<int>(obj->getProperty("autopilotDurationMode")));
+            if (obj->hasProperty("autopilotClipLoops"))
+                autopilotClipLoops = static_cast<int>(obj->getProperty("autopilotClipLoops"));
+            if (obj->hasProperty("autopilotLoop"))
+                autopilotLoop = static_cast<bool>(obj->getProperty("autopilotLoop"));
+            if (obj->hasProperty("autopilotMasterLayer"))
+                autopilotMasterLayer = static_cast<int>(obj->getProperty("autopilotMasterLayer"));
+
+            // Per-Type Autopilot (P20)
+            if (obj->hasProperty("ptaOpaqueCycleBeats"))
+                perTypeAutopilot.opaqueCycleBeats = static_cast<int>(obj->getProperty("ptaOpaqueCycleBeats"));
+            if (obj->hasProperty("ptaOpaquePlayUntilEnd"))
+                perTypeAutopilot.opaquePlayUntilEnd = static_cast<bool>(obj->getProperty("ptaOpaquePlayUntilEnd"));
+            if (obj->hasProperty("ptaTransparentCycleBeats"))
+                perTypeAutopilot.transparentCycleBeats = static_cast<int>(obj->getProperty("ptaTransparentCycleBeats"));
+            if (obj->hasProperty("ptaTransparentMaxLayers"))
+                perTypeAutopilot.transparentMaxLayers = static_cast<int>(obj->getProperty("ptaTransparentMaxLayers"));
+            if (obj->hasProperty("ptaTransparentRandomize"))
+                perTypeAutopilot.transparentRandomize = static_cast<bool>(obj->getProperty("ptaTransparentRandomize"));
+            if (obj->hasProperty("ptaEffectCycleBeats"))
+                perTypeAutopilot.effectCycleBeats = static_cast<int>(obj->getProperty("ptaEffectCycleBeats"));
+            if (obj->hasProperty("ptaEffectMaxLayers"))
+                perTypeAutopilot.effectMaxLayers = static_cast<int>(obj->getProperty("ptaEffectMaxLayers"));
+            if (obj->hasProperty("ptaEffectRandomize"))
+                perTypeAutopilot.effectRandomize = static_cast<bool>(obj->getProperty("ptaEffectRandomize"));
+            if (obj->hasProperty("ptaPerTypeEnabled"))
+                perTypeAutopilot.perTypeEnabled = static_cast<bool>(obj->getProperty("ptaPerTypeEnabled"));
+            if (obj->hasProperty("ptaGlobalRandomize"))
+                perTypeAutopilot.globalRandomize = static_cast<bool>(obj->getProperty("ptaGlobalRandomize"));
+            if (obj->hasProperty("ptaLoopAutopilot"))
+                perTypeAutopilot.loopAutopilot = static_cast<bool>(obj->getProperty("ptaLoopAutopilot"));
+
+            // Genre-aware automation (P23)
+            if (obj->hasProperty("autoPresetOnGenre"))
+                autoPresetOnGenre = static_cast<bool>(obj->getProperty("autoPresetOnGenre"));
+            if (obj->hasProperty("smartAutopilotEnabled"))
+                smartAutopilotEnabled = static_cast<bool>(obj->getProperty("smartAutopilotEnabled"));
+            if (obj->hasProperty("structuralSceneEnabled"))
+                structuralSceneEnabled = static_cast<bool>(obj->getProperty("structuralSceneEnabled"));
+            if (auto* genreDeckArray = obj->getProperty("genreDeckAssignment").getArray())
+            {
+                int gi = 0;
+                for (const auto& gd : *genreDeckArray)
+                    if (gi < 8) genreDeckAssignment[gi++] = static_cast<int>(gd);
+            }
+            if (auto* genrePresetArray = obj->getProperty("genrePresetNames").getArray())
+            {
+                int gi = 0;
+                for (const auto& gp : *genrePresetArray)
+                    if (gi < 8) genrePresetNames[gi++] = gp.toString().toStdString();
+            }
+
             decks.clear();
             if (auto* deckArray = obj->getProperty("decks").getArray())
             {
@@ -233,6 +371,8 @@ struct Composition
                         slot.effectName = fxObj->getProperty("name").toString().toStdString();
                         slot.enabled = static_cast<bool>(fxObj->getProperty("enabled"));
                         slot.bypassed = static_cast<bool>(fxObj->getProperty("bypassed"));
+                        if (fxObj->hasProperty("dryWet"))
+                            slot.dryWet = static_cast<float>(static_cast<double>(fxObj->getProperty("dryWet")));
                         if (auto* paramArray = fxObj->getProperty("params").getArray())
                             for (const auto& p : *paramArray)
                                 slot.paramValues.push_back(static_cast<float>(static_cast<double>(p)));
