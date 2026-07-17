@@ -1060,6 +1060,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // === v2: Menu Bar ===
     menuBarModel_ = std::make_unique<AudioDNAMenuBar>();
     menuBarModel_->onMenuCommand = [this](int cmdId) { handleMenuCommand(cmdId); };
+    menuBarModel_->isSyphonOutputEnabled = [this]() { return syphonOutput_.isEnabled(); };
 
     // === v2: Binding System & MIDI (P9) ===
     bindingManager_.setActionCallback([this](const Binding& b, float val)
@@ -3151,6 +3152,13 @@ void MainComponent::handleMenuCommand(int commandId)
         {
             if (videoRecorder_.isRecording())
                 videoRecorder_.stopRecording();
+            break;
+        }
+        case C::kOutputSyphon:
+        {
+            // Toggle Syphon output publishing. The atomic flag is read each frame
+            // by the GL thread (Renderer::renderOpenGL). Default OFF each boot.
+            syphonOutput_.setEnabled(!syphonOutput_.isEnabled());
             break;
         }
 

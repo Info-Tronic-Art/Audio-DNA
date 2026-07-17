@@ -100,6 +100,13 @@ void Renderer::newOpenGLContextCreated()
         return getVideoFrameTexture(clip, dt);
     });
 
+    // P22.1: Initialize the Syphon server on the GL thread. The Syphon server
+    // needs the underlying NSOpenGLContext, which JUCE exposes via getRawContext().
+    // No-op at runtime unless built with -DAUDIODNA_BUILD_SYPHON=ON and the
+    // Syphon.framework is installed.
+    if (syphonOutput_ != nullptr)
+        syphonOutput_->init(glContext_.getRawContext());
+
     startTime_ = juce::Time::getMillisecondCounterHiRes() / 1000.0;
 }
 
@@ -648,6 +655,12 @@ void Renderer::renderOpenGL()
     if (videoRecorder_ != nullptr)
         videoRecorder_->submitFrame(static_cast<int>(renderW), static_cast<int>(renderH));
 
+    // P22.1: Publish the final composited frame to Syphon clients. Gated on the
+    // enabled flag (set from the message thread) and initialization, so no GPU
+    // work happens when Syphon is off or unavailable.
+    if (syphonOutput_ != nullptr && syphonOutput_->isEnabled() && syphonOutput_->isInitialized())
+        publishSyphonFrame(static_cast<GLuint>(defaultFBO), vpX, vpY, vpW, vpH);
+
     // Process pending frame capture (Eyes test harness + P22.7 snapshots)
     processPendingCapture(renderW, renderH, vpX, vpY, vpW, vpH);
 }
@@ -681,6 +694,13 @@ void Renderer::openGLContextClosing()
     // P25: Release previous deck FBO
     if (prevDeckFBO_ != 0) { glDeleteFramebuffers(1, &prevDeckFBO_); prevDeckFBO_ = 0; }
     if (prevDeckTexture_ != 0) { glDeleteTextures(1, &prevDeckTexture_); prevDeckTexture_ = 0; }
+
+    // P22.1: Stop the Syphon server (must run on the GL thread while the context
+    // is still alive) and release its blit FBO/texture.
+    if (syphonOutput_ != nullptr)
+        syphonOutput_->shutdown();
+    if (syphonFBO_ != 0) { glDeleteFramebuffers(1, &syphonFBO_); syphonFBO_ = 0; }
+    if (syphonTexture_ != 0) { glDeleteTextures(1, &syphonTexture_); syphonTexture_ = 0; }
 
     shaderMgr_.releaseAll();
     texMgr_.release();
@@ -1685,4 +1705,58 @@ void Renderer::ensurePrevDeckFBO(int width, int height)
 
     prevDeckWidth_ = width;
     prevDeckHeight_ = height;
+}
+
+// P22.1: Ensure the Syphon publish FBO/texture exists at the right size
+void Renderer::ensureSyphonFBO(int width, int height)
+{
+    if (syphonTexture_ != 0 && syphonWidth_ == width && syphonHeight_ == height)
+        return;
+
+    if (syphonFBO_ != 0) glDeleteFramebuffers(1, &syphonFBO_);
+    if (syphonTexture_ != 0) glDeleteTextures(1, &syphonTexture_);
+
+    glGenTextures(1, &syphonTexture_);
+    glBindTexture(GL_TEXTURE_2D, syphonTexture_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glGenFramebuffers(1, &syphonFBO_);
+    glBindFramebuffer(GL_FRAMEBUFFER, syphonFBO_);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, syphonTexture_, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    syphonWidth_ = width;
+    syphonHeight_ = height;
+}
+
+// P22.1: Blit the final composited output (the letterboxed viewport region of
+// the default framebuffer) into the Syphon texture and publish it to clients.
+void Renderer::publishSyphonFrame(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH)
+{
+    int w = static_cast<int>(vpW);
+    int h = static_cast<int>(vpH);
+    if (w <= 0 || h <= 0)
+        return;
+
+    ensureSyphonFBO(w, h);
+
+    // Copy the final-output region into the Syphon texture
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, defaultFBO);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, syphonFBO_);
+    glBlitFramebuffer(
+        static_cast<int>(vpX), static_cast<int>(vpY),
+        static_cast<int>(vpX + vpW), static_cast<int>(vpY + vpH),
+        0, 0, w, h,
+        GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+    // Restore the default framebuffer so any subsequent readback (frame capture)
+    // reads from the correct target.
+    glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+
+    // Publish to connected Syphon clients (internally no-op if disabled/uninitialized)
+    syphonOutput_->publishTexture(syphonTexture_, w, h);
 }

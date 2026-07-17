@@ -113,6 +113,9 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addSeparator();
             menu.addItem(kOutputStartRecording,   "Start Recording",     true, false);
             menu.addItem(kOutputStopRecording,    "Stop Recording",      true, false);
+            menu.addSeparator();
+            const bool syphonOn = isSyphonOutputEnabled && isSyphonOutputEnabled();
+            menu.addItem(kOutputSyphon,           "Syphon Output",       true, syphonOn);
             break;
         }
 

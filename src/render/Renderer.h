@@ -247,6 +247,16 @@ private:
     float deckTransitionProgress_ = 1.0f;  // 1.0 = complete (no transition)
     float deckTransitionSpeed_ = 0.0f;     // Progress per frame (0 = instant)
 
+    // P22.1: Syphon output — blit the final composited frame into a texture
+    // so it can be published to Syphon clients. Only allocated/used when the
+    // Syphon server is enabled and initialized.
+    GLuint syphonFBO_ = 0;
+    GLuint syphonTexture_ = 0;
+    int syphonWidth_ = 0;
+    int syphonHeight_ = 0;
+    void ensureSyphonFBO(int width, int height);
+    void publishSyphonFrame(GLuint defaultFBO, float vpX, float vpY, float vpW, float vpH);
+
     std::atomic<float> masterLevel_{1.0f};
     std::atomic<float> frameTimeMs_{0.0f};
     double renderProfileAccum_ = 0.0;

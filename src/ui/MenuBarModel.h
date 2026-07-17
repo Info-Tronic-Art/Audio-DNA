@@ -95,6 +95,7 @@ public:
         kOutputSnapshot,
         kOutputStartRecording,
         kOutputStopRecording,
+        kOutputSyphon,          // Toggle Syphon output publishing
 
         // Shortcuts menu
         kShortcutsEditKeyboard = 1700,
@@ -120,6 +121,10 @@ public:
 
     // Callbacks — MainComponent wires these
     std::function<void(int)> onMenuCommand;
+
+    // Returns the current Syphon-output enabled state, used to tick the
+    // "Syphon Output" menu item. MainComponent wires this.
+    std::function<bool()> isSyphonOutputEnabled;
 
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioDNAMenuBar)
