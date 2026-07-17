@@ -2,6 +2,8 @@
 
 Norm: v2 | Last audited: 2026-05-24 | SHA: 4ee10ad
 
+> **Re-verified 2026-07-16 against source (7-lane audit, HEAD 9139dd4); counts: 135 effects / 108 sources / 22 REST endpoints.** Targeted corrections applied to the analysis-pipeline stage list (§2), the GenreSmoothing/One-Euro smoothing claims (§3, §16), SignalInspector (§7b), 3D/MilkDrop source param counts (§source census), and video BPM-sync/in-out ownership (§11). See `.harmony/APP-INVENTORY.md` for the full living surface inventory and consolidated FLAGGED (dead/ghost/stub) list.
+
 <!-- C++20/JUCE/OpenGL desktop application. Framework gating:
      Security/Auth: N/A — local desktop app, no user accounts
      Deployment: N/A — local CMake build only
@@ -65,7 +67,7 @@ AudioTransportSource (file playback) → same callback path
 ---
 
 ## 2. Audio Analysis Pipeline [R]
-**What it does:** Extracts 58 audio features from raw samples in real-time via a 16-stage pipeline running every 10.7ms (512-sample hop at 48kHz). Features are accessible as mapping sources and signals.
+**What it does:** Extracts ~30 audio features (exposed downstream as 58 mapping sources / 40 FeatureSnapshot fields) from raw samples in real-time via a 14-stage pipeline (14 numbered compute stages in code, 13 profiled timing slots) running every 10.7ms (512-sample hop at 48kHz). Features are accessible as mapping sources and signals.
 
 **Entry points:**
 - `AnalysisThread` class (src/analysis/AnalysisThread.h:41) — dedicated thread
@@ -73,23 +75,21 @@ AudioTransportSource (file playback) → same callback path
 
 **Implementation chain:**
 1. `AnalysisThread::run()` — loop: pull 512 samples from ring buffer, maintain 2048-sample overlap window
-2. Stage 1: Raw time-domain — RMS, peak, ZCR
+2. Stage 1: Raw time-domain — RMS, peak, rms dB (no ZCR — never computed anywhere in src)
 3. Stage 2: `FFTProcessor::process()` — 2048-pt FFT, Hann window → 1025 magnitude bins
-4. Stage 3: `SpectralFeatures::compute()` — centroid, flux, flatness, rolloff, 7-band energies
-5. Stage 4: `OnsetDetector::process()` — Aubio spectral flux thresholding, adaptive median
-6. Stage 5: `BPMTracker::process()` — Aubio autocorrelation → tempo + beat/bar/phrase phase
+4. Stage 3: `SpectralFeatures::process()` — centroid, flux, flatness, rolloff, 7-band energies
+5. Stage 4: `OnsetDetector::process()` — Aubio spectral flux thresholding
+6. Stage 5: `BPMTracker::process()` — Aubio tempo + downbeat + **phrase tracking** (bar count / phrase phase are computed inside this stage via `feedDownbeatFeatures`, NOT a separate late stage)
 7. Stage 6: `MFCCExtractor::process()` — 40-band mel filterbank → log → DCT → 13 MFCCs
-8. Stage 7: `ChromaExtractor::process()` — FFT bins → 12 pitch classes + HCDF
-9. Stage 8: `PitchTracker::process()` — Aubio yinfft pitch detection
-10. Stage 9: `KeyDetector::process()` — Krumhansl-Schmuckler: chroma x 24 key templates
-11. Stage 10: `LoudnessAnalyzer::process()` — K-weighted biquads + 400ms window → LUFS
-12. Stage 11: `StructuralDetector::process()` — multi-scale EMA (100ms/1s/4s/16s) → state machine
-13. Stage 12: HCDF (in ChromaExtractor) — chroma frame difference function
-14. Stage 13: Transient density — onset count in 2s sliding window
-15. Stage 14: `GenreDetector::process()` — 8-genre classification + energy state
-16. Stage 15: `AdvancedAudioAnalyzer::process()` — sidechain pump, swing ratio, formant, resonance, reese
-17. Stage 16: Phrase tracking — bar count + phrase phase over N bars
-18. Publishes complete `FeatureSnapshot` to FeatureBus via triple-buffer swap
+8. Stage 7: `ChromaExtractor::process()` — FFT bins → 12 pitch classes + **HCDF** (harmonic change is computed inside this Chroma stage, NOT a separate stage 12)
+9. Stage 8: `KeyDetector::process()` — Krumhansl-Kessler: chroma x 24 key templates (**Key runs before Pitch**)
+10. Stage 9: `PitchTracker::process()` — Aubio yinfft pitch detection
+11. Stage 10: `LoudnessAnalyzer::process()` — K-weighted biquads + 400ms window → LUFS, dynamic range
+12. Stage 11: Transient density — onset count in ~2.7s (256-hop) sliding window
+13. Stage 12: `StructuralDetector::process()` — 4-scale EMA (0.1s/1s/4s/16s) → drop/buildup/breakdown state machine
+14. Stage 13: `GenreDetector::process()` — 8-genre classification + energy state
+15. Stage 14: `AdvancedAudioAnalyzer::process()` (P25) — sidechain pump, swing ratio, formant, resonance, reese bass
+16. Publishes complete `FeatureSnapshot` to FeatureBus via triple-buffer swap
 
 **Data flow:**
 ```
@@ -152,7 +152,7 @@ RingBuffer → 2048-sample window → FFT → [spectral|onset|BPM|MFCC|chroma|pi
 **Implementation chain:**
 1. Analysis thread calls `FeatureBus::write(snapshot)` — writes to next buffer, atomic index swap
 2. Render thread calls `FeatureBus::read()` — reads latest snapshot via atomic index read (~10ns)
-3. `Smoother::process()` — applies EMA or One-Euro filter per-mapping for visual smoothness
+3. `Smoother::process()` — applies EMA filter per-mapping for visual smoothness (the `OneEuroFilter` in Smoother.h is implemented but DEAD — never instantiated; mapping/routing use the EMA `Smoother` only)
 
 **Data flow:**
 ```
@@ -797,7 +797,7 @@ FeatureSnapshot fields → SignalRegistry (named signals) → ChainedSignal (der
 
 ### 7b. SignalInspector (UI)
 
-**What it does:** Displays full settings for the currently selected signal in the InspectorPanel's Signal tab. Adapts its controls based on signal type: audio signals show threshold/gain/falloff sliders; oscillator signals show wave shape, beat duration, amplitude, and phase offset; envelope signals show a curve editor with draggable control points and loop/one-shot toggles.
+**What it does:** Displays full settings for the currently selected signal in the InspectorPanel's Signal tab. Adapts its controls based on signal type: audio signals show threshold/gain/falloff sliders; oscillator signals show wave shape, beat duration, amplitude, and phase offset; envelope signals show a **display-only** curve editor (painted preview — NO draggable control points; `SignalInspector.cpp:365` has no mouse handlers) and loop/one-shot toggles.
 
 **Key source files:**
 - `SignalInspector` class (src/ui/SignalInspector.h:15, src/ui/SignalInspector.cpp)
@@ -812,7 +812,7 @@ FeatureSnapshot fields → SignalRegistry (named signals) → ChainedSignal (der
 - All controls are hidden/shown dynamically based on signal type via `hideAllControls()` / `showAudioControls()` / `showOscillatorControls()` / `showEnvelopeControls()`
 
 **Gotchas:**
-- Envelope curve editor is currently a painted rectangle with basic control point display — draggable editing may be incomplete.
+- Envelope curve editor is paint-only (a painted preview of the control-point curve) — draggable editing is NOT implemented (no mouse handlers, `SignalInspector.cpp:365`).
 - `setSignal(nullptr)` hides all controls gracefully.
 
 
@@ -900,7 +900,7 @@ Autopilot: beat/video trigger → advance clip → fire callback → refresh Dec
 ---
 
 ## 9. Procedural Sources [R]
-**What it does:** 108 code-generated visual sources across 18 categories: 7 2D fractals, 8 3D ray-marched fractals, 8 torus variants, 9 audio-visual, text, simulations, pattern/noise/geometric/particle/nature sources, 7 wireframe shapes, and a MilkDrop visualizer. Total: 754 parameters at runtime.
+**What it does:** 108 code-generated visual sources across 18 categories: 7 2D fractals, 8 3D ray-marched fractals, 8 torus variants, 9 audio-visual, text, simulations, pattern/noise/geometric/particle/nature sources, 7 wireframe shapes, and a MilkDrop visualizer. Total: 759 parameters at runtime.
 
 **Entry points:**
 - `SourceRegistry` class (src/sources/SourceRegistry.h:13) — registration of all sources
@@ -928,11 +928,11 @@ Audio uniforms (u_rms, u_bass, u_beatPhase, etc.) available in all source shader
 - 2D fractals share: dive speed, location presets, zoom, center X/Y, iterations, color, palette
 - 8 cosine palettes: Fire/Ocean/Neon/Gray/Rainbow/Psyche/Ice/Sunset
 
-**Source inventory — 754 parameters across 108 sources (18 categories):**
+**Source inventory — 759 parameters across 108 sources (18 categories):**
 
 | Category | Sources | Parameters | Avg Params/Source |
 |----------|---------|------------|-------------------|
-| 3D | 24 | 298 | 12.4 |
+| 3D | 24 | 277 | 11.5 |
 | Wireframe | 7 | 63 | 9.0 |
 | Lines | 11 | 65 | 5.9 |
 | Geometric | 11 | 60 | 5.5 |
@@ -949,15 +949,15 @@ Audio uniforms (u_rms, u_bass, u_beatPhase, etc.) available in all source shader
 | Lighting | 1 | 6 | 6.0 |
 | Organic | 1 | 5 | 5.0 |
 | Routing | 1 | 1 | 1.0 |
-| MilkDrop | 1 | 0 | 0.0 |
-| **Total** | **108** | **754** | **7.0** |
+| MilkDrop | 1 | 5 | 5.0 |
+| **Total** | **108** | **759** | **7.0** |
 
-Note: Raw `addParam()` grep count is 628. Runtime total is 754 because `addTorusControls()` (12 params) is called on 7 torus sources and `registerWireframe()` (9 params) is called on 7 wireframe sources — helper bodies are counted once by grep but expand at runtime.
+Note: Raw `addParam()` grep count is 628. The 754-param shader-registry subtotal expands from 628 because `addTorusControls()` (12 params) is called on 7 torus sources and `registerWireframe()` (9 params) is called on 7 wireframe sources — helper bodies are counted once by grep but expand at runtime. MilkDrop's `ProjectMSource` adds 5 programmatic params (Beat Sensitivity, Speed, Warp, Decay, Gamma; ProjectMSource.cpp:13-17) on top of the registry sources → **grand total 759** (receiver-verified 2026-07-16). Note: 3D was previously stated as 298 (torus shared-control double-count); parse ground-truth is 277.
 
 <details>
 <summary>Sources by category (click to expand)</summary>
 
-**3D (24 sources, 298 params):**
+**3D (24 sources, 277 params):**
 Mandelbulb (16), Menger Sponge (14), Kaleidoscopic IFS (16), Julia Set 3D (17), Burning Ship 3D (14), Newton 3D (14), Sierpinski Tetrahedron (13), Apollonian 3D (14), Striped Torus (14), Spiral Vortex (14), Checker Torus (14), Ribbed Vortex (14), Wormhole Tunnel (13), Twisted Torus (14), Wormhole (14), Torus Hole (19), Spiral Tunnel (5), Crystal Cavern (6), Infinite Corridor (6), Orbit Chamber (7), Scroll Plane (5), Rotating Cube Map (5), Dual Plane Drift (5), DNA Helix (4)
 
 **Audio-Visual (9 sources, 42 params):**
@@ -1005,8 +1005,8 @@ Solid Color (3), Strobe Light (8)
 **Wireframe (7 sources, 63 params):**
 Wireframe Sphere (9), Wireframe Torus (9), Wireframe Cube (9), Wireframe Cylinder (9), Wireframe Cone (9), Wireframe Icosahedron (9), Wireframe Wolf (9)
 
-**MilkDrop (1 source, 0 standard params):**
-MilkDrop Visualizer — via ProjectMSource (see Feature 17). Uses libprojectM-4 with ~9800 presets.
+**MilkDrop (1 source, 5 params):**
+MilkDrop Visualizer — via ProjectMSource (see Feature 17). Uses libprojectM-4 with ~9800 presets. 5 params: Beat Sensitivity, Speed, Warp, Decay, Gamma (ProjectMSource.cpp:13-17; the Gamma param is a no-op placeholder, ProjectMSource.cpp:246-250). Build-conditional (AUDIODNA_HAS_PROJECTM); renders a dark-purple placeholder if libprojectM-4 is not linked.
 
 **Lighting (1 source, 6 params):**
 Laser Scanner (6)
@@ -1156,7 +1156,7 @@ Deck state → MidiOutputHandler (6Hz poll) → note-on/off → Launchpad/APC pa
 ---
 
 ## 11. Video Playback & Media [R]
-**What it does:** Decodes video files (MP4/MOV/AVI/MKV/WebM/HAP Alpha) via FFmpeg to GL textures, and plays multi-image sequences with configurable FPS and BPM sync.
+**What it does:** Decodes video files via FFmpeg to GL textures, and plays multi-image sequences at configurable FPS. `VideoPlayer`/`ImageSequence` are **transport-only and tempo-agnostic** — they expose speed/reverse/{Loop,PingPong,OneShot}/seekTo only. **BPM sync, transport mode (Timeline/BPMSync), in/out points, beat division, and cuepoints are NOT VideoPlayer/ImageSequence capabilities** — they are Clip-struct fields (`Clip.h`) + ClipInspector controls, applied externally by scaling `setSpeed()`/`advanceFrame(dt)`. Codec set = whatever the linked FFmpeg build provides; the `VideoPlayer.h:19` header comment lists MP4/MOV/QuickTime (H.264/H.265/ProRes)/HAP/HAP-Alpha/AVI (MKV/WebM are NOT in the header and not code-guaranteed).
 
 **Entry points:**
 - `VideoPlayer` class (src/media/VideoPlayer.h:29) — FFmpeg decode pipeline
@@ -1167,7 +1167,7 @@ Deck state → MidiOutputHandler (6Hz poll) → note-on/off → Launchpad/APC pa
 2. Decode loop: `av_read_frame` → `avcodec_send_packet` → `avcodec_receive_frame`
 3. Convert via `sws_scale` → upload to GL texture
 4. `ImageSequence`: load image files → cycle at configurable FPS or BPM-synced
-5. BPM Sync transport: `beatDivision` x BPM determines playback speed
+5. BPM Sync transport (`beatDivision` x BPM → playback speed) is a **Clip/ClipInspector** behavior that drives `VideoPlayer`/`ImageSequence` externally via `setSpeed()` — neither class holds `beatDivision`, `transportMode`, in/out points, or cuepoints itself
 
 **Data flow:**
 ```
@@ -1179,11 +1179,8 @@ Image folder → load all images → cycle by timer/BPM → clip texture
 - FFmpeg 8.0: libavformat, libavcodec, libavutil, libswscale (LGPL/GPL)
 
 **Config:**
-- Transport modes: Timeline (time-based) or BPMSync (beat-locked)
-- Loop modes: Loop, PingPong, OneShot
-- In/out points: draggable on timeline [0,1]
-- Beat division presets for BPM sync
-- Content beats setting for exact timing of authored content
+- Loop modes: Loop, PingPong, OneShot — **the only transport enum VideoPlayer/ImageSequence own** (VideoPlayer.h:53, ImageSequence.h:45)
+- Applied externally by the Clip layer (Clip-struct fields, NOT held by VideoPlayer/ImageSequence): Transport mode Timeline/BPMSync; in/out points [0,1] (draggable on the ClipInspector timeline); beat-division presets for BPM sync; content-beats for exact timing of authored content; 8 cuepoints
 
 **Failure modes:**
 - Unsupported codec → `avcodec_find_decoder` returns null (handled — video not loaded)
@@ -1416,12 +1413,12 @@ Link network session → LinkSync (atomic BPM/phase) → BPMTracker manual mode 
 ---
 
 ## 16. Genre Detection & Smart Features [R]
-**What it does:** Real-time 8-genre classification from audio features with per-genre smoothing, AI mapping suggestions, smart autopilot, and structural scene triggering.
+**What it does:** Real-time 8-genre classification from audio features with smart autopilot and structural scene triggering. (Genre EMA/hysteresis smoothing is done inside `GenreDetector` itself; the separate `GenreSmoothing` class and the `MappingSuggester` "AI suggestions" are both DEAD/ghost — never instantiated.)
 
 **Entry points:**
-- `GenreDetector` class (src/analysis/GenreDetector.h) — 8-genre classifier
-- `GenreSmoothing` (src/analysis/GenreSmoothing.h) — per-genre EMA parameters
-- `MappingSuggester` (src/mapping/MappingSuggester.h) — genre-aware suggestions
+- `GenreDetector` class (src/analysis/GenreDetector.h) — 8-genre classifier; does its own ~2s EMA + ~3s hysteresis internally
+- `GenreSmoothing` (src/analysis/GenreSmoothing.h) — **DEAD** — per-genre EMA presets, never instantiated (zero external refs). Does NOT drive MappingEngine/GenreDetector smoothing.
+- `MappingSuggester` (src/mapping/MappingSuggester.h) — **GHOST** — genre-aware suggestions fully implemented but never instantiated; no UI or API caller
 
 **Implementation chain:**
 1. `GenreDetector::process()` — multi-feature scoring (BPM, spectral profile, transient density, chromatic complexity)
@@ -1776,7 +1773,7 @@ Frame Stutter: clip texture → pushFrameToRing() → getFrameFromRing(framesAgo
 
 **Hidden v1 components:**
 
-- **AudioReadoutPanel** (src/ui/AudioReadoutPanel.h, 70 LOC header) — left panel showing all audio features at 30fps: RMS/peak/ZCR meters, 7-band energy bars, beat phase, bar indicator, onset flash, structural/genre state. Hidden at MainComponent.cpp:1399.
+- **AudioReadoutPanel** (src/ui/AudioReadoutPanel.h, 70 LOC header) — left panel showing audio features at 30fps: RMS/peak meters (its "ZCR" label is vestigial — ZCR is not computed anywhere in src), 7-band energy bars, beat phase, bar indicator, onset flash, structural/genre state. Permanently hidden at MainComponent.cpp:1399 (dead in v2).
 - **SpectrumDisplay** (src/ui/SpectrumDisplay.h, 47 LOC header) — 7-band energy bars with attack/release smoothing, peak hold (20 frames), color-coded gradient. Hidden at MainComponent.cpp:1400.
 - **EffectsRackPanel** (src/ui/EffectsRackPanel.h, 99 LOC header) — right-side effect chain with rotary knobs and mapping controls. Superseded by EffectStackView (v2). Hidden at MainComponent.cpp:1401.
 
@@ -2681,7 +2678,7 @@ N/A for traditional database — this is a C++ desktop app with in-memory data s
 - **Effect**: name, category, shaderProgram (GLuint), params (vector<EffectParam>), enabled, order. 135 effects, 333 parameters.
 - **Binding**: keyCode or MIDI note/CC → action → targetMode (ByPosition/ThisItem/Selected) → triggerMode (Toggle/Momentary).
 - **Signal**: name → value (float) → type. 32 registered in SignalRegistry (8 visible + 21 hidden audio + 2 modulation + 1 clip position).
-- **ProceduralSource**: 108 sources, 754 parameters at runtime across 18 categories.
+- **ProceduralSource**: 108 sources, 759 parameters at runtime across 18 categories.
 
 ### Ownership Hierarchy
 ```

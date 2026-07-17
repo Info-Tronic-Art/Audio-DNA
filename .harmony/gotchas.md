@@ -82,3 +82,31 @@
 **Rule:** Anything graded below B+ gets refined in-place via Refiner Builder. Don't ask which to refine — refine all sub-B+ items. Re-Critic verifies B+ achieved. Iterate max 2 loops. Pattern: Critic (Tester + design-review methodology + Playwright) → Refiner (Builder with per-variation recommendations) → Re-Critic. Validated session 15: 13/13 refinements achieved B+ first pass.
 **Scope:** repo (RealTimeAudio design work). Boris may elevate to universal if same pattern applies to other projects' design audits — currently RTA-scoped.
 **Promoted:** no
+
+### 2026-07-16 — All shipped shaders are EMBEDDED; shaders/ dir files are dead + hot-reload is inert
+**Source:** 7-lane re-norm audit (L2 render-effects)
+**Trigger:** Assuming the 5 files in `shaders/` (hue_shift/rgb_split/ripple/vignette/passthrough) are live, or that ShaderManager hot-reload works.
+**Rule:** Every effect/transition/source shader ships as an inline string in `src/render/EmbeddedShaders.h` and is compiled via `compileProgram` (275 compile() calls in Renderer.cpp). `ShaderManager::reloadAll()` only reloads programs compiled *from files* (empty vertFile/fragFile skipped), so hot-reload is inert for the entire shipped set. The 5 `shaders/*.frag|vert` disk files are dead duplicates. Edit shaders in EmbeddedShaders.h, not the disk files.
+**Scope:** repo
+**Promoted:** no
+
+### 2026-07-16 — SourcesBrowser list is hand-maintained, NOT generated from SourceRegistry
+**Source:** 7-lane re-norm audit (L3 sources-media, L5 ui-surfaces)
+**Trigger:** Adding a procedural source to `SourceRegistry` and expecting it to appear in the GUI Sources browser.
+**Rule:** `SourcesBrowser.cpp` uses ZERO `SourceRegistry` references — its ~103 source rows are a hand-maintained list. A new source must be added in BOTH places (registry + SourcesBrowser) or it is API-selectable but invisible in the GUI. 6 registered sources (strange_attractor, gravity_well, fluid_dynamics, text_animator, layer_router, projectm_visualizer) are currently missing from the browser for this reason.
+**Scope:** repo
+**Promoted:** no
+
+### 2026-07-16 — 48kHz is hardcoded across analysis with no runtime validation
+**Source:** 7-lane re-norm audit (L1 audio-analysis)
+**Trigger:** Assuming the analysis pipeline adapts to the device sample rate.
+**Rule:** `kSampleRate=48000` (AnalysisThread.h:46) plus the LoudnessAnalyzer K-weighting biquad coefficients (ITU-R BS.1770 48k, LoudnessAnalyzer.cpp:13-29) and all frequency math assume 48kHz with NO runtime SR check. A device running at 44.1k/96k silently produces wrong LUFS/frequency features. Do not assume SR-independence when touching analysis.
+**Scope:** repo
+**Promoted:** no
+
+### 2026-07-16 — FeatureSnapshot::clear() resets genre/energy to 0 (House/low), not struct defaults
+**Source:** 7-lane re-norm audit (L1 audio-analysis)
+**Trigger:** Expecting a freshly-cleared FeatureSnapshot to carry the struct's default genre/energy (detectedGenre=6, energyState=1).
+**Rule:** `FeatureSnapshot::clear()` memsets then restores only rmsDB/lufs/detectedKey/keyIsMajor/swingRatio — it leaves `detectedGenre=0` (House) and `energyState=0` (low), NOT the struct defaults 6/1 (FeatureSnapshot.h:81-89). FeatureBus inits all 3 buffers via clear(), so this is the effective startup default. Latent bug; verify before relying on cleared-snapshot genre state.
+**Scope:** repo
+**Promoted:** no
