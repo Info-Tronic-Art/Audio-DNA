@@ -11,7 +11,7 @@ Audio-DNA is a cross-platform desktop application (C++20 / JUCE / OpenGL) for li
 
 The core concept: audio analysis + visual effects + a mapping system + a keyboard clip launcher, rendered live at 60fps. Users load images (or folders for beat-synced slideshows), wire audio features to effect parameters via mappings with curves and smoothing, and perform live with keyboard-triggered visual scenes.
 
-**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional — AUDIODNA_BUILD_LINK OFF by default, so a no-op unless built), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc — receiver never started, so inert at runtime; only 5/11 callbacks wired), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output/input (macOS, optional — implemented but NOT wired: output never publishes, input never instantiated), real-time genre detection (8 genres), AI mapping suggestions (ghost — MappingSuggester never instantiated), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — registers + shows in the browser but the converted GLSL is never compiled, so imported effects don't render), per-genre smoothing tuning, smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
+**Key capabilities**: 135 effects across 11 categories (including 6 temporal time effects, 3 audio-native effects), 15 clip-to-clip transitions, per-layer feedback system with 6 presets, deck/layer/clip compositing with per-level effect chains, fullscreen output to any connected display, beat-synced randomization, instant preset save/recall, camera input, video playback, 108 procedural sources across 18 registry categories (3D 24, Geometric 11, Lines 11, Audio-Visual 9, Math 8, Pattern 8, Fractal 7, Wireframe 7, Nature 6, Noise 3, Particle 3, Simulation 3, Text 2, Utility 2, Lighting 1, MilkDrop 1, Organic 1, Routing 1), per-type autopilot automation, signal routing engine wired into render loop, VJ panel UI, piano/momentary keyboard+MIDI mode, MIDI velocity-to-opacity, CC relative mode for endless encoders, 3 binding targeting modes (ByPosition/ThisItem/Selected), persistent layers across deck switches, Ableton Link tempo sync (optional — AUDIODNA_BUILD_LINK OFF by default, so a no-op unless built), per-clip beat snap granularity (Off/Beat/Bar/2Bar/4Bar), production REST API (port 7070), OSC input (juce_osc — receiver started at startup on UDP 8000, all 11/11 callbacks wired; Wave 1-B), MIDI output for Launchpad/APC pad feedback, real-time video recording (FFmpeg H.264/ProRes/MJPEG), PNG snapshot capture, Syphon output (macOS, optional — wired to publish the final composited frame each frame, build-flag-gated: no-op unless built -DAUDIODNA_BUILD_SYPHON=ON with Syphon.framework; Wave 1-A. Input/Spout/NDI stubs removed Wave 0), real-time genre detection (8 genres), smart energy-aware autopilot, structural scene triggering, ISF shader import (phantom — registers + shows in the browser but the converted GLSL is never compiled, so imported effects don't render), smart BPM recovery during silence, advanced audio analysis (sidechain pump, swing ratio, formant tracking, resonance peaks, reese bass detection), composition-level transform (position/scale/rotation), cross-deck transitions with 3 blend modes.
 
 **What this is NOT**: Not a DAW, not a video editor, not a web app, not a plugin. It is a standalone desktop application for live audio-reactive visual performance.
 
@@ -90,7 +90,7 @@ Runs on user events. Handles all UI interaction — sliders, buttons, file choos
 | `curve` | `Curve` enum | Linear, Exponential, Logarithmic, SCurve, Stepped |
 | `inputMin/inputMax` | `float` | Source normalization range |
 | `outputMin/outputMax` | `float` | Target output range (default [0, 1]) |
-| `smoothing` | `float` | EMA alpha or One-Euro beta |
+| `smoothing` | `float` | EMA alpha |
 | `enabled` | `bool` | Active flag |
 
 **Effect** — A named GLSL shader with typed parameters:
@@ -159,7 +159,7 @@ All data flows forward. No backward dependencies on the hot path.
 | **Aubio** | 0.4.9+ | GPLv3 | BPM tracking (`aubio_tempo`), onset detection (`aubio_onset`), pitch detection (`aubio_pitch`) | Battle-tested beat/onset algorithms that beat custom implementations. Small C footprint. Alternative: Essentia (AGPL, massive dependency tree including FFTW/TagLib/yaml-cpp). | `CMakeLists.txt` (to be added in M2) |
 | **juce::dsp::FFT** | (bundled) | GPLv3 | 2048-point FFT, magnitude spectrum (1025 bins) | Uses vDSP on macOS, IPP if available. No extra dependency. Adequate for 2048-pt. Alternatives: FFTW (GPL, overkill at 2048), KissFFT (slower). | JUCE module `juce_dsp` |
 | **OpenGL 4.1 Core** | 4.1 | — | All image effects rendering via GLSL fragment shaders | macOS caps at 4.1 (Apple deprecated GL). Sufficient for 2D image effects on fullscreen quads. No compute shaders (require 4.3). Alternatives: Vulkan (overkill for 2D), Metal (macOS-only). | JUCE module `juce_opengl` |
-| **GLSL 410** | 410 | — | All effect shaders (shipped set is embedded in `EmbeddedShaders.h`; hot-reload from `shaders/` is inert for them) | Matches OpenGL 4.1 target. | `src/render/EmbeddedShaders.h` (shaders/*.frag are legacy) |
+| **GLSL 410** | 410 | — | All effect shaders (shipped set is embedded in `EmbeddedShaders.h`; hot-reload is inert — no disk shader files) | Matches OpenGL 4.1 target. | `src/render/EmbeddedShaders.h` (shaders/ dir removed Wave 0) |
 | **Catch2** | 3.x | BSL-1.0 | Unit/integration tests | Header-only, BDD-style, integrates with CMake/CTest. Test-only dependency. | `tests/CMakeLists.txt` (to be added in M2) |
 | **stb_image** | latest | Public domain | Fallback image loading for formats JUCE doesn't handle | Single header. JUCE handles PNG/JPEG/GIF natively. | `third_party/` (optional) |
 | **CMake** | 3.24+ | — | Build system | JUCE 7+ has first-class CMake support (`juce_add_gui_app`). Industry standard. Alternative: Projucer (deprecated). | `CMakeLists.txt` |
@@ -208,16 +208,16 @@ AudioDNA/
 │   │   ├── StructuralDetector.h/cpp  ✅ # Multi-scale EMA envelopes → state machine
 │   │   ├── PitchTracker.h/cpp        ✅ # Aubio yinfft pitch detection
 │   │   ├── GenreDetector.h/cpp       ✅ # [P23] 8-genre real-time classification from audio features
-│   │   ├── GenreSmoothing.h             # [P23] Per-genre smoothing parameters (DEAD — never instantiated)
+│   │   ├── GenreSmoothing.h             # REMOVED 2026-07-17 (Wave 0) — was dead (never instantiated)
 │   │   └── AdvancedAudioAnalyzer.h/cpp ✅ # [P25] Sidechain pump, swing, formant, resonance, reese bass
 │   ├── features/
 │   │   ├── FeatureBus.h/cpp          ✅ # Triple-buffer atomic swap (3× FeatureSnapshot)
-│   │   └── Smoother.h               ✅ # EMA smoother (header-only; One-Euro variant present but never instantiated)
+│   │   └── Smoother.h               ✅ # EMA smoother (header-only; One-Euro variant removed Wave 0)
 │   ├── mapping/
 │   │   ├── MappingEngine.h/cpp          # [M4] Source→curve→scale→target routing (58 sources, 24 curves)
 │   │   ├── MappingTypes.h               # [M4] Mapping, Source, Curve enums
 │   │   ├── CurveTransforms.h            # [M4] lin/exp/log/sigmoid/step + 19 P24 easings (pure fns)
-│   │   └── MappingSuggester.h/cpp       # [P23] AI mapping suggester — GHOST: fully implemented but never instantiated (no UI/API caller)
+│   │   └── MappingSuggester.h/cpp       # REMOVED 2026-07-17 (Wave 0) — was ghost (never instantiated, no UI/API caller)
 │   ├── model/                           # [v2] Core data model
 │   │   ├── Clip.h/cpp                    # Media + per-clip effects/transport/transform/cuepoints/autopilot
 │   │   ├── Layer.h/cpp                   # Row of columns: type, opacity, blend/keying, layer effects, feedback
@@ -226,7 +226,7 @@ AudioDNA/
 │   │   └── Autopilot.h/cpp               # Beat / end-of-video / per-type / smart-energy clip advancement
 │   ├── signal/                          # [v2] Signal system (feeds RoutingEngine)
 │   │   ├── Signal.h + AudioSignal/OscillatorSignal/EnvelopeSignal/ClipPositionSignal.h  # Concrete signal types
-│   │   ├── ChainedSignal.h/cpp           # Signal-modulates-signal — GHOST: never instantiated
+│   │   ├── ChainedSignal.h/cpp           # REMOVED 2026-07-17 (Wave 0) — was ghost (never instantiated); SignalRegistry wiring removed
 │   │   └── SignalRegistry.h/cpp          # 32 default signals (29 audio + 3 modulation), per-frame cache
 │   ├── routing/                         # [v2] Universal signal routing (wired into render loop)
 │   │   ├── Route.h + RoutingEngine.h/cpp # dial-range → threshold → gain → invert → smooth → ParamWriter
@@ -253,22 +253,19 @@ AudioDNA/
 │   │   ├── SessionRecorder.h/cpp        # [P12] Event recording — PARTIAL: only clip-triggers captured; playback DEAD (advancePlayback never called)
 │   │   └── VideoRecorder.h/cpp       ✅ # [P22] Real-time video recording (FFmpeg H.264/ProRes/MJPEG, triple-buffered GL readback)
 │   ├── api/
-│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 22 endpoints — 21 functional, /api/set_bpm is a stub; CORS, always-on)
+│   │   └── ApiServer.h/cpp           ✅ # [P22] Production REST API (port 7070, 22 endpoints — all functional; /api/set_bpm wired Wave 0; CORS, always-on)
 │   ├── osc/
-│   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — INERT: startListening() never called; 5/11 callbacks wired
+│   │   └── OscHandler.h/cpp             # [P22] OSC input receiver — LIVE 2026-07-17 (Wave 1-B): startListening(8000) at startup; 11/11 callbacks wired
 │   ├── output/
-│   │   ├── SyphonOutput.h/.mm           # [P22] macOS Syphon server — implemented but NEVER publishes (publishTexture has 0 callers, never enabled)
-│   │   ├── SyphonInput.h/.mm            # [P22] macOS Syphon client — implemented but NEVER instantiated (orphaned)
-│   │   ├── SpoutOutput.h                # [P22] Windows Spout stub (header-only no-op)
-│   │   ├── NdiOutput.h                  # [P22] NDI output stub (init() returns false)
-│   │   └── NdiInput.h                   # [P22] NDI input stub
+│   │   └── SyphonOutput.h/.mm       ✅ # [P22] macOS Syphon server — WIRED 2026-07-17 (Wave 1-A): publishes final composited frame each frame; no-op unless built -DAUDIODNA_BUILD_SYPHON=ON + Syphon.framework
+│   │                                    #   (SyphonInput.h/.mm, SpoutOutput.h, NdiOutput.h, NdiInput.h REMOVED 2026-07-17 (Wave 0) — were orphaned/no-op stubs)
 │   ├── test/                           # Build-gated (AUDIODNA_BUILD_TEST_SERVER=ON)
 │   │   └── TestServer.h/cpp             # "Eyes" HTTP test server (port 8080, 17 endpoints) — OFF in default build
 │   ├── effects/
 │   │   ├── EffectLibrary.h/cpp          # [M4] Registry: 135 effects / 11 categories / 333 params
 │   │   ├── Effect.h/cpp              ✅ # Single effect: shader program + param list
 │   │   ├── EffectChain.h/cpp         ✅ # Ordered chain with ping-pong FBOs
-│   │   ├── UniformBridge.h/cpp          # Demo-mapping helper — DEAD: superseded by MappingEngine, no caller
+│   │   ├── UniformBridge.h/cpp          # REMOVED 2026-07-17 (Wave 0) — was dead (superseded by MappingEngine, no caller)
 │   │   └── ISFShaderLoader.h/cpp        # [P23] ISF parse/convert works, but MainComponent never compiles the GLSL → imported effects DON'T render
 │   ├── render/
 │   │   ├── Renderer.h/cpp            ✅ # OpenGLRenderer impl, GL 4.1 core, frame loop; compiles 275 embedded programs at startup
@@ -286,42 +283,25 @@ AudioDNA/
 │       ├── BrowserPanel + Files/FX/Sources/CompDecks/MilkDrop browsers + RecordPanel  # Browser tabs
 │       ├── PreviewPanel, OutputWindow               # Center preview + fullscreen/secondary-display output
 │       ├── EffectsRackPanel, EffectStackView, UniversalParamControl, Knob, MacroPanel, MappingEditor  # FX + param controls
-│       ├── BindingOverlay, MidiLearnOverlay, ProgrammingMode  # Bind-mode + MIDI-learn overlays
+│       ├── BindingOverlay, MidiLearnOverlay           # Bind-mode + MIDI-learn overlays (ProgrammingMode removed Wave 0)
 │       ├── AudioReadoutPanel, WaveformDisplay, SpectrumDisplay, TimingWindow  # Audio readouts
 │       ├── MenuBarModel, PreferencesDialog, PresetManager  # Menus, preferences, preset save/load
 │       └── LookAndFeel                              # Dark VJ theme
-├── shaders/                             # [M3+] All GLSL fragment shaders
-│   ├── passthrough.vert                 # Shared vertex shader (fullscreen quad UVs)
-│   ├── ripple.frag                      # Warp: UV distortion via sin(dist * freq + time)
-│   ├── bulge.frag                       # Warp: radial magnification
-│   ├── wave.frag                        # Warp: directional sine wave
-│   ├── liquid.frag                      # Warp: turbulent displacement
-│   ├── hue_shift.frag                   # Color: RGB→HSV rotate H HSV→RGB
-│   ├── saturation.frag                  # Color: saturation multiply
-│   ├── brightness.frag                  # Color: brightness offset
-│   ├── duotone.frag                     # Color: two-color remap
-│   ├── chromatic_aberration.frag        # Color: RGB channel UV offset
-│   ├── pixel_scatter.frag               # Glitch: random pixel displacement
-│   ├── rgb_split.frag                   # Glitch: directional RGB offset
-│   ├── block_glitch.frag               # Glitch: rectangular block displacement
-│   ├── scanlines.frag                   # Glitch: horizontal line overlay
-│   ├── gaussian_blur.frag               # Blur: Gaussian kernel
-│   ├── zoom_blur.frag                   # Blur: radial blur from center
-│   ├── shake.frag                       # Blur: image translation offset
-│   └── vignette.frag                    # Blur: edge darkening
-├── tests/                               # 11 Catch2 unit targets (113 tests, all pass; run: `cd build && ctest`)
+├── shaders/                             # REMOVED 2026-07-17 (Wave 0) — dir deleted; was 5 dead duplicate disk files (hue_shift/rgb_split/ripple/vignette .frag + passthrough.vert). All shipped shaders are embedded strings in src/render/EmbeddedShaders.h
+├── tests/                               # 12 Catch2 unit targets (114 tests, all pass; run: `cd build && ctest`)
 │   ├── CMakeLists.txt
 │   ├── test_ring_buffer.cpp          ✅ # Lock-free SPSC ring buffer
 │   ├── test_spectral_features.cpp    ✅ # Centroid/flux/flatness/rolloff/bands
 │   ├── test_feature_bus.cpp          ✅ # Triple-buffer atomic swap
-│   ├── test_smoother.cpp             ✅ # EMA + One-Euro filter
+│   ├── test_smoother.cpp             ✅ # EMA smoother
 │   ├── test_integration_pipeline.cpp ✅ # Full analysis pipeline on synthetic audio
 │   ├── test_mapping_engine.cpp       ✅ # Source→curve→scale→target mapping
 │   ├── test_bpm_stabilization.cpp    ✅ # BPM lock/stabilization
 │   ├── test_downbeat_detector.cpp    ✅ # Downbeat detection
-│   ├── test_composition.cpp          ✅ # Data model + undo
+│   ├── test_composition.cpp          ✅ # Data model + serialization roundtrip/back-compat (Wave 1-C)
 │   ├── test_routing_engine.cpp       ✅ # Signals + routing engine
 │   ├── test_compositor.cpp           ✅ # Deck/layer compositing + autopilot
+│   ├── test_waveform_snapshot.cpp   ✅ # Seqlock waveform snapshot (torn-read regression, Wave 1-D)
 │   └── visual/                          # "Eyes" pytest harness (11 test_*.py) — needs running app + AUDIODNA_BUILD_TEST_SERVER build
 ├── resources/
 │   ├── default_image.png                # Fallback test image
@@ -547,7 +527,7 @@ Audio Feature (source) → Normalize to [0,1] → Apply Curve → Scale to outpu
    - **S-Curve**: `y = x² * (3 - 2x)` (smoothstep, de-emphasizes extremes)
    - **Stepped**: `y = floor(x * N) / N` (quantized to N steps)
 4. **Scale**: `outputMin + curved * (outputMax - outputMin)`
-5. **Smooth**: EMA filter with per-mapping state (One-Euro exists in Smoother.h but is never instantiated)
+5. **Smooth**: EMA filter with per-mapping state (One-Euro variant removed from Smoother.h Wave 0)
 6. **Write**: Set on target effect's parameter slot
 
 ### Render Thread Consumption
@@ -556,7 +536,7 @@ Each frame, the render thread:
 1. Acquires latest `FeatureSnapshot` from triple buffer (atomic read, ~10ns)
 2. Iterates all active `Mapping` objects, running the pipeline above
 3. Writes computed values to each target `Effect`'s parameter slots
-4. `UniformBridge` uploads all effect parameters as `glUniform1f` calls
+4. `EffectChain::render` uploads each effect's parameters as `glUniform1f` calls
 5. Renders the effect chain (ping-pong FBOs)
 
 ### User Creates/Edits/Saves Mappings
@@ -768,7 +748,7 @@ requests.post(f"{BASE}/api/render_frame", json={"output_path": "/tmp/source_test
 
 ### Shader Rules
 
-5. **Every new effect is a GLSL file in `/shaders`**: Never hardcode effect logic in C++. One `.frag` file per effect. Shaders are hot-reloadable from disk. **NOTE (actual shipped model)**: the 135 shipped effects are embedded as inline strings in `src/render/EmbeddedShaders.h` and compiled at startup — the loose files in `shaders/` are legacy duplicates. ShaderManager hot-reload only reloads file-compiled shaders, so it is inert for the shipped (embedded) set.
+5. **Every new effect is a GLSL file in `/shaders`**: Never hardcode effect logic in C++. One `.frag` file per effect. Shaders are hot-reloadable from disk. **NOTE (actual shipped model)**: the 135 shipped effects are embedded as inline strings in `src/render/EmbeddedShaders.h` and compiled at startup — the `shaders/` dir of legacy duplicate disk files was removed Wave 0. ShaderManager hot-reload only reloads file-compiled shaders, so it is inert for the shipped (embedded) set.
 
 6. **All effect parameters are [0, 1]**: The mapping engine and UI work in normalized space. The shader maps `[0, 1]` to its internal range.
 
@@ -1148,9 +1128,9 @@ Composition-level automation that sets different beat timings per layer type:
 
 ### Output & Integration System (P22)
 
-**Production REST API** (`ApiServer`, port 7070, always-on): 22 endpoints for external control (21 functional; `/api/set_bpm` is a no-op stub — it validates then returns ok without changing tempo). cpp-httplib on a background thread with CORS headers. Endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm (stub), /api/features, /api/inject_features, /api/load_image, /api/load_source, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset, /api/set_effect_chain, /api/state. All GL mutations go through existing thread-safe APIs.
+**Production REST API** (`ApiServer`, port 7070, always-on): 22 endpoints for external control (all functional; `/api/set_bpm` wired Wave 0 — drives the TopBar manual-BPM override path via the message thread). cpp-httplib on a background thread with CORS headers. Endpoints: /api/health, /api/status, /api/composition (full deck/layer/clip tree), /api/trigger_clip, /api/trigger_column, /api/set_param, /api/set_layer_opacity, /api/switch_deck, /api/snapshot, /api/bpm, /api/set_bpm, /api/features, /api/inject_features, /api/load_image, /api/load_source, /api/set_effect, /api/effects, /api/sources, /api/render_frame, /api/reset, /api/set_effect_chain, /api/state. All GL mutations go through existing thread-safe APIs.
 
-**OSC Input** (`OscHandler`, `juce_osc` module): Receives OSC on configurable UDP port. Address patterns (11): `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity|bypass|solo|mute`, `/audiodna/deck/{n}`, `/audiodna/master`, `/audiodna/bpm`, `/audiodna/snapshot`, `/audiodna/effect/{name}/{param}`, `/audiodna/macro/{n}`. Uses `MessageLoopCallback` template parameter for thread-safe dispatch on JUCE message thread. **INERT AT RUNTIME**: `OscHandler::startListening()` is never called (the receiver never binds a port), and only 5 of the 11 pattern callbacks are wired in MainComponent (trigger clip, switch deck, master, layer opacity, snapshot) — so OSC input does nothing as shipped.
+**OSC Input** (`OscHandler`, `juce_osc` module): Receives OSC on configurable UDP port. Address patterns (11): `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity|bypass|solo|mute`, `/audiodna/deck/{n}`, `/audiodna/master`, `/audiodna/bpm`, `/audiodna/snapshot`, `/audiodna/effect/{name}/{param}`, `/audiodna/macro/{n}`. Uses `MessageLoopCallback` template parameter for thread-safe dispatch on JUCE message thread. **LIVE 2026-07-17 (Wave 1-B)**: `OscHandler::startListening(8000)` is called unconditionally at startup (like ApiServer), so the receiver binds UDP port 8000, and all 11/11 pattern callbacks are wired in MainComponent — each routing through the same handler as the equivalent REST/UI/MIDI path. Port is hardcoded (no preferences UI configures it yet).
 
 **MIDI Output** (`MidiOutputHandler`): Sends note-on/off to hardware controllers (Launchpad X/Mini MK3) for clip state feedback. 5 states: Empty(off), Loaded(velocity 5), Playing(velocity 60), Triggered(velocity 52), ActiveWithFx(velocity 62). Polls deck state ~6Hz from timerCallback. Note mapping: `(layer+1)*10 + (column+1)` for Launchpad grid layout.
 
@@ -1158,11 +1138,9 @@ Composition-level automation that sets different beat timings per layer type:
 
 **Snapshot** (`Renderer::takeSnapshot()`): Saves timestamped PNG to ~/Documents/Audio-DNA/Snapshots/. Uses existing `captureFrame()` infrastructure. Bindable via `Binding::Action::Snapshot`. Also available via REST API (`POST /api/snapshot`).
 
-**Syphon Output** (`SyphonOutput`, macOS only, optional): Zero-copy GPU texture sharing via IOSurface. Obj-C++ wrapper around `SyphonServer`. Uses `__has_include(<Syphon/Syphon.h>)` for compile-time detection. Enable with `-DAUDIODNA_BUILD_SYPHON=ON` + install Syphon.framework to /Library/Frameworks/. **NOT WIRED**: the wrapper is complete, but `publishTexture()` has zero callers and the server is never `init()`'d/enabled — so it publishes nothing at runtime.
+**Syphon Output** (`SyphonOutput`, macOS only, optional): Zero-copy GPU texture sharing via IOSurface. Obj-C++ wrapper around `SyphonServer`. Uses `__has_include(<Syphon/Syphon.h>)` for compile-time detection. Enable with `-DAUDIODNA_BUILD_SYPHON=ON` + install Syphon.framework to /Library/Frameworks/. **WIRED 2026-07-17 (Wave 1-A)**: `init()` runs on GL-context creation and the final composited frame is blit→published once per frame, gated on enabled + initialized; Output → "Syphon Output" menu toggle controls it (default OFF each boot, no persistence). Build-flag-gated — a runtime no-op unless built `-DAUDIODNA_BUILD_SYPHON=ON` with Syphon.framework installed. Post-publish, `publishSyphonFrame` re-binds `defaultFBO` so the subsequent `glReadPixels` capture path is unaffected.
 
-**Syphon Input** (`SyphonInput`, macOS only): Receives textures from other apps via `SyphonClient`. Lists available servers via `SyphonServerDirectory`. **ORPHANED**: the class is complete but never instantiated anywhere, so no textures are ever received.
-
-**Spout/NDI**: Header-only stubs. Spout is Windows-only (requires Spout2 SDK). NDI requires separately downloaded SDK from ndi.video.
+**Syphon Input / Spout / NDI**: REMOVED 2026-07-17 (Wave 0) — `SyphonInput` (.mm/.h, orphaned), `SpoutOutput.h` (Windows header-only no-op), `NdiOutput.h`/`NdiInput.h` (stubs) were all deleted.
 
 ### Smart Audio Features (P23)
 
@@ -1170,7 +1148,7 @@ Composition-level automation that sets different beat timings per layer type:
 
 **Auto-Preset Selection**: When `composition.autoPresetOnGenre` is enabled, genre changes fire `Renderer::onGenreChanged_` callback on the message thread. Can auto-switch decks via `composition.genreDeckAssignment[8]` (genre→deck index mapping).
 
-**AI Mapping Suggestions** (`MappingSuggester`): Stateless utility that analyzes audio features and detected genre to recommend signal→parameter routes. Returns scored suggestions with source, target effect/param, curve type, and human-readable reason. Genre-specific suggestions for all 8 genres. **GHOST**: `MappingSuggester` is never instantiated anywhere in the repo — no UI or API path reaches it, so this capability is unreachable at runtime.
+**AI Mapping Suggestions** — REMOVED 2026-07-17 (Wave 0): `MappingSuggester` (.cpp/.h) was a ghost (never instantiated, no UI or API caller) and has been deleted.
 
 **Smart Random Autopilot**: When `smartRandomEnabled` is active and autopilot action is PlayRandom, clips are selected based on structural state and energy level instead of pure random. Convention: lower column indices = calmer content, higher = more intense. Drop→intense clips, breakdown→calm clips.
 
@@ -1178,7 +1156,7 @@ Composition-level automation that sets different beat timings per layer type:
 
 **ISF Shader Import** (`ISFShaderLoader`): Imports Interactive Shader Format (.isf/.fs) shaders from isf.video. Parses JSON metadata from comment blocks, extracts parameter definitions (float/bool/long), wraps GLSL with ISF compatibility defines (`TIME`, `RENDERSIZE`, `isf_FragNormCoord`, `IMG_NORM_PIXEL`), converts to GLSL 410. Registers as effects in EffectLibrary with "ISF" category. Menu: Audio-DNA > Import ISF Shader... **PHANTOM**: parse/convert/register work and the effect appears in the FX browser, but `MainComponent::handleImportISF()` never compiles or queues the converted GLSL for the GL thread (the compile step is a TODO no-op) — so imported ISF effects render nothing. The "Import Successful" dialog is misleading.
 
-**Per-Genre Smoothing** (`GenreSmoothing`) — **DEAD CODE: never instantiated, not wired into MappingEngine**: Provides genre-specific EMA attack/release alphas and One-Euro filter parameters. Techno/DnB = fast attack (0.50-0.55), Ambient = slow (0.12), Hip-Hop = punchy attack + smooth release.
+**Per-Genre Smoothing** — REMOVED 2026-07-17 (Wave 0): `GenreSmoothing.h` was dead code (never instantiated, not wired into MappingEngine, self-refs only) and has been deleted; its One-Euro filter variant was also removed from `Smoother.h`.
 
 **Smart BPM Recovery**: `BPMTracker::feedSilenceDetection(rms)` detects silence (RMS < 0.005 for 300ms) and holds the last good BPM. Phase continues free-running during silence. Resumes after 100ms of audio above threshold. Prevents BPM jumping to 0 during DJ transitions or track endings.
 

@@ -3,6 +3,8 @@
 Norm: v2 | Last audited: 2026-05-24 | SHA: 4ee10ad
 
 > **Re-verified 2026-07-16 against source (7-lane audit, HEAD 9139dd4); counts: 135 effects / 108 sources / 22 REST endpoints.** Targeted corrections applied to the analysis-pipeline stage list (§2), the GenreSmoothing/One-Euro smoothing claims (§3, §16), SignalInspector (§7b), 3D/MilkDrop source param counts (§source census), and video BPM-sync/in-out ownership (§11). See `.harmony/APP-INVENTORY.md` for the full living surface inventory and consolidated FLAGGED (dead/ghost/stub) list.
+>
+> **Synced 2026-07-17 to Wave 0+1 reality:** 13 dead/ghost symbols deleted (UniformBridge, MappingSuggester, ChainedSignal, GenreSmoothing, OneEuroFilter, ProgrammingMode, SyphonInput, SpoutOutput, NdiOutput/NdiInput, shaders/ disk files, and orphaned setters/stubs); OSC subsystem now LIVE (UDP 8000, 11/11 callbacks); Syphon OUTPUT wired (build-flag-gated); persistence now COMPLETE (all model fields round-trip); `/api/set_bpm` wired; TopBar transport wired; waveform snapshot now seqlock (torn-read-free); 48kHz warn-only guard added; Prefs collapsed 8→3 tabs. Undo/redo remains a no-op (Wave 2).
 
 <!-- C++20/JUCE/OpenGL desktop application. Framework gating:
      Security/Auth: N/A — local desktop app, no user accounts
@@ -127,8 +129,8 @@ RingBuffer → 2048-sample window → FFT → [spectral|onset|BPM|MFCC|chroma|pi
 - Genre detection uses ~2s smoothing — genre won't change instantly on track switch.
 - barPhase test is flaky (test #95) — synthetic kick pattern timing sensitivity.
 - **Aubio objects created without null checks** — `new_aubio_onset`, `new_aubio_tempo`, `new_aubio_pitch` can return nullptr on failure; used without null guards in constructors. Nullptr dereference in subsequent `process()` calls.
-- **kSampleRate hardcoded to 48000** — all frequency calculations, BPM timing, K-weighting coefficients are wrong if device runs at 44100/96000. No runtime validation.
-- **Waveform buffer read/write not atomic** — `getWaveformSamples()` reads `waveformSampleCount_` with acquire but `waveformBuffer_` via non-atomic memcpy. Torn read possible if render thread calls while analysis writes.
+- **kSampleRate hardcoded to 48000** — all frequency calculations, BPM timing, K-weighting coefficients are wrong if device runs at 44100/96000. Wave 1-D added a warn-only startup guard (cerr + one-shot alert when device SR != 48000); the frequency math still assumes 48kHz (no resampling).
+- **Waveform buffer torn read — FIXED 2026-07-17 (Wave 1-D)** — the count-release + non-atomic memcpy was replaced with a seqlock (reader retries on version change → strictly torn-read-free). Threaded regression test added (`tests/test_waveform_snapshot.cpp`).
 - **PCM snapshot double-buffer has theoretical torn-read risk** under high contention between writer index swap and reader access.
 - **Profiling bug** — `stageNames` array has 13 entries but `kNumStages = 14`. 14th timing slot accumulated but never logged.
 - **SpectralFeatures adaptive normalization** — `fluxMax_`/`bandMaxEnergy_` decay via 0.9995 multiplier after silence; first frames after audio resume have exaggerated values. No reset mechanism.
@@ -143,21 +145,21 @@ RingBuffer → 2048-sample window → FFT → [spectral|onset|BPM|MFCC|chroma|pi
 ---
 
 ## 3. Feature Transport [R]
-**What it does:** Transfers the complete FeatureSnapshot from analysis thread to render thread via lock-free triple-buffer atomic swap, with optional EMA/One-Euro smoothing.
+**What it does:** Transfers the complete FeatureSnapshot from analysis thread to render thread via lock-free triple-buffer atomic swap, with optional EMA smoothing.
 
 **Entry points:**
 - `FeatureBus` class (src/features/FeatureBus.h:21) — triple-buffer transport
-- `Smoother` class (src/features/Smoother.h) — EMA + One-Euro filter (header-only)
+- `Smoother` class (src/features/Smoother.h) — EMA filter (header-only; One-Euro variant removed Wave 0)
 
 **Implementation chain:**
 1. Analysis thread calls `FeatureBus::write(snapshot)` — writes to next buffer, atomic index swap
 2. Render thread calls `FeatureBus::read()` — reads latest snapshot via atomic index read (~10ns)
-3. `Smoother::process()` — applies EMA filter per-mapping for visual smoothness (the `OneEuroFilter` in Smoother.h is implemented but DEAD — never instantiated; mapping/routing use the EMA `Smoother` only)
+3. `Smoother::process()` — applies EMA filter per-mapping for visual smoothness (the `OneEuroFilter` was removed from Smoother.h Wave 0; mapping/routing use the EMA `Smoother` only)
 
 **Data flow:**
 ```
 AnalysisThread → FeatureBus::write() → [atomic triple-buffer] → FeatureBus::read() → RenderThread
-Per-mapping: raw value → Smoother (EMA alpha or One-Euro beta) → smooth value
+Per-mapping: raw value → Smoother (EMA alpha) → smooth value
 ```
 
 **Dependencies & services:**
@@ -174,13 +176,13 @@ Per-mapping: raw value → Smoother (EMA alpha or One-Euro beta) → smooth valu
 **Test coverage:**
 - `tests/test_feature_bus.cpp` — single write-read, multiple writes, latest-read, slot independence, writer doesn't clobber reader
 - `tests/test_smoother.cpp` — convergence to constant input
-- Missing: concurrent stress tests (actual multi-thread contention), One-Euro filter behavior
+- Missing: concurrent stress tests (actual multi-thread contention)
 
 **Gotchas:**
 - FeatureSnapshot must remain POD (no pointers, no vtable) for atomic swap correctness.
 - Triple buffer means analysis can write every 10.7ms while render reads every 16.67ms — no contention.
 - `getLatestRead()` returns the LAST consumed snapshot, not the latest available — different from `read()`.
-- **OneEuroFilter division by zero** — `rate_ = 0` causes `te = 1.0f / rate_` in `smoothingAlpha()`. No clamping.
+- (OneEuroFilter removed from Smoother.h Wave 0 — its division-by-zero gotcha no longer applies.)
 - **`FeatureSnapshot::clear()` uses `memset(this, 0, sizeof(*this))`** then manually sets non-zero defaults. Adding any non-trivial member (vtable, std::string) would break this.
 - **`hasNewData()` uses relaxed memory order** — fine for single reader, but with multiple readers only one will successfully acquire.
 
@@ -196,7 +198,7 @@ Per-mapping: raw value → Smoother (EMA alpha or One-Euro beta) → smooth valu
 - `EffectLibrary` class (src/effects/EffectLibrary.h:12) — effect registry
 - `Effect` class (src/effects/Effect.h) — single effect with shader + params
 - `EffectChain` class (src/effects/EffectChain.h:23) — ordered chain with ping-pong FBOs
-- `UniformBridge` (src/effects/UniformBridge.h) — params → glUniform calls
+- (`UniformBridge` removed Wave 0 — was a demo-mapping helper superseded by MappingEngine; effect uniforms upload directly in `EffectChain::render`)
 - `ISFShaderLoader` (src/effects/ISFShaderLoader.h) — ISF import with GLSL 410 conversion
 - `EmbeddedShaders.h` (src/render/EmbeddedShaders.h) — all shaders as inline strings
 
@@ -204,7 +206,7 @@ Per-mapping: raw value → Smoother (EMA alpha or One-Euro beta) → smooth valu
 1. `EffectLibrary` registers all 135 effects + 15 transitions at startup
 2. User drags effect from FX Browser → `EffectSlot` added to clip/layer/global chain
 3. `EffectChain::render()` iterates effects, ping-ponging between FBO A and FBO B
-4. For each effect: `UniformBridge` uploads params as `glUniform1f`, shader renders to target FBO
+4. For each effect: `EffectChain::render` uploads params as `glUniform1f`, shader renders to target FBO
 5. Temporal effects bind `u_prev_frame` from per-layer temporal buffer
 6. ISF shaders parsed from JSON metadata, wrapped with compatibility defines, converted to GLSL 410
 
@@ -349,7 +351,7 @@ Double Exposure (2), Frosted Glass (2), Prism (2), Rain on Glass (2), Hexagonali
 
 **Data flow:**
 ```
-FeatureSnapshot → MappingEngine → effect params → UniformBridge → glUniform
+FeatureSnapshot → MappingEngine → effect params → EffectChain::render → glUniform
 Clip texture → per-clip FX → transition → per-layer FX → transform → key → blend → accumulator
 Accumulator → global FX → composition transform → swap buffers → display
 ```
@@ -556,7 +558,7 @@ UV centered at origin → anchor offset → rotation (2D mat2) → inverse scale
 - `MappingEngine` class (src/mapping/MappingEngine.h:22)
 - `MappingTypes.h` (src/mapping/MappingTypes.h) — Mapping struct, Source/Curve enums
 - `CurveTransforms.h` (src/mapping/CurveTransforms.h) — 24 curve functions
-- `MappingSuggester` class (src/mapping/MappingSuggester.h) — AI mapping suggestions (ghost — no UI caller)
+- (`MappingSuggester` removed Wave 0 — was a ghost: fully implemented AI mapping suggester, never instantiated, no UI/API caller)
 
 **Implementation chain:**
 1. User clicks "map" on any effect param → MappingEditor opens
@@ -564,7 +566,7 @@ UV centered at origin → anchor offset → rotation (2D mat2) → inverse scale
 3. Each render frame: `MappingEngine::processAll(snapshot)`
 4. For each active mapping: extract source → normalize to [0,1] → apply curve → scale to output range → smooth → write to target param
 5. Multiple mappings can target same param (values summed)
-6. `MappingSuggester::suggest()` — genre-aware recommendations with scored confidence (319 LOC, fully implemented, no UI caller)
+6. (`MappingSuggester::suggest()` removed Wave 0 — was genre-aware recommendations, never reachable from UI/API)
 
 ### 6a. Mapping Sources (MappingSource enum — 58 entries)
 
@@ -611,7 +613,7 @@ Dispatch: `CurveTransforms::applyCurve(int curveIndex, float x, int steppedN)` �
 
 **Data flow:**
 ```
-FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(outputMin/Max) → smooth(EMA|OneEuro) → Effect.param
+FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(outputMin/Max) → smooth(EMA) → Effect.param
 ```
 
 **Dependencies & services:**
@@ -628,24 +630,13 @@ FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(
   - `smoothing`: 0.15 — EMA alpha, higher = less smoothing (source: hardcoded)
 - Stepped curve default N: 4 steps (MappingEngine.h:50, CurveTransforms.h:40) (source: hardcoded)
 - Smoother default alpha: 0.3 (Smoother.h:12) (source: hardcoded)
-- OneEuroFilter defaults (Smoother.h:55): rate=93.75 Hz, minCutoff=1.0 Hz, beta=0.007, dCutoff=1.0 Hz (source: hardcoded)
+- (OneEuroFilter removed from Smoother.h Wave 0 — its hardcoded defaults no longer exist.)
 - Back easing overshoot: c1=1.70158, c2=c1*1.525, c3=c1+1.0 (CurveTransforms.h:76-78) (source: hardcoded)
 - Elastic period: c4=2pi/3, c5=2pi/4.5 (CurveTransforms.h:106-107) (source: hardcoded)
 - Bounce magic constants: n1=7.5625, d1=2.75 (CurveTransforms.h:139-140) (source: hardcoded)
 - Logarithmic curve base: log(1 + 9x) / log(10) (CurveTransforms.h:29) (source: hardcoded)
 - Multi-mapping accumulation clamp: [0, 1] (MappingEngine.cpp:214) (source: hardcoded)
-- MappingSuggester defaults (MappingSuggester.h:34-35):
-  - `maxSuggestions`: 8 for snapshot-based, 6 for genre-based (source: hardcoded)
-  - `suggestions.reserve`: 20 snapshot / 12 genre (source: hardcoded)
-- MappingSuggester activity thresholds (MappingSuggester.cpp):
-  - Bass: low=0.1, high=0.6 (line 57) (source: hardcoded)
-  - Mid: low=0.1, high=0.6 (line 59) (source: hardcoded)
-  - High: low=0.05, high=0.4 (line 61) (source: hardcoded)
-  - Beat relevance: 0.9 if trackerState==2, else 0.3 (line 62) (source: hardcoded)
-  - Onset/transient density: low=1.0, high=8.0 (line 63) (source: hardcoded)
-  - Spectral centroid: low=1000.0, high=8000.0 (line 96) (source: hardcoded)
-  - RMS: low=0.05, high=0.5 (line 105) (source: hardcoded)
-- MappingSuggester relevance scores: per-suggestion, range [0, 1], weighted by activity (source: hardcoded)
+- (MappingSuggester config removed Wave 0 — the class and its hardcoded defaults/activity-thresholds/relevance scores were deleted.)
 
 **Failure modes:**
 - Invalid source enum → default to 0.0 (handled)
@@ -654,16 +645,16 @@ FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(
 
 **Test coverage:**
 - `tests/test_mapping_engine.cpp` — mapping creation, curve transforms, scaling, multi-mapping
-- Missing: MappingSuggester quality validation, smoothing behavior, orphaned mapping cleanup
+- Missing: smoothing behavior, orphaned mapping cleanup
 
 **Gotchas:**
 - Smoothing state is per-mapping — not per-source. Two mappings from the same source can have different smoothing.
-- AI suggestions are stateless — no learning from user preferences.
+- (AI suggestions removed Wave 0 — MappingSuggester deleted.)
 - **Pass 1 resets ALL targeted params to 0 before accumulation** — any param targeted by at least one mapping has its manual/preset value destroyed each frame.
 - **`kSourceNames[]` in PresetManager MISSING P25 advanced sources** (SidechainPump, SwingRatio, etc.) — presets saved with P25 mappings fail to round-trip.
 - **`Mapping.smoothing` is named "alpha" but behaves as EMA coefficient** — higher = LESS smoothing (1.0 = passthrough). Opposite of typical "smoothing" semantics.
 - **`removeMapping()` uses vector erase** — invalidates all indices >= removed. No stable IDs for mappings.
-- **`MappingSuggester` exists (266 LOC) but has zero UI integration** — no button, menu, or API endpoint invokes `suggestMappings()` or `suggestGenreMappings()`. The class is not instantiated anywhere. See Feature 22e for full ghost status.
+- **`MappingSuggester` REMOVED 2026-07-17 (Wave 0)** — the ghost class (266 LOC, zero UI/API integration, never instantiated) was deleted. See Feature 22e.
 - **`kSourceNames[]` in PresetManager is MISSING P25 advanced sources** — the array has 53 entries (RMS through ChromaB, indices 0-52) but the MappingSource enum has 58 entries (indices 53-57: SidechainPump, SwingRatio, FormantPresence, ResonancePeak, ReeseBass). Presets saved with P25 source mappings will serialize the enum integer, but `sourceToString()` returns "RMS" for out-of-range indices, and `stringToSource()` cannot match P25 names on load — mappings silently degrade to RMS.
 
 ### 6c. MappingEditor (UI)
@@ -701,12 +692,12 @@ FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(
 
 **Entry points:**
 - `SignalRegistry` class (src/signal/SignalRegistry.h:17) — named signal storage
-- `ChainedSignal` class (src/signal/ChainedSignal.h) — derived signals via math ops
+- (`ChainedSignal` removed Wave 0 — was a ghost: signal-modulates-signal via math ops, never instantiated; SignalRegistry dynamic_cast wiring removed)
 - `RoutingEngine` class (src/routing/RoutingEngine.h:14) — per-frame evaluation
 
 **Implementation chain:**
 1. `SignalRegistry::initDefaults()` registers 32 signals at startup
-2. `ChainedSignal` defines derived signals via math operations on other signals
+2. (`ChainedSignal` removed Wave 0 — derived-signal math was a ghost, never instantiated)
 3. Each frame: `SignalRegistry::evaluateAll()` updates all signal values
 4. `RoutingEngine::processFrame()` applies routing rules into the render pipeline
 5. REST API exposes 5 signal/routing endpoints for external control
@@ -767,7 +758,7 @@ FeatureSnapshot.field → normalize(inputMin/Max) → curve(24 types) → scale(
 
 **Data flow:**
 ```
-FeatureSnapshot fields → SignalRegistry (named signals) → ChainedSignal (derived) → RoutingEngine → render params
+FeatureSnapshot fields → SignalRegistry (named signals) → RoutingEngine → render params
 ```
 
 **Dependencies & services:**
@@ -790,8 +781,8 @@ FeatureSnapshot fields → SignalRegistry (named signals) → ChainedSignal (der
 **Gotchas:**
 - Signals and routing evaluate EVERY frame in `Renderer::renderOpenGL()` — must be fast.
 - Advanced audio features (P25) are registered as hidden signals — not visible in UI signal list.
-- **`ChainedSignal::getValue()` ignores the snapshot parameter entirely** — reads only cached values. If evaluated BEFORE its carrier/modulator signals in `evaluateAll()`, gets stale values from previous frame. Evaluation order = insertion order.
-- **`getCachedValue()` is O(n) linear scan per call** — each route calls once, ChainedSignal calls twice. Fine for ~30 signals, won't scale to hundreds.
+- (`ChainedSignal` removed Wave 0 — its stale-cached-value / evaluation-order gotcha no longer applies.)
+- **`getCachedValue()` is O(n) linear scan per call** — each route calls once. Fine for ~30 signals, won't scale to hundreds.
 - **RoutingEngine does NOT apply curve transforms** — uses gain/threshold/falloff instead. Deliberate v2 design difference from MappingEngine.
 - **Clip/Layer scope routes are evaluated but values discarded.** The routing lambda at `Renderer.cpp:198-206` only handles `TargetScope::Global`. Non-Global routes are silently dropped with a TODO comment (line 205). See Feature 22c for full ghost status.
 
@@ -1271,25 +1262,24 @@ Performance events → SessionRecorder → JSON file
 ---
 
 ## 13. Output & Display [R]
-**What it does:** Sends rendered output to fullscreen display on any connected monitor, with optional Syphon output/input for inter-app GPU texture sharing on macOS.
+**What it does:** Sends rendered output to fullscreen display on any connected monitor, with optional Syphon output (wired Wave 1-A) for inter-app GPU texture sharing on macOS.
 
 **Entry points:**
 - `OutputWindow` class (src/output/OutputWindow.h) — fullscreen output
-- `SyphonOutput` class (src/output/SyphonOutput.h:21/59) — macOS Syphon server
-- `SyphonInput` class (src/output/SyphonInput.h) — macOS Syphon client
+- `SyphonOutput` class (src/output/SyphonOutput.h:21/59) — macOS Syphon server — WIRED Wave 1-A (publishes the final composited frame each frame)
+- (`SyphonInput` removed Wave 0 — was an orphaned macOS Syphon client, never instantiated)
 
 **Implementation chain:**
 1. `OutputWindow` creates fullscreen window on selected display
 2. Renderer output texture shared with OutputWindow's OpenGL context
-3. `SyphonOutput`: wraps `SyphonServer`, publishes GL texture via IOSurface (zero-copy)
-4. `SyphonInput`: wraps `SyphonClient`, receives textures from other apps
-5. Spout (Windows) and NDI: header-only stubs, not implemented
+3. `SyphonOutput`: wraps `SyphonServer`, publishes the final composited GL texture via IOSurface (zero-copy) — WIRED Wave 1-A, gated on enabled+initialized and the build flag; re-binds `defaultFBO` after publish so the capture path is unaffected
+4. (`SyphonInput` removed Wave 0 — no texture-receive path)
+5. (Spout/NDI stubs removed Wave 0)
 
 **Data flow:**
 ```
 Renderer output → OutputWindow (fullscreen display)
-Renderer output → SyphonOutput → IOSurface → MadMapper/VDMX/OBS
-SyphonInput → IOSurface → clip texture input
+Renderer output → SyphonOutput → IOSurface → MadMapper/VDMX/OBS   (Wave 1-A; build-flag-gated)
 ```
 
 **Dependencies & services:**
@@ -1303,7 +1293,7 @@ SyphonInput → IOSurface → clip texture input
 **Failure modes:**
 - Syphon framework not installed → compiles as no-op stub (handled)
 - Output display disconnected → window closes gracefully (handled by JUCE)
-- Spout/NDI: not implemented (stubs only)
+- (Spout/NDI stubs removed Wave 0)
 
 **Test coverage:**
 - Missing: no output-specific tests
@@ -1327,7 +1317,7 @@ SyphonInput → IOSurface → clip texture input
 **Implementation chain:**
 1. `ApiServer`: cpp-httplib on background thread, CORS headers, 20+ endpoints
 2. GL mutations via existing thread-safe APIs (atomic config vars, message thread dispatch)
-3. `OscHandler`: juce_osc on JUCE message thread (MessageLoopCallback)
+3. `OscHandler`: juce_osc on JUCE message thread (MessageLoopCallback) — LIVE Wave 1-B: `startListening(8000)` at startup, all 11/11 callbacks wired (port hardcoded)
 4. OSC patterns: `/audiodna/clip/{layer}/{column}`, `/audiodna/layer/{n}/opacity`, etc.
 
 **Data flow:**
@@ -1360,7 +1350,7 @@ OSC message → OscHandler (message thread) → state change
 - Eyes test server (`render_frame`) doesn't apply global effect chain — known limitation.
 - All GL mutations from API must go through thread-safe paths (atomics or message thread dispatch).
 - **DATA RACE: `set_layer_opacity` and `set_param` write DIRECTLY from HTTP background thread** — no mutex, no message-thread dispatch. Race with render thread and message thread. Other mutating endpoints (trigger_clip, switch_deck) correctly use `callAsync`.
-- **`/api/set_bpm` is a NO-OP STUB** — endpoint accepts request and returns OK, but does nothing. Comment: "This would need access to BPMTracker."
+- **`/api/set_bpm` wired Wave 0** — drives the TopBar manual-BPM override path (setManualMode + setManualBPM, marshalled to the message thread).
 - **CORS OPTIONS handler missing** — browser preflight requests get 404. Post-routing handler only adds headers to actual responses, not OPTIONS preflight.
 - **`ApiServer` captures `this` in callAsync lambdas** — if server stopped while lambdas queued, use-after-free possible.
 - **`handleSnapshot()` blocks HTTP thread** while rendering — stalls other API requests.
@@ -1413,18 +1403,18 @@ Link network session → LinkSync (atomic BPM/phase) → BPMTracker manual mode 
 ---
 
 ## 16. Genre Detection & Smart Features [R]
-**What it does:** Real-time 8-genre classification from audio features with smart autopilot and structural scene triggering. (Genre EMA/hysteresis smoothing is done inside `GenreDetector` itself; the separate `GenreSmoothing` class and the `MappingSuggester` "AI suggestions" are both DEAD/ghost — never instantiated.)
+**What it does:** Real-time 8-genre classification from audio features with smart autopilot and structural scene triggering. (Genre EMA/hysteresis smoothing is done inside `GenreDetector` itself; the separate `GenreSmoothing` class and the `MappingSuggester` "AI suggestions" — both dead/ghost — were REMOVED Wave 0.)
 
 **Entry points:**
 - `GenreDetector` class (src/analysis/GenreDetector.h) — 8-genre classifier; does its own ~2s EMA + ~3s hysteresis internally
-- `GenreSmoothing` (src/analysis/GenreSmoothing.h) — **DEAD** — per-genre EMA presets, never instantiated (zero external refs). Does NOT drive MappingEngine/GenreDetector smoothing.
-- `MappingSuggester` (src/mapping/MappingSuggester.h) — **GHOST** — genre-aware suggestions fully implemented but never instantiated; no UI or API caller
+- (`GenreSmoothing` removed Wave 0 — was dead per-genre EMA presets, never instantiated, did NOT drive MappingEngine/GenreDetector smoothing)
+- (`MappingSuggester` removed Wave 0 — was a ghost: genre-aware suggestions, never instantiated, no UI/API caller)
 
 **Implementation chain:**
 1. `GenreDetector::process()` — multi-feature scoring (BPM, spectral profile, transient density, chromatic complexity)
 2. ~2s EMA smoothing + ~3s hysteresis prevents rapid genre flapping
 3. Genre change → `Renderer::onGenreChanged_` callback → auto-preset/deck switch
-4. `MappingSuggester::suggest()` returns scored source→param recommendations by genre
+4. (`MappingSuggester::suggest()` removed Wave 0 — genre-aware recommendations no longer present)
 5. Smart random autopilot uses structural state + energy level for clip selection
 6. Structural scene triggering: `Renderer::onStructuralStateChanged_` on transitions
 
@@ -1845,7 +1835,7 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 - All three hidden components are functional code, just not visible. Could be resurfaced for programming/diagnostic mode.
 - EffectsRackPanel is heap-allocated (`unique_ptr`), others are stack members.
 - v1 controls add ~200 lines of member declarations to MainComponent.
-- WaveformDisplay reads `waveformBuffer_` via non-atomic memcpy (see Feature 2 gotchas) — torn read risk if analysis writes simultaneously.
+- WaveformDisplay reads the waveform snapshot via a seqlock (Wave 1-D — strictly torn-read-free; see Feature 2 gotchas).
 - Two separate hide paths: lines 1316-1327 (expanded mode) and lines 1398-1401 (normal mode) both hide v1 panels but for different reasons — changing one path without the other creates inconsistency.
 - SpectrumDisplay and AudioReadoutPanel both display 7-band energy with independent smoothing parameters — values may visually disagree if both are shown simultaneously.
 
@@ -1866,7 +1856,7 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 
 **What it does:** Continuous A/B crossfading between decks with blend mode (Alpha/Add/Multiply), behaviour (Cut/Smooth), and curve (Linear/EaseInOut/SCurve).
 
-**Status: NOT FUNCTIONAL for live use.** Model fields exist in Composition struct (`crossfaderPhase`, enums for mode/behaviour/curve). `crossfaderPhase` is NEVER READ outside initialization (default 0.5, no code path reads or writes it at runtime). `crossfaderBlendMode` is read exactly once at `Renderer.cpp:508` — but this is for one-time deck-switch transitions, NOT live crossfading between simultaneously-rendered decks. `crossfaderBehaviour` and `crossfaderCurve` are never read. None of these fields are serialized (absent from `Composition::toVar()`/`fromVar()`). No UI slider exists. No MIDI/OSC binding targets the crossfader. The feature is model-only — no runtime behavior.
+**Status: NOT FUNCTIONAL for live use.** Model fields exist in Composition struct (`crossfaderPhase`, enums for mode/behaviour/curve). `crossfaderPhase` is NEVER READ outside initialization (default 0.5, no code path reads or writes it at runtime). `crossfaderBlendMode` is read exactly once at `Renderer.cpp:508` — but this is for one-time deck-switch transitions, NOT live crossfading between simultaneously-rendered decks. `crossfaderBehaviour` and `crossfaderCurve` are never read. These fields ARE serialized as of Wave 1-C (present in `Composition::toVar()`/`fromVar()`), though the feature remains model-only. No UI slider exists. No MIDI/OSC binding targets the crossfader. The feature is model-only — no runtime behavior.
 
 **Activation estimate:** HIGH (~1 week+) — requires dual-deck simultaneous rendering (doubles GPU workload), UI, MIDI binding, serialization.
 
@@ -1892,7 +1882,7 @@ Knob:              Parent sets slider value -> ResettableSlider -> paint() (incl
 
 **What it does:** Analyzes FeatureSnapshot + genre to recommend source-to-effect mappings. Returns ranked suggestions with scores and reasons. 13 universal + 4 per-genre suggestions.
 
-**Status: Implemented but not integrated — no way to invoke from UI or API.** 266 LOC (MappingSuggester.cpp), fully implemented and compiles clean. Zero UI callers — no button, menu item, or keyboard shortcut invokes `suggestMappings()` or `suggestGenreMappings()`. Zero API endpoints expose it. Not included in any MainComponent, inspector, or mapping editor code. The class is not even instantiated anywhere in the application — it exists only as a compilable source file with no runtime presence.
+**Status: REMOVED 2026-07-17 (Wave 0).** Was implemented-but-not-integrated (266 LOC, never instantiated, zero UI/API callers — no button, menu item, keyboard shortcut, or endpoint invoked `suggestMappings()` / `suggestGenreMappings()`). The `.cpp/.h` were deleted; this section is retained as a historical record of the removed ghost.
 
 **Activation estimate:** LOW (~1 day) — needs UI trigger button + conversion from Suggestion to Mapping.
 
@@ -2016,8 +2006,8 @@ No external data flows into TimingWindow — it receives no analysis data, BPM, 
 
 ---
 
-## 24. Dual-Mode System (ProgrammingMode — Vestigial) [C]
-**What it does:** Intended to provide a graduated UI mode system (programming mode vs presentation mode). Current implementation is vestigial: the `ProgrammingMode` component exists but is always hidden. The View menu's "Programming Mode" item directly toggles the SignalBar between Expanded/Normal display size, bypassing the `ProgrammingMode` component entirely. The result is a binary fullscreen-SignalBar toggle, not a graduated mode system.
+## 24. Dual-Mode System (ProgrammingMode — REMOVED Wave 0) [C]
+**Status: REMOVED 2026-07-17 (Wave 0)** — the `ProgrammingMode` component (.cpp/.h), its MainComponent construction/wiring, and the View → "Programming Mode" menu item were all deleted. This section is retained as a historical record. (Before removal: a vestigial always-hidden component; the View menu's "Programming Mode" item merely toggled the SignalBar between Expanded/Normal display size, bypassing the component entirely — a binary fullscreen-SignalBar toggle, not a graduated mode system.)
 
 **Entry points:**
 - `ProgrammingMode` class: `src/ui/ProgrammingMode.h:10` (31 LOC header), `src/ui/ProgrammingMode.cpp` (64 LOC)
@@ -2492,7 +2482,7 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 - `onSizeChanged` callback triggers parent re-layout
 
 **Gotchas:**
-- Expanded mode (via View > Programming Mode) hides all other panels — see F24 for the ProgrammingMode interaction.
+- Expanded SignalBar mode hides other panels — reached via the SignalBar grow button (the View → "Programming Mode" menu item that toggled it was removed Wave 0; see F24).
 - `SignalStrip::getSignalColour()` returns per-signal color — used for meter bar and accent.
 - Peak hold uses `kPeakHoldFrames=30` (~1s) with `kPeakDecay=0.97f` exponential decay.
 
@@ -2618,7 +2608,7 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 
 ### 26q. PreferencesDialog
 
-**What it does:** 8-tab settings dialog accessed via Audio-DNA > Preferences. Tabs: General, Audio, Video, MIDI, Recording, Defaults, Feedback, About. Settings are stored in a JSON file in the app's user data directory.
+**What it does:** 3-tab settings dialog accessed via Audio-DNA > Preferences (collapsed 8→3 in Wave 0; Audio/MIDI/Recording/Defaults/Feedback removed as empty/inert). Tabs: General, Video, About. Toggles apply in-session (no settings store is wired).
 
 **Key source files:**
 - `PreferencesDialog` class (src/ui/PreferencesDialog.h:8, src/ui/PreferencesDialog.cpp)
@@ -2626,10 +2616,10 @@ AudioDNALookAndFeel → all paint() calls use consistent color constants and wid
 **Parent component:** Shown modally via `PreferencesDialog::show(parent)`, centered on the main window.
 
 **Controls & interactions:**
-- General tab: Confirm on Quit toggle, Show Tooltips toggle
-- Audio tab: Sample Rate selector, Buffer Size selector, BPM Detection Range selector
-- Video tab: FPS Target selector, Render Resolution selector, MilkDrop Presets directory browser
-- MIDI/Recording/Defaults/Feedback tabs: placeholder layouts (not yet fully implemented)
+- General tab: Show Tooltips toggle (genuinely wired Wave 1-D — creates/destroys the shared TooltipWindow, in-session only; Confirm-on-quit toggle removed Wave 0)
+- (Audio tab removed Wave 0 — Sample Rate / Buffer Size / BPM-Detection-Range selectors were inert)
+- Video tab: MilkDrop Presets directory browser (FPS Target + Render Resolution inert combos removed Wave 0)
+- (MIDI/Recording/Defaults/Feedback tabs removed Wave 0 — were placeholder layouts)
 - About tab: version label, credits label
 - Scrollable content viewport for tabs that need it
 

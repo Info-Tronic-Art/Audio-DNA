@@ -47,6 +47,7 @@
 **Rule:** Check toVar()/fromVar() to confirm which fields actually serialize before documenting persistence behavior.
 **Scope:** repo
 **Promoted:** no
+**FIXED 2026-07-17:** now serialized (Wave 1-C) — compPositionX/Y, compScale, compRotation, compAnchorX/Y and every other dropped Clip/Layer/Composition field now round-trip through toVar/fromVar (Clip.cpp / Layer.cpp / Composition.h). The general rule above still stands: verify toVar/fromVar before documenting persistence.
 
 ### 2026-05-21 — Session Recorder has 7 event types but only 1 caller wired
 **Source:** Builder B discovery — recordClipTrigger() is the only event type actually called from production code. Other 6 record methods (ParameterChange, ColumnTrigger, MacroChange, TransportChange, EffectToggle, CuepointJump) are implemented but have no callers.
@@ -101,6 +102,20 @@
 **Source:** 7-lane re-norm audit (L1 audio-analysis)
 **Trigger:** Assuming the analysis pipeline adapts to the device sample rate.
 **Rule:** `kSampleRate=48000` (AnalysisThread.h:46) plus the LoudnessAnalyzer K-weighting biquad coefficients (ITU-R BS.1770 48k, LoudnessAnalyzer.cpp:13-29) and all frequency math assume 48kHz with NO runtime SR check. A device running at 44.1k/96k silently produces wrong LUFS/frequency features. Do not assume SR-independence when touching analysis.
+**Scope:** repo
+**Promoted:** no
+
+### 2026-07-17 — Launch Audio-DNA via `open`, NEVER direct binary exec, for behavioral gates
+**Source:** Harmony Wave-0 behavioral gate — direct exec of `build/AudioDNA_artefacts/Release/Audio-DNA.app/Contents/MacOS/Audio-DNA` from an agent shell hangs pre-UI forever (process alive, ZERO windows, ZERO listening sockets, empty log, 2+ min) — looked exactly like a broken REST server.
+**Trigger:** Running the app binary directly from a shell/agent context to probe the port-7070 API.
+**Rule:** Always launch with `open build/AudioDNA_artefacts/Release/Audio-DNA.app` (LaunchServices context); port 7070 binds ~12s after launch. Poll /api/health before probing. Kill with `pkill -f Audio-DNA`.
+**Scope:** repo
+**Promoted:** no
+
+### 2026-07-17 — Post-render GPU steps must restore GL_FRAMEBUFFER to defaultFBO
+**Source:** Wave 1-A builder
+**Trigger:** Adding a post-render GPU step (e.g. Syphon `publishSyphonFrame`) that binds its own FBO/texture and returns without re-binding the default framebuffer.
+**Rule:** `Renderer::processPendingCapture`'s `glReadPixels` assumes the default FBO is bound after rendering; any post-render GPU step (e.g. Syphon `publishSyphonFrame`) must re-bind `defaultFBO` when done, as `publishSyphonFrame` does (Renderer.cpp ~1710-1762).
 **Scope:** repo
 **Promoted:** no
 
