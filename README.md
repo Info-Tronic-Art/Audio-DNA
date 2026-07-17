@@ -58,7 +58,8 @@ cmake --build build --config Release -j$(nproc)
 - `ARCHITECTURE_V2.md` — Full v2 system design specification
 - `PHASE_GUIDE.md` — Phase status tracker (P1-P25 complete, P26 tooltips pending)
 - `LESSONS_LEARNED.md` — Verified bug fixes and hard-won lessons
-- `docs/FEATURE_INVENTORY.md` — Complete feature inventory (for UI redesign)
+- `.harmony/APP-INVENTORY.md` — Canonical counts + full surface/function inventory (source of truth)
+- `design/FEATURE_INVENTORY.md` — Design-overhaul feature inventory (for UI redesign)
 - `research/` — Audio analysis algorithms, library evaluations, implementation guides
 - `design/` — UI mockups, UX analyses, competitive research
 

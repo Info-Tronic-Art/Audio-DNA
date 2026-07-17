@@ -1,5 +1,10 @@
 # Audio-DNA v2: Phase Kickoff Guide
 
+> **Historical — superseded.** This is the March-era phase-kickoff workflow. Phases
+> P1-P25 are COMPLETE (only P26 tooltips pending), and the task plan it references now
+> lives at `docs/archive/TASKPLAN_V2.md` (archived). Kept for historical reference only;
+> for current work see CLAUDE.md and `.harmony/APP-INVENTORY.md`.
+
 > This file tells Claude how to start any phase in a fresh session.
 > User says: "kick off phase N" → Claude reads this file, finds Phase N, and executes.
 
@@ -9,7 +14,7 @@
 
 1. Open a new Claude Code session
 2. Say: **"kick off phase 1"** (or whatever phase number)
-3. Claude reads this file, CLAUDE.md, ARCHITECTURE_V2.md, and TASKPLAN_V2.md
+3. Claude reads this file, CLAUDE.md, ARCHITECTURE_V2.md, and docs/archive/TASKPLAN_V2.md
 4. Claude executes ALL tasks in that phase without stopping for validation
 5. Claude self-validates: builds, greps for rule violations, runs tests
 6. Claude only stops when there is a **UI-visible change the user can verify by launching the app**
@@ -44,7 +49,7 @@
 **Read first**: `CLAUDE.md`, `ARCHITECTURE_V2.md` (Section 8), `research/BPM_STABILITY_RESEARCH.md`
 **Read before editing**: `src/analysis/BPMTracker.h`, `src/analysis/BPMTracker.cpp`, `src/analysis/FeatureSnapshot.h`
 
-**Tasks**: P1.1 through P1.4 in TASKPLAN_V2.md
+**Tasks**: P1.1 through P1.4 in docs/archive/TASKPLAN_V2.md
 
 **Self-validation**:
 - Build: `cmake --build build --config Release -j$(sysctl -n hw.ncpu)` exits 0
@@ -61,7 +66,7 @@
 **Read first**: `CLAUDE.md`, `ARCHITECTURE_V2.md` (Section 8), `research/BPM_STABILITY_RESEARCH.md` (Part 5)
 **Read before editing**: `src/analysis/BPMTracker.h/cpp`, `src/analysis/AnalysisThread.h/cpp`, `src/analysis/FeatureSnapshot.h`, `src/ui/AudioReadoutPanel.h/cpp`
 
-**Tasks**: P2.1 through P2.4 in TASKPLAN_V2.md
+**Tasks**: P2.1 through P2.4 in docs/archive/TASKPLAN_V2.md
 
 **Self-validation**:
 - Build passes
@@ -79,7 +84,7 @@
 **Read first**: `CLAUDE.md`, `ARCHITECTURE_V2.md` (Sections 2-7, 10-14, 17, 25-26)
 **Read before editing**: All existing `src/` files relevant to each class being created
 
-**Tasks**: P3.1 through P3.9 in TASKPLAN_V2.md
+**Tasks**: P3.1 through P3.9 in docs/archive/TASKPLAN_V2.md
 
 **This is the largest phase.** It creates the entire new data model, routing engine, compositor, undo system, and binding system. NO UI changes — all backend.
 
@@ -99,7 +104,7 @@
 **Read first**: `CLAUDE.md`, `ARCHITECTURE_V2.md` (Sections 3, 4.1, 9)
 **Read before editing**: `src/MainComponent.h/cpp`, `src/ui/AudioReadoutPanel.h/cpp`
 
-**Tasks**: P4.1 through P4.4 in TASKPLAN_V2.md
+**Tasks**: P4.1 through P4.4 in docs/archive/TASKPLAN_V2.md
 
 **UI validation**: User should see:
 - Signal Bar across the top with vertical meter strips for audio features
@@ -114,7 +119,7 @@
 **Read first**: `CLAUDE.md`, `ARCHITECTURE_V2.md` (Sections 3, 4.2, 14, 15, 16)
 **Read before editing**: `src/MainComponent.h/cpp`, existing keyboard/compositor code
 
-**Tasks**: P5.1 through P5.5 in TASKPLAN_V2.md
+**Tasks**: P5.1 through P5.5 in docs/archive/TASKPLAN_V2.md
 
 **UI validation**: User should see:
 - Resolume-style layer × column grid below the signal bar
@@ -131,7 +136,7 @@
 
 **Read first**: `CLAUDE.md`, `ARCHITECTURE_V2.md` (Sections 4.3, 5, 6)
 
-**Tasks**: P6.1 through P6.8 in TASKPLAN_V2.md
+**Tasks**: P6.1 through P6.8 in docs/archive/TASKPLAN_V2.md
 
 **UI validation**: User should see:
 - Inspector panel with 4 tabs (Clip/Layer/Composition/Signal)
@@ -146,7 +151,7 @@
 
 **Read first**: `CLAUDE.md`, `ARCHITECTURE_V2.md` (Section 4.4)
 
-**Tasks**: P7.1 through P7.6 in TASKPLAN_V2.md
+**Tasks**: P7.1 through P7.6 in docs/archive/TASKPLAN_V2.md
 
 **UI validation**: User should see:
 - Browser panel with tabs (Files/FX/Sources/Comp-Decks/Record)
@@ -160,7 +165,7 @@
 
 **Read first**: `CLAUDE.md`, `ARCHITECTURE_V2.md` (Sections 3, 4.5, 20, 21)
 
-**Tasks**: P8.1 through P8.5 in TASKPLAN_V2.md
+**Tasks**: P8.1 through P8.5 in docs/archive/TASKPLAN_V2.md
 
 **UI validation**: User should see:
 - Complete integrated layout: top bar → signal bar → deck → [preview | inspector | browser]
@@ -172,7 +177,7 @@
 
 ---
 
-### Phases 9-12: See TASKPLAN_V2.md for details
+### Phases 9-12: See docs/archive/TASKPLAN_V2.md for details
 
 Each has specific UI validation requirements listed in the phase description.
 
@@ -180,7 +185,7 @@ Each has specific UI validation requirements listed in the phase description.
 
 ### Phases 13-25: Effects, Sources & Features Build
 
-**For phases 13 through 25, read `research/UNIFIED_BUILD_PLAN.md` instead of TASKPLAN_V2.md.**
+**For phases 13 through 25, read `research/UNIFIED_BUILD_PLAN.md` instead of docs/archive/TASKPLAN_V2.md.**
 
 That document is self-contained — it has every task, every file to read, every shader to write, the 3-step process for adding effects/sources, validation criteria, and references to the detailed GLSL implementation specs in:
 - `research/resolumeEffectSourceIntegration.md` (Resolume effects/sources)

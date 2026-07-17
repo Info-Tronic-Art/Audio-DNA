@@ -5,7 +5,7 @@
 **FeatureSnapshot**: Fixed-size POD struct (alignas(64)) containing all extracted audio features for one analysis hop. The unit of transfer between Analysis and Render threads via triple-buffer atomic swap.
 _Avoid_: "audio data", "analysis result" — too vague.
 
-**Hop**: One analysis window step (512 samples = 10.7ms at 48kHz). Each hop triggers the full 16-stage analysis pipeline.
+**Hop**: One analysis window step (512 samples = 10.7ms at 48kHz). Each hop triggers the full 14-stage analysis pipeline.
 _Avoid_: "frame" when referring to audio — "frame" means a visual render frame.
 
 **SPSC Ring Buffer**: Single-producer single-consumer lock-free circular buffer (16384 floats, ~341ms at 48kHz). Carries raw audio from the audio callback to the analysis thread. Power-of-two sized, cache-line padded.
