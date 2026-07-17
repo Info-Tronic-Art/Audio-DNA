@@ -1,5 +1,9 @@
 # Audio-DNA Complete Feature Inventory
 
+> **SUPERSEDED 2026-07-16** by `.harmony/APP-INVENTORY.md` + `.harmony/FEATURES.md`
+> (both newer and reconciled against source truth). Archived for historical reference;
+> counts here may be stale. Do not treat as current.
+
 **Generated**: 2026-04-19
 **Target**: Complete line-by-line inventory of every user-facing feature, control, signal, parameter, binding, endpoint, and capability — zero gaps for UI redesign.
 
