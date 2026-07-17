@@ -1129,7 +1129,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
     apiServer_->start();
 
-    // P22.9: Set up OSC handler callbacks (starts on demand from preferences)
+    // P22.9: Set up OSC handler callbacks, then start listening (below).
+    // OscHandler uses MessageLoopCallback, so these fire on the message thread;
+    // the callAsync wrappers below match the existing trigger/deck callbacks.
     oscHandler_.onTriggerClip = [this](int layer, int column) {
         juce::MessageManager::callAsync([this, layer, column]() { handleClipTrigger(layer, column); });
     };
@@ -1144,10 +1146,70 @@ MainComponent::MainComponent(bool testMode, int testPort)
             if (auto* layer = deck->getLayer(layerIdx))
                 layer->opacity = opacity;
     };
+    oscHandler_.onSetLayerBypass = [this](int layerIdx, bool bypass) {
+        if (auto* deck = composition_.getActiveDeck())
+            if (auto* layer = deck->getLayer(layerIdx))
+                layer->bypassed = bypass;
+    };
+    oscHandler_.onSetLayerSolo = [this](int layerIdx, bool solo) {
+        if (auto* deck = composition_.getActiveDeck())
+            if (auto* layer = deck->getLayer(layerIdx))
+                layer->solo = solo;
+    };
+    oscHandler_.onSetLayerMute = [this](int layerIdx, bool mute) {
+        if (auto* deck = composition_.getActiveDeck())
+            if (auto* layer = deck->getLayer(layerIdx))
+                layer->muted = mute;
+    };
+    oscHandler_.onSetBpm = [this](float bpm) {
+        // Same manual-override path as apiServer_->onSetBpm / the TopBar manual-BPM toggle.
+        if (auto* tracker = analysisThread_.getBpmTracker())
+        {
+            tracker->setManualMode(true);
+            tracker->setManualBPM(bpm);
+        }
+    };
+    oscHandler_.onSetMacro = [this](int macroIdx, float value) {
+        // Same path as the AdjustMacro MIDI binding (global dashboard-link bank).
+        if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
+            globalMacroBank_.getMacro(macroIdx).manualValue = value;
+    };
+    oscHandler_.onSetEffectParam = [this](const juce::String& effectName,
+                                          const juce::String& paramName, float value) {
+        // Same path as ApiServer::handleSetParam global-effect-chain branch.
+        auto& chain = previewPanel_.getRenderer().getEffectChain();
+        for (int i = 0; i < chain.getNumEffects(); ++i)
+        {
+            auto* fx = chain.getEffect(i);
+            if (fx && fx->getName() == effectName)
+            {
+                for (int pi = 0; pi < fx->getNumParams(); ++pi)
+                {
+                    if (fx->getParam(pi).name == paramName.toStdString())
+                    {
+                        fx->getParam(pi).value = value;
+                        return;
+                    }
+                }
+            }
+        }
+    };
     oscHandler_.onSnapshot = [this]() {
         auto& renderer = previewPanel_.getRenderer();
         std::thread([&renderer]() { renderer.takeSnapshot(); }).detach();
     };
+
+    // P22.9: Start the OSC listener at startup (like ApiServer above). Previously
+    // "on demand from preferences", but nothing ever called startListening(), so
+    // OSC input was inert. Port 8000 is the de-facto OSC receive default (matches
+    // a TouchOSC controller's default outgoing port); no preferences UI configures
+    // it yet. startListening() logs port + success/failure internally.
+    constexpr int kOscListenPort = 8000;
+    if (oscHandler_.startListening(kOscListenPort))
+        std::cerr << "[OSC] Input listening on port " << kOscListenPort << std::endl;
+    else
+        std::cerr << "[OSC] WARNING: OSC input disabled (could not bind port "
+                  << kOscListenPort << ")" << std::endl;
 
     // P22.6: Video recorder callback
     videoRecorder_.onRecordingFinished = [this](bool success, const juce::File& file) {
