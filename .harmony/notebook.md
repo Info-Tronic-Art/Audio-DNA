@@ -48,3 +48,24 @@ When validating UI changes, use this sequence:
 **Files:** src/api/ApiServer.cpp, src/api/ApiServer.h
 **Note:** POST /api/set_effect_chain and GET /api/state are now available on port 7070 (ApiServer, always-on) in addition to port 8080 (TestServer, test-mode only). ApiServer version wraps state response in {"ok": true} pattern unlike TestServer's raw JSON. The param write uses direct assignment (fx->getParam(p).value = val) matching ApiServer style, not fx->setParamValue() as in TestServer. ApiServer.cpp is at exactly 900 lines — budget ceiling. Melatonin inspector FetchContent is broken (module header not found); build with -DAUDIODNA_BUILD_INSPECTOR=OFF to work around.
 **Valid while:** both ApiServer.cpp and TestServer.cpp contain these endpoints
+
+## 2026-07-17 — triage-execution session learnings (lane-B capture, secondary)
+
+- **Launch-context gate trap**: direct binary exec of the app from an agent shell hangs
+  pre-UI (alive, windowless, no sockets) — always `open` the .app for behavioral gates.
+  (Also in gotchas.md — canonical.)
+- **Don't prescribe concurrency idioms in packets — prescribe the stress test**: packet
+  suggested double-buffer for the waveform fix; builder's own torn-read stress test
+  proved it tears under reader-lapping and shipped a seqlock instead. The test
+  requirement, not the idiom suggestion, produced the correct fix.
+- **Probe the variable the write path touches**: /api/status masterLevel reads
+  renderer_.getMasterLevel() while OSC /master writes composition_.masterOpacity —
+  first probe false-alarmed. Trace write target → pick readback endpoint.
+- **Combine contending lanes**: B+D shared MainComponent.cpp + the build dir → one
+  combined builder beat two parallel ones (zero races, zero retries).
+- **Shared-doc consolidation protocol validated**: parallel builders leave shared-file
+  (APP-INVENTORY) edits UNCOMMITTED + flag them; a dedicated doc-sync lane reconciles
+  drift (caught 113-vs-114 test count) and commits once. Adopt for all multi-builder waves.
+- **Force-add hygiene (process rule)**: force-adds of gitignored-but-tracked-policy files
+  get their OWN commit + explicit commit-message mention — never swept into a feature
+  commit (W1-A reviewer finding).
