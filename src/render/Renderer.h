@@ -6,7 +6,6 @@
 #include "render/TextureManager.h"
 #include "effects/Effect.h"
 #include "effects/EffectChain.h"
-#include "effects/UniformBridge.h"
 #include "mapping/MappingEngine.h"
 #include "effects/EffectLibrary.h"
 #include "features/FeatureBus.h"
@@ -176,7 +175,6 @@ private:
     EffectChain effectChain_;
     EffectLibrary effectLibrary_;  // Persistent library for compositor per-clip effects
     MappingEngine mappingEngine_;
-    UniformBridge uniformBridge_;  // Kept for reference, no longer used
 
     double startTime_ = 0.0;
 

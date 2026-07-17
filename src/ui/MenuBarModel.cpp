@@ -178,7 +178,6 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addItem(kViewTimingWindow,    "Timing Window",     true, false);
             menu.addSeparator();
             menu.addItem(kViewFpsStats,        "FPS and Stats",     true, false);
-            menu.addItem(kViewProgrammingMode, "Programming Mode",  true, false);
             menu.addSeparator();
             menu.addItem(kViewSaveLayout,      "Save Layout...",    true, false);
             menu.addItem(kViewLoadLayout,      "Load Layout...",    true, false);

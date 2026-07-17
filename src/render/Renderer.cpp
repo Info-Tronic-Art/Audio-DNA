@@ -1342,7 +1342,6 @@ void Renderer::compileAllShaders()
     compile("source_strange_attractor", EmbeddedShaders::sourceStrangeAttractor);
     compile("source_gravity_well",      EmbeddedShaders::sourceGravityWell);
     compile("source_fluid_dynamics",    EmbeddedShaders::sourceFluidDynamics);
-    compile("source_fluid_display",     EmbeddedShaders::sourceFluidDisplay);
     compile("source_layer_router",      EmbeddedShaders::sourceLayerRouter);
 
     std::cerr << "[Renderer] All shaders compiled." << std::endl;

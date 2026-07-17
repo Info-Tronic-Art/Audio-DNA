@@ -12450,36 +12450,6 @@ inline const char* sourceFluidDynamics = R"(
     }
 )";
 
-// Fluid dynamics DISPLAY shader (converts state to visual color)
-// Used as a post-process on the fluid state for visual output
-inline const char* sourceFluidDisplay = R"(
-    #version 410 core
-    in vec2 v_texCoord;
-    out vec4 fragColor;
-    uniform sampler2D u_texture;  // Fluid state: RG = velocity, BA = dye
-    uniform float u_time;
-    uniform vec2 u_resolution;
-    uniform float u_src_color_mode;
-
-    void main() {
-        vec4 state = texture(u_texture, v_texCoord);
-        float hue = state.b;
-        float brightness = state.a;
-
-        vec3 col;
-        float cm = u_src_color_mode;
-        if (cm < 0.33) {
-            col = 0.5 + 0.5 * cos(6.28318 * (hue + vec3(0.0, 0.33, 0.67)));
-        } else if (cm < 0.67) {
-            col = 0.5 + 0.5 * cos(6.28318 * (hue * 2.0 + vec3(0.0, 0.5, 0.25)));
-        } else {
-            col = mix(vec3(0.1, 0.2, 0.5), vec3(1.0), brightness);
-        }
-
-        fragColor = vec4(col * brightness, 1.0);
-    }
-)";
-
 // === Phase 20: Layer Router — passthrough shader (just copies input) ===
 // The Layer Router doesn't need its own shader since it returns another layer's texture directly.
 // But for consistency with the ProceduralSource system, we provide a passthrough.

@@ -39,18 +39,3 @@ void OnsetDetector::process(const float* samples)
     onsetDetected_ = (fvec_get_sample(output_, 0) != 0.0f);
     onsetStrength_ = aubio_onset_get_descriptor(onset_);
 }
-
-void OnsetDetector::setThreshold(float t)
-{
-    aubio_onset_set_threshold(onset_, t);
-}
-
-void OnsetDetector::setSilence(float dbThreshold)
-{
-    aubio_onset_set_silence(onset_, dbThreshold);
-}
-
-void OnsetDetector::setMinInterOnsetMs(float ms)
-{
-    aubio_onset_set_minioi_ms(onset_, ms);
-}

@@ -508,9 +508,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
             inspectorPanel_->inspectSignal(&signal);
     };
 
-    programmingMode_ = std::make_unique<ProgrammingMode>(*signalBar_);
-    addChildComponent(programmingMode_.get());
-
     // === v2: Deck View ===
     deckView_ = std::make_unique<DeckView>();
     addAndMakeVisible(deckView_.get());
@@ -1307,10 +1304,6 @@ void MainComponent::resized()
             area.removeFromTop(1);
         }
     }
-
-    // === v2: Programming Mode overlay ===
-    if (programmingMode_)
-        programmingMode_->setVisible(false);
 
     // If signal bar is expanded, hide everything else and return
     if (signalBarExpanded)
@@ -3196,19 +3189,6 @@ void MainComponent::handleMenuCommand(int commandId)
         }
 
         // --- View menu ---
-        case C::kViewProgrammingMode:
-            if (signalBar_)
-            {
-                // Toggle between expanded and normal
-                if (signalBar_->getDisplaySize() == SignalStrip::DisplaySize::Expanded)
-                    signalBar_->setDisplaySize(SignalStrip::DisplaySize::Normal);
-                else
-                    signalBar_->setDisplaySize(SignalStrip::DisplaySize::Expanded);
-                if (signalBar_->onSizeChanged)
-                    signalBar_->onSizeChanged();
-            }
-            break;
-
         // P24.6: Layout presets
         case C::kViewSaveLayout:
         {

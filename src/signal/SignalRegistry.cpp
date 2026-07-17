@@ -1,5 +1,4 @@
 #include "SignalRegistry.h"
-#include "signal/ChainedSignal.h"
 
 void SignalRegistry::initDefaults()
 {
@@ -86,9 +85,6 @@ void SignalRegistry::initDefaults()
 void SignalRegistry::addSignal(std::unique_ptr<Signal> signal)
 {
     signal->setId(nextId_++);
-    // P24: Wire ChainedSignal to this registry for cached value lookups
-    if (auto* chained = dynamic_cast<ChainedSignal*>(signal.get()))
-        chained->setRegistry(this);
     signals_.push_back(std::move(signal));
     cachedValues_.push_back(0.0f);
 }

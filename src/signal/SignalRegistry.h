@@ -8,9 +8,6 @@
 #include <memory>
 #include <string>
 
-// Forward declarations for signal types included in .cpp
-class ChainedSignal;
-
 // SignalRegistry: manages all active signals in the application.
 // Populated at startup with default audio signals and modulation slots.
 // Users can add/remove modulation signals.

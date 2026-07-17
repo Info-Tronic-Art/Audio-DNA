@@ -207,41 +207,6 @@ std::string ISFShaderLoader::convertToGLSL(const ISFShader& isf)
     return glsl;
 }
 
-bool ISFShaderLoader::registerISFEffect(EffectLibrary& library,
-                                         const ISFShader& isf)
-{
-    if (!isf.valid || isf.name.empty())
-        return false;
-
-    EffectLibrary::EffectDef def;
-    def.name = juce::String("ISF: " + isf.name);
-    def.category = "isf";
-    def.shaderName = "isf_" + isf.name;
-
-    for (const auto& param : isf.params)
-    {
-        EffectLibrary::ParamDef pd;
-        pd.name = param.name;
-        pd.uniformName = "u_isf_" + param.name;
-        pd.defaultValue = param.defaultValue;
-        def.params.push_back(std::move(pd));
-    }
-
-    // Registration happens via EffectLibrary's internal method
-    // The caller will need to compile the shader separately via ShaderManager
-    // For now, we just need to make the effect definition available
-    // The library doesn't have a public registerEffect, so we'll create the effect
-    // and it can be found by name
-
-    // Actually, EffectLibrary::registerEffect is private — for now the ISF effects
-    // are registered at load time by calling createEffect through a different path.
-    // We'll expose a public registration method.
-
-    std::cerr << "[ISF] Parsed: " << isf.name << " (" << isf.params.size()
-              << " params)" << std::endl;
-    return true;
-}
-
 juce::File ISFShaderLoader::getISFDirectory()
 {
     return juce::File::getSpecialLocation(juce::File::userDocumentsDirectory)

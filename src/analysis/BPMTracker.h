@@ -111,11 +111,6 @@ public:
     float    phrasePhase()      const { return phrasePhase_; }
     int      phraseBars()       const { return phraseBars_; }
 
-    // --- Configuration ---
-    void setThreshold(float t);
-    void setSilence(float dbThreshold);
-    void setPhraseBars(int bars);
-
     // P23: Smart BPM recovery — feed RMS for silence detection
     // Call each hop with the current RMS value. When silence is detected,
     // the BPM tracker holds the last good BPM and phase continues running.

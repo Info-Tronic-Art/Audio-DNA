@@ -244,16 +244,6 @@ float BPMTracker::pushAndMedian(float bpm)
     return sortBuffer_[mid];
 }
 
-void BPMTracker::setThreshold(float t)
-{
-    aubio_tempo_set_threshold(tempo_, t);
-}
-
-void BPMTracker::setSilence(float dbThreshold)
-{
-    aubio_tempo_set_silence(tempo_, dbThreshold);
-}
-
 // === Downbeat Detection ===
 
 void BPMTracker::feedDownbeatFeatures(float bassEnergy, float spectralFlux, float harmonicChange,
@@ -457,11 +447,6 @@ void BPMTracker::updatePhrase(uint8_t structuralState)
         phrasePhase_ -= std::floor(phrasePhase_);
     if (phrasePhase_ < 0.0f)
         phrasePhase_ = 0.0f;
-}
-
-void BPMTracker::setPhraseBars(int bars)
-{
-    phraseBars_ = std::clamp(bars, kMinPhraseBars, kMaxPhraseBars);
 }
 
 void BPMTracker::resetPhrase()

@@ -29,11 +29,6 @@ public:
     bool  onsetDetected() const { return onsetDetected_; }
     float onsetStrength() const { return onsetStrength_; }
 
-    // --- Configuration ---
-    void setThreshold(float t);
-    void setSilence(float dbThreshold);
-    void setMinInterOnsetMs(float ms);
-
 private:
     aubio_onset_t* onset_ = nullptr;
     fvec_t*        input_ = nullptr;   // hop-sized input buffer

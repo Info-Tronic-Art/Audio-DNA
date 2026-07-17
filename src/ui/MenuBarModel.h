@@ -111,7 +111,6 @@ public:
         kViewBrowser,
         kViewTimingWindow,
         kViewFpsStats,
-        kViewProgrammingMode,
 
         // P24 additions
         kViewSaveLayout = 1850,

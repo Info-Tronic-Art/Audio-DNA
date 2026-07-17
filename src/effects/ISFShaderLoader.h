@@ -61,12 +61,6 @@ public:
     // into our u_time, u_resolution, texture2D conventions.
     static std::string convertToGLSL(const ISFShader& isf);
 
-    // Register an ISF shader as an effect in the library.
-    // Compiles the shader and registers with the given EffectLibrary.
-    // Returns true on success.
-    static bool registerISFEffect(EffectLibrary& library,
-                                   const ISFShader& isf);
-
     // Get the ISF import directory (user's ISF folder)
     static juce::File getISFDirectory();
 

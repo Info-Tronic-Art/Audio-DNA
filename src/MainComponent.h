@@ -15,7 +15,6 @@
 #include "ui/OutputWindow.h"
 #include "ui/SignalBar.h"
 #include "ui/TopBar.h"
-#include "ui/ProgrammingMode.h"
 #include "ui/DeckView.h"
 #include "ui/InspectorPanel.h"
 #include "ui/TimingWindow.h"
@@ -211,7 +210,6 @@ private:
     bool tooltipsEnabled_ = true;
     std::unique_ptr<TopBar> topBar_;
     std::unique_ptr<SignalBar> signalBar_;
-    std::unique_ptr<ProgrammingMode> programmingMode_;
     std::unique_ptr<DeckView> deckView_;
     std::unique_ptr<InspectorPanel> inspectorPanel_;
     std::unique_ptr<BrowserPanel> browserPanel_;

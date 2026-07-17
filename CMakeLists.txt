@@ -123,7 +123,6 @@ target_sources(AudioDNA PRIVATE
     src/analysis/PitchTracker.cpp
     src/analysis/GenreDetector.h
     src/analysis/GenreDetector.cpp
-    src/analysis/GenreSmoothing.h
     src/analysis/AdvancedAudioAnalyzer.h
     src/analysis/AdvancedAudioAnalyzer.cpp
 
@@ -149,8 +148,6 @@ target_sources(AudioDNA PRIVATE
     src/mapping/CurveTransforms.h
     src/mapping/MappingEngine.h
     src/mapping/MappingEngine.cpp
-    src/mapping/MappingSuggester.h
-    src/mapping/MappingSuggester.cpp
 
     # Core (v2)
     src/core/Command.h
@@ -172,8 +169,6 @@ target_sources(AudioDNA PRIVATE
     src/signal/AudioSignal.h
     src/signal/OscillatorSignal.h
     src/signal/EnvelopeSignal.h
-    src/signal/ChainedSignal.h
-    src/signal/ChainedSignal.cpp
     src/signal/ClipPositionSignal.h
     src/signal/SignalRegistry.h
     src/signal/SignalRegistry.cpp
@@ -232,8 +227,6 @@ target_sources(AudioDNA PRIVATE
     src/effects/EffectLibrary.cpp
     src/effects/ISFShaderLoader.h
     src/effects/ISFShaderLoader.cpp
-    src/effects/UniformBridge.h
-    src/effects/UniformBridge.cpp
 
     # UI
     src/ui/LookAndFeel.h
@@ -262,8 +255,6 @@ target_sources(AudioDNA PRIVATE
     src/ui/SignalBar.cpp
     src/ui/TopBar.h
     src/ui/TopBar.cpp
-    src/ui/ProgrammingMode.h
-    src/ui/ProgrammingMode.cpp
     src/ui/ClipCell.h
     src/ui/ClipCell.cpp
     src/ui/LayerStrip.h
@@ -326,10 +317,6 @@ target_sources(AudioDNA PRIVATE
 
     # Output / texture sharing (P22.1-P22.5)
     src/output/SyphonOutput.h
-    src/output/SyphonInput.h
-    src/output/SpoutOutput.h
-    src/output/NdiOutput.h
-    src/output/NdiInput.h
 )
 
 # Conditionally add test server sources
@@ -344,7 +331,6 @@ endif()
 if(APPLE)
     target_sources(AudioDNA PRIVATE
         src/output/SyphonOutput.mm
-        src/output/SyphonInput.mm
     )
 endif()
 
