@@ -334,13 +334,21 @@ void AnalysisThread::run()
             profileFrameCount_ = 0;
         }
 
-        // Copy recent samples for waveform display
+        // Copy recent samples for waveform display via a seqlock. Bump the version
+        // to odd (write in progress), write the buffer, then bump to even. A reader
+        // that sees the version change (or an odd version) retries, so it never
+        // returns a torn buffer even if it is preempted mid-copy.
         int wfCount = std::min(kBlockSize, kWaveformBufferSize);
-        int offset = kBlockSize - wfCount;
-        std::memcpy(const_cast<float*>(waveformBuffer_.data()),
-                     analysisBuffer_.data() + offset,
-                     static_cast<size_t>(wfCount) * sizeof(float));
-        waveformSampleCount_.store(wfCount, std::memory_order_release);
+        int wfOffset = kBlockSize - wfCount;
+        const std::uint32_t wfSeq = waveformSeq_.load(std::memory_order_relaxed);
+        waveformSeq_.store(wfSeq + 1, std::memory_order_relaxed);  // enter write (odd)
+        std::atomic_thread_fence(std::memory_order_release);
+        for (int i = 0; i < wfCount; ++i)
+            waveformBuffer_[static_cast<size_t>(i)].store(
+                analysisBuffer_[static_cast<size_t>(wfOffset + i)], std::memory_order_relaxed);
+        waveformSampleCount_.store(wfCount, std::memory_order_relaxed);
+        std::atomic_thread_fence(std::memory_order_release);
+        waveformSeq_.store(wfSeq + 2, std::memory_order_relaxed);  // exit write (even)
 
         // Copy PCM snapshot for external consumers (e.g., projectM)
         int pcmCount = std::min(kBlockSize, kPCMSnapshotSize);
@@ -356,9 +364,26 @@ void AnalysisThread::run()
 
 void AnalysisThread::getWaveformSamples(float* dest, int& count) const
 {
-    count = waveformSampleCount_.load(std::memory_order_acquire);
-    if (count > 0)
-        std::memcpy(dest, waveformBuffer_.data(), static_cast<size_t>(count) * sizeof(float));
+    // Seqlock read: copy the buffer, then confirm the version was even and did not
+    // change during the copy. If a write raced us, retry; give up after a bounded
+    // number of attempts (contention this sustained never happens at the real ~93 Hz
+    // publish rate — a dropped frame is harmless for a display waveform).
+    for (int attempt = 0; attempt < 16; ++attempt)
+    {
+        const std::uint32_t seq0 = waveformSeq_.load(std::memory_order_acquire);
+        if (seq0 & 1u)
+            continue;  // writer mid-update
+        const int c = waveformSampleCount_.load(std::memory_order_relaxed);
+        for (int i = 0; i < c; ++i)
+            dest[i] = waveformBuffer_[static_cast<size_t>(i)].load(std::memory_order_relaxed);
+        std::atomic_thread_fence(std::memory_order_acquire);
+        if (waveformSeq_.load(std::memory_order_relaxed) == seq0)
+        {
+            count = c;  // stable read
+            return;
+        }
+    }
+    count = 0;  // gave up under sustained contention
 }
 
 int AnalysisThread::getPCMSamples(float* dest, int maxSamples) const

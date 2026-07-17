@@ -4,13 +4,14 @@
 // PreferencesDialog
 // ============================================================
 
-PreferencesDialog::PreferencesDialog()
+PreferencesDialog::PreferencesDialog(bool tooltipsEnabled,
+                                     std::function<void(bool)> onTooltipToggled)
     : DialogWindow("Preferences",
                    juce::Colour(AudioDNALookAndFeel::kBackground),
                    true)
 {
     setUsingNativeTitleBar(true);
-    setContentOwned(new Content(), true);
+    setContentOwned(new Content(tooltipsEnabled, std::move(onTooltipToggled)), true);
     setResizable(true, true);
     setResizeLimits(500, 400, 1200, 900);
     centreWithSize(700, 500);
@@ -21,9 +22,10 @@ void PreferencesDialog::closeButtonPressed()
     setVisible(false);
 }
 
-void PreferencesDialog::show(juce::Component* parent)
+void PreferencesDialog::show(juce::Component* parent, bool tooltipsEnabled,
+                             std::function<void(bool)> onTooltipToggled)
 {
-    auto* dialog = new PreferencesDialog();
+    auto* dialog = new PreferencesDialog(tooltipsEnabled, std::move(onTooltipToggled));
     dialog->setVisible(true);
     dialog->toFront(true);
 
@@ -38,8 +40,11 @@ void PreferencesDialog::show(juce::Component* parent)
 // Content
 // ============================================================
 
-PreferencesDialog::Content::Content()
+PreferencesDialog::Content::Content(bool tooltipsEnabled,
+                                    std::function<void(bool)> onTooltipToggledCb)
 {
+    onTooltipToggled = std::move(onTooltipToggledCb);
+
     // Tab buttons
     auto addTab = [this](juce::TextButton& btn, Tab tab) {
         addAndMakeVisible(btn);
@@ -50,10 +55,10 @@ PreferencesDialog::Content::Content()
     addTab(videoBtn_,   Tab::Video);
     addTab(aboutBtn_,   Tab::About);
 
-    // General tab controls
+    // General tab controls — seed toggle to caller's current state (no callback fired)
     addChildComponent(tooltipLabel_);
     addChildComponent(tooltipToggle_);
-    tooltipToggle_.setToggleState(true, juce::dontSendNotification);
+    tooltipToggle_.setToggleState(tooltipsEnabled, juce::dontSendNotification);
     tooltipToggle_.onStateChange = [this] {
         if (onTooltipToggled)
             onTooltipToggled(tooltipToggle_.getToggleState());

@@ -262,6 +262,9 @@ private:
     void handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
     void handleDeckSwitch(int deckIndex);
 
+    // Enable/disable the shared tooltip window (Preferences → Show Tooltips).
+    void setTooltipsEnabled(bool enabled);
+
     // Test mode
     bool testMode_ = false;
     int testPort_ = 8080;

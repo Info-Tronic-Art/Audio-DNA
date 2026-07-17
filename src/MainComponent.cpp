@@ -365,6 +365,31 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
     if (!audioEngine_.hasAudioDevice())
         fileLabel_.setText("No audio device found", juce::dontSendNotification);
+    else
+    {
+        // Sample-rate guard: the analysis pipeline (LUFS K-weighting + all frequency
+        // math) hardcodes AnalysisThread::kSampleRate (48 kHz) with no resampling, so a
+        // device at another rate silently yields wrong features. We do NOT attempt
+        // SR-independence here — warn only. This ctor runs on the message thread, so the
+        // async alert is non-blocking and safe (no modal on the audio thread).
+        const double actualSr = audioEngine_.getCurrentSampleRate();
+        const int expectedSr = AnalysisThread::kSampleRate;
+        if (actualSr > 0.0 && static_cast<int>(actualSr) != expectedSr)
+        {
+            std::cerr << "[Audio] WARNING: device sample rate is " << static_cast<int>(actualSr)
+                      << " Hz but the analysis pipeline assumes " << expectedSr
+                      << " Hz — audio features (LUFS, frequency, key, BPM) will be inaccurate."
+                      << std::endl;
+            if (!testMode_)
+                juce::AlertWindow::showMessageBoxAsync(
+                    juce::MessageBoxIconType::WarningIcon,
+                    "Unsupported Sample Rate",
+                    "Your audio device is running at " + juce::String(static_cast<int>(actualSr))
+                        + " Hz, but Audio-DNA's analysis is tuned for " + juce::String(expectedSr)
+                        + " Hz. Audio-reactive features may be inaccurate — set your output "
+                          "device to " + juce::String(expectedSr) + " Hz for correct results.");
+        }
+    }
 
     // Initialize effect library
     effectLibrary_.registerDefaults();
@@ -498,6 +523,39 @@ MainComponent::MainComponent(bool testMode, int testPort)
             tracker->resetBeatPhase();
             tracker->resetPhrase();
         }
+    };
+
+    // Global transport (TopBar Play/Pause/Stop). There is no single global
+    // transport flag in the model; per-layer transport (LayerStrip) drives each
+    // layer's active clip. The honest global mapping is therefore: apply
+    // play/pause/stop to every layer's active clip on the ACTIVE deck. Stop =
+    // pause + rewind to the clip's in-point (distinct from Pause, which holds).
+    topBar_->onPlay = [this] {
+        if (auto* deck = composition_.getActiveDeck())
+            for (int l = 0; l < deck->getNumLayers(); ++l)
+                if (auto* layer = deck->getLayer(l))
+                    if (auto* clip = layer->getActiveClip())
+                    {
+                        clip->reverse = false;
+                        clip->playing = true;
+                    }
+    };
+    topBar_->onPause = [this] {
+        if (auto* deck = composition_.getActiveDeck())
+            for (int l = 0; l < deck->getNumLayers(); ++l)
+                if (auto* layer = deck->getLayer(l))
+                    if (auto* clip = layer->getActiveClip())
+                        clip->playing = false;
+    };
+    topBar_->onStop = [this] {
+        if (auto* deck = composition_.getActiveDeck())
+            for (int l = 0; l < deck->getNumLayers(); ++l)
+                if (auto* layer = deck->getLayer(l))
+                    if (auto* clip = layer->getActiveClip())
+                    {
+                        clip->playing = false;
+                        clip->playheadPosition = clip->inPoint;
+                    }
     };
 
     signalBar_ = std::make_unique<SignalBar>(signalRegistry_, analysisThread_.getFeatureBus());
@@ -1223,6 +1281,22 @@ MainComponent::MainComponent(bool testMode, int testPort)
     // Register as key listener on top-level component to catch keys globally
     addKeyListener(this);
     setSize(1280, 800);
+}
+
+void MainComponent::setTooltipsEnabled(bool enabled)
+{
+    tooltipsEnabled_ = enabled;
+    // The TooltipWindow shows tips for any component under the mouse while it
+    // exists; destroying it is the clean way to disable tooltips app-wide.
+    if (enabled)
+    {
+        if (!tooltipWindow_)
+            tooltipWindow_ = std::make_unique<juce::TooltipWindow>(this, 600);
+    }
+    else
+    {
+        tooltipWindow_.reset();
+    }
 }
 
 MainComponent::~MainComponent()
@@ -2800,10 +2874,12 @@ void MainComponent::handleMenuCommand(int commandId)
     {
         // --- Audio-DNA menu ---
         case C::kPreferences:
-            PreferencesDialog::show(this);
+            PreferencesDialog::show(this, tooltipsEnabled_,
+                                    [this](bool enabled) { setTooltipsEnabled(enabled); });
             break;
         case C::kAbout:
-            PreferencesDialog::show(this);
+            PreferencesDialog::show(this, tooltipsEnabled_,
+                                    [this](bool enabled) { setTooltipsEnabled(enabled); });
             // TODO: auto-switch to About tab
             break;
         case C::kQuit:
@@ -3002,18 +3078,25 @@ void MainComponent::handleMenuCommand(int commandId)
             }
             break;
         case C::kLayerClearClips:
-            if (auto* deck = composition_.getActiveDeck())
+        {
+            // BUG FIX 2026-07-17 (Wave 1-D): body was identical to kDeckClearClips
+            // and wiped the ENTIRE deck. Clear only the SELECTED layer's clips.
+            int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
+            if (selLayer >= 0)
             {
-                for (int l = 0; l < deck->getNumLayers(); ++l)
-                    if (auto* layer = deck->getLayer(l))
+                if (auto* deck = composition_.getActiveDeck())
+                {
+                    if (auto* layer = deck->getLayer(selLayer))
                     {
                         layer->clips.clear();
                         layer->ensureColumns(deck->numColumns);
                         layer->clearActiveClip();
+                        if (deckView_) deckView_->rebuildGrid();
                     }
-                if (deckView_) deckView_->rebuildGrid();
+                }
             }
             break;
+        }
 
         case C::kLayerFold:
         {

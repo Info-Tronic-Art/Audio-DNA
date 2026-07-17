@@ -2,6 +2,7 @@
 #include <juce_core/juce_core.h>
 #include <atomic>
 #include <array>
+#include <cstdint>
 #include <memory>
 #include "FeatureSnapshot.h"
 #include "audio/RingBuffer.h"
@@ -83,8 +84,16 @@ private:
     std::atomic<float> currentRMS_{0.0f};
     std::atomic<float> currentPeak_{0.0f};
 
-    // Waveform display buffer
-    alignas(64) std::array<float, kWaveformBufferSize> waveformBuffer_{};
+    // Waveform display buffer (seqlock). The reader retries whenever the writer
+    // bumps the version mid-read, so it never returns a torn/half-written buffer —
+    // regardless of thread scheduling. atomic<float> elements make the concurrent
+    // access race-free; the release/acquire fences order the data against the
+    // version counter. (A plain double buffer — as the PCM path below uses — only
+    // NARROWS the torn-read window: a reader preempted long enough for the single
+    // writer to lap the two slots can still tear. The torn-read stress test caught
+    // exactly that, so the waveform path uses a seqlock instead.)
+    alignas(64) std::array<std::atomic<float>, kWaveformBufferSize> waveformBuffer_{};
+    std::atomic<std::uint32_t> waveformSeq_{0};  // even = stable, odd = write in progress
     std::atomic<int> waveformSampleCount_{0};
 
     // PCM snapshot for external consumers (lock-free double buffer)

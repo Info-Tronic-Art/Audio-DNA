@@ -28,6 +28,9 @@ TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
     addAndMakeVisible(playButton_);
     addAndMakeVisible(pauseButton_);
     addAndMakeVisible(stopButton_);
+    playButton_.onClick  = [this] { if (onPlay)  onPlay(); };
+    pauseButton_.onClick = [this] { if (onPause) onPause(); };
+    stopButton_.onClick  = [this] { if (onStop)  onStop(); };
 
     // Tempo display
     addAndMakeVisible(tempoLabel_);

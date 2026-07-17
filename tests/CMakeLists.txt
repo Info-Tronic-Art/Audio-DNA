@@ -22,6 +22,12 @@ target_include_directories(test_ring_buffer PRIVATE ${SRC_DIR})
 target_link_libraries(test_ring_buffer PRIVATE Catch2::Catch2WithMain)
 catch_discover_tests(test_ring_buffer)
 
+# --- test_waveform_snapshot (Wave 1-D: waveform seqlock torn-read guard) ---
+add_executable(test_waveform_snapshot test_waveform_snapshot.cpp)
+target_include_directories(test_waveform_snapshot PRIVATE ${SRC_DIR})
+target_link_libraries(test_waveform_snapshot PRIVATE Catch2::Catch2WithMain)
+catch_discover_tests(test_waveform_snapshot)
+
 # --- test_spectral_features ---
 add_executable(test_spectral_features
     test_spectral_features.cpp

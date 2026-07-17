@@ -32,6 +32,9 @@ public:
     bool hasAudioDevice() const;
     juce::String getDeviceStatus() const;
 
+    // Actual sample rate of the running output device, or 0.0 if none.
+    double getCurrentSampleRate() const;
+
     // Audio source mode
     enum class SourceMode { File, MicInput };
     void setSourceMode(SourceMode mode);

@@ -8,19 +8,21 @@
 class PreferencesDialog : public juce::DialogWindow
 {
 public:
-    PreferencesDialog();
+    PreferencesDialog(bool tooltipsEnabled, std::function<void(bool)> onTooltipToggled);
     ~PreferencesDialog() override = default;
 
     void closeButtonPressed() override;
 
-    // Show the dialog modally (centered on parent)
-    static void show(juce::Component* parent);
+    // Show the dialog (centered on parent). `tooltipsEnabled` seeds the toggle
+    // to the caller's current state; `onTooltipToggled` fires on every change.
+    static void show(juce::Component* parent, bool tooltipsEnabled,
+                     std::function<void(bool)> onTooltipToggled);
 
 private:
     class Content : public juce::Component
     {
     public:
-        Content();
+        Content(bool tooltipsEnabled, std::function<void(bool)> onTooltipToggled);
 
         void paint(juce::Graphics& g) override;
         void resized() override;

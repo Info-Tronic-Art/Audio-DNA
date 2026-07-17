@@ -86,6 +86,12 @@ juce::String AudioEngine::getDeviceStatus() const
     return device->getName() + " @ " + juce::String(static_cast<int>(device->getCurrentSampleRate())) + "Hz";
 }
 
+double AudioEngine::getCurrentSampleRate() const
+{
+    auto* device = deviceManager_.getCurrentAudioDevice();
+    return device != nullptr ? device->getCurrentSampleRate() : 0.0;
+}
+
 void AudioEngine::setSourceMode(SourceMode mode)
 {
     sourceMode_ = mode;
