@@ -58,6 +58,7 @@ public:
     std::function<void(int column)> onTriggerColumn;
     std::function<void(int deckIndex)> onSwitchDeck;
     std::function<void()> onSnapshot;
+    std::function<void(float bpm)> onSetBpm;
 
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;

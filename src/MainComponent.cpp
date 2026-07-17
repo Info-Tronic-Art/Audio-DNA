@@ -1118,6 +1118,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto& renderer = previewPanel_.getRenderer();
         std::thread([&renderer]() { renderer.takeSnapshot(); }).detach();
     };
+    apiServer_->onSetBpm = [this](float bpm) {
+        // Same path as the TopBar manual-BPM toggle+edit (manual override).
+        if (auto* tracker = analysisThread_.getBpmTracker())
+        {
+            tracker->setManualMode(true);
+            tracker->setManualBPM(bpm);
+        }
+    };
     apiServer_->start();
 
     // P22.9: Set up OSC handler callbacks (starts on demand from preferences)

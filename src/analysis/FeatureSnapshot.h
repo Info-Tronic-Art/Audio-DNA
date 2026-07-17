@@ -86,5 +86,7 @@ struct alignas(64) FeatureSnapshot
         detectedKey = -1;
         keyIsMajor = true;
         swingRatio = 0.5f;  // 0.5 = straight timing
+        detectedGenre = 6;  // struct default (Pop/Electronic)
+        energyState = 1;    // struct default (medium)
     }
 };

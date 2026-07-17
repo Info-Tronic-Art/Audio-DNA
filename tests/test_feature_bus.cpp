@@ -179,3 +179,21 @@ TEST_CASE("FeatureBus concurrent write-read stress test", "[featurebus]")
     // Last value read should be <= kIterations
     REQUIRE(lastReadRms.load() <= static_cast<float>(kIterations));
 }
+
+TEST_CASE("FeatureSnapshot clear restores struct-default genre/energy", "[featuresnapshot]")
+{
+    FeatureSnapshot fs;
+
+    // Dirty the genre/energy fields away from their struct defaults.
+    fs.detectedGenre = 2;   // DnB
+    fs.energyState   = 0;   // low
+    fs.rms           = 0.9f;
+
+    fs.clear();
+
+    // A cleared snapshot must carry the struct defaults, not memset zeros.
+    REQUIRE(fs.detectedGenre == 6);   // Pop/Electronic
+    REQUIRE(fs.energyState   == 1);   // medium
+    // Sanity: memset-zeroed fields are actually zeroed.
+    REQUIRE(fs.rms == Approx(0.0f));
+}

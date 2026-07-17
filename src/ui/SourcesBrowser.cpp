@@ -338,6 +338,7 @@ void SourcesBrowser::buildSourceList()
     categories_.push_back({"Particle",     juce::Colour(0xffef5350)});
     categories_.push_back({"Simulation",   juce::Colour(0xff7986cb)});
     categories_.push_back({"Routing",      juce::Colour(0xff80cbc4)});
+    categories_.push_back({"MilkDrop",     juce::Colour(0xfff06292)});
 
     // Input sources — live feeds
     sources_.push_back({"Camera Input",             "camera",              "Input",        juce::Colour(0xffef5350)});
@@ -479,6 +480,14 @@ void SourcesBrowser::buildSourceList()
 
     // Phase 19: 3D sources
     sources_.push_back({"DNA Helix",                "dna_helix",           "3D",           juce::Colour(0xffffca28)});
+
+    // Phase 20: System sources (registry-registered, previously absent from this hand-maintained list)
+    sources_.push_back({"Strange Attractor",        "strange_attractor",   "Simulation",   juce::Colour(0xff7986cb)});
+    sources_.push_back({"Gravity Well",             "gravity_well",        "Simulation",   juce::Colour(0xff7986cb)});
+    sources_.push_back({"Fluid Dynamics",           "fluid_dynamics",      "Simulation",   juce::Colour(0xff7986cb)});
+    sources_.push_back({"Text Animator",            "text_animator",       "Text",         juce::Colour(0xffe0e0e0)});
+    sources_.push_back({"Layer Router",             "layer_router",        "Routing",      juce::Colour(0xff80cbc4)});
+    sources_.push_back({"MilkDrop Visualizer",      "projectm_visualizer", "MilkDrop",     juce::Colour(0xfff06292)});
 }
 
 void SourcesBrowser::toggleCategory(int catIndex)

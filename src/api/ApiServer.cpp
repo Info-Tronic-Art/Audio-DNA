@@ -518,7 +518,14 @@ void ApiServer::handleSetBpm(const httplib::Request& req, httplib::Response& res
         return;
     }
 
-    // This would need access to BPMTracker — for now, just acknowledge
+    // Marshal to the message thread — same manual-BPM override the TopBar uses.
+    if (onSetBpm)
+    {
+        juce::MessageManager::callAsync([this, bpm]() {
+            onSetBpm(bpm);
+        });
+    }
+
     res.set_content(jsonOk(), "application/json");
 }
 
