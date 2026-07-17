@@ -40,9 +40,6 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addItem(kCompSave,     "Save",                      true, false);
             menu.addItem(kCompSaveAs,   "Save As...",                true, false);
             menu.addSeparator();
-            menu.addItem(kCompCopyEffects,  "Copy Global Effects",   true, false);
-            menu.addItem(kCompPasteEffects, "Paste Global Effects",  true, false);
-            menu.addSeparator();
             menu.addItem(kCompCollectMedia,   "Collect Media...",        true, false);
             menu.addItem(kCompRelocateFiles,  "Relocate Missing Files...", true, false);
             break;
@@ -51,14 +48,8 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
         case 2: // Deck
         {
             menu.addItem(kDeckNew,          "New Deck",              true, false);
-            menu.addItem(kDeckInsertBefore, "Insert Before",         true, false);
-            menu.addItem(kDeckInsertAfter,  "Insert After",          true, false);
-            menu.addItem(kDeckDuplicate,    "Duplicate",             true, false);
             menu.addSeparator();
-            menu.addItem(kDeckRename,       "Rename...",             true, false);
             menu.addItem(kDeckClearClips,   "Clear Clips",           true, false);
-            menu.addSeparator();
-            menu.addItem(kDeckClose,        "Close Deck",            true, false);
             menu.addItem(kDeckRemove,       "Remove Deck",           true, false);
             break;
         }
@@ -68,17 +59,9 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addItem(kLayerNew,            "New Layer",                  true, false);
             menu.addItem(kLayerInsertAbove,    "Insert Above",              true, false);
             menu.addItem(kLayerInsertBelow,    "Insert Below",              true, false);
-            menu.addItem(kLayerDuplicate,      "Duplicate",                 true, false);
-            menu.addSeparator();
-            menu.addItem(kLayerRename,         "Rename...",                 true, false);
-            menu.addItem(kLayerCopyEffects,    "Copy Effects",              true, false);
-            menu.addItem(kLayerPasteEffects,   "Paste Effects",             true, false);
             menu.addSeparator();
             menu.addItem(kLayerClearClips,     "Clear Clips",               true, false);
             menu.addItem(kLayerRemove,         "Remove Layer",              true, false);
-            menu.addSeparator();
-            menu.addItem(kLayerIgnoreColumnTrigger, "Ignore Column Trigger", true, false);
-            menu.addItem(kLayerLockContent,    "Lock Content",              true, false);
             menu.addSeparator();
             menu.addItem(kLayerFold,           "Fold/Unfold Layer",         true, false);
             menu.addItem(kLayerMoveUp,         "Move Layer Up",             true, false);
@@ -91,33 +74,14 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             menu.addItem(kColumnNew,            "New Column",           true, false);
             menu.addItem(kColumnInsertBefore,   "Insert Before",        true, false);
             menu.addItem(kColumnInsertAfter,    "Insert After",         true, false);
-            menu.addItem(kColumnDuplicate,      "Duplicate",            true, false);
             menu.addSeparator();
-            menu.addItem(kColumnClearClips,     "Clear Clips",          true, false);
             menu.addItem(kColumnRemove,         "Remove Column",        true, false);
-            menu.addSeparator();
-            menu.addItem(kColumnRemoveAllBefore, "Remove All Before",   true, false);
-            menu.addItem(kColumnRemoveAllAfter,  "Remove All After",    true, false);
             break;
         }
 
         case 5: // Clip
         {
-            menu.addItem(kClipSelectAll,    "Select All",              true, false);
-            menu.addSeparator();
-            menu.addItem(kClipCut,          "Cut",                     true, false);
-            menu.addItem(kClipCopy,         "Copy",                    true, false);
-            menu.addItem(kClipPaste,        "Paste",                   true, false);
-            menu.addSeparator();
-            menu.addItem(kClipCopyEffects,  "Copy Effects",            true, false);
-            menu.addItem(kClipPasteEffects, "Paste Effects",           true, false);
-            menu.addSeparator();
-            menu.addItem(kClipRename,       "Rename...",               true, false);
             menu.addItem(kClipClear,        "Clear",                   true, false);
-            menu.addItem(kClipShowInFinder, "Show in Finder",          true, false);
-            menu.addSeparator();
-            menu.addItem(kClipNewSource,    "New Procedural Source",   true, false);
-            menu.addItem(kClipNewEffect,    "New Effect Clip",         true, false);
             menu.addSeparator();
             menu.addItem(kClipReplaceContent, "Replace Content...",    true, false);
             menu.addItem(kClipLockContent,    "Lock Content",          true, false);
@@ -145,10 +109,6 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
             }
 
             menu.addSeparator();
-            menu.addItem(kOutputWindowed,         "Windowed",            true, false);
-            menu.addSeparator();
-            menu.addItem(kOutputIdentifyDisplays, "Identify Displays",   true, false);
-            menu.addItem(kOutputTestCard,         "Test Card",           true, false);
             menu.addItem(kOutputSnapshot,         "Snapshot",            true, false);
             menu.addSeparator();
             menu.addItem(kOutputStartRecording,   "Start Recording",     true, false);
@@ -170,15 +130,6 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
 
         case 8: // View
         {
-            menu.addItem(kViewSignalBar,       "Signal Bar",        true, false);
-            menu.addItem(kViewDeck,            "Deck",              true, false);
-            menu.addItem(kViewPreview,         "Preview",           true, false);
-            menu.addItem(kViewInspector,       "Inspector",         true, false);
-            menu.addItem(kViewBrowser,         "Browser",           true, false);
-            menu.addItem(kViewTimingWindow,    "Timing Window",     true, false);
-            menu.addSeparator();
-            menu.addItem(kViewFpsStats,        "FPS and Stats",     true, false);
-            menu.addSeparator();
             menu.addItem(kViewSaveLayout,      "Save Layout...",    true, false);
             menu.addItem(kViewLoadLayout,      "Load Layout...",    true, false);
             menu.addItem(kViewResetLayout,     "Reset Layout",      true, false);
