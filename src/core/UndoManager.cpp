@@ -1,7 +1,17 @@
 #include "UndoManager.h"
+#include <juce_events/juce_events.h>
+
+// Commands mutate the model, which the GL render thread reads lock-free. They
+// must therefore run on the message thread only. The guard lets headless unit
+// tests (no MessageManager instance) call these directly while still enforcing
+// the invariant whenever a MessageManager is running (i.e. in the app).
+#define UNDO_ASSERT_MESSAGE_THREAD()                                            \
+    jassert(juce::MessageManager::getInstanceWithoutCreating() == nullptr       \
+            || juce::MessageManager::existsAndIsCurrentThread())
 
 void UndoManager::perform(std::unique_ptr<Command> cmd)
 {
+    UNDO_ASSERT_MESSAGE_THREAD();
     cmd->execute();
 
     // Try to merge with previous command
@@ -37,6 +47,7 @@ void UndoManager::perform(std::unique_ptr<Command> cmd)
 
 bool UndoManager::undo()
 {
+    UNDO_ASSERT_MESSAGE_THREAD();
     if (!canUndo())
         return false;
 
@@ -49,6 +60,7 @@ bool UndoManager::undo()
 
 bool UndoManager::redo()
 {
+    UNDO_ASSERT_MESSAGE_THREAD();
     if (!canRedo())
         return false;
 

@@ -1120,6 +1120,26 @@ MainComponent::MainComponent(bool testMode, int testPort)
     menuBarModel_->onMenuCommand = [this](int cmdId) { handleMenuCommand(cmdId); };
     menuBarModel_->isSyphonOutputEnabled = [this]() { return syphonOutput_.isEnabled(); };
 
+    // Undo/Redo menu state: dynamic "Undo <description>" text + enabled flags,
+    // and rebuild the native menu whenever history changes.
+    menuBarModel_->getUndoState = [this]() {
+        return std::make_pair(juce::String(undoManager_.undoDescription()),
+                              undoManager_.canUndo());
+    };
+    menuBarModel_->getRedoState = [this]() {
+        return std::make_pair(juce::String(undoManager_.redoDescription()),
+                              undoManager_.canRedo());
+    };
+    undoManager_.onHistoryChanged = [this]() {
+        if (menuBarModel_) menuBarModel_->menuItemsChanged();
+    };
+
+    // Undo plumbing: give the UndoService non-owning handles to the model,
+    // renderer, deck grid and inspector so commands can re-resolve targets by
+    // coordinate and refresh the UI after undo/redo.
+    undoService_.setCollaborators(&composition_, &previewPanel_.getRenderer(),
+                                  deckView_.get(), inspectorPanel_.get());
+
     // === v2: Binding System & MIDI (P9) ===
     bindingManager_.setActionCallback([this](const Binding& b, float val)
     {
@@ -1301,6 +1321,10 @@ void MainComponent::setTooltipsEnabled(bool enabled)
 
 MainComponent::~MainComponent()
 {
+    // Drop undo history on shutdown: commands hold model snapshots that must
+    // not outlive the composition/renderer they refer to.
+    undoManager_.clear();
+
     // P22: Stop output/integration services
     if (apiServer_)
         apiServer_->stop();
@@ -1722,6 +1746,8 @@ void MainComponent::loadPreset()
                               juce::dontSendNotification);
             if (effectsRackPanel_)
                 effectsRackPanel_->refreshFromChain();
+            // Loading a composition is not itself undoable — drop stale history.
+            undoManager_.clear();
         }
     });
 }
@@ -2271,6 +2297,9 @@ void MainComponent::loadDeck()
 
         if (effectsRackPanel_)
             effectsRackPanel_->refreshFromChain();
+
+        // Loading a legacy deck replaces app state — drop stale undo history.
+        undoManager_.clear();
 
         fileLabel_.setText("Deck: " + file.getFileNameWithoutExtension(),
                           juce::dontSendNotification);
@@ -2898,6 +2927,7 @@ void MainComponent::handleMenuCommand(int commandId)
             break;
         case C::kCompNew:
             composition_.initDefault();
+            undoManager_.clear();
             if (deckView_) deckView_->rebuildGrid();
             if (inspectorPanel_) inspectorPanel_->refresh();
             break;

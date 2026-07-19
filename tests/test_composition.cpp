@@ -3,6 +3,7 @@
 #include "model/Composition.h"
 #include "core/UndoManager.h"
 #include "core/Command.h"
+#include "core/CompositeCommand.h"
 
 using Catch::Matchers::WithinAbs;
 
@@ -613,4 +614,143 @@ TEST_CASE("UndoManager basic operations", "[undo]")
         mgr.redo();
         REQUIRE(value == 2);
     }
+}
+
+namespace
+{
+    // Records execution/undo order into a shared log (positive id on execute,
+    // negative on undo) so ordering can be asserted.
+    struct LogCmd : Command
+    {
+        std::vector<int>& log;
+        int id;
+        LogCmd(std::vector<int>& l, int i) : log(l), id(i) {}
+        void execute() override { log.push_back(id); }
+        void undo() override { log.push_back(-id); }
+        std::string description() const override { return "log"; }
+    };
+
+    // Plain value-setter, no merging.
+    struct SetCmd : Command
+    {
+        int& ref;
+        int newVal, oldVal;
+        SetCmd(int& r, int v) : ref(r), newVal(v), oldVal(r) {}
+        void execute() override { ref = newVal; }
+        void undo() override { ref = oldVal; }
+        std::string description() const override { return "set"; }
+    };
+
+    // Mergeable setter: keeps its original before-state, adopts the latest
+    // after-state on merge (models consecutive triggers on one layer).
+    struct MergeCmd : Command
+    {
+        int& ref;
+        int before, after;
+        MergeCmd(int& r, int v) : ref(r), before(r), after(v) {}
+        void execute() override { ref = after; }
+        void undo() override { ref = before; }
+        std::string description() const override { return "merge"; }
+        bool canMergeWith(const Command& /*other*/) const override { return true; }
+        void mergeWith(const Command& other) override
+        {
+            after = static_cast<const MergeCmd&>(other).after;
+        }
+    };
+}
+
+TEST_CASE("CompositeCommand executes in order, undoes in reverse", "[undo][composite]")
+{
+    std::vector<int> log;
+
+    CompositeCommand comp("Group");
+    comp.add(std::make_unique<LogCmd>(log, 1));
+    comp.add(std::make_unique<LogCmd>(log, 2));
+    comp.add(std::make_unique<LogCmd>(log, 3));
+
+    REQUIRE(comp.size() == 3);
+    REQUIRE_FALSE(comp.isEmpty());
+    REQUIRE(comp.description() == "Group");
+
+    comp.execute();
+    REQUIRE(log == std::vector<int>{ 1, 2, 3 });
+
+    log.clear();
+    comp.undo();
+    REQUIRE(log == std::vector<int>{ -3, -2, -1 });
+
+    log.clear();
+    comp.execute(); // redo path
+    REQUIRE(log == std::vector<int>{ 1, 2, 3 });
+}
+
+TEST_CASE("CompositeCommand is one undo unit through UndoManager", "[undo][composite]")
+{
+    UndoManager mgr;
+    int a = 0, b = 0;
+
+    auto comp = std::make_unique<CompositeCommand>("Set A and B");
+    comp->add(std::make_unique<SetCmd>(a, 5));
+    comp->add(std::make_unique<SetCmd>(b, 7));
+    mgr.perform(std::move(comp));
+
+    REQUIRE(a == 5);
+    REQUIRE(b == 7);
+    REQUIRE(mgr.historySize() == 1);            // one slot for the whole group
+    REQUIRE(mgr.undoDescription() == "Set A and B");
+
+    mgr.undo();
+    REQUIRE(a == 0);
+    REQUIRE(b == 0);
+
+    mgr.redo();
+    REQUIRE(a == 5);
+    REQUIRE(b == 7);
+}
+
+TEST_CASE("UndoManager merges consecutive mergeable commands", "[undo][merge]")
+{
+    UndoManager mgr;
+    int value = 0;
+
+    mgr.perform(std::make_unique<MergeCmd>(value, 10));
+    REQUIRE(value == 10);
+    REQUIRE(mgr.historySize() == 1);
+
+    mgr.perform(std::make_unique<MergeCmd>(value, 20));
+    REQUIRE(value == 20);
+    REQUIRE(mgr.historySize() == 1);            // merged, not a new slot
+
+    mgr.perform(std::make_unique<MergeCmd>(value, 30));
+    REQUIRE(value == 30);
+    REQUIRE(mgr.historySize() == 1);
+
+    // One undo reverts to the ORIGINAL before-state, proving the merge kept the
+    // first command's before while adopting the last after.
+    mgr.undo();
+    REQUIRE(value == 0);
+    REQUIRE_FALSE(mgr.canUndo());
+}
+
+TEST_CASE("UndoManager caps history at kMaxHistory (100)", "[undo][cap]")
+{
+    UndoManager mgr;
+    int value = 0;
+
+    // 150 distinct, non-merging commands.
+    for (int i = 1; i <= 150; ++i)
+        mgr.perform(std::make_unique<SetCmd>(value, i));
+
+    REQUIRE(value == 150);
+    REQUIRE(mgr.historySize() == 100);          // oldest 50 evicted
+
+    int undos = 0;
+    while (mgr.canUndo())
+    {
+        mgr.undo();
+        ++undos;
+    }
+    REQUIRE(undos == 100);                       // exactly cap-many undos remain
+    // Undoing #51 last restores value to its before-state (50).
+    REQUIRE(value == 50);
 }

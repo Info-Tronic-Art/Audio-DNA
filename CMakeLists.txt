@@ -151,8 +151,11 @@ target_sources(AudioDNA PRIVATE
 
     # Core (v2)
     src/core/Command.h
+    src/core/CompositeCommand.h
     src/core/UndoManager.h
     src/core/UndoManager.cpp
+    src/core/UndoService.h
+    src/core/UndoService.cpp
 
     # Model (v2)
     src/model/Composition.h

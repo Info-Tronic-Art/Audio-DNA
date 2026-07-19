@@ -41,5 +41,5 @@ private:
     std::vector<std::unique_ptr<Command>> history_;
     int currentIndex_ = 0; // Points to the next slot to write (everything before is undoable)
 
-    static constexpr int kMaxHistory = 500;
+    static constexpr int kMaxHistory = 100;
 };

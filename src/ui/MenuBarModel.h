@@ -122,6 +122,13 @@ public:
     // Callbacks — MainComponent wires these
     std::function<void(int)> onMenuCommand;
 
+    // Undo/Redo state providers — MainComponent injects these so the
+    // Composition menu can show "Undo <description>" / "Redo <description>"
+    // with the correct enabled flag. Each returns {description, enabled}.
+    // When unset, the items fall back to a disabled plain "Undo"/"Redo".
+    std::function<std::pair<juce::String, bool>()> getUndoState;
+    std::function<std::pair<juce::String, bool>()> getRedoState;
+
     // Returns the current Syphon-output enabled state, used to tick the
     // "Syphon Output" menu item. MainComponent wires this.
     std::function<bool()> isSyphonOutputEnabled;

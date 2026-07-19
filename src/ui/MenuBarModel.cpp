@@ -31,8 +31,41 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
 
         case 1: // Composition
         {
-            menu.addItem(kCompUndo,     "Undo",                       true, false);
-            menu.addItem(kCompRedo,     "Redo",                       true, false);
+            // Dynamic Undo/Redo: "Undo <description>", enabled flag, and the
+            // Cmd+Z / Cmd+Shift+Z shortcut text, driven by injected providers.
+            {
+                juce::PopupMenu::Item undoItem;
+                undoItem.itemID = kCompUndo;
+                undoItem.shortcutKeyDescription = "Cmd+Z";
+                if (getUndoState)
+                {
+                    auto state = getUndoState();
+                    undoItem.text = state.first.isNotEmpty() ? "Undo " + state.first : "Undo";
+                    undoItem.isEnabled = state.second;
+                }
+                else
+                {
+                    undoItem.text = "Undo";
+                    undoItem.isEnabled = false;
+                }
+                menu.addItem(undoItem);
+
+                juce::PopupMenu::Item redoItem;
+                redoItem.itemID = kCompRedo;
+                redoItem.shortcutKeyDescription = "Cmd+Shift+Z";
+                if (getRedoState)
+                {
+                    auto state = getRedoState();
+                    redoItem.text = state.first.isNotEmpty() ? "Redo " + state.first : "Redo";
+                    redoItem.isEnabled = state.second;
+                }
+                else
+                {
+                    redoItem.text = "Redo";
+                    redoItem.isEnabled = false;
+                }
+                menu.addItem(redoItem);
+            }
             menu.addSeparator();
             menu.addItem(kCompNew,      "New Composition",            true, false);
             menu.addItem(kCompOpen,     "Open...",                    true, false);
