@@ -143,6 +143,11 @@ public:
     // Get the VideoPlayer for a clip (nullptr if none). For transport control.
     VideoPlayer* getVideoPlayer(uint32_t clipId);
 
+    // Get the file currently loaded for a clip's video player (empty if none).
+    // Lets callers detect an id-stable content swap and reopen when the loaded
+    // file differs from the clip's current media file.
+    juce::File getVideoPlayerFile(uint32_t clipId);
+
     // Get the ImageSequence for a clip (nullptr if none). For transport control.
     ImageSequence* getImageSequence(uint32_t clipId);
 

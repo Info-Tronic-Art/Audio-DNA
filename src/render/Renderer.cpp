@@ -856,6 +856,13 @@ VideoPlayer* Renderer::getVideoPlayer(uint32_t clipId)
     return (it != videoPlayers_.end()) ? it->second.get() : nullptr;
 }
 
+juce::File Renderer::getVideoPlayerFile(uint32_t clipId)
+{
+    std::lock_guard<std::mutex> lock(videoPlayerMutex_);
+    auto it = videoPlayers_.find(clipId);
+    return (it != videoPlayers_.end()) ? it->second->getFile() : juce::File();
+}
+
 ImageSequence* Renderer::getImageSequence(uint32_t clipId)
 {
     std::lock_guard<std::mutex> lock(imageSeqMutex_);

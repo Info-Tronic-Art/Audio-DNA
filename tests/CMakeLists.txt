@@ -191,6 +191,37 @@ if(NOT MSVC)
 endif()
 catch_discover_tests(test_composition)
 
+# --- test_undo_commands (Undo v1 step 2: clip commands + coord resolution) ---
+# Headless: bare Composition, no-op renderer/UI hooks. UndoService resolvers are
+# inline (renderer-free) so this target does NOT link UndoService.cpp/Renderer.
+add_executable(test_undo_commands
+    test_undo_commands.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+)
+target_include_directories(test_undo_commands PRIVATE ${SRC_DIR})
+target_link_libraries(test_undo_commands PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_undo_commands PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_undo_commands PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+catch_discover_tests(test_undo_commands)
+
 # --- test_routing_engine (P3: signals + routing) ---
 add_executable(test_routing_engine
     test_routing_engine.cpp

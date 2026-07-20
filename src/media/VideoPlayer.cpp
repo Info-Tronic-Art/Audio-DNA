@@ -32,6 +32,7 @@ VideoPlayer::~VideoPlayer()
 bool VideoPlayer::open(const juce::File& file)
 {
     std::lock_guard<std::mutex> lock(ffmpegMutex_);
+    sourceFile_ = file;
 
     // Close any previously open file
     if (open_.load(std::memory_order_relaxed))

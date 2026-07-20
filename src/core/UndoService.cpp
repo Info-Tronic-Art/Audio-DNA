@@ -1,40 +1,12 @@
 #include "core/UndoService.h"
-#include "model/Composition.h"
 #include "render/Renderer.h"
 #include "ui/DeckView.h"
 #include "ui/InspectorPanel.h"
 
-void UndoService::setCollaborators(Composition* composition, Renderer* renderer,
-                                   DeckView* deckView, InspectorPanel* inspector)
-{
-    composition_ = composition;
-    renderer_ = renderer;
-    deckView_ = deckView;
-    inspector_ = inspector;
-}
-
-Deck* UndoService::resolveDeck(int deckIndex) const
-{
-    if (composition_ == nullptr)
-        return nullptr;
-    if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_->decks.size()))
-        return nullptr;
-    return &composition_->decks[static_cast<size_t>(deckIndex)];
-}
-
-Layer* UndoService::resolveLayer(int deckIndex, int layerIndex) const
-{
-    if (Deck* deck = resolveDeck(deckIndex))
-        return deck->getLayer(layerIndex);
-    return nullptr;
-}
-
-Clip* UndoService::resolveClip(int deckIndex, int layerIndex, int column) const
-{
-    if (Deck* deck = resolveDeck(deckIndex))
-        return deck->getClip(layerIndex, column);
-    return nullptr;
-}
+// setCollaborators + resolveDeck/Layer/Clip are inline in UndoService.h (they
+// touch only the Composition, so they stay renderer-free and headless-testable).
+// The methods below reach into the renderer / UI, so they live here where the
+// heavy headers are available and only the app links against them.
 
 void UndoService::syncAfterModelChange(SyncScope scope)
 {
@@ -57,24 +29,14 @@ void UndoService::syncAfterModelChange(SyncScope scope, ReinspectTarget reinspec
         renderer_->setActiveDeck(composition_->getActiveDeck());
 
     // Inspector: re-point BY COORDINATES so a reallocated model never leaves it
-    // holding a dangling Clip*/Layer*. If the coordinate no longer resolves,
-    // fall back to a plain refresh of the current tab.
+    // holding a dangling Clip*/Layer*. When the coordinate no longer resolves,
+    // inspect nullptr (a null-safe clear) rather than refreshing a stale pointer.
     if (reinspect.active && inspector_ != nullptr)
     {
         if (reinspect.column >= 0)
-        {
-            if (Clip* clip = resolveClip(reinspect.deckIndex, reinspect.layerIndex, reinspect.column))
-                inspector_->inspectClip(clip);
-            else
-                inspector_->refresh();
-        }
+            inspector_->inspectClip(resolveClip(reinspect.deckIndex, reinspect.layerIndex, reinspect.column));
         else
-        {
-            if (Layer* layer = resolveLayer(reinspect.deckIndex, reinspect.layerIndex))
-                inspector_->inspectLayer(layer);
-            else
-                inspector_->refresh();
-        }
+            inspector_->inspectLayer(resolveLayer(reinspect.deckIndex, reinspect.layerIndex));
     }
 }
 

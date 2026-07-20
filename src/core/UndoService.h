@@ -1,10 +1,7 @@
 #pragma once
+#include "model/Composition.h"   // Composition / Deck / Layer / Clip (for inline resolvers)
 #include <functional>
 
-struct Composition;
-struct Deck;
-struct Layer;
-struct Clip;
 class Renderer;
 class DeckView;
 class InspectorPanel;
@@ -16,6 +13,8 @@ class InspectorPanel;
 //      (deckIndex, layerIndex, column) and re-resolve a fresh pointer through
 //      the Composition at execute/undo time. Commands NEVER store raw
 //      Clip*/Layer*/Deck* pointers, which dangle across vector reallocation.
+//      These resolvers are inline + renderer-free so they can be unit-tested
+//      headless against a bare Composition.
 //   2. syncAfterModelChange — one shared refresh after a mutation: rebuild or
 //      refresh the deck grid, re-point the renderer's active deck when deck
 //      structure/active index changed, and re-inspect the inspector BY
@@ -51,18 +50,45 @@ public:
     };
 
     void setCollaborators(Composition* composition, Renderer* renderer,
-                          DeckView* deckView, InspectorPanel* inspector);
+                          DeckView* deckView, InspectorPanel* inspector)
+    {
+        composition_ = composition;
+        renderer_ = renderer;
+        deckView_ = deckView;
+        inspector_ = inspector;
+    }
 
     // --- Coordinate resolution (re-resolved every call; never cached) ---
-    Deck*  resolveDeck(int deckIndex) const;
-    Layer* resolveLayer(int deckIndex, int layerIndex) const;
-    Clip*  resolveClip(int deckIndex, int layerIndex, int column) const;
+    // Inline + renderer-free: only touch the Composition, so they link into
+    // headless unit tests without pulling in the renderer/UI.
+    Deck* resolveDeck(int deckIndex) const
+    {
+        if (composition_ == nullptr)
+            return nullptr;
+        if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_->decks.size()))
+            return nullptr;
+        return &composition_->decks[static_cast<size_t>(deckIndex)];
+    }
 
-    // --- Shared post-mutation refresh ---
+    Layer* resolveLayer(int deckIndex, int layerIndex) const
+    {
+        if (Deck* deck = resolveDeck(deckIndex))
+            return deck->getLayer(layerIndex);
+        return nullptr;
+    }
+
+    Clip* resolveClip(int deckIndex, int layerIndex, int column) const
+    {
+        if (Deck* deck = resolveDeck(deckIndex))
+            return deck->getClip(layerIndex, column);
+        return nullptr;
+    }
+
+    // --- Shared post-mutation refresh (defined in UndoService.cpp) ---
     void syncAfterModelChange(SyncScope scope);
     void syncAfterModelChange(SyncScope scope, ReinspectTarget reinspect);
 
-    // --- GL fence for structure-changing mutations ---
+    // --- GL fence for structure-changing mutations (defined in UndoService.cpp) ---
     // Runs `mutation` with the renderer's active deck detached and the GL
     // thread fenced. If no renderer is wired, runs `mutation` directly.
     void withDeckDetached(const std::function<void()>& mutation);

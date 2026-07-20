@@ -28,6 +28,10 @@
 #include "midi/MidiHandler.h"
 #include "core/UndoManager.h"
 #include "core/UndoService.h"
+#include "core/ClipCommands.h"
+#include <optional>
+#include <memory>
+#include <vector>
 #include "recording/SessionRecorder.h"
 #include "recording/VideoRecorder.h"
 #include "sync/LinkSync.h"
@@ -106,6 +110,33 @@ private:
 
     // Menu command handler
     void handleMenuCommand(int commandId);
+
+    // === Undo command construction (Undo v1 step 2) ===
+    // One in-flight cell change: coordinate + before/after value snapshots.
+    struct CellEdit
+    {
+        int layerIndex = 0;
+        int column = 0;
+        std::optional<Clip> before;
+        std::optional<Clip> after;
+    };
+    // Hooks the clip commands use, bound to this component's model/renderer.
+    ClipLayerResolver makeLayerResolver();
+    ClipMediaHook makeClipMediaHook();
+    // Snapshot a cell (nullopt if empty / out of range).
+    static std::optional<Clip> snapshotCell(Layer* layer, int column);
+    // Build a single SetClipCmd for one cell edit.
+    std::unique_ptr<Command> makeSetClipCmd(int deckIndex, const CellEdit& edit,
+                                            const juce::String& description);
+    // Record cell edits as one undo unit (single command, or a CompositeCommand
+    // when more than one cell changed). Skips empty edit lists / empty composites.
+    void pushClipEdits(int deckIndex, std::vector<CellEdit> edits,
+                       const juce::String& description);
+    // Push a ready list of commands as one undo unit (single or composite).
+    void pushCommands(std::vector<std::unique_ptr<Command>> children,
+                      const juce::String& compositeDescription);
+    // Grid + inspector refresh after an undo/redo (re-inspect by coordinate).
+    void refreshAfterUndoRedo();
 
     AudioDNALookAndFeel lookAndFeel_;
 

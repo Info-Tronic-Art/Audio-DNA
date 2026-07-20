@@ -4,6 +4,8 @@
 #include "analysis/GenreDetector.h"
 #include "effects/ISFShaderLoader.h"
 #include "sources/ProjectMSource.h"
+#include "core/CompositeCommand.h"
+#include "core/MediaReconnect.h"
 
 MainComponent::MainComponent(bool testMode, int testPort)
     : testMode_(testMode), testPort_(testPort)
@@ -692,6 +694,16 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto* existingClip = layer->getClipAt(col);
         bool hasContent = existingClip && (existingClip->hasMedia() || !existingClip->effects.empty());
 
+        // Capture before-state of every column this drop will touch (one column
+        // when appending to a chain, N consecutive columns for a multi-FX drop
+        // onto empty cells) so the whole gesture is one undo unit.
+        std::vector<CellEdit> edits;
+        if (hasContent)
+            edits.push_back({ layerIdx, col, snapshotCell(layer, col), std::nullopt });
+        else
+            for (int fi = 0; fi < fxNames.size(); ++fi)
+                edits.push_back({ layerIdx, col + fi, snapshotCell(layer, col + fi), std::nullopt });
+
         if (hasContent)
         {
             // Add all FX to the existing clip's chain
@@ -743,6 +755,13 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 deck->setClip(layerIdx, targetCol, newClip);
             }
         }
+
+        // Capture after-state and record the drop as one undo unit.
+        for (auto& edit : edits)
+            edit.after = snapshotCell(layer, edit.column);
+        pushClipEdits(composition_.activeDeckIndex, edits,
+                      fxNames.size() > 1 ? juce::String("Add Effects")
+                                         : "Add Effect '" + effectName + "'");
 
         if (deckView_) deckView_->rebuildGrid();
         if (inspectorPanel_)
@@ -849,6 +868,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto* layer = deck->getLayer(layerIdx);
         if (!layer) return;
 
+        std::optional<Clip> before = snapshotCell(layer, col);
+
         layer->ensureColumns(col + 1);
         if (deck->numColumns < col + 1) deck->numColumns = col + 1;
 
@@ -882,6 +903,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
         clip.presetPlaylist.push_back(entry);
 
         deck->setClip(layerIdx, col, clip);
+        pushClipEdits(composition_.activeDeckIndex,
+                      { { layerIdx, col, before, std::optional<Clip>(clip) } },
+                      "Drop '" + juce::String(clip.name) + "'");
         if (deckView_) deckView_->rebuildGrid();
         if (inspectorPanel_)
         {
@@ -896,6 +920,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (!deck) return;
         auto* layer = deck->getLayer(layerIdx);
         if (!layer) return;
+
+        std::optional<Clip> before = snapshotCell(layer, col);
 
         layer->ensureColumns(col + 1);
         if (deck->numColumns < col + 1) deck->numColumns = col + 1;
@@ -935,6 +961,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
         clip.playlistTriggerBeats = 8;
 
         deck->setClip(layerIdx, col, clip);
+        pushClipEdits(composition_.activeDeckIndex,
+                      { { layerIdx, col, before, std::optional<Clip>(clip) } },
+                      "Drop '" + juce::String(clip.name) + "'");
         if (deckView_) deckView_->rebuildGrid();
         if (inspectorPanel_)
         {
@@ -1803,9 +1832,13 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     if (key.isKeyCode('Z') && mod.isCommandDown())
     {
         if (mod.isShiftDown())
-            undoManager_.redo();
+        {
+            if (undoManager_.redo()) refreshAfterUndoRedo();
+        }
         else
-            undoManager_.undo();
+        {
+            if (undoManager_.undo()) refreshAfterUndoRedo();
+        }
         return true;
     }
 
@@ -2781,6 +2814,105 @@ void MainComponent::handleColumnTrigger(int column)
 
 static uint32_t s_nextClipId = 1000;
 
+// === Undo command construction helpers (Undo v1 step 2) ===
+
+ClipLayerResolver MainComponent::makeLayerResolver()
+{
+    return [this](int deckIndex, int layerIndex) {
+        return undoService_.resolveLayer(deckIndex, layerIndex);
+    };
+}
+
+ClipMediaHook MainComponent::makeClipMediaHook()
+{
+    // Risk #4 guard: video/sequence players are keyed by clip id and never
+    // closed, so redo reconnects for free today. Reconnect-if-missing keeps
+    // redo correct even if a future wave adds player disposal.
+    return [this](const Clip& clip) {
+        if (!clip.isPlayable()) return;
+        auto& renderer = previewPanel_.getRenderer();
+        if (clip.mediaType == Clip::MediaType::Video)
+        {
+            // Reopen if the player is missing OR loaded a different file than
+            // the clip now wants (id-stable content swap on replace-undo/redo).
+            const bool exists = renderer.getVideoPlayer(clip.id) != nullptr;
+            if (needsVideoReopen(renderer.getVideoPlayerFile(clip.id), clip.mediaFile, exists))
+                renderer.openVideoForClip(clip.id, clip.mediaFile);
+        }
+        else if (clip.mediaType == Clip::MediaType::ImageSequence)
+        {
+            // Image sequences can't be content-swapped under an existing id
+            // (replace only produces Image/Video; sequences always get a fresh
+            // id), so reconnect-if-missing is sufficient here.
+            if (!renderer.getImageSequence(clip.id))
+                renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
+        }
+    };
+}
+
+std::optional<Clip> MainComponent::snapshotCell(Layer* layer, int column)
+{
+    if (layer == nullptr) return std::nullopt;
+    if (Clip* clip = layer->getClipAt(column))
+        return std::optional<Clip>(*clip);
+    return std::nullopt;
+}
+
+std::unique_ptr<Command> MainComponent::makeSetClipCmd(int deckIndex, const CellEdit& edit,
+                                                       const juce::String& description)
+{
+    return std::make_unique<SetClipCmd>(makeLayerResolver(), makeClipMediaHook(),
+                                        deckIndex, edit.layerIndex, edit.column,
+                                        edit.before, edit.after, description.toStdString());
+}
+
+void MainComponent::pushCommands(std::vector<std::unique_ptr<Command>> children,
+                                 const juce::String& compositeDescription)
+{
+    if (children.empty())
+        return;
+    if (children.size() == 1)
+    {
+        undoManager_.perform(std::move(children.front()));
+        return;
+    }
+    auto composite = std::make_unique<CompositeCommand>(compositeDescription.toStdString());
+    for (auto& child : children)
+        composite->add(std::move(child));
+    if (!composite->isEmpty())   // guard: never perform an empty composite
+        undoManager_.perform(std::move(composite));
+}
+
+void MainComponent::pushClipEdits(int deckIndex, std::vector<CellEdit> edits,
+                                  const juce::String& description)
+{
+    std::vector<std::unique_ptr<Command>> children;
+    children.reserve(edits.size());
+    for (auto& edit : edits)
+        children.push_back(makeSetClipCmd(deckIndex, edit, description));
+    pushCommands(std::move(children), description);
+}
+
+void MainComponent::refreshAfterUndoRedo()
+{
+    // Grid rebuild via the shared helper (active deck unchanged in step 2).
+    undoService_.syncAfterModelChange(UndoService::SyncScope::Grid);
+
+    // Re-point the clip inspector BY COORDINATE (the currently selected cell)
+    // so an undo that emptied/replaced that cell can't leave a dangling Clip*.
+    // Uses setClip directly to avoid switching the active inspector tab.
+    if (inspectorPanel_ && deckView_)
+    {
+        Clip* fresh = nullptr;
+        const auto& selection = deckView_->getSelectedCells();
+        if (!selection.empty())
+            fresh = undoService_.resolveClip(composition_.activeDeckIndex,
+                                             selection.front().layer,
+                                             selection.front().column);
+        inspectorPanel_->getClipInspector().setClip(fresh);
+    }
+}
+
 void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File& file)
 {
     auto* deck = composition_.getActiveDeck();
@@ -2792,6 +2924,9 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
         if (existing->contentLocked)
             return; // Silently refuse — locked content
     }
+
+    // Capture before-state for undo (nullopt if the cell was empty).
+    std::optional<Clip> before = snapshotCell(deck->getLayer(layerIndex), column);
 
     Clip clip;
     clip.name = file.getFileNameWithoutExtension().toStdString();
@@ -2828,6 +2963,10 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
 
     deck->setClip(layerIndex, column, clip);
 
+    pushClipEdits(composition_.activeDeckIndex,
+                  { { layerIndex, column, before, std::optional<Clip>(clip) } },
+                  "Drop '" + juce::String(clip.name) + "'");
+
     if (deckView_)
         deckView_->rebuildGrid();
 }
@@ -2836,6 +2975,9 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
 {
     auto* deck = composition_.getActiveDeck();
     if (!deck) return;
+
+    // Capture before-state for undo (nullopt if the cell was empty).
+    std::optional<Clip> before = snapshotCell(deck->getLayer(layerIndex), column);
 
     Clip clip;
     clip.id = s_nextClipId++;
@@ -2866,6 +3008,10 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
     renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
 
     deck->setClip(layerIndex, column, clip);
+
+    pushClipEdits(composition_.activeDeckIndex,
+                  { { layerIndex, column, before, std::optional<Clip>(clip) } },
+                  "Drop '" + juce::String(clip.name) + "'");
 
     if (deckView_)
         deckView_->rebuildGrid();
@@ -2920,10 +3066,10 @@ void MainComponent::handleMenuCommand(int commandId)
 
         // --- Composition menu ---
         case C::kCompUndo:
-            undoManager_.undo();
+            if (undoManager_.undo()) refreshAfterUndoRedo();
             break;
         case C::kCompRedo:
-            undoManager_.redo();
+            if (undoManager_.redo()) refreshAfterUndoRedo();
             break;
         case C::kCompNew:
             composition_.initDefault();
@@ -3203,8 +3349,18 @@ void MainComponent::handleMenuCommand(int commandId)
                 auto* deck = composition_.getActiveDeck();
                 if (deck)
                 {
+                    int deckIdx = composition_.activeDeckIndex;
+                    std::vector<CellEdit> edits;
                     for (auto& cell : deckView_->getSelectedCells())
+                    {
+                        std::optional<Clip> before = snapshotCell(deck->getLayer(cell.layer), cell.column);
                         deck->setClip(cell.layer, cell.column, Clip{});
+                        edits.push_back({ cell.layer, cell.column, before, std::optional<Clip>(Clip{}) });
+                    }
+                    int count = static_cast<int>(edits.size());
+                    pushClipEdits(deckIdx, edits,
+                                  count > 1 ? "Clear " + juce::String(count) + " Clips"
+                                            : juce::String("Clear Clip"));
                     deckView_->rebuildGrid();
                 }
             }
@@ -3231,6 +3387,9 @@ void MainComponent::handleMenuCommand(int commandId)
                         if (!deck) return;
                         auto* existing = deck->getClip(cell.layer, cell.column);
                         if (!existing) return;
+
+                        // Capture before-state for undo.
+                        std::optional<Clip> before = std::optional<Clip>(*existing);
 
                         // Build new content clip
                         Clip newContent;
@@ -3260,7 +3419,16 @@ void MainComponent::handleMenuCommand(int commandId)
                             }
                         }
 
-                        existing->replaceContent(newContent);
+                        if (existing->replaceContent(newContent))
+                        {
+                            // replaceContent mutated the clip in place (keeping
+                            // effects/transport); record only if it actually
+                            // changed (returns false when contentLocked).
+                            pushClipEdits(composition_.activeDeckIndex,
+                                          { { cell.layer, cell.column, before,
+                                              std::optional<Clip>(*existing) } },
+                                          "Replace Content");
+                        }
                         if (deckView_) deckView_->rebuildGrid();
                         if (inspectorPanel_) inspectorPanel_->refresh();
                     });
@@ -3276,11 +3444,21 @@ void MainComponent::handleMenuCommand(int commandId)
                 auto* deck = composition_.getActiveDeck();
                 if (deck)
                 {
+                    int deckIdx = composition_.activeDeckIndex;
+                    std::vector<std::unique_ptr<Command>> children;
                     for (auto& cell : deckView_->getSelectedCells())
                     {
                         if (auto* clip = deck->getClip(cell.layer, cell.column))
-                            clip->contentLocked = !clip->contentLocked;
+                        {
+                            bool before = clip->contentLocked;
+                            bool after = !before;
+                            clip->contentLocked = after;
+                            children.push_back(std::make_unique<ToggleClipLockCmd>(
+                                makeLayerResolver(), deckIdx, cell.layer, cell.column,
+                                before, after, after ? "Lock Content" : "Unlock Content"));
+                        }
                     }
+                    pushCommands(std::move(children), "Toggle Content Lock");
                     if (deckView_) deckView_->refresh();
                     if (inspectorPanel_) inspectorPanel_->refresh();
                 }

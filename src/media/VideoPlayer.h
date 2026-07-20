@@ -41,6 +41,10 @@ public:
     bool isOpen() const { return open_.load(std::memory_order_relaxed); }
     bool hasAlpha() const { return hasAlpha_.load(std::memory_order_relaxed); }
 
+    // The file this player last opened (empty if never opened). Lets callers
+    // detect an id-stable content swap (same clip id, different media file).
+    juce::File getFile() const { return sourceFile_; }
+
     // Video properties (valid after open)
     int getWidth() const { return width_; }
     int getHeight() const { return height_; }
@@ -93,6 +97,9 @@ public:
     VideoPlayer& operator=(const VideoPlayer&) = delete;
 
 private:
+    // The most recently opened file (for id-stable content-swap detection).
+    juce::File sourceFile_;
+
     // FFmpeg state
     AVFormatContext* formatCtx_ = nullptr;
     AVCodecContext* codecCtx_ = nullptr;
