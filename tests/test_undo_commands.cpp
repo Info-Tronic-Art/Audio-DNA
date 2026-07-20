@@ -112,6 +112,13 @@ namespace
         return [&svc](int d, int l) { return svc.resolveLayer(d, l); };
     }
 
+    // Deck resolver bound through UndoService (SwapClipsCmd re-resolves the Deck
+    // for numColumns + both affected layers).
+    ClipDeckResolver deckResolverFor(UndoService& svc)
+    {
+        return [&svc](int d) { return svc.resolveDeck(d); };
+    }
+
     ClipMediaHook noopMedia()
     {
         return [](const Clip&) {};
@@ -304,6 +311,85 @@ TEST_CASE("CompositeCommand clears multiple cells as one undo unit", "[undo][com
     mgr.redo();
     REQUIRE(comp.decks[0].getClip(0, 0) == nullptr);
     REQUIRE(comp.decks[0].getClip(1, 1) == nullptr);
+}
+
+// ---------------------------------------------------------------------------
+// SwapClipsCmd (spec §2 #3): drag-name-bar move/swap, one undo unit
+// ---------------------------------------------------------------------------
+
+TEST_CASE("SwapClipsCmd: swap two occupied cells, deep-equal both directions", "[undo][swap]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+
+    Clip a = richClip(1, "a");
+    Clip b = richClip(2, "b");
+    b.clipOpacity = 0.55f;                    // make the two clearly distinct
+    comp.decks[0].setClip(0, 2, a);           // src cell
+    comp.decks[0].setClip(1, 5, b);           // dst cell (occupied → a real swap)
+    const int cols = comp.decks[0].numColumns;
+
+    int hookCalls = 0;
+    ClipMediaHook counting = [&hookCalls](const Clip&) { ++hookCalls; };
+
+    // After the swap: src holds b, dst holds a; numColumns unchanged.
+    mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), counting,
+        0, /*src*/ 0, 2, /*dst*/ 1, 5,
+        std::optional<Clip>(a), std::optional<Clip>(b),   // src before/after
+        std::optional<Clip>(b), std::optional<Clip>(a),   // dst before/after
+        cols, cols, "Swap Clips"));
+
+    REQUIRE(*comp.decks[0].getClip(0, 2) == b);
+    REQUIRE(*comp.decks[0].getClip(1, 5) == a);
+    REQUIRE(comp.decks[0].numColumns == cols);
+    REQUIRE(mgr.undoDescription() == "Swap Clips");
+    REQUIRE(hookCalls == 2);                   // media hook fired for BOTH cells
+
+    mgr.undo();                                // execute→undo == initial
+    REQUIRE(*comp.decks[0].getClip(0, 2) == a);
+    REQUIRE(*comp.decks[0].getClip(1, 5) == b);
+    REQUIRE(comp.decks[0].numColumns == cols);
+
+    mgr.redo();                                // execute→undo→redo == post
+    REQUIRE(*comp.decks[0].getClip(0, 2) == b);
+    REQUIRE(*comp.decks[0].getClip(1, 5) == a);
+    REQUIRE(comp.decks[0].numColumns == cols);
+}
+
+TEST_CASE("SwapClipsCmd: move to a far empty column grows then undo shrinks numColumns", "[undo][swap]")
+{
+    Composition comp = makeComp();            // numColumns == 12
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+
+    Clip x = richClip(42, "mover");
+    comp.decks[0].setClip(0, 3, x);           // src at (0,3)
+    const int colsBefore = comp.decks[0].numColumns;   // 12
+    const int dstCol = 15;                    // beyond current column count
+    const int colsAfter = dstCol + 1;         // 16
+
+    // Move x from (0,3) onto empty (1,15): src empties, dst gets x, cols 12→16.
+    mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), noopMedia(),
+        0, /*src*/ 0, 3, /*dst*/ 1, dstCol,
+        std::optional<Clip>(x), std::nullopt,             // src before/after
+        std::nullopt,          std::optional<Clip>(x),    // dst before/after
+        colsBefore, colsAfter, "Move Clip"));
+
+    REQUIRE(comp.decks[0].numColumns == colsAfter);
+    REQUIRE(comp.decks[0].getClip(0, 3) == nullptr);            // src emptied
+    REQUIRE(comp.decks[0].getClip(1, dstCol) != nullptr);
+    REQUIRE(*comp.decks[0].getClip(1, dstCol) == x);           // moved (deep-equal)
+
+    mgr.undo();
+    REQUIRE(comp.decks[0].numColumns == colsBefore);           // count shrunk back
+    REQUIRE(*comp.decks[0].getClip(0, 3) == x);                // src restored
+    REQUIRE(comp.decks[0].getClip(1, dstCol) == nullptr);      // far cell cleared
+
+    mgr.redo();
+    REQUIRE(comp.decks[0].numColumns == colsAfter);
+    REQUIRE(comp.decks[0].getClip(0, 3) == nullptr);
+    REQUIRE(*comp.decks[0].getClip(1, dstCol) == x);
 }
 
 // ---------------------------------------------------------------------------

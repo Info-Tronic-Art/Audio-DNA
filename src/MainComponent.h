@@ -122,6 +122,7 @@ private:
     };
     // Hooks the clip commands use, bound to this component's model/renderer.
     ClipLayerResolver makeLayerResolver();
+    ClipDeckResolver makeDeckResolver();
     ClipMediaHook makeClipMediaHook();
     // Snapshot a cell (nullopt if empty / out of range).
     static std::optional<Clip> snapshotCell(Layer* layer, int column);

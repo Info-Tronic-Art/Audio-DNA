@@ -43,6 +43,9 @@ public:
 
     // The file this player last opened (empty if never opened). Lets callers
     // detect an id-stable content swap (same clip id, different media file).
+    // Unlocked read: safe only because every caller is message-thread confined
+    // (undo/redo media hooks, drop handlers); would race sourceFile_ writes in
+    // open() if ever called off the message thread.
     juce::File getFile() const { return sourceFile_; }
 
     // Video properties (valid after open)

@@ -833,6 +833,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto* dstL = deck->getLayer(dstLayer);
         if (!srcL || !dstL) return;
 
+        // Snapshot both cells + the column count BEFORE any mutation (spec §2
+        // #3): a move onto a far column grows numColumns via ensureColumns, and
+        // undo must restore the prior count. snapshotCell yields nullopt for an
+        // empty / out-of-range cell.
+        const int numColsBefore = deck->numColumns;
+        std::optional<Clip> srcBefore = snapshotCell(srcL, srcCol);
+        std::optional<Clip> dstBefore = snapshotCell(dstL, dstCol);
+
         // Ensure destination has enough columns
         dstL->ensureColumns(dstCol + 1);
         if (deck->numColumns < dstCol + 1)
@@ -858,6 +866,22 @@ MainComponent::MainComponent(bool testMode, int testPort)
             srcL->clips[static_cast<size_t>(srcCol)] = dstClip;
         else
             srcL->clips[static_cast<size_t>(srcCol)] = std::nullopt;
+
+        // Record the whole gesture as one undo unit. "Swap" when the target was
+        // occupied (two clips exchange places), "Move" when it was empty. The
+        // command's execute() re-applies the after-state (idempotent with the
+        // mutation just done), matching the step-2 mutate-then-push pattern.
+        const int numColsAfter = deck->numColumns;
+        std::optional<Clip> srcAfter = snapshotCell(srcL, srcCol);
+        std::optional<Clip> dstAfter = snapshotCell(dstL, dstCol);
+        const juce::String desc = dstBefore.has_value() ? "Swap Clips" : "Move Clip";
+        std::vector<std::unique_ptr<Command>> children;
+        children.push_back(std::make_unique<SwapClipsCmd>(
+            makeDeckResolver(), makeClipMediaHook(), composition_.activeDeckIndex,
+            srcLayer, srcCol, dstLayer, dstCol,
+            srcBefore, srcAfter, dstBefore, dstAfter,
+            numColsBefore, numColsAfter, desc.toStdString()));
+        pushCommands(std::move(children), desc);
 
         if (deckView_) deckView_->rebuildGrid();
     };
@@ -2820,6 +2844,13 @@ ClipLayerResolver MainComponent::makeLayerResolver()
 {
     return [this](int deckIndex, int layerIndex) {
         return undoService_.resolveLayer(deckIndex, layerIndex);
+    };
+}
+
+ClipDeckResolver MainComponent::makeDeckResolver()
+{
+    return [this](int deckIndex) {
+        return undoService_.resolveDeck(deckIndex);
     };
 }
 
