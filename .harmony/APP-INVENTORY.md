@@ -41,7 +41,7 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 | Surface | Reach / trigger | User-visible functions | Live? |
 |---|---|---|---|
 | Main window (`Main.cpp:40`) | App launch; maximized to primary display, resizable 1280×720–3840×2160 | Hosts all main-window panels; global keyboard shortcuts; Finder file-drop target | yes |
-| Native menu bar (`MenuBarModel.cpp`) | Top of screen (macOS) | 9 menus, ~45 items; no-op DBG stubs removed (Wave 0); Output menu gains a real "Syphon Output" toggle (Wave 1-A, ticks live state). Undo/Redo remain (dead scaffold, Wave 2) | yes |
+| Native menu bar (`MenuBarModel.cpp`) | Top of screen (macOS) | 9 menus, ~45 items; no-op DBG stubs removed (Wave 0); Output menu gains a real "Syphon Output" toggle (Wave 1-A, ticks live state). Undo/Redo LIVE + dynamic (Undo v1 steps 1-3, 2026-07-19/20): "Undo <desc>"/"Redo <desc>" text, enable state tracks stacks, rebuilds via onHistoryChanged | yes |
 | OutputWindow (`src/ui/OutputWindow.h:69`) | Output menu → Fullscreen:display / TopBar output combo / Cmd+F | Borderless always-on-top render on a chosen display; Escape closes; no on-surface controls | yes |
 | PreferencesDialog (`PreferencesDialog.h:8`) | Audio-DNA menu → Preferences / About; modal, 3 tabs | See Prefs tab rows below | yes |
 
@@ -232,7 +232,9 @@ Source: lane-5 §3.
 
 - **Keyboard shortcuts** (`MainComponent::keyPressed :1591`): Shift+Cmd+I inspector,
   Shift+Cmd+K keyboard-bind, Shift+Cmd+M MIDI-learn, Escape close-output, Cmd+Z /
-  Cmd+Shift+Z undo/redo (**no-op — undo stack always empty**), Cmd+S save preset, Cmd+F
+  Cmd+Shift+Z undo/redo (**LIVE for clip-grid edits** — Undo v1 steps 1-3: all drops,
+  replace/lock/clear, drag move/swap; structural ops [layers/decks/columns/effects/
+  triggers] pending steps 4-9), Cmd+S save preset, Cmd+F
   toggle fullscreen output, Cmd+O load preset. Non-Cmd keys → BindingManager; key-up →
   momentary bindings.
 - **Tooltips**: `juce::TooltipWindow` (600ms); coverage sparse (TopBar, ClipInspector,
@@ -256,7 +258,7 @@ Source: lane-5 §3.
 | Syphon input | REMOVED 2026-07-17 (Wave 0) — SyphonInput .mm/.h deleted (was orphaned, 0 refs) | — |
 | Spout output | REMOVED 2026-07-17 (Wave 0) — SpoutOutput.h deleted (was header-only no-op) | — |
 | NDI output / input | REMOVED 2026-07-17 (Wave 0) — NdiOutput.h + NdiInput.h deleted (were stubs) | — |
-| Undo / redo | DEAD — `UndoManager::perform()` never called; zero Command subclasses → keys are no-ops | UndoManager.cpp; Command.h; MainComponent.cpp:1642-1644 |
+| Undo / redo | PARTIAL-LIVE 2026-07-19/20 (Undo v1 steps 1-3, commits 7c8d286/7921572/daa9361) — SetClipCmd/ToggleClipLockCmd/SwapClipsCmd + CompositeCommand wrap ALL clip-cell edit sites; Cmd+Z + dynamic menu live; value-copy snapshots, coordinate-addressed; GL fence validated; media reconnect file-compare (MediaReconnect.h). Structural ops (layer/deck/column/effect-stack/trigger) = spec steps 4-9, queued | src/core/ClipCommands.h; UndoService.h/.cpp; CompositeCommand.h; MediaReconnect.h; .harmony/undo-v1-ledger.md |
 | Session playback | DEAD — `advancePlayback()` never called; capture = clip triggers only (6/7 record* unused) | SessionRecorder.cpp; MainComponent.cpp:2472; RecordPanel.cpp:38 |
 | OSC subsystem | LIVE 2026-07-17 (Wave 1-B) — `startListening(8000)` called at startup; 11/11 callbacks wired (port hardcoded, no prefs UI) | OscHandler.cpp:15; MainComponent.cpp:1132-1211 |
 | ISF import | PHANTOM — converted GLSL never compiled/queued; effect registers + shows but never renders; "Import Successful" dialog misleads | MainComponent.cpp:2426-2454 |

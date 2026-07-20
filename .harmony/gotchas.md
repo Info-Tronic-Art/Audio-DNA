@@ -119,6 +119,20 @@
 **Scope:** repo
 **Promoted:** no
 
+### 2026-07-19 — First `open` can transiently stall in CoreAudio/TCC init (looks like the direct-exec hang)
+**Source:** Undo v1 step-1 builder (fence-validation live run)
+**Trigger:** First `open` of Audio-DNA.app after a rebuild sometimes stalls inside the ctor at `AudioDeviceManager::initialiseWithDefaultDevices` → CoreAudio/TCC — process alive, no windows, no port 7070, indistinguishable from the direct-exec hang gotcha (2026-07-17).
+**Rule:** Before concluding the build is broken, run `sample <pid>` to pinpoint the stall; if it's in AudioDeviceManager/CoreAudio init, `pkill -9` and re-`open` — second launch typically binds :7070 in ~4s. Environment flake (TCC/audio permissions), not code.
+**Scope:** repo
+**Promoted:** no
+
+### 2026-07-19 — Renderer media resources are keyed by clip.id with NO file-match check
+**Source:** Undo v1 step-2 reviewer (caught pre-commit) — video replace-undo was a silent visual no-op
+**Trigger:** Any flow where a clip's CONTENT changes but its id doesn't (replaceContent keeps id), combined with a "reconnect if missing" guard: videoPlayers_/imageSequences_ lookups use id only, so a guard that checks existence sees the id-keyed player (loaded with the NEW file) and skips reopening — model and renderer silently diverge.
+**Rule:** Existence of an id-keyed renderer resource does NOT imply it holds the right content. Any reconnect/restore path must compare the loaded file against the model's current mediaFile (or reopen unconditionally) when ids are content-stable. Undo/redo, preset load, and future player-disposal waves all hit this.
+**Scope:** repo
+**Promoted:** no
+
 ### 2026-07-16 — FeatureSnapshot::clear() resets genre/energy to 0 (House/low), not struct defaults
 **Source:** 7-lane re-norm audit (L1 audio-analysis)
 **Trigger:** Expecting a freshly-cleared FeatureSnapshot to carry the struct's default genre/energy (detectedGenre=6, energyState=1).

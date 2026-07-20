@@ -3,107 +3,105 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL
-live audio-reactive VJ app). The 2026-07-17 triage session dispositioned ALL 34 FLAGGED
-rows (Boris-ratified), shipped Waves 0-1 (8 local commits: dead-code purge, UI honesty,
-Syphon wired, OSC live 11/11 on UDP 8000, FULL preset round-trip, 5 small fixes), and
-specced Wave 2. Session ledger: `.harmony/triage-2026-07-17.md`. Inventory:
-`.harmony/APP-INVENTORY.md` (same-wave-update rule). Build:
-`cmake --build build --config Release -j`; tests: `ctest --test-dir build` (114/114 at
-handoff). Behavioral gates: launch via `open build/AudioDNA_artefacts/Release/Audio-DNA.app`
-(NEVER direct exec — hangs; gotchas.md), :7070 binds ~12s.
+live audio-reactive VJ app). The 2026-07-19/20 session shipped **Undo v1 steps 1-3**
+(3 local commits: 7c8d286 plumbing + GL fence VALIDATED, 7921572 SetClipCmd + all
+single-cell sites + replace-undo media fix, daa9361 SwapClipsCmd). Tests: **130/130**
+(`ctest --test-dir build`). Build: `cmake --build build --config Release -j`.
+Lane ledger (step status, carry-forwards, known gaps, decisions):
+`.harmony/undo-v1-ledger.md`. Behavioral gates: launch via
+`open build/AudioDNA_artefacts/Release/Audio-DNA.app` (NEVER direct exec — hangs;
+first open may stall in CoreAudio/TCC: sample → pkill -9 → re-open; gotchas.md),
+:7070 binds ~7-12s.
 
-START HERE — long task, begin at session start: **Undo v1** per
-`.harmony/specs/undo-v1-spec.md` (value-copy commands on the existing scaffold; build
-order steps 1-9; validate the GL-fence no-deadlock inference in step 1 FIRST). It is the
-#1 Committed MUST. Alternative long tasks if Boris redirects: ISF real import
-(`.harmony/specs/isf-import-spec.md`, independent) or Session Recorder
-(`.harmony/specs/session-recorder-spec.md`, unblocked — Wave 1 landed its capture sites).
-Do NOT push to remote (standing rule). Quick Boris asks pending: install
-Syphon.framework + rebuild `-DAUDIODNA_BUILD_SYPHON=ON` to verify real publish; 10s UI
-eyeball (menus / 3-tab Prefs / new Sources rows).
+START HERE — long task, begin at session start: **Undo v1 step 4 onward** per
+`.harmony/specs/undo-v1-spec.md` §6 (steps 4-9: composites, layer ops, deck ops,
+effect stacks, triggers, tests/e2e). It is the #1 Committed MUST. Read
+`.harmony/undo-v1-ledger.md` FIRST — it carries: GL fence GREENLIT for steps 5-6
+(empirically validated, 100/100 no-deadlock); step-4 composites must isEmpty()-guard
+before perform (pushCommands helper already does); column-growth undo gap closes at
+step 4; step-9 manual e2e checklist additions (video→video replace undo shows OLD
+video; drag-move + far-column undo; Edit-menu dynamic Undo/Redo state). Established
+patterns at HEAD: src/core/ClipCommands.h + MediaReconnect.h + UndoService,
+makeSetClipCmd/pushCommands/refreshAfterUndoRedo in MainComponent.cpp — conform,
+don't fork. Do NOT push to remote (standing rule). Quick Boris asks still pending:
+Syphon.framework install + rebuild `-DAUDIODNA_BUILD_SYPHON=ON` (verify real
+publish); 10s UI eyeball (menus / 3-tab Prefs / Sources rows / NEW: undo menu items
++ Cmd+Z after drop/drag).
 
 ## PRIMER
 
-- HEAD at close: c30e393 (doc-sync) on 8 unpushed local commits — full list + per-wave
-  gate/review verdicts in `.harmony/triage-2026-07-17.md` (Gate results section).
-- Counts at close: 135 effects · 108 sources (108 GUI-selectable — 6 added) · 22/22 REST
-  functional · 11/11 OSC live (UDP 8000) · persistence COMPLETE (was lossy) · ~45 menu
-  items (37 no-ops removed) · Prefs 3 tabs · 114/114 tests.
-- Wave-2 specs are source-verified with file:line evidence but lines will drift —
-  symbols are authoritative (each spec says so).
+- HEAD at close: daa9361 on 11 unpushed local commits (8 triage-session + 3 Undo v1).
+- Counts: 135 effects · 108 sources · 22/22 REST · 11/11 OSC (UDP 8000) · persistence
+  COMPLETE · **130/130 tests** (114 baseline + 16 undo/media/swap).
+- Undo v1 state: steps 1-3 DONE (each: independent Reviewer + Harmony behavioral gate,
+  committed separately). Steps 4-9 queued — all M-sized except 3; deferred by this
+  session at ~33% gauge per LONG-TASK DEFERRAL (a step + review cycle would cross the
+  ~40% off-ramp).
 - Verifier model: independent Reviewer on source + Harmony runs the behavioral gate
-  (build + ctest + `open` app + REST/OSC probes). OSC probe recipe + master-variable
-  trap: session log `sessions/2026-07-17-triage-secondary.md`.
-- graphify refreshed at close (code-only) — stamps final HEAD.
+  (build + ctest re-run + `open` app + health probe). It EARNED ITS COST this session:
+  review caught a silent wrong-video replace-undo bug the builder had misclassified as
+  an accepted spec boundary (fixed pre-commit, MediaReconnect.h).
+- Spec drift: undo-v1-spec lines are pre-Wave-0; symbols authoritative. Spec risk #7
+  (kLayerClearClips) was FIXED by Wave 1-D — spec row #19 note is stale. Risk #9
+  (GL fence) is RESOLVED — validated, see ledger.
 
 ## WHERE WE ARE IN THE BUILD
-<!-- caveman positional status — Boris-facing, skimmable -->
-BUILD: Audio-DNA VJ app — FLAGGED-backlog execution: triage done, cleanup + quick wins shipped, three specced feature builds remain.
-SHIPPED: all 34 FLAGGED rows dispositioned with Boris; Wave 0 (13 dead items purged, 3 XS fixes, 37 no-op menu items + 5 empty/inert Prefs surfaces removed); Wave 1 (Syphon output wired [flag-gated], OSC live 11/11 UDP 8000, preset serialization COMPLETE incl. transforms/feedback/crossfader/autopilot/playlists, TopBar transport wired, Layer-Clear deck-wipe bug fixed, waveform seqlock, 48k SR guard, tooltips wired); 3 Wave-2 specs (ISF / Undo v1 / Session Recorder); docs synced to reality; 8 local commits, 114/114 tests, every wave gated + independently reviewed.
-IN-FLIGHT: none — tree clean except hook-owned graphify churn; all agents closed.
-NEXT: Undo v1 (START HERE, long task); then Session Recorder; ISF anytime (independent); Boris: Syphon.framework install + rebuild w/ flag + client eyeball; Boris: 10s UI check (menus/Prefs/Sources); Boris: ratify OSC port 8000 (alt 7000) + transport semantics.
-BLOCKERS: none. (Syphon publish VERIFICATION blocked on framework install — wiring itself shipped.)
-YOU ARE HERE: post-triage, post-quick-wins — the app's honest surface matches its real capability; remaining work is three well-specced feature builds (undo, session replay, ISF import) plus one deferred design item (model thread-safety).
+<!-- positional status — Boris-facing, skimmable -->
+BUILD: Audio-DNA VJ app — Wave-2 feature builds: Undo v1 in progress (3/9 steps shipped), Session Recorder + ISF specced and waiting.
+SHIPPED (this session): real undo with Cmd+Z/menu for ALL clip-cell edits — every drop type (file/sequence/FX/MilkDrop single+playlist), replace content, lock, clear (multi-select = one undo), drag move/swap incl. column-count restore; dynamic "Undo <desc>"/"Redo <desc>" menu items; GL-fence threading question settled empirically; a silent replace-undo media bug caught by review and fixed pre-commit.
+IN-FLIGHT: none — tree clean (hook-owned graphify churn only), all agents idle, every finished step committed.
+NEXT: Undo v1 steps 4-9 (START HERE — composites, layer/deck ops, effect stacks, triggers, e2e); then Session Recorder; ISF anytime; Boris: Syphon install+verify, 10s UI eyeball (now incl. undo items), OSC port ratify, transport semantics ratify.
+BLOCKERS: none.
+YOU ARE HERE: undo exists and works for the whole clip grid — the remaining undo work is structural ops (layers/decks/columns/effects/triggers), then the manual e2e pass.
 
 ## LOOSE-ENDS LEDGER
 
-1. Syphon REAL publish unverified — framework absent on this machine, build flag OFF by
-   default. Needs: install Syphon.framework → rebuild `-DAUDIODNA_BUILD_SYPHON=ON` →
-   verify in a Syphon client → decide flag-default-ON. Y-orientation (flipped:NO) only
-   verifiable live.
-2. Boris UI eyeball pending: rebuilt menus, 3-tab Prefs, 6 new Sources rows (incl. new
-   MilkDrop category header) — I could not drive native menus (no assistive access).
-3. OSC port 8000 hardcoded, no prefs UI — Boris may prefer 7000 (Resolume-style).
-   One-line change if so.
-4. TopBar transport semantics chosen by Harmony, unratified: active-deck all-layers;
-   Stop = pause + rewind to in-point.
-5. MilkDrop playlist POSITION stays runtime-only (deliberate; Boris may override →
-   trivial addition to Wave 1-C's serialization).
-6. Model thread-safety design DEFERRED (one family): Clip::playing plain bool
-   cross-thread + dual mapping-engine write-order + lock-free model reads — needs a
-   design session, not patches. Undo-spec risk #1 and reviewer LOW finding both cite it.
-7. Undo spec's GL-fence no-deadlock claim is INFERRED from JUCE semantics — must be
-   validated empirically in Undo build step 1 before `withDeckDetached` is trusted.
-8. ISF v1 acceptance target (≥60% of a 30-50 isf.video corpus sample compiling) is
-   unmeasured until built; corpus sampling is part of ISF step 7.
-9. Hidden-surface decisions still open (interact with mapping design): TimingWindow's 3
-   empty tabs, EffectsRackPanel+MappingEditor (only full mapping-edit UI, unreachable),
+1. Syphon REAL publish unverified — framework absent, flag OFF. Install → rebuild
+   `-DAUDIODNA_BUILD_SYPHON=ON` → verify in client → decide flag-default-ON.
+2. Boris UI eyeball pending — menus/Prefs/Sources PLUS new undo surface (Edit menu
+   dynamic items; Cmd+Z after drop and after drag-move; native-menu probe stays
+   TCC-blocked headlessly, two sessions running).
+3. OSC port 8000 hardcoded (Boris may prefer 7000) — one-line change.
+4. TopBar transport semantics unratified (active-deck all-layers; Stop = pause+rewind).
+5. MilkDrop playlist POSITION runtime-only (deliberate; trivial to serialize if
+   Boris overrides).
+6. Model thread-safety design DEFERRED (one family): Clip::playing plain bool,
+   dual mapping-engine write-order, lock-free model reads. Undo v1 does not worsen
+   it in kind (spec §1); structure-command GL fence exists for steps 5-6.
+7. ~~GL-fence no-deadlock inference~~ RESOLVED 2026-07-19: validated empirically
+   (100/100 blocking fences under live render, max 15.6ms; evidence path in ledger).
+8. ISF v1 acceptance target unmeasured until built (corpus sampling = ISF step 7).
+9. Hidden-surface decisions open: TimingWindow tabs, EffectsRackPanel+MappingEditor,
    AudioReadoutPanel+SpectrumDisplay.
-10. No-push rule still active — 8 commits local-only; CI breakage unconfirmed either way
-    (pre-existing loose end).
-11. SR guard is WARN-only; true sample-rate independence remains deferred (48k hardcode
-    still real for non-48k devices).
-12. graphify-out working-tree churn is hook-owned and deliberately uncommitted.
+10. No-push rule active — 11 commits local-only.
+11. SR guard WARN-only; 48k hardcode still real for non-48k devices.
+12. graphify-out churn is hook-owned, deliberately uncommitted.
+13. NEW: Undo v1 known gaps until later steps (tracked in undo-v1-ledger.md):
+    column growth from drops not undone until step-4 column ops; unselected-undo
+    clears clip inspector (safety>UX — surface to Boris if it feels wrong).
 
 ## META-LEARNINGS
 
-- Launch-context trap: direct binary exec of the JUCE app from an agent shell hangs
-  pre-UI (alive, windowless, socketless) and mimics a broken REST server — `open` (LaunchServices)
-  is mandatory for behavioral gates. Cost ~20 min of false-negative diagnosis.
-- Prescribe the STRESS TEST, not the concurrency idiom: the packet-suggested
-  double-buffer failed the builder's own torn-read test (reader lapping); the seqlock it
-  shipped is provably correct. The test requirement produced the right fix, the idiom
-  suggestion nearly produced the wrong one.
-- Probe the exact variable the write path touches: /api/status masterLevel ≠ composition
-  masterOpacity — first OSC master probe false-alarmed; traced in one grep.
-- Lane-contention design: combining B+D into one builder (shared MainComponent.cpp +
-  build dir) eliminated the races that parallel lanes would have hit; disjoint-file
-  parallelism (A∥C) worked flawlessly. Partition by files, not by features.
-- Shared-doc consolidation protocol: builders leave shared-file edits uncommitted + flag
-  → dedicated doc-sync lane reconciles (caught the 113-vs-114 drift) and commits once.
-- Force-add hygiene: force-added files get their own commit + explicit mention (reviewer
-  MEDIUM finding on W1-A) — packet template updated expectation.
+(2026-07-19/20 additions; prior session's six remain valid — see git history of this file)
+- Independent review pays at the SILENT-failure class: the replace-undo bug produced
+  no error, no test failure, wrong visual only — builder self-report classed it
+  "accepted boundary", reviewer traced the id-keyed player lookup and proved it wrong.
+  Route every "accepted risk" claim in a builder report through the reviewer explicitly.
+- Existence of an id-keyed resource ≠ correct content of that resource (gotcha'd) —
+  reconnect guards must compare content identity, not presence, when ids are
+  content-stable.
+- Warm-builder R3 loop (build→fix→fix) capped at 3 rounds then fresh spawn worked
+  cleanly: fresh step-3 builder conformed to committed patterns with zero style drift
+  when pointed at the files (not prose descriptions) as the contract.
+- Pure-helper extraction (needsVideoReopen) turned an untestable renderer-coupled
+  decision into a 4-case headless truth-table test — extract the decision, not the
+  side effect.
 
 ## CHANNEL HARVEST
 
-- Lane: FOREIGN-REPO secondary (lane B) — zero harmony2 writes this session (verified at
-  close: all harmony2 dirty files belong to other sessions). No `.pending` entries.
-- Boris idea sweep (R2 backstop): all Boris messages were task directives + 5 product
-  decisions (4 triage forks + plan approval) — captured in `.harmony/triage-2026-07-17.md`
-  at decision time; no un-captured idea-class statements → no idea-ledger records.
-- Learnings routed repo-local per lane B: 2 new gotchas (launch-via-open; defaultFBO
-  restore for post-render GPU steps) in `.harmony/gotchas.md`; 6 meta-learnings in
-  `.harmony/notebook.md` (2026-07-17 block); session log in `sessions/`.
-- For the next PRIMARY (via this handoff, slight-mention only): the
-  "combine-contending-lanes" + "shared-doc consolidation" + "stress-test-not-idiom"
-  patterns are universal candidates for promotion beyond this repo.
+- Lane: FOREIGN-REPO secondary — zero harmony2 writes this session; all capture
+  project-local (undo-v1-ledger.md, 2 new gotchas, this handoff).
+- New gotchas: transient first-`open` CoreAudio/TCC stall (mimics direct-exec hang;
+  sample→pkill→re-open); id-keyed renderer media resources have no file-match check.
+- No Boris messages this session (autonomous drain execution of the ratified backlog);
+  no idea-class capture owed.
