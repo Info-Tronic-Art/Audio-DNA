@@ -2,6 +2,31 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-07-20 — Renderer video/sequence/image resources are keyed by clip id; only video content-swaps
+**Files:** src/render/Renderer.cpp (videoPlayers_), src/render/CompositorEngine.cpp:1047
+**Note:** Videos (videoPlayers_[id]) and image sequences (imageSequences_[id]) are keyed by clip id and NEVER closed. Static images are keyed by FILE PATH via getKeyTexture(clip.mediaFile) — self-healing on undo. Only VIDEO can be content-swapped under an EXISTING id: kClipReplaceContent calls openVideoForClip(existing->id, newFile), overwriting the player while replaceContent keeps the id. So a reconnect-if-MISSING media guard misses replace-undo (player exists → skip → decodes wrong file). Fix: compare loaded file vs clip.mediaFile (Renderer::getVideoPlayerFile + VideoPlayer::getFile + pure needsVideoReopen() in core/MediaReconnect.h), reopen on mismatch. Sequences can't hit it (replace produces only Image/Video; sequences always get a fresh s_nextClipId).
+**Valid while:** replaceContent reuses the clip id and video players are keyed by id
+
+## 2026-07-19 — Undo v1 Step 2: clip commands decoupled from Renderer via hooks
+**Files:** src/core/ClipCommands.h, src/core/UndoService.h, tests/test_undo_commands.cpp
+**Note:** Spec §7 wants commands unit-tested headless against a bare Composition. Achieved by making commands (SetClipCmd/ToggleClipLockCmd) depend ONLY on injected std::function hooks — `ClipLayerResolver` (re-resolve Layer by coord) + `ClipMediaHook` (video/seq reconnect) — NOT on concrete Renderer. The app wires hooks from UndoService+renderer; tests wire a bare-Composition resolver + no-op media. Also made `UndoService::resolve*/setCollaborators` INLINE in the header (renderer-free, only touch Composition) so `test_undo_commands` links WITHOUT UndoService.cpp/Renderer (which pulls juce_opengl + CompositorEngine + video/syphon — too heavy for a unit test). Pattern to reuse for step 3-8 command tests.
+**Valid while:** ClipCommands.h uses hook typedefs and UndoService resolvers stay inline
+
+## 2026-07-19 — Wrapping entry sites: capture before → mutate → capture after → perform (idempotent re-apply)
+**Files:** src/MainComponent.cpp (handleFileDrop, onEffectDropped, kClipClear, etc.)
+**Note:** UndoManager has only perform() (executes). To wrap an existing handler without double-side-effects: capture `before` at the TOP (before any mutation), let the existing code mutate + do its rich UI/player setup, capture `after`, then perform() a SetClipCmd(before,after). perform()→execute()→apply(after) RE-APPLIES after — this is idempotent for SetClipCmd (cell already == after; media hook reconnect no-ops since player already open). No UndoManager API change needed. Multi-cell gestures (multi-FX-to-empty-cells, multi-select clear) use CompositeCommand via pushClipEdits()/pushCommands() which guards isEmpty() before perform.
+**Valid while:** UndoManager exposes only perform() and SetClipCmd.apply is idempotent
+
+## 2026-07-19 — Undo v1 Step 1: GL-fence validated + headless-test MessageManager assert
+**Files:** src/core/UndoManager.cpp, src/core/UndoService.cpp, tests/CMakeLists.txt
+**Note:** (1) GL fence empirically validated: blocking `glContext_.executeOnGLThread(noop,/*block*/true)` from the MESSAGE thread does NOT deadlock the render thread (setComponentPaintingEnabled(false) → GL thread never takes the msg lock). 100 iters, max 15.6ms / mean 2.8ms round-trip, app stayed responsive (spec risk #9 resolved). (2) `jassert(MessageManager::existsAndIsCurrentThread())` would ABORT headless Catch2 tests (no MM instance) if ever built Debug — guard it `getInstanceWithoutCreating()==nullptr || existsAndIsCurrentThread()`. (3) MessageManager lives in juce_events; test_composition only linked juce_core+juce_graphics, so any UndoManager.cpp use of MessageManager requires adding `juce::juce_events` to that test target.
+**Valid while:** UndoManager/UndoService exist and tests build Release with these link libs
+
+## 2026-07-19 — App launch can transiently stall in CoreAudio device init (TCC), NOT a code bug
+**Files:** src/MainComponent.cpp (AudioDeviceManager::initialiseWithDefaultDevices in ctor)
+**Note:** First `open` of the .app sometimes hangs in the constructor at `AudioDeviceManager::initialiseWithDefaultDevices` → CoreAudio `start()` → HALC_ProxyObject::SetPropertyData (TCC/coreaudiod). Symptom is identical to the documented direct-exec hang: process alive, ZERO windows, ZERO listening sockets, no port 7070. Fix: `pkill -9 -f Audio-DNA` and re-`open` — the second launch bound port 7070 in ~4s. `sample <pid>` on the stuck process shows the exact ctor frame, which is the fast way to distinguish an env/audio stall from an app-code hang.
+**Valid while:** MainComponent constructs AudioDeviceManager before finishing init
+
 (No entries yet. First normalization session 2026-05-18.)
 
 ## 2026-05-18 — Eyes + Accessibility Inspection Stack
@@ -69,3 +94,9 @@ When validating UI changes, use this sequence:
 - **Force-add hygiene (process rule)**: force-adds of gitignored-but-tracked-policy files
   get their OWN commit + explicit commit-message mention — never swept into a feature
   commit (W1-A reviewer finding).
+
+## 2026-07-22 — lane-B meta-learnings (Undo v1 s4-7 secondary)
+- **pre-declared-budget-rider**: declare the disposition rule ("beyond-NIT finding → HOLD commit") in the ledger AT DISPATCH TIME, before results exist — turns a mid-flight judgment call into a pre-committed policy and removes rationalization pressure when the finding lands. Applied s7; fired correctly.
+- **remedy-b-doc-truth**: when a MAJOR is "code comments overclaim vs a PRE-EXISTING mechanism gap", the NIT-cost remedy is comment-truth + tracked follow-up, not smuggling a shared-path fix into the step. Ask the reviewer to rule on the disposition explicitly and INVITE overrule — independence is worth more than speed.
+- **reviewer-rotation-at-2-packets**: rotate reviewers on the same load rule as builders (~2 full packets + 1 targeted); fresh eyes caught that a claimed "precedent" (headless-silent invariant violation in tests) never actually existed.
+- **env-wedge-single-recheck**: when an env blocker (coreaudiod stall) worsens with remedy cycles, switch to single-attempt rechecks per gate + a hard stop — retry loops actively degrade the environment (4-attempt evidence, sample-verified).

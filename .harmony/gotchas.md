@@ -139,3 +139,10 @@
 **Rule:** `FeatureSnapshot::clear()` memsets then restores only rmsDB/lufs/detectedKey/keyIsMajor/swingRatio — it leaves `detectedGenre=0` (House) and `energyState=0` (low), NOT the struct defaults 6/1 (FeatureSnapshot.h:81-89). FeatureBus inits all 3 buffers via clear(), so this is the effective startup default. Latent bug; verify before relying on cleared-snapshot genre state.
 **Scope:** repo
 **Promoted:** no
+
+## 2026-07-22 — CoreAudio launch stall WORSENS with repeated pkill -9 cycles (env wedge, not code)
+**Source:** Undo v1 step-5 behavioral gate (s. 2026-07-22)
+**Trigger:** Launching Audio-DNA via `open` after prior instances were pkill-9'd mid-CoreAudio-start.
+**Rule:** The 2026-07-19 first-open stall (CoreAudioInternal::start mutex wait; remedy sample → pkill -9 → re-open) can WEDGE PROGRESSIVELY: after 1-2 remedy cycles the stall reproduces on EVERY relaunch (3 consecutive this session; step-4 gate an hour earlier recovered on attempt 2). A 90s coreaudiod settle window did NOT clear it. Signature verified by sample both times: identical CoreAudioClasses::AudioIODeviceCombiner::start → CoreAudioInternal::start → __psynch_mutexwait. Change-independence verified: step-5 diff has 0 audio-path refs; stall predates the code. Remedy beyond the loop: restart coreaudiod (`sudo killall coreaudiod`) or logout/reboot — Boris-level. Gate policy used: code gates (build/ctest/residue/review) green → app-level check recorded BLOCKED-ENVIRONMENTAL, launch verification prepended to manual checklist.
+**Scope:** repo (macOS env interaction)
+**Promoted:** no

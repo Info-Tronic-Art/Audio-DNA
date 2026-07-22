@@ -3,105 +3,110 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL
-live audio-reactive VJ app). The 2026-07-19/20 session shipped **Undo v1 steps 1-3**
-(3 local commits: 7c8d286 plumbing + GL fence VALIDATED, 7921572 SetClipCmd + all
-single-cell sites + replace-undo media fix, daa9361 SwapClipsCmd). Tests: **130/130**
-(`ctest --test-dir build`). Build: `cmake --build build --config Release -j`.
-Lane ledger (step status, carry-forwards, known gaps, decisions):
-`.harmony/undo-v1-ledger.md`. Behavioral gates: launch via
-`open build/AudioDNA_artefacts/Release/Audio-DNA.app` (NEVER direct exec — hangs;
-first open may stall in CoreAudio/TCC: sample → pkill -9 → re-open; gotchas.md),
-:7070 binds ~7-12s.
+live audio-reactive VJ app). The 2026-07-22 session shipped Undo v1 steps 4-7
+(4 local commits: 6d2def4 composites + column-growth gap closed, 7f87094 layer ops
+GL-fenced, 316a2bf deck ops + latent renderer re-point fix, d90e953 effect stacks
+3-scope performEdit). Tests: 158/158 (`ctest --test-dir build`). Build:
+`cmake --build build --config Release -j`. Lane ledger (step status, decision log,
+Boris decision queue, manual e2e checklist): `.harmony/undo-v1-ledger.md` — READ
+FIRST. Behavioral gates: launch ONLY via
+`open build/AudioDNA_artefacts/Release/Audio-DNA.app` (NEVER direct exec).
 
-START HERE — long task, begin at session start: **Undo v1 step 4 onward** per
-`.harmony/specs/undo-v1-spec.md` §6 (steps 4-9: composites, layer ops, deck ops,
-effect stacks, triggers, tests/e2e). It is the #1 Committed MUST. Read
-`.harmony/undo-v1-ledger.md` FIRST — it carries: GL fence GREENLIT for steps 5-6
-(empirically validated, 100/100 no-deadlock); step-4 composites must isEmpty()-guard
-before perform (pushCommands helper already does); column-growth undo gap closes at
-step 4; step-9 manual e2e checklist additions (video→video replace undo shows OLD
-video; drag-move + far-column undo; Edit-menu dynamic Undo/Redo state). Established
-patterns at HEAD: src/core/ClipCommands.h + MediaReconnect.h + UndoService,
-makeSetClipCmd/pushCommands/refreshAfterUndoRedo in MainComponent.cpp — conform,
-don't fork. Do NOT push to remote (standing rule). Quick Boris asks still pending:
-Syphon.framework install + rebuild `-DAUDIODNA_BUILD_SYPHON=ON` (verify real
-publish); 10s UI eyeball (menus / 3-tab Prefs / Sources rows / NEW: undo menu items
-+ Cmd+Z after drop/drag).
+ENV BLOCKER FIRST: coreaudiod is WEDGED (gotchas.md 2026-07-22) — every app launch
+stalls in CoreAudioInternal::start; repeated pkill -9 remedy cycles WORSEN it. Boris
+must clear it (`sudo killall coreaudiod` or reboot) before ANY app-level check runs.
+If still wedged at your boot: single-attempt recheck only, no retry loops.
+
+START HERE — long task, begin at session start: Undo v1 step 8 per
+`.harmony/specs/undo-v1-spec.md` §6 (TriggerClipCmd/TriggerColumnCmd + canMergeWith
+merge rules; REST flows through the same handlers automatically). It is the #1
+Committed MUST. Step 9 (tests + manual e2e) follows. Ledger carries binding lane
+rules: two-pattern rule (non-idempotent structural = command-owns-the-mutation;
+idempotent field write = mutate-then-push); guarded-jassert defense on
+caller-discipline invariants; no test constructs in violation of an asserted ctor
+invariant; per-command stale-coordinate tests; NEVER create commands on the GL path
+(autopilot triggers from GL thread — spec §1 consequence 3 is LOAD-BEARING for
+step 8). Established patterns at HEAD: ClipCommands.h / DeckCommands.h /
+EffectCommands.h + EffectScope.h, UndoService, pushCommands/refreshAfterUndoRedo —
+conform, don't fork. Do NOT push to remote (standing rule). Quick Boris asks
+pending: see BORIS DECISION QUEUE in the ledger (refresh-skip follow-up ratification,
+zero-layer Deck-New intent, coreaudiod env clear, inspector-clear UX) + Syphon
+install/rebuild + the 10s UI eyeball incl. all manual e2e additions (steps 4-7 items
+now queued behind the env blocker).
 
 ## PRIMER
 
-- HEAD at close: daa9361 on 11 unpushed local commits (8 triage-session + 3 Undo v1).
-- Counts: 135 effects · 108 sources · 22/22 REST · 11/11 OSC (UDP 8000) · persistence
-  COMPLETE · **130/130 tests** (114 baseline + 16 undo/media/swap).
-- Undo v1 state: steps 1-3 DONE (each: independent Reviewer + Harmony behavioral gate,
-  committed separately). Steps 4-9 queued — all M-sized except 3; deferred by this
-  session at ~33% gauge per LONG-TASK DEFERRAL (a step + review cycle would cross the
-  ~40% off-ramp).
-- Verifier model: independent Reviewer on source + Harmony runs the behavioral gate
-  (build + ctest re-run + `open` app + health probe). It EARNED ITS COST this session:
-  review caught a silent wrong-video replace-undo bug the builder had misclassified as
-  an accepted spec boundary (fixed pre-commit, MediaReconnect.h).
-- Spec drift: undo-v1-spec lines are pre-Wave-0; symbols authoritative. Spec risk #7
-  (kLayerClearClips) was FIXED by Wave 1-D — spec row #19 note is stale. Risk #9
-  (GL fence) is RESOLVED — validated, see ledger.
+- HEAD at close: EOS chore commit(s) atop d90e953 (source HEAD), on unpushed local
+  history (prior triage + Undo v1 steps 1-7). No-push standing rule intact.
+- Counts: 135 effects · 108 sources · 22/22 REST · 11/11 OSC · 158/158 tests
+  (130 carry + 8 [column/clear] + 7 [layer] + 8 [deck] + 5 [effect]).
+- Undo v1 state: steps 1-7 DONE (each: independent Reviewer on source + Harmony
+  behavioral gate + separate local commit). Steps 8-9 queued; deferred at ~38% gauge
+  per LONG-TASK DEFERRAL. Step-8 hazard: autopilot triggers from the GL thread —
+  commands wrap ONLY user entry points (handleClipTrigger/handleColumnTrigger),
+  NEVER Layer::triggerClip.
+- Verifier model: Builder → independent Reviewer (source) → Harmony behavioral gate
+  (receiver disk-verify, build, own ctest, residue grep, app health) → local commit.
+- App-level verification DEBT: steps 5-7 live behavior (GL fence wiring, renderer
+  re-point, UI refresh split) proven only by review trace, NOT live — all manual
+  e2e items queued behind the coreaudiod env fix.
 
 ## WHERE WE ARE IN THE BUILD
-<!-- positional status — Boris-facing, skimmable -->
-BUILD: Audio-DNA VJ app — Wave-2 feature builds: Undo v1 in progress (3/9 steps shipped), Session Recorder + ISF specced and waiting.
-SHIPPED (this session): real undo with Cmd+Z/menu for ALL clip-cell edits — every drop type (file/sequence/FX/MilkDrop single+playlist), replace content, lock, clear (multi-select = one undo), drag move/swap incl. column-count restore; dynamic "Undo <desc>"/"Redo <desc>" menu items; GL-fence threading question settled empirically; a silent replace-undo media bug caught by review and fixed pre-commit.
-IN-FLIGHT: none — tree clean (hook-owned graphify churn only), all agents idle, every finished step committed.
-NEXT: Undo v1 steps 4-9 (START HERE — composites, layer/deck ops, effect stacks, triggers, e2e); then Session Recorder; ISF anytime; Boris: Syphon install+verify, 10s UI eyeball (now incl. undo items), OSC port ratify, transport semantics ratify.
-BLOCKERS: none.
-YOU ARE HERE: undo exists and works for the whole clip grid — the remaining undo work is structural ops (layers/decks/columns/effects/triggers), then the manual e2e pass.
+<!-- caveman positional status — Boris-facing, skimmable -->
+BUILD: Undo v1 — real undo/redo for all structural edits in Audio-DNA (Wave-2 MUST #1).
+SHIPPED: steps 4-7 this session — composites + column ops (growth gap closed); layer ops GL-fenced; deck ops (+ latent renderer re-point bug FIXED); effect stacks across clip/layer/global scopes. 4 local commits, tests 130→158, every step independently reviewed + gated.
+IN-FLIGHT: none — lane wrapped clean at the drain off-ramp.
+NEXT: step 8 trigger commands + merge (START HERE next session); step 9 tests/manual-e2e + cleanup fold-ins; Boris decision queue ×4 in the ledger.
+BLOCKERS: coreaudiod WEDGED — all app-level/manual checks queued behind `sudo killall coreaudiod` or reboot (Boris-level; gotcha captured).
+YOU ARE HERE: 7 of 9 build steps done; undo covers every structural edit except triggers; live-app verification debt queued behind one env fix.
 
 ## LOOSE-ENDS LEDGER
 
-1. Syphon REAL publish unverified — framework absent, flag OFF. Install → rebuild
-   `-DAUDIODNA_BUILD_SYPHON=ON` → verify in client → decide flag-default-ON.
-2. Boris UI eyeball pending — menus/Prefs/Sources PLUS new undo surface (Edit menu
-   dynamic items; Cmd+Z after drop and after drag-move; native-menu probe stays
-   TCC-blocked headlessly, two sessions running).
-3. OSC port 8000 hardcoded (Boris may prefer 7000) — one-line change.
-4. TopBar transport semantics unratified (active-deck all-layers; Stop = pause+rewind).
-5. MilkDrop playlist POSITION runtime-only (deliberate; trivial to serialize if
-   Boris overrides).
-6. Model thread-safety design DEFERRED (one family): Clip::playing plain bool,
-   dual mapping-engine write-order, lock-free model reads. Undo v1 does not worsen
-   it in kind (spec §1); structure-command GL fence exists for steps 5-6.
-7. ~~GL-fence no-deadlock inference~~ RESOLVED 2026-07-19: validated empirically
-   (100/100 blocking fences under live render, max 15.6ms; evidence path in ledger).
-8. ISF v1 acceptance target unmeasured until built (corpus sampling = ISF step 7).
-9. Hidden-surface decisions open: TimingWindow tabs, EffectsRackPanel+MappingEditor,
-   AudioReadoutPanel+SpectrumDisplay.
-10. No-push rule active — 11 commits local-only.
-11. SR guard WARN-only; 48k hardcode still real for non-48k devices.
-12. graphify-out churn is hook-owned, deliberately uncommitted.
-13. NEW: Undo v1 known gaps until later steps (tracked in undo-v1-ledger.md):
-    column growth from drops not undone until step-4 column ops; unselected-undo
-    clears clip inspector (safety>UX — surface to Boris if it feels wrong).
+Adversarial "what's unfinished / what am I unsure about":
+- ALL app-level verification for steps 5-7 is UNPROVEN LIVE (coreaudiod wedge): GL
+  fence wiring in-app (layer/deck ops under live render), step-7 UI refresh split,
+  renderer re-point after deck add/remove, every manual e2e item. Headless model
+  behavior is proven (158/158); live behavior is INFERRED from review traces only.
+- Step-7 refresh design accepts: expanded FX rows collapse on ANY undo (pre-existing
+  unconditional refreshAfterUndoRedo). Fix = tracked follow-up (pointer/scope-aware
+  skip) — NEEDS BORIS RATIFICATION; also fixes deck-tab-highlight staleness class.
+- Zero-layer raw Deck-New + id=0 deck collisions: pre-existing HEAD weirdness,
+  faithfully wrapped — is it intended? (Boris queue.)
+- Undo with no cell selected clears clip inspector (carried from s. 2026-07-19).
+- Step-9 fold-ins owed: RemoveLayerCmd own stale-coord test; SyncScope::DeckStructure
+  dead code; EffectCommands.h:98 stale inline comment; dead 2-arg reinspect path
+  (scope-None trap if revived); inert no-op-command history entries (unreachable
+  today).
+- Syphon.framework install + rebuild -DAUDIODNA_BUILD_SYPHON=ON still pending
+  (needs build dir + working app).
+- Uncommitted tree noise left deliberately: graphify-out/ churn (regenerates),
+  .audit/features-gap-fill/ untracked (pre-existing, unrelated).
+- touched-repos.sh returned 7 dirty candidates at close; work repo resolved by
+  today-commit SHA match (precedented) — registry dirt from other lanes persists.
 
 ## META-LEARNINGS
 
-(2026-07-19/20 additions; prior session's six remain valid — see git history of this file)
-- Independent review pays at the SILENT-failure class: the replace-undo bug produced
-  no error, no test failure, wrong visual only — builder self-report classed it
-  "accepted boundary", reviewer traced the id-keyed player lookup and proved it wrong.
-  Route every "accepted risk" claim in a builder report through the reviewer explicitly.
-- Existence of an id-keyed resource ≠ correct content of that resource (gotcha'd) —
-  reconnect guards must compare content identity, not presence, when ids are
-  content-stable.
-- Warm-builder R3 loop (build→fix→fix) capped at 3 rounds then fresh spawn worked
-  cleanly: fresh step-3 builder conformed to committed patterns with zero style drift
-  when pointed at the files (not prose descriptions) as the contract.
-- Pure-helper extraction (needsVideoReopen) turned an untestable renderer-coupled
-  decision into a 4-case headless truth-table test — extract the decision, not the
-  side effect.
+- Pre-declared budget riders (disposition rule written at DISPATCH, not at finding
+  time) removed all rationalization pressure when the s7 MAJOR landed. Keep doing.
+- Remedy-(b) doc-truth is the right disposition for "comments overclaim vs
+  pre-existing mechanism gap" MAJORs; invite the reviewer to overrule the
+  disposition explicitly — undo-s7-review's independent UNBLOCK (citing s6
+  precedent) is worth more than a self-approved one.
+- Rotate reviewers at ~2 full packets like builders; fresh eyes killed a false
+  "headless-silent test violation" precedent claim in minutes.
+- Env wedges that worsen with remedy cycles get single-attempt rechecks + hard
+  stop; retry loops actively degraded coreaudiod (4-attempt, sample-verified).
+- Write-immediately ledger discipline made this EOS nearly free — every decision,
+  gate result, and carry-forward was already on disk at close time.
 
 ## CHANNEL HARVEST
 
-- Lane: FOREIGN-REPO secondary — zero harmony2 writes this session; all capture
-  project-local (undo-v1-ledger.md, 2 new gotchas, this handoff).
-- New gotchas: transient first-`open` CoreAudio/TCC stall (mimics direct-exec hang;
-  sample→pkill→re-open); id-keyed renderer media resources have no file-match check.
-- No Boris messages this session (autonomous drain execution of the ratified backlog);
-  no idea-class capture owed.
+- Boris turns this session: ZERO (autonomous drain from boot handoff) → no
+  idea-class statements owed; R2 sweep of transcript confirms none missed; no
+  idea-ledger records written (none exist to migrate — no ledger file present).
+- harmony2 writes: ZERO (clean lane-B secondary; no system files, no memory, no
+  .pending). Escalation predicate CLEAN → eos-secondary is the correct close.
+- Carry-forwards: all routed repo-local — undo-v1-ledger.md (decision log, Boris
+  queue, e2e checklist), gotchas.md (coreaudiod wedge entry), notebook.md (4
+  meta-learnings), APP-INVENTORY.md (undo rows → steps 1-7, same-wave rule),
+  this HANDOFF (birth prompt + loose ends).
