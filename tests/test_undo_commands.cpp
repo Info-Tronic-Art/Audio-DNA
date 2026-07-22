@@ -95,6 +95,79 @@ static bool operator==(const Clip& a, const Clip& b)
 }
 
 // ---------------------------------------------------------------------------
+// Hand-written deep-equality for Layer (step-5 RemoveLayerCmd full-Layer restore).
+//
+// FIELD COVERAGE: every field of the CURRENT Layer struct is compared —
+// identity, controls, blend/keying, 3D, video props, transition, transform,
+// feedback, per-layer effect chain, autopilot defaults, the clips row, and the
+// runtime trigger fields. RemoveLayerCmd stores + restores a full Layer VALUE,
+// so nothing is deliberately excluded: a future added/dropped field surfaces as
+// a test failure rather than a silent weakening. Floats use exact == because the
+// restore is a bit-identical value copy (no arithmetic).
+// ---------------------------------------------------------------------------
+
+static bool operator==(const FeedbackConfig& a, const FeedbackConfig& b)
+{
+    return a.enabled == b.enabled && a.amount == b.amount
+        && a.scaleX == b.scaleX && a.scaleY == b.scaleY && a.rotation == b.rotation
+        && a.offsetX == b.offsetX && a.offsetY == b.offsetY && a.lumaKey == b.lumaKey
+        && a.presetName == b.presetName;
+}
+
+static bool clipsEq(const std::vector<std::optional<Clip>>& a,
+                    const std::vector<std::optional<Clip>>& b)
+{
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i)
+    {
+        if (a[i].has_value() != b[i].has_value()) return false;
+        if (a[i].has_value() && !(*a[i] == *b[i])) return false;
+    }
+    return true;
+}
+
+static bool operator==(const Layer& a, const Layer& b)
+{
+    return a.name == b.name && a.id == b.id && a.type == b.type
+        // Controls
+        && a.opacity == b.opacity && a.visible == b.visible && a.bypassed == b.bypassed
+        && a.solo == b.solo && a.muted == b.muted && a.autopilotEnabled == b.autopilotEnabled
+        && a.ignoreColumnTrigger == b.ignoreColumnTrigger && a.persistent == b.persistent
+        && a.folded == b.folded
+        // Blend / keying
+        && a.blendMode == b.blendMode
+        && a.keyingMode == b.keyingMode && a.keyThreshold == b.keyThreshold
+        && a.keySoftness == b.keySoftness && a.chromaKeyR == b.chromaKeyR
+        && a.chromaKeyG == b.chromaKeyG && a.chromaKeyB == b.chromaKeyB
+        && a.chromaKeyTolerance == b.chromaKeyTolerance
+        // FX-only / 3D
+        && a.dryWetMix == b.dryWetMix
+        && a.rotationX == b.rotationX && a.rotationY == b.rotationY && a.rotationZ == b.rotationZ
+        && a.rotationSpeed == b.rotationSpeed && a.scale3D == b.scale3D
+        // Video props
+        && a.layerWidth == b.layerWidth && a.layerHeight == b.layerHeight && a.autoSize == b.autoSize
+        // Transition
+        && a.transitionMode == b.transitionMode && a.transitionBlendMode == b.transitionBlendMode
+        && a.transitionSpeed == b.transitionSpeed
+        // Transform
+        && a.positionX == b.positionX && a.positionY == b.positionY
+        && a.layerScale == b.layerScale && a.layerRotation == b.layerRotation
+        && a.layerAnchorX == b.layerAnchorX && a.layerAnchorY == b.layerAnchorY
+        // Feedback + per-layer effects
+        && a.feedback == b.feedback
+        && vecEq(a.layerEffects, b.layerEffects)
+        // Autopilot defaults
+        && a.defaultAutopilotAction == b.defaultAutopilotAction
+        && a.defaultAutopilotDuration == b.defaultAutopilotDuration
+        && a.defaultAutopilotCustomBeats == b.defaultAutopilotCustomBeats
+        && a.autopilotLoops == b.autopilotLoops && a.autopilotEndOfVideo == b.autopilotEndOfVideo
+        // Clips row + runtime
+        && clipsEq(a.clips, b.clips)
+        && a.activeClipColumn == b.activeClipColumn && a.previousClipColumn == b.previousClipColumn
+        && a.crossfadeProgress == b.crossfadeProgress && a.pendingTriggerColumn == b.pendingTriggerColumn;
+}
+
+// ---------------------------------------------------------------------------
 // Test fixtures
 // ---------------------------------------------------------------------------
 
@@ -123,6 +196,14 @@ namespace
     ClipMediaHook noopMedia()
     {
         return [](const Clip&) {};
+    }
+
+    // Headless GL-fence hook: the renderer isn't linked in this target, so the
+    // fence is a pass-through that runs the mutation directly (mirrors
+    // UndoService::withDeckDetached's renderer==nullptr branch).
+    DeckFenceHook noopFence()
+    {
+        return [](const std::function<void()>& m) { if (m) m(); };
     }
 
     // A clip with a distinctive non-default value in many structural fields, so
@@ -748,4 +829,226 @@ TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][reso
     mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopMedia(),
                 0, 9, emptySnap, emptySnap, "Clear Layer Clips"));
     REQUIRE(comp.decks[0].getClip(0, 0) != nullptr); // layer 0 untouched
+}
+
+// ===========================================================================
+// Step 5 — layer ops (#13-18, #20). Fence injected as a headless pass-through.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// AddLayerCmd (#16): append a layer; undo erases; redo re-adds the EXACT layer.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("AddLayerCmd: add appends, undo removes, redo restores same layer", "[undo][layer]")
+{
+    Composition comp = makeComp();          // 3 layers
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    const int before = deck.getNumLayers(); // 3
+
+    mgr.perform(std::make_unique<AddLayerCmd>(deckResolverFor(svc), noopFence(), 0, "Add Layer"));
+    REQUIRE(deck.getNumLayers() == before + 1);
+    const uint32_t addedId = deck.layers.back().id;   // capture for determinism
+    REQUIRE(mgr.undoDescription() == "Add Layer");
+
+    mgr.undo();
+    REQUIRE(deck.getNumLayers() == before);
+    mgr.redo();
+    REQUIRE(deck.getNumLayers() == before + 1);
+    REQUIRE(deck.layers.back().id == addedId);        // redo re-inserts the SAME layer
+}
+
+// ---------------------------------------------------------------------------
+// RemoveLayerCmd (#17): full-Layer restore on undo (deep-equal, field-complete).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("RemoveLayerCmd: remove restores the full layer on undo (deep-equal)", "[undo][layer]")
+{
+    Composition comp = makeComp();          // 3 layers
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    // Give the last layer distinctive state + a clip so the full-Layer restore bites.
+    const int idx = deck.getNumLayers() - 1;   // 2
+    Layer& L = deck.layers[static_cast<size_t>(idx)];
+    L.name = "victim"; L.bypassed = true; L.solo = true; L.opacity = 0.33f;
+    L.blendMode = Layer::MixMode::Multiply; L.layerScale = 2.0f; L.folded = true;
+    L.feedback.enabled = true; L.feedback.amount = 0.7f;
+    L.activeClipColumn = 4;
+    deck.setClip(idx, 4, richClip(77, "onlayer"));
+    const Layer expected = L;                  // full value snapshot for compare
+
+    Layer removedCopy = *deck.getLayer(idx);
+    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), noopMedia(),
+                0, idx, removedCopy, "Remove Layer"));
+
+    REQUIRE(deck.getNumLayers() == 2);         // removed
+    REQUIRE(mgr.undoDescription() == "Remove Layer");
+
+    mgr.undo();
+    REQUIRE(deck.getNumLayers() == 3);
+    REQUIRE(deck.layers[static_cast<size_t>(idx)] == expected);   // full-Layer deep-equal
+
+    mgr.redo();
+    REQUIRE(deck.getNumLayers() == 2);
+}
+
+// ---------------------------------------------------------------------------
+// MoveLayerCmd (#18): move + undo restores order (moveLayer(to,from) is inverse).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("MoveLayerCmd: move up then undo restores original order", "[undo][layer]")
+{
+    Composition comp = makeComp();          // layers 0,1,2
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    deck.layers[0].name = "A"; deck.layers[1].name = "B"; deck.layers[2].name = "C";
+
+    // Move layer 2 (C) up to index 1.
+    mgr.perform(std::make_unique<MoveLayerCmd>(deckResolverFor(svc), noopFence(),
+                0, 2, 1, "Move Layer Up"));
+    REQUIRE(deck.layers[0].name == "A");
+    REQUIRE(deck.layers[1].name == "C");
+    REQUIRE(deck.layers[2].name == "B");
+
+    mgr.undo();
+    REQUIRE(deck.layers[0].name == "A");
+    REQUIRE(deck.layers[1].name == "B");    // original order restored
+    REQUIRE(deck.layers[2].name == "C");
+
+    mgr.redo();
+    REQUIRE(deck.layers[1].name == "C");
+    REQUIRE(deck.layers[2].name == "B");
+}
+
+// ---------------------------------------------------------------------------
+// ToggleLayerFlagCmd (#14 bypass / #15 solo / #20 fold): each flag round-trips.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("ToggleLayerFlagCmd: bypass/solo/fold each round-trip independently", "[undo][layer][toggle]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = deck.layers[1];
+    L.bypassed = false; L.solo = false; L.folded = false;
+
+    // Bypass — LayerStrip toggles live, command wraps (before=false, after=true).
+    L.bypassed = true;
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 1,
+                ToggleLayerFlagCmd::Flag::Bypassed, false, true, "Bypass Layer"));
+    REQUIRE(L.bypassed == true);
+    mgr.undo();  REQUIRE(L.bypassed == false);
+    mgr.redo();  REQUIRE(L.bypassed == true);
+
+    // Solo — independent field; the bypass command must not have touched it.
+    L.solo = true;
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 1,
+                ToggleLayerFlagCmd::Flag::Solo, false, true, "Solo Layer"));
+    REQUIRE(L.solo == true);
+    REQUIRE(L.bypassed == true);            // bypass unaffected by the solo toggle
+    mgr.undo();  REQUIRE(L.solo == false);
+
+    // Fold.
+    L.folded = true;
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 1,
+                ToggleLayerFlagCmd::Flag::Folded, false, true, "Fold Layer"));
+    REQUIRE(L.folded == true);
+    mgr.undo();  REQUIRE(L.folded == false);
+    mgr.redo();  REQUIRE(L.folded == true);
+}
+
+// ---------------------------------------------------------------------------
+// ClearActiveClipCmd (#13): X-button clear restores layer runtime on undo.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("ClearActiveClipCmd: X-button clear restores layer runtime on undo", "[undo][layer]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = deck.layers[0];
+    deck.setClip(0, 3, richClip(1, "active"));
+    L.activeClipColumn = 3;
+    L.previousClipColumn = 1;
+    L.crossfadeProgress = 0.5f;
+
+    LayerRuntimeSnapshot before = captureLayerRuntime(L);
+    L.clearActiveClip();                    // live: active -> -1, previous -> 3, crossfade -> 1
+    LayerRuntimeSnapshot after = captureLayerRuntime(L);
+    REQUIRE_FALSE(before == after);
+
+    mgr.perform(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 0,
+                before, after, "Clear Layer Clip"));
+    REQUIRE(L.activeClipColumn == -1);      // cleared (execute idempotent with live)
+
+    mgr.undo();
+    REQUIRE(L.activeClipColumn == 3);       // runtime restored
+    REQUIRE(L.previousClipColumn == 1);
+    REQUIRE(L.crossfadeProgress == 0.5f);
+
+    mgr.redo();
+    REQUIRE(L.activeClipColumn == -1);
+}
+
+// ---------------------------------------------------------------------------
+// Coordinate consistency (spec §7): remove+undo keeps later-layer commands
+// resolvable and correctly undoable under linear history.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Layer index consistency: remove+undo keeps later-layer commands resolvable", "[undo][layer][resolve]")
+{
+    Composition comp = makeComp();          // layers 0,1,2
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    // Toggle bypass on the last layer, then remove it, then undo the remove.
+    deck.layers[2].bypassed = true;
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 2,
+                ToggleLayerFlagCmd::Flag::Bypassed, false, true, "Bypass Layer"));
+
+    Layer removed = deck.layers[2];
+    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), noopMedia(),
+                0, 2, removed, "Remove Layer"));
+    REQUIRE(deck.getNumLayers() == 2);
+
+    mgr.undo();                             // undo remove → layer 2 back (bypassed==true)
+    REQUIRE(deck.getNumLayers() == 3);
+    REQUIRE(svc.resolveLayer(0, 2) != nullptr);      // later index resolves again
+    REQUIRE(deck.layers[2].bypassed == true);
+
+    mgr.undo();                             // undo the earlier bypass → layer 2 resolves, false
+    REQUIRE(deck.layers[2].bypassed == false);
+}
+
+// ---------------------------------------------------------------------------
+// Stale-coordinate no-op safety for the new layer commands.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Layer commands no-op on stale coordinates (never crash)", "[undo][layer][resolve]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+
+    // Stale DECK index → AddLayerCmd / MoveLayerCmd apply are safe no-ops.
+    mgr.perform(std::make_unique<AddLayerCmd>(deckResolverFor(svc), noopFence(), 9, "Add Layer"));
+    REQUIRE(comp.decks[0].getNumLayers() == 3);      // untouched
+    mgr.perform(std::make_unique<MoveLayerCmd>(deckResolverFor(svc), noopFence(),
+                9, 0, 1, "Move Layer Up"));
+    REQUIRE(comp.decks[0].layers[0].id == 0);        // order untouched
+
+    // Stale LAYER index → ToggleLayerFlagCmd / ClearActiveClipCmd are safe no-ops.
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 9,
+                ToggleLayerFlagCmd::Flag::Bypassed, false, true, "Bypass Layer"));
+    LayerRuntimeSnapshot rt;
+    mgr.perform(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 9,
+                rt, rt, "Clear Layer Clip"));
+    REQUIRE(comp.decks[0].getLayer(0) != nullptr);   // survived; deck intact
 }

@@ -29,6 +29,7 @@
 #include "core/UndoManager.h"
 #include "core/UndoService.h"
 #include "core/ClipCommands.h"
+#include "core/DeckCommands.h"
 #include <optional>
 #include <memory>
 #include <vector>
@@ -124,6 +125,9 @@ private:
     ClipLayerResolver makeLayerResolver();
     ClipDeckResolver makeDeckResolver();
     ClipMediaHook makeClipMediaHook();
+    // GL fence for structure-changing layer commands (add/remove/move) — binds to
+    // UndoService::withDeckDetached so execute/undo/redo fence the deck->layers mutation.
+    DeckFenceHook makeDeckFence();
     // Snapshot a cell (nullopt if empty / out of range).
     static std::optional<Clip> snapshotCell(Layer* layer, int column);
     // Build a single SetClipCmd for one cell edit.

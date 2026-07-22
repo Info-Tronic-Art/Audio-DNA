@@ -654,6 +654,46 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (auto* layer = deck->getLayer(layerIdx))
             inspectorPanel_->inspectLayer(layer);
     };
+    deckView_->onLayerClearClip = [this](int layerIdx) {
+        // #13: X-button clear rerouted through a command. Runtime-only (clips row
+        // untouched), so NO GL fence. Mutate-then-push: clearActiveClip live, then
+        // wrap the runtime before/after (skip if it was a true no-op).
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        auto* layer = deck->getLayer(layerIdx);
+        if (!layer) return;
+        LayerRuntimeSnapshot before = captureLayerRuntime(*layer);
+        layer->clearActiveClip();
+        LayerRuntimeSnapshot after = captureLayerRuntime(*layer);
+        if (!(before == after))
+        {
+            std::vector<std::unique_ptr<Command>> children;
+            children.push_back(std::make_unique<ClearActiveClipCmd>(
+                makeLayerResolver(), composition_.activeDeckIndex, layerIdx,
+                before, after, "Clear Layer Clip"));
+            pushCommands(std::move(children), "Clear Layer Clip");
+        }
+        if (deckView_) deckView_->refresh();
+    };
+    deckView_->onLayerBypass = [this](int layerIdx, bool bypassed) {
+        // #14: LayerStrip already toggled layer->bypassed live and repainted its
+        // button; just wrap the change for undo (before = !bypassed).
+        std::vector<std::unique_ptr<Command>> children;
+        children.push_back(std::make_unique<ToggleLayerFlagCmd>(
+            makeLayerResolver(), composition_.activeDeckIndex, layerIdx,
+            ToggleLayerFlagCmd::Flag::Bypassed, !bypassed, bypassed,
+            bypassed ? "Bypass Layer" : "Unbypass Layer"));
+        pushCommands(std::move(children), bypassed ? "Bypass Layer" : "Unbypass Layer");
+    };
+    deckView_->onLayerSolo = [this](int layerIdx, bool solo) {
+        // #15: same shape as bypass — LayerStrip toggled layer->solo live.
+        std::vector<std::unique_ptr<Command>> children;
+        children.push_back(std::make_unique<ToggleLayerFlagCmd>(
+            makeLayerResolver(), composition_.activeDeckIndex, layerIdx,
+            ToggleLayerFlagCmd::Flag::Solo, !solo, solo,
+            solo ? "Solo Layer" : "Unsolo Layer"));
+        pushCommands(std::move(children), solo ? "Solo Layer" : "Unsolo Layer");
+    };
     deckView_->onFileDropped = [this](int layerIdx, int col, const juce::File& file) {
         handleFileDrop(layerIdx, col, file);
         if (deckView_) deckView_->clearSelection();
@@ -2934,6 +2974,16 @@ ClipMediaHook MainComponent::makeClipMediaHook()
     };
 }
 
+DeckFenceHook MainComponent::makeDeckFence()
+{
+    // Fence structure-changing layer mutations through UndoService::withDeckDetached
+    // (GL fence, validated in build step 1). Runs on the message thread; execute/
+    // undo/redo of AddLayerCmd/RemoveLayerCmd/MoveLayerCmd all route through here.
+    return [this](const std::function<void()>& mutation) {
+        undoService_.withDeckDetached(mutation);
+    };
+}
+
 std::optional<Clip> MainComponent::snapshotCell(Layer* layer, int column)
 {
     if (layer == nullptr) return std::nullopt;
@@ -2994,6 +3044,15 @@ void MainComponent::refreshAfterUndoRedo()
                                              selection.front().layer,
                                              selection.front().column);
         inspectorPanel_->getClipInspector().setClip(fresh);
+
+        // Re-point the layer inspector BY COORDINATE too (risk #3): a layer
+        // add/remove/move undo can leave it holding a dangling Layer*. A stale
+        // index resolves to nullptr, which setLayer clears null-safely.
+        const int selLayer = deckView_->getSelectedLayerIndex();
+        Layer* freshLayer = (selLayer >= 0)
+            ? undoService_.resolveLayer(composition_.activeDeckIndex, selLayer)
+            : nullptr;
+        inspectorPanel_->getLayerInspector().setLayer(freshLayer);
     }
 }
 
@@ -3341,18 +3400,34 @@ void MainComponent::handleMenuCommand(int commandId)
         case C::kLayerNew:
         case C::kLayerInsertAbove:
         case C::kLayerInsertBelow:
-            if (auto* deck = composition_.getActiveDeck())
+            // #16: all three menu items append a layer via Deck::addLayer (no
+            // insert-shift at HEAD). Command owns the fenced mutation (perform()
+            // runs it) — addLayer is non-idempotent, so no mutate-then-push here.
+            if (composition_.getActiveDeck())
             {
-                deck->addLayer();
+                std::vector<std::unique_ptr<Command>> children;
+                children.push_back(std::make_unique<AddLayerCmd>(
+                    makeDeckResolver(), makeDeckFence(),
+                    composition_.activeDeckIndex, "Add Layer"));
+                pushCommands(std::move(children), "Add Layer");
                 if (deckView_) deckView_->rebuildGrid();
             }
             break;
         case C::kLayerRemove:
+            // #17: removes the LAST layer (HEAD behavior). Snapshot the full Layer
+            // BEFORE building the command; the command owns the fenced erase.
             if (auto* deck = composition_.getActiveDeck())
             {
                 if (deck->getNumLayers() > 1)
                 {
-                    deck->removeLayer(deck->getNumLayers() - 1);
+                    const int removeIdx = deck->getNumLayers() - 1;
+                    Layer removed = *deck->getLayer(removeIdx);
+                    std::vector<std::unique_ptr<Command>> children;
+                    children.push_back(std::make_unique<RemoveLayerCmd>(
+                        makeDeckResolver(), makeDeckFence(), makeClipMediaHook(),
+                        composition_.activeDeckIndex, removeIdx,
+                        std::move(removed), "Remove Layer"));
+                    pushCommands(std::move(children), "Remove Layer");
                     if (deckView_) deckView_->rebuildGrid();
                 }
             }
@@ -3391,7 +3466,8 @@ void MainComponent::handleMenuCommand(int commandId)
 
         case C::kLayerFold:
         {
-            // P24.12: Toggle fold on the selected layer
+            // P24.12 / #20: Toggle fold on the selected layer. Field-level bool →
+            // ToggleLayerFlagCmd, no fence. Mutate-then-push (toggle live, wrap).
             int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
             if (selLayer >= 0)
             {
@@ -3399,7 +3475,15 @@ void MainComponent::handleMenuCommand(int commandId)
                 {
                     if (auto* layer = deck->getLayer(selLayer))
                     {
+                        const bool before = layer->folded;
                         layer->folded = !layer->folded;
+                        const juce::String desc = layer->folded ? "Fold Layer" : "Unfold Layer";
+                        std::vector<std::unique_ptr<Command>> children;
+                        children.push_back(std::make_unique<ToggleLayerFlagCmd>(
+                            makeLayerResolver(), composition_.activeDeckIndex, selLayer,
+                            ToggleLayerFlagCmd::Flag::Folded, before, layer->folded,
+                            desc.toStdString()));
+                        pushCommands(std::move(children), desc);
                         if (deckView_) deckView_->rebuildGrid();
                     }
                 }
@@ -3408,13 +3492,18 @@ void MainComponent::handleMenuCommand(int commandId)
         }
         case C::kLayerMoveUp:
         {
-            // P24.13: Move selected layer up (swap with layer above)
+            // P24.13 / #18: Move selected layer up. Command owns the fenced move;
+            // undo moves it back down (moveLayer(to,from) is the exact inverse).
             int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
             if (selLayer > 0)
             {
-                if (auto* deck = composition_.getActiveDeck())
+                if (composition_.getActiveDeck())
                 {
-                    deck->moveLayer(selLayer, selLayer - 1);
+                    std::vector<std::unique_ptr<Command>> children;
+                    children.push_back(std::make_unique<MoveLayerCmd>(
+                        makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
+                        selLayer, selLayer - 1, "Move Layer Up"));
+                    pushCommands(std::move(children), "Move Layer Up");
                     if (deckView_) { deckView_->rebuildGrid(); deckView_->selectLayer(selLayer - 1); }
                 }
             }
@@ -3422,13 +3511,17 @@ void MainComponent::handleMenuCommand(int commandId)
         }
         case C::kLayerMoveDown:
         {
-            // P24.13: Move selected layer down (swap with layer below)
+            // P24.13 / #18: Move selected layer down.
             int selLayer = deckView_ ? deckView_->getSelectedLayerIndex() : -1;
             if (auto* deck = composition_.getActiveDeck())
             {
                 if (selLayer >= 0 && selLayer < deck->getNumLayers() - 1)
                 {
-                    deck->moveLayer(selLayer, selLayer + 1);
+                    std::vector<std::unique_ptr<Command>> children;
+                    children.push_back(std::make_unique<MoveLayerCmd>(
+                        makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
+                        selLayer, selLayer + 1, "Move Layer Down"));
+                    pushCommands(std::move(children), "Move Layer Down");
                     if (deckView_) { deckView_->rebuildGrid(); deckView_->selectLayer(selLayer + 1); }
                 }
             }

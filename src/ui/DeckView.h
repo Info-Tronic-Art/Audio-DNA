@@ -46,6 +46,9 @@ public:
     std::function<void(int deckIndex)> onDeckSwitched;
     std::function<void(int layerIndex)> onLayerFoldToggle;         // P24.12
     std::function<void(int fromIndex, int toIndex)> onLayerReorder; // P24.13
+    std::function<void(int layerIndex)> onLayerClearClip;          // Undo v1 #13 (X button)
+    std::function<void(int layerIndex, bool bypassed)> onLayerBypass; // Undo v1 #14
+    std::function<void(int layerIndex, bool solo)> onLayerSolo;    // Undo v1 #15
 
     // Get active column (-1 if none)
     int getActiveColumn() const { return activeColumn_; }

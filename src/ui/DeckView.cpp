@@ -102,15 +102,18 @@ void DeckView::rebuildGrid()
             selectLayer(idx);
             if (onLayerSelected) onLayerSelected(idx);
         };
+        // Undo v1 #13-15: bubble clear/bypass/solo to MainComponent so the
+        // mutation is wrapped in an undo command (command wrapping happens only
+        // at user entry points). LayerStrip already toggled bypass/solo live and
+        // repainted; MainComponent just records the change for undo.
         strip->onClearClip = [this](int idx) {
-            if (!composition_) return;
-            auto* d = composition_->getActiveDeck();
-            if (!d) return;
-            if (auto* l = d->getLayer(idx))
-            {
-                l->clearActiveClip();
-                refresh();
-            }
+            if (onLayerClearClip) onLayerClearClip(idx);
+        };
+        strip->onBypass = [this](int idx, bool bypassed) {
+            if (onLayerBypass) onLayerBypass(idx, bypassed);
+        };
+        strip->onSolo = [this](int idx, bool solo) {
+            if (onLayerSolo) onLayerSolo(idx, solo);
         };
 
         gridContent_->addAndMakeVisible(strip.get());
