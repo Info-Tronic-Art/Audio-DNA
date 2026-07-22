@@ -128,6 +128,12 @@ private:
     // GL fence for structure-changing layer commands (add/remove/move) — binds to
     // UndoService::withDeckDetached so execute/undo/redo fence the deck->layers mutation.
     DeckFenceHook makeDeckFence();
+    // Re-resolve the live Composition for deck-vector commands (add/remove/switch),
+    // which reach the decks vector + activeDeckIndex (beyond a single Deck).
+    CompositionResolver makeCompositionResolver();
+    // Re-point the renderer's active deck for SwitchDeckCmd (no fence needed —
+    // a switch is an atomic pointer handoff, not a decks-vector mutation).
+    DeckActivateHook makeDeckActivateHook();
     // Snapshot a cell (nullopt if empty / out of range).
     static std::optional<Clip> snapshotCell(Layer* layer, int column);
     // Build a single SetClipCmd for one cell edit.

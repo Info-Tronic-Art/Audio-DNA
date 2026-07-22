@@ -1090,7 +1090,23 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
 
     deckView_->onDeckSwitched = [this](int deckIdx) {
+        // #24: USER-initiated deck switch (tab click) — the ONLY switch path that
+        // wraps an undo command. handleDeckSwitch is ALSO called by non-user paths
+        // (REST, OSC, MIDI/controller bindings, genre auto-switch) which must NOT
+        // push commands, so the wrap lives here at the user entry point, not inside
+        // handleDeckSwitch. Mutate-then-push: switch live, then record before/after
+        // (only if the active deck actually changed — a no-op switch pushes nothing).
+        const int before = composition_.activeDeckIndex;
         handleDeckSwitch(deckIdx);
+        const int after = composition_.activeDeckIndex;
+        if (before != after)
+        {
+            std::vector<std::unique_ptr<Command>> children;
+            children.push_back(std::make_unique<SwitchDeckCmd>(
+                makeCompositionResolver(), makeDeckActivateHook(),
+                before, after, "Switch Deck"));
+            pushCommands(std::move(children), "Switch Deck");
+        }
     };
 
     // === v2: Inspector Panel ===
@@ -2984,6 +3000,23 @@ DeckFenceHook MainComponent::makeDeckFence()
     };
 }
 
+CompositionResolver MainComponent::makeCompositionResolver()
+{
+    // The Composition is a stable member — its address never changes; deck-vector
+    // commands re-resolve it each apply to stay pointer-free (the decks vector
+    // inside is what reallocates, which the DeckFenceHook guards).
+    return [this]() -> Composition* { return &composition_; };
+}
+
+DeckActivateHook MainComponent::makeDeckActivateHook()
+{
+    // SwitchDeckCmd re-points the renderer at the current active deck on
+    // execute/undo/redo — the same atomic handoff handleDeckSwitch performs live.
+    return [this]() {
+        previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+    };
+}
+
 std::optional<Clip> MainComponent::snapshotCell(Layer* layer, int column)
 {
     if (layer == nullptr) return std::nullopt;
@@ -3352,20 +3385,29 @@ void MainComponent::handleMenuCommand(int commandId)
         // --- Deck menu ---
         case C::kDeckNew:
         {
-            Deck newDeck;
-            newDeck.name = "Deck " + std::to_string(composition_.decks.size() + 1);
-            composition_.decks.push_back(std::move(newDeck));
-            composition_.activeDeckIndex = static_cast<int>(composition_.decks.size()) - 1;
+            // #21: command-owns-the-mutation (push_back is non-idempotent). The
+            // fenced AddDeckCmd appends the deck, makes it active, and re-points
+            // the renderer (via withDeckDetached's re-resolve) — perform() runs it.
+            std::vector<std::unique_ptr<Command>> children;
+            children.push_back(std::make_unique<AddDeckCmd>(
+                makeCompositionResolver(), makeDeckFence(), "Add Deck"));
+            pushCommands(std::move(children), "Add Deck");
             if (deckView_) deckView_->rebuildGrid();
             break;
         }
         case C::kDeckRemove:
+            // #22: command-owns-the-mutation. Snapshot the full Deck VALUE + the
+            // prior active index BEFORE building the command (it does not pre-erase
+            // — the fenced execute() erases). Guard mirrors HEAD: keep >=1 deck.
             if (composition_.decks.size() > 1)
             {
-                composition_.decks.erase(
-                    composition_.decks.begin() + composition_.activeDeckIndex);
-                if (composition_.activeDeckIndex >= static_cast<int>(composition_.decks.size()))
-                    composition_.activeDeckIndex = static_cast<int>(composition_.decks.size()) - 1;
+                const int removeIdx = composition_.activeDeckIndex;
+                Deck removedCopy = composition_.decks[static_cast<size_t>(removeIdx)];
+                std::vector<std::unique_ptr<Command>> children;
+                children.push_back(std::make_unique<RemoveDeckCmd>(
+                    makeCompositionResolver(), makeDeckFence(),
+                    removeIdx, std::move(removedCopy), removeIdx, "Remove Deck"));
+                pushCommands(std::move(children), "Remove Deck");
                 if (deckView_) deckView_->rebuildGrid();
             }
             break;

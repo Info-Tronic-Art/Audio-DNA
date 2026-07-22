@@ -168,6 +168,27 @@ static bool operator==(const Layer& a, const Layer& b)
 }
 
 // ---------------------------------------------------------------------------
+// Hand-written deep-equality for Deck (step-6 RemoveDeckCmd full-Deck restore).
+//
+// FIELD COVERAGE against Deck.h: every PUBLIC instance field — name, id,
+// numColumns, and the layers vector (element-wise via Layer operator==). The
+// only Deck member NOT compared is the private `nextLayerId_` id counter: it is
+// inaccessible to a free operator== AND is an internal allocation counter, not
+// structural identity — the same class of exclusion as Clip/Layer runtime
+// fields. A full-Deck VALUE copy (RemoveDeckCmd) still restores nextLayerId_
+// bit-identically via the implicit copy ctor; it is simply not asserted here.
+// A future added PUBLIC Deck field surfaces as a compile-visible gap in this
+// list rather than a silent weakening.
+// ---------------------------------------------------------------------------
+
+static bool operator==(const Deck& a, const Deck& b)
+{
+    return a.name == b.name && a.id == b.id
+        && a.numColumns == b.numColumns
+        && vecEq(a.layers, b.layers);
+}
+
+// ---------------------------------------------------------------------------
 // Test fixtures
 // ---------------------------------------------------------------------------
 
@@ -204,6 +225,13 @@ namespace
     DeckFenceHook noopFence()
     {
         return [](const std::function<void()>& m) { if (m) m(); };
+    }
+
+    // Composition resolver for deck-vector commands (add/remove/switch) — the app
+    // binds the same shape to &composition_.
+    CompositionResolver compResolverFor(Composition& comp)
+    {
+        return [&comp]() { return &comp; };
     }
 
     // A clip with a distinctive non-default value in many structural fields, so
@@ -1051,4 +1079,249 @@ TEST_CASE("Layer commands no-op on stale coordinates (never crash)", "[undo][lay
     mgr.perform(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 9,
                 rt, rt, "Clear Layer Clip"));
     REQUIRE(comp.decks[0].getLayer(0) != nullptr);   // survived; deck intact
+}
+
+// ===========================================================================
+// Step 6 — deck ops (#21 new, #22 remove, #24 switch). Fence + renderer re-point
+// injected as headless pass-throughs. (#23 landed in step 4.)
+// ===========================================================================
+
+namespace
+{
+    // A deck with a name + distinctive layer/clip state, so full-Deck deep-equal
+    // (RemoveDeckCmd) actually bites. initDefault gives 3 layers × 12 columns.
+    Deck richDeck(const std::string& name, uint32_t id)
+    {
+        Deck d;
+        d.name = name;
+        d.id = id;
+        d.initDefault();
+        d.layers[1].bypassed = true;
+        d.layers[1].opacity = 0.4f;
+        d.layers[2].name = "top";
+        d.layers[0].clips[3] = richClip(id * 10 + 3, name + "c3");
+        d.layers[0].activeClipColumn = 3;
+        return d;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// AddDeckCmd (#21): append a deck, make it active; undo removes + restores the
+// prior active index; redo re-inserts the EXACT same deck.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("AddDeckCmd: add appends + activates, undo removes, redo restores same deck", "[undo][deck]")
+{
+    Composition comp = makeComp();          // 1 deck, active 0
+    UndoManager mgr;
+    const int before = static_cast<int>(comp.decks.size());   // 1
+
+    mgr.perform(std::make_unique<AddDeckCmd>(compResolverFor(comp), noopFence(), "Add Deck"));
+
+    REQUIRE(static_cast<int>(comp.decks.size()) == before + 1);
+    REQUIRE(comp.activeDeckIndex == before);            // new deck is active
+    REQUIRE(comp.decks[1].name == "Deck 2");            // faithful to kDeckNew naming
+    REQUIRE(comp.decks[1].getNumLayers() == 0);         // kDeckNew: no initDefault → no layers
+    REQUIRE(mgr.undoDescription() == "Add Deck");
+    const Deck expected = comp.decks[1];               // capture for redo compare
+
+    mgr.undo();
+    REQUIRE(static_cast<int>(comp.decks.size()) == before);
+    REQUIRE(comp.activeDeckIndex == 0);                 // prior active restored
+
+    mgr.redo();
+    REQUIRE(static_cast<int>(comp.decks.size()) == before + 1);
+    REQUIRE(comp.activeDeckIndex == before);
+    REQUIRE(comp.decks[1] == expected);                // redo re-inserts the SAME deck
+}
+
+// ---------------------------------------------------------------------------
+// RemoveDeckCmd (#22): remove the ACTIVE deck at the LAST index → active clamps;
+// undo restores the full deck (deep-equal) AND the prior active index.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("RemoveDeckCmd: remove active last deck clamps active, undo restores deck + index", "[undo][deck]")
+{
+    Composition comp = makeComp();
+    comp.decks.push_back(richDeck("Deck 2", 2));
+    comp.decks.push_back(richDeck("Deck 3", 3));
+    comp.activeDeckIndex = 2;                           // active == last (the edge)
+    UndoManager mgr;
+
+    const int removeIdx = comp.activeDeckIndex;         // 2
+    const Deck expected = comp.decks[static_cast<size_t>(removeIdx)];
+    Deck removedCopy = comp.decks[static_cast<size_t>(removeIdx)];
+
+    mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(),
+                removeIdx, std::move(removedCopy), removeIdx, "Remove Deck"));
+
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.activeDeckIndex == 1);                 // clamped down (was 2, now off-end)
+    REQUIRE(mgr.undoDescription() == "Remove Deck");
+
+    mgr.undo();
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.decks[2] == expected);                // full-Deck deep-equal restore
+    REQUIRE(comp.activeDeckIndex == 2);                // prior active index restored
+
+    mgr.redo();
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.activeDeckIndex == 1);
+}
+
+// ---------------------------------------------------------------------------
+// RemoveDeckCmd (#22): remove the active deck at a NON-last index → no clamp,
+// remaining indices stay consistent; undo re-inserts at the same index.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("RemoveDeckCmd: remove active non-last deck keeps indices consistent", "[undo][deck]")
+{
+    Composition comp = makeComp();
+    comp.decks.push_back(richDeck("Deck 2", 2));
+    comp.decks.push_back(richDeck("Deck 3", 3));
+    comp.activeDeckIndex = 1;                           // active is the MIDDLE deck
+    UndoManager mgr;
+
+    const int removeIdx = comp.activeDeckIndex;         // 1
+    const Deck expected = comp.decks[static_cast<size_t>(removeIdx)];
+    const std::string survivorName = comp.decks[2].name;  // "Deck 3" — shifts to index 1
+    Deck removedCopy = comp.decks[static_cast<size_t>(removeIdx)];
+
+    mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(),
+                removeIdx, std::move(removedCopy), removeIdx, "Remove Deck"));
+
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.activeDeckIndex == 1);                // NOT clamped (still in range)
+    REQUIRE(comp.decks[1].name == survivorName);       // old deck 2 shifted into slot 1
+
+    mgr.undo();
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.decks[1] == expected);                // re-inserted at the same index
+    REQUIRE(comp.decks[2].name == survivorName);       // survivor shifted back to 2
+    REQUIRE(comp.activeDeckIndex == 1);
+}
+
+// ---------------------------------------------------------------------------
+// SwitchDeckCmd (#24): switch active index, undo restores; double-switch redo
+// chain; renderer re-point hook fires exactly on each apply.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("SwitchDeckCmd: switch + undo restores active index, redo re-applies", "[undo][deck]")
+{
+    Composition comp = makeComp();
+    comp.decks.push_back(richDeck("Deck 2", 2));
+    comp.decks.push_back(richDeck("Deck 3", 3));
+    comp.activeDeckIndex = 0;
+    UndoManager mgr;
+
+    int activateCalls = 0;
+    DeckActivateHook countingActivate = [&activateCalls]() { ++activateCalls; };
+
+    // User switches 0 -> 2 (mutate-then-push: the live switch already set index=2).
+    comp.activeDeckIndex = 2;
+    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), countingActivate,
+                0, 2, "Switch Deck"));
+    REQUIRE(comp.activeDeckIndex == 2);                // execute re-applies `after` (idempotent)
+    REQUIRE(activateCalls == 1);                       // renderer re-point on execute
+    REQUIRE(mgr.undoDescription() == "Switch Deck");
+
+    mgr.undo();
+    REQUIRE(comp.activeDeckIndex == 0);                // back to `before`
+    REQUIRE(activateCalls == 2);                       // re-point on undo too
+
+    mgr.redo();
+    REQUIRE(comp.activeDeckIndex == 2);
+    REQUIRE(activateCalls == 3);
+}
+
+TEST_CASE("SwitchDeckCmd: double-switch redo chain restores each active index", "[undo][deck]")
+{
+    Composition comp = makeComp();
+    comp.decks.push_back(richDeck("Deck 2", 2));
+    comp.decks.push_back(richDeck("Deck 3", 3));
+    comp.activeDeckIndex = 0;
+    UndoManager mgr;
+
+    // Switch 0 -> 1, then 1 -> 2 (two user gestures).
+    comp.activeDeckIndex = 1;
+    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr, 0, 1, "Switch Deck"));
+    comp.activeDeckIndex = 2;
+    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr, 1, 2, "Switch Deck"));
+    REQUIRE(comp.activeDeckIndex == 2);
+
+    mgr.undo();  REQUIRE(comp.activeDeckIndex == 1);   // undo 2nd switch
+    mgr.undo();  REQUIRE(comp.activeDeckIndex == 0);   // undo 1st switch
+    mgr.redo();  REQUIRE(comp.activeDeckIndex == 1);   // redo 1st
+    mgr.redo();  REQUIRE(comp.activeDeckIndex == 2);   // redo 2nd
+}
+
+// ---------------------------------------------------------------------------
+// Fence invocation count: AddDeckCmd routes every execute/undo/redo through the
+// fence exactly once (mirrors the app's withDeckDetached GL fence).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("AddDeckCmd: fence fires once per execute/undo/redo", "[undo][deck][fence]")
+{
+    Composition comp = makeComp();
+    UndoManager mgr;
+
+    int fenceCalls = 0;
+    DeckFenceHook countingFence =
+        [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
+
+    mgr.perform(std::make_unique<AddDeckCmd>(compResolverFor(comp), countingFence, "Add Deck"));
+    REQUIRE(fenceCalls == 1);                           // execute fenced
+    mgr.undo();
+    REQUIRE(fenceCalls == 2);                           // undo fenced
+    mgr.redo();
+    REQUIRE(fenceCalls == 3);                           // redo fenced
+    REQUIRE(comp.decks.size() == 2);
+}
+
+// ---------------------------------------------------------------------------
+// Guard: removing the last deck is refused (composition must keep >=1 deck).
+// The handler also guards (only builds the command when >1 deck); this proves
+// the command's own defensive guard so a future call site can't empty the comp.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("RemoveDeckCmd: refuses to remove the last remaining deck", "[undo][deck]")
+{
+    Composition comp = makeComp();                     // exactly 1 deck
+    UndoManager mgr;
+    Deck removedCopy = comp.decks[0];
+
+    mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(),
+                0, std::move(removedCopy), 0, "Remove Deck"));
+
+    REQUIRE(comp.decks.size() == 1);                   // guard held — deck kept
+    REQUIRE(comp.activeDeckIndex == 0);
+}
+
+// ---------------------------------------------------------------------------
+// Stale-coordinate no-op safety for all three deck commands (never crash).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][deck][resolve]")
+{
+    Composition comp = makeComp();
+    comp.decks.push_back(richDeck("Deck 2", 2));       // 2 decks, active 0
+    UndoManager mgr;
+
+    // Null composition resolver → AddDeckCmd apply is a safe no-op.
+    CompositionResolver nullComp = []() -> Composition* { return nullptr; };
+    mgr.perform(std::make_unique<AddDeckCmd>(nullComp, noopFence(), "Add Deck"));
+    REQUIRE(comp.decks.size() == 2);                   // untouched
+
+    // RemoveDeckCmd with an out-of-range deck index → no erase. priorActiveIndex
+    // matches deckIndex (9==9) so the ctor's active-deck invariant still holds —
+    // the staleness is the OUT-OF-RANGE index, caught by execute()'s own guard.
+    Deck dummy = comp.decks[0];
+    mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(),
+                9, std::move(dummy), 9, "Remove Deck"));
+    REQUIRE(comp.decks.size() == 2);                   // bad index → nothing removed
+
+    // SwitchDeckCmd with an out-of-range target index → active index unchanged.
+    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr,
+                0, 9, "Switch Deck"));
+    REQUIRE(comp.activeDeckIndex == 0);                // stale target → no switch
 }

@@ -2,6 +2,7 @@
 #include "core/Command.h"
 #include "core/ClipCommands.h"   // ClipLayerResolver / ClipDeckResolver / ClipMediaHook
 #include "model/Deck.h"          // Deck / Layer / Clip
+#include "model/Composition.h"   // Composition (deck-vector ops: decks + activeDeckIndex)
 #include <juce_events/juce_events.h>   // MessageManager (guarded jassert, like UndoManager)
 #include <algorithm>
 #include <functional>
@@ -485,5 +486,231 @@ private:
     ClipDeckResolver deckResolver_;
     DeckFenceHook fence_;
     int deckIndex_, fromIndex_, toIndex_;
+    std::string description_;
+};
+
+// ===========================================================================
+// Undo v1 step 6 — deck ops (#21 new, #22 remove, #24 switch).
+// (#23 deck-clear-clips landed in step 4 as a ClearLayerClipsCmd composite.)
+// ===========================================================================
+
+// Re-resolve the live Composition — deck-vector ops read/write the decks vector
+// AND composition->activeDeckIndex, which the per-Deck resolver can't reach.
+// Like the other resolvers, this keeps commands pointer-free: they re-resolve
+// the Composition on every apply. The Composition itself is a stable member of
+// MainComponent (its address never changes); it is the decks vector INSIDE that
+// reallocates on add/remove, which is exactly why the mutation is fenced.
+using CompositionResolver = std::function<Composition*()>;
+
+// Re-point the renderer's active-deck atomic at the CURRENT active deck
+// (renderer.setActiveDeck(composition.getActiveDeck())). Injected as a hook so
+// SwitchDeckCmd stays renderer-free / headless-testable; no-op in headless.
+// Deck ADD/REMOVE do NOT need this: their DeckFenceHook (withDeckDetached) already
+// re-points by re-resolving getActiveDeck() after the fenced mutation. SwitchDeckCmd
+// does not fence (no vector mutation — just an atomic pointer handoff), so it
+// re-points through this lightweight hook instead.
+using DeckActivateHook = std::function<void()>;
+
+// AddDeckCmd: deck new (#21) — faithfully replicates the kDeckNew handler, which
+// appends a RAW default Deck (name "Deck N"; NO Deck::initDefault(), so the new
+// deck has ZERO layers; NOT Composition::addDeck(), so nextDeckId_ is untouched
+// and id stays 0) and makes it the active deck. Command-owns-the-mutation (like
+// AddLayerCmd): the handler does NOT pre-mutate; perform() runs the single fenced
+// mutation, because push_back is non-idempotent. The appended deck is captured on
+// first execute so redo re-inserts the EXACT same deck. GL fence: push_back can
+// reallocate composition->decks, and the renderer's activeDeck_ points at an
+// element — withDeckDetached fences the GL thread AND re-points activeDeck_ by
+// re-resolving getActiveDeck() after the mutation (so the renderer follows the
+// newly-active deck on execute AND undo). HEAD's kDeckNew did NOT re-point the
+// renderer after the push_back (a latent torn-pointer / stale-active-deck bug);
+// wrapping it in the fenced command fixes that, as spec §6 row 6 mandates.
+class AddDeckCmd : public Command
+{
+public:
+    AddDeckCmd(CompositionResolver compResolver, DeckFenceHook fence,
+               std::string description)
+        : compResolver_(std::move(compResolver)), fence_(std::move(fence)),
+          description_(std::move(description)) {}
+
+    void execute() override
+    {
+        runFenced([this]
+        {
+            Composition* comp = resolve();
+            if (comp == nullptr)
+                return;
+            if (added_.has_value())
+            {
+                // redo: re-insert the exact deck captured on first execute.
+                const size_t at = std::min(static_cast<size_t>(addedIndex_),
+                                           comp->decks.size());
+                comp->decks.insert(comp->decks.begin() + static_cast<std::ptrdiff_t>(at),
+                                   *added_);
+                comp->activeDeckIndex = static_cast<int>(at);
+            }
+            else
+            {
+                // first do: replicate kDeckNew exactly (raw default Deck, name
+                // "Deck N", no initDefault → no layers; becomes active).
+                priorActiveIndex_ = comp->activeDeckIndex;
+                Deck newDeck;
+                newDeck.name = "Deck " + std::to_string(comp->decks.size() + 1);
+                comp->decks.push_back(std::move(newDeck));
+                addedIndex_ = static_cast<int>(comp->decks.size()) - 1;
+                added_ = comp->decks.back();               // capture for redo
+                comp->activeDeckIndex = addedIndex_;
+            }
+        });
+    }
+
+    void undo() override
+    {
+        runFenced([this]
+        {
+            Composition* comp = resolve();
+            if (comp == nullptr)
+                return;
+            if (addedIndex_ >= 0 && addedIndex_ < static_cast<int>(comp->decks.size()))
+                comp->decks.erase(comp->decks.begin() + addedIndex_);
+            comp->activeDeckIndex = priorActiveIndex_;      // restore prior active deck
+        });
+    }
+
+    std::string description() const override { return description_; }
+
+private:
+    Composition* resolve() { return compResolver_ ? compResolver_() : nullptr; }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
+
+    CompositionResolver compResolver_;
+    DeckFenceHook fence_;
+    std::optional<Deck> added_;
+    int addedIndex_ = -1;
+    int priorActiveIndex_ = 0;
+    std::string description_;
+};
+
+// RemoveDeckCmd: deck remove (#22) — faithfully replicates kDeckRemove, which
+// erases the deck at activeDeckIndex (only when more than one deck exists) and
+// then clamps activeDeckIndex if it fell off the end. Command-owns-the-mutation
+// (like RemoveLayerCmd): the handler snapshots the full Deck VALUE + the prior
+// active index and does NOT pre-erase; execute() erases through the fence. undo
+// re-inserts the exact deck at its index and restores the prior active index.
+// The full-Deck value copy restores every layer/clip it carried (deep). GL fence:
+// erase/insert reallocate composition->decks; withDeckDetached also re-points the
+// renderer's activeDeck_ by re-resolving getActiveDeck() after the mutation, on
+// execute AND undo (HEAD's kDeckRemove did not re-point — same latent bug class
+// as kDeckNew).
+class RemoveDeckCmd : public Command
+{
+public:
+    RemoveDeckCmd(CompositionResolver compResolver, DeckFenceHook fence,
+                  int deckIndex, Deck removed, int priorActiveIndex,
+                  std::string description)
+        : compResolver_(std::move(compResolver)), fence_(std::move(fence)),
+          deckIndex_(deckIndex), removed_(std::move(removed)),
+          priorActiveIndex_(priorActiveIndex), description_(std::move(description))
+    {
+        // Invariant: this command removes the ACTIVE deck (deckIndex_ ==
+        // priorActiveIndex_). kDeckRemove only ever removes the active deck, and
+        // execute()'s clamp restores activeDeckIndex ONLY for the fell-off-the-end
+        // case — a future call site that removed a NON-active deck (one BEFORE the
+        // active index) would silently mis-clamp activeDeckIndex (wrong-result-not-
+        // crash class). Assert so such a variant trips immediately. Guarded exactly
+        // like RemoveColumnCmd / UndoManager: enforced in the app (MessageManager
+        // present), skipped headless (no MessageManager in the Catch2 binary) so it
+        // never arms a unit test — the standing lane pattern for ctor invariants.
+        jassert(juce::MessageManager::getInstanceWithoutCreating() == nullptr
+                || deckIndex_ == priorActiveIndex_);
+    }
+
+    void execute() override
+    {
+        runFenced([this]
+        {
+            Composition* comp = resolve();
+            if (comp == nullptr)
+                return;
+            // Composition must keep >=1 deck; the handler only builds this command
+            // when more than one exists, and linear undo preserves that invariant.
+            if (comp->decks.size() > 1
+                && deckIndex_ >= 0 && deckIndex_ < static_cast<int>(comp->decks.size()))
+            {
+                comp->decks.erase(comp->decks.begin() + deckIndex_);
+                // Clamp exactly as kDeckRemove does (only when the active index
+                // fell past the end — kDeckRemove removes the active deck).
+                if (comp->activeDeckIndex >= static_cast<int>(comp->decks.size()))
+                    comp->activeDeckIndex = static_cast<int>(comp->decks.size()) - 1;
+            }
+        });
+    }
+
+    void undo() override
+    {
+        runFenced([this]
+        {
+            Composition* comp = resolve();
+            if (comp == nullptr)
+                return;
+            const size_t at = std::min(static_cast<size_t>(deckIndex_),
+                                       comp->decks.size());
+            comp->decks.insert(comp->decks.begin() + static_cast<std::ptrdiff_t>(at),
+                               removed_);
+            comp->activeDeckIndex = priorActiveIndex_;      // restore prior active deck
+        });
+    }
+
+    std::string description() const override { return description_; }
+
+private:
+    Composition* resolve() { return compResolver_ ? compResolver_() : nullptr; }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
+
+    CompositionResolver compResolver_;
+    DeckFenceHook fence_;
+    int deckIndex_;
+    Deck removed_;
+    int priorActiveIndex_;
+    std::string description_;
+};
+
+// SwitchDeckCmd: deck switch (#24) — the deck-tab click. Setting activeDeckIndex
+// is an IDEMPOTENT field write, so per the established pattern rule this is
+// mutate-then-push (the handler's handleDeckSwitch performs the live switch and
+// re-points the renderer; perform() re-applies `after`, a harmless no-op since
+// the model is already there). NO GL fence: a switch does not mutate the decks
+// vector — it only changes which deck is active, handed off atomically via the
+// renderer's setActiveDeck (exactly what handleDeckSwitch does at HEAD). The apply
+// hook re-points the renderer through DeckActivateHook so execute/undo/redo each
+// leave activeDeck_ at the CURRENT valid deck. Stale index (deck removed) → safe
+// no-op.
+class SwitchDeckCmd : public Command
+{
+public:
+    SwitchDeckCmd(CompositionResolver compResolver, DeckActivateHook activate,
+                  int before, int after, std::string description)
+        : compResolver_(std::move(compResolver)), activate_(std::move(activate)),
+          before_(before), after_(after), description_(std::move(description)) {}
+
+    void execute() override { apply(after_); }
+    void undo() override    { apply(before_); }
+    std::string description() const override { return description_; }
+
+private:
+    void apply(int index)
+    {
+        Composition* comp = compResolver_ ? compResolver_() : nullptr;
+        if (comp == nullptr)
+            return;
+        if (index < 0 || index >= static_cast<int>(comp->decks.size()))
+            return;                             // stale coordinate → safe no-op
+        comp->activeDeckIndex = index;
+        if (activate_)
+            activate_();                        // renderer.setActiveDeck(getActiveDeck())
+    }
+
+    CompositionResolver compResolver_;
+    DeckActivateHook activate_;
+    int before_, after_;
     std::string description_;
 };
