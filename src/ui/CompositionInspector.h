@@ -38,6 +38,17 @@ public:
     void refresh();
     int getPreferredHeight() const;
 
+    // Undo v1 step 7: hand the effect stack the host's performEdit hook.
+    void setEffectPerformEdit(EffectStackView::PerformEditFn cb)
+    {
+        effectStackView_.onPerformEdit = std::move(cb);
+    }
+
+    // Rebuild the global-effects stack from the live vector — used after an
+    // undo/redo of a global effect add/remove/bypass (the selected-cell re-points
+    // in refreshAfterUndoRedo don't reach the composition's own chain).
+    void rebuildEffectStack();
+
 private:
     Composition* composition_ = nullptr;
     SignalRegistry* signalRegistry_ = nullptr;

@@ -127,9 +127,10 @@ void EffectStackView::resized()
     }
 }
 
-void EffectStackView::setEffects(std::vector<Clip::EffectSlot>* effects)
+void EffectStackView::setEffects(std::vector<Clip::EffectSlot>* effects, EffectScope scope)
 {
     effects_ = effects;
+    scope_ = scope;
     rebuildRows();
 }
 
@@ -265,10 +266,19 @@ void EffectStackView::rebuildRows()
         int capturedIndex = i;
         row->bypassBtn.onClick = [this, capturedIndex] {
             if (!effects_ || capturedIndex >= static_cast<int>(effects_->size())) return;
+            // #29: capture the whole chain before the toggle so the edit is one
+            // undo unit. The live toggle + refresh below are exactly as before.
+            std::vector<Clip::EffectSlot> before = *effects_;
             auto& slot = (*effects_)[static_cast<size_t>(capturedIndex)];
             slot.bypassed = !slot.bypassed;
+            juce::String fxName = juce::String(slot.effectName);
+            bool nowBypassed = slot.bypassed;
             if (onBypassChanged) onBypassChanged(capturedIndex, slot.bypassed);
             refresh();
+            if (onPerformEdit)
+                onPerformEdit(scope_, std::move(before), *effects_,
+                              (nowBypassed ? "Bypass Effect '" : "Enable Effect '")
+                                  + fxName + "'");
         };
         addAndMakeVisible(row->bypassBtn);
 
@@ -277,12 +287,20 @@ void EffectStackView::rebuildRows()
         row->deleteBtn.setColour(juce::TextButton::textColourOffId, juce::Colour(0xffcc5555));
         row->deleteBtn.onClick = [this, capturedIndex] {
             if (!effects_ || capturedIndex >= static_cast<int>(effects_->size())) return;
+            // #28: capture the whole chain before the erase for one undo unit; the
+            // live erase + rebuild/repaint below are exactly as before.
+            std::vector<Clip::EffectSlot> before = *effects_;
+            juce::String fxName =
+                juce::String((*effects_)[static_cast<size_t>(capturedIndex)].effectName);
             effects_->erase(effects_->begin() + capturedIndex);
             if (onEffectRemoved) onEffectRemoved(capturedIndex);
             rebuildRows();
             resized();
             if (auto* parent = getParentComponent()) parent->resized();
             repaint();
+            if (onPerformEdit)
+                onPerformEdit(scope_, std::move(before), *effects_,
+                              "Remove Effect '" + fxName + "'");
         };
         addAndMakeVisible(row->deleteBtn);
 
@@ -415,11 +433,17 @@ void EffectStackView::itemDropped(const SourceDetails& details)
     if (!desc.startsWith("fx:") || effects_ == nullptr || effectLibrary_ == nullptr)
         return;
 
+    // #27: capture the whole chain before appending, for one undo unit (covers the
+    // append-to-chain branch — a drop always push_back()s onto the current chain).
+    std::vector<Clip::EffectSlot> before = *effects_;
+
     // Support comma-separated multi-select drops: "fx:Echo,Ripple,Freeze"
     auto namesList = desc.substring(3);
     auto names = juce::StringArray::fromTokens(namesList, ",", "");
 
     bool anyAdded = false;
+    int addedCount = 0;
+    juce::String lastAddedName;
     for (const auto& effectName : names)
     {
         auto trimmed = effectName.trim();
@@ -434,6 +458,8 @@ void EffectStackView::itemDropped(const SourceDetails& details)
 
         effects_->push_back(slot);
         anyAdded = true;
+        ++addedCount;
+        lastAddedName = trimmed;
 
         if (onEffectAdded)
             onEffectAdded(trimmed);
@@ -446,5 +472,13 @@ void EffectStackView::itemDropped(const SourceDetails& details)
 
         if (auto* parent = getParentComponent())
             parent->resized();
+
+        if (onPerformEdit)
+        {
+            juce::String d = (addedCount == 1)
+                ? "Add Effect '" + lastAddedName + "'"
+                : "Add " + juce::String(addedCount) + " Effects";
+            onPerformEdit(scope_, std::move(before), *effects_, d);
+        }
     }
 }

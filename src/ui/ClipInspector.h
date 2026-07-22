@@ -31,12 +31,21 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    void setClip(Clip* clip);
+    // scope: the effect-chain coordinate for this clip (deck, layer, column), so
+    // effect-stack edits become undo commands that re-resolve by coordinate. A
+    // None scope leaves effect edits un-undoable but never mis-targets.
+    void setClip(Clip* clip, EffectScope scope = EffectScope::none());
     Clip* getClip() const { return clip_; }
 
     void setEffectLibrary(EffectLibrary* lib);
     void setSignalRegistry(SignalRegistry* reg);
     void setMacroBank(MacroBank* bank);
+
+    // Undo v1 step 7: hand the effect stack the host's performEdit hook.
+    void setEffectPerformEdit(EffectStackView::PerformEditFn cb)
+    {
+        effectStackView_.onPerformEdit = std::move(cb);
+    }
 
     void refresh();
     int getPreferredHeight() const;

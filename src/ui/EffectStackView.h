@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "model/Clip.h"
+#include "core/EffectScope.h"
 #include "effects/EffectLibrary.h"
 #include "ui/UniversalParamControl.h"
 #include "routing/MacroBank.h"
@@ -31,8 +32,13 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    // Set the effect list to display (clip or layer effects)
-    void setEffects(std::vector<Clip::EffectSlot>* effects);
+    // Set the effect list to display (clip / layer / global effects). The scope
+    // is captured alongside the vector so the three structural edits below can be
+    // wrapped as undo commands that re-resolve the chain by coordinate (never via
+    // the stored effects_ pointer). Hosts pass their scope here; a None scope
+    // (default) leaves edits un-undoable but never mis-targets another chain.
+    void setEffects(std::vector<Clip::EffectSlot>* effects,
+                    EffectScope scope = EffectScope::none());
 
     // Set the effect library for parameter name lookup
     void setEffectLibrary(EffectLibrary* lib) { effectLibrary_ = lib; }
@@ -62,6 +68,19 @@ public:
     std::function<void(const juce::String& effectName)> onEffectAdded;
     std::function<void(int effectIndex)> onEffectRemoved;
 
+    // Undo v1 step 7: route the three structural edits (add / remove / bypass
+    // toggle) through the undo host so each becomes one command. Fired AFTER the
+    // view has performed the live mutation and rebuilt itself (mutate-then-push).
+    // Carries the scope captured AT THE GESTURE (the view's current scope_) plus a
+    // whole-vector before/after snapshot and a human-readable description. Null in
+    // headless / when no host is wired — the view then behaves exactly as before.
+    using PerformEditFn =
+        std::function<void(const EffectScope& scope,
+                           std::vector<Clip::EffectSlot> before,
+                           std::vector<Clip::EffectSlot> after,
+                           const juce::String& description)>;
+    PerformEditFn onPerformEdit;
+
 private:
     // One row per effect in the stack
     struct EffectRow
@@ -82,6 +101,7 @@ private:
 
     std::vector<std::unique_ptr<EffectRow>> rows_;
     std::vector<Clip::EffectSlot>* effects_ = nullptr;
+    EffectScope scope_;   // which chain effects_ points at (for undo commands)
     EffectLibrary* effectLibrary_ = nullptr;
     SignalRegistry* signalRegistry_ = nullptr;
     MacroBank* macroBank_ = nullptr;

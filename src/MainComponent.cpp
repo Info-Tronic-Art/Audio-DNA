@@ -626,7 +626,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         {
             // Show clip in inspector
             if (inspectorPanel_)
-                inspectorPanel_->inspectClip(clip);
+                inspectorPanel_->inspectClip(clip,
+                    EffectScope::clip(composition_.activeDeckIndex, layerIdx, col));
 
             // Load clip content into preview panel
             if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
@@ -652,7 +653,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
         if (auto* layer = deck->getLayer(layerIdx))
-            inspectorPanel_->inspectLayer(layer);
+            inspectorPanel_->inspectLayer(layer,
+                EffectScope::layer(composition_.activeDeckIndex, layerIdx));
     };
     deckView_->onLayerClearClip = [this](int layerIdx) {
         // #13: X-button clear rerouted through a command. Runtime-only (clips row
@@ -914,7 +916,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         {
             auto* newClip = deck->getClip(layerIdx, col);
             if (newClip)
-                inspectorPanel_->inspectClip(newClip);
+                inspectorPanel_->inspectClip(newClip,
+                    EffectScope::clip(composition_.activeDeckIndex, layerIdx, col));
         }
     };
     deckView_->onClipMoved = [this](int srcLayer, int srcCol, int dstLayer, int dstCol) {
@@ -1027,7 +1030,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (inspectorPanel_)
         {
             auto* newClip = deck->getClip(layerIdx, col);
-            if (newClip) inspectorPanel_->inspectClip(newClip);
+            if (newClip) inspectorPanel_->inspectClip(newClip,
+                EffectScope::clip(composition_.activeDeckIndex, layerIdx, col));
         }
     };
 
@@ -1085,7 +1089,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (inspectorPanel_)
         {
             auto* newClip = deck->getClip(layerIdx, col);
-            if (newClip) inspectorPanel_->inspectClip(newClip);
+            if (newClip) inspectorPanel_->inspectClip(newClip,
+                EffectScope::clip(composition_.activeDeckIndex, layerIdx, col));
         }
     };
 
@@ -1116,6 +1121,27 @@ MainComponent::MainComponent(bool testMode, int testPort)
     inspectorPanel_->setEffectLibrary(&effectLibrary_);
     inspectorPanel_->setSignalRegistry(&signalRegistry_);
     inspectorPanel_->setMacroBank(&globalMacroBank_);
+
+    // Undo v1 step 7: effect-stack edits (#27 add / #28 remove / #29 bypass) —
+    // the EffectStackView has already performed the live mutation and rebuilt
+    // itself; here we wrap the whole-vector before/after + scope as one command.
+    // The scope was captured AT THE GESTURE (the view's scope_, set by whichever
+    // host handed it its vector), so the command re-resolves the chain by
+    // coordinate on undo/redo, never via the stored effects_ pointer.
+    inspectorPanel_->setEffectPerformEdit(
+        [this](const EffectScope& scope,
+               std::vector<Clip::EffectSlot> before,
+               std::vector<Clip::EffectSlot> after,
+               const juce::String& description)
+        {
+            std::vector<std::unique_ptr<Command>> children;
+            children.push_back(std::make_unique<EffectStackCmd>(
+                makeCompositionResolver(), scope,
+                std::move(before), std::move(after),
+                makeEffectStackRefresh(), description.toStdString()));
+            pushCommands(std::move(children), description);
+        });
+
     inspectorPanel_->getLayerInspector().onLayerNameChanged = [this]() {
         if (deckView_) deckView_->refresh();
     };
@@ -1208,7 +1234,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         {
             auto* newClip = deck->getClip(targetLayer, targetCol);
             if (newClip)
-                inspectorPanel_->inspectClip(newClip);
+                inspectorPanel_->inspectClip(newClip,
+                    EffectScope::clip(composition_.activeDeckIndex, targetLayer, targetCol));
         }
     };
 
@@ -3017,6 +3044,24 @@ DeckActivateHook MainComponent::makeDeckActivateHook()
     };
 }
 
+std::function<void()> MainComponent::makeEffectStackRefresh()
+{
+    // Fired by EffectStackCmd on execute/undo/redo — a lightweight notification
+    // (recolor / re-value / re-size inspector content); it does NOT rebuild rows.
+    // That only means the COMMAND's own apply() never rebuilds; it does NOT keep
+    // an expanded row open across undo/redo. Every undo/redo call site then runs
+    // refreshAfterUndoRedo, which unconditionally re-points the inspectors
+    // (setClip/setLayer/rebuildCompositionEffects -> setEffects -> rebuildRows,
+    // where expanded=false is hard-coded), collapsing all rows — and that is what
+    // actually reflects a row-COUNT change. Row-expansion preservation is a
+    // separate follow-up (a pointer/scope-aware skip in the refresh path), NOT a
+    // guarantee of this command.
+    return [this]() {
+        if (inspectorPanel_)
+            inspectorPanel_->refresh();
+    };
+}
+
 std::optional<Clip> MainComponent::snapshotCell(Layer* layer, int column)
 {
     if (layer == nullptr) return std::nullopt;
@@ -3071,12 +3116,20 @@ void MainComponent::refreshAfterUndoRedo()
     if (inspectorPanel_ && deckView_)
     {
         Clip* fresh = nullptr;
+        EffectScope clipScope = EffectScope::none();
         const auto& selection = deckView_->getSelectedCells();
         if (!selection.empty())
+        {
             fresh = undoService_.resolveClip(composition_.activeDeckIndex,
                                              selection.front().layer,
                                              selection.front().column);
-        inspectorPanel_->getClipInspector().setClip(fresh);
+            clipScope = EffectScope::clip(composition_.activeDeckIndex,
+                                          selection.front().layer,
+                                          selection.front().column);
+        }
+        // setClip re-points the clip inspector's effect stack too, so an effect
+        // add/remove/bypass undo rebuilds the shown clip chain with the right scope.
+        inspectorPanel_->getClipInspector().setClip(fresh, clipScope);
 
         // Re-point the layer inspector BY COORDINATE too (risk #3): a layer
         // add/remove/move undo can leave it holding a dangling Layer*. A stale
@@ -3085,7 +3138,15 @@ void MainComponent::refreshAfterUndoRedo()
         Layer* freshLayer = (selLayer >= 0)
             ? undoService_.resolveLayer(composition_.activeDeckIndex, selLayer)
             : nullptr;
-        inspectorPanel_->getLayerInspector().setLayer(freshLayer);
+        const EffectScope layerScope = (selLayer >= 0)
+            ? EffectScope::layer(composition_.activeDeckIndex, selLayer)
+            : EffectScope::none();
+        inspectorPanel_->getLayerInspector().setLayer(freshLayer, layerScope);
+
+        // Global effects live on the Composition, not a selected cell, so the two
+        // re-points above don't reach them. Rebuild the composition inspector's
+        // stack so a global effect add/remove/bypass undo/redo reflects too.
+        inspectorPanel_->rebuildCompositionEffects();
     }
 }
 

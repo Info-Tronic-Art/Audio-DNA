@@ -743,18 +743,18 @@ void ClipInspector::resized()
     effectStackView_.setBounds(area.getX(), y, area.getWidth(), fxHeight);
 }
 
-void ClipInspector::setClip(Clip* clip)
+void ClipInspector::setClip(Clip* clip, EffectScope scope)
 {
     clip_ = clip;
     if (clip)
     {
-        effectStackView_.setEffects(&clip->effects);
+        effectStackView_.setEffects(&clip->effects, scope);
         buildSourceParamControls();
         syncFromClip();
     }
     else
     {
-        effectStackView_.setEffects(nullptr);
+        effectStackView_.setEffects(nullptr, EffectScope::none());
         sourceParamControls_.clear();
     }
     resized();

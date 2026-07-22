@@ -154,6 +154,8 @@ target_sources(AudioDNA PRIVATE
     src/core/CompositeCommand.h
     src/core/ClipCommands.h
     src/core/DeckCommands.h
+    src/core/EffectScope.h
+    src/core/EffectCommands.h
     src/core/MediaReconnect.h
     src/core/UndoManager.h
     src/core/UndoManager.cpp

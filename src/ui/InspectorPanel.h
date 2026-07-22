@@ -34,11 +34,22 @@ public:
     void setSignalRegistry(SignalRegistry* reg);
     void setMacroBank(MacroBank* bank);
 
-    // Selection callbacks — auto-switch tab
-    void inspectClip(Clip* clip);
-    void inspectLayer(Layer* layer);
+    // Selection callbacks — auto-switch tab. The EffectScope (default None) is the
+    // effect-chain coordinate for the inspected clip/layer, so effect-stack edits
+    // become undo commands that re-resolve by coordinate.
+    void inspectClip(Clip* clip, EffectScope scope = EffectScope::none());
+    void inspectLayer(Layer* layer, EffectScope scope = EffectScope::none());
     void inspectSignal(Signal* signal);
     void showCompositionTab();
+
+    // Undo v1 step 7: install the shared effect-stack performEdit hook on all
+    // three effect hosts (clip / layer / composition).
+    void setEffectPerformEdit(EffectStackView::PerformEditFn cb);
+
+    // Rebuild the composition (global) effect stack after an undo/redo — clip and
+    // layer stacks re-point via inspect* in refreshAfterUndoRedo, but the global
+    // chain has no selected cell to re-point through.
+    void rebuildCompositionEffects() { compInspector_.rebuildEffectStack(); }
 
     // Refresh the currently visible tab
     void refresh();

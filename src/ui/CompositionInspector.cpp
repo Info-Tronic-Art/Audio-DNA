@@ -377,15 +377,25 @@ void CompositionInspector::setComposition(Composition* comp)
     composition_ = comp;
     if (comp)
     {
-        effectStackView_.setEffects(&comp->globalEffects);
+        // Global chain — the scope is always Global; no coordinate needed.
+        effectStackView_.setEffects(&comp->globalEffects, EffectScope::global());
         syncFromComposition();
     }
     else
     {
-        effectStackView_.setEffects(nullptr);
+        effectStackView_.setEffects(nullptr, EffectScope::none());
     }
     resized();
     repaint();
+}
+
+void CompositionInspector::rebuildEffectStack()
+{
+    // Re-point at the (stable) global chain and rebuild rows so a global effect
+    // add/remove/bypass undo/redo is reflected. Null-safe when no composition.
+    effectStackView_.setEffects(composition_ ? &composition_->globalEffects : nullptr,
+                                composition_ ? EffectScope::global() : EffectScope::none());
+    resized();
 }
 
 void CompositionInspector::setEffectLibrary(EffectLibrary* lib)

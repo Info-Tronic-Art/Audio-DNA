@@ -5,6 +5,7 @@
 #include "core/CompositeCommand.h"
 #include "core/ClipCommands.h"
 #include "core/DeckCommands.h"
+#include "core/EffectCommands.h"
 #include "core/UndoService.h"
 #include "core/MediaReconnect.h"
 #include <optional>
@@ -1324,4 +1325,161 @@ TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][deck
     mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr,
                 0, 9, "Switch Deck"));
     REQUIRE(comp.activeDeckIndex == 0);                // stale target → no switch
+}
+
+// ===========================================================================
+// Undo v1 step 7 — effect stacks (#27 add, #28 remove, #29 bypass toggle).
+// EffectStackCmd stores a whole-vector before/after snapshot of ONE effect chain
+// plus an EffectScope, re-resolved through the live Composition on every apply.
+// EffectSlot equality is the file-scope operator== above (field-complete vs the
+// HEAD struct: effectName / paramValues / dryWet / enabled / bypassed); vector
+// comparison uses vecEq. Value-copy snapshots make bit-identical restores.
+// ===========================================================================
+
+static Clip::EffectSlot mkFx(const std::string& name, bool bypassed = false)
+{
+    Clip::EffectSlot fx;
+    fx.effectName = name;
+    fx.paramValues = { 0.1f, 0.25f };
+    fx.dryWet = 0.5f;
+    fx.bypassed = bypassed;
+    return fx;
+}
+
+TEST_CASE("EffectStackCmd: whole-vector round-trip for all three scopes", "[undo][effect]")
+{
+    Composition comp = makeComp();                 // 1 deck, 3 layers, 12 empty cols
+    comp.decks[0].getLayer(1)->clips[2] = Clip{};  // a clip for the Clip scope
+
+    // add-shaped edit ({ripple} -> {ripple,blur}); deep-equal both ways + the UI
+    // refresh hook must fire exactly on execute / undo / redo.
+    auto roundTrip = [&](EffectScope scope, std::vector<Clip::EffectSlot>* target)
+    {
+        *target = std::vector<Clip::EffectSlot>{ mkFx("ripple") };
+        const std::vector<Clip::EffectSlot> before = *target;
+        const std::vector<Clip::EffectSlot> after = { mkFx("ripple"), mkFx("blur") };
+
+        UndoManager mgr;
+        int refreshCalls = 0;
+        mgr.perform(std::make_unique<EffectStackCmd>(
+            compResolverFor(comp), scope, before, after,
+            [&refreshCalls]{ ++refreshCalls; }, "Add Effect 'blur'"));
+        REQUIRE(vecEq(*target, after));            // execute applied after
+        REQUIRE(mgr.undo());
+        REQUIRE(vecEq(*target, before));           // undo restored before
+        REQUIRE(mgr.redo());
+        REQUIRE(vecEq(*target, after));            // redo re-applied after
+        REQUIRE(refreshCalls == 3);                // execute + undo + redo
+    };
+
+    SECTION("global") { roundTrip(EffectScope::global(), &comp.globalEffects); }
+    SECTION("layer")  { roundTrip(EffectScope::layer(0, 1),
+                                  &comp.decks[0].getLayer(1)->layerEffects); }
+    SECTION("clip")   { roundTrip(EffectScope::clip(0, 1, 2),
+                                  &comp.decks[0].getClip(1, 2)->effects); }
+}
+
+TEST_CASE("EffectStackCmd: add / remove / bypass shapes each round-trip", "[undo][effect]")
+{
+    Composition comp = makeComp();
+    auto& target = comp.globalEffects;
+
+    // Null refresh hook is valid (headless / no undo host): apply must not deref it.
+    auto roundTrip = [&](std::vector<Clip::EffectSlot> before,
+                         std::vector<Clip::EffectSlot> after,
+                         const std::string& desc)
+    {
+        target = before;
+        UndoManager mgr;
+        mgr.perform(std::make_unique<EffectStackCmd>(
+            compResolverFor(comp), EffectScope::global(), before, after, nullptr, desc));
+        REQUIRE(vecEq(target, after));
+        REQUIRE(mgr.undo()); REQUIRE(vecEq(target, before));
+        REQUIRE(mgr.redo()); REQUIRE(vecEq(target, after));
+    };
+
+    SECTION("add")    { roundTrip({ mkFx("a") }, { mkFx("a"), mkFx("b") }, "Add Effect 'b'"); }
+    SECTION("remove") { roundTrip({ mkFx("a"), mkFx("b") }, { mkFx("a") }, "Remove Effect 'b'"); }
+    SECTION("bypass") { roundTrip({ mkFx("a", false) }, { mkFx("a", true) }, "Bypass Effect 'a'"); }
+}
+
+TEST_CASE("EffectStackCmd: stale coordinate is a safe no-op (never crash)", "[undo][effect][resolve]")
+{
+    Composition comp = makeComp();
+    const std::vector<Clip::EffectSlot> before;                    // empty
+    const std::vector<Clip::EffectSlot> after = { mkFx("ghost") };
+
+    UndoManager mgr;
+    int refreshCalls = 0;
+    auto refresh = [&refreshCalls]{ ++refreshCalls; };
+
+    SECTION("bad layer index → nullptr vector, no-op, no refresh")
+    {
+        mgr.perform(std::make_unique<EffectStackCmd>(
+            compResolverFor(comp), EffectScope::layer(0, 99), before, after, refresh, "x"));
+        REQUIRE(comp.globalEffects.empty());     // model untouched
+        REQUIRE(refreshCalls == 0);              // stale → refresh never fired
+    }
+    SECTION("bad column (empty cell) → nullptr vector, no-op, no refresh")
+    {
+        mgr.perform(std::make_unique<EffectStackCmd>(
+            compResolverFor(comp), EffectScope::clip(0, 0, 99), before, after, refresh, "x"));
+        REQUIRE(refreshCalls == 0);
+    }
+    SECTION("null composition → nullptr vector, no-op, no refresh")
+    {
+        CompositionResolver nullComp = []() -> Composition* { return nullptr; };
+        mgr.perform(std::make_unique<EffectStackCmd>(
+            nullComp, EffectScope::global(), before, after, refresh, "x"));
+        REQUIRE(refreshCalls == 0);
+    }
+}
+
+TEST_CASE("EffectStackCmd: two scopes in history undo to their own vectors", "[undo][effect]")
+{
+    Composition comp = makeComp();
+    comp.decks[0].getLayer(1)->clips[2] = Clip{};
+    comp.globalEffects.clear();
+    comp.decks[0].getClip(1, 2)->effects.clear();
+
+    const std::vector<Clip::EffectSlot> empty;
+    const std::vector<Clip::EffectSlot> globalAfter = { mkFx("g") };
+    const std::vector<Clip::EffectSlot> clipAfter   = { mkFx("c") };
+
+    UndoManager mgr;
+    mgr.perform(std::make_unique<EffectStackCmd>(
+        compResolverFor(comp), EffectScope::global(), empty, globalAfter, nullptr, "Add Effect 'g'"));
+    mgr.perform(std::make_unique<EffectStackCmd>(
+        compResolverFor(comp), EffectScope::clip(0, 1, 2), empty, clipAfter, nullptr, "Add Effect 'c'"));
+
+    REQUIRE(vecEq(comp.globalEffects, globalAfter));
+    REQUIRE(vecEq(comp.decks[0].getClip(1, 2)->effects, clipAfter));
+
+    // Undo the clip add → only the clip chain empties; global is left alone.
+    REQUIRE(mgr.undo());
+    REQUIRE(vecEq(comp.decks[0].getClip(1, 2)->effects, empty));
+    REQUIRE(vecEq(comp.globalEffects, globalAfter));   // scope isolation
+
+    // Undo the global add → global empties too.
+    REQUIRE(mgr.undo());
+    REQUIRE(vecEq(comp.globalEffects, empty));
+}
+
+TEST_CASE("EffectStackCmd: refresh hook fires once per execute/undo/redo", "[undo][effect]")
+{
+    Composition comp = makeComp();
+    comp.globalEffects.clear();
+    const std::vector<Clip::EffectSlot> before;
+    const std::vector<Clip::EffectSlot> after = { mkFx("a") };
+
+    int calls = 0;
+    UndoManager mgr;
+    mgr.perform(std::make_unique<EffectStackCmd>(
+        compResolverFor(comp), EffectScope::global(), before, after,
+        [&calls]{ ++calls; }, "Add Effect 'a'"));
+    REQUIRE(calls == 1);   // execute
+    REQUIRE(mgr.undo());
+    REQUIRE(calls == 2);   // undo
+    REQUIRE(mgr.redo());
+    REQUIRE(calls == 3);   // redo
 }

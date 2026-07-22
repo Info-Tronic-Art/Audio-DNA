@@ -30,6 +30,8 @@
 #include "core/UndoService.h"
 #include "core/ClipCommands.h"
 #include "core/DeckCommands.h"
+#include "core/EffectScope.h"
+#include "core/EffectCommands.h"
 #include <optional>
 #include <memory>
 #include <vector>
@@ -134,6 +136,11 @@ private:
     // Re-point the renderer's active deck for SwitchDeckCmd (no fence needed —
     // a switch is an atomic pointer handoff, not a decks-vector mutation).
     DeckActivateHook makeDeckActivateHook();
+    // Notify the open inspector after an effect-stack edit (EffectStackCmd). A
+    // lightweight recolor/re-value refresh; the command's own apply() never
+    // rebuilds rows. It does NOT preserve row expansion across undo/redo —
+    // refreshAfterUndoRedo unconditionally rebuilds afterward (see the .cpp).
+    std::function<void()> makeEffectStackRefresh();
     // Snapshot a cell (nullopt if empty / out of range).
     static std::optional<Clip> snapshotCell(Layer* layer, int column);
     // Build a single SetClipCmd for one cell edit.

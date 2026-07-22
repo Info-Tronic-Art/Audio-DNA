@@ -130,16 +130,23 @@ void InspectorPanel::setMacroBank(MacroBank* bank)
     compInspector_.setMacroBank(bank);
 }
 
-void InspectorPanel::inspectClip(Clip* clip)
+void InspectorPanel::inspectClip(Clip* clip, EffectScope scope)
 {
-    clipInspector_.setClip(clip);
+    clipInspector_.setClip(clip, scope);
     if (!pinned_) setActiveTab(Tab::Clip);
 }
 
-void InspectorPanel::inspectLayer(Layer* layer)
+void InspectorPanel::inspectLayer(Layer* layer, EffectScope scope)
 {
-    layerInspector_.setLayer(layer);
+    layerInspector_.setLayer(layer, scope);
     if (!pinned_) setActiveTab(Tab::Layer);
+}
+
+void InspectorPanel::setEffectPerformEdit(EffectStackView::PerformEditFn cb)
+{
+    clipInspector_.setEffectPerformEdit(cb);
+    layerInspector_.setEffectPerformEdit(cb);
+    compInspector_.setEffectPerformEdit(cb);
 }
 
 void InspectorPanel::inspectSignal(Signal* signal)

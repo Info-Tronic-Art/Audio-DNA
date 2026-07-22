@@ -734,16 +734,16 @@ void LayerInspector::mouseDown(const juce::MouseEvent& event)
     Component::mouseDown(event);
 }
 
-void LayerInspector::setLayer(Layer* layer)
+void LayerInspector::setLayer(Layer* layer, EffectScope scope)
 {
     layer_ = layer;
     if (layer)
     {
-        effectStackView_.setEffects(&layer->layerEffects);
+        effectStackView_.setEffects(&layer->layerEffects, scope);
         syncFromLayer();
     }
     else
-        effectStackView_.setEffects(nullptr);
+        effectStackView_.setEffects(nullptr, EffectScope::none());
     resized();
     repaint();
 }

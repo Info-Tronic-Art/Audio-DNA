@@ -35,12 +35,20 @@ public:
     void resized() override;
     void mouseDown(const juce::MouseEvent& event) override;
 
-    void setLayer(Layer* layer);
+    // scope: the effect-chain coordinate for this layer (deck, layer), so
+    // effect-stack edits become undo commands that re-resolve by coordinate.
+    void setLayer(Layer* layer, EffectScope scope = EffectScope::none());
     Layer* getLayer() const { return layer_; }
 
     void setEffectLibrary(EffectLibrary* lib);
     void setSignalRegistry(SignalRegistry* reg);
     void setMacroBank(MacroBank* bank);
+
+    // Undo v1 step 7: hand the effect stack the host's performEdit hook.
+    void setEffectPerformEdit(EffectStackView::PerformEditFn cb)
+    {
+        effectStackView_.onPerformEdit = std::move(cb);
+    }
 
     void refresh();
     int getPreferredHeight() const;
