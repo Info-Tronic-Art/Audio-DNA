@@ -4,6 +4,7 @@
 #include "core/Command.h"
 #include "core/CompositeCommand.h"
 #include "core/ClipCommands.h"
+#include "core/DeckCommands.h"
 #include "core/UndoService.h"
 #include "core/MediaReconnect.h"
 #include <optional>
@@ -454,4 +455,297 @@ TEST_CASE("UndoService::resolveClip returns null for empty cells and stale coord
     REQUIRE(svc.resolveClip(0, 0, 0) != nullptr);    // now occupied
     REQUIRE(svc.resolveClip(0, 3, 0) == nullptr);    // stale layer
     REQUIRE(svc.resolveClip(0, 0, 999) == nullptr);  // column past the grid
+}
+
+// ===========================================================================
+// Step 4 composites: column ops, layer/deck clear, multi-cell drop growth.
+// These mirror the exact command shapes built by the MainComponent handlers.
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// SetColumnCountCmd (#25 menu Add Column + drop-growth restore)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("SetColumnCountCmd: add column grows count, undo/redo round-trip", "[undo][column]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    const int before = deck.numColumns;   // 12
+    deck.addColumn();                      // live mutation (mutate-then-push): 13
+    const int after = deck.numColumns;     // 13
+
+    mgr.perform(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc),
+                0, before, after, "Add Column"));
+
+    REQUIRE(deck.numColumns == after);
+    for (auto& L : deck.layers)
+        REQUIRE(static_cast<int>(L.clips.size()) >= after);   // every layer grown
+    REQUIRE(mgr.undoDescription() == "Add Column");
+
+    mgr.undo();
+    REQUIRE(deck.numColumns == before);    // count restored (cells stay, invisible)
+    mgr.redo();
+    REQUIRE(deck.numColumns == after);
+}
+
+// ---------------------------------------------------------------------------
+// RemoveColumnCmd (#26): removing the last column restores its cells on undo
+// ---------------------------------------------------------------------------
+
+TEST_CASE("RemoveColumnCmd: remove-column-with-clips restores cells + count", "[undo][column]")
+{
+    Composition comp = makeComp();         // 12 columns, 3 layers
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    const int col = deck.numColumns - 1;   // 11 (the last column)
+    const int before = deck.numColumns;    // 12
+    Clip c0 = richClip(1, "l0c11");
+    Clip c2 = richClip(2, "l2c11");
+    deck.setClip(0, col, c0);              // layer 0 occupied at last column
+    deck.setClip(2, col, c2);              // layer 2 occupied; layer 1 empty
+
+    // Mirror kColumnRemove: snapshot the removed column, then remove.
+    std::vector<std::optional<Clip>> removed;
+    for (auto& L : deck.layers)
+        removed.push_back(L.getClipAt(col) ? std::optional<Clip>(*L.getClipAt(col))
+                                           : std::nullopt);
+    deck.removeColumn(col);
+
+    mgr.perform(std::make_unique<RemoveColumnCmd>(deckResolverFor(svc), noopMedia(),
+                0, col, before, std::move(removed), "Remove Column"));
+
+    REQUIRE(deck.numColumns == before - 1);          // 11
+    REQUIRE(deck.getClip(0, col) == nullptr);        // column no longer addressable
+    REQUIRE(mgr.undoDescription() == "Remove Column");
+
+    mgr.undo();
+    REQUIRE(deck.numColumns == before);              // 12 restored
+    REQUIRE(*deck.getClip(0, col) == c0);            // occupied cells restored
+    REQUIRE(deck.getClip(1, col) == nullptr);        // empty layer stays empty
+    REQUIRE(*deck.getClip(2, col) == c2);
+
+    mgr.redo();
+    REQUIRE(deck.numColumns == before - 1);
+    REQUIRE(deck.getClip(0, col) == nullptr);
+}
+
+// ---------------------------------------------------------------------------
+// ClearLayerClipsCmd (#19): clear one layer's clips row + runtime
+// ---------------------------------------------------------------------------
+
+TEST_CASE("ClearLayerClipsCmd: clear one layer, undo restores clips + runtime", "[undo][clearclips]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    Clip a = richClip(1, "a"), b = richClip(2, "b");
+    deck.setClip(1, 0, a);
+    deck.setClip(1, 4, b);
+    deck.getLayer(1)->activeClipColumn = 4;          // mark an active clip
+
+    // Mirror kLayerClearClips (Wave 1-D: selected layer only).
+    LayerClipsSnapshot before = captureLayerClips(*deck.getLayer(1));
+    REQUIRE(layerClipsSnapshotHasContent(before));
+    deck.getLayer(1)->clips.clear();
+    deck.getLayer(1)->ensureColumns(deck.numColumns);
+    deck.getLayer(1)->clearActiveClip();
+    LayerClipsSnapshot after = captureLayerClips(*deck.getLayer(1));
+
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopMedia(),
+                0, 1, before, after, "Clear Layer Clips"));
+
+    REQUIRE(deck.getClip(1, 0) == nullptr);
+    REQUIRE(deck.getClip(1, 4) == nullptr);
+    REQUIRE(deck.getLayer(1)->activeClipColumn == -1);
+
+    mgr.undo();
+    REQUIRE(*deck.getClip(1, 0) == a);               // clips restored (deep-equal)
+    REQUIRE(*deck.getClip(1, 4) == b);
+    REQUIRE(deck.getLayer(1)->activeClipColumn == 4);// runtime restored
+
+    mgr.redo();
+    REQUIRE(deck.getClip(1, 0) == nullptr);
+    REQUIRE(deck.getLayer(1)->activeClipColumn == -1);
+}
+
+// ---------------------------------------------------------------------------
+// Deck clear-clips (#23): composite of ClearLayerClipsCmd, empties skipped
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Deck clear-clips composite: clear all layers, one entry, undo restores all", "[undo][composite][clearclips]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    Clip a = richClip(1, "a"), b = richClip(2, "b");
+    deck.setClip(0, 2, a);                 // layer 0 has content
+    deck.setClip(2, 7, b);                 // layer 2 has content; layer 1 empty
+
+    // Mirror kDeckClearClips: one ClearLayerClipsCmd per layer WITH content.
+    auto composite = std::make_unique<CompositeCommand>("Clear Deck Clips");
+    for (int l = 0; l < deck.getNumLayers(); ++l)
+    {
+        auto* layer = deck.getLayer(l);
+        LayerClipsSnapshot cBefore = captureLayerClips(*layer);
+        if (!layerClipsSnapshotHasContent(cBefore)) continue;   // skip empty layer 1
+        layer->clips.clear();
+        layer->ensureColumns(deck.numColumns);
+        layer->clearActiveClip();
+        LayerClipsSnapshot cAfter = captureLayerClips(*layer);
+        composite->add(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopMedia(),
+                       0, l, cBefore, cAfter, "Clear Layer Clips"));
+    }
+    REQUIRE(composite->size() == 2);       // only layers 0 and 2 contributed
+    mgr.perform(std::move(composite));
+
+    REQUIRE(deck.getClip(0, 2) == nullptr);
+    REQUIRE(deck.getClip(2, 7) == nullptr);
+    REQUIRE(mgr.historySize() == 1);       // one gesture
+
+    mgr.undo();
+    REQUIRE(*deck.getClip(0, 2) == a);     // all restored
+    REQUIRE(*deck.getClip(2, 7) == b);
+
+    mgr.redo();
+    REQUIRE(deck.getClip(0, 2) == nullptr);
+    REQUIRE(deck.getClip(2, 7) == nullptr);
+}
+
+// ---------------------------------------------------------------------------
+// Multi-video drop composite (#7): N cells + column growth undone together
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Multi-video drop composite: N cells + column growth, undo restores both", "[undo][composite][column]")
+{
+    Composition comp = makeComp();         // 12 columns
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    const int colsBefore = deck.numColumns;    // 12
+    const int startCol = 11;                    // drop starts inside the grid
+    const int colsAfter = startCol + 3;         // 14 (grows past the grid)
+    Clip v0 = richClip(1, "v0"), v1 = richClip(2, "v1"), v2 = richClip(3, "v2");
+
+    // Mirror onMultiVideoDropped's live growth + placement (mutate-then-push).
+    while (deck.numColumns < colsAfter)
+    {
+        deck.numColumns++;
+        for (auto& L : deck.layers) L.clips.resize(static_cast<size_t>(deck.numColumns));
+    }
+    deck.setClip(0, startCol + 0, v0);
+    deck.setClip(0, startCol + 1, v1);
+    deck.setClip(0, startCol + 2, v2);
+
+    // Same composite shape: SetColumnCountCmd FIRST (undoes LAST), then N SetClipCmds.
+    auto composite = std::make_unique<CompositeCommand>("Drop 3 Videos");
+    composite->add(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc),
+                   0, colsBefore, colsAfter, "Resize Columns"));
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+                   0, 0, startCol + 0, std::nullopt, std::optional<Clip>(v0), "Drop 3 Videos"));
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+                   0, 0, startCol + 1, std::nullopt, std::optional<Clip>(v1), "Drop 3 Videos"));
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+                   0, 0, startCol + 2, std::nullopt, std::optional<Clip>(v2), "Drop 3 Videos"));
+    mgr.perform(std::move(composite));
+
+    REQUIRE(mgr.historySize() == 1);
+    REQUIRE(deck.numColumns == colsAfter);
+    REQUIRE(*deck.getClip(0, startCol + 0) == v0);
+    REQUIRE(*deck.getClip(0, startCol + 2) == v2);
+
+    mgr.undo();
+    REQUIRE(deck.numColumns == colsBefore);          // column growth undone
+    REQUIRE(deck.getClip(0, startCol + 0) == nullptr);   // cells restored (empty)
+    REQUIRE(deck.getClip(0, startCol + 2) == nullptr);
+
+    mgr.redo();
+    REQUIRE(deck.numColumns == colsAfter);
+    REQUIRE(*deck.getClip(0, startCol + 1) == v1);
+}
+
+// ---------------------------------------------------------------------------
+// Multi-select clear composite (#4): matches kClipClear's blank-Clip{} after
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Multi-select clear composite (Clear N Clips): one entry, undo restores all", "[undo][composite][setclip]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    Clip a = richClip(1, "a"), b = richClip(2, "b"), c = richClip(3, "c");
+    deck.setClip(0, 0, a);
+    deck.setClip(1, 3, b);
+    deck.setClip(2, 6, c);
+
+    // kClipClear sets each selected cell to a blank Clip{} (HEAD behavior),
+    // then composites the N SetClipCmds into one "Clear 3 Clips" entry.
+    auto composite = std::make_unique<CompositeCommand>("Clear 3 Clips");
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+                   0, 0, 0, std::optional<Clip>(a), std::optional<Clip>(Clip{}), "Clear Clip"));
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+                   0, 1, 3, std::optional<Clip>(b), std::optional<Clip>(Clip{}), "Clear Clip"));
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+                   0, 2, 6, std::optional<Clip>(c), std::optional<Clip>(Clip{}), "Clear Clip"));
+    mgr.perform(std::move(composite));
+
+    REQUIRE(mgr.historySize() == 1);                 // one gesture, not three
+    REQUIRE(deck.getClip(0, 0) != nullptr);          // clear = blank clip, not empty
+    REQUIRE(*deck.getClip(0, 0) == Clip{});
+
+    mgr.undo();
+    REQUIRE(*deck.getClip(0, 0) == a);               // all three restored
+    REQUIRE(*deck.getClip(1, 3) == b);
+    REQUIRE(*deck.getClip(2, 6) == c);
+
+    mgr.redo();
+    REQUIRE(*deck.getClip(0, 0) == Clip{});
+    REQUIRE(*deck.getClip(2, 6) == Clip{});
+}
+
+// ---------------------------------------------------------------------------
+// Empty-composite guard + stale-coordinate safety
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Empty composite is never performed (pushCommands guard contract)", "[undo][composite]")
+{
+    Composition comp = makeComp();
+    UndoManager mgr;
+
+    // An all-empty deck clear yields zero children; pushCommands must not push it.
+    auto composite = std::make_unique<CompositeCommand>("Clear Deck Clips");
+    REQUIRE(composite->isEmpty());
+    if (!composite->isEmpty())                       // the guard in pushCommands
+        mgr.perform(std::move(composite));
+    REQUIRE(mgr.historySize() == 0);                 // nothing pushed
+}
+
+TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][resolve][column]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    comp.decks[0].setClip(0, 0, richClip(1, "keep"));
+
+    // Stale DECK index → SetColumnCountCmd apply is a safe no-op.
+    mgr.perform(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc),
+                9, 12, 16, "Resize Columns"));
+    REQUIRE(comp.decks[0].numColumns == 12);         // untouched (bad deck index)
+
+    // Stale LAYER index → ClearLayerClipsCmd apply is a safe no-op.
+    LayerClipsSnapshot emptySnap;
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopMedia(),
+                0, 9, emptySnap, emptySnap, "Clear Layer Clips"));
+    REQUIRE(comp.decks[0].getClip(0, 0) != nullptr); // layer 0 untouched
 }

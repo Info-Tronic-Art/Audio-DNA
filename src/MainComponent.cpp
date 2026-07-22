@@ -5,6 +5,7 @@
 #include "effects/ISFShaderLoader.h"
 #include "sources/ProjectMSource.h"
 #include "core/CompositeCommand.h"
+#include "core/DeckCommands.h"
 #include "core/MediaReconnect.h"
 
 MainComponent::MainComponent(bool testMode, int testPort)
@@ -662,9 +663,13 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (deckView_) deckView_->clearSelection();
     };
     deckView_->onMultiVideoDropped = [this](int layerIdx, int col, const std::vector<juce::File>& files) {
-        // Place each video in sequential cells on the same layer
+        // Place each video in sequential cells on the same layer, as ONE undo
+        // unit: a composite of SetClipCmds plus a column-count restore, since a
+        // multi-video drop can grow numColumns past the current grid and undo
+        // must shrink it back (carry-forward column-growth gap).
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
+        const int numColsBefore = deck->numColumns;
         // Ensure enough columns exist
         int needed = col + static_cast<int>(files.size());
         while (deck->numColumns < needed)
@@ -673,8 +678,25 @@ MainComponent::MainComponent(bool testMode, int testPort)
             for (auto& layer : deck->layers)
                 layer.clips.resize(static_cast<size_t>(deck->numColumns));
         }
+        // Place each video, collecting cell edits WITHOUT per-file history entries.
+        std::vector<CellEdit> edits;
         for (int i = 0; i < static_cast<int>(files.size()); ++i)
-            handleFileDrop(layerIdx, col + i, files[static_cast<size_t>(i)]);
+            if (auto edit = applyFileDrop(layerIdx, col + i, files[static_cast<size_t>(i)]))
+                edits.push_back(*edit);
+        const int numColsAfter = deck->numColumns;
+
+        const int n = static_cast<int>(files.size());
+        const juce::String desc = (n == 1) ? juce::String("Drop Video")
+                                           : "Drop " + juce::String(n) + " Videos";
+        std::vector<std::unique_ptr<Command>> children;
+        if (numColsAfter != numColsBefore)   // FIRST child → undoes LAST (restores count)
+            children.push_back(std::make_unique<SetColumnCountCmd>(
+                makeDeckResolver(), composition_.activeDeckIndex,
+                numColsBefore, numColsAfter, "Resize Columns"));
+        for (auto& edit : edits)
+            children.push_back(makeSetClipCmd(composition_.activeDeckIndex, edit, desc));
+        pushCommands(std::move(children), desc);
+
         if (deckView_)
         {
             deckView_->clearSelection();
@@ -689,6 +711,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
         // Support multi-FX drop: comma-separated names
         auto fxNames = juce::StringArray::fromTokens(effectName, ",", "");
+        const int numColsBefore = deck->numColumns;   // FX-onto-empty-cells can grow columns
 
         // If target cell has content, add ALL FX to its chain
         auto* existingClip = layer->getClipAt(col);
@@ -756,12 +779,22 @@ MainComponent::MainComponent(bool testMode, int testPort)
             }
         }
 
-        // Capture after-state and record the drop as one undo unit.
+        // Capture after-state and record the drop as one undo unit. A multi-FX
+        // drop onto empty cells grows numColumns, so prepend a column-count
+        // restore (undoes LAST) to close the column-growth gap for this path too.
         for (auto& edit : edits)
             edit.after = snapshotCell(layer, edit.column);
-        pushClipEdits(composition_.activeDeckIndex, edits,
-                      fxNames.size() > 1 ? juce::String("Add Effects")
-                                         : "Add Effect '" + effectName + "'");
+        const int numColsAfter = deck->numColumns;
+        const juce::String fxDesc = fxNames.size() > 1 ? juce::String("Add Effects")
+                                                       : "Add Effect '" + effectName + "'";
+        std::vector<std::unique_ptr<Command>> children;
+        if (numColsAfter != numColsBefore)
+            children.push_back(std::make_unique<SetColumnCountCmd>(
+                makeDeckResolver(), composition_.activeDeckIndex,
+                numColsBefore, numColsAfter, "Resize Columns"));
+        for (auto& edit : edits)
+            children.push_back(makeSetClipCmd(composition_.activeDeckIndex, edit, fxDesc));
+        pushCommands(std::move(children), fxDesc);
 
         if (deckView_) deckView_->rebuildGrid();
         if (inspectorPanel_)
@@ -784,9 +817,15 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto sourceIds = juce::StringArray::fromTokens(sourceId, ",", "");
         auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
 
+        // Record the whole gesture as ONE undo unit (a composite of SetClipCmds
+        // across N cells, plus a column-count restore since a multi-source drop
+        // can grow numColumns past the grid — close the column-growth gap).
+        const int numColsBefore = deck->numColumns;
+        std::vector<CellEdit> edits;
         for (int si = 0; si < sourceIds.size(); ++si)
         {
             int targetCol = col + si;
+            std::optional<Clip> before = snapshotCell(layer, targetCol);
             layer->ensureColumns(targetCol + 1);
             if (deck->numColumns < targetCol + 1)
                 deck->numColumns = targetCol + 1;
@@ -812,7 +851,21 @@ MainComponent::MainComponent(bool testMode, int testPort)
             }
 
             deck->setClip(layerIdx, targetCol, clip);
+            edits.push_back({ layerIdx, targetCol, before, std::optional<Clip>(clip) });
         }
+        const int numColsAfter = deck->numColumns;
+
+        const int n = sourceIds.size();
+        const juce::String desc = (n == 1) ? juce::String("Drop Source")
+                                           : "Drop " + juce::String(n) + " Sources";
+        std::vector<std::unique_ptr<Command>> children;
+        if (numColsAfter != numColsBefore)   // FIRST child → undoes LAST (restores count)
+            children.push_back(std::make_unique<SetColumnCountCmd>(
+                makeDeckResolver(), composition_.activeDeckIndex,
+                numColsBefore, numColsAfter, "Resize Columns"));
+        for (auto& edit : edits)
+            children.push_back(makeSetClipCmd(composition_.activeDeckIndex, edit, desc));
+        pushCommands(std::move(children), desc);
 
         if (deckView_) deckView_->rebuildGrid();
 
@@ -2944,16 +2997,17 @@ void MainComponent::refreshAfterUndoRedo()
     }
 }
 
-void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File& file)
+std::optional<MainComponent::CellEdit>
+MainComponent::applyFileDrop(int layerIndex, int column, const juce::File& file)
 {
     auto* deck = composition_.getActiveDeck();
-    if (!deck) return;
+    if (!deck) return std::nullopt;
 
     // P24.5: Check content lock before replacing
     if (auto* existing = deck->getClip(layerIndex, column))
     {
         if (existing->contentLocked)
-            return; // Silently refuse — locked content
+            return std::nullopt; // Silently refuse — locked content
     }
 
     // Capture before-state for undo (nullopt if the cell was empty).
@@ -2994,12 +3048,18 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
 
     deck->setClip(layerIndex, column, clip);
 
-    pushClipEdits(composition_.activeDeckIndex,
-                  { { layerIndex, column, before, std::optional<Clip>(clip) } },
-                  "Drop '" + juce::String(clip.name) + "'");
+    return CellEdit{ layerIndex, column, before, std::optional<Clip>(clip) };
+}
 
-    if (deckView_)
-        deckView_->rebuildGrid();
+void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File& file)
+{
+    if (auto edit = applyFileDrop(layerIndex, column, file))
+    {
+        pushClipEdits(composition_.activeDeckIndex, { *edit },
+                      "Drop '" + juce::String(edit->after->name) + "'");
+        if (deckView_)
+            deckView_->rebuildGrid();
+    }
 }
 
 void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
@@ -3251,15 +3311,28 @@ void MainComponent::handleMenuCommand(int commandId)
             }
             break;
         case C::kDeckClearClips:
+            // Whole-deck clip clear = one composite of ClearLayerClipsCmd, one per
+            // layer that actually has content (already-empty layers are skipped, so
+            // clearing an empty deck pushes nothing).
             if (auto* deck = composition_.getActiveDeck())
             {
+                std::vector<std::unique_ptr<Command>> children;
                 for (int l = 0; l < deck->getNumLayers(); ++l)
-                    if (auto* layer = deck->getLayer(l))
-                    {
-                        layer->clips.clear();
-                        layer->ensureColumns(deck->numColumns);
-                        layer->clearActiveClip();
-                    }
+                {
+                    auto* layer = deck->getLayer(l);
+                    if (layer == nullptr) continue;
+                    LayerClipsSnapshot before = captureLayerClips(*layer);
+                    if (!layerClipsSnapshotHasContent(before)) continue;
+                    layer->clips.clear();
+                    layer->ensureColumns(deck->numColumns);
+                    layer->clearActiveClip();
+                    LayerClipsSnapshot after = captureLayerClips(*layer);
+                    children.push_back(std::make_unique<ClearLayerClipsCmd>(
+                        makeLayerResolver(), makeClipMediaHook(),
+                        composition_.activeDeckIndex, l,
+                        std::move(before), std::move(after), "Clear Layer Clips"));
+                }
+                pushCommands(std::move(children), "Clear Deck Clips");
                 if (deckView_) deckView_->rebuildGrid();
             }
             break;
@@ -3295,10 +3368,21 @@ void MainComponent::handleMenuCommand(int commandId)
                 {
                     if (auto* layer = deck->getLayer(selLayer))
                     {
-                        layer->clips.clear();
-                        layer->ensureColumns(deck->numColumns);
-                        layer->clearActiveClip();
-                        if (deckView_) deckView_->rebuildGrid();
+                        LayerClipsSnapshot before = captureLayerClips(*layer);
+                        if (layerClipsSnapshotHasContent(before))  // skip a no-op clear
+                        {
+                            layer->clips.clear();
+                            layer->ensureColumns(deck->numColumns);
+                            layer->clearActiveClip();
+                            LayerClipsSnapshot after = captureLayerClips(*layer);
+                            std::vector<std::unique_ptr<Command>> children;
+                            children.push_back(std::make_unique<ClearLayerClipsCmd>(
+                                makeLayerResolver(), makeClipMediaHook(),
+                                composition_.activeDeckIndex, selLayer,
+                                std::move(before), std::move(after), "Clear Layer Clips"));
+                            pushCommands(std::move(children), "Clear Layer Clips");
+                            if (deckView_) deckView_->rebuildGrid();
+                        }
                     }
                 }
             }
@@ -3355,9 +3439,17 @@ void MainComponent::handleMenuCommand(int commandId)
         case C::kColumnNew:
         case C::kColumnInsertBefore:
         case C::kColumnInsertAfter:
+            // All three menu items append a column via Deck::addColumn (no
+            // insert-shift at HEAD). One SetColumnCountCmd (N -> N+1); undo drops it.
             if (auto* deck = composition_.getActiveDeck())
             {
+                const int before = deck->numColumns;
                 deck->addColumn();
+                std::vector<std::unique_ptr<Command>> children;
+                children.push_back(std::make_unique<SetColumnCountCmd>(
+                    makeDeckResolver(), composition_.activeDeckIndex,
+                    before, deck->numColumns, "Add Column"));
+                pushCommands(std::move(children), "Add Column");
                 if (deckView_) deckView_->rebuildGrid();
             }
             break;
@@ -3366,7 +3458,21 @@ void MainComponent::handleMenuCommand(int commandId)
             {
                 if (deck->numColumns > 1)
                 {
-                    deck->removeColumn(deck->numColumns - 1);
+                    // Snapshot the last column's cell per layer BEFORE removal so
+                    // undo can re-insert them (removeColumn erases cells, not hides).
+                    const int col = deck->numColumns - 1;
+                    const int before = deck->numColumns;
+                    std::vector<std::optional<Clip>> removed;
+                    removed.reserve(deck->layers.size());
+                    for (auto& layer : deck->layers)
+                        removed.push_back(snapshotCell(&layer, col));
+                    deck->removeColumn(col);
+                    std::vector<std::unique_ptr<Command>> children;
+                    children.push_back(std::make_unique<RemoveColumnCmd>(
+                        makeDeckResolver(), makeClipMediaHook(),
+                        composition_.activeDeckIndex, col, before,
+                        std::move(removed), "Remove Column"));
+                    pushCommands(std::move(children), "Remove Column");
                     if (deckView_) deckView_->rebuildGrid();
                 }
             }

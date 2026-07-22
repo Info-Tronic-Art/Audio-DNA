@@ -293,6 +293,11 @@ private:
     void handleClipTrigger(int layerIndex, int column);
     void handleColumnTrigger(int column);
     void handleFileDrop(int layerIndex, int column, const juce::File& file);
+    // Perform one image/video file drop into a cell (build clip, open media,
+    // setClip) WITHOUT pushing an undo command. Returns the resulting cell edit
+    // (nullopt if refused — no deck or content-locked). handleFileDrop wraps this
+    // as one command; multi-video drop collects N edits into one composite.
+    std::optional<CellEdit> applyFileDrop(int layerIndex, int column, const juce::File& file);
     void handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
     void handleDeckSwitch(int deckIndex);
 
