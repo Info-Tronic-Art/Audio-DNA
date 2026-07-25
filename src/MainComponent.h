@@ -32,6 +32,7 @@
 #include "core/DeckCommands.h"
 #include "core/EffectScope.h"
 #include "core/EffectCommands.h"
+#include "core/TriggerCommands.h"
 #include <optional>
 #include <memory>
 #include <vector>

@@ -6,6 +6,7 @@
 #include "core/ClipCommands.h"
 #include "core/DeckCommands.h"
 #include "core/EffectCommands.h"
+#include "core/TriggerCommands.h"
 #include "core/UndoService.h"
 #include "core/MediaReconnect.h"
 #include <optional>
@@ -1482,4 +1483,326 @@ TEST_CASE("EffectStackCmd: refresh hook fires once per execute/undo/redo", "[und
     REQUIRE(calls == 2);   // undo
     REQUIRE(mgr.redo());
     REQUIRE(calls == 3);   // redo
+}
+
+// ===========================================================================
+// Undo v1 step 8 — triggers (#1 TriggerClipCmd, #2 TriggerColumnCmd) + merge.
+// Commands are MUTATE-THEN-PUSH: each test performs the live Layer::triggerClip /
+// Deck::triggerColumn (as the handler does), captures before/after, then wraps —
+// so perform()'s execute() re-applies `after` idempotently. Deep-equal uses the
+// file-scope Layer operator== (clips row + the four runtime fields; clip runtime
+// like `playing` is excluded there, so those are asserted directly).
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// TriggerClipCmd (#1): trigger a clip; undo → initial, redo → post (deep-equal).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("TriggerClipCmd: trigger activates clip, undo restores runtime + playing, redo re-applies", "[undo][trigger]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = *deck.getLayer(0);
+    deck.setClip(0, 3, richClip(1, "c3"));   // nothing active yet (activeClipColumn -1)
+
+    const Layer initial = L;                 // full-layer snapshot BEFORE the trigger
+
+    // Mirror handleClipTrigger's mutate-then-push capture.
+    const LayerRuntimeSnapshot rtBefore = captureLayerRuntime(L);
+    std::optional<bool> playBefore;
+    if (const Clip* tc = L.getClipAt(3)) playBefore = tc->playing;   // false
+    L.triggerClip(3);                        // live: activate col 3, playing -> true
+    const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(L);
+    std::optional<bool> playAfter;
+    if (const Clip* tc = L.getClipAt(3)) playAfter = tc->playing;    // true
+    REQUIRE_FALSE(rtBefore == rtAfter);      // runtime changed (active -1 -> 3)
+
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 3,
+                rtBefore, rtAfter, playBefore, playAfter, "Trigger Clip"));
+    const Layer post = L;                    // snapshot AFTER (execute idempotent w/ live)
+    REQUIRE(L.activeClipColumn == 3);
+    REQUIRE(L.getClipAt(3)->playing == true);
+    REQUIRE(mgr.undoDescription() == "Trigger Clip");
+
+    mgr.undo();
+    REQUIRE(L == initial);                   // execute→undo == initial (deep-equal)
+    REQUIRE(L.getClipAt(3)->playing == false);   // target clip `playing` restored
+
+    mgr.redo();
+    REQUIRE(L == post);                      // execute→undo→redo == post (deep-equal)
+    REQUIRE(L.getClipAt(3)->playing == true);
+}
+
+// ---------------------------------------------------------------------------
+// TriggerClipCmd: empty-cell trigger clears the active clip (runtime-only), undo
+// restores the layer runtime. (The previously-active clip's `playing` flag is
+// NOT restored — target cell empty → nullopt; accepted per spec risk #5, same as
+// ClearActiveClipCmd.)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("TriggerClipCmd: empty-cell trigger clears active clip, undo restores runtime", "[undo][trigger]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = *deck.getLayer(0);
+    deck.setClip(0, 3, richClip(1, "active"));
+    L.activeClipColumn = 3;
+    L.previousClipColumn = 0;
+    L.crossfadeProgress = 0.5f;
+
+    const LayerRuntimeSnapshot rtBefore = captureLayerRuntime(L);
+    std::optional<bool> playBefore;
+    if (const Clip* tc = L.getClipAt(7)) playBefore = tc->playing;   // empty → nullopt
+    L.triggerClip(7);                        // empty col 7 → clearActiveClip
+    const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(L);
+    std::optional<bool> playAfter;
+    if (const Clip* tc = L.getClipAt(7)) playAfter = tc->playing;    // nullopt
+    REQUIRE_FALSE(rtBefore == rtAfter);      // active 3 -> -1
+
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 7,
+                rtBefore, rtAfter, playBefore, playAfter, "Trigger Clip"));
+    REQUIRE(L.activeClipColumn == -1);
+
+    mgr.undo();
+    REQUIRE(L.activeClipColumn == 3);        // runtime restored
+    REQUIRE(L.previousClipColumn == 0);
+    REQUIRE(L.crossfadeProgress == 0.5f);
+
+    mgr.redo();
+    REQUIRE(L.activeClipColumn == -1);
+}
+
+// ---------------------------------------------------------------------------
+// Merge (spec §3): consecutive SAME-layer triggers coalesce to one slot, keeping
+// the ORIGINAL before-state and adopting the LATEST after-state.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("TriggerClipCmd: consecutive same-layer triggers merge (original before, latest after)", "[undo][trigger][merge]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = *deck.getLayer(0);
+    deck.setClip(0, 2, richClip(1, "c2"));
+    deck.setClip(0, 5, richClip(2, "c5"));
+
+    // First trigger: col 2.
+    const LayerRuntimeSnapshot b0 = captureLayerRuntime(L);
+    std::optional<bool> p0; if (const Clip* tc = L.getClipAt(2)) p0 = tc->playing;
+    L.triggerClip(2);
+    const LayerRuntimeSnapshot a0 = captureLayerRuntime(L);
+    std::optional<bool> pa0; if (const Clip* tc = L.getClipAt(2)) pa0 = tc->playing;
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 2,
+                b0, a0, p0, pa0, "Trigger Clip"));
+    REQUIRE(mgr.historySize() == 1);
+    REQUIRE(L.activeClipColumn == 2);
+
+    // Second trigger: col 5, SAME layer → merges into the first slot.
+    const LayerRuntimeSnapshot b1 = captureLayerRuntime(L);
+    std::optional<bool> p1; if (const Clip* tc = L.getClipAt(5)) p1 = tc->playing;
+    L.triggerClip(5);
+    const LayerRuntimeSnapshot a1 = captureLayerRuntime(L);
+    std::optional<bool> pa1; if (const Clip* tc = L.getClipAt(5)) pa1 = tc->playing;
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 5,
+                b1, a1, p1, pa1, "Trigger Clip"));
+
+    REQUIRE(mgr.historySize() == 1);         // MERGED — still one slot
+    REQUIRE(L.activeClipColumn == 5);        // model at the latest after
+
+    mgr.undo();
+    REQUIRE(L.activeClipColumn == -1);       // keep-original-before (start of the run, NOT 2)
+    REQUIRE(L.previousClipColumn == -1);
+
+    mgr.redo();
+    REQUIRE(L.activeClipColumn == 5);        // update-latest-after
+    REQUIRE(L.getClipAt(5)->playing == true);
+}
+
+// ---------------------------------------------------------------------------
+// Different-layer triggers do NOT merge (each layer run is its own slot).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("TriggerClipCmd: different-layer triggers do NOT merge", "[undo][trigger][merge]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L0 = *deck.getLayer(0);
+    Layer& L1 = *deck.getLayer(1);
+    deck.setClip(0, 2, richClip(1, "l0c2"));
+    deck.setClip(1, 4, richClip(2, "l1c4"));
+
+    const LayerRuntimeSnapshot b0 = captureLayerRuntime(L0);
+    L0.triggerClip(2);
+    const LayerRuntimeSnapshot a0 = captureLayerRuntime(L0);
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 2,
+                b0, a0, std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
+
+    const LayerRuntimeSnapshot b1 = captureLayerRuntime(L1);
+    L1.triggerClip(4);
+    const LayerRuntimeSnapshot a1 = captureLayerRuntime(L1);
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 1, 4,
+                b1, a1, std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
+
+    REQUIRE(mgr.historySize() == 2);         // two slots — no cross-layer merge
+
+    mgr.undo();                              // undo layer-1 trigger only
+    REQUIRE(L1.activeClipColumn == -1);
+    REQUIRE(L0.activeClipColumn == 2);       // layer 0 still active
+    mgr.undo();                              // undo layer-0 trigger
+    REQUIRE(L0.activeClipColumn == -1);
+}
+
+// ---------------------------------------------------------------------------
+// Retrigger of the already-active cell pushes NOTHING (the handler's guard skips
+// it: no runtime and no target-`playing` change).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("TriggerClipCmd: retrigger of the already-active cell pushes nothing", "[undo][trigger][merge]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = *deck.getLayer(0);
+    deck.setClip(0, 3, richClip(1, "c3"));
+
+    const LayerRuntimeSnapshot b0 = captureLayerRuntime(L);
+    std::optional<bool> p0; if (const Clip* tc = L.getClipAt(3)) p0 = tc->playing;
+    L.triggerClip(3);
+    const LayerRuntimeSnapshot a0 = captureLayerRuntime(L);
+    std::optional<bool> pa0; if (const Clip* tc = L.getClipAt(3)) pa0 = tc->playing;
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 3,
+                b0, a0, p0, pa0, "Trigger Clip"));
+    REQUIRE(mgr.historySize() == 1);
+
+    // Retrigger the SAME active cell → only a playhead reset. The handler guard
+    // (replicated here) sees no change and pushes nothing.
+    const LayerRuntimeSnapshot b1 = captureLayerRuntime(L);
+    std::optional<bool> p1; if (const Clip* tc = L.getClipAt(3)) p1 = tc->playing;
+    L.triggerClip(3);
+    const LayerRuntimeSnapshot a1 = captureLayerRuntime(L);
+    std::optional<bool> pa1; if (const Clip* tc = L.getClipAt(3)) pa1 = tc->playing;
+
+    REQUIRE(b1 == a1);                        // runtime unchanged
+    REQUIRE(p1 == pa1);                       // target `playing` unchanged
+    if (!(b1 == a1) || p1 != pa1)             // the handler guard
+        mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 3,
+                    b1, a1, p1, pa1, "Trigger Clip"));
+    REQUIRE(mgr.historySize() == 1);          // still ONE slot — nothing pushed
+}
+
+// ---------------------------------------------------------------------------
+// TriggerColumnCmd (#2): composite of one TriggerClipCmd per NON-ignoring layer;
+// ignoring layers are excluded; whole column is one undo slot.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("TriggerColumnCmd composite: triggers all non-ignoring layers, excludes ignoring, one slot", "[undo][trigger][composite]")
+{
+    Composition comp = makeComp();            // 3 layers
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    deck.setClip(0, 4, richClip(1, "l0"));
+    deck.setClip(1, 4, richClip(2, "l1"));
+    deck.setClip(2, 4, richClip(3, "l2"));
+    deck.getLayer(1)->ignoreColumnTrigger = true;   // layer 1 opts out of column triggers
+
+    // Mirror handleColumnTrigger: snapshot considered layers, triggerColumn, build.
+    const int numLayers = deck.getNumLayers();
+    std::vector<LayerRuntimeSnapshot> before(static_cast<size_t>(numLayers));
+    std::vector<bool> considered(static_cast<size_t>(numLayers), false);
+    for (int l = 0; l < numLayers; ++l)
+    {
+        auto* layer = deck.getLayer(l);
+        if (!layer || layer->ignoreColumnTrigger) continue;
+        considered[static_cast<size_t>(l)] = true;
+        before[static_cast<size_t>(l)] = captureLayerRuntime(*layer);
+    }
+    deck.triggerColumn(4);
+
+    auto composite = std::make_unique<CompositeCommand>("Trigger Column");
+    for (int l = 0; l < numLayers; ++l)
+    {
+        if (!considered[static_cast<size_t>(l)]) continue;
+        auto* layer = deck.getLayer(l);
+        const LayerRuntimeSnapshot after = captureLayerRuntime(*layer);
+        if (!(before[static_cast<size_t>(l)] == after))
+            composite->add(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, l, 4,
+                           before[static_cast<size_t>(l)], after,
+                           std::nullopt, std::nullopt, "Trigger Column"));
+    }
+    REQUIRE(composite->size() == 2);          // only layers 0 and 2 (layer 1 excluded)
+    mgr.perform(std::move(composite));
+
+    REQUIRE(deck.getLayer(0)->activeClipColumn == 4);
+    REQUIRE(deck.getLayer(1)->activeClipColumn == -1);   // ignoring layer untouched
+    REQUIRE(deck.getLayer(2)->activeClipColumn == 4);
+    REQUIRE(mgr.historySize() == 1);          // one gesture, one slot
+
+    mgr.undo();
+    REQUIRE(deck.getLayer(0)->activeClipColumn == -1);   // both restored
+    REQUIRE(deck.getLayer(1)->activeClipColumn == -1);
+    REQUIRE(deck.getLayer(2)->activeClipColumn == -1);
+
+    mgr.redo();
+    REQUIRE(deck.getLayer(0)->activeClipColumn == 4);
+    REQUIRE(deck.getLayer(2)->activeClipColumn == 4);
+}
+
+// ---------------------------------------------------------------------------
+// Stale-coordinate no-op safety for both commands (never crash).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("TriggerClipCmd: stale coordinate is a safe no-op (never crash)", "[undo][trigger][resolve]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    comp.decks[0].setClip(0, 0, richClip(1, "keep"));
+
+    LayerRuntimeSnapshot rt;                   // default runtime (active -1)
+    LayerRuntimeSnapshot rt2; rt2.activeClipColumn = 5;
+
+    // Stale LAYER index → resolver returns nullptr → apply is a safe no-op.
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 9, 0,
+                rt, rt2, std::optional<bool>(false), std::optional<bool>(true), "Trigger Clip"));
+    REQUIRE(comp.decks[0].getLayer(0)->activeClipColumn == -1);   // real layer untouched
+    REQUIRE(comp.decks[0].getClip(0, 0) != nullptr);             // deck intact
+
+    // Stale DECK index → same.
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 9, 0, 0,
+                rt, rt2, std::nullopt, std::nullopt, "Trigger Clip"));
+    REQUIRE(comp.decks[0].getLayer(0)->activeClipColumn == -1);
+}
+
+TEST_CASE("TriggerColumnCmd composite: stale coordinates are safe no-ops (never crash)", "[undo][trigger][composite][resolve]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    comp.decks[0].setClip(0, 0, richClip(1, "keep"));
+
+    LayerRuntimeSnapshot rt;
+    LayerRuntimeSnapshot rt2; rt2.activeClipColumn = 4;
+
+    // A column composite whose children target a STALE deck index → each child
+    // apply resolves nullptr → the whole gesture is a safe no-op.
+    auto composite = std::make_unique<CompositeCommand>("Trigger Column");
+    composite->add(std::make_unique<TriggerClipCmd>(resolverFor(svc), 9, 0, 4,
+                   rt, rt2, std::nullopt, std::nullopt, "Trigger Column"));
+    composite->add(std::make_unique<TriggerClipCmd>(resolverFor(svc), 9, 2, 4,
+                   rt, rt2, std::nullopt, std::nullopt, "Trigger Column"));
+    mgr.perform(std::move(composite));
+    REQUIRE(comp.decks[0].getLayer(0)->activeClipColumn == -1);   // untouched
+    REQUIRE(comp.decks[0].getClip(0, 0) != nullptr);
+
+    mgr.undo();                                // no-op undo → still safe
+    REQUIRE(comp.decks[0].getLayer(0)->activeClipColumn == -1);
 }

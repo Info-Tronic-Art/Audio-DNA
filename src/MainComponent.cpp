@@ -2826,7 +2826,21 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
     auto* layer = deck->getLayer(layerIndex);
     if (!layer) return;
 
+    // Undo capture (mutate-then-push, spec §2 row 1 / step 8). Snapshot the
+    // per-layer runtime + the target cell clip's `playing` BEFORE the trigger.
+    // Runtime-only field writes → NO GL fence; the command re-resolves its target
+    // by coordinate. Autopilot never reaches this handler (it calls
+    // Layer::triggerClip directly from the GL thread), so autopilot triggers
+    // create no commands.
+    const LayerRuntimeSnapshot rtBefore = captureLayerRuntime(*layer);
+    std::optional<bool> playBefore;
+    if (const Clip* tc = layer->getClipAt(column)) playBefore = tc->playing;
+
     layer->triggerClip(column);
+
+    const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
+    std::optional<bool> playAfter;
+    if (const Clip* tc = layer->getClipAt(column)) playAfter = tc->playing;
 
     // Record clip trigger for session recording
     sessionRecorder_.recordClipTrigger(layerIndex, column);
@@ -2917,6 +2931,20 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
 
     if (deckView_)
         deckView_->refresh();
+
+    // Push the trigger command unless it changed nothing (spec §3: retrigger of
+    // the already-active cell early-outs into a playhead reset — no runtime and
+    // no target-`playing` change → pushes nothing, so no inert history entry).
+    // Consecutive same-layer triggers coalesce in UndoManager::perform via
+    // TriggerClipCmd::canMergeWith/mergeWith — one history slot per layer run.
+    if (!(rtBefore == rtAfter) || playBefore != playAfter)
+    {
+        std::vector<std::unique_ptr<Command>> children;
+        children.push_back(std::make_unique<TriggerClipCmd>(
+            makeLayerResolver(), composition_.activeDeckIndex, layerIndex, column,
+            rtBefore, rtAfter, playBefore, playAfter, "Trigger Clip"));
+        pushCommands(std::move(children), "Trigger Clip");
+    }
 }
 
 void MainComponent::handleColumnTrigger(int column)
@@ -2924,7 +2952,48 @@ void MainComponent::handleColumnTrigger(int column)
     auto* deck = composition_.getActiveDeck();
     if (!deck) return;
 
+    // Undo capture (mutate-then-push, spec §2 row 2 / step 8): a column trigger
+    // is a composite of one TriggerClipCmd per NON-ignoring layer that actually
+    // changes — mirroring Deck::triggerColumn, which skips ignoreColumnTrigger
+    // layers. Snapshot each considered layer's runtime + target-`playing` BEFORE.
+    const int numLayers = deck->getNumLayers();
+    std::vector<LayerRuntimeSnapshot> before(static_cast<size_t>(numLayers));
+    std::vector<std::optional<bool>> playBefore(static_cast<size_t>(numLayers));
+    std::vector<bool> considered(static_cast<size_t>(numLayers), false);
+    for (int l = 0; l < numLayers; ++l)
+    {
+        auto* layer = deck->getLayer(l);
+        if (!layer || layer->ignoreColumnTrigger) continue;  // excluded, as triggerColumn does
+        considered[static_cast<size_t>(l)] = true;
+        before[static_cast<size_t>(l)] = captureLayerRuntime(*layer);
+        if (const Clip* tc = layer->getClipAt(column))
+            playBefore[static_cast<size_t>(l)] = tc->playing;
+    }
+
     deck->triggerColumn(column);
+
+    // One child per considered layer whose runtime or target-`playing` changed;
+    // pushCommands composites them into one slot (a single changed layer collapses
+    // to a lone TriggerClipCmd, which may then merge into a prior same-layer run —
+    // accepted, consistent with spec §3's per-layer merge).
+    std::vector<std::unique_ptr<Command>> children;
+    for (int l = 0; l < numLayers; ++l)
+    {
+        if (!considered[static_cast<size_t>(l)]) continue;
+        auto* layer = deck->getLayer(l);
+        if (!layer) continue;
+        const LayerRuntimeSnapshot after = captureLayerRuntime(*layer);
+        std::optional<bool> playAfter;
+        if (const Clip* tc = layer->getClipAt(column))
+            playAfter = tc->playing;
+        if (!(before[static_cast<size_t>(l)] == after)
+            || playBefore[static_cast<size_t>(l)] != playAfter)
+            children.push_back(std::make_unique<TriggerClipCmd>(
+                makeLayerResolver(), composition_.activeDeckIndex, l, column,
+                before[static_cast<size_t>(l)], after,
+                playBefore[static_cast<size_t>(l)], playAfter, "Trigger Column"));
+    }
+    pushCommands(std::move(children), "Trigger Column");
 
     if (deckView_)
     {
