@@ -41,7 +41,7 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 | Surface | Reach / trigger | User-visible functions | Live? |
 |---|---|---|---|
 | Main window (`Main.cpp:40`) | App launch; maximized to primary display, resizable 1280×720–3840×2160 | Hosts all main-window panels; global keyboard shortcuts; Finder file-drop target | yes |
-| Native menu bar (`MenuBarModel.cpp`) | Top of screen (macOS) | 9 menus, ~45 items; no-op DBG stubs removed (Wave 0); Output menu gains a real "Syphon Output" toggle (Wave 1-A, ticks live state). Undo/Redo LIVE + dynamic (Undo v1 steps 1-3, 2026-07-19/20): "Undo <desc>"/"Redo <desc>" text, enable state tracks stacks, rebuilds via onHistoryChanged | yes |
+| Native menu bar (`MenuBarModel.cpp`) | Top of screen (macOS) | 9 menus, ~45 items; no-op DBG stubs removed (Wave 0); Output menu gains a real "Syphon Output" toggle (Wave 1-A, ticks live state). Undo/Redo LIVE + dynamic (Undo v1 COMPLETE steps 1-9, 2026-07-19→25): "Undo <desc>"/"Redo <desc>" text, enable state tracks stacks, rebuilds via onHistoryChanged | yes |
 | OutputWindow (`src/ui/OutputWindow.h:69`) | Output menu → Fullscreen:display / TopBar output combo / Cmd+F | Borderless always-on-top render on a chosen display; Escape closes; no on-surface controls | yes |
 | PreferencesDialog (`PreferencesDialog.h:8`) | Audio-DNA menu → Preferences / About; modal, 3 tabs | See Prefs tab rows below | yes |
 
@@ -232,9 +232,10 @@ Source: lane-5 §3.
 
 - **Keyboard shortcuts** (`MainComponent::keyPressed :1591`): Shift+Cmd+I inspector,
   Shift+Cmd+K keyboard-bind, Shift+Cmd+M MIDI-learn, Escape close-output, Cmd+Z /
-  Cmd+Shift+Z undo/redo (**LIVE for clip-grid, layer, deck, column + effect-stack edits** — Undo v1 steps 1-7: all drops,
-  replace/lock/clear, drag move/swap; structural ops [layers/decks/columns/effects/
-  triggers] pending steps 4-9), Cmd+S save preset, Cmd+F
+  Cmd+Shift+Z undo/redo (**LIVE for ALL structural edits incl. triggers** — Undo v1
+  COMPLETE steps 1-9: drops, replace/lock/clear, drag move/swap, layer/deck/column
+  ops, effect stacks ×3 scopes, clip/column triggers with same-layer merge;
+  autopilot/remote-autonomous paths excluded by design), Cmd+S save preset, Cmd+F
   toggle fullscreen output, Cmd+O load preset. Non-Cmd keys → BindingManager; key-up →
   momentary bindings.
 - **Tooltips**: `juce::TooltipWindow` (600ms); coverage sparse (TopBar, ClipInspector,
@@ -258,7 +259,7 @@ Source: lane-5 §3.
 | Syphon input | REMOVED 2026-07-17 (Wave 0) — SyphonInput .mm/.h deleted (was orphaned, 0 refs) | — |
 | Spout output | REMOVED 2026-07-17 (Wave 0) — SpoutOutput.h deleted (was header-only no-op) | — |
 | NDI output / input | REMOVED 2026-07-17 (Wave 0) — NdiOutput.h + NdiInput.h deleted (were stubs) | — |
-| Undo / redo | PARTIAL-LIVE 2026-07-19/22 (Undo v1 steps 1-7; commits 7c8d286/7921572/daa9361 + 6d2def4/7f87094/316a2bf/d90e953) — ALL clip-cell edits, composites/column ops, layer ops (GL-fenced), deck ops (fence fixes latent renderer re-point), effect stacks across 3 inspector scopes (performEdit + EffectScope); Cmd+Z + dynamic menu live; tests 158. Remaining: trigger cmds + merge (step 8), tests/manual e2e (step 9); known cosmetics: expanded-FX-row collapse + deck-tab highlight on undo (pre-existing refresh path, follow-up queued) | src/core/ClipCommands.h; DeckCommands.h; EffectCommands.h; EffectScope.h; UndoService.h/.cpp; MediaReconnect.h; .harmony/undo-v1-ledger.md |
+| Undo / redo | BUILD-COMPLETE 2026-07-19→25 (Undo v1 steps 1-9; commits 7c8d286/7921572/daa9361/6d2def4/7f87094/316a2bf/d90e953/4ee2dac/0a1c882) — ALL structural edits: clip cells, composites/column ops, layer ops (GL-fenced), deck ops (fence fixes latent renderer re-point), effect stacks ×3 scopes, clip/column TRIGGERS with same-layer merge (REST/OSC/MIDI undoable; autopilot never); Cmd+Z + dynamic menu live; tests 170. Remaining: Boris-assisted manual e2e run (.harmony/undo-v1-manual-e2e.md; TCC Allow first); known cosmetics: expanded-FX-row collapse + deck-tab highlight on undo (pre-existing refresh path, follow-up awaiting ratification); accepted risk-#5 family: playing not restored, first-trigger auto-play skip after undo | src/core/ClipCommands.h; DeckCommands.h; EffectCommands.h; EffectScope.h; TriggerCommands.h; UndoService.h/.cpp; MediaReconnect.h; .harmony/undo-v1-ledger.md; .harmony/undo-v1-manual-e2e.md |
 | Session playback | DEAD — `advancePlayback()` never called; capture = clip triggers only (6/7 record* unused) | SessionRecorder.cpp; MainComponent.cpp:2472; RecordPanel.cpp:38 |
 | OSC subsystem | LIVE 2026-07-17 (Wave 1-B) — `startListening(8000)` called at startup; 11/11 callbacks wired (port hardcoded, no prefs UI) | OscHandler.cpp:15; MainComponent.cpp:1132-1211 |
 | ISF import | PHANTOM — converted GLSL never compiled/queued; effect registers + shows but never renders; "Import Successful" dialog misleads | MainComponent.cpp:2426-2454 |

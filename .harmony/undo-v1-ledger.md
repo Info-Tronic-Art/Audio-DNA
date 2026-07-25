@@ -23,8 +23,8 @@ HEAD b4ee380, source tree clean, tests 114/114 (handoff claim — re-verify at f
 | 5 | Layer ops (#13-18,20) + GL fence | DONE — review CLEAN (10/10 areas; 1 trivial NIT → step 9); code gates PASS (ctest 145/145 ×2); app gate BLOCKED-ENV (change-independent); committed 7f87094 |
 | 6 | Deck ops (#21,22,24 — #23 done in step 4) | DONE — review CLEAN (10/10) + 2 targeted re-reviews; code gates PASS (ctest 153/153 ×3); app gate BLOCKED-ENV; committed 316a2bf |
 | 7 | Effect stacks (#27-29) performEdit + scope descriptor | DONE — review FINDINGS (1 MAJOR: false comment guarantee) → remedy (b) fix round → CONFIRMED-CLEAN + UNBLOCK; code gates PASS (ctest 158/158 ×2); app gate BLOCKED-ENV; committed d90e953 |
-| 8 | Trigger cmds (#1-2) + merge | queued — NEXT SESSION START HERE (deferred at ~38% gauge per LONG-TASK DEFERRAL) |
-| 9 | Tests + manual e2e checklist | queued (folds in: RemoveLayerCmd stale-coord test, SyncScope::DeckStructure dead code, EffectCommands.h:98 stale inline comment, dead 2-arg reinspect path note) |
+| 8 | Trigger cmds (#1-2) + merge | DONE — review CLEAN (1 MINOR → doc-comment fix round, pre-adjudicated; 1 NIT → step 9); code gates PASS ×2 (ctest 166/166 own runs); app gate Boris-assisted (TCC); committed 4ee2dac |
+| 9 | Tests + manual e2e checklist | BUILD DONE — review CLEAN (1 MINOR doc fix folded, 1 NIT accepted); code gates PASS ×2 (ctest 170/170 own runs); all folds landed; committed 0a1c882. Checklist doc authored (.harmony/undo-v1-manual-e2e.md); manual RUN queued = Boris-assisted session (TCC Allow first) |
 
 ## Decision log
 - 2026-07-19: GL-fence validation outcome gates `withDeckDetached` usage in steps 5-6.
@@ -205,17 +205,137 @@ HEAD b4ee380, source tree clean, tests 114/114 (handoff claim — re-verify at f
   Gate re-run PASS (158/158). Committed d90e953. Step 7 CLOSED. Session total:
   steps 4-7 shipped (4 commits: 6d2def4, 7f87094, 316a2bf, d90e953), tests
   130 → 158.
-- BORIS DECISION QUEUE (from this session): (1) ratify the refreshAfterUndoRedo
+- 2026-07-25: Session resume (secondary, slim) — step 8 per START-HERE marker.
+  Disk-verify at boot: HEAD b530525 (close chore atop d90e953), src/tests clean;
+  pre-existing out-of-lane graphify-out/ cache churn in working tree (NOT lane
+  files — step-8 commit must exclude). ENV: machine rebooted ~08:45 today
+  (coreaudiod fresh 08:48) — wedge likely CLEARED; single-attempt app recheck
+  at gate time will confirm and, if healthy, un-BLOCK the queued app-level
+  manual checks. Step-8 packet: TriggerClipCmd/TriggerColumnCmd + §3 merge
+  rules; wrap ONLY handleClipTrigger/handleColumnTrigger (spec §1 consequence 3
+  LOAD-BEARING — autopilot triggers from GL thread, never create commands
+  there); REST coverage via existing callAsync marshal, verify-don't-duplicate;
+  retrigger-of-active-cell pushes NOTHING; per-lane rules: two-pattern
+  decision stated with rationale, guarded jasserts, stale-coord tests with
+  in-invariant values, merge-behavior tests in step 8; no GL fence
+  (runtime-only field writes); lightweight refresh path per step-7 split;
+  new headers into CMakeLists (step-7 precedent); builder does NOT commit.
+- 2026-07-25: ENV ROOT CAUSE FOUND — the "coreaudiod wedge" was an unanswered
+  TCC MICROPHONE PROMPT all along (screencapture during a stalled launch shows
+  the live dialog; CoreAudioInternal::start blocks on the TCC response; no CLI
+  probe can see it). App is AD-HOC signed (codesign verified) → every rebuild
+  changes cdhash → TCC re-prompts per rebuild (explains recurrence + why
+  reboot/pkill never helped). Synthetic Allow-click attempted once, denied
+  (osascript lacks assistive access) — cap reached, stopped. DISPOSITION:
+  stalled HEAD-binary app LEFT RUNNING with dialog on screen — Boris clicks
+  Allow to instantly verify env; app-level gates become Boris-assisted (one
+  Allow click after each rebuild) until/unless stable signing lands. Gotchas
+  entry appended; 07-19/07-22 entries superseded with riders. Step-8 app gate
+  plan: code gates + review as usual; app launch check runs when Boris is
+  present to click the prompt.
+- 2026-07-25: Step-8 builder (undo-s8) DONE (clean). Receiver disk-verify PASS
+  (4 mod + 1 new == report, +394 lines, nothing staged; 166/166 in builder log).
+  Headliners for review: NO separate TriggerColumnCmd class — column trigger =
+  CompositeCommand of per-layer TriggerClipCmds via pushCommands (conform);
+  mutate-then-push (idempotent value-assign undo/redo; ClearActiveClipCmd/
+  SwitchDeckCmd shape); LayerRuntimeSnapshot REUSED + optional<bool> target
+  `playing`; merge keeps original-before/adopts-latest-after with `playing`
+  RETARGET to latest column (accepted imperfection under risk #5 — reviewer
+  verdict requested); retrigger-no-push via handler state-change guard
+  (pendingTriggerColumn-clear edge DOES push — genuinely undoable); GL-path
+  proof: autopilot calls layer.triggerClip directly, never the handlers;
+  REST/OSC/MIDI marshal through the SAME handlers → undoable BY SPEC (row 8) —
+  doctrinal line: user-initiated local/remote = undoable, autonomous
+  (autopilot) = never (contrast step-6 deck-switch non-user sites, per spec).
+  Fresh reviewer undo-s8-review dispatched. Step-8 code gate (Harmony,
+  independent): build exit 0, ctest 166/166 OWN RUN (/tmp/undo-s8-gate-ctest.log),
+  residue CLEAN — GATE PASS. App gate: Boris-assisted only (TCC re-prompt on new
+  cdhash) — step-8 manual items to checklist. Commit pending review verdict.
+- 2026-07-25: Step-8 review CLEAN (10/10 areas independently re-traced; GL-path law
+  grep-confirmed — TriggerClipCmd constructed ONLY at the 2 handler sites, Autopilot.cpp
+  has zero Command refs; remote marshal chains traced end-to-end; merge algebra exact for
+  runtime fields; retrigger guard + pendingTriggerColumn edge corroborated; no ctor
+  invariant exists → lane test rule moot; hygiene clean). 1 MINOR: `hasBeenTriggered`
+  set outside the snapshot window, never rolled back → first-trigger→undo→retrigger
+  silently skips auto-play (Layer.h:247 branch) — same risk-#5 family, but previously
+  UNDOCUMENTED; remedy = header-comment line (fix round with warm undo-s8,
+  reviewer-prescribed, pre-adjudicated, no re-review — step-6 round-2 precedent) +
+  step-9 manual-checklist entry. 1 NIT: pendingTriggerColumn-only-changed push edge
+  untested → step-9 fold. Commit after comment lands + gate re-run.
+- 2026-07-25: Step-8 fix round (doc comment) landed; gate re-run PASS (build 0,
+  ctest 166/166 own run). Committed 4ee2dac (local, no push). Step 8 CLOSED.
+  Side-fact confirmed: graphify-out/ churn is a post-commit hook rebuild — out
+  of lane, never stage. Step 9 dispatched to WARM undo-s8 (2nd full packet —
+  same posture as undo-s1@step2 / undo-s4@step5; retire after). Scope: spec §7
+  remainder (merge-behavior + cap-eviction manager cases, seeded property test,
+  coordinate-resolution coverage check) + folds (RemoveLayerCmd stale-coord
+  test; pendingTriggerColumn push-edge at command level — handler level goes to
+  manual; SyncScope::DeckStructure dead-code removal; EffectCommands.h:98 stale
+  comment; dead 2-arg reinspect path disposition). Manual e2e checklist doc
+  authored by Harmony (.harmony/undo-v1-manual-e2e.md) — consolidation of
+  ledger items, memory-layer work. Reviewer: warm undo-s8-review (1 full packet
+  load). Gauge 11.3% at dispatch.
+- 2026-07-25: Step-9 builder (undo-s8, 2nd packet) DONE. Receiver disk-verify
+  PASS: lane diff = exactly 4 claimed files; A1 already-covered claim VERIFIED
+  on disk (test_composition.cpp:711 merge + :735 cap-eviction — spec §7 manager
+  cases pre-existed; no duplication); DeckStructure grep = zero refs remain.
+  Step-9 code gate (Harmony, independent): build exit 0, ctest 170/170 OWN RUN
+  (/tmp/undo-s9-gate-ctest.log), residue CLEAN — GATE PASS. Commit pending
+  review verdict.
+  Dispositions: B6 REMOVED (arm was unreachable); B7 comment fixed; B8 LOUD
+  COMMENT chosen over removal (removal orphans inspector_ → ripples into
+  setCollaborators + MainComponent, out-of-lane) — full ReinspectTarget removal
+  is a candidate FOLLOW-UP if reviewer prefers. New tests: seeded property test
+  (mt19937 0xC0FFEE; excludes SetColumnCountCmd grow-only + trigger cmds by
+  design — stated in-test), middle-layer coordinate-resolution gap, RemoveLayerCmd
+  stale-coord (s5 NIT), pendingTriggerColumn-only edge (s8 NIT). Builder log
+  170/170. Reviewer undo-s8-review dispatched (2nd packet, retires after);
+  Harmony gate running. Builder undo-s8 RETIRED (2 packets + 1 fix — s1/s4
+  precedent load).
+- 2026-07-25: Step-9 review CLEAN (9/9 corroborated — B6 replacement mechanism
+  independently verified real, not coincidental; B8 ripple claim + hazard-comment
+  accuracy confirmed; B7 full call chain traced; A1 content-verified). 1 MINOR:
+  UndoService.h:18-22 class doc still describes the removed renderer-re-point
+  behavior — reviewer-prescribed one-line fix, dispatched to undo-s8 as trivial
+  sub-packet (step-6 two-fix-round shape; retirement deferred one micro-edit).
+  1 NIT accepted WITHOUT action: RuntimeOnly zero-caller annotation — rationale
+  already tracked here (earmarked for the refreshAfterUndoRedo follow-up).
+  Reviewer undo-s8-review RETIRED (2 full packets — s4-review precedent).
+  Commit after doc line + gate re-run. B8 FOLLOW-UP candidate logged: full
+  ReinspectTarget-path removal (inspector_ member + setCollaborators trim +
+  MainComponent call site) — small, out-of-lane, optional.
+- 2026-07-25: Step-9 doc line landed; gate re-run PASS (170/170 own run).
+  Committed 0a1c882 (local, no push). Step 9 build portion CLOSED. **UNDO V1
+  LANE BUILD-COMPLETE (steps 1-9)** — session total: steps 8-9 shipped
+  (2 commits: 4ee2dac, 0a1c882), tests 158 → 170. Both agents retired
+  (undo-s8: 2 packets + 2 trivial fix rounds; undo-s8-review: 2 full packets).
+  REMAINING lane work is ALL Boris-gated: (a) manual e2e run per
+  .harmony/undo-v1-manual-e2e.md (TCC Allow click is precondition #0);
+  (b) decision queue below. Optional follow-ups (NOT started, need Boris nod):
+  refreshAfterUndoRedo pointer/scope-aware skip (ratification pending);
+  B8 full ReinspectTarget-path removal (small, out-of-lane).
+- 2026-07-25 RATIFICATIONS (Boris, "go with recs then eos"): (a) TCC Allow
+  CLICKED — health verified ok/ready/115fps/135 effects → env item CLOSED
+  (root cause confirmed end-to-end); stale pre-step-8 instance then killed by
+  Harmony (manual e2e must relaunch CURRENT build; expect ONE Allow click).
+  (b) STABLE CODE-SIGNING IDENTITY = YES, ratified → next-session Committed
+  follow-up: wire CMake codesign identity for dev builds (small Boris step:
+  pick/create the identity in Keychain); kills the per-rebuild TCC re-prompt
+  class. (c) Manual e2e sitting AGREED, deferred to next Boris-present RTA
+  session — checklist .harmony/undo-v1-manual-e2e.md is the script.
+- BORIS DECISION QUEUE (still open): (1) ratify the refreshAfterUndoRedo
   pointer/scope-aware skip follow-up (fixes expanded-row collapse + deck-tab
-  highlight class); (2) is zero-layer raw Deck-New intended?; (3) env: clear
-  coreaudiod wedge (sudo killall coreaudiod / reboot) to unblock ALL app-level
-  manual checks; (4) undo-with-no-cell-selected clears clip inspector (carried
-  from s. 2026-07-19, still open).
+  highlight class); (2) is zero-layer raw Deck-New intended?; (3) undo-with-no-
+  cell-selected clears clip inspector (carried from s. 2026-07-19, UX check —
+  fold into the manual e2e sitting).
 
 ## Queued non-lane items (from handoff, deferred while build lane occupies build dir)
-- FIRST (env, Boris-level): clear the coreaudiod wedge (`sudo killall coreaudiod` or
-  reboot), then verify Audio-DNA launches + /api/health ready — required before ANY
-  app-level manual check below can run (see gotchas.md 2026-07-22 entry).
+- FIRST (env, Boris-level — ROOT CAUSE KNOWN 2026-07-25): click **Allow** on the
+  Audio-DNA microphone TCC prompt (dialog is on screen now; app left running).
+  NOT a coreaudiod wedge — do not killall/reboot. NOTE: ad-hoc signing re-fires
+  the prompt after EVERY rebuild, so each first-launch-after-rebuild needs one
+  Allow click until a stable signing identity is adopted (see gotchas.md
+  2026-07-25 entry). Required before ANY app-level manual check below can run.
 - Step-5 manual e2e ADDITIONS: layer add / remove / move while rendering → no
   crash/torn frame (fence wiring in-app); each → Cmd+Z restores layer count, order,
   full state incl. clips; bypass/solo/fold toggle → Cmd+Z; X-button layer-clear →
@@ -235,6 +355,15 @@ HEAD b4ee380, source tree clean, tests 114/114 (handoff claim — re-verify at f
   refresh path, NOT step-7's fault): expanded effect rows COLLAPSE after ANY
   undo/redo — real fix is the tracked refreshAfterUndoRedo follow-up (Boris to
   ratify).
+- Step-8 manual e2e ADDITIONS (all Boris-assisted — TCC Allow click needed first): trigger
+  a cell → Cmd+Z restores previous active clip + crossfade state; MASH several cells on
+  ONE layer → a single Cmd+Z undoes the whole run (merge); trigger cells on TWO layers →
+  two undo entries (no cross-layer merge); column trigger → Cmd+Z restores ALL
+  non-ignoring layers at once, ignoring layer stays put; retrigger the already-active
+  cell → history does NOT grow (check Edit menu); REST/OSC/MIDI trigger → DOES appear in
+  undo history (spec row 8 — user-initiated remote); autopilot triggers → NEVER appear in
+  history; KNOWN LIMITATION (documented, risk-#5 family): first-ever trigger → undo →
+  re-trigger = clip goes active but skips auto-play.
 - Syphon.framework install + rebuild -DAUDIODNA_BUILD_SYPHON=ON (verify real publish)
 - 10s UI eyeball (menus / 3-tab Prefs / new Sources rows) — ADD: Edit menu shows
   dynamic "Undo <desc>"/"Redo <desc>" with correct greyed/enabled state (native-menu
