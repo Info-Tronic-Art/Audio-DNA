@@ -10,6 +10,7 @@
 #include "core/UndoService.h"
 #include "core/MediaReconnect.h"
 #include <optional>
+#include <random>
 
 // ============================================================================
 // Hand-written deep-equality for Clip (spec §7: deliberately NOT toVar-based).
@@ -1805,4 +1806,196 @@ TEST_CASE("TriggerColumnCmd composite: stale coordinates are safe no-ops (never 
 
     mgr.undo();                                // no-op undo → still safe
     REQUIRE(comp.decks[0].getLayer(0)->activeClipColumn == -1);
+}
+
+// ===========================================================================
+// Undo v1 step 9 — spec §7 remainder + lane folds.
+// (Manager-level merge + cap-eviction already live in test_composition.cpp:
+// "UndoManager merges consecutive mergeable commands" and "UndoManager caps
+// history at kMaxHistory (100)" — not duplicated here.)
+// ===========================================================================
+
+// ---------------------------------------------------------------------------
+// Property test (spec §7): a SEEDED random sequence of mixed value-assignment
+// commands (SetClipCmd / ToggleLayerFlagCmd / SwapClipsCmd, all in-grid so no
+// column growth) — undo ALL → deep-equal initial; redo ALL → deep-equal final.
+// Deterministic: fixed seed logged below. Only bit-identical-round-trip commands
+// are used so the full Deck operator== is a valid oracle (SetColumnCountCmd is
+// intentionally excluded — its grow-only clips vector is not bit-restored, by
+// design, so it round-trips VISUALLY but not via deep-equal).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Property: random mixed-command sequence undoes to initial / redoes to final", "[undo][property]")
+{
+    constexpr unsigned kSeed = 0xC0FFEEu;      // deterministic — change to reproduce
+    INFO("RNG seed = " << kSeed);
+    std::mt19937 rng(kSeed);
+
+    Composition comp = makeComp();             // 1 deck, 3 layers, 12 empty columns
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    const Deck initial = deck;                 // deep snapshot BEFORE any command
+
+    const int numLayers = deck.getNumLayers();
+    const int numCols = deck.numColumns;
+    auto pick = [&rng](int loIncl, int hiIncl) {
+        return std::uniform_int_distribution<int>(loIncl, hiIncl)(rng);
+    };
+
+    constexpr int N = 50;
+    for (int i = 0; i < N; ++i)
+    {
+        switch (pick(0, 2))
+        {
+            case 0:   // SetClipCmd — set a fresh clip or clear a random in-grid cell
+            {
+                const int l = pick(0, numLayers - 1);
+                const int c = pick(0, numCols - 1);
+                std::optional<Clip> before = deck.getClip(l, c)
+                    ? std::optional<Clip>(*deck.getClip(l, c)) : std::nullopt;
+                std::optional<Clip> after = (pick(0, 1) == 0)
+                    ? std::optional<Clip>(richClip(static_cast<uint32_t>(2000 + i),
+                                                   "p" + std::to_string(i)))
+                    : std::nullopt;
+                mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+                            0, l, c, before, after, "set"));
+                break;
+            }
+            case 1:   // ToggleLayerFlagCmd — flip a random flag on a random layer
+            {
+                const int l = pick(0, numLayers - 1);
+                const auto flag = static_cast<ToggleLayerFlagCmd::Flag>(pick(0, 2));
+                Layer* L = deck.getLayer(l);
+                const bool cur = (flag == ToggleLayerFlagCmd::Flag::Bypassed) ? L->bypassed
+                               : (flag == ToggleLayerFlagCmd::Flag::Solo)     ? L->solo
+                                                                              : L->folded;
+                mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, l,
+                            flag, cur, !cur, "flag"));
+                break;
+            }
+            default:  // SwapClipsCmd — swap two random in-grid cells (no column change)
+            {
+                const int sl = pick(0, numLayers - 1), sc = pick(0, numCols - 1);
+                const int dl = pick(0, numLayers - 1), dc = pick(0, numCols - 1);
+                std::optional<Clip> sB = deck.getClip(sl, sc)
+                    ? std::optional<Clip>(*deck.getClip(sl, sc)) : std::nullopt;
+                std::optional<Clip> dB = deck.getClip(dl, dc)
+                    ? std::optional<Clip>(*deck.getClip(dl, dc)) : std::nullopt;
+                mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), noopMedia(),
+                            0, sl, sc, dl, dc, sB, dB, dB, sB, numCols, numCols, "swap"));
+                break;
+            }
+        }
+    }
+
+    const Deck finalState = deck;              // deep snapshot AFTER the whole sequence
+
+    while (mgr.canUndo()) mgr.undo();
+    REQUIRE(deck == initial);                  // undo ALL → back to initial (deep-equal)
+
+    while (mgr.canRedo()) mgr.redo();
+    REQUIRE(deck == finalState);               // redo ALL → back to final (deep-equal)
+}
+
+// ---------------------------------------------------------------------------
+// Coordinate resolution (spec §7): remove a MIDDLE layer (later layers shift
+// down), undo, and confirm a command targeting a LATER layer index still
+// resolves + applies correctly under linear history. (The existing "Layer index
+// consistency" test removes the LAST layer; this covers the later-layer gap.)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Coordinate resolution: remove MIDDLE layer + undo keeps later-layer command resolvable", "[undo][layer][resolve]")
+{
+    Composition comp = makeComp();             // layers 0,1,2
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    deck.layers[0].name = "A"; deck.layers[1].name = "B"; deck.layers[2].name = "C";
+
+    // Command A targets the LATER layer (index 2): bypass it.
+    deck.layers[2].bypassed = true;
+    mgr.perform(std::make_unique<ToggleLayerFlagCmd>(resolverFor(svc), 0, 2,
+                ToggleLayerFlagCmd::Flag::Bypassed, false, true, "Bypass Layer"));
+
+    // Command B removes the MIDDLE layer (index 1) → "C" shifts from index 2 to 1.
+    Layer removed = deck.layers[1];
+    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), noopMedia(),
+                0, 1, removed, "Remove Layer"));
+    REQUIRE(deck.getNumLayers() == 2);
+    REQUIRE(deck.layers[1].name == "C");       // survivor shifted down
+
+    // Linear history undoes B before A: undo B restores the middle layer, so the
+    // later-layer command (index 2) resolves again when it is undone next.
+    mgr.undo();                                // undo remove
+    REQUIRE(deck.getNumLayers() == 3);
+    REQUIRE(deck.layers[2].name == "C");       // "C" back at index 2
+    REQUIRE(svc.resolveLayer(0, 2) != nullptr);// later index resolves again
+    REQUIRE(deck.layers[2].bypassed == true);  // A's effect intact after the remove-undo
+
+    mgr.undo();                                // undo bypass → resolves at index 2, reverts
+    REQUIRE(deck.layers[2].bypassed == false);
+}
+
+// ---------------------------------------------------------------------------
+// RemoveLayerCmd own stale-coordinate no-op (step-5 fold — its 2 siblings
+// AddLayerCmd / MoveLayerCmd are already covered by "Layer commands no-op on
+// stale coordinates"). RemoveLayerCmd has no ctor invariant, so any values are
+// in-invariant; a stale DECK index makes apply resolve nullptr → safe no-op.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("RemoveLayerCmd: stale coordinate is a safe no-op (never crash)", "[undo][layer][resolve]")
+{
+    Composition comp = makeComp();             // 3 layers
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+
+    Layer dummy = comp.decks[0].layers[0];     // a valid Layer value; deck index is stale
+    mgr.perform(std::make_unique<RemoveLayerCmd>(deckResolverFor(svc), noopFence(), noopMedia(),
+                9, 0, dummy, "Remove Layer"));
+    REQUIRE(comp.decks[0].getNumLayers() == 3);// untouched (bad deck index → no erase)
+
+    mgr.undo();                                // undo is a safe no-op too
+    REQUIRE(comp.decks[0].getNumLayers() == 3);
+}
+
+// ---------------------------------------------------------------------------
+// pendingTriggerColumn-only change (step-8 fold, COMMAND level): a trigger whose
+// snapshot differs ONLY in pendingTriggerColumn (the beat-snap queue edge — a
+// queued trigger with no active-clip change) still pushes, merges same-layer, and
+// round-trips. Constructed at the snapshot level (no MainComponent needed).
+// ---------------------------------------------------------------------------
+
+TEST_CASE("TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, round-trips", "[undo][trigger][merge]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = *deck.getLayer(0);
+
+    // Snapshot pair differing ONLY in pendingTriggerColumn (-1 -> 5).
+    const LayerRuntimeSnapshot before = captureLayerRuntime(L);
+    LayerRuntimeSnapshot after = before; after.pendingTriggerColumn = 5;
+    REQUIRE_FALSE(before == after);            // differs, so the handler guard would push
+
+    applyLayerRuntime(L, after);              // mutate-then-push: live-apply, then wrap
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 5,
+                before, after, std::nullopt, std::nullopt, "Trigger Clip"));
+    REQUIRE(mgr.historySize() == 1);           // pushed (NOT skipped as a no-op)
+    REQUIRE(L.pendingTriggerColumn == 5);
+
+    // A second pending-only change on the SAME layer merges into the slot.
+    const LayerRuntimeSnapshot before2 = captureLayerRuntime(L);
+    LayerRuntimeSnapshot after2 = before2; after2.pendingTriggerColumn = 8;
+    applyLayerRuntime(L, after2);
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 8,
+                before2, after2, std::nullopt, std::nullopt, "Trigger Clip"));
+    REQUIRE(mgr.historySize() == 1);           // MERGED — still one slot
+
+    mgr.undo();
+    REQUIRE(L.pendingTriggerColumn == -1);     // keep-original-before (run start was -1)
+    mgr.redo();
+    REQUIRE(L.pendingTriggerColumn == 8);      // update-latest-after
 }

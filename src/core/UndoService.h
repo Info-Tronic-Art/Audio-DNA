@@ -16,10 +16,10 @@ class InspectorPanel;
 //      These resolvers are inline + renderer-free so they can be unit-tested
 //      headless against a bare Composition.
 //   2. syncAfterModelChange — one shared refresh after a mutation: rebuild or
-//      refresh the deck grid, re-point the renderer's active deck when deck
-//      structure/active index changed, and re-inspect the inspector BY
-//      COORDINATES (which fixes the pre-existing dangling-inspector-pointer
-//      class).
+//      refresh the deck grid, and re-inspect the inspector BY COORDINATES (which
+//      fixes the pre-existing dangling-inspector-pointer class). It does NOT
+//      re-point the renderer's active deck — deck add/remove/switch do that
+//      through their own command hooks (withDeckDetached / DeckActivateHook).
 //   3. withDeckDetached — GL fence for structure-changing mutations: store
 //      nullptr into the renderer's active-deck atomic, block on an empty
 //      GL-thread job to fence out any in-flight frame, run the mutation, then
@@ -35,8 +35,7 @@ public:
     enum class SyncScope
     {
         RuntimeOnly,    // per-cell/per-layer runtime fields — grid refresh only
-        Grid,           // clip content changed — rebuild the grid
-        DeckStructure   // deck/layer/column count or active index changed
+        Grid            // clip content / structure changed — rebuild the grid
     };
 
     // Which coordinate the inspector should re-point to after the change.

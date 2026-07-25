@@ -95,7 +95,8 @@ private:
             return;                    // stale coordinate / None scope -> safe no-op
         *vec = snapshot;               // whole-vector value assignment (idempotent set)
         if (refresh_)
-            refresh_();                // rebuild the open inspector's effect stack
+            refresh_();                // lightweight refresh notification only — does
+                                       // NOT rebuild the inspector rows (see class doc)
     }
 
     CompositionResolver compResolver_;

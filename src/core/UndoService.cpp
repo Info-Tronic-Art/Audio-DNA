@@ -24,13 +24,24 @@ void UndoService::syncAfterModelChange(SyncScope scope, ReinspectTarget reinspec
             deckView_->rebuildGrid();
     }
 
-    // Renderer active-deck pointer follows deck structure / active-index change.
-    if (scope == SyncScope::DeckStructure && renderer_ != nullptr && composition_ != nullptr)
-        renderer_->setActiveDeck(composition_->getActiveDeck());
+    // (Deck ADD/REMOVE/SWITCH re-point the renderer's active deck through their
+    // OWN command hooks — withDeckDetached re-resolves getActiveDeck() after the
+    // fenced mutation, SwitchDeckCmd via DeckActivateHook — never through this
+    // helper, so there is no active-deck re-point here.)
 
     // Inspector: re-point BY COORDINATES so a reallocated model never leaves it
     // holding a dangling Clip*/Layer*. When the coordinate no longer resolves,
     // inspect nullptr (a null-safe clear) rather than refreshing a stale pointer.
+    //
+    // DEAD PATH (Undo v1 — kept, never exercised): no caller constructs an active
+    // ReinspectTarget; every syncAfterModelChange call passes the default
+    // (active == false), and refreshAfterUndoRedo re-points the inspectors itself
+    // with EffectScope-aware setClip/setLayer. REVIVAL HAZARD: the inspectClip
+    // below passes NO EffectScope, so it defaults to EffectScope::none() → the
+    // reinspected clip's effect stack would be scope-None → an effect
+    // add/remove/bypass on it becomes SILENTLY un-undoable (resolveEffectVector
+    // returns nullptr). Before wiring an active ReinspectTarget, pass the matching
+    // EffectScope::clip(...)/layer(...) into inspectClip/inspectLayer here.
     if (reinspect.active && inspector_ != nullptr)
     {
         if (reinspect.column >= 0)
