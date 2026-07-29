@@ -423,6 +423,45 @@ target_link_libraries(AudioDNA PRIVATE ${AUDIODNA_LIBS})
 
 set_project_warnings(AudioDNA)
 
+# --- macOS code signing (stable identity, 2026-07-28) ---
+# Ad-hoc signing changes the app's cdhash on every rebuild, so macOS re-fires
+# the microphone TCC prompt after every single build (see .harmony/gotchas.md
+# 2026-07-25 entry). Signing with a STABLE identity instead keeps the cdhash
+# constant across rebuilds, so the TCC grant persists and the per-rebuild
+# re-prompt goes away. AUDIODNA_CODESIGN_IDENTITY is a cache variable so a
+# different identity can be selected without editing this file. If the
+# identity isn't present in the keychain yet (e.g. it hasn't been created),
+# fall back to ad-hoc ('-') so the build still succeeds — codesigning never
+# blocks the build either way.
+if(APPLE)
+    set(AUDIODNA_CODESIGN_IDENTITY "Audio-DNA Dev" CACHE STRING
+        "Codesign identity used to sign the built .app (falls back to ad-hoc '-' if not found in the keychain)")
+
+    execute_process(
+        COMMAND security find-identity -v -p codesigning
+        OUTPUT_VARIABLE AUDIODNA_CODESIGN_KEYCHAIN_IDENTITIES
+        ERROR_QUIET
+    )
+    string(FIND "${AUDIODNA_CODESIGN_KEYCHAIN_IDENTITIES}" "${AUDIODNA_CODESIGN_IDENTITY}"
+           AUDIODNA_CODESIGN_IDENTITY_FOUND)
+    if(AUDIODNA_CODESIGN_IDENTITY_FOUND GREATER -1)
+        set(AUDIODNA_RESOLVED_SIGN_IDENTITY "${AUDIODNA_CODESIGN_IDENTITY}")
+        message(STATUS "AudioDNA: codesigning with '${AUDIODNA_CODESIGN_IDENTITY}' (found in keychain)")
+    else()
+        set(AUDIODNA_RESOLVED_SIGN_IDENTITY "-")
+        message(STATUS "AudioDNA: codesign identity '${AUDIODNA_CODESIGN_IDENTITY}' not found in the "
+                       "keychain -- falling back to ad-hoc signing ('-'). Create/import the identity "
+                       "and re-run cmake configure to pick it up (this is what kills the per-rebuild "
+                       "microphone TCC re-prompt).")
+    endif()
+
+    add_custom_command(TARGET AudioDNA POST_BUILD
+        COMMAND codesign --force --sign "${AUDIODNA_RESOLVED_SIGN_IDENTITY}" "$<TARGET_BUNDLE_DIR:AudioDNA>"
+        COMMENT "Codesigning Audio-DNA.app with '${AUDIODNA_RESOLVED_SIGN_IDENTITY}'"
+        VERBATIM
+    )
+endif()
+
 # --- Tests ---
 enable_testing()
 add_subdirectory(tests)

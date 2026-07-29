@@ -44,6 +44,16 @@ public:
         effectStackView_.onPerformEdit = std::move(cb);
     }
 
+    // Family-fence fix round 2 (2026-07-28): hand the effect stack the GL
+    // fence hook (structural push_back/erase — see EffectStackView.h). Global
+    // scope is not currently GL-read (verified — nothing in src/render/ reads
+    // Composition::globalEffects), but wiring it uniformly costs nothing and
+    // future-proofs the scope if that ever changes.
+    void setEffectFenceHook(EffectStackView::EffectFenceHook hook)
+    {
+        effectStackView_.setFenceHook(std::move(hook));
+    }
+
     // Rebuild the global-effects stack from the live vector — used after an
     // undo/redo of a global effect add/remove/bypass (the selected-cell re-points
     // in refreshAfterUndoRedo don't reach the composition's own chain).

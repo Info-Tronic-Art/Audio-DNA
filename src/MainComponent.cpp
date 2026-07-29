@@ -712,19 +712,25 @@ MainComponent::MainComponent(bool testMode, int testPort)
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
         const int numColsBefore = deck->numColumns;
-        // Ensure enough columns exist
-        int needed = col + static_cast<int>(files.size());
-        while (deck->numColumns < needed)
-        {
-            deck->numColumns++;
-            for (auto& layer : deck->layers)
-                layer.clips.resize(static_cast<size_t>(deck->numColumns));
-        }
-        // Place each video, collecting cell edits WITHOUT per-file history entries.
+        // GL fence (2026-07-28): the growth loop below resizes EVERY layer's
+        // clips vector (layer.clips.resize), the exact crash-proven reallocation
+        // — one fence for the whole gesture (growth + placement), not per-cell.
         std::vector<CellEdit> edits;
-        for (int i = 0; i < static_cast<int>(files.size()); ++i)
-            if (auto edit = applyFileDrop(layerIdx, col + i, files[static_cast<size_t>(i)]))
-                edits.push_back(*edit);
+        undoService_.withDeckDetached([&]
+        {
+            // Ensure enough columns exist
+            int needed = col + static_cast<int>(files.size());
+            while (deck->numColumns < needed)
+            {
+                deck->numColumns++;
+                for (auto& layer : deck->layers)
+                    layer.clips.resize(static_cast<size_t>(deck->numColumns));
+            }
+            // Place each video, collecting cell edits WITHOUT per-file history entries.
+            for (int i = 0; i < static_cast<int>(files.size()); ++i)
+                if (auto edit = applyFileDrop(layerIdx, col + i, files[static_cast<size_t>(i)]))
+                    edits.push_back(*edit);
+        });
         const int numColsAfter = deck->numColumns;
 
         const int n = static_cast<int>(files.size());
@@ -733,7 +739,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         std::vector<std::unique_ptr<Command>> children;
         if (numColsAfter != numColsBefore)   // FIRST child → undoes LAST (restores count)
             children.push_back(std::make_unique<SetColumnCountCmd>(
-                makeDeckResolver(), composition_.activeDeckIndex,
+                makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
                 numColsBefore, numColsAfter, "Resize Columns"));
         for (auto& edit : edits)
             children.push_back(makeSetClipCmd(composition_.activeDeckIndex, edit, desc));
@@ -771,17 +777,25 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
         if (hasContent)
         {
-            // Add all FX to the existing clip's chain
-            for (const auto& fxName : fxNames)
+            // Add all FX to the existing clip's chain. GL fence (2026-07-28,
+            // family-fence fix round 2): push_back reallocates existingClip->
+            // effects, which the GL thread iterates directly (CompositorEngine
+            // .cpp:242) via the getActiveClip() pointer — reviewer-ruled REAL,
+            // blocker-class exposure. One fence for the whole drop (a
+            // multi-select drop appends several effects in this one loop).
+            undoService_.withDeckDetached([&]
             {
-                Clip::EffectSlot slot;
-                slot.effectName = fxName.toStdString();
-                const auto* def = effectLibrary_.getEffectDef(fxName);
-                if (def)
-                    for (const auto& p : def->params)
-                        slot.paramValues.push_back(p.defaultValue);
-                existingClip->effects.push_back(slot);
-            }
+                for (const auto& fxName : fxNames)
+                {
+                    Clip::EffectSlot slot;
+                    slot.effectName = fxName.toStdString();
+                    const auto* def = effectLibrary_.getEffectDef(fxName);
+                    if (def)
+                        for (const auto& p : def->params)
+                            slot.paramValues.push_back(p.defaultValue);
+                    existingClip->effects.push_back(slot);
+                }
+            });
             if (!existingClip->hasMedia())
             {
                 std::string nameStr;
@@ -795,30 +809,39 @@ MainComponent::MainComponent(bool testMode, int testPort)
         }
         else
         {
-            // Empty cell(s): each FX gets its own cell in consecutive columns
+            // Empty cell(s): each FX gets its own cell in consecutive columns.
+            // GL fence (2026-07-28): ensureColumns below can grow the layer's
+            // clips vector — the crash-proven reallocation class — one fence
+            // for the whole drop, not per FX. (The hasContent branch above
+            // pushes into existingClip->effects, a DIFFERENT vector on the
+            // active clip — round 1 left it unfenced pending reviewer ruling;
+            // round 2 fenced it too, see the withDeckDetached wrap above.)
             static uint32_t fxClipId = 5000;
-            for (int fi = 0; fi < fxNames.size(); ++fi)
+            undoService_.withDeckDetached([&]
             {
-                int targetCol = col + fi;
-                layer->ensureColumns(targetCol + 1);
-                if (deck->numColumns < targetCol + 1)
-                    deck->numColumns = targetCol + 1;
+                for (int fi = 0; fi < fxNames.size(); ++fi)
+                {
+                    int targetCol = col + fi;
+                    layer->ensureColumns(targetCol + 1);
+                    if (deck->numColumns < targetCol + 1)
+                        deck->numColumns = targetCol + 1;
 
-                Clip newClip;
-                newClip.id = fxClipId++;
-                newClip.name = fxNames[fi].toStdString();
-                newClip.mediaType = Clip::MediaType::None;
+                    Clip newClip;
+                    newClip.id = fxClipId++;
+                    newClip.name = fxNames[fi].toStdString();
+                    newClip.mediaType = Clip::MediaType::None;
 
-                Clip::EffectSlot slot;
-                slot.effectName = fxNames[fi].toStdString();
-                const auto* def = effectLibrary_.getEffectDef(fxNames[fi]);
-                if (def)
-                    for (const auto& p : def->params)
-                        slot.paramValues.push_back(p.defaultValue);
-                newClip.effects.push_back(slot);
+                    Clip::EffectSlot slot;
+                    slot.effectName = fxNames[fi].toStdString();
+                    const auto* def = effectLibrary_.getEffectDef(fxNames[fi]);
+                    if (def)
+                        for (const auto& p : def->params)
+                            slot.paramValues.push_back(p.defaultValue);
+                    newClip.effects.push_back(slot);
 
-                deck->setClip(layerIdx, targetCol, newClip);
-            }
+                    deck->setClip(layerIdx, targetCol, newClip);
+                }
+            });
         }
 
         // Capture after-state and record the drop as one undo unit. A multi-FX
@@ -832,7 +855,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         std::vector<std::unique_ptr<Command>> children;
         if (numColsAfter != numColsBefore)
             children.push_back(std::make_unique<SetColumnCountCmd>(
-                makeDeckResolver(), composition_.activeDeckIndex,
+                makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
                 numColsBefore, numColsAfter, "Resize Columns"));
         for (auto& edit : edits)
             children.push_back(makeSetClipCmd(composition_.activeDeckIndex, edit, fxDesc));
@@ -863,38 +886,44 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // across N cells, plus a column-count restore since a multi-source drop
         // can grow numColumns past the grid — close the column-growth gap).
         const int numColsBefore = deck->numColumns;
+        // GL fence (2026-07-28): ensureColumns below can grow the layer's clips
+        // vector — the crash-proven reallocation class — one fence for the
+        // whole drop, not per source.
         std::vector<CellEdit> edits;
-        for (int si = 0; si < sourceIds.size(); ++si)
+        undoService_.withDeckDetached([&]
         {
-            int targetCol = col + si;
-            std::optional<Clip> before = snapshotCell(layer, targetCol);
-            layer->ensureColumns(targetCol + 1);
-            if (deck->numColumns < targetCol + 1)
-                deck->numColumns = targetCol + 1;
-
-            Clip clip;
-            clip.name = sourceIds[si].toStdString();
-            clip.mediaType = Clip::MediaType::Source;
-            clip.sourceType = sourceIds[si].toStdString();
-
-            auto tempSrc = srcRegistry.createSource(sourceIds[si].toStdString());
-            if (tempSrc)
+            for (int si = 0; si < sourceIds.size(); ++si)
             {
-                for (int i = 0; i < tempSrc->getNumParams(); ++i)
-                {
-                    const auto& p = tempSrc->getParam(i);
-                    Clip::SourceParam sp;
-                    sp.name = p.name;
-                    sp.uniformName = p.uniformName;
-                    sp.value = p.defaultValue;
-                    sp.defaultValue = p.defaultValue;
-                    clip.sourceParams.push_back(sp);
-                }
-            }
+                int targetCol = col + si;
+                std::optional<Clip> before = snapshotCell(layer, targetCol);
+                layer->ensureColumns(targetCol + 1);
+                if (deck->numColumns < targetCol + 1)
+                    deck->numColumns = targetCol + 1;
 
-            deck->setClip(layerIdx, targetCol, clip);
-            edits.push_back({ layerIdx, targetCol, before, std::optional<Clip>(clip) });
-        }
+                Clip clip;
+                clip.name = sourceIds[si].toStdString();
+                clip.mediaType = Clip::MediaType::Source;
+                clip.sourceType = sourceIds[si].toStdString();
+
+                auto tempSrc = srcRegistry.createSource(sourceIds[si].toStdString());
+                if (tempSrc)
+                {
+                    for (int i = 0; i < tempSrc->getNumParams(); ++i)
+                    {
+                        const auto& p = tempSrc->getParam(i);
+                        Clip::SourceParam sp;
+                        sp.name = p.name;
+                        sp.uniformName = p.uniformName;
+                        sp.value = p.defaultValue;
+                        sp.defaultValue = p.defaultValue;
+                        clip.sourceParams.push_back(sp);
+                    }
+                }
+
+                deck->setClip(layerIdx, targetCol, clip);
+                edits.push_back({ layerIdx, targetCol, before, std::optional<Clip>(clip) });
+            }
+        });
         const int numColsAfter = deck->numColumns;
 
         const int n = sourceIds.size();
@@ -903,7 +932,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         std::vector<std::unique_ptr<Command>> children;
         if (numColsAfter != numColsBefore)   // FIRST child → undoes LAST (restores count)
             children.push_back(std::make_unique<SetColumnCountCmd>(
-                makeDeckResolver(), composition_.activeDeckIndex,
+                makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
                 numColsBefore, numColsAfter, "Resize Columns"));
         for (auto& edit : edits)
             children.push_back(makeSetClipCmd(composition_.activeDeckIndex, edit, desc));
@@ -937,31 +966,37 @@ MainComponent::MainComponent(bool testMode, int testPort)
         std::optional<Clip> srcBefore = snapshotCell(srcL, srcCol);
         std::optional<Clip> dstBefore = snapshotCell(dstL, dstCol);
 
-        // Ensure destination has enough columns
-        dstL->ensureColumns(dstCol + 1);
-        if (deck->numColumns < dstCol + 1)
-            deck->numColumns = dstCol + 1;
+        // GL fence (2026-07-28): ensureColumns below can grow a layer's clips
+        // vector — the crash-proven reallocation class — one fence for the
+        // whole move/swap gesture.
+        undoService_.withDeckDetached([&]
+        {
+            // Ensure destination has enough columns
+            dstL->ensureColumns(dstCol + 1);
+            if (deck->numColumns < dstCol + 1)
+                deck->numColumns = dstCol + 1;
 
-        // Swap clips between source and destination
-        auto srcClip = srcL->getClipAt(srcCol)
-            ? std::optional<Clip>(*srcL->getClipAt(srcCol))
-            : std::nullopt;
-        auto dstClip = dstL->getClipAt(dstCol)
-            ? std::optional<Clip>(*dstL->getClipAt(dstCol))
-            : std::nullopt;
+            // Swap clips between source and destination
+            auto srcClip = srcL->getClipAt(srcCol)
+                ? std::optional<Clip>(*srcL->getClipAt(srcCol))
+                : std::nullopt;
+            auto dstClip = dstL->getClipAt(dstCol)
+                ? std::optional<Clip>(*dstL->getClipAt(dstCol))
+                : std::nullopt;
 
-        // Place source clip at destination
-        if (srcClip.has_value())
-            dstL->clips[static_cast<size_t>(dstCol)] = srcClip;
-        else
-            dstL->clips[static_cast<size_t>(dstCol)] = std::nullopt;
+            // Place source clip at destination
+            if (srcClip.has_value())
+                dstL->clips[static_cast<size_t>(dstCol)] = srcClip;
+            else
+                dstL->clips[static_cast<size_t>(dstCol)] = std::nullopt;
 
-        // Place destination clip at source (swap)
-        srcL->ensureColumns(srcCol + 1);
-        if (dstClip.has_value())
-            srcL->clips[static_cast<size_t>(srcCol)] = dstClip;
-        else
-            srcL->clips[static_cast<size_t>(srcCol)] = std::nullopt;
+            // Place destination clip at source (swap)
+            srcL->ensureColumns(srcCol + 1);
+            if (dstClip.has_value())
+                srcL->clips[static_cast<size_t>(srcCol)] = dstClip;
+            else
+                srcL->clips[static_cast<size_t>(srcCol)] = std::nullopt;
+        });
 
         // Record the whole gesture as one undo unit. "Swap" when the target was
         // occupied (two clips exchange places), "Move" when it was empty. The
@@ -973,7 +1008,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         const juce::String desc = dstBefore.has_value() ? "Swap Clips" : "Move Clip";
         std::vector<std::unique_ptr<Command>> children;
         children.push_back(std::make_unique<SwapClipsCmd>(
-            makeDeckResolver(), makeClipMediaHook(), composition_.activeDeckIndex,
+            makeDeckResolver(), makeDeckFence(), makeClipMediaHook(), composition_.activeDeckIndex,
             srcLayer, srcCol, dstLayer, dstCol,
             srcBefore, srcAfter, dstBefore, dstAfter,
             numColsBefore, numColsAfter, desc.toStdString()));
@@ -989,9 +1024,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (!layer) return;
 
         std::optional<Clip> before = snapshotCell(layer, col);
-
-        layer->ensureColumns(col + 1);
-        if (deck->numColumns < col + 1) deck->numColumns = col + 1;
 
         // Create a projectM source clip with the preset path stored
         Clip clip;
@@ -1022,7 +1054,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
         entry.presetName = clip.name;
         clip.presetPlaylist.push_back(entry);
 
-        deck->setClip(layerIdx, col, clip);
+        // GL fence (2026-07-28): ensureColumns can grow the layer's clips
+        // vector — the crash-proven reallocation class.
+        undoService_.withDeckDetached([&]
+        {
+            layer->ensureColumns(col + 1);
+            if (deck->numColumns < col + 1) deck->numColumns = col + 1;
+            deck->setClip(layerIdx, col, clip);
+        });
         pushClipEdits(composition_.activeDeckIndex,
                       { { layerIdx, col, before, std::optional<Clip>(clip) } },
                       "Drop '" + juce::String(clip.name) + "'");
@@ -1043,9 +1082,6 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (!layer) return;
 
         std::optional<Clip> before = snapshotCell(layer, col);
-
-        layer->ensureColumns(col + 1);
-        if (deck->numColumns < col + 1) deck->numColumns = col + 1;
 
         Clip clip;
         clip.name = "MilkDrop Playlist (" + std::to_string(presetPaths.size()) + ")";
@@ -1081,7 +1117,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
         clip.playlistCycleMode = Clip::PlaylistCycleMode::RandomBag;
         clip.playlistTriggerBeats = 8;
 
-        deck->setClip(layerIdx, col, clip);
+        // GL fence (2026-07-28): ensureColumns can grow the layer's clips
+        // vector — the crash-proven reallocation class.
+        undoService_.withDeckDetached([&]
+        {
+            layer->ensureColumns(col + 1);
+            if (deck->numColumns < col + 1) deck->numColumns = col + 1;
+            deck->setClip(layerIdx, col, clip);
+        });
         pushClipEdits(composition_.activeDeckIndex,
                       { { layerIdx, col, before, std::optional<Clip>(clip) } },
                       "Drop '" + juce::String(clip.name) + "'");
@@ -1136,11 +1179,16 @@ MainComponent::MainComponent(bool testMode, int testPort)
         {
             std::vector<std::unique_ptr<Command>> children;
             children.push_back(std::make_unique<EffectStackCmd>(
-                makeCompositionResolver(), scope,
+                makeCompositionResolver(), makeDeckFence(), scope,
                 std::move(before), std::move(after),
                 makeEffectStackRefresh(), description.toStdString()));
             pushCommands(std::move(children), description);
         });
+
+    // Family-fence fix round 2 (2026-07-28): fence the EffectStackView's own
+    // structural edits (push_back on FX drop, erase on delete) — same
+    // withDeckDetached hook as every other structural mutation in this lane.
+    inspectorPanel_->setEffectFenceHook(makeDeckFence());
 
     inspectorPanel_->getLayerInspector().onLayerNameChanged = [this]() {
         if (deckView_) deckView_->refresh();
@@ -1218,7 +1266,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
             }
         }
 
-        deck->setClip(targetLayer, targetCol, clip);
+        // GL fence (2026-07-28): setClip's internal ensureColumns can grow the
+        // layer's clips vector — the crash-proven reallocation class.
+        undoService_.withDeckDetached([&] { deck->setClip(targetLayer, targetCol, clip); });
         // Don't auto-trigger — user clicks cell to activate
 
         // Load source into preview renderer
@@ -3142,7 +3192,7 @@ std::optional<Clip> MainComponent::snapshotCell(Layer* layer, int column)
 std::unique_ptr<Command> MainComponent::makeSetClipCmd(int deckIndex, const CellEdit& edit,
                                                        const juce::String& description)
 {
-    return std::make_unique<SetClipCmd>(makeLayerResolver(), makeClipMediaHook(),
+    return std::make_unique<SetClipCmd>(makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
                                         deckIndex, edit.layerIndex, edit.column,
                                         edit.before, edit.after, description.toStdString());
 }
@@ -3275,7 +3325,16 @@ MainComponent::applyFileDrop(int layerIndex, int column, const juce::File& file)
 
 void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File& file)
 {
-    if (auto edit = applyFileDrop(layerIndex, column, file))
+    // GL fence (2026-07-28, round 3): applyFileDrop's internal deck->setClip
+    // call can grow the layer's clips vector (Deck::setClip -> ensureColumns)
+    // — the crash-proven reallocation class. One fence for this single-cell
+    // drop gesture (mirrors every other single-cell drop handler, e.g.
+    // onSourceActivated above). onMultiVideoDropped already fences its own
+    // growth+placement loop around applyFileDrop, so applyFileDrop itself is
+    // NOT fenced internally — that would nest under the loop's outer fence.
+    std::optional<CellEdit> edit;
+    undoService_.withDeckDetached([&] { edit = applyFileDrop(layerIndex, column, file); });
+    if (edit)
     {
         pushClipEdits(composition_.activeDeckIndex, { *edit },
                       "Drop '" + juce::String(edit->after->name) + "'");
@@ -3320,7 +3379,9 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
     auto& renderer = previewPanel_.getRenderer();
     renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
 
-    deck->setClip(layerIndex, column, clip);
+    // GL fence (2026-07-28, round 3): setClip's internal ensureColumns can
+    // grow the layer's clips vector — the crash-proven reallocation class.
+    undoService_.withDeckDetached([&] { deck->setClip(layerIndex, column, clip); });
 
     pushClipEdits(composition_.activeDeckIndex,
                   { { layerIndex, column, before, std::optional<Clip>(clip) } },
@@ -3385,7 +3446,15 @@ void MainComponent::handleMenuCommand(int commandId)
             if (undoManager_.redo()) refreshAfterUndoRedo();
             break;
         case C::kCompNew:
-            composition_.initDefault();
+            // GL fence (2026-07-28 fix round 1, reviewer-prescribed): initDefault()
+            // does decks.clear()+push_back, reallocating composition_.decks under
+            // an unlocked GL read — the same reallocation class one level up from
+            // the Column->New crash. undoManager_.clear() only touches command
+            // history (never the model), so it stays outside the fence; the UI
+            // refresh calls read the model AFTER the fence has already restored
+            // the renderer's active deck, so they are safe there too. Sequential,
+            // not nested — the fence has already returned before either runs.
+            undoService_.withDeckDetached([this] { composition_.initDefault(); });
             undoManager_.clear();
             if (deckView_) deckView_->rebuildGrid();
             if (inspectorPanel_) inspectorPanel_->refresh();
@@ -3547,22 +3616,28 @@ void MainComponent::handleMenuCommand(int commandId)
             // clearing an empty deck pushes nothing).
             if (auto* deck = composition_.getActiveDeck())
             {
+                // GL fence (2026-07-28): clips.clear() below is a full-vector
+                // replace, the crash-proven reallocation class — ONE fence for
+                // the whole gesture (every layer), not per layer.
                 std::vector<std::unique_ptr<Command>> children;
-                for (int l = 0; l < deck->getNumLayers(); ++l)
+                undoService_.withDeckDetached([&]
                 {
-                    auto* layer = deck->getLayer(l);
-                    if (layer == nullptr) continue;
-                    LayerClipsSnapshot before = captureLayerClips(*layer);
-                    if (!layerClipsSnapshotHasContent(before)) continue;
-                    layer->clips.clear();
-                    layer->ensureColumns(deck->numColumns);
-                    layer->clearActiveClip();
-                    LayerClipsSnapshot after = captureLayerClips(*layer);
-                    children.push_back(std::make_unique<ClearLayerClipsCmd>(
-                        makeLayerResolver(), makeClipMediaHook(),
-                        composition_.activeDeckIndex, l,
-                        std::move(before), std::move(after), "Clear Layer Clips"));
-                }
+                    for (int l = 0; l < deck->getNumLayers(); ++l)
+                    {
+                        auto* layer = deck->getLayer(l);
+                        if (layer == nullptr) continue;
+                        LayerClipsSnapshot before = captureLayerClips(*layer);
+                        if (!layerClipsSnapshotHasContent(before)) continue;
+                        layer->clips.clear();
+                        layer->ensureColumns(deck->numColumns);
+                        layer->clearActiveClip();
+                        LayerClipsSnapshot after = captureLayerClips(*layer);
+                        children.push_back(std::make_unique<ClearLayerClipsCmd>(
+                            makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
+                            composition_.activeDeckIndex, l,
+                            std::move(before), std::move(after), "Clear Layer Clips"));
+                    }
+                });
                 pushCommands(std::move(children), "Clear Deck Clips");
                 if (deckView_) deckView_->rebuildGrid();
             }
@@ -3618,13 +3693,18 @@ void MainComponent::handleMenuCommand(int commandId)
                         LayerClipsSnapshot before = captureLayerClips(*layer);
                         if (layerClipsSnapshotHasContent(before))  // skip a no-op clear
                         {
-                            layer->clips.clear();
-                            layer->ensureColumns(deck->numColumns);
-                            layer->clearActiveClip();
+                            // GL fence (2026-07-28): clips.clear() is a full-
+                            // vector replace, the crash-proven reallocation class.
+                            undoService_.withDeckDetached([&]
+                            {
+                                layer->clips.clear();
+                                layer->ensureColumns(deck->numColumns);
+                                layer->clearActiveClip();
+                            });
                             LayerClipsSnapshot after = captureLayerClips(*layer);
                             std::vector<std::unique_ptr<Command>> children;
                             children.push_back(std::make_unique<ClearLayerClipsCmd>(
-                                makeLayerResolver(), makeClipMediaHook(),
+                                makeLayerResolver(), makeDeckFence(), makeClipMediaHook(),
                                 composition_.activeDeckIndex, selLayer,
                                 std::move(before), std::move(after), "Clear Layer Clips"));
                             pushCommands(std::move(children), "Clear Layer Clips");
@@ -3709,10 +3789,14 @@ void MainComponent::handleMenuCommand(int commandId)
             if (auto* deck = composition_.getActiveDeck())
             {
                 const int before = deck->numColumns;
-                deck->addColumn();
+                // GL fence (2026-07-28): addColumn's ensureColumns growth is
+                // the scout-diagnosed, disassembly-verified crash mechanism
+                // (message-thread clips.resize under an unlocked GL read) —
+                // see .harmony/notebook.md LAW entry.
+                undoService_.withDeckDetached([deck] { deck->addColumn(); });
                 std::vector<std::unique_ptr<Command>> children;
                 children.push_back(std::make_unique<SetColumnCountCmd>(
-                    makeDeckResolver(), composition_.activeDeckIndex,
+                    makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
                     before, deck->numColumns, "Add Column"));
                 pushCommands(std::move(children), "Add Column");
                 if (deckView_) deckView_->rebuildGrid();
@@ -3731,10 +3815,12 @@ void MainComponent::handleMenuCommand(int commandId)
                     removed.reserve(deck->layers.size());
                     for (auto& layer : deck->layers)
                         removed.push_back(snapshotCell(&layer, col));
-                    deck->removeColumn(col);
+                    // GL fence (2026-07-28): removeColumn erases a cell from
+                    // every layer's clips vector — same reallocation class.
+                    undoService_.withDeckDetached([deck, col] { deck->removeColumn(col); });
                     std::vector<std::unique_ptr<Command>> children;
                     children.push_back(std::make_unique<RemoveColumnCmd>(
-                        makeDeckResolver(), makeClipMediaHook(),
+                        makeDeckResolver(), makeDeckFence(), makeClipMediaHook(),
                         composition_.activeDeckIndex, col, before,
                         std::move(removed), "Remove Column"));
                     pushCommands(std::move(children), "Remove Column");
@@ -3752,13 +3838,20 @@ void MainComponent::handleMenuCommand(int commandId)
                 if (deck)
                 {
                     int deckIdx = composition_.activeDeckIndex;
+                    // GL fence (2026-07-28): kClipClear overwrites each selected
+                    // cell with a blank Clip{} — same exposure family as the
+                    // deck/layer clears (notebook LAW entry), MORE deterministic
+                    // since it always touches a real (often the active) clip.
                     std::vector<CellEdit> edits;
-                    for (auto& cell : deckView_->getSelectedCells())
+                    undoService_.withDeckDetached([&]
                     {
-                        std::optional<Clip> before = snapshotCell(deck->getLayer(cell.layer), cell.column);
-                        deck->setClip(cell.layer, cell.column, Clip{});
-                        edits.push_back({ cell.layer, cell.column, before, std::optional<Clip>(Clip{}) });
-                    }
+                        for (auto& cell : deckView_->getSelectedCells())
+                        {
+                            std::optional<Clip> before = snapshotCell(deck->getLayer(cell.layer), cell.column);
+                            deck->setClip(cell.layer, cell.column, Clip{});
+                            edits.push_back({ cell.layer, cell.column, before, std::optional<Clip>(Clip{}) });
+                        }
+                    });
                     int count = static_cast<int>(edits.size());
                     pushClipEdits(deckIdx, edits,
                                   count > 1 ? "Clear " + juce::String(count) + " Clips"
@@ -3821,7 +3914,21 @@ void MainComponent::handleMenuCommand(int commandId)
                             }
                         }
 
-                        if (existing->replaceContent(newContent))
+                        // GL fence (2026-07-28, family-fence fix round 2, ruled
+                        // exposed per the kClipClear precedent): replaceContent
+                        // mutates `existing` in place — a Clip the GL thread may
+                        // hold via getActiveClip() — and reassigns SEVERAL of its
+                        // internal vectors (effects via move, sourceParams/
+                        // sequenceFiles/presetPlaylist via copy) plus the
+                        // thumbnail Image, all unsynchronized with the GL
+                        // thread's read of those same fields (clip.effects
+                        // iterated directly; the others read during compositing/
+                        // playback). Same reallocation-on-a-possibly-active-clip
+                        // class as kClipClear, just via one in-place call instead
+                        // of a whole-Clip overwrite.
+                        bool replaced = false;
+                        undoService_.withDeckDetached([&] { replaced = existing->replaceContent(newContent); });
+                        if (replaced)
                         {
                             // replaceContent mutated the clip in place (keeping
                             // effects/transport); record only if it actually

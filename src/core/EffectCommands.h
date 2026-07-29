@@ -71,19 +71,33 @@ inline std::vector<Clip::EffectSlot>* resolveEffectVector(Composition* comp,
 // expanded=false, so expanded rows collapse) -- that is what makes a row-count
 // change visible. Preserving row expansion across undo/redo is a pre-existing
 // refresh-path limitation, tracked as a follow-up, not a guarantee of this command.
+// GL fence (family-fence fix round 2, 2026-07-28): apply() does a whole-vector
+// value assignment (*vec = snapshot), which reallocates the target vector —
+// reviewer-ruled REAL, blocker-class exposure for Clip/Layer scopes (GL thread
+// iterates clip.effects directly, CompositorEngine.cpp:242, and copy-reads
+// layer.layerEffects at :752). Global scope (Composition::globalEffects) is
+// NOT currently read anywhere on the GL side (verified — grep across
+// src/render/ and src/render/CompositorEngine.cpp), so it does not strictly
+// need fencing today, but EffectStackCmd is ONE shared class serving all three
+// scopes — fencing unconditionally in apply() is simpler than branching on
+// scope_.kind and costs nothing extra (one fence per discrete edit gesture,
+// not a hot path) — it also future-proofs the Global case for free if a later
+// render change starts reading globalEffects.
 class EffectStackCmd : public Command
 {
 public:
-    EffectStackCmd(CompositionResolver compResolver, EffectScope scope,
+    EffectStackCmd(CompositionResolver compResolver, DeckFenceHook fence,
+                   EffectScope scope,
                    std::vector<Clip::EffectSlot> before,
                    std::vector<Clip::EffectSlot> after,
                    std::function<void()> refresh, std::string description)
-        : compResolver_(std::move(compResolver)), scope_(scope),
+        : compResolver_(std::move(compResolver)), fence_(std::move(fence)),
+          scope_(scope),
           before_(std::move(before)), after_(std::move(after)),
           refresh_(std::move(refresh)), description_(std::move(description)) {}
 
-    void execute() override { apply(after_); }
-    void undo() override    { apply(before_); }
+    void execute() override { runFenced([this] { apply(after_); }); }
+    void undo() override    { runFenced([this] { apply(before_); }); }
     std::string description() const override { return description_; }
 
 private:
@@ -98,8 +112,10 @@ private:
             refresh_();                // lightweight refresh notification only — does
                                        // NOT rebuild the inspector rows (see class doc)
     }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
     CompositionResolver compResolver_;
+    DeckFenceHook fence_;
     EffectScope scope_;
     std::vector<Clip::EffectSlot> before_, after_;
     std::function<void()> refresh_;

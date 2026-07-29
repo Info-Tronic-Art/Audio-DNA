@@ -149,6 +149,13 @@ void InspectorPanel::setEffectPerformEdit(EffectStackView::PerformEditFn cb)
     compInspector_.setEffectPerformEdit(cb);
 }
 
+void InspectorPanel::setEffectFenceHook(EffectStackView::EffectFenceHook cb)
+{
+    clipInspector_.setEffectFenceHook(cb);
+    layerInspector_.setEffectFenceHook(cb);
+    compInspector_.setEffectFenceHook(cb);
+}
+
 void InspectorPanel::inspectSignal(Signal* signal)
 {
     signalInspector_.setSignal(signal);

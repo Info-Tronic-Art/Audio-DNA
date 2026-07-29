@@ -21,6 +21,23 @@
 // dangle across vector reallocation. They are inline + renderer-free so the same
 // headless unit tests that cover the clip commands cover these too.
 
+// GL fence for structure-changing mutations (family-fence fix, 2026-07-28 — see
+// .harmony/notebook.md LAW entry): a message-thread mutation that resizes,
+// clears, or erases a layer's clips vector can reallocate it while the GL
+// thread (unlocked — setComponentPaintingEnabled(false)) holds an interior
+// Clip* via getActiveClip()/applyClipEffects — a proven UAF (SIGSEGV on
+// Column -> New). Injected as a hook so commands stay renderer-free /
+// headless-testable; MainComponent binds it to UndoService::withDeckDetached
+// (GL fence, validated in build step 1), headless tests pass a pass-through. A
+// null hook runs the mutation directly (no fence), which is exactly the
+// headless case. SetColumnCountCmd / RemoveColumnCmd / ClearLayerClipsCmd
+// below, the step-5/6 layer/deck commands further down, and (round 3,
+// 2026-07-28) ClipCommands.h's SetClipCmd/SwapClipsCmd all fence through this
+// same hook type. The `DeckFenceHook` alias itself is now DEFINED IN
+// ClipCommands.h (included above) since those two commands need it too and
+// ClipCommands.h sits below this file in the include graph — this file no
+// longer redeclares it, it just uses the one definition.
+
 // SetColumnCountCmd: set a deck's visible column count (deck->numColumns),
 // re-resolved by deckIndex. Covers the menu "Add Column" (#25, before=N
 // after=N+1) AND the column-growth undo of multi-cell drops (#7 multi-video,
@@ -31,17 +48,20 @@
 // sets numColumns and grows each layer's clips vector when the count increases
 // (so grown columns render / can hold restored cells); it never erases on
 // shrink — trailing cells past numColumns are invisible, exactly as
-// SwapClipsCmd leaves them.
+// SwapClipsCmd leaves them. GL fence (2026-07-28): apply() grows EVERY layer's
+// clips vector (ensureColumns), the same reallocation-prone mutation as
+// addColumn's live handler — fenced identically on execute/undo/redo.
 class SetColumnCountCmd : public Command
 {
 public:
-    SetColumnCountCmd(ClipDeckResolver deckResolver, int deckIndex,
-                      int before, int after, std::string description)
-        : deckResolver_(std::move(deckResolver)), deckIndex_(deckIndex),
+    SetColumnCountCmd(ClipDeckResolver deckResolver, DeckFenceHook fence,
+                      int deckIndex, int before, int after, std::string description)
+        : deckResolver_(std::move(deckResolver)), fence_(std::move(fence)),
+          deckIndex_(deckIndex),
           before_(before), after_(after), description_(std::move(description)) {}
 
-    void execute() override { apply(after_); }
-    void undo() override    { apply(before_); }
+    void execute() override { runFenced([this] { apply(after_); }); }
+    void undo() override    { runFenced([this] { apply(before_); }); }
     std::string description() const override { return description_; }
 
 private:
@@ -54,8 +74,10 @@ private:
         for (auto& layer : deck->layers)
             layer.ensureColumns(count);   // grow-only; ensureColumns never shrinks
     }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
     ClipDeckResolver deckResolver_;
+    DeckFenceHook fence_;
     int deckIndex_, before_, after_;
     std::string description_;
 };
@@ -66,15 +88,20 @@ private:
 // snapshotted per layer; undo re-inserts them at the same index and restores the
 // prior column count. Ids travel with each restored clip and renderer players
 // are keyed by clip id, so the media hook re-resolves each restored cell for
-// free (spec risk #4 guard).
+// free (spec risk #4 guard). GL fence (2026-07-28): execute() re-runs
+// Deck::removeColumn (clips.erase per layer) and undo() re-inserts across every
+// layer, the same crash-proven reallocation/erase class as the live handler
+// (kColumnRemove) — fenced identically on execute/undo/redo.
 class RemoveColumnCmd : public Command
 {
 public:
-    RemoveColumnCmd(ClipDeckResolver deckResolver, ClipMediaHook mediaHook,
+    RemoveColumnCmd(ClipDeckResolver deckResolver, DeckFenceHook fence,
+                    ClipMediaHook mediaHook,
                     int deckIndex, int column, int columnsBefore,
                     std::vector<std::optional<Clip>> removedCells,
                     std::string description)
-        : deckResolver_(std::move(deckResolver)), mediaHook_(std::move(mediaHook)),
+        : deckResolver_(std::move(deckResolver)), fence_(std::move(fence)),
+          mediaHook_(std::move(mediaHook)),
           deckIndex_(deckIndex), column_(column), columnsBefore_(columnsBefore),
           removedCells_(std::move(removedCells)),
           description_(std::move(description))
@@ -93,34 +120,42 @@ public:
 
     void execute() override
     {
-        if (Deck* deck = resolve())
-            deck->removeColumn(column_);   // re-remove (matches live mutation)
+        runFenced([this]
+        {
+            if (Deck* deck = resolve())
+                deck->removeColumn(column_);   // re-remove (matches live mutation)
+        });
     }
 
     void undo() override
     {
-        Deck* deck = resolve();
-        if (deck == nullptr)
-            return;
-        // Re-insert the removed cell into each layer at the same column index.
-        for (size_t l = 0; l < deck->layers.size() && l < removedCells_.size(); ++l)
+        runFenced([this]
         {
-            auto& clips = deck->layers[l].clips;
-            const size_t insertAt = std::min(static_cast<size_t>(column_), clips.size());
-            clips.insert(clips.begin() + static_cast<std::ptrdiff_t>(insertAt),
-                         removedCells_[l]);
-            if (removedCells_[l].has_value() && mediaHook_)
-                mediaHook_(*removedCells_[l]);
-        }
-        deck->numColumns = columnsBefore_;
+            Deck* deck = resolve();
+            if (deck == nullptr)
+                return;
+            // Re-insert the removed cell into each layer at the same column index.
+            for (size_t l = 0; l < deck->layers.size() && l < removedCells_.size(); ++l)
+            {
+                auto& clips = deck->layers[l].clips;
+                const size_t insertAt = std::min(static_cast<size_t>(column_), clips.size());
+                clips.insert(clips.begin() + static_cast<std::ptrdiff_t>(insertAt),
+                             removedCells_[l]);
+                if (removedCells_[l].has_value() && mediaHook_)
+                    mediaHook_(*removedCells_[l]);
+            }
+            deck->numColumns = columnsBefore_;
+        });
     }
 
     std::string description() const override { return description_; }
 
 private:
     Deck* resolve() { return deckResolver_ ? deckResolver_(deckIndex_) : nullptr; }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
     ClipDeckResolver deckResolver_;
+    DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
     int deckIndex_, column_, columnsBefore_;
     std::vector<std::optional<Clip>> removedCells_;
@@ -199,21 +234,26 @@ inline bool layerClipsSnapshotHasContent(const LayerClipsSnapshot& s)
 // re-resolved on every apply. before/after are full value snapshots of the
 // layer's clips row + runtime, so undo/redo is a plain restore. The media hook
 // re-resolves each restored clip (spec risk #4 guard); on the cleared (after)
-// state there are no clips so it never fires.
+// state there are no clips so it never fires. GL fence (2026-07-28): apply()
+// replaces the WHOLE clips vector (layer->clips = state.clips), the same
+// crash-proven reallocation class as the live handlers (kDeckClearClips /
+// kLayerClearClips) — fenced identically on execute/undo/redo.
 class ClearLayerClipsCmd : public Command
 {
 public:
-    ClearLayerClipsCmd(ClipLayerResolver resolver, ClipMediaHook mediaHook,
+    ClearLayerClipsCmd(ClipLayerResolver resolver, DeckFenceHook fence,
+                       ClipMediaHook mediaHook,
                        int deckIndex, int layerIndex,
                        LayerClipsSnapshot before, LayerClipsSnapshot after,
                        std::string description)
-        : resolver_(std::move(resolver)), mediaHook_(std::move(mediaHook)),
+        : resolver_(std::move(resolver)), fence_(std::move(fence)),
+          mediaHook_(std::move(mediaHook)),
           deckIndex_(deckIndex), layerIndex_(layerIndex),
           before_(std::move(before)), after_(std::move(after)),
           description_(std::move(description)) {}
 
-    void execute() override { apply(after_); }
-    void undo() override    { apply(before_); }
+    void execute() override { runFenced([this] { apply(after_); }); }
+    void undo() override    { runFenced([this] { apply(before_); }); }
     std::string description() const override { return description_; }
 
 private:
@@ -229,8 +269,10 @@ private:
                 if (c.has_value())
                     mediaHook_(*c);                       // reconnect restored media
     }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
     ClipLayerResolver resolver_;
+    DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
     int deckIndex_, layerIndex_;
     LayerClipsSnapshot before_, after_;
@@ -241,13 +283,11 @@ private:
 // Undo v1 step 5 — layer ops (#13-18, #20).
 // ===========================================================================
 
-// GL fence: runs a model mutation with the renderer's active deck detached and
-// the GL thread fenced, so a mutation that reallocates/erases/moves deck->layers
-// cannot be torn-read mid-frame (spec risk #1). Injected as a hook — the
-// commands stay renderer-free / headless-testable; MainComponent binds it to
-// UndoService::withDeckDetached, headless tests pass a pass-through. A null hook
-// runs the mutation directly (no fence), which is exactly the headless case.
-using DeckFenceHook = std::function<void(const std::function<void()>&)>;
+// DeckFenceHook is defined in ClipCommands.h (included above), needed by
+// SetColumnCountCmd / RemoveColumnCmd / ClearLayerClipsCmd too, since
+// 2026-07-28's family-fence fix. The layer ops below (#13-18, #20) reuse it
+// unchanged: reallocating/erasing/moving deck->layers cannot be torn-read
+// mid-frame (spec risk #1).
 
 // ClearActiveClipCmd: the layer X-button clear (#13) — Layer::clearActiveClip
 // resets ONLY the per-layer runtime (activeClipColumn/previousClipColumn/

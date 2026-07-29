@@ -292,7 +292,9 @@ void EffectStackView::rebuildRows()
             std::vector<Clip::EffectSlot> before = *effects_;
             juce::String fxName =
                 juce::String((*effects_)[static_cast<size_t>(capturedIndex)].effectName);
-            effects_->erase(effects_->begin() + capturedIndex);
+            // GL fence (2026-07-28): erase reallocates *effects_ — same
+            // crash-class exposure as the structural deck/clip commands.
+            runFenced([this, capturedIndex] { effects_->erase(effects_->begin() + capturedIndex); });
             if (onEffectRemoved) onEffectRemoved(capturedIndex);
             rebuildRows();
             resized();
@@ -444,26 +446,33 @@ void EffectStackView::itemDropped(const SourceDetails& details)
     bool anyAdded = false;
     int addedCount = 0;
     juce::String lastAddedName;
-    for (const auto& effectName : names)
+    // GL fence (2026-07-28): push_back below reallocates *effects_ — same
+    // crash-class exposure as the structural deck/clip commands. ONE fence for
+    // the whole drop gesture (a multi-select drop adds several effects in this
+    // one loop), not per effect.
+    runFenced([&]
     {
-        auto trimmed = effectName.trim();
-        const auto* def = effectLibrary_->getEffectDef(trimmed);
-        if (def == nullptr)
-            continue;
+        for (const auto& effectName : names)
+        {
+            auto trimmed = effectName.trim();
+            const auto* def = effectLibrary_->getEffectDef(trimmed);
+            if (def == nullptr)
+                continue;
 
-        Clip::EffectSlot slot;
-        slot.effectName = trimmed.toStdString();
-        for (const auto& p : def->params)
-            slot.paramValues.push_back(p.defaultValue);
+            Clip::EffectSlot slot;
+            slot.effectName = trimmed.toStdString();
+            for (const auto& p : def->params)
+                slot.paramValues.push_back(p.defaultValue);
 
-        effects_->push_back(slot);
-        anyAdded = true;
-        ++addedCount;
-        lastAddedName = trimmed;
+            effects_->push_back(slot);
+            anyAdded = true;
+            ++addedCount;
+            lastAddedName = trimmed;
 
-        if (onEffectAdded)
-            onEffectAdded(trimmed);
-    }
+            if (onEffectAdded)
+                onEffectAdded(trimmed);
+        }
+    });
 
     if (anyAdded)
     {

@@ -46,6 +46,10 @@ public:
     // three effect hosts (clip / layer / composition).
     void setEffectPerformEdit(EffectStackView::PerformEditFn cb);
 
+    // Family-fence fix round 2 (2026-07-28): install the shared GL fence hook
+    // on all three effect hosts (clip / layer / composition).
+    void setEffectFenceHook(EffectStackView::EffectFenceHook cb);
+
     // Rebuild the composition (global) effect stack after an undo/redo — clip and
     // layer stacks re-point via inspect* in refreshAfterUndoRedo, but the global
     // chain has no selected cell to re-point through.

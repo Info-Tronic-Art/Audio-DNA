@@ -288,7 +288,7 @@ TEST_CASE("SetClipCmd: drop onto an empty cell", "[undo][setclip]")
     UndoManager mgr;
 
     Clip clipA = richClip(1001, "loop");
-    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                 0, 0, 0, std::nullopt, std::optional<Clip>(clipA), "Drop 'loop'"));
 
     REQUIRE(comp.decks[0].getClip(0, 0) != nullptr);
@@ -314,7 +314,7 @@ TEST_CASE("SetClipCmd: replace an existing cell (deep-equal both ways)", "[undo]
     clipB.clipOpacity = 0.77f;   // make them clearly distinct
     comp.decks[0].setClip(1, 3, clipA);
 
-    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                 0, 1, 3, std::optional<Clip>(clipA), std::optional<Clip>(clipB), "Replace"));
 
     REQUIRE(*comp.decks[0].getClip(1, 3) == clipB);
@@ -333,7 +333,7 @@ TEST_CASE("SetClipCmd: clear a cell (after = nullopt)", "[undo][setclip]")
     Clip clipA = richClip(7, "victim");
     comp.decks[0].setClip(2, 5, clipA);
 
-    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                 0, 2, 5, std::optional<Clip>(clipA), std::nullopt, "Clear Clip"));
 
     REQUIRE(comp.decks[0].getClip(2, 5) == nullptr);
@@ -354,7 +354,7 @@ TEST_CASE("SetClipCmd: media hook fires for playable clips only", "[undo][setcli
     ClipMediaHook counting = [&hookCalls](const Clip&) { ++hookCalls; };
 
     Clip video = richClip(1, "vid");         // MediaType::Video → playable
-    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), counting,
+    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), counting,
                 0, 0, 0, std::nullopt, std::optional<Clip>(video), "Drop 'vid'"));
     REQUIRE(hookCalls == 1);                  // reconnect guard invoked on apply
 
@@ -362,6 +362,31 @@ TEST_CASE("SetClipCmd: media hook fires for playable clips only", "[undo][setcli
     REQUIRE(hookCalls == 1);
     mgr.redo();                               // re-applies clip → reconnect again
     REQUIRE(hookCalls == 2);
+}
+
+// Fence invocation count (family-fence fix round 3, 2026-07-28): SetClipCmd
+// routes every execute/undo/redo through the fence exactly once, same shape
+// as SetColumnCountCmd's / EffectStackCmd's fence tests. Closes the round-1/
+// round-2 GL-FENCE EXEMPTION this command carried.
+TEST_CASE("SetClipCmd: fence fires once per execute/undo/redo", "[undo][setclip][fence]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+
+    int fenceCalls = 0;
+    DeckFenceHook countingFence =
+        [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
+
+    Clip clipA = richClip(1001, "loop");
+    mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), countingFence, noopMedia(),
+                0, 0, 0, std::nullopt, std::optional<Clip>(clipA), "Drop 'loop'"));
+    REQUIRE(fenceCalls == 1);                           // execute fenced
+    mgr.undo();
+    REQUIRE(fenceCalls == 2);                           // undo fenced
+    mgr.redo();
+    REQUIRE(fenceCalls == 3);                           // redo fenced
+    REQUIRE(*comp.decks[0].getClip(0, 0) == clipA);
 }
 
 // ---------------------------------------------------------------------------
@@ -406,9 +431,9 @@ TEST_CASE("CompositeCommand clears multiple cells as one undo unit", "[undo][com
     comp.decks[0].setClip(1, 1, b);
 
     auto composite = std::make_unique<CompositeCommand>("Clear 2 Clips");
-    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                    0, 0, 0, std::optional<Clip>(a), std::nullopt, "Clear Clip"));
-    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                    0, 1, 1, std::optional<Clip>(b), std::nullopt, "Clear Clip"));
     REQUIRE_FALSE(composite->isEmpty());
     mgr.perform(std::move(composite));
@@ -447,7 +472,7 @@ TEST_CASE("SwapClipsCmd: swap two occupied cells, deep-equal both directions", "
     ClipMediaHook counting = [&hookCalls](const Clip&) { ++hookCalls; };
 
     // After the swap: src holds b, dst holds a; numColumns unchanged.
-    mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), counting,
+    mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), noopFence(), counting,
         0, /*src*/ 0, 2, /*dst*/ 1, 5,
         std::optional<Clip>(a), std::optional<Clip>(b),   // src before/after
         std::optional<Clip>(b), std::optional<Clip>(a),   // dst before/after
@@ -483,7 +508,7 @@ TEST_CASE("SwapClipsCmd: move to a far empty column grows then undo shrinks numC
     const int colsAfter = dstCol + 1;         // 16
 
     // Move x from (0,3) onto empty (1,15): src empties, dst gets x, cols 12→16.
-    mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), noopMedia(),
+    mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), noopFence(), noopMedia(),
         0, /*src*/ 0, 3, /*dst*/ 1, dstCol,
         std::optional<Clip>(x), std::nullopt,             // src before/after
         std::nullopt,          std::optional<Clip>(x),    // dst before/after
@@ -503,6 +528,41 @@ TEST_CASE("SwapClipsCmd: move to a far empty column grows then undo shrinks numC
     REQUIRE(comp.decks[0].numColumns == colsAfter);
     REQUIRE(comp.decks[0].getClip(0, 3) == nullptr);
     REQUIRE(*comp.decks[0].getClip(1, dstCol) == x);
+}
+
+// Fence invocation count (family-fence fix round 3, 2026-07-28): SwapClipsCmd
+// routes every execute/undo/redo through the fence exactly once (one fence
+// covers both applyCell() calls plus the numColumns write). Closes the
+// round-1/round-2 GL-FENCE EXEMPTION this command carried.
+TEST_CASE("SwapClipsCmd: fence fires once per execute/undo/redo", "[undo][swap][fence]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+
+    Clip a = richClip(1, "a");
+    Clip b = richClip(2, "b");
+    comp.decks[0].setClip(0, 2, a);           // src cell
+    comp.decks[0].setClip(1, 5, b);           // dst cell (occupied → a real swap)
+    const int cols = comp.decks[0].numColumns;
+
+    int fenceCalls = 0;
+    DeckFenceHook countingFence =
+        [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
+
+    mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), countingFence, noopMedia(),
+        0, /*src*/ 0, 2, /*dst*/ 1, 5,
+        std::optional<Clip>(a), std::optional<Clip>(b),   // src before/after
+        std::optional<Clip>(b), std::optional<Clip>(a),   // dst before/after
+        cols, cols, "Swap Clips"));
+    REQUIRE(fenceCalls == 1);                           // execute fenced
+    mgr.undo();
+    REQUIRE(fenceCalls == 2);                           // undo fenced
+    mgr.redo();
+    REQUIRE(fenceCalls == 3);                           // redo fenced
+    REQUIRE(*comp.decks[0].getClip(0, 2) == b);
+    REQUIRE(*comp.decks[0].getClip(1, 5) == a);
+    REQUIRE(comp.decks[0].numColumns == cols);
 }
 
 // ---------------------------------------------------------------------------
@@ -589,7 +649,7 @@ TEST_CASE("SetColumnCountCmd: add column grows count, undo/redo round-trip", "[u
     deck.addColumn();                      // live mutation (mutate-then-push): 13
     const int after = deck.numColumns;     // 13
 
-    mgr.perform(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc),
+    mgr.perform(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc), noopFence(),
                 0, before, after, "Add Column"));
 
     REQUIRE(deck.numColumns == after);
@@ -601,6 +661,31 @@ TEST_CASE("SetColumnCountCmd: add column grows count, undo/redo round-trip", "[u
     REQUIRE(deck.numColumns == before);    // count restored (cells stay, invisible)
     mgr.redo();
     REQUIRE(deck.numColumns == after);
+}
+
+// Fence invocation count (family-fence fix, 2026-07-28): SetColumnCountCmd
+// routes every execute/undo/redo through the fence exactly once, mirroring
+// the app's withDeckDetached GL fence — same shape as AddDeckCmd's test.
+TEST_CASE("SetColumnCountCmd: fence fires once per execute/undo/redo", "[undo][column][fence]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    int fenceCalls = 0;
+    DeckFenceHook countingFence =
+        [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
+
+    const int before = deck.numColumns;
+    mgr.perform(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc), countingFence,
+                0, before, before + 1, "Add Column"));
+    REQUIRE(fenceCalls == 1);                           // execute fenced
+    mgr.undo();
+    REQUIRE(fenceCalls == 2);                           // undo fenced
+    mgr.redo();
+    REQUIRE(fenceCalls == 3);                           // redo fenced
+    REQUIRE(deck.numColumns == before + 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -628,7 +713,7 @@ TEST_CASE("RemoveColumnCmd: remove-column-with-clips restores cells + count", "[
                                            : std::nullopt);
     deck.removeColumn(col);
 
-    mgr.perform(std::make_unique<RemoveColumnCmd>(deckResolverFor(svc), noopMedia(),
+    mgr.perform(std::make_unique<RemoveColumnCmd>(deckResolverFor(svc), noopFence(), noopMedia(),
                 0, col, before, std::move(removed), "Remove Column"));
 
     REQUIRE(deck.numColumns == before - 1);          // 11
@@ -644,6 +729,37 @@ TEST_CASE("RemoveColumnCmd: remove-column-with-clips restores cells + count", "[
     mgr.redo();
     REQUIRE(deck.numColumns == before - 1);
     REQUIRE(deck.getClip(0, col) == nullptr);
+}
+
+// Fence invocation count (family-fence fix, 2026-07-28): RemoveColumnCmd
+// routes every execute/undo/redo through the fence exactly once.
+TEST_CASE("RemoveColumnCmd: fence fires once per execute/undo/redo", "[undo][column][fence]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    const int col = deck.numColumns - 1;
+    const int before = deck.numColumns;
+    std::vector<std::optional<Clip>> removed;
+    for (auto& L : deck.layers)
+        removed.push_back(L.getClipAt(col) ? std::optional<Clip>(*L.getClipAt(col))
+                                           : std::nullopt);
+    deck.removeColumn(col);
+
+    int fenceCalls = 0;
+    DeckFenceHook countingFence =
+        [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
+
+    mgr.perform(std::make_unique<RemoveColumnCmd>(deckResolverFor(svc), countingFence, noopMedia(),
+                0, col, before, std::move(removed), "Remove Column"));
+    REQUIRE(fenceCalls == 1);                           // execute fenced
+    mgr.undo();
+    REQUIRE(fenceCalls == 2);                           // undo fenced
+    mgr.redo();
+    REQUIRE(fenceCalls == 3);                           // redo fenced
+    REQUIRE(deck.numColumns == before - 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -670,7 +786,7 @@ TEST_CASE("ClearLayerClipsCmd: clear one layer, undo restores clips + runtime", 
     deck.getLayer(1)->clearActiveClip();
     LayerClipsSnapshot after = captureLayerClips(*deck.getLayer(1));
 
-    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopMedia(),
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopFence(), noopMedia(),
                 0, 1, before, after, "Clear Layer Clips"));
 
     REQUIRE(deck.getClip(1, 0) == nullptr);
@@ -685,6 +801,37 @@ TEST_CASE("ClearLayerClipsCmd: clear one layer, undo restores clips + runtime", 
     mgr.redo();
     REQUIRE(deck.getClip(1, 0) == nullptr);
     REQUIRE(deck.getLayer(1)->activeClipColumn == -1);
+}
+
+// Fence invocation count (family-fence fix, 2026-07-28): ClearLayerClipsCmd
+// routes every execute/undo/redo through the fence exactly once.
+TEST_CASE("ClearLayerClipsCmd: fence fires once per execute/undo/redo", "[undo][clearclips][fence]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+
+    Clip a = richClip(1, "a");
+    deck.setClip(1, 0, a);
+    LayerClipsSnapshot before = captureLayerClips(*deck.getLayer(1));
+    deck.getLayer(1)->clips.clear();
+    deck.getLayer(1)->ensureColumns(deck.numColumns);
+    deck.getLayer(1)->clearActiveClip();
+    LayerClipsSnapshot after = captureLayerClips(*deck.getLayer(1));
+
+    int fenceCalls = 0;
+    DeckFenceHook countingFence =
+        [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
+
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), countingFence, noopMedia(),
+                0, 1, before, after, "Clear Layer Clips"));
+    REQUIRE(fenceCalls == 1);                           // execute fenced
+    mgr.undo();
+    REQUIRE(fenceCalls == 2);                           // undo fenced
+    mgr.redo();
+    REQUIRE(fenceCalls == 3);                           // redo fenced
+    REQUIRE(deck.getClip(1, 0) == nullptr);
 }
 
 // ---------------------------------------------------------------------------
@@ -713,7 +860,7 @@ TEST_CASE("Deck clear-clips composite: clear all layers, one entry, undo restore
         layer->ensureColumns(deck.numColumns);
         layer->clearActiveClip();
         LayerClipsSnapshot cAfter = captureLayerClips(*layer);
-        composite->add(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopMedia(),
+        composite->add(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopFence(), noopMedia(),
                        0, l, cBefore, cAfter, "Clear Layer Clips"));
     }
     REQUIRE(composite->size() == 2);       // only layers 0 and 2 contributed
@@ -760,13 +907,13 @@ TEST_CASE("Multi-video drop composite: N cells + column growth, undo restores bo
 
     // Same composite shape: SetColumnCountCmd FIRST (undoes LAST), then N SetClipCmds.
     auto composite = std::make_unique<CompositeCommand>("Drop 3 Videos");
-    composite->add(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc),
+    composite->add(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc), noopFence(),
                    0, colsBefore, colsAfter, "Resize Columns"));
-    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                    0, 0, startCol + 0, std::nullopt, std::optional<Clip>(v0), "Drop 3 Videos"));
-    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                    0, 0, startCol + 1, std::nullopt, std::optional<Clip>(v1), "Drop 3 Videos"));
-    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                    0, 0, startCol + 2, std::nullopt, std::optional<Clip>(v2), "Drop 3 Videos"));
     mgr.perform(std::move(composite));
 
@@ -804,11 +951,11 @@ TEST_CASE("Multi-select clear composite (Clear N Clips): one entry, undo restore
     // kClipClear sets each selected cell to a blank Clip{} (HEAD behavior),
     // then composites the N SetClipCmds into one "Clear 3 Clips" entry.
     auto composite = std::make_unique<CompositeCommand>("Clear 3 Clips");
-    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                    0, 0, 0, std::optional<Clip>(a), std::optional<Clip>(Clip{}), "Clear Clip"));
-    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                    0, 1, 3, std::optional<Clip>(b), std::optional<Clip>(Clip{}), "Clear Clip"));
-    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                    0, 2, 6, std::optional<Clip>(c), std::optional<Clip>(Clip{}), "Clear Clip"));
     mgr.perform(std::move(composite));
 
@@ -851,13 +998,13 @@ TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][reso
     comp.decks[0].setClip(0, 0, richClip(1, "keep"));
 
     // Stale DECK index → SetColumnCountCmd apply is a safe no-op.
-    mgr.perform(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc),
+    mgr.perform(std::make_unique<SetColumnCountCmd>(deckResolverFor(svc), noopFence(),
                 9, 12, 16, "Resize Columns"));
     REQUIRE(comp.decks[0].numColumns == 12);         // untouched (bad deck index)
 
     // Stale LAYER index → ClearLayerClipsCmd apply is a safe no-op.
     LayerClipsSnapshot emptySnap;
-    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopMedia(),
+    mgr.perform(std::make_unique<ClearLayerClipsCmd>(resolverFor(svc), noopFence(), noopMedia(),
                 0, 9, emptySnap, emptySnap, "Clear Layer Clips"));
     REQUIRE(comp.decks[0].getClip(0, 0) != nullptr); // layer 0 untouched
 }
@@ -1364,7 +1511,7 @@ TEST_CASE("EffectStackCmd: whole-vector round-trip for all three scopes", "[undo
         UndoManager mgr;
         int refreshCalls = 0;
         mgr.perform(std::make_unique<EffectStackCmd>(
-            compResolverFor(comp), scope, before, after,
+            compResolverFor(comp), noopFence(), scope, before, after,
             [&refreshCalls]{ ++refreshCalls; }, "Add Effect 'blur'"));
         REQUIRE(vecEq(*target, after));            // execute applied after
         REQUIRE(mgr.undo());
@@ -1394,7 +1541,7 @@ TEST_CASE("EffectStackCmd: add / remove / bypass shapes each round-trip", "[undo
         target = before;
         UndoManager mgr;
         mgr.perform(std::make_unique<EffectStackCmd>(
-            compResolverFor(comp), EffectScope::global(), before, after, nullptr, desc));
+            compResolverFor(comp), noopFence(), EffectScope::global(), before, after, nullptr, desc));
         REQUIRE(vecEq(target, after));
         REQUIRE(mgr.undo()); REQUIRE(vecEq(target, before));
         REQUIRE(mgr.redo()); REQUIRE(vecEq(target, after));
@@ -1418,21 +1565,21 @@ TEST_CASE("EffectStackCmd: stale coordinate is a safe no-op (never crash)", "[un
     SECTION("bad layer index → nullptr vector, no-op, no refresh")
     {
         mgr.perform(std::make_unique<EffectStackCmd>(
-            compResolverFor(comp), EffectScope::layer(0, 99), before, after, refresh, "x"));
+            compResolverFor(comp), noopFence(), EffectScope::layer(0, 99), before, after, refresh, "x"));
         REQUIRE(comp.globalEffects.empty());     // model untouched
         REQUIRE(refreshCalls == 0);              // stale → refresh never fired
     }
     SECTION("bad column (empty cell) → nullptr vector, no-op, no refresh")
     {
         mgr.perform(std::make_unique<EffectStackCmd>(
-            compResolverFor(comp), EffectScope::clip(0, 0, 99), before, after, refresh, "x"));
+            compResolverFor(comp), noopFence(), EffectScope::clip(0, 0, 99), before, after, refresh, "x"));
         REQUIRE(refreshCalls == 0);
     }
     SECTION("null composition → nullptr vector, no-op, no refresh")
     {
         CompositionResolver nullComp = []() -> Composition* { return nullptr; };
         mgr.perform(std::make_unique<EffectStackCmd>(
-            nullComp, EffectScope::global(), before, after, refresh, "x"));
+            nullComp, noopFence(), EffectScope::global(), before, after, refresh, "x"));
         REQUIRE(refreshCalls == 0);
     }
 }
@@ -1450,9 +1597,9 @@ TEST_CASE("EffectStackCmd: two scopes in history undo to their own vectors", "[u
 
     UndoManager mgr;
     mgr.perform(std::make_unique<EffectStackCmd>(
-        compResolverFor(comp), EffectScope::global(), empty, globalAfter, nullptr, "Add Effect 'g'"));
+        compResolverFor(comp), noopFence(), EffectScope::global(), empty, globalAfter, nullptr, "Add Effect 'g'"));
     mgr.perform(std::make_unique<EffectStackCmd>(
-        compResolverFor(comp), EffectScope::clip(0, 1, 2), empty, clipAfter, nullptr, "Add Effect 'c'"));
+        compResolverFor(comp), noopFence(), EffectScope::clip(0, 1, 2), empty, clipAfter, nullptr, "Add Effect 'c'"));
 
     REQUIRE(vecEq(comp.globalEffects, globalAfter));
     REQUIRE(vecEq(comp.decks[0].getClip(1, 2)->effects, clipAfter));
@@ -1477,13 +1624,39 @@ TEST_CASE("EffectStackCmd: refresh hook fires once per execute/undo/redo", "[und
     int calls = 0;
     UndoManager mgr;
     mgr.perform(std::make_unique<EffectStackCmd>(
-        compResolverFor(comp), EffectScope::global(), before, after,
+        compResolverFor(comp), noopFence(), EffectScope::global(), before, after,
         [&calls]{ ++calls; }, "Add Effect 'a'"));
     REQUIRE(calls == 1);   // execute
     REQUIRE(mgr.undo());
     REQUIRE(calls == 2);   // undo
     REQUIRE(mgr.redo());
     REQUIRE(calls == 3);   // redo
+}
+
+// Fence invocation count (family-fence fix round 2, 2026-07-28): EffectStackCmd
+// routes every execute/undo/redo through the fence exactly once, same shape as
+// the deck/column/clear commands' fence tests.
+TEST_CASE("EffectStackCmd: fence fires once per execute/undo/redo", "[undo][effect][fence]")
+{
+    Composition comp = makeComp();
+    comp.globalEffects.clear();
+    const std::vector<Clip::EffectSlot> before;
+    const std::vector<Clip::EffectSlot> after = { mkFx("a") };
+
+    int fenceCalls = 0;
+    DeckFenceHook countingFence =
+        [&fenceCalls](const std::function<void()>& m) { ++fenceCalls; if (m) m(); };
+
+    UndoManager mgr;
+    mgr.perform(std::make_unique<EffectStackCmd>(
+        compResolverFor(comp), countingFence, EffectScope::global(), before, after,
+        nullptr, "Add Effect 'a'"));
+    REQUIRE(fenceCalls == 1);                           // execute fenced
+    mgr.undo();
+    REQUIRE(fenceCalls == 2);                           // undo fenced
+    mgr.redo();
+    REQUIRE(fenceCalls == 3);                           // redo fenced
+    REQUIRE(vecEq(comp.globalEffects, after));
 }
 
 // ===========================================================================
@@ -1859,7 +2032,7 @@ TEST_CASE("Property: random mixed-command sequence undoes to initial / redoes to
                     ? std::optional<Clip>(richClip(static_cast<uint32_t>(2000 + i),
                                                    "p" + std::to_string(i)))
                     : std::nullopt;
-                mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopMedia(),
+                mgr.perform(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
                             0, l, c, before, after, "set"));
                 break;
             }
@@ -1883,7 +2056,7 @@ TEST_CASE("Property: random mixed-command sequence undoes to initial / redoes to
                     ? std::optional<Clip>(*deck.getClip(sl, sc)) : std::nullopt;
                 std::optional<Clip> dB = deck.getClip(dl, dc)
                     ? std::optional<Clip>(*deck.getClip(dl, dc)) : std::nullopt;
-                mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), noopMedia(),
+                mgr.perform(std::make_unique<SwapClipsCmd>(deckResolverFor(svc), noopFence(), noopMedia(),
                             0, sl, sc, dl, dc, sB, dB, dB, sB, numCols, numCols, "swap"));
                 break;
             }

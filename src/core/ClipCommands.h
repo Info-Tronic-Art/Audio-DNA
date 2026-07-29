@@ -27,24 +27,49 @@ using ClipMediaHook = std::function<void(const Clip& clip)>;
 // (for numColumns and both affected layers) on every apply.
 using ClipDeckResolver = std::function<Deck*(int deckIndex)>;
 
+// GL fence for structure-changing clip mutations (family-fence fix,
+// 2026-07-28, FINALIZED round 3 — see .harmony/notebook.md LAW entry): a
+// message-thread mutation that grows or reassigns a layer's clips vector can
+// reallocate it while the GL thread (unlocked —
+// setComponentPaintingEnabled(false)) holds an interior Clip* via
+// getActiveClip()/applyClipEffects — a proven UAF (SIGSEGV on Column -> New).
+// Injected as a hook so commands stay renderer-free / headless-testable;
+// MainComponent binds it to UndoService::withDeckDetached (GL fence,
+// validated in build step 1), headless tests pass a pass-through. A null hook
+// runs the mutation directly (no fence), which is exactly the headless case.
+// Defined HERE (not DeckCommands.h, which #includes this header) because
+// SetClipCmd/SwapClipsCmd below now fence too, as of round 3 — DeckCommands.h's
+// SetColumnCountCmd/RemoveColumnCmd/ClearLayerClipsCmd and the step-5/6 layer/
+// deck commands share this exact same alias via the include (single
+// definition, no redeclaration).
+using DeckFenceHook = std::function<void(const std::function<void()>&)>;
+
 // SetClipCmd: set or clear a single deck cell, addressed by (deckIndex,
 // layerIndex, column). `before`/`after` are value-copied std::optional<Clip>
 // snapshots (nullopt = empty cell). execute()/redo apply `after`; undo applies
-// `before`.
+// `before`. GL fence (round 3, 2026-07-28): apply()'s ensureColumns() call can
+// grow the layer's clips vector, and `cell = *state` reassigns an OCCUPIED
+// cell's inner vectors (effects, etc.) during undo/redo replay — both are the
+// same crash-proven reallocation class the GL thread can observe unlocked.
+// Fenced unconditionally on execute/undo/redo, closing the round-1/round-2
+// GL-FENCE EXEMPTION this command previously carried (reviewer-ruled blocker
+// on the occupied-cell reassignment case; the prior exemption's (a)/(b)/(c)
+// preconditions covered only outer vector growth, not whole-Clip reassignment).
 class SetClipCmd : public Command
 {
 public:
-    SetClipCmd(ClipLayerResolver resolver, ClipMediaHook mediaHook,
+    SetClipCmd(ClipLayerResolver resolver, DeckFenceHook fence, ClipMediaHook mediaHook,
                int deckIndex, int layerIndex, int column,
                std::optional<Clip> before, std::optional<Clip> after,
                std::string description)
-        : resolver_(std::move(resolver)), mediaHook_(std::move(mediaHook)),
+        : resolver_(std::move(resolver)), fence_(std::move(fence)),
+          mediaHook_(std::move(mediaHook)),
           deckIndex_(deckIndex), layerIndex_(layerIndex), column_(column),
           before_(std::move(before)), after_(std::move(after)),
           description_(std::move(description)) {}
 
-    void execute() override { apply(after_); }
-    void undo() override    { apply(before_); }
+    void execute() override { runFenced([this] { apply(after_); }); }
+    void undo() override    { runFenced([this] { apply(before_); }); }
     std::string description() const override { return description_; }
 
 private:
@@ -65,8 +90,10 @@ private:
             cell.reset();                       // empty cell
         }
     }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
     ClipLayerResolver resolver_;
+    DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
     int deckIndex_, layerIndex_, column_;
     std::optional<Clip> before_, after_;
@@ -112,18 +139,24 @@ private:
 // and undo must restore the prior count. Addressed by coordinates only: the Deck
 // and both layers are re-resolved on every apply so nothing dangles across a
 // vector reallocation. Ids travel with the clip and renderer players are keyed
-// by clip id, so the media hook re-resolves each moved cell for free.
+// by clip id, so the media hook re-resolves each moved cell for free. GL
+// fence (round 3, 2026-07-28): applyCell()'s ensureColumns() calls AND its
+// occupied-cell `cell = *state` reassignment are now fenced unconditionally —
+// same rationale as SetClipCmd above (a two-occupied-cell swap reassigns
+// BOTH cells' inner vectors during replay). One fence covers both applyCell()
+// calls plus the numColumns write, per execute/undo/redo.
 class SwapClipsCmd : public Command
 {
 public:
-    SwapClipsCmd(ClipDeckResolver deckResolver, ClipMediaHook mediaHook,
+    SwapClipsCmd(ClipDeckResolver deckResolver, DeckFenceHook fence, ClipMediaHook mediaHook,
                  int deckIndex,
                  int srcLayer, int srcColumn, int dstLayer, int dstColumn,
                  std::optional<Clip> srcBefore, std::optional<Clip> srcAfter,
                  std::optional<Clip> dstBefore, std::optional<Clip> dstAfter,
                  int numColumnsBefore, int numColumnsAfter,
                  std::string description)
-        : deckResolver_(std::move(deckResolver)), mediaHook_(std::move(mediaHook)),
+        : deckResolver_(std::move(deckResolver)), fence_(std::move(fence)),
+          mediaHook_(std::move(mediaHook)),
           deckIndex_(deckIndex),
           srcLayer_(srcLayer), srcColumn_(srcColumn),
           dstLayer_(dstLayer), dstColumn_(dstColumn),
@@ -132,8 +165,8 @@ public:
           numColumnsBefore_(numColumnsBefore), numColumnsAfter_(numColumnsAfter),
           description_(std::move(description)) {}
 
-    void execute() override { apply(srcAfter_,  dstAfter_,  numColumnsAfter_); }
-    void undo() override    { apply(srcBefore_, dstBefore_, numColumnsBefore_); }
+    void execute() override { runFenced([this] { apply(srcAfter_,  dstAfter_,  numColumnsAfter_); }); }
+    void undo() override    { runFenced([this] { apply(srcBefore_, dstBefore_, numColumnsBefore_); }); }
     std::string description() const override { return description_; }
 
 private:
@@ -169,8 +202,10 @@ private:
             cell.reset();                       // empty cell
         }
     }
+    void runFenced(const std::function<void()>& m) { if (fence_) fence_(m); else if (m) m(); }
 
     ClipDeckResolver deckResolver_;
+    DeckFenceHook fence_;
     ClipMediaHook mediaHook_;
     int deckIndex_;
     int srcLayer_, srcColumn_, dstLayer_, dstColumn_;

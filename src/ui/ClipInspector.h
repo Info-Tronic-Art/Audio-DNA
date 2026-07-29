@@ -47,6 +47,13 @@ public:
         effectStackView_.onPerformEdit = std::move(cb);
     }
 
+    // Family-fence fix round 2 (2026-07-28): hand the effect stack the GL
+    // fence hook (structural push_back/erase — see EffectStackView.h).
+    void setEffectFenceHook(EffectStackView::EffectFenceHook hook)
+    {
+        effectStackView_.setFenceHook(std::move(hook));
+    }
+
     void refresh();
     int getPreferredHeight() const;
 

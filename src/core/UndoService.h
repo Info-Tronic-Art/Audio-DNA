@@ -90,6 +90,12 @@ public:
     // --- GL fence for structure-changing mutations (defined in UndoService.cpp) ---
     // Runs `mutation` with the renderer's active deck detached and the GL
     // thread fenced. If no renderer is wired, runs `mutation` directly.
+    // NOT reentrant-safe: a nested call would restore the active-deck pointer
+    // before the OUTER mutation finishes, briefly re-exposing the model to the
+    // GL thread mid-mutation. Callers must never nest a withDeckDetached call
+    // inside another's `mutation` — fenced call sites are structured to run
+    // sequentially (guarded by a jassert in the .cpp, see 2026-07-28 family-
+    // fence fix).
     void withDeckDetached(const std::function<void()>& mutation);
 
 private:
@@ -97,4 +103,5 @@ private:
     Renderer* renderer_ = nullptr;
     DeckView* deckView_ = nullptr;
     InspectorPanel* inspector_ = nullptr;
+    bool fenceActive_ = false;   // reentrancy guard for withDeckDetached
 };

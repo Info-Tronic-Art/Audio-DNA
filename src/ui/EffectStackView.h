@@ -81,7 +81,22 @@ public:
                            const juce::String& description)>;
     PerformEditFn onPerformEdit;
 
+    // GL fence for structural effect-list edits (family-fence fix round 2,
+    // 2026-07-28): itemDropped's push_back and the delete button's erase both
+    // reallocate *effects_, which the GL thread reads directly (clip.effects)
+    // or via a copy (layer.layerEffects) — same crash-class exposure as the
+    // structural deck/clip commands. Same shape as core/DeckCommands.h's
+    // DeckFenceHook but declared locally: this UI-layer header must not
+    // depend on core/. The host wires it to UndoService::withDeckDetached; a
+    // null hook (default) runs the mutation directly — the headless case (no
+    // UI test harness links this component today).
+    using EffectFenceHook = std::function<void(const std::function<void()>&)>;
+    void setFenceHook(EffectFenceHook hook) { fenceHook_ = std::move(hook); }
+
 private:
+    void runFenced(const std::function<void()>& m) { if (fenceHook_) fenceHook_(m); else if (m) m(); }
+    EffectFenceHook fenceHook_;
+
     // One row per effect in the stack
     struct EffectRow
     {
