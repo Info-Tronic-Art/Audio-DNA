@@ -323,6 +323,137 @@ HEAD b4ee380, source tree clean, tests 114/114 (handoff claim — re-verify at f
   pick/create the identity in Keychain); kills the per-rebuild TCC re-prompt
   class. (c) Manual e2e sitting AGREED, deferred to next Boris-present RTA
   session — checklist .harmony/undo-v1-manual-e2e.md is the script.
+- 2026-07-28: MANUAL E2E SITTING (partial) — 10 items PASS (preconditions, drop/
+  drag-move/multi-video-edge/multi-SOURCE/multi-FX undos, swap-undo, prefs/menus
+  eyeball); then **Column → New CRASHED the app** (SIGSEGV GL thread). Crash-scout
+  diagnosis (disassembly-verified, binary-UUID-matched): PRE-EXISTING UAF — message-
+  thread clips.resize under an unlocked GL renderOpenGL holding interior Clip*;
+  spec's "status-quo risk profile" for column/cell writes FALSIFIED. Full detail:
+  manual-e2e findings + notebook LAW entry (2026-07-28). Also found: mixed-drop
+  image-discard bug (ClipCell external path — scouted, queued); Boris feature asks
+  (Cmd+X cut-clear; MilkDrop presets default dir); "Audio-DNA" duplicate menu
+  cosmetic. Sitting PAUSED with expanded HOLD list (columns, clears, clip-clear,
+  + their undos); passed drop tests to RE-RUN post-fix (race-lucky).
+- 2026-07-28 RATIFIED (Boris, AskUserQuestion): **FAMILY FENCE FIX + CERT lane**
+  — fence ALL exposed clips-vector mutation paths (live handlers + command
+  undo/redo replay via DeckFenceHook) per scout rec (a), + wire stable codesign
+  identity into CMake (kills per-rebuild TCC class; Boris creating "Audio-DNA Dev"
+  cert in Keychain). Full-tier verify. ASan pre-confirmation SKIPPED (evidence
+  disassembly-grade). Builder fence-f1 dispatched; reviewer to follow; Harmony
+  gates + one final Allow click at relaunch.
+- 2026-07-28: fence-f1 builder DONE_WITH_CONCERNS. Receiver disk-verify PASS (6
+  files == report; runFenced=24; 173/173 in builder log). Harmony code gate
+  (independent): build 0, ctest 173/173 OWN RUN (/tmp/fence-f1-harmony-gate.log),
+  residue CLEAN — PASS. Builder headliners: per-command fencing (AddLayerCmd shape,
+  8 fenced commands); ONE fence per gesture at handler level, sequential-never-
+  nested (verified by construction) + fenceActive_ jassert guard; found+fenced an
+  EXTRA site beyond scout list (onMultiVideoDropped growth loop — the literal
+  crash primitive) + ClearLayerClipsCmd replay; SetClipCmd/SwapClipsCmd left
+  unfenced (replay ensureColumns provably no-op); CMake codesign wired, ad-hoc
+  fallback verified end-to-end (cert not yet created). Deviations accepted:
+  baseline-skip (corroborated by ledger+Harmony's own 170/170), MilkDrop
+  ensureColumns reorder (reviewer-verified neutral).
+- 2026-07-28: fence-f1 REVIEW = REQUEST_CHANGES (high-quality round: 12/12 sites
+  + nesting + tests + CMake all corroborated CLEAN, but 2 NEW findings):
+  (1) MAJOR (diff's own code): withDeckDetached not exception-safe — throw during
+  mutation leaks fenceActive_=true AND leaves renderer deck-less; remedy RAII
+  scope-guard. (2) MAJOR (pre-existing, in-family): kCompNew initDefault() clears/
+  reallocs composition_.decks UNFENCED — Column-crash mechanism one level up;
+  remedy fence identically (addDeck/removeDeck/fromVar = dead code, no concern).
+  AREA-5 RULING (the carve-out question): effects-vector mutations are (a) REAL
+  blocker-class same-family exposure — onEffectDropped push_back :789,
+  EffectStackView push_back :459/erase :295 (+ performEdit/EffectCommands replay)
+  realloc clip.effects under GL iteration (CompositorEngine :244); inferred-by-
+  verified-mechanism, not yet reproduced. EFFECTS MANUAL TESTS STAY HELD → ROUND-2
+  fence packet required after round 1. MINOR: ClipCommands.h exemption-invariant
+  comment. Accepted: double-fence shapes, Release-assert posture, CMake NIT.
+  FIX ROUND 1 dispatched to warm fence-f1 (RAII guard + kCompNew fence + comment).
+- 2026-07-28: Fix round 1 DONE (RAII FenceResetGuard + ActiveDeckRestoreGuard;
+  kCompNew fenced initDefault-only with clear()/UI-refresh sequential after;
+  exemption comment with source-verified (a)/(b)/(c)). Receiver spot-verify PASS;
+  builder 173/173 own run. Targeted re-review CONFIRMED-CLEAN — all 3 remedies
+  source-verified incl. partial-mutation destructor safety (getActiveDeck bounds-
+  check ⇒ throw-mid-realloc degrades to nullptr, no dangle). 1 NIT (comment
+  doesn't name-check loadPreset/loadDeck as non-model paths) → folds into round 2.
+  OPEN: addendum trace of CompDecksBrowser load path (model-replacing? fenced?
+  clears history?) — answer gates the round-2 packet contents.
+- 2026-07-28: Addendum verdict: CompDecksBrowser load/save-composition callbacks
+  UNWIRED at HEAD (empty std::functions; only Save Deck + right-click delete
+  live) → not exposed, INERT — but flagged as NAMED FUTURE-FENCE REQUIREMENT
+  (source comment + notebook rider: wiring MUST use withDeckDetached +
+  undoManager_.clear(), kCompNew precedent). §7 manual item narrowed to
+  Composition→New only. NEW Boris decision-queue item: wire browser comp/deck
+  load-save or defer to recorder/persistence wave. ROUND 2 dispatched to warm
+  fence-f1 (2nd full packet, retires after): effects-vector fences (reviewer
+  area-5 enumeration + builder completes the sweep incl. layer/global scopes),
+  kClipReplaceContent ruling, NIT fold, future-fence comments, fence-count
+  tests.
+- 2026-07-28: ROUND 2 builder DONE_WITH_CONCERNS; receiver disk-verify PASS (16
+  lane files == claim; fences + folds on disk; 174/174 builder log). Harmony R2
+  code gate: build 0, ctest 174/174 OWN RUN (/tmp/fence-f1-r2-harmony-gate.log)
+  — PASS. Headliners: clip scope fenced (proven GL read :242/252); layer scope
+  EXPOSED via copy-assign read (CompositorEngine.cpp:752) — fenced; global scope
+  zero render-side refs — fenced uniformly anyway (EffectStackCmd one class, 3
+  scopes); kClipReplaceContent FENCED (whole-call, conservative); EffectFenceHook
+  UI-side type (dependency direction); +1 fence test. Builder fence-f1 RETIRED
+  (2 packets + fix round + folds). NEW CONCERN flagged by builder, review ruling
+  requested: SetClipCmd::apply `cell = *state` on OCCUPIED cell reassigns inner
+  vectors on live Clip during replay (SwapClipsCmd: two occupied cells) — same
+  mechanism as area-5 blocker ruling, on the round-1-exempted line (exemption
+  argued OUTER growth only). Round-3 fence vs not-exposed vs deferred — reviewer
+  decides; gates lane commit.
+- 2026-07-28: ROUND-2 REVIEW = FINDINGS (areas 1-7 clean: EffectFenceHook dup
+  acceptable/byte-identical; uniform-global-fence accepted; replaceContent
+  whole-call fence agreed; folds + tests corroborated). RULING on builder
+  concern: (a) REAL in-family BLOCKER and WIDER than replay — occupied-cell
+  `cell = *state` invokes Clip::operator= on the engaged optional whose address
+  GL holds (Layer.h:151,160-165); undo/redo reassigns DIFFERENT-sized effects
+  vectors ⇒ real realloc; reachable by drop-onto-active-cell + Cmd+Z (no
+  occupied-gate in isInterestedInFileDrag). PLUS two live paths never fenced:
+  handleFileDrop→applyFileDrop (~:3308-3322) and handleMultiFileDrop setClip
+  (~:3360). ROUND 3 REQUIRED (prescribed): fence SetClipCmd/SwapClipsCmd
+  replay + the 2 live paths; DELETE exemption comment (moot); fence-count
+  tests; N-fence cost on composite undo accepted (batch-fence = optional
+  future opt only if e2e shows stutter). Fresh builder fence-f3 dispatched;
+  fence-f1-review does final targeted confirm then retires (2 full + 2
+  targeted + addendum ≈ precedent boundary).
+- 2026-07-28: ROUND-3 builder (fence-f3) DONE. Receiver disk-verify PASS (4
+  round-3 files; typedef single-sourced in ClipCommands.h — judgment-call
+  relocation, include-direction justified; exemption block deleted, 1 prose
+  mention remains for reviewer confirm; 176/176 builder log). Harmony R3 gate:
+  build 0, ctest 176/176 OWN RUN (/tmp/fence-f1-r3-harmony-gate.log) — PASS.
+  Lane totals: 170→176 tests, 18 files. fence-f3 retired (1 packet). Final
+  targeted confirm dispatched to fence-f1-review (last pass, retires after;
+  incl. CompDecksBrowser stale cross-ref disposition). On CONFIRMED-CLEAN:
+  single lane commit → cmake reconfigure (pick up cert if present) → rebuild →
+  app gate w/ Boris Allow → sitting unblocks.
+- 2026-07-29: ROUND-3 FINAL CONFIRM = CONFIRMED-CLEAN (typedef single-def +
+  include-order verified; exemption grep-hit confirmed historical prose;
+  replacement comments truth-checked; applyFileDrop exactly-2-callers proven
+  no-nest; 4 riskiest nesting sites traced sequential incl. CompositeCommand
+  child-loop; SwapClipsCmd test exercises the exact occupied-cell case). LANE
+  MAY CLOSE. One pre-adjudicated comment-only fix (CompDecksBrowser.h stale
+  cross-ref, reviewer-prescribed verbatim) → dispatched to fence-f3 as
+  retirement-deferred micro-edit (step-9 precedent), no re-review. Reviewer
+  fence-f1-review RETIRED (2 full + 3 targeted + addendum). Next: gate re-run →
+  SINGLE LANE COMMIT (18 files, tests 170→176) → cmake reconfigure (cert
+  pickup) → rebuild → app gate (Boris Allow) → HOLD list dissolves.
+- 2026-07-29: **FENCE LANE COMMITTED — 8bd09ba** (16 files, +777/−246, tests
+  170→176, local no push). Final gate re-run PASS post-micro-edit (build 0,
+  176/176 own run, ad-hoc signed — cert still not created). APP GATE PARKED:
+  fenced build relaunched 20:09, TCC mic prompt confirmed ON SCREEN via
+  screencapture diagnostic (documented gotcha method); 10-min health watcher
+  expired unanswered — Boris away. DISPOSITION: app LEFT RUNNING with dialog up
+  (2026-07-25 precedent). RESUME POINT: Boris clicks Allow → health check →
+  app gate closes → manual-test HOLD list DISSOLVES (columns, clears,
+  clip-clear, effects + all undos testable; re-run race-lucky drop passes).
+  Then: cert step (still pending, keychain empty) → one reconfigure+rebuild →
+  final TCC prompt ever. All agents retired; lane fully closed on the code
+  side.
+- 2026-07-28: SITTING crash #2 (separate subsystem): SignalBar arrow → layout
+  cascade → MilkDropBrowser::getCuratedPresets null-deref (empty preset state;
+  .ips 2026-07-28-190701). Queued as post-lane mini-lane candidate bundled with
+  Boris's default-preset-dir ask. Boris nod pending.
 - BORIS DECISION QUEUE (still open): (1) ratify the refreshAfterUndoRedo
   pointer/scope-aware skip follow-up (fixes expanded-row collapse + deck-tab
   highlight class); (2) is zero-layer raw Deck-New intended?; (3) undo-with-no-

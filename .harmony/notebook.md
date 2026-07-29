@@ -2,6 +2,47 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-07-28 — LAW: any message-thread mutation of layer.clips MUST be GL-fenced (UAF crash proven)
+**Files:** MainComponent.cpp:3712 (addColumn, the crasher), :3557/:3621/:3759 (clears — same exposure, MORE deterministic), Renderer.cpp:28+173, CompositorEngine.cpp:694+734, UndoService.cpp:54-79 (the fence), DeckCommands.h:55,97 + ClipCommands.h:56,160 (unfenced replay)
+**Note:** Column→New crashed live (SIGSEGV GL thread, .ips 2026-07-28-182825; scout
+diagnosis disassembly-verified, binary UUID matched). renderOpenGL runs with NO
+MessageManager lock (setComponentPaintingEnabled(false) — pre-existing at fb271e3);
+GL thread holds interior Clip* from getActiveClip across applyClipEffects; ANY
+clips-vector realloc/clear/erase on the message thread dangles it (crash registers
+held IEEE doubles from rebuildGrid allocations — textbook UAF). PRE-EXISTING, not
+lane-introduced (handler byte-identical pre-lane). makeDeckFence/withDeckDetached
+covers ALL model reads incl. persistent-layer loop (everything under `if (deckActive)`,
+Renderer.cpp:414); fence validated 100/100 @ ~110fps, max 15.6ms. Spec's "status-quo
+risk profile" for column/cell writes is FALSIFIED — fence is the rule for structural
+clips mutations, live AND command-replay paths (commands need a DeckFenceHook,
+pass-through in headless tests per AddLayerCmd pattern).
+**Valid while:** renderOpenGL reads the model without a lock (until model snapshot/double-buffer lands)
+**Scope riders (2026-07-28, review round):** LAW extends beyond layer.clips to
+(1) composition_.decks (kCompNew initDefault — fenced) and (2) clip/layer/global
+EFFECTS vectors (GL iterates clip.effects, CompositorEngine.cpp:244; reviewer-ruled
+blocker-class; fenced in fence-f1 round 2). FUTURE-FENCE REQUIREMENT: CompDecksBrowser
+onCompositionLoad/onDeckLoad/onCompositionSave are UNWIRED at HEAD — whoever wires
+them MUST run the model-apply under withDeckDetached + undoManager_.clear()
+(kCompNew precedent), else this UAF class returns AND the ClipCommands.h
+SetClipCmd/SwapClipsCmd exemption precondition (b) silently breaks.
+
+## 2026-07-28 — BUG (queued fix candidate): external mixed-type drop discards images
+**Files:** src/ui/ClipCell.cpp:262-292 (external `filesDropped`), :435-476 (internal `itemDropped` — the CORRECT sibling), :210-228 (interest check)
+**Note:** Found in undo-v1 manual e2e sitting (Boris: 2 vids + 1 png → png silently lost).
+External Finder-drop path bins video/image then runs 4 MUTUALLY-EXCLUSIVE early-return
+branches, video-first — any video present ⇒ ALL images in the batch discarded, silently
+(interest check highlights the cell first, so UX promises acceptance). The INTERNAL drag
+path in the same class handles the identical mixed batch correctly (images → column_,
+videos → column_+1 via `videoStartCol`), proving mixed batches are intended → unhandled
+case, not designed filter. Single-PNG drop works; multi-PNG → ImageSequence. Undo coverage
+uniform for accepted files (all paths → pushClipEdits/SetClipCmd); discarded files push no
+CellEdit. Likely pre-existing at HEAD (inferred — lane wrapped faithfully, no branch
+restructure in ledger; unverified by blame). REMEDY SKETCH: make external path mirror
+internal (route mixed batch through the same image+video split), Boris nod required.
+Extension-list nits while there: image bin lacks .tif/.webp/.heic; internal path treats
+"not video" as image via bare else.
+**Valid while:** ClipCell::filesDropped keeps the 4-branch early-return structure
+
 ## 2026-07-20 — Renderer video/sequence/image resources are keyed by clip id; only video content-swaps
 **Files:** src/render/Renderer.cpp (videoPlayers_), src/render/CompositorEngine.cpp:1047
 **Note:** Videos (videoPlayers_[id]) and image sequences (imageSequences_[id]) are keyed by clip id and NEVER closed. Static images are keyed by FILE PATH via getKeyTexture(clip.mediaFile) — self-healing on undo. Only VIDEO can be content-swapped under an EXISTING id: kClipReplaceContent calls openVideoForClip(existing->id, newFile), overwriting the player while replaceContent keeps the id. So a reconnect-if-MISSING media guard misses replace-undo (player exists → skip → decodes wrong file). Fix: compare loaded file vs clip.mediaFile (Renderer::getVideoPlayerFile + VideoPlayer::getFile + pure needsVideoReopen() in core/MediaReconnect.h), reopen on mismatch. Sequences can't hit it (replace produces only Image/Video; sequences always get a fresh s_nextClipId).
