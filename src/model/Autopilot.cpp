@@ -12,7 +12,7 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
             continue;
 
         Clip* clip = layer.getActiveClip();
-        if (clip == nullptr || !clip->playing)
+        if (clip == nullptr || !clip->isPlayable() || !clip->playing)
             continue;
 
         // Check if playhead reached the out point (or end)
@@ -61,12 +61,17 @@ bool Autopilot::processFrame(Deck& deck, const FeatureSnapshot& snapshot)
 
     for (auto& layer : deck.layers)
     {
-        if (!layer.autopilotEnabled || layer.autopilotEndOfVideo)
-            continue; // Skip end-of-video layers (handled above)
+        if (!layer.autopilotEnabled)
+            continue;
 
         Clip* clip = layer.getActiveClip();
         if (clip == nullptr || !clip->playing)
             continue;
+
+        if (layer.autopilotEndOfVideo && clip->isPlayable())
+            continue; // Skip end-of-video layers with a playable clip (handled above);
+                      // a non-playable active clip (Source/Image/Camera) falls through
+                      // to beat-based advancement instead of freezing.
 
         // Increment beats played on this clip
         clip->beatsPlayed++;

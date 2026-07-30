@@ -308,3 +308,31 @@ if(NOT MSVC)
     )
 endif()
 catch_discover_tests(test_compositor)
+
+# --- test_autopilot (autopilot advance-gate: EoV + on-beat + source parity) ---
+add_executable(test_autopilot
+    test_autopilot.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/model/Autopilot.cpp
+)
+target_include_directories(test_autopilot PRIVATE ${SRC_DIR})
+target_link_libraries(test_autopilot PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_graphics
+)
+target_compile_definitions(test_autopilot PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_autopilot PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+catch_discover_tests(test_autopilot)

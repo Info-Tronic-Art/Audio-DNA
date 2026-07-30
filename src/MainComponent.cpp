@@ -912,6 +912,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 clip.name = sourceIds[si].toStdString();
                 clip.mediaType = Clip::MediaType::Source;
                 clip.sourceType = sourceIds[si].toStdString();
+                clip.playing = true;  // Sources are always "playing" (parity with image/video paths)
 
                 auto tempSrc = srcRegistry.createSource(sourceIds[si].toStdString());
                 if (tempSrc)
@@ -1038,6 +1039,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         clip.name = juce::File(presetPath).getFileNameWithoutExtension().toStdString();
         clip.mediaType = Clip::MediaType::Source;
         clip.sourceType = "projectm_visualizer";
+        clip.playing = true;  // Sources are always "playing" (parity with image/video paths)
 
         // Populate source params from registry
         auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
@@ -1095,6 +1097,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         clip.name = "MilkDrop Playlist (" + std::to_string(presetPaths.size()) + ")";
         clip.mediaType = Clip::MediaType::Source;
         clip.sourceType = "projectm_visualizer";
+        clip.playing = true;  // Sources are always "playing" (parity with image/video paths)
 
         // Populate source params
         auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
@@ -1256,6 +1259,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         clip.name = sourceId.toStdString();
         clip.mediaType = Clip::MediaType::Source;
         clip.sourceType = sourceId.toStdString();
+        clip.playing = true;  // Sources are always "playing" (parity with image/video paths)
 
         // Populate source parameters from the registry
         auto& srcRegistry = previewPanel_.getRenderer().getSourceRegistry();
