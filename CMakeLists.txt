@@ -423,6 +423,26 @@ target_link_libraries(AudioDNA PRIVATE ${AUDIODNA_LIBS})
 
 set_project_warnings(AudioDNA)
 
+# --- Bundle MilkDrop presets (2026-07-30) ---
+# MilkDropBrowser's default-location scan (src/MainComponent.cpp) checks
+# .app/Contents/Resources/projectm_presets first, falling back to
+# ./resources/projectm_presets relative to the working directory. Neither
+# path was ever populated for the built .app, so the browser started empty
+# unless launched with the project root as CWD. Copy the bundled preset
+# collection into the app bundle so the primary (bundle) path always
+# resolves, regardless of how the app is launched. Runs before codesigning
+# (POST_BUILD commands on the same target execute in registration order)
+# so the final signature covers the copied resources.
+if(APPLE)
+    add_custom_command(TARGET AudioDNA POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${CMAKE_CURRENT_SOURCE_DIR}/resources/projectm_presets"
+                "$<TARGET_BUNDLE_CONTENT_DIR:AudioDNA>/Resources/projectm_presets"
+        COMMENT "Bundling MilkDrop presets into Audio-DNA.app/Contents/Resources"
+        VERBATIM
+    )
+endif()
+
 # --- macOS code signing (stable identity, 2026-07-28) ---
 # Ad-hoc signing changes the app's cdhash on every rebuild, so macOS re-fires
 # the microphone TCC prompt after every single build (see .harmony/gotchas.md

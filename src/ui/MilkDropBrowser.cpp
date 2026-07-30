@@ -824,8 +824,9 @@ void MilkDropBrowser::handlePresetClick(int globalIndex, bool shiftHeld, bool ct
 
 void MilkDropBrowser::selectPreset(int globalIndex)
 {
-    if (presetManager_)
-        presetManager_->setCurrentIndex(globalIndex);
+    if (!presetManager_) return;
+
+    presetManager_->setCurrentIndex(globalIndex);
 
     auto* preset = presetManager_->getPreset(globalIndex);
     if (preset)
@@ -906,7 +907,7 @@ std::vector<std::string> MilkDropBrowser::parsePlaylistDragDescription(const juc
 std::vector<const ProjectMPresetManager::PresetInfo*>
 MilkDropBrowser::getPresetsForSection(const std::string& sectionName) const
 {
-    if (!presetManager_) return {};
+    if (!presetManager_ || presetManager_->getPresetCount() == 0) return {};
     auto byMood = presetManager_->getPresetsByMood(sectionName);
     if (searchFilter_.empty()) return byMood;
 
@@ -926,7 +927,7 @@ MilkDropBrowser::getPresetsForSection(const std::string& sectionName) const
 std::vector<const ProjectMPresetManager::PresetInfo*>
 MilkDropBrowser::getCuratedPresets() const
 {
-    if (!presetManager_) return {};
+    if (!presetManager_ || presetManager_->getPresetCount() == 0) return {};
     std::vector<const ProjectMPresetManager::PresetInfo*> result;
     for (const auto& p : presetManager_->getAllPresets())
     {

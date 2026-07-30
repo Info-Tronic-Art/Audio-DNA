@@ -142,6 +142,32 @@ When validating UI changes, use this sequence:
 - **reviewer-rotation-at-2-packets**: rotate reviewers on the same load rule as builders (~2 full packets + 1 targeted); fresh eyes caught that a claimed "precedent" (headless-silent invariant violation in tests) never actually existed.
 - **env-wedge-single-recheck**: when an env blocker (coreaudiod stall) worsens with remedy cycles, switch to single-attempt rechecks per gate + a hard stop — retry loops actively degrade the environment (4-attempt evidence, sample-verified).
 
+## 2026-07-30 — MilkDropBrowser crash #2 guard + default preset bundling
+**Files:** src/ui/MilkDropBrowser.cpp, CMakeLists.txt
+**Note:** Crash #2 (.ips 2026-07-28-190701, SIGSEGV in `getCuratedPresets` via
+a SignalBar-arrow resize cascade) could not be root-caused from the stack
+trace + static reading alone — every reachable call path into
+`getCuratedPresets()`/`calculateContentHeight()` was already null-guarded at
+HEAD (commit 0a617cf, unchanged since March), and the crashed binary's UUID
+(a14c7610...) doesn't match anything currently on disk to disassemble. Found
+one CONCRETE unguarded null-deref nearby in the same class —
+`selectPreset()` called `presetManager_->getPreset(globalIndex)` without a
+null check even though the line above it correctly guarded
+`setCurrentIndex` — fixed that, and hardened `getCuratedPresets()` /
+`getPresetsForSection()` to independently guard on `!presetManager_ ||
+getPresetCount()==0` (matching the existing `calculateContentHeight()`/
+`paint()` idiom) rather than relying on caller-side checks only. Separately:
+`resources/projectm_presets/` (30 curated .milk + presets.json) already
+exists in-repo and MainComponent.cpp already scans it, but the build never
+copied it into `Audio-DNA.app/Contents/Resources/`, and the CWD dev-fallback
+only works if launched with the project root as CWD — so the shipped app's
+browser started empty. Fixed via a CMake POST_BUILD `copy_directory`
+registered BEFORE the existing codesign POST_BUILD (same-target POST_BUILD
+commands run in registration order) so the signature covers the copied
+resources.
+**Valid while:** MilkDropBrowser.cpp's presetManager_ access pattern and
+MainComponent.cpp's bundledDir/CWD-fallback resolution logic are unchanged.
+
 ## 2026-07-25 — lane-B meta-learnings (Undo v1 s8-9 secondary, lane close)
 - **screencapture-tcc-diagnosis**: headless app-launch "stalls" can be an invisible TCC dialog — `screencapture -x /tmp/x.png` + image read sees what sample/lsof/log probes cannot. The 2-session "coreaudiod wedge" was an unanswered mic prompt. (Also log-event'd mid-session; universal candidate.)
 - **codesign-check-on-recurring-tcc**: when a TCC prompt seems to re-fire "randomly", run `codesign -dv` — ad-hoc signing (no TeamIdentifier) changes cdhash per rebuild → TCC re-prompts every build. Durable fix = stable signing identity (Boris-ratified for this repo).
