@@ -256,6 +256,31 @@ if(NOT MSVC)
 endif()
 catch_discover_tests(test_routing_engine)
 
+# --- test_thumbnail_cache (FilesBrowser perf: LRU thumbnail cache keying) ---
+# Headless: header-only ThumbnailCache depends only on juce_core + juce_graphics,
+# no juce_gui_basics, so it is unit-testable without a GUI/display context.
+add_executable(test_thumbnail_cache test_thumbnail_cache.cpp)
+target_include_directories(test_thumbnail_cache PRIVATE ${SRC_DIR})
+target_link_libraries(test_thumbnail_cache PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_graphics
+)
+target_compile_definitions(test_thumbnail_cache PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_thumbnail_cache PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+catch_discover_tests(test_thumbnail_cache)
+
 # --- test_compositor (P3: deck compositing data model + autopilot) ---
 add_executable(test_compositor
     test_compositor.cpp

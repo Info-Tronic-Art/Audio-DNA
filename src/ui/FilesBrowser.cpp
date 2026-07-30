@@ -1,5 +1,19 @@
 #include "ui/FilesBrowser.h"
 
+namespace
+{
+// The subset of media extensions that generateThumbnail() can actually
+// decode. Used both by generateThumbnail() itself and by the caller to
+// decide whether it's worth scheduling a background decode job at all
+// (audio/video files always have no thumbnail — see generateThumbnail()).
+bool isImageExtension(const juce::File& file)
+{
+    auto ext = file.getFileExtension().toLowerCase();
+    return ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" ||
+           ext == ".bmp" || ext == ".tiff" || ext == ".tif";
+}
+} // namespace
+
 // ── FileListContent: scrollable grid/list of file entries ──
 class FilesBrowser::FileListContent : public juce::Component
 {
@@ -355,8 +369,27 @@ FilesBrowser::FilesBrowser()
     // View toggle
     addAndMakeVisible(gridViewBtn_);
     addAndMakeVisible(listViewBtn_);
-    gridViewBtn_.onClick = [this] { gridView_ = true; refreshFileList(); repaint(); };
-    listViewBtn_.onClick = [this] { gridView_ = false; refreshFileList(); repaint(); };
+    // Switching view mode never re-enumerates or re-decodes — entries_ is
+    // already loaded. Just flip the flag and let the content component
+    // re-measure (grid/list rows differ in height) and repaint itself.
+    // List-mode painting never touches thumbnails (see paintList below), so
+    // this is a pure layout+paint operation regardless of decode state.
+    gridViewBtn_.onClick = [this] {
+        gridView_ = true;
+        if (fileListContent_)
+        {
+            fileListContent_->updateSize();
+            fileListContent_->repaint();
+        }
+    };
+    listViewBtn_.onClick = [this] {
+        gridView_ = false;
+        if (fileListContent_)
+        {
+            fileListContent_->updateSize();
+            fileListContent_->repaint();
+        }
+    };
 
     // Start at user's home directory
     navigateTo(juce::File::getSpecialLocation(juce::File::userHomeDirectory));
@@ -410,6 +443,12 @@ void FilesBrowser::refreshFileList()
     entries_.clear();
     if (!currentDir_.isDirectory()) return;
 
+    // Invalidate any decode jobs still in flight from a previous folder —
+    // their eventual completion will no-op against entries_ once they see
+    // this generation has moved on (see onThumbnailDecoded).
+    ++decodeGeneration_;
+    auto generation = decodeGeneration_;
+
     // Directories first
     auto dirs = currentDir_.findChildFiles(juce::File::findDirectories, false);
     dirs.sort();
@@ -419,7 +458,8 @@ void FilesBrowser::refreshFileList()
         entries_.push_back({d, {}, true, false});
     }
 
-    // Then media files
+    // Then media files: enumerate and show immediately (names/icons); only
+    // schedule a background decode for files that aren't already cached.
     auto files = currentDir_.findChildFiles(juce::File::findFiles, false);
     files.sort();
     for (auto& f : files)
@@ -428,8 +468,11 @@ void FilesBrowser::refreshFileList()
         if (!isMediaFile(f)) continue;
 
         bool fav = favorites_.contains(f.getFullPathName());
-        auto thumb = generateThumbnail(f);
-        entries_.push_back({f, thumb, false, fav});
+        auto cached = thumbnailCache_.get(f);  // cheap: hash lookup, no decode
+        entries_.push_back({f, cached, false, fav});
+
+        if (!cached.isValid() && isImageExtension(f))
+            requestThumbnailAsync(f, generation);
     }
 
     if (fileListContent_)
@@ -453,6 +496,9 @@ void FilesBrowser::filterBySearch()
     entries_.clear();
     if (!currentDir_.isDirectory()) return;
 
+    ++decodeGeneration_;
+    auto generation = decodeGeneration_;
+
     auto allFiles = currentDir_.findChildFiles(juce::File::findFilesAndDirectories, false);
     allFiles.sort();
     for (auto& f : allFiles)
@@ -467,7 +513,11 @@ void FilesBrowser::filterBySearch()
         else if (isMediaFile(f))
         {
             bool fav = favorites_.contains(f.getFullPathName());
-            entries_.push_back({f, generateThumbnail(f), false, fav});
+            auto cached = thumbnailCache_.get(f);  // hits cache, never decodes here
+            entries_.push_back({f, cached, false, fav});
+
+            if (!cached.isValid() && isImageExtension(f))
+                requestThumbnailAsync(f, generation);
         }
     }
 
@@ -490,15 +540,56 @@ bool FilesBrowser::isMediaFile(const juce::File& file) const
 
 juce::Image FilesBrowser::generateThumbnail(const juce::File& file)
 {
-    auto ext = file.getFileExtension().toLowerCase();
-    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" ||
-        ext == ".bmp" || ext == ".tiff" || ext == ".tif")
-    {
-        auto img = juce::ImageFileFormat::loadFrom(file);
-        if (img.isValid())
-            return img.rescaled(kThumbSize, kThumbSize, juce::Graphics::mediumResamplingQuality);
-    }
+    if (!isImageExtension(file))
+        return {};
+
+    auto img = juce::ImageFileFormat::loadFrom(file);
+    if (img.isValid())
+        return img.rescaled(kThumbSize, kThumbSize, juce::Graphics::mediumResamplingQuality);
     return {};
+}
+
+void FilesBrowser::requestThumbnailAsync(const juce::File& file, uint64_t generation)
+{
+    // SafePointer guards the completion callback against the component being
+    // destroyed (or torn down mid-decode) while the job is in flight — see
+    // onThumbnailDecoded. The job itself never touches `this`.
+    juce::Component::SafePointer<FilesBrowser> safeThis(this);
+
+    thumbnailPool_.addJob([safeThis, file, generation]
+    {
+        // Pool thread: pure decode, no component/UI access.
+        auto thumbnail = FilesBrowser::generateThumbnail(file);
+
+        juce::MessageManager::callAsync([safeThis, file, generation, thumbnail]
+        {
+            if (auto* browser = safeThis.getComponent())
+                browser->onThumbnailDecoded(file, generation, thumbnail);
+        });
+    });
+}
+
+void FilesBrowser::onThumbnailDecoded(const juce::File& file, uint64_t generation, juce::Image thumbnail)
+{
+    // Cache regardless of generation — the decode is still valid for a later
+    // revisit even if the user has already navigated away from this folder.
+    if (thumbnail.isValid())
+        thumbnailCache_.put(file, thumbnail);
+
+    if (generation != decodeGeneration_)
+        return;  // stale: folder changed/re-filtered since this job was queued
+
+    for (auto& e : entries_)
+    {
+        if (e.file == file)
+        {
+            e.thumbnail = thumbnail;
+            break;
+        }
+    }
+
+    if (fileListContent_)
+        fileListContent_->repaint();
 }
 
 void FilesBrowser::loadFavorites()

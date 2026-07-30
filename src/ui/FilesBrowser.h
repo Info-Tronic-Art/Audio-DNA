@@ -1,6 +1,8 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "ui/LookAndFeel.h"
+#include "ui/ThumbnailCache.h"
+#include <cstdint>
 #include <vector>
 #include <set>
 
@@ -67,7 +69,27 @@ private:
     void refreshFileList();
     void filterBySearch();
     bool isMediaFile(const juce::File& file) const;
-    juce::Image generateThumbnail(const juce::File& file);
+
+    // Decodes + rescales a thumbnail. Static (no member access) so it is safe
+    // to call from a background thread pool job.
+    static juce::Image generateThumbnail(const juce::File& file);
+
+    // Thumbnail cache + async decode (perf: avoid full-res image decode on
+    // the message thread). Enumeration/list-building stays synchronous
+    // (cheap); only the per-file decode is dispatched to thumbnailPool_.
+    ThumbnailCache thumbnailCache_;
+    juce::ThreadPool thumbnailPool_{juce::ThreadPoolOptions{}
+                                         .withNumberOfThreads(2)
+                                         .withThreadName("FilesBrowserThumbs")};
+
+    // Bumped on every refreshFileList()/filterBySearch() call. A completed
+    // decode job compares its captured generation against this before
+    // touching entries_, so a stale job from a folder the user already
+    // navigated away from is dropped instead of corrupting the current list.
+    uint64_t decodeGeneration_ = 0;
+
+    void requestThumbnailAsync(const juce::File& file, uint64_t generation);
+    void onThumbnailDecoded(const juce::File& file, uint64_t generation, juce::Image thumbnail);
 
     static constexpr int kNavBarHeight = 24;
     static constexpr int kSearchBarHeight = 22;
