@@ -1592,6 +1592,18 @@ void MainComponent::setTooltipsEnabled(bool enabled)
 
 MainComponent::~MainComponent()
 {
+    // Shutdown bundle piece 1 (2026-07-30, scout-shutdown-sigbus.md): detach
+    // the GL renderer FIRST, before any other teardown. previewPanel_ is
+    // declared before effectsRackPanel_ (MainComponent.h), so it destructs
+    // AFTER it — without this, the OpenGL render thread stays live through
+    // the rest of UI teardown (~PreviewPanel's own detach() runs ~48 members
+    // too late), racing whatever UI-side destructor a member reallocation
+    // corrupts a live juce::Label. detach() is already called from
+    // ~PreviewPanel and ~Renderer in the normal teardown path, so this call
+    // is safe/idempotent (JUCE's OpenGLContext::detach() no-ops when already
+    // detached) — it just moves the FIRST detach earlier.
+    previewPanel_.getRenderer().detach();
+
     // Drop undo history on shutdown: commands hold model snapshots that must
     // not outlive the composition/renderer they refer to.
     undoManager_.clear();
