@@ -1125,8 +1125,19 @@ MainComponent::MainComponent(bool testMode, int testPort)
             clip.presetPlaylist.push_back(entry);
         }
         clip.playlistEnabled = true;
-        clip.playlistCycleMode = Clip::PlaylistCycleMode::RandomBag;
-        clip.playlistTriggerBeats = 8;
+
+        // Honor the browser's current Playlist-mode controls (cycle mode,
+        // timing, blend seconds) instead of hardcoding — those controls were
+        // previously decorative (SIDE FINDING, scout-playlist-drop.md).
+        auto& browser = browserPanel_->getMilkDropBrowser();
+        switch (browser.getPlaylistCycleModeId())
+        {
+            case 2:  clip.playlistCycleMode = Clip::PlaylistCycleMode::RandomOther; break; // "Random"
+            case 3:  clip.playlistCycleMode = Clip::PlaylistCycleMode::Sequential;  break; // "Sequential"
+            default: clip.playlistCycleMode = Clip::PlaylistCycleMode::RandomBag;  break; // "Bag" (id 1)
+        }
+        clip.playlistTriggerBeats = browser.getPlaylistTriggerBeats();
+        clip.playlistBlendSeconds = browser.getPlaylistBlendSeconds();
 
         // GL fence (2026-07-28): ensureColumns can grow the layer's clips
         // vector — the crash-proven reallocation class.

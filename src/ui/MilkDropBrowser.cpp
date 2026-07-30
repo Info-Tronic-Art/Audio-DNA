@@ -921,6 +921,25 @@ void MilkDropBrowser::toggleJukeboxPlay()
     }
 }
 
+int MilkDropBrowser::getPlaylistCycleModeId() const
+{
+    return playlistCycleSelector_.getSelectedId();
+}
+
+int MilkDropBrowser::getPlaylistTriggerBeats() const
+{
+    int beats[] = {4, 8, 16, 32};
+    int idx = playlistTimingSelector_.getSelectedId() - 1;
+    if (idx >= 0 && idx < 4)
+        return beats[idx];
+    return 8; // fallback matches the pre-existing hardcoded default
+}
+
+float MilkDropBrowser::getPlaylistBlendSeconds() const
+{
+    return static_cast<float>(playlistBlendSlider_.getValue());
+}
+
 std::vector<std::string> MilkDropBrowser::getSelectedPresetPaths() const
 {
     std::vector<std::string> paths;

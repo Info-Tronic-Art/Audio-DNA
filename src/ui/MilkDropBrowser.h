@@ -57,6 +57,12 @@ public:
     // Get selected preset paths (for multi-select operations)
     std::vector<std::string> getSelectedPresetPaths() const;
 
+    // Current Playlist-mode control values, read by the drop handler when
+    // creating a playlist clip (see MainComponent's onMilkDropPlaylistDropped).
+    int getPlaylistCycleModeId() const;    // playlistCycleSelector_: 1=Bag, 2=Random, 3=Sequential
+    int getPlaylistTriggerBeats() const;   // playlistTimingSelector_ resolved to a beat count
+    float getPlaylistBlendSeconds() const; // playlistBlendSlider_ value
+
 private:
     // Internal list content component
     class PresetListContent;
