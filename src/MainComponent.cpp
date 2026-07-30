@@ -1728,33 +1728,45 @@ void MainComponent::setTooltipsEnabled(bool enabled)
 
 MainComponent::~MainComponent()
 {
+    // Shutdown bundle piece 2 (2026-07-30, follow-up to cc5c0c3): stop the
+    // HTTP servers FIRST, before detaching the GL renderer below. Closes a
+    // disputed race class: ApiServer/TestServer route handlers reach into
+    // the renderer, so an in-flight handler could otherwise still be
+    // running during the detach() window. stop() blocks until server_.stop()
+    // unblocks the listen() loop and serverThread_.join() returns — a few ms
+    // httplib join, not UI teardown — so once these two calls return, no
+    // HTTP worker thread can be touching the renderer. This still preserves
+    // the shutdown scout's intent (scout-shutdown-sigbus.md): GL detaches
+    // before ALL UI teardown further down, just after this non-UI server
+    // join.
+    if (apiServer_)
+        apiServer_->stop();
+#if AUDIODNA_TEST_SERVER
+    if (testServer_)
+        testServer_->stop();
+#endif
+
     // Shutdown bundle piece 1 (2026-07-30, scout-shutdown-sigbus.md): detach
-    // the GL renderer FIRST, before any other teardown. previewPanel_ is
-    // declared before effectsRackPanel_ (MainComponent.h), so it destructs
-    // AFTER it — without this, the OpenGL render thread stays live through
-    // the rest of UI teardown (~PreviewPanel's own detach() runs ~48 members
-    // too late), racing whatever UI-side destructor a member reallocation
-    // corrupts a live juce::Label. detach() is already called from
-    // ~PreviewPanel and ~Renderer in the normal teardown path, so this call
-    // is safe/idempotent (JUCE's OpenGLContext::detach() no-ops when already
-    // detached) — it just moves the FIRST detach earlier.
+    // the GL renderer before any UI teardown. previewPanel_ is declared
+    // before effectsRackPanel_ (MainComponent.h), so it destructs AFTER it —
+    // without this, the OpenGL render thread stays live through the rest of
+    // UI teardown (~PreviewPanel's own detach() runs ~48 members too late),
+    // racing whatever UI-side destructor a member reallocation corrupts a
+    // live juce::Label. detach() is already called from ~PreviewPanel and
+    // ~Renderer in the normal teardown path, so this call is safe/idempotent
+    // (JUCE's OpenGLContext::detach() no-ops when already detached) — it
+    // just moves the first detach earlier.
     previewPanel_.getRenderer().detach();
 
     // Drop undo history on shutdown: commands hold model snapshots that must
     // not outlive the composition/renderer they refer to.
     undoManager_.clear();
 
-    // P22: Stop output/integration services
-    if (apiServer_)
-        apiServer_->stop();
+    // P22: Stop remaining output/integration services
     oscHandler_.stopListening();
     midiOutputHandler_.closeDevice();
     videoRecorder_.stopRecording();
 
-#if AUDIODNA_TEST_SERVER
-    if (testServer_)
-        testServer_->stop();
-#endif
 #if AUDIODNA_BUILD_INSPECTOR
     melatoninInspector_.reset();
 #endif

@@ -723,6 +723,20 @@ ProceduralSource* Renderer::getOrCreateSource(const std::string& sourceId)
     // would deadlock the blocking round-trip).
     if (juce::OpenGLContext::getCurrentContext() != &glContext_)
     {
+        // Defense-in-depth (task #24, reviewer-shutdown-lane): during
+        // shutdown, a non-GL-thread caller could in principle race a
+        // concurrent glContext_.detach(). isAttached() is itself a
+        // check-then-act read — a caller can still lose the race to
+        // execute()'s own internal state check — so this narrows the
+        // window to JUCE's own already-narrow internal one rather than
+        // closing it outright; skipping executeOnGLThread entirely here
+        // when clearly detached avoids even attempting the round-trip.
+        // The actual close is structural: ~MainComponent() stops the HTTP
+        // servers (whose worker threads are the only non-message-thread
+        // callers of this method) before detaching the GL context.
+        if (!glContext_.isAttached())
+            return nullptr;
+
         ProceduralSource* result = nullptr;
         glContext_.executeOnGLThread([this, sourceId, &result](juce::OpenGLContext&)
         {
