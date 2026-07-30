@@ -284,7 +284,7 @@ namespace
 TEST_CASE("SetClipCmd: drop onto an empty cell", "[undo][setclip]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Clip clipA = richClip(1001, "loop");
@@ -306,7 +306,7 @@ TEST_CASE("SetClipCmd: drop onto an empty cell", "[undo][setclip]")
 TEST_CASE("SetClipCmd: replace an existing cell (deep-equal both ways)", "[undo][setclip]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Clip clipA = richClip(1, "before");
@@ -327,7 +327,7 @@ TEST_CASE("SetClipCmd: replace an existing cell (deep-equal both ways)", "[undo]
 TEST_CASE("SetClipCmd: clear a cell (after = nullopt)", "[undo][setclip]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Clip clipA = richClip(7, "victim");
@@ -347,7 +347,7 @@ TEST_CASE("SetClipCmd: clear a cell (after = nullopt)", "[undo][setclip]")
 TEST_CASE("SetClipCmd: media hook fires for playable clips only", "[undo][setclip]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     int hookCalls = 0;
@@ -371,7 +371,7 @@ TEST_CASE("SetClipCmd: media hook fires for playable clips only", "[undo][setcli
 TEST_CASE("SetClipCmd: fence fires once per execute/undo/redo", "[undo][setclip][fence]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     int fenceCalls = 0;
@@ -396,7 +396,7 @@ TEST_CASE("SetClipCmd: fence fires once per execute/undo/redo", "[undo][setclip]
 TEST_CASE("ToggleClipLockCmd: flips contentLocked without touching other state", "[undo][lock]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Clip clipA = richClip(9, "locktest");
@@ -422,7 +422,7 @@ TEST_CASE("ToggleClipLockCmd: flips contentLocked without touching other state",
 TEST_CASE("CompositeCommand clears multiple cells as one undo unit", "[undo][composite][setclip]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Clip a = richClip(1, "a");
@@ -458,7 +458,7 @@ TEST_CASE("CompositeCommand clears multiple cells as one undo unit", "[undo][com
 TEST_CASE("SwapClipsCmd: swap two occupied cells, deep-equal both directions", "[undo][swap]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Clip a = richClip(1, "a");
@@ -498,7 +498,7 @@ TEST_CASE("SwapClipsCmd: swap two occupied cells, deep-equal both directions", "
 TEST_CASE("SwapClipsCmd: move to a far empty column grows then undo shrinks numColumns", "[undo][swap]")
 {
     Composition comp = makeComp();            // numColumns == 12
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Clip x = richClip(42, "mover");
@@ -537,7 +537,7 @@ TEST_CASE("SwapClipsCmd: move to a far empty column grows then undo shrinks numC
 TEST_CASE("SwapClipsCmd: fence fires once per execute/undo/redo", "[undo][swap][fence]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Clip a = richClip(1, "a");
@@ -572,7 +572,7 @@ TEST_CASE("SwapClipsCmd: fence fires once per execute/undo/redo", "[undo][swap][
 TEST_CASE("UndoService::resolveDeck handles valid, out-of-range, and null", "[undo][resolve]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
 
     REQUIRE(svc.resolveDeck(0) == &comp.decks[0]);
     REQUIRE(svc.resolveDeck(-1) == nullptr);
@@ -585,7 +585,7 @@ TEST_CASE("UndoService::resolveDeck handles valid, out-of-range, and null", "[un
 TEST_CASE("UndoService::resolveLayer returns null for stale layer coordinates", "[undo][resolve]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
 
     REQUIRE(svc.resolveLayer(0, 0) != nullptr);
     REQUIRE(svc.resolveLayer(0, 2) != nullptr);      // 3 layers: 0,1,2
@@ -620,7 +620,7 @@ TEST_CASE("needsVideoReopen covers missing/match/mismatch/no-player", "[undo][me
 TEST_CASE("UndoService::resolveClip returns null for empty cells and stale coords", "[undo][resolve]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
 
     REQUIRE(svc.resolveClip(0, 0, 0) == nullptr);    // valid coord, empty cell
     comp.decks[0].setClip(0, 0, richClip(1, "x"));
@@ -641,7 +641,7 @@ TEST_CASE("UndoService::resolveClip returns null for empty cells and stale coord
 TEST_CASE("SetColumnCountCmd: add column grows count, undo/redo round-trip", "[undo][column]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -669,7 +669,7 @@ TEST_CASE("SetColumnCountCmd: add column grows count, undo/redo round-trip", "[u
 TEST_CASE("SetColumnCountCmd: fence fires once per execute/undo/redo", "[undo][column][fence]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -695,7 +695,7 @@ TEST_CASE("SetColumnCountCmd: fence fires once per execute/undo/redo", "[undo][c
 TEST_CASE("RemoveColumnCmd: remove-column-with-clips restores cells + count", "[undo][column]")
 {
     Composition comp = makeComp();         // 12 columns, 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -736,7 +736,7 @@ TEST_CASE("RemoveColumnCmd: remove-column-with-clips restores cells + count", "[
 TEST_CASE("RemoveColumnCmd: fence fires once per execute/undo/redo", "[undo][column][fence]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -769,7 +769,7 @@ TEST_CASE("RemoveColumnCmd: fence fires once per execute/undo/redo", "[undo][col
 TEST_CASE("ClearLayerClipsCmd: clear one layer, undo restores clips + runtime", "[undo][clearclips]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -808,7 +808,7 @@ TEST_CASE("ClearLayerClipsCmd: clear one layer, undo restores clips + runtime", 
 TEST_CASE("ClearLayerClipsCmd: fence fires once per execute/undo/redo", "[undo][clearclips][fence]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -841,7 +841,7 @@ TEST_CASE("ClearLayerClipsCmd: fence fires once per execute/undo/redo", "[undo][
 TEST_CASE("Deck clear-clips composite: clear all layers, one entry, undo restores all", "[undo][composite][clearclips]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -886,7 +886,7 @@ TEST_CASE("Deck clear-clips composite: clear all layers, one entry, undo restore
 TEST_CASE("Multi-video drop composite: N cells + column growth, undo restores both", "[undo][composite][column]")
 {
     Composition comp = makeComp();         // 12 columns
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -943,7 +943,7 @@ TEST_CASE("Multi-video drop composite: N cells + column growth, undo restores bo
 TEST_CASE("Multi-select clear composite (Clear N Clips): one entry, undo restores all", "[undo][composite][setclip]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -984,7 +984,7 @@ TEST_CASE("Multi-select clear composite (Clear N Clips): one entry, undo restore
 TEST_CASE("kClipClear composite: clearing the active cell empties it AND resets activeClipColumn", "[undo][composite][setclip][clearclip]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L = deck.layers[0];
@@ -1041,7 +1041,7 @@ TEST_CASE("Empty composite is never performed (pushCommands guard contract)", "[
 TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][resolve][column]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     comp.decks[0].setClip(0, 0, richClip(1, "keep"));
 
@@ -1068,7 +1068,7 @@ TEST_CASE("Deck commands no-op on stale coordinates (never crash)", "[undo][reso
 TEST_CASE("AddLayerCmd: add appends, undo removes, redo restores same layer", "[undo][layer]")
 {
     Composition comp = makeComp();          // 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     const int before = deck.getNumLayers(); // 3
@@ -1092,7 +1092,7 @@ TEST_CASE("AddLayerCmd: add appends, undo removes, redo restores same layer", "[
 TEST_CASE("RemoveLayerCmd: remove restores the full layer on undo (deep-equal)", "[undo][layer]")
 {
     Composition comp = makeComp();          // 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -1128,7 +1128,7 @@ TEST_CASE("RemoveLayerCmd: remove restores the full layer on undo (deep-equal)",
 TEST_CASE("MoveLayerCmd: move up then undo restores original order", "[undo][layer]")
 {
     Composition comp = makeComp();          // layers 0,1,2
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     deck.layers[0].name = "A"; deck.layers[1].name = "B"; deck.layers[2].name = "C";
@@ -1157,7 +1157,7 @@ TEST_CASE("MoveLayerCmd: move up then undo restores original order", "[undo][lay
 TEST_CASE("ToggleLayerFlagCmd: bypass/solo/fold each round-trip independently", "[undo][layer][toggle]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L = deck.layers[1];
@@ -1195,7 +1195,7 @@ TEST_CASE("ToggleLayerFlagCmd: bypass/solo/fold each round-trip independently", 
 TEST_CASE("ClearActiveClipCmd: X-button clear restores layer runtime on undo", "[undo][layer]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L = deck.layers[0];
@@ -1230,7 +1230,7 @@ TEST_CASE("ClearActiveClipCmd: X-button clear restores layer runtime on undo", "
 TEST_CASE("Layer index consistency: remove+undo keeps later-layer commands resolvable", "[undo][layer][resolve]")
 {
     Composition comp = makeComp();          // layers 0,1,2
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -1260,7 +1260,7 @@ TEST_CASE("Layer index consistency: remove+undo keeps later-layer commands resol
 TEST_CASE("Layer commands no-op on stale coordinates (never crash)", "[undo][layer][resolve]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     // Stale DECK index → AddLayerCmd / MoveLayerCmd apply are safe no-ops.
@@ -1723,7 +1723,7 @@ TEST_CASE("EffectStackCmd: fence fires once per execute/undo/redo", "[undo][effe
 TEST_CASE("TriggerClipCmd: trigger activates clip, undo restores runtime + playing, redo re-applies", "[undo][trigger]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L = *deck.getLayer(0);
@@ -1767,7 +1767,7 @@ TEST_CASE("TriggerClipCmd: trigger activates clip, undo restores runtime + playi
 TEST_CASE("TriggerClipCmd: empty-cell trigger clears active clip, undo restores runtime", "[undo][trigger]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L = *deck.getLayer(0);
@@ -1806,7 +1806,7 @@ TEST_CASE("TriggerClipCmd: empty-cell trigger clears active clip, undo restores 
 TEST_CASE("TriggerClipCmd: consecutive same-layer triggers merge (original before, latest after)", "[undo][trigger][merge]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L = *deck.getLayer(0);
@@ -1852,7 +1852,7 @@ TEST_CASE("TriggerClipCmd: consecutive same-layer triggers merge (original befor
 TEST_CASE("TriggerClipCmd: different-layer triggers do NOT merge", "[undo][trigger][merge]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L0 = *deck.getLayer(0);
@@ -1889,7 +1889,7 @@ TEST_CASE("TriggerClipCmd: different-layer triggers do NOT merge", "[undo][trigg
 TEST_CASE("TriggerClipCmd: retrigger of the already-active cell pushes nothing", "[undo][trigger][merge]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L = *deck.getLayer(0);
@@ -1928,7 +1928,7 @@ TEST_CASE("TriggerClipCmd: retrigger of the already-active cell pushes nothing",
 TEST_CASE("TriggerColumnCmd composite: triggers all non-ignoring layers, excludes ignoring, one slot", "[undo][trigger][composite]")
 {
     Composition comp = makeComp();            // 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     deck.setClip(0, 4, richClip(1, "l0"));
@@ -1985,7 +1985,7 @@ TEST_CASE("TriggerColumnCmd composite: triggers all non-ignoring layers, exclude
 TEST_CASE("TriggerClipCmd: stale coordinate is a safe no-op (never crash)", "[undo][trigger][resolve]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     comp.decks[0].setClip(0, 0, richClip(1, "keep"));
 
@@ -2007,7 +2007,7 @@ TEST_CASE("TriggerClipCmd: stale coordinate is a safe no-op (never crash)", "[un
 TEST_CASE("TriggerColumnCmd composite: stale coordinates are safe no-ops (never crash)", "[undo][trigger][composite][resolve]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     comp.decks[0].setClip(0, 0, richClip(1, "keep"));
 
@@ -2053,7 +2053,7 @@ TEST_CASE("Property: random mixed-command sequence undoes to initial / redoes to
     std::mt19937 rng(kSeed);
 
     Composition comp = makeComp();             // 1 deck, 3 layers, 12 empty columns
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
 
@@ -2130,7 +2130,7 @@ TEST_CASE("Property: random mixed-command sequence undoes to initial / redoes to
 TEST_CASE("Coordinate resolution: remove MIDDLE layer + undo keeps later-layer command resolvable", "[undo][layer][resolve]")
 {
     Composition comp = makeComp();             // layers 0,1,2
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     deck.layers[0].name = "A"; deck.layers[1].name = "B"; deck.layers[2].name = "C";
@@ -2169,7 +2169,7 @@ TEST_CASE("Coordinate resolution: remove MIDDLE layer + undo keeps later-layer c
 TEST_CASE("RemoveLayerCmd: stale coordinate is a safe no-op (never crash)", "[undo][layer][resolve]")
 {
     Composition comp = makeComp();             // 3 layers
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
 
     Layer dummy = comp.decks[0].layers[0];     // a valid Layer value; deck index is stale
@@ -2191,7 +2191,7 @@ TEST_CASE("RemoveLayerCmd: stale coordinate is a safe no-op (never crash)", "[un
 TEST_CASE("TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, round-trips", "[undo][trigger][merge]")
 {
     Composition comp = makeComp();
-    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
     UndoManager mgr;
     Deck& deck = comp.decks[0];
     Layer& L = *deck.getLayer(0);

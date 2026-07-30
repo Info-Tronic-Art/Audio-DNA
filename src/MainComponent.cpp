@@ -1406,10 +1406,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
 
     // Undo plumbing: give the UndoService non-owning handles to the model,
-    // renderer, deck grid and inspector so commands can re-resolve targets by
+    // renderer and deck grid so commands can re-resolve targets by
     // coordinate and refresh the UI after undo/redo.
     undoService_.setCollaborators(&composition_, &previewPanel_.getRenderer(),
-                                  deckView_.get(), inspectorPanel_.get());
+                                  deckView_.get());
 
     // === v2: Binding System & MIDI (P9) ===
     bindingManager_.setActionCallback([this](const Binding& b, float val)
