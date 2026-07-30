@@ -21,15 +21,16 @@ static FeatureSnapshot makeSnapshot()
     return s;
 }
 
-// Helper: create an EffectChain with one effect that has N params
-static EffectChain makeChainWithEffect(int numParams)
+// Helper: populate an EffectChain with one effect that has N params.
+// Takes the chain by reference (rather than returning by value) because
+// EffectChain is non-movable (it owns a mutex — see EffectChain.h) as well
+// as non-copyable (effects_ holds unique_ptr<Effect>).
+static void makeChainWithEffect(EffectChain& chain, int numParams)
 {
-    EffectChain chain;
     auto effect = std::make_unique<Effect>("TestEffect", "test", "test_shader");
     for (int i = 0; i < numParams; ++i)
         effect->addParam("p" + std::to_string(i), "u_test_p" + std::to_string(i), 0.0f);
     chain.addEffect(std::move(effect));
-    return chain;
 }
 
 // ============================================================
@@ -146,7 +147,8 @@ TEST_CASE("extractSource reads correct FeatureSnapshot fields", "[mapping]")
 TEST_CASE("Mapping normalization scales source to [0,1]", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -204,7 +206,8 @@ TEST_CASE("Mapping normalization scales source to [0,1]", "[mapping]")
 TEST_CASE("Mapping with custom output range", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -240,7 +243,8 @@ TEST_CASE("Mapping with custom output range", "[mapping]")
 TEST_CASE("Mapping smoothing converges to target", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -267,7 +271,8 @@ TEST_CASE("Mapping smoothing converges to target", "[mapping]")
 TEST_CASE("Smoothing alpha=1 gives immediate response", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -286,7 +291,8 @@ TEST_CASE("Smoothing alpha=1 gives immediate response", "[mapping]")
 TEST_CASE("Low smoothing alpha gives slow response", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -323,7 +329,8 @@ TEST_CASE("Low smoothing alpha gives slow response", "[mapping]")
 TEST_CASE("Multiple mappings to same parameter are summed", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     // Mapping 1: RMS → param 0
     Mapping m1;
@@ -359,7 +366,8 @@ TEST_CASE("Multiple mappings to same parameter are summed", "[mapping]")
 TEST_CASE("Summed mappings clamp to [0,1]", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     // Two mappings each outputting up to 0.7 → sum = 1.4, clamped to 1.0
     Mapping m1;
@@ -395,7 +403,8 @@ TEST_CASE("Summed mappings clamp to [0,1]", "[mapping]")
 TEST_CASE("Disabled mapping has no effect", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -452,7 +461,8 @@ TEST_CASE("getMapping returns nullptr for invalid index", "[mapping]")
 TEST_CASE("Full pipeline with exponential curve", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -472,7 +482,8 @@ TEST_CASE("Full pipeline with exponential curve", "[mapping]")
 TEST_CASE("Full pipeline with logarithmic curve", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -492,7 +503,8 @@ TEST_CASE("Full pipeline with logarithmic curve", "[mapping]")
 TEST_CASE("Full pipeline with stepped curve", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -516,7 +528,8 @@ TEST_CASE("Full pipeline with stepped curve", "[mapping]")
 TEST_CASE("Mapping to nonexistent effect is safely ignored", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;
@@ -536,7 +549,8 @@ TEST_CASE("Mapping to nonexistent effect is safely ignored", "[mapping]")
 TEST_CASE("Mapping to nonexistent param is safely ignored", "[mapping]")
 {
     MappingEngine engine;
-    auto chain = makeChainWithEffect(1);
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
 
     Mapping m;
     m.source = MappingSource::RMS;

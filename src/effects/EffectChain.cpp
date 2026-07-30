@@ -2,35 +2,6 @@
 
 using namespace juce::gl;
 
-EffectChain::EffectChain(EffectChain&& other) noexcept
-{
-    std::lock_guard<std::mutex> lock(other.effectsMutex_);
-    latestSnapshot_ = other.latestSnapshot_;
-    effects_ = std::move(other.effects_);
-    prevFrameTexture_ = other.prevFrameTexture_;
-    prevFrameFBO_ = other.prevFrameFBO_;
-    prevFrameWidth_ = other.prevFrameWidth_;
-    prevFrameHeight_ = other.prevFrameHeight_;
-    uniformLocationCache_ = std::move(other.uniformLocationCache_);
-    // effectsMutex_ default-constructs fresh (std::mutex isn't movable).
-}
-
-EffectChain& EffectChain::operator=(EffectChain&& other) noexcept
-{
-    if (this == &other)
-        return *this;
-
-    std::scoped_lock lock(effectsMutex_, other.effectsMutex_);
-    latestSnapshot_ = other.latestSnapshot_;
-    effects_ = std::move(other.effects_);
-    prevFrameTexture_ = other.prevFrameTexture_;
-    prevFrameFBO_ = other.prevFrameFBO_;
-    prevFrameWidth_ = other.prevFrameWidth_;
-    prevFrameHeight_ = other.prevFrameHeight_;
-    uniformLocationCache_ = std::move(other.uniformLocationCache_);
-    return *this;
-}
-
 void EffectChain::addEffect(std::unique_ptr<Effect> effect)
 {
     std::lock_guard<std::mutex> lock(effectsMutex_);
