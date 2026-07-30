@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "activeDeck": 0,
+  "numDecks": 1,
+  "masterOpacity": 1.0,
+  "decks": [
+    {
+      "name": "Deck 1",
+      "numLayers": 3,
+      "numColumns": 12,
+      "layers": [
+        {
+          "id": 0,
+          "name": "Layer 1",
+          "opacity": 1.0,
+          "visible": true,
+          "muted": false,
+          "solo": false,
+          "bypassed": false,
+          "activeClipColumn": -1,
+          "blendMode": 1,
+          "clips": []
+        },
+        {
+          "id": 1,
+          "name": "Layer 2",
+          "opacity": 1.0,
+          "visible": true,
+          "muted": false,
+          "solo": false,
+          "bypassed": false,
+          "activeClipColumn": -1,
+          "blendMode": 1,
+          "clips": []
+        },
+        {
+          "id": 2,
+          "name": "Layer 3",
+          "opacity": 1.0,
+          "visible": true,
+          "muted": false,
+          "solo": false,
+          "bypassed": false,
+          "activeClipColumn": -1,
+          "blendMode": 1,
+          "clips": []
+        }
+      ]
+    }
+  ]
+}

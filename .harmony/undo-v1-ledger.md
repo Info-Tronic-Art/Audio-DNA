@@ -530,6 +530,306 @@ HEAD b4ee380, source tree clean, tests 114/114 (handoff claim — re-verify at f
   video cases, name-bar gestures, FX scopes/rows, autopilot confirm, quantize
   edge, taste calls, Syphon, cert). App left healthy: 1 deck, 2 staged clips,
   history [Drop,Drop], 119fps.
+- 2026-07-30 PM2: **NAME-BAR GEOMETRY CRACKED** (session resume, secondary slim;
+  autonomous item from handoff). Boot receiver-verify: app HEALTHY (PID 68430,
+  117fps, port 7070 — NB health/API port is 7070), composition intact from PM
+  close; cert STILL ABSENT (0 identities) — order-flip stands (sitting first,
+  cert after). Explore scout mapped the full drive surface, file:line-cited →
+  `.harmony/scout-namebar-geometry.md`: name bar = BOTTOM 20px of 90x96 cell
+  (safe point cell-local 45,86); cell x=250+col*90, y=displayRow*96 with
+  displayRow = numLayers-1-layerIndex (INVERTED); drag = name-bar mouseDown +
+  >5px continuous held drag (JUCE kills synthetic drags lacking either);
+  drag pushes SwapClipsCmd, label "Move Clip"/"Swap Clips"; Clip>Clear = menu
+  idx 5 first item, HANDLER-gated on selection (silent no-op unselected —
+  same class as queue candidate 5), label "Clear Clip". NEW LATENT FINDING →
+  queue candidate (8): fold-height MIRROR-INDEX bug — layoutGrid row-height
+  loop uses deck->getLayer(displayRow) (DeckView.cpp:274) where every sibling
+  loop mirrors the index; any folded layer skews ALL cell Y coords (product
+  bug, not just driver hazard). Drive guard: all layers unfolded first.
+  DRIVE STOOD DOWN: HID idle <1s = human live at the machine (state drifted
+  in-session: cols 14→12, 7 clips staged, playback active) — no synthetic
+  events into an occupied seat. OBSERVED ANOMALY (unverified, live-use noise
+  possible) → queue candidate (9): BOTH layers' activeClipColumn point at
+  empty/nonexistent cells (L0→col7 no clip object; L1→col8 empty stub) right
+  after column count dropped 14→12 — stale-active-after-column-removal
+  hypothesis; family of candidates (6)/(7). One sitting glance: does a playing
+  highlight sit on an empty cell?
+- 2026-07-30 PM3: **BORIS SITTING COMPLETE** (results annotated per-item in
+  undo-v1-manual-e2e.md runsheet). Scoreboard: PASS ×6 (drops incl. all 3
+  race-lucky re-runs + mixed-batch known-bug behavior; video-replace worst-class
+  CLEAR; Clip>Clear; autopilot menu-frozen; ignore-column-trigger; drag-move*),
+  *drag-move with CHECKLIST CORRECTION (drag can't create columns — drop target
+  = existing cells only; column-count clause was a drop-path expectation; undo-
+  restore confirmation pending as single-item follow-up). PARTIAL ×1: FX — layer
+  scope via LAYER WINDOW works + undoes, but channel-strip drop NOT accepted,
+  COMPOSITION (global) window drop NOT accepted; delete/bypass/multi-select
+  untested. BLOCKED ×2: quantize edge (clicking a playing cell is IGNORED — no
+  UI retrigger path; design question: Boris expects restart) · MilkDrop (empty
+  browser) → **BORIS GREENLIGHT: default-preset-dir + crash-#2 mini-lane
+  DISPATCHED** (builder, background). CERT RESOLVED: Boris created it correctly;
+  failure was CSSMERR_TP_NOT_TRUSTED (self-signed root untrusted) — Harmony
+  added user-domain trust (add-trusted-cert -p codeSign, no sudo needed) → 1
+  VALID identity. Next: builder lands → Reviewer → cert RECONFIGURE + rebuild +
+  relaunch + ONE final Allow → Boris retests item 9. NEW BUG FAMILY (sitting):
+  (A) X-clear on playing clip → gone from strip, OUTPUT KEEPS PLAYING
+  (model/renderer desync — invisible to /api/composition, explains why PM drive
+  passed clears); (B) autopilot lands on a CLEARED empty cell; (C) = candidate
+  (9) stale activeClipColumn — unified hypothesis: CLEAR paths don't purge
+  runtime refs (renderer content, autopilot pool, active pointers). Triage
+  scout dispatched (read-only) on: FX drop-target wiring/intent, retrigger-
+  ignored guard, file-browser Desktop-open + list-button slowness (new perf
+  issue), clear-path runtime-ref purge points. PROCESS RULE (Boris directive):
+  taste/perceptual checks go to Boris ONE ITEM PER ASK — never batched (item 10
+  batching rejected; remaining taste calls queued as singles).
+- 2026-07-30 PM4: **TRIAGE SCOUT LANDED** — all 4 sitting findings root-caused,
+  full cited report → `.harmony/scout-sitting-triage.md`. Verdicts: (Q1) FX
+  drops — LayerStrip NOT-WIRED (no DragAndDropTarget); composition/global
+  WIRED-BUT-~20px-target (empty stack collapses, EffectStackView.cpp:234);
+  fix = panel-level target on CompositionInspector mirroring
+  LayerInspector.cpp:977-1000. (Q2) retrigger-of-active EMERGENT no-op —
+  branch runs (Layer.h:225-235) but writes model playhead only; renderer
+  clobbers it every frame (Renderer.cpp:923); real restart needs player
+  seekTo; queued-trigger clear DOES fire silently (Layer.h:223) — quantize
+  runsheet item is behaviorally UNOBSERVABLE in UI, not broken. (Q3)
+  file-browser slowness = sync FULL-RES image decode per file on message
+  thread, zero cache (FilesBrowser.cpp:408-441,:491-502); List button re-runs
+  whole decode pass and never draws thumbnails (:358-359 vs :270-288). (Q4)
+  clear-path = TWO roots: (a) X-clear never purges renderer
+  (activeSourceType_ stays live → shader keeps rendering; 4-line fix = lift
+  MainComponent.cpp:2972-2979 purge into onLayerClearClip :678); (b)
+  kClipClear writes Clip{} not nullopt (:3852) → blank cell has_value() →
+  autopilot picks it (Autopilot.cpp:205+) + stale activeClipColumn = sitting
+  bugs (b)+(c) explained; NB fixing (b) touches clear-command undo contract —
+  lane-pattern care. FIX MENU to Boris (priority call his): A = clear-path
+  renderer purge + blank-cell fix (his most-felt bugs) · B = CompositionInspector
+  drop target (tiny) · C = FilesBrowser cache/async/list-skip (perf) · D =
+  retrigger-restart (DESIGN ruling first) · LayerStrip-as-FX-target (product
+  ruling). Disambiguator question sent (shader vs video kept playing).
+- 2026-07-30 PM5: **MILKDROP MINI-LANE BUILD-COMPLETE** (commit 9229f87, local).
+  Builder findings: (a) crash #2 — every path to the reported symbol was
+  ALREADY guarded at HEAD; the one PROVEN null-deref was in selectPreset()
+  (:825-835 unguarded getPreset after guarded setCurrentIndex) — fixed;
+  getCuratedPresets/getPresetsForSection hardened to null-OR-empty guards
+  (INFERRED-DEFENSIVE — exact .ips mechanism UNCONFIRMED; crashed binary UUID
+  unmatchable, static analysis exhausted; if it recurs → ASan debug build).
+  (b) preset-dir — pure BUILD-SYSTEM gap: MainComponent :1301-1318 wiring was
+  always correct; nothing copied resources/projectm_presets (30 .milk +
+  manifest) into the bundle, and the CWD fallback never fires on Finder/open
+  launches. Fix = CMake POST_BUILD copy_directory registered before codesign.
+  No new automated test (no GUI-capable test target exists; flagged for
+  Reviewer weigh-in). Receiver-verified on disk: commit + 31 bundle items +
+  still-adhoc signature (expected). IN FLIGHT: independent Reviewer on the
+  commit + cert RECONFIGURE+rebuild (background) — then relaunch + Boris's
+  ONE final Allow + behavioral gate (health, browser populated, SignalBar
+  arrow probe) + Boris retests runsheet item 9.
+- 2026-07-30 PM6: **MILKDROP LANE BEHAVIORAL GATE — PASS (Harmony-run); ZERO
+  ALLOW CLICKS NEEDED.** Sequence + findings: (1) relaunch #1 overlapped the
+  OLD instance CRASHING ON QUIT (NEW pre-existing bug → queue candidate (10):
+  shutdown-path SIGBUS, destructor chain MainComponent→EffectsRackPanel→
+  Label→Value teardown, .ips 2026-07-30-125725, EXC_ARM_DA_ALIGN — triggered
+  by graceful osascript quit of the 07-28-era binary; any graceful quit runs
+  this path); that overlap left instance #1 with "No audio device found"
+  (CoreAudio enumerated mid-crash) + slow ApiServer accept. (2) SIGKILL'd
+  instance #1 deliberately (skips the crashy destructors, no state to lose),
+  clean relaunch → PID 57673 HEALTHY: 119fps, tempo LOCKED, full audio
+  pipeline live, and — headline — **mic permission INHERITED by the
+  cert-signed binary, NO TCC prompt** (cert promise exceeded: zero clicks, not
+  one). (3) Gate results: browser POPULATED on open (Curated: Energetic 9 +
+  Psychedelic 9 + more, manifest moods working) = fix (b) PASS; SignalBar
+  arrow probe — the EXACT 07-28 crash gesture — app SURVIVED the full expand
+  cascade at 116fps, no .ips = crash-family path behaviorally exercised.
+  Tests 176/176 re-run by Harmony (not builder-claimed). Reviewer still in
+  flight — lane close waits on verdict. RESIDUE (cosmetic, honest): SignalBar
+  left in EXPANDED mode — 3 arrow-click attempts + View>Reset Layout all
+  failed to cycle it back (Reset Layout does NOT govern SignalBar mode —
+  itself a finding); one click from Boris (he knows the control). Boris still
+  owns: item 9 retest (preset drag + playlist drop + Cmd+Z).
+- 2026-07-30 PM7: **MILKDROP MINI-LANE CLOSED.** Reviewer APPROVE (0 blocking;
+  independently re-traced all 26 presetManager_ call sites, POST_BUILD
+  ordering, bundle path vs MainComponent:1304-1306). Verify-split complete:
+  builder built (9229f87) · Reviewer read source · Harmony ran behavioral gate
+  (PM6). 2 non-blocking nits queued as RIDERS for the next builder dispatch:
+  (i) one-line CMake comment noting copy_directory doesn't delete stale
+  bundle presets; (ii) note that copy-before-codesign ordering is
+  position-enforced only. Reviewer suggestion parked: null-manager regression
+  unit test IF a headless JUCE test target ever exists. Boris residue
+  unchanged: item 9 retest + SignalBar collapse + 2 pending yes/nos + fix-menu
+  priority call (A recommended).
+- 2026-07-30 PM8: **FIX LANE A DISPATCHED** (Boris "continue working" = go on
+  recommended order; D still parked on his design ruling). Scope: A1 X-clear
+  renderer purge w/ explicit global-source OWNERSHIP rule (per-layer clear vs
+  global activeSourceType_ edge in the packet); A2 kClipClear truly-empty
+  cells + activeClipColumn reset + sibling clear-path audit + undo
+  exact-restore proven by new tests; riders = 2 reviewer CMake nits. Serial
+  lanes (shared build dir): B (CompositionInspector drop target) → C
+  (FilesBrowser perf) after A closes. PARALLEL (read-only): shutdown-crash
+  scout on .ips 2026-07-30-125725 (candidate 10) — diagnosis only, fix awaits
+  Boris nod. GATE PLAN for A (machine-free required): stage clip via MilkDrop
+  preset drag (browser now populated — internal JUCE drag, mouse tool) →
+  thumbnail-trigger → verify output motion (2 captures diff) → strip-X click →
+  motion MUST stop + /api/composition activeClipColumn=-1 → Clip>Clear on a
+  staged cell → /api shows cell EMPTY (no blank stub) → Cmd+Z exact-restore →
+  BONUS: drag-move staged clip + Cmd+Z closes runsheet item 3 without Boris.
+- 2026-07-30 PM9: **LANE A BUILD-COMPLETE + SHUTDOWN CRASH ROOT-CAUSED.**
+  (1) clearpath-builder a718572: A1 rescan-or-purge ownership rule (factored
+  refreshPreviewFromActiveClip mirroring handleColumnTrigger tail — no new
+  bookkeeping state, cannot blank another layer's visual); A2 Deck::clearCell
+  → genuine nullopt (SetClipCmd already supported it), activeClipColumn reset
+  via ClearActiveClipCmd child in SAME composite, sibling clear paths audited
+  (already-correct, untouched); riders in. Tests 177/177 (builder + my rerun).
+  Builder judgment call ACCEPTED: renderer refresh extended to kClipClear
+  (avoids reopening root-a via its new clearActiveClip call). Known residual
+  (pre-existing, flagged): rescan handles Image/Source only (Video/ImageSeq
+  omitted — matches handleColumnTrigger's existing scope). Reviewer IN FLIGHT.
+  BEHAVIORAL GATE BLOCKED: HID idle 34s = Boris at machine — relaunch+drive
+  parked until machine free or his go. (2) shutdown-crash scout (candidate 10)
+  → `.harmony/scout-shutdown-sigbus.md`: single-word corruption in a live
+  Label discovered at teardown (odd shared_ptr ctrl pointer = ALIGN trap,
+  byte-verified); writer unidentified; 2 candidate writers found (UNSYNCED
+  cross-thread EffectChain init-vs-timer — 8bd09ba family; compacted-index
+  bug EffectsRackPanel.cpp:472); smallest fixes: detach GL renderer at TOP of
+  ~MainComponent (1 line) + fence initEffectChain + bounds-check :472; verify
+  via ASan variant (repo has none) / malloc-guard env interim. CORRECTION to
+  PM6: crash is state/timing-dependent, not every-quit. Fix lane = Boris
+  decision (candidate 10 now fully scoped).
+- 2026-07-30 PM10: **LANE A REVIEW: APPROVE-WITH-NOTES → FIX ROUND DISPATCHED
+  (R3, warm builder).** HIGH finding: kLayerClearClips :3749-3781 +
+  kDeckClearClips :3680-3710 miss the refreshPreviewFromActiveClip companion —
+  A1 symptom reproducible via those menu paths; builder's "already correct"
+  audit was true ONLY for the A2 angle. Reviewer VERIFIED the big risks:
+  rescan method byte-identical to handleColumnTrigger tail; Video/ImageSeq
+  rescan omission INERT (video is compositor-owned, fallback never renders
+  it); undo composite fence-conformant (SetClipCmd fenced, ClearActiveClipCmd
+  field-only unfenced per convention), transient mid-undo window harmless +
+  pre-existing shape; tests non-tautological. Plan: builder patches 2 sites →
+  reviewer delta-check (warm) → Harmony behavioral gate (still parked on
+  machine-free) covers X-clear + Clip>Clear + Clear-Layer/Deck stale-render
+  scenarios + item-3 drag-move closeout.
+  FIX ROUND LANDED: 20fe75d, +11 additive-only (verified via show --stat),
+  both sites patched (deck: once post-loop pre-rebuildGrid; layer: inside
+  snapshot-has-content guard), 177/177 re-run by Harmony. No new test —
+  accepted rationale: refreshPreviewFromActiveClip mutates previewPanel_/
+  outputWindow_ (GL components), no headless target links MainComponent.
+  Reviewer delta-check dispatched. Gate still parked (HID 43s, Boris active).
+- 2026-07-30 PM11: **LANE A SOURCE-CLOSED** — delta-check APPROVE (both
+  placements airtight: deck call post-loop sufficient — helper rescans all
+  layers; layer call same-guard as clearActiveClip — no skip path; additive-
+  only confirmed; no-test rationale verified against tests/CMakeLists.txt).
+  Lane A = a718572 + 20fe75d, source fully approved; REMAINING: Harmony
+  behavioral gate (machine-parked). **LANE B DISPATCHED** (build dir free —
+  A is committed+built): CompositionInspector panel-level DragAndDropTarget
+  mirroring LayerInspector.cpp:977-1000, forward-to-stack only (no second
+  add-path), report-only sweep on multi-select-FX undo entry count (runsheet
+  item 5 residue). LayerStrip-as-target still EXCLUDED (Boris product ruling
+  pending, single-item ask queued).
+- 2026-07-30 PM12: **LANE B BUILD-COMPLETE** (9c316e6, disk-verified 2 files
+  +43/-1, 177/177 my rerun): CompositionInspector = panel-level FX drop
+  target, LayerInspector mirror, forwards to existing stack path (no second
+  add-path); undo already pushed by shared EffectStackView::itemDropped.
+  SWEEP ANSWER (source-cited): multi-select FX drop = ONE undo entry ("Add N
+  Effects") on ALL scopes — one runFenced loop + single onPerformEdit
+  (EffectStackView.cpp:443-491) — closes runsheet item-5 sub-check at source
+  level (behavioral confirm folds into the gate). Reviewer on B dispatched
+  (warm, independent — built nothing). **LANE C DISPATCHED** (FilesBrowser
+  perf: list-mode zero-decode, path+mtime thumbnail cache, async decode w/
+  stale-job invalidation + teardown safety). Gate still parked (HID 69s).
+- 2026-07-30 PM13: **LANE B SOURCE-CLOSED** — review APPROVE 0 issues.
+  Notables verified: highlight-flag can never be true with null composition_
+  (isInterested gates itemDragEnter); no double-handling (nested
+  EffectStackView target wins deepest-first on direct hits — same shape as
+  Layer/Clip panels); onPerformEdit/fence wiring pre-existing via
+  InspectorPanel.cpp:145-156. A+B both await ONLY the Harmony behavioral gate
+  (machine-parked). Lane C building.
+- 2026-07-30 PM14: **CRASH #2 RESURFACED — LIVE, ON THE FIXED BINARY.** .ips
+  2026-07-30-132512: SIGSEGV KERN_INVALID_ADDRESS, Message Thread,
+  getCuratedPresets+128 ← paintGrouped ← paint, at 13:25:12 during Boris's
+  live use (likely item-9 MilkDrop testing); app relaunched 2s later (PID
+  66725). Binary 57673 INCLUDED 9229f87's guards ⇒ EMPTY-STATE THEORY DEAD —
+  crash is past the guards reading preset data with a valid count. Prime
+  suspect (per milkdrop-builder's flagged out-of-scope risk): raw
+  presetManager_ pointer into GL-owned ProjectMSource — dangling/mutated
+  while message thread paints; triggering a milkdrop clip may (re)create the
+  source. Correlates: 07-28 original crash (same symbol, layout-path read) +
+  shutdown-SIGBUS corruption theme = cross-thread writer family.
+  milkdrop-race-scout DISPATCHED (both .ips + lifetime map + fix ranking).
+  BORIS WARNED: hold off MilkDrop/item-9 testing until fixed; he's also on a
+  STALE binary (has A1 only — missing 20fe75d fix-round + lane B; launched
+  13:25:14, binary replaced 13:35+13:41).
+- 2026-07-30 PM15: **LANE C BUILD-COMPLETE** (8c746ab, disk-verified 5 files
+  +359/-14, 181/181 my rerun incl. 4 new ThumbnailCache unit tests).
+  Design: message-thread-only LRU cache (path+mtime key, cap 500, standalone
+  header — extracted per packet for headless testability); 2-thread
+  ThreadPool decode with generation-counter stale-job no-op; static
+  generateThumbnail (no this capture) + SafePointer-in-callAsync completion;
+  view toggle = flip+repaint only. Builder-flagged trade-off accepted:
+  fast-typing dup decode jobs (idempotent cache put, no correctness bug).
+  Reviewer dispatched — directed HARDEST at the teardown reasoning (member-
+  order "happens to" claim flagged as potentially fragile; this codebase just
+  had a teardown-corruption crash). PENDING: C review · milkdrop-race scout ·
+  combined A+B+C behavioral gate (machine still Boris-occupied, HID 53s).
+- 2026-07-30 PM16: **CRASH #2 TRUE ROOT CAUSE — DETERMINISTIC UAF, SOLVED.**
+  Scout report (disassembly-level, both .ips instruction-exact) →
+  `.harmony/scout-milkdrop-uaf.md`. Mechanism: preview-panel hide (SignalBar
+  EXPANDED, MainComponent.cpp:1727) or zero-size → SYNCHRONOUS GL detach on
+  message thread → openGLContextClosing → activeSources_.clear() → ProjectM
+  preset manager (by-value member) destroyed → browser's raw interior pointer
+  dangles (wired once, ctor) → any later browser repaint/layout = UAF.
+  Empty-state AND race theories DEAD (07-28 element ptr 0x1 = dead object,
+  guards unreachable-proof). 07-28 sitting stack fits EXACTLY; 07-30 arming
+  event INFERRED = Harmony's own 13:02 SignalBar probe (code path proven,
+  instance unobservable) — detonated in Boris's session at 13:25. Also
+  explains presets-vanish-after-expand/collapse (scan runs once). NEW queue
+  candidate (11): activeSources_ unordered_map mutated lock-free from 3
+  threads (message/GL/HTTP — TestServer.cpp:893) — separate hardening.
+  uaf-fix-builder DISPATCHED: scout fix #1 (keep releaseGL loop, delete the
+  clear(); 6 mandatory verifications incl. all-subclass dtor sweep +
+  shutdown-lane interaction). Gate recipe now includes: expand/collapse
+  SignalBar → browser repaint → presets INTACT (regression-proof for both
+  the crash and the vanish).
+- 2026-07-30 PM17: **LANE C REVIEW: APPROVE-WITH-NOTES → fix round (warm
+  builder).** Teardown design CONFIRMED sound vs JUCE source (ThreadPool dtor
+  = WaitableEvent poll not message-pump ⇒ queued callAsync can't fire
+  mid-teardown; SafePointer cross-thread copy safe, deref message-thread-only).
+  2 non-blocking: (i) pool-before-entries order is INCIDENTAL declaration
+  order + default dtor — fix round makes it EXPLICIT (drain pool in dtor body
+  + cross-referenced comments; per shutdown-sigbus doctrine); (ii) cache put
+  re-queries mtime at put-time — stale-content false-hit window; fix = capture
+  mtime at read, thread through. Reviewer also surfaced: view-toggle no longer
+  resets scroll (assessed UX IMPROVEMENT, kept). Boris re-warned: REAL crash
+  trigger = SignalBar expand / preview collapse (not MilkDrop per se).
+- 2026-07-30 PM18: **UAF FIX BUILT + GATE ATTEMPT ABORTED (Boris returned).**
+  76594fd disk-verified (+10/-2 Renderer.cpp only), 181/181 my rerun, all 6
+  builder verifications reported; reviewer dispatched. Gate: snapshotted
+  Boris's composition (1.1KB, near-empty → .harmony/boris-session-snapshot-
+  1430.json), SIGKILL stale 66725, relaunched → PID 91888 HEALTHY 120fps on
+  the FULLY-FIXED binary (A+B+C-initial+UAF). Then ABORT: first drive click
+  landed in Boris's Firefox (he returned silently; frontmost was his browser;
+  click hit a popup illustration, visibly no action). Root failure: stale HID
+  check + NO frontmost-app check → gotchas rule (11) SYNTHETIC-CLICK PREFLIGHT
+  added (same-command fresh HID + frontmost=Audio-DNA, else abort). Gate
+  scenarios (UAF arrow replay, X-clear stop, Clip>Clear empty+undo, comp-panel
+  FX drop, FilesBrowser timing, item-3 drag-move) all PENDING next window.
+  NOTE: Boris's next app use is already on the fixed binary — SignalBar
+  warning DOWNGRADED (source-fixed, behaviorally unproven).
+- 2026-07-30 PM19: **UAF FIX SOURCE-CLOSED** — review APPROVE 0 issues
+  (exhaustive subclass sweep confirmed 2-type enumeration; presets-survive
+  mechanism traced end-to-end incl. by-value member address stability;
+  regression angles cleared: activeSources_ growth bounded by compile-time
+  ~90-id registry, outputTex_ has no accessor bypassing the !glInitialized_
+  gate). Crash #2 = FIXED at source (76594fd), behavioral replay pending gate.
+  DISAMBIGUATOR ASK DROPPED (shader-vs-video): moot — UAF diagnosis explains
+  the crashes; lane-A rescan-or-purge handles both media classes (video
+  compositor-owned). Boris's open items reduced to ONE: a machine window for
+  the combined gate (or his 30s self-test of the arrow replay).
+- 2026-07-30 PM20: **LANE C FIX ROUND LANDED** (9b74c7d, disk-verified 4
+  files +108/-28, 182/182 my rerun incl. new stale-mtime false-hit test).
+  Explicit dtor drain (named 5000ms constant) + cross-ref member comments;
+  mtime captured on pool thread at read-time, explicit-mtime put overload on
+  the async path. Delta-check dispatched (final). Running instance 91888
+  predates this commit — the eventual gate relaunch picks it up (teardown-
+  internal + cache-key only; behaviorally invisible otherwise). Builder noted
+  pre-existing unrelated warning (FileListContent::hitTest hides base) — not
+  touched, logged here for visibility.
 - 2026-07-28: SITTING crash #2 (separate subsystem): SignalBar arrow → layout
   cascade → MilkDropBrowser::getCuratedPresets null-deref (empty preset state;
   .ips 2026-07-28-190701). Queued as post-lane mini-lane candidate bundled with

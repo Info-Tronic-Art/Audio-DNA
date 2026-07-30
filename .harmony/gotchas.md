@@ -186,3 +186,22 @@ relocates deck tabs to the top — recapture coordinates after structural layout
 changes. Menu bar: Undo/Redo live in the COMPOSITION menu (no Edit menu).
 **Scope:** repo (recipes); the verify-and-retry synthetic-event protocol is universal-candidate
 **Promoted:** no
+**ADDENDUM 2026-07-30 PM:** (7) FULL-SCREEN captures (`screencapture -x` without
+-l): screen_pt = displayed_2000px_coord × 0.864 directly, NO +38 (menu bar
+included in frame — the +38 applies only to WINDOW-relative coords from -l
+captures). (8) Brightness-heuristic verification of layout state LIES (meter
+colors defeat it) — always eyeball the capture for layout claims. (9) SignalBar
+mode is NOT governed by View>Reset Layout; the ▲▼ cycler is a ~15px target and
+resisted 3 synthetic click attempts in expanded mode — leave restoring it to a
+human rather than looping. (10) Graceful quit (osascript/TERM) traverses a teardown
+path that DISCOVERS latent heap corruption (shutdown SIGBUS was single-word
+damage in a live Label, state/timing-dependent — NOT an every-quit crash; see
+scout-shutdown-sigbus.md). SIGKILL for disposable instances remains the right
+call: skips the discovery path, no misleading .ips. (11) SYNTHETIC-CLICK
+PREFLIGHT (MANDATORY, learned 07-30 the hard way — a click landed in the
+user's Firefox): immediately before EVERY synthetic event burst, in the SAME
+command, check (a) HID idle is fresh-high AND (b) frontmost app is Audio-DNA:
+`osascript -e 'tell application "System Events" to get name of first process
+whose frontmost is true'`. A stale idle check (even 2 min) is worthless — the
+user can return silently; HID-idle alone also fails while the user is READING.
+If frontmost ≠ Audio-DNA → abort the burst entirely.

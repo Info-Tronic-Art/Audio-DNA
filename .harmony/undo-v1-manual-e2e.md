@@ -10,26 +10,52 @@ Driver: Accessibility-granted synthetic UI (CGEvent clicks/drags + System Events
 menus/keys, verify-and-retry; oracles = /api/composition + Composition-menu
 labels + window captures). **~130 mutations across every crash-family path under
 active GL render — ZERO crashes** (fps 114-120 throughout, .ips unchanged).
-Most items below now carry dated PASS notes. **REMAINING = this runsheet (~15-20 min):**
+Most items below now carry dated PASS notes.
+**SITTING RUN 2026-07-30 (Boris hands) — results per item:**
 1. External Finder drops: multi-video near RIGHT EDGE, multi-FX far, multi-SOURCE
    (race-lucky re-runs) + mixed video+image batch (known discard bug)
+   → **PASS 2026-07-30 Boris** (all three race-lucky re-runs confirmed; mixed
+   batch behaved per known discard bug — fix still queued).
 2. Video: video→video replace → undo → OLD video visibly plays · undo while a
-   video plays
+   video plays → **PASS 2026-07-30 Boris** (worst-class silent-wrong-video CLEAR).
 3. Drag-move a clip to a far column → Cmd+Z (start the drag from the cell NAME
-   BAR — bottom ~20px; a thumbnail-drag TRIGGERS instead)
-4. Clip > Clear: name-bar click to select, then the menu (wired, source-proven —
-   driver can't hit the 20px band)
-5. FX: layer + global scope drops · delete-FX · FX bypass · multi-select FX
-   drop = ONE undo entry
-6. Autopilot ON with clips visibly cycling → Composition menu stays frozen
-7. Quantize/beat-snap: queue a trigger on another column, retrigger active cell
-   → the queued-trigger clear pushes ONE entry
-8. Column trigger vs a layer with "Ignore Column Trigger" checked
-9. MilkDrop single + playlist drop (browser empty until default-preset-dir fix)
-10. 👁 taste: torn-frame feel · #16-18 double-apply feel · deck-tab highlight
-    lag · inspector-clear UX · zero-layer Deck-New intent · NEW: preview keeps
-    animating the old deck's clip while an empty deck is active — intended?
-11. Syphon lane + the codesign cert step (Keychain), unchanged.
+   BAR) → **PASS* 2026-07-30 Boris, with CHECKLIST CORRECTION: drag-move canNOT
+   create new columns (drop target = existing ClipCell only, ClipCell.cpp:365-370)
+   — the "column count restore" clause was a drop-path expectation wrongly
+   carried over; N/A for drag-move. *Cmd+Z-restores-both-cells confirmation
+   pending (single-item follow-up sent).**
+4. Clip > Clear via name-bar select + menu → **PASS 2026-07-30 Boris.**
+5. FX: layer + global scope drops · delete-FX · FX bypass · multi-select =
+   ONE entry → **PARTIAL 2026-07-30 Boris: layer-scope drop works via LAYER
+   WINDOW (Cmd+Z OK). NEW FINDINGS: (a) FX drop on the layer CHANNEL STRIP not
+   accepted; (b) FX drop on the COMPOSITION (global) window not accepted —
+   global-scope drop path missing or different gesture. delete-FX / bypass /
+   multi-select-one-entry UNTESTED (blocked on drop mechanics).**
+6. Autopilot ON, clips cycling, menu frozen → **PASS 2026-07-30 Boris.**
+7. Quantize edge (retrigger active cell clears queued trigger → ONE entry)
+   → **BLOCKED 2026-07-30 Boris: clicking a cell with video playing is IGNORED
+   (no retrigger, playback continues) — UI retrigger of active cell unreachable;
+   design question queued (Boris expects a restart).**
+8. Column trigger vs Ignore-Column-Trigger layer → **PASS 2026-07-30 Boris.**
+9. MilkDrop single + playlist drop → **BLOCKED: browser starts empty (no default
+   preset auto-load). BORIS GREENLIGHT 2026-07-30: build the default-preset-dir
+   auto-load + crash-#2 fix, he retests after.**
+10. 👁 taste calls → **ONE BUG FOUND 2026-07-30 Boris: X-clear on a PLAYING clip
+    removes it from the channel strip but OUTPUT KEEPS PLAYING (renderer not
+    stopped — model/renderer desync, invisible to /api/composition).
+    Remaining taste calls NOT run — Boris directive: deliver as SINGLE items,
+    one per ask, not batched.**
+11. Cert → **DONE 2026-07-30: Boris created "Audio-DNA Dev" correctly; Harmony
+    added the missing self-signed-root trust (CSSMERR_TP_NOT_TRUSTED →
+    add-trusted-cert user-domain, -p codeSign) → 1 valid identity. Syphon
+    unchanged/pending.**
+
+**NEW ISSUES from sitting (untriaged → ledger queue):**
+- App file-browser: opening the Desktop folder is VERY SLOW; same slowness on
+  the "list" button (likely sync thumbnail/scan on the UI path).
+- Autopilot lands on a seemingly EMPTY cell — even after Boris cleared it
+  (pairs with X-clear-keeps-playing + stale activeClipColumn: clear paths
+  appear to leave runtime/pool references behind).
 
 ## 0. Preconditions (must pass first)
 
