@@ -270,7 +270,7 @@ OutputWindow::OutputWindow(FeatureBus& featureBus,
 
     // Add the output component directly as a child (not via content component,
     // which can leave gaps). We manage its bounds in resized().
-    addAndMakeVisible(outputComponent_);
+    Component::addAndMakeVisible(outputComponent_);
     setWantsKeyboardFocus(true);
 
     renderer_.attachTo(outputComponent_);
