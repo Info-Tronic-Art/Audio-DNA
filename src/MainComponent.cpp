@@ -3504,7 +3504,17 @@ void MainComponent::handleDeckSwitch(int deckIndex)
     composition_.activeDeckIndex = deckIndex;
 
     // Update renderer's active deck pointer
-    previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
+    auto* deck = composition_.getActiveDeck();
+    previewPanel_.getRenderer().setActiveDeck(deck);
+
+    // setActiveDeck only repoints the compositor's deck pointer — the
+    // renderer's fallback preview state (activeSourceType_ / loaded image)
+    // is global and untouched by it, so an empty newly-active deck kept
+    // showing the previous deck's clip (see refreshPreviewFromActiveClip's
+    // ownership rule above: reconcile the fallback after any switch that can
+    // change what the active deck actually has to show).
+    if (deck)
+        refreshPreviewFromActiveClip(*deck);
 
     if (deckView_)
         deckView_->rebuildGrid();
