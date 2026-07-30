@@ -133,6 +133,13 @@ public:
     // "Syphon Output" menu item. MainComponent wires this.
     std::function<bool()> isSyphonOutputEnabled;
 
+    // Returns whether the Clip menu's selection-dependent items (Clear,
+    // Replace Content..., Lock Content) have a cell to act on. MainComponent
+    // wires this to the same deckView_ selection check the command handlers
+    // already guard on, so the menu no longer offers actions that silently
+    // no-op with nothing selected. Read live each time the menu opens.
+    std::function<bool()> hasClipSelection;
+
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioDNAMenuBar)
 };

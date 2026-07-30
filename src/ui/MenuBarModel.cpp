@@ -114,10 +114,11 @@ juce::PopupMenu AudioDNAMenuBar::getMenuForIndex(int menuIndex,
 
         case 5: // Clip
         {
-            menu.addItem(kClipClear,        "Clear",                   true, false);
+            const bool hasSelection = hasClipSelection && hasClipSelection();
+            menu.addItem(kClipClear,        "Clear",                   hasSelection, false);
             menu.addSeparator();
-            menu.addItem(kClipReplaceContent, "Replace Content...",    true, false);
-            menu.addItem(kClipLockContent,    "Lock Content",          true, false);
+            menu.addItem(kClipReplaceContent, "Replace Content...",    hasSelection, false);
+            menu.addItem(kClipLockContent,    "Lock Content",          hasSelection, false);
             break;
         }
 

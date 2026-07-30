@@ -1387,6 +1387,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
     menuBarModel_ = std::make_unique<AudioDNAMenuBar>();
     menuBarModel_->onMenuCommand = [this](int cmdId) { handleMenuCommand(cmdId); };
     menuBarModel_->isSyphonOutputEnabled = [this]() { return syphonOutput_.isEnabled(); };
+    menuBarModel_->hasClipSelection = [this]() {
+        return deckView_ && !deckView_->getSelectedCells().empty();
+    };
 
     // Undo/Redo menu state: dynamic "Undo <description>" text + enabled flags,
     // and rebuild the native menu whenever history changes.
