@@ -93,6 +93,18 @@ std::string UndoManager::redoDescription() const
     return history_[static_cast<size_t>(currentIndex_)]->description();
 }
 
+bool UndoManager::undoAffectsLayerOrder() const
+{
+    if (!canUndo()) return false;
+    return history_[static_cast<size_t>(currentIndex_ - 1)]->affectsLayerOrder();
+}
+
+bool UndoManager::redoAffectsLayerOrder() const
+{
+    if (!canRedo()) return false;
+    return history_[static_cast<size_t>(currentIndex_)]->affectsLayerOrder();
+}
+
 void UndoManager::clear()
 {
     history_.clear();

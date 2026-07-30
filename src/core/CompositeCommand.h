@@ -44,6 +44,17 @@ public:
 
     std::string description() const override { return description_; }
 
+    // Aggregates children: true if any child affects layer order (P24.13 —
+    // see Command::affectsLayerOrder). A composite that bundles a layer
+    // reorder with other edits still needs the DeckView selection cleared.
+    bool affectsLayerOrder() const override
+    {
+        for (const auto& child : children_)
+            if (child->affectsLayerOrder())
+                return true;
+        return false;
+    }
+
 private:
     std::string description_;
     std::vector<std::unique_ptr<Command>> children_;

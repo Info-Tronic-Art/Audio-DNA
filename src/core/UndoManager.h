@@ -27,6 +27,15 @@ public:
     std::string undoDescription() const;
     std::string redoDescription() const;
 
+    // P24.13: whether the command about to be undone/redone reorders a
+    // deck's layers (Command::affectsLayerOrder) — mirrors undoDescription/
+    // redoDescription exactly, but as a structural flag instead of a
+    // stringly-typed description match, so callers (MainComponent's undo/
+    // redo call sites) can decide whether to clear a coordinate-addressed UI
+    // selection without matching on display text.
+    bool undoAffectsLayerOrder() const;
+    bool redoAffectsLayerOrder() const;
+
     // Clear all history.
     void clear();
 

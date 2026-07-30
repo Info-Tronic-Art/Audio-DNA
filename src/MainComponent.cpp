@@ -2223,13 +2223,13 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     {
         if (mod.isShiftDown())
         {
-            const auto desc = undoManager_.redoDescription();
-            if (undoManager_.redo()) refreshAfterUndoRedo(desc);
+            const bool movesLayer = undoManager_.redoAffectsLayerOrder();
+            if (undoManager_.redo()) refreshAfterUndoRedo(movesLayer);
         }
         else
         {
-            const auto desc = undoManager_.undoDescription();
-            if (undoManager_.undo()) refreshAfterUndoRedo(desc);
+            const bool movesLayer = undoManager_.undoAffectsLayerOrder();
+            if (undoManager_.undo()) refreshAfterUndoRedo(movesLayer);
         }
         return true;
     }
@@ -3507,7 +3507,7 @@ void MainComponent::pushClipEdits(int deckIndex, std::vector<CellEdit> edits,
     pushCommands(std::move(children), description);
 }
 
-void MainComponent::refreshAfterUndoRedo(const std::string& processedDescription)
+void MainComponent::refreshAfterUndoRedo(bool affectsLayerOrder)
 {
     // Grid rebuild via the shared helper (active deck unchanged in step 2).
     undoService_.syncAfterModelChange(UndoService::SyncScope::Grid);
@@ -3519,11 +3519,14 @@ void MainComponent::refreshAfterUndoRedo(const std::string& processedDescription
     // comments there), just reached via Cmd+Z/Cmd+Shift+Z or the Composition
     // menu instead of the direct handler. Those handlers clear the multi-cell
     // clip selection right next to their own rebuildGrid(); mirror that here
-    // for the undo/redo direction. processedDescription is captured by the
-    // caller BEFORE calling undo()/redo() (via undoDescription()/
-    // redoDescription() for the matching direction), so it names exactly the
-    // command that was just processed — not an unrelated neighbor in history.
-    if (deckView_ && (processedDescription == "Move Layer Up" || processedDescription == "Move Layer Down"))
+    // for the undo/redo direction. affectsLayerOrder is Command::
+    // affectsLayerOrder() of the command that was just processed, captured by
+    // the caller via undoManager_.undoAffectsLayerOrder()/
+    // redoAffectsLayerOrder() (matching direction) BEFORE calling undo()/
+    // redo() — a structural flag rather than a stringly-typed description
+    // match, so it can't misfire on an unrelated command that happens to
+    // share display text with a layer move.
+    if (deckView_ && affectsLayerOrder)
         deckView_->clearSelection();
 
     // Re-point the clip inspector BY COORDINATE (the currently selected cell)
@@ -3757,14 +3760,14 @@ void MainComponent::handleMenuCommand(int commandId)
         // --- Composition menu ---
         case C::kCompUndo:
         {
-            const auto desc = undoManager_.undoDescription();
-            if (undoManager_.undo()) refreshAfterUndoRedo(desc);
+            const bool movesLayer = undoManager_.undoAffectsLayerOrder();
+            if (undoManager_.undo()) refreshAfterUndoRedo(movesLayer);
             break;
         }
         case C::kCompRedo:
         {
-            const auto desc = undoManager_.redoDescription();
-            if (undoManager_.redo()) refreshAfterUndoRedo(desc);
+            const bool movesLayer = undoManager_.redoAffectsLayerOrder();
+            if (undoManager_.redo()) refreshAfterUndoRedo(movesLayer);
             break;
         }
         case C::kCompNew:

@@ -22,4 +22,14 @@ public:
     // of the same type (e.g., consecutive slider drags).
     virtual bool canMergeWith(const Command& /*other*/) const { return false; }
     virtual void mergeWith(const Command& /*other*/) {}
+
+    // Whether this command reorders a deck's layers (Deck::moveLayer). A
+    // layer reorder shifts indices with the layer count unchanged, so any
+    // coordinate-addressed UI selection captured before the move can end up
+    // silently naming a DIFFERENT layer afterward. UI layers that hold a
+    // multi-cell selection (DeckView) use this to know when a just-executed/
+    // undone/redone command requires clearing that selection, without a
+    // stringly-typed description match. Default false; overridden by
+    // MoveLayerCmd (true) and CompositeCommand (aggregates its children).
+    virtual bool affectsLayerOrder() const { return false; }
 };

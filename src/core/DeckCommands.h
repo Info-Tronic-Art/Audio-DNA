@@ -514,6 +514,9 @@ public:
     void undo() override    { runFenced([this] { move(toIndex_, fromIndex_); }); }
     std::string description() const override { return description_; }
 
+    // P24.13: this command IS a layer reorder — see Command::affectsLayerOrder.
+    bool affectsLayerOrder() const override { return true; }
+
 private:
     void move(int from, int to)
     {
