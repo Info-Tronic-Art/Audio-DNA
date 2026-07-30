@@ -8,6 +8,8 @@
 #include "core/DeckCommands.h"
 #include "core/MediaReconnect.h"
 
+static uint32_t s_nextClipId = 1000;
+
 MainComponent::MainComponent(bool testMode, int testPort)
     : testMode_(testMode), testPort_(testPort)
 {
@@ -909,6 +911,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
                     deck->numColumns = targetCol + 1;
 
                 Clip clip;
+                clip.id = s_nextClipId++;
                 clip.name = sourceIds[si].toStdString();
                 clip.mediaType = Clip::MediaType::Source;
                 clip.sourceType = sourceIds[si].toStdString();
@@ -1036,6 +1039,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
         // Create a projectM source clip with the preset path stored
         Clip clip;
+        clip.id = s_nextClipId++;
         clip.name = juce::File(presetPath).getFileNameWithoutExtension().toStdString();
         clip.mediaType = Clip::MediaType::Source;
         clip.sourceType = "projectm_visualizer";
@@ -1094,6 +1098,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
         std::optional<Clip> before = snapshotCell(layer, col);
 
         Clip clip;
+        clip.id = s_nextClipId++;
         clip.name = "MilkDrop Playlist (" + std::to_string(presetPaths.size()) + ")";
         clip.mediaType = Clip::MediaType::Source;
         clip.sourceType = "projectm_visualizer";
@@ -1267,6 +1272,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
 
         // Create a source clip with parameters from registry
         Clip clip;
+        clip.id = s_nextClipId++;
         clip.name = sourceId.toStdString();
         clip.mediaType = Clip::MediaType::Source;
         clip.sourceType = sourceId.toStdString();
@@ -3174,8 +3180,6 @@ void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
         fileLabel_.setText("", juce::dontSendNotification);
     }
 }
-
-static uint32_t s_nextClipId = 1000;
 
 // === Undo command construction helpers (Undo v1 step 2) ===
 
