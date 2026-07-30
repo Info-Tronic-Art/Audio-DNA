@@ -667,10 +667,18 @@ void Renderer::renderOpenGL()
 
 void Renderer::openGLContextClosing()
 {
-    // Release all active procedural sources
+    // Release all active procedural sources' GL resources, but do NOT destroy
+    // the source objects themselves (do not activeSources_.clear() here).
+    // MilkDropBrowser::presetManager_ holds a raw interior pointer into
+    // ProjectMSource's by-value ProjectMPresetManager (wired once at
+    // MainComponent construction); destroying the source here left that
+    // pointer dangling on the very next context close (e.g. previewPanel_
+    // hide/resize triggers a synchronous JUCE GL detach), causing a
+    // use-after-free on the next browser paint/resize. Sources now survive
+    // context close and lazily reinit their GL state on next render() via the
+    // !glInitialized_ gate (see ProceduralSource::render, ProjectMSource::render).
     for (auto& [id, src] : activeSources_)
         src->releaseGL();
-    activeSources_.clear();
 
     // Release all video player GL textures
     {
