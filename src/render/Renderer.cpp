@@ -1422,6 +1422,19 @@ void Renderer::compileShaderWithUtils(const juce::String& name, const char* frag
 
 void Renderer::initEffectChain()
 {
+    // newOpenGLContextCreated() (which calls this) re-fires whenever the GL
+    // context is closed and recreated during the app's life — e.g.
+    // previewPanel_ hide/zero-size triggers a synchronous JUCE GL detach on
+    // the message thread (see openGLContextClosing()), and the next
+    // attach/resize recreates the context. Effects are plain CPU-side data
+    // (no GL handles — see Effect.h), so they must be populated exactly
+    // ONCE: re-running this on every recreation would silently duplicate
+    // every effect in effectChain_ (EffectsRackPanel indexes effects_ by
+    // position, so duplicates corrupt its UI and leak) each time the cycle
+    // repeats. Guard against re-population.
+    if (effectChain_.getNumEffects() > 0)
+        return;
+
     // Load ALL effects from the EffectLibrary, organized by category
     // Effects are added in category order: warp, color, glitch, blur
     effectLibrary_.registerDefaults();

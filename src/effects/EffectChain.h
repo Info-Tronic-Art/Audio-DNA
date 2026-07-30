@@ -9,6 +9,7 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
+#include <mutex>
 
 // EffectChain: manages an ordered list of Effects and renders them
 // using ping-pong FBOs.
@@ -25,12 +26,14 @@ class EffectChain
 public:
     EffectChain() = default;
 
-    // Add an effect to the chain (takes ownership)
+    // Add an effect to the chain (takes ownership). Thread-safe — see
+    // effectsMutex_ below.
     void addEffect(std::unique_ptr<Effect> effect);
 
-    // Get effect by index
+    // Get effect by index. Thread-safe.
     Effect* getEffect(int index);
-    int getNumEffects() const { return static_cast<int>(effects_.size()); }
+    // Thread-safe (out-of-line: takes effectsMutex_; see EffectChain.cpp).
+    int getNumEffects() const;
 
     // Render the full chain:
     //   - inputTexture: the loaded image texture
@@ -77,6 +80,20 @@ private:
 
     const FeatureSnapshot* latestSnapshot_ = nullptr;
 
+    // effects_ is structurally mutated by addEffect() (called from
+    // Renderer::initEffectChain() on the GL thread) and read from the GL
+    // thread (render(), adaptive-quality/profile scans in Renderer.cpp),
+    // the message thread (EffectsRackPanel's 10Hz timer, PresetManager),
+    // and HTTP worker threads (ApiServer/TestServer effect-chain queries)
+    // with no prior synchronization — a data race on vector push_back vs.
+    // concurrent size()/operator[] reads. effectsMutex_ guards every access
+    // to effects_ (addEffect/getEffect/getNumEffects, and the enabled-effect
+    // collection pass in render()). Effect* pointers obtained under the lock
+    // remain valid without holding it afterward: effects_ only ever grows
+    // (no removal API), and vector reallocation moves the unique_ptr
+    // handles, not the pointed-to Effect objects, so a stable Effect*
+    // survives a later addEffect() safely.
+    mutable std::mutex effectsMutex_;
     std::vector<std::unique_ptr<Effect>> effects_;
 
     // Previous frame texture for temporal effects (P13.2)

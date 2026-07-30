@@ -4,15 +4,23 @@ using namespace juce::gl;
 
 void EffectChain::addEffect(std::unique_ptr<Effect> effect)
 {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
     effect->setOrder(static_cast<int>(effects_.size()));
     effects_.push_back(std::move(effect));
 }
 
 Effect* EffectChain::getEffect(int index)
 {
+    std::lock_guard<std::mutex> lock(effectsMutex_);
     if (index >= 0 && index < static_cast<int>(effects_.size()))
         return effects_[static_cast<size_t>(index)].get();
     return nullptr;
+}
+
+int EffectChain::getNumEffects() const
+{
+    std::lock_guard<std::mutex> lock(effectsMutex_);
+    return static_cast<int>(effects_.size());
 }
 
 void EffectChain::render(GLuint inputTexture,
@@ -33,12 +41,18 @@ void EffectChain::render(GLuint inputTexture,
         vpW = width;
         vpH = height;
     }
-    // Collect enabled effects
+    // Collect enabled effects. Lock scope is limited to this scan — the
+    // Effect* pointers stay valid without the lock held (see effectsMutex_
+    // comment in EffectChain.h), so the GL calls below never block on
+    // cross-thread contention.
     std::vector<Effect*> activeEffects;
-    for (auto& e : effects_)
     {
-        if (e->isEnabled())
-            activeEffects.push_back(e.get());
+        std::lock_guard<std::mutex> lock(effectsMutex_);
+        for (auto& e : effects_)
+        {
+            if (e->isEnabled())
+                activeEffects.push_back(e.get());
+        }
     }
 
     if (activeEffects.empty())
