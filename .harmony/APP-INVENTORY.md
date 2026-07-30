@@ -28,7 +28,7 @@ menu bar (~45 items, no-op DBG stubs removed Wave 0; Output→Syphon toggle adde
 pipeline · **58 mapping sources** / 24 curves · **32 default signals** · 8 live macros
 (Global bank only) · **22 REST endpoints** (all functional) ·
 **11 OSC patterns** (subsystem LIVE — port 8000, 11/11 wired, Wave 1-B 2026-07-17) · 19 binding actions · 6 feedback presets ·
-**114 unit tests** (all PASS; +4 Wave 1-C persistence roundtrip/back-compat, +1 Wave 1-D waveform-snapshot seqlock regression).
+**182 unit tests** (all PASS; 114 → 176 across the Undo-v1 lane; 176 → 182 on 2026-07-30: +1 clear-composite, +4 ThumbnailCache, +1 stale-mtime-race guard).
 
 ---
 
@@ -67,19 +67,19 @@ Source: lane-5-ui-surfaces.md. "Live?" = reachable + operable in the shipping v2
 |---|---|---|---|
 | ClipInspector (`ClipInspector.h:25`) | Inspector → Clip tab (auto on clip select) | Dashboard (8 knobs + 8 source pickers); Transport (mode/loop/trigger/speed/reverse/duration); conditional Images-per-sec OR Beat-Division+Content-Beats; 8 cuepoint jump + 8 Set; Autopilot (action/duration/beat-snap); Source Parameters (UniversalParamControls); Video (opacity/W-H/blend/alpha/RGBA); Transform (pos/scale/rotation/anchor); Effects (EffectStackView); interactive timeline (in/out/playhead drag) | yes |
 | LayerInspector (`LayerInspector.h:28`) | Inspector → Layer tab | Editable name; Dashboard; Autopilot (4 dir + trigger-mode + beat-count + loops); Layer (master/persistent/ignore-column); Video (blend/opacity/W-H/auto-size); Transition (blend ~55 + duration); Keying (Transparent only, 13 modes); Dry/Wet (FX-Only only); 3D controls (ThreeD only); Transform (5 UPCs); Feedback (enable + preset + 7 sliders); Layer Effects (EffectStackView) | yes |
-| CompositionInspector (`CompositionInspector.h:23`) | Inspector → Composition tab | Dashboard; Autopilot (4 dir + duration + clip-loops + loop + master-layer); Per-Type Autopilot (enable + cycle sliders + randomize); Composition master/speed; Video opacity; Transform (5 UPCs); Global Effects (EffectStackView); Output resolution combo. Collapse triangles + P. buttons decorative | yes |
+| CompositionInspector (`CompositionInspector.h:23`) | Inspector → Composition tab | Dashboard; Autopilot (4 dir + duration + clip-loops + loop + master-layer); Per-Type Autopilot (enable + cycle sliders + randomize); Composition master/speed; Video opacity; Transform (5 UPCs); Global Effects (EffectStackView); Output resolution combo. Collapse triangles + P. buttons decorative. **Panel-wide FX drop target (2026-07-30): fx: drags land anywhere on the panel → global stack via existing undo-recorded path; multi-select = one undo entry** | yes |
 | SignalInspector (`SignalInspector.h:15`) | Inspector → Signal tab | Audio: threshold/gain/falloff. Oscillator: wave-shape (5) + beat-duration (6) + amplitude + phase. Envelope: curve-type (3) + beat-duration (5) + amplitude + phase + looping/one-shot toggles + **paint-only curve editor (NOT draggable)** | yes |
 
 ### Browser tabs
 
 | Surface | Reach / trigger | User-visible functions | Live? |
 |---|---|---|---|
-| Files (`FilesBrowser.cpp`) | Browser → Files | Up button; path bar; search; Grid/List toggle; file grid click/dbl-click/drag (`files:`); right-click = toggle favorite; directory navigate | yes |
+| Files (`FilesBrowser.cpp`) | Browser → Files | Up button; path bar; search; Grid/List toggle; file grid click/dbl-click/drag (`files:`); right-click = toggle favorite; directory navigate. **Perf rework (2026-07-30): async background thumbnail decode + path+mtime LRU cache + instant Grid/List toggle (no sync decode on open)** | yes |
 | FX (`FXBrowser.cpp`) | Browser → FX | Search; 11 collapsible category headers; effect rows click / Cmd-Shift multi-select; drag `fx:name,name` to cell/stack | yes |
 | Sources (`SourcesBrowser.cpp`) | Browser → Sources | Search; 19 category headers; **109 hand-listed source rows** (registry NOT used, but the 6 previously-absent registered sources added Wave 0; Simulation/Routing/MilkDrop headers now populated); click/multi-select; drag `source:id,id` | yes |
 | Comp/Decks (`CompDecksBrowser.cpp`) | Browser → Comp/Decks | 2 collapsible sections; Save-Deck + right-click delete WORK; **Save-Composition + entry-click load are UNWIRED no-ops** (onCompositionLoad/onDeckLoad/onCompositionSave callbacks never assigned — reviewer-traced 2026-07-28; FUTURE-FENCE comment at declarations) | partial |
 | Record (`RecordPanel.cpp`) | Browser → Record | Record/Stop/Play/Save/Load/Output-Folder buttons; Format combo (JSON); status + event-count labels (**Play fires nothing — playback dead**) | partial |
-| MilkDrop (`MilkDropBrowser.cpp`) | Browser → MilkDrop | 4 sub-tabs (Curated/Favorites/Recent/All); search; Prev/Next/Random/Lock nav; 3 play-modes (Jukebox/VJ-Clip/Playlist); Jukebox play + pool/mode/timing combos + blend; Playlist cycle/timing + blend; preset rows click/multi-select/drag; right-click = favorite | yes (needs libprojectM) |
+| MilkDrop (`MilkDropBrowser.cpp`) | Browser → MilkDrop | 4 sub-tabs (Curated/Favorites/Recent/All); search; Prev/Next/Random/Lock nav; 3 play-modes (Jukebox/VJ-Clip/Playlist); Jukebox play + pool/mode/timing combos + blend; Playlist cycle/timing + blend; preset rows click/multi-select/drag; right-click = favorite. **2026-07-30: 30 curated presets bundle into the .app + auto-populate at launch; preset manager survives GL detach (crash-#2 UAF fixed — SignalBar expand/collapse safe)** | yes (needs libprojectM) |
 
 ### Prefs tabs (`PreferencesDialog.cpp`)
 
