@@ -20,12 +20,14 @@ set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 add_executable(test_ring_buffer test_ring_buffer.cpp)
 target_include_directories(test_ring_buffer PRIVATE ${SRC_DIR})
 target_link_libraries(test_ring_buffer PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_ring_buffer)
 catch_discover_tests(test_ring_buffer)
 
 # --- test_waveform_snapshot (Wave 1-D: waveform seqlock torn-read guard) ---
 add_executable(test_waveform_snapshot test_waveform_snapshot.cpp)
 target_include_directories(test_waveform_snapshot PRIVATE ${SRC_DIR})
 target_link_libraries(test_waveform_snapshot PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_waveform_snapshot)
 catch_discover_tests(test_waveform_snapshot)
 
 # --- test_spectral_features ---
@@ -35,6 +37,7 @@ add_executable(test_spectral_features
 )
 target_include_directories(test_spectral_features PRIVATE ${SRC_DIR})
 target_link_libraries(test_spectral_features PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_spectral_features)
 catch_discover_tests(test_spectral_features)
 
 # --- test_feature_bus ---
@@ -44,12 +47,14 @@ add_executable(test_feature_bus
 )
 target_include_directories(test_feature_bus PRIVATE ${SRC_DIR})
 target_link_libraries(test_feature_bus PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_feature_bus)
 catch_discover_tests(test_feature_bus)
 
 # --- test_smoother ---
 add_executable(test_smoother test_smoother.cpp)
 target_include_directories(test_smoother PRIVATE ${SRC_DIR})
 target_link_libraries(test_smoother PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_smoother)
 catch_discover_tests(test_smoother)
 
 # --- test_integration_pipeline ---
@@ -90,6 +95,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_integration_pipeline)
 catch_discover_tests(test_integration_pipeline)
 
 # --- test_mapping_engine ---
@@ -122,6 +128,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_mapping_engine)
 catch_discover_tests(test_mapping_engine)
 
 # --- test_bpm_stabilization ---
@@ -141,6 +148,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_bpm_stabilization)
 catch_discover_tests(test_bpm_stabilization)
 
 # --- test_downbeat_detector ---
@@ -160,6 +168,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_downbeat_detector)
 catch_discover_tests(test_downbeat_detector)
 
 # --- test_composition (P3: data model + undo) ---
@@ -189,6 +198,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_composition)
 catch_discover_tests(test_composition)
 
 # --- test_undo_commands (Undo v1 step 2: clip commands + coord resolution) ---
@@ -220,6 +230,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_undo_commands)
 catch_discover_tests(test_undo_commands)
 
 # --- test_routing_engine (P3: signals + routing) ---
@@ -254,6 +265,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_routing_engine)
 catch_discover_tests(test_routing_engine)
 
 # --- test_thumbnail_cache (FilesBrowser perf: LRU thumbnail cache keying) ---
@@ -279,6 +291,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_thumbnail_cache)
 catch_discover_tests(test_thumbnail_cache)
 
 # --- test_compositor (P3: deck compositing data model + autopilot) ---
@@ -307,6 +320,7 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_compositor)
 catch_discover_tests(test_compositor)
 
 # --- test_autopilot (autopilot advance-gate: EoV + on-beat + source parity) ---
@@ -335,4 +349,5 @@ if(NOT MSVC)
         -Wno-sign-conversion
     )
 endif()
+apply_sanitizers(test_autopilot)
 catch_discover_tests(test_autopilot)

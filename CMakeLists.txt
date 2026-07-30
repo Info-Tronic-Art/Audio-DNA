@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(cmake/CompilerWarnings.cmake)
+include(cmake/Sanitizers.cmake)
 
 # --- Aubio (audio analysis: onset, tempo, pitch) ---
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -422,6 +423,7 @@ endif()
 target_link_libraries(AudioDNA PRIVATE ${AUDIODNA_LIBS})
 
 set_project_warnings(AudioDNA)
+apply_sanitizers(AudioDNA)
 
 # --- Bundle MilkDrop presets (2026-07-30) ---
 # MilkDropBrowser's default-location scan (src/MainComponent.cpp) checks
