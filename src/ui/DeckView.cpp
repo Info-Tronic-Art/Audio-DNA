@@ -174,6 +174,20 @@ void DeckView::rebuildGrid()
     // Deck tabs
     setupDeckTabs();
 
+    // A structural rebuild (layer add/remove, column count change) can leave
+    // selectedCells_ pointing at layer/column coordinates that no longer
+    // exist in the freshly created grid. Drop those entries so selection
+    // never outlives the cells it refers to, then re-apply visuals — the
+    // new ClipCells default to unselected regardless of what selectedCells_
+    // says, so without this a still-valid selection would look invisible.
+    selectedCells_.erase(
+        std::remove_if(selectedCells_.begin(), selectedCells_.end(),
+            [&](const CellPos& p) {
+                return p.column < 0 || p.column >= numCols || deck->getLayer(p.layer) == nullptr;
+            }),
+        selectedCells_.end());
+    updateSelectionVisuals();
+
     // Layout everything
     if (getWidth() > 0 && getHeight() > 0)
         resized();
