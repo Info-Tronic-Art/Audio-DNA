@@ -370,6 +370,16 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
         // lookup) now happens on the message thread, so it can no longer be
         // reported back synchronously; the response is unconditional 'ok' once
         // the request itself is well-formed (matches those sibling endpoints).
+        //
+        // Raw `this` capture is safe even across ApiServer/MainComponent
+        // teardown: MessageManager::MessageBase::post() checks
+        // quitMessagePosted and refuses (and destroys) queued callbacks once
+        // app quit begins; ~MainComponent() only runs after the message
+        // dispatch loop has exited; and ApiServer::stop() joins every
+        // httplib worker thread before returning, so no handler can still be
+        // in flight when ApiServer itself is torn down. Same reasoning
+        // applies at every other callAsync site added in this file (this
+        // comment is the shared reference for all of them).
         juce::MessageManager::callAsync([this, layer, column, effectName, paramName, value]() {
             auto* deck = composition_.getActiveDeck();
             if (!deck)
@@ -410,6 +420,7 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
     {
         // Global effect chain — same callAsync marshal as the clip branch
         // above; effectChain_ is otherwise mutated only on the message thread.
+        // `this`-capture safety: see the clip-effect branch's note above.
         juce::MessageManager::callAsync([this, effectName, paramName, value]() {
             for (int i = 0; i < effectChain_.getNumEffects(); ++i)
             {
@@ -452,6 +463,7 @@ void ApiServer::handleSetLayerOpacity(const httplib::Request& req, httplib::Resp
     // the message thread and can no longer be reported back synchronously —
     // response is unconditional 'ok' once the request itself is well-formed,
     // matching those sibling endpoints.
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
     juce::MessageManager::callAsync([this, layer, opacity]() {
         auto* deck = composition_.getActiveDeck();
         if (!deck)
@@ -707,6 +719,7 @@ void ApiServer::handleSetEffect(const httplib::Request& req, httplib::Response& 
     // "Effect not found" can no longer be reported back synchronously now
     // that the lookup runs on the message thread — matches the trade-off
     // already made for set_param/set_layer_opacity.
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
     juce::MessageManager::callAsync([this, name, enabled, paramUpdates]() {
         Effect* found = nullptr;
         for (int i = 0; i < effectChain_.getNumEffects(); ++i)
@@ -818,6 +831,7 @@ void ApiServer::handleReset(const httplib::Request&, httplib::Response& res)
     // effectChain_ is otherwise mutated only on the message thread — marshal
     // this disable loop there too (same callAsync pattern as the other
     // effect-chain writes above).
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
     juce::MessageManager::callAsync([this]() {
         for (int i = 0; i < effectChain_.getNumEffects(); ++i)
         {
@@ -885,6 +899,7 @@ void ApiServer::handleSetEffectChain(const httplib::Request& req, httplib::Respo
     // effectChain_ is otherwise mutated only on the message thread — marshal
     // disable-all/enable-requested there too (same callAsync pattern as the
     // other effect-chain writes above).
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
     juce::MessageManager::callAsync([this, requested]() {
         // Disable all, then enable requested
         for (int i = 0; i < effectChain_.getNumEffects(); ++i)
