@@ -134,6 +134,22 @@ struct Deck
         }
     }
 
+    // A2 fix (2026-07-30): vacate a cell to GENUINELY empty (nullopt), not a
+    // blank-but-occupied Clip{}. setClip() always assigns a value, so callers
+    // that want to CLEAR a cell (kClipClear et al.) must use this instead —
+    // has_value()/getClipAt() consumers (autopilot occupancy scans, grid
+    // paint, serialization) all key off the optional being empty. No
+    // ensureColumns() growth: clearing an out-of-range or already-empty cell
+    // is a safe no-op.
+    void clearCell(int layerIndex, int column)
+    {
+        if (auto* layer = getLayer(layerIndex))
+        {
+            if (column >= 0 && column < static_cast<int>(layer->clips.size()))
+                layer->clips[static_cast<size_t>(column)].reset();
+        }
+    }
+
     // === Serialization ===
     juce::var toVar() const
     {

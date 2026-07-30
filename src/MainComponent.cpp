@@ -675,6 +675,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 before, after, "Clear Layer Clip"));
             pushCommands(std::move(children), "Clear Layer Clip");
         }
+        // A1 fix (2026-07-30): clearActiveClip() only resets the MODEL
+        // (activeClipColumn/playing) — it never touches the renderer, so a
+        // shader/projectM source kept re-rendering via Renderer.cpp's
+        // compositor-empty fallback (activeSourceType_, set at trigger time,
+        // was never cleared). Re-sync the renderer/preview state (NOT undo-
+        // tracked — ephemeral render state, not model), which purges only
+        // when appropriate. See refreshPreviewFromActiveClip's ownership rule.
+        refreshPreviewFromActiveClip(*deck);
         if (deckView_) deckView_->refresh();
     };
     deckView_->onLayerBypass = [this](int layerIdx, bool bypassed) {
@@ -3091,6 +3099,65 @@ void MainComponent::handleColumnTrigger(int column)
     }
 }
 
+// A1 fix (2026-07-30): the previewPanel_ renderer's fallback state
+// (activeSourceType_ / loaded image / currentImageFile_ / fileLabel_) is
+// GLOBAL to the whole deck, but a layer's X-clear is PER-LAYER — naively
+// purging that global state on any layer's clear could blank a DIFFERENT
+// layer's still-playing visual even though nothing about ITS clip changed.
+//
+// OWNERSHIP RULE: the renderer's fallback path only matters when
+// Renderer.cpp's compositor returns no content for the WHOLE active deck
+// (CompositorEngine::hasActiveLayers_ false — no visible, non-bypassed layer
+// has an active clip with media/effects); otherwise the compositor output
+// takes priority and the fallback state is not visually used at all. So
+// after a layer's clip is cleared, rescan every layer in the SAME deck (not
+// just the cleared one) for a still-active Image/Source clip and re-point
+// the preview at it — exactly mirroring handleColumnTrigger's post-trigger
+// preview refresh above (:3054-3092), which already performs this same
+// rescan-or-purge after every trigger. Only purge when NO layer anywhere in
+// the deck still owns active content, matching the exact condition under
+// which Renderer.cpp's fallback would otherwise render stale content.
+void MainComponent::refreshPreviewFromActiveClip(Deck& deck)
+{
+    bool foundActiveClip = false;
+    for (int i = 0; i < deck.getNumLayers(); ++i)
+    {
+        auto* otherLayer = deck.getLayer(i);
+        if (!otherLayer) continue;
+        if (auto* clip = otherLayer->getActiveClip())
+        {
+            if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
+            {
+                previewPanel_.getRenderer().clearActiveSource();
+                previewPanel_.loadImage(clip->mediaFile);
+                currentImageFile_ = clip->mediaFile;
+                if (outputWindow_)
+                    outputWindow_->loadImage(clip->mediaFile);
+                fileLabel_.setText(clip->mediaFile.getFileName(), juce::dontSendNotification);
+                foundActiveClip = true;
+                break;
+            }
+            else if (clip->mediaType == Clip::MediaType::Source && !clip->sourceType.empty())
+            {
+                previewPanel_.getRenderer().setActiveSource(clip->sourceType, clip->sourceParams);
+                previewPanel_.getRenderer().clearImage();
+                currentImageFile_ = juce::File();
+                fileLabel_.setText(juce::String(clip->sourceType), juce::dontSendNotification);
+                foundActiveClip = true;
+                break;
+            }
+        }
+    }
+
+    if (!foundActiveClip)
+    {
+        previewPanel_.getRenderer().clearActiveSource();
+        previewPanel_.clearImage();
+        currentImageFile_ = juce::File();
+        fileLabel_.setText("", juce::dontSendNotification);
+    }
+}
+
 static uint32_t s_nextClipId = 1000;
 
 // === Undo command construction helpers (Undo v1 step 2) ===
@@ -3838,24 +3905,58 @@ void MainComponent::handleMenuCommand(int commandId)
                 if (deck)
                 {
                     int deckIdx = composition_.activeDeckIndex;
-                    // GL fence (2026-07-28): kClipClear overwrites each selected
-                    // cell with a blank Clip{} — same exposure family as the
-                    // deck/layer clears (notebook LAW entry), MORE deterministic
-                    // since it always touches a real (often the active) clip.
+                    // A2 fix (2026-07-30): kClipClear used to overwrite each
+                    // selected cell with a blank Clip{} (HEAD behavior) — still
+                    // has_value(), so autopilot's occupancy scans accepted the
+                    // blank cell and a cleared active cell left activeClipColumn
+                    // dangling on it. clearCell() now vacates the cell to a
+                    // GENUINE nullopt (edits record after=nullopt so undo/redo
+                    // via SetClipCmd round-trips exact-restore <-> truly-empty).
+                    // GL fence (2026-07-28 family): clearCell()'s cell.reset()
+                    // destroys an occupied Clip's interior vectors (effects,
+                    // etc.) in place — same crash-proven reallocation/UAF class
+                    // as the deck/layer clears and SetClipCmd's own apply().
                     std::vector<CellEdit> edits;
+                    std::vector<std::unique_ptr<Command>> runtimeChildren;
                     undoService_.withDeckDetached([&]
                     {
                         for (auto& cell : deckView_->getSelectedCells())
                         {
-                            std::optional<Clip> before = snapshotCell(deck->getLayer(cell.layer), cell.column);
-                            deck->setClip(cell.layer, cell.column, Clip{});
-                            edits.push_back({ cell.layer, cell.column, before, std::optional<Clip>(Clip{}) });
+                            auto* layer = deck->getLayer(cell.layer);
+                            std::optional<Clip> before = snapshotCell(layer, cell.column);
+                            deck->clearCell(cell.layer, cell.column);
+                            edits.push_back({ cell.layer, cell.column, before, std::nullopt });
+
+                            // activeClipColumn must never dangle on a now-empty
+                            // cell. Wrap the runtime reset as its own undo child
+                            // (ClearActiveClipCmd) so undo restores the layer's
+                            // active-cell pointer alongside the clip content.
+                            if (layer != nullptr && layer->activeClipColumn == cell.column)
+                            {
+                                LayerRuntimeSnapshot rtBefore = captureLayerRuntime(*layer);
+                                layer->clearActiveClip();
+                                LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
+                                if (!(rtBefore == rtAfter))
+                                    runtimeChildren.push_back(std::make_unique<ClearActiveClipCmd>(
+                                        makeLayerResolver(), deckIdx, cell.layer,
+                                        rtBefore, rtAfter, "Clear Clip"));
+                            }
                         }
                     });
                     int count = static_cast<int>(edits.size());
-                    pushClipEdits(deckIdx, edits,
-                                  count > 1 ? "Clear " + juce::String(count) + " Clips"
-                                            : juce::String("Clear Clip"));
+                    juce::String desc = count > 1 ? "Clear " + juce::String(count) + " Clips"
+                                                   : juce::String("Clear Clip");
+                    std::vector<std::unique_ptr<Command>> children;
+                    for (auto& edit : edits)
+                        children.push_back(makeSetClipCmd(deckIdx, edit, desc));
+                    for (auto& rc : runtimeChildren)
+                        children.push_back(std::move(rc));
+                    pushCommands(std::move(children), desc);
+                    // A1-adjacent: clearing the ACTIVE cell can leave the
+                    // renderer's global fallback state stale (see
+                    // refreshPreviewFromActiveClip's ownership rule).
+                    if (!runtimeChildren.empty())
+                        refreshPreviewFromActiveClip(*deck);
                     deckView_->rebuildGrid();
                 }
             }

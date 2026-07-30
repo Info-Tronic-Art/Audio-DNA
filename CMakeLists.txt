@@ -433,6 +433,10 @@ set_project_warnings(AudioDNA)
 # resolves, regardless of how the app is launched. Runs before codesigning
 # (POST_BUILD commands on the same target execute in registration order)
 # so the final signature covers the copied resources.
+# NOTE (reviewer rider, 2026-07-30): copy_directory only ADDS/OVERWRITES —
+# it does not delete files in the destination that no longer exist in the
+# source, so a preset removed from resources/projectm_presets lingers in
+# every previously-built .app until a clean rebuild.
 if(APPLE)
     add_custom_command(TARGET AudioDNA POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -443,6 +447,12 @@ if(APPLE)
     )
 endif()
 
+# NOTE (reviewer rider, 2026-07-30): the preset copy above must stay ordered
+# BEFORE the codesign block below — POST_BUILD commands on the same target
+# run in registration order (no explicit dependency), so this file's
+# top-to-bottom position IS the ordering guarantee that the final signature
+# covers the copied resources. Reordering these two blocks would silently
+# sign a bundle missing the just-copied presets.
 # --- macOS code signing (stable identity, 2026-07-28) ---
 # Ad-hoc signing changes the app's cdhash on every rebuild, so macOS re-fires
 # the microphone TCC prompt after every single build (see .harmony/gotchas.md

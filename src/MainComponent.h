@@ -310,6 +310,13 @@ private:
     void handleImportISF();
     void handleClipTrigger(int layerIndex, int column);
     void handleColumnTrigger(int column);
+    // A1 fix (2026-07-30): re-sync the previewPanel_ renderer's global fallback
+    // state (activeSourceType_ / loaded image) to whichever layer still owns
+    // active content after a layer's clip is cleared. Mirrors handleColumnTrigger's
+    // post-trigger preview refresh (scan for the first layer with an active
+    // Image/Source clip; purge only if none remain) so clearing one layer's X
+    // can never blank a DIFFERENT layer's still-playing visual.
+    void refreshPreviewFromActiveClip(Deck& deck);
     void handleFileDrop(int layerIndex, int column, const juce::File& file);
     // Perform one image/video file drop into a cell (build clip, open media,
     // setClip) WITHOUT pushing an undo command. Returns the resulting cell edit

@@ -91,6 +91,23 @@ TEST_CASE("Clip placement and triggering", "[composition]")
         REQUIRE(layer->activeClipColumn == -1);
     }
 
+    SECTION("clearCell vacates a cell to genuinely empty (not a blank Clip{})")
+    {
+        // A2 fix (2026-07-30): setClip(..., Clip{}) leaves the cell
+        // has_value()==true (a "blank" clip), which autopilot/getClipAt
+        // consumers wrongly treat as occupied. clearCell() must report
+        // unoccupied.
+        REQUIRE(deck.getClip(0, 0) != nullptr);   // occupied by the setup clip
+        deck.clearCell(0, 0);
+        REQUIRE(deck.getClip(0, 0) == nullptr);
+        REQUIRE(deck.getLayer(0)->getClipAt(0) == nullptr);
+
+        // Out-of-range / already-empty clears are safe no-ops.
+        deck.clearCell(0, 999);
+        deck.clearCell(99, 0);
+        deck.clearCell(0, 0);
+    }
+
     SECTION("Retrigger resets playhead")
     {
         auto* layer = deck.getLayer(0);

@@ -933,7 +933,11 @@ TEST_CASE("Multi-video drop composite: N cells + column growth, undo restores bo
 }
 
 // ---------------------------------------------------------------------------
-// Multi-select clear composite (#4): matches kClipClear's blank-Clip{} after
+// Multi-select clear composite (#4): matches kClipClear's after A2 fix
+// (2026-07-30) — cleared cells are GENUINELY empty (nullopt), not a
+// blank-but-occupied Clip{}. (HEAD behavior wrote Clip{}, which still
+// has_value() — autopilot's occupancy scans wrongly accepted it; see
+// ClipCommands.h SetClipCmd doc and .harmony/scout-sitting-triage.md Q4.)
 // ---------------------------------------------------------------------------
 
 TEST_CASE("Multi-select clear composite (Clear N Clips): one entry, undo restores all", "[undo][composite][setclip]")
@@ -948,20 +952,19 @@ TEST_CASE("Multi-select clear composite (Clear N Clips): one entry, undo restore
     deck.setClip(1, 3, b);
     deck.setClip(2, 6, c);
 
-    // kClipClear sets each selected cell to a blank Clip{} (HEAD behavior),
-    // then composites the N SetClipCmds into one "Clear 3 Clips" entry.
+    // kClipClear calls Deck::clearCell() (nullopt) on each selected cell, then
+    // composites the N SetClipCmds into one "Clear 3 Clips" entry.
     auto composite = std::make_unique<CompositeCommand>("Clear 3 Clips");
     composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
-                   0, 0, 0, std::optional<Clip>(a), std::optional<Clip>(Clip{}), "Clear Clip"));
+                   0, 0, 0, std::optional<Clip>(a), std::nullopt, "Clear Clip"));
     composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
-                   0, 1, 3, std::optional<Clip>(b), std::optional<Clip>(Clip{}), "Clear Clip"));
+                   0, 1, 3, std::optional<Clip>(b), std::nullopt, "Clear Clip"));
     composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
-                   0, 2, 6, std::optional<Clip>(c), std::optional<Clip>(Clip{}), "Clear Clip"));
+                   0, 2, 6, std::optional<Clip>(c), std::nullopt, "Clear Clip"));
     mgr.perform(std::move(composite));
 
     REQUIRE(mgr.historySize() == 1);                 // one gesture, not three
-    REQUIRE(deck.getClip(0, 0) != nullptr);          // clear = blank clip, not empty
-    REQUIRE(*deck.getClip(0, 0) == Clip{});
+    REQUIRE(deck.getClip(0, 0) == nullptr);          // truly empty, not a blank clip
 
     mgr.undo();
     REQUIRE(*deck.getClip(0, 0) == a);               // all three restored
@@ -969,8 +972,53 @@ TEST_CASE("Multi-select clear composite (Clear N Clips): one entry, undo restore
     REQUIRE(*deck.getClip(2, 6) == c);
 
     mgr.redo();
-    REQUIRE(*deck.getClip(0, 0) == Clip{});
-    REQUIRE(*deck.getClip(2, 6) == Clip{});
+    REQUIRE(deck.getClip(0, 0) == nullptr);
+    REQUIRE(deck.getClip(2, 6) == nullptr);
+}
+
+// A2 fix (2026-07-30): kClipClear's actual shape when the cleared cell is the
+// layer's ACTIVE clip — a SetClipCmd (cell -> nullopt) PLUS a ClearActiveClipCmd
+// (activeClipColumn -> -1) bundled as one composite, so activeClipColumn never
+// dangles on a cleared cell and undo restores BOTH the clip and the layer's
+// active-cell pointer in one gesture.
+TEST_CASE("kClipClear composite: clearing the active cell empties it AND resets activeClipColumn", "[undo][composite][setclip][clearclip]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = deck.layers[0];
+
+    Clip a = richClip(1, "active");
+    deck.setClip(0, 3, a);
+    L.activeClipColumn = 3;
+    L.previousClipColumn = 1;
+    L.crossfadeProgress = 0.5f;
+
+    LayerRuntimeSnapshot rtBefore = captureLayerRuntime(L);
+    L.clearActiveClip();                     // live: active -> -1, previous -> 3
+    LayerRuntimeSnapshot rtAfter = captureLayerRuntime(L);
+    REQUIRE_FALSE(rtBefore == rtAfter);
+
+    auto composite = std::make_unique<CompositeCommand>("Clear Clip");
+    composite->add(std::make_unique<SetClipCmd>(resolverFor(svc), noopFence(), noopMedia(),
+                   0, 0, 3, std::optional<Clip>(a), std::nullopt, "Clear Clip"));
+    composite->add(std::make_unique<ClearActiveClipCmd>(resolverFor(svc), 0, 0,
+                   rtBefore, rtAfter, "Clear Clip"));
+    mgr.perform(std::move(composite));
+
+    REQUIRE(deck.getClip(0, 3) == nullptr);          // truly empty, not blank-Clip{}
+    REQUIRE(L.activeClipColumn == -1);               // no longer dangling on the cleared cell
+
+    mgr.undo();
+    REQUIRE(*deck.getClip(0, 3) == a);               // exact clip restored
+    REQUIRE(L.activeClipColumn == 3);                // activeClipColumn restored too
+    REQUIRE(L.previousClipColumn == 1);
+    REQUIRE(L.crossfadeProgress == 0.5f);
+
+    mgr.redo();
+    REQUIRE(deck.getClip(0, 3) == nullptr);          // re-empties
+    REQUIRE(L.activeClipColumn == -1);
 }
 
 // ---------------------------------------------------------------------------

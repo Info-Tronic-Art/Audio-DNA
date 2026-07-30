@@ -109,6 +109,25 @@ TEST_CASE("Autopilot clip advancement", "[autopilot]")
         // Should have advanced to column 1
         REQUIRE(layer->activeClipColumn == 1);
     }
+
+    SECTION("Autopilot never selects a genuinely-cleared cell")
+    {
+        // A2 regression guard: clearCell() (not a blank Clip{}) must report
+        // unoccupied to getClipAt so PlayNext's occupancy scan skips it,
+        // landing on column 2 instead of the cleared column 1.
+        deck.clearCell(0, 1);
+        REQUIRE(layer->getClipAt(1) == nullptr);
+
+        FeatureSnapshot snap;
+        for (int beat = 0; beat < 4; ++beat)
+        {
+            snap.beatPhase = 0.99f;
+            autopilot.processFrame(deck, snap);
+            snap.beatPhase = 0.01f;
+            autopilot.processFrame(deck, snap);
+        }
+        REQUIRE(layer->activeClipColumn == 2); // column 1 skipped (cleared)
+    }
 }
 
 TEST_CASE("Column management", "[deck]")
