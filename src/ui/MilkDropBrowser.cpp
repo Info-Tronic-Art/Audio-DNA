@@ -43,6 +43,7 @@ public:
         int idx = presetIndexAtY(e.y);
         if (idx >= 0)
         {
+            owner_.pressedSectionPresetPaths_.clear();
             if (e.mods.isRightButtonDown())
             {
                 owner_.presetManager_->toggleFavorite(idx);
@@ -53,7 +54,15 @@ public:
         }
         else
         {
-            // Check section header clicks
+            // Record the section under the cursor before toggling, so a
+            // subsequent mouseDrag can still build a whole-group playlist
+            // payload from it even though toggling shifts row layout below
+            // the header. Click-to-toggle keeps firing immediately, same as
+            // before; drag-to-playlist is decided by mouseDrag's own
+            // drag-threshold check.
+            owner_.pressedSectionPresetPaths_.clear();
+            for (auto* p : sectionAtY(e.y))
+                owner_.pressedSectionPresetPaths_.push_back(p->path);
             handleSectionHeaderClick(e.y);
         }
     }
@@ -67,21 +76,31 @@ public:
         if (!container) return;
         if (container->isDragAndDropActive()) return;
 
-        if (owner_.isMultiSelectMode() && owner_.selectedIndices_.size() > 1)
+        if (!owner_.pressedSectionPresetPaths_.empty())
+        {
+            // Header drag: whole section as a playlist.
+            auto desc = MilkDropBrowser::buildPlaylistDragDescription(owner_.pressedSectionPresetPaths_);
+            auto img = juce::Image(juce::Image::ARGB, 120, 24, true);
+            juce::Graphics ig(img);
+            ig.setColour(juce::Colour(0xcc2a2a5e));
+            ig.fillRoundedRectangle(0, 0, 120, 24, 4);
+            ig.setColour(juce::Colours::white);
+            ig.setFont(juce::Font(juce::FontOptions(11.0f)));
+            ig.drawText(juce::String(static_cast<int>(owner_.pressedSectionPresetPaths_.size())) + " presets",
+                        0, 0, 120, 24, juce::Justification::centred);
+            container->startDragging(desc, this, juce::ScaledImage(img), true);
+        }
+        else if (owner_.isMultiSelectMode() && owner_.selectedIndices_.size() > 1)
         {
             // Multi-select: drag as playlist
-            std::string desc = "milkdrop_playlist:";
-            bool first = true;
+            std::vector<std::string> paths;
             for (int i : owner_.selectedIndices_)
             {
                 auto* p = owner_.presetManager_->getPreset(i);
                 if (p)
-                {
-                    if (!first) desc += "|";
-                    desc += p->path;
-                    first = false;
-                }
+                    paths.push_back(p->path);
             }
+            auto desc = MilkDropBrowser::buildPlaylistDragDescription(paths);
             auto img = juce::Image(juce::Image::ARGB, 120, 24, true);
             juce::Graphics ig(img);
             ig.setColour(juce::Colour(0xcc2a2a5e));
@@ -90,7 +109,7 @@ public:
             ig.setFont(juce::Font(juce::FontOptions(11.0f)));
             ig.drawText(juce::String(static_cast<int>(owner_.selectedIndices_.size())) + " presets",
                         0, 0, 120, 24, juce::Justification::centred);
-            container->startDragging(juce::String(desc), this, juce::ScaledImage(img), true);
+            container->startDragging(desc, this, juce::ScaledImage(img), true);
         }
         else if (owner_.lastClickedIndex_ >= 0)
         {
@@ -333,6 +352,39 @@ private:
             }
         }
         return -1;
+    }
+
+    // Returns the presets belonging to whichever section header (if any) is at
+    // posY, mirroring handleSectionHeaderClick's walk exactly but returning the
+    // section's full preset list instead of toggling expand/collapse.
+    std::vector<const ProjectMPresetManager::PresetInfo*> sectionAtY(int posY)
+    {
+        int y = 0;
+        bool curatedOnly = (owner_.activeSubTab_ == SubTab::Curated);
+
+        for (auto& section : owner_.sections_)
+        {
+            std::vector<const ProjectMPresetManager::PresetInfo*> presets;
+            if (curatedOnly)
+            {
+                auto curated = owner_.getCuratedPresets();
+                for (auto* p : curated)
+                    if (p->mood == section.name) presets.push_back(p);
+            }
+            else if (owner_.activeSubTab_ == SubTab::All)
+                presets = owner_.getPresetsForSection(section.name);
+            else
+                return {}; // No headers in other tabs
+
+            if (presets.empty()) continue;
+
+            if (posY >= y && posY < y + kSectionHeaderHeight)
+                return presets;
+            y += kSectionHeaderHeight;
+            if (section.expanded)
+                y += static_cast<int>(presets.size()) * kPresetRowHeight;
+        }
+        return {};
     }
 
     void handleSectionHeaderClick(int posY)
@@ -902,6 +954,19 @@ std::vector<std::string> MilkDropBrowser::parsePlaylistDragDescription(const juc
             paths.push_back(t.toStdString());
     }
     return paths;
+}
+
+juce::String MilkDropBrowser::buildPlaylistDragDescription(const std::vector<std::string>& paths)
+{
+    juce::String desc = "milkdrop_playlist:";
+    bool first = true;
+    for (const auto& path : paths)
+    {
+        if (!first) desc += "|";
+        desc += juce::String(path);
+        first = false;
+    }
+    return desc;
 }
 
 std::vector<const ProjectMPresetManager::PresetInfo*>

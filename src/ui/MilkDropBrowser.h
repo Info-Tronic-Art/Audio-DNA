@@ -49,6 +49,11 @@ public:
     // Returns preset paths (comma-separated in drag desc "milkdrop_playlist:path1|path2|path3")
     static std::vector<std::string> parsePlaylistDragDescription(const juce::String& desc);
 
+    // Build a "milkdrop_playlist:" drag description from preset paths (inverse
+    // of parsePlaylistDragDescription). Shared by the multi-select and
+    // header-drag gestures so both emit an identical payload format.
+    static juce::String buildPlaylistDragDescription(const std::vector<std::string>& paths);
+
     // Get selected preset paths (for multi-select operations)
     std::vector<std::string> getSelectedPresetPaths() const;
 
@@ -125,6 +130,11 @@ private:
     std::set<int> selectedIndices_;
     int lastClickedIndex_ = -1;
 
+    // Paths of presets in the section header last pressed (mouseDown), used by
+    // mouseDrag to build a whole-group playlist payload. Empty when the last
+    // press wasn't on a header.
+    std::vector<std::string> pressedSectionPresetPaths_;
+
     // Recently used presets (paths, newest first)
     std::deque<std::string> recentPresets_;
     static constexpr int kMaxRecent = 20;
@@ -152,7 +162,6 @@ private:
     // Multi-select helpers
     bool isMultiSelectMode() const { return activePlayMode_ == PlayMode::Playlist; }
     void handlePresetClick(int globalIndex, bool shiftHeld, bool ctrlHeld);
-    void startDrag();
 
     // Get presets for the active sub-tab and section
     std::vector<const ProjectMPresetManager::PresetInfo*> getPresetsForSection(const std::string& sectionName) const;
