@@ -20,7 +20,8 @@
 //   [Transform]               Position X/Y, Scale %, Rotation °, Anchor
 //   [Global Effects]          Effect stack
 //   [Output Settings]         Resolution dropdown
-class CompositionInspector : public juce::Component
+class CompositionInspector : public juce::Component,
+                             public juce::DragAndDropTarget
 {
 public:
     CompositionInspector();
@@ -103,6 +104,13 @@ private:
 
     // --- Output Settings ---
     juce::ComboBox resolutionSelector_;
+
+    // DragAndDropTarget for FX drops
+    bool isInterestedInDragSource(const SourceDetails& details) override;
+    void itemDragEnter(const SourceDetails& details) override;
+    void itemDragExit(const SourceDetails& details) override;
+    void itemDropped(const SourceDetails& details) override;
+    bool fxDropHighlight_ = false;
 
     void paintSectionHeader(juce::Graphics& g, const juce::Rectangle<int>& bounds,
                             const juce::String& title, bool hasPButton = false);

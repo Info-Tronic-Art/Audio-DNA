@@ -204,6 +204,15 @@ void CompositionInspector::paint(juce::Graphics& g)
 {
     g.fillAll(juce::Colour(0xff1a1a1a));
 
+    // FX drop highlight
+    if (fxDropHighlight_)
+    {
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.15f));
+        g.fillRect(getLocalBounds());
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.6f));
+        g.drawRect(getLocalBounds(), 2);
+    }
+
     if (!composition_) return;
 
     // Name bar
@@ -531,4 +540,29 @@ void CompositionInspector::syncFromComposition()
     else if (composition_->outputWidth == 1280) resolutionSelector_.setSelectedId(2, juce::dontSendNotification);
     else if (composition_->outputWidth == 2560) resolutionSelector_.setSelectedId(3, juce::dontSendNotification);
     else if (composition_->outputWidth == 3840) resolutionSelector_.setSelectedId(4, juce::dontSendNotification);
+}
+
+bool CompositionInspector::isInterestedInDragSource(const SourceDetails& details)
+{
+    return composition_ != nullptr && details.description.toString().startsWith("fx:");
+}
+
+void CompositionInspector::itemDragEnter(const SourceDetails&)
+{
+    fxDropHighlight_ = true;
+    repaint();
+}
+
+void CompositionInspector::itemDragExit(const SourceDetails&)
+{
+    fxDropHighlight_ = false;
+    repaint();
+}
+
+void CompositionInspector::itemDropped(const SourceDetails& details)
+{
+    fxDropHighlight_ = false;
+    if (!composition_) return;
+    effectStackView_.itemDropped(details);
+    repaint();
 }
