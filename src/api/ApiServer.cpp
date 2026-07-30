@@ -408,24 +408,27 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
     }
     else
     {
-        // Global effect chain
-        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
-        {
-            auto* fx = effectChain_.getEffect(i);
-            if (fx && fx->getName() == effectName)
+        // Global effect chain — same callAsync marshal as the clip branch
+        // above; effectChain_ is otherwise mutated only on the message thread.
+        juce::MessageManager::callAsync([this, effectName, paramName, value]() {
+            for (int i = 0; i < effectChain_.getNumEffects(); ++i)
             {
-                for (int pi = 0; pi < fx->getNumParams(); ++pi)
+                auto* fx = effectChain_.getEffect(i);
+                if (fx && fx->getName() == effectName)
                 {
-                    if (fx->getParam(pi).name == paramName.toStdString())
+                    for (int pi = 0; pi < fx->getNumParams(); ++pi)
                     {
-                        fx->getParam(pi).value = value;
-                        res.set_content(jsonOk(), "application/json");
-                        return;
+                        if (fx->getParam(pi).name == paramName.toStdString())
+                        {
+                            fx->getParam(pi).value = value;
+                            return;
+                        }
                     }
                 }
             }
-        }
-        res.set_content(jsonError("Effect or param not found"), "application/json");
+        });
+
+        res.set_content(jsonOk(), "application/json");
     }
 }
 
@@ -684,44 +687,54 @@ void ApiServer::handleSetEffect(const httplib::Request& req, httplib::Response& 
         return;
     }
 
-    // Find effect in chain by name
-    Effect* found = nullptr;
-    for (int i = 0; i < effectChain_.getNumEffects(); ++i)
-    {
-        auto* fx = effectChain_.getEffect(i);
-        if (fx && fx->getName() == name)
-        {
-            found = fx;
-            break;
-        }
-    }
-
-    if (!found)
-    {
-        res.set_content(jsonError("Effect not found: " + name.toStdString()), "application/json");
-        return;
-    }
-
-    found->setEnabled(enabled);
-
+    // Extract requested param updates from the request JSON (safe: no model
+    // access) before marshalling the effect-chain find+write below.
+    std::vector<std::pair<std::string, float>> paramUpdates;
     if (json.hasProperty("params"))
     {
         auto* paramsObj = json["params"].getDynamicObject();
         if (paramsObj)
         {
             for (const auto& prop : paramsObj->getProperties())
+                paramUpdates.emplace_back(prop.name.toString().toStdString(),
+                                           static_cast<float>(static_cast<double>(prop.value)));
+        }
+    }
+
+    // Effect chain lives on the composition-adjacent model, otherwise
+    // mutated only on the message thread — marshal the find-by-name +
+    // enabled/param writes there too (same callAsync pattern as set_param).
+    // "Effect not found" can no longer be reported back synchronously now
+    // that the lookup runs on the message thread — matches the trade-off
+    // already made for set_param/set_layer_opacity.
+    juce::MessageManager::callAsync([this, name, enabled, paramUpdates]() {
+        Effect* found = nullptr;
+        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+        {
+            auto* fx = effectChain_.getEffect(i);
+            if (fx && fx->getName() == name)
             {
-                for (int pi = 0; pi < found->getNumParams(); ++pi)
+                found = fx;
+                break;
+            }
+        }
+        if (!found)
+            return;
+
+        found->setEnabled(enabled);
+
+        for (const auto& [paramName, paramValue] : paramUpdates)
+        {
+            for (int pi = 0; pi < found->getNumParams(); ++pi)
+            {
+                if (found->getParam(pi).name == paramName)
                 {
-                    if (found->getParam(pi).name == prop.name.toString().toStdString())
-                    {
-                        found->getParam(pi).value = static_cast<float>(static_cast<double>(prop.value));
-                        break;
-                    }
+                    found->getParam(pi).value = paramValue;
+                    break;
                 }
             }
         }
-    }
+    });
 
     res.set_content(jsonOk(), "application/json");
 }
@@ -797,14 +810,21 @@ void ApiServer::handleRenderFrame(const httplib::Request& req, httplib::Response
 
 void ApiServer::handleReset(const httplib::Request&, httplib::Response& res)
 {
+    // renderer_ calls left as-is: out of scope for this marshal pass
+    // (renderer-internal thread-safety needs a separate design look).
     renderer_.clearImage();
     renderer_.clearActiveSource();
 
-    for (int i = 0; i < effectChain_.getNumEffects(); ++i)
-    {
-        if (auto* fx = effectChain_.getEffect(i))
-            fx->setEnabled(false);
-    }
+    // effectChain_ is otherwise mutated only on the message thread — marshal
+    // this disable loop there too (same callAsync pattern as the other
+    // effect-chain writes above).
+    juce::MessageManager::callAsync([this]() {
+        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+        {
+            if (auto* fx = effectChain_.getEffect(i))
+                fx->setEnabled(false);
+        }
+    });
 
     res.set_content(jsonOk(), "application/json");
 }
@@ -835,44 +855,66 @@ void ApiServer::handleSetEffectChain(const httplib::Request& req, httplib::Respo
         return;
     }
 
-    // Disable all, then enable requested
-    for (int i = 0; i < effectChain_.getNumEffects(); ++i)
-        if (auto* fx = effectChain_.getEffect(i))
-            fx->setEnabled(false);
+    // Extract the requested effect list from the request JSON (safe: no
+    // model access) before marshalling the effect-chain writes below.
+    struct RequestedEffect
+    {
+        juce::String name;
+        std::vector<std::pair<std::string, float>> params;
+    };
+    std::vector<RequestedEffect> requested;
     for (const auto& fxVar : *effectsArray)
     {
         auto* fxObj = fxVar.getDynamicObject();
         if (!fxObj) continue;
 
-        juce::String effectName = fxObj->getProperty("name").toString();
-        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+        RequestedEffect entry;
+        entry.name = fxObj->getProperty("name").toString();
+        if (fxObj->hasProperty("params"))
         {
-            auto* fx = effectChain_.getEffect(i);
-            if (fx && fx->getName() == effectName)
+            if (auto* paramsObj = fxObj->getProperty("params").getDynamicObject())
             {
-                fx->setEnabled(true);
-                if (fxObj->hasProperty("params"))
+                for (auto& prop : paramsObj->getProperties())
+                    entry.params.emplace_back(prop.name.toString().toStdString(),
+                                               static_cast<float>(static_cast<double>(prop.value)));
+            }
+        }
+        requested.push_back(std::move(entry));
+    }
+
+    // effectChain_ is otherwise mutated only on the message thread — marshal
+    // disable-all/enable-requested there too (same callAsync pattern as the
+    // other effect-chain writes above).
+    juce::MessageManager::callAsync([this, requested]() {
+        // Disable all, then enable requested
+        for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+            if (auto* fx = effectChain_.getEffect(i))
+                fx->setEnabled(false);
+
+        for (const auto& entry : requested)
+        {
+            for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+            {
+                auto* fx = effectChain_.getEffect(i);
+                if (fx && fx->getName() == entry.name)
                 {
-                    if (auto* paramsObj = fxObj->getProperty("params").getDynamicObject())
+                    fx->setEnabled(true);
+                    for (const auto& [paramName, paramValue] : entry.params)
                     {
-                        for (auto& prop : paramsObj->getProperties())
+                        for (int p = 0; p < fx->getNumParams(); ++p)
                         {
-                            float val = static_cast<float>(static_cast<double>(prop.value));
-                            for (int p = 0; p < fx->getNumParams(); ++p)
+                            if (fx->getParam(p).name == paramName)
                             {
-                                if (fx->getParam(p).name == prop.name.toString().toStdString())
-                                {
-                                    fx->getParam(p).value = val;
-                                    break;
-                                }
+                                fx->getParam(p).value = paramValue;
+                                break;
                             }
                         }
                     }
+                    break;
                 }
-                break;
             }
         }
-    }
+    });
 
     res.set_content(jsonOk(), "application/json");
 }
