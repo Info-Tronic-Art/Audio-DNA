@@ -51,6 +51,12 @@ private:
         bool isDirectory = false;
         bool isFavorite = false;
     };
+    // NOTE: thumbnailPool_ must finish draining (see ~FilesBrowser()) before
+    // this is touched — a completed decode job writes into entries_ via
+    // onThumbnailDecoded. The drain happens explicitly in the destructor
+    // body, not via member-declaration order, so it holds regardless of
+    // where entries_/thumbnailPool_ end up being declared relative to each
+    // other.
     std::vector<FileEntry> entries_;
     std::set<int> selectedIndices_;  // multi-select tracking
 
@@ -78,9 +84,15 @@ private:
     // the message thread). Enumeration/list-building stays synchronous
     // (cheap); only the per-file decode is dispatched to thumbnailPool_.
     ThumbnailCache thumbnailCache_;
+    // NOTE: must be drained (removeAllJobs) BEFORE entries_ is touched — see
+    // ~FilesBrowser(), which does this explicitly as the first thing it does
+    // rather than relying on this member's declaration position. A completed
+    // job's onThumbnailDecoded callback reads/writes entries_, so the pool
+    // must be fully stopped before teardown can safely proceed past it.
     juce::ThreadPool thumbnailPool_{juce::ThreadPoolOptions{}
                                          .withNumberOfThreads(2)
                                          .withThreadName("FilesBrowserThumbs")};
+    static constexpr int kThumbnailPoolShutdownTimeoutMs = 5000;
 
     // Bumped on every refreshFileList()/filterBySearch() call. A completed
     // decode job compares its captured generation against this before
@@ -89,7 +101,13 @@ private:
     uint64_t decodeGeneration_ = 0;
 
     void requestThumbnailAsync(const juce::File& file, uint64_t generation);
-    void onThumbnailDecoded(const juce::File& file, uint64_t generation, juce::Image thumbnail);
+
+    // mtimeAtDecode is the file's mtime as read on the pool thread at the
+    // moment its bytes were decoded — NOT re-queried here — so the cache
+    // entry always matches the content that was actually decoded even if the
+    // file changed again during the hop back to the message thread.
+    void onThumbnailDecoded(const juce::File& file, juce::Time mtimeAtDecode,
+                             uint64_t generation, juce::Image thumbnail);
 
     static constexpr int kNavBarHeight = 24;
     static constexpr int kSearchBarHeight = 22;

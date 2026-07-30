@@ -27,7 +27,7 @@ public:
     // different mtime). A hit promotes the entry to most-recently-used.
     juce::Image get(const juce::File& file)
     {
-        auto it = index_.find(makeKey(file));
+        auto it = index_.find(makeKey(file, file.getLastModificationTime()));
         if (it == index_.end())
             return {};
 
@@ -35,27 +35,25 @@ public:
         return it->second->image;
     }
 
-    // Stores (or refreshes) the thumbnail for this file at its current
-    // mtime, evicting the least-recently-used entry if over capacity.
+    // Convenience overload: stores under the file's CURRENT mtime (re-queried
+    // here). Prefer the explicit-mtime overload below whenever the caller
+    // already captured the mtime at the moment it actually read the file's
+    // bytes (e.g. on a background thread before hopping back to the message
+    // thread) — re-querying mtime here can disagree with what was actually
+    // decoded if the file changed in between, caching stale pixels under a
+    // current-looking key.
     void put(const juce::File& file, juce::Image thumbnail)
     {
-        auto key = makeKey(file);
-        auto it = index_.find(key);
-        if (it != index_.end())
-        {
-            it->second->image = std::move(thumbnail);
-            order_.splice(order_.begin(), order_, it->second);
-            return;
-        }
+        putAt(makeKey(file, file.getLastModificationTime()), std::move(thumbnail));
+    }
 
-        order_.push_front({key, std::move(thumbnail)});
-        index_[key] = order_.begin();
-
-        while (static_cast<int>(order_.size()) > maxEntries_)
-        {
-            index_.erase(order_.back().key);
-            order_.pop_back();
-        }
+    // Stores a thumbnail keyed by an EXPLICITLY captured mtime. Use this
+    // whenever the mtime was read at the same moment (same thread) as the
+    // bytes that produced `thumbnail`, rather than re-queried afterwards —
+    // this is the race-free path for a decode that crossed threads.
+    void put(const juce::File& file, juce::Time mtimeAtRead, juce::Image thumbnail)
+    {
+        putAt(makeKey(file, mtimeAtRead), std::move(thumbnail));
     }
 
     int size() const { return static_cast<int>(order_.size()); }
@@ -86,9 +84,29 @@ private:
         juce::Image image;
     };
 
-    static Key makeKey(const juce::File& file)
+    static Key makeKey(const juce::File& file, juce::Time mtime)
     {
-        return {file.getFullPathName(), file.getLastModificationTime().toMilliseconds()};
+        return {file.getFullPathName(), mtime.toMilliseconds()};
+    }
+
+    void putAt(const Key& key, juce::Image thumbnail)
+    {
+        auto it = index_.find(key);
+        if (it != index_.end())
+        {
+            it->second->image = std::move(thumbnail);
+            order_.splice(order_.begin(), order_, it->second);
+            return;
+        }
+
+        order_.push_front({key, std::move(thumbnail)});
+        index_[key] = order_.begin();
+
+        while (static_cast<int>(order_.size()) > maxEntries_)
+        {
+            index_.erase(order_.back().key);
+            order_.pop_back();
+        }
     }
 
     std::list<Entry> order_;  // front = most recently used

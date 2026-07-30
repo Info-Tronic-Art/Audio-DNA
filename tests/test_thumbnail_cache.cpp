@@ -108,3 +108,25 @@ TEST_CASE("ThumbnailCache re-put at the same mtime overwrites without growing", 
 
     file.deleteRecursively();
 }
+
+TEST_CASE("ThumbnailCache put(file, explicitMtime, image) keys by the captured mtime, not the file's live mtime",
+          "[thumbnail-cache]")
+{
+    ThumbnailCache cache;
+    auto file = makeTempFile("explicit_mtime.png");
+
+    // Simulate a decode that captured the mtime on a background thread
+    // BEFORE the file changed again on disk during the hop back to the
+    // message thread (the race the explicit-mtime overload closes).
+    auto mtimeAtDecode = file.getLastModificationTime();
+    REQUIRE(file.setLastModificationTime(mtimeAtDecode + juce::RelativeTime::seconds(5)));
+
+    cache.put(file, mtimeAtDecode, makeImage(7));
+
+    // A get() against the file's CURRENT (now-different) mtime must miss —
+    // the stale-content decode is never silently served as if it were fresh
+    // under a current-looking key.
+    REQUIRE_FALSE(cache.get(file).isValid());
+
+    file.deleteRecursively();
+}

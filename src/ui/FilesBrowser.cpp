@@ -329,7 +329,20 @@ private:
 
 // ── FilesBrowser implementation ──
 
-FilesBrowser::~FilesBrowser() = default;
+FilesBrowser::~FilesBrowser()
+{
+    // Explicit, not incidental: drain the thumbnail pool FIRST, before any
+    // other member (entries_ especially) starts being torn down. A
+    // completed decode job's callAsync callback reads/writes entries_ via
+    // onThumbnailDecoded, so this must happen before entries_ can go away —
+    // making it the first statement in the destructor body means that
+    // guarantee holds regardless of member-declaration order (a future
+    // reorder of entries_/thumbnailPool_ must not silently reopen this).
+    // removeAllJobs(true, timeout) signals any running job to stop and
+    // blocks until it does (or the timeout elapses); our jobs are pure
+    // decode work with no `this` access, so they simply run to completion.
+    thumbnailPool_.removeAllJobs(true, kThumbnailPoolShutdownTimeoutMs);
+}
 
 FilesBrowser::FilesBrowser()
 {
@@ -558,23 +571,32 @@ void FilesBrowser::requestThumbnailAsync(const juce::File& file, uint64_t genera
 
     thumbnailPool_.addJob([safeThis, file, generation]
     {
-        // Pool thread: pure decode, no component/UI access.
+        // Pool thread: pure decode, no component/UI access. Read the mtime
+        // right alongside the decode (same thread, same moment) so the
+        // cache is keyed by what was actually decoded — re-querying mtime
+        // later at put() time, after the hop back to the message thread,
+        // could observe a NEWER mtime than the bytes just read here, which
+        // would cache stale pixels under a current-looking key.
+        auto mtimeAtDecode = file.getLastModificationTime();
         auto thumbnail = FilesBrowser::generateThumbnail(file);
 
-        juce::MessageManager::callAsync([safeThis, file, generation, thumbnail]
+        juce::MessageManager::callAsync([safeThis, file, mtimeAtDecode, generation, thumbnail]
         {
             if (auto* browser = safeThis.getComponent())
-                browser->onThumbnailDecoded(file, generation, thumbnail);
+                browser->onThumbnailDecoded(file, mtimeAtDecode, generation, thumbnail);
         });
     });
 }
 
-void FilesBrowser::onThumbnailDecoded(const juce::File& file, uint64_t generation, juce::Image thumbnail)
+void FilesBrowser::onThumbnailDecoded(const juce::File& file, juce::Time mtimeAtDecode,
+                                       uint64_t generation, juce::Image thumbnail)
 {
     // Cache regardless of generation — the decode is still valid for a later
     // revisit even if the user has already navigated away from this folder.
+    // Keyed by the mtime captured at decode time (see requestThumbnailAsync),
+    // not re-queried here.
     if (thumbnail.isValid())
-        thumbnailCache_.put(file, thumbnail);
+        thumbnailCache_.put(file, mtimeAtDecode, thumbnail);
 
     if (generation != decodeGeneration_)
         return;  // stale: folder changed/re-filtered since this job was queued
