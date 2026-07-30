@@ -592,14 +592,22 @@ MainComponent::MainComponent(bool testMode, int testPort)
     previewPanel_.getRenderer().setOnGenreChanged([this](uint8_t genre, float confidence) {
         if (!composition_.autoPresetOnGenre) return;
 
-        // Auto-switch deck if genre has an assigned deck
+        // Auto-switch deck if genre has an assigned deck. Routed through
+        // handleDeckSwitch (2026-07-30 fix, completes d4f5d86's scope claim) so
+        // this gets the same refreshPreviewFromActiveClip reconcile every other
+        // switch path gets — without it, switching to an empty deck by genre
+        // left the previous deck's clip still rendering in preview. Safe from
+        // this callback: it already runs on the message thread (Renderer.cpp's
+        // genre-change detection marshals via juce::MessageManager::callAsync
+        // before invoking onGenreChanged_), and handleDeckSwitch itself pushes
+        // no undo command (see onDeckSwitched's comment above, which already
+        // names genre auto-switch as one of the non-user callers this bare
+        // primitive is meant for) — genre-auto stays non-undoable, per doctrine.
         int deckIdx = composition_.genreDeckAssignment[genre];
         if (deckIdx >= 0 && deckIdx < static_cast<int>(composition_.decks.size())
             && deckIdx != composition_.activeDeckIndex)
         {
-            composition_.activeDeckIndex = deckIdx;
-            previewPanel_.getRenderer().setActiveDeck(composition_.getActiveDeck());
-            if (deckView_) deckView_->rebuildGrid();
+            handleDeckSwitch(deckIdx);
         }
 
         std::cerr << "[P23] Genre changed to: " << GenreDetector::genreName(genre)
