@@ -2226,6 +2226,21 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
+    // Cmd/Ctrl+X = Clear selected clip(s) (Clip > Clear). No clipboard concept
+    // exists at HEAD: MenuBarModel.h reserves kClipCut/kClipCopy/kClipPaste/
+    // kClipCopyEffects/kClipPasteEffects enum values, but none is ever added
+    // to a menu (MenuBarModel.cpp's Clip menu builds only Clear/Replace
+    // Content/Lock Content) or handled in handleMenuCommand — grep-confirmed
+    // 2026-07-30. So this is Cmd+X as a second shortcut on the existing Clear
+    // action (smallest honest thing), not cut-to-clipboard; "Cut" would be a
+    // lie in a menu label. kClipClear's own handler is already a safe no-op
+    // with nothing selected, so no extra guard is needed here.
+    if (key.isKeyCode('X') && mod.isCommandDown())
+    {
+        handleMenuCommand(AudioDNAMenuBar::kClipClear);
+        return true;
+    }
+
     // Cmd/Ctrl+S = save preset
     if (key.isKeyCode('S') && mod.isCommandDown())
     {
