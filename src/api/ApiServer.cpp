@@ -363,48 +363,48 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
     // If layer/column specified, target clip effect; otherwise target global effect chain
     if (layer >= 0 && column >= 0)
     {
-        auto* deck = composition_.getActiveDeck();
-        if (!deck)
-        {
-            res.set_content(jsonError("No active deck"), "application/json");
-            return;
-        }
-        auto* lay = deck->getLayer(layer);
-        if (!lay)
-        {
-            res.set_content(jsonError("Invalid layer"), "application/json");
-            return;
-        }
-        auto* clip = lay->getClipAt(column);
-        if (!clip)
-        {
-            res.set_content(jsonError("Invalid clip"), "application/json");
-            return;
-        }
+        // Clip effects live on the composition model, which is otherwise mutated
+        // only on the message thread — marshal this write there too, same
+        // callAsync/fire-and-forget shape as trigger_clip/trigger_column/
+        // switch_deck/set_bpm. Model-state validation (deck/layer/clip/effect
+        // lookup) now happens on the message thread, so it can no longer be
+        // reported back synchronously; the response is unconditional 'ok' once
+        // the request itself is well-formed (matches those sibling endpoints).
+        juce::MessageManager::callAsync([this, layer, column, effectName, paramName, value]() {
+            auto* deck = composition_.getActiveDeck();
+            if (!deck)
+                return;
+            auto* lay = deck->getLayer(layer);
+            if (!lay)
+                return;
+            auto* clip = lay->getClipAt(column);
+            if (!clip)
+                return;
 
-        for (auto& fx : clip->effects)
-        {
-            if (fx.effectName == effectName.toStdString())
+            for (auto& fx : clip->effects)
             {
-                // Look up param index by name from EffectLibrary
-                auto& lib = renderer_.getEffectLibrary();
-                auto* def = lib.getEffectDef(juce::String(fx.effectName));
-                if (def)
+                if (fx.effectName == effectName.toStdString())
                 {
-                    for (size_t pi = 0; pi < def->params.size(); ++pi)
+                    // Look up param index by name from EffectLibrary
+                    auto& lib = renderer_.getEffectLibrary();
+                    auto* def = lib.getEffectDef(juce::String(fx.effectName));
+                    if (def)
                     {
-                        if (def->params[pi].name == paramName.toStdString())
+                        for (size_t pi = 0; pi < def->params.size(); ++pi)
                         {
-                            if (pi < fx.paramValues.size())
-                                fx.paramValues[pi] = value;
-                            res.set_content(jsonOk(), "application/json");
-                            return;
+                            if (def->params[pi].name == paramName.toStdString())
+                            {
+                                if (pi < fx.paramValues.size())
+                                    fx.paramValues[pi] = value;
+                                return;
+                            }
                         }
                     }
                 }
             }
-        }
-        res.set_content(jsonError("Effect or param not found on clip"), "application/json");
+        });
+
+        res.set_content(jsonOk(), "application/json");
     }
     else
     {
@@ -441,21 +441,24 @@ void ApiServer::handleSetLayerOpacity(const httplib::Request& req, httplib::Resp
         return;
     }
 
-    auto* deck = composition_.getActiveDeck();
-    if (!deck)
-    {
-        res.set_content(jsonError("No active deck"), "application/json");
-        return;
-    }
+    // Layer state lives on the composition model, otherwise mutated only on
+    // the message thread — marshal the write there too (same callAsync/
+    // fire-and-forget shape as trigger_clip/trigger_column/switch_deck/
+    // set_bpm; mirrors oscHandler_.onSetLayerOpacity's identical lookup+write,
+    // which is already message-thread-only). Deck/layer validation moves to
+    // the message thread and can no longer be reported back synchronously —
+    // response is unconditional 'ok' once the request itself is well-formed,
+    // matching those sibling endpoints.
+    juce::MessageManager::callAsync([this, layer, opacity]() {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck)
+            return;
+        auto* lay = deck->getLayer(layer);
+        if (!lay)
+            return;
+        lay->opacity = opacity;
+    });
 
-    auto* lay = deck->getLayer(layer);
-    if (!lay)
-    {
-        res.set_content(jsonError("Invalid layer"), "application/json");
-        return;
-    }
-
-    lay->opacity = opacity;
     res.set_content(jsonOk(), "application/json");
 }
 
