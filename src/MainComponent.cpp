@@ -3075,6 +3075,10 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
     std::optional<bool> playBefore;
     if (const Clip* tc = layer->getClipAt(column)) playBefore = tc->playing;
 
+    // Retrigger-restart (2026-07-30, Boris's recorded expectation): clicking the
+    // already-playing cell is this same column == layer->activeClipColumn case.
+    const bool wasRetrigger = (column == layer->activeClipColumn);
+
     layer->triggerClip(column);
 
     const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
@@ -3112,6 +3116,31 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
                     auto* seq = renderer.getImageSequence(clip->id);
                     if (seq) seq->seekTo(beatPos);
                 }
+            }
+        }
+        else if (wasRetrigger && clip->isPlayable())
+        {
+            // Retrigger-restart: Layer::triggerClipImmediate's retrigger branch
+            // (column == activeClipColumn) already resets the MODEL's
+            // playheadPosition to inPoint, but the renderer overwrites
+            // clip->playheadPosition FROM the player's actual position every
+            // frame — so without also seeking the player itself, the model
+            // reset was invisible (scout-diagnosed emergent no-op, triage
+            // 2026-07-30). Seek the real player/sequence to in-point, mirroring
+            // the beat-snap seek above and the cuepoint-jump seek elsewhere in
+            // this file. Does not touch clip->playing (retrigger preserves
+            // play/pause state, per Layer.h) or any undo-tracked field, so the
+            // existing "retrigger pushes no history entry" behavior is unchanged.
+            auto& renderer = previewPanel_.getRenderer();
+            if (clip->mediaType == Clip::MediaType::Video)
+            {
+                auto* player = renderer.getVideoPlayer(clip->id);
+                if (player) player->seekTo(clip->inPoint);
+            }
+            else if (clip->mediaType == Clip::MediaType::ImageSequence)
+            {
+                auto* seq = renderer.getImageSequence(clip->id);
+                if (seq) seq->seekTo(clip->inPoint);
             }
         }
 
