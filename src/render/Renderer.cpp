@@ -723,17 +723,29 @@ ProceduralSource* Renderer::getOrCreateSource(const std::string& sourceId)
     // would deadlock the blocking round-trip).
     if (juce::OpenGLContext::getCurrentContext() != &glContext_)
     {
-        // Defense-in-depth (task #24, reviewer-shutdown-lane): during
-        // shutdown, a non-GL-thread caller could in principle race a
-        // concurrent glContext_.detach(). isAttached() is itself a
-        // check-then-act read — a caller can still lose the race to
-        // execute()'s own internal state check — so this narrows the
-        // window to JUCE's own already-narrow internal one rather than
-        // closing it outright; skipping executeOnGLThread entirely here
-        // when clearly detached avoids even attempting the round-trip.
-        // The actual close is structural: ~MainComponent() stops the HTTP
-        // servers (whose worker threads are the only non-message-thread
-        // callers of this method) before detaching the GL context.
+        // Defense-in-depth (task #24, adjudicated with reviewer-shutdown-lane):
+        // a detach-transition TOCTOU in JUCE's own teardown is REAL and
+        // JUCE-inherent, not hypothetical. CachedImage::stop() (vendored
+        // juce_OpenGLContext.cpp) checks workQueue.size() ONCE, then
+        // pause() -> RenderThread::remove() sets flags.setSafe(false) as
+        // its first action — the only drain path (renderFrame's
+        // isListChanging() check) bails before servicing anything already
+        // there. A BlockingWorker whose execute() call reads
+        // pendingDestruction as still false, then lands its
+        // workQueue.add()/triggerRepaint() AFTER stop()'s one-time check
+        // but before remove() finishes, is never drained and its
+        // WaitableEvent is never signaled — the calling thread hangs
+        // forever. cc5c0c3 made this reachable: it moved GL detach to be
+        // the FIRST statement in ~MainComponent(), before the HTTP servers
+        // (whose worker threads are the only non-message-thread callers of
+        // this method) are stopped, so a live HTTP request can now be
+        // in-flight during the detach transition. Closed structurally by
+        // reordering ~MainComponent() to stop those servers before
+        // detaching (MISC lane); this isAttached() check is defense-in-depth
+        // on top of that — it is itself a check-then-act read (a caller can
+        // still lose the race to execute()'s own internal check), so it
+        // narrows the window to JUCE's own already-narrow one rather than
+        // being a second independent close.
         if (!glContext_.isAttached())
             return nullptr;
 
