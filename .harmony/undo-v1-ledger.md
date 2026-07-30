@@ -450,6 +450,86 @@ HEAD b4ee380, source tree clean, tests 114/114 (handoff claim — re-verify at f
   Then: cert step (still pending, keychain empty) → one reconfigure+rebuild →
   final TCC prompt ever. All agents retired; lane fully closed on the code
   side.
+- 2026-07-30: **APP GATE CLOSED** (session resume, secondary slim). Receiver-
+  verify at boot: handoff claim "app running, prompt on screen" was STALE — app
+  QUIT (pgrep empty, health down). Relaunched fenced binary via `open` 00:05
+  (mtime 07-28 20:09 = final gate build; HEAD bb076c7 = chore atop 8bd09ba;
+  post-build delta comment-only → behaviorally identical) → health
+  ok/ready/119.6fps/135 effects in ~10s, NO TCC prompt: Allow evidently clicked
+  off-session after the 07-29 close (mic-in-use menu-bar indicator live =
+  GRANTED; TCC.db query FDA-denied; screenshot /tmp/audiodna-tcc-20260730.png).
+  Zero Boris clicks spent. → Manual-test HOLD LIST DISSOLVED (columns / clears /
+  clip-clear / effects + their undos testable); 4 race-lucky drop re-runs
+  pending. Cert STILL absent (0 codesign identities) — next rebuild re-prompts
+  ONCE; recommended order flip vs handoff: sitting FIRST on this live granted
+  binary (zero clicks, zero latency), cert step after (no rebuild mid-sitting →
+  nothing re-prompts). Tree sanity: non-graphify dirt = one untracked .audit/
+  dir; src clean vs HEAD. ADDENDUM (morning, Boris directive "keep working the
+  list autonomously"): (a) fenced build survived ~9h idle overnight at 119fps /
+  DSP 1% — passive stability soak, zero new .ips (baseline = the 2 known 07-28
+  files); (b) window-capture verification channel established (CGWindowList id
+  1219 + `screencapture -l` — no focus steal); (c) audio pipeline VERIFIED live
+  end-to-end from window capture: Mic Input + real waveform + analysis bands +
+  tempo 128 locking w/ beat indicators (structural half of the "SignalBar moves"
+  Boris check self-served); (d) osascript accessibility re-probed: still DENIED
+  (menu/keystroke UI scripting unavailable; Boris unlock = System Settings →
+  Accessibility → Ghostty); (e) api-surface-scout dispatched to map REST/OSC
+  drivability for autonomous checklist execution. (f) SCOUT MAP LANDED (cited
+  to file:line): undo/redo + ALL structural mutations (columns/clears/layer
+  & deck structure/cell set-clear) are REMOTELY UNREACHABLE — UI/menu only;
+  remotely drivable = trigger_clip/trigger_column (undo-recorded, callAsync-
+  marshalled), switch_deck (NOT undo-recorded — bypasses SwitchDeckCmd,
+  ApiServer→handleDeckSwitch:3394 direct), set_bpm, load_image/load_source
+  (renderer-level, NOT grid cells), effect enable/params, OSC layer
+  opacity/bypass/solo/mute (message-thread, no undo); /api/composition = full
+  state readback probe. DO-NOT-CALL respected: snapshot/render_frame (disk),
+  reset/set_effect_chain (silent chain wipe). Dormant TestServer (port 8080,
+  --test-mode, compiled in) enumeration requested — may unlock autonomous
+  undo/menu driving. (g) NEW LATENT FINDING (scout risk flag) → Boris queue
+  item (4): ApiServer set_param clip branch (:399) + set_layer_opacity (:458)
+  mutate the model ON THE HTTP THREAD unmarshalled (unlike the 4 callAsync
+  endpoints) — field-write class, NOT the resize crash class, but
+  unsynchronized concurrent writes; tiny marshal fix candidate; EXCLUDED from
+  soak design (ambiguous evidence). (h) ENDPOINT EXERCISE PASS: 15 rapid
+  trigger_clip + 3 trigger_column + switch_deck under live render → all ok,
+  fps 119.58 steady, same PID, zero new .ips; post-state activeClipColumn -1
+  everywhere ⇒ empty-cell triggers are state-no-ops ⇒ state-change guard
+  pushed ZERO history entries (guard semantics behaviorally corroborated) —
+  app state + undo history remain PRISTINE for the sitting. (i) Checklist
+  items source-proven + exercised: §4 remote-deck-switch-not-in-history
+  (scout :3394 + step-6 review, two independent source reads + behavioral
+  run); §6 REST-trigger-pushes-history (scout :2995 + step-8 review
+  grep-proof; menu-eyeball residue only).
+- 2026-07-30 PM: **AUTONOMOUS UI DRIVE COMPLETE** (Boris Option A — Accessibility
+  granted to Ghostty). Synthetic-event driver: CGEvent swift tool (click/drag) +
+  System Events menus/keystrokes + mandatory verify-and-retry (state+label
+  fingerprints; raw delivery flakes ~15%). Oracles: /api/composition,
+  Composition-menu labels (dynamic undo descs — menu is COMPOSITION, not Edit),
+  window captures by CGWindowList id. RESULT: **~130 mutations across EVERY
+  crash-family path under active GL render — ZERO CRASHES** (fps 114-120, .ips
+  count unchanged at 2). Headline: column ops ×33 incl. 5 undo/redo REPLAY
+  cycles on the exact 07-28 SIGSEGV scenario — fence family PROVEN in-app.
+  Also verified (checklist annotated per item): drop-source undo/redo; trigger
+  undo/redo; retrigger-no-push (UI+REST); single-layer merge; cross-layer
+  no-merge; column-trigger composite undo (REST, content on 2 layers); deck
+  add/remove/tab-switch triad exact restores; layer add/insert/remove/move +
+  fold + bypass/solo; X-button active-clear (singular cmd) vs layer-clear
+  (plural) both restore-exact; clip-scope FX drop + undo + redo-replay
+  (visually confirmed warp); Composition→New full wipe + BOTH stacks cleared +
+  menus greyed. Scout adjudications ×2: all 5 "dead" menu items WIRED —
+  selection preconditions (cell thumbnail=trigger vs name-bar=select
+  ClipCell.cpp:180-194; strip-click selection LayerStrip.cpp:706-719; MoveUp
+  `selLayer>0` guard; layer-clear content guard :3694); **NO Cut command
+  exists at HEAD** (Cmd+X ask = net-new build). NEW findings → queue
+  candidates: (5) menu enablement not gated on selection preconditions
+  (silent-no-op class); (6) rebuildGrid leaks stale INVISIBLE selection
+  (clearSelection only in drop handlers — misleads UI-state readers); (7)
+  preview ANIMATES the old deck's clip while an empty deck is active
+  (frames-differ verified — intent question, pairs with zero-layer Deck-New).
+  Residue = 11-item Boris runsheet at checklist top (~15-20 min: Finder drops,
+  video cases, name-bar gestures, FX scopes/rows, autopilot confirm, quantize
+  edge, taste calls, Syphon, cert). App left healthy: 1 deck, 2 staged clips,
+  history [Drop,Drop], 119fps.
 - 2026-07-28: SITTING crash #2 (separate subsystem): SignalBar arrow → layout
   cascade → MilkDropBrowser::getCuratedPresets null-deref (empty preset state;
   .ips 2026-07-28-190701). Queued as post-lane mini-lane candidate bundled with
@@ -458,7 +538,11 @@ HEAD b4ee380, source tree clean, tests 114/114 (handoff claim — re-verify at f
   pointer/scope-aware skip follow-up (fixes expanded-row collapse + deck-tab
   highlight class); (2) is zero-layer raw Deck-New intended?; (3) undo-with-no-
   cell-selected clears clip inspector (carried from s. 2026-07-19, UX check —
-  fold into the manual e2e sitting).
+  fold into the manual e2e sitting); (4) NEW 2026-07-30: marshal the two
+  HTTP-thread model writes (ApiServer.cpp:399 set_param clip branch, :458
+  set_layer_opacity) onto the message thread via callAsync like the other four
+  endpoints — unsynchronized-concurrent-write latent bug, field-write class,
+  tiny fix, post-lane candidate (scout-flagged, cited).
 
 ## Queued non-lane items (from handoff, deferred while build lane occupies build dir)
 - FIRST (env, Boris-level — ROOT CAUSE KNOWN 2026-07-25): click **Allow** on the

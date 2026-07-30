@@ -3,153 +3,159 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL
-live audio-reactive VJ app). **Undo v1 is BUILD-COMPLETE and now CRASH-HARDENED:**
-this session shipped the **GL-fence family fix (8bd09ba)** — a reproduced Column→New
-SIGSEGV (pre-existing UAF: message-thread model mutation under the lock-free GL
-render thread) was diagnosed to disassembly level and fenced across the ENTIRE swept
-family (columns/clears/clip-clear/drop-growth/effects vectors/replace-content/
-kCompNew/undo-redo replay + 2 never-fenced drop paths). Tests 176/176
-(`ctest --test-dir build`). Build: `cmake --build build --config Release -j`.
-Lane ledger: `.harmony/undo-v1-ledger.md` — READ FIRST (2026-07-28/29 entries).
+live audio-reactive VJ app). **Undo v1 is BUILD-COMPLETE, CRASH-HARDENED, and now
+LIVE-PROVEN:** the fence lane's app gate CLOSED 2026-07-30 and an autonomous
+synthetic-UI drive ran **~130 mutations across every crash-family path under active
+GL render with ZERO crashes** (columns ×33 incl. undo/redo replay on the exact
+07-28 SIGSEGV scenario, clears, FX vectors, CompNew, deck/layer structure, trigger
+merge algebra). ~75% of the manual e2e checklist is PASSED with dated oracle notes;
+an **11-item Boris runsheet** sits at the top of `.harmony/undo-v1-manual-e2e.md`
+(~15-20 min of his hands: Finder drops, video cases, name-bar gestures, FX scopes,
+autopilot confirm, quantize edge, taste calls). Tests 176/176 (`ctest --test-dir
+build`). Build: `cmake --build build --config Release -j`. Lane ledger:
+`.harmony/undo-v1-ledger.md` — READ the 2026-07-30 entries FIRST.
 Launch ONLY via `open build/AudioDNA_artefacts/Release/Audio-DNA.app`.
 
-**START HERE — the parked app gate (needs Boris, 1 click):** the fenced build was
-left RUNNING with its TCC mic prompt UNANSWERED on screen. (1) Boris clicks
-**Allow** (if the app was quit: relaunch → prompt re-fires → Allow). (2) Verify
-`curl -s http://127.0.0.1:7070/api/health` → ok/ready. That closes the fence lane's
-app gate. THEN two Boris steps in order: (a) **create the codesign cert** —
-Keychain Access → Certificate Assistant → Create a Certificate → name exactly
-`Audio-DNA Dev`, Self-Signed Root, Code Signing (keychain had ZERO identities all
-session); then **cmake reconfigure** (identity resolves at CONFIGURE time — a bare
-rebuild will NOT pick it up) + rebuild + one final Allow = last TCC prompt ever.
-(b) **Resume the manual e2e sitting** — `.harmony/undo-v1-manual-e2e.md`: the HOLD
-list (columns/clears/clip-clear/effects) DISSOLVES once the app gate passes; ALSO
-re-run the 4 race-lucky drop passes (multi-video edge, multi-FX far, drag-move far,
-multi-SOURCE). ~10 of ~40 items are done.
+**START HERE:** (1) `security find-identity -p codesigning -v` — if **Audio-DNA
+Dev** exists (Boris's 2-min Keychain step, still pending at close): run cmake
+RECONFIGURE (identity resolves at CONFIGURE time — a bare rebuild stays ad-hoc) +
+rebuild + relaunch + ONE final Allow click (last TCC prompt ever) + health gate. If
+absent, remind Boris (Keychain Access → Certificate Assistant → Create a
+Certificate → exactly `Audio-DNA Dev`, Self-Signed Root, Code Signing). (2) When
+Boris is present: run the 11-item runsheet sitting — you verify live via the
+oracles below. (3) Optional autonomous: crack the cell NAME-BAR geometry (scout
+ClipCell.cpp:180-194/:348-355 for exact rects) to close runsheet items 3-4
+(drag-move, Clip>Clear) without Boris.
 
-ENV ritual unchanged until the cert lands: ad-hoc signing → TCC prompt re-fires per
-rebuild; ONE Allow click each first-launch. CLI probes can't see the dialog —
-diagnose stalls with `screencapture` + image read (gotchas.md). Never
-killall coreaudiod / reboot.
+**NEW CAPABILITY (2026-07-30, permanent):** Accessibility is GRANTED to Ghostty —
+synthetic UI driving works in ALL future sessions. Driver recipes + flake profile:
+`gotchas.md` 2026-07-30 entry (thumbnail=trigger vs name-bar=select; strip-click
+layer selection; verify-and-retry mandatory ~15% event drops; window-capture by
+CGWindowList id; coords pt=display×0.864, y+38). Oracles: /api/composition (NB:
+omits clip effects), Composition-menu undo labels (menu is COMPOSITION — no Edit
+menu exists), window captures. Mouse tool: /tmp/adna-mouse.swift (rebuild from
+gotchas if wiped).
 
 Boris decision queue (ledger, none started): MilkDropBrowser crash-#2 fix bundled
 with default-preset-dir (his ask; .ips 2026-07-28-190701) · mixed-drop
-image-discard fix (ClipCell external path) · Cmd+X cut-to-clear (idea-ledger) ·
-wire Comp/Decks browser load/save (UNWIRED no-ops at HEAD — FUTURE-FENCE comment
-mandatory when wiring) or defer to recorder wave · refreshAfterUndoRedo skip ·
-zero-layer Deck-New intent · inspector-clear UX · Syphon install · B8 removal.
-Next-lane fork after the sitting closes: Session Recorder (ratified default) vs
-ISF import vs visual-design resume (v10 row study partB, V20 recommended, no
-ratified winner, dormant since 05-22).
+image-discard fix · **Cmd+X cut-to-clear — scout-confirmed NO Cut command exists
+at HEAD, net-new build** · marshal the 2 HTTP-thread ApiServer writes (set_param
+:399, set_layer_opacity :458 — queue #4, tiny) · wire Comp/Decks browser load/save
+(FUTURE-FENCE comment mandatory) or defer to recorder wave · refreshAfterUndoRedo
+skip · zero-layer Deck-New intent · inspector-clear UX · Syphon install · B8
+removal · NEW candidates: menu enablement not selection-gated (silent no-op class)
+· rebuildGrid stale invisible selection · preview animates old deck's clip while
+empty deck active (intent?). Next-lane fork after the sitting closes: Session
+Recorder (ratified default) vs ISF import (app already has an "Import ISF
+Shader..." menu entry) vs visual-design resume (dormant since 05-22).
 Standing rules: do NOT push to remote; lane rules in the ledger; conform to
 ClipCommands.h / DeckCommands.h / EffectCommands.h / TriggerCommands.h /
-UndoService patterns at HEAD (NOTE: DeckFenceHook now lives in ClipCommands.h;
-every structural-mutation command carries a fence — new commands MUST too, see
-notebook LAW).
+UndoService patterns at HEAD (DeckFenceHook lives in ClipCommands.h; every
+structural-mutation command carries a fence — new commands MUST too, notebook LAW).
 
 ## PRIMER
 
-- HEAD at close: EOS chore atop **8bd09ba** (fence lane, 16 files +777/−246),
-  atop 649a809/0a1c882. Local only, no-push rule intact. graphify-out/ churn =
-  permanent post-commit-hook noise, never stage.
-- Counts: 135 effects · 108 sources · 22/22 REST · **176/176 tests**
-  (170 undo-v1 carry + 6 fence-invocation).
-- THE LAW (notebook.md 2026-07-28): renderOpenGL runs with NO lock; ANY
-  message-thread mutation of layer clips vectors, composition_.decks, or
-  clip/layer effects vectors MUST run under UndoService::withDeckDetached
-  (RAII-safe, fenceActive_ reentrancy jassert; ONE fence per user gesture,
-  sequential never nested). Commands carry DeckFenceHook; headless tests pass
-  noopFence(). SetClipCmd/SwapClipsCmd exemption is DELETED — they are fenced.
-- Verifier model unchanged: Builder → independent Reviewer (source) → Harmony
-  behavioral gate (receiver disk-verify, build, own ctest) → local commit.
-  This lane's review arc caught 2 MAJORs + ruled 2 scope expansions across 3
-  rounds — treat multi-round adversarial review as the norm for thread-safety
-  work.
-- Fence perf envelope: ~2.8ms mean/15.6ms max per fence; N-child composite undo
-  (10-cell drop ≈ 30-150ms) ACCEPTED — watch for perceptible hitch during the
-  sitting; composite-level batch-fence only if it actually stutters.
-- Accepted v1 limitations unchanged (playing not restored; first-trigger
-  auto-play skip; expanded-FX-row collapse + deck-tab highlight lag pending the
-  refreshAfterUndoRedo ratification) — do NOT re-report during the sitting.
+- HEAD at close: doc-only close commit atop bb076c7/8bd09ba. Local only, no-push
+  rule intact. graphify-out/ churn + untracked .audit/ = never stage.
+- Counts: 135 effects · 108 sources · **176/176 tests** · fence perf ~2.8ms
+  mean/15.6ms max (no perceptible hitch observed across ~130 driven mutations).
+- THE LAW (notebook.md 2026-07-28) unchanged: any message-thread mutation of clips
+  vectors / composition_.decks / effects vectors runs under
+  UndoService::withDeckDetached; commands carry DeckFenceHook.
+- App at close: RUNNING healthy (119fps), plasma@L0C0 + perlin@L1C0 staged
+  (inactive), history [Drop,Drop]. TCC mic granted for CURRENT cdhash only — next
+  rebuild re-prompts ONCE until the cert lands (keychain 0 identities at close).
+- Remote surface (scout-mapped, cited in ledger): triggers/deck-switch/BPM/effect
+  params/renderer loads drivable; undo + ALL structural mutations UI-only;
+  TestServer (--test-mode) is a dead-end BY CONSTRUCTION (no MainComponent
+  handles) — do not relaunch for it; it also freezes audio analysis.
+- Verifier model unchanged. Accepted v1 limitations unchanged (playing not
+  restored; first-trigger auto-play skip; expanded-FX-row collapse + deck-tab
+  highlight lag pending refreshAfterUndoRedo ratification) — do NOT re-report.
 
 ## WHERE WE ARE IN THE BUILD
 <!-- caveman positional status — Boris-facing, skimmable -->
-BUILD: Undo v1 live verification + GL-thread crash-hardening (Wave-2 MUST #1 tail).
-SHIPPED: GL-fence family fix committed (8bd09ba, 16 files, tests 170→176) — the reproduced Column→New crash class is dead across every swept path incl. undo/redo replay; fence internals RAII-hardened; CMake stable-signing wiring ready (ad-hoc fallback active). Plus: 2 crashes root-caused (1 fixed, 1 queued), mixed-drop bug + unwired Comp/Decks browser buttons discovered, 10 manual-checklist items passed, 2 Boris feature ideas captured.
-IN-FLIGHT: app gate PARKED — fenced build running with the TCC mic dialog unanswered on screen; one Allow click + health check closes it.
-NEXT: Allow click → app gate closes → cert creation + reconfigure/rebuild (last TCC prompt ever) → resume sitting with HOLD dissolved + 4 re-runs → Boris decision queue (9 items) → next-lane fork (Recorder / ISF / visual design).
-BLOCKERS: none autonomous — every remaining item needs Boris (click, cert, decisions, sitting).
-YOU ARE HERE: undo v1 code-complete AND crash-hardened; live verification ~25% done, paused mid-sitting on one Allow click.
+BUILD: Undo v1 live verification tail + fence-family in-app proof (Wave-2 MUST #1).
+SHIPPED: App gate CLOSED (zero clicks — Allow had landed off-session; health 119fps). Autonomous synthetic-UI drive: ~130 mutations, every crash-family path, ZERO crashes — Column→New SIGSEGV scenario dead across 33 ops incl. replay; ~15 checklist items PASSED with oracle notes; merge algebra + deck triad + layer ops + FX clip-scope + CompNew all verified. API surface fully mapped (4 scout packets). 4 new findings queued + Cmd+X confirmed net-new. Accessibility capability unlocked permanently; driving recipes in gotchas.
+IN-FLIGHT: none — drive complete, hands returned to Boris.
+NEXT: cert step (Boris, 2 min) → reconfigure+rebuild+final Allow (Harmony) → 11-item runsheet sitting (~15-20 min, Boris hands + Harmony oracles) → decision queue rulings → next-lane fork (Recorder default / ISF / visual design).
+BLOCKERS: none autonomous — remaining items need Boris (cert, hands, taste, rulings).
+YOU ARE HERE: undo v1 code-complete, crash-hardened, AND live-proven; verification ~75% done; one short Boris sitting from lane closure.
 
 ## LOOSE-ENDS LEDGER
 
 Adversarial "what's unfinished / what am I unsure about":
-- App gate NOT closed: the fenced build has never answered health (TCC dialog
-  unanswered ~45min at close; watchers expired). If the app was quit overnight,
-  relaunch re-fires the prompt — expected, not a regression.
-- Fenced build has ZERO live-app proof yet — 176/176 headless + review traces
-  only. The first post-Allow sitting minutes are the real gate (esp. Column→New,
-  clears, effects edits under live render — the exact paths that crashed/were
-  exposed).
-- Cert never created (3 keychain checks, 0 identities). Until it lands: ad-hoc
-  → per-rebuild prompts. After creating it: **cmake reconfigure is REQUIRED**
-  (configure-time `security find-identity` check) — a bare rebuild keeps ad-hoc.
-- Sitting ~25% done; HOLD dissolves only AFTER the app gate; 4 earlier PASSes
-  were race-lucky (rode then-unfenced paths) and need re-runs.
-- Crash #2 (MilkDropBrowser::getCuratedPresets null-deref on layout with empty
-  preset state) is UNFIXED — clicking the SignalBar arrow still crashes until
-  the queued mini-lane lands. Warn Boris before he pokes that button.
-- Composition → New is now fenced but UNTESTED live.
-- N-fence composite-undo hitch (worst ~150ms on big drops) unmeasured in-app.
-- The mixed-drop image-discard bug is diagnosed but UNFIXED (silent data loss
-  UX: hover highlight promises acceptance, then drops the PNG).
-- EffectFenceHook/DeckFenceHook are byte-identical twin typedefs (UI vs core) —
-  accepted by review; drift would be a compile error, but a future reader may
-  be confused. Cross-referenced in comments.
-- touched-repos.sh returned 7 machine-wide-dirty candidates at close; work repo
-  resolved by session-commit evidence (8bd09ba), not the script — recurring
-  ambiguity, registry dirt from other lanes persists.
-- Visual-design track untouched: v10 layer-row study partB (V20
-  HARMONY-RECOMMENDED) awaits a ratified winner; dormant since 2026-05-22.
+- 11-item runsheet OPEN (checklist top): Finder drops (3 race-lucky re-runs +
+  mixed-batch bug), video replace + undo-while-video, name-bar gestures
+  (drag-move, Clip>Clear), FX layer/global scopes + delete/bypass/multi-select,
+  autopilot confirm, quantize/pendingTriggerColumn edge, ignore-column-trigger
+  variant, MilkDrop drops (blocked on preset-dir fix), taste calls, Syphon, cert.
+- Autopilot test INCONCLUSIVE — label frozen 15s ✓ but state suggests autopilot
+  may never have engaged (no API field proves it ran). Source proof stands.
+- Preview animates the OLD deck's clip while empty Deck 2 is active
+  (frames-differ verified) — intended composition semantics or display gap?
+  Boris intent question; do not "fix" without his ruling.
+- Cert NOT created at close (0 identities, 4th check) — per-rebuild TCC prompts
+  continue until it lands; reconfigure REQUIRED after creation.
+- load_image-black gotcha re-attribution still INFERRED (1-min verify: reset →
+  load_image → render_frame → expect non-black; reset wipes effect chain — run
+  post-sitting only).
+- Crash #2 (MilkDropBrowser::getCuratedPresets null-deref) still UNFIXED — the
+  SignalBar arrow click still crashes; warn Boris before he pokes it.
+- App left RUNNING with 2 staged clips + [Drop,Drop] history — fine for a
+  sitting; Comp→New or relaunch gives a clean slate (relaunch = NO prompt until
+  next rebuild).
+- Driver gap: synthetic drags cannot initiate clip drag-move (thumbnail press
+  triggers) — name-bar drag hypothesis untested; exact rects available in source.
+- touched-repos.sh returned 7 machine-wide-dirty candidates again — work repo
+  resolved by session evidence (all writes → RealTimeAudio); recurring registry
+  ambiguity, other lanes' dirt persists.
+- The 3 remaining race-lucky re-runs are Finder-drop gestures — my source-drags
+  exercised the same fenced growth paths heavily, but the literal external-drop
+  entry (ClipCell filesDropped) remains human-only.
 
 ## META-LEARNINGS
 
-- Multi-round adversarial review is the correct shape for thread-safety work:
-  every single round's independent sweep found REAL new gaps (exception-safety
-  in the fix's own new code; kCompNew; occupied-cell replay; 2 never-fenced live
-  paths). "Prescription executed" never equals "family closed" — the family is
-  closed when an independent sweep finds nothing.
-- A spec's "status-quo risk profile" is a falsifiable hypothesis, not a
-  settled fact — one live crash falsified undo-v1's column/cell-write exemption
-  and produced a LAW. Treat every accepted-risk row as awaiting evidence.
-- Parse the .ips faulting stack BEFORE dispatching any agent: 2 crashes in one
-  sitting → 2 unrelated subsystems (GL UAF vs UI null-deref); the stack read
-  kept them from being conflated into one lane.
-- Disassembly-grade crash triage (binary-UUID match + register decode) converts
-  "probably a race" into a provable mechanism cheaply — the scout pattern
-  (read-only Explore + the stack + a falsifiable hypothesis) is reusable.
-- Reviewer-prescribed verbatim comment edits via a retirement-deferred builder
-  (no re-review, gate re-run covers) — reaffirmed twice; still comment-only,
-  never code.
-- Builder judgment calls (typedef relocation) flagged-with-rationale + reviewer
-  confirm beat packet-literalism; the include-direction argument was correct.
-- Boris-present sittings surface non-target bugs at high rate (2 crashes, 1
-  data-loss bug, 2 unwired features, 2 feature ideas in ~30 min of clicking) —
-  budget triage capacity into any live sitting; async scouts keep the sitting
-  moving while diagnosis runs.
+- A "manual-only" e2e checklist was ~70% automatable the moment Accessibility
+  landed: CGEvent driver + menu AXPress + API/menu-label oracles + verify-and-
+  retry. The unlock was ONE 30-second human grant — ask for capability grants
+  early, not after exhausting workarounds.
+- Synthetic-event delivery drops ~15% of keystrokes/AXPresses — blind-fire
+  automation produces FALSE app-bug signals. Verify-and-retry with a
+  state+label fingerprint is mandatory; and never fire a blind undo after an
+  UNVERIFIED op (over-pops the stack when the op's effect is invisible to the
+  oracle — bit us twice).
+- When UI automation hits a deterministic no-op wall, a read-only source scout
+  adjudicates in minutes what behavioral probing cannot (selection
+  preconditions, hit-band geometry, secondary guards) — behavioral evidence +
+  source citation together beat either alone.
+- Gesture GEOMETRY is load-bearing verification state: thumbnail-vs-name-bar
+  (20px) separates trigger from select from drag-move. Record hit-bands in
+  gotchas, not just "click the cell".
+- Empty-cell operations are state-no-ops by design (state-change guards) — a
+  drive on an EMPTY grid proves almost nothing; stock content FIRST, then
+  mutate under active render for faithful crash conditions.
+- Honest downgrades preserve trust in a mostly-green report: PASS-with-oracle,
+  INCONCLUSIVE, and parked-with-recipe are three different verdicts — label
+  them; a checklist tick without its oracle is worthless to the next session.
 
 ## CHANNEL HARVEST
 
-- Boris turns: lane pick ("Sitting, then cert"), sitting feedback (items 1-12,
-  2 crash reports, 3 how-do-I questions), 2 feature ideas → CAPTURED as
-  canonical `--- IDEA ---` records in `.harmony/idea-ledger.md` (Cmd+X
-  cut-to-clear; MilkDrop presets loaded by default), family-fix ratification
-  (AskUserQuestion), visual-design status question (answered: v10 partB, no
-  ratified winner), "that's all my feedback" + remaining-list request, close.
-  R2 transcript sweep: no other idea-class statements found.
-- harmony2 writes: ZERO (no system, no memory, no .pending, no events) →
-  escalation predicate CLEAN → eos-secondary correct.
-- Carry-forwards all repo-local (lane B): undo-v1-ledger.md (+11 entries) ·
-  undo-v1-manual-e2e.md (ticks/findings/HOLD lifecycle) · notebook.md (LAW +
-  scope riders + 2 bug entries) · APP-INVENTORY.md (Comp/Decks row → partial)
-  · idea-ledger.md (2 canonical records) · sessions/ log · this HANDOFF.
+- Boris turns: overnight Allow click (off-session, inferred from TCC state) ·
+  "keep working and verifying till you have taken care of the list" (autonomous
+  mandate) · "go with option a" (Accessibility path ratified) · "how do I grant
+  accessibility?" (answered; granted in 20s) · close request ("what is left for
+  you to do save for next session and run eos"). R2 transcript sweep: NO new
+  idea-class statements this session (the Cmd+X + MilkDrop-presets ideas were
+  captured 07-28; today only added the scout's no-Cut-at-HEAD fact to the
+  existing record's context in the ledger).
+- harmony2 writes: ONE .events learning append via log-event (lane-A telemetry,
+  sanctioned — ref synthetic-ui-driving); ZERO system files, ZERO memory, ZERO
+  .pending → escalation predicate CLEAN → eos-secondary correct.
+- Carry-forwards all repo-local: undo-v1-ledger.md (+3 entries incl. queue #4 +
+  4 new finding candidates) · undo-v1-manual-e2e.md (15 PASS annotations +
+  11-item runsheet) · gotchas.md (+1 recipes entry + load_image rider) ·
+  sessions/2026-07-30 log · this HANDOFF.
+- Agent traffic: api-surface-scout (Explore) — 4 packets (surface map,
+  TestServer ruling, wiring adjudication, recipes), all folded + cited;
+  released with thanks.

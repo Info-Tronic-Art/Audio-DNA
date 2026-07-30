@@ -26,6 +26,17 @@
 **Rule:** Always use load_source with a procedural source (e.g., checkerboard) for effect comparison tests in production mode. Reserve load_image for test-mode only.
 **Scope:** repo
 **Promoted:** no
+**REFINED 2026-07-30 (scout source-trace, INFERRED — not yet verified):** there is NO
+mode gate anywhere in the render path — testMode_ gates exactly 4 things (alert
+suppression, analysis-thread skip ×2, TestServer start; MainComponent.cpp:386,
+1400, 1404, 1585), and both servers' handleLoadImage bodies are behaviorally
+identical (renderer_.loadImage + sleep(100), no clearActiveSource in either). The
+"production renders black" difference is therefore almost certainly SESSION-STATE
+precedence, not mode: production sessions have an active source/clip that renders
+over the standalone image (handleClipTrigger clears active source at
+MainComponent.cpp:2931; load_image never does). Cheap verify when convenient:
+POST /api/reset (calls clearActiveSource) → load_image → render_frame → non-black
+expected. The practical Rule above still stands.
 
 ### 2026-05-19 — ApiServer load_image needs GL thread sleep
 **Source:** EOS T1 fix — compared TestServer vs ApiServer load_image
@@ -154,4 +165,24 @@
 **Trigger:** Launching Audio-DNA from a headless/agent session. `CoreAudioInternal::start` blocks (verified by sample, same signature as 07-19/07-22 entries) waiting on the TCC microphone-permission response; with nobody at the screen the dialog is never answered → launch never binds :7070. Because the app is **ad-hoc signed** (`codesign -dv`: Signature=adhoc, no TeamIdentifier — verified), every rebuild changes the cdhash, so TCC re-prompts after EVERY rebuild (inferred, standard TCC behavior — explains recurrence across sessions and why pkill/reboot/coreaudiod-restart never helped).
 **Rule:** (1) After any rebuild, the FIRST app launch needs a human to click **Allow** on the mic prompt — schedule app-level behavioral gates for when Boris is present, or have him click Allow right after the gate's launch. (2) Diagnose headless launch stalls with `screencapture -x /tmp/x.png` + image read — TCC/system dialogs are invisible to sample/lsof/log probes. (3) Do NOT pkill-cycle or restart coreaudiod for this signature. (4) Durable fix option (Boris): sign dev builds with a stable Developer ID identity so TCC remembers the grant across rebuilds. (5) Synthetic clicks can't answer TCC prompts without Accessibility for the calling process (osascript denied assistive access — verified).
 **Scope:** repo (macOS env interaction); the screenshot-diagnosis method is universal-candidate
+**Promoted:** no
+
+### 2026-07-30 — Synthetic UI driving of Audio-DNA (recipes + flake profile)
+**Source:** Autonomous e2e drive (Accessibility granted to Ghostty; fence-lane app verification)
+**Trigger:** Driving the JUCE UI via System Events/CGEvent for headless e2e.
+**Rule:** (1) Cell THUMBNAIL click = TRIGGER; cell NAME BAR (bottom ~20px) = SELECT
+(ClipCell.cpp:180-194) — drag-move must START from the name bar or you trigger
+instead. (2) Layer selection = strip click OUTSIDE the transport band
+(LayerStrip.cpp:706-719); Move Up requires idx>0 (bottom strip is idx 0), Move
+Down requires idx<top; Layer-Clear silently skips empty layers (content guard).
+(3) Synthetic keystrokes + menu AXPress DROP ~15% of events — always
+verify-and-retry against a state+menu-label fingerprint (/api/composition +
+Composition-menu Undo item name); never fire blind undos after an unverified op.
+(4) Window capture without focus steal: CGWindowList id + `screencapture -o -x
+-l<id>`; coordinate map: screen_pt = display_coord×0.864, y+38 (window at (0,38),
+2x Retina). (5) /api/composition omits clip effects — FX verification is
+undo-label + visual capture. (6) An empty ACTIVE deck collapses the grid and
+relocates deck tabs to the top — recapture coordinates after structural layout
+changes. Menu bar: Undo/Redo live in the COMPOSITION menu (no Edit menu).
+**Scope:** repo (recipes); the verify-and-retry synthetic-event protocol is universal-candidate
 **Promoted:** no
