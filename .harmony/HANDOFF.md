@@ -3,167 +3,150 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL
-live audio-reactive VJ app). Session 2026-07-30 PM closed with a LANDMARK day: Boris
-ran the 11-item sitting, every finding was root-caused same-day, and **4 fix lanes +
-the TRUE crash-#2 fix are ALL source-closed** — 7 source commits (9229f87 MilkDrop
-presets+guards · a718572+20fe75d clear-path bundle · 9c316e6 composition FX drop
-target · 8c746ab+9b74c7d FilesBrowser perf · 76594fd GL-detach UAF fix), every one
-independently reviewed (APPROVE), tests 176→**182** green. NOT pushed (lane rule).
-Crash #2 was proven (disassembly-level) a deterministic UAF: preview-panel hide →
-sync GL detach → activeSources_.clear() → preset manager died under the browser's
-interior pointer. Fixed by letting sources survive context close (lazy GL re-init).
-Full dossiers: `.harmony/scout-milkdrop-uaf.md`, `scout-sitting-triage.md`,
-`scout-shutdown-sigbus.md`, `scout-namebar-geometry.md`. Ledger PM2-PM20 entries =
-the session narrative. Read ledger 2026-07-30 PM14-PM20 FIRST.
+live audio-reactive VJ app). Session 2026-07-30 PM2 closed a MONSTER day: Boris's
+8-item gate came back 7/8 PASS (8/8 after the playlist gesture), then he said "work
+on all of them now" — the FULL 13-item queue. Result: 12 of 13 items BUILT, INDEPENDENTLY
+REVIEWED, and BEHAVIORALLY GATED in one session (~33 commits, 8 build lanes, tests
+182→188, NOT pushed). Combined gate PASS: live API battery + graceful-quit UNDER
+concurrent API load → clean exit, ZERO new .ips — the crash family AND the newly-found
+quit-hang window are closed. Fresh instance was left running for Boris (120fps).
+Read ledger 2026-07-30 PM21–PM55 for the full narrative; dossiers:
+scout-playlist-drop.md · scout-autopilot-sources.md (+ prior day's four).
 
 START HERE:
-1. **BORIS FEEDBACK FIRST.** Boris has an 8-item test list (below) and said he will
-   report feedback after this boot. Process it before anything else: PASS → close
-   the matching checklist/ledger rows with dated notes; FAIL/odd → receiver-verify
-   on disk (.ips? /api state? capture) BEFORE any fix dispatch. The 8 items map to:
-   crash-#2 replay (UAF fix) · X-clear output-stop (A1) · multi-layer isolation
-   (A1 edge) · Clip>Clear empty+autopilot-skip+undo (A2) · composition panel FX
-   drop + one-undo-entry (B) · Files browser speed (C) · item-3 drag-move undo
-   (runsheet leftover) · item-9 MilkDrop drops (runsheet).
-   THE 8-ITEM TEST LIST (verbatim, as given to Boris at close):
-   1. Crash-#2 replay: Browser→MilkDrop (presets listed?) → SignalBar expand arrow
-      → collapse → MilkDrop again: presets still there, no crash.
-   2. X-clear: trigger a clip (shader/MilkDrop best) → X on that layer strip →
-      output visual STOPS.
-   3. Isolation: clips playing on 2 layers → X-clear ONE → other keeps rendering.
-   4. Clip>Clear: name-bar select a staged cell → Clip>Clear → autopilot ON never
-      lands on that cell → Cmd+Z restores the clip exactly.
-   5. Composition FX drop: drag an effect anywhere onto the Composition inspector
-      panel → lands in global stack, "Undo Add Effect" in Composition menu;
-      multi-select drop = ONE undo entry.
-   6. Files browser: open Desktop → instant list, thumbnails fill in after; List
-      toggle instant.
-   7. Drag-move a clip by its NAME BAR to an empty column → Cmd+Z → both cells
-      restore (the still-open item-3 yes/no).
-   8. MilkDrop drops: single preset into a cell + a playlist drop → Cmd+Z each
-      (old runsheet item 9).
-2. The instance running at close (PID 91888) PREDATES 9b74c7d (teardown-internal
-   hardening only). First relaunch picks up everything:
-   `open build/AudioDNA_artefacts/Release/Audio-DNA.app` — ZERO TCC prompts (the
-   Audio-DNA Dev cert inherited the mic grant; proven this session).
-3. Synthetic driving is ALLOWED but MUST follow gotchas rule (11) SYNTHETIC-CLICK
-   PREFLIGHT: fresh HID idle + frontmost-app==Audio-DNA checked in the SAME command
-   as every click burst; abort otherwise (a click landed in Boris's Firefox this
-   session — disclosed, doctrine written). Driver recipes: gotchas 2026-07-30 entry
-   + addenda (7)-(11). Mouse tool /tmp/adna-mouse.swift (rebuild from gotchas if
-   wiped). API port is 7070.
-4. Anything Boris's feedback does NOT cover from the scripted gate plan (ledger
-   PM8/PM18): UAF arrow replay, X-clear stop, Clip>Clear emptiness via /api (empty
-   cell = ABSENT from clips[], blank stub = present with name ""), comp FX drop,
-   FilesBrowser timing, item-3 drag-move self-close.
+1. BORIS REPLAY FEEDBACK FIRST. Boris has a 7-item GESTURE replay list (below) my
+API-scope gate couldn't cover. Process before anything else: PASS → close rows with
+dated notes; FAIL/odd → receiver-verify on disk (.ips? /api state?) BEFORE any fix
+dispatch. THE 7-ITEM REPLAY LIST (verbatim):
+  a. Drag an effect onto a layer's CHANNEL STRIP (single + multi-select) → lands in
+     that layer's FX stack, ONE Cmd+Z restores.
+  b. Finder-drop 2 videos + 1 image together → all three land, ONE Cmd+Z removes all.
+  c. Cmd+X with a cell selected (clears) / with nothing selected (clean no-op).
+  d. Click a PLAYING video cell → visibly restarts from in-point.
+  e. Header-drag "Energetic (9)" → cell reads "MilkDrop Playlist (9)"; the 3 playlist
+     knobs (cycle/timing/blend) now actually change what lands.
+  f. Autopilot over a SOURCE cell → advances off it (was frozen forever).
+  g. Genre auto-switch to an empty deck → preview goes blank (no ghost clip).
+2. **START HERE — long task, begin at session start (if no Boris feedback waiting):
+SYPHON LANE** — the ONE deferred item of Boris's 13 ("work on all of them now",
+deferred on drain budget 2026-07-30 PM2, Boris informed with override offer, no
+override received). Scope: integrate Syphon SDK (FetchContent-pinned per gotcha),
+publish composited output as a Syphon server, Renderer hookup. Behavioral proof
+needs Boris + a Syphon client — plan the lane so source+review close autonomously
+and the live check lands on his list.
+3. BORIS DECISION QUEUE (all pre-analyzed, deliver ONE per ask): source/MilkDrop
+retrigger-restart scope (their time base is app-init-scoped; Video/ImageSeq restart
+shipped) · column-trigger retrigger parity · build Cut/Copy/Paste suite (menu enums
+already RESERVED at MenuBarModel.h:76-80) · playlist mode-gate consistency
+(header-drag works ANY mode; row multi-select needs Playlist mode) · reset ~5s
+latency taste check (pre-existing GL wait).
+4. QUEUED FOLLOW-UPS (autonomous-buildable, priority order): FeatureBus TSan race
+(test_feature_bus.cpp:143 vs :161, real, pre-existing, TSan-confirmed) ·
+renderer-thread-safety design pass (effectChain_ per-field Effect::enabled_/
+EffectParam::value GL-reads + the 3 renderer_-via-HTTP endpoints incl. load_image
+GL-sleep gotcha) · OutputWindow second-GL-thread crash-family scout (shares
+EffectChain by ref; never had scrutiny) · ID-based selection remap (Layer has stable
+uint32_t id; CellPos lacks plumbing) · full §3 APP-INVENTORY row pass (dated delta
+block sits in §2).
+5. VERIFICATION DOCTRINE now in force (from this session's incidents): FORCED
+REBUILD before any ctest claim (stale-binary false-green) · `git commit --only
+<files>` or pre-verify staging in the shared tree (index-sweep incident) · treat
+subagent idle-without-report as auto-nudge trigger (5/5 pattern).
 
-BORIS DECISION QUEUE (none started; all pre-diagnosed): shutdown-crash fix bundle
-(scout-scoped: detach-GL-first 1-liner + EffectChain fence + :472 bounds-check;
-verify via ASan variant — repo has NO sanitizer wiring) · (11) activeSources_
-unordered_map 3-thread no-mutex UB · (D) retrigger-restart design ruling (click on
-playing cell = emergent no-op today; restart needs player seekTo) · LayerStrip as
-FX-drop-target ruling (Boris tried it; NOT-WIRED at HEAD) · (8) fold-height
-MIRROR-INDEX bug (DeckView.cpp:274 — DIAGNOSED NOT FIXED; folded layers skew all
-cell Y) · mixed-drop image-discard · Cmd+X cut-to-clear (net-new; no Cut at HEAD) ·
-HTTP-thread marshal (#4, ApiServer :399/:458) · (5) menu enablement not
-selection-gated · (6) rebuildGrid stale invisible selection · (7) preview animates
-old deck's clip on empty active deck · Syphon install · B8 removal.
-Taste calls: deliver ONE per ask (Boris directive — never batch).
-NEXT-LANE FORK after the gate closes: Session Recorder (ratified default) vs ISF
-import vs visual-design resume (dormant 05-22).
-
-Standing rules: do NOT push; conform to ClipCommands.h/DeckCommands.h/
-EffectCommands.h/TriggerCommands.h/UndoService patterns at HEAD; every
-structural-mutation command carries a fence (notebook LAW); launch ONLY via `open`;
-SIGKILL disposable instances (gotchas 10); Explore scouts need an explicit
-"SendMessage to main" line in their contracts or they idle silently.
+Standing rules: do NOT push (entire ~33-commit day is local); conform to
+ClipCommands.h/DeckCommands.h/EffectCommands.h/TriggerCommands.h/UndoService
+patterns at HEAD; structural-mutation commands carry a fence (notebook LAW); launch
+ONLY via open; SIGKILL disposable instances; SYNTHETIC-CLICK PREFLIGHT (gotchas 11)
+before any click burst; scouts/builders need explicit deliver-to-main clauses AND
+expect to nudge them anyway.
 
 ## PRIMER
 
-- Build: `cmake --build build --config Release -j` · Tests: `ctest --test-dir build`
-  (182/182) · Launch: `open build/AudioDNA_artefacts/Release/Audio-DNA.app`
-- Oracles: /api/health + /api/composition on **port 7070** (NB: omits clip
-  effects; empty cell = absent from clips[]) · Composition-menu dynamic undo labels
-  (menu is COMPOSITION — no Edit menu) · window captures via CGWindowList id +
-  `screencapture -o -x -l<id>` (window coords ×0.864, y+38) or full-screen
-  `screencapture -x` (coords ×0.864, NO +38)
-- Cert: `Audio-DNA Dev` self-signed, trusted (user-domain), resolves via
-  AUDIODNA_CODESIGN_IDENTITY at configure time; TCC grant persists across rebuilds
-- Key docs: undo-v1-ledger.md (lane narrative) · undo-v1-manual-e2e.md (checklist
-  + sitting results) · gotchas.md (driver doctrine (1)-(11)) · 4 scout dossiers ·
-  APP-INVENTORY.md (reconciled 2026-07-30)
+- App: Audio-DNA, C++20/JUCE/OpenGL VJ instrument. Port 7070 = production API;
+  8080 = TestServer. Release binary: build/AudioDNA_artefacts/Release/Audio-DNA.app
+  (Audio-DNA Dev cert, mic TCC inherited — zero prompts on relaunch).
+- Sanitizer infra NEW: `ADNA_SANITIZE` (address/undefined/thread) via
+  cmake/Sanitizers.cmake; build-asan/ + build-tsan/ pre-configured. Debug builds
+  now compile (OutputWindow name-hiding fix). Suite baseline 188 (187 under TSan —
+  the known FeatureBus race).
+- Thread model hardened this session: composition writes = message thread
+  (ApiServer 6 endpoints marshalled; callAsync safety = single-lifecycle invariant,
+  documented at first callAsync site) · activeSources_ = GL-thread-confined
+  (blocking marshal for rare off-thread callers + isAttached guard) · EffectChain
+  container = mutex + idempotent population (per-FIELD sync explicitly deferred —
+  comment at effectsMutex_ decl) · teardown order: servers stop → GL detach →
+  everything else (~MainComponent).
+- Ledger = .harmony/undo-v1-ledger.md (PM21–PM55 this session); authorship note:
+  ff19094 contains MISC-authored servers-stop-before-detach reorder (index-sweep,
+  disclosed, ledger PM54 is the authorship record).
 
 ## WHERE WE ARE IN THE BUILD
 <!-- caveman positional status — Boris-facing, skimmable -->
-BUILD: Undo v1 lane TAIL — sitting-driven fix wave; app hardening before the next-lane fork (Session Recorder default).
-SHIPPED: MilkDrop presets auto-load + crash guards · clear-path bundle (X-clear stops output, Clip>Clear truly empties, autopilot skip, pointer resets) · composition panel-wide FX drops (one undo entry incl. multi-select) · FilesBrowser instant open + async cached thumbnails · crash-#2 TRUE fix (GL-detach UAF, disassembly-proven) · cert trust fixed → zero TCC prompts forever · tests 176→182 · 4 scout dossiers + gotchas doctrine (7)-(11).
-IN-FLIGHT: Boris's 8-item test list (his hands; feedback lands after next boot) · behavioral gate items not covered by his feedback.
-NEXT: process Boris feedback → close/triage per item · relaunch onto 9b74c7d binary · then Boris picks from the pre-diagnosed queue (shutdown-crash bundle recommended first) · then the next-lane fork.
-BLOCKERS: none hard — behavioral proof pends Boris feedback or a machine-free window.
-YOU ARE HERE: all known bugs from the sitting are FIXED at source and reviewed; the lane closes when the behavioral gate (Boris's list + scripted remainder) confirms live behavior.
+BUILD: Audio-DNA live VJ app — stability + interaction-completeness hardening wave (post-Undo-v1).
+SHIPPED: All 13 Boris queue items except Syphon — autopilot-sources fix (+first autopilot tests) · fold-height + stale-selection + structural-flag hardening · 6 API endpoints thread-marshalled · playlist header-drag + real controls · ASan/TSan build infra · source ids, menu gating, preview reconcile, B8 removal · shutdown bundle (detach-first, EffectChain fence, bounds-check) + activeSources_ confinement + quit-hang closed · LayerStrip FX-drop, mixed-drop, Cmd+X, retrigger-restart, genre-switch fix. ~33 reviewed commits, tests 182→188, behavioral gate PASS (API + quit-under-load, zero crashes).
+IN-FLIGHT: none (all lanes closed; 2 unconfirmed formalities logged in loose ends).
+NEXT: Boris 7-gesture replay → Syphon lane → decision queue (5 rulings) → FeatureBus race + renderer-thread-safety pass.
+BLOCKERS: none.
+YOU ARE HERE: hardening wave COMPLETE and gated; one feature (Syphon) left in the approved queue; next fork after that = Session Recorder (ratified default) vs ISF import vs visual-design resume.
 
 ## LOOSE-ENDS LEDGER
 
-LOOSE-ENDS (adversarial — what is NOT done / what I'm unsure about):
-1. **NO fix has been behaviorally proven live.** All 5 fix groups are source-closed
-   + reviewed only; the combined gate never ran (machine occupied, then EOS).
-   Boris's 8-item list + feedback is the primary closure path; scripted remainder
-   in ledger PM8/PM18.
-2. Item-3 yes/no (drag-move → Cmd+Z restored both cells?) still unanswered from the
-   sitting; self-closeable synthetically.
-3. Item-5 residue untested behaviorally: delete-FX-row undo, FX-bypass undo;
-   multi-select-one-entry is source-proven only.
-4. Item-9 (MilkDrop single + playlist drop + Cmd+Z) unblocked but untested.
-5. Running instance at close predates 9b74c7d (teardown hardening not live until
-   next relaunch).
-6. Fold-height mirror bug (queue 8) diagnosed NOT fixed — folded layers corrupt all
-   cell Y geometry for users AND synthetic drivers (drive guard: unfold first).
-7. Stale-active anomaly: A2 fixed the CLEAR path; the column-REMOVAL remap variant
-   observed at 12:33 is unverified post-fix — re-observe after Boris feedback.
-8. Shutdown SIGBUS (queue 10): mechanism proven, WRITER unidentified; repo has no
-   ASan wiring; fix bundle awaits Boris nod.
-9. activeSources_ 3-thread no-mutex (queue 11) — UB class, unfixed, distinct from
-   the UAF fix.
-10. Lane-doctrine ambiguity for the PRIMARY to reconcile: a slim-door (~/Harmony)
-    secondary working a foreign repo used log-event (kernel Write-Immediately
-    allows "secondary → log-event append"; eos-secondary lane-B forbids harmony2
-    event-log writes). 2 learning rows were pushed this session (single-item-checks,
-    cert-trust recipe). Kernel and skill disagree for this hybrid case.
-11. Pre-existing dirt left alone: untracked .audit/ dir; FileListContent::hitTest
-    hides base-class overload warning (pre-dates lane C).
-12. My 13:02 SignalBar probe as the 13:25 arming event is INFERRED (code path
-    proven; instance unobservable) — labeled as such everywhere.
+- Boris 7-gesture replay list PENDING (verbatim in birth prompt) — my gate covered
+  API+lifecycle scope only; gestures need his hands.
+- Infra builder's Debug+ASan APP-target build verification never reported back
+  (OutputWindow one-liner committed this close, Release-verified via my gate's
+  forced rebuild + 120fps run; the Debug/ASan app-build confirmation is the open
+  half — cheap to re-run: `cmake --build build-asan --target AudioDNA`).
+- MISC builder's author-confirm on the ff19094 index-sweep content never arrived
+  (content verified byte-for-byte by the sweeping builder + suite green + my gate;
+  formality only — ledger PM54 records authorship).
+- FeatureBus TSan race: real, pre-existing, queued (birth prompt item 4).
+- Renderer-thread-safety design pass queued (effectChain_ per-field + 3 renderer_
+  HTTP endpoints).
+- OutputWindow second-GL-thread scout queued (no live gap found, never scrutinized).
+- ID-based selection remap queued (selection currently CLEARS on layer reorder —
+  correct but lossy).
+- reset endpoint ~5s latency: pre-existing GL wait, unexplained in detail — fine
+  behaviorally, worth a look if Boris notices it live.
+- NOT PUSHED: entire day (~33 source commits + chores) is local-only per standing
+  rule — push decision is Boris's.
+- Syphon: deferred WITH Boris's knowledge + override offer (none received) — now
+  next session's #1 committed MUST.
+- Unsure-about: reviewer graded test_renderer_source_confinement an honest
+  pattern-simulacrum — real confinement proof needs an app-level HTTP set_preset
+  drive (folded into future gate recipes, not yet run under contention).
 
 ## META-LEARNINGS
 
-- Perceptual/taste checks: ONE item per Boris ask, never batched (his directive,
-  rejected a 6-item batch) — division-of-judgement per-unit routing.
-- Green gate ≠ proof at the right LAYER: /api/composition (model) passed clears
-  while the RENDERER kept playing — behavioral gates must watch the layer the user
-  sees (captures/frame-diff), not just state oracles.
-- A "fixed" crash symbol recurring is EVIDENCE: the 13:25 recurrence on the guarded
-  binary killed the empty-state theory and forced the disassembly-level root cause.
-- SYNTHETIC-CLICK PREFLIGHT (gotchas 11): fresh-HID + frontmost-app in the SAME
-  command; stale idle checks (even 2 min) are worthless; HID-idle alone fails while
-  the user READS.
-- SIGKILL disposable instances (gotchas 10): graceful quit traverses a
-  corruption-discovery teardown; SIGKILL = no crash noise, no misleading .ips.
-- Explore scouts idle WITHOUT transmitting — contracts must carry an explicit
-  "SendMessage to main when done" (cost 2 nudge round-trips before adopted).
-- Self-signed cert trust: diagnose with `find-identity` WITHOUT -v (shows reason
-  codes); fix user-domain `add-trusted-cert -p codeSign`, no sudo, no GUI.
-- R3 warm fix-loops (builder+reviewer pairs) closed 3 review findings same-hour at
-  near-zero spin-up cost — keep builders/reviewers warm through their lane's close.
+- Adversarial pushback (builder, source-evidence) overturned a reviewer APPROVE;
+  reviewer re-derived and self-corrected — the hang window BOTH initially missed
+  was real. Culture: verdicts are falsifiable, pushback is the standard.
+- Defense-in-depth BEFORE adjudication: with two source-readers disagreeing at
+  micro-interleaving granularity and both mitigations cheap, dispatching both made
+  the later verdict-flip cost zero schedule.
+- Mutex-vs-confinement heuristic (now in code comments): READ FREQUENCY off the
+  owning thread decides — rare off-thread calls → confine+marshal; constant
+  off-thread reads → narrow container mutex, never across GL calls.
+- One-writer-per-file survived 3 boundary collisions via the RELAY pattern (fix
+  handed to the file's current owner with full spec + credit) — zero shared-write
+  exceptions granted all session.
+- stale-binary-false-green + shared-index-commit-sweep + subagent-silent-idle-nudge:
+  all three emitted as log-events in-session (lane-A telemetry) for primary distill.
+- Sanitizer infra ROI was same-day: two pre-existing bugs surfaced before any
+  sanitizer-targeted verification ran.
 
 ## CHANNEL HARVEST
 
-- Lane-A telemetry: 2 log-event learning rows pushed in-session
-  (boris-single-item-checks · selfsigned-cert-trust-recipe) — primary distills at
-  its close; flagged the lane ambiguity in loose-end 10 for doctrine reconcile.
-- Idea-ledger: NO new records this session (R2 sweep found no uncaptured
-  Boris-ideas; his two process directives were captured in-session to ledger +
-  log-event). Ledger remains canonical (--- IDEA --- only, no ### prose).
-- Carry-forwards to primary: loose-end 10 (lane doctrine); the
-  boris-session-snapshot-1430.json pattern (snapshot user state before instance
-  swap) as a reusable secondary practice.
-- .pending channel: NOT used (no harmony2-memory carry-forwards warranted).
+- Lane-A log-events emitted in-session (primary distills at its close):
+  `stale-binary-false-green` · `shared-index-commit-sweep` ·
+  `subagent-silent-idle-nudge` (each a one-liner with the reusable rule).
+- Boris-idea sweep (R2 backstop, transcript re-scanned): NO un-captured idea-class
+  statements this session — Boris's messages were feedback/approvals/tasking; the
+  one observation-class line ("not sure what a playlist is") was captured in-session
+  as the playlist discoverability gap (checklist row 9 + PM22, now shipped as the
+  header-drag feature + queued mode-gate ruling). Idea-ledger untouched (no
+  canonical records needed; no off-canonical prose present).
+- System-upgrade candidate routed via events: treat subagent idle-without-report
+  as auto-nudge trigger (orchestrator doctrine candidate — primary's call).
+- Structural candidates (project-scoped, in birth-prompt item 4): renderer
+  thread-safety pass · FeatureBus race · OutputWindow scout · ID-remap.

@@ -830,6 +830,520 @@ HEAD b4ee380, source tree clean, tests 114/114 (handoff claim — re-verify at f
   internal + cache-key only; behaviorally invisible otherwise). Builder noted
   pre-existing unrelated warning (FileListContent::hitTest hides base) — not
   touched, logged here for visibility.
+- 2026-07-30 PM21 (new session, ~15:05): **BORIS GATE FEEDBACK — 7/8 PASS, THE
+  GATE IS BEHAVIORALLY CLOSED.** Boris ran the 8-item list on PID 91888 (fixed
+  binary, 56min uptime, ZERO new .ips — disk-verified pre-ingest): (a) crash-#2
+  UAF arrow replay PASS → **crash #2 CLOSED end-to-end** (source 76594fd +
+  review + behavioral); (b) X-clear output-stop PASS + (c) 2-layer isolation
+  PASS → A1 closed; (d) Clip>Clear empty+autopilot-skip+undo PASS → A2 closed;
+  (e) comp-panel FX drop + one-undo-entry PASS → lane B closed; (f) FilesBrowser
+  instant+async thumbs PASS → lane C closed; (g) name-bar drag-move undo PASS →
+  **item-3 self-closed YES**; (h) item-9 PARTIAL: single preset drop + Cmd+Z
+  PASS; dragging group header "Energetic (9)" dropped ONE preset — Boris: "not
+  sure what a playlist is" (discoverability gap too). NEW FINDING: "autopilot
+  does not work for sources." Two Explore scouts dispatched (playlist-drop
+  wiring at HEAD · autopilot-vs-sources root cause) — receiver-verify before
+  any fix dispatch. Checklist rows dated in undo-v1-manual-e2e.md.
+- 2026-07-30 PM22: **PLAYLIST-DROP DIAGNOSED — MODEL EXISTS, HEADER-DRAG NEVER
+  WIRED.** Scout verdict (dossier: `.harmony/scout-playlist-drop.md`, HEAD
+  972e8dd): full playlist stack is LIVE at HEAD — Clip model (Clip.h:122-150),
+  "milkdrop_playlist:" drag flavor, ClipCell/MainComponent drop handlers with
+  undoable edit, beat-synced playback (Renderer.cpp:259-351) — but a GROUP
+  HEADER drag has no code path to it: mouseDrag does no hit-testing, falls to
+  last-clicked SINGLE preset (exactly what Boris saw). Working gesture today:
+  Playlist mode button → Cmd-click multi-select → drag ("MilkDrop Playlist
+  (N)" cell). Dead decl `startDrag()` (MilkDropBrowser.h:155) = natural fix
+  home; small scoped fix surface, drop side needs ZERO changes. SIDE FINDING:
+  the 3 Playlist-mode controls (cycle/timing/blend) are DECORATIVE — never
+  read; RandomBag+8-beats hardcoded (MainComponent.cpp:1124-1126). → BORIS
+  DECISION: wire header-drag→playlist (+optionally un-decorate controls)?
+  Scout idled silently once before delivering — SendMessage-nudge recovered it
+  (standing contract rule re-confirmed). Autopilot-sources scout still out.
+- 2026-07-30 PM23: **ITEM 8 CLOSED → GATE 8/8.** Boris ran the working playlist
+  gesture (Playlist mode → Cmd-click multi-select → drag to cell) — PASS. The
+  full 8-item behavioral gate is now CLOSED: every fix lane from the landmark
+  sitting (crash-#2 UAF, A1, A2, B, C, item-3, item-9) is source-closed +
+  reviewed + Boris-verified live. Still UNPUSHED (lane rule). OPEN from this
+  thread: header-drag→playlist wiring + un-decorating the 3 playlist controls
+  (Boris decision, recommended YES as one lane) · autopilot-vs-sources scout
+  still out. Next-lane fork (Session Recorder default / ISF / visual-design)
+  goes live once autopilot verdict lands.
+- 2026-07-30 PM24: **AUTOPILOT-VS-SOURCES DIAGNOSED — "ADVANCE-GATE STALL"**
+  (dossier: `.harmony/scout-autopilot-sources.md`, HEAD 972e8dd). NOT a skip,
+  NOT a trigger no-op: autopilot has zero type filtering and sources render
+  fine when triggered — but BOTH advance-away gates are unreachable for
+  MediaType::Source. (a) End-of-Video mode: nothing ever writes a source's
+  playhead (only writers are video-only, Renderer.cpp:931/:1001) → 0.0 vs 0.99
+  threshold, frozen forever, 100% reproducible. (b) On-Beat mode: gate on
+  clip->playing (Autopilot.cpp:68); sources born playing=false, the 4
+  source-creation sites never set it (video paths do), and the
+  hasBeenTriggered latch is NEVER reset → a source once-clicked-then-
+  paused/cleared is permanently dead to autopilot (videos rescued by
+  Renderer.cpp:934 per-frame resync). Fix surface small, 3 files, keyed on
+  isPlayable() (also repairs Image+Camera in EoV mode); NO contact with
+  clear-path/GL-fence hardening. Side notes logged separately: source clips
+  all share id=0 (inert, latent) · autopilot bypasses handleClipTrigger →
+  stale inspector after advance (cosmetic) · tests/ has NO autopilot unit
+  tests at all. Scout idled silently pre-delivery AGAIN (2/2 despite explicit
+  delivery clause) — nudge recovered; contract wording needs a fix at EOS.
+  → BORIS: approve autopilot-fix lane (+ pending header-drag→playlist lane).
+- 2026-07-30 PM25: **BORIS APPROVED BOTH LANES** (autopilot-sources bugfix +
+  header-drag→playlist wiring incl. un-decorating the 3 playlist controls),
+  SEQUENTIAL (both touch MainComponent.cpp). PLAN: Lane AP (autopilot) builder
+  dispatched now per scout fix surface + first-ever test_autopilot.cpp → indep
+  review → Lane PL (playlist) builder per scout-playlist-drop.md fix surface →
+  indep review → ONE combined behavioral gate (Harmony) → Boris 60s replay.
+  Commit per lane, NO push. Out of scope (logged, not bundled): id=0 latent ·
+  stale-inspector-after-advance cosmetic · retrigger design ruling.
+- 2026-07-30 PM26: **BORIS: "WORK ON ALL OF THEM NOW" — FULL QUEUE APPROVED
+  (13 items).** Wave plan (build-lane cap 3 · ONE writer per file at a time ·
+  commit per fix, NO batched commits, NO push · indep review per lane · ONE
+  combined behavioral gate at the end + Boris replay list):
+  W1 (now): AP autopilot fix (running; MainComponent-writer) · GRID lane =
+  (8) fold-height mirror-index DeckView.cpp:274 + (6) rebuildGrid stale
+  invisible selection (DeckView) · API lane = #4 marshal HTTP-thread model
+  writes (ApiServer.cpp:399/:458).
+  W2 (as slots free): PL playlist wiring (after AP; MainComponent-writer #2) ·
+  ASAN infra lane (CMake sanitizer variant, build-system only) · then
+  SHUTDOWN+MUTEX lane = shutdown bundle (detach-GL-first + EffectChain fence +
+  :472 bounds-check) + (11) activeSources_ no-mutex UB, verified under ASan
+  (Renderer/GL-writer).
+  W3: MISC lane = id=0 rider + (5) menu enablement + (7) preview-animates-old-
+  deck + B8 ReinspectTarget removal (MainComponent-writer #3, after PL) ·
+  SYPHON lane (deps + publish module; Renderer-writer after SHUTDOWN+MUTEX).
+  W4: FEAT lane = (D) retrigger-restart (built to Boris's RECORDED expectation
+  — checklist line ~38 "Boris expects a restart") + mixed-drop image-discard +
+  Cmd+X cut-to-clear + LayerStrip FX-drop (mirror 9c316e6 pattern)
+  (MainComponent-writer #4, after MISC).
+  Design defaults chosen by Harmony (flagged for Boris replay, not blocking):
+  retrigger=restart-from-inPoint · LayerStrip drop→that layer's FX stack ·
+  Cmd+X = copy+clear as ONE undo entry · mixed-drop keeps images. Syphon
+  behavioral verify limited without a Syphon client — Boris-check item.
+  Context guard: ~9% at plan time; wrap-with-handoff if 40% nears.
+- 2026-07-30 PM27: **LANE AP LANDED** (201654a, disk-verified at HEAD; 4 files
+  +47/-3-ish, 186/186 incl. 4 new TEST_CASEs/27 assertions in the repo's
+  FIRST test_autopilot.cpp; full app target also compiled clean). Fix matches
+  scout surface exactly: EoV frame-loop skips non-playable; beat-loop skip now
+  `autopilotEndOfVideo && isPlayable()` (fall-through to beat advancement);
+  playing=true at the 4 source-creation sites (fences untouched). Builder
+  concerns (honest): tests-bite proven by manual trace not mutation; no
+  behavioral run (mine). reviewer-autopilot-fix DISPATCHED (directed at bite
+  check, fall-through beat accounting, hasBeenTriggered/clear-path
+  interaction). LANE PL DISPATCHED (MainComponent slot freed): 2 commits —
+  header-drag→playlist + un-decorate 3 controls (backward-compatible payload
+  if extended). Build lanes at cap 3: GRID · API · PL.
+- 2026-07-30 PM28: **LANE GRID LANDED** (a05d64d fold-height mirror-index +7/-2 ·
+  37a1e12 rebuildGrid stale-selection +14/-0; both DeckView.cpp only,
+  disk-verified, 186/186, app target builds+codesigns clean). Notable builder
+  deviation (sound): stale selection fixed by DROP-invalid + resync visuals,
+  NOT remap (no stable layer IDs across rebuild — remap = guessing). Coverage
+  manual-gate-only (DeckView never in any test binary — pre-existing gap).
+  Builder flagged in-flight ApiServer uncommitted changes in shared tree
+  (expected — API lane, callAsync marshal visible). reviewer-grid-lane
+  DISPATCHED (directed at mirror-convention proof, wrong-target-selection
+  residual for Clip>Clear precondition, validation ordering).
+  ASAN INFRA LANE DISPATCHED into freed slot: ADNA_SANITIZE option
+  (address/undefined/thread variants), proof = full suite under ASan+UBSan,
+  pre-existing findings LISTED not fixed. Build lanes at cap 3: API · PL ·
+  ASAN. Reviews in flight: AP · GRID.
+- 2026-07-30 PM29: **LANE API LANDED + EXTENDED** (f6b208f, +51/-48 ApiServer.cpp
+  only, disk-verified, 186/186). Both flagged sites callAsync-marshalled per
+  the 4-sibling house pattern. FLAGGED semantics change (consistent w/
+  siblings): endpoints now return ok:true unconditionally — old sync error
+  strings gone (grep: no in-repo consumers). Builder SWEEP found 6 MORE
+  unmarshalled HTTP-thread writes → follow-up packet sent to the SAME warm
+  builder (R3): effectChain_ field-write sites ONLY (:421, :705/:718,
+  :841/:853/:865, reset's setEnabled loop). EXCLUDED by design: renderer_
+  calls (:640 load_image w/ GL-sleep gotcha, :671 setActiveSource, :800-801
+  clears) — logged as NEW QUEUE ITEM "renderer_-via-HTTP thread-safety design
+  look". reviewer-api-marshal DISPATCHED — directed HARD at the builder's
+  WRONG-AS-STATED `this`-lifetime claim in callAsync (teardown-UAF family
+  history; assess real exposure vs pre-existing sibling pattern) + lost-
+  validation semantics + repo-wide old-error-string consumers. GATE PLAN
+  ADDITION (builder rec): live /api/set_param + /api/set_layer_opacity against
+  rendering app + /api/composition readback.
+- 2026-07-30 PM30: **LANE AP SOURCE-CLOSED** — review APPROVE-WITH-NOTES, 0
+  blocking (201654a). Reviewer independently re-traced both loops old-vs-new:
+  EoV freeze genuinely fixed; Video/ImageSeq EoV behavior verified
+  byte-identical; beat accounting clean (beatsPlayed reset per trigger, frame/
+  beat loops never share a clip's counter); 4 MainComponent sites = plain
+  field writes, fence topology unchanged, clear-path unaffected (Clip::clear
+  unconditionally sets playing=false). HONEST TEST GRADE: only TEST_CASE 1
+  Section B truly discriminates pre/post-fix; TC3 CANNOT cover the
+  MainComponent parity half (MainComponent linked into no test target —
+  architecturally impossible headlessly, disclosed in-test); TC2 intentional
+  non-regression; TC1-A/TC4 incidental coverage. → BEHAVIORAL GATE MUST COVER:
+  (i) dropped source shows playing:true via /api deck-state (reviewer NOTE:
+  ApiServer.cpp:288 now reports playing:true for never-triggered sources —
+  visibility change, pre-existing pattern for Image/Video), (ii) live
+  autopilot advancing OFF a source cell. NOTES logged: "repairs Camera" claim
+  vacuous (no Camera creation path exists in src/ — aspirational). No fix
+  round needed.
+- 2026-07-30 PM31: **GRID REVIEW: a05d64d APPROVE (mirror convention proven
+  across all 4 loops, boundaries clean, no un-mirrored reads left) · 37a1e12
+  REJECT — BLOCKING wrong-target selection.** Layer reorder (Move Up/Down →
+  Deck::moveLayer adjacent swap) shifts indices with size unchanged → drop
+  predicate passes → selection silently names a DIFFERENT layer, highlight
+  stays on the same screen row (mirror math = zero visual cue), feeds
+  destructive consumers (kClipClear :3938, kClipReplaceContent :3985,
+  source-drop-to-selected :1253). Mis-map SURVIVES undo/redo (UndoService:25
+  → rebuildGrid). Add/remove can't shift at HEAD (last-only) — reorder is the
+  one live vector. Reviewer also corrected builder claim: Layer HAS stable
+  uint32_t id (Layer.h:31); CellPos lacks the plumbing. FIX ROUND dispatched
+  to warm builder: minimal clearSelection on ALL reorder-induced rebuild paths
+  incl. undo/redo direction (mirrors existing selectLayer re-point idiom).
+  DEFERRED to queue: ID-based selection remap (selection survives reorder) —
+  plumb Layer.id through CellPos. Directed-review posture validated: the
+  nightmare case named in the dispatch is exactly what was found.
+- 2026-07-30 PM32: **API FOLLOW-UP LANDED** (8077af7, +104/-62 ApiServer.cpp
+  only, disk-verified, 186/186). All 4 in-scope effectChain_ sites marshalled
+  (setParam global branch, setEffect, setEffectChain both loops, reset's
+  disable loop); renderer_ calls + FeatureBus untouched per boundary; builder
+  extracted request JSON to plain values BEFORE lambdas (no juce::var across
+  threads — reviewer to verify per capture). Same ok:true semantics trade-off
+  (no in-repo consumers of old error strings). reviewer-api-marshal scope
+  EXTENDED to both commits — added checks: combined 6-site `this` exposure ·
+  per-capture verification · sync-400 vs async-write coherence · reset's
+  renderer-cleared-but-effects-enabled window. GATE ADDITIONS (builder rec):
+  live set_effect / set_effect_chain / reset / set_param-global + readback.
+  API lane build-complete; awaiting combined review.
+- 2026-07-30 PM33: **LANE PL LANDED** (c491cfb header-drag→playlist, +85/-11
+  MilkDropBrowser.* · 903b453 controls-made-real, +38/-2 incl. MainComponent
+  drop-handler region; disk-verified, 186/186 re-verified at HEAD after
+  interleaved lanes). Design notes: paths CACHED at mouseDown (no dangling
+  PresetInfo*/wrong-Y re-derive); payload format UNCHANGED (controls queried
+  at drop time — respects lane boundaries); dead startDrag() decl REMOVED;
+  BUILDER DESIGN CALL flagged: header-drag works in ANY play mode (matches
+  Boris's gesture; multi-select still requires Playlist mode) → Boris replay
+  note. No new tests — juce_gui_basics headless boundary is a documented
+  project convention (tests/CMakeLists.txt:261); behavioral gate covers
+  gestures. reviewer-playlist-lane DISPATCHED — directed at gesture-state
+  lifecycle (stale pressedSectionPresetPaths_ → later single drag emits old
+  playlist = nightmare), toggle-then-drag seam, delimiter injection ('|' in
+  paths), combo-id→enum mapping. PL builder later no-op'd a replayed task
+  assignment correctly (disk-verify first — good pattern). Tree note: GRID
+  fix-round WIP visible in MainComponent (clearSelection @ move handlers +
+  refreshAfterUndoRedo signature) — expected, in flight.
+- 2026-07-30 PM34: **API REVIEW (f6b208f half): APPROVE, 0 blocking.** The
+  `this`-lifetime concern RESOLVED-SAFE by reviewer's end-to-end teardown
+  trace through VENDORED JUCE source (not memory): MessageBase::post()
+  refuses+destroys queued lambdas once quitMessagePosted flips; ~MainComponent
+  runs only after dispatch loop exit; ApiServer::stop() joins all httplib
+  workers (no handler mid-flight at destruction). Same net already protecting
+  the 4 sibling endpoints; load-bearing assumption = ApiServer lifetime is
+  1:1 with app (verified single start/stop sites). Bonus finding: lambdas
+  re-validate deck/layer/clip/effect at EXECUTION time → structural-mutation
+  races correctly no-op. Repo-WIDE grep (incl. design/docs/.harmony): zero
+  consumers of removed error strings; visual test scripts hit TestServer:8080
+  not :7070. ONE suggestion: builder's safety COMMENT misdescribes the
+  mechanism → tiny comment-fix commit tasked to warm API builder. Reviewer
+  proceeding to 8077af7 half per scope extension. [UPDATE: comment fix landed
+  — 2d1744d, comment-only +15/-0, shared explanation at first callAsync site +
+  pointers at the other 5; 186/186.]
+- 2026-07-30 PM35: **GRID FIX-ROUND LANDED** (f924470, MainComponent.cpp/.h
+  +42/-8, disk-verified, 186/186). Forward path: clearSelection at both move
+  handlers. Undo/redo path: refreshAfterUndoRedo gained processedDescription;
+  4 call sites capture undo/redoDescription BEFORE the call; clears iff
+  "Move Layer Up"/"Move Layer Down" (builder traced: description read before
+  index moves · MoveLayerCmd never merges · single-child push keeps string
+  verbatim · strings constructed nowhere else). 6 paths covered; grep confirms
+  undo/redo called from only those 4 sites. RE-REVIEW dispatched to warm GRID
+  reviewer — directed at: uncovered reorder entry points (REST/OSC/MIDI?),
+  the STRINGLY-TYPED description match robustness (grade: acceptable vs
+  another round), capture-direction correctness, no regression to a05d64d.
+  ALSO: ba0ae70 (ADNA_SANITIZE wiring) confirmed COMMITTED by ASan builder
+  pre-idle — report still owed (nudged); SYPHON unblocks on that report.
+  MISC LANE DISPATCHED (MainComponent freed): 4 commits — source-clip ids ·
+  (5) menu enablement · (7) preview-old-deck · B8 ReinspectTarget removal.
+  Lanes: ASAN(report-owed) · MISC · reviews GRID-fix + API-8077af7 + PL.
+- 2026-07-30 PM36: **LANE PL SOURCE-CLOSED** — review APPROVE both (c491cfb ·
+  903b453), 0 blocking; reviewer corroborated 186/186 with own rebuild+ctest.
+  Verified safe: gesture lifecycle (pressedSectionPresetPaths_ cleared at top
+  of EVERY mouseDown, single-instance, no stale bleed) · sectionAtY pre-toggle
+  read provably order-independent (header y depends only on preceding
+  sections) · combo-id→enum mapping exact (incl. blend 1.5s default parity) ·
+  browser accessor lifetime safe · += refactor logic-neutral. NON-BLOCKING
+  NOTES logged: (i) '|' delimiter injection PRE-EXISTING, surface widened by
+  whole-section drops; (ii) sectionAtY/handleSectionHeaderClick duplicated
+  walk = desync risk; (iii) toggle-fires-on-mouseDown = visual flicker seam
+  during header-drag (cosmetic). BORIS REPLAY DECISION queued: mode-gate
+  inconsistency — header-drag makes playlists from ANY mode, row multi-select
+  still requires Playlist mode (gate header-drag too, or ungate multi-select).
+  Source-closed lanes now: AP · GRID-c1 · PL · API-f6b208f-half.
+- 2026-07-30 PM37: **GRID FIX-ROUND: APPROVE-WITH-NOTES → LANE GRID FULLY
+  SOURCE-CLOSED** (a05d64d + 37a1e12 + f924470). Re-reviewer verified
+  structurally: exactly 4 undo/redo call sites repo-wide (no bypass), zero
+  MIDI/OSC/REST layer-move entry points, capture-before-call index math traced
+  in UndoManager.cpp (undoDescription reads the exact slot undo() acts on),
+  no regression to prior commits, and a beneficial ordering side effect (clip
+  inspector now reads the cleared selection, not a wrong-target one).
+  STRING-MATCH fragility graded acceptable-with-note: fails closed to the
+  known bug (not novel breakage), no live trigger today. FOLLOW-UPS QUEUED
+  (post-MISC, MainComponent busy): (a) Command::affectsLayerOrder() structural
+  hardening (reviewer-designed, ~same diff size, rename+composite immune) —
+  warm GRID builder; (b) ID-based selection remap (survives reorder); (c)
+  marker: dead DeckView.h:48 onLayerReorder callback = uncovered 7th path IF
+  ever wired (drag-reorder feature seam).
+- 2026-07-30 PM38: **LANE ASAN DONE+ACCEPTED** (ba0ae70 Sanitizers.cmake +
+  app/15-test-target wiring; 66d6b97 gitignore rider). Proof: 15/15 targets
+  compiled under ASan+UBSan (4m32s), full suite 186/186 CLEAN — grep sweep 0
+  sanitizer diagnostics; TSan configured + seqlock stress smoke clean; invalid
+  combo guard fires. STRATEGIC FINDING: zero findings = current suite NEVER
+  walks the teardown paths → shutdown lane packet requires NEW
+  teardown-driving coverage (folded in). build-asan/ + build-tsan/ left ready.
+  **SHUTDOWN+MUTEX LANE DISPATCHED** with explicit STALENESS TRIAGE
+  requirement (scout plan predates 76594fd's teardown-semantics change — each
+  piece re-validated before applying), 4-part verification bar (normal suite ·
+  ASan suite · new teardown test or honest infeasibility · TSan for the map),
+  house-pattern preference: confine+marshal over hot-path mutex.
+- 2026-07-30 PM39: **LANE API FULLY SOURCE-CLOSED** — combined review: f6b208f
+  APPROVE · 8077af7 APPROVE-w/notes, 0 blocking (10 callAsync `this` sites all
+  under the same JUCE quitMessagePosted net; per-capture claim verified
+  line-by-line — plain values only; 400-vs-async coherence clean; reset
+  ordering artifact = few-frame cosmetic flicker, unobservable-by-construction
+  in the worse direction). SUBSTANTIVE FINDING routed: Effect::enabled_ +
+  EffectParam::value read EVERY FRAME on GL thread w/ zero sync vs all writers
+  (pre-existing) → (i) advisory sent to shutdown builder (EffectChain-fence
+  triage must cohere; report don't silently expand), (ii) queued
+  renderer-thread-safety design pass UPGRADED to include effectChain_ (was:
+  renderer_-via-HTTP only). Riders: 2d1744d comment fix landed; final rider
+  sent — extend load-bearing single-lifecycle invariant note to all 10 sites.
+  [UPDATE: bacda0d landed — pointers at all 4 pre-existing sites + invariant
+  named; builder disk-verified the single-lifecycle claim by grep before
+  writing (one ctor :1453, one start :1479, one stop :1601). API lane CLOSED:
+  f6b208f · 8077af7 · 2d1744d · bacda0d.]
+- 2026-07-30 PM40: **CROSS-LANE HANDOFF (clean escalation).** Shutdown builder
+  confirmed piece 1 (detach-GL-first) STILL APPLICABLE at HEAD (previewPanel_
+  :196 declared before effectsRackPanel_ :200 → destructs after → GL live
+  during FX teardown) but the fix lives in ~MainComponent() — MISC lane's
+  file. Builder correctly REFUSED the boundary cross and escalated with
+  options while continuing pieces 2/3 + Task B. RULING: option (a) —
+  one-liner relayed to warm MISC builder as its FIX 5 (own commit, shutdown
+  bundle credited); exception NOT granted (two writers mid-edit in one file =
+  live collision risk, already evidenced by API builder's transient compile
+  error against MISC's WIP). Shutdown lane's final ASan verification must
+  confirm the detach commit present at HEAD (report DONE_WITH_CONCERNS naming
+  the gap if not). One-writer-per-file rule held under pressure.
+- 2026-07-30 PM41: **10b68cb (shutdown lane, EffectChain mutex) BREAKS FULL
+  BUILD + FALSE-GREEN TRAP.** MISC builder caught it (out-of-lane, disclosed
+  not touched — correct): std::mutex member implicitly deletes EffectChain
+  copy/move → test_mapping_engine.cpp:32 return-by-value fails to compile;
+  `cmake --build .` FAILS at HEAD while ctest reports 186/186 off a STALE
+  July-17 pre-mutex binary. Disk-verified. DIRECTIVES to shutdown builder:
+  (1) fix the test helper NOW (do NOT add copy/move to a mutex-holding class);
+  (2) PERMANENT: full clean build of all targets before ANY ctest claim —
+  doubly for build-asan/ (its binaries predate all lane commits — rebuild or
+  the ASan verification is meaningless); (3) design accountability OWED per
+  packet: piece mapping · mutex-vs-confinement justification · GL hot-path
+  cost per frame · why the advisory expansion wasn't reported pre-commit.
+  Learning logged (log-event: stale-binary-false-green). Also visible at
+  HEAD: 1f5442e = bundle piece 3 (EffectsRackPanel bounds-check).
+- 2026-07-30 PM42: **MISC LANE 4/4 BUILD-COMPLETE** (ca1fc5c source ids —
+  incl. necessary s_nextClipId decl relocation, grep-verified no id==0
+  consumers · db9e8bd menu gating via hasClipSelection callback mirroring
+  existing pattern, reads selection live per menu open · d4f5d86 preview
+  deck-switch reconcile — root cause: handleDeckSwitch skipped the documented
+  refreshPreviewFromActiveClip ownership rule; single shared entry point
+  covers tab/REST/OSC/MIDI/genre paths · ca068e4 B8 removal, net -38 lines,
+  verified-dead-first, incl. setCollaborators signature trim + 43 mechanical
+  test-call updates). Per-commit isolated verification (revert-build-test-
+  reapply, no stash). FIX 5 (relayed detach one-liner) crossed with the DONE
+  report — confirmation requested, still owed. MISC review will cover all 5
+  commits together once fix 5 lands.
+- 2026-07-30 PM43: **MISC LANE 5/5 COMPLETE** (cc5c0c3 detach-first landed —
+  exact members matched at HEAD, idempotent per JUCE detach semantics, +12/-0).
+  reviewer-misc-lane DISPATCHED over all 5 commits — highest care on cc5c0c3
+  (teardown ordering × 76594fd lazy-re-init interaction) + independent
+  dead-code re-verification for B8 + id-serialization collision check for
+  ca1fc5c. **FEAT LANE DISPATCHED** (MainComponent freed): LayerStrip FX-drop
+  (mirror 9c316e6) · mixed-drop keeps images · Cmd+X cut-to-clear
+  (clipboard-world investigation first; smallest honest thing) · retrigger-
+  restart (Boris's recorded expectation; BLOCKED-COLLISION rule if Renderer
+  needed while shutdown lane owns it). Shutdown lane task board: triage +
+  Task B done, Task A pieces in progress, teardown tests + 4-part verification
+  pending. Remaining queue after FEAT: SYPHON (Renderer-gated) ·
+  affectsLayerOrder hardening (MainComponent-gated, after FEAT) · ID-remap ·
+  renderer-thread-safety design pass (incl. effectChain_).
+- 2026-07-30 PM44: **MISC REVIEW: 4× APPROVE + d4f5d86 APPROVE-W/NOTES with
+  ONE BLOCKING scope gap** — genre auto-switch (setOnGenreChanged,
+  MainComponent.cpp:592-607) bypasses handleDeckSwitch → preview bug still
+  LIVE on that path; "applies uniformly" claim false. Fix relayed to FEAT
+  builder (owns MainComponent) as appended item 5: route callback through
+  handleDeckSwitch. Verified clean elsewhere: ca1fc5c id-serialization hazard
+  is PRE-EXISTING (video path identical; no load-time reconciliation exists —
+  noted, not new) · db9e8bd enablement byte-identical to all 3 handler guards,
+  menu built fresh per open · ca068e4 dead-code claim independently re-proven
+  at parent commit · cc5c0c3 verified against VENDORED JUCE SOURCE end-to-end
+  (detach no-op-when-detached; synchronous GL-thread removal + context-current
+  closing before return; 76594fd lazy-reinit unreachable post-detach; stray
+  execute() fails safe). NEW QUEUE ITEM from review: OutputWindow's SECOND GL
+  thread shares EffectChain by reference (OutputWindow.h:7,14-16,45) —
+  verified not a live teardown gap today (reset at :1685 precedes, dtor
+  detaches synchronously) but the output-window path has never had
+  crash-family scrutiny → separate scout item queued.
+- 2026-07-30 PM45: **PRE-EXISTING DEBUG-ONLY COMPILE BUG surfaced by sanitizer
+  variants** (shutdown builder, boundary held): OutputWindow.cpp:273 unqualified
+  addAndMakeVisible fails under ANY Debug build (JUCE_DEBUG-only ResizableWindow
+  overload name-hides Component's) — invisible until ba0ae70 made Debug real.
+  One-liner (Component:: qualify) routed to warm ASan-infra builder w/ verify:
+  AudioDNA under build-asan (completes app-level sanitizer bonus) + Release
+  intact. Shutdown lane meanwhile verified its OWN work honestly: 188/188
+  test-target-only under ASan clean (2 NEW tests — teardown coverage growing),
+  app-level ASan gate pending the one-liner. FEAT lane progress: LayerStrip
+  FX-drop + mixed-drop DONE, Cmd+X in progress, retrigger + genre-relay
+  pending.
+- 2026-07-30 PM46: **FEAT LANE 4/4 BUILD-COMPLETE** (8f41bd9 LayerStrip
+  FX-drop — mirrored 9c316e6's CONCEPT not letter (LayerStrip has no embedded
+  EffectStackView; used ClipCell's forward-a-callback shape into the same
+  EffectStackCmd/EffectScope::layer machinery, GL fence honored) · 4ba9748
+  mixed-drop — new onMixedFilesDrop combined callback so image+videos land as
+  ONE composite undo entry · 814f633 Cmd+X — investigation: NO clipboard at
+  HEAD but kClipCut/Copy/Paste enum values RESERVED-unwired in MenuBarModel.h:
+  76-80; smallest honest thing = Cmd+X as second shortcut on existing
+  Clip>Clear · b391b64 retrigger-restart — root cause Layer.h:225-235 resets
+  model playhead but never seeks the PLAYER; fixed in handleClipTrigger as
+  sibling to beat-snap seek block, ZERO Renderer edits, no undo entry per
+  trigger-path doctrine). test_undo_commands 355/355 after each. ITEM 5
+  (genre relay) crossed with report — task board shows it in_progress now.
+  BORIS REPLAY MINI-RULINGS queued: column-trigger retrigger parity? ·
+  future Cut/Copy/Paste (enums already reserved)? ALSO VISIBLE at HEAD:
+  shutdown lane's f0916d1 "restore move semantics after mutex addition" —
+  possibly the approach my directive cautioned against (vs fixing the test
+  helper); judgment held for its report + reviewer scrutiny; 22fcedc Task B
+  = CONFINEMENT (preferred design) chosen.
+- 2026-07-30 PM47: **SHUTDOWN+MUTEX LANE BUILD-COMPLETE, DONE_WITH_CONCERNS**
+  (10b68cb EffectChain mutex+idempotency — BOTH required: mutex for
+  first-population race vs 10Hz timer, guard for silent effect-duplication on
+  context recreation, a LIVE path post-76594fd · 1f5442e :472 bounds-check
+  mirroring siblings · f0916d1 move-semantics restore (directive said fix
+  test helper instead — justification NOT provided; reviewer to adjudicate on
+  merits) · 22fcedc activeSources_ CONFINEMENT: GL-thread-owned,
+  getCurrentContext dispatch, non-GL callers block via executeOnGLThread,
+  zero MainComponent/TestServer edits). Verification: 188/188 normal ·
+  188/188 ASan test-scope 0 diag · teardown test honestly infeasible headless
+  (app-level gate recipe supplied: browse→preset→playlist→graceful-quit→no
+  .ips, "OpenGL Renderer" absent from traces) · TSan 187/188. NEW PRE-EXISTING
+  FINDS routed: FeatureBus buffer-slot-aliasing race (test_feature_bus.cpp:
+  143 vs :161, TSan-confirmed, real not harness) → queue triage item ·
+  OutputWindow Debug break (already in flight w/ infra builder).
+  **REVIEWER DISPATCHED with a LOAD-BEARING CONTRADICTION to resolve:** MISC
+  reviewer read JUCE execute() as no-op-when-detached; shutdown builder says
+  executeOnGLThread HANGS without attached context — likely DIFFERENT
+  mechanisms (JUCE's vs Renderer's custom queue+WaitableEvent). If the custom
+  marshal hangs post-detach, an HTTP handler calling getOrCreateSource during
+  app quit = DESTRUCTOR HANG — would defeat the lane's own crash-family goal.
+  Reviewer must resolve ground truth + teardown-order window at HEAD.
+- 2026-07-30 PM48: **FEAT LANE 5/5 COMPLETE** (6b9c831 genre→handleDeckSwitch:
+  documented-intent gap per the handler's own comment; strict-superset claim +
+  non-undoable guarantee source-traced; callback already callAsync-marshalled).
+  reviewer-feat-lane DISPATCHED over all 5. GRID-HARDENING follow-up packet
+  sent to warm GRID builder (affectsLayerOrder structural check replacing the
+  string match). **SYPHON DEFERRAL DECISION (drain doctrine):** context ~26%,
+  remaining pipeline = 2 reviews + possible fix rounds + hardening + infra
+  report + COMBINED BEHAVIORAL GATE + replay + EOS ≈ lands near the 40%
+  off-ramp. Syphon = the one remaining net-new feature, medium lane, AND its
+  behavioral proof needs Boris at the machine with a Syphon client regardless
+  → DEFERRED to next session as #1 Committed MUST (START HERE marker at EOS)
+  unless Boris overrides. 12 of 13 mandate items land verified this session.
+- 2026-07-30 PM49: **GRID HARDENING LANDED** (43ff194, 7 files +69/-19):
+  Command::affectsLayerOrder() default-false · MoveLayerCmd true ·
+  CompositeCommand aggregates · 4 call sites swap string capture for bool
+  capture, same capture-before-mutate shape · refreshAfterUndoRedo takes the
+  flag. DISCLOSED BOUNDARY EXTENSION (accepted pending review): UndoManager
+  .h/.cpp gained undoAffectsLayerOrder()/redoAffectsLayerOrder() mirrored on
+  the existing description-peek pattern — only non-invasive way to expose the
+  flag (alternative = shadow history in MainComponent, rejected as two-sources-
+  of-truth). 188/188; accessors compile in headless test build too. Sent to
+  the designing reviewer for verify + boundary adjudication.
+  [UPDATE: APPROVE — aggregation walks real children_ w/ recursive virtual
+  dispatch; 17 Command subclasses swept, only the 2 needed overrides exist;
+  accessor index math re-proven against unmodified undo()/redo(); boundary
+  extension ADJUDICATED CORRECT (mirrors the class's own peek pattern; the
+  avoided alternative = the same two-sources-of-truth shape this chain exists
+  to kill). GRID CHAIN FULLY CLOSED: a05d64d · 37a1e12 · f924470 · 43ff194
+  (+cc5c0c3 relay).]
+- 2026-07-30 PM50: **SHUTDOWN LANE SOURCE-CLOSED — 0 blocking at HEAD.**
+  CONTRADICTION RESOLVED w/ vendored-source proof: executeOnGLThread IS
+  execute() (juce_OpenGLContext.h:401); no hang path exists — CachedImage::
+  stop() DRAINS the work queue before pause(); pendingDestruction/null-cached
+  → immediate nullptr no-op. **cc5c0c3 introduces NO quit-hang** (dtor order
+  traced at HEAD; TestServer:893 null-checks → graceful 500; httplib stop()
+  joins all workers). Verdicts: 10b68cb APPROVE (lock released before GL
+  draw loop; idempotency correctly Renderer-scoped vs context-scoped) ·
+  1f5442e APPROVE · 22fcedc APPROVE (thread_local dispatch proven on all 3
+  caller classes; inline helper structurally unreachable off-GL) · f0916d1
+  MOOT — builder SELF-CORRECTED pre-review (05114eb revert + out-param helper
+  across 13 call sites per original directive + cbeb287 honest deferred-
+  boundary comment); reviewer confirmed directive right on merits (latent
+  double-ownership of prevFrame GL handles in the move impl). FeatureBus race
+  confirmed pre-existing (45ae7e8-era). RIDER sent: comment-truth fix in
+  test_renderer_source_confinement.cpp (false hang claim committed as
+  rationale; test = honest pattern-simulacrum, not Renderer proof). GATE
+  ADDITION: live HTTP set_preset against running app (closes the unit test's
+  admitted gap).
+- 2026-07-30 PM52: **FEAT LANE SOURCE-CLOSED — 5× APPROVE, 0 blocking.**
+  Depth highlights: Cmd+X focus safety traced through vendored JUCE dispatch
+  (focused TextEditor consumes Cmd+X before MainComponent sees it; handler's
+  own selection guard covers the empty case independent of menu graying) ·
+  one-undo-entry claims VERIFIED from command construction (single before/
+  after snapshot pair; composite undo iterates in REVERSE so columns shrink
+  after cells clear) · retrigger no-undo proven from LayerRuntimeSnapshot
+  field set · strip targeting correct under folds (mirrored model index) ·
+  genre superset claim diffed body-vs-body (only new effect = the reconcile).
+  FLAGS: (i) NOTE latent read-only-TextEditor Cmd+X leak — unreachable today
+  (zero setReadOnly in src/), forward guard only; (ii) PRODUCT CALL →
+  **Boris replay decision list**: Source/MilkDrop clips still NO-OP on
+  retrigger (their time base is app-init-scoped; commit honestly Video/
+  ImageSeq only) — does Boris want restart semantics for sources too?
+  **BORIS REPLAY DECISION LIST (accumulated):** 1. sources-retrigger-restart
+  scope · 2. column-trigger retrigger parity · 3. Cut/Copy/Paste suite
+  (enums reserved) · 4. playlist mode-gate consistency (header-drag any-mode
+  vs multi-select Playlist-only) · 5. Syphon deferral confirm.
+- 2026-07-30 PM53: **REVIEWER SELF-CORRECTION — THE HANG WINDOW IS REAL,
+  BLOCKING on cc5c0c3's ordering.** Builder pushback → reviewer re-derived
+  from scratch: CachedImage::stop() does a ONE-TIME workQueue empty-check; an
+  add() landing between that check and RenderThread::remove()'s
+  setSafe(false) is stranded forever (renderFrame bails via isListChanging
+  without draining) — permanent WaitableEvent hang, JUCE-inherent, made
+  REACHABLE by cc5c0c3 (pre-cc5c0c3 the servers stopped long before any
+  detach). PIPELINE WAS AHEAD OF THE VERDICT: both endorsed fixes already
+  dispatched pre-correction — structural reorder (servers-stop-before-detach,
+  MISC lane, in flight) + isAttached() guard (in-lane, green-lit). Reorder
+  verified NOT to reintroduce the SIGBUS class (server stop = I/O join, not
+  UI teardown; GL still detaches before all UI teardown). Comment-rider
+  wording updated to adjudicated truth. PROCESS NOTE for EOS learnings:
+  adversarial pushback against an APPROVE verdict, argued from source,
+  produced ground truth BOTH initial readings missed — and the cheap
+  both-mitigations ruling made the flip cost zero schedule.
+- 2026-07-30 PM54: **HANG-WINDOW FIXES LANDED + PROCESS INCIDENT (no loss).**
+  84092b0 comment-truth · ff19094 isAttached() guard AND (accidentally swept
+  via shared git index) MISC's servers-stop-before-detach reorder — the
+  structural hang fix IS at HEAD, byte-for-byte as its author staged it, but
+  under ff19094's misleading banner (shutdown builder disclosed immediately;
+  NO history rewrite in shared local history — THIS LEDGER ENTRY is the
+  authorship record: ff19094 = shutdown guard + test comment + MISC-authored
+  reorder w/ its own "Shutdown bundle piece 2" comment block). Author-confirm
+  requested from MISC builder. Learning logged (shared-index-commit-sweep:
+  plain `git commit` commits the whole index — use --only). Suite 188/188
+  incl. the reorder. Remaining before gate: MISC author-confirm · infra
+  ASan-app report (OutputWindow one-liner uncommitted `M` visible in tree —
+  still building/verifying). BORIS mid-turn directive: run EOS when the task
+  finishes — gate → replay list → eos-secondary.
+- 2026-07-30 PM55: **COMBINED BEHAVIORAL GATE: PASS (API+lifecycle scope).**
+  Fresh Release binary at HEAD (deleted-then-rebuilt, codesigned 16:38).
+  Launch clean, health ready 118-120fps/135 effects. LIVE API BATTERY under
+  active render, all PASS w/ readback: set_layer_opacity (0.42 landed →
+  restored 1.0) · set_effect (Perspective Tilt enabled:true) · reset (ALL
+  effects disabled; NOTE: reset takes ~5.0s pre-existing GL-wait — first curl
+  hit its own 5s limit, NOT a hang; retried and verified) · switch_deck ·
+  fps stable throughout. **CAPSTONE PASS: graceful quit UNDER CONCURRENT API
+  LOAD (12-call burst poking the fixed shutdown race) → clean process exit
+  ~6s, ZERO new .ips vs baseline** — crash family AND hang window
+  behaviorally clean. Synthetic-click scenarios NOT run (Boris at machine —
+  preflight doctrine); gesture items → Boris replay list. Fresh instance
+  PID 35688 left running at 120fps for Boris. Gate scope honestly split:
+  API/lifecycle = mine, gestures = Boris replay (list in PM52+PM55-adjacent
+  report).
 - 2026-07-28: SITTING crash #2 (separate subsystem): SignalBar arrow → layout
   cascade → MilkDropBrowser::getCuratedPresets null-deref (empty preset state;
   .ips 2026-07-28-190701). Queued as post-lane mini-lane candidate bundled with

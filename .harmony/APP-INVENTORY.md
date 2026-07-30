@@ -28,7 +28,9 @@ menu bar (~45 items, no-op DBG stubs removed Wave 0; Output→Syphon toggle adde
 pipeline · **58 mapping sources** / 24 curves · **32 default signals** · 8 live macros
 (Global bank only) · **22 REST endpoints** (all functional) ·
 **11 OSC patterns** (subsystem LIVE — port 8000, 11/11 wired, Wave 1-B 2026-07-17) · 19 binding actions · 6 feedback presets ·
-**182 unit tests** (all PASS; 114 → 176 across the Undo-v1 lane; 176 → 182 on 2026-07-30: +1 clear-composite, +4 ThumbnailCache, +1 stale-mtime-race guard).
+**188 unit tests** (all PASS; 114 → 176 across the Undo-v1 lane; 176 → 182 on 2026-07-30 AM: +1 clear-composite, +4 ThumbnailCache, +1 stale-mtime-race guard; 182 → 188 on 2026-07-30 PM2: +4 test_autopilot.cpp [FIRST autopilot coverage] + 2 test_renderer_source_confinement).
+
+**2026-07-30 PM2 SURFACE DELTA (13-item queue session — reconcile rows below when next doing a full §3 pass):** LayerStrip = NEW FX-drop-target (layer-scope stack, one undo entry) · Clip menu items now selection-gated (grayed w/o selection) · Cmd+X = second shortcut on Clip>Clear · mixed image+video Finder drop lands BOTH (one composite undo) · MilkDrop group-header drag = whole-section playlist drop (any mode); the 3 Playlist-mode controls (cycle/timing/blend) are now REAL (were decorative) · click-on-playing-cell RESTARTS video/imageseq from in-point (sources still no-op — Boris ruling pending) · genre auto-switch now reconciles preview via handleDeckSwitch · autopilot advances off Source/Image cells (was frozen) · ApiServer: 6 endpoints marshalled to message thread, ok:true-always semantics; sanitizer build variants exist (ADNA_SANITIZE); §8 candidates CLEARED this session: dead startDrag() decl removed, ReinspectTarget path removed (B8).
 
 ---
 

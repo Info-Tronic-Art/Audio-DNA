@@ -1,0 +1,47 @@
+schema_version: 1
+generated: 2026-05-25
+last_verified: '2026-07-02'
+impact_authority: clangd
+tools:
+  graphify:
+    status: production
+    mode: mcp
+    server: graphify-rta
+    use_for:
+    - C1
+    - C4
+    - C5
+    never_for:
+    - C3
+    notes: 'C++20/JUCE. C4/C5 architecture + design-intent (indexes code + docs).
+      live graph_stats verified 2026-05-25. | live probe 2026-05-25: 2400N/3764E/274C
+      | graphify layer re-probed 2026-07-02: 2416N/3779E/275C (codegraph/clangd retain
+      their 2026-05-25 validation — not re-run this pass).'
+  codegraph:
+    status: production
+    mode: mcp
+    server: codegraph-rta
+    use_for:
+    - C1
+    - C2
+    never_for:
+    - C3
+    notes: SQLite symbol/structure index (.codegraph/codegraph.db, gitignored). C1/C2
+      validated live 2026-05-25 (AudioEngine lookup + nav accurate). NEVER C3 — name-heuristic
+      call edges miss dynamic dispatch (0 callers for handleClipTrigger + setActiveDeck).
+  clangd:
+    status: production
+    mode: lsp
+    server: clangd-rta
+    use_for:
+    - C3
+    never_for: []
+    notes: 'Apple clangd 16 via clangd-mcp + compile_commands.json (build/). AUTHORITATIVE
+      C3 — validated 2026-05-25: found real callers codegraph missed (handleClipTrigger
+      0->2/4 incl lambda+callAsync; setActiveDeck 0->3/5; getActiveDeck 13->20). CAVEAT:
+      resolves static+lambda+virtual OVERRIDES, NOT runtime vtable dispatch (which
+      JUCE callback fires). WARM-UP: lazy (no seed-file) — FIRST query must be list_file_symbols
+      on a .cpp to bootstrap --background-index (~3.5min CPU, cached build/.cache/clangd,
+      gitignored).'
+obsidian:
+  scope: ops

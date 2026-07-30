@@ -31,6 +31,10 @@ Most items below now carry dated PASS notes.
    accepted; (b) FX drop on the COMPOSITION (global) window not accepted —
    global-scope drop path missing or different gesture. delete-FX / bypass /
    multi-select-one-entry UNTESTED (blocked on drop mechanics).**
+   **UPDATE 2026-07-30 PM (post-9c316e6): COMPOSITION panel drop PASS (Boris) —
+   lands in global stack, "Undo Add Effect" in Composition menu, multi-select =
+   ONE undo entry. Channel-strip drop remains NOT-WIRED (Boris decision queue:
+   LayerStrip as FX-drop-target).**
 6. Autopilot ON, clips cycling, menu frozen → **PASS 2026-07-30 Boris.**
 7. Quantize edge (retrigger active cell clears queued trigger → ONE entry)
    → **BLOCKED 2026-07-30 Boris: clicking a cell with video playing is IGNORED
@@ -40,11 +44,24 @@ Most items below now carry dated PASS notes.
 9. MilkDrop single + playlist drop → **BLOCKED: browser starts empty (no default
    preset auto-load). BORIS GREENLIGHT 2026-07-30: build the default-preset-dir
    auto-load + crash-#2 fix, he retests after.**
+   **UPDATE 2026-07-30 PM (post-9229f87): single preset drop + Cmd+Z PASS
+   (Boris). PLAYLIST-DROP OPEN: Boris dragged the group header "Energetic (9)"
+   → only ONE preset landed in the cell; whether group-drag→playlist is wired
+   at HEAD is under scout diagnosis (Boris also flagged "playlist" is not a
+   discoverable concept in the UI).**
+   **CLOSED 2026-07-30 PM: scout verdict = playlist fully exists, header-drag
+   never wired (dossier scout-playlist-drop.md). Boris ran the working gesture
+   (Playlist mode → Cmd-click multi-select → drag) → PASS. Item 9 DONE 8/8.
+   Header-drag→playlist wiring + de-decorating the 3 playlist controls =
+   OPEN Boris decision (recommended YES as one small lane).**
 10. 👁 taste calls → **ONE BUG FOUND 2026-07-30 Boris: X-clear on a PLAYING clip
     removes it from the channel strip but OUTPUT KEEPS PLAYING (renderer not
     stopped — model/renderer desync, invisible to /api/composition).
     Remaining taste calls NOT run — Boris directive: deliver as SINGLE items,
     one per ask, not batched.**
+    **X-CLEAR BUG FIXED — verified 2026-07-30 PM (post a718572+20fe75d): X on a
+    playing clip STOPS the output (Boris PASS), and 2-layer isolation holds —
+    X-clear one layer leaves the other rendering (Boris PASS).**
 11. Cert → **DONE 2026-07-30: Boris created "Audio-DNA Dev" correctly; Harmony
     added the missing self-signed-root trust (CSSMERR_TP_NOT_TRUSTED →
     add-trusted-cert user-domain, -p codeSign) → 1 valid identity. Syphon
@@ -53,9 +70,18 @@ Most items below now carry dated PASS notes.
 **NEW ISSUES from sitting (untriaged → ledger queue):**
 - App file-browser: opening the Desktop folder is VERY SLOW; same slowness on
   the "list" button (likely sync thumbnail/scan on the UI path).
+  **FIXED — verified 2026-07-30 PM (post 8c746ab+9b74c7d): Desktop opens
+  instant, thumbnails fill in async, List toggle instant (Boris PASS).**
 - Autopilot lands on a seemingly EMPTY cell — even after Boris cleared it
   (pairs with X-clear-keeps-playing + stale activeClipColumn: clear paths
   appear to leave runtime/pool references behind).
+  **FIXED — verified 2026-07-30 PM (post clear-path bundle): Clip>Clear leaves
+  a truly empty cell, autopilot never lands on it, Cmd+Z restores the clip
+  exactly (Boris PASS).**
+- **NEW 2026-07-30 PM (Boris): "Autopilot does not work for SOURCES" — cells
+  holding source-type clips are not driven by autopilot. Under scout
+  diagnosis (define "source" in the clip model → trace Autopilot trigger
+  path → root cause + intent ruling).**
 
 ## 0. Preconditions (must pass first)
 
@@ -93,7 +119,8 @@ Most items below now carry dated PASS notes.
 - [x] Multi-SOURCE drop → Cmd+Z restores (was NOT undoable at all pre-step-4).
       *(PASS 2026-07-28)*
 - [x] Multi-FX drop onto empty far cells → Cmd+Z restores columns. *(PASS 2026-07-28)*
-- [ ] MilkDrop single + playlist drop → Cmd+Z (playlist survives — value-copy).
+- [x] MilkDrop single + playlist drop → Cmd+Z (playlist survives — value-copy).
+      *(PASS 2026-07-30 PM Boris — single drop + Playlist-mode multi-select drop.)*
 - [x] Menu Column → New / Column → Remove → Cmd+Z. *(PASS 2026-07-30 AUTONOMOUS
       — synthetic-driver run on fenced build: 10× New+undo, 5× redo/undo REPLAY
       cycles, Insert Before/After, Remove, ALL under an actively-rendering
