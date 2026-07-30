@@ -256,12 +256,13 @@ void DeckView::layoutGrid()
     if (!deck) return;
 
     int numCols = deck->numColumns;
+    int numLayers = deck->getNumLayers();
     static constexpr int kFoldedHeight = 22; // P24.12: collapsed row height
 
     // Calculate total content height with variable row heights
     int contentWidth = kLayerStripWidth + (kCellWidth + kCellGap) * numCols + 30;
     int contentHeight = 0;
-    for (int i = 0; i < deck->getNumLayers(); ++i)
+    for (int i = 0; i < numLayers; ++i)
     {
         auto* layer = deck->getLayer(i);
         contentHeight += (layer && layer->folded) ? (kFoldedHeight + kCellGap) : (kCellHeight + kCellGap);
@@ -271,7 +272,11 @@ void DeckView::layoutGrid()
     int y = 0;
     for (int displayRow = 0; displayRow < static_cast<int>(layerStrips_.size()); ++displayRow)
     {
-        auto* layer = deck->getLayer(displayRow);
+        // Display row 0 = highest layer index (top of screen = top layer) —
+        // mirror the index like rebuildGrid()/refresh()/updateSelectionVisuals()
+        // do, so a folded layer's row height is read from the right layer.
+        int layerIdx = numLayers - 1 - displayRow;
+        auto* layer = deck->getLayer(layerIdx);
         int rowH = (layer && layer->folded) ? kFoldedHeight : kCellHeight;
 
         // Layer strip on the left
