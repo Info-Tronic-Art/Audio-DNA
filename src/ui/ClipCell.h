@@ -56,6 +56,9 @@ public:
     std::function<void(int layerIndex, int column, const juce::File&)> onFileDrop; // Single file dropped
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiFileDrop; // Multi-image sequence dropped
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiVideoDrop; // Multi-video dropped → sequential cells
+    // Mixed Finder drop (2026-07-30): images AND videos dropped together — one
+    // cell for the image(s) at column, videos in sequential cells after.
+    std::function<void(int layerIndex, int column, const std::vector<juce::File>& images, const std::vector<juce::File>& videos)> onMixedFilesDrop;
     std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDrop; // FX dropped from browser
     std::function<void(int layerIndex, int column, const juce::String& sourceId)> onSourceDrop; // Source dropped from browser
     std::function<void(int srcLayer, int srcCol, int dstLayer, int dstCol)> onClipMove; // Clip dragged from one cell to another

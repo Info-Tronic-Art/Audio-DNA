@@ -328,6 +328,13 @@ private:
     // as one command; multi-video drop collects N edits into one composite.
     std::optional<CellEdit> applyFileDrop(int layerIndex, int column, const juce::File& file);
     void handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
+    // Perform one image-sequence drop (build the ImageSequence clip, open it in
+    // the renderer, setClip) WITHOUT pushing an undo command. Returns the
+    // resulting cell edit (nullopt if refused — no deck). Mirrors applyFileDrop's
+    // shape; handleMultiFileDrop wraps this as one command, and the mixed-drop
+    // handler (2026-07-30) combines it with applyFileDrop's video edits into one
+    // composite so an image+video Finder drop is a single undo entry.
+    std::optional<CellEdit> applyMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files);
     void handleDeckSwitch(int deckIndex);
 
     // Enable/disable the shared tooltip window (Preferences → Show Tooltips).

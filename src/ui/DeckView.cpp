@@ -150,6 +150,10 @@ void DeckView::rebuildGrid()
             cell->onMultiVideoDrop = [this](int li, int c, const std::vector<juce::File>& files) {
                 if (onMultiVideoDropped) onMultiVideoDropped(li, c, files);
             };
+            cell->onMixedFilesDrop = [this](int li, int c, const std::vector<juce::File>& images,
+                                             const std::vector<juce::File>& videos) {
+                if (onMixedFilesDropped) onMixedFilesDropped(li, c, images, videos);
+            };
             cell->onEffectDrop = [this](int li, int c, const juce::String& effectName) {
                 if (onEffectDropped) onEffectDropped(li, c, effectName);
             };

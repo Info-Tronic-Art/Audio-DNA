@@ -259,6 +259,22 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
         }
     }
 
+    if (videoFiles.size() > 1)
+        std::sort(videoFiles.begin(), videoFiles.end(),
+                  [](const juce::File& a, const juce::File& b) {
+                      return a.getFileName().compareNatural(b.getFileName()) < 0;
+                  });
+
+    // Mixed batch (images AND videos): route through the combined callback so
+    // the whole drop lands as one undo entry, instead of the video branches
+    // early-returning and silently discarding the images (2026-07-30 fix — the
+    // internal drag path a few lines below already handles this correctly).
+    if (!imageFiles.empty() && !videoFiles.empty())
+    {
+        if (onMixedFilesDrop) onMixedFilesDrop(layerIndex_, column_, imageFiles, videoFiles);
+        return;
+    }
+
     // Single video = normal file drop
     if (videoFiles.size() == 1)
     {
@@ -269,10 +285,6 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
     // Multiple videos = place in sequential cells
     if (videoFiles.size() > 1)
     {
-        std::sort(videoFiles.begin(), videoFiles.end(),
-                  [](const juce::File& a, const juce::File& b) {
-                      return a.getFileName().compareNatural(b.getFileName()) < 0;
-                  });
         if (onMultiVideoDrop) onMultiVideoDrop(layerIndex_, column_, videoFiles);
         return;
     }

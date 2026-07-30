@@ -38,6 +38,7 @@ public:
     std::function<void(int layerIndex, int column, const juce::File&)> onFileDropped;
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiFileDropped;
     std::function<void(int layerIndex, int column, const std::vector<juce::File>&)> onMultiVideoDropped;
+    std::function<void(int layerIndex, int column, const std::vector<juce::File>& images, const std::vector<juce::File>& videos)> onMixedFilesDropped; // Mixed image+video Finder drop (2026-07-30)
     std::function<void(int layerIndex, int column, const juce::String& effectName)> onEffectDropped;
     std::function<void(int layerIndex, int column, const juce::String& sourceId)> onSourceDropped;
     std::function<void(int srcLayer, int srcCol, int dstLayer, int dstCol)> onClipMoved;

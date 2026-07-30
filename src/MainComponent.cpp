@@ -761,6 +761,77 @@ MainComponent::MainComponent(bool testMode, int testPort)
             deckView_->rebuildGrid();
         }
     };
+    // Mixed Finder drop (2026-07-30 fix): a multi-file drop mixing videos and
+    // images used to silently discard the images (ClipCell::filesDropped ran
+    // mutually-exclusive early-return branches, video-first). Route each media
+    // type through its existing single-type primitive (image(s) → applyFileDrop
+    // or applyMultiFileDrop for one cell; videos → applyFileDrop per sequential
+    // cell, mirroring onMultiVideoDropped above) and combine every edit into ONE
+    // composite so the whole drop is one undo entry, per house pattern.
+    deckView_->onMixedFilesDropped = [this](int layerIdx, int col,
+                                             const std::vector<juce::File>& images,
+                                             const std::vector<juce::File>& videos) {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        const int numColsBefore = deck->numColumns;
+
+        // Images always occupy exactly one cell (single image, or an
+        // ImageSequence if more than one) at col; videos start immediately
+        // after, one cell each — same placement rule as the internal "files:"
+        // drag path (ClipCell::itemDropped's videoStartCol).
+        const int videoStartCol = col + (images.empty() ? 0 : 1);
+
+        std::vector<CellEdit> edits;
+        // GL fence (2026-07-28, round 3 class): column growth + setClip below can
+        // reallocate every layer's clips vector — one fence for the whole
+        // gesture, mirroring onMultiVideoDropped's shape.
+        undoService_.withDeckDetached([&]
+        {
+            int needed = videoStartCol + static_cast<int>(videos.size());
+            while (deck->numColumns < needed)
+            {
+                deck->numColumns++;
+                for (auto& layer : deck->layers)
+                    layer.clips.resize(static_cast<size_t>(deck->numColumns));
+            }
+
+            if (images.size() == 1)
+            {
+                if (auto edit = applyFileDrop(layerIdx, col, images[0]))
+                    edits.push_back(*edit);
+            }
+            else if (images.size() > 1)
+            {
+                if (auto edit = applyMultiFileDrop(layerIdx, col, images))
+                    edits.push_back(*edit);
+            }
+
+            for (int i = 0; i < static_cast<int>(videos.size()); ++i)
+                if (auto edit = applyFileDrop(layerIdx, videoStartCol + i, videos[static_cast<size_t>(i)]))
+                    edits.push_back(*edit);
+        });
+        const int numColsAfter = deck->numColumns;
+
+        if (edits.empty()) return;
+
+        const juce::String desc = "Drop " + juce::String(videos.size())
+            + (videos.size() == 1 ? " Video + " : " Videos + ")
+            + juce::String(images.size()) + (images.size() == 1 ? " Image" : " Images");
+        std::vector<std::unique_ptr<Command>> children;
+        if (numColsAfter != numColsBefore)   // FIRST child → undoes LAST (restores count)
+            children.push_back(std::make_unique<SetColumnCountCmd>(
+                makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
+                numColsBefore, numColsAfter, "Resize Columns"));
+        for (auto& edit : edits)
+            children.push_back(makeSetClipCmd(composition_.activeDeckIndex, edit, desc));
+        pushCommands(std::move(children), desc);
+
+        if (deckView_)
+        {
+            deckView_->clearSelection();
+            deckView_->rebuildGrid();
+        }
+    };
     deckView_->onEffectDropped = [this](int layerIdx, int col, const juce::String& effectName) {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;
@@ -3517,10 +3588,11 @@ void MainComponent::handleFileDrop(int layerIndex, int column, const juce::File&
     }
 }
 
-void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
+std::optional<MainComponent::CellEdit>
+MainComponent::applyMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
 {
     auto* deck = composition_.getActiveDeck();
-    if (!deck) return;
+    if (!deck) return std::nullopt;
 
     // Capture before-state for undo (nullopt if the cell was empty).
     std::optional<Clip> before = snapshotCell(deck->getLayer(layerIndex), column);
@@ -3553,13 +3625,21 @@ void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::v
     auto& renderer = previewPanel_.getRenderer();
     renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
 
+    deck->setClip(layerIndex, column, clip);
+
+    return CellEdit{ layerIndex, column, before, std::optional<Clip>(clip) };
+}
+
+void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
+{
     // GL fence (2026-07-28, round 3): setClip's internal ensureColumns can
     // grow the layer's clips vector — the crash-proven reallocation class.
-    undoService_.withDeckDetached([&] { deck->setClip(layerIndex, column, clip); });
+    std::optional<CellEdit> edit;
+    undoService_.withDeckDetached([&] { edit = applyMultiFileDrop(layerIndex, column, files); });
+    if (!edit) return;
 
-    pushClipEdits(composition_.activeDeckIndex,
-                  { { layerIndex, column, before, std::optional<Clip>(clip) } },
-                  "Drop '" + juce::String(clip.name) + "'");
+    pushClipEdits(composition_.activeDeckIndex, { *edit },
+                  "Drop '" + juce::String(edit->after->name) + "'");
 
     if (deckView_)
         deckView_->rebuildGrid();
