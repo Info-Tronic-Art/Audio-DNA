@@ -104,6 +104,24 @@ private:
     // (no removal API), and vector reallocation moves the unique_ptr
     // handles, not the pointed-to Effect objects, so a stable Effect*
     // survives a later addEffect() safely.
+    //
+    // DEFERRED BOUNDARY (2026-07-30 review advisory): effectsMutex_ guards
+    // the CONTAINER only — it does NOT guard the CONTENTS each Effect*
+    // points to. Effect::enabled_ and EffectParam::value (Effect.h) are read
+    // every frame on the GL thread (EffectChain::render(), uniform upload)
+    // with zero synchronization against ANY writer: message-thread UI
+    // (EffectsRackPanel toggle/knob callbacks), HTTP writes (ApiServer/
+    // TestServer set_param/set_effect_chain, now marshalled to the message
+    // thread but still unsynchronized against the GL-thread reader), and
+    // MappingEngine's audio-reactive writes. This is a real, pre-existing,
+    // narrower-severity race (scalar tearing, not container corruption) —
+    // deliberately NOT folded into this fix. Extending effectsMutex_ to
+    // cover per-field access would mean holding it through render()'s whole
+    // uniform-upload loop (a real GL hot-path cost, unlike the narrow scan
+    // this mutex currently guards) and would need every UI/API writer
+    // updated too — a bigger design pass (atomics per field, or a
+    // snapshot/double-buffer scheme matching the Composition-mutation LAW
+    // pattern), not a same-commit tack-on. Queued as a follow-up candidate.
     mutable std::mutex effectsMutex_;
     std::vector<std::unique_ptr<Effect>> effects_;
 

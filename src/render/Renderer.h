@@ -323,6 +323,19 @@ private:
     // inline — marshaling to self would deadlock, since a blocking
     // executeOnGLThread call waits for the GL thread to service its queue,
     // which it cannot do while blocked waiting on itself.
+    //
+    // SIBLING STRUCTURE, DEFERRED: effectChain_ (EffectChain.h) has the same
+    // GL-thread-owned shape at the CONTAINER level (its own effectsMutex_,
+    // landed alongside this fix) but confinement was NOT the right choice
+    // there — effectChain_ is read far more often off the GL thread
+    // (EffectsRackPanel's 10Hz timer, PresetManager, ApiServer/TestServer
+    // queries) than activeSources_ is, so a mutex is cheaper in aggregate
+    // than paying a blocking round-trip on every one of those reads. Even
+    // with that mutex, effectChain_'s PER-EFFECT fields (Effect::enabled_,
+    // EffectParam::value) remain unsynchronized against their own writers —
+    // see the DEFERRED BOUNDARY note at EffectChain.h's effectsMutex_
+    // declaration. That gap is NOT addressed here; it needs its own design
+    // pass.
     std::unordered_map<std::string, std::unique_ptr<ProceduralSource>> activeSources_;
 
     // P20.5: Analysis thread for PCM audio feed to projectM
