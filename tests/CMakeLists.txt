@@ -30,6 +30,13 @@ target_link_libraries(test_waveform_snapshot PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_waveform_snapshot)
 catch_discover_tests(test_waveform_snapshot)
 
+# --- test_renderer_source_confinement (activeSources_ owner-thread confinement) ---
+add_executable(test_renderer_source_confinement test_renderer_source_confinement.cpp)
+target_include_directories(test_renderer_source_confinement PRIVATE ${SRC_DIR})
+target_link_libraries(test_renderer_source_confinement PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_renderer_source_confinement)
+catch_discover_tests(test_renderer_source_confinement)
+
 # --- test_spectral_features ---
 add_executable(test_spectral_features
     test_spectral_features.cpp

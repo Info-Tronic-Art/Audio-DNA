@@ -717,6 +717,25 @@ void Renderer::openGLContextClosing()
 
 ProceduralSource* Renderer::getOrCreateSource(const std::string& sourceId)
 {
+    // activeSources_ is GL-thread-owned (see the comment at its
+    // declaration in Renderer.h). Marshal onto the GL thread when called
+    // from elsewhere; run inline when already there (marshaling to self
+    // would deadlock the blocking round-trip).
+    if (juce::OpenGLContext::getCurrentContext() != &glContext_)
+    {
+        ProceduralSource* result = nullptr;
+        glContext_.executeOnGLThread([this, sourceId, &result](juce::OpenGLContext&)
+        {
+            result = getOrCreateSourceOnGLThread(sourceId);
+        }, /*blockUntilFinished*/ true);
+        return result;
+    }
+
+    return getOrCreateSourceOnGLThread(sourceId);
+}
+
+ProceduralSource* Renderer::getOrCreateSourceOnGLThread(const std::string& sourceId)
+{
     auto it = activeSources_.find(sourceId);
     if (it != activeSources_.end())
         return it->second.get();

@@ -125,7 +125,9 @@ public:
     void setSyphonOutput(class SyphonOutput* syphon) { syphonOutput_ = syphon; }
 
     // Get or create an active procedural source instance for a source type ID.
-    // Returns nullptr if the source ID is not registered.
+    // Returns nullptr if the source ID is not registered. Thread-safe: may be
+    // called from any thread (message thread, HTTP worker threads, or the GL
+    // thread itself) — see activeSources_ below for the ownership model.
     ProceduralSource* getOrCreateSource(const std::string& sourceId);
 
     // === Video Playback ===
@@ -164,6 +166,12 @@ private:
     void initShaders();
     void initEffectChain();
     void compileAllShaders();
+
+    // The actual find-or-create against activeSources_. MUST only be called
+    // from the GL thread (see activeSources_ below) — getOrCreateSource()
+    // is the public, thread-safe entry point that marshals onto the GL
+    // thread when necessary before calling this.
+    ProceduralSource* getOrCreateSourceOnGLThread(const std::string& sourceId);
 
     // Compile a shader with optional shared GLSL utility prepends.
     // Prepends the requested utility blocks before the fragment shader source.
@@ -292,6 +300,29 @@ private:
 
     // Procedural sources
     SourceRegistry sourceRegistry_;
+
+    // OWNERSHIP MODEL: activeSources_ is owned by the GL thread. It is
+    // iterated without a lock in openGLContextClosing() (a GL-thread-only
+    // callback) and read every frame via renderSource()/renderOpenGL()'s
+    // playlist-advance logic, also GL-thread-only. The only mutator is
+    // getOrCreateSourceOnGLThread() (operator[] insertion on first use of a
+    // source type), called through getOrCreateSource().
+    //
+    // getOrCreateSource() is called cross-thread — from the message thread
+    // (MilkDrop preset-browser wiring/click callback in MainComponent.cpp)
+    // and from HTTP worker threads (TestServer.cpp handlers) — with no
+    // synchronization prior to this fix, racing the GL thread's own
+    // find()/insert() on the same unordered_map (queue candidate 11).
+    // Rather than add a mutex to a map that's walked every frame on the GL
+    // hot path, getOrCreateSource() confines all mutation to the GL thread:
+    // callers not already on it (checked via
+    // juce::OpenGLContext::getCurrentContext() != &glContext_, a JUCE
+    // thread-local) marshal through a blocking glContext_.executeOnGLThread
+    // round-trip (house precedent: ApiServer.cpp's callAsync marshaling of
+    // writes onto their owning thread). Calls already on the GL thread run
+    // inline — marshaling to self would deadlock, since a blocking
+    // executeOnGLThread call waits for the GL thread to service its queue,
+    // which it cannot do while blocked waiting on itself.
     std::unordered_map<std::string, std::unique_ptr<ProceduralSource>> activeSources_;
 
     // P20.5: Analysis thread for PCM audio feed to projectM

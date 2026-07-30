@@ -2,6 +2,91 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-07-30 — JUCE Debug builds silently break unqualified addAndMakeVisible on ResizableWindow subclasses
+**Files:** src/ui/OutputWindow.cpp:273 (the live break), build-asan/_deps/juce-src/modules/juce_gui_basics/windows/juce_ResizableWindow.h:376-391
+**Note:** `ResizableWindow` declares its own `#if JUCE_DEBUG`-guarded
+`addAndMakeVisible(Component*, int)` purely to warn developers away from
+adding children directly (instead of `setContentOwned()`). This Debug-only
+override name-hides ALL of `Component`'s inherited overloads, including the
+`Component&` reference form — so `addAndMakeVisible(someComponentRef)` in any
+`ResizableWindow`/`DocumentWindow`/`TopLevelWindow` subclass compiles fine in
+Release (JUCE_DEBUG undefined, no hiding) but fails to compile in ANY Debug
+build (including build-asan/build-tsan, both `CMAKE_BUILD_TYPE=Debug`) with
+"no viable conversion from 'X' to 'Component *'". OutputWindow.cpp:273 hits
+this. Fix is to qualify the call: `Component::addAndMakeVisible(child);`
+(the JUCE header comment says exactly this). This had never surfaced before
+because ba0ae70 (2026-07-30) was the first commit to add Debug/sanitizer
+build-variant wiring — nobody had compiled AudioDNA in Debug before. Any
+sanitizer (ASan/TSan/UBSan) work on this repo needs this fixed before the
+full `AudioDNA` app target will build; the Catch2 test targets are unaffected
+(none link OutputWindow.cpp).
+**Valid while:** OutputWindow.cpp inherits from a JUCE ResizableWindow-family
+class and calls addAndMakeVisible unqualified; general rule holds for any
+JUCE ResizableWindow/DocumentWindow subclass in this codebase.
+
+## 2026-07-30 — EffectChain/activeSources_: GL-context-recreation is a REAL runtime event, not theoretical
+**Files:** src/render/Renderer.cpp (initEffectChain, getOrCreateSource/getOrCreateSourceOnGLThread), src/effects/EffectChain.h/.cpp
+**Note:** Before 76594fd, GL-context close/recreate cycles (previewPanel_
+hide/zero-size → JUCE synchronous GL detach → later resize/show → context
+recreated → newOpenGLContextCreated() re-fires) were assumed rare/edge-case.
+76594fd's MilkDrop UAF fix proves this path is REAL and already observed live
+(SignalBar-expand arming event). Any Renderer method that does one-time GL
+context setup work in newOpenGLContextCreated() (like the old
+`initEffectChain()`, which unconditionally re-populated effectChain_ every
+call) must either be idempotent or explicitly re-derive its state — CPU-only
+data (Effect objects, no GL handles) must guard against re-population;
+GL-handle state (shaders, FBOs) correctly SHOULD re-init every time. Pattern
+used for cross-thread map ownership (activeSources_): confine ALL mutation to
+one owner thread (the GL thread, detected via
+`juce::OpenGLContext::getCurrentContext() != &glContext_`, a JUCE
+thread-local) and marshal non-owner callers through a blocking
+`executeOnGLThread(fn, true)` round-trip — callers already on the owner
+thread must call the raw (non-marshaling) helper directly, since a
+self-marshal deadlocks (the blocking call waits for the owner thread to
+service its queue, which it can't do while blocked on itself). Reusable
+pattern for any future GL-thread-owned container with cross-thread callers.
+**Valid while:** Renderer's activeSources_/effectChain_ ownership model is
+unchanged (see the OWNERSHIP MODEL comment at activeSources_'s declaration,
+Renderer.h).
+
+## 2026-07-30 — FEAT lane: LayerStrip FX-drop / mixed-drop / Cmd+X / retrigger-restart
+**Files:** src/ui/LayerStrip.h+.cpp, src/ui/DeckView.h+.cpp, src/ui/ClipCell.h+.cpp,
+src/MainComponent.h+.cpp (4 commits: 8f41bd9, 4ba9748, 814f633, b391b64)
+**Note:** (1) LayerStrip has no embedded EffectStackView (unlike LayerInspector/
+CompositionInspector), so mirroring 9c316e6's panel-forward pattern here means the
+strip only forwards the raw "fx:Name1,Name2" description via a new onEffectDropped
+callback — the host (MainComponent) does the EffectSlot construction + GL fence +
+EffectStackCmd(EffectScope::layer(...)) construction, same shape as ClipCell's
+existing onEffectDrop forwarding, not the embedded-view mutate-then-push shape.
+(2) ClipCell::filesDropped's 4-branch mutually-exclusive early-return structure
+(video branches return before image branches ever run) was the mixed-drop bug;
+fixed by adding a NEW combined onMixedFilesDrop path that fires only when both
+image and video files are present in one Finder drop, reusing applyFileDrop /
+new applyMultiFileDrop (extracted from handleMultiFileDrop, mirrors applyFileDrop's
+mutate-without-pushing shape) so the whole gesture stays ONE undo entry — do NOT
+call the existing per-type onFileDropped/onMultiFileDropped/onMultiVideoDropped
+callbacks for a mixed batch, each pushes its own undo command independently.
+(3) MenuBarModel.h's kClipCut/kClipCopy/kClipPaste/kClipCopyEffects/
+kClipPasteEffects are RESERVED enum values only — grep-confirmed zero menu.addItem
+calls and zero handleMenuCommand cases for any of them (only kClipClear/
+kClipReplaceContent/kClipLockContent are wired in the Clip menu). No clipboard
+concept exists anywhere at HEAD. (4) Retrigger-of-active-cell was an EMERGENT
+no-op, not an early return: Layer::triggerClipImmediate's retrigger branch
+(Layer.h) already resets the model's clip->playheadPosition to inPoint, but
+Renderer.cpp overwrites that field FROM the player's actual position every frame
+— the model reset was real but invisible. Fix needed zero Renderer.cpp/.h edits:
+MainComponent::handleClipTrigger already calls renderer.getVideoPlayer(id)->
+seekTo()/getImageSequence(id)->seekTo() for the pre-existing beat-snap case: added
+an `else if` sibling branch keyed on a `wasRetrigger` flag (captured BEFORE
+layer->triggerClip() mutates activeClipColumn) that does the same seek to
+clip->inPoint. Confirm this pattern (seek the player via MainComponent's existing
+renderer getters) before assuming any retrigger/seek-adjacent bug needs a
+Renderer.cpp change.
+**Valid while:** LayerStrip stays without an embedded EffectStackView; ClipCell's
+external/internal drop paths keep their current split; MenuBarModel's Clip menu
+wires only Clear/Replace Content/Lock Content; handleClipTrigger keeps doing its
+own player-seek side effects rather than delegating to Renderer.
+
 ## 2026-07-28 — LAW: any message-thread mutation of layer.clips MUST be GL-fenced (UAF crash proven)
 **Files:** MainComponent.cpp:3712 (addColumn, the crasher), :3557/:3621/:3759 (clears — same exposure, MORE deterministic), Renderer.cpp:28+173, CompositorEngine.cpp:694+734, UndoService.cpp:54-79 (the fence), DeckCommands.h:55,97 + ClipCommands.h:56,160 (unfenced replay)
 **Note:** Column→New crashed live (SIGSEGV GL thread, .ips 2026-07-28-182825; scout
