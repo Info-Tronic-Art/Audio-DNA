@@ -316,6 +316,7 @@ void ApiServer::handleTriggerClip(const httplib::Request& req, httplib::Response
 
     if (onTriggerClip)
     {
+        // `this`-capture safety: see handleSetParam's clip-effect branch note.
         juce::MessageManager::callAsync([this, layer, column]() {
             onTriggerClip(layer, column);
         });
@@ -337,6 +338,7 @@ void ApiServer::handleTriggerColumn(const httplib::Request& req, httplib::Respon
 
     if (onTriggerColumn)
     {
+        // `this`-capture safety: see handleSetParam's clip-effect branch note.
         juce::MessageManager::callAsync([this, column]() {
             onTriggerColumn(column);
         });
@@ -378,8 +380,16 @@ void ApiServer::handleSetParam(const httplib::Request& req, httplib::Response& r
         // dispatch loop has exited; and ApiServer::stop() joins every
         // httplib worker thread before returning, so no handler can still be
         // in flight when ApiServer itself is torn down. Same reasoning
-        // applies at every other callAsync site added in this file (this
-        // comment is the shared reference for all of them).
+        // applies at every other callAsync site in this file, including the
+        // 4 pre-existing ones (trigger_clip/trigger_column/switch_deck/
+        // set_bpm) — this comment is the shared reference for all 10.
+        // LOAD-BEARING INVARIANT: this safety depends on ApiServer having
+        // exactly ONE lifecycle — constructed once, stop()'d exactly once,
+        // post-quit-signal, via the single stop() call in ~MainComponent().
+        // A future second lifecycle path (hot-restart, port-conflict
+        // reconfigure, anything that stop()s/restarts ApiServer while the
+        // app keeps running) would reopen a UAF across all 10 sites at once,
+        // since quitMessagePosted would not yet be set to protect them.
         juce::MessageManager::callAsync([this, layer, column, effectName, paramName, value]() {
             auto* deck = composition_.getActiveDeck();
             if (!deck)
@@ -490,6 +500,7 @@ void ApiServer::handleSwitchDeck(const httplib::Request& req, httplib::Response&
 
     if (onSwitchDeck)
     {
+        // `this`-capture safety: see handleSetParam's clip-effect branch note.
         juce::MessageManager::callAsync([this, deckIdx]() {
             onSwitchDeck(deckIdx);
         });
@@ -537,6 +548,7 @@ void ApiServer::handleSetBpm(const httplib::Request& req, httplib::Response& res
     }
 
     // Marshal to the message thread — same manual-BPM override the TopBar uses.
+    // `this`-capture safety: see handleSetParam's clip-effect branch note.
     if (onSetBpm)
     {
         juce::MessageManager::callAsync([this, bpm]() {
