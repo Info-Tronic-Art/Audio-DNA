@@ -26,6 +26,18 @@ class EffectChain
 public:
     EffectChain() = default;
 
+    // Non-copyable (effects_ holds unique_ptr<Effect>). Movable: std::mutex
+    // itself has no move constructor, so effectsMutex_ is excluded from the
+    // move and the moved-to object gets a fresh, unlocked mutex — safe
+    // because moves only ever happen at construction time, single-threaded
+    // (e.g. tests/test_mapping_engine.cpp's makeChainWithEffect() helper
+    // returning a local EffectChain by value); production code never moves
+    // a live, concurrently-accessed EffectChain.
+    EffectChain(const EffectChain&) = delete;
+    EffectChain& operator=(const EffectChain&) = delete;
+    EffectChain(EffectChain&& other) noexcept;
+    EffectChain& operator=(EffectChain&& other) noexcept;
+
     // Add an effect to the chain (takes ownership). Thread-safe — see
     // effectsMutex_ below.
     void addEffect(std::unique_ptr<Effect> effect);
