@@ -33,15 +33,15 @@
 // requires a live, attached GL context with a running render thread, which
 // test_compositor.cpp documents as unavailable in this unit-test harness
 // (no target links CompositorEngine.cpp or Renderer.cpp for exactly this
-// reason), and calling executeOnGLThread on an unattached context blocks
-// forever rather than failing fast — attempting it here would hang the
-// test, not fail it cleanly. This harness instead reproduces the
-// OWNERSHIP-CONFINEMENT MECHANISM (single owner thread + blocking marshal
-// queue for everyone else) and stresses it under concurrent contention, the
-// same "mirror the mechanism, not the subsystem" approach
-// test_waveform_snapshot.cpp uses for AnalysisThread's seqlock. It does NOT
-// exercise Renderer.cpp's actual code — see the report for what an
-// app-level behavioral gate must additionally cover.
+// reason) — with no attached context, the real executeOnGLThread/execute()
+// dispatch path can't be exercised at all. This harness instead reproduces
+// the OWNERSHIP-CONFINEMENT MECHANISM (single owner thread + blocking
+// marshal queue for everyone else) and stresses it under concurrent
+// contention, the same "mirror the mechanism, not the subsystem" approach
+// test_waveform_snapshot.cpp uses for AnalysisThread's seqlock. It proves
+// the confinement PATTERN under TSan — it does NOT exercise Renderer.cpp's
+// actual code — see the report for what an app-level behavioral gate must
+// additionally cover.
 namespace
 {
 class OwnerThreadMap
