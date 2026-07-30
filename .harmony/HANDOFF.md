@@ -97,9 +97,10 @@ YOU ARE HERE: hardening wave COMPLETE and gated; one feature (Syphon) left in th
   (OutputWindow one-liner committed this close, Release-verified via my gate's
   forced rebuild + 120fps run; the Debug/ASan app-build confirmation is the open
   half — cheap to re-run: `cmake --build build-asan --target AudioDNA`).
-- MISC builder's author-confirm on the ff19094 index-sweep content never arrived
-  (content verified byte-for-byte by the sweeping builder + suite green + my gate;
-  formality only — ledger PM54 records authorship).
+- MISC builder's author-confirm on the ff19094 index-sweep content: RESOLVED at
+  close (+ its own independent forced-rebuild verification, 188/188) — exact-match
+  confirmed line-by-line; ledger PM54 remains the authorship record. NO action
+  needed next session.
 - FeatureBus TSan race: real, pre-existing, queued (birth prompt item 4).
 - Renderer-thread-safety design pass queued (effectChain_ per-field + 3 renderer_
   HTTP endpoints).
