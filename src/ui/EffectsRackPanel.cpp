@@ -467,9 +467,11 @@ void EffectsRackPanel::rebuildUI()
             pk->knob->getSlider().onValueChange = [this, capturedEi, capturedPi]
             {
                 auto* eff = effectChain_.getEffect(capturedEi);
-                if (eff == nullptr)
+                if (eff == nullptr || capturedEi >= static_cast<int>(sections_.size()))
                     return;
                 auto& sec = sections_[static_cast<size_t>(capturedEi)];
+                if (capturedPi >= static_cast<int>(sec->paramKnobs.size()))
+                    return;
                 auto& p = sec->paramKnobs[static_cast<size_t>(capturedPi)];
                 eff->setParamValue(capturedPi,
                                    static_cast<float>(p->knob->getSlider().getValue()));
