@@ -115,6 +115,9 @@ void DeckView::rebuildGrid()
         strip->onSolo = [this](int idx, bool solo) {
             if (onLayerSolo) onLayerSolo(idx, solo);
         };
+        strip->onEffectDropped = [this](int idx, const juce::String& effectDesc) {
+            if (onLayerEffectDropped) onLayerEffectDropped(idx, effectDesc);
+        };
 
         gridContent_->addAndMakeVisible(strip.get());
         layerStrips_.push_back(std::move(strip));

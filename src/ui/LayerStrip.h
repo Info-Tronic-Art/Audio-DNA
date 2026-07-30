@@ -21,6 +21,7 @@
 // F = fade speed slider + transition mix mode dropdown
 // playhead = cyan vertical line over clip name area
 class LayerStrip : public juce::Component,
+                   public juce::DragAndDropTarget,
                    private juce::Timer
 {
 public:
@@ -50,11 +51,24 @@ public:
     std::function<void(int layerIndex)> onTransportForward;
     std::function<void(int layerIndex)> onFoldToggle;        // P24.12
     std::function<void(int fromIndex, int toIndex)> onLayerDragReorder; // P24.13
+    // FX-drop-target (2026-07-30): fired when an fx: drag is dropped anywhere on
+    // the strip, comma-separated names for a multi-select drop. The host owns the
+    // effect library lookup + undo command — this class only forwards the raw
+    // description string, mirroring ClipCell's onEffectDrop shape.
+    std::function<void(int layerIndex, const juce::String& effectDesc)> onEffectDropped;
 
 private:
     void mouseDown(const juce::MouseEvent& event) override;
     void mouseDrag(const juce::MouseEvent& event) override;
     void timerCallback() override;
+
+    // DragAndDropTarget for FX drops (mirrors LayerInspector/CompositionInspector,
+    // 9c316e6 pattern: whole component accepts fx: drags)
+    bool isInterestedInDragSource(const SourceDetails& details) override;
+    void itemDragEnter(const SourceDetails& details) override;
+    void itemDragExit(const SourceDetails& details) override;
+    void itemDropped(const SourceDetails& details) override;
+    bool fxDropHighlight_ = false;
 
     void scrubPlayhead(juce::Point<int> pos);
 

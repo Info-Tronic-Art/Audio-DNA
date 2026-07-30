@@ -49,6 +49,7 @@ public:
     std::function<void(int layerIndex)> onLayerClearClip;          // Undo v1 #13 (X button)
     std::function<void(int layerIndex, bool bypassed)> onLayerBypass; // Undo v1 #14
     std::function<void(int layerIndex, bool solo)> onLayerSolo;    // Undo v1 #15
+    std::function<void(int layerIndex, const juce::String& effectDesc)> onLayerEffectDropped; // FX-drop-target on the channel strip (2026-07-30)
 
     // Get active column (-1 if none)
     int getActiveColumn() const { return activeColumn_; }

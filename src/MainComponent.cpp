@@ -882,6 +882,63 @@ MainComponent::MainComponent(bool testMode, int testPort)
             }
         }
     };
+    // FX-drop-target on the channel strip (2026-07-30): drops anywhere on a
+    // LayerStrip add the effect(s) to THAT LAYER's FX stack (layer->layerEffects,
+    // the same vector LayerInspector's effect stack view shows once the layer is
+    // selected) — not a specific clip's chain. Mirrors 9c316e6's panel-forward
+    // pattern but the mutation lives here since LayerStrip has no embedded
+    // EffectStackView to do it locally.
+    deckView_->onLayerEffectDropped = [this](int layerIdx, const juce::String& effectDesc) {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        auto* layer = deck->getLayer(layerIdx);
+        if (!layer) return;
+
+        // Support multi-select drop: comma-separated names (mirrors
+        // EffectStackView::itemDropped)
+        auto fxNames = juce::StringArray::fromTokens(effectDesc, ",", "");
+        if (fxNames.isEmpty()) return;
+
+        std::vector<Clip::EffectSlot> before = layer->layerEffects;
+
+        int addedCount = 0;
+        juce::String lastAddedName;
+        // GL fence: push_back reallocates layer->layerEffects, which the GL
+        // thread copy-reads at CompositorEngine.cpp:752 — same family-fence
+        // class as every other structural effects-vector mutation.
+        undoService_.withDeckDetached([&]
+        {
+            for (const auto& fxName : fxNames)
+            {
+                auto trimmed = fxName.trim();
+                const auto* def = effectLibrary_.getEffectDef(trimmed);
+                if (!def) continue;
+
+                Clip::EffectSlot slot;
+                slot.effectName = trimmed.toStdString();
+                for (const auto& p : def->params)
+                    slot.paramValues.push_back(p.defaultValue);
+
+                layer->layerEffects.push_back(slot);
+                ++addedCount;
+                lastAddedName = trimmed;
+            }
+        });
+
+        if (addedCount == 0) return;
+
+        const juce::String desc = (addedCount == 1)
+            ? "Add Effect '" + lastAddedName + "'"
+            : "Add " + juce::String(addedCount) + " Effects";
+
+        std::vector<std::unique_ptr<Command>> children;
+        children.push_back(std::make_unique<EffectStackCmd>(
+            makeCompositionResolver(), makeDeckFence(),
+            EffectScope::layer(composition_.activeDeckIndex, layerIdx),
+            std::move(before), layer->layerEffects,
+            makeEffectStackRefresh(), desc.toStdString()));
+        pushCommands(std::move(children), desc);
+    };
     deckView_->onSourceDropped = [this](int layerIdx, int col, const juce::String& sourceId) {
         auto* deck = composition_.getActiveDeck();
         if (!deck) return;

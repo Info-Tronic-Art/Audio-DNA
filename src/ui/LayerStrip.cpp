@@ -564,6 +564,16 @@ void LayerStrip::paint(juce::Graphics& g)
         g.drawRect(nameBounds_.toFloat(), 2.0f);
     }
 
+    // FX drop highlight — whole-strip overlay (CompositionInspector/
+    // LayerInspector pattern)
+    if (fxDropHighlight_)
+    {
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.15f));
+        g.fillRect(bounds);
+        g.setColour(juce::Colour(AudioDNALookAndFeel::kAccentCyan).withAlpha(0.6f));
+        g.drawRect(bounds, 2);
+    }
+
     // Bottom edge
     g.setColour(juce::Colour(kBtnBorder));
     g.drawHorizontalLine(bounds.getHeight() - 1, 0.0f, (float)bounds.getWidth());
@@ -886,4 +896,40 @@ void LayerStrip::populateTransitionDropdown()
     populateMixModes(transitionDropdown_, 1);
     transitionDropdown_.setSelectedId(1 + static_cast<int>(Layer::MixMode::Dissolve),
                                       juce::dontSendNotification);
+}
+
+// === DragAndDropTarget (FX drops from browser, 2026-07-30) ===
+// Whole channel strip accepts fx: drags and forwards to the layer's FX stack,
+// mirroring the panel-level pattern LayerInspector/CompositionInspector use
+// (9c316e6) — the mutation + undo wrapping happens at the host (MainComponent),
+// same shape as ClipCell's onEffectDrop forwarding.
+
+bool LayerStrip::isInterestedInDragSource(const SourceDetails& details)
+{
+    return layer_ != nullptr && details.description.toString().startsWith("fx:");
+}
+
+void LayerStrip::itemDragEnter(const SourceDetails&)
+{
+    fxDropHighlight_ = true;
+    repaint();
+}
+
+void LayerStrip::itemDragExit(const SourceDetails&)
+{
+    fxDropHighlight_ = false;
+    repaint();
+}
+
+void LayerStrip::itemDropped(const SourceDetails& details)
+{
+    fxDropHighlight_ = false;
+    repaint();
+
+    if (!layer_) return;
+    auto desc = details.description.toString();
+    if (!desc.startsWith("fx:")) return;
+
+    if (onEffectDropped)
+        onEffectDropped(layerIndex_, desc.substring(3));
 }
