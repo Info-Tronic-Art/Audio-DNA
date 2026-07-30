@@ -3706,6 +3706,12 @@ void MainComponent::handleMenuCommand(int commandId)
                     }
                 });
                 pushCommands(std::move(children), "Clear Deck Clips");
+                // A1-companion fix (reviewer finding, 2026-07-30): clearActiveClip()
+                // above never purged the renderer, so wiping the only active
+                // shader/projectM clip via "Clear Deck Clips" reproduced the
+                // stale-render symptom A1 fixed for the X-button clear. Same
+                // ownership rule (see refreshPreviewFromActiveClip's doc comment).
+                refreshPreviewFromActiveClip(*deck);
                 if (deckView_) deckView_->rebuildGrid();
             }
             break;
@@ -3775,6 +3781,11 @@ void MainComponent::handleMenuCommand(int commandId)
                                 composition_.activeDeckIndex, selLayer,
                                 std::move(before), std::move(after), "Clear Layer Clips"));
                             pushCommands(std::move(children), "Clear Layer Clips");
+                            // A1-companion fix (reviewer finding, 2026-07-30): same gap
+                            // as Clear Deck Clips above — clearActiveClip() never
+                            // purged the renderer, so "Clear Layer Clips" on the only
+                            // active shader/projectM clip reproduced A1's symptom.
+                            refreshPreviewFromActiveClip(*deck);
                             if (deckView_) deckView_->rebuildGrid();
                         }
                     }
