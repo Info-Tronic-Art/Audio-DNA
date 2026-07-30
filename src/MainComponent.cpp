@@ -2066,11 +2066,13 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
     {
         if (mod.isShiftDown())
         {
-            if (undoManager_.redo()) refreshAfterUndoRedo();
+            const auto desc = undoManager_.redoDescription();
+            if (undoManager_.redo()) refreshAfterUndoRedo(desc);
         }
         else
         {
-            if (undoManager_.undo()) refreshAfterUndoRedo();
+            const auto desc = undoManager_.undoDescription();
+            if (undoManager_.undo()) refreshAfterUndoRedo(desc);
         }
         return true;
     }
@@ -3306,10 +3308,24 @@ void MainComponent::pushClipEdits(int deckIndex, std::vector<CellEdit> edits,
     pushCommands(std::move(children), description);
 }
 
-void MainComponent::refreshAfterUndoRedo()
+void MainComponent::refreshAfterUndoRedo(const std::string& processedDescription)
 {
     // Grid rebuild via the shared helper (active deck unchanged in step 2).
     undoService_.syncAfterModelChange(UndoService::SyncScope::Grid);
+
+    // P24.13: undo/redo of a layer reorder round-trips through this same
+    // rebuild path (MoveLayerCmd::undo/execute -> deck->moveLayer), which
+    // shifts layer indices with the layer count unchanged — the same stale-
+    // selection mis-map as the live Move Layer Up/Down handlers (see the
+    // comments there), just reached via Cmd+Z/Cmd+Shift+Z or the Composition
+    // menu instead of the direct handler. Those handlers clear the multi-cell
+    // clip selection right next to their own rebuildGrid(); mirror that here
+    // for the undo/redo direction. processedDescription is captured by the
+    // caller BEFORE calling undo()/redo() (via undoDescription()/
+    // redoDescription() for the matching direction), so it names exactly the
+    // command that was just processed — not an unrelated neighbor in history.
+    if (deckView_ && (processedDescription == "Move Layer Up" || processedDescription == "Move Layer Down"))
+        deckView_->clearSelection();
 
     // Re-point the clip inspector BY COORDINATE (the currently selected cell)
     // so an undo that emptied/replaced that cell can't leave a dangling Clip*.
@@ -3522,11 +3538,17 @@ void MainComponent::handleMenuCommand(int commandId)
 
         // --- Composition menu ---
         case C::kCompUndo:
-            if (undoManager_.undo()) refreshAfterUndoRedo();
+        {
+            const auto desc = undoManager_.undoDescription();
+            if (undoManager_.undo()) refreshAfterUndoRedo(desc);
             break;
+        }
         case C::kCompRedo:
-            if (undoManager_.redo()) refreshAfterUndoRedo();
+        {
+            const auto desc = undoManager_.redoDescription();
+            if (undoManager_.redo()) refreshAfterUndoRedo(desc);
             break;
+        }
         case C::kCompNew:
             // GL fence (2026-07-28 fix round 1, reviewer-prescribed): initDefault()
             // does decks.clear()+push_back, reallocating composition_.decks under
@@ -3849,7 +3871,12 @@ void MainComponent::handleMenuCommand(int commandId)
                         makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
                         selLayer, selLayer - 1, "Move Layer Up"));
                     pushCommands(std::move(children), "Move Layer Up");
-                    if (deckView_) { deckView_->rebuildGrid(); deckView_->selectLayer(selLayer - 1); }
+                    // Reorder shifts layer indices with the layer count unchanged, so a
+                    // multi-cell clip selection captured before the move now names the
+                    // WRONG layer (same screen row, different underlying layer) — clear
+                    // it here, right next to the rebuild, same as selectLayer already
+                    // re-points the single-layer selection.
+                    if (deckView_) { deckView_->rebuildGrid(); deckView_->selectLayer(selLayer - 1); deckView_->clearSelection(); }
                 }
             }
             break;
@@ -3867,7 +3894,10 @@ void MainComponent::handleMenuCommand(int commandId)
                         makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
                         selLayer, selLayer + 1, "Move Layer Down"));
                     pushCommands(std::move(children), "Move Layer Down");
-                    if (deckView_) { deckView_->rebuildGrid(); deckView_->selectLayer(selLayer + 1); }
+                    // See kLayerMoveUp above: reorder shifts layer indices with the
+                    // layer count unchanged, so a stale multi-cell clip selection would
+                    // silently name the wrong layer post-move — clear it on rebuild.
+                    if (deckView_) { deckView_->rebuildGrid(); deckView_->selectLayer(selLayer + 1); deckView_->clearSelection(); }
                 }
             }
             break;

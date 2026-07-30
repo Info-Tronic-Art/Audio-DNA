@@ -155,7 +155,11 @@ private:
     void pushCommands(std::vector<std::unique_ptr<Command>> children,
                       const juce::String& compositeDescription);
     // Grid + inspector refresh after an undo/redo (re-inspect by coordinate).
-    void refreshAfterUndoRedo();
+    // processedDescription is the description of the command that was just
+    // undone/redone (captured by the caller before calling undo()/redo()) —
+    // used to detect a layer-reorder round-trip and clear the now-possibly-
+    // mis-mapped multi-cell clip selection (P24.13).
+    void refreshAfterUndoRedo(const std::string& processedDescription);
 
     AudioDNALookAndFeel lookAndFeel_;
 
