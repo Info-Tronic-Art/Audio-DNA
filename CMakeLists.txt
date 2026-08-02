@@ -409,7 +409,10 @@ if(APPLE AND AUDIODNA_BUILD_SYPHON)
         syphon
         GIT_REPOSITORY https://github.com/Syphon/Syphon-Framework.git
         GIT_TAG        71351d4b484cd2d1917867f7846a5cdca724552d  # main, 2025-10-06
-        GIT_SHALLOW    FALSE  # required: cannot shallow-fetch an arbitrary commit SHA
+        GIT_SHALLOW    FALSE  # conservative: shallow SHA fetches depend on server
+                              # uploadpack.allowReachableSHA1InWant; melatonin_inspector's
+                              # pin below (raw SHA + GIT_SHALLOW TRUE) shows it can work,
+                              # but we don't rely on that server-side extension for this pin
     )
     FetchContent_GetProperties(syphon)
     if(NOT syphon_POPULATED)
