@@ -2,6 +2,34 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-08-02 — outputWindow_ content is ALWAYS loaded in lockstep with previewPanel_ (MainComponent.cpp)
+**Files:** src/MainComponent.cpp, src/ui/OutputWindow.cpp, src/render/Renderer.cpp
+**Note:** Before deleting the duplicate `mappingEngine_.processFrame()` call
+at OutputWindow.cpp:115 (R2 of scout-outputwindow-glcrash.md), verified that
+`Renderer::renderOpenGL()`'s own processFrame call (Renderer.cpp:239) is
+gated by the MAIN renderer's `texMgr_.hasImage() || sourceActive ||
+deckActive` early-return (Renderer.cpp:199-208), which is a SEPARATE
+TextureManager instance from OutputRenderer's own texMgr_ (each renderer's
+texMgr_ is per-renderer, per scout-outputwindow-glcrash.md §1). Grepped every
+`outputWindow_->loadImage(...)`/`queueCameraFrame(...)` call site in
+MainComponent.cpp (10 sites: :649,:1393,:2123,:2381,:2481,:2725,:2769,:3173,
+:3306,:3365) — every one pairs the output-window load with an identical
+`previewPanel_.loadImage(X)` (which forwards to `renderer_.loadImage(X)`,
+PreviewPanel.cpp:57) or `previewPanel_.getRenderer().queueCameraFrame(X)`
+using the SAME source, in the SAME handler. The one apparent exception
+(:2481, output-window creation) loads `currentImageFile_`, which is itself
+only ever set alongside a `previewPanel_.loadImage()` call — so it's not
+actually independent. This means the main renderer's texMgr_ is guaranteed
+already populated (gate open) whenever the output window's texMgr_ is
+populated, so deleting the output window's processFrame call is safe: the
+main renderer's call always covers it. If a future call site EVER loads
+content into outputWindow_ without a matching previewPanel_ load, this
+invariant breaks and the shared EffectChain's mapped params would go stale
+for the output window on frames where the main renderer's gate is closed.
+**Valid while:** the per-renderer texMgr_ split and the lockstep-loadImage
+pattern in MainComponent.cpp are unchanged (i.e., until the queued
+per-renderer EffectChainGLState refactor, which may restructure this).
+
 ## 2026-08-02 — Hand-rolled lock-free hand-off structures need acq_rel on BOTH sides, not directional release/acquire
 **Files:** src/features/FeatureBus.cpp (publishWrite/acquireRead CAS loops)
 **Note:** FeatureBus's wait-free triple buffer packs write/latest/read slot
@@ -284,3 +312,13 @@ MainComponent.cpp's bundledDir/CWD-fallback resolution logic are unchanged.
 - **pre-adjudicated-trivial-fix**: reviewer-PRESCRIBED comment-truth edits skip the re-review pass (edit is pre-adjudicated); Harmony's gate re-run covers. Used twice this session (s8 MINOR, s9 MINOR) at near-zero cost — but ONLY for doc-only, reviewer-verbatim edits.
 - **content-verify-already-covered-claims**: a builder's "already covered elsewhere, not duplicating" claim gets CONTENT-verified (read the covering test), not existence-verified (grep the name) — receiver disk-verify + reviewer both re-checked s9's A1 claim before accepting non-duplication.
 - **user-initiated-vs-autonomous undo doctrine**: remote gestures (REST/OSC/MIDI pad hits) are USER actions → undoable through the shared handlers; autonomous mutations (autopilot, genre-auto) NEVER create commands. Contrast with deck-switch (step 6) where spec put remote call sites OUTSIDE the wrap — the spec row governs per-op; check it, don't assume a global rule.
+
+## 2026-08-02 — ApiServer's /api/inject_features (7070) and TestServer's copy (8080) are fully independent
+**Files:** src/api/ApiServer.cpp, src/test/TestServer.cpp, tests/visual/vj_controller.py
+**Note:** Both servers register their own `/api/inject_features` handler (ApiServer.cpp, TestServer.cpp:106); they are separate route tables on separate ports, not a shared implementation. `tests/visual/vj_controller.py` defaults to port 8080 (TestServer) and every `inject_features()` call in the e2e visual suite goes there — confirmed via grep, no e2e test hits ApiServer's copy. This meant gating ApiServer's inject_features behind an `allowFeatureInjection_` ctor flag (default false; production hardening, featurebus-thread-safety-design.md R6) was safe to do without touching TestServer or breaking the visual suite. Also: no ctest (Catch2) target links ApiServer.cpp or MainComponent.cpp at all (grepped tests/CMakeLists.txt) — the unit suite can't exercise this endpoint either way; only a live HTTP probe (curl) can.
+**Valid while:** ApiServer.cpp and TestServer.cpp keep separate route registration (no shared handler refactor) and vj_controller.py's default port stays 8080.
+
+## 2026-08-02 — ApiServer.cpp/tests/README.md's "900 lines, budget ceiling" note is already stale
+**Files:** src/api/ApiServer.cpp, tests/README.md
+**Note:** tests/README.md:85 and notebook.md's 2026-05-18 entry both claim "ApiServer.cpp at exactly 900 lines — budget ceiling, next addition needs refactor first." At session start (before this session's ~24-line R6/R8 hardening diff) the file was already 1017 lines — the ceiling was breached by a prior session without the doc being updated or the refactor happening. Not fixed here (out of scope for this work packet); flagging so the next session that hits this doc doesn't trust a stale number.
+**Valid while:** tests/README.md:85 still states the 900-line figure.
