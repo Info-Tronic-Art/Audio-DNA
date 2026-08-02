@@ -32,8 +32,14 @@ void FeatureBus::publishWrite()
         // The old latest becomes the new write buffer; our write becomes latest.
         desired = encodeState(latestIdx, writeIdx, readIdx, true);
     }
+    // acq_rel, not release: this CAS both publishes our just-filled buffer to
+    // the reader (release) AND reclaims a buffer the reader may have just
+    // relinquished via its own acquireRead() swap (acquire) — a release-only
+    // success order leaves the writer's later fill of that reclaimed slot
+    // with no happens-before edge after the reader's last read of it (TSan-
+    // confirmed data race, test_feature_bus.cpp:143 vs :161).
     while (!state_.compare_exchange_weak(expected, desired,
-                                          std::memory_order_release,
+                                          std::memory_order_acq_rel,
                                           std::memory_order_relaxed));
 }
 
@@ -59,8 +65,11 @@ const FeatureSnapshot* FeatureBus::acquireRead()
         // Swap read and latest, clear new-data flag.
         desired = encodeState(writeIdx, readIdx, latestIdx, false);
     }
+    // acq_rel, not acquire: this CAS both consumes the writer's just-published
+    // buffer (acquire) AND relinquishes our old read slot back to the writer
+    // (release) — see the matching comment in publishWrite().
     while (!state_.compare_exchange_weak(expected, desired,
-                                          std::memory_order_acquire,
+                                          std::memory_order_acq_rel,
                                           std::memory_order_relaxed));
 
     // The old latest is now our read slot.
