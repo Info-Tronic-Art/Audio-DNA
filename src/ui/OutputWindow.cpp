@@ -108,11 +108,19 @@ void OutputRenderer::renderOpenGL()
     if (snap == nullptr)
         snap = &defaultSnap;
 
-    // Apply mappings (shared MappingEngine writes to shared EffectChain params)
-    // Note: the primary Renderer also calls this, but it's idempotent for the
-    // same snapshot — both renderers read the same feature values and write the
-    // same computed param values.
-    mappingEngine_.processFrame(*snap, effectChain_);
+    // mappingEngine_.processFrame() is intentionally NOT called here. It is
+    // STATEFUL — Smoother EMA (MappingEngine.cpp) and a 3-pass
+    // reset->accumulate->clamp read-modify-write on the shared EffectChain's
+    // params (MappingEngine.cpp) — and must run on exactly ONE thread per
+    // frame. The main Renderer already calls it every frame this output
+    // window needs (Renderer.cpp:239, Renderer::renderOpenGL()): every path
+    // that loads content into this window's texMgr_ (MainComponent.cpp
+    // outputWindow_->loadImage()/queueCameraFrame() call sites) pairs it with
+    // the same load into previewPanel_'s renderer, so the main Renderer's own
+    // texMgr_.hasImage() gate is open whenever this window has anything to
+    // render. A second per-frame call here would double the EMA update rate
+    // and race the RMW across both GL threads. See
+    // .harmony/scout-outputwindow-glcrash.md R2.
 
     float time = static_cast<float>(
         juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
