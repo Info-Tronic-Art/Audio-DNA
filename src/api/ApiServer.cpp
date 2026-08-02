@@ -12,6 +12,7 @@
 #include "binding/BindingManager.h"
 #include "recording/SessionRecorder.h"
 #include <juce_core/juce_core.h>
+#include <algorithm>
 #include <iostream>
 
 ApiServer::ApiServer(Renderer& renderer,
@@ -23,7 +24,8 @@ ApiServer::ApiServer(Renderer& renderer,
                      RoutingEngine& routingEngine,
                      BindingManager& bindingManager,
                      SessionRecorder& sessionRecorder,
-                     int port)
+                     int port,
+                     bool allowFeatureInjection)
     : renderer_(renderer)
     , featureBus_(featureBus)
     , composition_(composition)
@@ -34,6 +36,7 @@ ApiServer::ApiServer(Renderer& renderer,
     , bindingManager_(bindingManager)
     , sessionRecorder_(sessionRecorder)
     , port_(port)
+    , allowFeatureInjection_(allowFeatureInjection)
 {
     setupRoutes();
 }
@@ -48,10 +51,16 @@ void ApiServer::start()
     if (running_.load(std::memory_order_relaxed))
         return;
 
+    // R8 (featurebus-thread-safety-design.md): bind loopback by default —
+    // zero non-localhost clients exist in-repo. AUDIODNA_API_BIND overrides
+    // (e.g. "0.0.0.0" or a specific interface) to restore remote-control workflows.
+    std::string bindAddress = juce::SystemStats::getEnvironmentVariable(
+        "AUDIODNA_API_BIND", "127.0.0.1").toStdString();
+
     running_.store(true, std::memory_order_relaxed);
-    serverThread_ = std::thread([this]() {
-        std::cerr << "[API] HTTP server listening on port " << port_ << std::endl;
-        if (!server_.listen("0.0.0.0", port_))
+    serverThread_ = std::thread([this, bindAddress]() {
+        std::cerr << "[API] HTTP server listening on " << bindAddress << ":" << port_ << std::endl;
+        if (!server_.listen(bindAddress, port_))
         {
             std::cerr << "[API] Failed to start HTTP server on port " << port_ << std::endl;
             running_.store(false, std::memory_order_relaxed);
@@ -162,9 +171,14 @@ void ApiServer::setupRoutes()
         handleGetFeatures(req, res);
     });
 
-    server_.Post("/api/inject_features", [this](const httplib::Request& req, httplib::Response& res) {
-        handleInjectFeatures(req, res);
-    });
+    // R6 (featurebus-thread-safety-design.md): only registered in test mode —
+    // production requests 404 since the route was never added (P2 hardening).
+    if (allowFeatureInjection_)
+    {
+        server_.Post("/api/inject_features", [this](const httplib::Request& req, httplib::Response& res) {
+            handleInjectFeatures(req, res);
+        });
+    }
 
     // Media loading
     server_.Post("/api/load_image", [this](const httplib::Request& req, httplib::Response& res) {
@@ -625,12 +639,20 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
     if (json.hasProperty("spectralFlux")) snap.spectralFlux = static_cast<float>(static_cast<double>(json["spectralFlux"]));
     if (json.hasProperty("onsetStrength")) snap.onsetStrength = static_cast<float>(static_cast<double>(json["onsetStrength"]));
     if (json.hasProperty("onsetDetected")) snap.onsetDetected = static_cast<bool>(json["onsetDetected"]);
-    if (json.hasProperty("structuralState")) snap.structuralState = static_cast<uint8_t>(static_cast<int>(json["structuralState"]));
+    // R6 (featurebus-thread-safety-design.md): clamp to the enum's real range
+    // (FeatureSnapshot.h) so even the test-mode injection path can't store
+    // nonsense values — 0=normal, 1=buildup, 2=drop, 3=breakdown.
+    if (json.hasProperty("structuralState"))
+        snap.structuralState = static_cast<uint8_t>(std::clamp(static_cast<int>(json["structuralState"]), 0, 3));
 
     // P23: Genre detection fields
-    if (json.hasProperty("detectedGenre")) snap.detectedGenre = static_cast<uint8_t>(static_cast<int>(json["detectedGenre"]));
+    // 0=House, 1=Techno, 2=DnB, 3=HipHop, 4=Ambient, 5=Rock, 6=Pop/Electronic, 7=Jazz/Other
+    if (json.hasProperty("detectedGenre"))
+        snap.detectedGenre = static_cast<uint8_t>(std::clamp(static_cast<int>(json["detectedGenre"]), 0, 7));
     if (json.hasProperty("genreConfidence")) snap.genreConfidence = static_cast<float>(static_cast<double>(json["genreConfidence"]));
-    if (json.hasProperty("energyState")) snap.energyState = static_cast<uint8_t>(static_cast<int>(json["energyState"]));
+    // 0=low, 1=medium, 2=high
+    if (json.hasProperty("energyState"))
+        snap.energyState = static_cast<uint8_t>(std::clamp(static_cast<int>(json["energyState"]), 0, 2));
 
     if (json.hasProperty("bandEnergies"))
     {

@@ -40,7 +40,8 @@ public:
               RoutingEngine& routingEngine,
               BindingManager& bindingManager,
               SessionRecorder& sessionRecorder,
-              int port = 7070);
+              int port = 7070,
+              bool allowFeatureInjection = false);
 
     ~ApiServer();
 
@@ -108,6 +109,9 @@ private:
     SessionRecorder& sessionRecorder_;
 
     int port_;
+    // R6 (featurebus-thread-safety-design.md): production = not registered
+    // (ctor flag from testMode_) so inject_features 404s outside test mode.
+    bool allowFeatureInjection_;
     httplib::Server server_;
     std::thread serverThread_;
     std::atomic<bool> running_{false};

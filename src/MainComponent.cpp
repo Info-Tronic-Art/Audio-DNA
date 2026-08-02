@@ -1586,6 +1586,9 @@ MainComponent::MainComponent(bool testMode, int testPort)
 #endif
 
     // P22.8: Start production API server (port 7070)
+    // R6 (featurebus-thread-safety-design.md): inject_features is only
+    // registered when testMode_ is true — production never exposes the
+    // second-writer endpoint (P2 hardening).
     apiServer_ = std::make_unique<ApiServer>(
         previewPanel_.getRenderer(),
         analysisThread_.getFeatureBus(),
@@ -1596,7 +1599,8 @@ MainComponent::MainComponent(bool testMode, int testPort)
         previewPanel_.getRenderer().getRoutingEngine(),
         bindingManager_,
         sessionRecorder_,
-        7070);
+        7070,
+        testMode_);
     apiServer_->onTriggerClip = [this](int layer, int column) { handleClipTrigger(layer, column); };
     apiServer_->onTriggerColumn = [this](int column) { handleColumnTrigger(column); };
     apiServer_->onSwitchDeck = [this](int deckIdx) { handleDeckSwitch(deckIdx); };
