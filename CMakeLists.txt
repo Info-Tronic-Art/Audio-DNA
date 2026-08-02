@@ -70,7 +70,7 @@ endif()
 
 # --- Syphon (macOS inter-app GPU texture sharing, optional) ---
 if(APPLE)
-    option(AUDIODNA_BUILD_SYPHON "Build with Syphon output (macOS)" OFF)
+    option(AUDIODNA_BUILD_SYPHON "Build with Syphon output (macOS)" ON)
 endif()
 
 # --- Application Target ---
@@ -384,15 +384,104 @@ if(AUDIODNA_BUILD_INSPECTOR)
     target_link_libraries(AudioDNA PRIVATE melatonin_inspector)
 endif()
 
-# Syphon framework (optional, macOS only)
+# --- Syphon (vendored source, macOS only) ---
+# Upstream ships no CMakeLists.txt, so we vendor via FetchContent_Populate
+# (populate-only) and compile the OpenGL-subset .m/.c sources directly into
+# the AudioDNA target, rather than linking a prebuilt system framework.
+# Pinned to `main` (not the latest release tag `5`): SyphonOpenGLServer,
+# SyphonServerRendererGL and related files do not exist at tag 5 (2019-03-02;
+# still uses the legacy SyphonServer API). See .harmony/scout-syphon-sdk.md.
 if(APPLE AND AUDIODNA_BUILD_SYPHON)
-    find_library(SYPHON_FRAMEWORK Syphon PATHS /Library/Frameworks)
-    if(SYPHON_FRAMEWORK)
-        target_link_libraries(AudioDNA PRIVATE ${SYPHON_FRAMEWORK})
-        target_compile_definitions(AudioDNA PRIVATE AUDIODNA_HAS_SYPHON=1)
-    else()
-        message(WARNING "Syphon.framework not found in /Library/Frameworks — Syphon disabled")
+    # SyphonOutput.mm's C++ wrapper bridges a retained SyphonOutputImpl* through
+    # an opaque void* using __bridge_retained/__bridge_transfer — ARC idioms
+    # that are no-ops outside ARC (this file compiles as ordinary non-ARC
+    # Obj-C++, like the rest of the project's JUCE code). Under non-ARC those
+    # casts silently do nothing, so every init()/shutdown() cycle (each GL
+    # context recreation) leaked the SyphonOutputImpl and its wrapped
+    # SyphonOpenGLServer — never caught before because this whole code path
+    # never compiled with AUDIODNA_HAS_SYPHON=1 until now. Scope ARC to this
+    # one file so those casts do what they were written to do.
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/output/SyphonOutput.mm" PROPERTIES
+        COMPILE_OPTIONS "-fobjc-arc"
+    )
+
+    FetchContent_Declare(
+        syphon
+        GIT_REPOSITORY https://github.com/Syphon/Syphon-Framework.git
+        GIT_TAG        71351d4b484cd2d1917867f7846a5cdca724552d  # main, 2025-10-06
+        GIT_SHALLOW    FALSE  # required: cannot shallow-fetch an arbitrary commit SHA
+    )
+    FetchContent_GetProperties(syphon)
+    if(NOT syphon_POPULATED)
+        FetchContent_Populate(syphon)
     endif()
+
+    # Public headers use framework-style imports (#import <Syphon/...>); stage
+    # them into a local Syphon/ directory so those imports resolve. The
+    # umbrella Syphon.h is intentionally NOT imported anywhere in our code
+    # (it pulls in the Metal headers/classes we exclude below).
+    set(SYPHON_STAGED_INCLUDE_DIR "${CMAKE_BINARY_DIR}/syphon_include")
+    file(MAKE_DIRECTORY "${SYPHON_STAGED_INCLUDE_DIR}/Syphon")
+    file(GLOB SYPHON_PUBLIC_HEADERS "${syphon_SOURCE_DIR}/*.h")
+    file(COPY ${SYPHON_PUBLIC_HEADERS} DESTINATION "${SYPHON_STAGED_INCLUDE_DIR}/Syphon")
+
+    # OpenGL-path sources only. Excludes SyphonMetalServer.m,
+    # SyphonMetalClient.m, SyphonServerRendererMetal.m and
+    # SyphonMetalShaders.metal: the Metal renderer loads its shaders via
+    # [device newDefaultLibraryWithBundle:[NSBundle bundleForClass:[self class]]],
+    # which would require Syphon's Metal shaders to be compiled into our own
+    # app's default.metallib. We publish via SyphonOpenGLServer only.
+    set(SYPHON_OBJC_SOURCES
+        "${syphon_SOURCE_DIR}/SyphonOpenGLServer.m"
+        "${syphon_SOURCE_DIR}/SyphonServerBase.m"
+        "${syphon_SOURCE_DIR}/SyphonServerConnectionManager.m"
+        "${syphon_SOURCE_DIR}/SyphonServerDirectory.m"
+        "${syphon_SOURCE_DIR}/SyphonServerRendererGL.m"
+        "${syphon_SOURCE_DIR}/SyphonServerRendererCoreGL.m"
+        "${syphon_SOURCE_DIR}/SyphonServerRendererLegacyGL.m"
+        "${syphon_SOURCE_DIR}/SyphonServerGLShader.m"
+        "${syphon_SOURCE_DIR}/SyphonServerGLVertices.m"
+        "${syphon_SOURCE_DIR}/SyphonGLShader.m"
+        "${syphon_SOURCE_DIR}/SyphonGLVertices.m"
+        "${syphon_SOURCE_DIR}/SyphonIOSurfaceImageCore.m"
+        "${syphon_SOURCE_DIR}/SyphonIOSurfaceImageLegacy.m"
+        "${syphon_SOURCE_DIR}/SyphonImageBase.m"
+        "${syphon_SOURCE_DIR}/SyphonOpenGLImage.m"
+        "${syphon_SOURCE_DIR}/SyphonMessaging.m"
+        "${syphon_SOURCE_DIR}/SyphonMessageQueue.m"
+        "${syphon_SOURCE_DIR}/SyphonMessageSender.m"
+        "${syphon_SOURCE_DIR}/SyphonMessageReceiver.m"
+        "${syphon_SOURCE_DIR}/SyphonCFMessageSender.m"
+        "${syphon_SOURCE_DIR}/SyphonCFMessageReceiver.m"
+        "${syphon_SOURCE_DIR}/SyphonPrivate.m"
+    )
+    set(SYPHON_C_SOURCES
+        "${syphon_SOURCE_DIR}/SyphonCGL.c"
+        "${syphon_SOURCE_DIR}/SyphonDispatch.c"
+        "${syphon_SOURCE_DIR}/SyphonOpenGLFunctions.c"
+    )
+
+    target_sources(AudioDNA PRIVATE ${SYPHON_OBJC_SOURCES} ${SYPHON_C_SOURCES})
+
+    # The Syphon codebase is ARC (verified: Syphon.xcodeproj sets
+    # CLANG_ENABLE_OBJC_ARC = YES; dealloc methods never call [super dealloc]).
+    # JUCE's own Obj-C++ is built without ARC, so scope -fobjc-arc to the
+    # Syphon .m sources only rather than flipping it on for the whole target.
+    # Syphon_Prefix.pch supplies the SYPHONLOG(...) macro used throughout
+    # (Xcode injects it via GCC_PREFIX_HEADER; nothing does outside Xcode).
+    # Only the Objective-C sources need it — it #imports Cocoa.h, which is
+    # invalid in the plain-C sources below.
+    set_source_files_properties(${SYPHON_OBJC_SOURCES} PROPERTIES
+        COMPILE_OPTIONS "-fobjc-arc;-include;${syphon_SOURCE_DIR}/Syphon_Prefix.pch;-DGL_SILENCE_DEPRECATION"
+    )
+    set_source_files_properties(${SYPHON_C_SOURCES} PROPERTIES
+        COMPILE_OPTIONS "-DGL_SILENCE_DEPRECATION"
+    )
+
+    target_include_directories(AudioDNA PRIVATE "${SYPHON_STAGED_INCLUDE_DIR}" "${syphon_SOURCE_DIR}")
+    target_compile_definitions(AudioDNA PRIVATE AUDIODNA_HAS_SYPHON=1)
+    target_link_libraries(AudioDNA PRIVATE
+        "-framework Cocoa" "-framework OpenGL" "-framework IOSurface" "-framework CoreVideo")
 endif()
 
 # Add Ableton Link support if enabled
