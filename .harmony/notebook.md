@@ -2,6 +2,31 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-08-02 — Hand-rolled lock-free hand-off structures need acq_rel on BOTH sides, not directional release/acquire
+**Files:** src/features/FeatureBus.cpp (publishWrite/acquireRead CAS loops)
+**Note:** FeatureBus's wait-free triple buffer packs write/latest/read slot
+indices into one atomic byte, swapped via compare_exchange_weak. The index
+bookkeeping (a permutation-preserving transposition on each CAS) was already
+correct, but publishWrite() used success=release and acquireRead() used
+success=acquire — the textbook one-directional producer/consumer pairing.
+That only covers HALF of what this structure actually does: each side both
+consumes a buffer the other side just handed over (needs acquire) AND hands
+its own now-vacated buffer back for the other side to reuse later (needs
+release). A directional-only pairing leaves the "hand a buffer back" half
+with no happens-before edge, which TSan caught as a real race between the
+writer's fill and a reader's read of the same slot several iterations later
+(test_feature_bus.cpp:143 vs :161) even though the index math never lets
+write==read at any instant — the C++ standard's race definition cares about
+proven happens-before, not about whether it would have overlapped in
+practice. Fix: both CAS success orders -> memory_order_acq_rel (failure
+orders stay relaxed; no store happens on a failed CAS, so nothing to
+strengthen there). Rule of thumb for any FUTURE hand-off structure here
+(ring buffers, other lock-free queues): if ownership of a resource moves
+BOTH directions between two threads via the same atomic, single-direction
+release/acquire is not enough — check whether acq_rel is needed on each side
+independently, don't assume "writer=release, reader=acquire" is symmetric.
+**Valid while:** FeatureBus keeps this packed-atomic-byte triple-buffer design.
+
 ## 2026-07-30 — JUCE Debug builds silently break unqualified addAndMakeVisible on ResizableWindow subclasses
 **Files:** src/ui/OutputWindow.cpp:273 (the live break), build-asan/_deps/juce-src/modules/juce_gui_basics/windows/juce_ResizableWindow.h:376-391
 **Note:** `ResizableWindow` declares its own `#if JUCE_DEBUG`-guarded
