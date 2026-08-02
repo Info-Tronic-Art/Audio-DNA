@@ -16,8 +16,11 @@
 //      final composited texture ID.
 //   3. Call shutdown() on context close.
 //
-// Thread safety: init/shutdown must be called from the GL thread.
-// publishTexture() must be called from the GL thread.
+// Thread safety: init/shutdown/publishTexture must be called from the GL
+// thread — impl_ itself is only ever touched there, exactly as documented
+// below. setEnabled()/isEnabled() and isInitialized() are backed by atomics
+// so they may be read from any thread (message-thread menu toggle, HTTP
+// thread REST status/toggle endpoints) without racing the GL thread.
 class SyphonOutput
 {
 public:
@@ -38,17 +41,23 @@ public:
     // Clean up. Must be called from GL thread before context is destroyed.
     void shutdown();
 
-    // Enable/disable publishing without destroying the server.
+    // Enable/disable publishing without destroying the server. Safe to call
+    // from any thread (message thread menu toggle, HTTP thread REST endpoint).
     void setEnabled(bool enabled) { enabled_.store(enabled, std::memory_order_relaxed); }
     bool isEnabled() const { return enabled_.load(std::memory_order_relaxed); }
 
-    bool isInitialized() const { return impl_ != nullptr; }
+    // Safe to call from any thread — see class comment. Mirrors
+    // impl_ != nullptr; kept as a separate atomic rather than making impl_
+    // itself atomic so impl_ stays exactly what it always was: a raw pointer
+    // touched only on the GL thread.
+    bool isInitialized() const { return initialized_.load(std::memory_order_relaxed); }
 
     SyphonOutput(const SyphonOutput&) = delete;
     SyphonOutput& operator=(const SyphonOutput&) = delete;
 
 private:
-    void* impl_ = nullptr;  // Opaque pointer to Obj-C implementation
+    void* impl_ = nullptr;  // Opaque pointer to Obj-C implementation. GL-thread-only.
+    std::atomic<bool> initialized_{false};  // Cross-thread-readable mirror of (impl_ != nullptr).
     std::atomic<bool> enabled_{false};
     std::string serverName_ = "Audio-DNA";
 };
