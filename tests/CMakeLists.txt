@@ -358,3 +358,49 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_autopilot)
 catch_discover_tests(test_autopilot)
+
+# --- syphon-check (headless Syphon server-discovery verification CLI) ---
+# Not a Catch2 unit test: a standalone gate tool that confirms a running
+# Audio-DNA instance is announcing a Syphon server (syphon_check.m). Needs
+# the same vendored Syphon sources/headers as the AudioDNA target itself
+# (syphon_SOURCE_DIR, SYPHON_STAGED_INCLUDE_DIR — set by the Syphon block in
+# the root CMakeLists.txt, which runs before add_subdirectory(tests)).
+if(APPLE AND AUDIODNA_BUILD_SYPHON)
+    add_executable(syphon-check
+        syphon_check.m
+        ${syphon_SOURCE_DIR}/SyphonServerDirectory.m
+        ${syphon_SOURCE_DIR}/SyphonMessaging.m
+        ${syphon_SOURCE_DIR}/SyphonMessageQueue.m
+        ${syphon_SOURCE_DIR}/SyphonMessageSender.m
+        ${syphon_SOURCE_DIR}/SyphonMessageReceiver.m
+        ${syphon_SOURCE_DIR}/SyphonCFMessageSender.m
+        ${syphon_SOURCE_DIR}/SyphonCFMessageReceiver.m
+        ${syphon_SOURCE_DIR}/SyphonPrivate.m
+        ${syphon_SOURCE_DIR}/SyphonDispatch.c
+    )
+    set_source_files_properties(
+        syphon_check.m
+        ${syphon_SOURCE_DIR}/SyphonServerDirectory.m
+        ${syphon_SOURCE_DIR}/SyphonMessaging.m
+        ${syphon_SOURCE_DIR}/SyphonMessageQueue.m
+        ${syphon_SOURCE_DIR}/SyphonMessageSender.m
+        ${syphon_SOURCE_DIR}/SyphonMessageReceiver.m
+        ${syphon_SOURCE_DIR}/SyphonCFMessageSender.m
+        ${syphon_SOURCE_DIR}/SyphonCFMessageReceiver.m
+        ${syphon_SOURCE_DIR}/SyphonPrivate.m
+        PROPERTIES COMPILE_OPTIONS "-fobjc-arc;-include;${syphon_SOURCE_DIR}/Syphon_Prefix.pch;-DGL_SILENCE_DEPRECATION"
+    )
+    target_include_directories(syphon-check PRIVATE "${SYPHON_STAGED_INCLUDE_DIR}" "${syphon_SOURCE_DIR}")
+    target_link_libraries(syphon-check PRIVATE "-framework Cocoa")
+
+    # Negative check only: with no app running under this (deliberately
+    # nonexistent) app name, syphon-check must exit 1 — deterministic,
+    # headless, no GL/display needed, so safe to run in the regular ctest
+    # suite. WILL_FAIL TRUE because exit 1 IS the correct/expected outcome
+    # here. The positive check (a real server found) needs a live,
+    # Syphon-enabled Audio-DNA instance and is a manual/external gate step,
+    # documented in the builder report, not part of this automated suite.
+    add_test(NAME syphon_check_negative
+             COMMAND syphon-check "Audio-DNA-Negative-Check-Nonexistent-App-9f3a" 0.5)
+    set_tests_properties(syphon_check_negative PROPERTIES WILL_FAIL TRUE)
+endif()
