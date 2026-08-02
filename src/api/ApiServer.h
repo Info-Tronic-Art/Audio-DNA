@@ -89,6 +89,8 @@ private:
     void handleReset(const httplib::Request& req, httplib::Response& res);
     void handleSetEffectChain(const httplib::Request& req, httplib::Response& res);
     void handleState(const httplib::Request& req, httplib::Response& res);
+    void handleGetSyphon(const httplib::Request& req, httplib::Response& res);
+    void handleSetSyphon(const httplib::Request& req, httplib::Response& res);
 
     // JSON helpers
     std::string jsonOk();

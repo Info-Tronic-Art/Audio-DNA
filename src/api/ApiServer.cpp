@@ -201,6 +201,10 @@ void ApiServer::setupRoutes()
     // Batch effect chain configuration / combined state snapshot
     server_.Post("/api/set_effect_chain", [this](const httplib::Request& req, httplib::Response& res) { handleSetEffectChain(req, res); });
     server_.Get("/api/state", [this](const httplib::Request& req, httplib::Response& res) { handleState(req, res); });
+
+    // Syphon output (P22.1) status / toggle
+    server_.Get("/api/syphon", [this](const httplib::Request& req, httplib::Response& res) { handleGetSyphon(req, res); });
+    server_.Post("/api/set_syphon", [this](const httplib::Request& req, httplib::Response& res) { handleSetSyphon(req, res); });
 }
 
 // --- Endpoint handlers ---
@@ -982,4 +986,32 @@ void ApiServer::handleState(const httplib::Request&, httplib::Response& res)
     obj->setProperty("num_decks", static_cast<int>(composition_.decks.size()));
 
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void ApiServer::handleGetSyphon(const httplib::Request&, httplib::Response& res)
+{
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("enabled", renderer_.isSyphonEnabled());
+    obj->setProperty("available", renderer_.isSyphonAvailable());
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void ApiServer::handleSetSyphon(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.hasProperty("enabled"))
+    {
+        res.set_content(jsonError("Missing 'enabled'"), "application/json");
+        return;
+    }
+    bool enabled = static_cast<bool>(json["enabled"]);
+
+    // Just flips SyphonOutput's atomic enabled_ flag — no GL calls, safe to
+    // call directly from the HTTP thread. Mirrors the Output > Syphon Output
+    // menu toggle (MainComponent.cpp), which flips the same atomic from the
+    // message thread with no marshaling either.
+    renderer_.setSyphonEnabled(enabled);
+
+    res.set_content(jsonOk(), "application/json");
 }

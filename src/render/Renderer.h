@@ -124,6 +124,14 @@ public:
     // P22.1: Set Syphon output for inter-app texture sharing
     void setSyphonOutput(class SyphonOutput* syphon) { syphonOutput_ = syphon; }
 
+    // Syphon status/toggle for REST (ApiServer). Defined out-of-line in
+    // Renderer.cpp, which already includes output/SyphonOutput.h — these
+    // just forward to SyphonOutput's own atomics, so they're safe to call
+    // from any thread (HTTP thread included; no GL calls involved).
+    bool isSyphonEnabled() const;
+    bool isSyphonAvailable() const;
+    void setSyphonEnabled(bool enabled);
+
     // Get or create an active procedural source instance for a source type ID.
     // Returns nullptr if the source ID is not registered. Thread-safe: may be
     // called from any thread (message thread, HTTP worker threads, or the GL

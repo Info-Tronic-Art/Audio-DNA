@@ -20,6 +20,28 @@ Renderer::~Renderer()
     detach();
 }
 
+// Syphon status/toggle for REST (ApiServer). These just forward to
+// SyphonOutput's own atomics (SyphonOutput.h) — no GL calls, safe from any
+// thread. Defined here (not inline in Renderer.h) because SyphonOutput is
+// only forward-declared in the header; this file already includes the full
+// output/SyphonOutput.h for the syphonOutput_->init()/publishTexture() calls
+// below.
+bool Renderer::isSyphonEnabled() const
+{
+    return syphonOutput_ != nullptr && syphonOutput_->isEnabled();
+}
+
+bool Renderer::isSyphonAvailable() const
+{
+    return syphonOutput_ != nullptr && syphonOutput_->isInitialized();
+}
+
+void Renderer::setSyphonEnabled(bool enabled)
+{
+    if (syphonOutput_ != nullptr)
+        syphonOutput_->setEnabled(enabled);
+}
+
 void Renderer::attachTo(juce::Component& component)
 {
     glContext_.setOpenGLVersionRequired(juce::OpenGLContext::openGL4_1);
