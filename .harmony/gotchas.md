@@ -205,3 +205,10 @@ command, check (a) HID idle is fresh-high AND (b) frontmost app is Audio-DNA:
 whose frontmost is true'`. A stale idle check (even 2 min) is worthless — the
 user can return silently; HID-idle alone also fails while the user is READING.
 If frontmost ≠ Audio-DNA → abort the burst entirely.
+
+### 2026-08-02 — .harmony/ is gitignored BUT tracked-by-convention (force-add new knowledge files)
+**Source:** Syphon lane fix round — builder declined to commit a new dossier because .gitignore:62 ignores `.harmony/`; its "not committed here" inference was wrong at directory scope (20+ .harmony files sit in history; EOS commits ship ledgers + dossiers).
+**Trigger:** Committing a NEW .harmony/ knowledge file — `git check-ignore` flags it, plain `git add` refuses, and a builder will stall or skip the capture.
+**Rule:** Tracked .harmony files travel in git normally (tracked overrides ignore). NEW knowledge files (dossiers, session ledgers) need a one-time `git add -f`, then normal commits. Run `git ls-files .harmony/ | head` before concluding a path "isn't committed here." Harmony owns these commits (knowledge layer), not builders.
+**Scope:** repo
+**Promoted:** no
