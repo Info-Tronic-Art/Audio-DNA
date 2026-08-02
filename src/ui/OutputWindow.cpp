@@ -108,19 +108,23 @@ void OutputRenderer::renderOpenGL()
     if (snap == nullptr)
         snap = &defaultSnap;
 
-    // mappingEngine_.processFrame() is intentionally NOT called here. It is
-    // STATEFUL — Smoother EMA (MappingEngine.cpp) and a 3-pass
-    // reset->accumulate->clamp read-modify-write on the shared EffectChain's
-    // params (MappingEngine.cpp) — and must run on exactly ONE thread per
-    // frame. The main Renderer already calls it every frame this output
-    // window needs (Renderer.cpp:239, Renderer::renderOpenGL()): every path
-    // that loads content into this window's texMgr_ (MainComponent.cpp
-    // outputWindow_->loadImage()/queueCameraFrame() call sites) pairs it with
-    // the same load into previewPanel_'s renderer, so the main Renderer's own
-    // texMgr_.hasImage() gate is open whenever this window has anything to
-    // render. A second per-frame call here would double the EMA update rate
-    // and race the RMW across both GL threads. See
-    // .harmony/scout-outputwindow-glcrash.md R2.
+    // mappingEngine_.processFrame() is intentionally NOT called here: it
+    // raced when both GL threads called it (STATEFUL — Smoother EMA plus a
+    // 3-pass reset->accumulate->clamp read-modify-write on the shared
+    // EffectChain's params) and must run on exactly ONE thread per frame —
+    // the main Renderer's GL callback (Renderer.cpp:239,
+    // Renderer::renderOpenGL()).
+    //
+    // KNOWN RESIDUAL: that caller only runs while the main Renderer's GL
+    // context is attached. JUCE auto-detaches it whenever previewPanel_ is
+    // hidden (e.g. SignalBar expanded to fill the window,
+    // MainComponent.cpp:1915), so mapping updates stop firing entirely while
+    // this window's independent GL context keeps rendering — the shared
+    // EffectChain's mapped params FREEZE until previewPanel_ is visible
+    // again. A mapping cadence that survives preview detach is queued for
+    // the next-session OutputWindow arc; see
+    // .harmony/specs/featurebus-thread-safety-design.md R10 and
+    // .harmony/scout-outputwindow-glcrash.md.
 
     float time = static_cast<float>(
         juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
