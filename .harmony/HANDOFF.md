@@ -74,8 +74,12 @@ START HERE:
    GL-thread processFrame call, A4 (verify minimal's no-op proof for the GL `clearAll`
    at Renderer.cpp:~1520 — builder flagged a PresetManager::loadPreset lead at
    MainComponent.cpp:204 that could falsify it; if falsified → callAsync marshal),
-   A6 confinement jasserts. Builder `ow-builder` executed C1+C2 flawlessly under a
-   stage protocol (report → Harmony gate → Harmony commit → next stage) — reuse it.
+   A6 confinement jasserts. Also: W5 must REWRITE the KNOWN-RESIDUAL comment block in
+   `src/ui/OutputWindow.cpp` (it still documents the freeze as live, and its
+   "Renderer.cpp:239" citation has drifted) — the comment is the last place the retired
+   limitation would survive as a lie. Builder `ow-builder` executed C1+C2 flawlessly
+   under a stage protocol (report → Harmony gate → Harmony commit → next stage) —
+   reuse it.
 
 3. **REVIEW STATUS — READ BEFORE PUSHING ANYTHING.** An independent full-arc source
    review of C1+C2 was dispatched at the end of this session; its verdict may not have
