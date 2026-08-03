@@ -86,6 +86,11 @@ private:
     void handleListRoutes(const httplib::Request& req, httplib::Response& res);
     void handleSetMacro(const httplib::Request& req, httplib::Response& res);
 
+    // W6 (outputwindow-arc-design.md): test-mode-only mapping add/remove —
+    // the MappingTick freeze probe's enabler (RMS → effect param).
+    void handleAddMapping(const httplib::Request& req, httplib::Response& res);
+    void handleRemoveMapping(const httplib::Request& req, httplib::Response& res);
+
     // JSON helpers
     std::string jsonOk();
     std::string jsonError(const std::string& message);

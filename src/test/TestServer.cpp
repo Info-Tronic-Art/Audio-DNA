@@ -10,6 +10,7 @@
 #include "sources/ProjectMSource.h"
 #include "signal/SignalRegistry.h"
 #include "routing/RoutingEngine.h"
+#include "mapping/MappingEngine.h"
 #include "model/Clip.h"
 #include <juce_core/juce_core.h>
 #include <iostream>
@@ -169,6 +170,19 @@ void TestServer::setupRoutes()
 
     server_.Post("/api/set_macro", [this](const httplib::Request& req, httplib::Response& res) {
         handleSetMacro(req, res);
+    });
+
+    // W6 (outputwindow-arc): test-mode-only mapping add/remove — the
+    // MappingTick freeze probe's enabler. Registered HERE only (TestServer,
+    // 8080); the production ApiServer (7070) never registers these routes,
+    // so a production probe 404s — the same registration gating as
+    // inject_features (S2/R6 precedent).
+    server_.Post("/api/add_mapping", [this](const httplib::Request& req, httplib::Response& res) {
+        handleAddMapping(req, res);
+    });
+
+    server_.Post("/api/remove_mapping", [this](const httplib::Request& req, httplib::Response& res) {
+        handleRemoveMapping(req, res);
     });
 }
 
@@ -879,6 +893,97 @@ void TestServer::handleSetMacro(const httplib::Request& req, httplib::Response& 
     auto* obj = new juce::DynamicObject();
     obj->setProperty("ok", true);
     obj->setProperty("note", "Macro endpoint stub — full MacroBank integration pending");
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleAddMapping(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    if (!json.isObject())
+    {
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    // W6 scope: the source is fixed to RMS (outputwindow-arc-design.md —
+    // "add/remove RMS→param"); target effect/param resolve by name, the
+    // same resolution as handleAddRoute.
+    Mapping mapping;
+    mapping.source = MappingSource::RMS;
+
+    auto effectName = json.getProperty("target_effect", "").toString();
+    auto paramName = json.getProperty("target_param", "").toString();
+
+    bool found = false;
+    for (int i = 0; i < effectChain_.getNumEffects(); ++i)
+    {
+        auto* effect = effectChain_.getEffect(i);
+        if (effect && effect->getName() == effectName)
+        {
+            mapping.targetEffectId = static_cast<uint32_t>(i);
+
+            for (int p = 0; p < effect->getNumParams(); ++p)
+            {
+                if (effect->getParam(p).name == paramName.toStdString())
+                {
+                    mapping.targetParamIndex = static_cast<uint32_t>(p);
+                    found = true;
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        res.set_content(jsonError("Effect or param not found: " + effectName.toStdString() + "." + paramName.toStdString()), "application/json");
+        return;
+    }
+
+    mapping.inputMin  = static_cast<float>(static_cast<double>(json.getProperty("input_min", 0.0)));
+    mapping.inputMax  = static_cast<float>(static_cast<double>(json.getProperty("input_max", 1.0)));
+    mapping.outputMin = static_cast<float>(static_cast<double>(json.getProperty("output_min", 0.0)));
+    mapping.outputMax = static_cast<float>(static_cast<double>(json.getProperty("output_max", 1.0)));
+    mapping.smoothing = static_cast<float>(static_cast<double>(json.getProperty("smoothing", 0.15)));
+
+    // mappings_ is message-thread-owned (EffectsRackPanel/PresetManager are
+    // the only other writers, and the arc's confinement asserts enforce the
+    // owner) — marshal the mutation, same callAsync/fire-and-forget shape
+    // as ApiServer's write handlers. The settle sleep mirrors
+    // handleLoadImage's queue-then-sleep idiom so the add has normally
+    // landed by the time the caller's next request arrives.
+    const int numBefore = renderer_.getMappingEngine().getNumMappings();
+    juce::MessageManager::callAsync([this, mapping]() {
+        renderer_.getMappingEngine().addMapping(mapping);
+    });
+    juce::Thread::sleep(50);
+
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("target_effect_index", static_cast<int>(mapping.targetEffectId));
+    obj->setProperty("target_param_index", static_cast<int>(mapping.targetParamIndex));
+    obj->setProperty("num_mappings_before", numBefore);
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleRemoveMapping(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    int index = static_cast<int>(json.getProperty("index", 0));
+
+    // Same marshal as handleAddMapping. num_mappings_before lets a caller
+    // drain deterministically (repeat remove of index 0 until it reports 0)
+    // despite the fire-and-forget apply.
+    const int numBefore = renderer_.getMappingEngine().getNumMappings();
+    juce::MessageManager::callAsync([this, index]() {
+        renderer_.getMappingEngine().removeMapping(index);
+    });
+    juce::Thread::sleep(50);
+
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("ok", true);
+    obj->setProperty("num_mappings_before", numBefore);
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 

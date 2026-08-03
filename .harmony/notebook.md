@@ -2,6 +2,24 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-08-02 — Mapping-probe design: processFrame sits BEHIND the content gate; mapping writes ignore effect enabled state
+**Files:** src/render/Renderer.cpp (renderOpenGL early-out ~:199-208), src/mapping/MappingEngine.cpp (processFrame), tests/visual/test_mapping_tick.py
+**Note:** Two facts any mapping/param probe must bake in: (1)
+`mappingEngine_.processFrame()` runs AFTER Renderer::renderOpenGL's
+`!hasImage && !sourceActive && !deckActive` early-return, so on a fresh
+test-mode app with no content the mapping tick never fires — a probe that
+skips loading content false-fails "frozen" even with the preview attached.
+Load `checkerboard` (or any source) first. (2) processFrame checks only
+effect existence + param bounds, NOT Effect::isEnabled() — mapped params
+track on disabled effects, so probes need not enable anything and cause no
+visual side effects. Also: TestServer's /api/reset does NOT clear mappings
+(only effects/image/source/features) — probes drain their own mappings in
+teardown via repeated remove_mapping(0) until num_mappings_before==0.
+**Valid while:** renderOpenGL keeps the content early-out ahead of the
+mapping tick call (until W5 moves the tick to a message-thread timer —
+after W5 fact (1) applies only to pre-W5 builds), and handleReset keeps its
+current clear set.
+
 ## 2026-08-02 — EffectChainGLState must be release()d on context CLOSE, not just owned per-renderer
 **Files:** src/effects/EffectChain.h (EffectChainGLState), src/render/Renderer.cpp (openGLContextClosing), src/ui/OutputWindow.cpp (openGLContextClosing)
 **Note:** Moving uniformLocationCache + prevFrame quartet per-renderer (W1,

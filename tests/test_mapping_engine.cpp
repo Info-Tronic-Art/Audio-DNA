@@ -6,7 +6,9 @@
 #include "analysis/FeatureSnapshot.h"
 #include "effects/Effect.h"
 #include "effects/EffectChain.h"
+#include <algorithm>
 #include <cmath>
+#include <vector>
 
 using Catch::Approx;
 
@@ -773,4 +775,255 @@ TEST_CASE("Integration: simulated audio playback with varying features", "[integ
         REQUIRE(chain.getEffect(1)->getParam(0).value ==
                 Approx(expectedHue).margin(0.001f));
     }
+}
+
+// ============================================================
+// W4 single-store equivalence (outputwindow-arc-design.md A3)
+// ============================================================
+// Reference implementation of the PRE-W4 processFrame: the exact old
+// 3-pass reset→accumulate→clamp pipeline, operating on its own parallel
+// Smoother set. The W4 single-store rewrite removed only the observable
+// INTERMEDIATE stores (the reset-to-zero and partial sums a concurrent
+// GL-thread uniform upload could catch mid-tick); end-of-tick values must
+// be bit-identical to this reference for any mapping history.
+
+namespace
+{
+struct ReferenceOldMappingEngine
+{
+    std::vector<Mapping>  mappings;
+    std::vector<Smoother> smoothers;
+
+    void add(const Mapping& m)
+    {
+        mappings.push_back(m);
+        smoothers.emplace_back(m.smoothing);
+    }
+
+    // Verbatim shape of the pre-W4 MappingEngine::processFrame.
+    void processFrameOld(const FeatureSnapshot& snapshot, EffectChain& chain)
+    {
+        if (mappings.empty()) return;
+
+        // Pass 1: reset targeted params to 0 before accumulation
+        for (const auto& m : mappings)
+        {
+            if (!m.enabled)
+                continue;
+            auto* effect = chain.getEffect(static_cast<int>(m.targetEffectId));
+            if (effect == nullptr)
+                continue;
+            if (static_cast<int>(m.targetParamIndex) >= effect->getNumParams())
+                continue;
+            effect->getParam(static_cast<int>(m.targetParamIndex)).value = 0.0f;
+        }
+
+        // Pass 2: accumulate mapping contributions
+        for (size_t i = 0; i < mappings.size(); ++i)
+        {
+            const auto& m = mappings[i];
+            if (!m.enabled)
+                continue;
+            auto* effect = chain.getEffect(static_cast<int>(m.targetEffectId));
+            if (effect == nullptr)
+                continue;
+            if (static_cast<int>(m.targetParamIndex) >= effect->getNumParams())
+                continue;
+
+            float raw = MappingEngine::extractSource(m.source, snapshot);
+            float range = m.inputMax - m.inputMin;
+            float normalized = (range > 1e-8f)
+                ? std::clamp((raw - m.inputMin) / range, 0.0f, 1.0f)
+                : 0.0f;
+            float curved = MappingEngine::applyCurve(m.curve, normalized);
+            float scaled = m.outputMin + curved * (m.outputMax - m.outputMin);
+
+            if (smoothers[i].alpha() != m.smoothing)
+                smoothers[i].setAlpha(m.smoothing);
+            float smoothed = smoothers[i].process(scaled);
+
+            effect->getParam(static_cast<int>(m.targetParamIndex)).value += smoothed;
+        }
+
+        // Pass 3: clamp all targeted params to [0, 1]
+        for (const auto& m : mappings)
+        {
+            if (!m.enabled)
+                continue;
+            auto* effect = chain.getEffect(static_cast<int>(m.targetEffectId));
+            if (effect == nullptr)
+                continue;
+            if (static_cast<int>(m.targetParamIndex) >= effect->getNumParams())
+                continue;
+            auto& param = effect->getParam(static_cast<int>(m.targetParamIndex));
+            param.value = std::clamp(param.value, 0.0f, 1.0f);
+        }
+    }
+};
+
+// Deterministic pseudo-audio for the equivalence drive.
+FeatureSnapshot equivalenceSnapshotAt(int tick)
+{
+    FeatureSnapshot s;
+    s.clear();
+    float t = static_cast<float>(tick);
+    s.rms  = 0.5f + 0.5f * std::sin(t * 0.13f);
+    s.peak = 0.5f + 0.5f * std::sin(t * 0.31f + 1.0f);
+    s.bandEnergies[1] = 0.5f + 0.5f * std::sin(t * 0.07f + 2.0f);
+    return s;
+}
+} // namespace
+
+TEST_CASE("Single-store processFrame is bit-identical to the old 3-pass pipeline",
+          "[mapping][singlestore]")
+{
+    MappingEngine engine;
+    EffectChain chain;
+    makeChainWithEffect(chain, 3);
+
+    ReferenceOldMappingEngine ref;
+    EffectChain refChain;
+    makeChainWithEffect(refChain, 3);
+
+    auto addBoth = [&](const Mapping& m) {
+        engine.addMapping(m);
+        ref.add(m);
+    };
+
+    // m0: RMS → (0,0), default smoothing — the summing group's owner
+    Mapping m0;
+    m0.source = MappingSource::RMS;
+    m0.targetEffectId = 0;
+    m0.targetParamIndex = 0;
+    addBoth(m0);
+
+    // m1: Peak → (0,0), same target (sums with m0), different alpha
+    Mapping m1;
+    m1.source = MappingSource::Peak;
+    m1.targetEffectId = 0;
+    m1.targetParamIndex = 0;
+    m1.smoothing = 0.3f;
+    m1.outputMax = 0.6f;
+    addBoth(m1);
+
+    // m2: BandBass → (0,1), exponential curve, own target
+    Mapping m2;
+    m2.source = MappingSource::BandBass;
+    m2.targetEffectId = 0;
+    m2.targetParamIndex = 1;
+    m2.curve = MappingCurve::Exponential;
+    m2.smoothing = 1.0f;
+    addBoth(m2);
+
+    // m3: invalid effect id — ignored by both, smoother must not tick
+    Mapping m3;
+    m3.source = MappingSource::RMS;
+    m3.targetEffectId = 7;
+    m3.targetParamIndex = 0;
+    addBoth(m3);
+
+    // m4: invalid param index — ignored by both
+    Mapping m4;
+    m4.source = MappingSource::RMS;
+    m4.targetEffectId = 0;
+    m4.targetParamIndex = 9;
+    addBoth(m4);
+
+    // m5: disabled — target (0,2) must never be touched
+    Mapping m5;
+    m5.source = MappingSource::RMS;
+    m5.targetEffectId = 0;
+    m5.targetParamIndex = 2;
+    m5.enabled = false;
+    addBoth(m5);
+
+    // Sentinel: (0,2) starts nonzero in both chains; only a spurious store
+    // (the old reset bug reappearing, or grouping gone wrong) can move it.
+    chain.getEffect(0)->getParam(2).value = 0.42f;
+    refChain.getEffect(0)->getParam(2).value = 0.42f;
+
+    for (int tick = 0; tick < 300; ++tick)
+    {
+        // Mid-run structural mutations, applied identically to both
+        if (tick == 100)
+        {
+            engine.getMapping(1)->enabled = false;
+            ref.mappings[1].enabled = false;
+        }
+        if (tick == 150)
+        {
+            engine.getMapping(1)->enabled = true;
+            ref.mappings[1].enabled = true;
+        }
+        if (tick == 200)
+        {
+            engine.getMapping(0)->smoothing = 0.8f;
+            ref.mappings[0].smoothing = 0.8f;
+        }
+
+        auto snap = equivalenceSnapshotAt(tick);
+        engine.processFrame(snap, chain);
+        ref.processFrameOld(snap, refChain);
+
+        INFO("tick " << tick);
+        // Exact equality, not Approx: identical float operation sequences
+        // must produce identical bits.
+        REQUIRE(chain.getEffect(0)->getParam(0).value
+                == refChain.getEffect(0)->getParam(0).value);
+        REQUIRE(chain.getEffect(0)->getParam(1).value
+                == refChain.getEffect(0)->getParam(1).value);
+        REQUIRE(chain.getEffect(0)->getParam(2).value == 0.42f);
+        REQUIRE(refChain.getEffect(0)->getParam(2).value == 0.42f);
+    }
+}
+
+TEST_CASE("Single-store step response matches the old pipeline tick-for-tick (EMA parity)",
+          "[mapping][singlestore]")
+{
+    // W7(iii) tick-domain half of the EMA parity gate: a 0→1 source step
+    // must cross 63.2% of final value on the SAME tick in old and new code.
+    // (C2 changes no cadence, so the tick axis IS the time axis; the
+    // wall-clock half is asserted at the app gate.)
+    MappingEngine engine;
+    EffectChain chain;
+    makeChainWithEffect(chain, 1);
+
+    ReferenceOldMappingEngine ref;
+    EffectChain refChain;
+    makeChainWithEffect(refChain, 1);
+
+    Mapping m; // default smoothing 0.15 — the Mapping struct default
+    m.source = MappingSource::RMS;
+    m.targetEffectId = 0;
+    m.targetParamIndex = 0;
+    engine.addMapping(m);
+    ref.add(m);
+
+    // Settle at 0 first so the smoother is initialized below the step
+    auto zero = makeSnapshot();
+    engine.processFrame(zero, chain);
+    ref.processFrameOld(zero, refChain);
+
+    auto stepped = makeSnapshot();
+    stepped.rms = 1.0f;
+
+    int newCrossTick = -1;
+    int oldCrossTick = -1;
+    for (int tick = 1; tick <= 60; ++tick)
+    {
+        engine.processFrame(stepped, chain);
+        ref.processFrameOld(stepped, refChain);
+
+        float v = chain.getEffect(0)->getParam(0).value;
+        float rv = refChain.getEffect(0)->getParam(0).value;
+        REQUIRE(v == rv);
+
+        if (newCrossTick < 0 && v >= 0.632f)  newCrossTick = tick;
+        if (oldCrossTick < 0 && rv >= 0.632f) oldCrossTick = tick;
+    }
+
+    // alpha 0.15: value after n ticks = 1 - 0.85^n; 63.2% falls on tick 7
+    // (1 - 0.85^6 = 0.623, 1 - 0.85^7 = 0.679).
+    REQUIRE(newCrossTick == 7);
+    REQUIRE(oldCrossTick == 7);
 }

@@ -137,32 +137,21 @@ void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& c
     // Early exit if no active mappings
     if (mappings_.empty()) return;
 
-    // First pass: reset all targeted parameters to their defaults,
-    // so that summing works correctly when multiple mappings target
-    // the same parameter.
-    // We track which (effect, param) pairs have been written to avoid
-    // resetting after the first mapping writes.
-    // For simplicity, we accumulate into the effect params directly.
-
-    // Reset targeted params to 0 before accumulation
-    // Use a small local bitset — max 64 effects × 16 params = 1024 slots.
-    // We'll use a simpler approach: just reset on first encounter.
-    struct Target { uint32_t effect; uint32_t param; };
-    // Pre-scan: collect unique targets and reset them
-    for (const auto& m : mappings_)
-    {
-        if (!m.enabled)
-            continue;
-        auto* effect = chain.getEffect(static_cast<int>(m.targetEffectId));
-        if (effect == nullptr)
-            continue;
-        if (static_cast<int>(m.targetParamIndex) >= effect->getNumParams())
-            continue;
-        // Reset to 0 for accumulation — we'll clamp after all mappings
-        effect->getParam(static_cast<int>(m.targetParamIndex)).value = 0.0f;
-    }
-
-    // Second pass: accumulate mapping contributions
+    // Single-store discipline (outputwindow-arc-design.md W4/A3): the old
+    // shape here was three stores per param per tick — reset-to-0, then
+    // += accumulate, then clamp. Both GL renderers upload
+    // EffectParam::value live (plain float, the A2 known-deferred
+    // crossing), so the intermediate zero and half-sums were uploadable
+    // mid-tick — a real, pre-existing zero-flash. Contributions are now
+    // summed LOCALLY and written back in exactly ONE clamped store per
+    // targeted param per tick.
+    //
+    // Grouping is an owner scan: the first enabled mapping targeting a
+    // param owns it and folds in every later mapping with the same target.
+    // O(M^2) over the mapping count (small), allocation-free, and it
+    // preserves the old code's smoother tick set/inputs and per-target
+    // float-add order — end-of-tick values are bit-identical (see
+    // test_mapping_engine "single-store" equivalence cases).
     for (size_t i = 0; i < mappings_.size(); ++i)
     {
         const auto& m = mappings_[i];
@@ -175,42 +164,60 @@ void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& c
         if (static_cast<int>(m.targetParamIndex) >= effect->getNumParams())
             continue;
 
-        // 1. Extract raw source value
-        float raw = extractSource(m.source, snapshot);
-
-        // 2. Normalize to [0, 1]
-        float range = m.inputMax - m.inputMin;
-        float normalized = (range > 1e-8f)
-            ? std::clamp((raw - m.inputMin) / range, 0.0f, 1.0f)
-            : 0.0f;
-
-        // 3. Apply curve
-        float curved = applyCurve(m.curve, normalized);
-
-        // 4. Scale to output range
-        float scaled = m.outputMin + curved * (m.outputMax - m.outputMin);
-
-        // 5. Smooth
-        // Update smoother alpha if it changed
-        if (smoothers_[i].alpha() != m.smoothing)
-            smoothers_[i].setAlpha(m.smoothing);
-        float smoothed = smoothers_[i].process(scaled);
-
-        // 6. Accumulate into target parameter
-        effect->getParam(static_cast<int>(m.targetParamIndex)).value += smoothed;
-    }
-
-    // Final pass: clamp all targeted params to [0, 1]
-    for (const auto& m : mappings_)
-    {
-        if (!m.enabled)
+        // Owner check: an earlier enabled mapping with the same target
+        // already folded this mapping's contribution into its store.
+        bool ownedEarlier = false;
+        for (size_t j = 0; j < i; ++j)
+        {
+            const auto& prev = mappings_[j];
+            if (prev.enabled
+                && prev.targetEffectId == m.targetEffectId
+                && prev.targetParamIndex == m.targetParamIndex)
+            {
+                ownedEarlier = true;
+                break;
+            }
+        }
+        if (ownedEarlier)
             continue;
-        auto* effect = chain.getEffect(static_cast<int>(m.targetEffectId));
-        if (effect == nullptr)
-            continue;
-        if (static_cast<int>(m.targetParamIndex) >= effect->getNumParams())
-            continue;
-        auto& param = effect->getParam(static_cast<int>(m.targetParamIndex));
-        param.value = std::clamp(param.value, 0.0f, 1.0f);
+
+        // Sum contributions from mapping i and every later enabled mapping
+        // with the same target. Same-target mappings resolve to the same
+        // effect/param, so validity was already established above.
+        float sum = 0.0f;
+        for (size_t k = i; k < mappings_.size(); ++k)
+        {
+            const auto& mk = mappings_[k];
+            if (!mk.enabled
+                || mk.targetEffectId != m.targetEffectId
+                || mk.targetParamIndex != m.targetParamIndex)
+                continue;
+
+            // 1. Extract raw source value
+            float raw = extractSource(mk.source, snapshot);
+
+            // 2. Normalize to [0, 1]
+            float range = mk.inputMax - mk.inputMin;
+            float normalized = (range > 1e-8f)
+                ? std::clamp((raw - mk.inputMin) / range, 0.0f, 1.0f)
+                : 0.0f;
+
+            // 3. Apply curve
+            float curved = applyCurve(mk.curve, normalized);
+
+            // 4. Scale to output range
+            float scaled = mk.outputMin + curved * (mk.outputMax - mk.outputMin);
+
+            // 5. Smooth
+            // Update smoother alpha if it changed
+            if (smoothers_[k].alpha() != mk.smoothing)
+                smoothers_[k].setAlpha(mk.smoothing);
+            sum += smoothers_[k].process(scaled);
+        }
+
+        // 6. The single clamped store — the only write this param sees
+        // this tick.
+        effect->getParam(static_cast<int>(m.targetParamIndex)).value =
+            std::clamp(sum, 0.0f, 1.0f);
     }
 }

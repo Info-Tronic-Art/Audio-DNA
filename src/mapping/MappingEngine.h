@@ -37,6 +37,10 @@ public:
 
     // Process all mappings for one frame.
     // Reads from snapshot, writes to effect parameters in chain.
+    // Exactly ONE store per targeted parameter per call (W4/A3,
+    // outputwindow-arc-design.md): contributions are summed locally and
+    // written back clamped, so a concurrent reader can never observe the
+    // old reset-to-zero or a partial sum.
     void processFrame(const FeatureSnapshot& snapshot, EffectChain& chain);
 
     // Clear all mappings.

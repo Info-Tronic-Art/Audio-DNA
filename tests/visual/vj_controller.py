@@ -225,6 +225,27 @@ class VJAppController:
         body.update(kwargs)
         return self._post("/api/set_macro", body)
 
+    # === W6 (outputwindow-arc): test-mode mapping add/remove ===
+
+    def add_mapping(self, target_effect: str, target_param: str, **kwargs) -> dict:
+        """Create an RMS→param mapping (test-mode enabler, TestServer only).
+
+        Args:
+            target_effect: Effect display name (as shown in /api/state).
+            target_param: Param name on that effect.
+            **kwargs: Optional input_min, input_max, output_min, output_max,
+                      smoothing (EMA alpha; 1.0 = no smoothing).
+        """
+        body = {"target_effect": target_effect, "target_param": target_param}
+        body.update(kwargs)
+        return self._post("/api/add_mapping", body)
+
+    def remove_mapping(self, index: int = 0) -> dict:
+        """Remove a mapping by index. The apply is async on the app's message
+        thread; the response's num_mappings_before lets callers drain by
+        repeating remove_mapping(0) until it reports 0."""
+        return self._post("/api/remove_mapping", {"index": index})
+
     def _post(self, path: str, data: dict) -> dict:
         """Send a POST request with JSON body."""
         r = requests.post(f"{self.base_url}{path}", json=data, timeout=15)
