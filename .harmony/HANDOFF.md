@@ -526,3 +526,30 @@ fix than it first appeared, and it is a Boris-facing usability issue, not just h
 NOTE: only ONE display was attached when this was investigated, so the multi-display state
 could not be reproduced or visually verified this session. Main display was captured and
 was CLEAN (no overlay) with no process running.
+
+### CORRECTION, same session — the macOS-fullscreen hypothesis is NOT confirmed
+Checked immediately after writing it: `defaults read com.apple.spaces spans-displays` is
+**UNSET**, i.e. at the macOS default, which means "Displays have separate Spaces" is **ON**.
+With that setting ON, native fullscreen should NOT blank the other displays — so the tidy
+explanation above is **probably WRONG**. Recorded rather than deleted, because ruling it out
+is itself useful and it may still be right for a reason not visible here.
+
+CAVEATS on that check (why it is not conclusive either way):
+- The `spans-displays` key can be host-scoped; `defaults -currentHost read com.apple.spaces
+  spans-displays` may differ. Try both.
+- The authoritative source is the System Settings UI, not the plist. **Ask Boris to look.**
+- Only ONE display was attached during this investigation, so nothing multi-display could be
+  reproduced or verified.
+
+**REVISED APPROACH FOR NEXT SESSION — do these in order, cheapest first:**
+1. Ask Boris: is the overlay still present RIGHT NOW? Does it persist with no Audio-DNA
+   process running? Does it clear on logout/login? Which displays, and is the projector/
+   second display attached when it happens?
+2. Ask him to confirm "Displays have separate Spaces" in System Settings > Desktop & Dock
+   (the plist check was inconclusive).
+3. ONLY THEN read source: how OutputWindow enters fullscreen (grep setFullScreen / kiosk /
+   toggleFullScreen / Desktop::getDisplays), and whether it creates anything on non-target
+   displays.
+The regardless-of-cause improvement still stands and is worth doing on its own merits: a
+borderless always-on-top window sized to the target display, rather than native fullscreen,
+is what VJ apps use so the operator keeps their other screens alive.
