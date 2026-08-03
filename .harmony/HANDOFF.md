@@ -495,3 +495,34 @@ pkill -f Audio-DNA ; sleep 2 ; pgrep -f Audio-DNA        # then quit, confirm go
 screencapture -x /tmp/eos-screen.png                      # AND LOOK AT IT
 ```
 Report in the handoff: windows closed, process gone, screen visually verified.
+
+## BLACK-OVERLAY BUG — LEADING HYPOTHESIS (added 2026-08-03, check this FIRST)
+
+**It is very likely macOS native-fullscreen behaviour, not a rendering bug.**
+On macOS, if **System Settings > Desktop & Dock > "Displays have separate Spaces" is OFF**
+(`defaults read com.apple.spaces spans-displays` == 1), then putting ANY window into NATIVE
+fullscreen on one display **blanks every OTHER display to black**. That is the OS, and it
+matches Boris's report exactly — including the "except the ones that are full screen"
+phrasing. The Output menu item is literally named "Fullscreen: <res> (main)".
+
+**CHECK FIRST, before reading any source:**
+1. `defaults read com.apple.spaces spans-displays` — 1 means separate-Spaces is OFF, which
+   makes this the near-certain cause.
+2. Ask Boris to confirm the setting in System Settings > Desktop & Dock.
+3. If confirmed, the immediate workaround for him is toggling that setting ON (requires
+   logout). But that is a workaround, NOT the fix.
+
+**THE ACTUAL FIX (if confirmed):** the output window must NOT use native macOS fullscreen
+(NSWindow toggleFullScreen / JUCE kiosk mode). It should be a BORDERLESS, always-on-top
+window sized to the target display's bounds. That is what every serious VJ app does
+(Resolume, MadMapper) precisely to avoid blanking the operator's other screens — and it is
+strictly better for Boris's use case, since he needs his other displays alive while the
+projector output runs. Check how OutputWindow enters fullscreen today (grep
+setFullScreen / kiosk / toggleFullScreen / setBounds against a Display) and convert it.
+
+**This also reframes the severity:** it is not a teardown/orphan bug, it is a design choice
+that makes the app unusable alongside other work on a multi-display rig. Higher value to
+fix than it first appeared, and it is a Boris-facing usability issue, not just hygiene.
+NOTE: only ONE display was attached when this was investigated, so the multi-display state
+could not be reproduced or visually verified this session. Main display was captured and
+was CLEAN (no overlay) with no process running.
