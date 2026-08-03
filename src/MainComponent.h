@@ -93,6 +93,11 @@ private:
     void savePreset();
     void loadPreset();
     void timerCallback() override;
+    // W5 (outputwindow-arc-design.md): named seam for the mapping tick, so
+    // the A1 routing/signal-extraction follow-up can join here later
+    // without re-plumbing. Reads the feature bus once and drives
+    // MappingEngine::processFrame — see mappingTickTimer_ below.
+    void tickFeaturePipeline();
     void refreshDisplayList();
     void openOutputOnDisplay(int displayIndex);
     void closeOutput();
@@ -196,6 +201,28 @@ private:
     AudioReadoutPanel audioReadoutPanel_{analysisThread_, analysisThread_.getFeatureBus()};
     SpectrumDisplay spectrumDisplay_{analysisThread_.getFeatureBus()};
     PreviewPanel previewPanel_{analysisThread_.getFeatureBus()};
+
+    // W5 (outputwindow-arc-design.md/U2): dedicated message-thread timer
+    // driving the audio->effect mapping tick at a fixed cadence, independent
+    // of GL attach/visibility state and of MainComponent's own 30Hz UI timer
+    // above (a single juce::Timer object can only run one callback at one
+    // rate, so this is a second, separate Timer rather than folding into
+    // timerCallback()). Runs UNCONDITIONALLY for MainComponent's whole
+    // lifetime so mapped params keep updating even while previewPanel_'s GL
+    // context is detached.
+    class MappingTickTimer : public juce::Timer
+    {
+    public:
+        explicit MappingTickTimer(MainComponent& owner) : owner_(owner) {}
+        void timerCallback() override { owner_.tickFeaturePipeline(); }
+    private:
+        MainComponent& owner_;
+    };
+    // A5 (outputwindow-arc-design.md): matches the MEASURED attached render
+    // rate (~120fps). The Smoother has no dt term, so the tick rate IS the
+    // smoothing time constant — 60Hz would double the smoothing feel.
+    static constexpr int kMappingTickHz = 120;
+    MappingTickTimer mappingTickTimer_{*this};
 
     // Effects rack (right panel) — initialized after previewPanel_
     EffectLibrary effectLibrary_;

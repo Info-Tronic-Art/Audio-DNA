@@ -5,6 +5,11 @@
 
 int MappingEngine::addMapping(const Mapping& mapping)
 {
+    // A6 (outputwindow-arc-design.md): mappings_/smoothers_ are confined to
+    // the message thread (see processFrame). Debug-only; would have caught
+    // the GL-thread clearAll this arc deletes.
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
+
     mappings_.push_back(mapping);
     smoothers_.emplace_back(mapping.smoothing);
     return static_cast<int>(mappings_.size()) - 1;
@@ -12,6 +17,8 @@ int MappingEngine::addMapping(const Mapping& mapping)
 
 bool MappingEngine::removeMapping(int index)
 {
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread()); // A6
+
     if (index < 0 || index >= static_cast<int>(mappings_.size()))
         return false;
 
@@ -36,6 +43,8 @@ const Mapping* MappingEngine::getMapping(int index) const
 
 void MappingEngine::clearAll()
 {
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread()); // A6
+
     mappings_.clear();
     smoothers_.clear();
 }
@@ -134,6 +143,12 @@ float MappingEngine::applyCurve(MappingCurve curve, float x, int steppedN)
 
 void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& chain)
 {
+    // A6 (outputwindow-arc-design.md): confined to the message thread since
+    // W5 (MainComponent's MappingTickTimer, kMappingTickHz) is the sole
+    // caller — no other thread may run processFrame concurrently with
+    // addMapping/removeMapping/clearAll.
+    jassert(juce::MessageManager::getInstance()->isThisTheMessageThread());
+
     // Early exit if no active mappings
     if (mappings_.empty()) return;
 
@@ -166,6 +181,13 @@ void MappingEngine::processFrame(const FeatureSnapshot& snapshot, EffectChain& c
 
         // Owner check: an earlier enabled mapping with the same target
         // already folded this mapping's contribution into its store.
+        // Review minor 1: each mapping's `enabled` flag is read twice per
+        // tick (here, and again in the sum loop below) with no lock between
+        // the two reads; a concurrent flip of `enabled` mid-processFrame
+        // could disagree between the two reads and double-tick one
+        // smoother. Unreachable once A6 message-thread confinement holds —
+        // processFrame and every `enabled` writer then run on the same
+        // (message) thread, so no flip can land between the two reads.
         bool ownedEarlier = false;
         for (size_t j = 0; j < i; ++j)
         {

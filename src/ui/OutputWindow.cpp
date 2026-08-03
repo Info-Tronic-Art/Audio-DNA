@@ -106,23 +106,32 @@ void OutputRenderer::renderOpenGL()
     // post-S2 seqlock bus is multi-reader-safe from any thread.
     const FeatureSnapshot snap = featureBus_.read();
 
-    // mappingEngine_.processFrame() is intentionally NOT called here: it
-    // raced when both GL threads called it (STATEFUL — Smoother EMA plus a
-    // 3-pass reset->accumulate->clamp read-modify-write on the shared
-    // EffectChain's params) and must run on exactly ONE thread per frame —
-    // the main Renderer's GL callback (Renderer.cpp:239,
-    // Renderer::renderOpenGL()).
+    // mappingEngine_.processFrame() is intentionally NOT called here (or on
+    // any GL thread): it races when called from more than one thread
+    // (STATEFUL — Smoother EMA plus a single-store read-modify-write on the
+    // shared EffectChain's params, MappingEngine.cpp) and must run on
+    // exactly ONE thread.
     //
-    // KNOWN RESIDUAL: that caller only runs while the main Renderer's GL
-    // context is attached. JUCE auto-detaches it whenever previewPanel_ is
-    // hidden (e.g. SignalBar expanded to fill the window,
-    // MainComponent.cpp:1915), so mapping updates stop firing entirely while
-    // this window's independent GL context keeps rendering — the shared
-    // EffectChain's mapped params FREEZE until previewPanel_ is visible
-    // again. A mapping cadence that survives preview detach is queued for
-    // the next-session OutputWindow arc; see
-    // .harmony/specs/featurebus-thread-safety-design.md R10 and
-    // .harmony/scout-outputwindow-glcrash.md.
+    // POST-C3 (outputwindow-arc-design.md W5/U2): that one thread is a
+    // dedicated message-thread juce::Timer owned by MainComponent
+    // (MainComponent::MappingTickTimer, kMappingTickHz — see
+    // MainComponent::tickFeaturePipeline()), which replaces the old
+    // GL-thread call from the main Renderer's renderOpenGL(). It runs
+    // UNCONDITIONALLY, independent of either GL context's attach/visibility
+    // state, so mapping updates no longer stop when previewPanel_ is hidden
+    // (e.g. SignalBar expanded to fill the window, MainComponent.cpp:1941)
+    // or when this window's context detaches — the shared EffectChain's
+    // mapped params keep updating in every attach state.
+    //
+    // KNOWN RESIDUAL (honest as of C3): the tick above drives MappingEngine
+    // only (design A1 scope). Two things still FREEZE on preview detach
+    // until the routing/signal-extraction follow-up (A1) lands:
+    //   - Routed params (RoutingEngine, still driven from the main
+    //     Renderer's GL callback, Renderer.cpp).
+    //   - Autopilot (beat-synced clip advancement), which stays GL-attached
+    //     by design (deck/composition surface, excluded from this arc).
+    // See .harmony/specs/outputwindow-arc-design.md and
+    // .harmony/specs/featurebus-thread-safety-design.md R10.
 
     float time = static_cast<float>(
         juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);

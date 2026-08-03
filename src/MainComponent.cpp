@@ -251,6 +251,10 @@ MainComponent::MainComponent(bool testMode, int testPort)
     cpuLabel_.setJustificationType(juce::Justification::centredRight);
     startTimerHz(30); // 30Hz for beat-synced randomization + UI updates
 
+    // W5 (outputwindow-arc-design.md): start the mapping tick. Unconditional
+    // — no attach/visibility gating — so it survives preview detach.
+    mappingTickTimer_.startTimerHz(kMappingTickHz);
+
     // Resolution selector for preview panel
     addAndMakeVisible(resolutionSelector_);
     resolutionSelector_.setTextWhenNothingSelected("Res: Auto");
@@ -2408,6 +2412,12 @@ void MainComponent::filesDropped(const juce::StringArray& files, int /*x*/, int 
             fileLabel_.setText(file.getFileName(), juce::dontSendNotification);
         }
     }
+}
+
+void MainComponent::tickFeaturePipeline()
+{
+    const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
+    previewPanel_.getMappingEngine().processFrame(snap, previewPanel_.getEffectChain());
 }
 
 void MainComponent::timerCallback()

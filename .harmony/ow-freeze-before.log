@@ -108,3 +108,43 @@ identical commands and the identical oracle readings for attach state. The oracl
 readings should NOT change — the preview stays detached in states 3/4 after the
 fix too; what changes is that the mapped param tracks anyway.
 ================================================================================
+
+
+================================================================================
+AFTER C3 — the matching PASS run (W7(ii) "after" half). 2026-08-03, same session.
+Build: C3 working tree (W5+A4+A6), Release, forced rebuild, --test-mode.
+Independent ctest on that rebuild: 193/193, 0 failures (Harmony's own run, not the
+builder's claim).
+================================================================================
+  STATE 1 preview          oracle HTTP=200 t=0.032477 (ATTACHED)   => 1 passed
+  STATE 2 preview_output   oracle HTTP=200 t=0.068676 (ATTACHED)   => 1 passed
+  STATE 3 signalbar        oracle HTTP=500 t=5.001539 (DETACHED)   => 1 passed  [was FAIL]
+  STATE 4 signalbar_output oracle HTTP=500 t=5.011461 (DETACHED)   => 1 passed  [was FAIL]
+
+WHY THIS IS CONCLUSIVE, not a weakened test:
+The oracle readings in states 3/4 are IDENTICAL to the fail-first capture — the
+preview GL context is still provably dead (5s capture timeout, HTTP 500). The
+states did not get easier. The mapped param now tracks injected RMS flips WHILE
+the preview context is detached, which is precisely what W5 was built to do.
+Same commands, same states, same oracle, opposite result.
+
+Also re-confirmed this run: the startup fps artifact is 1/uptime as diagnosed.
+Fresh launch reported fps=2.151487e-06 => 1/2.151e-06 = 464,900s = 5.38 days,
+consistent with the 4.82 days measured a day earlier. The mechanism is settled.
+
+GATE GAPS — NOT RUN, recorded honestly rather than glossed:
+  * W7(iii) EMA parity (attached-state step-response time constant vs the
+    pre-change measurement). NOT MEASURED this session — context budget.
+    Risk if wrong: kMappingTickHz=120 was chosen to match the measured ~119.8fps
+    attached rate precisely because the Smoother has no dt term, so the tick rate
+    IS the time constant. If the effective rate differs materially (JUCE rounds
+    120Hz to 8ms => ~125Hz), every mapped param's smoothing feel shifts slightly.
+    This is ALSO on the Boris rig-feel taste list, which is the real arbiter.
+  * TSan 2-context app drive (design A2 bar: no NEW finding classes beyond the
+    documented deferred list). NOT RUN this session — build-tsan needs a full
+    rebuild and is configured TEST_SERVER=OFF (production mode only).
+    Risk if wrong: LOW by construction — C3 strictly REMOVES cross-thread access
+    (deletes a GL-thread processFrame call and a GL-thread clearAll, and adds
+    message-thread confinement asserts). It should reduce findings, not add them.
+    But "should" is not "measured". Close this before the arc is called done.
+================================================================================

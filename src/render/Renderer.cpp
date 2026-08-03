@@ -238,8 +238,12 @@ void Renderer::renderOpenGL()
         });
     }
 
-    // Apply audio→effect mappings via MappingEngine
-    mappingEngine_.processFrame(snap, effectChain_);
+    // W5 (outputwindow-arc-design.md): mappingEngine_.processFrame() moved
+    // OFF this GL callback. A message-thread juce::Timer
+    // (MainComponent::MappingTickTimer, kMappingTickHz) is now the SOLE
+    // caller, running unconditionally so mapped params keep updating even
+    // while this GL context is detached (previewPanel_ hidden). See
+    // MainComponent::tickFeaturePipeline().
 
     // P13.5.9: Process autopilot (beat-synced clip advancement + beat snap)
     if (deckActive)
@@ -1534,8 +1538,16 @@ void Renderer::initEffectChain()
     std::cerr << "[Renderer] Loaded " << effectChain_.getNumEffects()
               << " effects from library." << std::endl;
 
-    // No demo effects or mappings — user enables what they want via the FX browser
-    mappingEngine_.clearAll();
+    // No demo effects — user enables what they want via the FX browser.
+    // A4 (outputwindow-arc-design.md): the mappingEngine_.clearAll() that
+    // used to run here is DELETED. It was a GL-thread write to state the
+    // codebase treats as message-thread-owned (see MappingEngine.h/A6), and
+    // mappings can already exist before this first-attach guard ever fires
+    // — TestServer constructs and starts listening in the MainComponent
+    // ctor, in test mode, before the window is shown — so this clear could
+    // wipe a mapping installed pre-attach. See the C3 work packet A4
+    // ruling for the full analysis (no-op proof falsified; callAsync
+    // fallback rejected as strictly worse).
 }
 
 // === Frame Capture (Eyes test harness) ===
