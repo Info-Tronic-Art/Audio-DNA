@@ -212,3 +212,19 @@ If frontmost ≠ Audio-DNA → abort the burst entirely.
 **Rule:** Tracked .harmony files travel in git normally (tracked overrides ignore). NEW knowledge files (dossiers, session ledgers) need a one-time `git add -f`, then normal commits. Run `git ls-files .harmony/ | head` before concluding a path "isn't committed here." Harmony owns these commits (knowledge layer), not builders.
 **Scope:** repo
 **Promoted:** no
+
+## 2026-08-02 — TestServer (8080) listens on IPv6 ::1 — probe with `localhost`, never `127.0.0.1`
+**Trigger:** S2 gate: curl 127.0.0.1:8080 timed out 50s ("no bind") while the server was up and healthy on [::1]:8080 (lsof).
+**Rule:** TestServer binds ::1 (pre-existing, S2 diff clean of bind changes). Health-poll and probe 8080 via `localhost` (curl tries both families) or literal `[::1]`. ApiServer 7070 is the opposite: binds IPv4 127.0.0.1 (R8 default) — `localhost` works for both, so use `localhost` everywhere in probes. vj_controller.py/e2e unaffected (already uses localhost).
+
+## 2026-08-03 — TSan APP gate recipe (build-tsan) + traps
+**Trigger:** OW-arc C1 gate: 120s "no bind", Cmd+F dead, VJController import error.
+**Rule:** (1) build-tsan is configured AUDIODNA_BUILD_TEST_SERVER=OFF — TSan app runs are PRODUCTION-mode only (no 8080, mic-driven features; reconfigure cache if injection needed). (2) Launch with `open --stdout F --stderr G app.app --args ...` — captures TSan + programID stderr reliably; first /api/health probe during the startup window can return EMPTY on a live listener — poll patiently before concluding no-bind; steady-state handlers answer in ~0.1s even under TSan. (3) Cmd+F is swallowed when a text field holds focus — open the output window via System Events menu click: item "Fullscreen: <res> (main)" of menu "Output" (AXPress path, ~15% drop → fingerprint-verify on "[OutputRenderer]" stderr lines, retry). (4) e2e class is VJAppController (not VJController); works against 7070 for list_sources/load_source/set_effect_chain; sources schema keys are id/name (no "type"). (5) Debug app emits a finite juce_LookAndFeel.cpp:54 jassert burst at startup — benign noise, not a hang.
+**Scope:** repo (gate mechanics).
+**Promoted:** no
+
+## 2026-08-03 — App UI gates: activation can FAIL silently; use menu AXPress, and .ips lands LATE
+**Trigger:** OW-arc C2 gate: coordinate click for the SignalBar cycler landed in Ghostty; `tell app "Audio-DNA" to activate` left ghostty frontmost; a stale ReportCrash dialog ate Escape keystrokes.
+**Rule:** (1) VERIFY frontmost (`get name of first application process whose frontmost is true`) before ANY coordinate click — activate can no-op, and `click at {x,y}` then hits whatever window owns that point. (2) Menu-item AXPress works WITHOUT frontmost and is the reliable path: Output>"Fullscreen: <res> (main)" opens, Output>"Disabled" closes the output window (Escape is unreliable — a system dialog steals it). (3) A TSan-instrumented app that reported races ABORTS at exit (NSApplication terminate -> exit -> __cxa_finalize -> __tsan::finalize -> Die -> abort, SIGABRT) and writes an .ips — that is the sanitizer, NOT a product crash; check the crashed-thread frames before alarm. (4) .ips files are written with a DELAY (tens of seconds+) — an immediate post-quit `ls DiagnosticReports` proves NOTHING; re-check later or verify by parsing the newest report. (5) Escape/keystroke gates: kill lingering ReportCrash first (it respawns; pkill -9 may need repeating).
+**Scope:** repo (gate mechanics); the verify-frontmost-before-clicking rule is universal-candidate
+**Promoted:** no

@@ -1,0 +1,51 @@
+[Syphon] Output initialized
+==================
+WARNING: ThreadSanitizer: data race (pid=88701)
+  Write of size 4 at 0x000113123a80 by main thread:
+    #0 SignalRegistry::evaluateAll(FeatureSnapshot const&) SignalRegistry.cpp:154 (Audio-DNA:arm64+0x1003787bc)
+    #1 SignalBar::timerCallback() SignalBar.cpp:117 (Audio-DNA:arm64+0x100624270)
+    #2 non-virtual thunk to SignalBar::timerCallback() SignalBar.cpp (Audio-DNA:arm64+0x100624404)
+    #3 juce::Timer::TimerThread::callTimers() juce_Timer.cpp:170 (Audio-DNA:arm64+0x100e89978)
+    #4 juce::Timer::TimerThread::CallTimersMessage::messageCallback() juce_Timer.cpp:271 (Audio-DNA:arm64+0x100e8978c)
+    #5 juce::MessageQueue::deliverNextMessage() juce_MessageQueue_mac.h:93 (Audio-DNA:arm64+0x100ea8830)
+    #6 juce::MessageQueue::runLoopCallback() juce_MessageQueue_mac.h:104 (Audio-DNA:arm64+0x100ea8760)
+    #7 juce::MessageQueue::runLoopSourceCallback(void*) juce_MessageQueue_mac.h:112 (Audio-DNA:arm64+0x100ea822c)
+    #8 __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ <null>:294677856 (CoreFoundation:arm64e+0x7ca60)
+    #9 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:277 (Audio-DNA:arm64+0x100e619c0)
+    #10 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e61764)
+    #11 main Main.cpp:99 (Audio-DNA:arm64+0x100010ac0)
+
+  Previous write of size 4 at 0x000113123a80 by thread T39 (mutexes: write M0, write M1):
+    #0 SignalRegistry::evaluateAll(FeatureSnapshot const&) SignalRegistry.cpp:154 (Audio-DNA:arm64+0x1003787bc)
+    #1 Renderer::renderOpenGL() Renderer.cpp:225 (Audio-DNA:arm64+0x1002df2f8)
+    #2 juce::OpenGLContext::CachedImage::renderFrame(juce::MessageManager::Lock&) juce_OpenGLContext.cpp:414 (Audio-DNA:arm64+0x1020399c4)
+    #3 juce::OpenGLContext::CachedImage::RenderThread::renderAll() juce_OpenGLContext.cpp:802 (Audio-DNA:arm64+0x102039084)
+    #4 juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()::operator()() const juce_OpenGLContext.cpp:891 (Audio-DNA:arm64+0x102038dbc)
+    #5 decltype(std::declval<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>()()) std::__1::__invoke[abi:ne180100]<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&...) invoke.h:344 (Audio-DNA:arm64+0x102038ccc)
+    #6 void std::__1::__thread_execute[abi:ne180100]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>&, std::__1::__tuple_indices<>) thread.h:199 (Audio-DNA:arm64+0x102038c78)
+--
+==================
+==================
+WARNING: ThreadSanitizer: data race (pid=88701)
+  Write of size 4 at 0x000113123af8 by thread T39 (mutexes: write M0, write M1):
+    #0 SignalRegistry::evaluateAll(FeatureSnapshot const&) SignalRegistry.cpp:154 (Audio-DNA:arm64+0x1003787bc)
+    #1 Renderer::renderOpenGL() Renderer.cpp:225 (Audio-DNA:arm64+0x1002df2f8)
+    #2 juce::OpenGLContext::CachedImage::renderFrame(juce::MessageManager::Lock&) juce_OpenGLContext.cpp:414 (Audio-DNA:arm64+0x1020399c4)
+    #3 juce::OpenGLContext::CachedImage::RenderThread::renderAll() juce_OpenGLContext.cpp:802 (Audio-DNA:arm64+0x102039084)
+    #4 juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()::operator()() const juce_OpenGLContext.cpp:891 (Audio-DNA:arm64+0x102038dbc)
+    #5 decltype(std::declval<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>()()) std::__1::__invoke[abi:ne180100]<juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()&&...) invoke.h:344 (Audio-DNA:arm64+0x102038ccc)
+    #6 void std::__1::__thread_execute[abi:ne180100]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>&, std::__1::__tuple_indices<>) thread.h:199 (Audio-DNA:arm64+0x102038c78)
+    #7 void* std::__1::__thread_proxy[abi:ne180100]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>>(std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, juce::OpenGLContext::CachedImage::RenderThread::thread::'lambda'()>) thread.h:208 (Audio-DNA:arm64+0x10203870c)
+
+  Previous read of size 4 at 0x000113123af8 by main thread:
+    #0 SignalRegistry::getCachedValue(unsigned int) const SignalRegistry.cpp:163 (Audio-DNA:arm64+0x1003788a4)
+    #1 SignalBar::timerCallback() SignalBar.cpp:122 (Audio-DNA:arm64+0x1006242f0)
+    #2 non-virtual thunk to SignalBar::timerCallback() SignalBar.cpp (Audio-DNA:arm64+0x100624404)
+    #3 juce::Timer::TimerThread::callTimers() juce_Timer.cpp:170 (Audio-DNA:arm64+0x100e89978)
+    #4 juce::Timer::TimerThread::CallTimersMessage::messageCallback() juce_Timer.cpp:271 (Audio-DNA:arm64+0x100e8978c)
+    #5 juce::MessageQueue::deliverNextMessage() juce_MessageQueue_mac.h:93 (Audio-DNA:arm64+0x100ea8830)
+    #6 juce::MessageQueue::runLoopCallback() juce_MessageQueue_mac.h:104 (Audio-DNA:arm64+0x100ea8760)
+    #7 juce::MessageQueue::runLoopSourceCallback(void*) juce_MessageQueue_mac.h:112 (Audio-DNA:arm64+0x100ea822c)
+    #8 __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ <null>:294677856 (CoreFoundation:arm64e+0x7ca60)
+    #9 juce::JUCEApplicationBase::main() juce_ApplicationBase.cpp:277 (Audio-DNA:arm64+0x100e619c0)
+    #10 juce::JUCEApplicationBase::main(int, char const**) juce_ApplicationBase.cpp:255 (Audio-DNA:arm64+0x100e61764)

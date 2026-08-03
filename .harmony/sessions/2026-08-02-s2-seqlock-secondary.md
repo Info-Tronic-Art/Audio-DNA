@@ -1,0 +1,42 @@
+# Session 2026-08-02 (b) — S2 Seqlock Conversion (secondary, slim boot)
+
+Role: secondary · Lane: S2 FeatureBus seqlock (spec R1-R5 + R7 + R9) · Boot: HEAD 7bb5cc2
+
+## Boot Consumption Gate (handoff 2026-08-02)
+- Boris feedback: NONE waiting → both lists (Syphon live-check A, 7-item gesture replay B) CARRY unprocessed.
+- S2 seqlock START-HERE → ADOPTED, executing this session. Design council-ratified; not re-litigated.
+- OutputWindow arc (scout R1+R3+R10+detach reorder) → queued AFTER S2. File overlap (Renderer/OutputWindow/EffectChain) → serial only, no parallel lane.
+- Boris decision queue + remaining follow-ups (ID remap, §3 inventory pass, S3, bind nit) → carried verbatim.
+- Verification doctrine + standing rules → in force (forced rebuild before ctest claims; --only commits; nudge/agent budget; exit-proof pgrep -x + port-free; ledger anchor on current final line; no push; open-only launch; .harmony git add -f).
+
+## Lane plan (externalized before dispatch)
+1. Builder (background, full packet): R9-first order — multi-reader TSan test vs OLD protocol, capture race log (.harmony/s2-tsan-before.log) → implement R1-R5 (seqlock bus, move-only Writer @ MainComponent testMode_ branch, ~16 one-line sites, delete acquireRead/getLatestRead/hasNewData/kNewFlag) + R7 (persistent snapshot parking, kills dangling defaultSnap) → convert tests + double-claim test → TSan clean, zero suppressions → forced rebuild + full ctest. NO commit, NO push, NO launch by builder.
+2. Harmony behavioral gate (self): forced rebuild build + build-tsan, full ctest both, verify before-log evidence, grep-zero on deleted API, app launch via open + /api/health poll (~12s) + SIGKILL + exit-proof.
+3. Independent Reviewer (parallel with gate) on the working-tree diff: spec-conformance R1-R5/R7/R9, no suppressions, no scope creep into R10/lane-3.
+4. Adjudicate → fix rounds if needed → git commit --only <builder file list> (+ git add -f for .harmony evidence). NOT pushed.
+5. Fit-check gauge → OutputWindow arc only if it cleanly fits; else defer as next-session START-HERE.
+
+## Status
+- [DONE] Builder report: DONE, 30 files, 189→191 tests, R9 order followed, 3 latitude mechanisms declared, 0 deviations.
+- [DONE] Harmony behavioral gate core: evidence verified on disk (before-log 7 races on bus storage at 4 reader field-load lines; after-log 0 warnings 10/10; grep-zero deleted API; no suppressions — only a comment hit); MY forced rebuild + ctest = 191/191 build/ (7.89s) AND 191/191 build-tsan/ (97.01s), EXIT=0 both.
+- [DONE] Production launch gate: bind ~4s, /api/status feature fields live via new read path, syphon canary ok, inject_features=404 (R6 holds), SIGKILL + exit-proof (pgrep 0, port free), 0 new .ips.
+- [DONE] Test-mode gate: --test-mode up (7070 fps 119.8, renderer live in read()); dual-port inject PASS — 8080 direct bpm 123 ✓, 7070 relay bpm 99 ✓ (relay gap closed). Gotcha logged: TestServer listens ::1 — probe via localhost (pre-existing; S2 diff clean of bind changes).
+- [IN FLIGHT] Eyes test_audio_reactivity.py battery (attach mode, log /tmp/s2-eyes-reactivity.log). Full-491 run SKIPPED deliberately: no green baseline/envelope exists in project knowledge → unadjudicable flake; targeted battery is the proportionate S2 surface. Revisit only if Reviewer flags.
+- [IN FLIGHT] Reviewer (s2-reviewer) on the 30-file diff + A-G adjudications.
+- [DONE] Reviewer verdict: PASS, 0 blockers, A-G all RATIFIED (seqlock verified against Boehm fence canon; R4 two-claim-sites verified; R5 complete; R9 sharp; scope clean). 3 minors: comment overclaim reword, jassert on 2 silent invalid-writer paths (both dispatched to warm builder), REQUIRE-in-thread note (pre-existing shape, recorded only).
+- [OPEN — BLOCKS COMMIT] Eyes reactivity 3/4 FAIL on S2 build, fresh instance (contamination ruled out): BeatPhase→sources 0/6, Bass→sources 0/6, RMS→effects 0; RMS→sources passed (possible animation-noise false positive). Bus exonerated (beatPhase 0.5 round-trips via 8080→bus→7070). No green baseline exists → HEAD A/B worktree (/tmp/s2-headcheck @ 7bb5cc2) building to settle pre-existing vs regression. Reviewer verdict predates the nudge — per-frame R7 setter WIRING unverified either way. If regression: warm-builder fix loop, trace starts at per-frame setLatestSnapshot callers + freshness-gated skips.
+- [RESOLVED] A/B verdict: PRE-EXISTING. HEAD 7bb5cc2 worktree build fails the IDENTICAL 3 tests (3F/1P, same IDs; one HEAD failure surfaced as vision_check.py:18 ValueError rather than a 0>=2 assertion — same failed set either way). No green baseline ever existed → S2 exonerated at app level. Worktree removed.
+- [TRIAGE — feeds OutputWindow/R10 arc; UPGRADED by reviewer follow-up] Pre-existing reactivity deadness at HEAD (A/B-proven), now with source-verified mechanisms (reviewer, post-verdict follow-up):
+  · R7 wiring EXONERATED: per-frame setters verified at Renderer.cpp:432/:482 (identical call text at HEAD — pointer→const& rebind invisible in diff); readIfNewer appears in FeatureBus+tests ONLY — zero skip paths in production. My earlier MappingEngine-cadence hypothesis is DOWNGRADED for these specific failures.
+  · Bass→sources DIAGNOSED (likely REAL pre-existing bug): u_bass uploads bandEnergies[1] (ProceduralSource.cpp:161, CompositorEngine.cpp:1410) while the battery injects bandEnergies[0] — index mismatch predicts fail-on-every-build; prediction validated by my HEAD A/B. Lane 3 must rule which side is canonical (shader index vs test payload) — if the shader is wrong, live bass reactivity is mis-banded on the rig.
+  · BeatPhase→sources candidate: battery steps a CONSTANT 0.0→0.5; if shaders consume phase through a symmetric transform (e.g. sin-like), both states can render identically — needs a sweep test, not a two-state diff. Not diff-attributable (snapshot copies are generation-coherent; fresh-rms+stale-beatPhase from one read() is mechanically impossible).
+  · RMS→effects candidate: R10 EffectChain refresh family (main-renderer-only refresh; worse at HEAD where it also dangled) or same observation-method issue. Pre-existing per A/B.
+  · Bus + inject chain fully proven good (exact-key round-trips both ports).
+- [DONE] Minors applied (jassert placement deviation ACCEPTED — injectSnapshot covers all callers incl. relay); hunks grep-verified; re-gate forced rebuild + ctest: 191/191 build/ AND 191/191 build-tsan/, EXIT=0 both.
+- [DONE] **S2 COMMITTED cb4d5fa** — 32 files (30 + 2 evidence logs via add -f), 1105+/426−, NOT pushed. pyc churn reverted pre-commit; .audit/ + graphify-out excluded. Builder + reviewer released.
+- **C1 COMMITTED be34bb2** (8 files, 222+/108−): gates = ctest 191/191 ×2 independent + structural greps + TSan APP drive (2 GL contexts, mic-driven, hue_shift+vignette+Echo): 0 findings in C1 families through open/Escape-hide/reopen (3 cache generations via release()) + graceful quit WITH output open (clean 2s, 0 .ips, exit-proof). Scout R1 ID-collision inference now VERIFIED (passthrough=2 BOTH contexts; 26/41, 89/104 overlaps). Pre-existing SignalRegistry.cpp:154 evaluateAll race found (2×, NOT a C1 file) → evidence .harmony/ow-c1-signalregistry-race.log, feeds the A1 routing follow-up audit. Gate-mechanics gotcha appended (TEST_SERVER=OFF in build-tsan; menu-vs-Cmd+F; VJAppController). SIGTERM anomaly: first parallel rebuild pair externally killed (Terminated: 15) — serial re-run clean; cause unidentified, watch for recurrence.
+- LANE 3 OPEN (OutputWindow arc): council of 3 blind seats (minimal/correct/prag, all fable) ran on the R10 fork → RATIFIED design at .harmony/specs/outputwindow-arc-design.md. Unanimous: reject handoff; msg-thread timer sole processFrame caller; delete shared latestSnapshot_ → per-renderer read() + EffectChainGLState in one signature change; confinement retires container race. Chair calls: tick=mapping-only (routing follow-up + prag dissent recorded); param atomics deferred to Step-3 (2:1); single-store processFrame ADOPTED (prag NEW live-bug find: intermediate-zero publishes visible on output GL today); clearAll deleted-after-proof; kMappingTickHz=120 (matches measured 119.8fps — no-dt EMA means rate=time-constant; 60 would double feel); jasserts adopted. Ship order C1/C2/C3, Harmony commits per stage gate. Builder dispatched (ow-builder).
+- Baseline note: .audit/features-gap-fill/ = May-20 pre-existing untracked leftover, not builder output, excluded from commit.
+
+## Learnings / capture
+- (write-immediately as they arise)

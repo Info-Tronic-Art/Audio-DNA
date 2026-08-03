@@ -1,0 +1,28 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.14.3, pytest-9.0.3, pluggy-1.6.0 -- /Users/boriskarpman/projects/RealTimeAudio/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/boriskarpman/projects/RealTimeAudio/tests/visual
+plugins: timeout-2.4.0
+collecting ... collected 4 items
+
+test_mapping_tick.py::test_state1_preview_tracks [Eyes] App ready: {'status': 'ready', 'gl_version': '4.1', 'fps': 2.403324970146059e-06, 'effects_count': 135}
+PASSED
+test_mapping_tick.py::test_state2_preview_output_tracks SKIPPED (OW_...)
+test_mapping_tick.py::test_state3_signalbar_tracks SKIPPED (OW_PROBE...)
+test_mapping_tick.py::test_state4_signalbar_output_tracks SKIPPED (O...)
+
+========================= 1 passed, 3 skipped in 1.75s =========================
+============================= test session starts ==============================
+platform darwin -- Python 3.14.3, pytest-9.0.3, pluggy-1.6.0 -- /Users/boriskarpman/projects/RealTimeAudio/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/boriskarpman/projects/RealTimeAudio/tests/visual
+plugins: timeout-2.4.0
+collecting ... collected 4 items
+
+test_mapping_tick.py::test_state1_preview_tracks [Eyes] App ready: {'status': 'ready', 'gl_version': '4.1', 'fps': 94.70341491699219, 'effects_count': 135}
+SKIPPED (OW_PROBE_S...)
+test_mapping_tick.py::test_state2_preview_output_tracks PASSED
+test_mapping_tick.py::test_state3_signalbar_tracks SKIPPED (OW_PROBE...)
+test_mapping_tick.py::test_state4_signalbar_output_tracks SKIPPED (O...)
+
+========================= 1 passed, 3 skipped in 1.72s =========================
