@@ -4,8 +4,9 @@
 
 You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL
 live audio-reactive VJ app). Session 2026-08-02b (secondary, slim) closed 2 lanes
-full-tier at ~33% ctx — 3 commits local, NOT pushed (stack now ~52 unpushed; tests
-189→193):
+full-tier at ~33% ctx — 5 commits local, NOT pushed (tests 189→193). **Branch is
+`main`, ahead of `origin/main` by 90 commits — VERIFIED via `git branch -avv` this
+session; earlier handoffs quoted ~49, which was stale. Re-verify, never inherit.**
 
 (1) **S2 SEQLOCK — SHIPPED** (`cb4d5fa`). FeatureBus is now a seqlock with
 caller-owned VALUE copies: `alignas(64) atomic<uint64_t> seq_` (odd=publishing) +
@@ -113,7 +114,7 @@ START HERE:
   recorded residuals) is acceptable to ship with, or should jump the queue.
 
 ## STANDING RULES (unchanged)
-Do NOT push (~52 local commits). Conform to ClipCommands.h/DeckCommands.h/
+Do NOT push (90 commits ahead of origin/main — verified 2026-08-03). Conform to ClipCommands.h/DeckCommands.h/
 EffectCommands.h/TriggerCommands.h/UndoService patterns at HEAD; structural-mutation
 commands carry a fence (notebook LAW); launch ONLY via `open` (7070 binds ~12s in
 Release, ~2s warm; poll /api/health); SIGKILL disposable instances; SYNTHETIC-CLICK
