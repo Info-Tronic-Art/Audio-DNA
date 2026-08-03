@@ -194,6 +194,12 @@ private:
     ShaderManager shaderMgr_{glContext_};
     TextureManager texMgr_;
     EffectChain effectChain_;
+    // THIS renderer's per-GL-context EffectChain state (uniform location
+    // cache + temporal prevFrame FBO). effectChain_ is shared by reference
+    // with the OutputWindow's renderer, whose unshared context owns its own
+    // copy of this state — see EffectChainGLState in EffectChain.h.
+    // Released in openGLContextClosing().
+    EffectChainGLState effectChainGLState_;
     EffectLibrary effectLibrary_;  // Persistent library for compositor per-clip effects
     MappingEngine mappingEngine_;
 

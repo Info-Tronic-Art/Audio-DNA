@@ -2,6 +2,23 @@
 
 using namespace juce::gl;
 
+void EffectChainGLState::release()
+{
+    if (prevFrameFBO != 0)
+    {
+        glDeleteFramebuffers(1, &prevFrameFBO);
+        prevFrameFBO = 0;
+    }
+    if (prevFrameTexture != 0)
+    {
+        glDeleteTextures(1, &prevFrameTexture);
+        prevFrameTexture = 0;
+    }
+    prevFrameWidth = 0;
+    prevFrameHeight = 0;
+    uniformLocationCache.clear();
+}
+
 void EffectChain::addEffect(std::unique_ptr<Effect> effect)
 {
     std::lock_guard<std::mutex> lock(effectsMutex_);
@@ -27,6 +44,8 @@ void EffectChain::render(GLuint inputTexture,
                           ShaderManager& shaderMgr,
                           TextureManager& texMgr,
                           FullscreenQuad& quad,
+                          EffectChainGLState& glState,
+                          const FeatureSnapshot& snap,
                           float time,
                           float width, float height,
                           GLuint defaultFBO,
@@ -128,23 +147,24 @@ void EffectChain::render(GLuint inputTexture,
         // Bind input texture (cached location)
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, currentInput);
-        auto texLoc = getCachedUniformLocation(program, "u_texture");
+        auto texLoc = getCachedUniformLocation(glState, program, "u_texture");
         if (texLoc >= 0)
             glUniform1i(texLoc, 0);
 
         // For temporal effects, bind the previous frame texture
-        if (effect->isTemporal() && prevFrameTexture_ != 0)
+        if (effect->isTemporal() && glState.prevFrameTexture != 0)
         {
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, prevFrameTexture_);
-            auto prevLoc = getCachedUniformLocation(program, "u_prev_frame");
+            glBindTexture(GL_TEXTURE_2D, glState.prevFrameTexture);
+            auto prevLoc = getCachedUniformLocation(glState, program, "u_prev_frame");
             if (prevLoc >= 0)
                 glUniform1i(prevLoc, 1);
             glActiveTexture(GL_TEXTURE0);
         }
 
         // Upload effect-specific uniforms
-        uploadEffectUniforms(program, shaderMgr, *effect, time, width, height);
+        uploadEffectUniforms(program, shaderMgr, glState, snap, *effect,
+                             time, width, height);
 
         quad.draw();
 
@@ -192,7 +212,8 @@ void EffectChain::render(GLuint inputTexture,
     // Save previous frame for temporal effects, then blit to screen if needed
     if (anyTemporal && currentInput != inputTexture && currentInput != 0)
     {
-        savePreviousFrame(currentInput, static_cast<int>(width), static_cast<int>(height),
+        savePreviousFrame(glState, currentInput,
+                          static_cast<int>(width), static_cast<int>(height),
                           quad, shaderMgr);
 
         // The last effect rendered to FBO (not screen) — blit result to screen now
@@ -260,100 +281,105 @@ void EffectChain::applyDryWet(GLuint effectedTexture, GLuint originalTexture,
     quad.draw();
 }
 
-GLint EffectChain::getCachedUniformLocation(juce::OpenGLShaderProgram* program,
+GLint EffectChain::getCachedUniformLocation(EffectChainGLState& glState,
+                                              juce::OpenGLShaderProgram* program,
                                               const char* uniformName)
 {
-    // Build cache key from program ID and uniform name
+    // Build cache key from program ID and uniform name. The programID prefix
+    // stays even though the cache is per-context now: within one context the
+    // same uniform name has a DIFFERENT location in each of the ~80 programs,
+    // so the name alone cannot key the map.
     auto progID = static_cast<unsigned int>(program->getProgramID());
     std::string key = std::to_string(progID) + ":" + uniformName;
 
-    auto it = uniformLocationCache_.find(key);
-    if (it != uniformLocationCache_.end())
+    auto it = glState.uniformLocationCache.find(key);
+    if (it != glState.uniformLocationCache.end())
         return it->second;
 
     GLint loc = program->getUniformIDFromName(uniformName);
-    uniformLocationCache_[key] = loc;
+    glState.uniformLocationCache[key] = loc;
     return loc;
 }
 
 void EffectChain::uploadEffectUniforms(juce::OpenGLShaderProgram* program,
                                         ShaderManager& /*shaderMgr*/,
+                                        EffectChainGLState& glState,
+                                        const FeatureSnapshot& snap,
                                         const Effect& effect,
                                         float time, float width, float height)
 {
     // Global uniforms (cached)
-    auto timeLoc = getCachedUniformLocation(program, "u_time");
+    auto timeLoc = getCachedUniformLocation(glState, program, "u_time");
     if (timeLoc >= 0)
         glUniform1f(timeLoc, time);
 
-    auto resLoc = getCachedUniformLocation(program, "u_resolution");
+    auto resLoc = getCachedUniformLocation(glState, program, "u_resolution");
     if (resLoc >= 0)
         glUniform2f(resLoc, width, height);
 
     // Audio feature uniforms (P18: audio-reactive effects)
     {
-        const auto& snap = latestSnapshot_;
-        auto l = getCachedUniformLocation(program, "u_rms");
+        auto l = getCachedUniformLocation(glState, program, "u_rms");
         if (l >= 0) glUniform1f(l, snap.rms);
-        l = getCachedUniformLocation(program, "u_bass");
+        l = getCachedUniformLocation(glState, program, "u_bass");
         if (l >= 0) glUniform1f(l, snap.bandEnergies[1]);
-        l = getCachedUniformLocation(program, "u_mid");
+        l = getCachedUniformLocation(glState, program, "u_mid");
         if (l >= 0) glUniform1f(l, snap.bandEnergies[3]);
-        l = getCachedUniformLocation(program, "u_high");
+        l = getCachedUniformLocation(glState, program, "u_high");
         if (l >= 0) glUniform1f(l, snap.bandEnergies[5]);
-        l = getCachedUniformLocation(program, "u_beatPhase");
+        l = getCachedUniformLocation(glState, program, "u_beatPhase");
         if (l >= 0) glUniform1f(l, snap.beatPhase);
-        l = getCachedUniformLocation(program, "u_barPhase");
+        l = getCachedUniformLocation(glState, program, "u_barPhase");
         if (l >= 0) glUniform1f(l, snap.barPhase);
-        l = getCachedUniformLocation(program, "u_phrasePhase");
+        l = getCachedUniformLocation(glState, program, "u_phrasePhase");
         if (l >= 0) glUniform1f(l, snap.phrasePhase);
-        l = getCachedUniformLocation(program, "u_spectralCentroid");
+        l = getCachedUniformLocation(glState, program, "u_spectralCentroid");
         if (l >= 0) glUniform1f(l, snap.spectralCentroid);
-        l = getCachedUniformLocation(program, "u_spectralFlux");
+        l = getCachedUniformLocation(glState, program, "u_spectralFlux");
         if (l >= 0) glUniform1f(l, snap.spectralFlux);
-        l = getCachedUniformLocation(program, "u_onsetStrength");
+        l = getCachedUniformLocation(glState, program, "u_onsetStrength");
         if (l >= 0) glUniform1f(l, snap.onsetStrength);
-        l = getCachedUniformLocation(program, "u_onsetDetected");
+        l = getCachedUniformLocation(glState, program, "u_onsetDetected");
         if (l >= 0) glUniform1f(l, snap.onsetDetected ? 1.0f : 0.0f);
-        l = getCachedUniformLocation(program, "u_dominantPitch");
+        l = getCachedUniformLocation(glState, program, "u_dominantPitch");
         if (l >= 0) glUniform1f(l, snap.dominantPitch);
-        l = getCachedUniformLocation(program, "u_pitchConfidence");
+        l = getCachedUniformLocation(glState, program, "u_pitchConfidence");
         if (l >= 0) glUniform1f(l, snap.pitchConfidence);
-        l = getCachedUniformLocation(program, "u_detectedKey");
+        l = getCachedUniformLocation(glState, program, "u_detectedKey");
         if (l >= 0) glUniform1f(l, static_cast<float>(snap.detectedKey));
-        l = getCachedUniformLocation(program, "u_keyIsMajor");
+        l = getCachedUniformLocation(glState, program, "u_keyIsMajor");
         if (l >= 0) glUniform1f(l, snap.keyIsMajor ? 1.0f : 0.0f);
-        l = getCachedUniformLocation(program, "u_structuralState");
+        l = getCachedUniformLocation(glState, program, "u_structuralState");
         if (l >= 0) glUniform1f(l, static_cast<float>(snap.structuralState));
-        l = getCachedUniformLocation(program, "u_bpm");
+        l = getCachedUniformLocation(glState, program, "u_bpm");
         if (l >= 0) glUniform1f(l, snap.bpm);
-        l = getCachedUniformLocation(program, "u_hcdf");
+        l = getCachedUniformLocation(glState, program, "u_hcdf");
         if (l >= 0) glUniform1f(l, snap.harmonicChangeDetection);
-        l = getCachedUniformLocation(program, "u_bandEnergies");
+        l = getCachedUniformLocation(glState, program, "u_bandEnergies");
         if (l >= 0) glUniform1fv(l, 7, snap.bandEnergies);
-        l = getCachedUniformLocation(program, "u_chromagram");
+        l = getCachedUniformLocation(glState, program, "u_chromagram");
         if (l >= 0) glUniform1fv(l, 12, snap.chromagram);
-        l = getCachedUniformLocation(program, "u_mfccs");
+        l = getCachedUniformLocation(glState, program, "u_mfccs");
         if (l >= 0) glUniform1fv(l, 13, snap.mfccs);
 
         // P23: Genre detection uniforms
-        l = getCachedUniformLocation(program, "u_genre");
+        l = getCachedUniformLocation(glState, program, "u_genre");
         if (l >= 0) glUniform1f(l, static_cast<float>(snap.detectedGenre));
-        l = getCachedUniformLocation(program, "u_genreConfidence");
+        l = getCachedUniformLocation(glState, program, "u_genreConfidence");
         if (l >= 0) glUniform1f(l, snap.genreConfidence);
-        l = getCachedUniformLocation(program, "u_energyState");
+        l = getCachedUniformLocation(glState, program, "u_energyState");
         if (l >= 0) glUniform1f(l, static_cast<float>(snap.energyState));
 
         // P25: Advanced audio analysis uniforms
-        l = getCachedUniformLocation(program, "u_sidechainPump");
+        l = getCachedUniformLocation(glState, program, "u_sidechainPump");
         if (l >= 0) glUniform1f(l, snap.sidechainPump);
-        l = getCachedUniformLocation(program, "u_swingRatio");
+        l = getCachedUniformLocation(glState, program, "u_swingRatio");
         if (l >= 0) glUniform1f(l, snap.swingRatio);
-        l = getCachedUniformLocation(program, "u_formantPresence");
+        l = getCachedUniformLocation(glState, program, "u_formantPresence");
         if (l >= 0) glUniform1f(l, snap.formantPresence);
-        l = getCachedUniformLocation(program, "u_resonancePeak");
+        l = getCachedUniformLocation(glState, program, "u_resonancePeak");
         if (l >= 0) glUniform1f(l, snap.resonancePeak);
-        l = getCachedUniformLocation(program, "u_reeseBass");
+        l = getCachedUniformLocation(glState, program, "u_reeseBass");
         if (l >= 0) glUniform1f(l, snap.reeseBass);
     }
 
@@ -361,34 +387,35 @@ void EffectChain::uploadEffectUniforms(juce::OpenGLShaderProgram* program,
     for (int i = 0; i < effect.getNumParams(); ++i)
     {
         const auto& param = effect.getParam(i);
-        auto loc = getCachedUniformLocation(program, param.uniformName.c_str());
+        auto loc = getCachedUniformLocation(glState, program, param.uniformName.c_str());
         if (loc >= 0)
             glUniform1f(loc, param.value);
     }
 }
 
-void EffectChain::ensurePrevFrameFBO(int width, int height)
+void EffectChain::ensurePrevFrameFBO(EffectChainGLState& glState, int width, int height)
 {
-    if (prevFrameTexture_ != 0 && prevFrameWidth_ == width && prevFrameHeight_ == height)
+    if (glState.prevFrameTexture != 0
+        && glState.prevFrameWidth == width && glState.prevFrameHeight == height)
         return;
 
     // Release old
-    if (prevFrameFBO_ != 0)
+    if (glState.prevFrameFBO != 0)
     {
-        glDeleteFramebuffers(1, &prevFrameFBO_);
-        prevFrameFBO_ = 0;
+        glDeleteFramebuffers(1, &glState.prevFrameFBO);
+        glState.prevFrameFBO = 0;
     }
-    if (prevFrameTexture_ != 0)
+    if (glState.prevFrameTexture != 0)
     {
-        glDeleteTextures(1, &prevFrameTexture_);
-        prevFrameTexture_ = 0;
+        glDeleteTextures(1, &glState.prevFrameTexture);
+        glState.prevFrameTexture = 0;
     }
 
-    prevFrameWidth_ = width;
-    prevFrameHeight_ = height;
+    glState.prevFrameWidth = width;
+    glState.prevFrameHeight = height;
 
-    glGenTextures(1, &prevFrameTexture_);
-    glBindTexture(GL_TEXTURE_2D, prevFrameTexture_);
+    glGenTextures(1, &glState.prevFrameTexture);
+    glBindTexture(GL_TEXTURE_2D, glState.prevFrameTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0,
                  GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -396,26 +423,27 @@ void EffectChain::ensurePrevFrameFBO(int width, int height)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glGenFramebuffers(1, &prevFrameFBO_);
-    glBindFramebuffer(GL_FRAMEBUFFER, prevFrameFBO_);
+    glGenFramebuffers(1, &glState.prevFrameFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, glState.prevFrameFBO);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                           GL_TEXTURE_2D, prevFrameTexture_, 0);
+                           GL_TEXTURE_2D, glState.prevFrameTexture, 0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void EffectChain::savePreviousFrame(GLuint sourceTexture, int width, int height,
+void EffectChain::savePreviousFrame(EffectChainGLState& glState,
+                                     GLuint sourceTexture, int width, int height,
                                      FullscreenQuad& quad, ShaderManager& shaderMgr)
 {
-    ensurePrevFrameFBO(width, height);
-    if (prevFrameFBO_ == 0) return;
+    ensurePrevFrameFBO(glState, width, height);
+    if (glState.prevFrameFBO == 0) return;
 
     // Copy the source texture to our previous frame FBO
     auto* passthrough = shaderMgr.getProgram("passthrough");
     if (!passthrough) return;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, prevFrameFBO_);
+    glBindFramebuffer(GL_FRAMEBUFFER, glState.prevFrameFBO);
     glViewport(0, 0, width, height);
     glClear(GL_COLOR_BUFFER_BIT);
 

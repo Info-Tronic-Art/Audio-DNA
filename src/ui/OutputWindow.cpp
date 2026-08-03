@@ -99,11 +99,13 @@ void OutputRenderer::renderOpenGL()
         return;
     }
 
-    // No FeatureBus read here: this thread's audio uniforms come from the
-    // EffectChain's parked snapshot (refreshed each frame by the main
-    // Renderer, R7). The read that used to sit here fed only the deleted
-    // duplicate processFrame call below.
-    //
+    // W2 (outputwindow-arc): this renderer reads the bus ITSELF each frame
+    // and passes the coherent copy into render() — the EffectChain's shared
+    // parked snapshot is gone, so audio uniforms on this context can never
+    // freeze or tear against the main renderer's refresh cadence. The
+    // post-S2 seqlock bus is multi-reader-safe from any thread.
+    const FeatureSnapshot snap = featureBus_.read();
+
     // mappingEngine_.processFrame() is intentionally NOT called here: it
     // raced when both GL threads called it (STATEFUL — Smoother EMA plus a
     // 3-pass reset->accumulate->clamp read-modify-write on the shared
@@ -150,6 +152,7 @@ void OutputRenderer::renderOpenGL()
 
     effectChain_.render(texMgr_.getImageTexture(),
                         shaderMgr_, texMgr_, quad_,
+                        effectChainGLState_, snap,
                         time, compW, compH,
                         static_cast<GLuint>(defaultFBO),
                         vpX, vpY, vpW, vpH);
@@ -157,6 +160,9 @@ void OutputRenderer::renderOpenGL()
 
 void OutputRenderer::openGLContextClosing()
 {
+    // W1: this context's EffectChain GL state dies with the context — see
+    // Renderer::openGLContextClosing() for the stale-cache rationale.
+    effectChainGLState_.release();
     shaderMgr_.releaseAll();
     texMgr_.release();
     quad_.release();
@@ -259,6 +265,15 @@ void OutputRenderer::initShaders()
     compile("hexagonalize",         EmbeddedShaders::hexagonalize);
 
     std::cerr << "[OutputRenderer] All shaders compiled." << std::endl;
+
+    // W7(iv) outputwindow-arc: one-shot per-context program-ID log — the
+    // counterpart of the [Renderer] lines (Renderer.cpp,
+    // newOpenGLContextCreated). Overlapping ID sets confirm (disjoint sets
+    // refute) scout R1's INFERRED cross-context program-ID collision claim.
+    for (const char* name : { "passthrough", "hue_shift", "vignette" })
+        if (auto* p = shaderMgr_.getProgram(name))
+            std::cerr << "[OutputRenderer] programID(" << name << ")="
+                      << p->getProgramID() << std::endl;
 }
 
 // ============================================================

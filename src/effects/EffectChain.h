@@ -11,6 +11,41 @@
 #include <string>
 #include <mutex>
 
+// Per-GL-context render state for EffectChain (scout-outputwindow-glcrash.md
+// R1/R3; .harmony/specs/outputwindow-arc-design.md W1). The EffectChain is
+// SHARED by reference between the main Renderer and the OutputWindow's
+// OutputRenderer, whose GL contexts are UNSHARED — GL object names and
+// program IDs from one context are meaningless in the other. Everything
+// per-context therefore lives here, owned by each renderer alongside the
+// ShaderManager/TextureManager/quad it already owns, and passed into
+// render() by reference:
+//   - uniformLocationCache: program-ID-keyed uniform locations. Program IDs
+//     are only unique within one context's share group, so a cache shared
+//     across contexts returns locations for the WRONG program (silent
+//     wrong-uniform writes), and concurrent insert from two GL threads is
+//     UB on unordered_map.
+//   - prevFrame*: the temporal-effects previous-frame texture/FBO. Names
+//     generated in one context must never be bound or deleted in the other.
+// release() must be called from the owning renderer's openGLContextClosing()
+// (context still current on that thread): the names and cached locations die
+// with the context, and a recreated context must start cold — stale entries
+// would poison lookups against the new context's recompiled programs.
+struct EffectChainGLState
+{
+    // Previous frame texture for temporal effects (P13.2)
+    GLuint prevFrameTexture = 0;
+    GLuint prevFrameFBO = 0;
+    int prevFrameWidth = 0;
+    int prevFrameHeight = 0;
+
+    // P13.5.11: Cached uniform locations (program ID + uniform name → location)
+    std::unordered_map<std::string, GLint> uniformLocationCache;
+
+    // Delete the GL objects and drop all cached locations. Call on the
+    // owning context's GL thread while the context is still current.
+    void release();
+};
+
 // EffectChain: manages an ordered list of Effects and renders them
 // using ping-pong FBOs.
 //
@@ -51,6 +86,10 @@ public:
     //   - shaderMgr: to look up compiled shader programs
     //   - texMgr: for FBO ping-pong textures
     //   - quad: the fullscreen quad to draw
+    //   - glState: the CALLING renderer's own per-context state (uniform
+    //     location cache + temporal prevFrame FBO — see EffectChainGLState)
+    //   - snap: the calling renderer's own coherent FeatureSnapshot copy
+    //     (its featureBus_.read()) for the audio-reactive uniforms
     //   - time: current time in seconds
     //   - resolution: viewport width/height
     //   - defaultFBO: the framebuffer to render the final result to
@@ -62,24 +101,20 @@ public:
                 ShaderManager& shaderMgr,
                 TextureManager& texMgr,
                 FullscreenQuad& quad,
+                EffectChainGLState& glState,
+                const FeatureSnapshot& snap,
                 float time,
                 float width, float height,
                 GLuint defaultFBO,
                 float vpX = 0.0f, float vpY = 0.0f,
                 float vpW = 0.0f, float vpH = 0.0f);
 
-    // Get the previous frame's texture (for temporal effects like Ghost Trails).
-    // Returns the texture from the last completed render, or 0 if none.
-    GLuint getPreviousFrameTexture() const { return prevFrameTexture_; }
-
-    // Set the latest audio feature snapshot for audio-reactive effects.
-    // The snapshot is copied; call each frame before render().
-    void setLatestSnapshot(const FeatureSnapshot& snap) { latestSnapshot_ = snap; }
-
 private:
     // Upload an effect's parameters as uniforms
     void uploadEffectUniforms(juce::OpenGLShaderProgram* program,
                               ShaderManager& shaderMgr,
+                              EffectChainGLState& glState,
+                              const FeatureSnapshot& snap,
                               const Effect& effect,
                               float time, float width, float height);
 
@@ -88,16 +123,6 @@ private:
                      float dryWet,
                      ShaderManager& shaderMgr, FullscreenQuad& quad,
                      GLuint targetFBO, float width, float height);
-
-    // Owned VALUE (R7, featurebus-thread-safety-design.md): a copy parked
-    // here can never dangle, unlike the previous caller-stack pointer that
-    // outlived render(). PRE-EXISTING cross-GL residual, unchanged in class
-    // by R7: this chain is shared with the OutputWindow's GL thread, which
-    // reads these fields while the main GL thread refreshes them each frame
-    // (unsynchronized — worst case a torn/stale UNIFORM value for one
-    // frame, never a dangling read). Ownership belongs to the OutputWindow
-    // arc (spec R10 / scout-outputwindow-glcrash.md).
-    FeatureSnapshot latestSnapshot_{};
 
     // effects_ is structurally mutated by addEffect() (called from
     // Renderer::initEffectChain() on the GL thread) and read from the GL
@@ -133,30 +158,23 @@ private:
     // hot-path cost, unlike the narrow scan this mutex currently guards) and
     // would need every UI/API writer updated too — a bigger design pass
     // (atomics per field, or a snapshot/double-buffer scheme matching the
-    // Composition-mutation LAW pattern), not a same-commit tack-on. Queued
-    // as a follow-up candidate alongside the per-renderer EffectChainGLState
-    // refactor (.harmony/scout-outputwindow-glcrash.md R1/R3) and the
-    // FeatureBus snapshot-parking design
-    // (.harmony/specs/featurebus-thread-safety-design.md R7) — both queued
-    // for the next session.
+    // Composition-mutation LAW pattern), not a same-commit tack-on.
+    // KNOWN-DEFERRED residual, recorded in
+    // .harmony/specs/outputwindow-arc-design.md (A2): EffectParam::value
+    // stays a plain float; this msg→GL scalar-crossing set is the documented
+    // deferred list for the TSan gate. (The per-context GL state — uniform
+    // location cache + prevFrame FBO — moved to EffectChainGLState above,
+    // same design doc W1; the shared parked snapshot was replaced by the
+    // per-caller snapshot parameter, W2.)
     mutable std::mutex effectsMutex_;
     std::vector<std::unique_ptr<Effect>> effects_;
 
-    // Previous frame texture for temporal effects (P13.2)
-    // Stores the output of the last completed render for use by temporal effects.
-    GLuint prevFrameTexture_ = 0;
-    GLuint prevFrameFBO_ = 0;
-    int prevFrameWidth_ = 0;
-    int prevFrameHeight_ = 0;
-
-    void ensurePrevFrameFBO(int width, int height);
-    void savePreviousFrame(GLuint sourceTexture, int width, int height,
+    void ensurePrevFrameFBO(EffectChainGLState& glState, int width, int height);
+    void savePreviousFrame(EffectChainGLState& glState,
+                           GLuint sourceTexture, int width, int height,
                            FullscreenQuad& quad, ShaderManager& shaderMgr);
 
-    // P13.5.11: Cached uniform locations (program ID + uniform name → location)
-    // Key: (programID << 32) | hash(uniformName)  — simplified to string key
-    std::unordered_map<std::string, GLint> uniformLocationCache_;
-
-    GLint getCachedUniformLocation(juce::OpenGLShaderProgram* program,
+    GLint getCachedUniformLocation(EffectChainGLState& glState,
+                                   juce::OpenGLShaderProgram* program,
                                    const char* uniformName);
 };

@@ -1777,6 +1777,13 @@ MainComponent::~MainComponent()
     // just moves the first detach earlier.
     previewPanel_.getRenderer().detach();
 
+    // W3 (outputwindow-arc, scout R5): the second GL context obeys the same
+    // shutdown law — end its GL activity HERE, before any teardown below,
+    // not 17 members later when outputWindow_.reset() runs. detach() is
+    // idempotent, so the reset() further down stays where it is.
+    if (outputWindow_)
+        outputWindow_->getRenderer().detach();
+
     // Drop undo history on shutdown: commands hold model snapshots that must
     // not outlive the composition/renderer they refer to.
     undoManager_.clear();

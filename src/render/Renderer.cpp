@@ -107,6 +107,16 @@ void Renderer::newOpenGLContextCreated()
 
     quad_.init();
     initShaders();
+
+    // W7(iv) outputwindow-arc: one-shot per-context program-ID log. Compare
+    // against the [OutputRenderer] lines when the output window opens —
+    // overlapping ID sets confirm (disjoint sets refute) scout R1's INFERRED
+    // cross-context program-ID collision claim.
+    for (const char* name : { "passthrough", "hue_shift", "vignette" })
+        if (auto* p = shaderMgr_.getProgram(name))
+            std::cerr << "[Renderer] programID(" << name << ")="
+                      << p->getProgramID() << std::endl;
+
     initEffectChain();
     compositor_.initGL(1920, 1080); // Will resize as needed
     compositor_.setEffectLibrary(&effectLibrary_);
@@ -478,10 +488,12 @@ void Renderer::renderOpenGL()
         return;
     }
 
-    // P18: provide audio snapshot to effect chain for audio-reactive effects
-    effectChain_.setLatestSnapshot(snap);
+    // P18: pass this renderer's own snapshot copy for audio-reactive
+    // uniforms (W2: the shared parked snapshot is gone — each GL context
+    // reads the bus itself) and this context's own GL state (W1).
     effectChain_.render(sourceTexture,
                         shaderMgr_, texMgr_, quad_,
+                        effectChainGLState_, snap,
                         time, renderW, renderH,
                         static_cast<GLuint>(defaultFBO),
                         vpX, vpY, vpW, vpH);
@@ -710,6 +722,12 @@ void Renderer::openGLContextClosing()
     }
 
     compositor_.releaseGL();
+
+    // W1: Release this context's EffectChain GL state (prevFrame FBO +
+    // uniform location cache). The cache MUST die with the context — the
+    // recreated context recompiles all programs, and stale program-ID-keyed
+    // locations would poison lookups against the new programs.
+    effectChainGLState_.release();
 
     // P25: Release composition transform FBO
     if (compTransformFBO_ != 0) { glDeleteFramebuffers(1, &compTransformFBO_); compTransformFBO_ = 0; }

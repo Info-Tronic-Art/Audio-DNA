@@ -48,6 +48,11 @@ private:
     FullscreenQuad quad_;
     ShaderManager shaderMgr_{glContext_};
     TextureManager texMgr_;
+    // This context's own EffectChain state (uniform location cache +
+    // temporal prevFrame FBO) — the shared EffectChain carries no per-context
+    // GL state anymore (EffectChainGLState, EffectChain.h). Released in
+    // openGLContextClosing().
+    EffectChainGLState effectChainGLState_;
 
     double startTime_ = 0.0;
 

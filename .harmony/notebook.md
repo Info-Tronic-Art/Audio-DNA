@@ -2,6 +2,23 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-08-02 — EffectChainGLState must be release()d on context CLOSE, not just owned per-renderer
+**Files:** src/effects/EffectChain.h (EffectChainGLState), src/render/Renderer.cpp (openGLContextClosing), src/ui/OutputWindow.cpp (openGLContextClosing)
+**Note:** Moving uniformLocationCache + prevFrame quartet per-renderer (W1,
+outputwindow-arc) closes the CROSS-CONTEXT poison, but the pre-move code had a
+second, same-context poison nobody had named: the shared cache was NEVER
+cleared across context RECREATION (hide/show → JUCE synchronous detach →
+re-attach recompiles all ~80 programs), so program-ID-keyed locations from the
+dead context were served against the new context's recycled program IDs, and
+ensurePrevFrameFBO's `texture != 0 && size matches` early-out could keep
+binding a DEAD texture name in the new context forever. That is why
+EffectChainGLState::release() is called from BOTH renderers'
+openGLContextClosing() — per-context state must die with the context
+generation, not just live per-renderer. Any future per-context state bundle
+here needs the same close-hook or it re-arms this class.
+**Valid while:** EffectChainGLState exists and JUCE recreates GL contexts on
+hide/show (juce_OpenGLContext componentVisibilityChanged → detach).
+
 ## 2026-08-02 — Seqlock "last-good fallback" MUST be per-reader state; bounded retry exhausts under preemption, not just cadence math
 **Files:** src/features/FeatureBus.cpp (read()/readIfNewer), tests/test_feature_bus.cpp (multi-reader case)
 **Note:** The S2 seqlock's 4-attempt bounded retry was sized by cadence math
