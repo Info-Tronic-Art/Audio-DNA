@@ -169,16 +169,57 @@ on local main, still awaiting a review-before-push.
   the same tick, gated on a SignalRegistry thread audit. Until then ROUTED params still
   freeze on preview detach (and autopilot pauses — pre-existing). Pre-existing race
   captured: `.harmony/ow-c1-signalregistry-race.log` (SignalRegistry.cpp:154 evaluateAll).
-- **NEW — PresetManager cross-build retarget hazard.** `loadPreset` restores RAW saved
-  effect indices (PresetManager.cpp:212, saved at :113). A preset saved by a different
-  build can silently retarget mappings to the WRONG effect. Pre-existing, unaffected by C3,
-  surfaced by the A4 redteam. Suggested fix: name-based mapping restore mirroring the
-  effect restore's name matching at PresetManager.cpp:162-166. No preset version guard
-  found (INFERRED — worth confirming).
-- **Eyes reactivity 3/4 failing** — A/B-proven PRE-EXISTING (fails identically at 7bb5cc2),
-  UNDIAGNOSED. Strong lead: `u_bass` reads `bandEnergies[1]` (ProceduralSource.cpp:161,
-  CompositorEngine.cpp:1410) while the battery injects `[0]`. If the shader side is wrong,
-  live bass reactivity is mis-banded on the rig.
+- **NEW — PRESET/BINDING SILENT RETARGET. Assessed 2026-08-03: LATENT but probably ALREADY
+  BITING. High priority; Boris-visible.** `loadPreset` restores RAW saved effect indices
+  (PresetManager.cpp:212-213, saved at :113) while the EFFECT restore right above it already
+  name-matches (:162-179) — that asymmetry is the bug.
+  **Why "append-only is safe" does NOT apply here:** the chain is built by CATEGORY GROUPING
+  over a fixed 11-category order (Renderer.cpp:1518-1534), so appending to the end of
+  EffectLibrary.cpp lands MID-CHAIN. The 3 newest defs (EffectLibrary.cpp:794-811) are
+  pattern/glitch — categories 4th-5th of 11 — so ~100 downstream effects shifted when they
+  landed. **Presets saved before those additions already mis-target today** if their mappings
+  pointed past the insertion point.
+  **Fails SILENT, not safe:** out-of-range would no-op (MappingEngine.cpp:161-165,
+  EffectChain.cpp:29-35), but with 135 effects and shifts of 1-3 positions a stale index is
+  almost always still IN range — driving the WRONG effect's param. Silent-wrong dominates.
+  **No guard exists:** savePreset writes "version",1 (PresetManager.cpp:76); loadPreset never
+  reads it. No count check, no validation, no migration.
+  **SAME BUG IN BindingManager** (Binding.h:85 `int targetEffectIndex`, raw save/load at
+  BindingManager.cpp:238/282) — key bindings mis-target identically. Should ride the same fix.
+  Also unaudited: SessionRecorder.cpp:212 writes a version field; unknown whether it
+  serialises effect indices.
+  **FIX (designed, ONE COMMIT, PresetManager.cpp only):** additionally save
+  `targetEffectName` (unique across the chain — verified, 135 effects, no duplicate names)
+  and `targetParamName`; KEEP writing the old int fields so new presets stay loadable by old
+  builds. On load, resolve by name into the existing index fields (MappingTypes.h stays
+  index-based — no engine change, no hot-path change). Name absent → fall back to today's
+  raw-index path, and the next save upgrades the file. Name present but not found → DROP the
+  mapping and log (Mapping has no field to carry an unresolved name, so "keep disabled" would
+  retain a bogus index that re-enabling silently mis-drives). Bump version to 2 and START
+  READING it. Unavoidably lossy: an OLD preset saved against a DIFFERENT effect list cannot
+  be re-keyed — the name was never written.
+  **Before relying on it:** param-name uniqueness within an effect was spot-checked, not
+  exhaustively scanned — add a save-time assert or do a one-off check across all 135 defs.
+- **Eyes reactivity 3/4 failing — DIAGNOSED 2026-08-03. The rig is FINE; the cause is a
+  product gap.** The `u_bass` mis-banding worry is CLOSED: `bandEnergies[1]` IS the canonical
+  Bass band (60-250Hz, SpectralFeatures.cpp:18-23; corroborated by SignalRegistry.cpp:21,
+  the UI meter labels at AudioReadoutPanel.h:68 / SpectrumDisplay.h:34, and
+  MappingEngine.cpp:64-70). All three shader upload sites agree (ProceduralSource.cpp:161/164/167,
+  CompositorEngine.cpp:1410-1412, EffectChain.cpp:325/327/329). **No live bass mis-banding.**
+  TWO REAL DEFECTS instead:
+  1. **Test bug (trivial):** `tests/visual/test_audio_reactivity.py:33` injects index 0 = Sub
+     when simulating "Bass". Should be index 1. Fixing this ALONE will not make the test pass.
+  2. **PRODUCT GAP (the substantive one, needs a Boris ruling):** several shaders DECLARE audio
+     uniforms and never USE them — GLSL strips unused uniforms, the location lookup returns -1,
+     nothing uploads, nothing moves. `u_beatPhase` is declared in 3 shaders
+     (EmbeddedShaders.h:2824, :6172, :3042) and used in ZERO. `u_bass` is consumed only in
+     sourceAudioWaveform (:3062, :3089), declared-unused in sourceMandelbrot (:2823). The
+     ripple / hueShift / chromaticAberration effects declare NO `u_rms` at all (:222, :246, :551).
+     Net: some visuals advertised as audio-responsive are not consuming audio.
+     Why this diagnosis is trustworthy: it predicts the pass/fail split exactly — `u_rms` IS
+     genuinely used in all 6 sources, and the RMS test is the one that passes.
+     **Boris call:** which sources/effects SHOULD be audio-reactive, and how strongly. That is
+     a product/taste decision, not a technical one. Do not "fix" it by wiring every uniform in.
 - **S3 field atomics** — after S2 survives real use.
 - ID-based selection remap · full §3 APP-INVENTORY row pass (TWO dated delta blocks in §2:
   07-30 + 08-02) · empty-string AUDIODNA_API_BIND fallback (nit).
@@ -264,3 +305,61 @@ nothing; e2e client class is `VJAppController`; TCC mic prompt can re-fire after
 "ignored" WARNING and still stages tracked files; do not read that as failure (it breaks
 `&&` chains, which cost this session two commit attempts). New knowledge files need a
 one-time `git add -f`.
+
+---
+
+# ADDENDUM — C3 SHIPPED (same session, 2026-08-03a, after the budget extension)
+
+**`c51aff7` feat(mapping): message-thread mapping tick @120Hz (OW arc C3: W5+A4+A6).**
+The OutputWindow arc is COMPLETE: C1 `88af683` · C2 `fcad6d0` · C3 `c51aff7`.
+Ahead of origin/main by **97**. Nothing pushed.
+
+**Full-tier gate — BOTH halves closed:**
+- Behavioral (Harmony, who did not build): forced-rebuild Release, 0 errors, no new
+  warnings · **independent ctest 193/193** (her own run, not the builder's claim) ·
+  **probe states 1-4 ALL PASS**. States 3-4 flipped from the fail-first capture WHILE the
+  detach oracle still reported the preview context dead (HTTP 500 after 5.0s) — the states
+  did not get easier. Builder additionally ran Debug/ASan with jasserts live: 1478
+  assertions, none fired.
+- Independent source review: **PASS, 0 blocking, 1 minor.** The reviewer specifically
+  verified the timer-lifetime risk: member order is analysisThread_ → previewPanel_ →
+  mappingTickTimer_, so the timer is DESTROYED FIRST, and juce::Timer::~Timer()
+  unconditionally stops itself. No window to fire against half-destroyed members.
+
+## CARRIED MINOR — do this first, it is one line
+**`src/mapping/MappingEngine.h:21`** still reads *"Called on the render thread each frame."*
+That is now FALSE — the sole caller is the message-thread MappingTickTimer
+(MainComponent.cpp:2420). Deliberately NOT in `c51aff7`: the fix was dispatched but had not
+landed when the session hit its context budget, and only gate-verified files were committed.
+A builder was asked to rewrite it AND to scan the rest of that header for other
+threading claims C3 made false. **Check whether an uncommitted edit to that header is
+sitting in the working tree before redoing it.** This is the exact "stale comment survives
+as a lie" pattern this arc exists to treat — it should not survive another session.
+
+## GATE GAPS — NOT run, recorded honestly. Close these before calling the arc done.
+1. **W7(iii) EMA parity** — attached-state step-response time constant vs the pre-change
+   measurement. NOT MEASURED. Risk: kMappingTickHz=120 was chosen to match the measured
+   ~119.8fps rate precisely because the Smoother has no dt term, so the tick rate IS the
+   time constant; JUCE rounds 120Hz to 8ms (~125Hz). If that shift matters, every mapped
+   param's smoothing feel moves slightly. **Boris's rig-feel check is the real arbiter.**
+2. **TSan 2-context app drive** (design A2 bar: no NEW finding classes). NOT RUN —
+   build-tsan needs a full rebuild and is configured TEST_SERVER=OFF (production mode).
+   Risk LOW by construction: C3 strictly REMOVES cross-thread access (deletes a GL-thread
+   processFrame call and a GL-thread clearAll, adds confinement asserts) so it should
+   REDUCE findings. But "should" is not "measured."
+
+## NEXT PRIORITIES (revised)
+1. The carried minor above (one line).
+2. Close the two gate gaps.
+3. **Preset/binding silent retarget** — design is written in the ledger above; ONE commit,
+   PresetManager.cpp only. Possibly already biting Boris's saved presets. Verify param-name
+   uniqueness across all 135 effects first.
+4. Boris rulings: audio-reactivity scope · the 7-item gesture list (now 5 sessions old).
+5. A1 routing/signal follow-up — and note: if the ROUTED-param/autopilot freeze is what
+   Boris actually notices on stage, A1 should jump this queue.
+
+## SESSION NOTE
+Two agents' findings this session were things nobody asked for and both matter more than
+the task that surfaced them: the audio-reactivity product gap (shaders declaring uniforms
+they never consume) and the preset/binding silent retarget. Red-teaming a ruling you
+already like keeps paying — the A4 redteam confirmed the ruling AND found the preset bug.
