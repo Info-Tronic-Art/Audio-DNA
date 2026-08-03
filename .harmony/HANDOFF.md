@@ -3,142 +3,128 @@
 ## NEXT-HARMONY — BIRTH PROMPT & PERSONA
 
 You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL
-live audio-reactive VJ app). Session 2026-08-02 closed 5 lanes full-tier at 22% ctx
-(~16 commits local, NOT pushed; tests 188→189): (1) SYPHON IS REAL — the dormant
-May-18 server was a silent no-op (missing compile-time -F on a __has_include gate);
-now: SDK vendored via pinned FetchContent (SHA 71351d4b, BSD-3 attributed), build
-default ON, REST toggle/status (GET /api/syphon, POST /api/set_syphon), headless
-`syphon-check` CLI, behaviorally gated (announce/retire proven live, quit-under-load
-clean, zero .ips). (2) FeatureBus CAS → acq_rel (single-reader race closed,
-TSan-proven before/after). (3) THREAD-SAFETY DESIGN RATIFIED by blind council →
-`.harmony/specs/featurebus-thread-safety-design.md` (R1-R10) — seqlock+value-copy,
-pointer handout dies. (4) API hardened: bind 127.0.0.1 default (AUDIODNA_API_BIND
-env restores wide), /api/inject_features UNREGISTERED in production, enums clamped.
-(5) OutputWindow micro: duplicate cross-thread processFrame DELETED (reviewer FAIL
-found a real residual — see KNOWN LIMITATION — adjudicated keep+document; R10 queued).
-Full narrative: `.harmony/sessions/2026-08-02-syphon-lane-secondary.md` (entry labels
-authoritative over position). Dossiers: scout-syphon-renderer.md · scout-syphon-sdk.md
-(carries a shallow-fetch erratum) · scout-outputwindow-glcrash.md.
+live audio-reactive VJ app). Session 2026-08-02b (secondary, slim) closed 2 lanes
+full-tier at ~33% ctx — 3 commits local, NOT pushed (stack now ~52 unpushed; tests
+189→193):
+
+(1) **S2 SEQLOCK — SHIPPED** (`cb4d5fa`). FeatureBus is now a seqlock with
+caller-owned VALUE copies: `alignas(64) atomic<uint64_t> seq_` (odd=publishing) +
+`atomic<uint32_t>[80]` payload, writer-private staging, bounded retry (4 attempts,
+in-attempt odd-seq spin) → per-reader-THREAD last-good fallback. `acquireRead/
+getLatestRead/hasNewData/kNewFlag` DELETED (grep-zero). Move-only `FeatureBus::Writer`
+claimed at the `testMode_` branch; double-claim = deterministic invalid handle
+(jassert'd). R7: Compositor/EffectChain snapshots became owned VALUES (dangling
+defaultSnap escapes gone). R9 evidence in-tree: `.harmony/s2-tsan-before.log` (7 races
++ torn coherence on the OLD protocol) / `s2-tsan-after.log` (clean). Reviewer PASS,
+0 blockers, all latitude mechanisms ratified.
+
+(2) **OUTPUTWINDOW ARC — C1+C2 SHIPPED, C3 IS YOUR START-HERE.** Council-ratified
+design: `.harmony/specs/outputwindow-arc-design.md` (U1-U5, A1-A6, W1-W7, ship order).
+- `88af683` **C1** = per-renderer `EffectChainGLState` (uniformLocationCache_ +
+  prevFrame quartet out of shared EffectChain — kills the 2-GL-thread map UB AND the
+  program-ID location poison), render() takes (GLState&, const FeatureSnapshot&) with
+  shared `latestSnapshot_` DELETED (each renderer reads the bus itself), output detach
+  added to the shutdown law. **Scout R1's INFERRED ID collision is now VERIFIED**:
+  passthrough=2 in BOTH contexts, hue_shift 26 vs 41, vignette 89 vs 104.
+- `fcad6d0` **C2** = single-store `processFrame` (the old reset→accumulate→clamp
+  3-pass published intermediate ZEROS that the second GL thread uploaded live — a
+  pre-existing zero-flash found by the pragmatist council seat) + W6 test-mode
+  mapping routes (`/api/add_mapping`, `/api/remove_mapping`, 8080 ONLY; 7070 = 404
+  verified live). Equivalence: 300-tick lockstep vs a verbatim old-pipeline copy,
+  EXACT float equality, 1262 assertions.
+- `2eaae1b` = knowledge layer (design spec, council record, gate-mechanics gotchas,
+  evidence logs, session record).
+
+Full narrative: `.harmony/sessions/2026-08-02-s2-seqlock-secondary.md` (entry labels
+authoritative over position).
 
 START HERE:
-1. BORIS FEEDBACK FIRST (if any waiting). Two lists may return: (A) the NEW Syphon
-   live-check list — frame content in Simple Client/VDMX (non-black, letterbox right,
-   120fps smooth), eager-announce taste, runtime-default-OFF taste, loopback veto /
-   remote-control question; have him OPEN THE OUTPUT WINDOW during it (exercises the
-   unexercised second-GL crash family + the R2 deletion). (B) the 7-item GESTURE
-   replay list from 2026-07-30 (verbatim below — STILL OUTSTANDING, never processed).
-   PASS → close rows with dated notes; FAIL/odd → receiver-verify on disk BEFORE any
-   fix dispatch.
+
+1. **BORIS FEEDBACK FIRST (if any waiting).** Two lists may return: (A) the Syphon
+   live-check list from 2026-08-02a (frame content in Simple Client/VDMX, eager-announce
+   taste, runtime-default-OFF taste, loopback veto / remote-control question);
+   (B) the 7-item GESTURE replay list from 2026-07-30 (verbatim in the previous handoff
+   revision — STILL OUTSTANDING, never processed, now 4 sessions old). PASS → close rows
+   with dated notes; FAIL/odd → receiver-verify on disk BEFORE any fix dispatch.
+   **NEW for Boris this session** — see "ONLY BORIS CAN CHECK" below.
+
 2. **START HERE — long task, begin at session start (if no Boris feedback waiting):
-   S2 SEQLOCK CONVERSION** — implement `.harmony/specs/featurebus-thread-safety-design.md`
-   R1-R5 + R7 + R9 exactly (council-ratified; do NOT re-litigate the design): seqlock
-   with atomic<uint32_t>-array payload, caller-owned value copies, move-only Writer
-   handle claimed at the MainComponent.cpp:1568 testMode_ branch, delete
-   acquireRead/getLatestRead/hasNewData/kNewFlag, ~16 call sites go one-line, R7
-   persistent snapshot parking (fixes the dangling-stack defaultSnap bug), R9 test
-   gate (multi-reader TSan case DEMONSTRATED racing on the old protocol first;
-   zero suppressions). Full-tier verify; TSan is the behavioral gate.
-3. OUTPUTWINDOW ARC (after S2): scout-outputwindow-glcrash.md R1+R3 (per-renderer
-   EffectChainGLState — kills the 2-GL-thread uniformLocationCache_ UB crash + the
-   programID-collision poison + prevFrame cross-context thrash) + R10 mapping cadence
-   (must survive preview auto-detach — closes the KNOWN LIMITATION) + the output
-   detach reorder beside MainComponent.cpp:1759 (shutdown-order-law intent). Cheapest
-   confirmation the scout named: open the output window under build-tsan with effects
-   active.
-4. BORIS DECISION QUEUE (all pre-analyzed, deliver ONE per ask): source/MilkDrop
+   OUTPUTWINDOW ARC C3** — the cadence change, per `outputwindow-arc-design.md`
+   W5+A4+A6+W6-follow-through. Do NOT re-litigate the design (3-seat blind council,
+   chair-adjudicated).
+   **GATE STEP 1 (BLOCKING, do this FIRST): produce the fail-first freeze capture.**
+   `.harmony/ow-freeze-before.log` currently holds ONLY probe states 1-2 (both PASS).
+   States 3-4 (preview DETACHED via SignalBar expand, output closed / open) must be
+   captured FAILING before C3 lands — R9 doctrine. I could not produce it: the
+   SignalBar cycler is the documented ~15px synthetic-click flake AND the app would
+   not take frontmost focus (a coordinate click landed in the terminal; AX button
+   enumeration returned empty). **Cheapest path: ask Boris to expand the SignalBar
+   by hand (2 seconds), then run the two commands** (they are in the C2 builder report
+   and the probe file header):
+     cd tests/visual && AUDIODNA_NO_SPAWN=1 OW_PROBE_STATE=signalbar \
+       ../../.venv/bin/python -m pytest test_mapping_tick.py -v -s
+     (then reopen output via menu Output>"Fullscreen: ... (main)" and repeat with
+      OW_PROBE_STATE=signalbar_output)
+   Detach oracle: `/api/status` fps collapses when the preview GL context detaches —
+   use it to PROVE the state before trusting a FAIL.
+   Then implement W5 (kMappingTickHz=120 named constant — matches the measured
+   119.8fps rig; the Smoother has NO dt term so rate IS the time constant, 60 would
+   double the smoothing feel), the `tickFeaturePipeline()` seam, deletion of the
+   GL-thread processFrame call, A4 (verify minimal's no-op proof for the GL `clearAll`
+   at Renderer.cpp:~1520 — builder flagged a PresetManager::loadPreset lead at
+   MainComponent.cpp:204 that could falsify it; if falsified → callAsync marshal),
+   A6 confinement jasserts. Builder `ow-builder` executed C1+C2 flawlessly under a
+   stage protocol (report → Harmony gate → Harmony commit → next stage) — reuse it.
+
+3. **REVIEW STATUS — READ BEFORE PUSHING ANYTHING.** An independent full-arc source
+   review of C1+C2 was dispatched at the end of this session; its verdict may not have
+   landed before close. CHECK for it and fold it in before C3 builds further. If no
+   verdict is recorded below this line, RE-DISPATCH the review (packet shape is in the
+   session record) — C1+C2 have my behavioral gates (ctest 193/193 ×2 trees
+   independently rebuilt, live TSan app drive with 2 GL contexts, live probe states
+   1-2) but the source-review half of the full-tier gate is unconfirmed.
+
+4. **BORIS DECISION QUEUE** (all pre-analyzed, deliver ONE per ask): source/MilkDrop
    retrigger-restart scope · column-trigger retrigger parity · Cut/Copy/Paste suite
    (menu enums RESERVED at MenuBarModel.h:76-80) · playlist mode-gate consistency ·
-   reset ~5s latency taste · + NEW from this session: eager-announce, runtime
-   default/persistence, remote-control+token.
-5. REMAINING QUEUED FOLLOW-UPS: ID-based selection remap (Layer has stable uint32_t
-   id; CellPos lacks plumbing) · full §3 APP-INVENTORY row pass (TWO dated delta
-   blocks now sit in §2: 07-30 + 08-02) · S3 field atomics (design doc, after S2
-   survives real use) · empty-string AUDIODNA_API_BIND explicit fallback (nit, next
-   time ApiServer.cpp opens).
-6. VERIFICATION DOCTRINE (in force, extended this session): FORCED REBUILD before any
-   ctest claim · `git commit --only <files>` (graphify-out churn NEVER swept) ·
-   subagent idle-without-report → nudge (hit 6/6 this session — budget a nudge per
-   agent) · multi-lane shared tree: behavioral gate WAITS until ALL lanes commit
-   (chimera-tree rule; reviewers may start early on commits) · exit-proof = pgrep -x
-   + port-free (pgrep -f self-matches its own wrapper) · ledger appends anchor on the
-   CURRENT FINAL LINE (anchor-reuse scrambles order).
+   reset ~5s latency taste · eager-announce · runtime default/persistence ·
+   remote-control+token.
 
-THE 7-ITEM REPLAY LIST (verbatim, from 2026-07-30):
-  a. Drag an effect onto a layer's CHANNEL STRIP (single + multi-select) → lands in
-     that layer's FX stack, ONE Cmd+Z restores.
-  b. Finder-drop 2 videos + 1 image together → all three land, ONE Cmd+Z removes all.
-  c. Cmd+X with a cell selected (clears) / with nothing selected (clean no-op).
-  d. Click a PLAYING video cell → visibly restarts from in-point.
-  e. Header-drag "Energetic (9)" → cell reads "MilkDrop Playlist (9)"; the 3 playlist
-     knobs (cycle/timing/blend) now actually change what lands.
-  f. Autopilot over a SOURCE cell → advances off it (was frozen forever).
-  g. Genre auto-switch to an empty deck → preview goes blank (no ghost clip).
+5. **QUEUED FOLLOW-UPS** (unchanged unless noted): ID-based selection remap · full §3
+   APP-INVENTORY row pass (TWO dated delta blocks in §2: 07-30 + 08-02) · S3 field
+   atomics (after S2 survives real use) · empty-string AUDIODNA_API_BIND fallback (nit)
+   · **NEW: A1 routing/signal follow-up** — extract RoutingEngine + SignalRegistry
+   evaluation onto the same tick as mapping, gated on a SignalRegistry thread audit;
+   until then ROUTED params still freeze on preview detach. A pre-existing race is
+   already captured: `.harmony/ow-c1-signalregistry-race.log` (SignalRegistry.cpp:154
+   `evaluateAll`, seen twice under TSan) · **NEW: Eyes reactivity triage** — 3 of 4
+   reactivity tests fail identically at HEAD *and* at 7bb5cc2 (A/B-proven pre-existing,
+   NOT S2/arc debt). Reviewer found a concrete lead: `u_bass` uploads
+   `bandEnergies[1]` (ProceduralSource.cpp:161, CompositorEngine.cpp:1410) while the
+   battery injects `bandEnergies[0]`. **If the shader index is the wrong side, live
+   bass reactivity is mis-banded on the rig** — worth an early look.
 
-Standing rules: do NOT push (entire local stack, now ~49 commits since last push);
-conform to ClipCommands.h/DeckCommands.h/EffectCommands.h/TriggerCommands.h/
-UndoService patterns at HEAD; structural-mutation commands carry a fence (notebook
-LAW); launch ONLY via `open` (port 7070 binds ~12s; poll /api/health); SIGKILL
-disposable instances; SYNTHETIC-CLICK PREFLIGHT (gotchas 11) before any click burst;
-NEW gotcha: .harmony/ is gitignored-but-tracked — new knowledge files need one-time
-`git add -f` (Harmony owns those commits); TCC mic prompt can re-fire on first launch
-after any rebuild (ad-hoc signing) — screencapture-diagnose if port never binds.
+## ONLY BORIS CAN CHECK (this session's additions)
+- **Mapping response FEEL after C3** (kMappingTickHz=120 was chosen to preserve the
+  measured incumbent rate; only his eye/ear confirms the smoothing feel is unchanged).
+- **SignalBar-expanded freeze demo** (2-second manual layout change unblocks the
+  blocking C3 gate step above — no gate can substitute).
+- Whether ROUTED-param and autopilot freezing on preview detach (both still open,
+  recorded residuals) is acceptable to ship with, or should jump the queue.
 
-## PRIMER
-- Design of record: `.harmony/specs/featurebus-thread-safety-design.md` (R1-R10 +
-  staging + council record + Boris items).
-- Dossiers: scout-syphon-renderer.md · scout-syphon-sdk.md (pin/API/pitfalls +
-  erratum) · scout-outputwindow-glcrash.md (top-3 ranked, .ips cross-check).
-- Session ledger: sessions/2026-08-02-syphon-lane-secondary.md.
-- Syphon quick-drive: enable via menu or `curl -X POST -d '{"enabled":true}'
-  localhost:7070/api/set_syphon`; verify announce: `./build/tests/syphon-check
-  "Audio-DNA" 1.0` (exit 0 = announced).
-
-## LOOSE ENDS (adversarial — what is NOT done / not sure)
-- Boris-only checks NOT run: Syphon frame CONTENT in a real client (gate proves
-  announcement, not pixels); output-window live exercise (crash family UNEXERCISED,
-  not disproven); test-mode clamp behavior live (structurally verified only).
-- 7-item gesture replay list from 07-30: STILL OUTSTANDING, zero feedback processed.
-- KNOWN LIMITATION shipped deliberately: SignalBar expanded (preview hidden) while
-  output window open → mapping params FREEZE on output until reattach (R10 queued;
-  comment in OutputWindow.cpp:111-127 states it).
-- Eager-announce: server visible to clients at boot with toggle OFF (taste ruling
-  pending; announce-on-enable is a design change if Boris wants it).
-- Env-var edge: empty-string AUDIODNA_API_BIND stays loopback only by coinciding
-  defaults (reviewer-inferred, not behaviorally tested; explicit fallback queued).
-- build-asan cache NOT reconfigured (still pre-flip defaults); build-tsan refreshed
-  but does NOT build syphon-check (its negative ctest is absent there).
-- Doc drift (pre-existing, flagged not fixed): tests/README.md:85 claims ApiServer.cpp
-  ≤900 lines (actual 1017); FFTProcessor _USE_MATH_DEFINES warning.
-- `.audit/features-gap-fill/` untracked dir of unknown provenance — untouched,
-  unowned; next session should identify or route it.
-- touched-repos.sh session-scoping gap (filed as system candidate; REPO_ROOT was
-  resolved by session evidence this close).
-
-## META-LEARNINGS (distilled from log-event rows pushed in-session)
-- pgrep -f/-if self-matches its own shell wrapper → false STILL-RUNNING verdicts;
-  exit-proof = pgrep -x + lsof port check (two sources).
-- Multi-lane shared worktree: behavioral gates wait for ALL lanes to commit
-  (chimera-tree); reviewers start early on commit diffs.
-- Idle-without-report is the NORM (6/6 agents) — budget one nudge per agent.
-- Ledger appends: anchor Edit on the current FINAL line; mid-file anchor reuse
-  scrambles order and can fuse entries.
-- touched-repos.sh lists standing dirt, not session touches — REPO_ROOT disambiguation
-  needs session evidence (commits/ledger/handoff origin).
-
-## CHANNEL HARVEST (what left this session, by lane)
-- harmony2 event log (lane-A legal, transient telemetry): 5 learning rows
-  (gate-probe-pgrep-exact · ledger-append-anchor-reuse · subagent-nudge-norm ·
-  multi-lane-gate-sequencing · touched-repos-session-scope).
-- Boris idea sweep (R2 backstop): RAN — zero uncaptured idea-class statements (only
-  directives: "go with recs work till 40% ctx used then eos"); idea-ledger unchanged.
-- Project-local: this handoff + session ledger + APP-INVENTORY 08-02 delta + new
-  gotcha (.harmony force-add convention) + design doc R1-R10 + 3 dossiers.
-
-## WHERE WE ARE IN THE BUILD
-<!-- caveman positional status — Boris-facing, skimmable -->
-BUILD: Audio-DNA live VJ app — hardening the concurrency core + making Syphon output real (post-13-item-queue polish phase)
-SHIPPED: Syphon output functional end-to-end (vendored SDK, ON by default, REST toggle, verify CLI) · FeatureBus single-reader race fixed (TSan-proven) · thread-safety redesign ratified + committed (R1-R10) · API locked to loopback + injection gated out of production · OutputWindow flicker/race call deleted · 3 recon dossiers · tests 189/189
-IN-FLIGHT: none — all 5 lanes closed full-tier, no half-done code
-NEXT: S2 seqlock conversion (next session #1, START HERE) · OutputWindow R1/R3+R10 arc · Boris: Syphon eyeball check + 7-item replay + decision queue
-BLOCKERS: none for build; Boris-only items (live checks + taste rulings) gate the polish
-YOU ARE HERE: core features complete and gated; one ratified concurrency rewrite + one output-window hardening arc from "structurally sound under load", then back to feature polish
+## STANDING RULES (unchanged)
+Do NOT push (~52 local commits). Conform to ClipCommands.h/DeckCommands.h/
+EffectCommands.h/TriggerCommands.h/UndoService patterns at HEAD; structural-mutation
+commands carry a fence (notebook LAW); launch ONLY via `open` (7070 binds ~12s in
+Release, ~2s warm; poll /api/health); SIGKILL disposable instances; SYNTHETIC-CLICK
+PREFLIGHT (gotchas 11) before any click burst; `.harmony/` is gitignored-but-tracked —
+new knowledge files need one-time `git add -f`; TCC mic prompt can re-fire after a
+rebuild. **NEW gate mechanics (gotchas, 2026-08-03):** build-tsan is configured
+TEST_SERVER=OFF (TSan app runs are production-mode, mic-driven); open the output
+window via menu AXPress Output>"Fullscreen: ... (main)" and close via Output>
+"Disabled" (Cmd+F/Escape get swallowed); VERIFY frontmost before any coordinate click;
+a TSan build that reported races ABORTS at exit (SIGABRT + .ips) — that is the
+sanitizer, not a product crash; `.ips` files land with a DELAY so an immediate
+post-quit check proves nothing; TestServer binds `::1` (probe via `localhost`);
+e2e client class is `VJAppController`; `git commit --only` cannot stage NEW files
+(`git add` them first).
