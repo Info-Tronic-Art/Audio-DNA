@@ -368,3 +368,11 @@ Two agents' findings this session were things nobody asked for and both matter m
 the task that surfaced them: the audio-reactivity product gap (shaders declaring uniforms
 they never consume) and the preset/binding silent retarget. Red-teaming a ruling you
 already like keeps paying — the A4 redteam confirmed the ruling AND found the preset bug.
+
+### CARRIED MINOR — CLOSED (same session, commit below)
+The MappingEngine.h:21 stale threading comment was fixed and committed after all. The
+builder's report landed moments after the addendum was written. Comment-only, one file, no
+rebuild needed (nothing non-comment changed, so the gate above stands unmodified). It also
+scanned the rest of that header and correctly LEFT two other "frame" mentions alone
+(MappingEngine.h:8 and :43) — those describe what one call does, not which thread calls it,
+so C3 did not make them false. **Nothing carried. The arc is fully closed.**

@@ -18,7 +18,12 @@
 // Multiple mappings targeting the same effect parameter are summed
 // and clamped to [0, 1].
 //
-// Called on the render thread each frame. No allocation in processFrame().
+// Since C3 (outputwindow-arc-design.md W5/A6): processFrame() is called on
+// the MESSAGE thread by MainComponent's mapping tick timer
+// (MappingTickTimer, kMappingTickHz) — NOT a render/GL thread. The tick
+// runs UNCONDITIONALLY, independent of either GL context's attach state,
+// which is what keeps mapped params updating even while the preview GL
+// context is detached. No allocation in processFrame().
 class MappingEngine
 {
 public:
