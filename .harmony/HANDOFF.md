@@ -10,10 +10,15 @@ after Boris extended the context budget mid-session — BUILT AND SHIPPED C3 ITS
 **The OutputWindow arc is COMPLETE.** See the ADDENDUM at the end of this file, which is
 authoritative over the C3 sections below (those were written before C3 was built and
 describe it as pending — they are preserved for their scope/constraint detail, not their
-status). FOUR commits local: `0cc2b5a`, `799d97d`, `c51aff7` (C3), `ed0aa91`. NOT pushed.
-Branch main, ahead of origin/main by **98** — VERIFIED at session end via
-`git rev-list --count origin/main..HEAD`. Re-verify, never inherit; this number has now
-been wrong in two consecutive handoffs (`~49`, then `90`).
+status). Session commits: `0cc2b5a` (evidence + AX tooling), `799d97d` (handoff),
+`c51aff7` (**C3**), `ed0aa91` (addendum), `618b29a`, `e76ca9f` (header comment). NOT pushed.
+
+**UNPUSHED COUNT: do not read it here — RUN IT.** `git rev-list --count origin/main..HEAD`
+That number has been wrong in three consecutive handoffs (`~49`, then `90`, then `95`) for
+a structural reason: any commit that corrects the figure immediately invalidates it, so a
+hardcoded count is guaranteed to rot. It is deliberately not written here. The same rule
+applies to every count and line number in this file — the commit SHAs above are stable and
+safe to trust; nothing that changes with each commit is.
 
 ### READ THIS FIRST — inherited "facts" in this repo have a bad track record
 Last session's handoff gave gate-step-1 instructions that could not work as written:
