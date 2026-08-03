@@ -26,3 +26,85 @@ test_mapping_tick.py::test_state3_signalbar_tracks SKIPPED (OW_PROBE...)
 test_mapping_tick.py::test_state4_signalbar_output_tracks SKIPPED (O...)
 
 ========================= 1 passed, 3 skipped in 1.72s =========================
+
+
+================================================================================
+STATES 3 + 4 — FAIL-FIRST CAPTURE (R9 doctrine) — 2026-08-03, session 2026-08-03a
+Captured against PRE-C3 build: HEAD 82a74c1, Release, --test-mode.
+Binary provenance VERIFIED: no file in src/ or tests/ newer than the binary, and
+both trees clean at HEAD. This is genuinely pre-C3 code, not a stale artifact.
+================================================================================
+
+METHODOLOGY CORRECTION — read this before trusting the states 1-2 block above.
+The prior handoff instructed: "use /api/status fps as the detach oracle — it
+collapses when the preview GL context detaches." BOTH HALVES ARE WRONG:
+  * The route is /api/health. /api/status returns EMPTY on port 8080.
+  * fps does NOT collapse on detach. It is stored at exactly one site,
+    Renderer.cpp:181, inside renderOpenGL(). When the context detaches the
+    callback stops, so the last value PERSISTS INDEFINITELY. Measured live this
+    session: with the context PROVABLY dead, fps reported 106.18.
+  * The 2.4e-06 reading in the states 1-2 block above is NOT a detach. fpsTimer_
+    initialises to 0.0 and JUCE's hi-res counter is ms-since-boot, so the first
+    frame computes 1/uptime. 1/2.403e-06 = 416,090s = 4.82 days. Nothing to read
+    into it. State 1 re-measured this session: steady 108-118 fps.
+
+VALID ORACLE USED HERE: POST /api/render_frame. It blocks on a promise fulfilled
+only inside renderOpenGL() (TestServer.cpp:517 -> Renderer.cpp:1543-1583).
+  ATTACHED  => HTTP 200, sub-0.05s.
+  DETACHED  => ~5s timeout, HTTP 500 {"ok":false,"error":"Frame capture failed"}.
+Oracle proven POSITIVE in the known-good state before any negative was trusted.
+
+UI DRIVING: no longer a manual operator step. tests/visual/ax_press.py drives the
+SignalBar via the Accessibility C API (AXPress on the unique "▼"/"▲" buttons).
+AppleScript CANNOT reach these — `entire contents` does not recurse into JUCE's
+nested AXGroups. Glyphs verified from source: SignalBar.cpp:23 grow="▼" (U+25BC),
+:24 shrink="▲" (U+25B2).
+
+--------------------------------------------------------------------------------
+STATE 3 — signalbar (preview DETACHED via SignalBar expand, output CLOSED)
+--------------------------------------------------------------------------------
+  oracle before expand : HTTP=200 t=0.030824   (ATTACHED)
+  ax_press.py "▼"      : Pressed '▼' in 'Audio-DNA.'
+  oracle after expand  : HTTP=500 t=5.007274   (DETACHED — context provably dead)
+  fps in that state    : 106.18                (FROZEN HIGH — the oracle that lies)
+
+  $ AUDIODNA_NO_SPAWN=1 OW_PROBE_STATE=signalbar \
+        ../../.venv/bin/python -m pytest test_mapping_tick.py -v -s
+  test_state3_signalbar_tracks FAILED
+  E  AssertionError: [signalbar] cycle 1: param Perspective Tilt.tilt_x FROZEN at
+     0.5 for 500ms after rms->1.0 — mapping tick is not running in this attach state
+  1 failed, 3 skipped in 2.05s                                          => FAIL (expected)
+
+--------------------------------------------------------------------------------
+STATE 4 — signalbar_output (preview DETACHED, output window OPEN and rendering)
+--------------------------------------------------------------------------------
+  output window opened via System Events menu click:
+    "Fullscreen: 1728x1117 (main)" of menu "Output"    (windows 1 -> 2)
+  output renderer CONFIRMED LIVE: stderr "[OutputRenderer] No image loaded yet
+    (frame 241)" ... "(frame 301)" — the OUTPUT context is rendering at full rate.
+
+  $ AUDIODNA_NO_SPAWN=1 OW_PROBE_STATE=signalbar_output \
+        ../../.venv/bin/python -m pytest test_mapping_tick.py -v -s
+  test_state4_signalbar_output_tracks FAILED
+  E  AssertionError: [signalbar_output] cycle 1: param Perspective Tilt.tilt_x
+     FROZEN at 0.5 for 500ms after rms->1.0 — mapping tick is not running in this
+     attach state
+  1 failed, 3 skipped in 1.97s                                          => FAIL (expected)
+
+  oracle re-checked AFTER the run: HTTP=500 t=5.011427 — preview still detached
+  throughout, while the output window rendered continuously.
+
+--------------------------------------------------------------------------------
+WHY STATE 4 IS THE DECISIVE CASE
+--------------------------------------------------------------------------------
+A second GL context (the output window) was rendering at full rate for the whole
+run, and the mapped param STILL froze. That isolates the freeze to the PREVIEW
+context specifically — the tick is bound to Renderer::renderOpenGL (the deleted
+call at Renderer.cpp:242), not to GL activity in general. Any "some GL thread will
+keep it alive" explanation is refuted by this state.
+
+EXPECTED AFTER C3 (W5 message-thread juce::Timer): all four states PASS, with the
+identical commands and the identical oracle readings for attach state. The oracle
+readings should NOT change — the preview stays detached in states 3/4 after the
+fix too; what changes is that the mapped param tracks anyway.
+================================================================================
