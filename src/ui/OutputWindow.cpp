@@ -8,7 +8,7 @@ using namespace juce::gl;
 // OutputRenderer
 // ============================================================
 
-OutputRenderer::OutputRenderer(FeatureBus& featureBus,
+OutputRenderer::OutputRenderer(const FeatureBus& featureBus,
                                MappingEngine& mappingEngine,
                                EffectChain& effectChain)
     : featureBus_(featureBus),
@@ -99,15 +99,11 @@ void OutputRenderer::renderOpenGL()
         return;
     }
 
-    // Read latest audio features (lock-free)
-    const FeatureSnapshot* snap = featureBus_.acquireRead();
-    if (snap == nullptr)
-        snap = featureBus_.getLatestRead();
-
-    FeatureSnapshot defaultSnap;
-    if (snap == nullptr)
-        snap = &defaultSnap;
-
+    // No FeatureBus read here: this thread's audio uniforms come from the
+    // EffectChain's parked snapshot (refreshed each frame by the main
+    // Renderer, R7). The read that used to sit here fed only the deleted
+    // duplicate processFrame call below.
+    //
     // mappingEngine_.processFrame() is intentionally NOT called here: it
     // raced when both GL threads called it (STATEFUL — Smoother EMA plus a
     // 3-pass reset->accumulate->clamp read-modify-write on the shared
@@ -269,7 +265,7 @@ void OutputRenderer::initShaders()
 // OutputWindow
 // ============================================================
 
-OutputWindow::OutputWindow(FeatureBus& featureBus,
+OutputWindow::OutputWindow(const FeatureBus& featureBus,
                            MappingEngine& mappingEngine,
                            EffectChain& effectChain)
     : DocumentWindow("Audio-DNA Output",

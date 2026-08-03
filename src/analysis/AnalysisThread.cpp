@@ -52,6 +52,12 @@ AnalysisThread::~AnalysisThread()
 
 void AnalysisThread::run()
 {
+    // R4: publishing requires the claimed Writer handle (set by MainComponent
+    // before startThread()). Without it there is nowhere to publish.
+    jassert(featureBusWriter_.isValid());
+    if (!featureBusWriter_.isValid())
+        return;
+
     std::array<float, kHopSize> hopBuffer{};
 
     while (!threadShouldExit())
@@ -93,8 +99,9 @@ void AnalysisThread::run()
         auto stageStart = pipelineStart;
         auto stageEnd = pipelineStart;
 
-        // Acquire write buffer from FeatureBus
-        FeatureSnapshot* snap = featureBus_.acquireWrite();
+        // Acquire the writer-private staging buffer (R3: readers can never
+        // observe this fill in progress, however long it takes)
+        FeatureSnapshot* snap = featureBusWriter_.acquireWrite();
 
         // --- 1. Raw time-domain: RMS, peak ---
         float sumSq = 0.0f;
@@ -300,7 +307,7 @@ void AnalysisThread::run()
                                  / static_cast<double>(kSampleRate);
 
         // === PUBLISH ===
-        featureBus_.publishWrite();
+        featureBusWriter_.publishWrite();
 
         // CPU load: time spent as fraction of hop period
         auto pipelineEnd = std::chrono::high_resolution_clock::now();

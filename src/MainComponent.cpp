@@ -1564,16 +1564,23 @@ MainComponent::MainComponent(bool testMode, int testPort)
     midiHandler_ = std::make_unique<MidiHandler>(bindingManager_);
     midiHandler_->start(audioEngine_.getDeviceManager());
 
-    // Start analysis (skip in test mode — features are injected via HTTP)
+    // Start analysis (skip in test mode — features are injected via HTTP).
+    // R4 (featurebus-thread-safety-design.md): the single FeatureBus Writer
+    // is claimed exactly once, here — production → AnalysisThread, test →
+    // TestServer. createWriter() hands out one move-only handle; a second
+    // claim returns an invalid one, so a second writer cannot appear.
     if (!testMode_)
+    {
+        analysisThread_.setFeatureBusWriter(analysisThread_.getFeatureBus().createWriter());
         analysisThread_.startThread(juce::Thread::Priority::high);
+    }
 
 #if AUDIODNA_TEST_SERVER
     if (testMode_)
     {
         testServer_ = std::make_unique<TestServer>(
             previewPanel_.getRenderer(),
-            analysisThread_.getFeatureBus(),
+            analysisThread_.getFeatureBus().createWriter(),
             composition_,
             previewPanel_.getRenderer().getEffectChain(),
             previewPanel_.getRenderer().getSourceRegistry(),
@@ -1616,6 +1623,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
             tracker->setManualBPM(bpm);
         }
     };
+#if AUDIODNA_TEST_SERVER
+    // R4: test-mode inject_features on the production port relays through
+    // the TestServer-held Writer (the only writer in test mode).
+    if (testMode_ && testServer_)
+        apiServer_->onInjectFeatures = [this](const FeatureSnapshot& snap) {
+            testServer_->injectSnapshot(snap);
+        };
+#endif
     apiServer_->start();
 
     // P22.9: Set up OSC handler callbacks, then start listening (below).
@@ -2824,13 +2839,8 @@ void MainComponent::advanceSlideshow()
         return;
 
     // Read beat phase
-    const auto* snap = analysisThread_.getFeatureBus().acquireRead();
-    if (!snap)
-        snap = analysisThread_.getFeatureBus().getLatestRead();
-    if (!snap)
-        return;
-
-    float phase = snap->beatPhase;
+    const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
+    float phase = snap.beatPhase;
 
     // Detect beat wrap
     if (phase < lastSlideshowBeatPhase_ - 0.5f)
@@ -2993,13 +3003,8 @@ void MainComponent::randomizeAllEffects()
 void MainComponent::beatSyncRandomize()
 {
     // Read current beat phase from the feature bus
-    const auto* snap = analysisThread_.getFeatureBus().acquireRead();
-    if (!snap)
-        snap = analysisThread_.getFeatureBus().getLatestRead();
-    if (!snap)
-        return;
-
-    float phase = snap->beatPhase;
+    const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
+    float phase = snap.beatPhase;
 
     // Detect beat: phase wrapped around (went from high to low)
     bool beatDetected = (phase < lastBeatPhase_ - 0.5f);
@@ -3120,12 +3125,10 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
         // Apply beat snap: sync playhead to current beat phase on trigger
         if (clip->beatSnap && clip->isPlayable())
         {
-            auto& featureBus = analysisThread_.getFeatureBus();
-            const auto* snap = featureBus.acquireRead();
-            if (!snap) snap = featureBus.getLatestRead();
-            if (snap && snap->beatPhase >= 0.0f)
+            const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
+            if (snap.beatPhase >= 0.0f)
             {
-                double beatPos = static_cast<double>(snap->beatPhase);
+                double beatPos = static_cast<double>(snap.beatPhase);
                 clip->playheadPosition = beatPos;
 
                 // Seek the video player or image sequence

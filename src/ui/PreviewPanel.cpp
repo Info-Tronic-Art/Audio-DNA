@@ -1,6 +1,6 @@
 #include "PreviewPanel.h"
 
-PreviewPanel::PreviewPanel(FeatureBus& featureBus)
+PreviewPanel::PreviewPanel(const FeatureBus& featureBus)
     : renderer_(featureBus)
 {
     // Tab buttons

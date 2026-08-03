@@ -10,7 +10,7 @@
 #include <random>
 
 using namespace juce::gl;
-Renderer::Renderer(FeatureBus& featureBus)
+Renderer::Renderer(const FeatureBus& featureBus)
     : featureBus_(featureBus)
 {
 }
@@ -207,19 +207,12 @@ void Renderer::renderOpenGL()
         return; // Nothing to render yet
     }
 
-    // Read latest audio features (lock-free)
-    const FeatureSnapshot* snap = featureBus_.acquireRead();
-    if (snap == nullptr)
-        snap = featureBus_.getLatestRead();
-
-    // Build a default snapshot if none available
-    FeatureSnapshot defaultSnap;
-    if (snap == nullptr)
-        snap = &defaultSnap;
+    // Read latest audio features (R5: coherent caller-owned value copy)
+    const FeatureSnapshot snap = featureBus_.read();
 
     // P16: Evaluate all signals from audio features
     if (signalRegistry_ != nullptr)
-        signalRegistry_->evaluateAll(*snap);
+        signalRegistry_->evaluateAll(snap);
 
     // P16: Process signal routes → write to effect parameters
     if (signalRegistry_ != nullptr)
@@ -236,12 +229,12 @@ void Renderer::renderOpenGL()
     }
 
     // Apply audio→effect mappings via MappingEngine
-    mappingEngine_.processFrame(*snap, effectChain_);
+    mappingEngine_.processFrame(snap, effectChain_);
 
     // P13.5.9: Process autopilot (beat-synced clip advancement + beat snap)
     if (deckActive)
     {
-        bool clipAdvanced = autopilot_.processFrame(*deck, *snap);
+        bool clipAdvanced = autopilot_.processFrame(*deck, snap);
         if (clipAdvanced && onAutopilotAdvanced_)
         {
             // Notify UI thread to refresh deck view
@@ -252,20 +245,20 @@ void Renderer::renderOpenGL()
 
     // P23: Detect genre changes and fire callback
     {
-        uint8_t currentGenre = snap->detectedGenre;
-        if (currentGenre != lastDetectedGenre_ && snap->genreConfidence > 0.1f)
+        uint8_t currentGenre = snap.detectedGenre;
+        if (currentGenre != lastDetectedGenre_ && snap.genreConfidence > 0.1f)
         {
             lastDetectedGenre_ = currentGenre;
             if (onGenreChanged_)
             {
                 auto callback = onGenreChanged_;
                 auto genre = currentGenre;
-                auto conf = snap->genreConfidence;
+                auto conf = snap.genreConfidence;
                 juce::MessageManager::callAsync([callback, genre, conf]() { callback(genre, conf); });
             }
         }
 
-        uint8_t currentStructural = snap->structuralState;
+        uint8_t currentStructural = snap.structuralState;
         if (currentStructural != lastStructuralState_)
         {
             lastStructuralState_ = currentStructural;
@@ -292,8 +285,8 @@ void Renderer::renderOpenGL()
             if (clip->presetPlaylist.size() <= 1) continue;
 
             // Detect beat crossing
-            bool beatCrossing = (snap->beatPhase < lastPlaylistBeatPhase_ - 0.5f);
-            lastPlaylistBeatPhase_ = snap->beatPhase;
+            bool beatCrossing = (snap.beatPhase < lastPlaylistBeatPhase_ - 0.5f);
+            lastPlaylistBeatPhase_ = snap.beatPhase;
 
             if (beatCrossing)
             {
@@ -349,7 +342,7 @@ void Renderer::renderOpenGL()
 
             // Also handle structural transitions (On Drop / On Breakdown)
             if (clip->playlistTrigger == Clip::PlaylistTrigger::OnDrop
-                && snap->structuralState == 2 && lastPlaylistStructState_ != 2)
+                && snap.structuralState == 2 && lastPlaylistStructState_ != 2)
             {
                 clip->presetBeatsPlayed = 0;
                 static std::mt19937 rng(std::random_device{}());
@@ -360,7 +353,7 @@ void Renderer::renderOpenGL()
                     pmSource->loadPreset(clip->presetPlaylist[static_cast<size_t>(clip->presetPlaylistIndex)].presetPath, true);
             }
             if (clip->playlistTrigger == Clip::PlaylistTrigger::OnBreakdown
-                && snap->structuralState == 3 && lastPlaylistStructState_ != 3)
+                && snap.structuralState == 3 && lastPlaylistStructState_ != 3)
             {
                 clip->presetBeatsPlayed = 0;
                 static std::mt19937 rng(std::random_device{}());
@@ -370,7 +363,7 @@ void Renderer::renderOpenGL()
                 if (pmSource)
                     pmSource->loadPreset(clip->presetPlaylist[static_cast<size_t>(clip->presetPlaylistIndex)].presetPath, true);
             }
-            lastPlaylistStructState_ = snap->structuralState;
+            lastPlaylistStructState_ = snap.structuralState;
         }
     }
 
@@ -870,13 +863,9 @@ GLuint Renderer::renderSource(const std::string& sourceId, float time, int width
     }
 
     // Get latest audio snapshot for audio-reactive sources
-    const FeatureSnapshot* snap = featureBus_.acquireRead();
-    if (!snap) snap = featureBus_.getLatestRead();
+    const FeatureSnapshot snap = featureBus_.read();
 
-    FeatureSnapshot defaultSnap;
-    if (!snap) snap = &defaultSnap;
-
-    return source->render(shaderMgr_, quad_, time, width, height, *snap);
+    return source->render(shaderMgr_, quad_, time, width, height, snap);
 }
 
 bool Renderer::openVideoForClip(uint32_t clipId, const juce::File& videoFile)
@@ -980,9 +969,8 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
         if (clip->transportMode == Clip::TransportMode::BPMSync)
         {
             // BPM Sync: adjust speed so video loops in beatDivision beats.
-            const FeatureSnapshot* snap = featureBus_.acquireRead();
-            if (!snap) snap = featureBus_.getLatestRead();
-            if (snap && snap->bpm > 0.0f && clip->beatDivision > 0.0f)
+            const FeatureSnapshot snap = featureBus_.read();
+            if (snap.bpm > 0.0f && clip->beatDivision > 0.0f)
             {
                 // speed = videoBeats / beatDivision
                 // e.g., 8-beat video over 4 beats = 2x speed
@@ -1045,9 +1033,8 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
         if (clip->transportMode == Clip::TransportMode::BPMSync)
         {
             // BPM Sync: cycle through images over beatDivision beats.
-            const FeatureSnapshot* snap = featureBus_.acquireRead();
-            if (!snap) snap = featureBus_.getLatestRead();
-            if (snap && snap->bpm > 0.0f && clip->beatDivision > 0.0f)
+            const FeatureSnapshot snap = featureBus_.read();
+            if (snap.bpm > 0.0f && clip->beatDivision > 0.0f)
             {
                 int numFrames = seq->getFrameCount();
                 if (numFrames > 0)
@@ -1055,7 +1042,7 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
                     // Cycle all frames over beatDivision beats,
                     // scaled by content beats ratio.
                     // FPS = numFrames * BPM / (beatDivision * 60)
-                    float secondsPerCycle = clip->beatDivision * 60.0f / snap->bpm;
+                    float secondsPerCycle = clip->beatDivision * 60.0f / snap.bpm;
                     seq->setFps(static_cast<float>(numFrames) / secondsPerCycle);
                 }
             }

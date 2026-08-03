@@ -4,7 +4,7 @@
 #include <algorithm>
 
 AudioReadoutPanel::AudioReadoutPanel(const AnalysisThread& /* analysisThread */,
-                                     FeatureBus& featureBus)
+                                     const FeatureBus& featureBus)
     : featureBus_(featureBus)
 {
     displaySnap_.clear();
@@ -14,63 +14,60 @@ AudioReadoutPanel::AudioReadoutPanel(const AnalysisThread& /* analysisThread */,
 
 void AudioReadoutPanel::timerCallback()
 {
-    const FeatureSnapshot* newSnap = featureBus_.acquireRead();
-    const FeatureSnapshot* snap = newSnap ? newSnap : featureBus_.getLatestRead();
-    if (snap == nullptr)
-        return;
+    const FeatureSnapshot snap = featureBus_.read();
 
     hasData_ = true;
     constexpr float a = 0.3f;
 
-    displaySnap_.rms   += a * (snap->rms   - displaySnap_.rms);
-    displaySnap_.peak  += a * (snap->peak  - displaySnap_.peak);
-    displaySnap_.rmsDB += a * (snap->rmsDB - displaySnap_.rmsDB);
-    displaySnap_.lufs  += a * (snap->lufs  - displaySnap_.lufs);
-    displaySnap_.dynamicRange += a * (snap->dynamicRange - displaySnap_.dynamicRange);
-    displaySnap_.transientDensity += a * (snap->transientDensity - displaySnap_.transientDensity);
+    displaySnap_.rms   += a * (snap.rms   - displaySnap_.rms);
+    displaySnap_.peak  += a * (snap.peak  - displaySnap_.peak);
+    displaySnap_.rmsDB += a * (snap.rmsDB - displaySnap_.rmsDB);
+    displaySnap_.lufs  += a * (snap.lufs  - displaySnap_.lufs);
+    displaySnap_.dynamicRange += a * (snap.dynamicRange - displaySnap_.dynamicRange);
+    displaySnap_.transientDensity += a * (snap.transientDensity - displaySnap_.transientDensity);
 
-    displaySnap_.spectralCentroid  += a * (snap->spectralCentroid  - displaySnap_.spectralCentroid);
-    displaySnap_.spectralFlux      += a * (snap->spectralFlux      - displaySnap_.spectralFlux);
-    displaySnap_.spectralFlatness  += a * (snap->spectralFlatness  - displaySnap_.spectralFlatness);
-    displaySnap_.spectralRolloff   += a * (snap->spectralRolloff   - displaySnap_.spectralRolloff);
+    displaySnap_.spectralCentroid  += a * (snap.spectralCentroid  - displaySnap_.spectralCentroid);
+    displaySnap_.spectralFlux      += a * (snap.spectralFlux      - displaySnap_.spectralFlux);
+    displaySnap_.spectralFlatness  += a * (snap.spectralFlatness  - displaySnap_.spectralFlatness);
+    displaySnap_.spectralRolloff   += a * (snap.spectralRolloff   - displaySnap_.spectralRolloff);
 
     // BPM: no EMA smoothing — it's already stabilized by the lock pipeline
-    displaySnap_.bpm        = snap->bpm;
-    displaySnap_.beatPhase  = snap->beatPhase;  // no smoothing — sawtooth
-    displaySnap_.trackerState = snap->trackerState;
+    displaySnap_.bpm        = snap.bpm;
+    displaySnap_.beatPhase  = snap.beatPhase;  // no smoothing — sawtooth
+    displaySnap_.trackerState = snap.trackerState;
 
     // Metrical hierarchy — discrete values, no smoothing
-    displaySnap_.beatInBar        = snap->beatInBar;
-    displaySnap_.barPhase         = snap->barPhase;  // no smoothing — sawtooth
-    displaySnap_.downbeatDetected = snap->downbeatDetected;
-    displaySnap_.dominantPitch   += a * (snap->dominantPitch   - displaySnap_.dominantPitch);
-    displaySnap_.pitchConfidence += a * (snap->pitchConfidence - displaySnap_.pitchConfidence);
-    displaySnap_.harmonicChangeDetection += a * (snap->harmonicChangeDetection - displaySnap_.harmonicChangeDetection);
+    displaySnap_.beatInBar        = snap.beatInBar;
+    displaySnap_.barPhase         = snap.barPhase;  // no smoothing — sawtooth
+    displaySnap_.downbeatDetected = snap.downbeatDetected;
+    displaySnap_.dominantPitch   += a * (snap.dominantPitch   - displaySnap_.dominantPitch);
+    displaySnap_.pitchConfidence += a * (snap.pitchConfidence - displaySnap_.pitchConfidence);
+    displaySnap_.harmonicChangeDetection += a * (snap.harmonicChangeDetection - displaySnap_.harmonicChangeDetection);
 
     // Smooth band energies
     for (int i = 0; i < 7; ++i)
-        displayBands_[i] += a * (snap->bandEnergies[i] - displayBands_[i]);
+        displayBands_[i] += a * (snap.bandEnergies[i] - displayBands_[i]);
 
     // Discrete values
-    displaySnap_.onsetDetected  = snap->onsetDetected;
-    displaySnap_.onsetStrength  = snap->onsetStrength;
-    displaySnap_.detectedKey    = snap->detectedKey;
-    displaySnap_.keyIsMajor     = snap->keyIsMajor;
-    displaySnap_.structuralState = snap->structuralState;
+    displaySnap_.onsetDetected  = snap.onsetDetected;
+    displaySnap_.onsetStrength  = snap.onsetStrength;
+    displaySnap_.detectedKey    = snap.detectedKey;
+    displaySnap_.keyIsMajor     = snap.keyIsMajor;
+    displaySnap_.structuralState = snap.structuralState;
 
     // P23: Genre detection
-    displaySnap_.detectedGenre   = snap->detectedGenre;
-    displaySnap_.genreConfidence = snap->genreConfidence;
-    displaySnap_.energyState     = snap->energyState;
+    displaySnap_.detectedGenre   = snap.detectedGenre;
+    displaySnap_.genreConfidence = snap.genreConfidence;
+    displaySnap_.energyState     = snap.energyState;
 
     // Onset flash: spike on onset, fast decay
-    if (snap->onsetDetected)
+    if (snap.onsetDetected)
         onsetFlash_ = 1.0f;
     else
         onsetFlash_ *= 0.85f;
 
     // Downbeat flash: spike on downbeat, fast decay
-    if (snap->downbeatDetected)
+    if (snap.downbeatDetected)
         downbeatFlash_ = 1.0f;
     else
         downbeatFlash_ *= 0.85f;

@@ -15,7 +15,7 @@
 class SignalBar : public juce::Component, private juce::Timer
 {
 public:
-    SignalBar(SignalRegistry& registry, FeatureBus& featureBus);
+    SignalBar(SignalRegistry& registry, const FeatureBus& featureBus);
 
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -44,7 +44,7 @@ private:
     void timerCallback() override;
 
     SignalRegistry& registry_;
-    FeatureBus& featureBus_;
+    const FeatureBus& featureBus_;
     SignalStrip::DisplaySize displaySize_ = SignalStrip::DisplaySize::Normal;
 
     std::vector<std::unique_ptr<SignalStrip>> strips_;

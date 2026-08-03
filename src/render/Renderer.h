@@ -36,7 +36,7 @@
 class Renderer : public juce::OpenGLRenderer
 {
 public:
-    explicit Renderer(FeatureBus& featureBus);
+    explicit Renderer(const FeatureBus& featureBus);
     ~Renderer() override;
 
     // Attach/detach the GL context to/from a component.
@@ -188,7 +188,7 @@ private:
                                  bool needsUtil = false);
 
     juce::OpenGLContext glContext_;
-    FeatureBus& featureBus_;
+    const FeatureBus& featureBus_;
 
     FullscreenQuad quad_;
     ShaderManager shaderMgr_{glContext_};

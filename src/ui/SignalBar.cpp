@@ -1,6 +1,6 @@
 #include "SignalBar.h"
 
-SignalBar::SignalBar(SignalRegistry& registry, FeatureBus& featureBus)
+SignalBar::SignalBar(SignalRegistry& registry, const FeatureBus& featureBus)
     : registry_(registry), featureBus_(featureBus)
 {
     displaySnap_.clear();
@@ -110,13 +110,8 @@ int SignalBar::getPreferredHeight() const
 
 void SignalBar::timerCallback()
 {
-    // Read latest snapshot
-    const FeatureSnapshot* newSnap = featureBus_.acquireRead();
-    const FeatureSnapshot* snap = newSnap ? newSnap : featureBus_.getLatestRead();
-    if (snap == nullptr)
-        return;
-
-    displaySnap_ = *snap;
+    // Read latest snapshot (R5: coherent value copy)
+    displaySnap_ = featureBus_.read();
 
     // Evaluate all signals with the latest snapshot
     registry_.evaluateAll(displaySnap_);

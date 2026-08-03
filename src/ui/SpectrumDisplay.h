@@ -8,13 +8,13 @@
 class SpectrumDisplay : public juce::Component, private juce::Timer
 {
 public:
-    explicit SpectrumDisplay(FeatureBus& featureBus);
+    explicit SpectrumDisplay(const FeatureBus& featureBus);
 
     void paint(juce::Graphics& g) override;
     void timerCallback() override;
 
 private:
-    FeatureBus& featureBus_;
+    const FeatureBus& featureBus_;
 
     // Smoothed display values (fast attack, slow release)
     std::array<float, 7> displayBands_{};

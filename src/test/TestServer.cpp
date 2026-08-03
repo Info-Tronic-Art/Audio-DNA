@@ -15,7 +15,7 @@
 #include <iostream>
 
 TestServer::TestServer(Renderer& renderer,
-                       FeatureBus& featureBus,
+                       FeatureBus::Writer featureBusWriter,
                        Composition& composition,
                        EffectChain& effectChain,
                        SourceRegistry& sourceRegistry,
@@ -23,7 +23,7 @@ TestServer::TestServer(Renderer& renderer,
                        RoutingEngine& routingEngine,
                        int port)
     : renderer_(renderer)
-    , featureBus_(featureBus)
+    , featureBusWriter_(std::move(featureBusWriter))
     , composition_(composition)
     , effectChain_(effectChain)
     , sourceRegistry_(sourceRegistry)
@@ -37,6 +37,21 @@ TestServer::TestServer(Renderer& renderer,
 TestServer::~TestServer()
 {
     stop();
+}
+
+void TestServer::injectSnapshot(const FeatureSnapshot& snap)
+{
+    // Several HTTP threads (this server's pool + the ApiServer relay) can
+    // land here concurrently; the mutex keeps the single Writer's
+    // stage-then-publish sequence atomic. HTTP threads only — never a
+    // realtime thread — so a mutex is fine here.
+    std::lock_guard<std::mutex> lock(injectMutex_);
+    jassert(featureBusWriter_.isValid());
+    FeatureSnapshot* staging = featureBusWriter_.acquireWrite();
+    if (staging == nullptr)
+        return;
+    *staging = snap;
+    featureBusWriter_.publishWrite();
 }
 
 void TestServer::start()
@@ -370,9 +385,11 @@ void TestServer::handleInjectFeatures(const httplib::Request& req, httplib::Resp
         return;
     }
 
-    // Write directly to the FeatureBus (analysis thread is not running in test mode)
-    FeatureSnapshot* snap = featureBus_.acquireWrite();
-    snap->clear();
+    // Build the snapshot locally, then publish through the single test-mode
+    // Writer (the analysis thread is not running in test mode)
+    FeatureSnapshot injected;
+    injected.clear();
+    FeatureSnapshot* snap = &injected;
 
     // Map JSON fields to FeatureSnapshot fields
     auto get = [&](const char* name) -> float {
@@ -448,7 +465,7 @@ void TestServer::handleInjectFeatures(const httplib::Request& req, httplib::Resp
     snap->resonancePeak = get("resonancePeak");
     snap->reeseBass = get("reeseBass");
 
-    featureBus_.publishWrite();
+    injectSnapshot(injected);
 
     res.set_content(jsonOk(), "application/json");
 }
@@ -574,9 +591,9 @@ void TestServer::handleReset(const httplib::Request&, httplib::Response& res)
     renderer_.setMasterLevel(1.0f);
 
     // Clear injected features
-    FeatureSnapshot* snap = featureBus_.acquireWrite();
-    snap->clear();
-    featureBus_.publishWrite();
+    FeatureSnapshot cleared;
+    cleared.clear();
+    injectSnapshot(cleared);
 
     // Give GL thread a frame to process
     juce::Thread::sleep(50);

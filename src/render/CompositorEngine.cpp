@@ -1397,13 +1397,13 @@ GLuint CompositorEngine::applyScreenSplit(GLuint clipTex, const Clip::EffectSlot
 
 void CompositorEngine::uploadAudioUniforms(juce::OpenGLShaderProgram* program) const
 {
-    if (!latestSnapshot_ || !program) return;
+    if (!program) return;
 
     auto loc = [&](const char* name) {
         return program->getUniformIDFromName(name);
     };
 
-    const auto& snap = *latestSnapshot_;
+    const auto& snap = latestSnapshot_;
 
     // Basic audio features
     auto l = loc("u_rms");      if (l >= 0) glUniform1f(l, snap.rms);

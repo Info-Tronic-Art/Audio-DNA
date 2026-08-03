@@ -1,7 +1,7 @@
 #include "TopBar.h"
 #include <cmath>
 
-TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
+TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
     : featureBus_(featureBus), composition_(composition)
 {
     displaySnap_.clear();
@@ -213,19 +213,15 @@ TopBar::TopBar(FeatureBus& featureBus, Composition& composition)
 
 void TopBar::timerCallback()
 {
-    const FeatureSnapshot* newSnap = featureBus_.acquireRead();
-    const FeatureSnapshot* snap = newSnap ? newSnap : featureBus_.getLatestRead();
-    if (snap != nullptr)
-    {
-        displaySnap_.bpm = snap->bpm;
-        displaySnap_.trackerState = snap->trackerState;
-        displaySnap_.beatInBar = snap->beatInBar;
-        displaySnap_.barPhase = snap->barPhase;
-        displaySnap_.beatPhase = snap->beatPhase;
-        displaySnap_.downbeatDetected = snap->downbeatDetected;
-        displaySnap_.phrasePhase = snap->phrasePhase;
-        displaySnap_.barCount = snap->barCount;
-    }
+    const FeatureSnapshot snap = featureBus_.read();
+    displaySnap_.bpm = snap.bpm;
+    displaySnap_.trackerState = snap.trackerState;
+    displaySnap_.beatInBar = snap.beatInBar;
+    displaySnap_.barPhase = snap.barPhase;
+    displaySnap_.beatPhase = snap.beatPhase;
+    displaySnap_.downbeatDetected = snap.downbeatDetected;
+    displaySnap_.phrasePhase = snap.phrasePhase;
+    displaySnap_.barCount = snap.barCount;
 
     updateBpmDisplay();
     // Repaint the beat wheel and bar/phrase area

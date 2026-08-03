@@ -17,7 +17,7 @@
 class OutputRenderer : public juce::OpenGLRenderer
 {
 public:
-    OutputRenderer(FeatureBus& featureBus,
+    OutputRenderer(const FeatureBus& featureBus,
                    MappingEngine& mappingEngine,
                    EffectChain& effectChain);
 
@@ -40,7 +40,7 @@ private:
     void initShaders();
 
     juce::OpenGLContext glContext_;
-    FeatureBus& featureBus_;
+    const FeatureBus& featureBus_;  // read-only (R5); kept for the queued OutputWindow arc
     MappingEngine& mappingEngine_;
     EffectChain& effectChain_;
 
@@ -69,7 +69,7 @@ private:
 class OutputWindow : public juce::DocumentWindow
 {
 public:
-    OutputWindow(FeatureBus& featureBus,
+    OutputWindow(const FeatureBus& featureBus,
                  MappingEngine& mappingEngine,
                  EffectChain& effectChain);
     ~OutputWindow() override;

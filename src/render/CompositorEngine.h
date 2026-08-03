@@ -129,13 +129,15 @@ private:
     VideoFrameFn videoFrameFn_;
     EffectLibrary* effectLibrary_ = nullptr;
 
-    // Audio feature snapshot for audio-reactive effects
-    const FeatureSnapshot* latestSnapshot_ = nullptr;
+    // Audio feature snapshot for audio-reactive effects. Owned VALUE (R7,
+    // featurebus-thread-safety-design.md): a copy parked here can never
+    // dangle, unlike the previous caller-stack pointer.
+    FeatureSnapshot latestSnapshot_{};
 
 public:
     // Set the latest audio feature snapshot for audio-reactive effects.
-    // Call before compositeDeck() each frame. Pointer must remain valid until compositeDeck() returns.
-    void setLatestSnapshot(const FeatureSnapshot* snap) { latestSnapshot_ = snap; }
+    // Call before compositeDeck() each frame; the snapshot is copied.
+    void setLatestSnapshot(const FeatureSnapshot& snap) { latestSnapshot_ = snap; }
 
 private:
 

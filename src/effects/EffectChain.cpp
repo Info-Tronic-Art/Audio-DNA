@@ -291,9 +291,8 @@ void EffectChain::uploadEffectUniforms(juce::OpenGLShaderProgram* program,
         glUniform2f(resLoc, width, height);
 
     // Audio feature uniforms (P18: audio-reactive effects)
-    if (latestSnapshot_)
     {
-        const auto& snap = *latestSnapshot_;
+        const auto& snap = latestSnapshot_;
         auto l = getCachedUniformLocation(program, "u_rms");
         if (l >= 0) glUniform1f(l, snap.rms);
         l = getCachedUniformLocation(program, "u_bass");

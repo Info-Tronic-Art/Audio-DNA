@@ -59,6 +59,11 @@ public:
     FeatureBus& getFeatureBus() { return featureBus_; }
     const FeatureBus& getFeatureBus() const { return featureBus_; }
 
+    // R4: hand over the single FeatureBus writer claim. MainComponent claims
+    // it (production branch) and sets it BEFORE startThread(); run() refuses
+    // to publish without it.
+    void setFeatureBusWriter(FeatureBus::Writer&& writer) { featureBusWriter_ = std::move(writer); }
+
     // Get raw waveform samples for display (lock-free snapshot)
     void getWaveformSamples(float* dest, int& count) const;
 
@@ -103,6 +108,7 @@ private:
 
     // Feature publishing
     FeatureBus featureBus_;
+    FeatureBus::Writer featureBusWriter_;  // claimed via setFeatureBusWriter()
 
     // Analysis modules (owned, created at construction)
     std::unique_ptr<FFTProcessor> fftProcessor_;

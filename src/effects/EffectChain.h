@@ -73,8 +73,8 @@ public:
     GLuint getPreviousFrameTexture() const { return prevFrameTexture_; }
 
     // Set the latest audio feature snapshot for audio-reactive effects.
-    // Pointer must remain valid through the next render() call.
-    void setLatestSnapshot(const FeatureSnapshot* snap) { latestSnapshot_ = snap; }
+    // The snapshot is copied; call each frame before render().
+    void setLatestSnapshot(const FeatureSnapshot& snap) { latestSnapshot_ = snap; }
 
 private:
     // Upload an effect's parameters as uniforms
@@ -89,7 +89,15 @@ private:
                      ShaderManager& shaderMgr, FullscreenQuad& quad,
                      GLuint targetFBO, float width, float height);
 
-    const FeatureSnapshot* latestSnapshot_ = nullptr;
+    // Owned VALUE (R7, featurebus-thread-safety-design.md): a copy parked
+    // here can never dangle, unlike the previous caller-stack pointer that
+    // outlived render(). PRE-EXISTING cross-GL residual, unchanged in class
+    // by R7: this chain is shared with the OutputWindow's GL thread, which
+    // reads these fields while the main GL thread refreshes them each frame
+    // (unsynchronized — worst case a torn/stale UNIFORM value for one
+    // frame, never a dangling read). Ownership belongs to the OutputWindow
+    // arc (spec R10 / scout-outputwindow-glcrash.md).
+    FeatureSnapshot latestSnapshot_{};
 
     // effects_ is structurally mutated by addEffect() (called from
     // Renderer::initEffectChain() on the GL thread) and read from the GL

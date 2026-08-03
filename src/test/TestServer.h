@@ -5,11 +5,12 @@
 #include <httplib.h>
 #include <thread>
 #include <atomic>
+#include <mutex>
 #include <string>
+#include "features/FeatureBus.h"
 
 // Forward declarations
 class Renderer;
-class FeatureBus;
 class EffectChain;
 class SourceRegistry;
 class SignalRegistry;
@@ -34,7 +35,7 @@ class TestServer
 {
 public:
     TestServer(Renderer& renderer,
-               FeatureBus& featureBus,
+               FeatureBus::Writer featureBusWriter,
                Composition& composition,
                EffectChain& effectChain,
                SourceRegistry& sourceRegistry,
@@ -43,6 +44,12 @@ public:
                int port = 8080);
 
     ~TestServer();
+
+    // Publish an injected snapshot through the single test-mode Writer
+    // (R4). Serialized internally: httplib runs a thread pool, and the
+    // ApiServer's test-mode /api/inject_features relays here too, so
+    // several HTTP threads can inject concurrently.
+    void injectSnapshot(const FeatureSnapshot& snap);
 
     // Start the HTTP server on a background thread.
     void start();
@@ -84,7 +91,8 @@ private:
     std::string jsonError(const std::string& message);
 
     Renderer& renderer_;
-    FeatureBus& featureBus_;
+    FeatureBus::Writer featureBusWriter_;
+    std::mutex injectMutex_;  // serializes injectSnapshot across HTTP threads
     Composition& composition_;
     EffectChain& effectChain_;
     SourceRegistry& sourceRegistry_;

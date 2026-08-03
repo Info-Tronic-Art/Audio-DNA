@@ -12,7 +12,7 @@
 class TopBar : public juce::Component, private juce::Timer
 {
 public:
-    TopBar(FeatureBus& featureBus, Composition& composition);
+    TopBar(const FeatureBus& featureBus, Composition& composition);
 
     void paint(juce::Graphics& g) override;
     void resized() override;
@@ -45,7 +45,7 @@ private:
     void updateBpmDisplay();
     void handleMultiplierButton(int multiplier);
 
-    FeatureBus& featureBus_;
+    const FeatureBus& featureBus_;
     Composition& composition_;
 
     // Latest snapshot for tempo display + beat wheel

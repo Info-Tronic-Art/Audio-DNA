@@ -1,90 +1,138 @@
 #include "features/FeatureBus.h"
+#include <cstring>
 
 FeatureBus::FeatureBus()
 {
-    for (auto& buf : buffers_)
-        buf.clear();
+    // Match the old bus's startup state: readers before the first publish
+    // see a CLEARED snapshot (FeatureSnapshot::clear() semantics, which
+    // differ from the struct defaults — see the .harmony gotcha on
+    // clear()'s genre/energy values), not a default-constructed one.
+    staging_.clear();
 
-    // Initial state: write=0, latest=1, read=2, no new data
-    state_.store(encodeState(0, 1, 2, false), std::memory_order_relaxed);
+    uint32_t raw[kSnapshotWords];
+    std::memcpy(raw, &staging_, sizeof(raw));
+    for (size_t i = 0; i < kSnapshotWords; ++i)
+        words_[i].store(raw[i], std::memory_order_relaxed);
 }
 
-FeatureSnapshot* FeatureBus::acquireWrite()
+FeatureBus::Writer FeatureBus::createWriter()
 {
-    uint8_t s = state_.load(std::memory_order_relaxed);
-    uint8_t writeIdx = s & kWriteMask;
-    return &buffers_[writeIdx];
+    bool expected = false;
+    if (!writerClaimed_.compare_exchange_strong(expected, true,
+                                                std::memory_order_acq_rel))
+        return Writer{};  // double claim → deterministic invalid handle (R4)
+
+    return Writer{*this};
 }
 
-void FeatureBus::publishWrite()
+void FeatureBus::publish()
 {
-    // Swap write and latest slots, set the new-data flag.
-    // CAS loop because the reader may concurrently swap latest and read.
-    uint8_t expected = state_.load(std::memory_order_relaxed);
-    uint8_t desired;
+    uint32_t raw[kSnapshotWords];
+    std::memcpy(raw, &staging_, sizeof(raw));  // memcpy via a local (R2)
 
-    do
+    // Seqlock write side — same construction as the waveform seqlock in
+    // AnalysisThread::run(): enter odd, release fence, relaxed payload
+    // stores, release fence, exit even. The fences pair with the acquire
+    // loads/fence on the reader side so a reader that saw any of these
+    // payload words also sees the odd seq on its re-check and retries.
+    const uint64_t s = seq_.load(std::memory_order_relaxed);
+    seq_.store(s + 1, std::memory_order_relaxed);  // enter publish (odd)
+    std::atomic_thread_fence(std::memory_order_release);
+    for (size_t i = 0; i < kSnapshotWords; ++i)
+        words_[i].store(raw[i], std::memory_order_relaxed);
+    std::atomic_thread_fence(std::memory_order_release);
+    seq_.store(s + 2, std::memory_order_relaxed);  // exit publish (even)
+}
+
+// Load seq_, waiting out an in-progress publish with a bounded spin. May
+// still return an odd value if the writer is wedged mid-publish (bounded —
+// readers must never hang; the callers then fail that attempt).
+uint64_t FeatureBus::loadStableSeq() const
+{
+    uint64_t s = seq_.load(std::memory_order_acquire);
+    for (int spin = 0; (s & 1u) != 0 && spin < kOddSeqSpinLimit; ++spin)
+        s = seq_.load(std::memory_order_acquire);
+    return s;
+}
+
+FeatureSnapshot FeatureBus::read() const
+{
+    // R2's "last-good fallback": each reader THREAD keeps its most recent
+    // verified copy. Returning it on retry exhaustion preserves the
+    // per-reader monotonicity that protects edge detection downstream
+    // (structuralState transitions, beat wraps) — an unverified splice
+    // could step backwards. The bus pointer guards against one thread
+    // touching several bus instances (tests); if a destroyed bus's address
+    // is ever reused by a new bus, a stale slot could serve one stale read
+    // on an exhausted attempt — acceptable: production has exactly one
+    // long-lived bus, and exhaustion itself is a preemption-scale rarity.
+    struct ThreadLastGood
     {
-        uint8_t writeIdx  = expected & kWriteMask;
-        uint8_t latestIdx = (expected & kLatestMask) >> kLatestShift;
-        uint8_t readIdx   = (expected & kReadMask) >> kReadShift;
+        const FeatureBus* bus = nullptr;
+        FeatureSnapshot snap;
+    };
+    thread_local ThreadLastGood lastGood;
 
-        // The old latest becomes the new write buffer; our write becomes latest.
-        desired = encodeState(latestIdx, writeIdx, readIdx, true);
-    }
-    // acq_rel, not release: this CAS both publishes our just-filled buffer to
-    // the reader (release) AND reclaims a buffer the reader may have just
-    // relinquished via its own acquireRead() swap (acquire) — a release-only
-    // success order leaves the writer's later fill of that reclaimed slot
-    // with no happens-before edge after the reader's last read of it (TSan-
-    // confirmed data race, test_feature_bus.cpp:143 vs :161).
-    while (!state_.compare_exchange_weak(expected, desired,
-                                          std::memory_order_acq_rel,
-                                          std::memory_order_relaxed));
-}
+    FeatureSnapshot out;
+    uint32_t raw[kSnapshotWords];
 
-const FeatureSnapshot* FeatureBus::acquireRead()
-{
-    // Swap read and latest slots if new data is available.
-    uint8_t expected = state_.load(std::memory_order_relaxed);
-
-    if (!(expected & kNewFlag))
-        return nullptr;
-
-    uint8_t desired;
-
-    do
+    for (int attempt = 0; attempt < kMaxReadAttempts; ++attempt)
     {
-        if (!(expected & kNewFlag))
-            return nullptr;
+        const uint64_t s1 = loadStableSeq();
+        if ((s1 & 1u) != 0)
+            continue;  // writer wedged mid-publish — try again, bounded
 
-        uint8_t writeIdx  = expected & kWriteMask;
-        uint8_t latestIdx = (expected & kLatestMask) >> kLatestShift;
-        uint8_t readIdx   = (expected & kReadMask) >> kReadShift;
+        for (size_t i = 0; i < kSnapshotWords; ++i)
+            raw[i] = words_[i].load(std::memory_order_relaxed);
+        std::atomic_thread_fence(std::memory_order_acquire);
 
-        // Swap read and latest, clear new-data flag.
-        desired = encodeState(writeIdx, readIdx, latestIdx, false);
+        if (seq_.load(std::memory_order_relaxed) == s1)
+        {
+            std::memcpy(&out, raw, sizeof(out));
+            lastGood.bus = this;  // coherent copy — remember it
+            lastGood.snap = out;
+            return out;
+        }
     }
-    // acq_rel, not acquire: this CAS both consumes the writer's just-published
-    // buffer (acquire) AND relinquishes our old read slot back to the writer
-    // (release) — see the matching comment in publishWrite().
-    while (!state_.compare_exchange_weak(expected, desired,
-                                          std::memory_order_acq_rel,
-                                          std::memory_order_relaxed));
 
-    // The old latest is now our read slot.
-    uint8_t latestIdx = (expected & kLatestMask) >> kLatestShift;
-    return &buffers_[latestIdx];
+    // Retry exhausted: the reader was lapped 4 times (preemption-scale
+    // starvation, or a wedged writer). Serve this thread's last verified
+    // copy — stale but coherent and never backwards for this reader.
+    if (lastGood.bus == this)
+        return lastGood.snap;
+
+    // No verified copy on this thread yet: degrade to the freshest
+    // available words (unverified — at worst a splice of nearby
+    // generations) rather than block. Not remembered as last-good.
+    for (size_t i = 0; i < kSnapshotWords; ++i)
+        raw[i] = words_[i].load(std::memory_order_relaxed);
+    std::memcpy(&out, raw, sizeof(out));
+    return out;
 }
 
-const FeatureSnapshot* FeatureBus::getLatestRead() const
+bool FeatureBus::readIfNewer(FeatureSnapshot& out, uint64_t& lastSeq) const
 {
-    uint8_t s = state_.load(std::memory_order_acquire);
-    uint8_t readIdx = (s & kReadMask) >> kReadShift;
-    return &buffers_[readIdx];
-}
+    for (int attempt = 0; attempt < kMaxReadAttempts; ++attempt)
+    {
+        const uint64_t s1 = loadStableSeq();
+        if ((s1 & 1u) != 0)
+            continue;  // writer wedged mid-publish — try again, bounded
 
-bool FeatureBus::hasNewData() const
-{
-    return (state_.load(std::memory_order_relaxed) & kNewFlag) != 0;
+        if (s1 == lastSeq)
+            return false;  // nothing published since the caller's copy
+
+        uint32_t raw[kSnapshotWords];
+        for (size_t i = 0; i < kSnapshotWords; ++i)
+            raw[i] = words_[i].load(std::memory_order_relaxed);
+        std::atomic_thread_fence(std::memory_order_acquire);
+
+        if (seq_.load(std::memory_order_relaxed) == s1)
+        {
+            std::memcpy(&out, raw, sizeof(out));
+            lastSeq = s1;
+            return true;
+        }
+    }
+
+    return false;  // retry exhausted — caller keeps its last good copy
 }

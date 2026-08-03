@@ -2,6 +2,63 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-08-02 — Seqlock "last-good fallback" MUST be per-reader state; bounded retry exhausts under preemption, not just cadence math
+**Files:** src/features/FeatureBus.cpp (read()/readIfNewer), tests/test_feature_bus.cpp (multi-reader case)
+**Note:** The S2 seqlock's 4-attempt bounded retry was sized by cadence math
+(publish duty ~1e-5 → exhaustion ~1e-20), but that model assumes attempts are
+short in WALL-CLOCK time. A reader thread descheduled mid-copy (TSan runtime
+locks + spinning readers made this routine; production equivalent = heavy
+system load) has attempts spanning milliseconds, so consecutive publishes can
+kill all 4 attempts — the multi-reader test recorded thousands of fallback
+returns under a saturating writer and still 81 at a 2ms-gap writer under
+TSan. Two consequences baked into the implementation: (1) the exhaustion
+fallback must be LAST-GOOD (stale-but-coherent, per-reader monotonic), never
+an unverified word-splice — a splice can step BACKWARDS, which is exactly the
+mixed-generation damage class (spurious structuralState/beat edges) the
+rewrite exists to kill. read() keeps a thread_local {bus*, snapshot} slot
+(320B/thread) updated on every verified copy; readIfNewer's last-good is the
+caller's own `out` (returns false, leaves it untouched). (2) Concurrency
+tests for bounded-retry structures must model the WRITER's real cadence
+(gaps), not a zero-gap saturating loop — saturation is outside the ratified
+contract and the design intentionally degrades there instead of blocking.
+**Valid while:** FeatureBus keeps the 4-attempt bounded-retry seqlock design.
+
+## 2026-08-02 — TSan race demonstration craft: single-memcpy readers may not trip TSan where field-by-field consumption does
+**Files:** tests/test_feature_bus.cpp, .harmony/s2-tsan-before.log
+**Note:** The R9 "demonstrated racing before" gate initially produced logical
+violations (timestamps going backwards) but ZERO TSan reports: the reader
+did one tight ~30ns `FeatureSnapshot local = *rs;` copy, too narrow a window
+to overlap the writer's fill in practice. Rewriting the reader to consume
+field-by-field straight off the returned pointer (the REAL deployed shape —
+AudioReadoutPanel/TopBar read dozens of scattered fields) and the writer to
+fill ~35 fields one-by-one (the real 14-stage AnalysisThread fill) made TSan
+fire 7 distinct data-race reports on the bus buffers immediately. Lesson for
+future race-demonstration tests: replicate the production ACCESS SHAPE
+(scattered field reads, long fills), not an idealized memcpy — and note that
+logical assertion failures and TSan reports are independent evidence axes
+(either can fire without the other).
+**Valid while:** general craft note (not tied to specific code).
+
+## 2026-08-02 — S2 writer topology: ONE FeatureBus::Writer, claimed at MainComponent testMode_ branch; ApiServer inject relays to TestServer
+**Files:** src/MainComponent.cpp (claim site ~:1568), src/analysis/AnalysisThread.{h,cpp}, src/test/TestServer.{h,cpp} (injectSnapshot), src/api/ApiServer.{h,cpp} (onInjectFeatures)
+**Note:** After S2, nothing publishes to the FeatureBus except through the
+single move-only Writer handle: production → AnalysisThread (set BEFORE
+startThread; run() returns immediately if the handle is invalid), test →
+TestServer (ctor takes the Writer by value). ApiServer (port 7070) holds
+`const FeatureBus&` only; its test-mode /api/inject_features builds the
+snapshot and relays it through the `onInjectFeatures` callback that
+MainComponent wires to TestServer::injectSnapshot — which serializes ALL
+inject paths (TestServer's own 8080 handlers + the 7070 relay, each on
+httplib thread-pool threads) behind one mutex before touching the Writer. If
+a future feature needs a second producer, the answer is the council-recorded
+production-injection relay (spec "Recorded future options"), NOT a second
+Writer. Also: OutputRenderer's old FeatureBus read was DEAD at HEAD (no
+consumer since ca0b425 deleted its processFrame call) — deleted in S2;
+OutputRenderer::featureBus_ (now const&) is intentionally retained for the
+R10/OutputWindow arc.
+**Valid while:** FeatureBus::Writer single-claim design and the testMode_
+branch claim site are unchanged.
+
 ## 2026-08-02 — outputWindow_ content is ALWAYS loaded in lockstep with previewPanel_ (MainComponent.cpp)
 **Files:** src/MainComponent.cpp, src/ui/OutputWindow.cpp, src/render/Renderer.cpp
 **Note:** Before deleting the duplicate `mappingEngine_.processFrame()` call

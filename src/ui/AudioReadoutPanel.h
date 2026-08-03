@@ -9,13 +9,13 @@
 class AudioReadoutPanel : public juce::Component, private juce::Timer
 {
 public:
-    AudioReadoutPanel(const AnalysisThread& analysisThread, FeatureBus& featureBus);
+    AudioReadoutPanel(const AnalysisThread& analysisThread, const FeatureBus& featureBus);
 
     void paint(juce::Graphics& g) override;
     void timerCallback() override;
 
 private:
-    FeatureBus& featureBus_;
+    const FeatureBus& featureBus_;
 
     // Smoothed display snapshot
     FeatureSnapshot displaySnap_{};

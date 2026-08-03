@@ -8,6 +8,7 @@
 // Forward declarations
 class Renderer;
 class FeatureBus;
+struct FeatureSnapshot;
 class EffectChain;
 class SourceRegistry;
 class SignalRegistry;
@@ -32,7 +33,7 @@ class ApiServer
 {
 public:
     ApiServer(Renderer& renderer,
-              FeatureBus& featureBus,
+              const FeatureBus& featureBus,
               Composition& composition,
               EffectChain& effectChain,
               SourceRegistry& sourceRegistry,
@@ -60,6 +61,10 @@ public:
     std::function<void(int deckIndex)> onSwitchDeck;
     std::function<void()> onSnapshot;
     std::function<void(float bpm)> onSetBpm;
+    // R4: this server holds no FeatureBus writer — test-mode
+    // /api/inject_features relays the built snapshot to the TestServer-held
+    // Writer through this callback (wired by MainComponent in test mode).
+    std::function<void(const FeatureSnapshot&)> onInjectFeatures;
 
     ApiServer(const ApiServer&) = delete;
     ApiServer& operator=(const ApiServer&) = delete;
@@ -99,7 +104,7 @@ private:
     std::string jsonError(const std::string& message);
 
     Renderer& renderer_;
-    FeatureBus& featureBus_;
+    const FeatureBus& featureBus_;
     Composition& composition_;
     EffectChain& effectChain_;
     SourceRegistry& sourceRegistry_;

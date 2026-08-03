@@ -12,7 +12,7 @@
 class PreviewPanel : public juce::Component
 {
 public:
-    explicit PreviewPanel(FeatureBus& featureBus);
+    explicit PreviewPanel(const FeatureBus& featureBus);
     ~PreviewPanel() override;
 
     void paint(juce::Graphics& g) override;

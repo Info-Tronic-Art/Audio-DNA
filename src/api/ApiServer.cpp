@@ -16,7 +16,7 @@
 #include <iostream>
 
 ApiServer::ApiServer(Renderer& renderer,
-                     FeatureBus& featureBus,
+                     const FeatureBus& featureBus,
                      Composition& composition,
                      EffectChain& effectChain,
                      SourceRegistry& sourceRegistry,
@@ -243,19 +243,16 @@ void ApiServer::handleStatus(const httplib::Request&, httplib::Response& res)
     obj->setProperty("masterLevel", static_cast<double>(renderer_.getMasterLevel()));
     obj->setProperty("activeDeck", composition_.activeDeckIndex);
 
-    // BPM info from feature bus
-    const FeatureSnapshot* snap = featureBus_.getLatestRead();
-    if (snap)
-    {
-        obj->setProperty("bpm", static_cast<double>(snap->bpm));
-        obj->setProperty("beatPhase", static_cast<double>(snap->beatPhase));
-        obj->setProperty("barPhase", static_cast<double>(snap->barPhase));
-        obj->setProperty("phrasePhase", static_cast<double>(snap->phrasePhase));
-        obj->setProperty("structuralState", static_cast<int>(snap->structuralState));
-        obj->setProperty("detectedGenre", static_cast<int>(snap->detectedGenre));
-        obj->setProperty("genreConfidence", static_cast<double>(snap->genreConfidence));
-        obj->setProperty("energyState", static_cast<int>(snap->energyState));
-    }
+    // BPM info from feature bus (R5: caller-owned value copy)
+    const FeatureSnapshot snap = featureBus_.read();
+    obj->setProperty("bpm", static_cast<double>(snap.bpm));
+    obj->setProperty("beatPhase", static_cast<double>(snap.beatPhase));
+    obj->setProperty("barPhase", static_cast<double>(snap.barPhase));
+    obj->setProperty("phrasePhase", static_cast<double>(snap.phrasePhase));
+    obj->setProperty("structuralState", static_cast<int>(snap.structuralState));
+    obj->setProperty("detectedGenre", static_cast<int>(snap.detectedGenre));
+    obj->setProperty("genreConfidence", static_cast<double>(snap.genreConfidence));
+    obj->setProperty("energyState", static_cast<int>(snap.energyState));
 
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
@@ -539,18 +536,15 @@ void ApiServer::handleSnapshot(const httplib::Request&, httplib::Response& res)
 
 void ApiServer::handleGetBpm(const httplib::Request&, httplib::Response& res)
 {
-    const FeatureSnapshot* snap = featureBus_.getLatestRead();
+    const FeatureSnapshot snap = featureBus_.read();
     auto* obj = new juce::DynamicObject();
     obj->setProperty("ok", true);
-    if (snap)
-    {
-        obj->setProperty("bpm", static_cast<double>(snap->bpm));
-        obj->setProperty("beatPhase", static_cast<double>(snap->beatPhase));
-        obj->setProperty("barPhase", static_cast<double>(snap->barPhase));
-        obj->setProperty("phrasePhase", static_cast<double>(snap->phrasePhase));
-        obj->setProperty("beatInBar", static_cast<int>(snap->beatInBar));
-        obj->setProperty("barCount", static_cast<int>(snap->barCount));
-    }
+    obj->setProperty("bpm", static_cast<double>(snap.bpm));
+    obj->setProperty("beatPhase", static_cast<double>(snap.beatPhase));
+    obj->setProperty("barPhase", static_cast<double>(snap.barPhase));
+    obj->setProperty("phrasePhase", static_cast<double>(snap.phrasePhase));
+    obj->setProperty("beatInBar", static_cast<int>(snap.beatInBar));
+    obj->setProperty("barCount", static_cast<int>(snap.barCount));
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
 
@@ -579,41 +573,38 @@ void ApiServer::handleSetBpm(const httplib::Request& req, httplib::Response& res
 
 void ApiServer::handleGetFeatures(const httplib::Request&, httplib::Response& res)
 {
-    const FeatureSnapshot* snap = featureBus_.getLatestRead();
+    const FeatureSnapshot snap = featureBus_.read();
     auto* obj = new juce::DynamicObject();
     obj->setProperty("ok", true);
 
-    if (snap)
-    {
-        obj->setProperty("rms", static_cast<double>(snap->rms));
-        obj->setProperty("peak", static_cast<double>(snap->peak));
-        obj->setProperty("rmsDB", static_cast<double>(snap->rmsDB));
-        obj->setProperty("lufs", static_cast<double>(snap->lufs));
-        obj->setProperty("spectralCentroid", static_cast<double>(snap->spectralCentroid));
-        obj->setProperty("spectralFlux", static_cast<double>(snap->spectralFlux));
-        obj->setProperty("spectralFlatness", static_cast<double>(snap->spectralFlatness));
-        obj->setProperty("bpm", static_cast<double>(snap->bpm));
-        obj->setProperty("beatPhase", static_cast<double>(snap->beatPhase));
-        obj->setProperty("onsetDetected", snap->onsetDetected);
-        obj->setProperty("onsetStrength", static_cast<double>(snap->onsetStrength));
-        obj->setProperty("dominantPitch", static_cast<double>(snap->dominantPitch));
-        obj->setProperty("structuralState", static_cast<int>(snap->structuralState));
+    obj->setProperty("rms", static_cast<double>(snap.rms));
+    obj->setProperty("peak", static_cast<double>(snap.peak));
+    obj->setProperty("rmsDB", static_cast<double>(snap.rmsDB));
+    obj->setProperty("lufs", static_cast<double>(snap.lufs));
+    obj->setProperty("spectralCentroid", static_cast<double>(snap.spectralCentroid));
+    obj->setProperty("spectralFlux", static_cast<double>(snap.spectralFlux));
+    obj->setProperty("spectralFlatness", static_cast<double>(snap.spectralFlatness));
+    obj->setProperty("bpm", static_cast<double>(snap.bpm));
+    obj->setProperty("beatPhase", static_cast<double>(snap.beatPhase));
+    obj->setProperty("onsetDetected", snap.onsetDetected);
+    obj->setProperty("onsetStrength", static_cast<double>(snap.onsetStrength));
+    obj->setProperty("dominantPitch", static_cast<double>(snap.dominantPitch));
+    obj->setProperty("structuralState", static_cast<int>(snap.structuralState));
 
-        // P23: Genre detection
-        obj->setProperty("detectedGenre", static_cast<int>(snap->detectedGenre));
-        obj->setProperty("genreConfidence", static_cast<double>(snap->genreConfidence));
-        obj->setProperty("energyState", static_cast<int>(snap->energyState));
+    // P23: Genre detection
+    obj->setProperty("detectedGenre", static_cast<int>(snap.detectedGenre));
+    obj->setProperty("genreConfidence", static_cast<double>(snap.genreConfidence));
+    obj->setProperty("energyState", static_cast<int>(snap.energyState));
 
-        juce::Array<juce::var> bands;
-        for (int i = 0; i < 7; ++i)
-            bands.add(static_cast<double>(snap->bandEnergies[i]));
-        obj->setProperty("bandEnergies", bands);
+    juce::Array<juce::var> bands;
+    for (int i = 0; i < 7; ++i)
+        bands.add(static_cast<double>(snap.bandEnergies[i]));
+    obj->setProperty("bandEnergies", bands);
 
-        juce::Array<juce::var> chroma;
-        for (int i = 0; i < 12; ++i)
-            chroma.add(static_cast<double>(snap->chromagram[i]));
-        obj->setProperty("chromagram", chroma);
-    }
+    juce::Array<juce::var> chroma;
+    for (int i = 0; i < 12; ++i)
+        chroma.add(static_cast<double>(snap.chromagram[i]));
+    obj->setProperty("chromagram", chroma);
 
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
 }
@@ -622,10 +613,8 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
 {
     auto json = juce::JSON::parse(juce::String(req.body));
 
-    FeatureSnapshot snap{};
-    // Copy existing if available
-    const FeatureSnapshot* existing = featureBus_.getLatestRead();
-    if (existing) snap = *existing;
+    // Start from the current published snapshot, override provided fields
+    FeatureSnapshot snap = featureBus_.read();
 
     // Override with provided values
     if (json.hasProperty("rms")) snap.rms = static_cast<float>(static_cast<double>(json["rms"]));
@@ -662,13 +651,16 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
                 snap.bandEnergies[i] = static_cast<float>(static_cast<double>((*arr)[i]));
     }
 
-    // Write to triple buffer
-    FeatureSnapshot* writeBuf = featureBus_.acquireWrite();
-    if (writeBuf)
+    // R4: this server holds no writer — relay to the TestServer-held Writer.
+    // Only reachable in test mode (route registration is gated on
+    // allowFeatureInjection_), where MainComponent wires the callback.
+    if (!onInjectFeatures)
     {
-        *writeBuf = snap;
-        featureBus_.publishWrite();
+        res.status = 503;
+        res.set_content(jsonError("Feature injection unavailable (no test-mode writer)"), "application/json");
+        return;
     }
+    onInjectFeatures(snap);
     res.set_content(jsonOk(), "application/json");
 }
 

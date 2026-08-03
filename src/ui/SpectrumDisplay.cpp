@@ -3,7 +3,7 @@
 #include <cmath>
 #include <algorithm>
 
-SpectrumDisplay::SpectrumDisplay(FeatureBus& featureBus)
+SpectrumDisplay::SpectrumDisplay(const FeatureBus& featureBus)
     : featureBus_(featureBus)
 {
     displayBands_.fill(0.0f);
@@ -14,14 +14,12 @@ SpectrumDisplay::SpectrumDisplay(FeatureBus& featureBus)
 
 void SpectrumDisplay::timerCallback()
 {
-    const FeatureSnapshot* snap = featureBus_.getLatestRead();
-    if (snap == nullptr)
-        return;
+    const FeatureSnapshot snap = featureBus_.read();
 
     for (int i = 0; i < 7; ++i)
     {
         auto idx = static_cast<size_t>(i);
-        float target = snap->bandEnergies[idx];
+        float target = snap.bandEnergies[idx];
 
         // Fast attack, slow release
         float alpha = (target > displayBands_[idx]) ? kAttackAlpha : kReleaseAlpha;

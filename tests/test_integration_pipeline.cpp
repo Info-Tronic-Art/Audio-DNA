@@ -491,6 +491,8 @@ TEST_CASE("Integration: pipeline publishes to FeatureBus", "[integration]")
     auto signal = generateSine(440.0f, 0.9f, kSampleRate);
     PipelineRunner runner;
     FeatureBus bus;
+    FeatureBus::Writer writer = bus.createWriter();
+    REQUIRE(writer.isValid());
 
     size_t offset = 0;
     int publishCount = 0;
@@ -501,9 +503,9 @@ TEST_CASE("Integration: pipeline publishes to FeatureBus", "[integration]")
         if (runner.processHop(signal.data() + offset, snap))
         {
             // Publish to FeatureBus as AnalysisThread would
-            FeatureSnapshot* ws = bus.acquireWrite();
+            FeatureSnapshot* ws = writer.acquireWrite();
             *ws = snap;
-            bus.publishWrite();
+            writer.publishWrite();
             ++publishCount;
         }
         offset += kHopSize;
@@ -512,9 +514,8 @@ TEST_CASE("Integration: pipeline publishes to FeatureBus", "[integration]")
     REQUIRE(publishCount > 0);
 
     // Read back from FeatureBus
-    const FeatureSnapshot* rs = bus.acquireRead();
-    REQUIRE(rs != nullptr);
-    REQUIRE(rs->spectralCentroid > 390.0f);
-    REQUIRE(rs->spectralCentroid < 490.0f);
-    REQUIRE(rs->rms > 0.5f);
+    const FeatureSnapshot rs = bus.read();
+    REQUIRE(rs.spectralCentroid > 390.0f);
+    REQUIRE(rs.spectralCentroid < 490.0f);
+    REQUIRE(rs.rms > 0.5f);
 }
