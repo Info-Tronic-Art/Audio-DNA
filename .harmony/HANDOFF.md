@@ -450,3 +450,48 @@ Do NOT start reading source before that answer; it halves the search space.
 ## Reproduction harness that already exists
 `tests/visual/ax_press.py` + the Output menu osascript path (both in RIG MECHANICS above)
 drive the exact sequence this session ran. A repro should be scriptable without Boris.
+
+---
+
+# SCREEN-SAFETY LAW — MANDATORY, EVERY SESSION, NO EXCEPTIONS
+
+**Ratified by Boris 2026-08-03 after a gate session left a black overlay on his displays.**
+This is a LAW, not a preference. It applies to Audio-DNA work in every session, primary or
+secondary, and it applies to any agent you dispatch.
+
+## Why it exists
+Audio-DNA's output window is a REAL FULLSCREEN WINDOW ON BORIS'S ACTUAL MONITORS. It is not
+a headless test artifact. Opening it in an automated gate has immediate, visible
+consequences on the machine he is working on. Session 2026-08-03a opened and closed it three
+times across two launches while gating C3, `pkill`ed the app repeatedly, and left it open —
+and Boris ended up with a black overlay on every non-fullscreen screen that OUTLIVED a clean
+exit of the app.
+
+## The law
+1. **NEVER end a session with the output window open.** Closing it is part of EOS, not an
+   optional courtesy. Close via the Output menu toggle (`Output > "Disabled"`), then confirm.
+2. **NEVER `pkill` / SIGKILL the app while the output window is open.** Close the window
+   FIRST, let it tear down, THEN quit. Killing mid-fullscreen is the suspected trigger for
+   the orphaned overlay.
+3. **VERIFY THE SCREEN, NOT JUST THE PROCESS.** `pgrep` returning empty does NOT mean the
+   screen is clean — this incident proves it. Before declaring a session safe to close,
+   run `screencapture -x /tmp/eos-screen.png` and READ THE IMAGE. No CLI probe can see a
+   black overlay, a TCC dialog, or a stuck window. This is the same class as the 2026-07-25
+   TCC-prompt gotcha: the screen holds state that no socket or process check reveals.
+4. **STATE THE APP STATE IN THE HANDOFF.** Every session that launched Audio-DNA must say
+   explicitly, in its handoff, what state the app and its windows were left in, and whether
+   the screen was visually verified clean.
+5. **MINIMISE fullscreen output-window drive in automated gates.** If a gate needs the
+   output window, open it, take what you need, close it immediately — do not leave it open
+   across other work. Prefer probe states that do not require it when they answer the same
+   question.
+6. **IF BORIS REPORTS A SCREEN ARTIFACT, IT OUTRANKS THE LANE.** Stop, clean up, diagnose.
+   His machine is not a test rig.
+
+## EOS checklist addition (do this before writing "safe to close")
+```
+osascript -e 'tell application "System Events" to tell process "Audio-DNA" to click menu item "Disabled" of menu 1 of menu bar item "Output" of menu bar 1'   # close output window
+pkill -f Audio-DNA ; sleep 2 ; pgrep -f Audio-DNA        # then quit, confirm gone
+screencapture -x /tmp/eos-screen.png                      # AND LOOK AT IT
+```
+Report in the handoff: windows closed, process gone, screen visually verified.
