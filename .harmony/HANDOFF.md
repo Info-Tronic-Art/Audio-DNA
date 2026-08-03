@@ -391,3 +391,62 @@ rebuild needed (nothing non-comment changed, so the gate above stands unmodified
 scanned the rest of that header and correctly LEFT two other "frame" mentions alone
 (MappingEngine.h:8 and :43) — those describe what one call does, not which thread calls it,
 so C3 did not make them false. **Nothing carried. The arc is fully closed.**
+
+---
+
+# BORIS BUG REPORT — BLACK OVERLAY ON NON-FULLSCREEN SCREENS (2026-08-03, TOP PRIORITY)
+
+**Boris, verbatim:** "the audio dna app is putting a black overlay on all my screens except
+for the one's that are full screen."
+
+**THIS IS THE #1 ITEM FOR NEXT SESSION** — ahead of the gate gaps, ahead of the preset fix.
+It is user-visible, it degrades his whole machine (not just the app), and it may be
+actively affecting him right now.
+
+## What is already known (verified 2026-08-03, do not re-derive)
+- **No Audio-DNA process was running when he reported it.** `pgrep` empty, `ps` empty.
+- **The last instance exited CLEANLY, not via a crash.** `/tmp/adna-err2.log` ends with
+  `[API] HTTP server stopped` / `[Eyes] HTTP server stopped` / `[OSC] Stopped listening`.
+  No `.ips` crash report for 2026-08-03 (most recent is 2026-08-02, last session's TSan abort).
+  => **The overlay survives a GRACEFUL EXIT.** This is not crash debris. That makes it a
+  teardown/ownership defect, not a cleanup-after-crash gap.
+- No `CGDisplay`/`shield`/`kiosk`/`setFullScreen` strings appear in that instance's stderr.
+
+## Probable trigger — what this session did to the app (likely causal, be honest about it)
+The 2026-08-03a session drove the output window HARD while gating C3:
+- Opened the output window via the menu item **"Fullscreen: 1728x1117 (main)"** three times
+  and closed it twice (the menu item is a toggle), across two app launches.
+- Expanded/collapsed the SignalBar repeatedly via `tests/visual/ax_press.py`, which detaches
+  and reattaches the MAIN preview GL context.
+- `pkill -f Audio-DNA` several times between launches.
+- Ran with `--test-mode`. Build has `AUDIODNA_HAS_SYPHON=1`.
+The last observed app state was: output window OPEN (fullscreen on main) + SignalBar expanded.
+
+## Hypotheses for next session, cheapest first
+1. **The output window is created on / spans the WRONG displays.** "All screens except the
+   fullscreen ones" reads like a borderless always-on-top black window covering every
+   non-fullscreen display. Check how OutputWindow chooses its display and bounds, and
+   whether it creates one window per screen.
+2. **The window is not actually destroyed on close.** The Output menu is a TOGGLE
+   ("Fullscreen: ... (main)" / "Disabled"). Verify the close path really destroys the
+   window + releases its GL context, rather than hiding it. NOTE: C1 added an output detach
+   to the shutdown law (`MainComponent.cpp` ~1778-1780) — check that the SAME teardown runs
+   on menu-close, not only on app shutdown.
+3. **A JUCE kiosk/fullscreen "shield" window is left behind.** JUCE's fullscreen path can
+   create a shield; if it is not torn down it persists.
+4. **Syphon server surface** left published. Lower probability but the build has Syphon on.
+5. macOS WindowServer artifact orphaned by repeated SIGTERM during fullscreen. If so it is
+   an OS-level leftover — remedy is logout/login — but the app should still not be able to
+   provoke it.
+
+## FIRST QUESTION TO ASK BORIS (cheap, decides everything)
+**"Is the black overlay still there right now, with no Audio-DNA process running — and does
+logging out and back in clear it?"**
+- Still there with no process => orphaned WindowServer/shield artifact. Hypotheses 3/5.
+- Gone once the process died => a live-window bug that only manifests while running.
+  Hypotheses 1/2 — and reproducing it is then easy and safe.
+Do NOT start reading source before that answer; it halves the search space.
+
+## Reproduction harness that already exists
+`tests/visual/ax_press.py` + the Output menu osascript path (both in RIG MECHANICS above)
+drive the exact sequence this session ran. A repro should be scriptable without Boris.
