@@ -553,3 +553,82 @@ CAVEATS on that check (why it is not conclusive either way):
 The regardless-of-cause improvement still stands and is worth doing on its own merits: a
 borderless always-on-top window sized to the target display, rather than native fullscreen,
 is what VJ apps use so the operator keeps their other screens alive.
+
+---
+
+# CORRECTION BLOCK — 2026-08-03b (AUTHORITATIVE OVER EVERYTHING ABOVE)
+
+Four claims above are FALSIFIED. Full evidence: `.harmony/black-overlay-rootcause.md`
+(committed `e75436e`) and `.harmony/.work-packets/preset-retarget-fix.md` (local-only).
+
+## 1. BLACK OVERLAY — ROOT CAUSE FOUND. The prescribed fix was ALREADY IMPLEMENTED.
+**Do NOT build "borderless window sized to the display instead of native fullscreen."**
+`OutputWindow.cpp:328-342` ALREADY does that, with a comment explicitly rejecting native
+fullscreen; `setFullScreen`/`setKioskModeComponent` appear NOWHERE in `src` at HEAD or in
+git history. Building that recommendation changes NOTHING and preserves the bug.
+
+**Actual cause, source-verified end to end:** `OutputWindow.cpp:337` `setAlwaysOnTop(true)`
+-> JUCE 8.0.4 maps it to `NSFloatingWindowLevel` (`juce_NSViewComponentPeer_mac.mm:595-601`)
+-> JUCE never sets a Spaces participation bit (only `fullScreenAux`, `:473-489`) -> Apple's
+documented default for a non-normal level is **Transient = "floats in spaces"** -> opaque
+black window on EVERY desktop Space, absent from native-fullscreen Spaces. **The
+always-on-top IS the defect.**
+
+**Boris-confirmed prediction:** menu bar + Dock stayed VISIBLE (floating=3 vs Dock=20,
+menu bar=24). Asked before he answered; a black covering them would have refuted the chain.
+
+## 2. "THE OVERLAY SURVIVES A GRACEFUL EXIT" — FALSE.
+Boris confirmed it is **GONE once the app quits**. It is a LIVE-WINDOW bug, not a
+teardown/ownership defect and not an OS artifact (no `NSWindow`/`CGDisplay`/`CGShield`/kiosk
+calls exist in `src`). The prior claim was an INFERENCE from "no process was running when he
+reported it," recorded as a verified fact. Hypotheses 3 and 5 above are dead.
+
+Also dead: the multi-display framing. Boris had **ONE display attached** and "Displays have
+separate Spaces" is **ON** (he checked the UI). "All my screens" meant **Spaces**, never
+monitors — which is why two sessions found nothing.
+
+**BORIS RULING (product, his):** stay on top ONLY on a projector/second display; normal
+window on the main display. Hardest open problem is **display hot-plug** — an always-on-top
+window that migrates to the laptop display reproduces the bug, so the level must be
+re-evaluated on display change.
+
+**Also verified, not previously known:** THREE paths open output without the Output menu —
+**Cmd+F** (`MainComponent.cpp:2302-2315`, collides with universal Find, likely how Boris hit
+it); **deck load restore** (`:2731-2733`, any `.deck.json` saved with output ON re-blackens
+the screen on load); and the TopBar combo. Plus a **DISMISSAL TRAP**: 0 title-bar buttons
+(`OutputWindow.cpp:297`) and Escape only works while Audio-DNA has focus, so clicking another
+app leaves no way out. And a **hide-vs-destroy split**: the two in-window dismissal paths only
+hide (GL stays attached, menu state desyncs).
+
+## 3. "SAME BUG IN BindingManager … should ride the same fix" — FALSE.
+`Binding::targetEffectIndex` (`Binding.h:85`) is consumed only by ToggleEffectBypass, which
+indexes `clip->effects` — the **per-clip EffectSlot list** (`MainComponent.cpp:5099-5104`),
+NOT the 135-effect global chain. Clip slots are user-ordered and carry `effectName` strings
+(`Clip.h:48-56`); library re-grouping cannot shift them. The surface is DORMANT besides:
+`buildBindableTargets` never creates that target and always passes effectIndex 0.
+**BindingManager is OUT OF SCOPE.** Touching it would be the risky move, not the safe one.
+
+## 4. "~100 downstream effects shifted" — WRONG, it is ~52 of 135.
+Category counts parsed over all 135 defs against `categoryOrder` (`Renderer.cpp:1518-1521`):
+3d 9, warp 27, color 31, glitch 15, pattern 19, animation 6, blend 5, blur 10, time 6,
+composite 3, audio 4. The 2 glitch adds shift pattern..audio (~52) by +2; the pattern add
+shifts animation..audio (34) by +1 more. Still fatal (silent-wrong), but ~52 shifted by 2-3.
+
+Related: **"display names have already drifted from shader keys" is ALSO FALSE.** `git log -S`
+per name shows divergent label/key pairs were AUTHORED divergent in one commit (`2f4f638`,
+`cb742e6`, `07485fd`) and never renamed. Zero rename history. The rename risk motivating the
+dual-key design is INFERRED, not evidenced — the design still wins, on cost asymmetry, and
+that is recorded as a CLOSE call rather than a confident one.
+
+## 5. NEW, nobody asked for it: preset effect param VALUES restore BY POSITION
+(`PresetManager.cpp:186-194`) even though param names are saved (`:95`). A mid-list param
+insertion silently shifts values onto the wrong knobs. Same disease as the index bug, second
+organ. Rides the preset commit.
+
+## COUNTS — RUN THEM, NEVER INHERIT THEM
+`git rev-list --count origin/main..HEAD` read **107** at this session's start (prior handoffs
+said 95, then 97 — wrong for the fourth consecutive time). Nothing pushed.
+
+## SCREEN STATE AT THIS POINT
+App NOT launched at any point this session. No Audio-DNA process. Screen captured with
+`screencapture -x` and VISUALLY VERIFIED clean (single built-in display attached).
