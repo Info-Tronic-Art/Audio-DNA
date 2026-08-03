@@ -32,6 +32,8 @@ Status: RATIFIED (chair adjudication on the merits). Implements featurebus-threa
 
 ## Ship order — three commits, each independently green, committed IN ORDER by Harmony after per-stage gates
 - C1 = W1+W2+W3 (crash classes + snapshot + reorder). C2 = W4 (zero-flash close; no cadence change). C3 = W5+A4+A6+W6 (cadence move; revert of C3 alone restores old cadence minus the crashes).
+- **AMENDMENT 2026-08-03 (chair ruling, executed):** W6 (test-mode mapping routes) landed in **C2**, not C3 — the W7(ii) fail-first freeze capture needs its enabler to exist BEFORE the cadence change, or there is nothing to demonstrate failing. **C3's remaining scope is W5 + A4 + A6** (+ the W7(ii) capture as its blocking first gate step, + the `MappingEngine.cpp:169-196` double-tick comment from the C1/C2 review's minor 1, + the stale OutputWindow KNOWN-RESIDUAL comment rewrite).
+- **STATUS 2026-08-03:** C1 = `88af683` SHIPPED. C2 = `fcad6d0` SHIPPED. Both gated full-tier (Harmony behavioral: ctest 193/193 ×2 independently-rebuilt trees, live TSan 2-context app drive, live probe states 1-2; independent source review: **PASS, 0 blocking, 3 minor**). C3 = NOT STARTED, next session's START-HERE. Nothing pushed.
 
 ## Residuals (recorded, not silently fixed)
 - Routed params freeze on preview detach until the routing/signal follow-up (A1). Autopilot pauses on preview detach (pre-existing, unchanged). P3 scalar crossings (enlarged set) → spec Step 3. Msg-thread stalls bound mapping updates (modal pickers) — accepted; dominates the permanent freeze. Program-ID collision INFERRED half → settled by W7(iv).

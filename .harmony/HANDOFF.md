@@ -81,13 +81,29 @@ START HERE:
    under a stage protocol (report → Harmony gate → Harmony commit → next stage) —
    reuse it.
 
-3. **REVIEW STATUS — READ BEFORE PUSHING ANYTHING.** An independent full-arc source
-   review of C1+C2 was dispatched at the end of this session; its verdict may not have
-   landed before close. CHECK for it and fold it in before C3 builds further. If no
-   verdict is recorded below this line, RE-DISPATCH the review (packet shape is in the
-   session record) — C1+C2 have my behavioral gates (ctest 193/193 ×2 trees
-   independently rebuilt, live TSan app drive with 2 GL contexts, live probe states
-   1-2) but the source-review half of the full-tier gate is unconfirmed.
+3. **REVIEW STATUS — COMPLETE.** Independent full-arc source review of C1+C2:
+   **PASS, 0 blocking, 3 minor** (verdict persisted at
+   `memory/.reports/reviewer-ow-arc-c1c2.verdict.md`). Full-tier gate is therefore
+   CLOSED for C1+C2 (my behavioral half: ctest 193/193 ×2 trees independently
+   rebuilt, live TSan app drive with 2 GL contexts, live probe states 1-2).
+   Notable confirmations: the programID cache-key prefix is REQUIRED (not merely
+   safe — ~80 programs per context share uniform names, so a name-only key would
+   collide *within* one context); W4 is behavior-identical BY CONSTRUCTION (per-target
+   float add order preserved, Smoother tick set identical); the C2 equivalence test's
+   "old pipeline" reference was mechanically diffed against pre-C2 source and is
+   faithful (sole delta: a dead unused local). C1/C2 do NOT worsen the SignalRegistry
+   race. The 3 minors, none blocking:
+   - **(carry into C3)** `MappingEngine.cpp:169-196` — a concurrent enabled-flip mid-
+     `processFrame` can double-tick one smoother (owner disabled between folding member
+     k and the outer loop reaching k). Same pre-existing msg↔GL crossing class, strictly
+     better than the old torn-pass zeros, and **unreachable once C3's confinement
+     lands** — add one explanatory comment line in C3.
+   - `TestServer.cpp:970` — `handleRemoveMapping` skips JSON validation; a malformed
+     body removes index 0. Intentional drain semantics, bounds-checked, test-only.
+   - `TestServer.cpp:947/978` — callAsync lambdas capture `this`/`renderer_` with no
+     shutdown guard. Pre-existing fire-and-forget idiom (ApiServer/OSC do the same);
+     window shrunk by `testServer_->stop()` running first in the dtor. Recorded, not
+     requested.
 
 4. **BORIS DECISION QUEUE** (all pre-analyzed, deliver ONE per ask): source/MilkDrop
    retrigger-restart scope · column-trigger retrigger parity · Cut/Copy/Paste suite
