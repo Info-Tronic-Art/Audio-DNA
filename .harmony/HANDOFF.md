@@ -49,8 +49,18 @@ OutputWindow arc has drifted at least once.
    - f. Autopilot over a SOURCE cell → advances off it (was frozen forever).
    - g. Genre auto-switch to an empty deck → preview goes blank (no ghost clip).
 
-2. **START HERE — long task, begin at session start (if no Boris feedback waiting):
-   OUTPUTWINDOW ARC C3 IMPLEMENTATION.** The blocking gate step is DONE — do not redo it.
+2. ~~**START HERE: OUTPUTWINDOW ARC C3 IMPLEMENTATION**~~ — **DONE. DO NOT REBUILD IT.**
+   C3 SHIPPED as `c51aff7` (+ `e76ca9f`), fully gated, both halves. The arc is COMPLETE
+   (C1 `88af683` / C2 `fcad6d0` / C3 `c51aff7`). Everything from here to the end of item 2
+   is PRESERVED FOR ITS SCOPE AND CONSTRAINT DETAIL ONLY — treat it as a record of what was
+   built, NOT as work to do. **Your actual next priorities are in `NEXT PRIORITIES` inside
+   the ADDENDUM at the end of this file.** In short: (a) close the two gate gaps — W7(iii)
+   EMA parity and the TSan 2-context drive, both unrun and both recorded with risk reads;
+   (b) the preset/binding silent-retarget fix (design written, one commit, possibly already
+   biting Boris's saved presets); (c) Boris rulings — audio-reactivity scope and the 7-item
+   gesture list above; (d) the A1 routing/signal follow-up.
+
+   HISTORICAL SCOPE RECORD (what C3 was, for reference when reading the diff):
 
    **The work packet is already written: `.harmony/.work-packets/c3-mapping-tick.md`**
    (local-only; `.work-packets/` is gitignored by convention). It contains corrected line
