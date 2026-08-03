@@ -5,10 +5,15 @@
 You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL
 live audio-reactive VJ app). Session 2026-08-03a (secondary, slim) retired the
 OutputWindow-arc C3 **blocking gate step** that had stalled two prior sessions, and
-finalised the A4 design fork through two independent seats (one adversarial). ONE commit
-local (`0cc2b5a`), NOT pushed. Branch main, ahead of origin/main by **95** — VERIFIED this
-session via `git rev-list --count origin/main..HEAD`. Re-verify, never inherit; this
-number has now been wrong in two consecutive handoffs (`~49`, then `90`).
+finalised the A4 design fork through two independent seats (one adversarial), and then —
+after Boris extended the context budget mid-session — BUILT AND SHIPPED C3 ITSELF.
+**The OutputWindow arc is COMPLETE.** See the ADDENDUM at the end of this file, which is
+authoritative over the C3 sections below (those were written before C3 was built and
+describe it as pending — they are preserved for their scope/constraint detail, not their
+status). FOUR commits local: `0cc2b5a`, `799d97d`, `c51aff7` (C3), `ed0aa91`. NOT pushed.
+Branch main, ahead of origin/main by **98** — VERIFIED at session end via
+`git rev-list --count origin/main..HEAD`. Re-verify, never inherit; this number has now
+been wrong in two consecutive handoffs (`~49`, then `90`).
 
 ### READ THIS FIRST — inherited "facts" in this repo have a bad track record
 Last session's handoff gave gate-step-1 instructions that could not work as written:
