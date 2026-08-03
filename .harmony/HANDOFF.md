@@ -125,6 +125,94 @@ START HERE:
    battery injects `bandEnergies[0]`. **If the shader index is the wrong side, live
    bass reactivity is mis-banded on the rig** — worth an early look.
 
+## WHERE WE ARE IN THE BUILD
+<!-- caveman positional status — Boris-facing, skimmable -->
+BUILD: Audio-DNA concurrency hardening — making the live-VJ render path crash-free and
+race-free while the output window is on a projector (the state that matters on stage).
+SHIPPED: S2 seqlock FeatureBus — multi-reader race dead, spurious-scene-change class
+gone (cb4d5fa) · OW arc C1 — per-renderer GL state kills the 2-GL-thread map
+corruption + the confirmed cross-context program-ID poison (88af683) · OW arc C2 —
+single-store processFrame closes a live zero-flash the council found (fcad6d0) ·
+ratified design + council record + gate recipes committed (2eaae1b, dd33df2, cd6eb9f).
+IN-FLIGHT: none — all lanes wrapped, tree clean, builder + reviewer + 3 council seats
+released.
+NEXT: OW arc C3 (message-thread mapping tick @120Hz + A4 clearAll ruling + A6 asserts),
+gated FIRST on the fail-first freeze capture (needs Boris to expand the SignalBar by
+hand — 2 seconds) · then the u_bass band-index question · then A1 routing follow-up.
+BLOCKERS: none for building. ONE gate step blocked on a human hand: probe states 3-4
+need the preview detached, and the ~15px SignalBar cycler defeated synthetic driving.
+YOU ARE HERE: the two crash classes the scout ranked #1 and #3 are CLOSED and reviewed;
+the cadence/freeze fix (#2's sibling) is designed, staged, and one session from done.
+Nothing pushed — 90 commits deep on local main, still awaiting a review-before-push.
+
+## LOOSE-ENDS LEDGER
+- **C3 not built** — designed + ratified + packeted, deliberately deferred (long task,
+  must begin at session start). Scope: W5+A4+A6 (W6 already landed in C2).
+- **Fail-first freeze capture MISSING** (`.harmony/ow-freeze-before.log` holds states
+  1-2 only). BLOCKING for C3's commit under R9 doctrine. Needs a manual SignalBar
+  expand; synthetic driving failed (app would not take frontmost focus; ~15px target).
+- **A4 unresolved**: whether the GL-thread `clearAll` at Renderer.cpp:~1520 is provably
+  a no-op decides delete-vs-callAsync. Builder flagged a `PresetManager::loadPreset`
+  lead at MainComponent.cpp:204 that could falsify the no-op proof. UNVERIFIED.
+- **Reviewer minor carried into C3**: MappingEngine.cpp:169-196 concurrent enabled-flip
+  can double-tick one smoother; unreachable after confinement — wants a comment line.
+- **Stale comment**: OutputWindow.cpp KNOWN-RESIDUAL block still describes the freeze as
+  live and cites a drifted line number. W5 must rewrite it.
+- **Eyes reactivity 3/4 failing** — A/B-proven PRE-EXISTING (fails identically at
+  7bb5cc2), so not this work's debt, but UNDIAGNOSED. Strong lead: `u_bass` reads
+  `bandEnergies[1]` while the battery injects `[0]`. Which side is wrong is unknown —
+  if the shader is, live bass reactivity is mis-banded.
+- **Pre-existing SignalRegistry.cpp:154 race** observed twice under TSan
+  (`.harmony/ow-c1-signalregistry-race.log`). Not touched by this work. Owned by the A1
+  routing/signal follow-up, which is itself gated on an un-done thread audit.
+- **Residuals shipped knowingly**: ROUTED params and autopilot still freeze on preview
+  detach (only MAPPED params are fixed by C3); P3 scalar-crossing set enlarged, deferred
+  to spec Step 3.
+- **Unexplained infra event**: my first parallel rebuild pair was externally SIGTERM'd
+  (`Terminated: 15`). Serial re-run was clean; cause never identified. Watch for it.
+- **90 unpushed commits** and no push authorization — the review-before-push discipline
+  is the only thing keeping that stack honest.
+
+## META-LEARNINGS
+- **Stage protocol is the right shape for a multi-commit arc**: ratify the design to
+  disk FIRST, then one builder runs stages with report → my independent gate → my
+  commit → next stage. Every stage is independently green and revertible, and hitting a
+  context cap mid-arc produced a clean handoff instead of a half-built tree.
+- **Dispatch the independent reviewer BEFORE wrapping, not at arc end.** I nearly closed
+  with two committed-but-unreviewed stages because I'd planned the review for after C3.
+  Unreviewed commits accumulate silently; the full-tier gate has two halves and mine was
+  only one of them.
+- **Evidence has timing**: `.ips` crash reports land tens of seconds after death, so my
+  immediate "0 crash logs" check was worthless and I had to retract it. Same class: a
+  `curl /api/health` can answer from a dying instance — pair liveness claims with
+  `pgrep`/window enumeration.
+- **Inherited numbers rot.** The "~49 unpushed commits" figure rode through several
+  handoffs; the truth was 90. Re-verify inherited claims before repeating them.
+- **A council earns its cost when it finds work you didn't ask about**: the pragmatist
+  seat surfaced the intermediate-zero publish (a live bug, any cadence) that neither the
+  spec nor I had noticed, and it became C2.
+- **Race-demonstration tests must mirror production access shape** — a tight memcpy
+  reader was TSan-blind where field-by-field consumption caught it.
+- **Know when to stop driving the UI.** The SignalBar cycler is a documented flake; I
+  spent two attempts, then converted it into a handoff item rather than looping.
+
+## CHANNEL HARVEST
+- **Boris ideas captured this session: NONE** — Boris sent no messages (fully autonomous
+  drain-mode session), so the R2 transcript sweep for un-flagged idea-class statements
+  found nothing to capture. Idea-ledger correctly untouched.
+- **Learnings emitted to the harmony2 event log (lane A, co-session secondary)**:
+  `tsan-production-faithful-tests`, `stage-protocol-multi-commit-arc`,
+  `gate-evidence-timing-traps` — the primary distills these at its close.
+- **Repo-local knowledge written**: gate-mechanics gotchas (TSan app recipe, TestServer
+  `::1` bind, verify-frontmost-before-click, TSan abort-at-exit vs product crash,
+  delayed `.ips`, `git commit --only` can't stage new files) → `.harmony/gotchas.md`;
+  builder discoveries → `.harmony/notebook.md`; council record + adjudications →
+  `.harmony/specs/outputwindow-arc-design.md`; session narrative →
+  `.harmony/sessions/2026-08-02-s2-seqlock-secondary.md`.
+- **For Boris, needing his hands or his taste**: see ONLY BORIS CAN CHECK below.
+- **No harmony2 SYSTEM files touched** this session (foreign-repo work only) — clean
+  secondary, no escalation.
+
 ## ONLY BORIS CAN CHECK (this session's additions)
 - **Mapping response FEEL after C3** (kMappingTickHz=120 was chosen to preserve the
   measured incumbent rate; only his eye/ear confirms the smoothing feel is unchanged).
