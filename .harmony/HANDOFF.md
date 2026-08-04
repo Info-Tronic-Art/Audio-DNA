@@ -632,3 +632,115 @@ said 95, then 97 — wrong for the fourth consecutive time). Nothing pushed.
 ## SCREEN STATE AT THIS POINT
 App NOT launched at any point this session. No Audio-DNA process. Screen captured with
 `screencapture -x` and VISUALLY VERIFIED clean (single built-in display attached).
+
+---
+
+# SESSION 2026-08-03b (secondary, slim) — BLACK OVERLAY FIXED. AUTHORITATIVE OVER ALL ABOVE.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4 — mandatory)
+**App NOT running. No Audio-DNA process. Output window DESTROYED (verified via
+CGWindowList, not just pgrep). Screen captured with `screencapture -x` and VISUALLY
+READ — clean, no overlay.** One display attached (built-in). The app was launched
+3x this session, every output-window open was paired with its close, and the screen
+was visually verified after each.
+
+## WHAT SHIPPED
+- **`5a580c8` fix(output-window): normal window level** — THE BLACK OVERLAY BUG IS FIXED.
+- `cab003a` test(visual): window-level probe + its own two bugs fixed.
+- `e75436e`, `b1a5296`, `ef9486b` — root cause, handoff corrections, resolution.
+Unpushed at close: **111** (RUN IT, never inherit it — the inherited number was wrong for
+the FOURTH consecutive handoff: "95"/"97" vs an actual 107 at session start).
+
+## ROOT CAUSE (source-verified end to end; full evidence `.harmony/black-overlay-rootcause.md`)
+`setAlwaysOnTop(true)` -> JUCE 8.0.4 maps it to `NSFloatingWindowLevel` -> JUCE NEVER sets an
+NSWindow Spaces-participation bit -> Apple's documented default for a non-normal level is
+**Transient, "floats in spaces"** -> opaque black rectangle above every normal window,
+sparing only native-fullscreen apps. Fix: drop the call. Normal level -> Managed -> stays put.
+
+**WHAT BORIS'S WORDS ACTUALLY MEANT — this misled two sessions.** "All my screens except the
+ones that are full screen" was NOT about monitors, and not really about Spaces either. He was
+describing **his open apps**. Reading "screens" as displays sent two sessions hunting a
+multi-display bug that never existed. He had ONE display attached the whole time.
+
+## FULL-TIER GATE — both halves closed
+- **FAIL-FIRST MEASURED on the running app**: `kCGWindowLayer == 3` before, **0** after.
+  Not reasoned — measured. `.harmony/ow-level-fail-first.log`.
+- Independent **ctest 193/193**, run by Harmony, not the builder's claim.
+- Forced Release rebuild: 0 errors, **0 NEW warnings** — measured by compiling both versions
+  as standalone TUs, not asserted. Binary sha256 confirmed relinked.
+- Independent source review: **PASS, 0 blocking, 3 minors**; M1 folded in BEFORE commit.
+- **Boris confirmed the symptom gone**: "when I go through the other apps open, the black
+  screen only covers audio dna."
+
+## BORIS RULINGS THIS SESSION
+1. **Drop always-on-top UNCONDITIONALLY** — no conditional, no toggle. He first ruled
+   "on-top only on a projector", then WITHDREW it when shown that on-top buys ~nothing there.
+   The simpler design also deleted an entire race class (no on-top state => nothing to
+   re-evaluate on display hot-plug).
+2. **Leave Cmd+F as-is** (it opens fullscreen output and collides with universal Find;
+   post-fix it is no longer a trap).
+3. Build both lanes — overlay first, then preset.
+
+## SIX INHERITED "FACTS" BROKEN THIS SESSION (the running tally is the point)
+1. Unpushed count 95/97 -> actually 107.
+2. "Overlay survives a graceful exit => teardown/ownership defect" -> FALSE, live-window bug.
+3. Multi-display framing -> FALSE, one display, never multi-display.
+4. **"Fix = borderless window instead of native fullscreen" -> ALREADY IMPLEMENTED.** Building
+   it would have changed nothing and preserved the bug. The recommendation contained the defect.
+5. "Same bug in BindingManager, should ride the same fix" -> FALSE, different index space,
+   dormant surface. Out of scope.
+6. "~100 effects shifted" -> ~52 of 135. And "display names have drifted from shader keys" ->
+   FALSE, they were authored divergent and never renamed.
+**And one I generated myself:** "a fresh window flashes at 0x0" was my inference, written into
+two docs, then propagated by a builder into a CODE COMMENT before review caught it. The floor
+is 128x128, and the real consequence was worse (GL context built at 128x128, then resized).
+
+## START HERE NEXT SESSION
+1. **COMMIT B — dismissal paths still only HIDE.** Packeted, build-ready:
+   `.harmony/.work-packets/black-overlay-fix.md` (LOCAL-ONLY, not in git). The in-window Esc
+   and close paths leave a hidden window with a LIVE continuously-repainting GL context, and
+   both display combos still believe output is ON — **so a deck saved after an in-window Esc
+   records output ON and re-blackens the screen on load.** RE-GREP LINE NUMBERS: the dismissal
+   no-ops moved 318/353 -> 318/363 across this session's comment edits.
+2. **PRESET SILENT RETARGET** — packeted, build-ready, one commit:
+   `.harmony/.work-packets/preset-retarget-fix.md` (LOCAL-ONLY). Dual-key on
+   shaderName+uniformName with displayName/paramName fallback. Includes a fail-first test that
+   fails against today's code, and a second same-class bug it fixes (preset param VALUES
+   restore BY POSITION despite names being saved).
+3. **"Fullscreen" does not actually cover the display** — AppKit's `constrainFrameRect:toScreen:`
+   clamps below the menu bar. Measured `x=0 y=38 1728x1117` on a 1117-tall display: **the
+   bottom ~38px of output hangs off-screen.** Projector output has been getting cropped.
+   Pre-existing, not a regression. Boris-visible; worth a ruling on priority.
+4. **Display combo lists never refresh after startup** — plug/unplug mid-session and both
+   combos are wrong while the MENU stays correct, so they silently disagree.
+5. Two C3 gate gaps (W7(iii) EMA parity unmeasured; TSan 2-context undriven).
+6. **BORIS FEEDBACK STILL UNPROCESSED — now 6 sessions old**: the 7-item GESTURE replay list
+   (carried verbatim above) and the Syphon live-check list. Deliberately deferred this session
+   ONLY because both need his hands on a running app and the app was blackening his screen.
+   **That reason is now gone. Do these FIRST if he is available.**
+7. A1 routing/signal follow-up (routed params + autopilot still freeze on preview detach).
+
+## ONLY BORIS CAN CHECK
+- The 7-item gesture list + Syphon list (above).
+- Rig-feel after C3 (kMappingTickHz=120 was chosen to preserve incumbent feel).
+- Whether cropped "fullscreen" output (#3) matters enough to jump the queue.
+- Audio-reactivity scope: shaders declare audio uniforms they never consume (`u_beatPhase`
+  declared in 3 shaders, used in ZERO). Taste/product call — do NOT "fix" by wiring them all in.
+
+## META-LEARNINGS
+- **Ask the user the cheap diagnostic questions BEFORE reading any source.** Three questions
+  reframed the entire bug in one round trip and killed two sessions' worth of dead hypotheses.
+  The multi-display hunt was pure waste that a 30-second question ended.
+- **Make a prediction the user can falsify, BEFORE he answers.** "Menu bar and Dock should have
+  stayed visible" converted a plausible chain into a confirmed one — and could have refuted it.
+- **A recommendation that is already implemented is the most dangerous kind of inherited
+  instruction.** It looks like work, gates like work, and ships nothing.
+- **An agent's inference becomes your assertion in one hop.** "Display names have drifted" went
+  recon -> me -> Boris as fact in a single turn. Label relayed claims by EVIDENCE CLASS, not by
+  confidence in the agent.
+- **My own docs poisoned a code comment.** Write inferences as inferences on disk, or a builder
+  will faithfully carry them into the source.
+- **Harnesses lie in the safety-relevant direction too.** The probe printed "SCREEN STATE:
+  clean (no window was ever opened)" while leaving a live app running — it confused "I did not
+  observe it launch" with "it did not launch." Verify the SCREEN and the PROCESS TABLE yourself.
+- Idle-without-report from a subagent held again (4/4). Auto-nudge.
