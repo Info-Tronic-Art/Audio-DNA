@@ -5,3 +5,8 @@ numpy>=1.24
 scikit-image>=0.20
 pyobjc-framework-ApplicationServices>=10.0
 pyobjc-framework-Cocoa>=10.0
+# Quartz: CGWindowListCopyWindowInfo, used by test_output_window_level.py to
+# read window levels. It also arrives transitively via pyobjc-framework-Cocoa,
+# but pinning it explicitly keeps a clean venv rebuild from silently dropping
+# it — without it the probe cannot identify the output window at all.
+pyobjc-framework-Quartz>=10.0
