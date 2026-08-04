@@ -131,3 +131,74 @@ own value.
 ## PROVENANCE
 `build/AudioDNA_artefacts/Release/Audio-DNA.app` mtime Aug 3 12:20 vs HEAD `c51aff7` 12:29 —
 the binary Boris ran contains this same code. `src/` working tree clean at time of recon.
+
+---
+
+# RESOLUTION + CORRECTIONS TO THIS FILE (2026-08-03b) — AUTHORITATIVE
+
+## SHIPPED: `5a580c8` fix(output-window): normal window level
+`setAlwaysOnTop(true)` deleted from `goFullscreenOnDisplay`; `setBounds` moved before
+`setVisible`; comment rewritten to state the window-level mechanism.
+Probe harness: `cab003a`.
+
+**Full-tier gate, both halves closed:**
+- FAIL-FIRST **measured on the running app**: `kCGWindowLayer == 3` before, **0** after
+  (`.harmony/ow-level-fail-first.log`, `tests/visual/test_output_window_level.py`).
+- Independent ctest **193/193**, run by Harmony — not the builder's claim.
+- Forced Release rebuild: 0 errors, **0 new warnings**, measured by compiling both versions
+  as standalone TUs rather than asserted; binary sha256 confirmed relinked.
+- Independent source review: **PASS, 0 blocking, 3 minors** (M1 folded in pre-commit).
+- **Boris confirmed the symptom is gone**: "when I go through the other apps open, the black
+  screen only covers audio dna."
+
+**What his original words actually meant** (worth recording — it misled two sessions):
+"all my screens except the ones that are full screen" was never about monitors, and not
+really about Spaces either. He was describing **his open apps** — the floating window sat
+above every normal window and could not reach native-fullscreen apps. Reading "screens" as
+displays sent two sessions hunting a multi-display bug that never existed.
+
+## CORRECTION 1 — THE BORIS RULING IN THIS FILE IS WITHDRAWN
+The section above recording **"Stay on top, but ONLY on a projector / second display"** is
+**SUPERSEDED**. Boris withdrew it the same session, after the architect showed always-on-top
+buys ~nothing on a projector (with separate Spaces ON the projector holds its own Space with
+nothing else on it, so floating and normal are indistinguishable there). **FINAL RULING:
+drop always-on-top UNCONDITIONALLY. No conditional, no toggle.** This is what shipped.
+Consequently the **"HARDEST OPEN DESIGN PROBLEM — DISPLAY HOT-PLUG"** section above is MOOT:
+with no on-top state anywhere, there is nothing to re-evaluate on display change.
+
+## CORRECTION 2 — "ORDERING BUG … flashes at 0x0" IS FALSE
+A fresh OutputWindow is **never 0x0**. `DocumentWindow`'s ctor calls
+`setResizeLimits(128, 128, …)` (`juce_DocumentWindow.cpp:69`) which ends in
+`setBoundsConstrained` (`juce_ResizableWindow.cpp:311`), and `checkBounds` clamps
+unconditionally when not stretching (`juce_ComponentBoundsConstrainer.cpp:189,194`).
+**The floor is 128x128.** And the real consequence is worse than a flash: `canBeAttached`
+(`juce_OpenGLContext.cpp:1163-1176`) binds on VISIBILITY, and size is always satisfied
+because of that same floor — so showing first **created the GL context at 128x128 and then
+resized it**. Bounds-first attaches once, already at display size.
+**This false claim propagated from this file into a code comment before review caught it.**
+It was written here as an inference and read downstream as fact.
+
+## CORRECTION 3 — "NOT DURABLE — do not fix it this way" IS WRONG
+The claim above that overriding `collectionBehavior` natively would not stick is FALSE for
+this app: `resetWindowPresentation` (`juce_NSViewComponentPeer_mac.mm:1592-1601`) has exactly
+two callers (`windowDidExitFullScreen:` `:2786-2790`, kiosk-disable `:2997`) and **neither is
+reachable here** — the app never enters native fullscreen or kiosk. A native override WOULD
+persist. Not needed for the shipped fix; relevant only if an on-top toggle is ever added.
+
+## STILL OPEN (own tickets, NOT regressions from `5a580c8`)
+1. **"Fullscreen" does not actually cover the display.** JUCE's peer calls AppKit's
+   `constrainFrameRect:toScreen:` super FIRST (`juce_NSViewComponentPeer_mac.mm:2756-2763`),
+   clamping below the menu bar. Measured: output at `x=0 y=38 1728x1117` on a 1117-tall
+   display — **the bottom ~38px hangs off-screen**. Projector output has been getting cropped.
+   Pre-existing, identical at floating level.
+2. **COMMIT B — dismissal paths still only HIDE.** `OutputWindow.cpp` `closeButtonPressed`
+   and the Escape branch leave a hidden window with a live continuously-repainting GL context,
+   and both display combos still believe output is ON — so a deck saved after an in-window Esc
+   records output ON and re-blackens on load. Packeted in
+   `.harmony/.work-packets/black-overlay-fix.md`. **Re-grep line numbers: the dismissal
+   no-ops moved 318/353 -> 318/363 across this session's comment edits.**
+3. **Display combo lists never refresh after startup** (`refreshDisplayList` runs once at
+   construction) — plug/unplug mid-session and the combos are wrong while the MENU stays
+   correct, so they silently disagree.
+4. **M2 (cosmetic):** `toFront(true)` is redundant — `TopLevelWindow::visibilityChanged`
+   already calls it on show.
