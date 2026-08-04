@@ -1,8 +1,8 @@
 # EOS-COMPLETE — secondary close attestation
 <!-- Written by scripts/secondary-eos-attest.sh AFTER the EOS audit surfaces ran. -->
 <!-- The secondary close gate REFUSES `safe to close.` without a fresh, this-session, non-stub receipt. -->
-session-instance: harmony-38219
-utc: 2026-08-03T03:08:58Z
-loose-ends-sha: 55261de1c620d1d495a55d1851b68e9d179bed08abca38630e71c36b778f0be0
-meta-learnings-sha: f92ef3a059c248beddae926c5000c17cc4fb667309d9ba5073a4137b6f13bf1d
-channels-sha: a056514c1e97d53f55f4757d4861662b0494af5b813085d3d5d627c7ab85a592
+session-instance: harmony-9290
+utc: 2026-08-04T16:23:44Z
+loose-ends-sha: 7b54b17a6f3aee94e972f7c9ee99f90ac86597c0ddc6becc127df7cc6d8f830d
+meta-learnings-sha: fe036396a54fb897b4ab47784f4b6982bafa0c297c96e2be9a35d4d2b0338041
+channels-sha: 83d3a0e0e473bda71c2d1d56ee039bc73c28f32f5104c361f20918ebd6b94457

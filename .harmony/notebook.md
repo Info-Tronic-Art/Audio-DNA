@@ -2,6 +2,27 @@
 
 <!-- Accumulated Builder knowledge. Each Builder reads this and appends discoveries. -->
 
+## 2026-08-04 — Multi-image drop has THREE entry points, not two; a pure-image Finder drop was completely un-thresholded
+**Files:** src/ui/ClipCell.cpp (filesDropped ~292, itemDropped "files:" branch ~514-545),
+src/MainComponent.cpp (onMixedFilesDropped lambda ~788-862, handleMultiFileDrop ~3791-3854,
+applyMultiFileDrop ~3740-3789)
+**Note:** A multi-image drop reaches MainComponent through THREE separate paths, not the two a
+work packet described (MainComponent.cpp's onMixedFilesDropped lambda + ClipCell.cpp's
+itemDropped "files:" internal-drag branch). The third — a plain Finder drop of images ONLY, no
+video, landing directly on a ClipCell (ClipCell::filesDropped's `imageFiles.size() > 1` branch →
+`onMultiFileDrop` → `DeckView::onMultiFileDropped` → `MainComponent::handleMultiFileDrop` →
+`applyMultiFileDrop`) — had ZERO count-based branching before this fix; ANY count > 1 always
+collapsed into a single ImageSequence cell. This is almost certainly the literal path a plain
+"drag 2 images from Finder onto an empty cell" hits, since ClipCell::filesDropped only routes
+through the mixed-drop combined callback when videos are ALSO present. Any future threshold/
+placement change to multi-image drops must audit `handleMultiFileDrop` too, not just the two
+`videoStartCol`-adjacent call sites — grep `onMultiFileDrop\b` callback wiring in DeckView.cpp to
+find all producers. `applyMultiFileDrop` (single-cell/ImageSequence primitive) was also missing
+the content-lock check `applyFileDrop` has always had — any function that writes a Clip via
+`deck->setClip` needs its own explicit `existing->contentLocked` guard; there's no shared gate.
+**Valid while:** these five functions/lambdas keep their current names and the ClipCell → DeckView
+→ MainComponent callback-forwarding shape (DeckView.cpp:137-170 is pure passthrough, no logic).
+
 ## 2026-08-02 — Mapping-probe design: processFrame sits BEHIND the content gate; mapping writes ignore effect enabled state
 **Files:** src/render/Renderer.cpp (renderOpenGL early-out ~:199-208), src/mapping/MappingEngine.cpp (processFrame), tests/visual/test_mapping_tick.py
 **Note:** Two facts any mapping/param probe must bake in: (1)
