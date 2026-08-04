@@ -5,6 +5,32 @@ void EffectLibrary::registerEffect(const EffectDef& def)
     defs_.push_back(def);
 }
 
+bool EffectLibrary::registerDynamic(const EffectDef& def)
+{
+    // Reject a duplicate display name or shaderName against existing defs —
+    // both are used as targeting keys (D1) and must stay globally unique.
+    for (const auto& existing : defs_)
+    {
+        if (existing.name == def.name || existing.shaderName == def.shaderName)
+            return false;
+    }
+
+    // Reject intra-def duplicate param names/uniformNames — both are used
+    // as per-effect param targeting keys.
+    for (size_t i = 0; i < def.params.size(); ++i)
+    {
+        for (size_t j = i + 1; j < def.params.size(); ++j)
+        {
+            if (def.params[i].name == def.params[j].name
+                || def.params[i].uniformName == def.params[j].uniformName)
+                return false;
+        }
+    }
+
+    registerEffect(def);
+    return true;
+}
+
 void EffectLibrary::registerDefaults()
 {
     defs_.clear();

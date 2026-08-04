@@ -6,23 +6,48 @@
 
 // PresetManager: save/load effect chain state + mappings as JSON files.
 //
-// Serialized format:
+// Serialized format (version 2 — preset-retarget-fix D1/D4):
 // {
 //   "name": "preset name",
+//   "version": 2,
 //   "effects": [
-//     { "name": "Ripple", "enabled": true, "order": 0,
+//     { "name": "Ripple", "shader": "ripple", "enabled": true, "order": 0,
 //       "params": [ { "name": "intensity", "value": 0.5 }, ... ] }
 //   ],
 //   "mappings": [
-//     { "source": "RMS", "targetEffect": 0, "targetParam": 0,
+//     { "source": "RMS",
+//       "targetEffect": 0, "targetParam": 0,               // legacy raw indices, always kept
+//       "targetEffectKey": "ripple", "targetEffectName": "Ripple",     // D1 dual key
+//       "targetParamKey": "u_ripple_intensity", "targetParamName": "intensity",
 //       "curve": "Exponential", "inputMin": 0.0, "inputMax": 1.0,
 //       "outputMin": 0.0, "outputMax": 1.0, "smoothing": 0.15, "enabled": true }
 //   ]
 // }
+//
+// Mapping targets are resolved key-first (shaderName/uniformName survive
+// EffectLibrary re-grouping, which silently shifts raw chain indices — the
+// bug this scheme fixes), falling back to display name, and only falling
+// back further to the raw index for legacy (pre-key) files. Effect param
+// VALUES restore by name with positional fallback for the same reason.
+// See .harmony/.work-packets/preset-retarget-fix.md (D1-D6, N4).
 class PresetManager
 {
 public:
     PresetManager() = default;
+
+    // Result of a loadPreset/loadDeck call: how mapping targets were
+    // resolved, for caller-side UI feedback (W5). Zero-initialized; a fresh
+    // struct is written into *stats on every call.
+    struct LoadStats
+    {
+        int mappingsTotal  = 0;   // mappings present in the file
+        int resolvedByKey  = 0;   // matched via shaderName + uniformName (primary key)
+        int resolvedByName = 0;   // matched via displayName + paramName (fallback)
+        int legacyIndex    = 0;   // v1 file, no keys — resolved via raw index (in-range)
+        int dropped        = 0;   // target could not be resolved at all
+        bool legacyFile    = false;
+        juce::StringArray droppedDescriptions;
+    };
 
     // Save current state to a JSON file. Returns true on success.
     static bool savePreset(const juce::File& file,
@@ -31,10 +56,12 @@ public:
                            const MappingEngine& engine);
 
     // Load a preset from JSON. Applies effect enable/params and rebuilds mappings.
-    // Returns true on success.
+    // Returns true on success. stats, if non-null, is overwritten with
+    // mapping-resolution counts (see LoadStats).
     static bool loadPreset(const juce::File& file,
                            EffectChain& chain,
-                           MappingEngine& engine);
+                           MappingEngine& engine,
+                           LoadStats* stats = nullptr);
 
     // Get directories for different save types
     static juce::File getPresetsDirectory();   // FX presets
@@ -77,7 +104,8 @@ public:
     static bool loadDeck(const juce::File& file,
                          DeckState& deck,
                          EffectChain& chain,
-                         MappingEngine& engine);
+                         MappingEngine& engine,
+                         LoadStats* stats = nullptr);
 
     // String conversion helpers for enums
     static juce::String sourceToString(MappingSource source);

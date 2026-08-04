@@ -1,4 +1,5 @@
 #include "PresetManager.h"
+#include <iostream>
 
 // ── Enum string tables ──────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ bool PresetManager::savePreset(const juce::File& file,
     auto* root = new juce::DynamicObject();
 
     root->setProperty("name", presetName);
-    root->setProperty("version", 1);
+    root->setProperty("version", 2);
 
     // Serialize effects
     juce::Array<juce::var> effectsArray;
@@ -84,6 +85,7 @@ bool PresetManager::savePreset(const juce::File& file,
 
         auto* fxObj = new juce::DynamicObject();
         fxObj->setProperty("name", fx->getName());
+        fxObj->setProperty("shader", fx->getShaderName());
         fxObj->setProperty("enabled", fx->isEnabled());
         fxObj->setProperty("order", fx->getOrder());
 
@@ -110,8 +112,33 @@ bool PresetManager::savePreset(const juce::File& file,
 
         auto* mObj = new juce::DynamicObject();
         mObj->setProperty("source", sourceToString(m->source));
+
+        // Legacy raw-index fields — ALWAYS written, both for backward
+        // compatibility with hand-edited/external tooling and as the
+        // last-resort fallback for v1 loaders reading this v2 file.
         mObj->setProperty("targetEffect", static_cast<int>(m->targetEffectId));
         mObj->setProperty("targetParam", static_cast<int>(m->targetParamIndex));
+
+        // D1 dual-key targeting: shaderName/uniformName (primary) survive an
+        // EffectLibrary re-grouping that silently shifts raw chain indices —
+        // the bug this fixes. displayName/paramName ride along as fallback.
+        // Resolved off the LIVE chain, not the Mapping struct (which has no
+        // name fields — MappingTypes.h).
+        Effect* targetFx = const_cast<EffectChain&>(chain).getEffect(static_cast<int>(m->targetEffectId));
+        if (targetFx != nullptr)
+        {
+            mObj->setProperty("targetEffectKey", targetFx->getShaderName());
+            mObj->setProperty("targetEffectName", targetFx->getName());
+
+            int paramIdx = static_cast<int>(m->targetParamIndex);
+            if (paramIdx >= 0 && paramIdx < targetFx->getNumParams())
+            {
+                const auto& targetParam = targetFx->getParam(paramIdx);
+                mObj->setProperty("targetParamKey", juce::String(targetParam.uniformName));
+                mObj->setProperty("targetParamName", juce::String(targetParam.name));
+            }
+        }
+
         mObj->setProperty("curve", curveToString(m->curve));
         mObj->setProperty("inputMin", static_cast<double>(m->inputMin));
         mObj->setProperty("inputMax", static_cast<double>(m->inputMax));
@@ -133,8 +160,14 @@ bool PresetManager::savePreset(const juce::File& file,
 
 bool PresetManager::loadPreset(const juce::File& file,
                                 EffectChain& chain,
-                                MappingEngine& engine)
+                                MappingEngine& engine,
+                                LoadStats* stats)
 {
+    LoadStats localStats;
+    if (stats == nullptr)
+        stats = &localStats;
+    *stats = LoadStats{};
+
     if (!file.existsAsFile())
         return false;
 
@@ -145,6 +178,19 @@ bool PresetManager::loadPreset(const juce::File& file,
     auto* root = json.getDynamicObject();
     if (root == nullptr)
         return false;
+
+    // D4: version is read for diagnostics/forward-tolerance only — nothing
+    // below branches on it except the legacyFile flag (no keys written <
+    // version 2). A newer-than-supported file still gets a best-effort load
+    // since DynamicObject carries unknown properties inertly.
+    int fileVersion = root->hasProperty("version")
+                     ? static_cast<int>(root->getProperty("version"))
+                     : 1;
+    if (fileVersion > 2)
+        std::cerr << "[PresetManager] Preset \"" << file.getFileName()
+                   << "\" has version " << fileVersion
+                   << ", newer than supported version 2 — loading best-effort." << std::endl;
+    stats->legacyFile = fileVersion < 2;
 
     // Apply effect states
     auto effectsVar = root->getProperty("effects");
@@ -159,20 +205,41 @@ bool PresetManager::loadPreset(const juce::File& file,
             Effect* fx = chain.getEffect(i);
             if (fx == nullptr) continue;
 
-            // Match by name to handle reordered chains
+            // Match by shaderName first (stable across display-name
+            // relabeling), falling back to display name — legacy files have
+            // no "shader" field, so savedShader is empty and this collapses
+            // to the original name-only match. Handles reordered/re-grouped
+            // chains (D1, preset-retarget-fix).
+            juce::String savedShader = fxObj->getProperty("shader").toString();
             juce::String savedName = fxObj->getProperty("name").toString();
-            if (savedName != fx->getName())
+            bool matches = (!savedShader.isEmpty() && fx->getShaderName() == savedShader)
+                        || (savedShader.isEmpty() && savedName == fx->getName());
+
+            if (!matches)
             {
-                // Try to find the matching effect by name
                 bool found = false;
-                for (int j = 0; j < chain.getNumEffects(); ++j)
+                if (!savedShader.isEmpty())
                 {
-                    Effect* candidate = chain.getEffect(j);
-                    if (candidate && candidate->getName() == savedName)
+                    for (int j = 0; j < chain.getNumEffects() && !found; ++j)
                     {
-                        fx = candidate;
-                        found = true;
-                        break;
+                        Effect* candidate = chain.getEffect(j);
+                        if (candidate != nullptr && candidate->getShaderName() == savedShader)
+                        {
+                            fx = candidate;
+                            found = true;
+                        }
+                    }
+                }
+                if (!found)
+                {
+                    for (int j = 0; j < chain.getNumEffects() && !found; ++j)
+                    {
+                        Effect* candidate = chain.getEffect(j);
+                        if (candidate != nullptr && candidate->getName() == savedName)
+                        {
+                            fx = candidate;
+                            found = true;
+                        }
                     }
                 }
                 if (!found) continue;
@@ -183,14 +250,36 @@ bool PresetManager::loadPreset(const juce::File& file,
             auto paramsVar = fxObj->getProperty("params");
             if (auto* paramsArray = paramsVar.getArray())
             {
-                for (int p = 0; p < paramsArray->size() && p < fx->getNumParams(); ++p)
+                for (int p = 0; p < paramsArray->size(); ++p)
                 {
                     auto pVar = (*paramsArray)[p];
                     auto* pObj = pVar.getDynamicObject();
                     if (pObj == nullptr) continue;
 
                     float val = static_cast<float>(static_cast<double>(pObj->getProperty("value")));
-                    fx->setParamValue(p, val);
+
+                    // N4: restore by name first — survives a param-list
+                    // reordering/insertion, which the old positional
+                    // restore silently mis-targeted. Falls back to position
+                    // for legacy files (no "name") or an unrecognized name.
+                    juce::String savedParamName = pObj->getProperty("name").toString();
+                    int targetIdx = -1;
+                    if (!savedParamName.isEmpty())
+                    {
+                        for (int q = 0; q < fx->getNumParams(); ++q)
+                        {
+                            if (juce::String(fx->getParam(q).name) == savedParamName)
+                            {
+                                targetIdx = q;
+                                break;
+                            }
+                        }
+                    }
+                    if (targetIdx < 0 && p < fx->getNumParams())
+                        targetIdx = p;
+
+                    if (targetIdx >= 0)
+                        fx->setParamValue(targetIdx, val);
                 }
             }
         }
@@ -202,22 +291,147 @@ bool PresetManager::loadPreset(const juce::File& file,
     auto mappingsVar = root->getProperty("mappings");
     if (auto* mappingsArray = mappingsVar.getArray())
     {
+        stats->mappingsTotal = mappingsArray->size();
+
         for (const auto& mVar : *mappingsArray)
         {
             auto* mObj = mVar.getDynamicObject();
             if (mObj == nullptr) continue;
 
             Mapping m;
-            m.source         = stringToSource(mObj->getProperty("source").toString());
-            m.targetEffectId = static_cast<uint32_t>(static_cast<int>(mObj->getProperty("targetEffect")));
-            m.targetParamIndex = static_cast<uint32_t>(static_cast<int>(mObj->getProperty("targetParam")));
-            m.curve          = stringToCurve(mObj->getProperty("curve").toString());
-            m.inputMin       = static_cast<float>(static_cast<double>(mObj->getProperty("inputMin")));
-            m.inputMax       = static_cast<float>(static_cast<double>(mObj->getProperty("inputMax")));
-            m.outputMin      = static_cast<float>(static_cast<double>(mObj->getProperty("outputMin")));
-            m.outputMax      = static_cast<float>(static_cast<double>(mObj->getProperty("outputMax")));
-            m.smoothing      = static_cast<float>(static_cast<double>(mObj->getProperty("smoothing")));
-            m.enabled        = mObj->getProperty("enabled");
+            m.source    = stringToSource(mObj->getProperty("source").toString());
+            m.curve     = stringToCurve(mObj->getProperty("curve").toString());
+            m.inputMin  = static_cast<float>(static_cast<double>(mObj->getProperty("inputMin")));
+            m.inputMax  = static_cast<float>(static_cast<double>(mObj->getProperty("inputMax")));
+            m.outputMin = static_cast<float>(static_cast<double>(mObj->getProperty("outputMin")));
+            m.outputMax = static_cast<float>(static_cast<double>(mObj->getProperty("outputMax")));
+            m.smoothing = static_cast<float>(static_cast<double>(mObj->getProperty("smoothing")));
+            m.enabled   = mObj->getProperty("enabled");
+
+            // D1: key fields present means this is a v2 mapping — resolve
+            // key-first, name-fallback, and DROP (do NOT fall back to the
+            // raw ints) if neither resolves. A stale-but-in-range raw index
+            // is exactly the silent-mistarget bug this fixes; falling back
+            // to it here would reintroduce it for every v2 file whose
+            // target effect/param was renamed AND moved.
+            bool hasKeyFields = mObj->hasProperty("targetEffectKey")
+                              || mObj->hasProperty("targetEffectName");
+            bool resolved = false;
+
+            if (hasKeyFields)
+            {
+                juce::String effKey    = mObj->getProperty("targetEffectKey").toString();
+                juce::String effName   = mObj->getProperty("targetEffectName").toString();
+                juce::String paramKey  = mObj->getProperty("targetParamKey").toString();
+                juce::String paramName = mObj->getProperty("targetParamName").toString();
+
+                int effIdx = -1;
+                bool effByKey = false;
+                if (!effKey.isEmpty())
+                {
+                    for (int j = 0; j < chain.getNumEffects(); ++j)
+                    {
+                        Effect* candidate = chain.getEffect(j);
+                        if (candidate != nullptr && candidate->getShaderName() == effKey)
+                        {
+                            effIdx = j;
+                            effByKey = true;
+                            break;
+                        }
+                    }
+                }
+                if (effIdx < 0 && !effName.isEmpty())
+                {
+                    for (int j = 0; j < chain.getNumEffects(); ++j)
+                    {
+                        Effect* candidate = chain.getEffect(j);
+                        if (candidate != nullptr && candidate->getName() == effName)
+                        {
+                            effIdx = j;
+                            break;
+                        }
+                    }
+                }
+
+                if (effIdx >= 0)
+                {
+                    Effect* fx = chain.getEffect(effIdx);
+                    int paramIdx = -1;
+                    bool paramByKey = false;
+                    if (fx != nullptr && !paramKey.isEmpty())
+                    {
+                        for (int q = 0; q < fx->getNumParams(); ++q)
+                        {
+                            if (juce::String(fx->getParam(q).uniformName) == paramKey)
+                            {
+                                paramIdx = q;
+                                paramByKey = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (fx != nullptr && paramIdx < 0 && !paramName.isEmpty())
+                    {
+                        for (int q = 0; q < fx->getNumParams(); ++q)
+                        {
+                            if (juce::String(fx->getParam(q).name) == paramName)
+                            {
+                                paramIdx = q;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (paramIdx >= 0)
+                    {
+                        m.targetEffectId = static_cast<uint32_t>(effIdx);
+                        m.targetParamIndex = static_cast<uint32_t>(paramIdx);
+                        resolved = true;
+                        if (effByKey && paramByKey)
+                            stats->resolvedByKey++;
+                        else
+                            stats->resolvedByName++;
+                    }
+                }
+
+                if (!resolved)
+                {
+                    stats->dropped++;
+                    stats->droppedDescriptions.add(
+                        "Mapping (" + sourceToString(m.source) + ") target \""
+                        + (effName.isEmpty() ? effKey : effName)
+                        + "\" could not be resolved — dropped.");
+                    continue;
+                }
+            }
+            else
+            {
+                // D6: v1 file, no keys — no automatic remap. Validate the
+                // raw index against the live chain: in-range loads exactly
+                // as v1 always did (pre-existing behavior, R1 accepted
+                // residual), out-of-range is now dropped instead of
+                // silently mis-targeting whatever effect landed there.
+                int rawEffect = static_cast<int>(mObj->getProperty("targetEffect"));
+                int rawParam  = static_cast<int>(mObj->getProperty("targetParam"));
+
+                Effect* fx = chain.getEffect(rawEffect);
+                if (fx != nullptr && rawParam >= 0 && rawParam < fx->getNumParams())
+                {
+                    m.targetEffectId = static_cast<uint32_t>(rawEffect);
+                    m.targetParamIndex = static_cast<uint32_t>(rawParam);
+                    resolved = true;
+                    stats->legacyIndex++;
+                }
+                else
+                {
+                    stats->dropped++;
+                    stats->droppedDescriptions.add(
+                        "Legacy mapping (" + sourceToString(m.source) + ") target index "
+                        + juce::String(rawEffect) + "/" + juce::String(rawParam)
+                        + " out of range — dropped.");
+                    continue;
+                }
+            }
 
             engine.addMapping(m);
         }
@@ -316,7 +530,8 @@ bool PresetManager::saveDeck(const juce::File& file,
 bool PresetManager::loadDeck(const juce::File& file,
                               DeckState& deck,
                               EffectChain& chain,
-                              MappingEngine& engine)
+                              MappingEngine& engine,
+                              LoadStats* stats)
 {
     auto json = file.loadFileAsString();
     auto parsed = juce::JSON::parse(json);
@@ -362,7 +577,7 @@ bool PresetManager::loadDeck(const juce::File& file,
         // Write to temp file and load via existing loadPreset
         auto tempFile = file.getSiblingFile("_temp_load_fx_.json");
         tempFile.replaceWithText(juce::JSON::toString(fxVar));
-        loadPreset(tempFile, chain, engine);
+        loadPreset(tempFile, chain, engine, stats);
         tempFile.deleteFile();
     }
 

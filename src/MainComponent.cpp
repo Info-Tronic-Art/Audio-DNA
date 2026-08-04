@@ -201,12 +201,17 @@ MainComponent::MainComponent(bool testMode, int testPort)
             auto& s = presetSlots_[static_cast<size_t>(capturedSlot)];
             if (s.loadedFile.existsAsFile())
             {
+                PresetManager::LoadStats stats;
                 if (PresetManager::loadPreset(s.loadedFile,
                                                previewPanel_.getEffectChain(),
-                                               previewPanel_.getMappingEngine()))
+                                               previewPanel_.getMappingEngine(),
+                                               &stats))
                 {
+                    // Preset-retarget-fix W5: no modal on this performance
+                    // surface — flag dropped mappings inline in the label.
                     fileLabel_.setText("Slot " + juce::String(capturedSlot + 1) + ": "
-                                      + s.loadedFile.getFileNameWithoutExtension(),
+                                      + s.loadedFile.getFileNameWithoutExtension()
+                                      + (stats.dropped > 0 ? " (check mappings)" : ""),
                                       juce::dontSendNotification);
                     if (effectsRackPanel_)
                         effectsRackPanel_->refreshFromChain();
@@ -2199,9 +2204,11 @@ void MainComponent::loadPreset()
         if (file == juce::File{})
             return;
 
+        PresetManager::LoadStats stats;
         if (PresetManager::loadPreset(file,
                                        previewPanel_.getEffectChain(),
-                                       previewPanel_.getMappingEngine()))
+                                       previewPanel_.getMappingEngine(),
+                                       &stats))
         {
             fileLabel_.setText("Loaded: " + file.getFileNameWithoutExtension(),
                               juce::dontSendNotification);
@@ -2209,6 +2216,28 @@ void MainComponent::loadPreset()
                 effectsRackPanel_->refreshFromChain();
             // Loading a composition is not itself undoable — drop stale history.
             undoManager_.clear();
+
+            // Preset-retarget-fix W5: surface mapping-resolution issues on
+            // the explicit Load path only — no modal on the slot/deck paths.
+            if (stats.dropped > 0)
+            {
+                juce::AlertWindow::showMessageBoxAsync(
+                    juce::MessageBoxIconType::WarningIcon,
+                    "Some Mappings Dropped",
+                    juce::String(stats.dropped) + " of " + juce::String(stats.mappingsTotal)
+                    + " mapping(s) could not be re-targeted and were dropped:\n\n"
+                    + stats.droppedDescriptions.joinIntoString("\n"));
+            }
+            else if (stats.legacyFile)
+            {
+                juce::AlertWindow::showMessageBoxAsync(
+                    juce::MessageBoxIconType::InfoIcon,
+                    "Legacy Preset",
+                    "This preset was saved before targeting keys were added. Its "
+                    "mappings loaded using their original chain positions — verify "
+                    "they still target the right effects, then re-save to upgrade "
+                    "this file permanently.");
+            }
         }
     });
 }
@@ -2568,12 +2597,17 @@ void MainComponent::loadSlotPreset(int slot, const juce::File& file)
     if (!file.existsAsFile())
         return;
 
+    PresetManager::LoadStats stats;
     if (PresetManager::loadPreset(file,
                                    previewPanel_.getEffectChain(),
-                                   previewPanel_.getMappingEngine()))
+                                   previewPanel_.getMappingEngine(),
+                                   &stats))
     {
+        // Preset-retarget-fix W5: no modal on this performance surface —
+        // flag dropped mappings inline in the label instead.
         fileLabel_.setText("Slot " + juce::String(slot + 1) + ": "
-                          + file.getFileNameWithoutExtension(),
+                          + file.getFileNameWithoutExtension()
+                          + (stats.dropped > 0 ? " (check mappings)" : ""),
                           juce::dontSendNotification);
         if (effectsRackPanel_)
             effectsRackPanel_->refreshFromChain();
@@ -3085,7 +3119,19 @@ void MainComponent::handleImportISF()
                 def.params.push_back(std::move(pd));
             }
 
-            previewPanel_.getRenderer().getEffectLibrary().registerDynamic(def);
+            // D2 (preset-retarget-fix): reject on name/shaderName collision
+            // or intra-def duplicate param/uniform names — both are used as
+            // preset targeting keys (D1) and must stay unique.
+            if (!previewPanel_.getRenderer().getEffectLibrary().registerDynamic(def))
+            {
+                juce::AlertWindow::showMessageBoxAsync(
+                    juce::MessageBoxIconType::WarningIcon,
+                    "ISF Import Rejected",
+                    "\"" + juce::String(isf.name) + "\" was not imported: its name, "
+                    "shader key, or a parameter name/uniform collides with an "
+                    "existing effect definition.");
+                return;
+            }
 
             // Compile the shader
             // Note: ShaderManager needs GL context. Queue for GL thread compilation.

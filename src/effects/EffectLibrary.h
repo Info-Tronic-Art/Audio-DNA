@@ -49,8 +49,14 @@ public:
 
     int getNumEffects() const { return static_cast<int>(defs_.size()); }
 
-    // P23: Public registration for dynamically loaded effects (ISF import)
-    void registerDynamic(const EffectDef& def) { registerEffect(def); }
+    // P23: Public registration for dynamically loaded effects (ISF import).
+    // D2 (preset-retarget-fix): rejects (returns false, does not register)
+    // a def whose name or shaderName collides with an existing definition,
+    // or that has intra-def duplicate param names/uniformNames — both are
+    // used as preset targeting keys (D1) and must stay unique. Built-ins
+    // registered via registerDefaults()/registerEffect() are NOT checked
+    // here (guarded instead by the T6 premise-gate test).
+    bool registerDynamic(const EffectDef& def);
 
 private:
     void registerEffect(const EffectDef& def);
