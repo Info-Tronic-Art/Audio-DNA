@@ -792,11 +792,14 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (!deck) return;
         const int numColsBefore = deck->numColumns;
 
-        // Images always occupy exactly one cell (single image, or an
-        // ImageSequence if more than one) at col; videos start immediately
-        // after, one cell each — same placement rule as the internal "files:"
-        // drag path (ClipCell::itemDropped's videoStartCol).
-        const int videoStartCol = col + (images.empty() ? 0 : 1);
+        // Images occupy 1 cell (single image, or 3+ as an ImageSequence) or
+        // 2 cells (exactly 2 images spread — Boris ruling 2026-08-04: two
+        // dropped images must read as two distinct clips, not merge into one
+        // animated sequence). Videos start immediately after, one cell each
+        // — same placement rule as the internal "files:" drag path
+        // (ClipCell::itemDropped's videoStartCol).
+        const int imageCellCount = images.empty() ? 0 : (images.size() == 2 ? 2 : 1);
+        const int videoStartCol = col + imageCellCount;
 
         std::vector<CellEdit> edits;
         // GL fence (2026-07-28, round 3 class): column growth + setClip below can
@@ -817,7 +820,16 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 if (auto edit = applyFileDrop(layerIdx, col, images[0]))
                     edits.push_back(*edit);
             }
-            else if (images.size() > 1)
+            else if (images.size() == 2)
+            {
+                // Spread: same primitive as the video-spread pattern above
+                // (applyFileDrop per cell), not applyMultiFileDrop — two
+                // images must land as two separate clips.
+                for (int i = 0; i < 2; ++i)
+                    if (auto edit = applyFileDrop(layerIdx, col + i, images[static_cast<size_t>(i)]))
+                        edits.push_back(*edit);
+            }
+            else if (images.size() > 2)
             {
                 if (auto edit = applyMultiFileDrop(layerIdx, col, images))
                     edits.push_back(*edit);
@@ -3731,6 +3743,15 @@ MainComponent::applyMultiFileDrop(int layerIndex, int column, const std::vector<
     auto* deck = composition_.getActiveDeck();
     if (!deck) return std::nullopt;
 
+    // P24.5: Check content lock before replacing (mirrors applyFileDrop —
+    // this check was missing here, letting a multi-image drop silently
+    // overwrite a content-locked cell).
+    if (auto* existing = deck->getClip(layerIndex, column))
+    {
+        if (existing->contentLocked)
+            return std::nullopt; // Silently refuse — locked content
+    }
+
     // Capture before-state for undo (nullopt if the cell was empty).
     std::optional<Clip> before = snapshotCell(deck->getLayer(layerIndex), column);
 
@@ -3769,6 +3790,56 @@ MainComponent::applyMultiFileDrop(int layerIndex, int column, const std::vector<
 
 void MainComponent::handleMultiFileDrop(int layerIndex, int column, const std::vector<juce::File>& files)
 {
+    // Boris ruling 2026-08-04: exactly 2 images spread across 2 cells instead
+    // of merging into one ImageSequence (the surprise that triggered this
+    // fix — two dropped images must read as two clips, not one animation).
+    // This handler is reached both by a direct Finder drop of images only
+    // (no video — ClipCell::filesDropped) and by the internal "files:" drag
+    // path when videos.empty() (ClipCell::itemDropped) — 3+ still falls
+    // through to applyMultiFileDrop below, mirroring onMixedFilesDropped's
+    // threshold so every drop path agrees.
+    if (files.size() == 2)
+    {
+        auto* deck = composition_.getActiveDeck();
+        if (!deck) return;
+        const int numColsBefore = deck->numColumns;
+
+        // GL fence (2026-07-28, round 3 class): column growth + setClip below
+        // can reallocate every layer's clips vector — one fence for the whole
+        // gesture, mirroring onMultiVideoDropped's shape.
+        std::vector<CellEdit> edits;
+        undoService_.withDeckDetached([&]
+        {
+            int needed = column + 2;
+            while (deck->numColumns < needed)
+            {
+                deck->numColumns++;
+                for (auto& layer : deck->layers)
+                    layer.clips.resize(static_cast<size_t>(deck->numColumns));
+            }
+            for (int i = 0; i < 2; ++i)
+                if (auto edit = applyFileDrop(layerIndex, column + i, files[static_cast<size_t>(i)]))
+                    edits.push_back(*edit);
+        });
+        const int numColsAfter = deck->numColumns;
+
+        if (edits.empty()) return;
+
+        const juce::String desc = "Drop 2 Images";
+        std::vector<std::unique_ptr<Command>> children;
+        if (numColsAfter != numColsBefore)   // FIRST child → undoes LAST (restores count)
+            children.push_back(std::make_unique<SetColumnCountCmd>(
+                makeDeckResolver(), makeDeckFence(), composition_.activeDeckIndex,
+                numColsBefore, numColsAfter, "Resize Columns"));
+        for (auto& edit : edits)
+            children.push_back(makeSetClipCmd(composition_.activeDeckIndex, edit, desc));
+        pushCommands(std::move(children), desc);
+
+        if (deckView_)
+            deckView_->rebuildGrid();
+        return;
+    }
+
     // GL fence (2026-07-28, round 3): setClip's internal ensureColumns can
     // grow the layer's clips vector — the crash-proven reallocation class.
     std::optional<CellEdit> edit;

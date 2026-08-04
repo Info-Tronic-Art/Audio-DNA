@@ -64,6 +64,21 @@ void ClipCell::paint(juce::Graphics& g)
             g.drawText(juce::String(clip_->name), thumbBounds.reduced(4.0f),
                        juce::Justification::centred, true);
         }
+
+        // ImageSequence and Video paint identically above (same branch) — an
+        // image sequence and an .mp4 are visually indistinguishable in the
+        // grid otherwise. This badge is the in-grid cue that tells them apart
+        // (.harmony/decisions-2026-08-04c.md Ruling 1). Mirrors the "SRC" tag
+        // idiom above; kMeterGreen keeps it visually distinct from SRC's
+        // purple.
+        if (clip_->mediaType == Clip::MediaType::ImageSequence)
+        {
+            g.setColour(juce::Colour(AudioDNALookAndFeel::kMeterGreen));
+            g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+            g.drawText("SEQ " + juce::String((int) clip_->sequenceFiles.size()),
+                       thumbBounds.removeFromTop(14.0f).reduced(2.0f, 0.0f),
+                       juce::Justification::centredLeft, false);
+        }
     }
     else if (clip_ && clip_->hasMedia() && thumbnail_.isValid())
     {
@@ -99,6 +114,29 @@ void ClipCell::paint(juce::Graphics& g)
             g.setColour(juce::Colour(kTextDim));
             g.drawText(displayName, nb,
                        juce::Justification::centredLeft, true);
+        }
+        else if (clip_->mediaType == Clip::MediaType::ImageSequence)
+        {
+            // "(N frames)" is the one part of the name that explains this is
+            // a sequence, not a video — and it's exactly what left-justified
+            // ellipsis truncation was cutting off. Right-anchor it so it can
+            // never be truncated; the parent-dir prefix ellipsizes instead.
+            // (.harmony/decisions-2026-08-04c.md Ruling 1.)
+            auto nb = nameBounds.reduced(3.0f, 0.0f);
+            juce::String frameSuffix = "(" + juce::String((int) clip_->sequenceFiles.size()) + " frames)";
+            juce::String baseName = displayName.endsWith(" " + frameSuffix)
+                ? displayName.dropLastCharacters(frameSuffix.length() + 1)
+                : displayName;
+
+            g.setColour(juce::Colour(kTextDim));
+            // GlyphArrangement::getStringWidth, not Font::getStringWidth(Float)
+            // — the latter are deprecated in this JUCE version.
+            auto suffixWidth = juce::jmin(
+                juce::GlyphArrangement::getStringWidth(g.getCurrentFont(), frameSuffix) + 2.0f,
+                nb.getWidth() * 0.7f);
+            g.drawText(frameSuffix, nb.removeFromRight(suffixWidth),
+                       juce::Justification::centredRight, true);
+            g.drawText(baseName, nb, juce::Justification::centredLeft, true);
         }
         else
         {
@@ -289,7 +327,11 @@ void ClipCell::filesDropped(const juce::StringArray& files, int, int)
         return;
     }
 
-    // Multiple images = image sequence
+    // Multiple images, no video: onMultiFileDrop → MainComponent::
+    // handleMultiFileDrop, which spreads exactly 2 across 2 cells and
+    // collapses 3+ into one ImageSequence cell (Boris ruling 2026-08-04 —
+    // this is the direct-Finder-drop path that dropping 2 plain images
+    // hits).
     if (imageFiles.size() > 1)
     {
         if (onMultiFileDrop) onMultiFileDrop(layerIndex_, column_, imageFiles);
@@ -308,6 +350,20 @@ void ClipCell::setClip(Clip* clip)
 {
     clip_ = clip;
     updateThumbnail();
+
+    // Sequence cells get a dynamic tooltip (600ms hover, shipped app-wide
+    // TooltipWindow — MainComponent.cpp) spelling out what the SEQ badge
+    // abbreviates. Other cells set no tooltip, unchanged from before.
+    if (clip_ && clip_->mediaType == Clip::MediaType::ImageSequence)
+    {
+        setTooltip("Image sequence — " + juce::String((int) clip_->sequenceFiles.size())
+                   + " images at " + juce::String(clip_->sequenceFps, 1) + " images/sec");
+    }
+    else
+    {
+        setTooltip({});
+    }
+
     repaint();
 }
 
@@ -459,7 +515,10 @@ void ClipCell::itemDropped(const SourceDetails& details)
                     images.push_back(f);
             }
 
-            // Images: multiple PNGs → one cell as image sequence
+            // Images: 1 → single cell. 2+ → onMultiFileDrop; MainComponent::
+            // handleMultiFileDrop owns the 2-vs-3+ split (2 spreads across
+            // two cells as one undo transaction, 3+ collapses into one
+            // ImageSequence cell — Boris ruling 2026-08-04).
             if (!images.empty())
             {
                 if (images.size() == 1)
@@ -472,10 +531,16 @@ void ClipCell::itemDropped(const SourceDetails& details)
                 }
             }
 
-            // Videos: each gets its own sequential cell
+            // Videos: each gets its own sequential cell, starting after the
+            // image cell(s) — 1 cell normally, 2 when exactly 2 images spread
+            // across separate cells (Boris ruling 2026-08-04; onMultiFileDrop
+            // routes through MainComponent::handleMultiFileDrop, which owns
+            // the 2-vs-3+ threshold — mirrors onMixedFilesDropped's
+            // videoStartCol so internal drags agree with Finder drops).
             if (!videos.empty())
             {
-                int videoStartCol = images.empty() ? column_ : column_ + 1;
+                int imageCellCount = images.empty() ? 0 : (images.size() == 2 ? 2 : 1);
+                int videoStartCol = column_ + imageCellCount;
                 if (videos.size() == 1)
                 {
                     if (onFileDrop) onFileDrop(layerIndex_, videoStartCol, videos[0]);

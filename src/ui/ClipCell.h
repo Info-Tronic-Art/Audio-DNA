@@ -10,7 +10,8 @@
 // Supports drag-and-drop (receive images from Finder or browser).
 class ClipCell : public juce::Component,
                  public juce::FileDragAndDropTarget,
-                 public juce::DragAndDropTarget
+                 public juce::DragAndDropTarget,
+                 public juce::SettableTooltipClient
 {
 public:
     ClipCell();
