@@ -4,17 +4,49 @@
 
 You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
 audio-reactive VJ app). Read `.harmony/HANDOFF.md`. **This top section is CURRENT as of
-session 2026-08-04c** — the long historical sections below it are preserved for scope detail
+session 2026-08-04d** — the long historical sections below it are preserved for scope detail
 and are OLDER than this block. Where they disagree with this block or with the dated sections
 at the END of the file, THIS BLOCK AND THE END SECTIONS WIN.
+
+## >>> START HERE, 2026-08-04d: THE PLAN EXISTS. READ IT BEFORE ANYTHING ELSE. <<<
+
+**`.harmony/essentials-plan-2026-08-04d.md` — 11 sequenced lanes, Fable-architect authored over
+three rounds, chaired and attacked by Harmony, Boris's rulings folded in.** Session 2026-08-04d
+was a RECON + PLANNING session: **zero source changed, zero commits to `src/`.** Do not re-plan.
+Do not re-derive the surface map. Execute.
+
+Supporting evidence, all written this session:
+- `.harmony/surface-audit-2026-08-04d.md` — the FIRST systematic surface-by-surface sweep of the
+  app. 30 surfaces classified WIRED / PARTIAL / DEAD. Every prior defect in this repo was found
+  by accident; this is the map that replaces accident.
+- `.harmony/milkdrop-autoload-rootcause.md` — a VERIFIED regression with a named commit.
+- `.harmony/.work-packets/milkdrop-autoload-fix.md` — **BUILD-READY. Dispatch a builder at it.**
+
+**FIRST ACTION: build L0-MD (MilkDrop autoload).** Boris was asked for the go and instead chose
+to close the session, so it is UNAPPROVED — re-ask, then dispatch. It is small, root-caused, and
+restores a feature that has been dead on every launch since Jul 30.
+
+**TWO RULINGS STILL OPEN — ask early, they gate lanes:** (1) the honesty batch (hide/remove Record
+tab, Timing placeholder, Comp-Inspector dead blocks, dead param-source trio) and (2) the rack
+(`EffectsRackPanel`) — Harmony AND the architect both recommend DELETE with curve-shaping
+consciously parked. Recommend yes to both; both reversible in git.
 
 **BEFORE ANYTHING ELSE — read the "SCREEN-SAFETY LAW" section and obey it.** Audio-DNA's
 output window is a REAL FULLSCREEN WINDOW ON BORIS'S ACTUAL MONITORS. Never end a session
 with it open. Never `pkill` the app while it is open. Verify the SCREEN with
 `screencapture -x` and LOOK AT THE IMAGE before saying safe-to-close.
 
-**COUNTS: RUN THEM, NEVER INHERIT THEM.** `git rev-list --count origin/main..HEAD`. That
-number has now been wrong in FIVE consecutive handoffs. Nothing is pushed. Do NOT push.
+**COUNTS: RUN THEM, NEVER INHERIT THEM.** `git rev-list --count origin/main..HEAD`. **118 at
+close of 2026-08-04d — INCLUDING the docs commit that carries this file.** Nothing is pushed.
+Do NOT push.
+
+**WHY THIS NUMBER KEEPS BEING WRONG — the mechanism, finally named.** It has been wrong in at
+least five consecutive handoffs, and the cause is not carelessness: **you run the count, write it
+into the handoff, and then COMMIT the handoff — which increments it by one.** The number is stale
+the instant it is written. Fix: **state the count AFTER committing the handoff and say explicitly
+that it includes that commit** (amend the file, then `git commit --amend`, which adds no further
+commit). This session did exactly that. If you write a count that does not mention the docs
+commit, it is already wrong.
 
 **INHERITED FACTS IN THIS REPO HAVE A BAD TRACK RECORD** — six broke in one prior session,
 including a prescribed fix that was ALREADY IMPLEMENTED. Line numbers drift constantly:
@@ -1092,3 +1124,239 @@ ctest that cannot see it, and a source review. Ask him to drop 3+ images and loo
 - And confirm the behavior: **2 images -> 2 cells, 3+ -> one sequence clip.**
 A visual revision round is LIKELY — fold the five minors above into it rather than doing them
 as separate work.
+
+---
+
+# SESSION 2026-08-04d (secondary, slim) — THE SURFACE MAP + THE PLAN.
+# AUTHORITATIVE OVER ALL ABOVE.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4 — mandatory)
+**VERIFIED CLEAN.** App launched ONCE (pid 18045, `--test-mode`, Release from HEAD).
+**THE OUTPUT WINDOW WAS NEVER OPENED AT ANY POINT.** Boris drove the app by hand; no automated
+gate touched output. At close, in order:
+- Pre-quit `CGWindowListCopyWindowInfo(kCGWindowListOptionAll)` → 7 Audio-DNA windows, **ALL at
+  layer 0** (normal level — the `5a580c8` overlay fix holds; nothing floating).
+- Quit **GRACEFULLY** via `osascript ... to quit`. **No `pkill`, no SIGKILL, at any point.**
+- `pgrep` → no process. `CGWindowList` FULL list → **0 Audio-DNA windows.**
+- Log tail shows orderly teardown: API stopped · Eyes stopped · Syphon stopped · OSC stopped.
+- `screencapture -x /tmp/eos-screen-2026-08-04d.png` taken **AND THE IMAGE WAS ACTUALLY READ.**
+  No black overlay, no residual window, no dialog. One display attached.
+
+## WHAT THIS SESSION DID — AND DELIBERATELY DID NOT DO
+**Recon + planning. ZERO source changed. ZERO commits to `src/`. `git status` clean in
+`src/` and `tests/`. Unpushed: 117, unchanged.** Boris closed before approving the first build.
+This was the correct shape: he asked "what is left?" and nobody could answer, because a defect
+list is not a surface map.
+
+## THE FOUR THINGS THAT MATTER MOST
+
+### 1. THE OUTPUT WINDOW HAS NEVER RENDERED THE DECK — and it is not a regression
+`OutputRenderer`'s ctor takes `FeatureBus`, `MappingEngine`, `EffectChain`. **No Compositor, no
+Deck, no Composition.** Its only content inputs are `loadImage()` / `queueCameraFrame()`.
+`git log -S "compositor" -- src/ui/OutputWindow.*` → **ZERO commits, ever.**
+Timeline: output window born `005935d` **Mar 14** → CompositorEngine `3ab7cc4` **Mar 15** → Deck
+model `9c8cdba` **Mar 17**. **The output window was built for the v1 image/camera app and the
+deck architecture landed days later and never wired into it.**
+**Boris's "it was working before" is CORRECT** — it worked for the content model he had then, and
+it still shows STILL IMAGES (incl. image clips he triggers, via 10 `outputWindow_->loadImage`
+sites) and camera. It does NOT show video, image sequences, layer compositing, keying, blending,
+or per-clip effects. **Harmony initially overstated this to Boris as "shows nothing you built"
+and retracted it in-session.**
+**Syphon genuinely works** — `publishSyphonFrame` is called from the MAIN renderer, publishing the
+finished composited frame. Today that is the only path to an audience.
+
+### 2. `Clip > Clear` PERMANENTLY LEAKS A VIDEO DECODER, every time
+`Renderer::closeMediaForClip` = 2 hits repo-wide (decl + def), **zero call sites**, and it holds
+the ONLY two `.erase()` calls on the media maps. `Deck::clearCell` never touches the Renderer.
+`s_nextClipId` is monotonic with no reuse. ⇒ every Clear on a video/image-sequence strands an
+FFmpeg decoder + GL texture + decode thread for the life of the process. Unbounded, and it
+accumulates exactly in proportion to clip churn across a set.
+**The "one call" sizing is WRONG in three ways** — see plan L1 (double-apply through UndoManager,
+GL-thread destroy with no context current, two sibling commands with the same bug).
+
+### 3. MILKDROP AUTOLOAD IS A VERIFIED REGRESSION — `22fcedc` (2026-07-30)
+The ctor wiring block is gated `if (pmSource)`; `getOrCreateSource` returns nullptr when GL is
+unattached (`Renderer.cpp:787`), which at ctor time it always is. **Proven on the live logs: zero
+`[MilkDrop]` lines across all sessions, while `[Eyes] Test server started` — 77 lines LATER in the
+same ctor — is present.** `git show 22fcedc^` proves the gate did not exist before it.
+**"Not autoloading every time" = not every BUILD.** Pre-Jul-30 builds wired on every launch;
+post-Jul-30 on none. A correct thread-safety hardening that silently severed a feature.
+**This retroactively explains gesture row `e`,** which a prior session closed on the inference that
+Boris "almost certainly never navigated to the tab." **He had. It was broken.** Closing a row on
+inference instead of asking cost 5 days.
+**Packet is build-ready** with the load-bearing refinement: the MANAGER hoists, the **SELECTOR must
+NOT** (`PresetSelector::processFrame` runs on the GL thread).
+
+### 4. AUDIO REACTIVITY IS REAL. BEAT REACTIVITY LARGELY IS NOT.
+Full chain VERIFIED: AudioEngine → AnalysisThread → FeatureBus → `uploadAudioUniforms`,
+**28 uniforms per effect per frame.** **THIS IS THE ASSET TO PROTECT — do not rebuild it.**
+The gap is shader authoring: `u_rms` 96 declared / ~95 used (real), but **`u_beatPhase` 56
+declared / ~12 used — ~44 shaders declare beat phase and ignore it.** User-visible meaning:
+everything pulses with VOLUME, almost nothing hits on the BEAT.
+**RULED UPGRADE, NOT ESSENTIAL** (and Harmony agrees): no control presents "beat response" and
+fails, and the app does not ignore the beat — it drives autopilot, playlist advance, ~12 shaders.
+Shape when its turn comes: 8-10 flagship shaders, one repeatable recipe, **not all 44.**
+
+## CORRECTIONS — including one of Harmony's own
+1. **HARMONY WAS WRONG:** "no resolution lock exists anywhere in the repo" — **FALSE.**
+   `Renderer::setLockedResolution` (`Renderer.h:221`) is live, atomic, consumed every frame
+   (`Renderer.cpp:396-399`), driven by a working combo, used by TestServer. **The grep pattern was
+   `lockResolution`; the symbol is `setLockedResolution`.** Caught by the architect, re-verified by
+   Harmony, retracted to Boris. **A negative from a grep is only as strong as its pattern.**
+   Consequence was material and GOOD: native-res projector output moved from "parked blind" to
+   "cheap, in-lane."
+2. **Inherited claim corrected:** handoffs said `u_beatPhase` is "declared in 3 shaders, used in
+   ZERO." Actual **56 / ~12** — off by ~18× and "zero" was false.
+3. **Harmony overstated the output breakage** ("shows nothing you built") — retracted in-session;
+   image clips DO reach output.
+4. **The architect's first plan recommended declaring Syphon the official output path** — i.e.
+   fixing the headline surface by redefining it away. **REJECTED.** Its own risk section named that
+   as the strongest counter to itself, and it was right.
+5. **The architect twice proposed deleting the display-selection surface.** Harmony overrode it
+   both times and escalated to Boris. Deleting it would have removed the app's only path to a
+   projector — invisible today (one display attached), catastrophic at a gig.
+
+## BORIS'S RULINGS THIS SESSION
+- **Output = Strategy A.** Native output must show real content: activates when he wants another
+  monitor · fullscreen · **Esc gets out**. *"It was working before."*
+- **Display targeting: KEEP, simplify the UI only** (he answered "a").
+- **Legacy v1 row-1 controls + 10 preset slots: DELETE.**
+- **STILL OPEN:** honesty batch · the rack. Both recommended YES/DELETE by Harmony and architect.
+
+## NEXT SESSION — START HERE
+1. **Read `.harmony/essentials-plan-2026-08-04d.md`. Do not re-plan.**
+2. Re-ask for the go, then **dispatch L0-MD** (packet is build-ready).
+3. Get the two open rulings early — they gate L4 and L-DEL.
+4. Then L1 (media leak) → L-OUT (native output) → L3 (composition persistence) → L-DEL.
+5. **L-OUT gates are OWNER-ATTENDED ONLY** per the screen-safety law. He has explicitly OFFERED to
+   run an output test. ASK HIM; never let an automated gate open fullscreen unattended.
+
+## ONLY BORIS CAN CHECK
+- **The SEQ badge** (`7d3a203`) — still unseen by human eyes, carried from last session.
+- **MilkDrop failure appearance** — click the **Favorites** sub-tab: still "No presets loaded"
+  confirms the root cause; "No favorites yet" would refute it. **Asked, not yet answered.**
+- **The output test** — does a VIDEO clip show vs a STILL IMAGE clip? Asked, not yet answered.
+- Whether mirror output at native projector res looks right on real hardware.
+- The two open rulings.
+
+## META-LEARNINGS
+- **A defect list is not a surface map.** Every prior defect here was found by accident. Two
+  recon agents attacking from opposite ends (top-down UI, bottom-up wiring) produced in one session
+  what months of accidental discovery had not. **The parallel-independent framing mattered** — they
+  cross-checked each other, and one corrected its own draft against the other's findings.
+- **Idle-without-report held again — now ~10/10.** BOTH recon agents and the milkdrop hunter went
+  idle without delivering; all three produced excellent reports on a single nudge. Distinguish it
+  from idle-AFTER-report, which is normal completion.
+- **A peer's plan can silently contradict a ruling that crossed it in flight.** TWICE the architect
+  returned a plan built on premises Boris had already overruled, purely from message timing. The
+  chair role is what caught it. **Never relay a subagent plan without re-checking it against the
+  latest rulings.**
+- **Verify your own negatives.** Harmony asserted an absence from a grep whose pattern was simply
+  wrong, and stated it as verified — one turn after telling Boris she relays nothing unverified.
+- **Ask the cheap diagnostic question first — held again.** "It was working before" turned an
+  architectural gap into a 3-command history check that explained everything.
+- **A council can correct the chair.** The architect caught Harmony's grep error and a load-bearing
+  refinement (selector must not hoist) that would have shipped a subtly wrong fix.
+- **Sequencing can be load-bearing:** deleting the v1 controls before native output lands would
+  strand output with no content source at all. The plan encodes that as a hard dependency.
+
+## FINAL STATE
+**UNPUSHED: 118 — including the single docs commit that carries this handoff. NOTHING PUSHED.
+RUN THE COUNT, NEVER INHERIT IT.** (Session start was 117 and stayed 117 through all of the work,
+because no source was committed; the +1 is this file's own commit. See the mechanism note in the
+top block — that off-by-the-docs-commit is what has broken this number five handoffs running.)
+`src/` and `tests/` **CLEAN** — no source touched, verified after committing.
+HEAD before this session: `3b940a0`. Only commit added: the docs commit above.
+No agents running. No app running. Screen visually verified clean.
+
+## SESSION LEARNING — the count bug is a MECHANISM, not sloppiness
+Five handoffs of wrong counts were blamed on carelessness. They were not. Writing the number
+before committing the file that contains it makes it wrong by exactly one, every time. Naming the
+mechanism should end the streak; carrying "run the count" as advice never did.
+
+---
+
+# >>> BIRTH PROMPT FOR NEXT SESSION (paste this) — supersedes every earlier one in this file
+
+You are Harmony operating in ~/projects/RealTimeAudio (Audio-DNA — C++20/JUCE/OpenGL live
+audio-reactive VJ app). Read .harmony/HANDOFF.md. The TOP block and the sections at the END are
+both current as of session 2026-08-04d and both win over everything between them.
+
+BEFORE ANYTHING ELSE — read the SCREEN-SAFETY LAW section and obey it. Audio-DNA's output window
+is a REAL FULLSCREEN WINDOW ON BORIS'S ACTUAL MONITORS. Never open it unattended. Never end a
+session with it open. Never pkill the app while it is open — quit gracefully via
+`osascript -e 'tell application "Audio-DNA" to quit'`. Verify the SCREEN with `screencapture -x`
+and LOOK AT THE IMAGE, plus CGWindowList with kCGWindowListOptionAll (the FULL list — an
+on-screen-only check misses hidden windows). An empty process table does NOT mean a clean screen.
+
+THE PLAN ALREADY EXISTS. DO NOT RE-PLAN. DO NOT RE-DERIVE THE SURFACE MAP.
+- `.harmony/essentials-plan-2026-08-04d.md` — 11 sequenced lanes, Fable-architect authored over
+  three rounds, chaired and attacked by Harmony, Boris's rulings folded in.
+- `.harmony/surface-audit-2026-08-04d.md` — the first systematic surface sweep, 30 surfaces.
+- `.harmony/milkdrop-autoload-rootcause.md` — a VERIFIED regression with a named commit.
+- `.harmony/.work-packets/milkdrop-autoload-fix.md` — BUILD-READY (local-only, not in git).
+
+START HERE:
+1. Ask Boris for the GO on L0-MD (MilkDrop autoload) and dispatch a builder at the packet. It is
+   small, root-caused, and restores a feature dead on every launch since 2026-07-30. He was asked
+   last session and closed instead, so it is UNAPPROVED — re-ask, do not assume.
+2. Get the TWO OPEN RULINGS early, they gate lanes: (a) the honesty batch — hide/remove Record
+   tab, Timing placeholder, Comp-Inspector dead blocks, dead param-source trio; (b) the rack
+   (EffectsRackPanel) — Harmony and the architect both recommend DELETE with curve-shaping
+   consciously parked. Recommend yes to both; both reversible in git.
+3. Then in order: L1 media leak -> L-OUT native output -> L3 composition persistence -> L-DEL.
+   L2 (Layer Solo) is the one parallel-safe lane and is two one-liners.
+4. THINGS ONLY BORIS CAN CHECK, all still open: the SEQ badge (now TWO sessions unseen) · the
+   MilkDrop Favorites sub-tab check (settles the root cause in 5 seconds) · the output test (does
+   a VIDEO clip show vs a STILL IMAGE clip). He has explicitly OFFERED to run an output test —
+   ASK HIM rather than letting a gate open fullscreen unattended.
+
+COUNTS: RUN THEM, NEVER INHERIT THEM. `git rev-list --count origin/main..HEAD` was 118 at close,
+INCLUDING the docs commit carrying the handoff. Nothing is pushed. Do NOT push. The reason this
+number has been wrong in five straight handoffs is MECHANICAL: you write it, then commit the file
+containing it, which increments it. State it AFTER committing and say it includes that commit
+(amend, don't add a second commit).
+
+INHERITED FACTS IN THIS REPO HAVE A BAD TRACK RECORD. Line numbers drift constantly — RE-GREP BY
+ANCHOR TEXT, never trust an offset. Corrections generated by 2026-08-04d itself, read them, the
+mechanism repeats: (1) Harmony asserted "no resolution lock exists anywhere in the repo" — FALSE,
+the grep pattern was `lockResolution` but the symbol is `setLockedResolution`; A NEGATIVE FROM A
+GREP IS ONLY AS STRONG AS ITS PATTERN. (2) Harmony overstated the output-window breakage as "shows
+nothing you built" — image clips DO reach output; retracted in-session. (3) The inherited
+"u_beatPhase declared in 3 shaders, used in ZERO" was off by ~18x — actual 56 declared / ~12 used.
+
+DO NOT REOPEN: the black overlay (fixed 5a580c8) · the preset silent-retarget (fixed 57aa436) ·
+the multi-image "bug" (a documented image-sequence feature) · the output window as a REGRESSION
+(it never rendered the deck; the deck architecture landed days after it and never wired in) ·
+BindingManager index targeting (different index space, dormant).
+
+METHOD NOTES THAT KEEP PAYING:
+- Ask Boris 2-3 cheap diagnostic questions BEFORE reading source. "It was working before" turned
+  an architectural gap into a 3-command history check that explained everything.
+- Make a prediction he can FALSIFY before he answers.
+- Delegate recon; run the behavioral gate yourself. The party that builds NEVER verifies.
+- Two recon agents attacking from OPPOSITE ends (top-down UI, bottom-up wiring) cross-check each
+  other and produce far more than one thorough agent. Use the pattern.
+- Idle-without-report from a subagent is an auto-nudge trigger (~10/10). One nudge retrieves
+  excellent work. Distinguish it from idle-AFTER-report, which is normal completion.
+- A subagent's plan can silently contradict a ruling that crossed it in flight — this happened
+  TWICE last session. NEVER relay a subagent plan without re-checking it against the latest
+  rulings. The chair role is what catches it.
+- Verify your OWN negatives, not just the agents'.
+- Check whether an inherited prescribed fix is ALREADY IMPLEMENTED before building it.
+- Label relayed subagent claims by EVIDENCE CLASS, not by confidence in the agent.
+- Commit a finished lane BEFORE dispatching another builder into the same file. Nearly everything
+  funnels through MainComponent.cpp — serialization is the plan's load-bearing process rule.
+- Use fable max effort for architecture and planning. Plan before doing any task.
+
+RIG: app needs `--test-mode` or 8080 never binds (7070 binds anyway = FALSE GREEN) · health
+`http://[::1]:8080/api/health`, `::1` ONLY, NOT 127.0.0.1 · launch via
+`open --stdout /tmp/adna-out.log --stderr /tmp/adna-err.log build/AudioDNA_artefacts/Release/Audio-DNA.app --args --test-mode`
+· `tests/visual/ax_press.py` drives JUCE buttons by AX title; osascript reaches MENUS ONLY
+(AppleScript cannot recurse into JUCE's nested AX elements) · python with Quartz is
+`.venv/bin/python`, NOT system python3 · `fps` is an INVALID detach oracle (frozen on detach) ·
+FORCED REBUILD before any ctest claim; baseline 203/203, re-run it, never inherit it ·
+`.harmony/` is gitignored with many files force-tracked — `git add` prints an "ignored" WARNING
+and still stages, which breaks `&&` chains; use `;` · **`~/projects/RealTimeAudio copy` is a
+STALE DUPLICATE REPO (HEAD f128bdc, Jul 11) — confirm you are in the real one; HEAD should
+descend from `7d3a203`.**
