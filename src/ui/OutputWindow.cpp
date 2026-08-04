@@ -329,12 +329,21 @@ void OutputWindow::goFullscreenOnDisplay(const juce::Displays::Display& display)
 {
     auto area = display.totalArea;
 
-    // Don't use native macOS fullscreen — it creates a new Space and
-    // the GL context transition can fail. Instead, cover the display
-    // with a borderless window and set it always-on-top.
-    setVisible(true);
+    // Cover the display with a borderless window at NORMAL window level.
+    // Do NOT call setAlwaysOnTop(true): JUCE maps it to
+    // NSFloatingWindowLevel and never sets an NSWindow Spaces-participation
+    // bit, so macOS falls back to the level-derived default — a non-normal
+    // level means Transient, i.e. the window floats onto EVERY desktop Space
+    // as an opaque black overlay. At normal level the default is Managed, so
+    // the window stays pinned to its own Space. Native macOS fullscreen is
+    // still avoided — it creates a new Space and the GL context transition
+    // can fail. Set bounds before showing: DocumentWindow's constrainer
+    // floors a fresh window at 128x128 and the GL context only attaches
+    // once the window is visible, so showing first would build the context
+    // at 128x128 and immediately resize it — bounds-first attaches once,
+    // already at display size.
     setBounds(area);
-    setAlwaysOnTop(true);
+    setVisible(true);
     toFront(true);
 
     // Ensure the output component fills the window
