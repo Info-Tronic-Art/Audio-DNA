@@ -7,6 +7,7 @@
 #include "core/CompositeCommand.h"
 #include "core/DeckCommands.h"
 #include "core/MediaReconnect.h"
+#include "core/CompositionLoad.h"
 
 static uint32_t s_nextClipId = 1000;
 
@@ -1404,6 +1405,18 @@ MainComponent::MainComponent(bool testMode, int testPort)
     addAndMakeVisible(browserPanel_.get());
     browserPanel_->setEffectLibrary(&effectLibrary_);
     browserPanel_->setComposition(&composition_);
+    // L3 (2026-09): wire the Comp/Decks browser's composition load/save
+    // callbacks — the "Save Composition" button and clicking a saved
+    // composition row were silent no-ops until now (onCompositionSave only
+    // reads the model — menu-Save semantics: overwrite if a path is known,
+    // else Save As into the compositions dir — so it does not need the
+    // fence/undo-clear treatment loadComposition already gives Open).
+    // onDeckLoad (the Decks-row append) is a separate, later Step 3 — left
+    // unassigned here, matching today's no-op behavior.
+    browserPanel_->getCompDecksBrowser().onCompositionLoad = [this](const juce::File& f) {
+        loadComposition(f);
+    };
+    browserPanel_->getCompDecksBrowser().onCompositionSave = [this] { saveComposition(); };
     browserPanel_->getRecordPanel().setSessionRecorder(&sessionRecorder_);
     browserPanel_->getFXBrowser().onEffectActivated = [this](const juce::String& effectName) {
         DBG("FX Browser: activated effect " + effectName);
@@ -2345,6 +2358,294 @@ void MainComponent::loadPreset()
     });
 }
 
+// L3 (2026-09): Composition persistence. File > Open/Save/Save As and
+// Cmd+O/Cmd+S below operate on `composition_` — savePreset()/loadPreset()
+// above remain the v1 FX-preset surface, reached only via their own row-1
+// buttons (L-DEL's to delete). See
+// .harmony/.work-packets/L3-composition-persistence.md §1/§5 STEP 2.
+
+void MainComponent::refreshUiAfterModelSwap()
+{
+    // ORDER MATTERS. Null the inspectors FIRST: ClipInspector::clip_ /
+    // LayerInspector::layer_ are raw pointers into Clip/Layer objects a model
+    // swap just destroyed, and MainComponent::timerCallback() calls
+    // inspectorPanel_->refresh() at ~10Hz unconditionally — an un-nulled
+    // dangling pointer is dereferenced within ~100ms of this function
+    // returning (ClipInspector::refresh() does `if (clip_) { syncFromClip(); }`,
+    // and a dangling pointer is never null).
+    if (inspectorPanel_)
+    {
+        inspectorPanel_->getClipInspector().setClip(nullptr);
+        inspectorPanel_->getLayerInspector().setLayer(nullptr);
+    }
+
+    // DEVIATION from the work packet's literal step order (flagged in the
+    // build report): the packet's §1 sequence calls
+    // deckView_->clearSelection()/selectLayer(-1)/setActiveColumn(-1) here,
+    // BEFORE rebuildGrid(). clearSelection() and selectLayer(-1) are safe at
+    // this point (DeckView::updateSelectionVisuals() and LayerStrip::
+    // setSelected() are coordinate/bool-only). But
+    // DeckView::setActiveColumn(int) unconditionally calls DeckView::refresh(),
+    // which — for any display row where the NEW active deck also has a layer
+    // — calls the OLD LayerStrip's refresh() (LayerStrip.cpp:698:
+    // `if (!layer_) return; layerName_ = juce::String(layer_->name);`).
+    // `layer_` is a raw Layer* set by rebuildGrid()'s strip->setLayer(layer, …)
+    // pointing into the OLD Deck, which is already destroyed by this point
+    // (composition_ = std::move(incoming) inside the fence, above). That is a
+    // second, independent UAF class from TRAP #1 (same shape: raw pointer +
+    // an already-freed model object), on LayerStrip rather than
+    // ClipInspector/LayerInspector, and it fires on essentially every normal
+    // load (old and new decks both having a layer at row 0 is the common
+    // case). Fix: run setActiveColumn(-1) AFTER rebuildGrid() has replaced
+    // every LayerStrip/ClipCell with fresh ones pointing into the NEW model.
+    if (deckView_)
+    {
+        deckView_->clearSelection();
+        deckView_->selectLayer(-1);
+        deckView_->rebuildGrid();   // destroys+recreates every ClipCell/LayerStrip
+                                    // (their raw Clip*/Layer*) and the deck tabs.
+        deckView_->setActiveColumn(-1);
+    }
+
+    if (inspectorPanel_)
+    {
+        // EffectStackView::refresh() (called by inspectorPanel_->refresh()
+        // below) only recolors existing rows; it does not add/remove rows to
+        // match a changed globalEffects size. rebuildCompositionEffects()
+        // re-points the composition inspector's stack at the NEW
+        // composition_.globalEffects and rebuilds row COUNT — must run
+        // before the plain refresh() below, or the global-FX row count
+        // stays stale (the OLD comp's).
+        inspectorPanel_->rebuildCompositionEffects();
+        inspectorPanel_->refresh();   // now safe: no dangling Clip*/Layer* remains.
+    }
+
+    // The renderer's global fallback (activeSourceType_ / loaded image) is not
+    // deck state — the OLD comp's procedural source or still image would keep
+    // rendering underneath an empty new deck without this (loaded layers have
+    // activeClipColumn == -1, so nothing is "active" until triggered).
+    if (auto* d = composition_.getActiveDeck())
+        refreshPreviewFromActiveClip(*d);
+}
+
+void MainComponent::swapCompositionModel(const std::function<void()>& mutation)
+{
+    // Read OLD playable-clip ids while the old model is still live — reading
+    // after `mutation` runs is too late, the ids it would report are gone.
+    auto before = compload::playableClipIds(composition_);
+
+    // GL fence: null activeDeck_, drain one in-flight GL frame, run `mutation`,
+    // then re-point the renderer at composition_.getActiveDeck() (the NEW
+    // active deck). This is the same mechanism kCompNew already used for
+    // initDefault() — closes the reallocation-under-read UAF class for a
+    // whole-composition swap too (Renderer::renderOpenGL()'s P21
+    // persistent-layer loop over composition_->decks is nested under the
+    // `deckActive` check, so nulling activeDeck_ fences it as well).
+    undoService_.withDeckDetached(mutation);
+
+    // Close by SET DIFFERENCE, after the fence: correct for a full swap/New
+    // (closes every old id) AND for a deck-append (closes nothing — nothing
+    // was retired). Doing this before the swap, or as "close everything old",
+    // would black out the old comp's output before the cut and would be
+    // wrong for deck-append (it would close media of decks that survive).
+    auto after = compload::playableClipIds(composition_);
+    auto& renderer = previewPanel_.getRenderer();
+    for (auto id : compload::idsRetired(before, after))
+        renderer.closeMediaForClip(id);
+
+    // Loading/replacing/appending is not itself undoable. clear() only
+    // touches command history (never the model) — a stale command left alive
+    // could re-resolve, by coordinate, a valid-but-WRONG cell in the new
+    // model (memory-safe, semantically wrong — see the work packet §2 proof).
+    undoManager_.clear();
+
+    refreshUiAfterModelSwap();
+}
+
+void MainComponent::openComposition()
+{
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Open Composition...",
+        CompDecksBrowser::getCompositionsDir(),
+        "*.json");
+
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectFiles;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+        loadComposition(file);
+    });
+}
+
+void MainComponent::loadComposition(const juce::File& file)
+{
+    // 1. STAGE — load into a private `incoming`, never the live composition_:
+    //    a well-formed-but-wrong-shape file (FX preset, lone deck) would
+    //    otherwise "succeed" via fromVar, leaving every hasProperty-guarded
+    //    field at its OLD value — a stale hybrid of two compositions.
+    Composition incoming;
+    if (!incoming.loadFromFile(file))
+    {
+        if (!testMode_)
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::MessageBoxIconType::WarningIcon,
+                "Open Composition",
+                file.getFileName() + ": could not read/parse file");
+        return;   // Live state untouched.
+    }
+
+    // 2. VALIDATE — refuse (no decks / a deck with no layers) or repair
+    //    (activeDeckIndex out of range, numColumns/padding) — on `incoming`
+    //    only. Live state untouched either way.
+    if (auto reason = compload::validateComposition(incoming); !reason.empty())
+    {
+        if (!testMode_)
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::MessageBoxIconType::WarningIcon,
+                "Open Composition",
+                file.getFileName() + ": " + reason);
+        return;
+    }
+
+    // 3. RE-MINT — every clip gets a fresh id from the file-static mint.
+    //    Saved ids are advisory (nothing persistent references them); a
+    //    fresh id can never collide with a LIVE clip's id, which is what
+    //    makes step 4 safe without needing L1-FU.
+    compload::remintClipIds(incoming, s_nextClipId);
+
+    // 4. OPEN NEW — open every playable clip's media under its new id and
+    //    fill thumbnail/dims INTO `incoming`, BEFORE the swap. Mirrors
+    //    applyFileDrop's video block and applyMultiFileDrop's sequence block.
+    //    Must happen pre-swap: a post-swap write into a live Clip would race
+    //    the GL thread (juce::Image ref-count assignment = torn-read/crash
+    //    class), and the output keeps showing the OLD comp for the whole
+    //    file-probe duration instead of blacking out.
+    {
+        auto& renderer = previewPanel_.getRenderer();
+        for (auto& deck : incoming.decks)
+        {
+            for (auto& layer : deck.layers)
+            {
+                for (auto& cell : layer.clips)
+                {
+                    if (!cell.has_value() || !cell->isPlayable()) continue;
+                    Clip& clip = *cell;
+                    if (clip.mediaType == Clip::MediaType::Video)
+                    {
+                        if (!clip.mediaFile.existsAsFile()) continue;   // non-fatal: skip, continue
+                        if (renderer.openVideoForClip(clip.id, clip.mediaFile))
+                        {
+                            if (auto* p = renderer.getVideoPlayer(clip.id))
+                            {
+                                clip.hasAlpha = p->hasAlpha();
+                                clip.clipWidth = p->getWidth();
+                                clip.clipHeight = p->getHeight();
+                                clip.thumbnail = p->getThumbnail(90, 72);
+                            }
+                        }
+                    }
+                    else // ImageSequence
+                    {
+                        if (clip.sequenceFiles.empty()) continue;
+                        renderer.openImageSequenceForClip(clip.id, clip.sequenceFiles, clip.sequenceFps);
+                        auto first = juce::ImageFileFormat::loadFrom(clip.sequenceFiles[0]);
+                        if (first.isValid())
+                            clip.thumbnail = first.rescaled(90, 72, juce::Graphics::lowResamplingQuality);
+                    }
+                }
+            }
+        }
+    }
+
+    // 5. NAME — design decision: composition name = file base name on Load
+    //    (and Save As), so the browser row, the inspector label, and Collect
+    //    Media's folder name all agree. Write on `incoming`, not the live
+    //    object.
+    incoming.name = file.getFileNameWithoutExtension().toStdString();
+
+    // 6. SWAP — fenced; closes orphaned media by set difference, clears undo
+    //    history, nulls the inspectors, rebuilds the grid (see
+    //    swapCompositionModel/refreshUiAfterModelSwap above).
+    swapCompositionModel([this, &incoming] { composition_ = std::move(incoming); });
+
+    // 7. LABEL
+    fileLabel_.setText("Loaded: " + file.getFileNameWithoutExtension(), juce::dontSendNotification);
+    if (browserPanel_)
+        browserPanel_->getCompDecksBrowser().refresh();
+}
+
+void MainComponent::saveComposition()
+{
+    if (composition_.filePath != juce::File()
+        && composition_.filePath.getParentDirectory().isDirectory())
+    {
+        if (composition_.saveToFile(composition_.filePath))
+        {
+            fileLabel_.setText("Saved: " + composition_.filePath.getFileName(),
+                              juce::dontSendNotification);
+            if (browserPanel_)
+                browserPanel_->getCompDecksBrowser().refresh();
+        }
+        else if (!testMode_)
+        {
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::MessageBoxIconType::WarningIcon,
+                "Save Composition",
+                "Save failed: " + composition_.filePath.getFullPathName());
+        }
+    }
+    else
+    {
+        saveCompositionAs();
+    }
+}
+
+void MainComponent::saveCompositionAs()
+{
+    auto dir = CompDecksBrowser::getCompositionsDir();
+    dir.createDirectory();
+
+    fileChooser_ = std::make_unique<juce::FileChooser>(
+        "Save Composition As...",
+        dir.getChildFile(juce::String(composition_.name) + ".json"),
+        "*.json");
+
+    auto flags = juce::FileBrowserComponent::saveMode
+               | juce::FileBrowserComponent::canSelectFiles
+               | juce::FileBrowserComponent::warnAboutOverwriting;
+
+    fileChooser_->launchAsync(flags, [this](const juce::FileChooser& fc) {
+        auto file = fc.getResult();
+        if (file == juce::File{})
+            return;
+
+        auto saveFile = file.hasFileExtension(".json") ? file
+                            : file.withFileExtension("json");
+
+        if (composition_.saveToFile(saveFile))
+        {
+            // saveToFile() is const and never sets filePath — only
+            // loadFromFile() does. Save As must set it here, or a later
+            // plain Save cannot find it.
+            composition_.filePath = saveFile;
+            composition_.name = saveFile.getFileNameWithoutExtension().toStdString();
+            fileLabel_.setText("Saved: " + saveFile.getFileName(), juce::dontSendNotification);
+            if (browserPanel_)
+                browserPanel_->getCompDecksBrowser().refresh();
+        }
+        else if (!testMode_)
+        {
+            juce::AlertWindow::showMessageBoxAsync(
+                juce::MessageBoxIconType::WarningIcon,
+                "Save Composition",
+                "Save failed: " + saveFile.getFullPathName());
+        }
+    });
+}
+
 bool MainComponent::keyPressed(const juce::KeyPress& key)
 {
     auto mod = key.getModifiers();
@@ -2423,10 +2724,13 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
-    // Cmd/Ctrl+S = save preset
+    // Cmd/Ctrl+S = save composition (L3, 2026-09; was save preset — the menu's
+    // own Save items carry no KeyPress, MenuBarModel.cpp's `menu.addItem(kCompSave,
+    // "Save", true, false)`, so this shortcut is wired only here). savePreset()'s
+    // row-1 button caller is untouched — that's the FX-preset surface, L-DEL's.
     if (key.isKeyCode('S') && mod.isCommandDown())
     {
-        savePreset();
+        handleMenuCommand(AudioDNAMenuBar::kCompSave);
         return true;
     }
 
@@ -2446,10 +2750,12 @@ bool MainComponent::keyPressed(const juce::KeyPress& key)
         return true;
     }
 
-    // Cmd/Ctrl+O = load preset
+    // Cmd/Ctrl+O = open composition (L3, 2026-09; was load preset — same
+    // no-KeyPress-on-the-menu-item reasoning as Cmd+S above). loadPreset()'s
+    // row-1 button caller is untouched.
     if (key.isKeyCode('O') && mod.isCommandDown())
     {
-        loadPreset();
+        handleMenuCommand(AudioDNAMenuBar::kCompOpen);
         return true;
     }
 
@@ -4061,19 +4367,18 @@ void MainComponent::handleMenuCommand(int commandId)
             // refresh calls read the model AFTER the fence has already restored
             // the renderer's active deck, so they are safe there too. Sequential,
             // not nested — the fence has already returned before either runs.
-            undoService_.withDeckDetached([this] { composition_.initDefault(); });
-            undoManager_.clear();
-            if (deckView_) deckView_->rebuildGrid();
-            if (inspectorPanel_) inspectorPanel_->refresh();
+            // L3 (2026-09): routed through the shared swap helper so New also
+            // closes orphaned media and re-points the inspectors.
+            swapCompositionModel([this] { composition_.initDefault(); });
             break;
         case C::kCompOpen:
-            loadPreset();
+            openComposition();
             break;
         case C::kCompSave:
-            savePreset();
+            saveComposition();
             break;
         case C::kCompSaveAs:
-            savePreset();
+            saveCompositionAs();
             break;
 
         case C::kCompCollectMedia:

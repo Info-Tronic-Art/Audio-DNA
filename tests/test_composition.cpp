@@ -704,6 +704,37 @@ TEST_CASE("compload::validateComposition refuses structurally-empty files and re
         for (const auto& l : comp.decks[0].layers)
             REQUIRE(l.clips.size() == 5);
     }
+
+    SECTION("An implausible numColumns is refused, not resized toward (crash-on-open guard)")
+    {
+        // Unlike the widest-layer case above, numColumns here is a single int
+        // field with no clip data behind it — exactly what a hand-edited or
+        // corrupted file could contain. Pre-fix, validateDeck had no upper
+        // bound: it would set numColumns to this value and call
+        // Layer::ensureColumns(50000) -> clips.resize(50000) on every layer,
+        // an allocation wildly disproportionate to the 3 actual clips in the
+        // file. Post-fix, kMaxNumColumns refuses before any resize is
+        // attempted, so this SECTION's clips.size() check would FAIL against
+        // the code as committed in b5a181c (validateDeck would resize to
+        // 50000 and return "", so both REQUIRE_FALSE(reason.empty()) and the
+        // clips.size() == 3 check below would fail on that commit).
+        Deck deck;
+        deck.name = "Huge Deck";
+        deck.numColumns = 50000;
+        Layer layer;
+        layer.clips.resize(3);
+        deck.layers = { layer };
+
+        Composition comp;
+        comp.decks = { deck };
+        comp.activeDeckIndex = 0;
+
+        auto reason = compload::validateComposition(comp);
+        REQUIRE_FALSE(reason.empty());
+        // Refused before any resize attempt — the layer's clips vector must
+        // be untouched, not grown toward the implausible count.
+        REQUIRE(comp.decks[0].layers[0].clips.size() == 3);
+    }
 }
 
 TEST_CASE("compload::remintClipIds gives every clip a unique monotonic id and advances the mint", "[composition][compload]")

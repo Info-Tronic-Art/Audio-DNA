@@ -93,6 +93,18 @@ private:
     void openImage();
     void savePreset();
     void loadPreset();
+    // L3 (2026-09): Composition persistence — File > Open/Save/Save As and
+    // Cmd+O/Cmd+S now operate on `composition_`, not the v1 FX preset (which
+    // savePreset()/loadPreset() above still serve via their own row-1
+    // buttons). swapCompositionModel/refreshUiAfterModelSwap are the shared
+    // GL-fence + undo-clear + inspector-null helper kCompNew is also based
+    // on — see .harmony/.work-packets/L3-composition-persistence.md §1.
+    void openComposition();
+    void loadComposition(const juce::File& file);
+    void saveComposition();
+    void saveCompositionAs();
+    void swapCompositionModel(const std::function<void()>& mutation);
+    void refreshUiAfterModelSwap();
     void timerCallback() override;
     // W5 (outputwindow-arc-design.md): named seam for the mapping tick, so
     // the A1 routing/signal-extraction follow-up can join here later

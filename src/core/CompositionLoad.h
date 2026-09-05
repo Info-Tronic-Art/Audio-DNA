@@ -11,6 +11,19 @@
 
 namespace compload
 {
+// Upper bound on a deck's numColumns, checked in validateDeck below. Unlike the
+// `layers`/`clips` JSON arrays (whose parsed size is inherently bounded by how
+// much array data is actually present in the file), numColumns is a single int
+// field that reaches Layer::ensureColumns()'s unconditional `clips.resize(count)`
+// with no data behind it — a hand-edited/corrupted file's "numColumns": 2000000000
+// would otherwise attempt a multi-gigabyte std::vector<std::optional<Clip>>
+// allocation INSIDE the validator whose entire purpose is to refuse bad files
+// (OOM/crash-on-open). 10000 is far beyond any real deck (default is 12; the
+// MIDI grid controller surface tops out at 20, MidiOutputHandler.h's
+// kMaxColumns) while bounding the worst-case resize to a few MB even across
+// many layers.
+inline constexpr int kMaxNumColumns = 10000;
+
 // Normalize + validate a freshly-deserialized Deck. "" = OK, else a human-readable
 // refusal reason. REPAIRS (in place, on the staged copy only): numColumns >= 1 and
 // >= every layer's clips.size(); every layer padded to numColumns.
@@ -18,6 +31,9 @@ inline std::string validateDeck(Deck& d)
 {
     if (d.layers.empty())
         return "deck '" + d.name + "' has no layers";
+    if (d.numColumns > kMaxNumColumns)
+        return "deck '" + d.name + "' has an implausible column count ("
+             + std::to_string(d.numColumns) + ")";
     int cols = std::max(1, d.numColumns);
     for (const auto& l : d.layers)
         cols = std::max(cols, static_cast<int>(l.clips.size()));

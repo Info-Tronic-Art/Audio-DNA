@@ -41,6 +41,12 @@ public:
     std::function<void(const juce::File&)> onDeckLoad;
     std::function<void()> onCompositionSave;
 
+    // L3 (2026-09): public so MainComponent's Open/Save/Save As can default
+    // the FileChooser to these directories, same as PresetManager's own
+    // getPresetsDirectory() convention.
+    static juce::File getCompositionsDir();
+    static juce::File getDecksDir();
+
 private:
     Composition* composition_ = nullptr;
 
@@ -68,9 +74,6 @@ private:
     std::unique_ptr<CompDeckListContent> listContent_;
 
     void scanForFiles();
-
-    static juce::File getCompositionsDir();
-    static juce::File getDecksDir();
 
     static constexpr int kButtonBarHeight = 28;
     static constexpr int kSectionHeaderHeight = 22;
