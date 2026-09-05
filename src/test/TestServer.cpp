@@ -12,6 +12,7 @@
 #include "routing/RoutingEngine.h"
 #include "mapping/MappingEngine.h"
 #include "model/Clip.h"
+#include "effects/EffectLibrary.h"
 #include <juce_core/juce_core.h>
 #include <iostream>
 
@@ -183,6 +184,37 @@ void TestServer::setupRoutes()
 
     server_.Post("/api/remove_mapping", [this](const httplib::Request& req, httplib::Response& res) {
         handleRemoveMapping(req, res);
+    });
+
+    // S166-L8: composition-tier oracle (globalEffects + the four render-dead
+    // scalars). Naming matches this file's existing convention: verb_noun
+    // for POST, plural noun for GET (mirrors add_route/remove_route/routes).
+    server_.Post("/api/add_global_effect", [this](const httplib::Request& req, httplib::Response& res) {
+        handleAddGlobalEffect(req, res);
+    });
+
+    server_.Post("/api/remove_global_effect", [this](const httplib::Request& req, httplib::Response& res) {
+        handleRemoveGlobalEffect(req, res);
+    });
+
+    server_.Post("/api/set_global_effect_bypass", [this](const httplib::Request& req, httplib::Response& res) {
+        handleSetGlobalEffectBypass(req, res);
+    });
+
+    server_.Get("/api/global_effects", [this](const httplib::Request& req, httplib::Response& res) {
+        handleListGlobalEffects(req, res);
+    });
+
+    server_.Post("/api/set_composition_params", [this](const httplib::Request& req, httplib::Response& res) {
+        handleSetCompositionParams(req, res);
+    });
+
+    server_.Get("/api/composition_params", [this](const httplib::Request& req, httplib::Response& res) {
+        handleGetCompositionParams(req, res);
+    });
+
+    server_.Post("/api/set_clip_opacity", [this](const httplib::Request& req, httplib::Response& res) {
+        handleSetClipOpacity(req, res);
     });
 }
 
@@ -985,6 +1017,402 @@ void TestServer::handleRemoveMapping(const httplib::Request& req, httplib::Respo
     obj->setProperty("ok", true);
     obj->setProperty("num_mappings_before", numBefore);
     res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+// === S166-L8: Composition-Tier Oracle ===
+//
+// Gives the composition tier (Composition::globalEffects + the four
+// render-dead scalars: masterOpacity, masterSpeed, compOpacity,
+// Clip::clipOpacity) a surface a caller can drive and read back, since
+// today no ctest target links CompositorEngine.cpp/Renderer.cpp (headless
+// GL is unavailable in this rig) and no UI path outside a human eyeballing
+// the screen can reach it either.
+
+void TestServer::handleAddGlobalEffect(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    juce::String effectName = obj ? obj->getProperty("name").toString() : juce::String();
+    if (!obj || !obj->hasProperty("name") || effectName.isEmpty())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'name' field"), "application/json");
+        return;
+    }
+
+    const auto* def = renderer_.getEffectLibrary().getEffectDef(effectName);
+    if (def == nullptr)
+    {
+        res.status = 404;
+        res.set_content(jsonError("Effect not found: " + effectName.toStdString()), "application/json");
+        return;
+    }
+
+    Clip::EffectSlot slot;
+    slot.effectName = effectName.toStdString();
+    slot.enabled = obj->hasProperty("enabled") ? static_cast<bool>(obj->getProperty("enabled")) : true;
+    slot.bypassed = false;
+    slot.dryWet = obj->hasProperty("dryWet")
+        ? static_cast<float>(static_cast<double>(obj->getProperty("dryWet"))) : 1.0f;
+
+    // Defaults first (matches EffectStackView::itemDropped's construction,
+    // EffectStackView.cpp:512-519), then apply any named overrides from
+    // "params" — an unmatched param name is silently skipped, matching this
+    // file's own handleSetEffect and ApiServer::handleSetParam's existing
+    // convention for the same case.
+    for (const auto& p : def->params)
+        slot.paramValues.push_back(p.defaultValue);
+
+    int matchedParams = 0;
+    if (obj->hasProperty("params"))
+    {
+        if (auto* paramsObj = obj->getProperty("params").getDynamicObject())
+        {
+            for (auto& prop : paramsObj->getProperties())
+            {
+                juce::String paramName = prop.name.toString();
+                float paramValue = static_cast<float>(static_cast<double>(prop.value));
+                for (size_t pi = 0; pi < def->params.size(); ++pi)
+                {
+                    if (def->params[pi].name == paramName.toStdString())
+                    {
+                        slot.paramValues[pi] = paramValue;
+                        ++matchedParams;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // GL fence (finding, see report): composition_.globalEffects is iterated
+    // directly (const ref, no copy) by CompositorEngine::applyGlobalEffects
+    // on the GL thread every frame a deck is active (Renderer.cpp ~465-478,
+    // landed in 694f8f3) — the EffectCommands.h comment on EffectStackCmd
+    // claiming "Global scope (Composition::globalEffects) is NOT currently
+    // read anywhere on the GL side" predates that commit and is now stale.
+    // push_back can reallocate mid-iteration on the GL thread -> UB/crash.
+    // This file's other vector-mutating handlers do NOT need this: P16's
+    // handleAddRoute/handleRemoveRoute mutate RoutingEngine::routes_
+    // unfenced, but RoutingEngine::processFrame has zero live callers
+    // (dead code — Renderer.cpp:233's comment) so routes_ is never read on
+    // the GL thread at all; handleAddMapping/handleRemoveMapping marshal
+    // via callAsync because MappingEngine::mappings_ is MESSAGE-thread-owned
+    // (ticked by MainComponent's Timer, never the GL thread), so callAsync
+    // is the right confinement there. globalEffects has neither kind of
+    // protection: it is a bare struct field with no container mutex (unlike
+    // EffectChain's effectsMutex_) and no message-thread-confinement helper
+    // reachable from here — UndoService::withDeckDetached (what the UI's
+    // EffectStackCmd uses for this exact vector) lives on MainComponent,
+    // which TestServer holds no reference to. The correct, already-
+    // precedented fix is the "confinement" pattern documented at Renderer.h's
+    // activeSources_ comment (~395-403): run the mutation itself on the GL
+    // thread via a blocking executeOnGLThread round-trip, so there is no
+    // window in which this thread's push_back can race a live iteration.
+    int newIndex = -1;
+    renderer_.getContext().executeOnGLThread(
+        [this, &slot, &newIndex](juce::OpenGLContext&) {
+            composition_.globalEffects.push_back(slot);
+            newIndex = static_cast<int>(composition_.globalEffects.size()) - 1;
+        }, true /* block until the GL thread has actually applied it */);
+
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("index", newIndex);
+    result->setProperty("name", effectName);
+    result->setProperty("matched_params", matchedParams);
+    result->setProperty("num_global_effects", static_cast<int>(composition_.globalEffects.size()));
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
+}
+
+void TestServer::handleRemoveGlobalEffect(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    if (!obj || !obj->hasProperty("index"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'index' field"), "application/json");
+        return;
+    }
+
+    int index = static_cast<int>(obj->getProperty("index"));
+
+    // GL fence — same reallocation-race reasoning as handleAddGlobalEffect
+    // above: erase() shifts/resizes the live vector CompositorEngine
+    // iterates every frame.
+    bool removed = false;
+    int numAfter = 0;
+    renderer_.getContext().executeOnGLThread(
+        [this, index, &removed, &numAfter](juce::OpenGLContext&) {
+            if (index >= 0 && index < static_cast<int>(composition_.globalEffects.size()))
+            {
+                composition_.globalEffects.erase(composition_.globalEffects.begin() + index);
+                removed = true;
+            }
+            numAfter = static_cast<int>(composition_.globalEffects.size());
+        }, true);
+
+    if (!removed)
+    {
+        res.status = 400;
+        res.set_content(jsonError("Index out of range: " + std::to_string(index)), "application/json");
+        return;
+    }
+
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("removed_index", index);
+    result->setProperty("num_global_effects", numAfter);
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
+}
+
+void TestServer::handleSetGlobalEffectBypass(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    if (!obj || !obj->hasProperty("index") || !obj->hasProperty("bypassed"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'index' or 'bypassed' field"), "application/json");
+        return;
+    }
+
+    int index = static_cast<int>(obj->getProperty("index"));
+    bool bypassed = static_cast<bool>(obj->getProperty("bypassed"));
+
+    if (index < 0 || index >= static_cast<int>(composition_.globalEffects.size()))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Index out of range: " + std::to_string(index)), "application/json");
+        return;
+    }
+
+    // Value-only write on an already-live slot (no resize) — the same class
+    // as this file's handleSetEffect (found->setEnabled(enabled)) and
+    // ApiServer::handleSetParam, both unfenced. This mirrors EffectChain's
+    // own accepted "DEFERRED BOUNDARY" (EffectChain.h effectsMutex_ comment):
+    // the CONTAINER is what needs protecting against reallocation; a lone
+    // bool flip on an element that already exists is the same narrow,
+    // documented, accepted gap already present for every other per-field
+    // effect write in this codebase (CompositorEngine.cpp reads slot.enabled/
+    // slot.bypassed/slot.paramValues unsynchronized on the GL thread
+    // regardless of which endpoint wrote them), not a new one this endpoint
+    // introduces.
+    composition_.globalEffects[static_cast<size_t>(index)].bypassed = bypassed;
+
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("index", index);
+    result->setProperty("bypassed", bypassed);
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
+}
+
+void TestServer::handleListGlobalEffects(const httplib::Request&, httplib::Response& res)
+{
+    auto* obj = new juce::DynamicObject();
+    juce::Array<juce::var> arr;
+
+    auto& lib = renderer_.getEffectLibrary();
+    for (size_t i = 0; i < composition_.globalEffects.size(); ++i)
+    {
+        const auto& slot = composition_.globalEffects[i];
+        auto* slotObj = new juce::DynamicObject();
+        slotObj->setProperty("index", static_cast<int>(i));
+        slotObj->setProperty("name", juce::String(slot.effectName));
+        slotObj->setProperty("enabled", slot.enabled);
+        slotObj->setProperty("bypassed", slot.bypassed);
+        slotObj->setProperty("dryWet", static_cast<double>(slot.dryWet));
+
+        auto* paramsObj = new juce::DynamicObject();
+        const auto* def = lib.getEffectDef(juce::String(slot.effectName));
+        for (size_t pi = 0; pi < slot.paramValues.size(); ++pi)
+        {
+            juce::String key = (def && pi < def->params.size())
+                ? juce::String(def->params[pi].name)
+                : ("param" + juce::String(static_cast<int>(pi)));
+            paramsObj->setProperty(key, static_cast<double>(slot.paramValues[pi]));
+        }
+        slotObj->setProperty("params", juce::var(paramsObj));
+
+        arr.add(juce::var(slotObj));
+    }
+
+    obj->setProperty("global_effects", arr);
+    obj->setProperty("count", static_cast<int>(composition_.globalEffects.size()));
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleSetCompositionParams(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    if (!obj)
+    {
+        res.status = 400;
+        res.set_content(jsonError("Expected JSON object"), "application/json");
+        return;
+    }
+
+    // Plain-float writes, no fence: NONE of these three fields have a
+    // renderer consumer today (S166-L8 packet §2) — masterOpacity/
+    // masterSpeed/compOpacity are otherwise set only from the message
+    // thread (MainComponent.cpp/CompositionInspector.cpp) and read back
+    // nowhere on the GL thread, so there is no live race to guard against
+    // yet. When the lane that wires them into the renderer lands, this
+    // write should get the same per-field treatment as
+    // handleSetGlobalEffectBypass above — not before, since there is
+    // nothing to race against today.
+    bool any = false;
+    if (obj->hasProperty("masterOpacity"))
+    {
+        composition_.masterOpacity = static_cast<float>(static_cast<double>(obj->getProperty("masterOpacity")));
+        any = true;
+    }
+    if (obj->hasProperty("masterSpeed"))
+    {
+        composition_.masterSpeed = static_cast<float>(static_cast<double>(obj->getProperty("masterSpeed")));
+        any = true;
+    }
+    if (obj->hasProperty("compOpacity"))
+    {
+        composition_.compOpacity = static_cast<float>(static_cast<double>(obj->getProperty("compOpacity")));
+        any = true;
+    }
+
+    if (!any)
+    {
+        res.status = 400;
+        res.set_content(jsonError("No known field provided (expected masterOpacity, masterSpeed, and/or compOpacity)"),
+                        "application/json");
+        return;
+    }
+
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
+    result->setProperty("masterSpeed", static_cast<double>(composition_.masterSpeed));
+    result->setProperty("compOpacity", static_cast<double>(composition_.compOpacity));
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
+}
+
+void TestServer::handleGetCompositionParams(const httplib::Request&, httplib::Response& res)
+{
+    auto* obj = new juce::DynamicObject();
+    obj->setProperty("masterOpacity", static_cast<double>(composition_.masterOpacity));
+    obj->setProperty("masterSpeed", static_cast<double>(composition_.masterSpeed));
+    obj->setProperty("compOpacity", static_cast<double>(composition_.compOpacity));
+
+    // Per-clip clipOpacity readback — mirrors ApiServer::handleComposition's
+    // decks -> layers -> clips nesting (ApiServer.cpp ~260-315), scoped to
+    // just this field.
+    juce::Array<juce::var> deckArray;
+    for (size_t di = 0; di < composition_.decks.size(); ++di)
+    {
+        auto& deck = composition_.decks[di];
+        auto* deckObj = new juce::DynamicObject();
+        juce::Array<juce::var> layerArray;
+        for (size_t li = 0; li < deck.layers.size(); ++li)
+        {
+            auto& layer = deck.layers[li];
+            auto* layerObj = new juce::DynamicObject();
+            juce::Array<juce::var> clipArray;
+            for (size_t ci = 0; ci < layer.clips.size(); ++ci)
+            {
+                if (layer.clips[ci].has_value())
+                {
+                    auto& clip = *layer.clips[ci];
+                    auto* clipObj = new juce::DynamicObject();
+                    clipObj->setProperty("column", static_cast<int>(ci));
+                    clipObj->setProperty("clipOpacity", static_cast<double>(clip.clipOpacity));
+                    clipArray.add(juce::var(clipObj));
+                }
+            }
+            layerObj->setProperty("layer", static_cast<int>(li));
+            layerObj->setProperty("clips", clipArray);
+            layerArray.add(juce::var(layerObj));
+        }
+        deckObj->setProperty("deck", static_cast<int>(di));
+        deckObj->setProperty("layers", layerArray);
+        deckArray.add(juce::var(deckObj));
+    }
+    obj->setProperty("decks", deckArray);
+
+    res.set_content(juce::JSON::toString(juce::var(obj)).toStdString(), "application/json");
+}
+
+void TestServer::handleSetClipOpacity(const httplib::Request& req, httplib::Response& res)
+{
+    auto parsed = juce::JSON::parse(juce::String(req.body));
+    if (parsed.isVoid())
+    {
+        res.status = 400;
+        res.set_content(jsonError("Invalid JSON"), "application/json");
+        return;
+    }
+
+    auto* obj = parsed.getDynamicObject();
+    if (!obj || !obj->hasProperty("layer") || !obj->hasProperty("column") || !obj->hasProperty("clipOpacity"))
+    {
+        res.status = 400;
+        res.set_content(jsonError("Missing 'layer', 'column', or 'clipOpacity' field"), "application/json");
+        return;
+    }
+
+    int layerIndex = static_cast<int>(obj->getProperty("layer"));
+    int column = static_cast<int>(obj->getProperty("column"));
+    float value = static_cast<float>(static_cast<double>(obj->getProperty("clipOpacity")));
+
+    auto* deck = composition_.getActiveDeck();
+    auto* clip = deck ? deck->getClip(layerIndex, column) : nullptr;
+    if (!clip)
+    {
+        res.status = 404;
+        res.set_content(jsonError("Clip not found at layer " + std::to_string(layerIndex)
+                                   + " column " + std::to_string(column)), "application/json");
+        return;
+    }
+
+    // Plain-float write, no fence: clipOpacity has no renderer consumer
+    // today (same reasoning as handleSetCompositionParams above), and this
+    // matches the message thread's own unfenced write to the same field
+    // (ClipInspector.cpp:336, MainComponent.cpp:5719/5755).
+    clip->clipOpacity = value;
+
+    auto* result = new juce::DynamicObject();
+    result->setProperty("ok", true);
+    result->setProperty("layer", layerIndex);
+    result->setProperty("column", column);
+    result->setProperty("clipOpacity", static_cast<double>(value));
+    res.set_content(juce::JSON::toString(juce::var(result)).toStdString(), "application/json");
 }
 
 void TestServer::handleLoadMilkDropPreset(const httplib::Request& req, httplib::Response& res)

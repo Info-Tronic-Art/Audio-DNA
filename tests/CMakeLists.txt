@@ -48,6 +48,42 @@ target_link_libraries(test_clip_replace_media_retire PRIVATE Catch2::Catch2WithM
 apply_sanitizers(test_clip_replace_media_retire)
 catch_discover_tests(test_clip_replace_media_retire)
 
+# --- test_composition_tier_oracle (S166-L8: model-layer coverage for the
+# composition-tier oracle endpoints in src/test/TestServer.cpp — see the
+# file header for exact scope). Headless: bare Composition + EffectLibrary,
+# same reason and approach as test_undo_commands below — TestServer.cpp,
+# Renderer.cpp, and CompositorEngine.cpp are not linked into any ctest
+# target here.
+add_executable(test_composition_tier_oracle
+    test_composition_tier_oracle.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/effects/EffectLibrary.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+)
+target_include_directories(test_composition_tier_oracle PRIVATE ${SRC_DIR})
+target_link_libraries(test_composition_tier_oracle PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+)
+target_compile_definitions(test_composition_tier_oracle PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_composition_tier_oracle PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_composition_tier_oracle)
+catch_discover_tests(test_composition_tier_oracle)
+
 # --- test_spectral_features ---
 add_executable(test_spectral_features
     test_spectral_features.cpp

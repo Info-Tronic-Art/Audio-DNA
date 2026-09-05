@@ -91,6 +91,19 @@ private:
     void handleAddMapping(const httplib::Request& req, httplib::Response& res);
     void handleRemoveMapping(const httplib::Request& req, httplib::Response& res);
 
+    // S166-L8: composition-tier oracle. Composition::globalEffects (post-
+    // composite chain, applied on the GL thread every frame since 694f8f3 —
+    // see handleAddGlobalEffect's fence comment) plus the four render-dead
+    // composition/clip scalars, all otherwise unreachable from outside the
+    // app.
+    void handleAddGlobalEffect(const httplib::Request& req, httplib::Response& res);
+    void handleRemoveGlobalEffect(const httplib::Request& req, httplib::Response& res);
+    void handleSetGlobalEffectBypass(const httplib::Request& req, httplib::Response& res);
+    void handleListGlobalEffects(const httplib::Request& req, httplib::Response& res);
+    void handleSetCompositionParams(const httplib::Request& req, httplib::Response& res);
+    void handleGetCompositionParams(const httplib::Request& req, httplib::Response& res);
+    void handleSetClipOpacity(const httplib::Request& req, httplib::Response& res);
+
     // JSON helpers
     std::string jsonOk();
     std::string jsonError(const std::string& message);
