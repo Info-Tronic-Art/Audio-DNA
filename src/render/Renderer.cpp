@@ -985,6 +985,18 @@ bool Renderer::openVideoForClip(uint32_t clipId, const juce::File& videoFile)
     if (!player->open(videoFile))
         return false;
 
+    // Retire whatever media (video OR image-sequence) currently occupies
+    // this clip id through closeMediaForClip()'s existing GL-thread-drained
+    // retire list, instead of letting the operator[] assignment below
+    // destroy a live VideoPlayer in place (message-thread destroy, L1-FU,
+    // 2026-09 — same hazard class L1's retire list exists to fix, reached
+    // via reconnect-on-replace (makeClipMediaHook) and "Replace Content"
+    // rather than Clip>Clear). Only done AFTER the new player has opened
+    // successfully, so a failed open leaves the currently-live media
+    // untouched, matching this function's existing no-op-on-failure
+    // contract.
+    closeMediaForClip(clipId);
+
     std::lock_guard<std::mutex> lock(videoPlayerMutex_);
     videoPlayers_[clipId] = std::move(player);
     return true;
@@ -996,6 +1008,13 @@ bool Renderer::openImageSequenceForClip(uint32_t clipId, const std::vector<juce:
     seq->setFps(fps);
     if (!seq->open(files))
         return false;
+
+    // See openVideoForClip's comment above — same reuse of the retire list,
+    // and this direction also closes the "Replace Content on an
+    // ImageSequence clip" leak (old imageSequences_[clipId] entry would
+    // otherwise never be found by anything once the id starts being used
+    // as a video id instead).
+    closeMediaForClip(clipId);
 
     std::lock_guard<std::mutex> lock(imageSeqMutex_);
     imageSequences_[clipId] = std::move(seq);

@@ -173,9 +173,16 @@ public:
 
     // Open a video file for a clip. Returns true on success.
     // Call from message thread. The Renderer manages the VideoPlayer lifecycle.
+    // Safe to call even when clipId already has live media (video OR image
+    // sequence): the old entry is retired through closeMediaForClip()'s
+    // GL-thread-drained retire list first, not destroyed in place (L1-FU,
+    // 2026-09).
     bool openVideoForClip(uint32_t clipId, const juce::File& videoFile);
 
     // Open an image sequence for a clip. Returns true on success.
+    // Call from message thread. Same retire-before-replace guarantee as
+    // openVideoForClip above — safe to call even when clipId already has
+    // live media (L1-FU, 2026-09).
     bool openImageSequenceForClip(uint32_t clipId, const std::vector<juce::File>& files, float fps);
 
     // Close video/sequence for a clip (media-leak fix, L1, 2026-09). Call
