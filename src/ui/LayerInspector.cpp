@@ -770,6 +770,11 @@ void LayerInspector::setMacroBank(MacroBank* bank)
     effectStackView_.setMacroBank(bank);
 }
 
+void LayerInspector::tickModulation()
+{
+    if (layer_) effectStackView_.tickModulation();
+}
+
 void LayerInspector::refresh()
 {
     if (layer_) { syncFromLayer(); effectStackView_.refresh(); macroPanel_.refresh(); }

@@ -58,6 +58,13 @@ public:
     }
 
     void refresh();
+
+    // L9 (modulation-freeze fix, 2026-09-05): compute+apply the layer effect
+    // stack's signal/macro-driven param values, driven unconditionally from
+    // InspectorPanel::tickModulation() instead of only while the Layer tab
+    // is active.
+    void tickModulation();
+
     int getPreferredHeight() const;
 
     // Callback when layer name is changed by the user

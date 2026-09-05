@@ -2940,6 +2940,17 @@ void MainComponent::tickFeaturePipeline()
 {
     const FeatureSnapshot snap = analysisThread_.getFeatureBus().read();
     previewPanel_.getMappingEngine().processFrame(snap, previewPanel_.getEffectChain());
+
+    // L9 (modulation-freeze fix, 2026-09-05): drive the shared global
+    // MacroBank and every Inspector's signal/macro-driven effect-param
+    // modulation from this same unconditional 120Hz message-thread timer,
+    // instead of the ~10Hz InspectorPanel::refresh() timer gated to whichever
+    // tab is active — see InspectorPanel::tickModulation() /
+    // EffectStackView::tickModulation(). MacroBank updates first so
+    // tickModulation()'s getMacroValue() reads this tick's value rather than
+    // the previous one.
+    globalMacroBank_.updateValues(signalRegistry_);
+    if (inspectorPanel_) inspectorPanel_->tickModulation();
 }
 
 void MainComponent::timerCallback()

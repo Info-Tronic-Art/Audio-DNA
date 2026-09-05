@@ -9,6 +9,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <optional>
 
 // EffectStackView: vertical list of effects, each collapsible.
 //
@@ -51,6 +52,16 @@ public:
 
     // Refresh display from current effect data
     void refresh();
+
+    // L9 (modulation-freeze fix, 2026-09-05): compute+apply signal/macro-
+    // driven param values and write them into *effects_ — the part of the
+    // old refresh() that the render path actually depends on every GL frame.
+    // Split out so it can be driven unconditionally from
+    // MainComponent::tickFeaturePipeline()'s 120Hz message-thread timer
+    // instead of only running while this view's owning Inspector tab is
+    // active. refresh() still calls this first, then does display-sync/paint
+    // only — on-tab visible behavior is unchanged.
+    void tickModulation();
 
     // Get preferred height for layout
     int getPreferredHeight() const;
@@ -112,6 +123,17 @@ private:
 
         // Effect-specific parameter controls
         std::vector<std::unique_ptr<UniversalParamControl>> paramControls;
+
+        // L9 fix-round (blocking review finding): the last value actually
+        // PUSHED to the display for each paramControls[p] — parallel array,
+        // same size, resized alongside paramControls in rebuildRows().
+        // nullopt means "never pushed yet" so the first tick after a rebuild
+        // always pushes regardless of what value it computes. Deliberately
+        // NOT fx.paramValues[p] — that field is overwritten unconditionally
+        // every tick by tickModulation() itself, so diffing against it
+        // measures per-tick delta, not delta-since-last-displayed (see
+        // tickModulation()).
+        std::vector<std::optional<float>> lastPushedValue;
     };
 
     std::vector<std::unique_ptr<EffectRow>> rows_;
@@ -123,6 +145,19 @@ private:
 
     static constexpr int kHeaderHeight = 26;
     static constexpr int kParamIndent = 12;
+
+    // L9 cost trap: tickModulation() now runs unconditionally at 120Hz
+    // (previously ~10Hz and only while this tab was active). setSourceValue()
+    // triggers an unconditional repaint(), so skip it when the modulated
+    // value hasn't moved by more than this SINCE THE LAST VALUE ACTUALLY
+    // PUSHED to the display (EffectRow::lastPushedValue) — not since the
+    // last tick. A tick-to-tick epsilon check would suppress a slow
+    // modulator's display update forever (fix-round finding); this one only
+    // suppresses a truly-static repeat (e.g. a Manual/flatlined source),
+    // since any genuinely-moving connected signal crosses this small a
+    // threshold within a handful of 120Hz ticks regardless of how slowly it
+    // moves.
+    static constexpr float kModulationChangeEpsilon = 0.0005f;
 
     bool fxDropHighlight_ = false;
 

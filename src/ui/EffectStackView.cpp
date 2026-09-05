@@ -134,9 +134,111 @@ void EffectStackView::setEffects(std::vector<Clip::EffectSlot>* effects, EffectS
     rebuildRows();
 }
 
+void EffectStackView::tickModulation()
+{
+    if (!effects_) return;
+
+    for (size_t i = 0; i < rows_.size(); ++i)
+    {
+        auto& row = *rows_[i];
+        if (row.effectIndex >= static_cast<int>(effects_->size())) continue;
+
+        auto& fx = (*effects_)[static_cast<size_t>(row.effectIndex)];
+
+        // Apply signal-driven modulation to connected params
+        for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
+        {
+            auto& pc = *row.paramControls[p];
+
+            // If a signal source is connected, drive the param value from it
+            if (!pc.isConnected()) continue;
+
+            auto mode = pc.getSourceMode();
+            auto sourceName = pc.getSourceName();
+            float signalValue = 0.0f;
+            bool found = false;
+
+            if ((mode == UniversalParamControl::SourceMode::Signal
+                || mode == UniversalParamControl::SourceMode::Oscillator
+                || mode == UniversalParamControl::SourceMode::Envelope)
+                && signalRegistry_)
+            {
+                for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
+                {
+                    auto* sig = signalRegistry_->getSignalAt(s);
+                    if (sig && juce::String(sig->getName()) == sourceName)
+                    {
+                        signalValue = signalRegistry_->getCachedValue(sig->getId());
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
+            {
+                // Parse "Macro N" or "Link N" to get the index
+                int macroIdx = -1;
+                if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
+                {
+                    macroIdx = sourceName.getTrailingIntValue() - 1;
+                }
+                if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
+                {
+                    signalValue = macroBank_->getMacroValue(macroIdx);
+                    found = true;
+                }
+            }
+
+            if (found)
+            {
+                // Render-critical write: unconditional, every tick, regardless
+                // of the display gate below — CompositorEngine reads this
+                // every GL frame and must never see it suppressed.
+                fx.paramValues[p] = signalValue;
+
+                // Cost trap (L9), CORRECTED (fix-round, blocking review
+                // finding): diff against the LAST VALUE ACTUALLY PUSHED to
+                // the display (row.lastPushedValue[p]), not against
+                // fx.paramValues[p] — that field was just overwritten above
+                // on this same tick, so comparing against it measured
+                // PER-TICK delta: a slow modulator (e.g. a ~60s-period LFO)
+                // moves less than kModulationChangeEpsilon in any single
+                // 120Hz tick, so the old guard suppressed the display update
+                // forever. lastPushedValue starts as nullopt (set in
+                // rebuildRows()) so the first tick after a rebuild always
+                // pushes, regardless of what value it computes.
+                bool changed = p >= row.lastPushedValue.size()
+                    || !row.lastPushedValue[p].has_value()
+                    || std::abs(signalValue - *row.lastPushedValue[p]) > kModulationChangeEpsilon;
+
+                // setSourceValue() repaints unconditionally, so only pay for
+                // it when the displayed value actually moved AND the row is
+                // expanded (collapsed rows have their paramControls hidden
+                // via setVisible(false), see resized()). A background
+                // Inspector tab's own hidden viewport is a separate,
+                // higher-up ancestor visibility that JUCE's repaint()/
+                // internalRepaint() walk already short-circuits at for free
+                // — no extra guard needed for that case here.
+                if (changed && pc.isVisible())
+                {
+                    pc.setSourceValue(signalValue);
+                    if (p < row.lastPushedValue.size())
+                        row.lastPushedValue[p] = signalValue;
+                }
+
+                // Notify renderer
+                if (onParamChanged)
+                    onParamChanged(row.effectIndex, static_cast<int>(p), signalValue);
+            }
+        }
+    }
+}
+
 void EffectStackView::refresh()
 {
     if (!effects_) return;
+
+    tickModulation();
 
     for (size_t i = 0; i < rows_.size(); ++i)
     {
@@ -153,65 +255,10 @@ void EffectStackView::refresh()
         if (row.dryWetControl)
             row.dryWetControl->setParamValue(fx.dryWet);
 
-        // Update param values and apply signal-driven modulation
+        // Always update the display from the current param value (including
+        // whatever tickModulation() just applied)
         for (size_t p = 0; p < row.paramControls.size() && p < fx.paramValues.size(); ++p)
-        {
-            auto& pc = *row.paramControls[p];
-
-            // If a signal source is connected, drive the param value from it
-            if (pc.isConnected())
-            {
-                auto mode = pc.getSourceMode();
-                auto sourceName = pc.getSourceName();
-                float signalValue = 0.0f;
-                bool found = false;
-
-                if ((mode == UniversalParamControl::SourceMode::Signal
-                    || mode == UniversalParamControl::SourceMode::Oscillator
-                    || mode == UniversalParamControl::SourceMode::Envelope)
-                    && signalRegistry_)
-                {
-                    for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
-                    {
-                        auto* sig = signalRegistry_->getSignalAt(s);
-                        if (sig && juce::String(sig->getName()) == sourceName)
-                        {
-                            signalValue = signalRegistry_->getCachedValue(sig->getId());
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
-                {
-                    // Parse "Macro N" or "Link N" to get the index
-                    int macroIdx = -1;
-                    if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
-                    {
-                        macroIdx = sourceName.getTrailingIntValue() - 1;
-                    }
-                    if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
-                    {
-                        signalValue = macroBank_->getMacroValue(macroIdx);
-                        found = true;
-                    }
-                }
-
-                if (found)
-                {
-                    // Write signal/macro value directly to effect param
-                    fx.paramValues[p] = signalValue;
-                    pc.setSourceValue(signalValue);
-
-                    // Notify renderer
-                    if (onParamChanged)
-                        onParamChanged(row.effectIndex, static_cast<int>(p), signalValue);
-                }
-            }
-
-            // Always update the display from the current param value
-            pc.setParamValue(fx.paramValues[p]);
-        }
+            row.paramControls[p]->setParamValue(fx.paramValues[p]);
     }
 
     repaint();
@@ -336,6 +383,12 @@ void EffectStackView::rebuildRows()
             def = effectLibrary_->getEffectDef(juce::String(fx.effectName));
 
         int numParams = static_cast<int>(fx.paramValues.size());
+
+        // L9 fix-round: parallel to paramControls, one nullopt slot per
+        // param — "never pushed yet" so tickModulation()'s first tick after
+        // this rebuild always pushes regardless of the value it computes.
+        row->lastPushedValue.assign(static_cast<size_t>(numParams), std::nullopt);
+
         for (int p = 0; p < numParams; ++p)
         {
             auto pc = std::make_unique<UniversalParamControl>();

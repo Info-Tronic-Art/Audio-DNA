@@ -433,6 +433,14 @@ void CompositionInspector::setMacroBank(MacroBank* bank)
     effectStackView_.setMacroBank(bank);
 }
 
+void CompositionInspector::tickModulation()
+{
+    // No composition_ guard — matches refresh()'s existing asymmetry below
+    // (effectStackView_ is ticked/refreshed unconditionally; it early-returns
+    // on its own null effects_ pointer when no composition is set).
+    effectStackView_.tickModulation();
+}
+
 void CompositionInspector::refresh()
 {
     if (composition_) syncFromComposition();

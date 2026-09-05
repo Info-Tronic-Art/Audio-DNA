@@ -765,9 +765,14 @@ void ClipInspector::buildSourceParamControls()
 {
     for (auto& pc : sourceParamControls_) removeChildComponent(pc.get());
     sourceParamControls_.clear();
+    lastPushedSourceParam_.clear();
 
     if (!clip_ || clip_->mediaType != Clip::MediaType::Source || clip_->sourceParams.empty())
         return;
+
+    // L9 fix-round: nullopt per param — "never pushed yet" so
+    // tickModulation()'s first tick after this rebuild always pushes.
+    lastPushedSourceParam_.assign(clip_->sourceParams.size(), std::nullopt);
 
     for (size_t i = 0; i < clip_->sourceParams.size(); ++i)
     {
@@ -814,6 +819,102 @@ void ClipInspector::setMacroBank(MacroBank* bank)
     effectStackView_.setMacroBank(bank);
 }
 
+void ClipInspector::tickModulation()
+{
+    effectStackView_.tickModulation();
+
+    if (!clip_) return;
+
+    // Drive source params from connected signals and macros. This was the
+    // packet's undercount (L9 rescope instance 4): a second, independent
+    // compute+write loop living in this same function, reading clip_->
+    // sourceParams every GL frame via CompositorEngine's sourceRenderFn_.
+    if (clip_->mediaType != Clip::MediaType::Source) return;
+
+    for (size_t i = 0; i < sourceParamControls_.size() && i < clip_->sourceParams.size(); ++i)
+    {
+        auto& pc = *sourceParamControls_[i];
+        if (!pc.isConnected()) continue;
+
+        auto mode = pc.getSourceMode();
+        auto sourceName = pc.getSourceName();
+        float val = 0.0f;
+        bool found = false;
+
+        if ((mode == UniversalParamControl::SourceMode::Signal
+            || mode == UniversalParamControl::SourceMode::Oscillator
+            || mode == UniversalParamControl::SourceMode::Envelope)
+            && signalRegistry_)
+        {
+            for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
+            {
+                auto* sig = signalRegistry_->getSignalAt(s);
+                if (sig && juce::String(sig->getName()) == sourceName)
+                {
+                    val = signalRegistry_->getCachedValue(sig->getId());
+                    found = true;
+                    break;
+                }
+            }
+        }
+        else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
+        {
+            int macroIdx = -1;
+            if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
+                macroIdx = sourceName.getTrailingIntValue() - 1;
+            if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
+            {
+                val = macroBank_->getMacroValue(macroIdx);
+                found = true;
+            }
+        }
+
+        if (found)
+        {
+            // Render-critical write: unconditional, every tick, regardless of
+            // the push gate below — CompositorEngine's sourceRenderFn_ reads
+            // this every GL frame and must never see it suppressed.
+            clip_->sourceParams[i].value = val;
+
+            // Cost trap (L9), CORRECTED (fix-round, blocking review finding):
+            // diff against the LAST VALUE ACTUALLY PUSHED
+            // (lastPushedSourceParam_[i]), not against
+            // clip_->sourceParams[i].value — that field was just overwritten
+            // above on this same tick, so comparing against it measured
+            // PER-TICK delta, and — because onSourceParamsChanged below feeds
+            // Renderer::updateActiveSourceParams, the standalone-source
+            // render path live whenever no deck is compositing — a
+            // slow-moving connected Source param would silently freeze that
+            // RENDER OUTPUT, not just the UI display. That was the actual
+            // blocking defect: the freeze bug re-created inside its own fix.
+            // lastPushedSourceParam_ starts nullopt (set in
+            // buildSourceParamControls()) so the first tick after a rebuild
+            // always pushes, regardless of what value it computes.
+            bool changed = i >= lastPushedSourceParam_.size()
+                || !lastPushedSourceParam_[i].has_value()
+                || std::abs(val - *lastPushedSourceParam_[i]) > kModulationChangeEpsilon;
+
+            if (changed)
+            {
+                // pc.isVisible() is always true here (these controls are
+                // always addAndMakeVisible()'d, unlike EffectStackView's
+                // collapsible rows) — kept for same-shape reasoning, costs
+                // nothing as a no-op. onSourceParamsChanged() must fire
+                // whenever `changed`, regardless of visibility: it feeds the
+                // renderer, not the display.
+                if (pc.isVisible())
+                    pc.setSourceValue(val);
+
+                if (onSourceParamsChanged)
+                    onSourceParamsChanged(clip_);
+
+                if (i < lastPushedSourceParam_.size())
+                    lastPushedSourceParam_[i] = val;
+            }
+        }
+    }
+}
+
 void ClipInspector::refresh()
 {
     if (clip_)
@@ -822,56 +923,11 @@ void ClipInspector::refresh()
         effectStackView_.refresh();
         macroPanel_.refresh();
 
-        // Drive source params from connected signals and macros
+        // Display-sync only — the compute+write now lives in tickModulation().
         if (clip_->mediaType == Clip::MediaType::Source)
         {
             for (size_t i = 0; i < sourceParamControls_.size() && i < clip_->sourceParams.size(); ++i)
-            {
-                auto& pc = *sourceParamControls_[i];
-                if (!pc.isConnected()) continue;
-
-                auto mode = pc.getSourceMode();
-                auto sourceName = pc.getSourceName();
-                float val = 0.0f;
-                bool found = false;
-
-                if ((mode == UniversalParamControl::SourceMode::Signal
-                    || mode == UniversalParamControl::SourceMode::Oscillator
-                    || mode == UniversalParamControl::SourceMode::Envelope)
-                    && signalRegistry_)
-                {
-                    for (int s = 0; s < signalRegistry_->getNumSignals(); ++s)
-                    {
-                        auto* sig = signalRegistry_->getSignalAt(s);
-                        if (sig && juce::String(sig->getName()) == sourceName)
-                        {
-                            val = signalRegistry_->getCachedValue(sig->getId());
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                else if (mode == UniversalParamControl::SourceMode::Macro && macroBank_)
-                {
-                    int macroIdx = -1;
-                    if (sourceName.startsWithIgnoreCase("Macro ") || sourceName.startsWithIgnoreCase("Link "))
-                        macroIdx = sourceName.getTrailingIntValue() - 1;
-                    if (macroIdx >= 0 && macroIdx < MacroBank::kNumMacros)
-                    {
-                        val = macroBank_->getMacroValue(macroIdx);
-                        found = true;
-                    }
-                }
-
-                if (found)
-                {
-                    clip_->sourceParams[i].value = val;
-                    pc.setSourceValue(val);
-                    pc.setParamValue(val);
-                    if (onSourceParamsChanged)
-                        onSourceParamsChanged(clip_);
-                }
-            }
+                sourceParamControls_[i]->setParamValue(clip_->sourceParams[i].value);
         }
     }
     repaint();

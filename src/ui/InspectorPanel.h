@@ -58,6 +58,16 @@ public:
     // Refresh the currently visible tab
     void refresh();
 
+    // L9 (modulation-freeze fix, 2026-09-05): tick EVERY inspector's
+    // signal/macro-driven effect-param modulation, unconditionally — NOT
+    // gated by activeTab_ like refresh() above. This is the line that
+    // actually closes the freeze: previously the compute+write for a
+    // connected param only ran while its owning tab was the active one, so a
+    // "connected" param silently stopped modulating the instant the operator
+    // looked away. Painting/display-sync still only happens for the active
+    // tab via refresh().
+    void tickModulation();
+
     enum class Tab : int { Clip = 0, Layer = 1, Composition = 2, Signal = 3 };
     void setActiveTab(Tab tab);
     Tab getActiveTab() const { return activeTab_; }

@@ -8,6 +8,7 @@
 #include "ui/EffectStackView.h"
 #include "ui/UniversalParamControl.h"
 #include "ui/LookAndFeel.h"
+#include <optional>
 
 // ClipInspector: Resolume-style clip properties panel.
 //
@@ -55,6 +56,14 @@ public:
     }
 
     void refresh();
+
+    // L9 (modulation-freeze fix, 2026-09-05): compute+apply signal/macro-
+    // driven values for the effect stack AND this inspector's own Source-clip
+    // param loop — the two things refresh() used to compute only while the
+    // Clip tab was active. Driven unconditionally from InspectorPanel::
+    // tickModulation() / MainComponent::tickFeaturePipeline()'s 120Hz timer.
+    void tickModulation();
+
     int getPreferredHeight() const;
 
     std::function<void(Clip* clip)> onSourceParamsChanged;
@@ -119,6 +128,15 @@ private:
     std::vector<std::unique_ptr<UniversalParamControl>> sourceParamControls_;
     void buildSourceParamControls();
 
+    // L9 fix-round (blocking review finding): the last value actually pushed
+    // (to sourceParamControls_[i]'s display AND to onSourceParamsChanged,
+    // which feeds Renderer::updateActiveSourceParams — the standalone-source
+    // render path) — parallel to sourceParamControls_, resized alongside it
+    // in buildSourceParamControls(). nullopt means never pushed yet.
+    // Deliberately NOT clip_->sourceParams[i].value — that field is
+    // overwritten unconditionally every tick by tickModulation() itself.
+    std::vector<std::optional<float>> lastPushedSourceParam_;
+
     // --- Video ---
     UniversalParamControl clipOpacityControl_;
     ResettableSlider clipWidthSlider_;
@@ -172,6 +190,16 @@ private:
     static constexpr int kNameBarHeight = 28;
     static constexpr int kTimelineHeight = 36; // timeline bar with in/out markers + handles
     static constexpr int kInset = 6;           // left/right padding within sections
+
+    // L9 cost trap: tickModulation() now runs unconditionally at 120Hz
+    // (previously ~10Hz and only while the Clip tab was active). Only push a
+    // new sourceValue (and pay its unconditional repaint(), and the
+    // onSourceParamsChanged render-callback) when it moved by more than this
+    // SINCE THE LAST VALUE ACTUALLY PUSHED (lastPushedSourceParam_) — not
+    // since the last tick. A tick-to-tick epsilon check would suppress a
+    // slow modulator's push forever (fix-round finding); this one only
+    // suppresses a truly-static repeat.
+    static constexpr float kModulationChangeEpsilon = 0.0005f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ClipInspector)
 };

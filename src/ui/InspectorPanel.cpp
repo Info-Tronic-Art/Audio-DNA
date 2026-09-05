@@ -167,6 +167,16 @@ void InspectorPanel::showCompositionTab()
     setActiveTab(Tab::Composition);
 }
 
+void InspectorPanel::tickModulation()
+{
+    // Unconditional — every chain ticks regardless of which tab is showing.
+    // Do NOT gate this behind activeTab_ or showActiveTab()'s visibility
+    // state; that would reproduce the exact freeze bug in a new place.
+    clipInspector_.tickModulation();
+    layerInspector_.tickModulation();
+    compInspector_.tickModulation();
+}
+
 void InspectorPanel::refresh()
 {
     switch (activeTab_)

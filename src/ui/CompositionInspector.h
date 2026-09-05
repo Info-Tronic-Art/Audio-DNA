@@ -37,6 +37,15 @@ public:
     void setMacroBank(MacroBank* bank);
 
     void refresh();
+
+    // L9 (modulation-freeze fix, 2026-09-05): compute+apply the global effect
+    // stack's signal/macro-driven param values, driven unconditionally from
+    // InspectorPanel::tickModulation() instead of only while the Composition
+    // tab is active. Precautionary today: nothing in src/render/ currently
+    // reads Composition::globalEffects (see EffectCommands.h) — this rides
+    // along for free since it's the same EffectStackView code as Clip/Layer.
+    void tickModulation();
+
     int getPreferredHeight() const;
 
     // Undo v1 step 7: hand the effect stack the host's performEdit hook.
