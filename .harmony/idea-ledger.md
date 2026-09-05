@@ -403,3 +403,36 @@ and none in the other. **The real gap: there is no test in which `predictedBeatR
 while real onsets also arrive** — the silence-exit hysteresis window, which the same review
 independently flagged as a ≤100 ms suppression window. One test covers both. Fast-follow, not a
 blocker: the shipped code was traced correct by construction on all five exit routes.
+
+### CLIP OPACITY RENDERS, BUT NOT AT THE RIGHT STRENGTH — found by measuring, not by testing
+Measured on the live app immediately after merging L4b (mean luminance over the whole frame,
+single procedural clip on one layer, nothing else in the composition):
+
+| setting | mean luminance | ratio to baseline | expected |
+|---|---|---|---|
+| baseline (all 1.0) | 9.50 | 1.000 | 1.00 |
+| masterOpacity 0.5 | 4.95 | **0.521** | 0.50 OK |
+| layerOpacity 0.5 | 4.62 | **0.486** | 0.50 OK |
+| clipOpacity 0.5 | 8.48 | **0.892** | 0.50 **WRONG** |
+| master 0.5 + clip 0.5 | 3.96 | 0.417 | 0.25 (consistent with the bad clip factor) |
+
+Master and layer agree with each other to within 1 luminance level (mean abs diff 0.335, max 1.0
+across the frame) — they are the same operation applied at different stages, as intended. Clip
+diverges from both on ~60% of pixels, max channel delta 81/255.
+
+**Consequence for the product ruling.** Boris: "if I want a clip that is permanently 50% opacity
+... regardless of what I do inside of the master and the layer, it won't get past 50%." At 0.892
+that ceiling does not hold. The knob moves the picture, so it LOOKS wired — which is worse than
+dead, because it invites trust.
+
+**Likely mechanism (INFERRED, for the fix packet, not established):** clip opacity is baked into
+the clip texture's ALPHA via the `opacity_blend` shader (`col.a *= u_opacity`), and the layer
+composite then blends with a mode where alpha does not linearly scale the contribution — an
+additive or screen-like blend would largely ignore it. Master and layer both dim RGB toward black
+at their stage, which is why they behave. The fix likely needs clip opacity to scale the same
+quantity the other two scale, at its own stage, rather than only the alpha channel.
+
+**Why no test caught it.** The lane's unit tests cover the pure arithmetic helper
+(`combinedOpacity` = layer × clip) and it is correct. Nothing rendered a frame and measured it.
+**A correct multiplier applied to the wrong quantity passes every arithmetic test there is.**
+This is the strongest argument in this repo for pixel-level gates over helper-level ones.
