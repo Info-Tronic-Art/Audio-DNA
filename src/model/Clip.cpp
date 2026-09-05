@@ -1,4 +1,27 @@
 #include "Clip.h"
+#include "connect/ConnSerialization.h"
+
+float& manualRef(Clip& c, ClipScalar s)
+{
+    switch (s)
+    {
+        case ClipScalar::Opacity:  return c.clipOpacity;
+        case ClipScalar::PosX:     return c.positionX;
+        case ClipScalar::PosY:     return c.positionY;
+        case ClipScalar::Scale:    return c.scale;
+        case ClipScalar::Rotation: return c.rotation;
+        case ClipScalar::AnchorX:  return c.anchorX;
+        case ClipScalar::AnchorY:  return c.anchorY;
+        case ClipScalar::Count:    break;
+    }
+    static float dummy = 0.0f;   // unreachable for a valid enumerator
+    return dummy;
+}
+
+float Clip::eff(ClipScalar s) const
+{
+    return scalarLive[static_cast<size_t>(s)].effective(manualRef(const_cast<Clip&>(*this), s));
+}
 
 juce::var Clip::toVar() const
 {
@@ -33,6 +56,8 @@ juce::var Clip::toVar() const
         spObj->setProperty("uniform", juce::String(sp.uniformName));
         spObj->setProperty("value", static_cast<double>(sp.value));
         spObj->setProperty("default", static_cast<double>(sp.defaultValue));
+        if (sp.conn.isConnected())
+            spObj->setProperty("conn", ConnSerialization::toVar(sp.conn));
         spArray.add(juce::var(spObj));
     }
     obj->setProperty("sourceParams", spArray);
@@ -83,9 +108,30 @@ juce::var Clip::toVar() const
         for (float p : fx.paramValues)
             paramArray.add(static_cast<double>(p));
         fxObj->setProperty("params", paramArray);
+
+        juce::Array<juce::var> connsArray;
+        for (size_t p = 0; p < fx.paramConns.size(); ++p)
+        {
+            if (!fx.paramConns[p].isConnected())
+                continue;
+            auto connVar = ConnSerialization::toVar(fx.paramConns[p]);
+            connVar.getDynamicObject()->setProperty("p", static_cast<int>(p));
+            connsArray.add(connVar);
+        }
+        if (!connsArray.isEmpty())
+            fxObj->setProperty("conns", connsArray);
+        if (fx.dryWetConn.isConnected())
+            fxObj->setProperty("dryWetConn", ConnSerialization::toVar(fx.dryWetConn));
+
         fxArray.add(juce::var(fxObj));
     }
     obj->setProperty("effects", fxArray);
+
+    // s167-l2: per-scalar connection map (opacity + the five transform
+    // fields + anchorY), sparse -- only written if something is connected.
+    auto scalarConnsVar = ConnSerialization::scalarsToVar<ClipScalar>(scalarConns, clipScalarDefs());
+    if (!scalarConnsVar.isVoid())
+        obj->setProperty("conns", scalarConnsVar);
 
     // Cuepoints
     juce::Array<juce::var> cpArray;
@@ -156,6 +202,8 @@ void Clip::fromVar(const juce::var& v)
                     sp.uniformName = spObj->getProperty("uniform").toString().toStdString();
                     sp.value = static_cast<float>(static_cast<double>(spObj->getProperty("value")));
                     sp.defaultValue = static_cast<float>(static_cast<double>(spObj->getProperty("default")));
+                    if (spObj->hasProperty("conn"))
+                        ConnSerialization::fromVar(sp.conn, spObj->getProperty("conn"));
                     sourceParams.push_back(std::move(sp));
                 }
             }
@@ -234,10 +282,28 @@ void Clip::fromVar(const juce::var& v)
                     if (auto* paramArray = fxObj->getProperty("params").getArray())
                         for (const auto& p : *paramArray)
                             slot.paramValues.push_back(static_cast<float>(static_cast<double>(p)));
+                    slot.resizeParams(slot.paramValues.size());
+                    if (auto* connsArray = fxObj->getProperty("conns").getArray())
+                    {
+                        for (const auto& cv : *connsArray)
+                        {
+                            if (auto* cvObj = cv.getDynamicObject())
+                            {
+                                int p = static_cast<int>(cvObj->getProperty("p"));
+                                if (p >= 0 && static_cast<size_t>(p) < slot.paramConns.size())
+                                    ConnSerialization::fromVar(slot.paramConns[static_cast<size_t>(p)], cv);
+                            }
+                        }
+                    }
+                    if (fxObj->hasProperty("dryWetConn"))
+                        ConnSerialization::fromVar(slot.dryWetConn, fxObj->getProperty("dryWetConn"));
                     effects.push_back(std::move(slot));
                 }
             }
         }
+
+        if (obj->hasProperty("conns"))
+            ConnSerialization::scalarsFromVar<ClipScalar>(scalarConns, clipScalarDefs(), obj->getProperty("conns"));
 
         numCuepoints = 0;
         if (auto* cpArray = obj->getProperty("cuepoints").getArray())

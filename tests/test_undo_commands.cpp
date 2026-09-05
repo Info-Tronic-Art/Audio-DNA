@@ -27,16 +27,52 @@
 // undo makes bit-identical copies (no arithmetic, so no epsilon needed).
 // ============================================================================
 
+// s167-l2: structural equality for the universal connection. Deliberately
+// EXCLUDES grip/state -- those are runtime (a live gesture, EMA/S&H/hand-
+// back memory), the same class of exclusion as Clip's playheadPosition/
+// playing above, and undo/redo is specifically supposed to CLEAR them
+// (ParamConnection's copy-assignment already does this -- see
+// connect/ParamConnection.h), so asserting they equal `before`'s captured
+// value would be asserting the wrong thing.
+static bool operator==(const ConnSource::Lfo& a, const ConnSource::Lfo& b)
+{
+    return a.shape == b.shape && a.cycleBeats == b.cycleBeats
+        && a.phaseOffset == b.phaseOffset && a.pulseWidth == b.pulseWidth;
+}
+static bool operator==(const ConnSource::Envelope& a, const ConnSource::Envelope& b)
+{
+    return a.points == b.points && a.clock == b.clock && a.cycleBeats == b.cycleBeats;
+}
+static bool operator==(const ConnSource& a, const ConnSource& b)
+{
+    return a.kind == b.kind && a.signalName == b.signalName && a.macroIndex == b.macroIndex
+        && a.lfo == b.lfo && a.env == b.env;
+}
+static bool operator==(const ConnShape& a, const ConnShape& b)
+{
+    return a.outMin == b.outMin && a.outMax == b.outMax && a.inverted == b.inverted
+        && a.playback == b.playback && a.loop == b.loop && a.curve == b.curve
+        && a.inMin == b.inMin && a.inMax == b.inMax && a.smoothingMs == b.smoothingMs;
+}
+static bool operator==(const ParamConnection& a, const ParamConnection& b)
+{
+    return a.source == b.source && a.shape == b.shape && a.enabled == b.enabled;
+}
+
 static bool operator==(const Clip::SourceParam& a, const Clip::SourceParam& b)
 {
     return a.name == b.name && a.uniformName == b.uniformName
-        && a.value == b.value && a.defaultValue == b.defaultValue;
+        && a.value == b.value && a.defaultValue == b.defaultValue
+        && a.conn == b.conn;
 }
 
 static bool operator==(const Clip::EffectSlot& a, const Clip::EffectSlot& b)
 {
     return a.effectName == b.effectName && a.paramValues == b.paramValues
-        && a.dryWet == b.dryWet && a.enabled == b.enabled && a.bypassed == b.bypassed;
+        && a.dryWet == b.dryWet && a.enabled == b.enabled && a.bypassed == b.bypassed
+        // paramLive/dryWetLive are runtime (engine-published, GL-read) --
+        // excluded, same class as paramValues' own render-thread siblings.
+        && a.paramConns == b.paramConns && a.dryWetConn == b.dryWetConn;
 }
 
 static bool operator==(const Clip::PresetEntry& a, const Clip::PresetEntry& b)
@@ -87,6 +123,9 @@ static bool operator==(const Clip& a, const Clip& b)
         && a.positionX == b.positionX && a.positionY == b.positionY
         && a.scale == b.scale && a.rotation == b.rotation
         && a.anchorX == b.anchorX && a.anchorY == b.anchorY
+        // Connections (s167-l2) -- scalarLive is runtime (engine-published),
+        // excluded like playheadPosition below.
+        && a.scalarConns == b.scalarConns
         // MilkDrop playlist (structural config; runtime index excluded)
         && vecEq(a.presetPlaylist, b.presetPlaylist)
         && a.playlistCycleMode == b.playlistCycleMode && a.playlistTrigger == b.playlistTrigger
@@ -156,6 +195,9 @@ static bool operator==(const Layer& a, const Layer& b)
         && a.positionX == b.positionX && a.positionY == b.positionY
         && a.layerScale == b.layerScale && a.layerRotation == b.layerRotation
         && a.layerAnchorX == b.layerAnchorX && a.layerAnchorY == b.layerAnchorY
+        // Connections (s167-l2) -- scalarLive is runtime, excluded (same
+        // class as Clip's scalarLive above).
+        && a.scalarConns == b.scalarConns
         // Feedback + per-layer effects
         && a.feedback == b.feedback
         && vecEq(a.layerEffects, b.layerEffects)
@@ -1851,6 +1893,62 @@ TEST_CASE("EffectStackCmd: fence fires once per execute/undo/redo", "[undo][effe
     mgr.redo();
     REQUIRE(fenceCalls == 3);                           // redo fenced
     REQUIRE(vecEq(comp.globalEffects, after));
+}
+
+// ===========================================================================
+// s167-l2: EffectStackCmd carries connections through undo/redo, and clears
+// any live grip on the way (s166 spec section 2.3: "Undo/redo and preset
+// load clear all grips") -- ParamConnection's copy-assignment (connect/
+// ParamConnection.h) is what makes this true of an UNMODIFIED EffectStackCmd
+// (this test asserts the observable behavior; EffectCommands.h itself is
+// untouched by this lane, see the s167-l2 report FENCE section).
+// ===========================================================================
+
+TEST_CASE("EffectStackCmd: undo/redo preserves connections and clears grips", "[undo][effect][connection]")
+{
+    Composition comp = makeComp();
+    comp.globalEffects.clear();
+
+    Clip::EffectSlot fx = mkFx("ripple");
+    fx.resizeParams(fx.paramValues.size());
+    fx.paramConns[0].source.kind = ConnSource::Kind::Lfo;
+    fx.paramConns[0].source.lfo.cycleBeats = 2.0f;
+    fx.paramConns[0].shape.outMin = 0.2f;
+    fx.paramConns[0].shape.outMax = 0.9f;
+    fx.dryWetConn.source.kind = ConnSource::Kind::Signal;
+    fx.dryWetConn.source.signalName = "Bass";
+
+    const std::vector<Clip::EffectSlot> before = { fx };
+    Clip::EffectSlot fx2 = fx;
+    fx2.dryWet = 0.25f;   // an unrelated edit sharing the same connections
+    const std::vector<Clip::EffectSlot> after = { fx2 };
+
+    // The LIVE vector starts at `before`, then gets a grip applied directly --
+    // as if a human were mid-drag on this parameter at the moment the
+    // dry/wet edit (an EffectStackCmd on the SAME slot) executes.
+    comp.globalEffects = before;
+    comp.globalEffects[0].paramConns[0].gripHeld();
+    REQUIRE(comp.globalEffects[0].paramConns[0].grip.kind == ParamConnection::Grip::Kind::Held);
+
+    UndoManager mgr;
+    mgr.perform(std::make_unique<EffectStackCmd>(
+        compResolverFor(comp), noopFence(), EffectScope::global(), before, after,
+        nullptr, "Adjust dry/wet"));
+
+    REQUIRE(vecEq(comp.globalEffects, after));
+    REQUIRE(comp.globalEffects[0].paramConns[0].source.kind == ConnSource::Kind::Lfo);
+    REQUIRE(comp.globalEffects[0].paramConns[0].shape.outMin == 0.2f);   // bit-identical value copy, exact ==
+    REQUIRE(comp.globalEffects[0].dryWetConn.source.signalName == "Bass");
+    REQUIRE(comp.globalEffects[0].paramConns[0].grip.kind == ParamConnection::Grip::Kind::None);
+
+    REQUIRE(mgr.undo());
+    REQUIRE(vecEq(comp.globalEffects, before));
+    REQUIRE(comp.globalEffects[0].paramConns[0].source.kind == ConnSource::Kind::Lfo);
+    REQUIRE(comp.globalEffects[0].paramConns[0].grip.kind == ParamConnection::Grip::Kind::None);
+
+    REQUIRE(mgr.redo());
+    REQUIRE(vecEq(comp.globalEffects, after));
+    REQUIRE(comp.globalEffects[0].paramConns[0].source.kind == ConnSource::Kind::Lfo);
 }
 
 // ===========================================================================

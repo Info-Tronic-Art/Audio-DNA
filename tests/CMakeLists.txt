@@ -58,6 +58,7 @@ add_executable(test_composition_tier_oracle
     test_composition_tier_oracle.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
     ${SRC_DIR}/effects/EffectLibrary.cpp
     ${SRC_DIR}/effects/Effect.cpp
 )
@@ -237,6 +238,7 @@ add_executable(test_composition
     test_composition.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
     ${SRC_DIR}/core/UndoManager.cpp
 )
 target_include_directories(test_composition PRIVATE ${SRC_DIR})
@@ -296,6 +298,7 @@ add_executable(test_undo_commands
     test_undo_commands.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
     ${SRC_DIR}/core/UndoManager.cpp
 )
 target_include_directories(test_undo_commands PRIVATE ${SRC_DIR})
@@ -320,6 +323,54 @@ if(NOT MSVC)
 endif()
 apply_sanitizers(test_undo_commands)
 catch_discover_tests(test_undo_commands)
+
+# --- test_connection (s167-l2: the universal connection model + engine
+# core, headless -- .harmony/specs/s166-universal-connection-architecture.md
+# section 5, Lane 2). Model + shaper + engine only, no renderer/UI: links
+# Clip.cpp/Layer.cpp (scalar arrays + serialization), the connect/ sources,
+# SignalRegistry.cpp (ConnectionEngine's Kind::Signal path resolves through
+# it even when a test never exercises that kind), and UndoManager.cpp for
+# the EffectStackCmd round-trip test (test (e)).
+add_executable(test_connection
+    test_connection.cpp
+    ${SRC_DIR}/model/Clip.cpp
+    ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnectionShaper.cpp
+    ${SRC_DIR}/connect/ConnectionEngine.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
+    ${SRC_DIR}/signal/SignalRegistry.cpp
+    ${SRC_DIR}/mapping/MappingEngine.cpp
+    ${SRC_DIR}/effects/Effect.cpp
+    ${SRC_DIR}/effects/EffectChain.cpp
+    ${SRC_DIR}/render/ShaderManager.cpp
+    ${SRC_DIR}/render/TextureManager.cpp
+    ${SRC_DIR}/render/LUTLoader.cpp
+    ${SRC_DIR}/render/FullscreenQuad.cpp
+    ${SRC_DIR}/core/UndoManager.cpp
+)
+target_include_directories(test_connection PRIVATE ${SRC_DIR})
+target_link_libraries(test_connection PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+    juce::juce_events
+    juce::juce_graphics
+    juce::juce_opengl
+)
+target_compile_definitions(test_connection PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_connection PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_connection)
+catch_discover_tests(test_connection)
 
 # --- test_routing_engine (P3: signals + routing) ---
 add_executable(test_routing_engine
@@ -387,6 +438,7 @@ add_executable(test_compositor
     test_compositor.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
     ${SRC_DIR}/model/Autopilot.cpp
 )
 target_include_directories(test_compositor PRIVATE ${SRC_DIR})
@@ -416,6 +468,7 @@ add_executable(test_autopilot
     test_autopilot.cpp
     ${SRC_DIR}/model/Clip.cpp
     ${SRC_DIR}/model/Layer.cpp
+    ${SRC_DIR}/connect/ConnSerialization.cpp
     ${SRC_DIR}/model/Autopilot.cpp
 )
 target_include_directories(test_autopilot PRIVATE ${SRC_DIR})

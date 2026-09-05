@@ -1,6 +1,7 @@
 #pragma once
 #include "routing/Route.h"
 #include "signal/SignalRegistry.h"
+#include "connect/ParamConnection.h"
 #include <array>
 #include <vector>
 #include <string>
@@ -41,6 +42,15 @@ public:
         uint32_t id = 0;
 
         bool isManual() const { return sourceSignalId == 0; }
+
+        // s167-l2: the universal connection. Replaces sourceSignalId as the
+        // sanctioned way to drive a macro (s166 spec section 2.2), but
+        // sourceSignalId/links are NOT removed here -- MacroPanel.cpp (src/
+        // ui/*, outside this lane's fence) still reads/writes them, and
+        // ConnectionEngine::tick (src/connect/ConnectionEngine.cpp) ticks
+        // `conn` independently, additively, ahead of Lane 3's repoint of the
+        // UI onto it.
+        ParamConnection conn;
     };
 
     MacroBank() = default;

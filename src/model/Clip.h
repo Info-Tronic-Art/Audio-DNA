@@ -1,6 +1,10 @@
 #pragma once
+#include "connect/ParamConnection.h"
+#include "connect/LiveValue.h"
+#include "connect/ScalarParams.h"
 #include <juce_core/juce_core.h>
 #include <juce_graphics/juce_graphics.h>
+#include <array>
 #include <string>
 #include <vector>
 #include <cstdint>
@@ -41,6 +45,12 @@ struct Clip
         std::string uniformName;    // GLSL uniform name
         float value = 0.5f;
         float defaultValue = 0.5f;
+
+        // s167-l2: the universal connection + its live (engine-published)
+        // twin. Renderer reads sp.live.effective(sp.value) (s166 spec
+        // section 3.1); not serialized here, see toVar/fromVar in Clip.cpp.
+        ParamConnection conn;
+        LiveValue live;
     };
     std::vector<SourceParam> sourceParams;  // Populated when sourceType is set
 
@@ -52,6 +62,33 @@ struct Clip
         float dryWet = 1.0f;                   // 0 = fully dry, 1 = fully wet
         bool enabled = true;
         bool bypassed = false;
+
+        // s167-l2: parallel connection + live-twin arrays, kept INSIDE the
+        // slot (not a separate vector on Clip) so they copy/undo/resize with
+        // it for free -- EffectStackCmd's whole-vector before/after snapshot
+        // and Clip::replaceContent's std::move(effects) then carry these
+        // automatically (s166 spec section 2.2).
+        std::vector<ParamConnection> paramConns;   // parallel to paramValues
+        std::vector<LiveValue> paramLive;          // parallel to paramValues
+        ParamConnection dryWetConn;
+        LiveValue dryWetLive;
+
+        // Keeps paramConns/paramLive the same length as paramValues.
+        // paramValues itself is NOT touched here -- every push_back(
+        // defaultValue) site already sizes it; this only keeps the two new
+        // parallel arrays in lock-step (s166 spec section 3.3). Safe to call
+        // repeatedly (idempotent once sizes match).
+        void resizeParams(size_t n)
+        {
+            paramConns.resize(n);
+            paramLive.resize(n);
+        }
+
+        // Renderer read sites (s166 spec section 3.1): replaces raw
+        // paramValues[p] / dryWet reads so a connected param renders its
+        // engine-published value with zero renderer-side math.
+        float effParam(size_t i) const { return paramLive[i].effective(paramValues[i]); }
+        float effDryWet() const { return dryWetLive.effective(dryWet); }
     };
     std::vector<EffectSlot> effects;
 
@@ -118,6 +155,16 @@ struct Clip
     float rotation = 0.0f;          // Degrees
     float anchorX = 0.0f;           // Anchor point offset from center
     float anchorY = 0.0f;
+
+    // === Connections (s167-l2) ===
+    // One ParamConnection + LiveValue twin per ClipScalar (opacity, the five
+    // transform fields above, and anchorY -- which no UI has ever written,
+    // ScalarParams.h now gives it a real formula, s166 spec section 2.2).
+    // eff()/manualRef() are the only places that name which struct field
+    // backs each ClipScalar.
+    std::array<ParamConnection, static_cast<size_t>(ClipScalar::Count)> scalarConns;
+    std::array<LiveValue, static_cast<size_t>(ClipScalar::Count)> scalarLive;
+    float eff(ClipScalar s) const;
 
     // === MilkDrop Preset Playlist (P20.5) ===
     // When sourceType == "projectm_visualizer", this playlist cycles through presets.
@@ -189,6 +236,12 @@ struct Clip
         auto savedChannelB = channelB, savedChannelA = channelA;
         auto savedTransform = std::make_tuple(positionX, positionY, scale, rotation, anchorX, anchorY);
         auto savedLock = contentLocked;
+        // s167-l2: the transform/opacity CONNECTIONS travel with the
+        // transform/opacity values above (a media replace keeps "how this
+        // clip's knobs behave", same as effects). Moved (not copied) so the
+        // custom ParamConnection copy-assignment does not clear a live grip
+        // mid-replace -- this is the SAME clip, not a fork.
+        auto savedScalarConns = std::move(scalarConns);
 
         // Copy new content (media only)
         name = newContent.name;
@@ -231,6 +284,7 @@ struct Clip
         channelB = savedChannelB; channelA = savedChannelA;
         std::tie(positionX, positionY, scale, rotation, anchorX, anchorY) = savedTransform;
         contentLocked = savedLock;
+        scalarConns = std::move(savedScalarConns);
 
         // Reset runtime state
         playing = newContent.playing;
@@ -283,3 +337,8 @@ struct Clip
     juce::var toVar() const;
     void fromVar(const juce::var& v);
 };
+
+// The only place that names which Clip field backs each ClipScalar (s166
+// spec section 2.2's exact phrasing). Used by Clip::eff() and by
+// ConnectionEngine when publishing a shaped value into scalarLive.
+float& manualRef(Clip& c, ClipScalar s);

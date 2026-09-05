@@ -1,6 +1,10 @@
 #pragma once
 #include "model/Clip.h"
+#include "connect/ParamConnection.h"
+#include "connect/LiveValue.h"
+#include "connect/ScalarParams.h"
 #include <juce_core/juce_core.h>
+#include <array>
 #include <string>
 #include <vector>
 #include <memory>
@@ -132,6 +136,16 @@ struct Layer
     float layerRotation = 0.0f;     // Degrees
     float layerAnchorX = 0.0f;
     float layerAnchorY = 0.0f;
+
+    // === Connections (s167-l2) ===
+    // One ParamConnection + LiveValue twin per LayerScalar (opacity -- the
+    // SAME field both the "Master" and "Opacity" widgets write today,
+    // LayerInspector.cpp:149,186 -- the five transform fields above, and
+    // anchorY). eff()/manualRef() are the only places that name which
+    // struct field backs each LayerScalar.
+    std::array<ParamConnection, static_cast<size_t>(LayerScalar::Count)> scalarConns;
+    std::array<LiveValue, static_cast<size_t>(LayerScalar::Count)> scalarLive;
+    float eff(LayerScalar s) const;
 
     // === Feedback (Larsen loop) ===
     FeedbackConfig feedback;
@@ -334,3 +348,8 @@ struct Layer
     juce::var toVar() const;
     void fromVar(const juce::var& v);
 };
+
+// The only place that names which Layer field backs each LayerScalar (s166
+// spec section 2.2's exact phrasing). Used by Layer::eff() and by
+// ConnectionEngine when publishing a shaped value into scalarLive.
+float& manualRef(Layer& l, LayerScalar s);
