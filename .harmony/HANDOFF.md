@@ -1561,3 +1561,49 @@ CHANNEL HARVEST s-rta-0904 — 4 records filed up-channel to the primary via scr
 3. idea-2026-09-04-harmony2-17885803732009828310 — normalize-check.sh hardcodes --framework web; 3 false FAILs on this repo's default invocation.
 4. idea-2026-09-05-harmony2-1788583476943004783 — the graphify launchd job targets "~/projects/RealTimeAudio copy" (stale duplicate, HEAD f128bdc) and is LOADED; no equivalent job for the real repo.
 DOWN-CHANNEL: all 6 routed inbox records flipped SENT -> DONE.
+
+## POST-CLOSE CORRECTIONS — L7 reports arrived after the commit (s-rta-0904)
+
+The L7 builder's report and the reviewer's full verdict landed after I had already gated,
+reviewed and committed `31d8c28`. Nothing in them changes the verdict — the review was PASS
+and remains PASS — but three things correct or sharpen the record, and one is a gap on my side.
+
+**1. MY DISPATCH NAMED THE WRONG IDIOM, AND THE BUILDER WAS RIGHT TO OVERRIDE ME.**
+I instructed it to follow the `juce::MessageManager::callAsync` marshaling pattern. That idiom
+marshals GL-thread events **to** the message thread — the opposite direction from this problem,
+which is a message-thread WRITE racing a GL-thread READ. It used `Renderer`'s *other* existing
+idiom instead: `executeOnGLThread(..., blockUntilFinished=true)` confinement, mirroring
+`getOrCreateSource()`'s `activeSources_` handling. **The independent reviewer explicitly confirmed
+the deviation was correct** ("callAsync is wrong direction here … correctly not used").
+Worth recording plainly: the orchestrator's instruction was wrong on a threading detail, the
+builder reasoned past it rather than complying, flagged the deviation prominently as its one
+concern, and the review vindicated it. That is the system working — but it only worked because
+the builder declined to follow an instruction it could see was wrong.
+
+**2. THE LANE CREATED THE HAZARD IT CLOSED — sharper than my commit message said.**
+`ProjectMPresetManager::presets_` is unlocked and was safe *only* because it was write-once at
+construction. This lane introduces **the first post-startup mutator** (`rescan()` does
+`presets_.clear()` then repopulates) while `PresetSelector::processFrame` reads it every frame on
+the GL thread with no lock. So the race was not pre-existing and merely noticed — the wire would
+have CREATED it, and the confinement is what makes the lane safe rather than a regression.
+The builder also declined to add per-method locking inside `ProjectMPresetManager`, correctly:
+`randomPresetInMood()` calls `randomPreset()` internally, so a naive same-mutex lock on both
+self-deadlocks.
+
+**3. THIS IS THE APP'S FIRST AUTO-PERSISTED SETTING.** There is no `ApplicationProperties` /
+`PropertiesFile` anywhere in this codebase, and `tooltipsEnabled_` — the only other Preferences
+value — resets to `true` on every launch. L7 persists via
+`userApplicationDataDirectory/Audio-DNA/settings.json` using the `DynamicObject` + `JSON::toString`
+idiom already used by View > Save/Load Layout. **Boris may want settings centralised deliberately
+rather than growing one key at a time**; flagging it as an architectural first, not a defect.
+(`tooltipsEnabled_`'s total lack of persistence is a pre-existing gap, not charged to this lane.)
+
+**4. THE GAP ON MY SIDE — the TSan gate was requested and I did not run it.**
+The builder asked specifically for a `build-tsan` gate, which is the *right* gate for a threading
+change, and I gated on the Release build + ctest + app launch only. A configured TSan tree exists
+(`build-tsan`, `ADNA_SANITIZE=thread`). I am running it now; the result is recorded below this
+block. **Note the honest limit either way:** the actual race window needs autopilot running on the
+GL thread WHILE the folder changes in Preferences, and driving that requires a native file chooser
+that `ax_press.py` cannot reach (AXButton only). So TSan can prove the startup and steady-state
+paths clean; it cannot, with today's tooling, exercise the specific window this fix was written
+for. That check stays owner-attended.
