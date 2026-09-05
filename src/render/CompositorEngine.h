@@ -69,18 +69,27 @@ public:
     // === Deck/Layer-based compositing ===
     // Composite all layers in the deck and return the result texture.
     // Returns 0 if no layers have active clips.
+    // dt: REAL measured seconds since the last frame (see Renderer::
+    // renderOpenGL's lastFrameTimestampMs_) -- fed straight into video/
+    // image-sequence playhead advancement (VideoPlayer::advanceFrame,
+    // ImageSequence::advanceFrame both do `currentTime_ += dt * speed`,
+    // literally, with no other timing source). A hardcoded 1/60 here used
+    // to silently couple playback speed to the actual GL callback rate
+    // (half speed at 30fps, double at 120fps) -- S167-L4b DT-FIX.
     GLuint compositeDeck(Deck& deck,
                          ShaderManager& shaderMgr,
                          FullscreenQuad& quad,
-                         float time,
+                         float time, float dt,
                          int width, int height);
 
     // P21: Composite only persistent layers from a non-active deck onto the
     // existing accumulator. Call AFTER compositeDeck() for the active deck.
+    // dt: see compositeDeck()'s comment above -- same real measured delta,
+    // same reason.
     void compositePersistentLayers(Deck& deck,
                                    ShaderManager& shaderMgr,
                                    FullscreenQuad& quad,
-                                   float time,
+                                   float time, float dt,
                                    int width, int height);
 
     bool hasActiveLayers() const { return hasActiveLayers_; }

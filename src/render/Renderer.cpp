@@ -399,6 +399,20 @@ void Renderer::renderOpenGL()
     else
         scaledTime_ += (1.0 / 60.0) * static_cast<double>(masterSpeedVal);
 
+    // S167-L4b DT-FIX: real measured frame delta, fed to
+    // compositeDeck()/compositePersistentLayers() below for video/image-
+    // sequence playhead advancement -- see lastFrameTimestampMs_'s comment
+    // in Renderer.h for why this must be a REAL delta, not a hardcoded
+    // 1/60. Clamped to [0, 0.25]s so a debugger pause, backgrounding, or the
+    // very first frame (lastFrameTimestampMs_ == -1) can't make video jump
+    // by an unbounded amount in one advanceFrame() call.
+    double nowMs = juce::Time::getMillisecondCounterHiRes();
+    float realDt = (lastFrameTimestampMs_ >= 0.0)
+        ? static_cast<float>((nowMs - lastFrameTimestampMs_) / 1000.0)
+        : (1.0f / 60.0f);
+    realDt = std::clamp(realDt, 0.0f, 0.25f);
+    lastFrameTimestampMs_ = nowMs;
+
     // Get physical pixel dimensions
     auto* component = glContext_.getTargetComponent();
     float scale = static_cast<float>(glContext_.getRenderingScale());
@@ -457,7 +471,7 @@ void Renderer::renderOpenGL()
     {
         // P18: provide audio snapshot to compositor for audio-reactive effects
         compositor_.setLatestSnapshot(snap);
-        sourceTexture = compositor_.compositeDeck(*deck, shaderMgr_, quad_, time,
+        sourceTexture = compositor_.compositeDeck(*deck, shaderMgr_, quad_, time, realDt,
                                                    static_cast<int>(renderW),
                                                    static_cast<int>(renderH));
 
@@ -467,7 +481,7 @@ void Renderer::renderOpenGL()
             for (auto& otherDeck : composition_->decks)
             {
                 if (&otherDeck == deck) continue; // Skip active deck
-                compositor_.compositePersistentLayers(otherDeck, shaderMgr_, quad_, time,
+                compositor_.compositePersistentLayers(otherDeck, shaderMgr_, quad_, time, realDt,
                                                        static_cast<int>(renderW),
                                                        static_cast<int>(renderH));
             }

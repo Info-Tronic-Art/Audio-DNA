@@ -688,7 +688,7 @@ void CompositorEngine::applyMaskLayer(const Clip& /*clip*/, GLuint clipTex,
 GLuint CompositorEngine::compositeDeck(Deck& deck,
                                         ShaderManager& shaderMgr,
                                         FullscreenQuad& quad,
-                                        float time,
+                                        float time, float dt,
                                         int width, int height)
 {
     using namespace juce::gl;
@@ -776,7 +776,8 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 else if ((clip->mediaType == Clip::MediaType::Video ||
                           clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
                 {
-                    float dt = 1.0f / 60.0f;
+                    // S167-L4b DT-FIX: real measured dt (function param), not
+                    // a hardcoded 1/60 -- see compositeDeck()'s header comment.
                     clipTex = videoFrameFn_(clip, dt);
                 }
 
@@ -794,8 +795,9 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 // P13.5.1: Apply per-clip effects
                 clipTex = applyClipEffects(clip->effects, clipTex, shaderMgr, quad, time, width, height, layer.id);
 
-                // P14: Apply clip-to-clip transition if crossfading
-                float dt = 1.0f / 60.0f;
+                // P14: Apply clip-to-clip transition if crossfading. S167-L4b
+                // DT-FIX: real measured dt (function param) -- see
+                // compositeDeck()'s header comment.
                 clipTex = applyTransition(layer, clipTex, time, shaderMgr, quad, width, height, dt);
 
                 // P16: Apply feedback (Larsen loop) if enabled
@@ -879,7 +881,8 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
                 else if ((clip->mediaType == Clip::MediaType::Video ||
                           clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
                 {
-                    float dt = 1.0f / 60.0f;
+                    // S167-L4b DT-FIX: real measured dt (function param), not
+                    // a hardcoded 1/60 -- see compositeDeck()'s header comment.
                     clipTex = videoFrameFn_(clip, dt);
                 }
 
@@ -899,7 +902,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
 void CompositorEngine::compositePersistentLayers(Deck& deck,
                                                   ShaderManager& shaderMgr,
                                                   FullscreenQuad& quad,
-                                                  float time,
+                                                  float time, float dt,
                                                   int width, int height)
 {
     using namespace juce::gl;
@@ -943,7 +946,9 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
         else if ((clip->mediaType == Clip::MediaType::Video ||
                   clip->mediaType == Clip::MediaType::ImageSequence) && videoFrameFn_)
         {
-            float dt = 1.0f / 60.0f;
+            // S167-L4b DT-FIX: real measured dt (function param), not a
+            // hardcoded 1/60 -- see compositePersistentLayers()'s header
+            // comment (CompositorEngine.h).
             clipTex = videoFrameFn_(clip, dt);
         }
 
