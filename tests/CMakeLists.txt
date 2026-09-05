@@ -75,6 +75,13 @@ target_link_libraries(test_smoother PRIVATE Catch2::Catch2WithMain)
 apply_sanitizers(test_smoother)
 catch_discover_tests(test_smoother)
 
+# --- test_oscillator_bar_fold (S166-L5a: multi-bar OscillatorSignal/EnvelopeSignal phase) ---
+add_executable(test_oscillator_bar_fold test_oscillator_bar_fold.cpp)
+target_include_directories(test_oscillator_bar_fold PRIVATE ${SRC_DIR})
+target_link_libraries(test_oscillator_bar_fold PRIVATE Catch2::Catch2WithMain)
+apply_sanitizers(test_oscillator_bar_fold)
+catch_discover_tests(test_oscillator_bar_fold)
+
 # --- test_integration_pipeline ---
 # Full pipeline integration test: generates known audio signals and verifies
 # feature extraction produces expected values. Requires JUCE (FFT) and Aubio.

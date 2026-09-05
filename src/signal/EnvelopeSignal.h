@@ -32,8 +32,16 @@ public:
     {
         if (points_.size() < 2) return 0.0f;
 
-        // Calculate phase from beat position
-        float totalBeatPhase = snapshot.beatPhase + static_cast<float>(snapshot.beatInBar);
+        // Calculate phase from beat position.
+        // S166-L5a: same fold-across-bars fix and trade-off as
+        // OscillatorSignal::getValue (see its comment for the full
+        // rationale) -- barCount is bars since the last phrase reset and
+        // grows monotonically except on rare structural-transition resets,
+        // so beatDuration_ > 4 (the default here is 4.0, the boundary case
+        // that happened to still work) now completes a full cycle instead
+        // of stalling partway through.
+        float totalBeatPhase = snapshot.beatPhase + static_cast<float>(snapshot.beatInBar)
+                             + 4.0f * static_cast<float>(snapshot.barCount);
         float cyclePhase = std::fmod(totalBeatPhase / beatDuration_, 1.0f);
         if (cyclePhase < 0.0f) cyclePhase += 1.0f;
 

@@ -22,11 +22,26 @@ public:
 
     float getValue(const FeatureSnapshot& snapshot) const override
     {
-        // Phase is derived from beatPhase scaled by duration
-        // beatPhase is [0,1) per beat. We want [0,1) per cycle of beatDuration beats.
-        // Use barPhase for multi-beat durations, or derive from beatPhase + beatInBar.
-        float totalBeatPhase = snapshot.beatPhase + static_cast<float>(snapshot.beatInBar);
-        // totalBeatPhase is in [0, 4) over one bar
+        // Phase is derived from beatPhase scaled by duration.
+        // beatPhase is [0,1) per beat; beatInBar is 0-3 within the current bar;
+        // barCount is bars since the last phrase reset (FeatureSnapshot.h) and
+        // grows monotonically except on rare structural-transition resets
+        // (BPMTracker::updatePhrase resets it only on entering a drop or
+        // leaving a breakdown -- NOT on a fixed period). Folding in
+        // 4*barCount (beats/bar) extends the phase across bars so cycles
+        // longer than one bar (beatDuration_ > 4, e.g. an "8 beat" LFO)
+        // actually complete, instead of retracing only the fraction of the
+        // waveform that fits inside one bar, forever.
+        // S166-L5a trade-off: a phrase reset can still jump this phase
+        // mid-cycle unless beatDuration_ divides the bar count evenly at
+        // that moment -- rare (only at drop/breakdown transitions), and
+        // strictly better than never completing a cycle at all. Deriving
+        // from phrasePhase instead was considered and rejected: it resets
+        // on a fixed period (not just structural events) and FeatureSnapshot
+        // does not publish the phrase length in bars, so there is no way to
+        // convert it back into beat units for an arbitrary beatDuration_.
+        float totalBeatPhase = snapshot.beatPhase + static_cast<float>(snapshot.beatInBar)
+                             + 4.0f * static_cast<float>(snapshot.barCount);
         float cyclePhase = std::fmod(totalBeatPhase / beatDuration_, 1.0f);
         if (cyclePhase < 0.0f) cyclePhase += 1.0f;
 

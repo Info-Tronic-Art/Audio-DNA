@@ -624,6 +624,15 @@ void ApiServer::handleInjectFeatures(const httplib::Request& req, httplib::Respo
     if (json.hasProperty("beatPhase")) snap.beatPhase = static_cast<float>(static_cast<double>(json["beatPhase"]));
     if (json.hasProperty("barPhase")) snap.barPhase = static_cast<float>(static_cast<double>(json["barPhase"]));
     if (json.hasProperty("phrasePhase")) snap.phrasePhase = static_cast<float>(static_cast<double>(json["phrasePhase"]));
+    // S166-L5a: same clamp-to-real-range precedent as R6 below
+    // (structuralState/detectedGenre) -- FeatureSnapshot.h documents
+    // beatInBar as 0-3 (which beat in the bar) and barCount as uint16_t
+    // (bars since last phrase reset). Needed so /api/signals can be swept
+    // from outside to prove the OscillatorSignal/EnvelopeSignal bar-fold fix.
+    if (json.hasProperty("beatInBar"))
+        snap.beatInBar = static_cast<uint8_t>(std::clamp(static_cast<int>(json["beatInBar"]), 0, 3));
+    if (json.hasProperty("barCount"))
+        snap.barCount = static_cast<uint16_t>(std::clamp(static_cast<int>(json["barCount"]), 0, 65535));
     if (json.hasProperty("spectralCentroid")) snap.spectralCentroid = static_cast<float>(static_cast<double>(json["spectralCentroid"]));
     if (json.hasProperty("spectralFlux")) snap.spectralFlux = static_cast<float>(static_cast<double>(json["spectralFlux"]));
     if (json.hasProperty("onsetStrength")) snap.onsetStrength = static_cast<float>(static_cast<double>(json["onsetStrength"]));
