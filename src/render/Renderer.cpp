@@ -641,6 +641,44 @@ void Renderer::renderOpenGL()
         glDisable(GL_BLEND);
     }
 
+    // S167-L4b: apply Composition::masterOpacity to the fully-composited
+    // frame -- the owner's "ceiling" ruling (final = master * layer * clip)
+    // for the composition-wide fader. Same dim-to-black technique as the
+    // masterLevel_ block just above (glBlendColor as a constant multiplier),
+    // not an alpha-channel bake, because this runs against defaultFBO -- the
+    // actual output framebuffer -- where Syphon/recording/capture below read
+    // RGB, not alpha. UNCONDITIONAL: deliberately no "opacity ~= 1.0, skip"
+    // early-return -- masterOpacity was silently render-dead all session
+    // (.harmony/probe-deck-path.sh: accepted, echoed back, changed not one
+    // pixel) and a skip-when-default guard here is exactly the shape of bug
+    // that produced that. Runs BEFORE videoRecorder_->submitFrame,
+    // publishSyphonFrame, and processPendingCapture below, so Master Opacity
+    // also dims what leaves the app, not just the on-screen preview.
+    if (composition_ != nullptr)
+    {
+        float masterOpacityVal = composition_->masterOpacity;
+        glEnable(GL_BLEND);
+        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+        glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
+                   static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
+
+        auto* prog = shaderMgr_.getProgram("passthrough");
+        if (prog)
+        {
+            prog->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sourceTexture);
+        }
+
+        glBlendFunc(GL_ZERO, GL_CONSTANT_COLOR);
+        glBlendColor(masterOpacityVal, masterOpacityVal, masterOpacityVal, 1.0f);
+
+        quad_.draw();
+
+        glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glDisable(GL_BLEND);
+    }
+
     // P13.5.10: Use CPU-side timing instead of glFinish() which stalls the GPU pipeline.
     // This measures CPU-side render submission time, not GPU execution time.
     // For GPU timing, use GL_TIME_ELAPSED queries (async, no stall).
