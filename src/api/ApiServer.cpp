@@ -6,6 +6,7 @@
 #include "effects/EffectLibrary.h"
 #include "model/Composition.h"
 #include "model/Clip.h"
+#include "core/CompositionLoad.h"
 #include "sources/SourceRegistry.h"
 #include "signal/SignalRegistry.h"
 #include "routing/RoutingEngine.h"
@@ -187,6 +188,10 @@ void ApiServer::setupRoutes()
 
     server_.Post("/api/load_source", [this](const httplib::Request& req, httplib::Response& res) {
         handleLoadSource(req, res);
+    });
+
+    server_.Post("/api/load_composition", [this](const httplib::Request& req, httplib::Response& res) {
+        handleLoadComposition(req, res);
     });
 
     // Effects
@@ -723,6 +728,61 @@ void ApiServer::handleLoadSource(const httplib::Request& req, httplib::Response&
     }
 
     renderer_.setActiveSource(sourceType.toStdString(), params);
+    res.set_content(jsonOk(), "application/json");
+}
+
+void ApiServer::handleLoadComposition(const httplib::Request& req, httplib::Response& res)
+{
+    auto json = juce::JSON::parse(juce::String(req.body));
+    juce::String path = json.getProperty("path", "").toString();
+
+    if (path.isEmpty())
+    {
+        res.set_content(jsonError("Missing 'path'"), "application/json");
+        return;
+    }
+
+    // {"ok":false,"reason":"..."} for the two failure modes below — distinct
+    // from jsonError()'s {"ok":false,"error":"..."} shape used for malformed
+    // requests (missing 'path' above), matching the endpoint's contract.
+    auto jsonFail = [](const juce::String& reason) {
+        auto* obj = new juce::DynamicObject();
+        obj->setProperty("ok", false);
+        obj->setProperty("reason", reason);
+        return juce::JSON::toString(juce::var(obj)).toStdString();
+    };
+
+    juce::File f(path);
+    if (!f.existsAsFile())
+    {
+        res.set_content(jsonFail("File not found"), "application/json");
+        return;
+    }
+
+    // Pre-check on a throwaway staged copy so this endpoint can answer
+    // ok/false synchronously — loadComposition itself repeats the same
+    // STAGE/VALIDATE steps on the message thread before the live swap; this
+    // duplicates only the read-only prefix, never the live composition_.
+    Composition staged;
+    if (!staged.loadFromFile(f))
+    {
+        res.set_content(jsonFail("could not read/parse file"), "application/json");
+        return;
+    }
+    if (auto reason = compload::validateComposition(staged); !reason.empty())
+    {
+        res.set_content(jsonFail(reason), "application/json");
+        return;
+    }
+
+    if (onLoadComposition)
+    {
+        // `this`-capture safety: see handleSetParam's clip-effect branch note.
+        juce::MessageManager::callAsync([this, f]() {
+            onLoadComposition(f);
+        });
+    }
+
     res.set_content(jsonOk(), "application/json");
 }
 

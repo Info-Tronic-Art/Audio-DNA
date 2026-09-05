@@ -1802,6 +1802,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
     apiServer_->onTriggerClip = [this](int layer, int column) { handleClipTrigger(layer, column); };
     apiServer_->onTriggerColumn = [this](int column) { handleColumnTrigger(column); };
     apiServer_->onSwitchDeck = [this](int deckIdx) { handleDeckSwitch(deckIdx); };
+    apiServer_->onLoadComposition = [this](juce::File f) { loadComposition(f); };
     apiServer_->onSnapshot = [this]() {
         auto& renderer = previewPanel_.getRenderer();
         std::thread([&renderer]() { renderer.takeSnapshot(); }).detach();

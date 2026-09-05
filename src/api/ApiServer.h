@@ -1,6 +1,7 @@
 #pragma once
 
 #include <httplib.h>
+#include <juce_core/juce_core.h>
 #include <thread>
 #include <atomic>
 #include <string>
@@ -59,6 +60,10 @@ public:
     std::function<void(int layer, int column)> onTriggerClip;
     std::function<void(int column)> onTriggerColumn;
     std::function<void(int deckIndex)> onSwitchDeck;
+    // POST /api/load_composition (S166): fires only after this handler has
+    // already confirmed the file exists and passes validateComposition —
+    // see handleLoadComposition.
+    std::function<void(juce::File)> onLoadComposition;
     std::function<void()> onSnapshot;
     std::function<void(float bpm)> onSetBpm;
     // R4: this server holds no FeatureBus writer — test-mode
@@ -88,6 +93,7 @@ private:
     void handleInjectFeatures(const httplib::Request& req, httplib::Response& res);
     void handleLoadImage(const httplib::Request& req, httplib::Response& res);
     void handleLoadSource(const httplib::Request& req, httplib::Response& res);
+    void handleLoadComposition(const httplib::Request& req, httplib::Response& res);
     void handleSetEffect(const httplib::Request& req, httplib::Response& res);
     void handleListEffects(const httplib::Request& req, httplib::Response& res);
     void handleListSources(const httplib::Request& req, httplib::Response& res);
