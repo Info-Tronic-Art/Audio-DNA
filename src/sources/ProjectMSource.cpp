@@ -16,7 +16,9 @@ ProjectMSource::ProjectMSource()
     addParam("Decay", "u_src_decay", 0.5f);
     addParam("Gamma", "u_src_gamma", 0.5f);
 
-    presetSelector_.setPresetManager(&presetManager_);
+    // presetSelector_'s manager pointer is wired externally via
+    // setPresetManager() once Renderer creates this source on the GL thread
+    // (see ProjectMSource.h) — presetManager_ no longer lives here.
 }
 
 ProjectMSource::~ProjectMSource()
@@ -46,9 +48,9 @@ void ProjectMSource::initGL(int width, int height)
         applyParams();
 
         // Load first preset if available
-        if (presetManager_.getPresetCount() > 0)
+        if (presetManager_ && presetManager_->getPresetCount() > 0)
         {
-            auto* preset = presetManager_.getCurrentPreset();
+            auto* preset = presetManager_->getCurrentPreset();
             if (preset)
                 loadPreset(preset->path, false);
         }
@@ -201,28 +203,31 @@ void ProjectMSource::loadPreset(const std::string& path, bool smooth)
 
 void ProjectMSource::nextPreset(bool smooth)
 {
-    auto* preset = presetManager_.nextPreset();
+    if (!presetManager_) return;
+    auto* preset = presetManager_->nextPreset();
     if (preset)
         loadPreset(preset->path, smooth);
 }
 
 void ProjectMSource::prevPreset(bool smooth)
 {
-    auto* preset = presetManager_.prevPreset();
+    if (!presetManager_) return;
+    auto* preset = presetManager_->prevPreset();
     if (preset)
         loadPreset(preset->path, smooth);
 }
 
 void ProjectMSource::randomPreset(bool smooth)
 {
-    auto* preset = presetManager_.randomPreset();
+    if (!presetManager_) return;
+    auto* preset = presetManager_->randomPreset();
     if (preset)
         loadPreset(preset->path, smooth);
 }
 
 std::string ProjectMSource::getCurrentPresetName() const
 {
-    auto* preset = presetManager_.getCurrentPreset();
+    auto* preset = presetManager_ ? presetManager_->getCurrentPreset() : nullptr;
     return preset ? preset->name : "";
 }
 

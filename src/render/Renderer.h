@@ -22,6 +22,11 @@
 #include <future>
 #include <unordered_map>
 
+// Forward declaration only (no GL dependency needed here) — used by the
+// MilkDrop preset-source-created callback below. See ProjectMSource.h /
+// .harmony/milkdrop-autoload-rootcause.md.
+class ProjectMSource;
+
 // Renderer: implements juce::OpenGLRenderer to drive the GL render loop.
 //
 // Owns the OpenGL context, fullscreen quad, shader/texture managers,
@@ -117,6 +122,20 @@ public:
 
     // P20.5: Set analysis thread pointer for PCM audio feed to projectM sources
     void setAnalysisThread(class AnalysisThread* at) { analysisThread_ = at; }
+
+    // MilkDrop preset manager (2026-09-04 autoload fix — see
+    // .harmony/milkdrop-autoload-rootcause.md): MainComponent owns and scans
+    // this unconditionally at startup (pure file/JSON, no GL dependency), and
+    // hands the pointer here so it can be injected into each ProjectMSource
+    // as it's created on the GL thread — see getOrCreateSourceOnGLThread().
+    void setProjectMPresetManager(class ProjectMPresetManager* mgr) { projectMPresetManager_ = mgr; }
+
+    // Callback fired (async, message thread) the first time a ProjectMSource
+    // is actually created on the GL thread. PresetSelector stays a
+    // per-source, GL-thread member (it runs inside ProjectMSource::render())
+    // and must NOT be hoisted like the manager above — this is how callers
+    // (the MilkDrop browser) learn a real source now exists to wire against.
+    void setOnProjectMSourceCreated(std::function<void(ProjectMSource*)> fn) { onProjectMSourceCreated_ = std::move(fn); }
 
     // P22.6: Set video recorder for real-time frame capture
     void setVideoRecorder(class VideoRecorder* recorder) { videoRecorder_ = recorder; }
@@ -311,6 +330,12 @@ private:
     uint8_t lastStructuralState_ = 0;   // Last structural state
     std::function<void(uint8_t, float)> onGenreChanged_;
     std::function<void(uint8_t)> onStructuralStateChanged_;
+
+    // MilkDrop preset wiring (2026-09-04 fix, see setProjectMPresetManager /
+    // setOnProjectMSourceCreated above). projectMPresetManager_ is non-owning
+    // — MainComponent owns the actual ProjectMPresetManager.
+    ProjectMPresetManager* projectMPresetManager_ = nullptr;
+    std::function<void(ProjectMSource*)> onProjectMSourceCreated_;
 
     // Procedural sources
     SourceRegistry sourceRegistry_;

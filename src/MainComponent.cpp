@@ -1476,64 +1476,86 @@ MainComponent::MainComponent(bool testMode, int testPort)
     };
 
     // === v2: MilkDrop Preset Browser Wiring ===
+    // 2026-09-04 fix (regression since 22fcedc, see
+    // .harmony/milkdrop-autoload-rootcause.md): this used to be gated on
+    // `if (pmSource)`, where pmSource came from getOrCreateSource() — which
+    // returns nullptr unless the GL context is attached, which it never is
+    // at construction time. That skipped the whole block, including
+    // setPresetManager, on every single launch. Preset scanning is pure
+    // file/JSON work with no GL dependency, so it now runs unconditionally
+    // against MainComponent's own hoisted presetManager_ instead of reaching
+    // into a GL-thread-only source that doesn't exist yet.
     {
-        // Get or create the projectM source to access its preset manager
-        auto* pmSource = dynamic_cast<ProjectMSource*>(
-            previewPanel_.getRenderer().getOrCreateSource("projectm_visualizer"));
-        if (pmSource)
+        // Scan bundled presets from the resources directory
+        auto exePath = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
+        // macOS: .app/Contents/MacOS/Audio-DNA → .app/Contents/Resources/
+        auto bundledDir = exePath.getParentDirectory().getParentDirectory()
+                                 .getChildFile("Resources").getChildFile("projectm_presets");
+        if (!bundledDir.isDirectory())
         {
-            auto& mgr = pmSource->getPresetManager();
-
-            // Scan bundled presets from the resources directory
-            auto exePath = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
-            // macOS: .app/Contents/MacOS/Audio-DNA → .app/Contents/Resources/
-            auto bundledDir = exePath.getParentDirectory().getParentDirectory()
-                                     .getChildFile("Resources").getChildFile("projectm_presets");
-            if (!bundledDir.isDirectory())
-            {
-                // Development fallback: look relative to working directory
-                bundledDir = juce::File::getCurrentWorkingDirectory().getChildFile("resources/projectm_presets");
-            }
-            if (bundledDir.isDirectory())
-            {
-                mgr.scanDirectory(bundledDir.getFullPathName().toStdString());
-                // Load mood/energy metadata manifest
-                auto manifestFile = bundledDir.getChildFile("presets.json");
-                if (manifestFile.existsAsFile())
-                    mgr.loadManifest(manifestFile.getFullPathName().toStdString());
-            }
-
-            // Also scan the Cream of the Crop collection if available
-            auto creamDir = juce::File("/tmp/milkdrop-presets");
-            if (creamDir.isDirectory())
-                mgr.scanDirectory(creamDir.getFullPathName().toStdString());
-
-            // Wire the browser to the preset manager
-            browserPanel_->getMilkDropBrowser().setPresetManager(&mgr);
-            browserPanel_->getMilkDropBrowser().setPresetSelector(&pmSource->getPresetSelector());
-
-            // Wire preset selection callback: load preset into projectM source
-            browserPanel_->getMilkDropBrowser().onPresetSelected = [this](const std::string& path) {
-                auto* src = dynamic_cast<ProjectMSource*>(
-                    previewPanel_.getRenderer().getOrCreateSource("projectm_visualizer"));
-                if (src)
-                {
-                    src->loadPreset(path, true); // smooth transition
-
-                    // Also set the source as active in the preview renderer
-                    previewPanel_.getRenderer().setActiveSource("projectm_visualizer");
-                    previewPanel_.getRenderer().clearImage();
-                    currentImageFile_ = juce::File();
-
-                    // Extract display name from path
-                    juce::File presetFile(path);
-                    fileLabel_.setText("MilkDrop: " + presetFile.getFileNameWithoutExtension(),
-                                       juce::dontSendNotification);
-                }
-            };
-
-            std::cerr << "[MilkDrop] Loaded " << mgr.getPresetCount() << " presets" << std::endl;
+            // Development fallback: look relative to working directory
+            bundledDir = juce::File::getCurrentWorkingDirectory().getChildFile("resources/projectm_presets");
         }
+        if (bundledDir.isDirectory())
+        {
+            presetManager_.scanDirectory(bundledDir.getFullPathName().toStdString());
+            // Load mood/energy metadata manifest
+            auto manifestFile = bundledDir.getChildFile("presets.json");
+            if (manifestFile.existsAsFile())
+                presetManager_.loadManifest(manifestFile.getFullPathName().toStdString());
+        }
+
+        // Also scan the Cream of the Crop collection if available
+        auto creamDir = juce::File("/tmp/milkdrop-presets");
+        if (creamDir.isDirectory())
+            presetManager_.scanDirectory(creamDir.getFullPathName().toStdString());
+
+        // Wire the browser to the (MainComponent-owned) preset manager. This
+        // pointer outlives Renderer and every ProjectMSource, so it never
+        // dangles even across GL context recreation — see
+        // Renderer::openGLContextClosing().
+        browserPanel_->getMilkDropBrowser().setPresetManager(&presetManager_);
+
+        // Hand the manager to the renderer so it can inject it into each
+        // ProjectMSource as the GL thread creates one — see
+        // Renderer::getOrCreateSourceOnGLThread.
+        previewPanel_.getRenderer().setProjectMPresetManager(&presetManager_);
+
+        // The PresetSelector lives INSIDE ProjectMSource (GL-thread member,
+        // runs inside its render()) and must NOT be hoisted like the manager
+        // above — wire the browser's selector lazily, only once a real
+        // source exists. This callback is pre-marshaled onto the message
+        // thread by Renderer (matching setOnAutopilotAdvanced/
+        // setOnGenreChanged elsewhere in this ctor), so it's safe to touch
+        // browser UI state here. The browser is already null-guarded for a
+        // missing selector, so preset listing/scanning above works at
+        // startup with no selector present; jukebox playback lights up once
+        // this fires.
+        previewPanel_.getRenderer().setOnProjectMSourceCreated([this](ProjectMSource* pmSrc) {
+            browserPanel_->getMilkDropBrowser().setPresetSelector(&pmSrc->getPresetSelector());
+        });
+
+        // Wire preset selection callback: load preset into projectM source
+        browserPanel_->getMilkDropBrowser().onPresetSelected = [this](const std::string& path) {
+            auto* src = dynamic_cast<ProjectMSource*>(
+                previewPanel_.getRenderer().getOrCreateSource("projectm_visualizer"));
+            if (src)
+            {
+                src->loadPreset(path, true); // smooth transition
+
+                // Also set the source as active in the preview renderer
+                previewPanel_.getRenderer().setActiveSource("projectm_visualizer");
+                previewPanel_.getRenderer().clearImage();
+                currentImageFile_ = juce::File();
+
+                // Extract display name from path
+                juce::File presetFile(path);
+                fileLabel_.setText("MilkDrop: " + presetFile.getFileNameWithoutExtension(),
+                                   juce::dontSendNotification);
+            }
+        };
+
+        std::cerr << "[MilkDrop] Loaded " << presetManager_.getPresetCount() << " presets" << std::endl;
     }
 
     // === v2: Timing Window ===

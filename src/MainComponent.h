@@ -19,6 +19,7 @@
 #include "ui/InspectorPanel.h"
 #include "ui/TimingWindow.h"
 #include "ui/BrowserPanel.h"
+#include "sources/ProjectMPresetManager.h"
 #include "ui/MenuBarModel.h"
 #include "signal/SignalRegistry.h"
 #include "routing/MacroBank.h"
@@ -169,6 +170,21 @@ private:
     void refreshAfterUndoRedo(bool affectsLayerOrder);
 
     AudioDNALookAndFeel lookAndFeel_;
+
+    // MilkDrop preset manager, hoisted out of ProjectMSource (2026-09-04
+    // autoload fix — see .harmony/milkdrop-autoload-rootcause.md). Pure
+    // file/JSON scanning with no GL dependency, so it's scanned
+    // unconditionally at construction instead of being gated on a
+    // GL-thread-only source that doesn't exist yet. Declared FIRST among
+    // MainComponent's members (deliberately — has no dependency on anything
+    // else, so this is safe) so it is destroyed LAST: C++ tears members down
+    // in reverse declaration order, and both previewPanel_ (transitively:
+    // Renderer -> ProjectMSource) and browserPanel_ (MilkDropBrowser) hold
+    // raw pointers into this manager. Declaring it after either of them
+    // would destroy it first, dangling both — the exact class of UAF this
+    // codebase already treats as load-bearing (see the do-not-clear rule at
+    // Renderer::openGLContextClosing()).
+    ProjectMPresetManager presetManager_;
 
     // Core audio pipeline
     RingBuffer<float> ringBuffer_{16384};

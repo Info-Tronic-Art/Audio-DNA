@@ -700,14 +700,25 @@ void Renderer::openGLContextClosing()
 {
     // Release all active procedural sources' GL resources, but do NOT destroy
     // the source objects themselves (do not activeSources_.clear() here).
-    // MilkDropBrowser::presetManager_ holds a raw interior pointer into
-    // ProjectMSource's by-value ProjectMPresetManager (wired once at
-    // MainComponent construction); destroying the source here left that
-    // pointer dangling on the very next context close (e.g. previewPanel_
-    // hide/resize triggers a synchronous JUCE GL detach), causing a
-    // use-after-free on the next browser paint/resize. Sources now survive
-    // context close and lazily reinit their GL state on next render() via the
-    // !glInitialized_ gate (see ProceduralSource::render, ProjectMSource::render).
+    //
+    // Originally this guarded MilkDropBrowser::presetManager_, which held a
+    // raw interior pointer into ProjectMSource's by-value ProjectMPresetManager
+    // (wired once at MainComponent construction) — destroying the source here
+    // left that pointer dangling on the very next context close (e.g.
+    // previewPanel_ hide/resize triggers a synchronous JUCE GL detach),
+    // causing a use-after-free on the next browser paint/resize. The
+    // 2026-09-04 autoload fix hoisted the manager OUT of ProjectMSource into
+    // a MainComponent-owned member that outlives Renderer entirely, so that
+    // dangling class is now structurally impossible for the manager (see
+    // .harmony/milkdrop-autoload-rootcause.md).
+    //
+    // This rule REMAINS LOAD-BEARING for MilkDropBrowser::presetSelector_,
+    // though: PresetSelector was deliberately NOT hoisted (it runs on the GL
+    // thread inside ProjectMSource::render()) and stays a per-source member,
+    // so destroying a source here would still dangle that pointer. Sources
+    // now survive context close and lazily reinit their GL state on next
+    // render() via the !glInitialized_ gate (see ProceduralSource::render,
+    // ProjectMSource::render).
     for (auto& [id, src] : activeSources_)
         src->releaseGL();
 
@@ -809,6 +820,29 @@ ProceduralSource* Renderer::getOrCreateSourceOnGLThread(const std::string& sourc
 
     auto* ptr = source.get();
     activeSources_[sourceId] = std::move(source);
+
+    // MilkDrop preset wiring (2026-09-04 fix — see
+    // .harmony/milkdrop-autoload-rootcause.md). The preset MANAGER is pure
+    // file/JSON scanning with no GL dependency; it's now MainComponent-owned
+    // and scanned unconditionally at startup, so just inject the pointer
+    // here — cheap, GL-thread-safe, no marshaling needed. The preset
+    // SELECTOR stays a per-source, GL-thread member (PresetSelector::
+    // processFrame runs inside ProjectMSource::render()) and must NOT be
+    // hoisted, so instead notify listeners (the MilkDrop browser) that a
+    // real source now exists to wire against — marshaled onto the message
+    // thread since that wiring touches browser UI state, matching
+    // onAutopilotAdvanced_/onGenreChanged_ above.
+    if (auto* pmSource = dynamic_cast<ProjectMSource*>(ptr))
+    {
+        pmSource->setPresetManager(projectMPresetManager_);
+
+        if (onProjectMSourceCreated_)
+        {
+            auto callback = onProjectMSourceCreated_;
+            juce::MessageManager::callAsync([callback, pmSource]() { callback(pmSource); });
+        }
+    }
+
     return ptr;
 }
 

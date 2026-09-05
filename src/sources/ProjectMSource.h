@@ -43,9 +43,17 @@ public:
     // Thread-safe: copies samples into internal buffer.
     void feedAudio(const float* samples, int numSamples);
 
-    // Preset management
-    ProjectMPresetManager& getPresetManager() { return presetManager_; }
-    const ProjectMPresetManager& getPresetManager() const { return presetManager_; }
+    // Preset management. The manager is now MainComponent-owned (hoisted out
+    // 2026-09-04 — pure file/JSON scanning, no GL dependency, so it can be
+    // scanned unconditionally at startup before any GL context exists; see
+    // .harmony/milkdrop-autoload-rootcause.md). Renderer injects the pointer
+    // here at GL-thread source-creation time. Non-owning; may be null if a
+    // source is somehow created before MainComponent has wired one up.
+    void setPresetManager(ProjectMPresetManager* mgr)
+    {
+        presetManager_ = mgr;
+        presetSelector_.setPresetManager(mgr);
+    }
 
     // Load a specific preset by file path.
     // Thread-safe: queues the load for the GL thread if called from another thread.
@@ -101,8 +109,9 @@ private:
     std::vector<float> pcmBuffer_;
     int pcmSampleCount_ = 0;
 
-    // Preset management
-    ProjectMPresetManager presetManager_;
+    // Preset management. presetManager_ is non-owning (see setPresetManager
+    // above) — the ProjectMPresetManager itself now lives in MainComponent.
+    ProjectMPresetManager* presetManager_ = nullptr;
     PresetSelector presetSelector_;
     bool presetLocked_ = false;
     std::string currentPresetPath_;
