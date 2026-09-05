@@ -1,5 +1,8 @@
 #include "SignalRegistry.h"
 
+static_assert(std::atomic<float>::is_always_lock_free,
+              "SignalRegistry::cachedValues_ assumes lock-free float atomics");
+
 void SignalRegistry::initDefaults()
 {
     signals_.clear();
@@ -10,7 +13,6 @@ void SignalRegistry::initDefaults()
         auto sig = std::make_unique<AudioSignal>(name, src, cat);
         sig->setId(nextId_++);
         signals_.push_back(std::move(sig));
-        cachedValues_.push_back(0.0f);
     };
 
     // Default visible signals (12 from architecture):
@@ -31,7 +33,6 @@ void SignalRegistry::initDefaults()
         sig->setId(nextId_++);
         sig->setVisible(false);
         signals_.push_back(std::move(sig));
-        cachedValues_.push_back(0.0f);
     };
 
     addHiddenAudio("Peak",           MappingSource::Peak,             Signal::Category::Amplitude);
@@ -63,13 +64,11 @@ void SignalRegistry::initDefaults()
         auto mod1 = std::make_unique<OscillatorSignal>("Mod 1", OscillatorSignal::WaveShape::Sine, 1.0f);
         mod1->setId(nextId_++);
         signals_.push_back(std::move(mod1));
-        cachedValues_.push_back(0.0f);
     }
     {
         auto mod2 = std::make_unique<EnvelopeSignal>("Mod 2", 4.0f);
         mod2->setId(nextId_++);
         signals_.push_back(std::move(mod2));
-        cachedValues_.push_back(0.0f);
     }
 
     // P24: Clip Position signal (hidden by default)
@@ -78,15 +77,24 @@ void SignalRegistry::initDefaults()
         clipPos->setId(nextId_++);
         clipPos->setVisible(false);
         signals_.push_back(std::move(clipPos));
-        cachedValues_.push_back(0.0f);
     }
+
+    cachedValues_ = std::vector<std::atomic<float>>(signals_.size());
+    for (auto& v : cachedValues_)
+        v.store(0.0f, std::memory_order_relaxed);
 }
 
 void SignalRegistry::addSignal(std::unique_ptr<Signal> signal)
 {
     signal->setId(nextId_++);
     signals_.push_back(std::move(signal));
-    cachedValues_.push_back(0.0f);
+
+    std::vector<std::atomic<float>> newCache(signals_.size());
+    for (size_t i = 0; i + 1 < newCache.size(); ++i)
+        newCache[i].store(cachedValues_[i].load(std::memory_order_relaxed),
+                           std::memory_order_relaxed);
+    newCache.back().store(0.0f, std::memory_order_relaxed);
+    cachedValues_ = std::move(newCache);
 }
 
 bool SignalRegistry::removeSignal(uint32_t id)
@@ -95,8 +103,15 @@ bool SignalRegistry::removeSignal(uint32_t id)
     {
         if (signals_[i]->getId() == id)
         {
+            std::vector<std::atomic<float>> newCache(signals_.size() - 1);
+            for (size_t j = 0, k = 0; j < cachedValues_.size(); ++j)
+            {
+                if (j == i) continue;
+                newCache[k++].store(cachedValues_[j].load(std::memory_order_relaxed),
+                                     std::memory_order_relaxed);
+            }
             signals_.erase(signals_.begin() + static_cast<ptrdiff_t>(i));
-            cachedValues_.erase(cachedValues_.begin() + static_cast<ptrdiff_t>(i));
+            cachedValues_ = std::move(newCache);
             return true;
         }
     }
@@ -151,7 +166,7 @@ void SignalRegistry::evaluateAll(const FeatureSnapshot& snapshot)
 {
     for (size_t i = 0; i < signals_.size(); ++i)
     {
-        cachedValues_[i] = signals_[i]->getValue(snapshot);
+        cachedValues_[i].store(signals_[i]->getValue(snapshot), std::memory_order_relaxed);
     }
 }
 
@@ -160,7 +175,7 @@ float SignalRegistry::getCachedValue(uint32_t signalId) const
     for (size_t i = 0; i < signals_.size(); ++i)
     {
         if (signals_[i]->getId() == signalId)
-            return cachedValues_[i];
+            return cachedValues_[i].load(std::memory_order_relaxed);
     }
     return 0.0f;
 }

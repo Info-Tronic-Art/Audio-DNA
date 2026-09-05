@@ -4,6 +4,7 @@
 #include "signal/OscillatorSignal.h"
 #include "signal/EnvelopeSignal.h"
 #include "signal/ClipPositionSignal.h"
+#include <atomic>
 #include <vector>
 #include <memory>
 #include <string>
@@ -46,6 +47,6 @@ public:
 
 private:
     std::vector<std::unique_ptr<Signal>> signals_;
-    std::vector<float> cachedValues_;
+    std::vector<std::atomic<float>> cachedValues_;
     uint32_t nextId_ = 1;
 };
