@@ -317,7 +317,14 @@ void EffectStackView::rebuildRows()
             // undo unit. The live toggle + refresh below are exactly as before.
             std::vector<Clip::EffectSlot> before = *effects_;
             auto& slot = (*effects_)[static_cast<size_t>(capturedIndex)];
-            slot.bypassed = !slot.bypassed;
+            // GL fence (2026-09-05): same crash-class exposure as the erase/add
+            // fences below once EffectSlot gains a non-trivial (string/vector)
+            // field — an unfenced toggle would then race the GL thread's
+            // by-reference iteration of *effects_. Fence now, before that lands.
+            runFenced([this, capturedIndex] {
+                auto& s = (*effects_)[static_cast<size_t>(capturedIndex)];
+                s.bypassed = !s.bypassed;
+            });
             juce::String fxName = juce::String(slot.effectName);
             bool nowBypassed = slot.bypassed;
             if (onBypassChanged) onBypassChanged(capturedIndex, slot.bypassed);
