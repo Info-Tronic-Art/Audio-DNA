@@ -644,10 +644,20 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
 
     hasActiveLayers_ = false;
 
+    // Solo: if any layer in the deck is soloed, only soloed layers render.
+    // visible/bypassed are checked first below (same `||` skip condition) so
+    // they still gate as before — solo narrows the remaining set further, it
+    // does not un-hide a hidden layer or un-bypass a bypassed one.
+    bool anySolo = false;
+    for (const auto& layer : deck.layers)
+    {
+        if (layer.solo) { anySolo = true; break; }
+    }
+
     // Check if any layer has an active clip with content
     for (const auto& layer : deck.layers)
     {
-        if (!layer.visible || layer.bypassed) continue;
+        if (!layer.visible || layer.bypassed || (anySolo && !layer.solo)) continue;
         const Clip* clip = layer.getActiveClip();
         if (clip == nullptr) continue;
         if (clip->mediaType == Clip::MediaType::Image && clip->mediaFile.existsAsFile())
@@ -677,7 +687,7 @@ GLuint CompositorEngine::compositeDeck(Deck& deck,
     // Composite layers bottom to top (index 0 is bottom)
     for (auto& layer : deck.layers)
     {
-        if (!layer.visible || layer.bypassed)
+        if (!layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
         // P14: Advance crossfade progress each frame
@@ -848,10 +858,20 @@ void CompositorEngine::compositePersistentLayers(Deck& deck,
 
     if (!glInitialized_) return;
 
+    // Solo: same read class as visible/bypassed (see compositeDeck() above).
+    // Scanned per-deck — solo is a per-Layer field, not deck-scoped, so this
+    // deck's own solo state must be evaluated independently of whichever deck
+    // is currently active.
+    bool anySolo = false;
+    for (const auto& layer : deck.layers)
+    {
+        if (layer.solo) { anySolo = true; break; }
+    }
+
     // Iterate layers, compositing only those marked persistent and with active clips
     for (auto& layer : deck.layers)
     {
-        if (!layer.persistent || !layer.visible || layer.bypassed)
+        if (!layer.persistent || !layer.visible || layer.bypassed || (anySolo && !layer.solo))
             continue;
 
         const Clip* clip = layer.getActiveClip();
