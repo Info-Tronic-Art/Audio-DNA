@@ -1637,3 +1637,311 @@ and is listed under ONLY BORIS CAN CHECK.**
 
 Screen after the TSan run: `pgrep` empty, `CGWindowList` FULL list → **0 Audio-DNA windows**,
 graceful quit, output window never opened.
+
+# SESSION 2026-09-05 (s-rta-0905, secondary, autonomous) — EIGHT LANES SHIPPED, L3 COMPLETE,
+# AND NOT ONE APP-LEVEL GATE COULD RUN. AUTHORITATIVE OVER ALL ABOVE.
+
+Boris's instruction was one line, the same as last session: read the handoff, boot secondary,
+work through all items to 55% context, then EOS. No further input was given or asked for.
+
+## SCREEN STATE AT CLOSE (screen-safety law #4 — mandatory)
+**I NEVER LAUNCHED AUDIO-DNA. NOT ONCE, ALL SESSION.** I could not — see the next section.
+`screencapture -x /tmp/rta-s165-screen-close.png` was taken and **the image was actually READ**
+(law #3). No output window anywhere; `CGWindowListCopyWindowInfo(kCGWindowListOptionAll)` shows
+exactly one Audio-DNA window, the ordinary main window at 1728x1079+0+38 — **Boris's own, which
+was already there when I booted and which I did not touch.** No TCC dialog on screen (last
+session left one; it is gone, so that loose end is closed). No `pkill`, no SIGKILL, no `osascript
+quit` was issued against any process at any point this session.
+
+One honest disclosure: my first `open` attempt, before I understood the single-instance
+behaviour, **activated Boris's window and brought it to the front.** No state was changed, but
+his window focus was.
+
+## >>> THE ONE THING THAT WOULD UNBLOCK THE MOST, BORIS: QUIT AUDIO-DNA <<<
+Your Audio-DNA instance (pid 44404, the `build-tsan` Debug build) was GUI-launched at **07:55:08
+local — three minutes before you sent me this session's instruction** — and was still running
+3h35m later at close. **Audio-DNA enforces a single instance, so that one process disabled every
+app-level gate for this entire session.** Worse, it fails silently: `open` on either bundle
+matches the same bundle id and just ACTIVATES your window, returning exit code 0 with an empty
+stderr file and no new process. `open -n` starts one that immediately self-quits ("Another
+instance is running - quitting...").
+
+Quitting your app was not mine to do, so seven lanes shipped with build + ctest + independent
+source review and **zero behavioural verification in the running app.**
+
+**The whole deferred gate is packaged as one command: `bash .harmony/gate-s165.sh`.**
+Quit Audio-DNA, run it, and it does the Release launch + `/api/health` + MilkDrop autoload check,
+then the TSan run that is SIGRACE's real gate, then the screen-safety checks. It never opens the
+output window and never pkills anything. It REFUSES to run if an instance is up, rather than
+producing the false green described above.
+**Caveat, stated plainly: its refusal path is behaviourally proven (exit 64 against your live
+instance); its BODY has never been executed.** Whoever runs it first is testing the script as
+well as the app — treat a surprise as possibly the script's fault.
+
+Also note: your running instance is the **PRE-FIX binary**. Anything you observed in it today,
+including the SignalRegistry race, is not evidence about this session's changes.
+
+## WHAT SHIPPED — 8 lanes, each build-gated, each independently reviewed
+Every lane: build exit code CAPTURED before any test number was quoted (this repo's documented
+false-green trap), ctest run only on a build that exited 0, and **mtimes compared before and
+after every build to prove no file changed mid-build** — which settles the "were you building
+against in-flight edits" dispute from last session, permanently, by mechanism rather than by
+argument.
+
+**L1-FU — media replace stops destroying GL objects on the message thread** (`c7247a9`).
+`openVideoForClip`/`openImageSequenceForClip` assigned straight into the media maps; when the id
+already had media open, that destroyed a live VideoPlayer in place on the message thread, and
+`~VideoPlayer()` calls `glDeleteTextures`. Same hazard class lane L1 exists to prevent, reached
+through a different door. Now routed through L1's own retire list — reused, not reinvented.
+
+**SIGRACE — the SignalRegistry race, closed** (`40fdd0c`). TSan caught it 2026-08-02 and again
+2026-09-05, same function, same line, 34 days apart, and each session parked it as "pre-existing,
+not this lane's". It got its own lane. `cachedValues_` became per-element atomics: no lock on the
+render path, a reader gets a possibly-one-tick-stale value that is never torn — the correct
+contract for a level meter, and the one it already appeared to promise.
+
+**L3 — composition persistence, COMPLETE, three commits** (`b5a181c`, `c261258`, `745b882`).
+The headline lane, deferred to a session's beginning by the last handoff's long-task rule, which
+was the right call. Before it, `Composition::loadFromFile` had **zero callers anywhere**: a
+composition could be saved (only as a side effect of Collect Media) and never loaded, File >
+Open/Save/Save As and Cmd+O/Cmd+S all operated on the v1 FX preset, and the Comp/Decks browser's
+rows were silent no-ops. Now all of it works, through one shared swap helper that `kCompNew` is
+also re-based onto, and the browser's Deck rows APPEND a saved deck (a performer clicking a deck
+mid-set must not lose the deck they are on).
+
+**L9 — a connected parameter no longer freezes when you look away** (`8fee3d0`). A parameter
+mapped to a Signal or Macro had its value computed inside the owning panel's `refresh()`, which
+only runs while that tab is active — while the renderer read it every GL frame. Switch tabs
+mid-set and the "connected" parameter silently stopped modulating.
+
+**L5 — Quantize stops lying** (`29019fe`). The control offered Off/Next Beat/Next Downbeat and
+had zero consumers. Now it queues and drains on the beat. Most of the work was not making it
+fire; it was making it NOT fire (see below).
+
+**Docs** (`e8405af`): two gotchas + `gate-s165.sh`.
+
+## THE COUNTS IN THREE PACKETS WERE WRONG, AND THAT IS NOW THE PATTERN, NOT THE EXCEPTION
+This file already records that a plan's COUNT is a claim ("both layer loops" was three; "three
+vacate paths" was six). Three more this session, each found by a different pass:
+- **L9's packet said three modulation systems. There are SIX.** A completeness critic found a
+  fourth five lines from code the packet itself quoted; a dedicated enumeration found two more.
+- **L5's packet asserted, as VERIFIED, that no aggregate-brace construction of
+  `LayerRuntimeSnapshot` existed. One did**, inside the very function being extended — the grep
+  pattern `LayerRuntimeSnapshot{` cannot match a bare `return { ... }`, which never repeats the
+  type name. Had the builder trusted the enumeration over the change list, the new field would
+  have been declared but never captured: a quantize control that still lies, now with code.
+- **L3's packet prescribed a step ORDER containing a real use-after-free** (`setActiveColumn(-1)`
+  before `rebuildGrid()`; the container refresh walks child widgets holding raw model pointers,
+  and their `if (!layer_)` guards catch null but not dangling). The builder overrode it and the
+  reviewer vindicated the override.
+
+**The generalisation worth carrying: a packet's ORDER is a claim exactly like its COUNT.** Both
+are now gotchas.
+
+## FOUR SEPARATE WAYS A QUANTIZED TRIGGER OUTLIVED ITS CONTEXT
+L5 is worth reading as a case study, because each pass believed it was done and the next one
+found another path. A quantized trigger is a promise held across time, so every way of abandoning
+its context is a way for it to fire later, on the wrong deck, in front of an audience.
+1. Deck switch FROZE it rather than cancelling (found by review 1).
+2. `clearActiveClip()` left it armed (review 1) — fixing it in the shared helper also closed a
+   separate pre-existing "phantom active clip" bug.
+3. `AddDeckCmd` and `appendDeckFromFile` activate a deck without going through
+   `handleDeckSwitch` (review 2). **The second is lane L3 Step 3's code, committed earlier the
+   same day — a lane that was green when it landed opened a new instance of another lane's bug
+   class.**
+4. `RemoveDeckCmd::undo()` reactivates the restored deck, deactivating whatever was active
+   (review 3, found by sweeping all 13 writes to `activeDeckIndex`, and **reproduced with a
+   temporary adversarial test that was then reverted byte-identically, md5-verified**).
+
+## A PRODUCT FINDING THAT IS BIGGER THAN THE BUG IT WAS FOUND UNDER — 21 CONTROLS THAT DO NOTHING
+While enumerating the freeze class, an independent pass established that **21 `UniversalParamControl`
+fields have no compute-and-apply path at all**: position, scale, rotation, anchor, opacity, master
+and speed, across all three inspectors (8 in CompositionInspector, 7 in LayerInspector, 6 in
+ClipInspector). Connecting any of them to a Signal is **decorative** — the triangle turns cyan,
+the source name paints, the meter placeholder draws, and nothing downstream ever reads it.
+Proof: `isConnected(`/`setSourceValue(`/`getCachedValue(` appear repo-wide only in
+`EffectStackView.cpp` and `ClipInspector.cpp`'s sourceParams loop; and `onSourceChanged` — the one
+callback that could react to a connection — has **zero assignments anywhere in `src/`**.
+
+This is NEVER-APPLIES, not a freeze. L9's fix shape (relocate an existing loop) cannot address it,
+because there is no loop to relocate: it needs new code and a decision about what each connected
+value should write into. **It is a bigger honesty problem than the freeze was** — a frozen
+parameter at least worked once.
+**BORIS: this is yours to scope.** Options are (a) wire them, (b) hide/disable the connect
+affordance on controls that cannot honour it, or (c) leave it and record it. Recommend (b) as an
+immediate honesty fix with (a) as the real lane, but the choice is a product call.
+
+## L6 — BPM MULTIPLIER: DELIBERATELY NOT BUILT, AND THAT IS THE CORRECT OUTCOME
+The recon was asked to stop and report if the "one multiplicative factor" the plan assumed was
+not clean. **It is not, and it said so with the evidence.** `bpmMultiplier` is live UI (five real
+buttons: /4 /2 x1 x2 x4), written to the live model, serialized — and has zero behavioural
+consumers. But it cannot be applied at the analysis publish point without one of:
+- corrupting `GenreDetector`, whose genre buckets are ABSOLUTE BPM ranges and which sits inside
+  the same publish sequence;
+- leaving ~98% of the visible beat-reactive surface unaffected (56 of 57 shader hookups are
+  phase-driven, not BPM-driven);
+- introducing a new cross-thread dependency into `FeatureBus`, the one component explicitly
+  hardened to zero TSan suppressions.
+**BORIS: this needs your call on what the control should MEAN** — visual-only tempo scaling,
+full tempo scaling including Link/MIDI clock (probably wrong when syncing to an external clock),
+or delete the control. There is a "smallest non-incoherent fallback" (~10 lines, 2 files) in the
+packet, but it is a materially incomplete feature and must not be presented as "done".
+
+## TWO RULINGS STILL OPEN — CARRIED FROM LAST SESSION, STILL GENUINELY YOURS
+- **The honesty batch (L4):** hide/remove the Record tab, the Timing placeholder, the
+  Comp-Inspector dead blocks, the dead param-source trio. Harmony and the architect both
+  recommend yes; all reversible in git. Record and Comp/Deck already render greyed out.
+- **The rack (`EffectsRackPanel`):** both recommend DELETE, curve-shaping consciously parked.
+These gate L4 and L-DEL. I did not decide them; they are product calls.
+
+## ONLY BORIS CAN CHECK — what a gate structurally cannot, PLUS what it could not this time
+**The second list exists only because your app was running.** Normally most of these would be
+machine-checked.
+
+*Blocked by the single-instance problem (would otherwise be automated — just run `gate-s165.sh`):*
+- Every lane's app-level behaviour. Nothing shipped today was ever exercised in a running app.
+- SIGRACE's TSan gate specifically. The reviewer wrote its falsifier in advance: a fresh TSan run
+  should show **zero** `WARNING`/`SUMMARY` lines mentioning `SignalRegistry`; either of the two
+  prior summaries reappearing, or a new race elsewhere in that file, means it failed.
+
+*Genuinely human-only:*
+- **The L3 round trip.** Save a composition with >=2 decks, >=2 video clips and one image
+  sequence; quit; relaunch; File > Open it; trigger the clips — every cell should show its
+  thumbnail and actually play. There is no REST path that loads a video into a cell, so no gate
+  can do this.
+- **The L3 crash shape.** With a clip/layer selected AND the deck grid visible, File > Open a
+  different composition. Two use-after-free classes were closed here; a source review cannot
+  fully substitute for watching it not crash under real GL/timer timing.
+- **Cmd+S / Cmd+O specifically** (not the menu items) — confirm they act on the composition, and
+  that the FX-preset row-1 Save/Load buttons still work independently.
+- **Refusal:** open an FX-preset .json as a composition — expect one alert and nothing changing,
+  with the running deck still playing.
+- **L9 on real pixels.** Connect a clip effect param to a Signal, switch to the Signal tab, and
+  confirm the OUTPUT keeps modulating. Then the slow case: connect to a very slow LFO/envelope
+  (30-60s) and watch the inspector's own readout over a full cycle.
+- **L5 in a set.** Set Quantize to Next Beat, trigger a cell, confirm it lands on the beat and
+  exactly once. Then the cancellations: queue a trigger and switch decks / add a deck / clear the
+  clip — confirm nothing fires later.
+- **Known-stale, not a regression:** after a composition load, TopBar's fade/quantize/multiplier
+  widgets show pre-load values until touched. `TopBar` has no sync method; recorded follow-up.
+- **The SEQ badge** — now four sessions unseen. Needs 3+ images dropped on ONE cell.
+- **The L7 folder-pick round trip** — native file chooser, outside `ax_press.py`'s reach.
+- **Output: does a VIDEO clip show vs a STILL IMAGE.** Still unanswered, still owner-attended.
+
+## LOOSE-ENDS LEDGER — s-rta-0905
+1. **No app-level gate ran for ANY lane this session** (single-instance + Boris's live app).
+   `.harmony/gate-s165.sh` is written and ready; its body is unexercised.
+2. **SIGRACE's TSan gate unrun** — same cause. Reviewer's falsifier recorded above.
+3. **21 UniversalParamControl fields never apply** — product decision needed (above).
+4. **L6 blocked on a Boris ruling** about what the control should mean.
+5. **Two rulings still open** (honesty batch, rack) — carried from last session.
+6. **`RemoveDeckCmd::undo()`'s trigger cancellation is not captured/restored on redo**, unlike
+   `SwitchDeckCmd`/`AddDeckCmd`. Reachable only via Autopilot's non-undo-tracked triggers; the
+   failure is a DROPPED queued trigger, not a late fire. Accepted deliberately, named in the
+   commit.
+7. **`kClipReplaceContent`'s IMAGE branch orphans media entries** — replacing a video clip with
+   an image calls neither open nor close on the outgoing id, leaking the decoder permanently.
+   Found by L1-FU's reviewer, pre-existing, outside that lane's fence. Small, unclaimed.
+8. **The message-thread/GL-thread race on `Clip::EffectSlot::paramValues` and
+   `Clip::sourceParams`** predates L9 but L9 exercises it ~12x more often across more live
+   chains. Same shape as SIGRACE. Wants a TSan pass over that specific path.
+9. **`handleClipTrigger` reads `getActiveClip()` after `triggerClip()`**, so when a trigger
+   QUEUES the block operates on the previously-active clip or nullptr. INFERRED, not confirmed;
+   flagged for a human.
+10. **TopBar widgets stale after a composition load** — `TopBar::syncFromComposition()` (~10
+    lines) is the recorded fix.
+11. **L7-JUKE state** — see the section above for exactly what shipped and what did not.
+12. **UNCLEAN-CLOSE-STAMP-harmony-31879.md is still kept ON PURPOSE** as the reproducer for the
+    detector defect filed up-channel. Do not tidy it away.
+
+## META-LEARNINGS — s-rta-0905
+1. **Check whether the app is already running BEFORE planning any gate.** A single-instance app
+   plus a user's own idle window silently disabled every behavioural gate for a whole session,
+   and the failure mode looks like success at the call site (`open` returns 0 and does nothing).
+2. **A packet's ORDER is a claim exactly like its COUNT.** A Fable-authored step sequence carried
+   a real use-after-free; the builder caught it and the reviewer vindicated the deviation.
+3. **A grep's blind spot can manufacture a false VERIFIED.** `TypeName{` cannot match
+   `return { ... }`. Any claim of the form "zero constructions exist" needs a second pattern of a
+   different SHAPE, not just different words.
+4. **The fix for a bug class can contain the bug class.** L9's repaint guard compared each new
+   value against the field it overwrites every tick, so a slow modulator would never update — and
+   because a render callback was gated on the same flag, the render path could freeze. Caught by
+   review, not by any test.
+5. **A green lane can open a new instance of another lane's bug** — L3 Step 3's deck-append
+   created a fourth uncovered path for L5's cancellation, hours after both were reviewed clean.
+   Cross-lane interaction survives per-lane review.
+6. **"It PASSED" is not "it is load-bearing".** The last L5 reviewer neutralized the fix, rebuilt,
+   watched the two new tests fail, and restored it. That is what made the tests evidence.
+7. **Have a different agent write the tests than wrote the code.** L5 first shipped with zero
+   tests on a suite that was green; a separate agent then wrote eight, and the one that mattered
+   most covered a field that would otherwise have read as its default forever while looking wired.
+8. **Four builders were blocked by the same infrastructure defect and all four refused to
+   overwrite another lane's report to clear their own stop.** That refusal, under a blocked stop
+   and repeated retries, is worth more than any lane that shipped.
+9. **Read the units before believing a number off your own screen.** The statusline's `ctx:64%` is
+   REMAINING; the `[CTX]` gauge's percentage is USED. I briefly believed I was past my stop point.
+
+## CHANNEL HARVEST — s-rta-0905 (6 records filed up-channel to the primary)
+1. `idea-...-1788613507190846102` — **the REPORT_FILE fence is a RELATIVE path**, so a read-only
+   agent in a foreign repo resolves it against THAT repo. The gate validates a string prefix and
+   cannot see which root it resolves against, so it reports a fence it did not enforce.
+   **The primary consumed this and shipped a guard the same day** (`pre-dispatch-gate.sh` now
+   cites "s165 F6").
+2. `idea-...-178861509043887342` — **builder-gate.sh's Stop check blocks a foreign-repo builder
+   against an unrelated concurrent lane's report file**, with line citations.
+3. `idea-...-17886164897832110189` — second instance: the loop does not self-clear (16 identical
+   blocks), and the blocked agent cannot self-remediate because a secondary may not write to
+   `memory/` at all — a deadlock, not a misfire.
+4. `idea-...-17886186534922329134` — third instance + two competing mechanism hypotheses, and the
+   irony that the unstarted lane meant to FIX this is the one whose skeleton report is blocking.
+5. `idea-...-1788620104946911262` — fourth instance and **the decisive detail: the fallback is
+   newest-mtime MACHINE-WIDE and the victim file ROTATES**, so "wait for that lane to finish" is
+   not a workaround.
+6. `idea-...-1788620838374421195` — **the F6 fix and the pre-existing prefix check now contradict
+   each other**: relative paths blocked for foreign repos, absolute paths blocked by
+   `startswith("memory/.reports/")`. Also: the gate was being swapped underneath a live session,
+   so a dispatcher cannot tell which contract is in force.
+7. `idea-...-17886223184406120781` — the statusline reports REMAINING context while the gauge
+   reports USED, with nothing on screen saying which.
+
+## COUNTS — RUN THEM, NEVER INHERIT THEM
+`ctest` **221/221**, re-run after a build that exited 0 (was 205 at session start; +8 L3 tests,
++8 L5 tests). Release build: 0 errors, every round. Baseline at boot was verified on disk, not
+inherited: 205/205.
+**NOTHING PUSHED. Do not push.**
+
+**L7-JUKE — four dead controls wired, and a dormant race woken and closed** (`5d1e791`).
+The jukebox Pool/Mode/Blend trio, the Ableton Link toggle, MIDI-out device open, and the dead
+`onAutoSwitch` callback that had to land first or the rest is invisible. Each item was checked
+BEFORE building to see which half was missing — and a prior session's claim that "the three
+playlist knobs now work" turned out to be true but about a wholly different set of controls.
+**The lane's Favorites path made `PresetSelector::processFrame` the FIRST GL-thread reader of
+`presets_[].favorite`, activating a race that had been dormant because every prior reader was
+message-thread paint code — and in doing so it broke the written "valid while" clause of the
+PREVIOUS session's own confinement fix.** A documented invariant with a stated expiry
+condition, and this was the expiry. Closed by extending that same confinement mechanism.
+Separate finding, not fixed: `loadUserData`/`saveUserData` have ZERO callers — **favorites and
+user presets never persist across a restart at all.**
+
+## NEXT SESSION — START HERE
+1. **RUN `bash .harmony/gate-s165.sh` FIRST, before any new work** — but only after confirming
+   `pgrep -fl 'MacOS/Audio-DNA'` is empty. Eight lanes shipped this session with zero
+   app-level verification. That is the single biggest hole and it is cheap to close. If it
+   reports anything red, that outranks starting a new lane. Remember the script's own body has
+   never been executed.
+2. **Then the two Boris rulings** (honesty batch, rack) and the two new decisions this session
+   surfaced: the 21 never-applying controls, and what BPM multiplier should MEAN.
+3. **Then L-DEL** (hard deps: after L-OUT and L3 — L3 is now DONE, so only L-OUT gates it), and
+   L-OUT itself remains owner-attended per the screen-safety law.
+4. Small unclaimed items, each self-contained: the `kClipReplaceContent` image-branch media
+   leak; `TopBar::syncFromComposition()`; `RemoveDeckCmd::undo()`'s redo asymmetry; a TSan pass
+   over `Clip::EffectSlot::paramValues`/`sourceParams`; favorites persistence.
+5. **Do NOT re-plan.** `.harmony/essentials-plan-2026-08-04d.md` still holds; L0-MD, L1, L2, L3,
+   L5, L7, L9 are now done. What remains of it is L-OUT, L-DEL, L4, L6.
+
+## COUNTS — RUN THEM, NEVER INHERIT THEM (restated after the docs commit)
+`ctest` **221/221** on a build that exited 0 (205 at session start: +8 from L3, +8 from L5).
+Baseline was verified on disk at boot, not inherited. Release build: 0 errors, every round.
+**UNPUSHED: 149 — including this handoff commit** (I predicted 150 before committing and was wrong by one; re-derived from `git rev-list --count origin/main..HEAD` AFTER the commit, which is the only way this number is ever right), per the mechanism this file identified two
+sessions ago: writing the number before committing the file that contains it makes it wrong by
+exactly one, every time. **NOTHING PUSHED. Do not push.**
