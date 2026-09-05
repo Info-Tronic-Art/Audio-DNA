@@ -247,3 +247,61 @@ composite — render, wait for the frame it rendered, then write — and have it
 distinguishing marker (e.g. frame counter or a non-blank assertion) so a caller can tell a
 capture from a miss. An oracle that silently returns blank is worse than no oracle, which is the
 lesson this whole session keeps re-teaching.
+
+## 2026-09-05 — s166 CORRECTION TO THE RETRACTION: `render_frame` is FINE. The real finding is worse.
+
+**I was wrong twice, and the second entry above is now itself corrected.** Post-close, an
+independent reviewer established that `POST /api/load_source` takes the field **`source_type`
+with a registry id** (`"gravity_well"`), NOT `name` with the display string (`"Gravity Well"`).
+Every one of my probe runs used the wrong field, so **nothing was ever loaded** — the "blank"
+frames were the honest render of an empty app, and `ok:false` was the endpoint correctly
+rejecting a malformed request. It was never a lying oracle.
+
+**The null test, run properly, PASSES.** Three consecutive captures with nothing loaded:
+`a49e72c11f56` three times. `load_source {"source_type":"gravity_well"}` → `{"ok": true}`, and
+three more captures: `84466dd13179` three times. **`render_frame` is DETERMINISTIC and reliable,
+and it does reflect loaded content.** My claim that it "returns a blank image intermittently"
+is WITHDRAWN, and so is the blocking follow-up built on it. Anyone reading that entry alone
+would have spent a session fixing an endpoint that works.
+
+### THE REAL FINDING, which is a harder problem than the one I invented
+**With a source loaded, adding a global effect changes NOTHING.** Three effects the reviewer
+identified as content-INDEPENDENT colour operations — `Invert`, `Vignette`, `Thermal` — each
+added with `ok:true`, each left the frame byte-identical at `84466dd13179`, and removal likewise:
+
+    Invert    add_ok=True  base=84466dd13179  with_fx=84466dd13179  after_remove=84466dd13179
+    Vignette  add_ok=True  base=84466dd13179  with_fx=84466dd13179  after_remove=84466dd13179
+    Thermal   add_ok=True  base=84466dd13179  with_fx=84466dd13179  after_remove=84466dd13179
+
+**The most likely explanation is already written down and is not a defect:** `applyGlobalEffects`
+is guarded on `deckActive && composition_ && sourceTexture != 0`, and the s166 architecture pass
+noted in its ADDENDUM §A2 that it is "not applied when no deck is active (standalone
+image/source path)". `load_source` puts the app on exactly that standalone path. So global
+effects are legitimately skipped — the composite they belong to is not running.
+
+**THE EXPERIMENT THE NEXT SESSION SHOULD RUN, precisely:** get a DECK ACTIVE with a triggered
+clip (so `deckActive` is true and `sourceTexture != 0`), THEN add `Invert` and compare frames.
+`/api/trigger_clip` and `/api/switch_deck` exist; the known obstacle is that no REST path loads
+media into a cell, so a composition may have to be loaded from disk first (File > Open now works
+— lane L3 shipped last session). **Until that runs, `694f8f3` remains behaviour-unverified** —
+but the reason is a testing-setup gap, NOT a broken oracle and NOT evidence the feature is wrong.
+
+### CORRECTED RIG FACTS (supersede anything above that conflicts)
+- `POST /api/load_source` → `{"source_type": "<registry id>"}`, e.g. `gravity_well`. Get ids from
+  `GET /api/sources`, field `id` — NOT `name` (which is display text: "Gravity Well").
+- `/api/features` does not report `beatInBar`/`barCount`, but **`/api/bpm` already does** — use it
+  to read those back rather than assuming the injection did not take.
+- Content-INDEPENDENT probe effects: **Invert, Vignette, Thermal**. Avoid warp-family effects
+  (Kaleidoscope) as probes — a spatial warp on a symmetric or uniform source can be invisible
+  while working perfectly.
+- Correction to a citation I made: `Renderer.cpp:823` guards-and-returns on a detached context,
+  but `:890` and `:924` mutate INLINE instead (valid — no GL thread runs while detached). They
+  are NOT three uniform precedents, and I was wrong to cite them as such.
+
+### THE PATTERN IN MY OWN ERRORS, which is the thing worth keeping
+Three times this session my first diagnosis blamed the TOOL and the truth was my USAGE: the
+oscillators were "frozen" (they had no beat input); `render_frame` was "flaky" (I never loaded
+anything); `load_source` was "lying" (I sent the wrong field). Each was resolved by a probe that
+varied MY input rather than re-measuring the tool's output. **When a mechanism looks broken,
+suspect the way you are driving it before you suspect it — and prove which one it is with a
+test that changes your own input.**

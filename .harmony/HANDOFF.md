@@ -2144,14 +2144,25 @@ outranks the whole connection arc in priority. It is why L7 cannot delete `effec
   "nothing loaded" hash. That fully explains my triple as sampling noise. Retracted in place in
   `.harmony/idea-ledger.md` (commit `2546258`).
 
-## >>> THE BLOCKING FOLLOW-UP: THIS APP HAS NO PIXEL ORACLE <<<
-Until `POST http://127.0.0.1:7070/api/render_frame` is made synchronous against a COMPLETED
-composite, nothing that changes what is on screen can be verified from outside the app, and every
-composition-tier and connection-engine change will ship on source review alone. Candidates: the
-capture races the draw; the offline path runs on a different context than the deck composite; or
-it fires before `load_source` takes effect. **Related and possibly the same root cause:
-`load_source` returns `ok:false` while apparently succeeding.** Fix this BEFORE building more of
-the connection arc — otherwise the arc's own gates will be blind.
+## >>> CORRECTED AFTER CLOSE: THE ORACLE IS FINE. THE GAP IS THE DECK PATH. <<<
+**I filed "this app has no pixel oracle" and it was WRONG — disregard it; the correction is in
+`.harmony/idea-ledger.md` under "CORRECTION TO THE RETRACTION".** `render_frame` passes the null
+test: three identical captures with nothing loaded, three identical with a source loaded. It is
+deterministic and reflects content. Every earlier probe had called `load_source` with the wrong
+field (`name`/"Gravity Well" instead of **`source_type`/`"gravity_well"`**), so nothing was ever
+loaded and the "blank" frames were the honest render of an empty app.
+
+**The real, harder finding:** with a source loaded, adding `Invert`, `Vignette` or `Thermal` to
+the global stack — three content-INDEPENDENT colour effects — each returned `ok:true` and left
+the frame BYTE-IDENTICAL. The likely reason is already written down and is not a defect:
+`applyGlobalEffects` is guarded on `deckActive && composition_ && sourceTexture != 0`, and
+`load_source` puts the app on the standalone-source path where no deck composite runs (the
+architecture pass flagged exactly this in ADDENDUM §A2).
+**THE EXPERIMENT TO RUN FIRST NEXT SESSION:** get a DECK ACTIVE with a triggered clip, THEN add
+`Invert` and compare frames. `/api/trigger_clip` and `/api/switch_deck` exist; the known obstacle
+is that no REST path loads media into a cell, so load a composition from disk first (File > Open
+works since L3). **Until that runs, `694f8f3` stays behaviour-unverified — but for a
+testing-setup reason, not a broken oracle and not evidence the feature is wrong.**
 
 ## MY OWN ERRORS THIS SESSION — recorded because no gate would ever surface them
 1. **I dispatched three builders into one repo fenced BY FILE and hit two collisions a file fence
@@ -2212,6 +2223,13 @@ generalise beyond this repo.
   `load_source`, `render_frame`. A gate needs BOTH base URLs.
 - **`/api/signals` + `/api/inject_features` are a real headless oracle for the modulation layer** —
   the first this repo has had. `inject_features` now also accepts `beatInBar` and `barCount`.
+- **`POST /api/load_source` takes `{"source_type": "<registry id>"}`** (e.g. `gravity_well`) — the
+  `id` field from `GET /api/sources`, NOT the display `name` ("Gravity Well"). Getting this wrong
+  cost me three probe runs and one false accusation against a working endpoint.
+- **`/api/features` does NOT report `beatInBar`/`barCount`, but `/api/bpm` DOES.**
+- **Content-independent probe effects: `Invert`, `Vignette`, `Thermal`.** Do not probe with
+  warp-family effects like `Kaleidoscope` — a spatial warp on a uniform source can be invisible
+  while working perfectly.
 - A global effect can be a **silent no-op at default parameters** (`Kaleidoscope` changed nothing;
   `Invert` did). Probe with an effect that is non-neutral at defaults.
 

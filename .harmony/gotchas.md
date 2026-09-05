@@ -349,9 +349,16 @@ Rule: `TestServer` listens on **`http://[::1]:8080`** (IPv6 loopback, requires `
 Scope: repo
 Promoted: no
 
-### 2026-09-05 — measure the SAME state twice before trusting any A/B: `render_frame` returns a blank image intermittently
-Source: s166 — Harmony claimed a render feature behaviourally verified, then withdrew the claim on a third run
+### 2026-09-05 — measure the SAME state twice before trusting any A/B (and `render_frame` is FINE — I was driving it wrong)
+Source: s166 — Harmony claimed a render feature verified, retracted it blaming the capture endpoint, then had to correct the retraction too
 Trigger: you are about to compare two rendered frames (or any two measurements) to prove a change did something
-Rule: `POST http://127.0.0.1:7070/api/render_frame` does NOT reliably capture a real frame. Two consecutive calls, same source loaded, nothing changed in between, returned `8323700d0a510a251f57b54cc5ac8a97` (a real render) and then `a49e72c11f5655dbdadf61256a88c69d` — which is the identical hash you get with NOTHING loaded at all. So the endpoint alternates between a genuine capture and a blank one, and the blank is indistinguishable from "the feature did nothing". A before/after/restore triple built on that baseline looks like strong evidence and is worthless. **Always run the NULL COMPARISON first: capture the same unchanged state twice and confirm the hashes agree. If they do not, you have no oracle, and no A/B on top of it means anything.** Related: `POST /api/load_source` returns `ok:false` while apparently succeeding — the two may share a root cause, and both are open. Until `render_frame` is made synchronous against a completed composite, this app has NO pixel oracle and composition-tier changes can only be source-reviewed.
-Scope: repo
+Rule: **always run the NULL COMPARISON first — capture the same unchanged state two or three times and confirm the hashes agree.** If they do not, you have no oracle and no A/B on top of it means anything. Done properly here, `render_frame` PASSES the null test: three identical captures with nothing loaded (`a49e72c11f56`), three identical with a source loaded (`84466dd13179`). It is deterministic and reflects loaded content. My earlier claim that it "returns a blank image intermittently" was WRONG and is withdrawn — every probe run had used `POST /api/load_source {"name": "Gravity Well"}` when the endpoint takes **`{"source_type": "gravity_well"}`** (registry id from `GET /api/sources` field `id`, not the display `name`), so nothing was ever loaded and the "blank" frames were the honest render of an empty app. The null test would have caught my original false "proof" AND stopped the false accusation that followed it.
+Scope: universal
+Promoted: no
+
+### 2026-09-05 — three times my first diagnosis blamed the tool and the answer was my own usage
+Source: s166 — oscillators "frozen", `render_frame` "flaky", `load_source` "lying"; all three were me
+Trigger: a mechanism looks broken, and you are about to write that down or file a lane against it
+Rule: oscillators looked frozen (they were fine — I was holding `beatPhase` constant, so they had no input); `render_frame` looked flaky (it is deterministic — I never loaded a source because I sent the wrong field name); `load_source` looked like a lying oracle returning `ok:false` while working (it was correctly rejecting a malformed request). Each was settled in about two minutes by a probe that varied MY OWN INPUT rather than re-measuring the tool's output — sweep the phase instead of holding it, read the endpoint's real field name instead of guessing it. **Suspect your usage before you suspect the mechanism, and prove which it is with a test that changes what YOU send.** The cost of getting this backwards is not just a wrong note: a filed "this endpoint is broken" lane sends the next session to fix something that works.
+Scope: universal
 Promoted: no
