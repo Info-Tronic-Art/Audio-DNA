@@ -2643,3 +2643,49 @@ TEST_CASE("RemoveDeckCmd: undo cancels a pending trigger even when activeDeckInd
     REQUIRE(comp.decks[2].getLayer(0)->pendingTriggerColumn == -1);
     REQUIRE(comp.decks[2].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
 }
+
+// ---------------------------------------------------------------------------
+// clearActiveClip() cancellation (L5 Quantize fix, the direct-contract test
+// the original round shipped without): the X-button clear, and everything
+// that routes through it (Clear Deck / Clear Layer Clips), must not leave a
+// pending trigger to outlive the clear. An independent reviewer proved this
+// was UNCOVERED by reverting the two lines at the end of clearActiveClip()
+// (pendingTriggerColumn = -1; pendingTriggerSnapOverride = Off;) and
+// re-running the whole existing L5 Quantize test set — all 36 assertions
+// still passed. This test is built to fail on that exact revert.
+//
+// The MIDI momentary-release scenario that originally motivated the fix is
+// NOT exercised here — it turned out structurally unreachable (queuing only
+// happens when column != activeClipColumn, but the release path guards on
+// activeClipColumn == resolvedColumn, so the two conditions can never both
+// hold). This drives clearActiveClip() directly instead.
+//
+// Also pins down a real, previously-undiscussed behavior: Layer has ONE
+// pending slot, not one per column, so clearing the ACTIVE clip (column 0)
+// also drops a QUEUED trigger on a completely unrelated column (2) — the
+// cancel is layer-wide, not scoped to the column being cleared.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Layer::clearActiveClip: cancels a pending trigger too, even one queued on an unrelated column", "[layer][trigger][quantize]")
+{
+    Layer L;
+    L.ensureColumns(4);
+    L.clips[0] = richClip(1, "active");
+    L.clips[2] = richClip(2, "queued");
+
+    L.triggerClip(0);                                   // no snap on this clip -> fires immediately
+    REQUIRE(L.activeClipColumn == 0);
+    REQUIRE(L.clips[0]->playing == true);
+
+    L.triggerClip(2, Clip::BeatSnapMode::Bar);           // unrelated column — queues (2 != active 0)
+    REQUIRE(L.pendingTriggerColumn == 2);
+    REQUIRE(L.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    L.clearActiveClip();                                 // clears column 0 by contract
+
+    REQUIRE(L.activeClipColumn == -1);
+    REQUIRE(L.clips[0]->playing == false);
+    // The queued trigger on column 2 — never itself cleared — is dropped too.
+    REQUIRE(L.pendingTriggerColumn == -1);
+    REQUIRE(L.pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+}
