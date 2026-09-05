@@ -40,6 +40,14 @@ public:
     // Callbacks
     std::function<void(const std::string& presetPath)> onPresetSelected;
 
+    // Fired when the user right-clicks a preset row to toggle its favorite
+    // flag. MilkDropBrowser has no GL-context access of its own, so this
+    // bubbles the request to MainComponent, which routes it through
+    // Renderer::toggleFavoritePreset() — GL-thread confinement is required
+    // because PresetInfo::favorite is read every frame on the GL thread by
+    // PresetSelector::processFrame when Jukebox Pool = Favorites (L7-JUKE).
+    std::function<void(int index)> onToggleFavoriteRequested;
+
     // Drag-drop: single preset → source clip in deck cell
     // Called by ClipCell/DeckView drop handler when desc starts with "milkdrop:"
     // Returns the preset path from the drag description

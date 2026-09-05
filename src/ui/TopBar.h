@@ -27,6 +27,7 @@ public:
     std::function<void(int)> onBpmMultiplierChanged;
     std::function<void(Composition::QuantizeMode)> onQuantizeChanged;
     std::function<void(bool manualMode, float bpm)> onManualBpmChanged;
+    std::function<void(bool enabled)> onLinkToggled;
 
     // Update stats
     void setFps(float fps);
@@ -107,6 +108,13 @@ private:
     juce::ToggleButton manualModeBtn_{"Manual"};
     juce::TextEditor bpmEditField_;
     bool manualMode_ = false;
+
+    // Ableton Link toggle (L7-JUKE). Not seeded from Composition — LinkSync's
+    // own enabled_ defaults false and nothing else calls setEnabled(), so
+    // this toggle starts unchecked in step with linkSync_'s real state; it
+    // has no post-composition-load staleness exposure like TopBar's other
+    // composition-seeded widgets (see TopBar's known stale-widget issue).
+    juce::ToggleButton linkToggleBtn_{"Link"};
 
     // Tap tempo state
     std::array<double, 8> tapTimes_{};

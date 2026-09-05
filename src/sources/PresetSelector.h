@@ -36,6 +36,25 @@ public:
     void setTransitionBars(int bars) { transitionBars_ = bars; }
     int getTransitionBars() const { return transitionBars_; }
 
+    // Crossfade duration in seconds (0.5-5.0), consumed via projectM's
+    // projectm_set_soft_cut_duration (default 2.0, matches the Jukebox
+    // panel's blend slider default).
+    void setBlendSeconds(float seconds) { blendSeconds_ = seconds; }
+    float getBlendSeconds() const { return blendSeconds_; }
+
+    // Jukebox Pool: restricts auto-switch candidates to a subset.
+    enum class PoolFilter { All, Curated, Favorites };
+    void setPoolFilter(PoolFilter filter) { poolFilter_ = filter; }
+    PoolFilter getPoolFilter() const { return poolFilter_; }
+
+    // Jukebox Mode: how the next auto-switch candidate is chosen.
+    // Bag is not true no-repeat-until-exhausted (matches the existing
+    // Playlist cycle-mode precedent's own simplification, see
+    // Renderer.cpp's RandomBag handling) — it behaves like Random.
+    enum class CycleMode { Bag, Random, Sequential };
+    void setCycleMode(CycleMode mode) { cycleMode_ = mode; }
+    CycleMode getCycleMode() const { return cycleMode_; }
+
     // Callback when auto-switching occurs
     std::function<void(const std::string& presetPath)> onAutoSwitch;
 
@@ -45,6 +64,9 @@ private:
     bool energyMatching_ = true;
     std::string moodFilter_;
     int transitionBars_ = 4;
+    float blendSeconds_ = 2.0f;
+    PoolFilter poolFilter_ = PoolFilter::All;
+    CycleMode cycleMode_ = CycleMode::Bag;
 
     // State tracking
     uint8_t lastStructuralState_ = 0;

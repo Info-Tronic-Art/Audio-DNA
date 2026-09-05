@@ -142,6 +142,18 @@ public:
     // mutator to the GL thread instead. Defined out-of-line in Renderer.cpp.
     void rescanMilkDropPresets(const std::vector<std::string>& dirs);
 
+    // Toggle a preset's favorite flag (2026-09 L7-JUKE: Jukebox Pool =
+    // Favorites). Same hazard as rescanMilkDropPresets() above and the same
+    // fix: PresetInfo::favorite lives in the same lock-free presets_ that
+    // PresetSelector::processFrame reads every frame on the GL thread
+    // (now including via ProjectMPresetManager::getFavorites() when Pool =
+    // Favorites is selected); mutating it from the message thread (where
+    // the preset browser's right-click-to-favorite fires this) would race
+    // that read. Confines the one external mutator to the GL thread,
+    // mirroring rescanMilkDropPresets()'s three-branch shape exactly.
+    // Defined out-of-line in Renderer.cpp.
+    void toggleFavoritePreset(int index);
+
     // Callback fired (async, message thread) the first time a ProjectMSource
     // is actually created on the GL thread. PresetSelector stays a
     // per-source, GL-thread member (it runs inside ProjectMSource::render())

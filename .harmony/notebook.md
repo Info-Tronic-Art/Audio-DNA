@@ -528,3 +528,96 @@ an explicit FileChooser. If a broader settings system gets built later, this key
 (`milkDropPresetDir`) should move into it.
 **Valid while:** `ProjectMPresetManager` has no internal locking and `PresetSelector::
 processFrame` stays GL-thread-only (both true as of this commit).
+
+## 2026-09-05 — L7-JUKE: Jukebox autopilot's dead onAutoSwitch fixed; Pool/Mode/Blend wired; Link + MIDI-out pickers added
+**Files:** src/sources/PresetSelector.{h,cpp}, src/sources/ProjectMSource.cpp, src/ui/MilkDropBrowser.cpp, src/ui/TopBar.{h,cpp}, src/ui/PreferencesDialog.{h,cpp}, src/MainComponent.cpp
+**Note:** `PresetSelector::onAutoSwitch` was declared and invoked (processFrame()) but never
+assigned — Jukebox Play seeded one preset manually then never advanced again, regardless of
+Timing/Pool/Mode/Blend settings, because nothing pushed `manager_->randomPreset()`'s
+`currentIndex_` mutation back into `ProjectMSource::loadPreset()`. Fixed with one line in
+`ProjectMSource`'s ctor: `presetSelector_.onAutoSwitch = [this](path){ loadPreset(path, true); };`
+— safe to call directly from the GL-thread `processFrame()` call site because `loadPreset()`
+already queues under a mutex for the render loop to pick up. This was the prerequisite for
+Pool/Mode/Blend to have any visible effect at all; do this same check (`grep -rnE
+"onAutoSwitch[[:space:]]*=[^=]" src/`) before trusting any other `std::function` member is
+actually wired — declared+invoked-but-never-assigned is an easy defect class to miss because
+the code compiles and looks complete.
+**Pool/Mode design (open combination gap, not silently resolved):** Pool (All/Curated/Favorites)
+and Mode (Bag/Random/Sequential) are independent enums on `PresetSelector`. Pool-filtered picks
+go through a new anonymous-namespace `poolCandidates()`/`pickRandomFrom()` pair in
+`PresetSelector.cpp` that mirrors `ProjectMPresetManager::randomPresetInMood()`'s own
+candidate-list + currentIndex_-sync pattern (needed because `manager_->randomPreset()` always
+draws from ALL presets — there's no way to hand it a restricted candidate list). **Mode's
+Sequential branch calls `manager_->nextPreset()` directly and does NOT additionally honor
+poolFilter_** — `nextPreset()` walks the manager's full index order with no filtering concept, so
+Pool=Favorites + Mode=Sequential will sequence through ALL presets, not just favorites. This
+matches the L7-JUKE work packet's literal instruction ("Sequential → manager_->nextPreset()") but
+the packet never addressed the combination case. If someone needs true Pool+Sequential, `nextPreset()`
+needs a filtered variant or PresetSelector needs its own local index tracking over the filtered
+list — not done here (flagged as an open product/design question, see this lane's builder report).
+**"Curated" predicate is duplicated, not shared:** `MilkDropBrowser::getCuratedPresets()`'s
+`p.energy > 0.1f` predicate is UI-local (private to MilkDropBrowser, not visible from
+PresetSelector/ProjectMPresetManager) — duplicated verbatim in `PresetSelector.cpp`'s
+`poolCandidates()` rather than promoted to a shared `ProjectMPresetManager` method (that
+promotion was explicitly out-of-scope/optional for this lane — touches 2 more files for no
+behavioral gain). If the predicate ever changes, it must be changed in BOTH places.
+**MainComponent.h fence exclusion → best-effort MIDI device-id seeding, not a stored one:**
+`PreferencesDialog::show()`'s new MIDI tab needs to seed its dropdown from "the current device
+id", but `MidiOutputHandler` only exposes the open device's display NAME (`getDeviceName()`), not
+the identifier it was opened with, and this lane's fence excluded `MainComponent.h` (only
+`MainComponent.cpp` was writable) so there was nowhere to cache the identifier as a new member.
+Worked around with a file-local anonymous-namespace helper in `MainComponent.cpp`
+(`currentMidiOutputDeviceId()`) that matches the open device's name back against
+`MidiOutputHandler::getAvailableDevices()` — best-effort (fails silently to "no selection" if no
+device is open, or if a same-named device can't be found; duplicate device names would pick the
+first match). A future session with `MainComponent.h` in scope should add a real
+`juce::String midiOutputDeviceId_` member instead.
+**Valid while:** `MidiOutputHandler` has no `getOpenDeviceId()`-style accessor and
+`ProjectMPresetManager::nextPreset()` has no pool-filtering parameter (both true as of this
+commit).
+
+## 2026-09-05 — L7-JUKE follow-up: Jukebox Pool=Favorites turned a dormant presets_.favorite race live; closed via GL-thread confinement (Renderer::toggleFavoritePreset)
+**Files:** src/render/Renderer.{h,cpp}, src/ui/MilkDropBrowser.{h,cpp}, src/MainComponent.cpp, src/sources/PresetSelector.cpp, src/sources/ProjectMPresetManager.{h,cpp}
+**Note:** `ProjectMPresetManager::presets_` has no internal lock (documented invariant, see the
+2026-09-05 "MilkDrop folder pref" entry above: "`PresetSelector::processFrame` stays GL-thread-only").
+Before this fix, `getFavorites()`'s only callers were message-thread UI code
+(`MilkDropBrowser.cpp` paint/layout). The L7-JUKE Jukebox-Pool feature added the FIRST GL-thread
+caller (`PresetSelector.cpp`'s `poolCandidates()`, invoked from `processFrame()` when
+`PoolFilter::Favorites` is selected) — this turned a previously-dormant race against
+`ProjectMPresetManager::toggleFavorite()`'s unsynchronized message-thread write (fired by
+right-clicking a preset row in `MilkDropBrowser.cpp`) into a live one. **Same hazard shape as
+`rescanMilkDropPresets()`, same fix:** added `Renderer::toggleFavoritePreset(int)`, mirroring
+`rescanMilkDropPresets()`'s exact 3-branch structure (isAttached() early-out /
+getCurrentContext()-gated blocking `executeOnGLThread` marshal / already-on-GL-thread inline) —
+do not simplify this shape if you touch it again; the two are meant to read as interchangeable
+so a future reader can trust either as the reference. `MilkDropBrowser`'s right-click handler no
+longer calls `presetManager_->toggleFavorite()` directly — it fires a new
+`onToggleFavoriteRequested(int)` callback (mirrors the existing `onPresetSelected` shape),
+wired UNCONDITIONALLY at `MainComponent` construction time (NOT inside the lazy
+`setOnProjectMSourceCreated` callback that `setPresetSelector` uses — `toggleFavoritePreset()`
+needs no live `ProjectMSource`, only `projectMPresetManager_` + `glContext_`, both available
+immediately). Deliberately NO fallback to the direct unsynchronized call if the callback is
+unset — a silent fallback would silently reopen exactly this race, so a no-op is the correct
+failure mode instead (should never trigger in practice: nothing in this repo constructs
+`MilkDropBrowser` without going through this wiring — confirmed zero `tests/` references).
+**Decision rule used (confinement over a per-field mutex/atomic):** checked against this file's
+own stated criterion for `activeSources_`/`effectChain_` (Renderer.h, ~line 380): confine when
+the mutation is rare + user-triggered; use a mutex only when the field is read far more often
+off the GL thread AND every GL frame. `toggleFavorite()` is a rare right-click (same shape as
+`rescanMilkDropPresets()`'s Preferences-triggered write); `getFavorites()` on the GL side only
+fires inside an actual auto-switch event, not every frame. A per-field synchronized `.favorite`
+was rejected as the fix even though it's viable, because it would leave `PresetInfo`'s OTHER
+fields (name/path/mood/energy/userPreset) protected by a DIFFERENT mechanism (GL-thread
+confinement via `scanDirectory()`/`rescan()`) than `.favorite` alone — two synchronization
+strategies on one struct is the kind of split that gets rediscovered and misattributed later.
+**`loadUserData()`/`saveUserData()` are DEAD CODE — zero call sites anywhere in `src/` or
+`tests/`** (confirmed via repo-wide grep, not just `src/sources/`). This means favorites/
+user-presets never actually get restored from or persisted to disk anywhere in this app today —
+a separate, pre-existing gap, NOT touched by this fix (out of scope) and NOT a source of the
+race being closed here (a write that never executes can't race anything). Flagging so a future
+session doesn't assume `.favorite` persists across restarts, and doesn't rediscover this as a
+new bug when it's actually an old, unrelated one.
+**Valid while:** `ProjectMPresetManager` still has no internal locking (if it ever gets one,
+`toggleFavoritePreset()`'s confinement becomes redundant but harmless) and `loadUserData()`/
+`saveUserData()` remain uncalled (if either gets wired up, re-check whether its call site is
+provably pre-GL-context or needs the same confinement treatment).

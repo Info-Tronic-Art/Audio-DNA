@@ -1,4 +1,5 @@
 #include "PreferencesDialog.h"
+#include "midi/MidiOutputHandler.h"
 
 // ============================================================
 // PreferencesDialog
@@ -7,14 +8,17 @@
 PreferencesDialog::PreferencesDialog(bool tooltipsEnabled,
                                      std::function<void(bool)> onTooltipToggled,
                                      const juce::String& milkDropDir,
-                                     std::function<void(juce::String)> onMilkDropDirChanged)
+                                     std::function<void(juce::String)> onMilkDropDirChanged,
+                                     const juce::String& midiOutputDeviceId,
+                                     std::function<void(juce::String)> onMidiOutputDeviceChanged)
     : DialogWindow("Preferences",
                    juce::Colour(AudioDNALookAndFeel::kBackground),
                    true)
 {
     setUsingNativeTitleBar(true);
     setContentOwned(new Content(tooltipsEnabled, std::move(onTooltipToggled),
-                                milkDropDir, std::move(onMilkDropDirChanged)), true);
+                                milkDropDir, std::move(onMilkDropDirChanged),
+                                midiOutputDeviceId, std::move(onMidiOutputDeviceChanged)), true);
     setResizable(true, true);
     setResizeLimits(500, 400, 1200, 900);
     centreWithSize(700, 500);
@@ -28,10 +32,13 @@ void PreferencesDialog::closeButtonPressed()
 void PreferencesDialog::show(juce::Component* parent, bool tooltipsEnabled,
                              std::function<void(bool)> onTooltipToggled,
                              const juce::String& milkDropDir,
-                             std::function<void(juce::String)> onMilkDropDirChanged)
+                             std::function<void(juce::String)> onMilkDropDirChanged,
+                             const juce::String& midiOutputDeviceId,
+                             std::function<void(juce::String)> onMidiOutputDeviceChanged)
 {
     auto* dialog = new PreferencesDialog(tooltipsEnabled, std::move(onTooltipToggled),
-                                         milkDropDir, std::move(onMilkDropDirChanged));
+                                         milkDropDir, std::move(onMilkDropDirChanged),
+                                         midiOutputDeviceId, std::move(onMidiOutputDeviceChanged));
     dialog->setVisible(true);
     dialog->toFront(true);
 
@@ -49,10 +56,13 @@ void PreferencesDialog::show(juce::Component* parent, bool tooltipsEnabled,
 PreferencesDialog::Content::Content(bool tooltipsEnabled,
                                     std::function<void(bool)> onTooltipToggledCb,
                                     const juce::String& milkDropDir,
-                                    std::function<void(juce::String)> onMilkDropDirChangedCb)
+                                    std::function<void(juce::String)> onMilkDropDirChangedCb,
+                                    const juce::String& midiOutputDeviceId,
+                                    std::function<void(juce::String)> onMidiOutputDeviceChangedCb)
 {
     onTooltipToggled = std::move(onTooltipToggledCb);
     onMilkDropDirChanged = std::move(onMilkDropDirChangedCb);
+    onMidiOutputDeviceChanged = std::move(onMidiOutputDeviceChangedCb);
 
     // Tab buttons
     auto addTab = [this](juce::TextButton& btn, Tab tab) {
@@ -62,6 +72,7 @@ PreferencesDialog::Content::Content(bool tooltipsEnabled,
 
     addTab(generalBtn_, Tab::General);
     addTab(videoBtn_,   Tab::Video);
+    addTab(midiBtn_,    Tab::Midi);
     addTab(aboutBtn_,   Tab::About);
 
     // General tab controls — seed toggle to caller's current state (no callback fired)
@@ -105,6 +116,33 @@ PreferencesDialog::Content::Content(bool tooltipsEnabled,
             });
     };
 
+    // MIDI output device (MIDI tab). Seeds selection from the caller's
+    // current device id (empty = no selection) — no notification, matching
+    // tooltipToggle_/milkDropDirEdit_'s seeding above. Fires
+    // onMidiOutputDeviceChanged with the selected device's identifier
+    // whenever the user picks a different one.
+    addChildComponent(midiOutputLabel_);
+    addChildComponent(midiOutputSelector_);
+    {
+        int selectedId = 0;
+        auto devices = MidiOutputHandler::getAvailableDevices();
+        for (int i = 0; i < devices.size(); ++i)
+        {
+            const auto& dev = devices[i];
+            int id = i + 1;
+            midiOutputSelector_.addItem(dev.name, id);
+            midiDeviceIds_.push_back(dev.identifier);
+            if (midiOutputDeviceId.isNotEmpty() && dev.identifier == midiOutputDeviceId)
+                selectedId = id;
+        }
+        midiOutputSelector_.setSelectedId(selectedId, juce::dontSendNotification);
+    }
+    midiOutputSelector_.onChange = [this] {
+        int idx = midiOutputSelector_.getSelectedId() - 1;
+        if (idx >= 0 && idx < static_cast<int>(midiDeviceIds_.size()) && onMidiOutputDeviceChanged)
+            onMidiOutputDeviceChanged(midiDeviceIds_[static_cast<size_t>(idx)]);
+    };
+
     // About tab
     addChildComponent(versionLabel_);
     versionLabel_.setText("Audio-DNA v0.1.0", juce::dontSendNotification);
@@ -131,6 +169,7 @@ PreferencesDialog::Content::Content(bool tooltipsEnabled,
         lbl.setJustificationType(juce::Justification::centredRight);
     };
     styleLabel(milkDropDirLabel_);
+    styleLabel(midiOutputLabel_);
 
     updateTabButtonColors();
     showActiveTab();
@@ -157,9 +196,10 @@ void PreferencesDialog::Content::resized()
     auto area = getLocalBounds();
     auto tabBar = area.removeFromTop(kTabBarHeight);
 
-    int tabWidth = tabBar.getWidth() / 3;
+    int tabWidth = tabBar.getWidth() / 4;
     generalBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
     videoBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
+    midiBtn_.setBounds(tabBar.removeFromLeft(tabWidth));
     aboutBtn_.setBounds(tabBar);
 
     auto content = area.reduced(20);
@@ -168,6 +208,7 @@ void PreferencesDialog::Content::resized()
     {
         case Tab::General:   layoutGeneralTab(content); break;
         case Tab::Video:     layoutVideoTab(content); break;
+        case Tab::Midi:      layoutMidiTab(content); break;
         case Tab::About:     layoutAboutTab(content); break;
     }
 }
@@ -197,6 +238,7 @@ void PreferencesDialog::Content::updateTabButtonColors()
 
     style(generalBtn_, Tab::General);
     style(videoBtn_,   Tab::Video);
+    style(midiBtn_,    Tab::Midi);
     style(aboutBtn_,   Tab::About);
 }
 
@@ -210,6 +252,8 @@ void PreferencesDialog::Content::showActiveTab()
     creditsLabel_.setVisible(false);
     tooltipLabel_.setVisible(false);
     tooltipToggle_.setVisible(false);
+    midiOutputLabel_.setVisible(false);
+    midiOutputSelector_.setVisible(false);
 
     switch (activeTab_)
     {
@@ -221,6 +265,10 @@ void PreferencesDialog::Content::showActiveTab()
             milkDropDirLabel_.setVisible(true);
             milkDropDirEdit_.setVisible(true);
             milkDropBrowseBtn_.setVisible(true);
+            break;
+        case Tab::Midi:
+            midiOutputLabel_.setVisible(true);
+            midiOutputSelector_.setVisible(true);
             break;
         case Tab::About:
             versionLabel_.setVisible(true);
@@ -247,6 +295,16 @@ void PreferencesDialog::Content::layoutVideoTab(juce::Rectangle<int> area)
     milkDropBrowseBtn_.setBounds(row.removeFromRight(80));
     row.removeFromRight(4);
     milkDropDirEdit_.setBounds(row);
+}
+
+void PreferencesDialog::Content::layoutMidiTab(juce::Rectangle<int> area)
+{
+    int labelW = 160;
+
+    auto row = area.removeFromTop(28);
+    midiOutputLabel_.setBounds(row.removeFromLeft(labelW));
+    row.removeFromLeft(8);
+    midiOutputSelector_.setBounds(row);
 }
 
 void PreferencesDialog::Content::layoutAboutTab(juce::Rectangle<int> area)

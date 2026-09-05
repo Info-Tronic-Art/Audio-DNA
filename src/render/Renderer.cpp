@@ -901,6 +901,41 @@ void Renderer::rescanMilkDropPresets(const std::vector<std::string>& dirs)
     doRescan();
 }
 
+void Renderer::toggleFavoritePreset(int index)
+{
+    if (projectMPresetManager_ == nullptr)
+        return;
+
+    auto doToggle = [this, index]()
+    {
+        projectMPresetManager_->toggleFavorite(index);
+    };
+
+    // No GL thread is running while the context is detached — no
+    // ProjectMSource can be mid-processFrame — so it's safe to mutate
+    // inline on the caller's thread. Mirrors rescanMilkDropPresets() above.
+    if (!glContext_.isAttached())
+    {
+        doToggle();
+        return;
+    }
+
+    // PresetInfo::favorite is GL-thread-read (see toggleFavoritePreset()'s
+    // declaration comment in Renderer.h). Marshal onto the GL thread when
+    // called from elsewhere (the message thread, via the preset browser's
+    // right-click-to-favorite); run inline when already there — marshaling
+    // to self would deadlock the blocking round-trip, same reasoning as
+    // rescanMilkDropPresets() above.
+    if (juce::OpenGLContext::getCurrentContext() != &glContext_)
+    {
+        glContext_.executeOnGLThread([&doToggle](juce::OpenGLContext&) { doToggle(); },
+                                      /*blockUntilFinished*/ true);
+        return;
+    }
+
+    doToggle();
+}
+
 GLuint Renderer::renderSource(const std::string& sourceId, float time, int width, int height,
                                const std::vector<Clip::SourceParam>* clipSourceParams)
 {

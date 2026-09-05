@@ -27,6 +27,26 @@ namespace
         return (mode == Composition::QuantizeMode::NextBeat) ? Clip::BeatSnapMode::Beat
                                                                : Clip::BeatSnapMode::Bar;
     }
+
+    // L7-JUKE: PreferencesDialog::show() seeds its MIDI tab from "the
+    // current device id", but MidiOutputHandler only exposes the opened
+    // device's display name (getDeviceName()), not the identifier it was
+    // opened with, and MainComponent.h is outside this lane's fence so
+    // there's nowhere to cache the identifier as a member. Best-effort
+    // recovery: match the open device's name back against
+    // getAvailableDevices(). If nothing is open, or no device with a
+    // matching name is found, the dropdown just opens unselected — a
+    // cosmetic gap only; openDevice() itself is unaffected either way.
+    juce::String currentMidiOutputDeviceId(const MidiOutputHandler& handler)
+    {
+        if (!handler.isOpen())
+            return {};
+        auto name = handler.getDeviceName();
+        for (const auto& dev : MidiOutputHandler::getAvailableDevices())
+            if (dev.name == name)
+                return dev.identifier;
+        return {};
+    }
 }
 
 MainComponent::MainComponent(bool testMode, int testPort)
@@ -536,6 +556,11 @@ MainComponent::MainComponent(bool testMode, int testPort)
         if (auto* tracker = analysisThread_.getBpmTracker())
             tracker->setManualBPM(tappedBPM);
     };
+
+    // L7-JUKE: Ableton Link toggle. linkSync_'s consumer loop (below, in the
+    // main timer callback) is already live and gated on isEnabled() — this
+    // was the only missing piece.
+    topBar_->onLinkToggled = [this](bool enabled) { linkSync_.setEnabled(enabled); };
 
     topBar_->onManualBpmChanged = [this](bool manual, float bpm) {
         if (auto* tracker = analysisThread_.getBpmTracker())
@@ -1591,6 +1616,18 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // ProjectMSource as the GL thread creates one — see
         // Renderer::getOrCreateSourceOnGLThread.
         previewPanel_.getRenderer().setProjectMPresetManager(&presetManager_);
+
+        // Wire favorite-toggling through Renderer::toggleFavoritePreset()
+        // (L7-JUKE), which confines the mutation to the GL thread — see its
+        // declaration comment in Renderer.h for why. Unlike setPresetSelector
+        // below, this does NOT need to wait for a real ProjectMSource to
+        // exist (toggleFavoritePreset() only needs projectMPresetManager_,
+        // set immediately above, and glContext_, which Renderer always
+        // owns) — wire it directly here so it is live before this ctor
+        // returns, i.e. before any UI click is possible.
+        browserPanel_->getMilkDropBrowser().onToggleFavoriteRequested = [this](int idx) {
+            previewPanel_.getRenderer().toggleFavoritePreset(idx);
+        };
 
         // The PresetSelector lives INSIDE ProjectMSource (GL-thread member,
         // runs inside its render()) and must NOT be hoisted like the manager
@@ -4494,13 +4531,17 @@ void MainComponent::handleMenuCommand(int commandId)
             PreferencesDialog::show(this, tooltipsEnabled_,
                                     [this](bool enabled) { setTooltipsEnabled(enabled); },
                                     milkDropPresetDir_,
-                                    [this](juce::String dir) { setMilkDropPresetDir(dir); });
+                                    [this](juce::String dir) { setMilkDropPresetDir(dir); },
+                                    currentMidiOutputDeviceId(midiOutputHandler_),
+                                    [this](juce::String id) { midiOutputHandler_.openDevice(id); });
             break;
         case C::kAbout:
             PreferencesDialog::show(this, tooltipsEnabled_,
                                     [this](bool enabled) { setTooltipsEnabled(enabled); },
                                     milkDropPresetDir_,
-                                    [this](juce::String dir) { setMilkDropPresetDir(dir); });
+                                    [this](juce::String dir) { setMilkDropPresetDir(dir); },
+                                    currentMidiOutputDeviceId(midiOutputHandler_),
+                                    [this](juce::String id) { midiOutputHandler_.openDevice(id); });
             // TODO: auto-switch to About tab
             break;
         case C::kQuit:

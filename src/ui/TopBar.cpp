@@ -112,6 +112,16 @@ TopBar::TopBar(const FeatureBus& featureBus, Composition& composition)
         }
     };
 
+    // Ableton Link toggle (L7-JUKE) — mirrors manualModeBtn_'s shape exactly.
+    addAndMakeVisible(linkToggleBtn_);
+    linkToggleBtn_.setTooltip("Sync tempo with other Ableton Link-enabled apps on the network");
+    linkToggleBtn_.setColour(juce::ToggleButton::textColourId,
+                             juce::Colour(AudioDNALookAndFeel::kTextPrimary));
+    linkToggleBtn_.onStateChange = [this] {
+        if (onLinkToggled)
+            onLinkToggled(linkToggleBtn_.getToggleState());
+    };
+
     bpmEditField_.setJustification(juce::Justification::centred);
     bpmEditField_.setFont(juce::Font(juce::FontOptions(14.0f)).boldened());
     bpmEditField_.setColour(juce::TextEditor::backgroundColourId, juce::Colour(0xff2a2a2a));
@@ -473,6 +483,8 @@ void TopBar::resized()
     resyncButton_.setBounds(area.removeFromLeft(50));
     area.removeFromLeft(2);
     manualModeBtn_.setBounds(area.removeFromLeft(80));
+    area.removeFromLeft(2);
+    linkToggleBtn_.setBounds(area.removeFromLeft(50));
     area.removeFromLeft(2);
 
     // BPM edit field: own space next to manual button when active

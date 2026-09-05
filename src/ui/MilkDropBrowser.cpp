@@ -46,7 +46,19 @@ public:
             owner_.pressedSectionPresetPaths_.clear();
             if (e.mods.isRightButtonDown())
             {
-                owner_.presetManager_->toggleFavorite(idx);
+                // L7-JUKE: routed through Renderer::toggleFavoritePreset()
+                // (GL-thread confinement — see MilkDropBrowser.h's
+                // onToggleFavoriteRequested doc) instead of calling
+                // presetManager_->toggleFavorite() directly here. No
+                // fallback to the direct call: MainComponent wires this
+                // callback unconditionally at construction (it needs no
+                // live ProjectMSource, unlike presetSelector_ above), so by
+                // the time any click is possible it is always set; a silent
+                // fallback to the unsynchronized call is exactly the race
+                // this closes, so a no-op is the correct failure mode if
+                // it's ever somehow unset instead.
+                if (owner_.onToggleFavoriteRequested)
+                    owner_.onToggleFavoriteRequested(idx);
                 repaint();
                 return;
             }
@@ -516,6 +528,17 @@ MilkDropBrowser::MilkDropBrowser()
     jukeboxPoolSelector_.addItem("Curated", 2);
     jukeboxPoolSelector_.addItem("Favorites", 3);
     jukeboxPoolSelector_.setSelectedId(1, juce::dontSendNotification);
+    jukeboxPoolSelector_.onChange = [this] {
+        if (!presetSelector_) return;
+        PresetSelector::PoolFilter pools[] = {
+            PresetSelector::PoolFilter::All,
+            PresetSelector::PoolFilter::Curated,
+            PresetSelector::PoolFilter::Favorites
+        };
+        int idx = jukeboxPoolSelector_.getSelectedId() - 1;
+        if (idx >= 0 && idx < 3)
+            presetSelector_->setPoolFilter(pools[idx]);
+    };
     setupCombo(jukeboxPoolSelector_);
     addAndMakeVisible(jukeboxPoolSelector_);
 
@@ -523,6 +546,17 @@ MilkDropBrowser::MilkDropBrowser()
     jukeboxModeSelector_.addItem("Random", 2);
     jukeboxModeSelector_.addItem("Sequential", 3);
     jukeboxModeSelector_.setSelectedId(1, juce::dontSendNotification);
+    jukeboxModeSelector_.onChange = [this] {
+        if (!presetSelector_) return;
+        PresetSelector::CycleMode modes[] = {
+            PresetSelector::CycleMode::Bag,
+            PresetSelector::CycleMode::Random,
+            PresetSelector::CycleMode::Sequential
+        };
+        int idx = jukeboxModeSelector_.getSelectedId() - 1;
+        if (idx >= 0 && idx < 3)
+            presetSelector_->setCycleMode(modes[idx]);
+    };
     setupCombo(jukeboxModeSelector_);
     addAndMakeVisible(jukeboxModeSelector_);
 
@@ -557,6 +591,10 @@ MilkDropBrowser::MilkDropBrowser()
     jukeboxBlendSlider_.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colour(0xff2a2a3e));
     jukeboxBlendSlider_.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     jukeboxBlendSlider_.setTextValueSuffix("s");
+    jukeboxBlendSlider_.onValueChange = [this] {
+        if (!presetSelector_) return;
+        presetSelector_->setBlendSeconds(static_cast<float>(jukeboxBlendSlider_.getValue()));
+    };
     addAndMakeVisible(jukeboxBlendSlider_);
 
     // === Playlist controls ===

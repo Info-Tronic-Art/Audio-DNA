@@ -19,6 +19,17 @@ ProjectMSource::ProjectMSource()
     // presetSelector_'s manager pointer is wired externally via
     // setPresetManager() once Renderer creates this source on the GL thread
     // (see ProjectMSource.h) — presetManager_ no longer lives here.
+
+    // L7-JUKE prerequisite fix: onAutoSwitch was declared and invoked by
+    // PresetSelector::processFrame() but never assigned anywhere, so Jukebox
+    // autopilot silently mutated the manager's bookkeeping (currentIndex_)
+    // without ever pushing the new preset to the render engine after the
+    // initial manual seed. loadPreset() already queues onto the GL thread
+    // under a mutex (see loadPreset() below), so it's safe to call directly
+    // from this callback even though processFrame() runs on the GL thread.
+    presetSelector_.onAutoSwitch = [this](const std::string& path) {
+        loadPreset(path, true);
+    };
 }
 
 ProjectMSource::~ProjectMSource()
@@ -254,6 +265,11 @@ void ProjectMSource::applyParams()
             // placeholder for future API extension
         }
     }
+
+    // L7-JUKE: Jukebox Blend slider — crossfade duration, not preset dwell
+    // time (that's projectm_set_preset_duration above, driven by the
+    // unrelated "Speed" param; don't confuse the two).
+    projectm_set_soft_cut_duration(pm_, static_cast<double>(presetSelector_.getBlendSeconds()));
 #endif
 }
 
