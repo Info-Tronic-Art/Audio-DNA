@@ -121,10 +121,14 @@ void Renderer::newOpenGLContextCreated()
     compositor_.initGL(1920, 1080); // Will resize as needed
     compositor_.setEffectLibrary(&effectLibrary_);
 
-    // Wire source rendering into compositor
-    compositor_.setSourceRenderer([this](const std::string& sourceId, float time, int w, int h,
+    // Wire source rendering into compositor. S167-L4b: ignores the `time`
+    // CompositorEngine passes (that's wall-clock, shared with clip effects/
+    // transitions) and substitutes scaledTime_ instead, so masterSpeed scales
+    // procedural-source animation rate without touching anything else's
+    // timing -- see scaledTime_'s comment in Renderer.h.
+    compositor_.setSourceRenderer([this](const std::string& sourceId, float /*time*/, int w, int h,
                                          const std::vector<Clip::SourceParam>* params) -> GLuint {
-        return renderSource(sourceId, time, w, h, params);
+        return renderSource(sourceId, static_cast<float>(scaledTime_), w, h, params);
     });
 
     // Wire video frame provider into compositor
@@ -383,6 +387,18 @@ void Renderer::renderOpenGL()
     float time = (overrideT >= 0.0f) ? overrideT
         : static_cast<float>(juce::Time::getMillisecondCounterHiRes() / 1000.0 - startTime_);
 
+    // S167-L4b: advance scaledTime_ for procedural sources (see its comment
+    // in Renderer.h). In deterministic test-capture mode (timeOverride_ set)
+    // track the override 1:1, scaled, instead of accumulating -- otherwise
+    // render_frame's byte-identical-repeat guarantee would break, since
+    // every real GL frame would still tick scaledTime_ forward even while
+    // `time` itself stays pinned for the capture.
+    float masterSpeedVal = (composition_ != nullptr) ? composition_->masterSpeed : 1.0f;
+    if (overrideT >= 0.0f)
+        scaledTime_ = static_cast<double>(overrideT) * static_cast<double>(masterSpeedVal);
+    else
+        scaledTime_ += (1.0 / 60.0) * static_cast<double>(masterSpeedVal);
+
     // Get physical pixel dimensions
     auto* component = glContext_.getTargetComponent();
     float scale = static_cast<float>(glContext_.getRenderingScale());
@@ -481,9 +497,10 @@ void Renderer::renderOpenGL()
 
     if (sourceTexture == 0 && sourceActive)
     {
-        // Render the procedural source to get a texture
+        // Render the procedural source to get a texture. S167-L4b: scaledTime_,
+        // not wall-clock `time` -- see its comment in Renderer.h.
         const auto* paramsPtr = currentSourceParams.empty() ? nullptr : &currentSourceParams;
-        sourceTexture = renderSource(currentSourceType, time,
+        sourceTexture = renderSource(currentSourceType, static_cast<float>(scaledTime_),
                                       static_cast<int>(renderW), static_cast<int>(renderH),
                                       paramsPtr);
     }
@@ -634,6 +651,44 @@ void Renderer::renderOpenGL()
         // Set the constant blend color via glBlendColor
         glBlendFunc(GL_ZERO, GL_CONSTANT_COLOR);
         glBlendColor(level, level, level, 1.0f);
+
+        quad_.draw();
+
+        glBlendColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glDisable(GL_BLEND);
+    }
+
+    // S167-L4b: apply Composition::masterOpacity to the fully-composited
+    // frame -- the owner's "ceiling" ruling (final = master * layer * clip)
+    // for the composition-wide fader. Same dim-to-black technique as the
+    // masterLevel_ block just above (glBlendColor as a constant multiplier),
+    // not an alpha-channel bake, because this runs against defaultFBO -- the
+    // actual output framebuffer -- where Syphon/recording/capture below read
+    // RGB, not alpha. UNCONDITIONAL: deliberately no "opacity ~= 1.0, skip"
+    // early-return -- masterOpacity was silently render-dead all session
+    // (.harmony/probe-deck-path.sh: accepted, echoed back, changed not one
+    // pixel) and a skip-when-default guard here is exactly the shape of bug
+    // that produced that. Runs BEFORE videoRecorder_->submitFrame,
+    // publishSyphonFrame, and processPendingCapture below, so Master Opacity
+    // also dims what leaves the app, not just the on-screen preview.
+    if (composition_ != nullptr)
+    {
+        float masterOpacityVal = composition_->masterOpacity;
+        glEnable(GL_BLEND);
+        glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(defaultFBO));
+        glViewport(static_cast<GLint>(vpX), static_cast<GLint>(vpY),
+                   static_cast<GLsizei>(vpW), static_cast<GLsizei>(vpH));
+
+        auto* prog = shaderMgr_.getProgram("passthrough");
+        if (prog)
+        {
+            prog->use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sourceTexture);
+        }
+
+        glBlendFunc(GL_ZERO, GL_CONSTANT_COLOR);
+        glBlendColor(masterOpacityVal, masterOpacityVal, masterOpacityVal, 1.0f);
 
         quad_.draw();
 
@@ -1150,6 +1205,11 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
     if (!clip)
         return 0;
 
+    // S167-L4b: composition-wide speed multiplier, folded in below via
+    // effectiveClipSpeed() only for non-BPM-synced clips -- BPM-synced
+    // transport stays tempo-locked, unaffected by masterSpeed.
+    const float masterSpeedVal = (composition_ != nullptr) ? composition_->masterSpeed : 1.0f;
+
     if (clip->mediaType == Clip::MediaType::Video)
     {
         std::lock_guard<std::mutex> lock(videoPlayerMutex_);
@@ -1190,7 +1250,7 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
         }
         else
         {
-            player->setSpeed(clip->speed);
+            player->setSpeed(effectiveClipSpeed(clip->speed, masterSpeedVal, false));
         }
 
         player->advanceFrame(static_cast<double>(dt));
@@ -1225,8 +1285,13 @@ GLuint Renderer::getVideoFrameTexture(const Clip* clip, float dt)
 
         auto* seq = it->second.get();
 
-        // Sync transport state from clip
-        seq->setSpeed(clip->speed);
+        // Sync transport state from clip. S167-L4b: masterSpeed folds in only
+        // when NOT BPM-synced (effectiveClipSpeed's isBpmSynced guard) --
+        // ImageSequence::advanceFrame() (media/ImageSequence.cpp) uses
+        // speed_ unconditionally, in BOTH transport modes, so this is the
+        // one place that decision has to be made for the sequence path.
+        seq->setSpeed(effectiveClipSpeed(clip->speed, masterSpeedVal,
+                                          clip->transportMode == Clip::TransportMode::BPMSync));
         if (clip->loopMode != Clip::LoopMode::PingPong)
             seq->setReverse(clip->reverse);
         if (clip->playing && !seq->isPlaying())

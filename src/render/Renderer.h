@@ -237,6 +237,15 @@ private:
     // thread when necessary before calling this.
     ProceduralSource* getOrCreateSourceOnGLThread(const std::string& sourceId);
 
+    // S167-L4b: pure speed fold for timeline-mode clip transport. BPM-synced
+    // clips are tempo-locked (everything stays on the beat; masterSpeed must
+    // never break that), so this leaves clipSpeed unscaled whenever
+    // isBpmSynced is true.
+    static float effectiveClipSpeed(float clipSpeed, float masterSpeed, bool isBpmSynced)
+    {
+        return isBpmSynced ? clipSpeed : clipSpeed * masterSpeed;
+    }
+
     // Compile a shader with optional shared GLSL utility prepends.
     // Prepends the requested utility blocks before the fragment shader source.
     void compileShaderWithUtils(const juce::String& name, const char* frag,
@@ -260,6 +269,14 @@ private:
     MappingEngine mappingEngine_;
 
     double startTime_ = 0.0;
+
+    // S167-L4b: accumulated, speed-scaled time fed to procedural sources
+    // only (clip transport/effects/transitions keep using wall-clock `time`
+    // in renderOpenGL). Advances by dt * composition_->masterSpeed each
+    // frame -- NOT masterSpeed * wall-clock time -- so a live speed change
+    // changes the animation's RATE without jumping its phase. GL-thread-
+    // owned (only ever touched from renderOpenGL), no atomic needed.
+    double scaledTime_ = 0.0;
 
     // FPS tracking
     std::atomic<float> currentFps_{0.0f};
