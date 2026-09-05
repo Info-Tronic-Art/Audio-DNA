@@ -292,3 +292,17 @@ Trigger: the build fails with `Undefined symbols ... "Class::method()", referenc
 Rule: CHECK THE DEFINITION EXISTS AND IS CORRECTLY SCOPED BEFORE BELIEVING THE LINKER. In this repo `cmake --build .` did not recompile `src/ui/PreferencesDialog.cpp` after its body was added — the object kept the call sites from an earlier compile and lacked the definition, so the link failed against code that was already correct on disk. `grep -n '<Class>::<method>' src/` showed the definition present, correctly scoped, with no preprocessor guard around it. `touch`ing the .cpp and .h and rebuilding linked cleanly first try. This is the MIRROR IMAGE of the documented stale-binary false-GREEN (ctest passing on binaries from a failed build): the same staleness produces a false RED at link time. Both come from trusting an incremental build's verdict over the source on disk. When a build result contradicts what you can read in the file, force the rebuild before you act on it — and never revert a lane on an unreproduced failure.
 Scope: universal
 Promoted: no
+
+### 2026-09-05 — Audio-DNA enforces ONE instance: a running app blocks EVERY behavioural gate
+Source: s-rta-0905 — Boris had the app open (GUI-launched 3 min before the session started) for the whole session
+Trigger: you are about to launch the app for any gate — health check, menu drive, TSan run, screenshot
+Rule: the app self-terminates a second instance ("Another instance is running - quitting...", visible on stderr). Worse, it is silent from the caller's side: `open` on EITHER bundle (`build/AudioDNA_artefacts/Release` or `build-tsan/AudioDNA_artefacts/Debug`) does not launch anything at all — LaunchServices matches the bundle id and just ACTIVATES the already-running window, so you get exit code 0, an empty stderr file, and no new process. `open -n` does start a process, which then immediately self-quits. **Run `pgrep -fl 'MacOS/Audio-DNA'` BEFORE you plan any gate, not after you have built.** If an instance is up and it is not yours, you cannot gate behaviourally at all this session: say so plainly rather than substituting a source review and calling the lane gated. A user's own running instance is not yours to quit (SCREEN-SAFETY LAW) — and note it may be running a PRE-FIX binary, so anything they observe in it is not evidence about your change.
+Scope: repo
+Promoted: no
+
+### 2026-09-05 — a work packet's prescribed ORDER is a claim, exactly like its counts
+Source: s-rta-0905 — lane L3 Step 2; the Fable-authored packet's own §1 sequence contained a use-after-free
+Trigger: you are implementing a step-ordered sequence from a packet that swaps or destroys a model
+Rule: this repo already knows a packet's COUNT is a claim ("both layer loops" was three; "three vacate paths" was six). Its ORDER is too. L3's packet ordered `deckView_->setActiveColumn(-1)` BEFORE `rebuildGrid()`; `setActiveColumn` calls `refresh()`, which walks `LayerStrip::refresh()`, which dereferences a raw `Layer*` into the just-destroyed deck — and that function's `if (!layer_)` guard catches NULL but not DANGLING. The builder reordered it after `rebuildGrid()` and the independent reviewer re-traced the chain and vindicated the deviation. **Generalisation worth carrying: never call a widget-container's own refresh between destroying a model and rebuilding the children that hold pointers into it — nulling the model-holding widgets one layer up (the inspectors) is not enough, because the container walks its children directly.**
+Scope: universal
+Promoted: no
