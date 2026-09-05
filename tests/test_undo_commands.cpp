@@ -167,7 +167,8 @@ static bool operator==(const Layer& a, const Layer& b)
         // Clips row + runtime
         && clipsEq(a.clips, b.clips)
         && a.activeClipColumn == b.activeClipColumn && a.previousClipColumn == b.previousClipColumn
-        && a.crossfadeProgress == b.crossfadeProgress && a.pendingTriggerColumn == b.pendingTriggerColumn;
+        && a.crossfadeProgress == b.crossfadeProgress && a.pendingTriggerColumn == b.pendingTriggerColumn
+        && a.pendingTriggerSnapOverride == b.pendingTriggerSnapOverride;
 }
 
 // ---------------------------------------------------------------------------
@@ -2365,4 +2366,280 @@ TEST_CASE("TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, roun
     REQUIRE(L.pendingTriggerColumn == -1);     // keep-original-before (run start was -1)
     mgr.redo();
     REQUIRE(L.pendingTriggerColumn == 8);      // update-latest-after
+}
+
+// ===========================================================================
+// L5 Quantize fix round — the pending-trigger queue itself (Layer/Deck level,
+// no MainComponent needed) plus the two cancellation fixes (deck-switch,
+// clearActiveClip). Round 1 shipped the wiring with zero automated coverage on
+// exactly this surface; these five close that gap.
+// ===========================================================================
+
+TEST_CASE("Layer::triggerClip: forced snap queues a non-active column instead of firing immediately", "[layer][trigger][quantize]")
+{
+    Layer L;
+    L.ensureColumns(4);
+    L.clips[2] = richClip(1, "target");
+    REQUIRE(L.activeClipColumn == -1);
+
+    L.triggerClip(2, Clip::BeatSnapMode::Beat);
+    REQUIRE(L.pendingTriggerColumn == 2);               // queued, not fired
+    REQUIRE(L.pendingTriggerSnapOverride == Clip::BeatSnapMode::Beat);
+    REQUIRE(L.activeClipColumn == -1);                  // did NOT activate immediately
+    REQUIRE_FALSE(L.clips[2]->playing);                 // never started playing
+}
+
+TEST_CASE("Layer::processPendingTrigger: forced override picks granularity independent of the clip's own beatSnapMode", "[layer][trigger][quantize]")
+{
+    Layer L;
+    L.ensureColumns(4);
+    L.clips[2] = richClip(1, "target");
+    REQUIRE(L.clips[2]->beatSnapMode == Clip::BeatSnapMode::Off);   // clip itself has no snap set
+
+    // Beat override: fires on ANY beat, regardless of beatInBar.
+    L.triggerClip(2, Clip::BeatSnapMode::Beat);
+    L.processPendingTrigger(2, 0);                      // beatInBar=2 — NOT a downbeat
+    REQUIRE(L.activeClipColumn == 2);                   // fired anyway: Beat granularity
+    REQUIRE(L.pendingTriggerColumn == -1);
+
+    // Bar override: only fires on beatInBar == 0, even though THIS clip's own
+    // beatSnapMode is Off (proves the override, not the clip field, drives it).
+    L.clips[3] = richClip(2, "target2");
+    L.triggerClip(3, Clip::BeatSnapMode::Bar);
+    L.processPendingTrigger(2, 0);                      // NOT beat 0 — must NOT fire
+    REQUIRE(L.pendingTriggerColumn == 3);                // still queued
+    REQUIRE(L.activeClipColumn == 2);                    // unchanged — no premature fire
+
+    L.processPendingTrigger(0, 0);                       // beat 0 of the bar — fires now
+    REQUIRE(L.activeClipColumn == 3);
+    REQUIRE(L.pendingTriggerColumn == -1);
+}
+
+TEST_CASE("Deck::triggerColumn: forced snap queues on every non-ignoring layer, skips ignoring ones", "[deck][trigger][quantize]")
+{
+    Deck d;
+    d.initDefault();                                     // 3 layers, 12 columns
+    for (auto& layer : d.layers)
+        layer.clips[4] = richClip(1, "col4");
+    d.layers[1].ignoreColumnTrigger = true;               // must be skipped
+
+    d.triggerColumn(4, Clip::BeatSnapMode::Bar);
+
+    REQUIRE(d.layers[0].pendingTriggerColumn == 4);
+    REQUIRE(d.layers[0].pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+    REQUIRE(d.layers[1].pendingTriggerColumn == -1);      // skipped entirely — untouched
+    REQUIRE(d.layers[2].pendingTriggerColumn == 4);
+    REQUIRE(d.layers[2].pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+}
+
+TEST_CASE("TriggerClipCmd: undo of a queued forced-snap trigger restores pendingTriggerSnapOverride too", "[undo][trigger][quantize]")
+{
+    Composition comp = makeComp();
+    UndoService svc; svc.setCollaborators(&comp, nullptr, nullptr);
+    UndoManager mgr;
+    Deck& deck = comp.decks[0];
+    Layer& L = *deck.getLayer(0);
+    L.clips[6] = richClip(1, "queued");
+
+    // Snapshot pair differing in BOTH pendingTriggerColumn AND the new
+    // pendingTriggerSnapOverride field (-1/Off -> 6/Bar) — TRAP #3's exact
+    // shape, now for the override field specifically. Without the field in
+    // LayerRuntimeSnapshot's operator==/capture/apply, undo would restore
+    // pendingTriggerColumn but silently leave pendingTriggerSnapOverride stuck
+    // at Bar (the field would never have been captured/restored at all).
+    const LayerRuntimeSnapshot before = captureLayerRuntime(L);
+    L.triggerClip(6, Clip::BeatSnapMode::Bar);           // live: queues (mutate-then-push)
+    const LayerRuntimeSnapshot after = captureLayerRuntime(L);
+    REQUIRE(after.pendingTriggerColumn == 6);
+    REQUIRE(after.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    mgr.perform(std::make_unique<TriggerClipCmd>(resolverFor(svc), 0, 0, 6,
+                before, after, std::nullopt, std::nullopt, "Trigger Clip"));
+    REQUIRE(L.pendingTriggerColumn == 6);
+    REQUIRE(L.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    mgr.undo();
+    REQUIRE(L.pendingTriggerColumn == -1);
+    REQUIRE(L.pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+
+    mgr.redo();
+    REQUIRE(L.pendingTriggerColumn == 6);
+    REQUIRE(L.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+}
+
+TEST_CASE("SwitchDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels",
+          "[undo][deck][trigger][quantize]")
+{
+    Composition comp = makeComp();                 // deck 0: 3 layers, 12 cols
+    comp.decks.push_back(richDeck("Deck 2", 2));    // deck 1: switch target
+    comp.activeDeckIndex = 0;
+    UndoManager mgr;
+
+    Layer& L0 = *comp.decks[0].getLayer(0);
+    L0.clips[5] = richClip(99, "queued");
+    L0.triggerClip(5, Clip::BeatSnapMode::Bar);     // queues: col(5) != active(-1), forced snap
+    REQUIRE(L0.pendingTriggerColumn == 5);
+    REQUIRE(L0.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    // Mirror the app's onDeckSwitched shape: capture what's about to be
+    // cancelled BEFORE the live switch (MainComponent isn't linked into this
+    // test target, so handleDeckSwitch's cancellation loop is reproduced
+    // headlessly here) — same idiom as handleClipTrigger's rtBefore/rtAfter
+    // capture around a live mutation, not the mutation reporting itself.
+    std::vector<PendingTriggerSnapshot> cancelled;
+    for (int l = 0; l < comp.decks[0].getNumLayers(); ++l)
+    {
+        auto* layer = comp.decks[0].getLayer(l);
+        if (layer->pendingTriggerColumn >= 0)
+            cancelled.push_back({ l, layer->pendingTriggerColumn, layer->pendingTriggerSnapOverride });
+    }
+    REQUIRE(cancelled.size() == 1);
+
+    // Live cancellation + switch (what handleDeckSwitch performs for every
+    // switch path — user tab click, REST, OSC, MIDI, genre auto-switch alike).
+    for (auto& layer : comp.decks[0].layers)
+    {
+        layer.pendingTriggerColumn = -1;
+        layer.pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+    }
+    comp.activeDeckIndex = 1;
+
+    mgr.perform(std::make_unique<SwitchDeckCmd>(compResolverFor(comp), nullptr,
+                0, 1, "Switch Deck", std::move(cancelled)));
+    REQUIRE(comp.activeDeckIndex == 1);
+    REQUIRE(L0.pendingTriggerColumn == -1);          // stays cancelled after execute (idempotent replay)
+
+    mgr.undo();
+    REQUIRE(comp.activeDeckIndex == 0);
+    REQUIRE(L0.pendingTriggerColumn == 5);           // restored — not stranded by the switch's undo
+    REQUIRE(L0.pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    mgr.redo();
+    REQUIRE(comp.activeDeckIndex == 1);
+    REQUIRE(L0.pendingTriggerColumn == -1);          // re-cancelled
+    REQUIRE(L0.pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+}
+
+// Fix round 2 (review-named gap): AddDeckCmd is a SECOND deck-deactivation path
+// that bypassed handleDeckSwitch's cancel entirely — Add Deck deactivates
+// whichever deck was active without touching its pending trigger. Covers
+// AddDeckCmd's OWN command-owns-the-mutation capture/cancel (execute's first-do
+// branch), not a caller-side capture like the SwitchDeckCmd test above (there is
+// no caller-side capture here — AddDeckCmd does it all internally).
+//
+// NOTE: AddDeckCmd's execute()/undo() push_back/insert/erase on comp.decks,
+// which can reallocate the vector and move every Deck (and its Layer objects)
+// to a new address — so this test deliberately never caches a Layer&/Deck&
+// across those calls; it re-resolves comp.decks[0].getLayer(0) fresh at each
+// assertion instead.
+TEST_CASE("AddDeckCmd: cancels a pending trigger on the deck being left; undo restores it, redo re-cancels",
+          "[undo][deck][trigger][quantize]")
+{
+    Composition comp = makeComp();                   // 1 deck (index 0), active 0
+    UndoManager mgr;
+
+    comp.decks[0].getLayer(0)->clips[5] = richClip(99, "queued");
+    comp.decks[0].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Bar);   // queues: col(5) != active(-1)
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerColumn == 5);
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    mgr.perform(std::make_unique<AddDeckCmd>(compResolverFor(comp), noopFence(), "Add Deck"));
+    REQUIRE(comp.activeDeckIndex == 1);                                          // new deck active
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerColumn == -1);              // cancelled by the add
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+
+    mgr.undo();
+    REQUIRE(comp.activeDeckIndex == 0);
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerColumn == 5);               // restored — not stranded
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    mgr.redo();
+    REQUIRE(comp.activeDeckIndex == 1);
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerColumn == -1);              // re-cancelled
+    REQUIRE(comp.decks[0].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+}
+
+// Fix round 4 (review-named gap #4): RemoveDeckCmd::undo() is a SECOND deck-
+// deactivation path missed by rounds 2 and 3 — reactivating the restored deck
+// deactivates whatever deck the removal's clamp had made active, with no call
+// to the cancellation helper. Repro is the reviewer's exact scenario: remove
+// the active deck (clamps active elsewhere), arm a Quantize trigger on THAT
+// deck, undo the removal — the deactivated deck's trigger must not stay armed.
+//
+// NOTE: RemoveDeckCmd's execute()/undo() erase/insert on comp.decks, which can
+// reallocate the vector — same discipline as the AddDeckCmd test above: never
+// cache a Layer&/Deck& across mgr.perform/undo/redo, re-resolve fresh instead.
+TEST_CASE("RemoveDeckCmd: undo cancels a pending trigger on the deck the reactivation deactivates",
+          "[undo][deck][trigger][quantize]")
+{
+    Composition comp = makeComp();                   // deck 0
+    comp.decks.push_back(richDeck("Deck 2", 2));      // deck 1
+    comp.decks.push_back(richDeck("Deck 3", 3));      // deck 2
+    comp.activeDeckIndex = 2;                         // active == last (the edge — clamps on removal)
+    UndoManager mgr;
+
+    const int removeIdx = comp.activeDeckIndex;       // 2
+    Deck removedCopy = comp.decks[static_cast<size_t>(removeIdx)];
+
+    mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                removeIdx, std::move(removedCopy), removeIdx, "Remove Deck"));
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.activeDeckIndex == 1);               // clamped to deck 1 ("Deck 2")
+
+    // Arm a Quantize trigger on the now-active deck (1) — the reviewer's exact
+    // "performer keeps working on the clamped-to deck" scenario.
+    comp.decks[1].getLayer(0)->clips[5] = richClip(77, "queued");
+    comp.decks[1].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Bar);
+    REQUIRE(comp.decks[1].getLayer(0)->pendingTriggerColumn == 5);
+    REQUIRE(comp.decks[1].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Bar);
+
+    mgr.undo();
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.activeDeckIndex == 2);               // deck 2 restored + reactivated
+    // Deck 1 (deactivated by this reactivation) must not keep an armed
+    // trigger — without the fix this reads 5/Bar, not -1/Off.
+    REQUIRE(comp.decks[1].getLayer(0)->pendingTriggerColumn == -1);
+    REQUIRE(comp.decks[1].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
+}
+
+// Second sub-case of the same fix, found while re-deriving it (not reviewer-
+// named): a NON-last removal leaves activeDeckIndex numerically UNCHANGED
+// across execute() (no clamp needed), because the survivor deck shifts DOWN to
+// fill the gap and keeps the same index number. An index-equality guard
+// ("only cancel if activeDeckIndex changed") would silently miss this case —
+// the deck NUMBER stays the same but the deck OBJECT at that number changes
+// when undo's insert() shifts the survivor back off the active slot. This test
+// specifically falsifies that guard shape (an earlier draft of this fix used
+// `comp->activeDeckIndex != priorActiveIndex_` and passed the OTHER new test
+// above while silently failing this one).
+TEST_CASE("RemoveDeckCmd: undo cancels a pending trigger even when activeDeckIndex numerically stays the same",
+          "[undo][deck][trigger][quantize]")
+{
+    Composition comp = makeComp();                    // deck 0
+    comp.decks.push_back(richDeck("Deck 2", 2));       // deck 1
+    comp.decks.push_back(richDeck("Deck 3", 3));       // deck 2
+    comp.activeDeckIndex = 1;                          // active is the MIDDLE deck
+    UndoManager mgr;
+
+    const int removeIdx = comp.activeDeckIndex;        // 1
+    Deck removedCopy = comp.decks[static_cast<size_t>(removeIdx)];
+
+    mgr.perform(std::make_unique<RemoveDeckCmd>(compResolverFor(comp), noopFence(), noopMedia(), noopDispose(),
+                removeIdx, std::move(removedCopy), removeIdx, "Remove Deck"));
+    REQUIRE(comp.decks.size() == 2);
+    REQUIRE(comp.activeDeckIndex == 1);                // NOT clamped — "Deck 3" shifted down into slot 1
+
+    // Arm a Quantize trigger on the survivor now occupying slot 1 ("Deck 3").
+    comp.decks[1].getLayer(0)->clips[5] = richClip(88, "queued");
+    comp.decks[1].getLayer(0)->triggerClip(5, Clip::BeatSnapMode::Beat);
+    REQUIRE(comp.decks[1].getLayer(0)->pendingTriggerColumn == 5);
+
+    mgr.undo();
+    REQUIRE(comp.decks.size() == 3);
+    REQUIRE(comp.activeDeckIndex == 1);                // index UNCHANGED (1 -> 1)...
+    // ...but the deck now AT slot 1 is the restored "Deck 2" — "Deck 3" shifted
+    // back up to slot 2 and was deactivated by this undo. Without the fix (or
+    // with the falsified index-equality guard), this would still read 5.
+    REQUIRE(comp.decks[2].getLayer(0)->pendingTriggerColumn == -1);
+    REQUIRE(comp.decks[2].getLayer(0)->pendingTriggerSnapOverride == Clip::BeatSnapMode::Off);
 }

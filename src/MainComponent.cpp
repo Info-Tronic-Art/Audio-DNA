@@ -11,6 +11,24 @@
 
 static uint32_t s_nextClipId = 1000;
 
+// L5 Quantize: translate the global Composition::quantizeMode control into a
+// forced BeatSnapMode for one trigger. Off stays Off (no queueing). When the
+// BPM tracker hasn't locked yet, an honest immediate trigger (Off) beats a
+// trigger that may never drain — see BPMTracker::updatePhase, which pins
+// phase_ at 0.0f while lockedBPM_ <= 0, freezing the beat-crossing edge that
+// processPendingTrigger relies on to fire a queued trigger.
+namespace
+{
+    Clip::BeatSnapMode quantizeModeToForcedSnap(Composition::QuantizeMode mode,
+                                                 const FeatureSnapshot& snap)
+    {
+        if (mode == Composition::QuantizeMode::Off) return Clip::BeatSnapMode::Off;
+        if (snap.trackerState != BPMTracker::STATE_LOCKED) return Clip::BeatSnapMode::Off;
+        return (mode == Composition::QuantizeMode::NextBeat) ? Clip::BeatSnapMode::Beat
+                                                               : Clip::BeatSnapMode::Bar;
+    }
+}
+
 MainComponent::MainComponent(bool testMode, int testPort)
     : testMode_(testMode), testPort_(testPort)
 {
@@ -1331,6 +1349,19 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // handleDeckSwitch. Mutate-then-push: switch live, then record before/after
         // (only if the active deck actually changed — a no-op switch pushes nothing).
         const int before = composition_.activeDeckIndex;
+
+        // L5 Quantize follow-on: cancel (via the shared DeckCommands.h helper)
+        // whichever layers on the deck we're about to LEAVE have a pending
+        // quantized trigger, BEFORE calling handleDeckSwitch — capturing the
+        // return value is only needed here, the one path that pushes an undo
+        // command; handleDeckSwitch's own call to the same helper (below) then
+        // finds nothing left to cancel and is a harmless no-op for this path,
+        // exactly mirroring how handleClipTrigger captures rtBefore/rtAfter
+        // around the live mutation rather than having triggerClip report it.
+        std::vector<PendingTriggerSnapshot> cancelledOnLeave;
+        if (auto* leavingDeck = composition_.getActiveDeck())
+            cancelledOnLeave = cancelPendingTriggers(*leavingDeck);
+
         handleDeckSwitch(deckIdx);
         const int after = composition_.activeDeckIndex;
         if (before != after)
@@ -1338,7 +1369,7 @@ MainComponent::MainComponent(bool testMode, int testPort)
             std::vector<std::unique_ptr<Command>> children;
             children.push_back(std::make_unique<SwitchDeckCmd>(
                 makeCompositionResolver(), makeDeckActivateHook(),
-                before, after, "Switch Deck"));
+                before, after, "Switch Deck", std::move(cancelledOnLeave)));
             pushCommands(std::move(children), "Switch Deck");
         }
     };
@@ -2721,6 +2752,15 @@ void MainComponent::appendDeckFromFile(const juce::File& file)
     //    active deck; rebuildGrid() (inside refreshUiAfterModelSwap) rebuilds
     //    the deck tabs too (setupDeckTabs() runs inside it).
     swapCompositionModel([this, &incoming] {
+        // L5 Quantize follow-on (review round 2): appending a new deck
+        // deactivates whichever deck was active — the same "queued trigger
+        // freezes on an abandoned deck" bug AddDeckCmd/SwitchDeckCmd already
+        // close, via the same shared helper (DeckCommands.h). This path isn't
+        // undo-tracked (a raw model swap, like loadComposition — no Command
+        // wraps appending a deck from a file), so there is no snapshot to
+        // restore; the cancelled list is discarded.
+        if (auto* leavingDeck = composition_.getActiveDeck())
+            cancelPendingTriggers(*leavingDeck);
         composition_.activeDeckIndex = composition_.appendDeck(std::move(incoming));
     });
 
@@ -3675,7 +3715,12 @@ void MainComponent::handleClipTrigger(int layerIndex, int column)
     // already-playing cell is this same column == layer->activeClipColumn case.
     const bool wasRetrigger = (column == layer->activeClipColumn);
 
-    layer->triggerClip(column);
+    // L5 Quantize: the global Quantize control forces a beat-snap granularity
+    // on this one trigger (queues it) unless it's Off or the tracker isn't
+    // locked yet — see quantizeModeToForcedSnap above.
+    const FeatureSnapshot quantizeSnap = analysisThread_.getFeatureBus().read();
+    const auto forcedSnap = quantizeModeToForcedSnap(composition_.quantizeMode, quantizeSnap);
+    layer->triggerClip(column, forcedSnap);
 
     const LayerRuntimeSnapshot rtAfter = captureLayerRuntime(*layer);
     std::optional<bool> playAfter;
@@ -3832,7 +3877,11 @@ void MainComponent::handleColumnTrigger(int column)
             playBefore[static_cast<size_t>(l)] = tc->playing;
     }
 
-    deck->triggerColumn(column);
+    // L5 Quantize: same forced-snap decision as handleClipTrigger, applied once
+    // for the whole column so every non-ignoring layer queues/fires together.
+    const FeatureSnapshot quantizeSnap = analysisThread_.getFeatureBus().read();
+    const auto forcedSnap = quantizeModeToForcedSnap(composition_.quantizeMode, quantizeSnap);
+    deck->triggerColumn(column, forcedSnap);
 
     // One child per considered layer whose runtime or target-`playing` changed;
     // pushCommands composites them into one slot (a single changed layer collapses
@@ -4383,6 +4432,27 @@ void MainComponent::handleDeckSwitch(int deckIndex)
 {
     if (deckIndex < 0 || deckIndex >= static_cast<int>(composition_.decks.size()))
         return;
+
+    // L5 Quantize fix: cancel any pending quantized trigger left waiting on the
+    // deck we're LEAVING, via the shared DeckCommands.h helper (also used by
+    // AddDeckCmd and appendDeckFromFile's deck-append — every deck-deactivation
+    // path shares this one implementation now). Autopilot::processFrame only
+    // drains the deck the renderer currently points at (Renderer.cpp's
+    // `deckActive` gate), so a pending trigger on a deactivated deck freezes
+    // rather than fires, then fires arbitrarily late whenever that deck is
+    // reactivated and a beat next crosses — a cell lighting up nobody asked
+    // for, mid-set. Lives here (not in the caller) so every switch path
+    // inherits it — user tab click, REST, OSC, MIDI/controller SwitchDeck
+    // bindings, and genre auto-switch alike; onDeckSwitched (the one path that
+    // needs the cancelled list for undo) already called this same helper
+    // itself, so this call is a harmless no-op for that path. Guarded on an
+    // ACTUAL deck change: deckIndex == activeDeckIndex is a same-deck no-op
+    // switch and must not disturb that deck's pending triggers.
+    if (deckIndex != composition_.activeDeckIndex)
+    {
+        if (auto* leavingDeck = composition_.getActiveDeck())
+            cancelPendingTriggers(*leavingDeck);
+    }
 
     composition_.activeDeckIndex = deckIndex;
 

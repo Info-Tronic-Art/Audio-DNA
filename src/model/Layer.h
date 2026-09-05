@@ -155,6 +155,12 @@ struct Layer
     int previousClipColumn = -1; // For crossfade
     float crossfadeProgress = 1.0f; // 1.0 = fully transitioned
     int pendingTriggerColumn = -1;  // Beat snap: queued trigger awaiting next beat
+    // Set alongside pendingTriggerColumn whenever a trigger is queued. Off means
+    // "derive granularity from the target clip's own beatSnapMode" (today's
+    // behavior, unchanged). Non-Off means a caller (global Quantize) is FORCING
+    // a granularity for this one queued trigger, overriding the clip's own field
+    // for this trigger only — the clip's own beatSnapMode is never mutated.
+    Clip::BeatSnapMode pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
 
     // === Helpers ===
     Clip* getActiveClip()
@@ -187,26 +193,30 @@ struct Layer
         return nullptr;
     }
 
-    void triggerClip(int column)
+    void triggerClip(int column, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off)
     {
         if (column < 0 || column >= static_cast<int>(clips.size()))
             return;
 
         if (!clips[static_cast<size_t>(column)].has_value())
         {
-            // Empty cell — clear the layer
-            pendingTriggerColumn = -1;
+            // Empty cell — clear the layer. clearActiveClip() itself now cancels
+            // any pending trigger too (L5 Quantize fix), so no separate reset
+            // needed here.
             clearActiveClip();
             return;
         }
 
-        // Check beat snap: if the target clip has beat snap enabled, queue for next beat/bar
+        // Check beat snap: if the target clip has beat snap enabled, or a caller is
+        // forcing a granularity (global Quantize), queue for next beat/bar.
         auto& clipOpt = clips[static_cast<size_t>(column)];
-        bool snapEnabled = clipOpt.has_value() &&
-                          (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off || clipOpt->beatSnap);
+        bool snapEnabled = forcedSnap != Clip::BeatSnapMode::Off ||
+                          (clipOpt.has_value() &&
+                          (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off || clipOpt->beatSnap));
         if (snapEnabled && column != activeClipColumn)
         {
             pendingTriggerColumn = column;
+            pendingTriggerSnapOverride = forcedSnap;
             return;
         }
 
@@ -221,6 +231,7 @@ struct Layer
             return;
 
         pendingTriggerColumn = -1;
+        pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
 
         if (column == activeClipColumn)
         {
@@ -256,12 +267,16 @@ struct Layer
         if (pendingTriggerColumn < 0)
             return;
 
-        // Determine the required snap granularity from the pending clip
+        // Determine the required snap granularity: a forced override (global
+        // Quantize) wins outright; otherwise fall back to the pending clip's own
+        // beatSnapMode (unchanged pre-existing behavior).
         auto snapMode = Clip::BeatSnapMode::Beat; // default
         auto& clipOpt = clips[static_cast<size_t>(pendingTriggerColumn)];
-        if (clipOpt.has_value())
+        if (pendingTriggerSnapOverride != Clip::BeatSnapMode::Off)
+            snapMode = pendingTriggerSnapOverride;               // global quantize forced this
+        else if (clipOpt.has_value())
             snapMode = (clipOpt->beatSnapMode != Clip::BeatSnapMode::Off)
-                       ? clipOpt->beatSnapMode : Clip::BeatSnapMode::Beat;
+                       ? clipOpt->beatSnapMode : Clip::BeatSnapMode::Beat;   // unchanged fallback
 
         bool shouldTrigger = false;
         switch (snapMode)
@@ -295,6 +310,18 @@ struct Layer
         previousClipColumn = activeClipColumn;
         activeClipColumn = -1;
         crossfadeProgress = 1.0f;
+
+        // L5 Quantize fix: a clear also cancels any quantized trigger still
+        // queued on this layer. Without this, a pending trigger silently
+        // outlives the clear and fires on the next beat/bar crossing,
+        // reactivating a layer the caller just deactivated — e.g. a momentary
+        // MIDI pad released before the beat lands (handleBindingAction's
+        // Momentary release path calls clearActiveClip() directly). Lives here,
+        // not at individual call sites, so every caller inherits it the same
+        // way the queue decision itself lives in triggerClip rather than at
+        // each trigger call site.
+        pendingTriggerColumn = -1;
+        pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
     }
 
     void ensureColumns(int count)

@@ -176,7 +176,10 @@ private:
 
 // Value snapshot of one layer's RUNTIME fields — the per-layer trigger state
 // that clearActiveClip / clear-clips reset (activeClipColumn / previousClipColumn
-// / crossfadeProgress; pendingTriggerColumn rounds out the trigger runtime).
+// / crossfadeProgress; pendingTriggerColumn rounds out the trigger runtime;
+// pendingTriggerSnapOverride rides alongside pendingTriggerColumn — L5 Quantize —
+// so undo/redo of a queued-but-not-fired trigger restores the forced granularity
+// too, not just which column is pending).
 // Factored out so both the clips-row snapshot (below) and ClearActiveClipCmd
 // (the X-button clear, which touches ONLY these fields) share one definition.
 struct LayerRuntimeSnapshot
@@ -185,6 +188,7 @@ struct LayerRuntimeSnapshot
     int previousClipColumn = -1;
     float crossfadeProgress = 1.0f;
     int pendingTriggerColumn = -1;
+    Clip::BeatSnapMode pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
 };
 
 inline bool operator==(const LayerRuntimeSnapshot& a, const LayerRuntimeSnapshot& b)
@@ -192,13 +196,15 @@ inline bool operator==(const LayerRuntimeSnapshot& a, const LayerRuntimeSnapshot
     return a.activeClipColumn == b.activeClipColumn
         && a.previousClipColumn == b.previousClipColumn
         && a.crossfadeProgress == b.crossfadeProgress
-        && a.pendingTriggerColumn == b.pendingTriggerColumn;
+        && a.pendingTriggerColumn == b.pendingTriggerColumn
+        && a.pendingTriggerSnapOverride == b.pendingTriggerSnapOverride;
 }
 
 inline LayerRuntimeSnapshot captureLayerRuntime(const Layer& layer)
 {
     return { layer.activeClipColumn, layer.previousClipColumn,
-             layer.crossfadeProgress, layer.pendingTriggerColumn };
+             layer.crossfadeProgress, layer.pendingTriggerColumn,
+             layer.pendingTriggerSnapOverride };
 }
 
 inline void applyLayerRuntime(Layer& layer, const LayerRuntimeSnapshot& r)
@@ -207,6 +213,67 @@ inline void applyLayerRuntime(Layer& layer, const LayerRuntimeSnapshot& r)
     layer.previousClipColumn = r.previousClipColumn;
     layer.crossfadeProgress = r.crossfadeProgress;
     layer.pendingTriggerColumn = r.pendingTriggerColumn;
+    layer.pendingTriggerSnapOverride = r.pendingTriggerSnapOverride;
+}
+
+// Sparse per-layer snapshot of a quantized trigger a deck DEACTIVATION is about
+// to CANCEL (L5 Quantize follow-on) — one entry per layer of the deck being
+// left that had pendingTriggerColumn >= 0. Most deactivations cancel nothing,
+// so this stays empty far more often than not; only layers actually holding a
+// pending trigger get an entry, keyed by layer index within that deck.
+struct PendingTriggerSnapshot
+{
+    int layerIndex = -1;
+    int pendingTriggerColumn = -1;
+    Clip::BeatSnapMode pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+};
+
+// Cancel (capture + clear) any pending quantized trigger on every layer of
+// `deck`, returning what was cancelled. THE single implementation of "a deck is
+// being deactivated, so any trigger still waiting on its beat/bar crossing must
+// not fire later against a deck nobody is looking at" — shared by every deck
+// deactivation path: SwitchDeckCmd's caller (handleDeckSwitch, MainComponent.cpp,
+// for the deck-tab/REST/OSC/MIDI/genre-auto switch paths), AddDeckCmd (Add Deck),
+// and the deck-append activation (MainComponent.cpp's appendDeckFromFile). Before
+// this was factored out, the loop was pasted at each site; a review round found
+// two of the three had been added without it entirely (AddDeckCmd, deck-append).
+inline std::vector<PendingTriggerSnapshot> cancelPendingTriggers(Deck& deck)
+{
+    std::vector<PendingTriggerSnapshot> cancelled;
+    for (int l = 0; l < deck.getNumLayers(); ++l)
+    {
+        auto* layer = deck.getLayer(l);
+        if (layer && layer->pendingTriggerColumn >= 0)
+        {
+            cancelled.push_back({ l, layer->pendingTriggerColumn, layer->pendingTriggerSnapOverride });
+            layer->pendingTriggerColumn = -1;
+            layer->pendingTriggerSnapOverride = Clip::BeatSnapMode::Off;
+        }
+    }
+    return cancelled;
+}
+
+// Re-impose (redo/execute, restore=false) or reverse (undo, restore=true) a
+// previously-recorded cancellation from cancelPendingTriggers onto `deck` — the
+// undo-safety half of the same shared logic, used by every command that cancels
+// a pending trigger as a side effect of deactivating a deck (SwitchDeckCmd,
+// AddDeckCmd). On redo this blindly re-imposes the ORIGINAL recorded
+// cancellation rather than re-scanning current state, matching how the rest of
+// this file's mutate-then-push commands replay their recorded `after`, not a
+// freshly recomputed one.
+inline void applyPendingTriggerCancellation(Deck& deck,
+                                             const std::vector<PendingTriggerSnapshot>& cancelled,
+                                             bool restore)
+{
+    for (const auto& c : cancelled)
+    {
+        if (auto* layer = deck.getLayer(c.layerIndex))
+        {
+            layer->pendingTriggerColumn = restore ? c.pendingTriggerColumn : -1;
+            layer->pendingTriggerSnapOverride = restore ? c.pendingTriggerSnapOverride
+                                                          : Clip::BeatSnapMode::Off;
+        }
+    }
 }
 
 // Value snapshot of one layer's clips row plus its runtime (above). Captured
@@ -617,6 +684,12 @@ using DeckActivateHook = std::function<void()>;
 // newly-active deck on execute AND undo). HEAD's kDeckNew did NOT re-point the
 // renderer after the push_back (a latent torn-pointer / stale-active-deck bug);
 // wrapping it in the fenced command fixes that, as spec §6 row 6 mandates.
+//
+// L5 Quantize follow-on: activating the new deck deactivates whichever deck was
+// active before — cancelPendingTriggers/applyPendingTriggerCancellation (above)
+// close the same "queued trigger freezes on an abandoned deck" bug SwitchDeckCmd
+// already closes, via the same shared helpers. cancelledOnAdd_ records what got
+// cancelled so undo restores it and redo re-cancels it.
 class AddDeckCmd : public Command
 {
 public:
@@ -640,6 +713,17 @@ public:
                 comp->decks.insert(comp->decks.begin() + static_cast<std::ptrdiff_t>(at),
                                    *added_);
                 comp->activeDeckIndex = static_cast<int>(at);
+
+                // L5 Quantize follow-on (review round 2): re-impose the same
+                // cancellation the first execute performed on the deck being
+                // left (priorActiveIndex_ is always < addedIndex_/`at` here — an
+                // AddDeckCmd only ever appends — so the insert above never
+                // shifts it). See cancelPendingTriggers's doc comment: this is
+                // one of the two deactivation paths a review found bypassing
+                // handleDeckSwitch's cancel entirely.
+                if (priorActiveIndex_ >= 0 && priorActiveIndex_ < static_cast<int>(comp->decks.size()))
+                    applyPendingTriggerCancellation(comp->decks[static_cast<size_t>(priorActiveIndex_)],
+                                                     cancelledOnAdd_, false);
             }
             else
             {
@@ -651,6 +735,17 @@ public:
                 comp->decks.push_back(std::move(newDeck));
                 addedIndex_ = static_cast<int>(comp->decks.size()) - 1;
                 added_ = comp->decks.back();               // capture for redo
+
+                // L5 Quantize follow-on: cancel any pending trigger on the deck
+                // being deactivated by this add, BEFORE switching away from it —
+                // same bug class as SwitchDeckCmd (a quantized trigger armed on
+                // the OLD active deck would otherwise freeze until that deck is
+                // reactivated). priorActiveIndex_ < addedIndex_ always (this
+                // deck is always appended after it), so the push_back above
+                // cannot have invalidated the index.
+                if (priorActiveIndex_ >= 0 && priorActiveIndex_ < static_cast<int>(comp->decks.size()))
+                    cancelledOnAdd_ = cancelPendingTriggers(comp->decks[static_cast<size_t>(priorActiveIndex_)]);
+
                 comp->activeDeckIndex = addedIndex_;
             }
         });
@@ -666,6 +761,14 @@ public:
             if (addedIndex_ >= 0 && addedIndex_ < static_cast<int>(comp->decks.size()))
                 comp->decks.erase(comp->decks.begin() + addedIndex_);
             comp->activeDeckIndex = priorActiveIndex_;      // restore prior active deck
+
+            // L5 Quantize follow-on: restore whatever pending trigger this add
+            // cancelled on the deck we left (erase above never touches
+            // priorActiveIndex_'s position — addedIndex_ is always the LATER
+            // index, per the first-do branch's comment).
+            if (priorActiveIndex_ >= 0 && priorActiveIndex_ < static_cast<int>(comp->decks.size()))
+                applyPendingTriggerCancellation(comp->decks[static_cast<size_t>(priorActiveIndex_)],
+                                                 cancelledOnAdd_, true);
         });
     }
 
@@ -678,6 +781,7 @@ private:
     CompositionResolver compResolver_;
     DeckFenceHook fence_;
     std::optional<Deck> added_;
+    std::vector<PendingTriggerSnapshot> cancelledOnAdd_;
     int addedIndex_ = -1;
     int priorActiveIndex_ = 0;
     std::string description_;
@@ -766,6 +870,34 @@ public:
             Composition* comp = resolve();
             if (comp == nullptr)
                 return;
+
+            // L5 Quantize follow-on (review round 4): reactivating the restored
+            // deck below DEACTIVATES whatever deck is currently active — cancel
+            // any pending trigger on it first, via the shared helper, exactly
+            // like every other deck-deactivation path (handleDeckSwitch,
+            // AddDeckCmd, appendDeckFromFile). Repro: remove the active deck
+            // (clamps active to some other deck), arm a Quantize trigger on
+            // THAT deck, undo the removal — without this, the deactivated
+            // deck's trigger stays armed and fires arbitrarily later. Must run
+            // BEFORE insert() below: insert() can shift comp->decks' indices
+            // >= `at` by one, and resolving the current active deck AFTER that
+            // shift with the OLD activeDeckIndex would silently target the
+            // wrong deck.
+            //
+            // UNCONDITIONAL, unlike handleDeckSwitch's "same index = no-op"
+            // guard: insert() ALWAYS displaces whichever deck occupies
+            // activeDeckIndex right now — that deck object can never survive
+            // as "the active deck" after this undo, because the deck about to
+            // become active (`removed_`) is being freshly inserted, not
+            // already live. This matters even when the index number does NOT
+            // change: a non-last-index removal leaves activeDeckIndex
+            // un-clamped (still in range), but the deck occupying that index
+            // is the SURVIVOR that shifted down to fill the gap — undo's
+            // insert() shifts it back UP and off the active slot, so an index
+            // equality check here would silently skip cancelling ITS trigger.
+            if (comp->activeDeckIndex >= 0 && comp->activeDeckIndex < static_cast<int>(comp->decks.size()))
+                cancelPendingTriggers(comp->decks[static_cast<size_t>(comp->activeDeckIndex)]);
+
             const size_t at = std::min(static_cast<size_t>(deckIndex_),
                                        comp->decks.size());
             comp->decks.insert(comp->decks.begin() + static_cast<std::ptrdiff_t>(at),
@@ -808,20 +940,33 @@ private:
 // hook re-points the renderer through DeckActivateHook so execute/undo/redo each
 // leave activeDeck_ at the CURRENT valid deck. Stale index (deck removed) → safe
 // no-op.
+//
+// L5 Quantize follow-on: handleDeckSwitch cancels (via cancelPendingTriggers,
+// above) any pending quantized trigger left waiting on the deck being LEFT
+// (Autopilot::processFrame only drains the ACTIVE deck's layers, so a pending
+// trigger on a deactivated deck would freeze, then fire arbitrarily late
+// whenever that deck is reactivated). cancelledOnLeave_ captures whatever the
+// handler cancelled (deck `before`'s layers only) so undo restores it and redo
+// re-cancels it via applyPendingTriggerCancellation — without this the fix
+// would itself be an undo-staleness bug of the exact shape TRAP #3 already
+// named for the trigger commands. Defaulted/trailing so the 5-arg call shape
+// used everywhere else (including every pre-existing test) is unaffected.
 class SwitchDeckCmd : public Command
 {
 public:
     SwitchDeckCmd(CompositionResolver compResolver, DeckActivateHook activate,
-                  int before, int after, std::string description)
+                  int before, int after, std::string description,
+                  std::vector<PendingTriggerSnapshot> cancelledOnLeave = {})
         : compResolver_(std::move(compResolver)), activate_(std::move(activate)),
-          before_(before), after_(after), description_(std::move(description)) {}
+          before_(before), after_(after), description_(std::move(description)),
+          cancelledOnLeave_(std::move(cancelledOnLeave)) {}
 
-    void execute() override { apply(after_); }
-    void undo() override    { apply(before_); }
+    void execute() override { apply(after_, false); }
+    void undo() override    { apply(before_, true); }
     std::string description() const override { return description_; }
 
 private:
-    void apply(int index)
+    void apply(int index, bool restoreCancelled)
     {
         Composition* comp = compResolver_ ? compResolver_() : nullptr;
         if (comp == nullptr)
@@ -829,6 +974,14 @@ private:
         if (index < 0 || index >= static_cast<int>(comp->decks.size()))
             return;                             // stale coordinate → safe no-op
         comp->activeDeckIndex = index;
+
+        // Re-apply (redo/execute) or restore (undo) whatever pending triggers
+        // this switch cancelled on the deck being LEFT (`before_`), so the deck
+        // we left is never stranded in a state the live handler never produced.
+        if (before_ >= 0 && before_ < static_cast<int>(comp->decks.size()))
+            applyPendingTriggerCancellation(comp->decks[static_cast<size_t>(before_)],
+                                             cancelledOnLeave_, restoreCancelled);
+
         if (activate_)
             activate_();                        // renderer.setActiveDeck(getActiveDeck())
     }
@@ -837,4 +990,5 @@ private:
     DeckActivateHook activate_;
     int before_, after_;
     std::string description_;
+    std::vector<PendingTriggerSnapshot> cancelledOnLeave_;
 };

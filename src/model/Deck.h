@@ -106,13 +106,13 @@ struct Deck
     }
 
     // === Column Triggering ===
-    void triggerColumn(int col)
+    void triggerColumn(int col, Clip::BeatSnapMode forcedSnap = Clip::BeatSnapMode::Off)
     {
         for (auto& layer : layers)
         {
             if (layer.ignoreColumnTrigger)
                 continue;
-            layer.triggerClip(col);
+            layer.triggerClip(col, forcedSnap);
         }
     }
 
