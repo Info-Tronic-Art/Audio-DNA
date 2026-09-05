@@ -383,3 +383,14 @@ Trigger: a feature is guarded on `deckActive` and every probe you can run reache
 Rule: `applyGlobalEffects` is gated on `deckActive && composition_ && sourceTexture != 0`, and `POST /api/load_source` puts the app on the standalone path where no deck composite runs. For a full session that made "do global effects composite?" unanswerable, and the honest-but-useless conclusion was "behaviour-unverified for a testing-setup reason". **The fix was not a better probe, it was a missing endpoint**: `POST /api/load_composition` loads a real set from disk headlessly, after which `trigger_clip` makes a deck live. Result: Invert changed the frame and removing it restored the baseline byte-for-byte. Generalise it — **when a probe cannot reach a state, ask whether the product is missing the mechanism to REACH that state, rather than iterating on the probe.** The missing mechanism was also a real feature (external set loading), not test-only scaffolding.
 Scope: universal
 Promoted: no
+
+### 2026-09-05 — an agent APPENDING to its own artifact used `cat >` and destroyed 1009 lines of it
+Source: s167 — the Fable architect was asked to append an addendum to the spec it had just written
+Trigger: any read-only agent (architect/reviewer/researcher) told to APPEND to, extend, or revise a document it wrote earlier
+Rule: read-only agents have no Write tool, so they write documents with `cat > file <<'EOF'` shell heredocs. Asked to APPEND section 9, this one used `cat >` again — **truncating a 1009-line spec to the 102-line addendum**. It then reported success honestly; nothing in its report was false. I caught it only because I copied the file and the line count came back 105 instead of the ~733 I expected.
+Two lessons, and the second is the general one:
+1. When instructing an agent to extend a document, say **"append with `>>`, do not rewrite the file"** explicitly. "Append under a new heading" is not enough — it describes the intent, not the redirection operator.
+2. **"Verify the artifact, not the silence" is not enough either — verify the artifact's SIZE and SHAPE, not its existence.** An `ls` said the file was there and freshly written; both were true and both were useless. Check line count and expected section headings against what the agent claimed to produce.
+FULL RECOVERY IS POSSIBLE and cost about three minutes: the heredoc bodies live verbatim in the agent's own transcript at `~/.claude/projects/<project>/<session>/subagents/agent-<name>-<id>.jsonl`. Parse the JSONL for `tool_use` blocks named `Bash`, pull `input.command`, and extract the text between the heredoc marker lines. In this case the transcript held THREE versions — the original, a full rewrite that folded in a mid-flight amendment, and the addendum — so recovery also revealed that the rewrite had superseded the version I had been quoting.
+Scope: universal
+Promoted: no
