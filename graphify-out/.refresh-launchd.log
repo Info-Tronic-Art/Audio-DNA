@@ -1,0 +1,81 @@
+2026-07-16T23:44:14-0400  ── start (run) pid=18434 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-16T23:44:14-0400  staleness verdict: MUST | MUST	no rebuild marker (graphify-out/.last-rebuild-sha) - first run
+2026-07-16T23:44:14-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-16T23:44:18-0400  refresh (native): rc=0
+2026-07-16T23:44:18-0400  ── end (run) action=refreshed rc=0
+2026-07-17T09:27:22-0400  ── start (run) pid=93063 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-17T09:27:22-0400  staleness verdict: MUST | MUST	code-path changes in 1eff4f7319eb1a17649d23ab7dd3e6a716ecf0be..HEAD (marker 1eff4f7319eb1a17649d23ab7dd3e6a716ecf0be -> HEAD b4ee3801e9b767269a11939f51ea624b4f4ca58e)
+2026-07-17T09:27:22-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-17T09:27:26-0400  refresh (native): rc=0
+2026-07-17T09:27:26-0400  ── end (run) action=refreshed rc=0
+2026-07-18T15:38:31-0400  ── start (run) pid=42202 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-18T15:38:31-0400  staleness verdict: OK | OK	HEAD unchanged (b4ee3801e9b767269a11939f51ea624b4f4ca58e)
+2026-07-18T15:38:31-0400  fresh, skip
+2026-07-18T15:38:31-0400  ── end (run) action=skip-fresh
+2026-07-19T21:05:20-0400  ── start (run) pid=10855 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-19T21:05:20-0400  staleness verdict: MUST | MUST	code-path changes in b4ee3801e9b767269a11939f51ea624b4f4ca58e..HEAD (marker b4ee3801e9b767269a11939f51ea624b4f4ca58e -> HEAD 38c495cc07f37ee945314c63fefbef1779c8a61b)
+2026-07-19T21:05:20-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-19T21:05:24-0400  refresh (native): rc=0
+2026-07-19T21:05:24-0400  ── end (run) action=refreshed rc=0
+2026-07-19T22:07:53-0400  ── start (run) pid=8277 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-19T22:07:53-0400  staleness verdict: OK | OK	HEAD unchanged (38c495cc07f37ee945314c63fefbef1779c8a61b)
+2026-07-19T22:07:53-0400  fresh, skip
+2026-07-19T22:07:53-0400  ── end (run) action=skip-fresh
+2026-07-22T14:59:49-0400  ── start (run) pid=32400 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-22T14:59:49-0400  staleness verdict: MUST | MUST	code-path changes in 38c495cc07f37ee945314c63fefbef1779c8a61b..HEAD (marker 38c495cc07f37ee945314c63fefbef1779c8a61b -> HEAD 316a2bf85563c5d990d6111038e281224a812700)
+2026-07-22T14:59:49-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-22T14:59:53-0400  refresh (native): rc=0
+2026-07-22T14:59:53-0400  ── end (run) action=refreshed rc=0
+2026-07-22T15:28:47-0400  ── start (run) pid=41666 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-22T15:28:48-0400  staleness verdict: MUST | MUST	code-path changes in 316a2bf85563c5d990d6111038e281224a812700..HEAD (marker 316a2bf85563c5d990d6111038e281224a812700 -> HEAD b5305252a53184550ad8655fa140eaed5d72119a)
+2026-07-22T15:28:48-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-22T15:28:51-0400  refresh (native): rc=0
+2026-07-22T15:28:51-0400  ── end (run) action=refreshed rc=0
+2026-07-25T13:19:15-0400  ── start (run) pid=83945 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-25T13:19:15-0400  staleness verdict: MUST | MUST	code-path changes in b5305252a53184550ad8655fa140eaed5d72119a..HEAD (marker b5305252a53184550ad8655fa140eaed5d72119a -> HEAD 0a1c882ef55c7ec094b657c7ff9d61ccf83605b7)
+2026-07-25T13:19:15-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-25T13:19:19-0400  refresh (native): rc=0
+2026-07-25T13:19:19-0400  ── end (run) action=refreshed rc=0
+2026-07-25T13:28:47-0400  ── start (run) pid=15783 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-25T13:28:47-0400  staleness verdict: OK | OK	HEAD moved (0a1c882ef55c7ec094b657c7ff9d61ccf83605b7 -> 649a8095d38bc5b79f5be9f218a11d35f24c73c0) but no code-path changes
+2026-07-25T13:28:47-0400  fresh, skip
+2026-07-25T13:28:47-0400  ── end (run) action=skip-fresh
+2026-07-28T21:45:03-0400  ── start (run) pid=55661 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-28T21:45:03-0400  staleness verdict: MUST | MUST	code-path changes in 0a1c882ef55c7ec094b657c7ff9d61ccf83605b7..HEAD (marker 0a1c882ef55c7ec094b657c7ff9d61ccf83605b7 -> HEAD bb076c783bd3547a17975fcfc0fe84f31ade847e)
+2026-07-28T21:45:03-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-28T21:45:08-0400  refresh (native): rc=0
+2026-07-28T21:45:08-0400  ── end (run) action=refreshed rc=0
+2026-07-30T11:47:34-0400  ── start (run) pid=33445 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-30T11:47:34-0400  staleness verdict: OK | OK	HEAD moved (bb076c783bd3547a17975fcfc0fe84f31ade847e -> 303178c6d972b37e60eb876cfe5a4c42d5719d57) but no code-path changes
+2026-07-30T11:47:34-0400  fresh, skip
+2026-07-30T11:47:34-0400  ── end (run) action=skip-fresh
+2026-07-30T14:38:02-0400  ── start (run) pid=98955 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-30T14:38:02-0400  staleness verdict: MUST | MUST	code-path changes in bb076c783bd3547a17975fcfc0fe84f31ade847e..HEAD (marker bb076c783bd3547a17975fcfc0fe84f31ade847e -> HEAD 430fefacf2d60cd6a75c7651125359838b1e589e)
+2026-07-30T14:38:02-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-30T14:38:07-0400  refresh (native): rc=0
+2026-07-30T14:38:07-0400  ── end (run) action=refreshed rc=0
+2026-07-30T16:47:42-0400  ── start (run) pid=37742 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-07-30T16:47:42-0400  staleness verdict: MUST | MUST	code-path changes in 430fefacf2d60cd6a75c7651125359838b1e589e..HEAD (marker 430fefacf2d60cd6a75c7651125359838b1e589e -> HEAD 677766779121f3edef8fd7490a2302ee644701aa)
+2026-07-30T16:47:42-0400  refresh (native): running: __native_codeonly_refresh
+2026-07-30T16:47:47-0400  refresh (native): rc=0
+2026-07-30T16:47:47-0400  ── end (run) action=refreshed rc=0
+2026-08-02T16:35:00-0400  ── start (run) pid=70030 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-08-02T16:35:00-0400  staleness verdict: MUST | MUST	code-path changes in 677766779121f3edef8fd7490a2302ee644701aa..HEAD (marker 677766779121f3edef8fd7490a2302ee644701aa -> HEAD 7bb5cc2b44c4ee4421438738daf3c1f8260f5576)
+2026-08-02T16:35:00-0400  refresh (native): running: __native_codeonly_refresh
+2026-08-02T16:35:05-0400  refresh (native): rc=0
+2026-08-02T16:35:05-0400  ── end (run) action=refreshed rc=0
+2026-08-02T23:09:06-0400  ── start (run) pid=76896 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-08-02T23:09:06-0400  staleness verdict: MUST | MUST	code-path changes in 7bb5cc2b44c4ee4421438738daf3c1f8260f5576..HEAD (marker 7bb5cc2b44c4ee4421438738daf3c1f8260f5576 -> HEAD 82a74c1f55f2eacd73bbdc77f3da9cedc78161e1)
+2026-08-02T23:09:06-0400  refresh (native): running: __native_codeonly_refresh
+2026-08-02T23:09:11-0400  refresh (native): rc=0
+2026-08-02T23:09:11-0400  ── end (run) action=refreshed rc=0
+2026-08-04T12:24:58-0400  ── start (run) pid=12086 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-08-04T12:24:58-0400  staleness verdict: MUST | MUST	code-path changes in 82a74c1f55f2eacd73bbdc77f3da9cedc78161e1..HEAD (marker 82a74c1f55f2eacd73bbdc77f3da9cedc78161e1 -> HEAD 3b940a08be0cef00310d4ecc549c44187b7c6cfa)
+2026-08-04T12:24:58-0400  refresh (native): running: __native_codeonly_refresh
+2026-08-04T12:25:05-0400  refresh (native): rc=0
+2026-08-04T12:25:05-0400  ── end (run) action=refreshed rc=0
+2026-09-05T05:23:31-0400  ── start (run) pid=45497 repo=/Users/boriskarpman/projects/RealTimeAudio engine=native code_only=1
+2026-09-05T05:23:31-0400  staleness verdict: MUST | MUST	code-path changes in 3b940a08be0cef00310d4ecc549c44187b7c6cfa..HEAD (marker 3b940a08be0cef00310d4ecc549c44187b7c6cfa -> HEAD 4216959c2566152f9c33a7e4ea44e188a2dc3531)
+2026-09-05T05:23:31-0400  refresh (native): running: __native_codeonly_refresh
+2026-09-05T05:23:35-0400  refresh (native): rc=0
+2026-09-05T05:23:35-0400  ── end (run) action=refreshed rc=0
