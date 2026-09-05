@@ -362,3 +362,24 @@ Trigger: a mechanism looks broken, and you are about to write that down or file 
 Rule: oscillators looked frozen (they were fine — I was holding `beatPhase` constant, so they had no input); `render_frame` looked flaky (it is deterministic — I never loaded a source because I sent the wrong field name); `load_source` looked like a lying oracle returning `ok:false` while working (it was correctly rejecting a malformed request). Each was settled in about two minutes by a probe that varied MY OWN INPUT rather than re-measuring the tool's output — sweep the phase instead of holding it, read the endpoint's real field name instead of guessing it. **Suspect your usage before you suspect the mechanism, and prove which it is with a test that changes what YOU send.** The cost of getting this backwards is not just a wrong note: a filed "this endpoint is broken" lane sends the next session to fix something that works.
 Scope: universal
 Promoted: no
+
+### 2026-09-05 — a composition file's OMITTED fields load as FALSY, not as sane defaults
+Source: s167 — hand-authored a probe fixture and loaded it through the new POST /api/load_composition
+Trigger: authoring, generating or hand-editing ANY composition/deck JSON, or writing a test fixture for one
+Rule: omit `masterOpacity` and it loads as **0.0**, not 1.0. Omit a layer's `visible` and it loads as **false**, not true. Verified live: my first fixture came back from `GET /api/composition` with `"masterOpacity": 0.0, "visible": false`, neither of which I had written. This is HARMLESS TODAY only because `masterOpacity` is render-dead — **the day the renderer lane wires it, every composition file that omits the field renders BLACK**, and it will present as "the renderer lane broke the app" rather than as a loader default. Always write opacity and visibility fields EXPLICITLY in any fixture, and treat "the field was absent" as a distinct case from "the field was zero" when that lane lands.
+Scope: repo
+Promoted: no
+
+### 2026-09-05 — render_frame is deterministic on STATE + INJECTED AUDIO, and blind to TIME
+Source: s167 — deck-path pixel probe (.harmony/probe-deck-path.sh)
+Trigger: about to test anything time-based (masterSpeed, animation, a source's motion) by diffing two rendered frames
+Rule: `render_frame` is an excellent oracle and a REPEATABLE one — same state + same injected features gives a byte-identical PNG every time, proven across a dozen captures. But it is **insensitive to wall-clock time**: two captures four seconds apart of a live procedural source (`gravity_well`, fps ~118) were byte-identical, and changing `beatPhase` alone (0.0 vs 0.75, same levels) changed nothing either. Only the injected LEVELS (rms/bass/mid/treble) moved the picture. So **you cannot render-diff a time-based feature** — a "speed 0 froze the frame" result is meaningless when the frame was never moving. Test speed/animation math in a unit test, or drive it through the input that demonstrably moves the picture. Getting this wrong yields a confident false PASS.
+Scope: repo
+Promoted: no
+
+### 2026-09-05 — the deck path was untestable, and that is why one lane sat unverified for a whole session
+Source: s167 — added POST /api/load_composition, then probed
+Trigger: a feature is guarded on `deckActive` and every probe you can run reaches only the standalone-source path
+Rule: `applyGlobalEffects` is gated on `deckActive && composition_ && sourceTexture != 0`, and `POST /api/load_source` puts the app on the standalone path where no deck composite runs. For a full session that made "do global effects composite?" unanswerable, and the honest-but-useless conclusion was "behaviour-unverified for a testing-setup reason". **The fix was not a better probe, it was a missing endpoint**: `POST /api/load_composition` loads a real set from disk headlessly, after which `trigger_clip` makes a deck live. Result: Invert changed the frame and removing it restored the baseline byte-for-byte. Generalise it — **when a probe cannot reach a state, ask whether the product is missing the mechanism to REACH that state, rather than iterating on the probe.** The missing mechanism was also a real feature (external set loading), not test-only scaffolding.
+Scope: universal
+Promoted: no

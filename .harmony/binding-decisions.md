@@ -205,3 +205,112 @@ each is BINDING and outranks any earlier handoff text in this repo that contradi
   gotchas file taking precedence in practice for this-repo-specific facts (e.g. the line-number
   and force-tracked-`.harmony/` items above) — stated as observed practice, not as a cited
   system rule.
+
+---
+
+## 2026-09-05 (s167) — BORIS RULINGS, SPOKEN DIRECTLY
+
+Ten questions were put to Boris in plain English at session start; he answered all ten and
+volunteered one new feature concept. Verbatim answers preserved, with the reading I acted on.
+
+1. **OUTPUT WINDOW: LATER. ENGINE FIRST.** Verbatim: "fix it later. engine first."
+   The projector window rendering nothing of the composition is a KNOWN, ACCEPTED gap for now.
+   Do not re-raise it as a blocker; the connection engine outranks it.
+
+2. **RECORDING: REPLAY *AND* OFFLINE RENDER — AND A NEW THIRD THING.** Verbatim: "A and B. It
+   can be used to make a video recording without using much memory or resources, and they could
+   also be modified later if user wants to edit something to make it better before finalizing.
+   Or the users should be able to take pieces of it and save it as a routine to be run. This is
+   something new I just came up with."
+   Three distinct capabilities, in his own priority order:
+   (a) live replay inside the app;
+   (b) offline render of the log to video — explicitly motivated by COST: an event log is tiny
+       compared to video frames, so recording a set cheaply and rendering later is the point;
+   (c) **ROUTINES — NEW SCOPE.** Take a PIECE of a recording, save it as a named unit, re-run it.
+       Also: the log should be EDITABLE before finalizing.
+   Consequence for the recorder lane: the event log is not a debug artifact, it is a
+   FIRST-CLASS MEDIA FORMAT. Design its schema so slicing, editing and re-running are possible
+   later — stable event ids, absolute + musical timebase on every event, no positional coupling.
+
+3. **AUDIO IN THE VIDEO FILE: YES, BUT I TRIAGE THE ORDER.** Verbatim: "do this but triage the
+   correct build order." Harmony owns the sequencing decision; the feature is approved, not
+   deferred indefinitely.
+
+4. **TEMPO IN SILENCE: KEEP RUNNING FROM THE LAST / TAPPED BPM.** Verbatim: "B". Modulation must
+   not go still between tracks. (The bar-counter fix is being built regardless; this decides the
+   policy that sits on top of it.)
+
+5. **A CUE DOES NOT SURVIVE A STOP.** Verbatim: "A". Stopping a clip cancels a pending quantized
+   cue — and the GLOBAL Stop button must do the same, closing the fifth "outlives its context"
+   path found this session. Stop means stop.
+
+6. **OPACITY LIVES AT EXACTLY TWO LEVELS: PER-LAYER, AND ONE MASTER.** Verbatim: "Each layer
+   should have an opacity, and there is a master opacity. Anything else would make this
+   confusing."
+   This is a PRODUCT SIMPLIFICATION RULING and it overrides the general "build the dead UI"
+   default for this specific surface: the Composition's SECOND opacity knob is not built as its
+   own thing — it merges into Master. Per-clip opacity was not named; queried separately.
+
+7. **HAND-BACK GLIDES, IT DOES NOT SNAP.** Verbatim: "smooth transition back." When a human lets
+   go of a control that a signal owns, the value eases back to the signal. Confirms the glide
+   defaults; snap-to is not the behaviour he wants.
+
+8. **BUILD THE DRAWABLE TIMELINE CURVE.** Verbatim: "build."
+
+9. **PRESET MIGRATION: NOT YET DECIDED.** Verbatim: "not sure. clarify and give recs." Owed him
+   a plain-English explanation plus a recommendation. Do not migrate anything until answered.
+
+10. **MACRO BANKS AT ALL THREE LEVELS.** Verbatim: "all. Global, layer, clip." The single shared
+    bank of 8 is not the end state; the model must not box out per-layer and per-clip banks.
+
+**Standing rulings from s166 remain in force** (push routinely; do not hide or delete dead UI —
+build it; "audio controls the video", all tempo-locked, current UI will be scrapped).
+
+### 2026-09-05 (s167) — FOUR CLARIFYING ANSWERS, AND ONE OF THEM RESHAPES THE PRODUCT
+
+11. **OPACITY MULTIPLIES ACROSS THREE LEVELS, AND CLIP OPACITY IS A CEILING.** Verbatim: "I
+    think it's the same mechanism So keep it. They stack anyway we can fade on the master we
+    could fade opacity on the layer and on the clip. If for some reason, I want to have a clip
+    that is permanently 50% opacity, I could just set that in the clip and regardless of what I
+    do inside of the master and the layer, it won't get past 50%. This could be useful for many
+    things."
+    RESOLVED: `final = masterOpacity * layerOpacity * clipOpacity`. His "permanently 50%" example
+    IS multiplication — a clip at 0.5 can never exceed 50% no matter what master and layer do.
+    His earlier "anything else would make this confusing" (ruling 6) referred to the COMPOSITION
+    carrying TWO opacity knobs at the SAME level, NOT to the three levels. The redundant second
+    composition field merges into master. Three levels, one knob each, multiplied.
+
+12. **THE CAPTURED AUDIO IS PART OF A RECORDING, NOT A VIDEO EXTRA.** Verbatim: "Depending on
+    what was used for the track, it was either the Audio from the microphone or from the sound
+    card or from whatever. It gets recorded Along with the log and we will test it to make sure
+    it stays in time."
+    A recording is `{lanes + audio}` — the input the app actually heard, whatever its source,
+    captured alongside the log. Consequence: a recording is SELF-CONTAINED; offline video render
+    does not need the DJ's original track file. And ALIGNMENT IS A DELIVERABLE HE NAMED: a
+    headless sync test proving lanes and audio stay in time is part of the feature, not an
+    afterthought. Hazard for the builder: the existing full-rate PCM ring buffer off the audio
+    callback is SINGLE-CONSUMER (owned by the analysis thread) — this needs a second tap, not a
+    free reuse.
+
+13. **>>> THE RECORDING IS A SET OF PER-CONTROL TIMELINES, ABLETON-STYLE. <<<** Verbatim: "You
+    can change it while it's playing or you can stop and change it on the timeline. All of the
+    different sliders and buttons used in a performance will be logged on its own timeline. These
+    timelines can be changed similar to how Ableton live works."
+    THIS IS THE LARGEST SCOPE STATEMENT SINCE THE CORE PRODUCT LAW. It is NOT an event log with
+    an editor bolted on. Every slider and button used in a performance gets ITS OWN editable
+    timeline; the performer can override live while it plays, or stop and edit the timeline
+    afterwards.
+    Two consequences that reach code being written RIGHT NOW:
+    (a) **A TIMELINE IS A CONNECTION SOURCE.** A parameter can be owned by an audio signal, an
+        oscillator — or a timeline. Which means the hand-drawn curve Boris approved (ruling 8)
+        and a captured performance lane are THE SAME OBJECT, one drawn and one recorded. If that
+        holds, `ConnSource` must carry it in Lane 2, which is being built today. Sent to the
+        architect as the single highest-value question in the spec.
+    (b) **OVERRIDE SEMANTICS ARE NOW A REAL DESIGN SURFACE** — override / re-enable / overwrite,
+        composed with the existing grip-and-hand-back rule. Ableton is the stated reference.
+
+14. **PRESET MIGRATION — STILL OPEN.** Verbatim: "Clarify this." He asked for the QUESTION to be
+    clarified, not the policy. Re-put to him in concrete terms: the only lossy case is a knob
+    that had TWO drivers stacked on it, and rather than making him remember, Harmony offered to
+    scan his real Presets folder and report which files (if any) are affected before anything
+    changes. Do not migrate until answered.
