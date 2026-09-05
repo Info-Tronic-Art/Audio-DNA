@@ -138,14 +138,26 @@ TEST_CASE("OscillatorSignal short beat durations unchanged across bars", "[signa
     }
 }
 
-TEST_CASE("Live-app regression anchors: Mod 1 (sine, duration 1) and Mod 2 (ramp, duration 2) unchanged at barCount=0", "[signal][oscillator]")
+TEST_CASE("Live-app regression anchors: Mod 1 (OscillatorSignal Sine, duration 1) and Mod 2 (EnvelopeSignal, duration 4) unchanged at barCount=0", "[signal][oscillator][envelope]")
 {
     // Measured directly off the running app via /api/signals by the
     // team-lead sweeping beatPhase with beatInBar=0, barCount=0 (S166-L5a
     // build-slot handoff). These are real, not predicted, values -- the fix
     // must reproduce them exactly since barCount=0 contributes nothing.
+    //
+    // CORRECTION (independent reviewer + team-lead, post-hoc): Mod 2 is NOT
+    // an OscillatorSignal SawUp at duration 2 -- it is registered as
+    // EnvelopeSignal("Mod 2", 4.0f) with its default control points
+    // (SignalRegistry.cpp:70), a triangle. The 0.0/0.125/0.25/0.375 sweep is
+    // real and unchanged -- it happens to numerically coincide with a
+    // duration-2 SawUp because it only sampled the envelope's rising linear
+    // segment (0,0)->(0.5,1), where t = cyclePhase/0.5 = 2*(beatPhase/4) =
+    // beatPhase/2, same arithmetic as a SawUp at half the duration. The
+    // measurement was right; the object it was attributed to was wrong.
+    // Both Mod 1 and Mod 2 constructions below are verified directly against
+    // SignalRegistry.cpp:65-70, not inferred from the measurement.
     OscillatorSignal mod1("Mod 1", OscillatorSignal::WaveShape::Sine, 1.0f);
-    OscillatorSignal mod2("Mod 2", OscillatorSignal::WaveShape::SawUp, 2.0f);
+    EnvelopeSignal mod2("Mod 2", 4.0f);
 
     const float sweep[] = {0.0f, 0.25f, 0.5f, 0.75f};
     const float mod1Expected[] = {0.5000f, 1.0000f, 0.5000f, 0.0000f};
@@ -162,6 +174,19 @@ TEST_CASE("Live-app regression anchors: Mod 1 (sine, duration 1) and Mod 2 (ramp
         REQUIRE_THAT(mod1.getValue(s), WithinAbs(mod1Expected[i], 0.001f));
         REQUIRE_THAT(mod2.getValue(s), WithinAbs(mod2Expected[i], 0.001f));
     }
+
+    // The distinguishing assertion the mislabeled measurement lacked: at
+    // cyclePhase=0.5 (totalBeatPhase=2, beatInBar=2, barCount=0, duration 4)
+    // the REAL Mod 2 sits exactly on its peak control point -> value 1.0.
+    // A SawUp at duration 2 could never produce this: at the same snapshot
+    // its cyclePhase = fmod(2/2, 1.0) = 0.0, so a SawUp would read 0.0, not
+    // 1.0 -- this single point is what tells the two hypotheses apart, and
+    // its absence is why the wrong object passed before.
+    FeatureSnapshot atPeak;
+    atPeak.beatPhase = 0.0f;
+    atPeak.beatInBar = 2;
+    atPeak.barCount = 0;
+    REQUIRE_THAT(mod2.getValue(atPeak), WithinAbs(1.0f, 0.001f));
 }
 
 TEST_CASE("EnvelopeSignal completes a full cycle over 8 beats (2 bars)", "[signal][envelope]")
