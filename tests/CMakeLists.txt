@@ -395,6 +395,37 @@ endif()
 apply_sanitizers(test_preset_manager)
 catch_discover_tests(test_preset_manager)
 
+# --- test_projectm_preset_manager (S166-FAV: MilkDrop favorites/user-preset
+# persistence — ProjectMPresetManager::saveUserData()/loadUserData() round
+# trip). Headless: needs only juce_core (real file/JSON I/O), no GUI/GL —
+# mirrors test_thumbnail_cache's minimal style. Distinct from, and NOT to be
+# confused with, test_preset_manager above (that one covers ui/PresetManager,
+# the unrelated effect-chain/deck preset system).
+add_executable(test_projectm_preset_manager
+    test_projectm_preset_manager.cpp
+    ${SRC_DIR}/sources/ProjectMPresetManager.cpp
+)
+target_include_directories(test_projectm_preset_manager PRIVATE ${SRC_DIR})
+target_link_libraries(test_projectm_preset_manager PRIVATE
+    Catch2::Catch2WithMain
+    juce::juce_core
+)
+target_compile_definitions(test_projectm_preset_manager PRIVATE
+    _USE_MATH_DEFINES
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+)
+if(NOT MSVC)
+    target_compile_options(test_projectm_preset_manager PRIVATE
+        -Wno-old-style-cast
+        -Wno-conversion
+        -Wno-sign-conversion
+    )
+endif()
+apply_sanitizers(test_projectm_preset_manager)
+catch_discover_tests(test_projectm_preset_manager)
+
 # --- syphon-check (headless Syphon server-discovery verification CLI) ---
 # Not a Catch2 unit test: a standalone gate tool that confirms a running
 # Audio-DNA instance is announcing a Syphon server (syphon_check.m). Needs

@@ -47,6 +47,19 @@ namespace
                 return dev.identifier;
         return {};
     }
+
+    // S166-FAV: MilkDrop favorites/user-preset persistence. Shares the
+    // Application Support/Audio-DNA folder with settings.json (see
+    // save/loadMilkDropPresetDirSetting below) but is its own file, since
+    // ProjectMPresetManager::saveUserData()/loadUserData() own a separate
+    // JSON schema (favorites/userPresets arrays). A free function (not a
+    // MainComponent method) so no MainComponent.h change is needed — same
+    // reasoning as currentMidiOutputDeviceId() just above.
+    juce::File projectMUserDataFile()
+    {
+        return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                   .getChildFile("Audio-DNA").getChildFile("milkdrop_userdata.json");
+    }
 }
 
 MainComponent::MainComponent(bool testMode, int testPort)
@@ -1606,6 +1619,18 @@ MainComponent::MainComponent(bool testMode, int testPort)
                 presetManager_.loadManifest(manifestFile.getFullPathName().toStdString());
         }
 
+        // S166-FAV: restore favorites/user-preset flags saved from a prior
+        // run. Must run AFTER rescan()/loadManifest() above — it matches
+        // saved entries against presets_ by name/path, which is empty until
+        // rescan() populates it. Safe to call unconfined here for the same
+        // reason rescan()/loadManifest() are: the GL context is never
+        // attached at construction time (see the "v2: MilkDrop Preset
+        // Browser Wiring" comment above this block), so this is the message
+        // thread and no ProjectMSource/PresetSelector can be mid-processFrame
+        // to race it. A missing or malformed file is a silent no-op (see
+        // ProjectMPresetManager::loadUserData()) — normal on first run.
+        presetManager_.loadUserData(projectMUserDataFile().getFullPathName().toStdString());
+
         // Wire the browser to the (MainComponent-owned) preset manager. This
         // pointer outlives Renderer and every ProjectMSource, so it never
         // dangles even across GL context recreation — see
@@ -1627,6 +1652,21 @@ MainComponent::MainComponent(bool testMode, int testPort)
         // returns, i.e. before any UI click is possible.
         browserPanel_->getMilkDropBrowser().onToggleFavoriteRequested = [this](int idx) {
             previewPanel_.getRenderer().toggleFavoritePreset(idx);
+
+            // S166-FAV: persist immediately so the new favorite survives a
+            // quit, rather than waiting for a shutdown hook (matches this
+            // ctor's own setMilkDropPresetDir()/saveMilkDropPresetDirSetting()
+            // precedent: write-through on change, not on exit). Runs here on
+            // the message thread AFTER toggleFavoritePreset() above returns
+            // — that call blocks until its GL-thread round-trip (when the GL
+            // context is attached) completes, so presets_ is already stable
+            // by this line; saveUserData() only reads it. This does NOT put
+            // I/O on the GL/render thread, and no new thread touches
+            // presets_ — the message thread was already the sole caller of
+            // this whole callback.
+            auto userDataFile = projectMUserDataFile();
+            userDataFile.getParentDirectory().createDirectory();
+            presetManager_.saveUserData(userDataFile.getFullPathName().toStdString());
         };
 
         // The PresetSelector lives INSIDE ProjectMSource (GL-thread member,
@@ -5072,6 +5112,22 @@ void MainComponent::handleMenuCommand(int commandId)
                         {
                             newContent.mediaType = Clip::MediaType::Image;
                             newContent.playing = true;
+
+                            // Media-leak fix (S166-LEAK, 2026-09): the outgoing
+                            // clip id may currently hold a live VideoPlayer or
+                            // ImageSequence entry (existing was Video/
+                            // ImageSequence before this replace). The Video
+                            // branch below retires it for free inside
+                            // openVideoForClip(); this Image branch never
+                            // called an open function at all, so the outgoing
+                            // entry was never retired and leaked forever
+                            // (decoder + map entry, both immortal). Route it
+                            // through the same closeMediaForClip() retire
+                            // mechanism L1-FU uses (GL-thread-deferred
+                            // destroy) instead of inventing a second release
+                            // path. Safe/no-op when existing->id has no media
+                            // (Image->Image replace).
+                            previewPanel_.getRenderer().closeMediaForClip(existing->id);
                         }
                         else
                         {

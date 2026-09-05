@@ -621,3 +621,41 @@ new bug when it's actually an old, unrelated one.
 `toggleFavoritePreset()`'s confinement becomes redundant but harmless) and `loadUserData()`/
 `saveUserData()` remain uncalled (if either gets wired up, re-check whether its call site is
 provably pre-GL-context or needs the same confinement treatment).
+
+## 2026-09-05 — S166-FAV: loadUserData()/saveUserData() wired up (the "if either gets wired up" case above happened) — this is the re-check
+**Files:** src/MainComponent.cpp
+**Note:** The prior entry's expiry condition fired. `loadUserData()` is now called once in
+`MainComponent`'s ctor, right after `presetManager_.rescan()`/`loadManifest()` (message thread,
+pre-GL-attach, same unconfined-safe reasoning as those two calls — the GL context is never
+attached at construction time). `saveUserData()` is now called inside the
+`onToggleFavoriteRequested` lambda, AFTER `toggleFavoritePreset(idx)` returns — that call BLOCKS
+until its GL-thread round-trip (when attached) finishes, so by the save line `presets_` is
+already stable and the save is a pure read on the message thread; no new thread touches
+`presets_`/`.favorite`. Deliberately did NOT put the save inside
+`Renderer::toggleFavoritePreset()`'s GL-thread-confined `doToggle()` — that would put disk I/O
+(`juce::File::replaceWithText`, which is a temp-file-write + atomic-rename) on the GL/render
+thread, which the work packet's "does not stall the render thread" criterion rules out; keeping
+save on the message thread, after the blocking call returns, avoids that without needing any new
+synchronization. Both new call sites are free functions/lambdas in `MainComponent.cpp`'s existing
+anonymous namespace (`projectMUserDataFile()`, mirroring `currentMidiOutputDeviceId()`) — no
+`MainComponent.h` change needed. Persistence file: `Application Support/Audio-DNA/
+milkdrop_userdata.json`, same folder as `settings.json`; the save call site creates the parent
+dir first (`getParentDirectory().createDirectory()`) because `saveUserData()` itself does not —
+confirmed from JUCE's `TemporaryFile` source: it writes its temp file into the TARGET's parent
+directory, so a missing parent silently fails the write (no crash, but no persistence either).
+**Known pre-existing gap, not touched:** `saveUserData()`'s favorites array is keyed by
+`PresetInfo::name` (display name), not path — `scanDirectory()`'s own duplicate check is by full
+path, so two presets with the same display name from different directories (e.g. a user preset
+dir shadowing a bundled one) are NOT deduped and favoriting one is ambiguous on reload (first
+name-match wins). Latent in the original (already "fully implemented") `loadUserData()`/
+`saveUserData()`, unrelated to the wiring fix — flagging per this repo's convention of naming
+findings rather than fixing out-of-scope ones.
+**Untestable today:** `PresetInfo::userPreset` has NO public setter anywhere on
+`ProjectMPresetManager` (only round-tripped through save/load) — confirmed nothing in `src/`
+outside `ProjectMPresetManager.cpp` itself references it. `saveUserData()`/`loadUserData()`'s
+userPreset half is therefore dead weight beyond JSON round-tripping; only the favorites half is
+live end-to-end today.
+**Valid while:** `Renderer::toggleFavoritePreset()` keeps blocking
+(`executeOnGLThread(..., blockUntilFinished=true)`) rather than firing-and-forgetting — if that
+ever changes to async, the save-after-toggle call in `onToggleFavoriteRequested` would need to
+move (it currently relies on the toggle having already completed by the time it runs).
