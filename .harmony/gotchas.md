@@ -92,8 +92,8 @@ expected. The practical Rule above still stands.
 **Source:** Boris session 15 — "Re-design anything that is not B+ level" then "refine all 20 to b+ and make the the default behavior in the future regardless of the task, you'll finish what I ask you for."
 **Trigger:** When Harmony spawns a Critic agent to grade design variations (layer-rows, mockups, page studies), and Boris requests "evaluate and refine".
 **Rule:** Anything graded below B+ gets refined in-place via Refiner Builder. Don't ask which to refine — refine all sub-B+ items. Re-Critic verifies B+ achieved. Iterate max 2 loops. Pattern: Critic (Tester + design-review methodology + Playwright) → Refiner (Builder with per-variation recommendations) → Re-Critic. Validated session 15: 13/13 refinements achieved B+ first pass.
-**Scope:** repo (RealTimeAudio design work). Boris may elevate to universal if same pattern applies to other projects' design audits — currently RTA-scoped.
-**Promoted:** no
+**Scope:** universal
+**Promoted:** yes → design-review (2026-08-30)
 
 ### 2026-07-16 — All shipped shaders are EMBEDDED; shaders/ dir files are dead + hot-reload is inert
 **Source:** 7-lane re-norm audit (L2 render-effects)
@@ -164,8 +164,8 @@ expected. The practical Rule above still stands.
 **Source:** Undo v1 step-8 session env recheck — post-reboot launch still "stalled"; `screencapture` + Read of the PNG revealed a live TCC dialog ("Audio-DNA would like to access the microphone", Don't Allow/Allow) that no CLI probe can see.
 **Trigger:** Launching Audio-DNA from a headless/agent session. `CoreAudioInternal::start` blocks (verified by sample, same signature as 07-19/07-22 entries) waiting on the TCC microphone-permission response; with nobody at the screen the dialog is never answered → launch never binds :7070. Because the app is **ad-hoc signed** (`codesign -dv`: Signature=adhoc, no TeamIdentifier — verified), every rebuild changes the cdhash, so TCC re-prompts after EVERY rebuild (inferred, standard TCC behavior — explains recurrence across sessions and why pkill/reboot/coreaudiod-restart never helped).
 **Rule:** (1) After any rebuild, the FIRST app launch needs a human to click **Allow** on the mic prompt — schedule app-level behavioral gates for when Boris is present, or have him click Allow right after the gate's launch. (2) Diagnose headless launch stalls with `screencapture -x /tmp/x.png` + image read — TCC/system dialogs are invisible to sample/lsof/log probes. (3) Do NOT pkill-cycle or restart coreaudiod for this signature. (4) Durable fix option (Boris): sign dev builds with a stable Developer ID identity so TCC remembers the grant across rebuilds. (5) Synthetic clicks can't answer TCC prompts without Accessibility for the calling process (osascript denied assistive access — verified).
-**Scope:** repo (macOS env interaction); the screenshot-diagnosis method is universal-candidate
-**Promoted:** no
+**Scope:** universal
+**Promoted:** yes → debug-mode (2026-08-30)
 
 ### 2026-07-30 — Synthetic UI driving of Audio-DNA (recipes + flake profile)
 **Source:** Autonomous e2e drive (Accessibility granted to Ghostty; fence-lane app verification)
@@ -184,8 +184,8 @@ Composition-menu Undo item name); never fire blind undos after an unverified op.
 undo-label + visual capture. (6) An empty ACTIVE deck collapses the grid and
 relocates deck tabs to the top — recapture coordinates after structural layout
 changes. Menu bar: Undo/Redo live in the COMPOSITION menu (no Edit menu).
-**Scope:** repo (recipes); the verify-and-retry synthetic-event protocol is universal-candidate
-**Promoted:** no
+**Scope:** universal
+**Promoted:** yes → feature-build (2026-08-30)
 **ADDENDUM 2026-07-30 PM:** (7) FULL-SCREEN captures (`screencapture -x` without
 -l): screen_pt = displayed_2000px_coord × 0.864 directly, NO +38 (menu bar
 included in frame — the +38 applies only to WINDOW-relative coords from -l
@@ -226,8 +226,8 @@ If frontmost ≠ Audio-DNA → abort the burst entirely.
 ## 2026-08-03 — App UI gates: activation can FAIL silently; use menu AXPress, and .ips lands LATE
 **Trigger:** OW-arc C2 gate: coordinate click for the SignalBar cycler landed in Ghostty; `tell app "Audio-DNA" to activate` left ghostty frontmost; a stale ReportCrash dialog ate Escape keystrokes.
 **Rule:** (1) VERIFY frontmost (`get name of first application process whose frontmost is true`) before ANY coordinate click — activate can no-op, and `click at {x,y}` then hits whatever window owns that point. (2) Menu-item AXPress works WITHOUT frontmost and is the reliable path: Output>"Fullscreen: <res> (main)" opens, Output>"Disabled" closes the output window (Escape is unreliable — a system dialog steals it). (3) A TSan-instrumented app that reported races ABORTS at exit (NSApplication terminate -> exit -> __cxa_finalize -> __tsan::finalize -> Die -> abort, SIGABRT) and writes an .ips — that is the sanitizer, NOT a product crash; check the crashed-thread frames before alarm. (4) .ips files are written with a DELAY (tens of seconds+) — an immediate post-quit `ls DiagnosticReports` proves NOTHING; re-check later or verify by parsing the newest report. (5) Escape/keystroke gates: kill lingering ReportCrash first (it respawns; pkill -9 may need repeating).
-**Scope:** repo (gate mechanics); the verify-frontmost-before-clicking rule is universal-candidate
-**Promoted:** no
+**Scope:** universal
+**Promoted:** yes → feature-build (2026-08-30)
 
 ### 2026-08-03 — The /api/health "fps" field FREEZES on GL detach; it is an INVALID detach oracle
 **Source:** OutputWindow arc C3 gate step 1. A handoff instructed "use /api/status fps as the detach oracle — it collapses when the preview GL context detaches." Both halves were wrong.

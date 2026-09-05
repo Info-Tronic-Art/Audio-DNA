@@ -4,12 +4,13 @@
 > This is a close-resilience snapshot, NOT an EOS handoff. The rich LLM handoff
 > is still authored only at a real EOS. Debounced (60s).
 
-- **Timestamp (UTC):** 2026-07-29T20:33:16Z
+- **Timestamp (UTC):** 2026-08-30T01:50:46Z
 - **Repo:** /Users/boriskarpman/projects/RealTimeAudio
-- **Git:** main @ bb076c7 (dirty)
-- **Session instance:** harmony-89245
-- **Session role:** primary
-- ****Active Tasks:** none in flight — all s55 lanes terminal. This session's memory-layer work (archives, digest, plan, handoff, log) is uncommitted at authoring time and WILL BE committed at Step-7 close (per-item pathspec commits + chore(close)); if you are reading this post-boot, verify with `git -C ~/harmony2 log --oneline -3` that the 2026-07-29 close commits landed.**
+- **Git:** main @ 9ce7fb3 (dirty)
+- **Session instance:** harmony-31879
+- **Session role:** secondary
+- **Active Task: (unavailable)**
 
 ## Last exchanges (from transcript)
-- (transcript unavailable)
+- **user:** State your boot marker and your boot profile (FULL or MINIMAL) in one line. Do no other work.
+- **assistant:** HARMONY-MAIN — profile MINIMAL... correction: boot banner says `[profile] FULL` but `[role] secondary`. Boot marker: **HARMONY-MAIN**, profile **FULL** (cwd `~/Harmony_Main`), seat **SECONDARY** (primary already held). [STOP:ANSWERED]
