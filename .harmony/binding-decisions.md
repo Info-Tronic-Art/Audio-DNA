@@ -314,3 +314,52 @@ build it; "audio controls the video", all tempo-locked, current UI will be scrap
     that had TWO drivers stacked on it, and rather than making him remember, Harmony offered to
     scan his real Presets folder and report which files (if any) are affected before anything
     changes. Do not migrate until answered.
+
+### 2026-09-05 (s167) — THE SEVEN RECORDING QUESTIONS, ANSWERED (and the editing model he specified)
+
+15. **REPLAY IS AUDIO-LOCKED, AND SNAPS TO QUARTER BEATS.** Verbatim: "When I play the recording,
+    the audio should be locked in with the changes in the knobs. Maybe to make it easy let it snap
+    too quarter beats for replay."
+    The audio is the master clock on replay, not a parallel track hoped to stay in sync. Quantise
+    replay events to 1/4 beat as the default.
+
+16. **>>> EVERY KNOB HAS ITS OWN OPENABLE LANE SHOWING *KEY* MOVEMENTS — NOT SAMPLES. <<<**
+    Verbatim: "Each knob will have its own layer where I could click it open and it will show me
+    the key knob movements that I can drag and change then save as a new file, connected to the
+    same audio."
+    Three requirements in one sentence: (a) per-knob lane, collapsed by default, expandable;
+    (b) what it shows is **KEY movements** — he already rejected sample-per-frame editing before
+    anyone proposed it; (c) **save as a NEW FILE connected to the SAME audio** — versioning where
+    the audio is referenced, not copied. A take is cheap to fork.
+
+17. **ROUTINE CLIP HITS FIRE ON THE RECORDED LAYER.** Verbatim: "recorded".
+
+18. **OVERRIDE AND EDIT MODEL — his own words, and they match the spec's TOUCH + OVERWRITE.**
+    Verbatim: "The knob will supersede whatever is happening, And will snap back to the recorded
+    track as soon as it is let go. It could be in record over mode or it could just be in play
+    mode and play mode. The timeline doesn't change and then record mode. The timeline is updated
+    based on the knob movement. Also, if we don't wanna move the knob and we just stop the
+    timeline, we can drag the individual points. We could also have a way to set the resolution so
+    we can drag a few points."
+    - The hand always wins, and hand-back is a SNAP-BACK to the recorded lane on release
+      (consistent with the glide-back rule everywhere else — same behaviour, his words for it).
+    - TWO MODES: **play** (your move is temporary, the lane is unchanged) and **record-over**
+      (your move rewrites the lane). This is exactly the spec's TOUCH default + OVERWRITE-when-armed.
+    - Editing without touching a knob: stop the timeline and drag points directly.
+    - **He asked for a RESOLUTION control himself**, and named the reason: "if we have 30 frames
+      per second, that is a lot of points to drag." He is asking for the design; see the
+      point-editing answer filed alongside this.
+
+19. **AUDIO CAPTURE IS A SWITCH.** Verbatim: "we can save audio or not. use a switch." This
+    REFINES ruling 12: audio is still part of a take by design, but capturing it is user-controlled
+    rather than unconditional. Default on; the switch is real, not a hidden setting.
+
+20. **ROUTINES BANK vs GRID: HARMONY'S CALL.** Verbatim: "whatever is cleaner or more universal."
+    DECIDED: **its own bank of pads**, per the architect's recommendation. A routine spans many
+    layers and parameters at once, so putting it in a clip cell — which means "one clip on one
+    layer" everywhere else in the app — would overload a cell's meaning. A separate bank keeps
+    both concepts honest and is the more universal shape.
+
+21. **STILL OWED HIM: question 3 (routine once-vs-loop) was asked without context.** Verbatim:
+    "what is this in reference to?" — a fair complaint about the question, not an answer. Re-put in
+    plain terms with the concept explained first. DO NOT count it as answered.
