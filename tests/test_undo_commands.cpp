@@ -2369,10 +2369,42 @@ TEST_CASE("TriggerClipCmd: pendingTriggerColumn-only change pushes, merges, roun
 }
 
 // ===========================================================================
-// L5 Quantize fix round — the pending-trigger queue itself (Layer/Deck level,
-// no MainComponent needed) plus the two cancellation fixes (deck-switch,
-// clearActiveClip). Round 1 shipped the wiring with zero automated coverage on
-// exactly this surface; these five close that gap.
+// L5 Quantize fix round — Round 1 shipped the pending-trigger queue and its
+// cancellation paths with zero automated coverage on exactly this surface;
+// this block (and its follow-on rounds below, appended as later gaps were
+// found) closes that gap. Deliberately described by MECHANISM rather than a
+// hardcoded case count — a fixed number here goes stale the moment a future
+// round appends another case, which is exactly how the count this comment
+// used to carry (naming a fixed number of tests) went stale twice already.
+// Covers, at the Layer/Deck level (no MainComponent needed):
+//   - the queue itself: a forced-snap trigger queues instead of firing
+//     immediately (Layer::triggerClip);
+//   - granularity: the queued override picks the drain condition
+//     (Layer::processPendingTrigger), independent of the target clip's own
+//     beatSnapMode;
+//   - column fan-out: a column trigger queues on every non-ignoring layer of
+//     a deck and skips ignoring ones (Deck::triggerColumn);
+//   - the undo/redo round-trip of the new pendingTriggerSnapOverride field
+//     through TriggerClipCmd's snapshot capture/apply;
+//   - and cancellation on each of the FIVE paths that can deactivate a deck
+//     or a layer's active clip out from under a still-queued trigger: a deck
+//     switch (SwitchDeckCmd), adding a new deck (AddDeckCmd, the Deck-menu
+//     "New" command, which appends to the deck list and activates the new
+//     entry), undoing a
+//     deck removal (RemoveDeckCmd::undo() reactivating whatever deck the
+//     removal's clamp had deactivated), Layer::clearActiveClip() (the
+//     X-button clear and everything that routes through it, e.g. Clear Deck /
+//     Clear Layer Clips), and appendDeckFromFile's deck-append
+//     (MainComponent.cpp — loading a deck from a file, which also reassigns
+//     activeDeckIndex). All five share the same cancelPendingTriggers()
+//     mechanism in the app, but ONLY THE FIRST FOUR ARE TESTED HERE:
+//     appendDeckFromFile needs a live MainComponent (file I/O, the GL fence,
+//     the renderer) and is not reachable from this headless test target. That
+//     fifth path is fixed in code and deliberately UNCOVERED by this file —
+//     naming it here so the gap is visible instead of silently rounding to
+//     "four" (this comment previously said "four" without naming a fifth
+//     path that exists; if this path ever becomes testable, the coverage it
+//     needs is the same shape as the other four above).
 // ===========================================================================
 
 TEST_CASE("Layer::triggerClip: forced snap queues a non-active column instead of firing immediately", "[layer][trigger][quantize]")
